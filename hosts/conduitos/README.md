@@ -21,11 +21,15 @@ cargo xtask conduitos prove --arch x86-64 --locked
 The command mechanically checks the executable, assembles the same hybrid
 BIOS/UEFI ISO twice, requires identical digests, and validates two real QEMU
 boots with fresh `HostId` and `BootId` values. Each boot must emit exactly one
-bounded boot Sign and one correlated kernel Sign proving the finite Host
-offer, admitted memory, single execution lane, timer wake, serial
-presentation, empty pending-operation set, and production scheduler identity.
-It writes the evidence record to
-`target/conduitos/x86_64/kernel-proof.json`.
+bounded boot Sign, one correlated kernel Sign, and one ordinary bounded
+Observatory v2 snapshot. The snapshot carries the exact Host offer, seven
+machine Bases, resources, Plan, placements, capacity-one Cord, terminal Play,
+current and historical Signs, retention accounting, and sealed Limine boot
+provenance. The proof feeds the first snapshot through the headless native
+Patchbay linear consumer and requires the same exact identities and
+distinctions. It writes the evidence record and consumable snapshot to
+`target/conduitos/x86_64/kernel-proof.json` and
+`target/conduitos/x86_64/observatory-snapshot.json`.
 
 The proof requires `curl`, `make`, `tar`, `xorriso`, and
 `qemu-system-x86_64`. Missing tools, unsupported architecture backends,
@@ -41,6 +45,12 @@ arena is sealed at Play start and the proof requires its usage to remain
 unchanged through terminal completion. The old hand-lowered P2/P3 profile is
 compiled only as a regression-test fixture.
 
-This slice adds no preemption, SMP, framebuffer, network, Patchbay control, or
-second runtime and does not activate the other architecture backends. Native
-bounded observability remains the next acceptance slice in issue #588.
+The snapshot is prepared inside the admitted arena before Play, bounded to 64
+KiB, and emitted only after the expected terminal kernel result is verified.
+Limine and firmware facts appear only under `BOOT PROVENANCE [SEALED]`; they
+are not live offers, Bases, services, or authority. Patchbay remains read-only
+and receives no QEMU-memory or ConduitOS-private inspection path.
+
+This slice adds no preemption, SMP, framebuffer implementation, network,
+Patchbay control, second runtime, or additional executable architecture
+backend. Broader ConduitOS profiles remain frozen unless separately promoted.

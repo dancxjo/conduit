@@ -89,6 +89,7 @@ fn snapshot(
     ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.to_owned(),
         hosts,
+        bases: Vec::new(),
         lines: lines
             .into_iter()
             .map(|offer| LineReport {
@@ -99,6 +100,8 @@ fn snapshot(
         plays,
         plans: vec![plan],
         observations,
+        historical_observations: Vec::new(),
+        sealed_boot_provenance: Vec::new(),
         retention: RetentionReport {
             item_capacity: 32,
             retained_items,

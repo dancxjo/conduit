@@ -238,6 +238,7 @@ impl PatchbayModel {
                 state,
                 capabilities,
             }],
+            bases: Vec::new(),
             lines: Vec::new(),
             plans: Vec::new(),
             plays: Vec::new(),
@@ -247,6 +248,8 @@ impl PatchbayModel {
                 dropped_items: 0,
             },
             observations,
+            historical_observations: Vec::new(),
+            sealed_boot_provenance: Vec::new(),
         }
     }
 }

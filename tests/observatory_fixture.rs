@@ -197,6 +197,7 @@ fn observatory_fixture_report() -> Result<String, String> {
                 state: OperationalState::Available,
             })
             .collect(),
+        bases: Vec::new(),
         lines: line_offers
             .into_iter()
             .map(|offer| LineReport {
@@ -212,6 +213,8 @@ fn observatory_fixture_report() -> Result<String, String> {
             dropped_items: 0,
         },
         observations,
+        historical_observations: Vec::new(),
+        sealed_boot_provenance: Vec::new(),
     };
     let report = build_report(&snapshot)?;
     Ok(format!(

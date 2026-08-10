@@ -4,6 +4,7 @@ use std::path::PathBuf;
 pub struct Arguments {
     pub exit_after_window: bool,
     pub snapshot_path: Option<PathBuf>,
+    pub linear_snapshot_path: Option<PathBuf>,
     pub form_path: Option<PathBuf>,
     pub control_demo: bool,
     pub control_demo_stop: bool,
@@ -25,6 +26,14 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
                     arguments
                         .next()
                         .ok_or("--observatory-snapshot requires a path")?
+                        .into(),
+                );
+            }
+            "--linear-observatory-snapshot" if parsed.linear_snapshot_path.is_none() => {
+                parsed.linear_snapshot_path = Some(
+                    arguments
+                        .next()
+                        .ok_or("--linear-observatory-snapshot requires a path")?
                         .into(),
                 );
             }

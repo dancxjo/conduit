@@ -9,14 +9,19 @@ authority, install bases, discover hosts, or maintain fleet membership.
 One versioned `ObservatorySnapshot` contains:
 
 - exact host advertisements plus separately reported host and capability state;
+- exact boot-scoped Host Base identity, kind, state, and finite capacity,
+  separately from semantic offers and resources;
 - exact directional `LinkBinding` observations and their separately reported
   operational state;
 - verified plans and fragments;
 - boot-scoped active and terminal Play reports;
 - per-Play placement and connection lifecycle, terminal disposition, failure,
   and optional measured pressure;
-- runtime-issued observations with distinct Play, presentation, and Sign
-  identities;
+- current and retained historical runtime-issued observations with distinct
+  Play, presentation, and Sign identities;
+- optional sealed historical boot provenance tied to one reported Host/Boot,
+  including adapter, image/build, normalized memory summary, artifacts,
+  framebuffer basis, and proof classification;
 - a finite retention capacity, retained item count, and dropped item count.
 
 Missing facts remain unknown. In particular, the projection does not infer
@@ -24,9 +29,10 @@ reachability from membership, authority from availability, or pressure events
 from planned queue limits.
 
 `validate_snapshot` rejects unsupported schemas, invalid or duplicate plans,
-duplicate hosts/boots, links whose endpoints lack exact host reports, Plays or
-Sign naming unknown identities, presentation Sign without a Play, and
-inconsistent retention accounting.
+duplicate hosts/boots/Bases/provenance, Bases or provenance naming unknown
+Host/Boot identities, links whose endpoints lack exact host reports, Plays or
+Signs naming unknown identities, presentation Signs without a Play, invalid
+framebuffer provenance, and inconsistent retention accounting.
 
 ## Operator path
 
@@ -50,10 +56,11 @@ runtime work. A tampered host/boot or other unresolved identity fails closed.
 
 ## Structured representation
 
-The report provides complete table-shaped rows for hosts, capabilities, links,
-plans, fragments, placements, connections, Plays, Play placements, Play
-connections, Sign, and retention. Text rendering uses those same rows; no
-graph canvas or UI state is required.
+The v2 report provides complete table-shaped rows for hosts, capabilities,
+Bases, Lines, plans, fragments, placements, connections, Plays, Play
+placements, Play connections, current/historical Signs, sealed boot
+provenance, and retention. Text rendering and Patchbay's deterministic linear
+projection use those same rows; no graph canvas or UI state is required.
 
 Capabilities keep kind, contract, execution profile, implementation, limits,
 freshness, support, and availability separate. Plays keep plan, host, boot,
@@ -63,6 +70,8 @@ producer supplies measurements.
 
 Host-level `SignGap` counts and snapshot-level retention loss are summed for
 visibility while remaining separately described in the retention explanation.
+Sealed boot provenance is historical input only. It is not projected as a
+live offer, Base, service, availability fact, or authority source.
 
 ## Checkpoint commands
 

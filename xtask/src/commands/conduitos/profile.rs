@@ -28,6 +28,7 @@ pub struct Paths {
     pub limine_archive: PathBuf,
     pub limine: PathBuf,
     pub proof: PathBuf,
+    pub observatory_snapshot: PathBuf,
 }
 
 impl Paths {
@@ -46,6 +47,7 @@ impl Paths {
                 .join("target/conduitos/vendor")
                 .join(format!("limine-binary-{LIMINE_VERSION}")),
             proof: target.join("kernel-proof.json"),
+            observatory_snapshot: target.join("observatory-snapshot.json"),
             root,
             target,
         })

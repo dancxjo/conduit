@@ -66,19 +66,9 @@ impl PatchbayTopology {
     pub fn ingest(&mut self, snapshot: &ObservatorySnapshot) -> Result<(), TopologyViewError> {
         let report = build_report(snapshot).map_err(TopologyViewError::InvalidReport)?;
         let report_bytes = conduit_observatory::render_text_report(&report).len();
-        let presentation_lines = 4usize
-            .saturating_add(report.hosts.len())
-            .saturating_add(report.capabilities.len())
-            .saturating_add(
-                report
-                    .hosts
-                    .iter()
-                    .map(|host| host.planner_capabilities.len() + host.resources.len())
-                    .sum::<usize>(),
-            )
-            .saturating_add(report.lines.len())
-            .saturating_add(report.signs.len());
-        if report_bytes > MAX_RETAINED_REPORT_BYTES || presentation_lines > MAX_TOPOLOGY_LINES {
+        if report_bytes > MAX_RETAINED_REPORT_BYTES
+            || topology_line_upper_bound(&report) > MAX_TOPOLOGY_LINES
+        {
             return Err(TopologyViewError::ReportTooLarge);
         }
         if self.history.len() == self.history_capacity {
@@ -108,7 +98,6 @@ impl PatchbayTopology {
     /// Builds a sorted presentation copy. Filtering and sorting never mutate
     /// either the retained report or its Conduit facts.
     pub fn document(&self, filter: Option<&str>) -> Result<TopologyDocument, TopologyViewError> {
-        let report = self.current_report();
         let mut lines = Vec::new();
         push_line(
             &mut lines,
@@ -119,127 +108,17 @@ impl PatchbayTopology {
                 self.dropped_reports()
             ),
         )?;
-        let Some(report) = report else {
+        let Some(report) = self.current_report() else {
             push_line(&mut lines, "HOSTS none reported".into())?;
-            push_line(&mut lines, "LINKS none reported".into())?;
+            push_line(&mut lines, "LINES none reported".into())?;
             return Ok(TopologyDocument { lines });
         };
-
-        let mut hosts = report.hosts.iter().collect::<Vec<_>>();
-        hosts.sort_by(|left, right| {
-            (&left.host_id, &left.boot_id).cmp(&(&right.host_id, &right.boot_id))
-        });
-        push_line(&mut lines, format!("HOSTS {}", hosts.len()))?;
-        for host in hosts {
-            push_line(
-                &mut lines,
-                format!(
-                    "  host={} boot={} state={:?} profile={} generation={}",
-                    host.host_id.as_str(),
-                    host.boot_id.as_str(),
-                    host.state,
-                    host.profile.as_str(),
-                    host.offer_generation.0
-                ),
-            )?;
-            let mut capabilities = report
-                .capabilities
-                .iter()
-                .filter(|row| row.host_id == host.host_id && row.boot_id == host.boot_id)
-                .collect::<Vec<_>>();
-            capabilities.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-            for capability in capabilities {
-                push_line(
-                    &mut lines,
-                    format!(
-                        "    operation={} kind={} contract={} support={:?} availability={:?} freshness={:?}",
-                        capability.capability_id.as_str(),
-                        capability.kind_id.as_str(),
-                        capability.kind_contract_revision.as_str(),
-                        capability.support,
-                        capability.availability,
-                        capability.freshness
-                    ),
-                )?;
-            }
-            let mut planners = host.planner_capabilities.iter().collect::<Vec<_>>();
-            planners.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
-            for planner in planners {
-                push_line(
-                    &mut lines,
-                    format!(
-                        "    planner={} hosts={} operations={} connections={}",
-                        planner.profile_id.as_str(),
-                        planner.limits.maximum_host_advertisements,
-                        planner.limits.maximum_gears,
-                        planner.limits.maximum_connections
-                    ),
-                )?;
-            }
-            let mut resources = host.resources.iter().collect::<Vec<_>>();
-            resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-            for resource in resources {
-                push_line(
-                    &mut lines,
-                    format!(
-                        "    resource={} class={} capacity={}",
-                        resource.pool_id.as_str(),
-                        resource.class_id.as_str(),
-                        resource.capacity_units
-                    ),
-                )?;
-            }
-        }
-
-        let mut links = report.lines.iter().collect::<Vec<_>>();
-        links.sort_by(|left, right| {
-            left.offer
-                .binding
-                .binding_id
-                .cmp(&right.offer.binding.binding_id)
-        });
-        push_line(&mut lines, format!("LINKS {}", links.len()))?;
-        for link in links {
-            push_line(
-                &mut lines,
-                format!(
-                    "  link={} {}@{} -> {}@{} base={:?} instance={} report={:?} availability={:?}",
-                    link.offer.binding.binding_id.as_str(),
-                    link.offer.binding.source.host_id.as_str(),
-                    link.offer.binding.source.boot_id.as_str(),
-                    link.offer.binding.sink.host_id.as_str(),
-                    link.offer.binding.sink.boot_id.as_str(),
-                    link.offer.binding.base,
-                    link.offer.binding.base_instance_id.as_str(),
-                    link.state,
-                    link.offer.availability.availability
-                ),
-            )?;
-        }
-
-        push_line(
-            &mut lines,
-            format!(
-                "OBSERVATIONS {} retained={} capacity={} visible_gaps={}",
-                report.signs.len(),
-                report.retention.retained_items,
-                report.retention.item_capacity,
-                report.retention.visible_gap_count
-            ),
-        )?;
-        for sign in &report.signs {
-            push_line(
-                &mut lines,
-                format!(
-                    "  sign={} host={} boot={} kind={:?}",
-                    sign.sign_id.as_str(),
-                    sign.host_id.as_str(),
-                    sign.boot_id.as_str(),
-                    sign.kind
-                ),
-            )?;
-        }
-
+        render_hosts(&mut lines, report)?;
+        render_bases(&mut lines, report)?;
+        render_plans_and_plays(&mut lines, report)?;
+        render_lines(&mut lines, report)?;
+        render_signs(&mut lines, report)?;
+        render_provenance(&mut lines, report)?;
         if let Some(filter) = filter {
             let header = lines.remove(0);
             lines.retain(|line| line.contains(filter));
@@ -247,6 +126,334 @@ impl PatchbayTopology {
         }
         Ok(TopologyDocument { lines })
     }
+}
+
+fn render_hosts(
+    lines: &mut Vec<String>,
+    report: &ObservatoryReport,
+) -> Result<(), TopologyViewError> {
+    let mut hosts = report.hosts.iter().collect::<Vec<_>>();
+    hosts.sort_by(|left, right| {
+        (&left.host_id, &left.boot_id).cmp(&(&right.host_id, &right.boot_id))
+    });
+    push_line(lines, format!("HOSTS {}", hosts.len()))?;
+    for host in hosts {
+        push_line(
+            lines,
+            format!(
+                "  HOST {} / BOOT {} state={:?} profile={} generation={}",
+                host.host_id.as_str(),
+                host.boot_id.as_str(),
+                host.state,
+                host.profile.as_str(),
+                host.offer_generation.0
+            ),
+        )?;
+        let mut capabilities = report
+            .capabilities
+            .iter()
+            .filter(|row| row.host_id == host.host_id && row.boot_id == host.boot_id)
+            .collect::<Vec<_>>();
+        capabilities.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+        for capability in capabilities {
+            push_line(
+                lines,
+                format!(
+                    "    OFFER {} kind={} contract={} implementation={} support={:?} availability={:?} freshness={:?}",
+                    capability.capability_id.as_str(),
+                    capability.kind_id.as_str(),
+                    capability.kind_contract_revision.as_str(),
+                    capability.implementation_id.as_str(),
+                    capability.support,
+                    capability.availability,
+                    capability.freshness
+                ),
+            )?;
+        }
+        let mut planners = host.planner_capabilities.iter().collect::<Vec<_>>();
+        planners.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
+        for planner in planners {
+            push_line(
+                lines,
+                format!(
+                    "    PLANNER {} hosts={} operations={} connections={}",
+                    planner.profile_id.as_str(),
+                    planner.limits.maximum_host_advertisements,
+                    planner.limits.maximum_gears,
+                    planner.limits.maximum_connections
+                ),
+            )?;
+        }
+        let mut resources = host.resources.iter().collect::<Vec<_>>();
+        resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+        for resource in resources {
+            push_line(
+                lines,
+                format!(
+                    "    RESOURCE {} class={} capacity={}",
+                    resource.pool_id.as_str(),
+                    resource.class_id.as_str(),
+                    resource.capacity_units
+                ),
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn render_bases(
+    lines: &mut Vec<String>,
+    report: &ObservatoryReport,
+) -> Result<(), TopologyViewError> {
+    let mut bases = report.bases.iter().collect::<Vec<_>>();
+    bases.sort_by(|left, right| left.base_id.cmp(&right.base_id));
+    push_line(lines, format!("BASES {}", bases.len()))?;
+    for base in bases {
+        push_line(
+            lines,
+            format!(
+                "  BASE {} kind={} host={} boot={} state={:?} capacity={}",
+                base.base_id.as_str(),
+                base.kind_id.as_str(),
+                base.host_id.as_str(),
+                base.boot_id.as_str(),
+                base.state,
+                base.capacity_units
+            ),
+        )?;
+    }
+    Ok(())
+}
+
+fn render_plans_and_plays(
+    lines: &mut Vec<String>,
+    report: &ObservatoryReport,
+) -> Result<(), TopologyViewError> {
+    push_line(lines, format!("PLANS {}", report.plans.len()))?;
+    for plan in &report.plans {
+        push_line(
+            lines,
+            format!(
+                "  PLAN {} source={} checked={} expanded={} fragments={} placements={} connections={}",
+                plan.plan_id.as_str(),
+                plan.source_document_id.as_str(),
+                plan.checked_form_id.as_str(),
+                plan.expanded_form_id.as_str(),
+                plan.fragment_count,
+                plan.placement_count,
+                plan.connection_count
+            ),
+        )?;
+    }
+    for fragment in &report.fragments {
+        push_line(
+            lines,
+            format!(
+                "    FRAGMENT {} plan={} host={} boot={}",
+                fragment.fragment_id.as_str(),
+                fragment.plan_id.as_str(),
+                fragment.host_id.as_str(),
+                fragment.boot_id.as_str()
+            ),
+        )?;
+    }
+    for placement in &report.placements {
+        push_line(
+            lines,
+            format!(
+                "    PLACEMENT {} plan={} host={} boot={} capability={} implementation={}",
+                placement.placement_id.as_str(),
+                placement.plan_id.as_str(),
+                placement.host_id.as_str(),
+                placement.boot_id.as_str(),
+                placement.capability_id.as_str(),
+                placement.implementation_id.as_str()
+            ),
+        )?;
+    }
+    for connection in &report.connections {
+        push_line(
+            lines,
+            format!(
+                "    CORD {} plan={} source={} sink={} info={} items={} bytes={}",
+                connection.connection_id.as_str(),
+                connection.plan_id.as_str(),
+                connection.source_placement_id.as_str(),
+                connection.sink_placement_id.as_str(),
+                connection.value_kind.as_str(),
+                connection.item_capacity,
+                connection.byte_capacity
+            ),
+        )?;
+    }
+    push_line(lines, format!("PLAYS {}", report.plays.len()))?;
+    for play in &report.plays {
+        push_line(
+            lines,
+            format!(
+                "  PLAY {} plan={} host={} boot={} lifecycle={:?} terminal={:?}",
+                play.active_play_id.as_str(),
+                play.plan_id.as_str(),
+                play.host_id.as_str(),
+                play.boot_id.as_str(),
+                play.lifecycle,
+                play.terminal_disposition
+            ),
+        )?;
+        for placement in &play.placements {
+            push_line(
+                lines,
+                format!(
+                    "    PLAY PLACEMENT {} lifecycle={:?} terminal={:?}",
+                    placement.placement_id.as_str(),
+                    placement.lifecycle,
+                    placement.terminal_disposition
+                ),
+            )?;
+        }
+        for connection in &play.connections {
+            push_line(
+                lines,
+                format!(
+                    "    PLAY CORD {} lifecycle={:?} pressure={:?}",
+                    connection.connection_id.as_str(),
+                    connection.lifecycle,
+                    connection.pressure
+                ),
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn render_lines(
+    lines: &mut Vec<String>,
+    report: &ObservatoryReport,
+) -> Result<(), TopologyViewError> {
+    let mut links = report.lines.iter().collect::<Vec<_>>();
+    links.sort_by(|left, right| {
+        left.offer
+            .binding
+            .binding_id
+            .cmp(&right.offer.binding.binding_id)
+    });
+    push_line(lines, format!("LINES {}", links.len()))?;
+    for link in links {
+        push_line(
+            lines,
+            format!(
+                "  LINE {} {}@{} -> {}@{} base={:?} instance={} report={:?} availability={:?}",
+                link.offer.binding.binding_id.as_str(),
+                link.offer.binding.source.host_id.as_str(),
+                link.offer.binding.source.boot_id.as_str(),
+                link.offer.binding.sink.host_id.as_str(),
+                link.offer.binding.sink.boot_id.as_str(),
+                link.offer.binding.base,
+                link.offer.binding.base_instance_id.as_str(),
+                link.state,
+                link.offer.availability.availability
+            ),
+        )?;
+    }
+    Ok(())
+}
+
+fn render_signs(
+    lines: &mut Vec<String>,
+    report: &ObservatoryReport,
+) -> Result<(), TopologyViewError> {
+    push_line(
+        lines,
+        format!(
+            "SIGNS {} retained={} capacity={} visible_gaps={}",
+            report.signs.len(),
+            report.retention.retained_items,
+            report.retention.item_capacity,
+            report.retention.visible_gap_count
+        ),
+    )?;
+    for sign in &report.signs {
+        push_line(
+            lines,
+            format!(
+                "  SIGN {} history={} host={} boot={} kind={:?}",
+                sign.sign_id.as_str(),
+                if sign.historical {
+                    "historical"
+                } else {
+                    "current"
+                },
+                sign.host_id.as_str(),
+                sign.boot_id.as_str(),
+                sign.kind
+            ),
+        )?;
+    }
+    Ok(())
+}
+
+fn render_provenance(
+    lines: &mut Vec<String>,
+    report: &ObservatoryReport,
+) -> Result<(), TopologyViewError> {
+    push_line(
+        lines,
+        format!(
+            "BOOT PROVENANCE [SEALED] {}",
+            report.sealed_boot_provenance.len()
+        ),
+    )?;
+    for provenance in &report.sealed_boot_provenance {
+        push_line(
+            lines,
+            format!(
+                "  SEALED host={} boot={} firmware={} adapter={} version={} revision={} image={} build={} memory-regions={} arena-bytes={} artifacts={} framebuffers={} proof={:?}",
+                provenance.host_id.as_str(),
+                provenance.boot_id.as_str(),
+                provenance.firmware_environment,
+                provenance.adapter_name,
+                provenance.adapter_version,
+                provenance.adapter_revision,
+                provenance.image_id.as_str(),
+                provenance.build_id.as_str(),
+                provenance.memory_map.normalized_region_count,
+                provenance.memory_map.runtime_arena_bytes,
+                provenance.boot_artifacts.len(),
+                provenance.framebuffers.len(),
+                provenance.proof_class
+            ),
+        )?;
+    }
+    Ok(())
+}
+
+fn topology_line_upper_bound(report: &ObservatoryReport) -> usize {
+    7usize
+        .saturating_add(report.hosts.len())
+        .saturating_add(report.capabilities.len())
+        .saturating_add(report.bases.len())
+        .saturating_add(report.plans.len())
+        .saturating_add(report.fragments.len())
+        .saturating_add(report.placements.len())
+        .saturating_add(report.connections.len())
+        .saturating_add(report.plays.len())
+        .saturating_add(report.lines.len())
+        .saturating_add(report.signs.len())
+        .saturating_add(report.sealed_boot_provenance.len())
+        .saturating_add(
+            report
+                .hosts
+                .iter()
+                .map(|host| host.planner_capabilities.len() + host.resources.len())
+                .sum::<usize>(),
+        )
+        .saturating_add(
+            report
+                .plays
+                .iter()
+                .map(|play| play.placements.len() + play.connections.len())
+                .sum::<usize>(),
+        )
 }
 
 fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), TopologyViewError> {
@@ -258,232 +465,5 @@ fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), TopologyViewEr
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_core::{BootId, HostId, LineAvailability, Observation, ObservationKind, SignId};
-    use conduit_observatory::{
-        CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
-        ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
-    };
-
-    fn host_report(
-        advertisement: conduit_core::HostAdvertisement,
-        state: OperationalState,
-    ) -> HostReport {
-        let capabilities = advertisement
-            .capabilities
-            .iter()
-            .map(|offer| CapabilityStatusReport {
-                capability_id: offer.capability_id.clone(),
-                freshness: if state == OperationalState::Stale {
-                    OfferFreshness::Stale
-                } else {
-                    OfferFreshness::Fresh
-                },
-                support: CapabilitySupport::Supported,
-                availability: if state == OperationalState::Available {
-                    CapabilityAvailability::Available
-                } else {
-                    CapabilityAvailability::Unavailable
-                },
-            })
-            .collect();
-        HostReport {
-            advertisement,
-            state,
-            capabilities,
-        }
-    }
-
-    fn fleet_snapshot(link_available: bool) -> ObservatorySnapshot {
-        let exact = conduit_signal::triple::exact_plan().unwrap();
-        let laptop = exact.source_advertisement;
-        let browser_new = exact.browser_advertisement;
-        let mut browser_old = browser_new.clone();
-        browser_old.boot_id = BootId::from("s4/triple-browser-old-boot");
-        let pico = exact.pico_advertisement;
-        let websocket = exact.browser_line;
-        let mut usb = exact.pico_line;
-        if !link_available {
-            usb.availability.availability = LineAvailability::Unavailable;
-        }
-        let observations = vec![Observation {
-            sign_id: SignId::from("fleet/sign-1"),
-            active_play_id: None,
-            presentation_id: None,
-            host_id: laptop.host_id.clone(),
-            boot_id: laptop.boot_id.clone(),
-            plan_id: None,
-            placement_id: None,
-            connection_id: None,
-            kind: ObservationKind::AdvertisementPublished,
-        }];
-        ObservatorySnapshot {
-            schema: SNAPSHOT_SCHEMA.into(),
-            hosts: vec![
-                host_report(laptop, OperationalState::Available),
-                host_report(browser_old, OperationalState::Stale),
-                host_report(browser_new, OperationalState::Available),
-                host_report(pico, OperationalState::Available),
-            ],
-            lines: vec![
-                LineReport {
-                    offer: websocket,
-                    state: OperationalState::Available,
-                },
-                LineReport {
-                    offer: usb,
-                    state: if link_available {
-                        OperationalState::Available
-                    } else {
-                        OperationalState::Unreachable
-                    },
-                },
-            ],
-            plans: vec![exact.plan],
-            plays: Vec::new(),
-            retention: RetentionReport {
-                item_capacity: 2,
-                retained_items: 1,
-                dropped_items: 3,
-            },
-            observations,
-        }
-    }
-
-    #[test]
-    fn bounded_fleet_view_keeps_exact_boot_capability_resource_link_and_gap_facts() {
-        let mut topology = PatchbayTopology::new(2).unwrap();
-        topology.ingest(&fleet_snapshot(true)).unwrap();
-        let document = topology.document(None).unwrap().lines().join("\n");
-
-        assert!(
-            document.contains("host=s4/triple-browser boot=s4/triple-browser-old-boot state=Stale")
-        );
-        assert!(
-            document.contains("host=s4/triple-browser boot=s4/triple-browser-boot state=Available")
-        );
-        assert!(document.contains("operation="));
-        assert!(document.contains("resource="));
-        assert!(document.contains("base=WebSocket"));
-        assert!(document.contains("base=UsbCdc"));
-        assert!(document.contains("visible_gaps=3"));
-    }
-
-    #[test]
-    fn link_update_changes_only_reported_availability_and_retention_is_visible() {
-        let mut topology = PatchbayTopology::new(2).unwrap();
-        let available = fleet_snapshot(true);
-        let unavailable = fleet_snapshot(false);
-        let plan_before = available.plans[0].plan_id.clone();
-        topology.ingest(&available).unwrap();
-        topology.ingest(&unavailable).unwrap();
-        topology.ingest(&available).unwrap();
-
-        assert_eq!(topology.retained_reports(), 2);
-        assert_eq!(topology.dropped_reports(), 1);
-        let current = topology.current_report().unwrap();
-        assert_eq!(current.plans[0].plan_id, plan_before);
-        assert_eq!(current.hosts[0].host_id, HostId::from("s4/triple-std"));
-        let document = topology.document(None).unwrap().lines().join("\n");
-        assert!(document.contains("retained=2 capacity=2 dropped=1"));
-        assert!(document.contains("availability=Ready"));
-    }
-
-    #[test]
-    fn portable_planner_offers_are_visible_only_when_the_report_advertises_them() {
-        let model = crate::PatchbayModel::with_identity(
-            HostId::from("patchbay-planner-host"),
-            BootId::from("patchbay-planner-boot"),
-        );
-        let mut topology = PatchbayTopology::new(1).unwrap();
-        topology.ingest(&model.startup_snapshot()).unwrap();
-        let document = topology.document(None).unwrap().lines().join("\n");
-
-        assert!(document.contains("planner=conduit.planner/full@1"));
-        assert_eq!(
-            topology.current_report().unwrap().hosts[0]
-                .planner_capabilities
-                .len(),
-            1
-        );
-    }
-
-    #[test]
-    fn absent_reports_and_presentation_controls_cannot_invent_facts() {
-        let topology = PatchbayTopology::new(1).unwrap();
-        let empty = topology.document(Some("invented")).unwrap();
-        assert_eq!(
-            empty.lines(),
-            &[
-                "CURRENT REPORTS retained=0 capacity=1 dropped=0".to_string(),
-                "HOSTS none reported".to_string(),
-                "LINKS none reported".to_string()
-            ]
-        );
-
-        let mut topology = PatchbayTopology::new(1).unwrap();
-        topology.ingest(&fleet_snapshot(true)).unwrap();
-        let before = topology.current_report().unwrap().clone();
-        let filtered = topology.document(Some("pico")).unwrap();
-        assert!(filtered
-            .lines()
-            .iter()
-            .all(|line| { line.starts_with("CURRENT REPORTS") || line.contains("pico") }));
-        assert_eq!(&before, topology.current_report().unwrap());
-        assert!(!filtered
-            .lines()
-            .iter()
-            .any(|line| line.contains("invented")));
-    }
-
-    #[test]
-    fn invalid_input_does_not_replace_the_last_valid_report() {
-        let mut topology = PatchbayTopology::new(1).unwrap();
-        topology.ingest(&fleet_snapshot(true)).unwrap();
-        let before = topology.current_report().unwrap().clone();
-        let mut invalid = fleet_snapshot(true);
-        invalid.schema = "unknown".into();
-
-        assert!(matches!(
-            topology.ingest(&invalid),
-            Err(TopologyViewError::InvalidReport(_))
-        ));
-        assert_eq!(&before, topology.current_report().unwrap());
-    }
-
-    #[test]
-    fn oversized_report_is_rejected_before_it_enters_retained_history() {
-        let model = crate::PatchbayModel::with_identity(
-            HostId::from("bounded-host"),
-            BootId::from("bounded-boot"),
-        );
-        let mut hosts = Vec::new();
-        for index in 0..130 {
-            let mut advertisement = model.advertisement().clone();
-            advertisement.host_id = HostId::from(format!("host-{index}"));
-            advertisement.boot_id = BootId::from(format!("boot-{index}"));
-            hosts.push(host_report(advertisement, OperationalState::Available));
-        }
-        let oversized = ObservatorySnapshot {
-            schema: SNAPSHOT_SCHEMA.into(),
-            hosts,
-            lines: Vec::new(),
-            plans: Vec::new(),
-            plays: Vec::new(),
-            observations: Vec::new(),
-            retention: RetentionReport {
-                item_capacity: 0,
-                retained_items: 0,
-                dropped_items: 0,
-            },
-        };
-        let mut topology = PatchbayTopology::new(1).unwrap();
-
-        assert_eq!(
-            topology.ingest(&oversized),
-            Err(TopologyViewError::ReportTooLarge)
-        );
-        assert_eq!(topology.retained_reports(), 0);
-    }
-}
+#[path = "topology_tests.rs"]
+mod tests;

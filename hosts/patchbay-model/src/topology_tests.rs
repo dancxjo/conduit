@@ -1,0 +1,229 @@
+use super::*;
+use conduit_core::{BootId, HostId, LineAvailability, Observation, ObservationKind, SignId};
+use conduit_observatory::{
+    CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
+    ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
+};
+
+fn host_report(
+    advertisement: conduit_core::HostAdvertisement,
+    state: OperationalState,
+) -> HostReport {
+    let capabilities = advertisement
+        .capabilities
+        .iter()
+        .map(|offer| CapabilityStatusReport {
+            capability_id: offer.capability_id.clone(),
+            freshness: if state == OperationalState::Stale {
+                OfferFreshness::Stale
+            } else {
+                OfferFreshness::Fresh
+            },
+            support: CapabilitySupport::Supported,
+            availability: if state == OperationalState::Available {
+                CapabilityAvailability::Available
+            } else {
+                CapabilityAvailability::Unavailable
+            },
+        })
+        .collect();
+    HostReport {
+        advertisement,
+        state,
+        capabilities,
+    }
+}
+
+fn fleet_snapshot(link_available: bool) -> ObservatorySnapshot {
+    let exact = conduit_signal::triple::exact_plan().unwrap();
+    let laptop = exact.source_advertisement;
+    let browser_new = exact.browser_advertisement;
+    let mut browser_old = browser_new.clone();
+    browser_old.boot_id = BootId::from("s4/triple-browser-old-boot");
+    let pico = exact.pico_advertisement;
+    let websocket = exact.browser_line;
+    let mut usb = exact.pico_line;
+    if !link_available {
+        usb.availability.availability = LineAvailability::Unavailable;
+    }
+    let observations = vec![Observation {
+        sign_id: SignId::from("fleet/sign-1"),
+        active_play_id: None,
+        presentation_id: None,
+        host_id: laptop.host_id.clone(),
+        boot_id: laptop.boot_id.clone(),
+        plan_id: None,
+        placement_id: None,
+        connection_id: None,
+        kind: ObservationKind::AdvertisementPublished,
+    }];
+    ObservatorySnapshot {
+        schema: SNAPSHOT_SCHEMA.into(),
+        hosts: vec![
+            host_report(laptop, OperationalState::Available),
+            host_report(browser_old, OperationalState::Stale),
+            host_report(browser_new, OperationalState::Available),
+            host_report(pico, OperationalState::Available),
+        ],
+        bases: Vec::new(),
+        lines: vec![
+            LineReport {
+                offer: websocket,
+                state: OperationalState::Available,
+            },
+            LineReport {
+                offer: usb,
+                state: if link_available {
+                    OperationalState::Available
+                } else {
+                    OperationalState::Unreachable
+                },
+            },
+        ],
+        plans: vec![exact.plan],
+        plays: Vec::new(),
+        retention: RetentionReport {
+            item_capacity: 2,
+            retained_items: 1,
+            dropped_items: 3,
+        },
+        observations,
+        historical_observations: Vec::new(),
+        sealed_boot_provenance: Vec::new(),
+    }
+}
+
+#[test]
+fn bounded_fleet_view_keeps_exact_boot_capability_resource_line_and_gap_facts() {
+    let mut topology = PatchbayTopology::new(2).unwrap();
+    topology.ingest(&fleet_snapshot(true)).unwrap();
+    let document = topology.document(None).unwrap().lines().join("\n");
+
+    assert!(document.contains("BOOT s4/triple-browser-old-boot state=Stale"));
+    assert!(document.contains("BOOT s4/triple-browser-boot state=Available"));
+    assert!(document.contains("OFFER"));
+    assert!(document.contains("RESOURCE"));
+    assert!(document.contains("base=WebSocket"));
+    assert!(document.contains("base=UsbCdc"));
+    assert!(document.contains("visible_gaps=3"));
+}
+
+#[test]
+fn line_update_changes_only_reported_availability_and_retention_is_visible() {
+    let mut topology = PatchbayTopology::new(2).unwrap();
+    let available = fleet_snapshot(true);
+    let unavailable = fleet_snapshot(false);
+    let plan_before = available.plans[0].plan_id.clone();
+    topology.ingest(&available).unwrap();
+    topology.ingest(&unavailable).unwrap();
+    topology.ingest(&available).unwrap();
+
+    assert_eq!(topology.retained_reports(), 2);
+    assert_eq!(topology.dropped_reports(), 1);
+    let current = topology.current_report().unwrap();
+    assert_eq!(current.plans[0].plan_id, plan_before);
+    assert_eq!(current.hosts[0].host_id, HostId::from("s4/triple-std"));
+    let document = topology.document(None).unwrap().lines().join("\n");
+    assert!(document.contains("retained=2 capacity=2 dropped=1"));
+    assert!(document.contains("availability=Ready"));
+}
+
+#[test]
+fn portable_planner_offers_are_visible_only_when_reported() {
+    let model = crate::PatchbayModel::with_identity(
+        HostId::from("patchbay-planner-host"),
+        BootId::from("patchbay-planner-boot"),
+    );
+    let mut topology = PatchbayTopology::new(1).unwrap();
+    topology.ingest(&model.startup_snapshot()).unwrap();
+    let document = topology.document(None).unwrap().lines().join("\n");
+
+    assert!(document.contains("PLANNER conduit.planner/full@1"));
+    assert_eq!(
+        topology.current_report().unwrap().hosts[0]
+            .planner_capabilities
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn absent_reports_and_presentation_controls_cannot_invent_facts() {
+    let topology = PatchbayTopology::new(1).unwrap();
+    let empty = topology.document(Some("invented")).unwrap();
+    assert_eq!(
+        empty.lines(),
+        &[
+            "CURRENT REPORTS retained=0 capacity=1 dropped=0".to_string(),
+            "HOSTS none reported".to_string(),
+            "LINES none reported".to_string(),
+        ]
+    );
+
+    let mut topology = PatchbayTopology::new(1).unwrap();
+    topology.ingest(&fleet_snapshot(true)).unwrap();
+    let before = topology.current_report().unwrap().clone();
+    let filtered = topology.document(Some("pico")).unwrap();
+    assert!(filtered
+        .lines()
+        .iter()
+        .all(|line| line.starts_with("CURRENT REPORTS") || line.contains("pico")));
+    assert_eq!(&before, topology.current_report().unwrap());
+    assert!(!filtered
+        .lines()
+        .iter()
+        .any(|line| line.contains("invented")));
+}
+
+#[test]
+fn invalid_input_does_not_replace_last_valid_report() {
+    let mut topology = PatchbayTopology::new(1).unwrap();
+    topology.ingest(&fleet_snapshot(true)).unwrap();
+    let before = topology.current_report().unwrap().clone();
+    let mut invalid = fleet_snapshot(true);
+    invalid.schema = "unknown".into();
+
+    assert!(matches!(
+        topology.ingest(&invalid),
+        Err(TopologyViewError::InvalidReport(_))
+    ));
+    assert_eq!(&before, topology.current_report().unwrap());
+}
+
+#[test]
+fn oversized_report_is_rejected_before_retained_history() {
+    let model = crate::PatchbayModel::with_identity(
+        HostId::from("bounded-host"),
+        BootId::from("bounded-boot"),
+    );
+    let mut hosts = Vec::new();
+    for index in 0..130 {
+        let mut advertisement = model.advertisement().clone();
+        advertisement.host_id = HostId::from(format!("host-{index}"));
+        advertisement.boot_id = BootId::from(format!("boot-{index}"));
+        hosts.push(host_report(advertisement, OperationalState::Available));
+    }
+    let oversized = ObservatorySnapshot {
+        schema: SNAPSHOT_SCHEMA.into(),
+        hosts,
+        bases: Vec::new(),
+        lines: Vec::new(),
+        plans: Vec::new(),
+        plays: Vec::new(),
+        observations: Vec::new(),
+        historical_observations: Vec::new(),
+        sealed_boot_provenance: Vec::new(),
+        retention: RetentionReport {
+            item_capacity: 0,
+            retained_items: 0,
+            dropped_items: 0,
+        },
+    };
+    let mut topology = PatchbayTopology::new(1).unwrap();
+
+    assert_eq!(
+        topology.ingest(&oversized),
+        Err(TopologyViewError::ReportTooLarge)
+    );
+    assert_eq!(topology.retained_reports(), 0);
+}

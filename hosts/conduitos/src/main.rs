@@ -59,6 +59,17 @@ extern "C" fn conduitos_start() -> ! {
                 Ok(prepared) => prepared,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
+            let observatory_export = match conduitos::observatory::prepare_export(
+                &record,
+                &identities,
+                &offer,
+                &prepared,
+                BUILD_ID,
+                IMAGE_ID,
+            ) {
+                Ok(export) => export,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
             let allocation_before_play = BOOT_ARENA.seal();
             arch::initialize_machine();
             let mut clock = arch::Clock::new();
@@ -88,6 +99,9 @@ extern "C" fn conduitos_start() -> ! {
                 ) {
                     Ok(sign) => {
                         arch::early_write(sign.as_bytes());
+                        arch::early_write(conduitos::observatory::EXPORT_PREFIX.as_bytes());
+                        arch::early_write(observatory_export.as_bytes());
+                        arch::early_write(b"\n");
                         arch::deterministic_exit(true);
                     }
                     Err(_) => emit_machine_refusal("kernel-sign-storage-full"),

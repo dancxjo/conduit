@@ -242,6 +242,7 @@ fn report_separates_identity_capability_plan_connection_and_sign_tables() {
     let snapshot = ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.into(),
         hosts,
+        bases: vec![],
         lines: line_offers
             .into_iter()
             .map(|offer| LineReport {
@@ -257,6 +258,8 @@ fn report_separates_identity_capability_plan_connection_and_sign_tables() {
             dropped_items: 0,
         },
         observations,
+        historical_observations: vec![],
+        sealed_boot_provenance: vec![],
     };
     let report = build_report(&snapshot).expect("neutral report projects");
     assert_eq!(report.hosts.len(), 3);
@@ -412,6 +415,7 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
     let snapshot = ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.into(),
         hosts,
+        bases: vec![],
         lines: vec![LineReport {
             offer: exact.line_offer.clone(),
             state: OperationalState::Available,
@@ -419,6 +423,8 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
         plans: vec![exact.plan],
         plays: vec![],
         observations: vec![],
+        historical_observations: vec![],
+        sealed_boot_provenance: vec![],
         retention: RetentionReport {
             item_capacity: 256,
             retained_items: 0,

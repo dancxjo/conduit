@@ -6,7 +6,7 @@ use core::fmt::Write;
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BootId, CapabilityId, ConnectionBase, ExecutionProfileId,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
-    PlanId, ResourceOffer, bind_active_play, resource_offer,
+    Plan, PlanId, ResourceOffer, bind_active_play, resource_offer,
 };
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
 use conduit_runtime::lowering::lower_plan_fragment;
@@ -21,6 +21,8 @@ pub const ORDINARY_FORM_SOURCE: &str = "form 0\n\nconduitos-ordinary {\n    cloc
 
 pub struct PreparedOrdinaryPlay {
     pub kernel: PlannedKernel,
+    pub advertisement: HostAdvertisement,
+    pub plan: Plan,
     pub source_document_id: conduit_core::SourceDocumentId,
     pub checked_form_id: conduit_core::CheckedFormId,
     pub expanded_form_id: conduit_core::ExpandedFormId,
@@ -66,7 +68,7 @@ pub fn prepare(
         .map_err(|_| PreparationError::FormRejected)?;
     let form = conduit_form::parse(ORDINARY_FORM_SOURCE, &catalog)
         .map_err(|_| PreparationError::FormRejected)?;
-    let hosts = [advertisement];
+    let hosts = [advertisement.clone()];
     let placements =
         default_placements(&form, &hosts).map_err(|_| PreparationError::PlacementRejected)?;
     let plan = plan_with_options(
@@ -111,14 +113,16 @@ pub fn prepare(
     let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     Ok(PreparedOrdinaryPlay {
         kernel,
-        source_document_id: plan.source_document_id,
-        checked_form_id: plan.checked_form_id,
-        expanded_form_id: plan.expanded_form_id,
-        plan_id: plan.plan_id,
+        advertisement,
+        source_document_id: plan.source_document_id.clone(),
+        checked_form_id: plan.checked_form_id.clone(),
+        expanded_form_id: plan.expanded_form_id.clone(),
+        plan_id: plan.plan_id.clone(),
         fragment_id: fragment.fragment_id.clone(),
         active_play,
         planned_sign_items: lowered.sign_items,
         planned_sign_bytes: lowered.sign_bytes,
+        plan,
     })
 }
 
