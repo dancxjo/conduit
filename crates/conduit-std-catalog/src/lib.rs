@@ -14,8 +14,10 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 mod functional_face;
+mod palette_metadata;
 mod tick;
 use functional_face::startup_face;
+pub use palette_metadata::*;
 pub use tick::*;
 mod tick_presentation;
 pub use tick_presentation::*;

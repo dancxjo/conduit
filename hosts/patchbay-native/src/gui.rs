@@ -9,6 +9,7 @@ use crate::{
         RegionMetrics,
     },
     icon::{draw_icon, Icon},
+    palette_view::draw_palette,
 };
 use embedded_graphics::{
     pixelcolor::Rgb888,
@@ -201,36 +202,7 @@ fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
         &format!("PALETTE /{}", palette_query),
         theme.emphasis,
     );
-    if let Ok(palette) = patchbay_model::GearPalette::standard() {
-        let entries = palette.search(palette_query).unwrap_or_default();
-        for (index, entry) in entries.into_iter().enumerate() {
-            let y = 374 + index as i32 * 27;
-            let bounds = PixelRect {
-                x: 12,
-                y,
-                width: 150,
-                height: 24,
-            };
-            frame_rect(target, bounds, theme.structure_secondary, 1);
-            icon_label(
-                target,
-                Icon::Gear,
-                Point::new(18, y + 4),
-                &format!(
-                    "{} {}>{} c{}",
-                    entry.plain_name,
-                    entry.inputs.len(),
-                    entry.outputs.len(),
-                    entry.configuration.len()
-                ),
-                theme.text_primary,
-            );
-            targets.push(HitTarget {
-                action: GuiAction::PlacePaletteKind(entry.kind_id.as_str().into()),
-                shape: HitShape::Rect(bounds),
-            });
-        }
-    }
+    draw_palette(target, palette_query, 374, theme, targets);
 }
 
 fn action_button<D: DrawTarget<Color = Rgb888>>(

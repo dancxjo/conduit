@@ -59,8 +59,8 @@ pub use interaction::{
     MAX_INTERACTION_VALUE_BYTES,
 };
 pub use palette::{
-    GearPalette, PaletteConfigurationSummary, PaletteEntry, PaletteError, MAX_PALETTE_ENTRIES,
-    MAX_PALETTE_QUERY_BYTES,
+    GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
+    PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
 };
 pub use portable_demo::portable_demonstration;
 pub use portable_projection::PortableProjectionError;

@@ -1,6 +1,7 @@
 //! Authoritative, bounded discovery projection for reusable semantic Kinds.
 
 use conduit_core::{ConfigurationValue, KindId, PortDescriptor};
+pub use conduit_std_catalog::{PaletteCategory, PaletteIconKey};
 
 pub const MAX_PALETTE_ENTRIES: usize = 64;
 pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
@@ -19,6 +20,9 @@ pub struct PaletteEntry {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<PaletteConfigurationSummary>,
+    pub category: PaletteCategory,
+    pub tags: &'static [&'static str],
+    pub icon: PaletteIconKey,
 }
 
 impl PaletteEntry {
@@ -42,6 +46,8 @@ impl PaletteEntry {
                 .configuration
                 .iter()
                 .any(|field| field.key.to_ascii_lowercase().contains(&query))
+            || self.category.label().to_ascii_lowercase().contains(&query)
+            || self.tags.iter().any(|tag| tag.contains(&query))
     }
 }
 
@@ -49,6 +55,7 @@ impl PaletteEntry {
 pub enum PaletteError {
     CatalogTooLarge,
     QueryTooLarge,
+    MissingMetadata(KindId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,9 +71,11 @@ impl GearPalette {
         if contracts.len() > MAX_PALETTE_ENTRIES {
             return Err(PaletteError::CatalogTooLarge);
         }
-        let entries = contracts
-            .into_iter()
-            .map(|contract| PaletteEntry {
+        let mut entries = Vec::with_capacity(contracts.len());
+        for contract in contracts {
+            let metadata = conduit_std_catalog::palette_metadata(&contract.kind_id)
+                .ok_or_else(|| PaletteError::MissingMetadata(contract.kind_id.clone()))?;
+            entries.push(PaletteEntry {
                 kind_id: contract.kind_id,
                 plain_name: contract.plain_name,
                 summary: contract.summary,
@@ -80,8 +89,16 @@ impl GearPalette {
                         default_value: field.default_value,
                     })
                     .collect(),
-            })
-            .collect();
+                category: metadata.category,
+                tags: metadata.tags,
+                icon: metadata.icon,
+            });
+        }
+        entries.sort_by(|left, right| {
+            left.category
+                .cmp(&right.category)
+                .then_with(|| left.plain_name.cmp(&right.plain_name))
+        });
         Ok(Self { entries })
     }
 
@@ -121,8 +138,50 @@ mod tests {
         assert_eq!(palette.search("value/count").unwrap().len(), 2);
         assert_eq!(palette.search("maximum-values").unwrap().len(), 3);
         assert_eq!(
+            palette.search("interval").unwrap()[0].kind_id.as_str(),
+            "time/every"
+        );
+        assert_eq!(
+            palette.search("files").unwrap()[0].kind_id.as_str(),
+            "file/copy"
+        );
+        assert!(palette
+            .entries()
+            .iter()
+            .all(|entry| !entry.icon.is_fallback()));
+        assert_eq!(
             palette.search(&"x".repeat(MAX_PALETTE_QUERY_BYTES + 1)),
             Err(PaletteError::QueryTooLarge)
+        );
+    }
+
+    #[test]
+    fn category_and_icon_are_ordered_presentation_metadata_not_kind_identity() {
+        let palette = GearPalette::standard().unwrap();
+        let categories = palette
+            .entries()
+            .iter()
+            .map(|entry| entry.category)
+            .collect::<Vec<_>>();
+        assert!(categories.windows(2).all(|pair| pair[0] <= pair[1]));
+
+        let mut decorated = palette.find(&KindId::from("time/tick")).unwrap().clone();
+        let semantic_contract = (
+            decorated.kind_id.clone(),
+            decorated.inputs.clone(),
+            decorated.outputs.clone(),
+            decorated.configuration.clone(),
+        );
+        decorated.category = PaletteCategory::Files;
+        decorated.icon = PaletteIconKey::GenericGear;
+        assert_eq!(
+            semantic_contract,
+            (
+                decorated.kind_id,
+                decorated.inputs,
+                decorated.outputs,
+                decorated.configuration,
+            )
         );
     }
 }

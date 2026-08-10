@@ -53,6 +53,8 @@ pub enum Command {
     Demo(DemoArgs),
     /// Generate the bounded Patchbay GNU Unifont subset.
     UnifontSubset(UnifontSubsetArgs),
+    /// Generate the bounded native masks for canonical palette icons.
+    PaletteIcons(PaletteIconsArgs),
 }
 
 #[derive(Args, Debug)]
@@ -61,6 +63,15 @@ pub struct UnifontSubsetArgs {
     pub input: std::path::PathBuf,
 
     /// Destination for the filtered GNU Unifont .hex file.
+    pub output: std::path::PathBuf,
+}
+
+#[derive(Args, Debug)]
+pub struct PaletteIconsArgs {
+    /// Directory containing the pinned, repository-owned Lucide SVG subset.
+    pub input: std::path::PathBuf,
+
+    /// Destination Rust module for the deterministic 16x16 masks.
     pub output: std::path::PathBuf,
 }
 
@@ -284,6 +295,15 @@ mod tests {
             Cli::try_parse_from(["xtask", "unifont-subset", "unifont.hex.gz", "subset.hex"])
                 .expect("unifont-subset command parses");
         assert!(matches!(subset.command, Command::UnifontSubset(_)));
+
+        let icons = Cli::try_parse_from([
+            "xtask",
+            "palette-icons",
+            "assets/icons/lucide/svg",
+            "icons.rs",
+        ])
+        .expect("palette-icons command parses");
+        assert!(matches!(icons.command, Command::PaletteIcons(_)));
 
         let check =
             Cli::try_parse_from(["xtask", "check", "workspace"]).expect("check command parses");

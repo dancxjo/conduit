@@ -40,6 +40,7 @@ fn main() {
             DemoCommand::Netherwick => commands::netherwick::run(&opts),
         },
         Command::UnifontSubset(args) => commands::unifont_subset::run(args),
+        Command::PaletteIcons(args) => commands::palette_icons::run(args),
     };
 
     if let Err(error) = result {
