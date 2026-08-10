@@ -2,7 +2,7 @@
 
 use super::{
     draw_document,
-    gui::{draw_patchbay, LifecycleContext},
+    gui::{draw_patchbay, LifecycleContext, PatchbayViewContext},
     PatchbayApplication, BACKGROUND,
 };
 use conduit_core::SignId;
@@ -93,9 +93,12 @@ impl PatchbayApplication {
                     size.width as usize,
                     size.height as usize,
                     graph,
-                    selected.as_deref(),
-                    &lifecycle,
-                    &self.palette_query,
+                    PatchbayViewContext {
+                        selected: selected.as_deref(),
+                        lifecycle: &lifecycle,
+                        palette_query: &self.palette_query,
+                        presentation_layout: &self.layout,
+                    },
                 )
             }
         } else {

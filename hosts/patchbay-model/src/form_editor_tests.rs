@@ -1,4 +1,5 @@
 use super::*;
+use crate::PatchbayGraph;
 
 const GREET: &str = include_str!("../../../examples/greet.conduit");
 const HELLO: &str = include_str!("../../../examples/hello.conduit");
@@ -143,4 +144,89 @@ fn stale_or_unknown_palette_placement_cannot_mutate_source() {
         Err(FormEditorError::UnknownPaletteKind("invented/kind".into()))
     );
     assert_eq!(editor.view().source, source);
+}
+
+#[test]
+fn duplicate_connect_and_remove_are_atomic_canonical_form_edits() {
+    let mut editor = FormEditor::from_source(
+        PathBuf::from("compose.conduit"),
+        "form compose {\n    literal: text/literal(\"hello\")\n}\n".into(),
+    )
+    .unwrap();
+    editor
+        .place_palette_kind(0, &conduit_core::kind_id("text/upper"))
+        .unwrap();
+    editor
+        .place_palette_kind(1, &conduit_core::kind_id("presentation/text"))
+        .unwrap();
+    assert_eq!(editor.duplicate_gear(2, "literal").unwrap(), "literal-2");
+
+    let graph = PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap()).unwrap();
+    let output = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "compose/literal")
+        .unwrap()
+        .outputs[0]
+        .identity
+        .clone();
+    let input = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "compose/upper")
+        .unwrap()
+        .inputs[0]
+        .identity
+        .clone();
+    editor
+        .connect_ports(3, &graph.expanded_form_id, &output, &input)
+        .unwrap();
+    let view = editor.view();
+    assert!(view.source.contains("literal.text > upper.text"));
+    assert_eq!(
+        PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap())
+            .unwrap()
+            .cords
+            .len(),
+        1
+    );
+
+    editor.remove_gear(4, "upper").unwrap();
+    let view = editor.view();
+    assert!(!view.source.contains("upper:"));
+    assert!(!view.source.contains("literal.text > upper.text"));
+    assert!(view.source.contains("literal-2: text/literal(\"hello\")"));
+    assert_eq!(
+        PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap())
+            .unwrap()
+            .cords
+            .len(),
+        0
+    );
+}
+
+#[test]
+fn incompatible_duplicate_and_stale_composition_edits_preserve_source() {
+    let mut editor = FormEditor::from_source(
+        PathBuf::from("compose.conduit"),
+        "form compose {\n    count: state/count(0)\n    show: presentation/text\n}\n".into(),
+    )
+    .unwrap();
+    let graph = PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap()).unwrap();
+    let output = graph.gears[0].outputs[0].identity.clone();
+    let input = graph.gears[1].inputs[0].identity.clone();
+    let before = editor.view().source;
+    assert!(matches!(
+        editor.connect_ports(0, &graph.expanded_form_id, &output, &input),
+        Err(FormEditorError::IncompatiblePorts(_))
+    ));
+    assert_eq!(editor.view().source, before);
+    assert_eq!(
+        editor.remove_gear(1, "count"),
+        Err(FormEditorError::StaleRevision {
+            current: 0,
+            offered: 1
+        })
+    );
+    assert_eq!(editor.view().source, before);
 }

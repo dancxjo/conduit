@@ -15,10 +15,12 @@ const HISTORY_CAPACITY: usize = 4;
 mod arguments;
 mod build_birth;
 mod canvas;
+mod canvas_input;
 mod control;
 mod distributed_play;
 mod file_task;
 mod font;
+mod form_authoring;
 mod form_interaction;
 mod gui;
 mod gui_hit;
@@ -38,7 +40,6 @@ use conduit_std_host::StdHostComposition;
 use control::NativeControl;
 use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
 use file_task::{probe_native_file_base, NativeFileTask};
-use gui::GuiAction;
 use render::{draw_document, BACKGROUND};
 use resource::open_form_resource;
 
@@ -48,6 +49,7 @@ struct PatchbayApplication {
     form_editor: Option<FormEditor>,
     form_selection: usize,
     graphical_form: Option<patchbay_model::PatchbayGraph>,
+    layout: patchbay_model::PatchbayLayout,
     interaction: Option<PatchbayInteraction>,
     hit_targets: Vec<gui::HitTarget>,
     cursor_position: (f64, f64),
@@ -56,6 +58,8 @@ struct PatchbayApplication {
     palette_query: String,
     palette_search_active: bool,
     palette_drag: Option<String>,
+    cord_drag: Option<patchbay_model::PatchbaySubjectRef>,
+    gear_drag: Option<(patchbay_model::PatchbaySubjectRef, (f64, f64))>,
     control: NativeControl,
     build_birth: BuildBirthController,
     lifecycle_sequence: u64,
@@ -114,6 +118,14 @@ impl PatchbayApplication {
             .map(form_interaction::graphical_form_for_editor)
             .transpose()?
             .flatten();
+        let mut layout = form_editor
+            .as_ref()
+            .map(resource::open_layout_resource)
+            .transpose()?
+            .unwrap_or_default();
+        if let Some(graph) = &graphical_form {
+            layout.reconcile(graph);
+        }
         let source_host_id = model.projection().host_id().clone();
         let source_boot_id = model.projection().boot_id().clone();
         let control =
@@ -158,6 +170,7 @@ impl PatchbayApplication {
             form_editor,
             form_selection: 0,
             graphical_form,
+            layout,
             interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
             hit_targets: Vec::new(),
             cursor_position: (0.0, 0.0),
@@ -166,6 +179,8 @@ impl PatchbayApplication {
             palette_query: String::new(),
             palette_search_active: false,
             palette_drag: None,
+            cord_drag: None,
+            gear_drag: None,
             control,
             build_birth: BuildBirthController::new(),
             lifecycle_sequence: 0,
@@ -283,19 +298,9 @@ impl ApplicationHandler for PatchbayApplication {
                 button: MouseButton::Left,
                 ..
             } if !self.linear_view => {
-                if let Some(action) = self
-                    .hit_targets
-                    .iter()
-                    .rev()
-                    .find(|target| target.contains(self.cursor_position.0, self.cursor_position.1))
-                    .map(|target| target.action.clone())
-                {
-                    if let GuiAction::PlacePaletteKind(kind) = action {
-                        self.palette_drag = Some(kind);
-                    } else if let Err(error) = self.handle_gui_action(action) {
-                        self.failure = Some(format!("native GUI action failed: {error}"));
-                        event_loop.exit();
-                    }
+                if let Err(error) = self.handle_canvas_press() {
+                    self.failure = Some(format!("native canvas press failed: {error}"));
+                    event_loop.exit();
                 }
             }
             WindowEvent::MouseInput {
@@ -303,15 +308,8 @@ impl ApplicationHandler for PatchbayApplication {
                 button: MouseButton::Left,
                 ..
             } if !self.linear_view => {
-                if let Some(kind) = self.palette_drag.take() {
-                    if self.cursor_position.0 > 176.0 {
-                        if let Err(error) =
-                            self.handle_gui_action(GuiAction::PlacePaletteKind(kind))
-                        {
-                            self.failure = Some(format!("native palette drop failed: {error}"));
-                            event_loop.exit();
-                        }
-                    }
+                if let Err(error) = self.handle_canvas_release() {
+                    self.failure = Some(format!("native canvas release failed: {error}"));
                 }
             }
             WindowEvent::KeyboardInput { event, .. } if event.state.is_pressed() => {

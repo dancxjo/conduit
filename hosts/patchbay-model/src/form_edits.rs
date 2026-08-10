@@ -1,6 +1,9 @@
 //! Bounded source-preserving semantic edits over the canonical Form document.
 
-use crate::form_editor::{check_revision, ensure_source_bound, FormEditor, FormEditorError};
+use crate::form_editor::{
+    check_revision, ensure_source_bound, FormEditor, FormEditorError, GraphItemKind,
+};
+use crate::PatchbayGraph;
 
 impl FormEditor {
     /// Places one fresh semantic Gear by editing canonical Form source. The
@@ -62,6 +65,219 @@ impl FormEditor {
         self.selection = None;
         Ok(name)
     }
+
+    /// Duplicates the exact authored Gear statement with a fresh local name.
+    pub fn duplicate_gear(
+        &mut self,
+        offered_revision: u64,
+        gear_name: &str,
+    ) -> Result<String, FormEditorError> {
+        self.require_revision(offered_revision)?;
+        let form = self.open_graph_form()?;
+        let prefix = format!("form/{}/gear/", self.open_form);
+        let item = form
+            .items
+            .iter()
+            .find(|item| {
+                item.kind == GraphItemKind::Gear
+                    && item.identity.strip_prefix(&prefix) == Some(gear_name)
+            })
+            .ok_or_else(|| FormEditorError::UnknownGear(gear_name.into()))?;
+        let statement = self.source[item.source_span.start..item.source_span.end].to_owned();
+        let colon = statement
+            .find(':')
+            .ok_or(FormEditorError::InvalidGearName)?;
+        let name = unique_gear_name(form, gear_name)?;
+        let replacement = format!("{name}{}", &statement[colon..]);
+        let close = form_close(&self.source, form)?;
+        let mut candidate = self.source.clone();
+        candidate.insert_str(close, &format!("    {replacement}\n"));
+        self.apply_candidate(candidate)?;
+        Ok(name)
+    }
+
+    /// Removes one authored Gear and every authored Cord statement that names it.
+    pub fn remove_gear(
+        &mut self,
+        offered_revision: u64,
+        gear_name: &str,
+    ) -> Result<(), FormEditorError> {
+        self.require_revision(offered_revision)?;
+        let form = self.open_graph_form()?;
+        let prefix = format!("form/{}/gear/", self.open_form);
+        let gear = form
+            .items
+            .iter()
+            .find(|item| {
+                item.kind == GraphItemKind::Gear
+                    && item.identity.strip_prefix(&prefix) == Some(gear_name)
+            })
+            .ok_or_else(|| FormEditorError::UnknownGear(gear_name.into()))?;
+        let mut ranges = vec![line_range(
+            &self.source,
+            gear.source_span.start,
+            gear.source_span.end,
+        )];
+        for (cord, item) in form.cords.iter().zip(
+            form.items
+                .iter()
+                .filter(|item| item.kind == GraphItemKind::Cord),
+        ) {
+            if cord.stages.iter().any(|stage| match stage {
+                crate::GraphCordStage::Reference(reference) => {
+                    reference == gear_name
+                        || reference
+                            .strip_prefix(gear_name)
+                            .is_some_and(|suffix| suffix.starts_with('.'))
+                }
+                crate::GraphCordStage::InlineGear { .. } | crate::GraphCordStage::Literal => false,
+            }) {
+                ranges.push(line_range(
+                    &self.source,
+                    item.source_span.start,
+                    item.source_span.end,
+                ));
+            }
+        }
+        ranges.sort_unstable_by_key(|range| std::cmp::Reverse(range.0));
+        let mut candidate = self.source.clone();
+        for (start, end) in ranges {
+            candidate.replace_range(start..end, "");
+        }
+        self.apply_candidate(candidate)
+    }
+
+    /// Creates one authored Cord after exact expanded-basis and typed-Port checks.
+    pub fn connect_ports(
+        &mut self,
+        offered_revision: u64,
+        offered_expanded_form_id: &conduit_core::ExpandedFormId,
+        source_port_identity: &str,
+        sink_port_identity: &str,
+    ) -> Result<(), FormEditorError> {
+        self.require_revision(offered_revision)?;
+        let expanded = self.expand_form(&self.open_form)?;
+        let graph = PatchbayGraph::from_expanded(&expanded)
+            .map_err(|error| FormEditorError::Catalog(error.to_string()))?;
+        if &graph.expanded_form_id != offered_expanded_form_id {
+            return Err(FormEditorError::StaleGraphBasis);
+        }
+        let source = graph
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.outputs)
+            .find(|port| port.identity == source_port_identity)
+            .ok_or_else(|| FormEditorError::UnknownPort(source_port_identity.into()))?;
+        let sink = graph
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.inputs)
+            .find(|port| port.identity == sink_port_identity)
+            .ok_or_else(|| FormEditorError::UnknownPort(sink_port_identity.into()))?;
+        if source.descriptor.value_kind != sink.descriptor.value_kind {
+            return Err(FormEditorError::IncompatiblePorts(format!(
+                "Info {} cannot feed {}",
+                source.descriptor.value_kind.as_str(),
+                sink.descriptor.value_kind.as_str()
+            )));
+        }
+        if source.descriptor.temporal != sink.descriptor.temporal {
+            return Err(FormEditorError::IncompatiblePorts(format!(
+                "temporal contract {:?} cannot feed {:?}",
+                source.descriptor.temporal, sink.descriptor.temporal
+            )));
+        }
+        if graph.cords.iter().any(|cord| {
+            cord.source_port == source_port_identity && cord.sink_port == sink_port_identity
+        }) {
+            return Err(FormEditorError::DuplicateCord);
+        }
+        let source_name = direct_gear_name(&self.open_form, source.gear_id.as_str())?;
+        let sink_name = direct_gear_name(&self.open_form, sink.gear_id.as_str())?;
+        let form = self.open_graph_form()?;
+        let close = form_close(&self.source, form)?;
+        let statement = format!(
+            "    {source_name}.{} > {sink_name}.{}\n",
+            source.descriptor.port_id.as_str(),
+            sink.descriptor.port_id.as_str()
+        );
+        let mut candidate = self.source.clone();
+        candidate.insert_str(close, &statement);
+        self.apply_candidate(candidate)
+    }
+
+    fn require_revision(&self, offered: u64) -> Result<(), FormEditorError> {
+        if offered != self.revision {
+            return Err(FormEditorError::StaleRevision {
+                current: self.revision,
+                offered,
+            });
+        }
+        Ok(())
+    }
+
+    fn open_graph_form(&self) -> Result<&crate::GraphForm, FormEditorError> {
+        self.checked
+            .forms
+            .iter()
+            .find(|form| form.name == self.open_form)
+            .ok_or_else(|| FormEditorError::UnknownForm(self.open_form.clone()))
+    }
+
+    fn apply_candidate(&mut self, candidate: String) -> Result<(), FormEditorError> {
+        ensure_source_bound(&candidate)?;
+        let next_revision = self.revision.saturating_add(1);
+        let checked = check_revision(next_revision, &candidate)?;
+        if let Some(diagnostic) = checked.diagnostics.first() {
+            return Err(FormEditorError::Catalog(diagnostic.message.clone()));
+        }
+        self.source = candidate;
+        self.revision = next_revision;
+        self.checked = checked;
+        self.selection = None;
+        Ok(())
+    }
+}
+
+fn unique_gear_name(form: &crate::GraphForm, stem: &str) -> Result<String, FormEditorError> {
+    let prefix = format!("form/{}/gear/", form.name);
+    for suffix in 2_u32..=u32::MAX {
+        let candidate = format!("{stem}-{suffix}");
+        if !form
+            .items
+            .iter()
+            .any(|item| item.identity.strip_prefix(&prefix) == Some(&candidate))
+        {
+            return Ok(candidate);
+        }
+    }
+    Err(FormEditorError::GraphTooLarge)
+}
+
+fn form_close(source: &str, form: &crate::GraphForm) -> Result<usize, FormEditorError> {
+    source[form.source_span.start..form.source_span.end]
+        .rfind('}')
+        .map(|offset| form.source_span.start + offset)
+        .ok_or_else(|| FormEditorError::UnknownForm(form.name.clone()))
+}
+
+fn direct_gear_name(form: &str, gear_id: &str) -> Result<String, FormEditorError> {
+    let prefix = format!("{form}/");
+    let name = gear_id
+        .strip_prefix(&prefix)
+        .ok_or_else(|| FormEditorError::UnknownGear(gear_id.into()))?;
+    if name.contains('/') {
+        return Err(FormEditorError::NestedGearEditUnsupported(gear_id.into()));
+    }
+    Ok(name.into())
+}
+
+fn line_range(source: &str, start: usize, end: usize) -> (usize, usize) {
+    let line_start = source[..start].rfind('\n').map_or(0, |index| index + 1);
+    let line_end = source[end..]
+        .find('\n')
+        .map_or(source.len(), |offset| end + offset + 1);
+    (line_start, line_end)
 }
 
 fn canonical_gear_stem(kind: &str) -> Result<String, FormEditorError> {

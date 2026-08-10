@@ -1,7 +1,10 @@
 //! Canonical Form editing and renderer-local graph selection interaction.
 
 use super::{
-    file_task::DestinationPolicy, gui::GuiAction, resource::save_form_resource, PatchbayApplication,
+    file_task::DestinationPolicy,
+    gui::GuiAction,
+    resource::{save_form_resource, save_layout_resource},
+    PatchbayApplication,
 };
 use patchbay_model::{
     FormEditor, InteractionDisposition, PatchbayAction, PatchbayInteraction,
@@ -49,6 +52,15 @@ impl PatchbayApplication {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
             }
             GuiAction::PlacePaletteKind(kind) => self.dispatch_palette_placement(&kind)?,
+            GuiAction::DuplicateGear(subject) => {
+                self.dispatch_gear_edit(PatchbayAction::DuplicateGear, &subject)?
+            }
+            GuiAction::RemoveGear(subject) => {
+                self.dispatch_gear_edit(PatchbayAction::RemoveGear, &subject)?
+            }
+            GuiAction::ConnectPorts { source, sink } => {
+                self.dispatch_port_connection(&source, &sink)?
+            }
         }
         if let Some(window) = &self.window {
             window.request_redraw();
@@ -105,43 +117,19 @@ impl PatchbayApplication {
         self.finish_interaction(result)
     }
 
-    fn dispatch_palette_placement(&mut self, kind: &str) -> Result<(), String> {
-        let editor = self
-            .form_editor
-            .as_ref()
-            .ok_or("canonical Form editor is absent")?;
-        let view = editor.view();
-        let source_id = view
-            .checked
-            .source_document_id
-            .ok_or("checked canonical Form identity is absent")?;
-        let target = format!("{}@{}@{kind}", source_id.as_str(), view.revision);
-        let mut interaction = self
-            .interaction
-            .take()
-            .expect("interaction state is installed");
-        let graph = self.graphical_form.clone();
-        let result = interaction
-            .next_request_id("place-gear")
-            .and_then(|request_id| {
-                PatchbayInteractionRequest::invoke(request_id, PatchbayAction::PlaceGear, target)
-            })
-            .and_then(|request| {
-                interaction.execute(graph.as_ref(), request, |invocation| {
-                    self.apply_invocation(invocation)
-                })
-            });
-        self.interaction = Some(interaction);
-        self.finish_interaction(result)
-    }
-
-    fn finish_interaction(
+    pub(super) fn finish_interaction(
         &self,
         result: Result<patchbay_model::InteractionReceipt, patchbay_model::InteractionError>,
     ) -> Result<(), String> {
         let receipt = result.map_err(|error| format!("interaction execution: {error:?}"))?;
         match receipt.disposition {
             InteractionDisposition::Succeeded => Ok(()),
+            InteractionDisposition::Refused(PatchbayRefusal::IncompatiblePorts) => {
+                Err("Ports cannot connect because their Info or temporal contracts differ".into())
+            }
+            InteractionDisposition::Refused(PatchbayRefusal::DuplicateCord) => {
+                Err("those Ports already have a Cord".into())
+            }
             InteractionDisposition::Refused(reason) => {
                 Err(format!("interaction refused: {reason:?}"))
             }
@@ -155,6 +143,14 @@ impl PatchbayApplication {
     ) -> PatchbayInvocationOutcome {
         if invocation.action == PatchbayAction::PlaceGear {
             return self.apply_palette_placement(&invocation.target_identity);
+        }
+        if matches!(
+            invocation.action,
+            PatchbayAction::DuplicateGear
+                | PatchbayAction::RemoveGear
+                | PatchbayAction::ConnectPorts
+        ) {
+            return self.apply_authoring_edit(invocation);
         }
         let current_target = match self
             .graphical_form
@@ -176,7 +172,8 @@ impl PatchbayApplication {
         let result = match invocation.action {
             PatchbayAction::OpenBack => self.open_next_form(),
             PatchbayAction::Save => match self.form_editor.as_mut() {
-                Some(editor) => save_form_resource(editor),
+                Some(editor) => save_form_resource(editor)
+                    .and_then(|()| save_layout_resource(editor, &self.layout)),
                 None => Err("canonical Form editor is absent".into()),
             },
             PatchbayAction::ToggleLinearView => {
@@ -191,56 +188,14 @@ impl PatchbayApplication {
             PatchbayAction::Stop => self.control.stop(),
             PatchbayAction::Hold => self.mark_unsatisfied(),
             PatchbayAction::PlaceGear => unreachable!("palette placement returned above"),
+            PatchbayAction::DuplicateGear
+            | PatchbayAction::RemoveGear
+            | PatchbayAction::ConnectPorts => unreachable!("authoring edit returned above"),
         };
         match result {
             Ok(()) => PatchbayInvocationOutcome::Succeeded,
             Err(_) => PatchbayInvocationOutcome::Failed,
         }
-    }
-
-    fn apply_palette_placement(&mut self, target: &str) -> PatchbayInvocationOutcome {
-        let mut fields = target.splitn(3, '@');
-        let (Some(source_id), Some(revision), Some(kind)) =
-            (fields.next(), fields.next(), fields.next())
-        else {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
-        };
-        let Ok(revision) = revision.parse::<u64>() else {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
-        };
-        let Some(editor) = self.form_editor.as_mut() else {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
-        };
-        let view = editor.view();
-        if view.revision != revision
-            || view
-                .checked
-                .source_document_id
-                .as_ref()
-                .map(|id| id.as_str())
-                != Some(source_id)
-        {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
-        }
-        let kind_id = conduit_core::kind_id(kind);
-        let Ok(palette) = patchbay_model::GearPalette::standard() else {
-            return PatchbayInvocationOutcome::Failed;
-        };
-        if palette.find(&kind_id).is_none() {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
-        }
-        if editor.place_palette_kind(revision, &kind_id).is_err() {
-            return PatchbayInvocationOutcome::Failed;
-        }
-        self.form_selection = 0;
-        if self.refresh_graphical_form().is_err() {
-            return PatchbayInvocationOutcome::Failed;
-        }
-        let title = self.title();
-        if let Some(window) = &self.window {
-            window.set_title(&title);
-        }
-        PatchbayInvocationOutcome::Succeeded
     }
 
     fn open_next_form(&mut self) -> Result<(), String> {
@@ -285,13 +240,16 @@ impl PatchbayApplication {
         Ok(())
     }
 
-    fn refresh_graphical_form(&mut self) -> Result<(), String> {
+    pub(super) fn refresh_graphical_form(&mut self) -> Result<(), String> {
         self.graphical_form = self
             .form_editor
             .as_ref()
             .map(graphical_form_for_editor)
             .transpose()?
             .flatten();
+        if let Some(graph) = &self.graphical_form {
+            self.layout.reconcile(graph);
+        }
         Ok(())
     }
 
@@ -300,6 +258,13 @@ impl PatchbayApplication {
         let selected = self.interaction.as_ref()?.selected()?;
         graph.resolve_subject_ref(selected).ok()?;
         Some(&selected.subject_identity)
+    }
+
+    fn selected_graphical_subject(&self) -> Option<patchbay_model::PatchbaySubjectRef> {
+        let graph = self.graphical_form.as_ref()?;
+        let selected = self.interaction.as_ref()?.selected()?;
+        graph.resolve_subject_ref(selected).ok()?;
+        Some(selected.clone())
     }
 
     fn move_graphical_selection(&mut self, forward: bool) -> Result<(), String> {
@@ -335,6 +300,41 @@ impl PatchbayApplication {
         }
         let mut synchronize_linear_selection = true;
         match key {
+            Key::Character(character)
+                if self.modifiers.control_key()
+                    && character.eq_ignore_ascii_case("d")
+                    && !self.linear_view =>
+            {
+                let subject = self
+                    .selected_graphical_subject()
+                    .ok_or("select a Gear before duplicating it")?;
+                self.handle_gui_action(GuiAction::DuplicateGear(subject))?;
+                synchronize_linear_selection = false;
+            }
+            Key::Character(character)
+                if self.modifiers.control_key()
+                    && character.eq_ignore_ascii_case("g")
+                    && !self.linear_view =>
+            {
+                let subject = self
+                    .selected_graphical_subject()
+                    .ok_or("select a Gear before grouping it")?;
+                let graph = self
+                    .graphical_form
+                    .as_ref()
+                    .ok_or("graphical Form projection is absent")?;
+                self.layout
+                    .group_gear(graph, &subject, Some("group-1".into()))
+                    .map_err(|error| format!("cannot group Gear: {error:?}"))?;
+                synchronize_linear_selection = false;
+            }
+            Key::Named(NamedKey::Delete) if !self.linear_view => {
+                let subject = self
+                    .selected_graphical_subject()
+                    .ok_or("select a Gear before removing it")?;
+                self.handle_gui_action(GuiAction::RemoveGear(subject))?;
+                synchronize_linear_selection = false;
+            }
             Key::Named(NamedKey::Backspace) => self.edit_source(|source| {
                 source.pop();
             })?,

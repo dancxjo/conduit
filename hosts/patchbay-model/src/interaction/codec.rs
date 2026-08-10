@@ -16,6 +16,9 @@ impl PatchbayAction {
             Self::Stop => "stop",
             Self::Hold => "hold",
             Self::PlaceGear => "place-gear",
+            Self::DuplicateGear => "duplicate-gear",
+            Self::RemoveGear => "remove-gear",
+            Self::ConnectPorts => "connect-ports",
         }
     }
 
@@ -32,6 +35,9 @@ impl PatchbayAction {
             "stop" => Ok(Self::Stop),
             "hold" => Ok(Self::Hold),
             "place-gear" => Ok(Self::PlaceGear),
+            "duplicate-gear" => Ok(Self::DuplicateGear),
+            "remove-gear" => Ok(Self::RemoveGear),
+            "connect-ports" => Ok(Self::ConnectPorts),
             _ => Err(InteractionError::MalformedValue),
         }
     }
