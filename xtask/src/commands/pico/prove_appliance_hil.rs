@@ -197,10 +197,19 @@ fn snapshot_artifact(role: &str, identity: &impl Serialize) -> PicoResult<()> {
 }
 
 fn open_sign(path: &Path) -> PicoResult<std::fs::File> {
-    let file = std::fs::OpenOptions::new().read(true).open(path)?;
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)?;
     conduit_std_host::usb_cdc::configure_cdc_port(&file, 0, 100).map_err(|error| {
         format!(
             "failed configuring Pico appliance sign port {}: {error}",
+            path.display()
+        )
+    })?;
+    conduit_std_host::usb_cdc::assert_dtr(&file).map_err(|error| {
+        format!(
+            "failed asserting DTR on Pico appliance sign port {}: {error}",
             path.display()
         )
     })?;
