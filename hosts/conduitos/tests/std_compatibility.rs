@@ -4,7 +4,7 @@ use conduit_std_host::{StdHost, StdHostConfig, TimerAdapter};
 use conduitos::{
     identity::BootIdentities,
     offer::{CpuFeatures, HostOffer},
-    ordinary_plan::{ORDINARY_FORM_SOURCE, prepare},
+    ordinary_plan::prepare,
 };
 
 #[derive(Default)]
@@ -18,11 +18,15 @@ impl TimerAdapter for RecordingTimer {
 
 #[test]
 fn ordinary_semantics_match_the_materially_different_std_realization() {
-    let mut catalog = conduit_std_catalog::tick_profile_catalog();
-    catalog
-        .insert(conduit_std_catalog::tick_presentation_kind_definition())
-        .unwrap();
-    let form = conduit_form::parse(ORDINARY_FORM_SOURCE, &catalog).unwrap();
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut catalog = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog).unwrap();
+    let syntax = conduit_form::parse_syntax_document(
+        "form conduitos-text-hello {\n    \"Hello from ConduitOS\" > presentation/text\n}\n",
+    );
+    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded =
+        conduit_form::expand_canonical_form(&checked, "conduitos-text-hello", &catalog).unwrap();
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
@@ -44,7 +48,7 @@ fn ordinary_semantics_match_the_materially_different_std_realization() {
         boot_id: conduit_core::BootId::from("materially-different-std-boot"),
         offer_generation: conduit_core::OfferGeneration(1),
     });
-    let std_plan = std_host.plan_local(&form, None).unwrap();
+    let std_plan = std_host.plan_expanded_local(&expanded).unwrap();
     assert_eq!(std_plan.checked_form_id, bare_metal.checked_form_id);
     assert_ne!(std_plan.plan_id, bare_metal.plan_id);
     assert!(
@@ -60,8 +64,8 @@ fn ordinary_semantics_match_the_materially_different_std_realization() {
         .run_fragment_to(std_plan.fragments[0].clone(), &mut output, &mut timer)
         .unwrap();
     let output = String::from_utf8(output).unwrap();
-    assert_eq!(timer.0, vec![Duration::from_millis(1)]);
-    assert!(output.contains("tick sequence=0"));
+    assert!(timer.0.is_empty());
+    assert!(output.contains("\nHello from ConduitOS\n"));
     let kernel = report
         .kernel
         .expect("ordinary std realization uses conduit-kernel");

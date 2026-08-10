@@ -218,8 +218,8 @@ mod tests {
     fn current_gap_is_derived_and_exact() {
         let report = build_report("test-build").unwrap();
         assert_eq!(report.catalog_entry_count, 10);
-        assert_eq!(report.implemented_count, 2);
-        assert_eq!(report.missing_count, 8);
+        assert_eq!(report.implemented_count, 4);
+        assert_eq!(report.missing_count, 6);
         assert!(report.entries.iter().any(|entry| {
             entry.kind_id == "time/tick"
                 && entry.contract_revision == "conduit.std/time-tick@2"
@@ -229,6 +229,12 @@ mod tests {
             .entries
             .iter()
             .any(|entry| { entry.kind_id == "text/upper" && entry.classification == "missing" }));
+        for kind in ["text/literal", "presentation/text"] {
+            assert!(report
+                .entries
+                .iter()
+                .any(|entry| { entry.kind_id == kind && entry.classification == "implemented" }));
+        }
     }
 
     #[test]

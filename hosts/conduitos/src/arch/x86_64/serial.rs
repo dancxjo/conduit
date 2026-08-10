@@ -4,7 +4,7 @@ use super::io::{inb, outb};
 
 const COM1: u16 = 0x3f8;
 const SERIAL_SPIN_LIMIT: u32 = 100_000;
-const MAX_PRESENT_BYTES: usize = 16;
+const MAX_PRESENT_BYTES: usize = crate::offer::SERIAL_MAXIMUM_BYTES as usize;
 
 pub(super) fn initialize() {
     unsafe {

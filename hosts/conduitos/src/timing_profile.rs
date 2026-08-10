@@ -3,15 +3,15 @@
 //! The authored requirement contains only semantic timing. Machine and Base
 //! facts enter through [`TimingOffer`], are sealed into [`TimingBasis`] before
 //! Play, and are revalidated at the execution boundary. Execution delegates to
-//! the existing `conduit-kernel` scheduler installed by `ordinary_plan`.
+//! the existing `conduit-kernel` scheduler installed by `timing_plan`.
 
 use conduit_kernel::scheduler::{SchedulerError, SchedulerStatus};
 
 use crate::{
     identity::BootIdentities,
     offer::HostOffer,
-    ordinary_plan::{self, PreparedOrdinaryPlay},
     planned_kernel::PlannedKernel,
+    timing_plan::{self, PreparedTimingPlay},
 };
 
 pub const TIMING_PROFILE: &str = "conduit.timing/local-deadline@1";
@@ -106,7 +106,7 @@ pub enum Refusal {
 }
 
 pub struct AdmittedTimingPlan {
-    pub prepared: PreparedOrdinaryPlay,
+    pub prepared: PreparedTimingPlay,
     pub basis: TimingBasis,
 }
 
@@ -130,8 +130,8 @@ pub fn admit(
     {
         return Err(Refusal::IncompleteOffer);
     }
-    let prepared =
-        ordinary_plan::prepare(identities, host, build_id).map_err(|_| Refusal::PlanPreparation)?;
+    let prepared = timing_plan::prepare_timing(identities, host, build_id)
+        .map_err(|_| Refusal::PlanPreparation)?;
     if timing.arena_bytes > host.runtime_arena_bytes as u32
         || timing.cord_items < 1
         || timing.cord_bytes < 8

@@ -142,7 +142,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for placement in &report.placements {
         let _ = writeln!(
             output,
-            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} host_operations={:?} resources={:?} authority={:?}",
+            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} artifact={} host_operations={:?} resources={:?} authority={:?}",
             placement.plan_id.as_str(),
             placement.placement_id.as_str(),
             placement.host_id.as_str(),
@@ -152,6 +152,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             placement.kind_contract_revision.as_str(),
             placement.execution_profile_id.as_str(),
             placement.implementation_id.as_str(),
+            placement.artifact_id.as_str(),
             placement.host_operations,
             placement.resources,
             placement.authority

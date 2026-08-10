@@ -286,6 +286,7 @@ pub struct PlacementRow {
     pub kind_contract_revision: KindContractRevision,
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
     pub host_operations: Vec<HostOperationRequirement>,
     pub resources: Vec<ResourceBinding>,
     pub authority: Vec<AuthorityBinding>,

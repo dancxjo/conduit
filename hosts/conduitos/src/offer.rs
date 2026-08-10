@@ -9,14 +9,16 @@ use crate::{identity::BootIdentities, machine::BaseKind};
 
 pub const BASE_COUNT: usize = 7;
 pub const RESOURCE_COUNT: usize = 4;
-pub const CAPABILITY_COUNT: usize = 2;
+pub const CAPABILITY_COUNT: usize = 4;
 pub const TIMER_SLOT_CAPACITY: u16 = 1;
 pub const SERIAL_OPERATION_CAPACITY: u16 = 1;
-pub const SERIAL_MAXIMUM_BYTES: u32 = 16;
+pub const SERIAL_MAXIMUM_BYTES: u32 = conduit_std_catalog::MAX_TEXT_BYTES;
 pub const SIGN_ITEM_CAPACITY: u16 = 64;
 pub const INTERRUPT_FACT_CAPACITY: u16 = 4;
 pub const TIME_TICK_IMPLEMENTATION: &str = "conduitos/kernel-time-tick@1";
 pub const TICK_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-tick@1";
+pub const TEXT_LITERAL_IMPLEMENTATION: &str = "conduitos/kernel-text-literal@1";
+pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-text@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CpuFeatures {
@@ -59,7 +61,7 @@ pub struct CapabilityOffer<'a> {
     pub contract_revision: &'static str,
     pub implementation: &'static str,
     pub artifact_build: &'a str,
-    pub host_operation: &'static str,
+    pub host_operation: Option<&'static str>,
     pub required_base: BaseKind,
     pub secondary_base: Option<BaseKind>,
     pub input: Option<PortOffer>,
@@ -169,7 +171,7 @@ impl<'a> HostOffer<'a> {
                     contract_revision: "conduit.std/time-tick@2",
                     implementation: TIME_TICK_IMPLEMENTATION,
                     artifact_build: build_id,
-                    host_operation: "conduit.host/wait@1",
+                    host_operation: Some("conduit.host/wait@1"),
                     required_base: BaseKind::Timer,
                     secondary_base: Some(BaseKind::Clock),
                     input: None,
@@ -188,7 +190,7 @@ impl<'a> HostOffer<'a> {
                     contract_revision: "conduit.std/presentation-tick@1",
                     implementation: TICK_PRESENTATION_IMPLEMENTATION,
                     artifact_build: build_id,
-                    host_operation: "conduit.host/present@1",
+                    host_operation: Some("conduit.host/present@1"),
                     required_base: BaseKind::Serial,
                     secondary_base: None,
                     input: Some(PortOffer {
@@ -202,6 +204,8 @@ impl<'a> HostOffer<'a> {
                     maximum_input_bytes: SERIAL_MAXIMUM_BYTES,
                     maximum_output_bytes: 0,
                 },
+                crate::text_offer::literal(build_id),
+                crate::text_offer::presentation(build_id),
             ],
             cpu_features,
             runtime_arena_bytes,
@@ -250,7 +254,7 @@ impl<'a> HostOffer<'a> {
                 || capability.contract_revision.is_empty()
                 || capability.implementation.is_empty()
                 || capability.artifact_build.is_empty()
-                || capability.host_operation.is_empty()
+                || capability.host_operation.is_some_and(str::is_empty)
                 || capability.maximum_in_flight == 0
                 || capability.maximum_input_bytes == 0
             {
@@ -363,7 +367,7 @@ mod tests {
         assert_eq!(offer.capabilities[1].maximum_in_flight, 1);
         assert_eq!(
             offer.capabilities[1].host_operation,
-            "conduit.host/present@1"
+            Some("conduit.host/present@1")
         );
         assert_eq!(
             offer.capabilities[0].output,
