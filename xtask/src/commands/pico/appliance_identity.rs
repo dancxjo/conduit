@@ -1,0 +1,163 @@
+//! Exact generated and flashed identity for the finite Pico W appliance image.
+
+use serde::{Deserialize, Serialize};
+use std::path::Path;
+use std::process::Command;
+
+use super::doctor::{sha256_file, CYW43_ASSETS, CYW43_COMMIT};
+use super::firmware::{identity_manifest_path, AssetEntry, PROFILE, TARGET};
+use super::PicoResult;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApplianceFirmwareIdentity {
+    pub schema: String,
+    pub git_revision: String,
+    pub target: String,
+    pub profile: String,
+    pub firmware_mode: String,
+    pub firmware_build_id: String,
+    pub firmware_sha256: String,
+    pub appliance_image: ApplianceGeneratedImageIdentity,
+    pub cyw43_commit: String,
+    pub cyw43_assets: Vec<AssetEntry>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApplianceGeneratedImageIdentity {
+    pub schema: String,
+    pub firmware_mode: String,
+    pub firmware_build_id: String,
+    pub image_artifact: String,
+    pub service_artifacts: Vec<String>,
+    pub host_advertisement: conduit_core::HostAdvertisement,
+    pub ssid: String,
+    pub open_ap: bool,
+    pub channel: u8,
+    pub server_address: [u8; 4],
+    pub local_name: String,
+    pub hello_body: String,
+    pub maximum_associations: u16,
+    pub maximum_dhcp_leases: u16,
+    pub maximum_dhcp_packet_bytes: usize,
+    pub maximum_dns_packet_bytes: u32,
+    pub maximum_http_request_bytes: u32,
+    pub maximum_http_response_bytes: u32,
+    pub maximum_signs: u16,
+}
+
+impl ApplianceFirmwareIdentity {
+    pub fn verify(&self) -> PicoResult<()> {
+        let expected_advertisement = conduit_net::pico_appliance_advertisement(
+            "pico/appliance-hello",
+            "image/boot-bound-at-runtime",
+            conduit_net::PicoApplianceComposition::Hello,
+            conduit_net::PicoApplianceInitialization::hello_ready(),
+        )
+        .map_err(|error| format!("expected Pico appliance advertisement failed: {error:?}"))?;
+        let expected_artifacts = [
+            conduit_net::AP_SERVICE_ARTIFACT,
+            conduit_net::DHCP_SERVICE_ARTIFACT,
+            conduit_net::DNS_SERVICE_ARTIFACT,
+            conduit_net::HTTP_SERVICE_ARTIFACT,
+        ];
+        let expected_radio_assets = CYW43_ASSETS
+            .iter()
+            .map(|(filename, sha256)| (*filename, *sha256))
+            .collect::<Vec<_>>();
+        let actual_radio_assets = self
+            .cyw43_assets
+            .iter()
+            .map(|asset| (asset.filename.as_str(), asset.sha256.as_str()))
+            .collect::<Vec<_>>();
+        let image = &self.appliance_image;
+        if self.schema != "conduit-pico-w-signal/appliance-identity@1"
+            || self.git_revision.is_empty()
+            || self.target != TARGET
+            || self.profile != PROFILE
+            || self.firmware_sha256.len() != 64
+            || self.firmware_mode != "appliance-hello"
+            || image.schema != "conduit.pico-appliance/generated-image@1"
+            || image.firmware_mode != self.firmware_mode
+            || image.firmware_build_id != self.firmware_build_id
+            || image.image_artifact != conduit_net::PICO_APPLIANCE_ARTIFACT
+            || image
+                .service_artifacts
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+                != expected_artifacts
+            || image.host_advertisement != expected_advertisement
+            || image.ssid != conduit_net::APPLIANCE_SSID
+            || !image.open_ap
+            || image.channel != 6
+            || image.server_address != conduit_net::DHCP_SERVER_ADDRESS
+            || image.local_name != conduit_net::APPLIANCE_LOCAL_NAME
+            || image.hello_body != conduit_net::APPLIANCE_HELLO_BODY
+            || image.maximum_associations != conduit_net::MAXIMUM_AP_ASSOCIATIONS
+            || image.maximum_dhcp_leases != conduit_net::MAXIMUM_DHCP_LEASES
+            || image.maximum_dhcp_packet_bytes != conduit_net::MAXIMUM_DHCP_PACKET_BYTES
+            || image.maximum_dns_packet_bytes != conduit_net::MAXIMUM_DNS_PACKET_BYTES
+            || image.maximum_http_request_bytes != conduit_net::MAXIMUM_HTTP_REQUEST_BYTES
+            || image.maximum_http_response_bytes != conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES
+            || image.maximum_signs != conduit_net::MAXIMUM_APPLIANCE_SIGNS
+            || self.cyw43_commit != CYW43_COMMIT
+            || actual_radio_assets != expected_radio_assets
+        {
+            return Err("Pico appliance firmware identity is inconsistent".into());
+        }
+        Ok(())
+    }
+}
+
+pub fn write_appliance_identity_manifest(
+    root: &Path,
+    elf: &Path,
+    sidecar: &Path,
+) -> PicoResult<()> {
+    let git_output = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(root)
+        .output()?;
+    if !git_output.status.success() {
+        return Err("git rev-parse HEAD failed".into());
+    }
+    let appliance_image: ApplianceGeneratedImageIdentity =
+        serde_json::from_str(&std::fs::read_to_string(sidecar)?)?;
+    let identity = ApplianceFirmwareIdentity {
+        schema: "conduit-pico-w-signal/appliance-identity@1".into(),
+        git_revision: String::from_utf8(git_output.stdout)?.trim().to_owned(),
+        target: TARGET.into(),
+        profile: PROFILE.into(),
+        firmware_mode: appliance_image.firmware_mode.clone(),
+        firmware_build_id: appliance_image.firmware_build_id.clone(),
+        firmware_sha256: sha256_file(elf)?,
+        appliance_image,
+        cyw43_commit: CYW43_COMMIT.into(),
+        cyw43_assets: CYW43_ASSETS
+            .iter()
+            .map(|(filename, expected)| AssetEntry {
+                filename: (*filename).to_owned(),
+                sha256: (*expected).to_owned(),
+            })
+            .collect(),
+    };
+    identity.verify()?;
+    let manifest_path = identity_manifest_path(root);
+    std::fs::write(&manifest_path, serde_json::to_string_pretty(&identity)?)?;
+    println!("  appliance identity manifest: {}", manifest_path.display());
+    Ok(())
+}
+
+pub fn read_appliance_identity_manifest(root: &Path) -> PicoResult<ApplianceFirmwareIdentity> {
+    let manifest_path = identity_manifest_path(root);
+    let identity: ApplianceFirmwareIdentity = serde_json::from_str(
+        &std::fs::read_to_string(&manifest_path).map_err(|error| {
+            format!(
+                "failed to read Pico appliance identity at {}: {error}; run `cargo xtask pico build --appliance-hello` first",
+                manifest_path.display()
+            )
+        })?,
+    )?;
+    identity.verify()?;
+    Ok(identity)
+}

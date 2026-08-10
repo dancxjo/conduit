@@ -46,6 +46,22 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             )
             .map_err(|error| StepError::prereq("prove.pico-wifi-bootstrap", error.to_string()))
         }
+        ProveTarget::PicoAppliance => {
+            let pico_args = crate::commands::pico::PicoArgs {
+                dry_run: opts.dry_run,
+                appliance_hello: true,
+                link_port: args.link_port.clone(),
+                port: args.sign_port.clone(),
+                ..Default::default()
+            };
+            crate::commands::pico::run_prove_pico_appliance(
+                args.link_port.as_deref(),
+                args.sign_port.as_deref(),
+                args.client_interface.as_deref(),
+                &pico_args,
+            )
+            .map_err(|error| StepError::prereq("prove.pico-appliance", error.to_string()))
+        }
         ProveTarget::PicoWebsocketRoute => {
             let pico_args = crate::commands::pico::PicoArgs {
                 dry_run: opts.dry_run,

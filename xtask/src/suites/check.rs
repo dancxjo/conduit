@@ -300,6 +300,19 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "check.pico-appliance.dry-run",
+        "Dry-run verify of the physical Pico W AP/DHCP/DNS/HTTP Hello proof",
+        "cargo",
+        &[
+            "xtask",
+            "prove",
+            "pico-appliance",
+            "--client-interface",
+            "wlan-proof-fixture",
+            "--dry-run",
+        ],
+    ),
+    Step::new(
         "check.r1-new-plan-recovery-hil.dry-run",
         "Dry-run verify of the physical R1 WebSocket-to-USB new-Plan proof",
         "cargo",
