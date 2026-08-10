@@ -3,7 +3,7 @@ use std::{fs, process::Command};
 use crate::cli::GlobalOpts;
 
 use super::{
-    aarch64_a0, ia32_a0,
+    aarch64_a0, ia32_a0, loongarch64_a0,
     profile::{Paths, COMMON_BACKBONE_TARGETS},
     report::{git_head, sha256_file, BuildRecord},
     riscv64_a0, ConduitosArch, ConduitosError,
@@ -18,6 +18,9 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, Co
     }
     if arch == ConduitosArch::Riscv64 {
         return riscv64_a0::execute(opts);
+    }
+    if arch == ConduitosArch::Loongarch64 {
+        return loongarch64_a0::execute(opts);
     }
     let paths = Paths::new(arch)?;
     if opts.dry_run {

@@ -46,6 +46,13 @@ test = false
 bench = false
 required-features = ["riscv64-a0"]
 
+[[bin]]
+name = "conduitos-loongarch64-a0"
+path = "src/bin/loongarch64_a0.rs"
+test = false
+bench = false
+required-features = ["loongarch64-a0"]
+
 [features]
 default = []
 aarch64-a0 = []
@@ -53,6 +60,7 @@ aarch64-a2 = []
 aarch64-a3 = []
 ia32-a0 = []
 riscv64-a0 = []
+loongarch64-a0 = []
 
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }

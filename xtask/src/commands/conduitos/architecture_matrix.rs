@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 use super::{
-    aarch64_a0, image,
+    aarch64_a0, image, loongarch64_a0,
     profile::{Paths, LIMINE_ARCHIVE_SHA256, LIMINE_ARCHIVE_URL, LIMINE_VERSION},
     riscv64_a0, ConduitosArch, ConduitosError,
 };
@@ -115,7 +115,10 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
     let compile_link_accepted = boot_accepted
         || matches!(
             arch,
-            ConduitosArch::Ia32 | ConduitosArch::Aarch64 | ConduitosArch::Riscv64
+            ConduitosArch::Ia32
+                | ConduitosArch::Aarch64
+                | ConduitosArch::Riscv64
+                | ConduitosArch::Loongarch64
         );
     let (artifact, target, blocker) = match arch {
         ConduitosArch::Ia32 => (
@@ -132,8 +135,8 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ),
         ConduitosArch::Loongarch64 => (
             "BOOTLOONGARCH64.EFI",
-            "loongarch64-unknown-none",
-            "no accepted LoongArch64 ConduitOS executable backend",
+            loongarch64_a0::TARGET,
+            "A0 compile/link accepted; A1 boot not established",
         ),
     };
     ArchitectureRow {
@@ -171,7 +174,7 @@ mod tests {
                 .iter()
                 .filter(|row| row.executable_backend_present)
                 .count(),
-            4
+            5
         );
         let aarch64 = matrix
             .architectures
@@ -199,6 +202,14 @@ mod tests {
         assert!(riscv64.executable_backend_present);
         assert!(riscv64.a0_compile_link);
         assert!(!riscv64.a1_boot);
+        let loongarch64 = matrix
+            .architectures
+            .iter()
+            .find(|row| row.architecture == "loongarch64")
+            .unwrap();
+        assert!(loongarch64.executable_backend_present);
+        assert!(loongarch64.a0_compile_link);
+        assert!(!loongarch64.a1_boot);
     }
 
     #[test]

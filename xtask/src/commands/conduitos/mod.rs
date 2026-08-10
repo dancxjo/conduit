@@ -4,6 +4,7 @@ mod architecture_matrix;
 mod build;
 mod ia32_a0;
 mod image;
+mod loongarch64_a0;
 mod profile;
 mod prove;
 mod report;
@@ -80,7 +81,7 @@ impl ConduitosArch {
     fn require_compile_link_backend(self) -> Result<(), ConduitosError> {
         if matches!(
             self,
-            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64
+            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64 | Self::Loongarch64
         ) {
             Ok(())
         } else {
@@ -195,14 +196,13 @@ mod tests {
     }
 
     #[test]
-    fn unavailable_backend_refuses_instead_of_aliasing_x86_64() {
+    fn added_compile_link_backends_are_explicit() {
         ConduitosArch::Riscv64
             .require_compile_link_backend()
             .unwrap();
-        let error = ConduitosArch::Loongarch64
+        ConduitosArch::Loongarch64
             .require_compile_link_backend()
-            .unwrap_err();
-        assert_eq!(error.reason, "unsupported-architecture-backend");
+            .unwrap();
     }
 
     #[test]
