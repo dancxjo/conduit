@@ -18,6 +18,18 @@ Run the complete proof with:
 cargo xtask conduitos prove --arch x86-64 --locked
 ```
 
+Inspect the digest-verified architecture matrix and current earned proof rungs
+with:
+
+```console
+cargo xtask conduitos architecture-matrix --locked
+```
+
+That report derives the five supported architecture names from the exact
+`BOOT*.EFI` artifacts in the pinned Limine archive and refuses if they disagree
+with the architecture-valued command contract. It does not make an unavailable
+backend executable.
+
 The command mechanically checks the executable, assembles the same hybrid
 BIOS/UEFI ISO twice, requires identical digests, and validates two real QEMU
 boots with fresh `HostId` and `BootId` values. Each boot must emit exactly one
@@ -53,4 +65,5 @@ and receives no QEMU-memory or ConduitOS-private inspection path.
 
 This slice adds no preemption, SMP, framebuffer implementation, network,
 Patchbay control, second runtime, or additional executable architecture
-backend. Broader ConduitOS profiles remain frozen unless separately promoted.
+backend. Each broader ConduitOS profile remains explicitly unavailable until a
+separate finite issue earns one architecture and one proof rung.
