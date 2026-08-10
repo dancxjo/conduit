@@ -120,7 +120,7 @@ pub fn run_prove_pico_appliance(
     let (runtime_boot_id, signs) = verify_signs(
         BufReader::new(sign_file),
         &identity.firmware_build_id,
-        &leased_address,
+        Some(&leased_address),
     )?;
     restoration.restore()?;
 
@@ -342,7 +342,7 @@ fn prove_http() -> PicoResult<()> {
 pub(super) fn verify_signs(
     mut reader: impl BufRead,
     firmware_build_id: &str,
-    leased_address: &str,
+    leased_address: Option<&str>,
 ) -> PicoResult<(String, Vec<serde_json::Value>)> {
     let deadline = Instant::now() + PHYSICAL_TIMEOUT;
     let mut line = String::new();
@@ -359,6 +359,9 @@ pub(super) fn verify_signs(
         verify_field(&sign, "firmware_build_id", firmware_build_id)?;
         verify_field(&sign, "profile", conduit_net::PICO_APPLIANCE_PROFILE)?;
         verify_field(&sign, "host_id", "pico/appliance-hello")?;
+        if sign.get("failure").is_some() {
+            return Err(format!("Pico appliance emitted failure Sign: {sign}").into());
+        }
         verify_field(&sign, "kind", EXPECTED_SIGNS[index])?;
         if sign["sequence"].as_u64() != Some(index as u64 + 1) {
             return Err("Pico appliance Sign sequence is not exact".into());
@@ -376,10 +379,10 @@ pub(super) fn verify_signs(
         }
         let expected_sign_id = format!("pico/appliance/sign:{current_boot}:{:02}", index + 1);
         verify_field(&sign, "sign_id", &expected_sign_id)?;
-        if sign.get("failure").is_some() {
-            return Err(format!("Pico appliance emitted failure Sign: {sign}").into());
-        }
-        if matches!(index, 1 | 2) && sign["address"].as_str() != Some(leased_address) {
+        if matches!(index, 1 | 2)
+            && leased_address.is_some()
+            && sign["address"].as_str() != leased_address
+        {
             return Err("Pico appliance association/lease Sign address mismatch".into());
         }
         signs.push(sign);
@@ -540,7 +543,8 @@ mod tests {
     #[test]
     fn transcript_requires_exact_identity_order_lease_and_terminal() {
         let valid = transcript(|_, _| {});
-        let (boot, signs) = verify_signs(Cursor::new(valid), "build/1", "192.168.4.2").unwrap();
+        let (boot, signs) =
+            verify_signs(Cursor::new(valid), "build/1", Some("192.168.4.2")).unwrap();
         assert_eq!(boot, "runtime/boot/1");
         assert_eq!(signs.len(), EXPECTED_SIGNS.len());
 
@@ -549,17 +553,17 @@ mod tests {
                 sign["kind"] = "http-response".into();
             }
         });
-        assert!(verify_signs(Cursor::new(wrong_kind), "build/1", "192.168.4.2").is_err());
+        assert!(verify_signs(Cursor::new(wrong_kind), "build/1", Some("192.168.4.2")).is_err());
 
         let stale_build = transcript(|index, sign| {
             if index == 6 {
                 sign["firmware_build_id"] = "stale".into();
             }
         });
-        assert!(verify_signs(Cursor::new(stale_build), "build/1", "192.168.4.2").is_err());
+        assert!(verify_signs(Cursor::new(stale_build), "build/1", Some("192.168.4.2")).is_err());
 
         let wrong_lease = transcript(|_, _| {});
-        assert!(verify_signs(Cursor::new(wrong_lease), "build/1", "192.168.4.3").is_err());
+        assert!(verify_signs(Cursor::new(wrong_lease), "build/1", Some("192.168.4.3")).is_err());
     }
 
     struct TimeoutSplitReader {

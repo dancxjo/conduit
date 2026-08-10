@@ -107,13 +107,15 @@ pub fn run_prove_pico_appliance_hil(
     )?;
     let leased_address = client_receipt["leased_address"]
         .as_str()
-        .ok_or("two-Pico client receipt has no leased address")?
-        .to_owned();
+        .map(ToOwned::to_owned);
     let (appliance_runtime_boot_id, appliance_signs) = verify_signs(
         BufReader::new(appliance_sign_file),
         &appliance_identity.firmware_build_id,
-        &leased_address,
+        leased_address.as_deref(),
     )?;
+    verify_client_receipt(&client_receipt, &client_identity.firmware_build_id)?;
+    let leased_address =
+        leased_address.ok_or("successful two-Pico client receipt has no leased address")?;
 
     let appliance_hardware_identity = hardware_identity(&appliance_sign_path)?;
     let client_hardware_identity = hardware_identity(&client_sign_path)?;
@@ -280,12 +282,12 @@ fn read_client_receipt(
             continue;
         }
         let receipt: serde_json::Value = serde_json::from_str(line.trim())?;
-        verify_client_receipt(&receipt, firmware_build_id)?;
+        verify_client_identity(&receipt, firmware_build_id)?;
         return Ok(receipt);
     }
 }
 
-fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -> PicoResult<()> {
+fn verify_client_identity(receipt: &serde_json::Value, firmware_build_id: &str) -> PicoResult<()> {
     let exact = receipt["schema"].as_str() == Some("conduit.pico-appliance/hil-client@1")
         && receipt["firmware_build_id"].as_str() == Some(firmware_build_id)
         && receipt["host_id"].as_str() == Some("pico/appliance-hil-client")
@@ -293,8 +295,16 @@ fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -
             .as_str()
             .is_some_and(|value| !value.is_empty())
         && receipt["ssid"].as_str() == Some(conduit_net::APPLIANCE_SSID)
-        && receipt["terminal"].as_bool() == Some(true)
-        && receipt["success"].as_bool() == Some(true)
+        && receipt["terminal"].as_bool() == Some(true);
+    if !exact {
+        return Err(format!("Pico appliance HIL client identity is not exact: {receipt}").into());
+    }
+    Ok(())
+}
+
+fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -> PicoResult<()> {
+    verify_client_identity(receipt, firmware_build_id)?;
+    let exact = receipt["success"].as_bool() == Some(true)
         && receipt.get("failure").is_none()
         && receipt["dns_name"].as_str() == Some(conduit_net::APPLIANCE_LOCAL_NAME)
         && receipt["dns_address"].as_str() == Some("192.168.4.1")
