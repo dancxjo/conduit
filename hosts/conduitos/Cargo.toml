@@ -19,6 +19,13 @@ bench = false
 required-features = ["aarch64-a0"]
 
 [[bin]]
+name = "conduitos-aarch64-a2"
+path = "src/bin/aarch64_a2.rs"
+test = false
+bench = false
+required-features = ["aarch64-a2"]
+
+[[bin]]
 name = "conduitos-ia32-a0"
 path = "src/bin/ia32_a0.rs"
 test = false
@@ -28,6 +35,7 @@ required-features = ["ia32-a0"]
 [features]
 default = []
 aarch64-a0 = []
+aarch64-a2 = []
 ia32-a0 = []
 
 [dependencies]

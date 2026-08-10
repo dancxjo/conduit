@@ -109,6 +109,7 @@ fn build_matrix(artifacts: &BTreeSet<String>) -> Result<ArchitectureMatrix, Cond
 fn row(arch: ConduitosArch) -> ArchitectureRow {
     let boot_accepted = matches!(arch, ConduitosArch::X86_64 | ConduitosArch::Aarch64);
     let full_spine_accepted = arch == ConduitosArch::X86_64;
+    let machine_wake_accepted = full_spine_accepted || arch == ConduitosArch::Aarch64;
     let compile_link_accepted =
         boot_accepted || matches!(arch, ConduitosArch::Ia32 | ConduitosArch::Aarch64);
     let (artifact, target, blocker) = match arch {
@@ -121,7 +122,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::Aarch64 => (
             "BOOTAA64.EFI",
             aarch64_a0::TARGET,
-            "A1 boot accepted; A2 machine wake not established",
+            "A2 machine wake accepted; A3 ordinary Form not established",
         ),
         ConduitosArch::Riscv64 => (
             "BOOTRISCV64.EFI",
@@ -143,7 +144,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         executable_backend_present: compile_link_accepted,
         a0_compile_link: compile_link_accepted,
         a1_boot: boot_accepted,
-        a2_machine_wake: full_spine_accepted,
+        a2_machine_wake: machine_wake_accepted,
         a3_ordinary_form: full_spine_accepted,
         a4_observatory_patchbay: full_spine_accepted,
         blocker: (!full_spine_accepted).then_some(blocker),
@@ -178,7 +179,7 @@ mod tests {
             .unwrap();
         assert!(aarch64.a0_compile_link);
         assert!(aarch64.a1_boot);
-        assert!(!aarch64.a2_machine_wake);
+        assert!(aarch64.a2_machine_wake);
         assert!(!aarch64.a3_ordinary_form);
         assert!(!aarch64.a4_observatory_patchbay);
         let ia32 = matrix
