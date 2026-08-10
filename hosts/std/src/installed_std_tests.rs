@@ -99,6 +99,131 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
 }
 
 #[test]
+fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
+    let mut host = host("typed-flow-state-host");
+    let form = parse(
+        "form 0\n\ntyped_flow_state {\n source: conduit.test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit.test/scalar-sink\n right: conduit.test/scalar-sink\n source.value -> latest.in\n latest.out -> split.in\n split.left -> left.in\n split.right -> right.in\n}\n",
+        &installed_std::test_catalog(),
+    )
+    .expect("typed flow/state form parses");
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts).expect("every typed placement resolves");
+    let plan = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[ConnectionBase::Local],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_core::SCALAR_ENCODED_LEN as u32,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("typed latest/tee form plans with capacity-one cords");
+    let fragment = &plan.fragments[0];
+    let latest = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::LATEST_KIND)
+        .expect("latest placement exists");
+    let tee = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEE_KIND)
+        .expect("tee placement exists");
+    assert_eq!(
+        latest.kind_contract_revision.as_str(),
+        conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION
+    );
+    assert_eq!(
+        tee.kind_contract_revision.as_str(),
+        conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION
+    );
+    assert!(latest
+        .inputs
+        .iter()
+        .chain(latest.outputs.iter())
+        .chain(tee.inputs.iter())
+        .chain(tee.outputs.iter())
+        .all(|port| port.value_kind.as_str() == conduit_core::SCALAR_INFO_ID));
+    assert!(fragment.connections.iter().all(|cord| {
+        cord.item_capacity == 1 && cord.byte_capacity == conduit_core::SCALAR_ENCODED_LEN as u32
+    }));
+
+    let mut output = Vec::with_capacity(1_024);
+    let mut timer = RecordingTimer {
+        waits: Vec::with_capacity(3),
+    };
+    let report = host
+        .run_fragment_to(fragment.clone(), &mut output, &mut timer)
+        .expect("typed latest/tee execute through the production kernel");
+    let output = String::from_utf8(output).expect("flow/state report is utf8");
+    assert!(output.contains("place latest kind=state/latest"));
+    assert!(output.contains("place split kind=flow/tee"));
+    assert!(output.contains(" complete\n"));
+    assert_eq!(timer.waits, vec![Duration::ZERO; 3]);
+    assert!(matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.expect("kernel report exists");
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+    assert_eq!(kernel.post_play_start_allocations, 0);
+}
+
+#[test]
+fn mutated_typed_tee_identity_fails_before_play() {
+    let baseline_host = host("mutated-flow-state-host");
+    let form = parse(
+        "form 0\n\ntyped_flow_state {\n source: conduit.test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit.test/scalar-sink\n right: conduit.test/scalar-sink\n source.value -> latest.in\n latest.out -> split.in\n split.left -> left.in\n split.right -> right.in\n}\n",
+        &installed_std::test_catalog(),
+    )
+    .expect("typed flow/state form parses");
+    let hosts = [baseline_host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts).expect("typed placements resolve");
+    let plan = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[ConnectionBase::Local],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_core::SCALAR_ENCODED_LEN as u32,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("typed flow/state plan exists");
+    let mut fragment = plan.fragments[0].clone();
+    fragment
+        .placements
+        .iter_mut()
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEE_KIND)
+        .expect("tee placement exists")
+        .artifact_id = conduit_core::ArtifactId::from("mutated/tee-artifact");
+
+    let mut host = baseline_host;
+    let mut output = Vec::new();
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    assert!(host
+        .run_fragment_to(fragment, &mut output, &mut timer)
+        .is_err());
+    assert!(timer.waits.is_empty());
+}
+
+#[test]
 fn zero_count_tick_completes_without_wait_or_value_receipt() {
     let mut host = host("zero-tick-host");
     let form = parse(

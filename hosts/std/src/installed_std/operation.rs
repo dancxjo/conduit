@@ -5,6 +5,7 @@ use super::contract::{
     TIME_EVERY_EXECUTION_PROFILE, TIME_EVERY_IMPLEMENTATION, TIME_EVERY_KIND,
 };
 use super::count_operations::{CountPresentationOperation, StateCountOperation};
+use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
@@ -74,10 +75,16 @@ pub(super) enum InstalledOperation {
     TextPresentation(TextPresentationOperation),
     StateCount(StateCountOperation),
     CountPresentation(CountPresentationOperation),
+    StateLatestScalar(StateLatestScalarOperation),
+    FlowTeeScalar(FlowTeeScalarOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
+    #[cfg(test)]
+    TestScalarSource(super::test_scalar_flow::TestScalarSourceOperation),
+    #[cfg(test)]
+    TestScalarSink(super::test_scalar_flow::TestScalarSinkOperation),
     #[cfg(test)]
     TestObserver(TestObserverOperation),
     Inactive,
@@ -109,10 +116,17 @@ impl InstalledOperation {
             Self::TextPresentation(_) => 0,
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::CountPresentation(_) => 0,
+            Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) => 0,
             Self::ExternalWebSocketListener(_) => 0,
             Self::GenerateText(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
+            #[cfg(test)]
+            Self::TestScalarSource(operation) => {
+                operation.values.capacity() + operation.waits.capacity()
+            }
+            #[cfg(test)]
+            Self::TestScalarSink(_) => 0,
             #[cfg(test)]
             Self::TestObserver(_) => 0,
             Self::Inactive => 0,
@@ -140,10 +154,16 @@ impl Operation for InstalledOperation {
             Self::TextPresentation(operation) => operation.start(),
             Self::StateCount(operation) => operation.start(),
             Self::CountPresentation(operation) => operation.start(),
+            Self::StateLatestScalar(operation) => operation.start(),
+            Self::FlowTeeScalar(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
+            #[cfg(test)]
+            Self::TestScalarSource(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestScalarSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestObserver(_) => OperationAction::Await,
             Self::Inactive => OperationAction::Complete,
@@ -176,6 +196,8 @@ impl Operation for InstalledOperation {
             (Self::TickPresentation(operation), input) => operation.resume(input),
             (Self::StateCount(operation), input) => operation.resume(input),
             (Self::CountPresentation(operation), input) => operation.resume(input),
+            (Self::StateLatestScalar(operation), input) => operation.resume(input),
+            (Self::FlowTeeScalar(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -219,6 +241,10 @@ impl Operation for InstalledOperation {
             (Self::TestTextSource(_), _) => Self::fail(6),
             #[cfg(test)]
             (Self::TestObserver(_), _) => Self::fail(3),
+            #[cfg(test)]
+            (Self::TestScalarSink(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestScalarSource(operation), input) => operation.resume(input),
             (Self::Inactive, _) => Self::fail(4),
         }
     }
@@ -238,6 +264,8 @@ impl Operation for InstalledOperation {
             Self::TextPresentation(_) => OperationAction::Await,
             Self::StateCount(operation) => operation.advance(),
             Self::CountPresentation(_) => OperationAction::Await,
+            Self::StateLatestScalar(operation) => operation.advance(),
+            Self::FlowTeeScalar(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             #[cfg(test)]
@@ -245,6 +273,10 @@ impl Operation for InstalledOperation {
                 operation.next += 1;
                 operation.emit_or_complete()
             }
+            #[cfg(test)]
+            Self::TestScalarSource(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestScalarSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestObserver(_) => OperationAction::Await,
             Self::Inactive => OperationAction::Complete,
@@ -261,13 +293,33 @@ impl Operation for InstalledOperation {
             Self::TextPresentation(operation) => operation.cancel(),
             Self::StateCount(_) => {}
             Self::CountPresentation(operation) => operation.cancel(),
+            Self::StateLatestScalar(operation) => operation.cancel(),
+            Self::FlowTeeScalar(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]
+            Self::TestScalarSource(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestScalarSink(_) => {}
+            #[cfg(test)]
             Self::TestObserver(operation) => operation.pending = None,
             Self::Inactive => {}
+        }
+    }
+
+    fn retains_resumed_value(&self) -> bool {
+        match self {
+            Self::StateLatestScalar(operation) => operation.retains_resumed_value(),
+            _ => false,
+        }
+    }
+
+    fn take_released_value(&mut self) -> Option<ValueRef> {
+        match self {
+            Self::StateLatestScalar(operation) => operation.take_released_value(),
+            _ => None,
         }
     }
 }

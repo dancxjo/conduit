@@ -6,8 +6,9 @@
 use conduit_core::KindId;
 
 use crate::{
-    COPY_FILE_KIND, COUNT_PRESENTATION_KIND, STATE_COUNT_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND,
-    TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_EVERY_KIND,
+    COPY_FILE_KIND, COUNT_PRESENTATION_KIND, LATEST_KIND, STATE_COUNT_KIND, TEE_KIND,
+    TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND,
+    TICK_PRESENTATION_KIND, TIME_EVERY_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -140,6 +141,16 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["counter", "total", "accumulate"],
             PaletteIconKey::Tally5,
         ),
+        LATEST_KIND => metadata(
+            PaletteCategory::State,
+            &["latest", "current", "replace"],
+            PaletteIconKey::Tally5,
+        ),
+        TEE_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["split", "tee", "fan-out"],
+            PaletteIconKey::Combine,
+        ),
         TICK_PRESENTATION_KIND => metadata(
             PaletteCategory::Presentation,
             &["display", "tick", "indicator"],
@@ -185,7 +196,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 10);
+        assert_eq!(contracts.len(), 12);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());
