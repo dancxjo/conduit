@@ -23,7 +23,7 @@ adapter or physical proof.
 | Bounded shared pools and explicit dynamic flow | checked Forms carry exact scoped pool references and hard member bounds; Plans seal equal-face member contracts, host/boot/capability/resource envelopes, per-member queue/Sign limits, admission authority, and explicit consumers | allocator-free keyed membership, stale occupation epochs, deterministic membership snapshots, per-branch fan pressure/outcomes, and source-tagged bounded merge vectors | the existing kernel owns fixed pool/fan/merge state; the std proof host plans and lowers one 32-peer chat pool without adding a scheduler or ambient registry | two Chromium pages dynamically join, exchange addressed broadcasts, one leaves, and the remaining peer continues; the authored Form names only pool, room, fan, merge, and peer semantics | no | the proof host selects a bounded binary loopback WebSocket Line below authored semantics; no socket/address/Base fact enters source identity | no physical/HIL claim |
 | Pico-shaped manifestation | exact Pico-local and remote-ingress advertisements with reviewed fixed-image bounds | yes, `conduit-pico-sim` | host-side unchanged-form planning/lowering/image generation, exact std source, and verifier tests | no | RP2040 images generated from exact local/remote fragments, CYW43 GPIO 0 LED driver, pinned radio assets, clean firmware-build identity, runtime boot/play receipt identity, and bounded dual CDC | exact bounded std↔Pico USB CDC and final three-host sessions | recorded local, exact std↔Pico success/failure, and final three-host success/broken-link runs |
 | Retired membership prototype | historical only | deterministic table tests | no production Body model | no | no | no | no |
-| Observatory | versioned neutral host/capability/link/plan/Play/pressure/sign/retention reports with exact identity and bound validation | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store | no new transport; observed links are report facts only | no new physical/HIL claim |
+| Observatory | versioned neutral host/capability/Base/link/plan/Play/pressure/current-and-historical-Sign/retention reports with exact identity and bound validation; sealed boot provenance remains distinct from live offers and Bases | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control; native Patchbay validates and linearly renders the same ordinary snapshot exported by ConduitOS | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store; the accepted ConduitOS export is freestanding-emulator proof | no new transport; observed links are report facts only | no new physical/HIL claim |
 | Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and Sign identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, bases, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
 | `conduit.std` | nine exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, and state/count; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors plus canonical Programs 1–4 | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; minimal/subset compositions advertise only selected offers | no manifestation claim for these nine revisions | no manifestation claim for these nine revisions | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
 | Copy a file | unsafe prototype disabled | tests removed from default tree | no admitted host operation | no chooser | no | no | no |
@@ -553,5 +553,41 @@ inspection surface, full Rust standard library, preemption, SMP, APIC/IOAPIC,
 filesystem, framebuffer, network, transport, non-x86_64 execution, firmware,
 or physical/HIL claim. The earlier hand-lowered profile remains only a named
 P2/P3 regression fixture; production boot follows the ordinary Form pipeline
-and the single `conduit-kernel`. P5 inspection truth and the final #588 audit
-remain open.
+and the single `conduit-kernel`.
+
+The ConduitOS ordinary-inspection slice from #588 is accepted at exact main
+`b810259296c64052ca19b9fdf2e1f3837c36c877`; push workflow `31347392349`
+passed `check`, `browser-host`, and `conduitos-boot`. After the admitted
+ordinary Play reaches its successful terminal state, each of two fresh x86_64
+QEMU boots exports one bounded Observatory v2 snapshot through the guest
+serial proof seam. The actual native Patchbay binary validates the retained
+snapshot and produces a deterministic 42-line linear projection without a
+ConduitOS-specific privilege or runtime path.
+
+Each snapshot carries the exact Host and Boot advertisement, two capability
+offers, four resource pools, seven initialized Bases, one Plan and fragment,
+two placements, one capacity-one eight-byte Cord, one completed ActivePlay,
+four current terminal Signs, six retained historical lifecycle Signs, and
+zero Sign gaps. Source-document, checked-form, and expanded-form identities
+remain stable across boots while Host, Boot, Plan, fragment, ActivePlay, Base,
+and Sign identities remain exact and fresh where their lifetimes require it.
+The guest admits at-most-64-KiB report storage inside the 256-KiB boot arena
+before Play; both exact-main boots reported 196,752 bytes allocated before and
+after Play. Sign retention is explicit at 10 of 64 items with zero drops.
+
+Limine 12.5.2, firmware environment, adapter revision, image/build identity,
+normalized memory summary, optional boot artifacts, Plan artifacts, and
+framebuffers are represented only as sealed boot provenance. They are visibly
+separate from current Host offers and Bases and confer no membership, trust,
+authority, or availability. Validation fails closed on stale or duplicate
+Bases or provenance, duplicate Signs across current and historical retention,
+invalid retention bounds, bad framebuffer Base references, and drifted
+Plan/Play/Line identities.
+
+This remains `freestanding-emulator` proof. It adds no second report store,
+Patchbay backdoor, runtime control, QEMU-memory inspection, framebuffer,
+network, transport, complete `conduit.std` profile, non-x86_64 executable
+backend, firmware, or physical/HIL claim. The active P0-P5 #588 spine is now
+implemented; frozen architecture, profile, lane/preemption, and platform
+breadth remain dormant until deliberately promoted. The final #588 closure
+audit remains separate from this acceptance record.
