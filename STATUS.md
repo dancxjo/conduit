@@ -571,6 +571,42 @@ semantic interaction proof is deterministic below that renderer-local input
 boundary. It adds no firmware, ConduitOS framebuffer, transport, or
 physical/HIL claim.
 
+The baseline visual semantic-composition story from #742 is accepted at exact
+main `7aba921af0f738712b2b94963c763b3ede4ace3d`; push workflow
+`31436226181` passed `check`, `browser-host`, and `conduitos-boot`. The actual
+native Patchbay can instantiate palette Kinds as distinct authored Gears, move
+and group them as separately persisted presentation state, duplicate their
+exact authored configuration, remove them and their dependent Cords, and save
+and reopen both the canonical `.conduit` source and bounded layout sidecar.
+Coordinates and groups do not enter source, checked, expanded, Plan, Play,
+Host, or runtime identity.
+
+Directional Ports expose their exact human-facing Info and temporal
+contracts. Dragging from an output to a compatible input creates an authored
+Cord; selecting a direct authored Cord and pressing Delete removes its source
+statement; drawing the replacement Cord provides the baseline reroute path.
+Each semantic edit first becomes a bounded platform-neutral interaction Form,
+exact Plan, production-kernel Play, typed receipt, and bounded Signs before it
+may atomically replace canonical source and refresh the ordinary checked and
+expanded projection. Connectivity, not canvas or statement ordering, remains
+the semantic truth and the resulting Form continues through the ordinary
+checker and planner paths independently of eventual realization.
+
+Incompatible Info or temporal contracts refuse with maker-legible feedback
+and byte-identical prior source. Stale revisions, stale expanded bases,
+unknown subjects, duplicate Cords, and attempts to rewrite nested reusable
+Face internals also fail closed. Tests cover create, delete, reconnect,
+duplicate, Gear removal, movement/grouping identity stability, and
+save/reopen through the native production interaction seam.
+
+This is #742's baseline composition proof, not the richer Cord or Gear-Face
+editing experience. #744 still owns catalog-derived compact configuration
+controls. #745 still owns selectable bend points, bounded Cord parameters,
+direct endpoint manipulation, and bounded undo/redo. This acceptance adds no
+Host placement, hardware discovery, ROS import/export, scheduler view,
+implementation editing, PREWAKE automation, Line/transport selection,
+firmware behavior, or physical/HIL claim.
+
 The first ConduitOS boot slice from #588 is accepted at exact main
 `35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
 passed `check`, `browser-host`, and `conduitos-boot`. The architecture-neutral
