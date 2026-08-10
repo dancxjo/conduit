@@ -161,6 +161,10 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
         .execute(None, request, |_| PatchbayInvocationOutcome::Failed)
         .unwrap();
     assert_eq!(receipt.disposition, InteractionDisposition::Failed);
+    assert!(receipt
+        .signs
+        .iter()
+        .any(|event| event.kind == KernelEventKind::HostOperationCompleted));
 }
 
 #[test]
