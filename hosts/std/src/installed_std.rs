@@ -3,9 +3,12 @@ pub(super) mod contract;
 mod count_operations;
 mod external_websocket;
 mod external_websocket_host;
+mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
 mod operation;
+#[cfg(test)]
+mod test_gate;
 #[cfg(test)]
 mod test_scalar_flow;
 #[cfg(test)]
@@ -74,6 +77,16 @@ pub(super) fn test_scalar_source_offer() -> conduit_core::CapabilityOffer {
 #[cfg(test)]
 pub(super) fn test_scalar_sink_offer() -> conduit_core::CapabilityOffer {
     test_scalar_flow::sink_offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_gate_script_offer() -> conduit_core::CapabilityOffer {
+    test_gate::source_offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_slow_scalar_sink_offer() -> conduit_core::CapabilityOffer {
+    test_gate::slow_sink_offer()
 }
 const HOST_OPERATIONS_PER_NODE: u16 = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
@@ -293,6 +306,10 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         conduit_std_catalog::TEXT_JOIN_HOST_OPERATION_CONTRACT,
     );
     let join_target_kind = kind_id(conduit_std_catalog::TEXT_JOIN_HOST_OPERATION_TARGET);
+    let gate_bool_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT,
+    );
+    let gate_bool_target_kind = kind_id(conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_TARGET);
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
@@ -478,6 +495,23 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         text_operations::completed_with_output(value),
                     )
                     .map_err(|error| format!("complete text/join host operation: {error:?}"))?;
+                continue;
+            } else if contract == &gate_bool_contract_id
+                && lowered_operation.target_kind.as_ref() == Some(&gate_bool_target_kind)
+            {
+                let enabled = flow_gate_operation::decode_bool(input)?;
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: enabled.then_some(request.input),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete flow/gate bool decode: {error:?}"))?;
                 continue;
             } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
                 let text = std::str::from_utf8(input)

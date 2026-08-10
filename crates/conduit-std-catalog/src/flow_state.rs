@@ -1,6 +1,6 @@
 use super::{
-    StandardKindContract, TerminalBehavior, IN_PORT, LATEST_KIND, LEFT_PORT, OUT_PORT, RIGHT_PORT,
-    TEE_KIND,
+    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    ENABLE_PORT, GATE_KIND, IN_PORT, LATEST_KIND, LEFT_PORT, OUT_PORT, RIGHT_PORT, TEE_KIND,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
@@ -9,8 +9,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SCALAR_INFO_ID,
+    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const STATE_LATEST_SCALAR_CONTRACT_REVISION: &str = "conduit.std/state-latest-scalar@2";
@@ -24,6 +25,14 @@ pub const FLOW_TEE_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/flow-tee-scalar
 pub const FLOW_TEE_SCALAR_IMPLEMENTATION: &str = "std/kernel-flow-tee-scalar@2";
 pub const FLOW_TEE_SCALAR_ARTIFACT: &str = "conduit-std-host/flow-tee-scalar@2";
 pub const FLOW_TEE_SCALAR_CAPABILITY: &str = "flow-tee-scalar-v2";
+
+pub const FLOW_GATE_SCALAR_CONTRACT_REVISION: &str = "conduit.std/flow-gate-scalar@1";
+pub const FLOW_GATE_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/flow-gate-scalar-kernel@1";
+pub const FLOW_GATE_SCALAR_IMPLEMENTATION: &str = "std/kernel-flow-gate-scalar@1";
+pub const FLOW_GATE_SCALAR_ARTIFACT: &str = "conduit-std-host/flow-gate-scalar@1";
+pub const FLOW_GATE_SCALAR_CAPABILITY: &str = "flow-gate-scalar-v1";
+pub const FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT: &str = "conduit.host/decode-bool@1";
+pub const FLOW_GATE_BOOL_HOST_OPERATION_TARGET: &str = "value/decode-bool";
 
 pub const FLOW_STATE_MAXIMUM_VALUES: u16 = 16;
 
@@ -70,6 +79,50 @@ pub fn flow_tee_scalar_contract() -> StandardKindContract {
     }
 }
 
+pub fn flow_gate_scalar_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(GATE_KIND),
+        plain_name: "Gate scalar flow".to_string(),
+        summary: "Pass scalar values only while the latest exact Boolean enable is true."
+            .to_string(),
+        inputs: vec![
+            info_port(
+                IN_PORT,
+                SCALAR_INFO_ID,
+                PortDirection::Input,
+                PortTemporal::Current,
+            ),
+            info_port(
+                ENABLE_PORT,
+                BOOL_INFO_ID,
+                PortDirection::Input,
+                PortTemporal::Current,
+            ),
+        ],
+        outputs: vec![info_port(
+            OUT_PORT,
+            SCALAR_INFO_ID,
+            PortDirection::Output,
+            PortTemporal::Current,
+        )],
+        configuration: vec![StandardConfigurationField {
+            key: "maximum-enable-updates".to_string(),
+            default_value: ConfigurationValue::U64(FLOW_STATE_MAXIMUM_VALUES.into()),
+            rule: StandardConfigurationRule::U64Range {
+                minimum: 1,
+                maximum: FLOW_STATE_MAXIMUM_VALUES.into(),
+            },
+        }],
+        limits: limits(),
+        terminal_behavior:
+            TerminalBehavior::CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "gate: flow/gate".to_string(),
+    }
+}
+
 pub fn state_latest_scalar_offer() -> CapabilityOffer {
     offer(
         state_latest_scalar_contract(),
@@ -92,10 +145,45 @@ pub fn flow_tee_scalar_offer() -> CapabilityOffer {
     )
 }
 
+pub fn flow_gate_scalar_offer() -> CapabilityOffer {
+    let mut offer = offer(
+        flow_gate_scalar_contract(),
+        FLOW_GATE_SCALAR_CAPABILITY,
+        FLOW_GATE_SCALAR_CONTRACT_REVISION,
+        FLOW_GATE_SCALAR_EXECUTION_PROFILE,
+        FLOW_GATE_SCALAR_IMPLEMENTATION,
+        FLOW_GATE_SCALAR_ARTIFACT,
+    );
+    offer
+        .startup_parameters
+        .push(conduit_core::FaceStartupParameter {
+            name: "maximum-enable-updates".to_string(),
+            value_type: "Count".to_string(),
+            has_default: true,
+        });
+    offer.host_operations.push(HostOperationRequirement {
+        contract_id: HostOperationContractId::from(FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT),
+        target_kind: Some(kind_id(FLOW_GATE_BOOL_HOST_OPERATION_TARGET)),
+        maximum_in_flight: 1,
+        maximum_input_bytes: 1,
+        maximum_output_bytes: 1,
+    });
+    offer
+}
+
 fn port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDescriptor {
+    info_port(name, SCALAR_INFO_ID, direction, temporal)
+}
+
+fn info_port(
+    name: &str,
+    info: &str,
+    direction: PortDirection,
+    temporal: PortTemporal,
+) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
-        value_kind: kind_id(SCALAR_INFO_ID),
+        value_kind: kind_id(info),
         direction,
         temporal,
     }
@@ -142,7 +230,7 @@ pub fn install_flow_state_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
     for (contract, revision) in [
         (
             state_latest_scalar_contract(),
@@ -152,18 +240,36 @@ pub fn install_flow_state_catalogs(
             flow_tee_scalar_contract(),
             FLOW_TEE_SCALAR_CONTRACT_REVISION,
         ),
+        (
+            flow_gate_scalar_contract(),
+            FLOW_GATE_SCALAR_CONTRACT_REVISION,
+        ),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: Vec::new(),
         })?;
+        let configuration = contract
+            .configuration
+            .iter()
+            .map(|field| ConfigurationField {
+                key: field.key.clone(),
+                default_value: field.default_value.clone(),
+                validation: match field.rule {
+                    StandardConfigurationRule::U64Range { minimum, maximum } => {
+                        ConfigurationRule::U64Range { minimum, maximum }
+                    }
+                    _ => unreachable!("flow/state configuration uses only exact integer ranges"),
+                },
+            })
+            .collect();
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
                 kind_contract_revision: KindContractRevision::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
-                configuration: Vec::new(),
+                configuration,
             })
             .map_err(|error| error.to_string())?;
     }
@@ -186,6 +292,14 @@ mod tests {
         let tee = flow_tee_scalar_contract();
         assert_eq!(tee.inputs[0].temporal, PortTemporal::Current);
         assert_eq!(tee.outputs.len(), 2);
+        let gate = flow_gate_scalar_contract();
+        assert_eq!(gate.inputs[0].value_kind.as_str(), SCALAR_INFO_ID);
+        assert_eq!(gate.inputs[1].value_kind.as_str(), BOOL_INFO_ID);
+        assert_eq!(gate.inputs[1].temporal, PortTemporal::Current);
+        assert_eq!(gate.outputs[0].value_kind.as_str(), SCALAR_INFO_ID);
+        assert_eq!(gate.configuration.len(), 1);
+        assert_eq!(flow_gate_scalar_offer().host_operations.len(), 1);
+
         for port in latest
             .inputs
             .iter()
@@ -194,6 +308,8 @@ mod tests {
             .chain(tee.outputs.iter())
         {
             assert_eq!(port.value_kind.as_str(), SCALAR_INFO_ID);
+        }
+        for port in gate.inputs.iter().chain(gate.outputs.iter()) {
             assert_ne!(port.value_kind.as_str(), super::super::GENERIC_VALUE_KIND);
         }
     }
@@ -206,6 +322,7 @@ mod tests {
         install_flow_state_catalogs(&mut startup, &mut profile).unwrap();
         let latest = profile.get(&kind_id(LATEST_KIND)).unwrap();
         let tee = profile.get(&kind_id(TEE_KIND)).unwrap();
+        let gate = profile.get(&kind_id(GATE_KIND)).unwrap();
         assert_eq!(
             latest.kind_contract_revision.as_str(),
             STATE_LATEST_SCALAR_CONTRACT_REVISION
@@ -213,6 +330,10 @@ mod tests {
         assert_eq!(
             tee.kind_contract_revision.as_str(),
             FLOW_TEE_SCALAR_CONTRACT_REVISION
+        );
+        assert_eq!(
+            gate.kind_contract_revision.as_str(),
+            FLOW_GATE_SCALAR_CONTRACT_REVISION
         );
     }
 }

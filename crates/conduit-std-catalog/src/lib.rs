@@ -52,6 +52,7 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         count_presentation_contract(),
         state_latest_scalar_contract(),
         flow_tee_scalar_contract(),
+        flow_gate_scalar_contract(),
         copy_file_contract(),
     ]
 }
@@ -74,6 +75,7 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         count_presentation_offer(),
         state_latest_scalar_offer(),
         flow_tee_scalar_offer(),
+        flow_gate_scalar_offer(),
         copy_file_offer(),
     ]
 }
@@ -83,6 +85,7 @@ pub const SHOW_KIND: &str = "presentation/show";
 pub const MAP_KIND: &str = "flow/map";
 pub const FILTER_KIND: &str = "flow/filter";
 pub const TEE_KIND: &str = "flow/tee";
+pub const GATE_KIND: &str = "flow/gate";
 pub const FORMAT_KIND: &str = "text/format";
 pub const TICK_KIND: &str = "time/tick";
 pub const LATEST_KIND: &str = "state/latest";
@@ -98,6 +101,7 @@ pub const TEXT_PORT: &str = "text";
 pub const TICK_PORT: &str = "tick";
 pub const LEFT_PORT: &str = "left";
 pub const RIGHT_PORT: &str = "right";
+pub const ENABLE_PORT: &str = "enable";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TerminalBehavior {
@@ -109,6 +113,7 @@ pub enum TerminalBehavior {
     RetainsLatestUntilReleased,
     EmitsCurrentAndCompletesWhenInputCloses,
     CoupledAtomicFanoutAndMirrorsInputTerminal,
+    CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -279,7 +284,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 12);
+        assert_eq!(contracts.len(), 13);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts

@@ -7,6 +7,8 @@ use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
 use std::time::Duration;
 
+mod gate_conformance;
+
 struct RecordingTimer {
     waits: Vec<Duration>,
 }
