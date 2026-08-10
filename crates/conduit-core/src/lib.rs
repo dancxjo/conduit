@@ -14,6 +14,7 @@ mod control_loop;
 mod execution;
 mod face;
 mod implementation;
+mod info;
 mod port;
 mod resource;
 mod route;
@@ -27,6 +28,7 @@ pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
     RealizationCharacteristicValue,
 };
+pub use info::*;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use resource::*;
 pub use route::*;
