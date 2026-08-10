@@ -6,6 +6,7 @@ pub mod allocation;
 pub mod arch;
 pub mod boot;
 pub mod composition;
+mod execution_region;
 pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;

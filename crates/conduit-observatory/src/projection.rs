@@ -5,9 +5,9 @@ use alloc::vec::Vec;
 use conduit_core::{ConnectionId, ObservationKind, PlacementId, Plan, PlanId};
 
 use crate::{
-    validate_snapshot, CapabilityAvailability, CapabilityRow, CapabilitySupport, FragmentRow,
-    HostRow, LineRow, ObservatoryReport, ObservatorySnapshot, OfferFreshness, OperationalState,
-    PlacementRow, PlanRow, RetentionRow, SignRow,
+    validate_snapshot, CapabilityAvailability, CapabilityRow, CapabilitySupport,
+    ExecutionRegionRow, FragmentRow, HostRow, LineRow, ObservatoryReport, ObservatorySnapshot,
+    OfferFreshness, OperationalState, PlacementRow, PlanRow, RetentionRow, SignRow,
 };
 
 pub const SNAPSHOT_SCHEMA: &str = "conduit.observatory.snapshot/v2";
@@ -83,6 +83,37 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
             fragment_count: plan.fragments.len(),
             placement_count: distinct_placements(plan).len(),
             connection_count: distinct_connections(plan).len(),
+            execution_region_count: plan
+                .fragments
+                .iter()
+                .map(|fragment| fragment.execution_regions.len())
+                .sum(),
+        })
+        .collect::<Vec<_>>();
+
+    let execution_regions = snapshot
+        .plans
+        .iter()
+        .flat_map(|plan| {
+            plan.fragments.iter().flat_map(move |fragment| {
+                fragment
+                    .execution_regions
+                    .iter()
+                    .map(move |region| ExecutionRegionRow {
+                        plan_id: plan.plan_id.clone(),
+                        fragment_id: fragment.fragment_id.clone(),
+                        region_id: region.region_id.clone(),
+                        admitted_placements: region.admitted_placements.clone(),
+                        execution_profile_id: region.execution_profile_id.clone(),
+                        scheduling: region.scheduling,
+                        lane_count: region.lane_count,
+                        lane_resource: region.lane_resource.clone(),
+                        lane_base_id: region.lane_base_id.clone(),
+                        requirements: region.requirements,
+                        preemption_required: region.preemption_required,
+                        isolation_required: region.isolation_required,
+                    })
+            })
         })
         .collect::<Vec<_>>();
 
@@ -188,6 +219,7 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         bases: snapshot.bases.clone(),
         lines,
         plans,
+        execution_regions,
         fragments,
         placements,
         connections,

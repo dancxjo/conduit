@@ -96,14 +96,35 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for plan in &report.plans {
         let _ = writeln!(
             output,
-            "plan id={} source_document={} checked_form={} expanded_form={} fragments={} placements={} connections={}",
+            "plan id={} source_document={} checked_form={} expanded_form={} fragments={} placements={} connections={} execution_regions={}",
             plan.plan_id.as_str(),
             plan.source_document_id.as_str(),
             plan.checked_form_id.as_str(),
             plan.expanded_form_id.as_str(),
             plan.fragment_count,
             plan.placement_count,
-            plan.connection_count
+            plan.connection_count,
+            plan.execution_region_count
+        );
+    }
+    let _ = writeln!(
+        output,
+        "execution_regions {}",
+        report.execution_regions.len()
+    );
+    for region in &report.execution_regions {
+        let _ = writeln!(
+            output,
+            "execution_region plan={} fragment={} region={} admitted_placements={:?} profile={} scheduling={:?} lane_count={} lane_pool={} lane_class={} lane_units={} lane_base={} runtime_memory_bytes={} timer_slots={} cord_items={} cord_bytes={} sign_items={} sign_bytes={} preemption_required={} isolation_required={}",
+            region.plan_id.as_str(), region.fragment_id.as_str(), region.region_id.as_str(),
+            region.admitted_placements, region.execution_profile_id.as_str(), region.scheduling,
+            region.lane_count, region.lane_resource.pool_id.as_str(),
+            region.lane_resource.class_id.as_str(), region.lane_resource.units,
+            region.lane_base_id.as_str(), region.requirements.runtime_memory_bytes,
+            region.requirements.timer_slots, region.requirements.cord_item_capacity,
+            region.requirements.cord_byte_capacity, region.requirements.mandatory_sign_items,
+            region.requirements.mandatory_sign_bytes, region.preemption_required,
+            region.isolation_required
         );
     }
     let _ = writeln!(output, "fragments {}", report.fragments.len());

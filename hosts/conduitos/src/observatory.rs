@@ -419,6 +419,16 @@ mod tests {
         }));
         let report = conduit_observatory::build_report(&snapshot).unwrap();
         let linear = conduit_observatory::render_text_report(&report);
+        assert_eq!(report.execution_regions.len(), 1);
+        assert!(linear.contains("execution_regions 1"));
+        assert!(linear.contains("scheduling=CooperativeBoundedStep lane_count=1"));
+        assert!(linear.contains("preemption_required=false isolation_required=false"));
+        let mut rendered_copy = report.clone();
+        rendered_copy.execution_regions[0].lane_count = 99;
+        assert_eq!(
+            snapshot.plans[0].fragments[0].execution_regions[0].lane_count,
+            1
+        );
         assert!(linear.contains("boot provenance [sealed] 1"));
         assert!(linear.contains("history=current"));
         assert!(linear.contains("history=historical"));
