@@ -39,8 +39,14 @@ pub enum SpeechFault {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpeechOutcome {
-    Played { pcm_sha256: String },
-    WavArtifact { bytes: Vec<u8>, pcm_sha256: String },
+    Played {
+        pcm_sha256: String,
+    },
+    WavArtifact {
+        wav_bytes: u32,
+        wav_sha256: String,
+        pcm_sha256: String,
+    },
     FormatMismatch,
     Pressure,
     Cancelled,
@@ -272,10 +278,15 @@ pub fn run_speech(
                         OutputCondition::PrimaryPlayback => {
                             SpeechOutcome::Played { pcm_sha256: digest }
                         }
-                        OutputCondition::DegradedWavArtifact => SpeechOutcome::WavArtifact {
-                            bytes: wav(&pcm),
-                            pcm_sha256: digest,
-                        },
+                        OutputCondition::DegradedWavArtifact => {
+                            let bytes = wav(&pcm);
+                            debug_assert!(bytes.starts_with(b"RIFF"));
+                            SpeechOutcome::WavArtifact {
+                                wav_bytes: u32::try_from(bytes.len()).map_err(debug)?,
+                                wav_sha256: sha256(&bytes),
+                                pcm_sha256: digest,
+                            }
+                        }
                     });
                 }
             }
@@ -449,7 +460,7 @@ mod tests {
         assert!(primary.kernel_event_count > 0);
         let degraded = run_speech(OutputCondition::DegradedWavArtifact, SpeechFault::None).unwrap();
         match degraded.outcome {
-            SpeechOutcome::WavArtifact { bytes, .. } => assert!(bytes.starts_with(b"RIFF")),
+            SpeechOutcome::WavArtifact { wav_bytes, .. } => assert_eq!(wav_bytes, 1_260),
             _ => panic!("wrong outcome"),
         }
     }

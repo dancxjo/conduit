@@ -71,7 +71,7 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
             "conduit-tongues/wav-artifact@1",
             ARTIFACT_RESOURCE,
             ARTIFACT_WRITE_AUTHORITY,
-            "durable-wav-artifact-not-played",
+            "bounded-wav-artifact-produced-not-played",
         ),
     };
     let synth = synthesize_contract();

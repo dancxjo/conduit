@@ -1,4 +1,4 @@
-use crate::pcm::{deterministic_pcm, sha256};
+use crate::pcm::deterministic_pcm;
 use crate::{OutputCondition, SpeechOutcome, SPECIMEN_TEXT};
 use serde::{Deserialize, Serialize};
 
@@ -24,14 +24,18 @@ pub(crate) fn outcome_signs(outcome: &SpeechOutcome) -> Vec<SpeechSign> {
                 condition: OutputCondition::PrimaryPlayback,
             },
         ],
-        SpeechOutcome::WavArtifact { bytes, pcm_sha256 } => vec![
+        SpeechOutcome::WavArtifact {
+            wav_bytes,
+            wav_sha256,
+            pcm_sha256,
+        } => vec![
             SpeechSign::Synthesized {
-                pcm_bytes: u32::try_from(bytes.len() - 44).unwrap(),
+                pcm_bytes: wav_bytes - 44,
                 pcm_sha256: pcm_sha256.clone(),
             },
             SpeechSign::Degraded {
-                wav_bytes: u32::try_from(bytes.len()).unwrap(),
-                wav_sha256: sha256(bytes),
+                wav_bytes: *wav_bytes,
+                wav_sha256: wav_sha256.clone(),
             },
         ],
         SpeechOutcome::FormatMismatch => refused("format-mismatch"),

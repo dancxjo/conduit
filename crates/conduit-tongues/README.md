@@ -16,7 +16,8 @@ Two output conditions are deliberately different:
 
 - primary playback proves submission to an admitted audio-output operation; it does not claim a
   human heard the result;
-- degraded output proves a bounded durable WAV artifact and explicitly does not claim playback.
+- degraded output proves production of a bounded WAV artifact and explicitly does not claim
+  playback or persistence beyond the admitted artifact operation.
 
 The deterministic PCM fixture makes the boundary repeatable; it is not a production voice model.
 Receipts expose a PCM digest and bounded kernel Sign digest, not source text, PCM samples, model
