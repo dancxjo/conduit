@@ -2,8 +2,8 @@
 
 use conduit_core::SignId;
 use patchbay_model::{
-    BuildBirthController, DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayTopology,
-    RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    BuildBirthController, DistributedRouteDemo, FormEditor, PatchbayInteraction, PatchbayModel,
+    PatchbayTopology, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
 };
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
@@ -43,7 +43,7 @@ struct PatchbayApplication {
     form_editor: Option<FormEditor>,
     form_selection: usize,
     graphical_form: Option<patchbay_model::PatchbayGraph>,
-    graphical_selection: usize,
+    interaction: Option<PatchbayInteraction>,
     hit_targets: Vec<gui::HitTarget>,
     cursor_position: (f64, f64),
     linear_view: bool,
@@ -142,7 +142,7 @@ impl PatchbayApplication {
             .transpose()?;
         let distributed_play = arguments
             .distributed_play
-            .then(|| NativeDistributedPlay::start(source_host_id, source_boot_id))
+            .then(|| NativeDistributedPlay::start(source_host_id.clone(), source_boot_id.clone()))
             .transpose()?;
         let mut application = Self {
             model,
@@ -150,7 +150,7 @@ impl PatchbayApplication {
             form_editor,
             form_selection: 0,
             graphical_form,
-            graphical_selection: 0,
+            interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
             hit_targets: Vec::new(),
             cursor_position: (0.0, 0.0),
             linear_view: false,

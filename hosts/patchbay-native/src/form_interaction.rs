@@ -3,7 +3,10 @@
 use super::{
     file_task::DestinationPolicy, gui::GuiAction, resource::save_form_resource, PatchbayApplication,
 };
-use patchbay_model::FormEditor;
+use patchbay_model::{
+    FormEditor, InteractionDisposition, PatchbayAction, PatchbayInteraction,
+    PatchbayInteractionRequest, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
+};
 use winit::keyboard::{Key, NamedKey};
 
 pub(super) fn graphical_form_for_editor(
@@ -39,27 +42,125 @@ pub(super) fn graphical_form_for_editor(
 impl PatchbayApplication {
     pub(super) fn handle_gui_action(&mut self, action: GuiAction) -> Result<(), String> {
         match action {
-            GuiAction::SelectSubject(subject) => {
-                let graph = self
-                    .graphical_form
-                    .as_ref()
-                    .ok_or("graphical Form projection is absent")?;
-                self.graphical_selection = graph
-                    .resolve_subject_ref(&subject)
-                    .map_err(|error| error.to_string())?;
+            GuiAction::SelectSubject(subject) => self.dispatch_selection(subject)?,
+            GuiAction::OpenNextForm => self.dispatch_invocation(PatchbayAction::OpenBack)?,
+            GuiAction::SaveForm => self.dispatch_invocation(PatchbayAction::Save)?,
+            GuiAction::ToggleLinearView => {
+                self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
             }
-            GuiAction::OpenNextForm => self.open_next_form()?,
-            GuiAction::SaveForm => save_form_resource(
-                self.form_editor
-                    .as_mut()
-                    .ok_or("canonical Form editor is absent")?,
-            )?,
-            GuiAction::ToggleLinearView => self.linear_view = !self.linear_view,
         }
         if let Some(window) = &self.window {
             window.request_redraw();
         }
         Ok(())
+    }
+
+    fn dispatch_selection(
+        &mut self,
+        subject: patchbay_model::PatchbaySubjectRef,
+    ) -> Result<(), String> {
+        let mut interaction = self
+            .interaction
+            .take()
+            .expect("interaction state is installed");
+        let graph = self.graphical_form.clone();
+        let result = interaction
+            .next_request_id("select")
+            .and_then(|request_id| PatchbayInteractionRequest::select(request_id, &subject))
+            .and_then(|request| {
+                interaction.execute(graph.as_ref(), request, |_| {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                })
+            });
+        self.interaction = Some(interaction);
+        self.finish_interaction(result)
+    }
+
+    fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
+        let target = self
+            .graphical_form
+            .as_ref()
+            .map(|graph| graph.expanded_form_id.as_str().to_owned())
+            .or_else(|| {
+                self.form_editor
+                    .as_ref()
+                    .map(|editor| editor.view().open_form)
+            })
+            .ok_or("canonical Form target is absent")?;
+        let mut interaction = self
+            .interaction
+            .take()
+            .expect("interaction state is installed");
+        let graph = self.graphical_form.clone();
+        let result = interaction
+            .next_request_id(action.as_str())
+            .and_then(|request_id| PatchbayInteractionRequest::invoke(request_id, action, target))
+            .and_then(|request| {
+                interaction.execute(graph.as_ref(), request, |invocation| {
+                    self.apply_invocation(invocation)
+                })
+            });
+        self.interaction = Some(interaction);
+        self.finish_interaction(result)
+    }
+
+    fn finish_interaction(
+        &self,
+        result: Result<patchbay_model::InteractionReceipt, patchbay_model::InteractionError>,
+    ) -> Result<(), String> {
+        let receipt = result.map_err(|error| format!("interaction execution: {error:?}"))?;
+        match receipt.disposition {
+            InteractionDisposition::Succeeded => Ok(()),
+            InteractionDisposition::Refused(reason) => {
+                Err(format!("interaction refused: {reason:?}"))
+            }
+            InteractionDisposition::Failed => Err("interaction failed".into()),
+        }
+    }
+
+    pub(super) fn apply_invocation(
+        &mut self,
+        invocation: &PatchbayInvocation,
+    ) -> PatchbayInvocationOutcome {
+        let current_target = match self
+            .graphical_form
+            .as_ref()
+            .map(|graph| graph.expanded_form_id.as_str().to_owned())
+            .or_else(|| {
+                self.form_editor
+                    .as_ref()
+                    .map(|editor| editor.view().open_form)
+            }) {
+            Some(target) => target,
+            None => {
+                return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+            }
+        };
+        if invocation.target_identity != current_target {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
+        }
+        let result = match invocation.action {
+            PatchbayAction::OpenBack => self.open_next_form(),
+            PatchbayAction::Save => match self.form_editor.as_mut() {
+                Some(editor) => save_form_resource(editor),
+                None => Err("canonical Form editor is absent".into()),
+            },
+            PatchbayAction::ToggleLinearView => {
+                self.linear_view = !self.linear_view;
+                Ok(())
+            }
+            PatchbayAction::Birth => self.birth_body(),
+            PatchbayAction::Wake => self.wake_body(),
+            PatchbayAction::Lull => self.lull_body(),
+            PatchbayAction::Plan => self.plan_play(),
+            PatchbayAction::Play => self.play_plan(),
+            PatchbayAction::Stop => self.control.stop(),
+            PatchbayAction::Hold => self.mark_unsatisfied(),
+        };
+        match result {
+            Ok(()) => PatchbayInvocationOutcome::Succeeded,
+            Err(_) => PatchbayInvocationOutcome::Failed,
+        }
     }
 
     fn open_next_form(&mut self) -> Result<(), String> {
@@ -111,51 +212,65 @@ impl PatchbayApplication {
             .map(graphical_form_for_editor)
             .transpose()?
             .flatten();
-        self.graphical_selection = 0;
         Ok(())
     }
 
     pub(super) fn selected_graphical_identity(&self) -> Option<&str> {
-        self.graphical_form
-            .as_ref()?
-            .subject_identities()
-            .nth(self.graphical_selection)
+        let graph = self.graphical_form.as_ref()?;
+        let selected = self.interaction.as_ref()?.selected()?;
+        graph.resolve_subject_ref(selected).ok()?;
+        Some(&selected.subject_identity)
     }
 
-    fn move_graphical_selection(&mut self, forward: bool) {
-        let count = self
+    fn move_graphical_selection(&mut self, forward: bool) -> Result<(), String> {
+        let graph = self
             .graphical_form
             .as_ref()
-            .map_or(0, |graph| graph.subject_identities().count());
+            .ok_or("graphical Form projection is absent")?;
+        let identities = graph.subject_identities().collect::<Vec<_>>();
+        let count = identities.len();
         if count == 0 {
-            return;
+            return Ok(());
         }
-        self.graphical_selection = if forward {
-            (self.graphical_selection + 1) % count
+        let current = self
+            .interaction
+            .as_ref()
+            .and_then(PatchbayInteraction::selected)
+            .and_then(|selected| graph.resolve_subject_ref(selected).ok())
+            .unwrap_or(0);
+        let next = if forward {
+            (current + 1) % count
         } else {
-            (self.graphical_selection + count - 1) % count
+            (current + count - 1) % count
         };
+        let subject = graph
+            .subject_ref(identities[next])
+            .map_err(|error| error.to_string())?;
+        self.dispatch_selection(subject)
     }
 
     pub(super) fn handle_form_key(&mut self, key: &Key) -> Result<bool, String> {
         if self.form_editor.is_none() {
             return Ok(false);
         }
+        let mut synchronize_linear_selection = true;
         match key {
             Key::Named(NamedKey::Backspace) => self.edit_source(|source| {
                 source.pop();
             })?,
             Key::Named(NamedKey::Enter) => self.edit_source(|source| source.push('\n'))?,
-            Key::Named(NamedKey::Tab) => self.open_next_form()?,
+            Key::Named(NamedKey::Tab) => self.dispatch_invocation(PatchbayAction::OpenBack)?,
             Key::Named(NamedKey::ArrowDown) | Key::Named(NamedKey::ArrowRight)
                 if self.graphical_form.is_some() && !self.linear_view =>
             {
-                self.move_graphical_selection(true);
+                self.move_graphical_selection(true)?;
+                synchronize_linear_selection = false;
             }
             Key::Named(NamedKey::ArrowUp) | Key::Named(NamedKey::ArrowLeft)
                 if self.graphical_form.is_some() && !self.linear_view =>
             {
-                self.move_graphical_selection(false);
+                self.move_graphical_selection(false)?;
+                synchronize_linear_selection = false;
             }
             Key::Named(NamedKey::ArrowDown) => {
                 let editor = self
@@ -178,14 +293,22 @@ impl PatchbayApplication {
             Key::Named(NamedKey::ArrowUp) => {
                 self.form_selection = self.form_selection.saturating_sub(1)
             }
-            Key::Named(NamedKey::F2) => self.linear_view = !self.linear_view,
-            Key::Named(NamedKey::F4) => self.birth_body()?,
-            Key::Named(NamedKey::F5) => self.wake_body()?,
-            Key::Named(NamedKey::F6) => self.plan_play()?,
-            Key::Named(NamedKey::F7) if !self.modifiers.alt_key() => self.play_plan()?,
-            Key::Named(NamedKey::F8) if !self.modifiers.alt_key() => self.mark_unsatisfied()?,
-            Key::Named(NamedKey::F9) if !self.modifiers.alt_key() => self.lull_body()?,
-            Key::Named(NamedKey::Escape) => self.control.stop()?,
+            Key::Named(NamedKey::F2) => {
+                self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
+            }
+            Key::Named(NamedKey::F4) => self.dispatch_invocation(PatchbayAction::Birth)?,
+            Key::Named(NamedKey::F5) => self.dispatch_invocation(PatchbayAction::Wake)?,
+            Key::Named(NamedKey::F6) => self.dispatch_invocation(PatchbayAction::Plan)?,
+            Key::Named(NamedKey::F7) if !self.modifiers.alt_key() => {
+                self.dispatch_invocation(PatchbayAction::Play)?
+            }
+            Key::Named(NamedKey::F8) if !self.modifiers.alt_key() => {
+                self.dispatch_invocation(PatchbayAction::Hold)?
+            }
+            Key::Named(NamedKey::F9) if !self.modifiers.alt_key() => {
+                self.dispatch_invocation(PatchbayAction::Lull)?
+            }
+            Key::Named(NamedKey::Escape) => self.dispatch_invocation(PatchbayAction::Stop)?,
             Key::Named(NamedKey::F7) => {
                 self.file_task.choose_source()?;
             }
@@ -203,11 +326,7 @@ impl PatchbayApplication {
             Key::Character(character)
                 if self.modifiers.control_key() && character.eq_ignore_ascii_case("s") =>
             {
-                save_form_resource(
-                    self.form_editor
-                        .as_mut()
-                        .expect("editor presence was checked"),
-                )?;
+                self.dispatch_invocation(PatchbayAction::Save)?;
             }
             Key::Character(character)
                 if !self.modifiers.control_key() && !self.modifiers.super_key() =>
@@ -217,20 +336,22 @@ impl PatchbayApplication {
             }
             _ => return Ok(false),
         }
-        let editor = self
-            .form_editor
-            .as_mut()
-            .expect("editor presence was checked");
-        let view = editor.view();
-        if let Some(identity) = view
-            .checked
-            .forms
-            .iter()
-            .find(|form| form.name == view.open_form)
-            .and_then(|form| form.items.get(self.form_selection))
-            .map(|item| item.identity.clone())
-        {
-            editor.select_graph_item(&identity);
+        if synchronize_linear_selection {
+            let editor = self
+                .form_editor
+                .as_mut()
+                .expect("editor presence was checked");
+            let view = editor.view();
+            if let Some(identity) = view
+                .checked
+                .forms
+                .iter()
+                .find(|form| form.name == view.open_form)
+                .and_then(|form| form.items.get(self.form_selection))
+                .map(|item| item.identity.clone())
+            {
+                editor.select_graph_item(&identity);
+            }
         }
         let title = self.title();
         if let Some(window) = &self.window {
