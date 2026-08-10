@@ -320,6 +320,7 @@ pub enum ConfigurationRule {
     U64Range { minimum: u64, maximum: u64 },
     DurationMillis { minimum: u64, maximum: u64 },
     TextBytes { maximum: u32 },
+    TextOneOf { values: Vec<String> },
 }
 
 impl ConfigurationRule {
@@ -338,6 +339,8 @@ impl ConfigurationRule {
                 value.len() <= *maximum as usize
             }
             (Self::TextBytes { .. }, _) => false,
+            (Self::TextOneOf { values }, ConfigurationValue::Text(value)) => values.contains(value),
+            (Self::TextOneOf { .. }, _) => false,
         }
     }
 }

@@ -60,6 +60,7 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
                     patchbay_model::FaceControlKind::Number { .. }
                     | patchbay_model::FaceControlKind::Range { .. } => 2,
                     patchbay_model::FaceControlKind::BooleanChoice { .. }
+                    | patchbay_model::FaceControlKind::TextChoice { .. }
                     | patchbay_model::FaceControlKind::ShortText { .. } => 1,
                 })
                 .sum::<usize>()

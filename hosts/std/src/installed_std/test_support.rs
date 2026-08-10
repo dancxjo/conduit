@@ -1,6 +1,7 @@
 use super::contract::{self, TICK_ENCODED_LEN, TICK_VALUE_KIND};
 use super::operation::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
 use super::test_gate;
+use super::test_logic;
 use super::test_scalar_flow;
 use super::test_text_source;
 use conduit_core::{
@@ -81,5 +82,9 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     test_text_source::install_catalog(&mut catalog);
     test_scalar_flow::install_catalog(&mut catalog);
     test_gate::install_catalog(&mut catalog);
+    test_logic::install_catalog(&mut catalog);
+    let mut startup = conduit_form::StartupCatalog::new();
+    conduit_std_catalog::install_logic_catalogs(&mut startup, &mut catalog)
+        .expect("logic catalogs are exact and unique");
     catalog
 }

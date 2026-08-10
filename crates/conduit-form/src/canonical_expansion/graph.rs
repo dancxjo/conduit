@@ -64,6 +64,9 @@ pub(super) fn configuration(
                 (ConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
                     value.len() <= *maximum as usize
                 }
+                (ConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
+                    values.contains(value)
+                }
                 _ => false,
             };
             if !accepted {

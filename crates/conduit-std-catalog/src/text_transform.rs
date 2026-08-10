@@ -230,6 +230,9 @@ pub fn install_text_pipeline_catalogs(
                     StandardConfigurationRule::TextBytes { maximum } => {
                         ConfigurationRule::TextBytes { maximum }
                     }
+                    StandardConfigurationRule::TextOneOf { values } => {
+                        ConfigurationRule::TextOneOf { values }
+                    }
                 },
             })
             .collect();

@@ -106,6 +106,9 @@ fn accepts(rule: &StandardConfigurationRule, value: &ConfigurationValue) -> bool
         (StandardConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize
         }
+        (StandardConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
+            values.contains(value)
+        }
         _ => false,
     }
 }
@@ -121,6 +124,9 @@ fn configuration_refusal(rule: &StandardConfigurationRule) -> String {
         }
         StandardConfigurationRule::TextBytes { maximum } => {
             format!("enter at most {maximum} bytes of text")
+        }
+        StandardConfigurationRule::TextOneOf { values } => {
+            format!("choose one of {}", values.join(", "))
         }
     }
 }
