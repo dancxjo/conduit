@@ -52,6 +52,17 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
                 .iter()
                 .map(|gear| gear.inputs.len() + gear.outputs.len())
                 .sum::<usize>()
+            + graph
+                .gears
+                .iter()
+                .flat_map(|gear| &gear.controls)
+                .map(|control| match control.kind {
+                    patchbay_model::FaceControlKind::Number { .. }
+                    | patchbay_model::FaceControlKind::Range { .. } => 2,
+                    patchbay_model::FaceControlKind::BooleanChoice { .. }
+                    | patchbay_model::FaceControlKind::ShortText { .. } => 1,
+                })
+                .sum::<usize>()
     );
     assert!(pixels.contains(&PHOSPHOR_THEME.structure_primary.packed_rgb()));
     assert!(pixels.contains(&PHOSPHOR_THEME.emphasis.packed_rgb()));
@@ -73,6 +84,9 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     assert!(targets.iter().any(|target| {
         matches!(&target.action, GuiAction::PlacePaletteKind(kind) if kind == "text/upper")
     }));
+    assert!(targets
+        .iter()
+        .any(|target| matches!(&target.action, GuiAction::ConfigureGear { .. })));
 }
 
 #[test]

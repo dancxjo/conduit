@@ -8,6 +8,7 @@ impl PatchbayApplication {
             .hit_targets
             .iter()
             .rev()
+            .rev()
             .find(|target| target.contains(self.cursor_position.0, self.cursor_position.1))
             .map(|target| target.action.clone())
         else {
@@ -47,6 +48,7 @@ impl PatchbayApplication {
             let sink = self
                 .hit_targets
                 .iter()
+                .rev()
                 .rev()
                 .find(|target| target.contains(self.cursor_position.0, self.cursor_position.1))
                 .and_then(|target| match &target.action {

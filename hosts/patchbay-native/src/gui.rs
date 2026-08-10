@@ -2,6 +2,7 @@
 
 use crate::{
     canvas::SoftwareCanvas,
+    gui_face_controls::draw_face_controls,
     gui_hit::HitShape,
     gui_inspector::draw_inspector,
     gui_primitives::{
@@ -25,6 +26,7 @@ pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_PORTS
     + patchbay_model::MAX_PATCHBAY_CORDS
     + patchbay_model::MAX_PALETTE_ENTRIES
+    + patchbay_model::MAX_PATCHBAY_GEARS * patchbay_model::MAX_FACE_CONTROLS * 2
     + 3;
 
 const HEADER_HEIGHT: i32 = 52;
@@ -296,7 +298,7 @@ fn layout_gears<'a>(
 
 fn gear_height(gear: &PatchbayGear) -> i32 {
     let port_rows = gear.inputs.len().max(gear.outputs.len()) as i32;
-    MINIMUM_NODE_HEIGHT.max(58 + port_rows * 18)
+    MINIMUM_NODE_HEIGHT.max(58 + port_rows * 18 + gear.controls.len() as i32 * 22)
 }
 
 fn port_points(ports: &[patchbay_model::PatchbayPort], x: i32, y: i32) -> Vec<(String, Point)> {
@@ -392,6 +394,7 @@ fn draw_gear<D: DrawTarget<Color = Rgb888>>(
             }),
         });
     }
+    draw_face_controls(target, graph, layout.gear, layout.bounds, theme, targets);
 }
 
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(
