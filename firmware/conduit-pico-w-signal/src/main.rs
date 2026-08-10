@@ -27,6 +27,12 @@
     ,all(feature = "appliance-hello", feature = "usb-remote")
     ,all(feature = "appliance-hello", feature = "triple-remote")
     ,all(feature = "appliance-hello", feature = "wifi-bootstrap")
+    ,all(feature = "appliance-hil-client", feature = "pico-local")
+    ,all(feature = "appliance-hil-client", feature = "pico-local-minimal")
+    ,all(feature = "appliance-hil-client", feature = "usb-remote")
+    ,all(feature = "appliance-hil-client", feature = "triple-remote")
+    ,all(feature = "appliance-hil-client", feature = "wifi-bootstrap")
+    ,all(feature = "appliance-hil-client", feature = "appliance-hello")
 ))]
 compile_error!("select exactly one Pico firmware mode");
 #[cfg(not(any(
@@ -35,14 +41,17 @@ compile_error!("select exactly one Pico firmware mode");
     feature = "usb-remote",
     feature = "triple-remote",
     feature = "wifi-bootstrap",
-    feature = "appliance-hello"
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
 )))]
 compile_error!("select exactly one Pico firmware mode");
 
-#[cfg(not(feature = "appliance-hello"))]
+#[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client")))]
 mod kernel;
 #[cfg(feature = "appliance-hello")]
 mod appliance;
+#[cfg(feature = "appliance-hil-client")]
+mod appliance_hil_client;
 #[cfg(feature = "session-control")]
 mod bootsel;
 #[cfg(feature = "wifi-bootstrap")]
@@ -61,7 +70,7 @@ mod receipts;
 mod remote_signal;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod remote_kernel;
-#[cfg(not(feature = "appliance-hello"))]
+#[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client")))]
 mod signal_image;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod signal_execution_identity;
@@ -93,7 +102,11 @@ use aligned::{A4, Aligned};
 use embassy_executor::Spawner;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 use embassy_futures::join::join;
-#[cfg(any(feature = "pico-local", feature = "appliance-hello"))]
+#[cfg(any(
+    feature = "pico-local",
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
+))]
 use embassy_futures::select::{select, Either};
 #[cfg(not(feature = "wifi-bootstrap"))]
 use panic_halt as _;
@@ -105,14 +118,16 @@ static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new
 #[cfg(any(
     feature = "pico-local",
     feature = "pico-local-minimal",
-    feature = "appliance-hello"
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
 ))]
 struct NoAllocator;
 
 #[cfg(any(
     feature = "pico-local",
     feature = "pico-local-minimal",
-    feature = "appliance-hello"
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
 ))]
 unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
@@ -125,7 +140,8 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
 #[cfg(any(
     feature = "pico-local",
     feature = "pico-local-minimal",
-    feature = "appliance-hello"
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
 ))]
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;
@@ -137,7 +153,11 @@ static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
 static CYW43_NVRAM: Aligned<A4, [u8; 742]> = Aligned(*include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
 ));
-#[cfg(any(feature = "wifi-bootstrap", feature = "appliance-hello"))]
+#[cfg(any(
+    feature = "wifi-bootstrap",
+    feature = "appliance-hello",
+    feature = "appliance-hil-client"
+))]
 static CYW43_CLM: &[u8; 984] = include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_clm.bin"
 );
@@ -161,7 +181,11 @@ async fn main(spawner: Spawner) {
     #[cfg(not(feature = "session-control"))]
     let (usb_fut, sign_sender) = usb::init_sign_usb(usb_driver);
     spawner.spawn(receipts::usb_task_spawn(usb_fut).unwrap());
-    #[cfg(all(not(feature = "wifi-bootstrap"), not(feature = "appliance-hello")))]
+    #[cfg(all(
+        not(feature = "wifi-bootstrap"),
+        not(feature = "appliance-hello"),
+        not(feature = "appliance-hil-client")
+    ))]
     let runtime = receipts::RuntimeTranscriptIdentity::new(signal_image::PLAN_ID, signal_image::HOST_ID);
     #[cfg(feature = "wifi-bootstrap")]
     let runtime = receipts::RuntimeTranscriptIdentity::new(network_image::PLAN_ID, network_image::HOST_ID);
@@ -302,6 +326,33 @@ async fn main(spawner: Spawner) {
             }
         };
         match select(services, recovery).await {
+            Either::First(value) => value,
+            Either::Second(value) => value,
+        }
+    }
+
+    #[cfg(feature = "appliance-hil-client")]
+    {
+        let mut link_session = usb_link::UsbLinkSession::new(session_line).unwrap();
+        let probe = appliance_hil_client::run(
+            &spawner,
+            &mut cdc,
+            p.PIO0,
+            p.DMA_CH0,
+            p.PIN_23,
+            p.PIN_24,
+            p.PIN_25,
+            p.PIN_29,
+            &CYW43_FW,
+            &CYW43_NVRAM,
+            CYW43_CLM,
+        );
+        let recovery = async {
+            loop {
+                let _ = bootsel::wait_for_request(&mut link_session).await;
+            }
+        };
+        match select(probe, recovery).await {
             Either::First(value) => value,
             Either::Second(value) => value,
         }

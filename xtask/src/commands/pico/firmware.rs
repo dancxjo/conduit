@@ -5,7 +5,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::process::command_for;
 
-use super::appliance_identity::write_appliance_identity_manifest;
+use super::appliance_identity::{
+    write_appliance_hil_client_identity_manifest, write_appliance_identity_manifest,
+};
 use super::doctor::{
     repo_root, sha256_file, verify_sha256, CYW43_ASSETS, CYW43_ASSET_DIR, CYW43_COMMIT,
 };
@@ -172,6 +174,12 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     ];
     if args.appliance_hello {
         build_args.extend(["--no-default-features", "--features", "appliance-hello"]);
+    } else if args.appliance_hil_client {
+        build_args.extend([
+            "--no-default-features",
+            "--features",
+            "appliance-hil-client",
+        ]);
     } else if args.r1_control {
         build_args.extend(["--no-default-features", "--features", "r1-control"]);
     } else if args.wifi_bootstrap {
@@ -185,9 +193,12 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     let generated_identity_sidecar = generated_identity_sidecar_path(&root);
     let control_identity_sidecars = control_identity_sidecar_paths(&root);
     let appliance_identity_sidecar = appliance_identity_sidecar_path(&root);
+    let appliance_hil_client_identity_sidecar = appliance_hil_client_identity_sidecar_path(&root);
     if args.dry_run {
         let planned_sidecar = if args.appliance_hello {
             &appliance_identity_sidecar
+        } else if args.appliance_hil_client {
+            &appliance_hil_client_identity_sidecar
         } else {
             &generated_identity_sidecar
         };
@@ -198,6 +209,9 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
         if appliance_identity_sidecar.exists() {
             std::fs::remove_file(&appliance_identity_sidecar)?;
+        }
+        if appliance_hil_client_identity_sidecar.exists() {
+            std::fs::remove_file(&appliance_hil_client_identity_sidecar)?;
         }
         for sidecar in &control_identity_sidecars {
             if sidecar.exists() {
@@ -227,6 +241,10 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
                 "CONDUIT_PICO_APPLIANCE_IDENTITY_SIDECAR",
                 &appliance_identity_sidecar,
             )
+            .env(
+                "CONDUIT_PICO_APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR",
+                &appliance_hil_client_identity_sidecar,
+            )
             .status()?;
         if !status.success() {
             return Err("cargo build for Pico W firmware failed".into());
@@ -255,6 +273,12 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
         if args.appliance_hello {
             write_appliance_identity_manifest(&root, &elf, &appliance_identity_sidecar)?;
+        } else if args.appliance_hil_client {
+            write_appliance_hil_client_identity_manifest(
+                &root,
+                &elf,
+                &appliance_hil_client_identity_sidecar,
+            )?;
         } else {
             write_identity_manifest(
                 &root,
@@ -419,6 +443,10 @@ fn generated_identity_sidecar_path(root: &Path) -> PathBuf {
 
 fn appliance_identity_sidecar_path(root: &Path) -> PathBuf {
     firmware_target_profile_dir(root).join("pico-appliance.generated-image.json")
+}
+
+fn appliance_hil_client_identity_sidecar_path(root: &Path) -> PathBuf {
+    firmware_target_profile_dir(root).join("pico-appliance-hil-client.generated-image.json")
 }
 
 pub(super) fn identity_manifest_path(root: &Path) -> PathBuf {
