@@ -1,7 +1,12 @@
 use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::SignId;
 use conduit_presentation::ManifestationFailure;
-use patchbay_model::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
+use patchbay_model::{
+    InteractionDisposition, PatchbayAction, PatchbayInteraction, PatchbayInteractionRequest,
+    PatchbayInvocationOutcome, PatchbayRefusal, PatchbaySubjectRef, PatchbayTheme, ThemeColor,
+    PHOSPHOR_THEME,
+};
+use serde::Deserialize;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
@@ -20,6 +25,7 @@ pub enum ServerError {
     ThemeCssTooLarge,
     RequestTooLarge,
     InvalidRequest,
+    Interaction(String),
 }
 
 impl std::fmt::Display for ServerError {
@@ -33,6 +39,7 @@ impl std::fmt::Display for ServerError {
             }
             Self::RequestTooLarge => f.write_str("Patchbay HTTP request exceeds its finite bound"),
             Self::InvalidRequest => f.write_str("Patchbay HTTP request is not valid UTF-8"),
+            Self::Interaction(error) => write!(f, "Patchbay interaction error: {error}"),
         }
     }
 }
@@ -70,6 +77,7 @@ pub struct PatchbayHtmlServer {
     snapshot: RendererSnapshot,
     encoded_snapshot: Vec<u8>,
     theme_css: Vec<u8>,
+    interaction: PatchbayInteraction,
 }
 
 impl PatchbayHtmlServer {
@@ -90,6 +98,10 @@ impl PatchbayHtmlServer {
             snapshot,
             encoded_snapshot,
             theme_css,
+            interaction: PatchbayInteraction::new(
+                conduit_core::HostId::from("patchbay-html/interaction-host"),
+                conduit_core::BootId::from("patchbay-html/interaction-boot"),
+            ),
         })
     }
 
@@ -146,7 +158,7 @@ impl PatchbayHtmlServer {
         }
     }
 
-    fn handle(&self, mut stream: TcpStream) -> Result<(), ServerError> {
+    fn handle(&mut self, mut stream: TcpStream) -> Result<(), ServerError> {
         stream.set_read_timeout(Some(Duration::from_secs(2)))?;
         stream.set_write_timeout(Some(Duration::from_secs(2)))?;
         let request = match read_request(&mut stream) {
@@ -169,7 +181,27 @@ impl PatchbayHtmlServer {
             }
             Err(error) => return Err(error),
         };
-        let first = request.split("\r\n").next().unwrap_or_default();
+        let first = request.head.split("\r\n").next().unwrap_or_default();
+        if first == "POST /api/interaction HTTP/1.1" {
+            let body = match self.apply_interaction(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid interaction request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
         let (status, content_type, body): (&str, &str, &[u8]) = match first {
             "GET / HTTP/1.1" => ("200 OK", "text/html; charset=utf-8", INDEX),
             "GET /assets/app.js HTTP/1.1" => ("200 OK", "text/javascript; charset=utf-8", SCRIPT),
@@ -196,6 +228,98 @@ impl PatchbayHtmlServer {
             ),
         };
         write_response(&mut stream, status, content_type, body)
+    }
+
+    fn apply_interaction(&mut self, bytes: &[u8]) -> Result<Vec<u8>, ServerError> {
+        let input: HtmlInteractionInput =
+            serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
+        let stale_presentation =
+            input.presentation_id != self.snapshot.presentation.identity.as_str();
+        let request_id = self
+            .interaction
+            .next_request_id(&input.kind)
+            .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
+        let request = match input.kind.as_str() {
+            "select" => PatchbayInteractionRequest::select(
+                request_id,
+                &PatchbaySubjectRef {
+                    expanded_form_id: if stale_presentation {
+                        conduit_core::ExpandedFormId::from(input.presentation_id.clone())
+                    } else {
+                        self.snapshot
+                            .presentation
+                            .basis
+                            .expanded_form_id
+                            .clone()
+                            .ok_or(ServerError::InvalidRequest)?
+                    },
+                    subject_identity: input.subject.ok_or(ServerError::InvalidRequest)?,
+                },
+            ),
+            "invoke" => PatchbayInteractionRequest::invoke(
+                request_id,
+                parse_html_action(input.action.as_deref().ok_or(ServerError::InvalidRequest)?)?,
+                input.target.ok_or(ServerError::InvalidRequest)?,
+            ),
+            _ => return Err(ServerError::InvalidRequest),
+        }
+        .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
+        let expected_target = self
+            .snapshot
+            .presentation
+            .basis
+            .expanded_form_id
+            .as_ref()
+            .ok_or(ServerError::InvalidRequest)?
+            .as_str()
+            .to_owned();
+        let presentation = self.snapshot.presentation.clone();
+        let receipt = self
+            .interaction
+            .execute_presentation(&presentation, request, |invocation| {
+                if stale_presentation || invocation.target_identity != expected_target {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+                } else if invocation.action == PatchbayAction::ToggleLinearView {
+                    PatchbayInvocationOutcome::Succeeded
+                } else {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                }
+            })
+            .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
+        self.snapshot.interaction.revision = self.snapshot.interaction.revision.saturating_add(1);
+        if receipt.disposition == InteractionDisposition::Succeeded {
+            if let PatchbayInteractionRequest::Select {
+                subject_identity, ..
+            } = &receipt.request
+            {
+                self.snapshot.interaction.selected_subject = Some(subject_identity.clone());
+            }
+        }
+        self.snapshot.interaction.last_request_id =
+            Some(receipt.request.request_id().as_str().into());
+        self.snapshot.interaction.last_disposition = Some(format!("{:?}", receipt.disposition));
+        self.snapshot.interaction.interaction_plan_id = Some(receipt.plan_id.as_str().into());
+        self.snapshot.interaction.interaction_play_id =
+            Some(receipt.active_play_id.as_str().into());
+        self.encoded_snapshot = self.snapshot.encode()?;
+        Ok(self.encoded_snapshot.clone())
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HtmlInteractionInput {
+    presentation_id: String,
+    kind: String,
+    subject: Option<String>,
+    action: Option<String>,
+    target: Option<String>,
+}
+
+fn parse_html_action(value: &str) -> Result<PatchbayAction, ServerError> {
+    match value {
+        "toggle-linear-view" => Ok(PatchbayAction::ToggleLinearView),
+        _ => Err(ServerError::InvalidRequest),
     }
 }
 
@@ -243,7 +367,12 @@ fn write_response(
     Ok(())
 }
 
-fn read_request(stream: &mut TcpStream) -> Result<String, ServerError> {
+struct HttpRequest {
+    head: String,
+    body: Vec<u8>,
+}
+
+fn read_request(stream: &mut TcpStream) -> Result<HttpRequest, ServerError> {
     let mut bytes = Vec::with_capacity(1024);
     let mut chunk = [0u8; 512];
     loop {
@@ -255,9 +384,39 @@ fn read_request(stream: &mut TcpStream) -> Result<String, ServerError> {
         if bytes.len() > MAX_HTTP_REQUEST_BYTES {
             return Err(ServerError::RequestTooLarge);
         }
-        if bytes.windows(4).any(|window| window == b"\r\n\r\n") {
-            break;
+        if let Some(header_end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
+            let head_end = header_end + 4;
+            let head = std::str::from_utf8(&bytes[..head_end])
+                .map_err(|_| ServerError::InvalidRequest)?
+                .to_owned();
+            let content_length = head
+                .lines()
+                .find_map(|line| {
+                    line.strip_prefix("Content-Length: ")
+                        .or_else(|| line.strip_prefix("content-length: "))
+                })
+                .map(|value| value.parse::<usize>())
+                .transpose()
+                .map_err(|_| ServerError::InvalidRequest)?
+                .unwrap_or(0);
+            if head_end
+                .checked_add(content_length)
+                .is_none_or(|total| total > MAX_HTTP_REQUEST_BYTES)
+            {
+                return Err(ServerError::RequestTooLarge);
+            }
+            while bytes.len() < head_end + content_length {
+                let count = stream.read(&mut chunk)?;
+                if count == 0 {
+                    return Err(ServerError::InvalidRequest);
+                }
+                bytes.extend_from_slice(&chunk[..count]);
+            }
+            return Ok(HttpRequest {
+                head,
+                body: bytes[head_end..head_end + content_length].to_vec(),
+            });
         }
     }
-    String::from_utf8(bytes).map_err(|_| ServerError::InvalidRequest)
+    Err(ServerError::InvalidRequest)
 }

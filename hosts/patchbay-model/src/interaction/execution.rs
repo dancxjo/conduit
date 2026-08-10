@@ -126,6 +126,58 @@ impl PatchbayInteraction {
     where
         F: FnOnce(&PatchbayInvocation) -> PatchbayInvocationOutcome,
     {
+        self.execute_with_subject_resolver(request, invoke, |candidate| {
+            graph
+                .ok_or(PatchbayRefusal::OperationUnavailable)
+                .and_then(|graph| {
+                    graph
+                        .resolve_subject_ref(candidate)
+                        .map(|_| ())
+                        .map_err(|error| match error {
+                            crate::PatchbayGraphError::StaleGraphBasis => {
+                                PatchbayRefusal::StalePresentation
+                            }
+                            _ => PatchbayRefusal::UnknownSubject,
+                        })
+                })
+        })
+    }
+
+    /// Executes selection against the exact portable Presentation consumed by a renderer.
+    /// Renderer-local hit/focus facts have already been reduced to `candidate`; no DOM or
+    /// geometry identity crosses this boundary.
+    pub fn execute_presentation<F>(
+        &mut self,
+        presentation: &conduit_presentation::Presentation,
+        request: PatchbayInteractionRequest,
+        invoke: F,
+    ) -> Result<InteractionReceipt, InteractionError>
+    where
+        F: FnOnce(&PatchbayInvocation) -> PatchbayInvocationOutcome,
+    {
+        self.execute_with_subject_resolver(request, invoke, |candidate| {
+            if presentation.basis.expanded_form_id.as_ref() != Some(&candidate.expanded_form_id) {
+                return Err(PatchbayRefusal::StalePresentation);
+            }
+            presentation
+                .subjects
+                .iter()
+                .any(|subject| subject.identity == candidate.subject_identity)
+                .then_some(())
+                .ok_or(PatchbayRefusal::UnknownSubject)
+        })
+    }
+
+    fn execute_with_subject_resolver<F, R>(
+        &mut self,
+        request: PatchbayInteractionRequest,
+        invoke: F,
+        resolve_subject: R,
+    ) -> Result<InteractionReceipt, InteractionError>
+    where
+        F: FnOnce(&PatchbayInvocation) -> PatchbayInvocationOutcome,
+        R: Fn(&crate::PatchbaySubjectRef) -> Result<(), PatchbayRefusal>,
+    {
         let expanded = expanded_request(&request)?;
         let planned_request = request_from_expanded(&expanded)?;
         if planned_request != request {
@@ -246,18 +298,7 @@ impl PatchbayInteraction {
                                 expanded_form_id: expanded_form_id.clone(),
                                 subject_identity: subject_identity.clone(),
                             };
-                            match graph.ok_or(PatchbayRefusal::OperationUnavailable).and_then(
-                                |graph| {
-                                    graph.resolve_subject_ref(&candidate).map_err(|error| {
-                                        match error {
-                                            crate::PatchbayGraphError::StaleGraphBasis => {
-                                                PatchbayRefusal::StalePresentation
-                                            }
-                                            _ => PatchbayRefusal::UnknownSubject,
-                                        }
-                                    })
-                                },
-                            ) {
+                            match resolve_subject(&candidate) {
                                 Ok(_) => {
                                     selected = Some(candidate);
                                     disposition = Some(InteractionDisposition::Succeeded);

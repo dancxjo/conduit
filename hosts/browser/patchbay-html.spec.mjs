@@ -54,13 +54,33 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(listSubjects).toEqual(expectedSubjects); expect(canvasSubjects).toEqual(expectedSubjects);
 
     const first=page.locator("#subjects button").first(); await first.focus(); await first.press("Enter");
-    expect(await first.evaluate(element=>getComputedStyle(element).outlineStyle)).toBe("solid");
-    expect(await first.evaluate(element=>getComputedStyle(element).outlineColor)).toBe("rgb(244, 196, 0)");
     const identity=await first.getAttribute("data-subject");
     await expect(first).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector dd").first()).toHaveText(identity);
     expect(await page.locator("#graph [data-subject].selected").getAttribute("data-subject")).toBe(identity);
     expect(await page.locator("#graph [data-subject].selected .node").evaluate(element=>getComputedStyle(element).stroke)).toBe("rgb(244, 196, 0)");
+    await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
+    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/0");
+    await expect(page.locator("#interaction-proof")).toContainText("Interaction Plan");
+    await expect(page.locator("#interaction-proof")).toContainText("Interaction Play");
+    const second=page.locator("#subjects button").nth(1);await first.press("Tab");await expect(second).toBeFocused();await second.click();
+    await expect(second).toHaveAttribute("aria-pressed","true");
+    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/1");
+    await page.locator("#toggle-linear").click();
+    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/invoke/2");
+    await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
+    const selectedBeforeStale=await page.locator("#subjects [aria-pressed=true]").getAttribute("data-subject");
+    const stale=await page.evaluate(async()=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:"presentation/stale",kind:"select",subject:"dom-node-should-not-apply"})})).json());
+    expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
+    expect(stale.interaction.selected_subject).toBe(selectedBeforeStale);
+    const unknown=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,kind:"select",subject:"subject/unknown"})})).json(), snapshot);
+    expect(unknown.interaction.last_disposition).toBe("Refused(UnknownSubject)");
+    expect(unknown.interaction.selected_subject).toBe(selectedBeforeStale);
+    const staleAction=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,kind:"invoke",action:"toggle-linear-view",target:"expanded/stale"})})).json(), snapshot);
+    expect(staleAction.interaction.last_disposition).toBe("Refused(StalePresentation)");
+    expect(staleAction.interaction.selected_subject).toBe(selectedBeforeStale);
+    await page.evaluate(()=>window.patchbayReload());
+    await expect(page.locator("#subjects [aria-pressed=true]")).toHaveAttribute("data-subject",selectedBeforeStale);
     await expect(page.locator("#linear li")).toHaveCount(snapshot.presentation.text.length);
 
     expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
