@@ -37,6 +37,7 @@ fn main() {
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::Site => commands::toggle::run_site(),
             DemoCommand::Tongues => commands::tongues::run(&opts),
+            DemoCommand::Netherwick => commands::netherwick::run(&opts),
         },
         Command::UnifontSubset(args) => commands::unifont_subset::run(args),
     };
