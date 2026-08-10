@@ -168,6 +168,7 @@ fn appliance_identity() -> ApplianceFirmwareIdentity {
             maximum_http_request_bytes: conduit_net::MAXIMUM_HTTP_REQUEST_BYTES,
             maximum_http_response_bytes: conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES,
             maximum_signs: conduit_net::MAXIMUM_APPLIANCE_SIGNS,
+            maximum_network_sockets: conduit_net::MAXIMUM_APPLIANCE_NETWORK_SOCKETS,
         },
         cyw43_commit: CYW43_COMMIT.into(),
         cyw43_assets: CYW43_ASSETS

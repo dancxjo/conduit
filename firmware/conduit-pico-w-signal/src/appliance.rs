@@ -19,7 +19,9 @@ use crate::receipts::UsbCdc;
 const HOST_ID: &str = "pico/appliance-hello";
 const FIRMWARE_BUILD_ID: &str = env!("CONDUIT_PICO_APPLIANCE_BUILD_ID");
 const MAXIMUM_HTTP_RESPONSE_BYTES: usize = conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES as usize;
-static NETWORK_RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
+static NETWORK_RESOURCES: StaticCell<
+    StackResources<{ conduit_net::MAXIMUM_APPLIANCE_NETWORK_SOCKETS as usize }>,
+> = StaticCell::new();
 
 #[embassy_executor::task]
 async fn appliance_network_task(
@@ -55,6 +57,7 @@ pub async fn run(
 ) -> ! {
     sign.wait_dtr().await;
     let runtime_boot = runtime_boot_id();
+    write_progress(sign, &runtime_boot, "dtr-ready").await;
     let (device, mut control) = match crate::radio::init_cyw43_network(
         spawner, pio0, dma, pin23, pin24, pin25, pin29, fw, nvram, clm,
     )
@@ -76,15 +79,7 @@ pub async fn run(
             }
         }
     };
-    if with_timeout(
-        Duration::from_secs(10),
-        control.start_ap_open(conduit_net::APPLIANCE_SSID, 6),
-    )
-    .await
-    .is_err()
-    {
-        terminal_failure(sign, &runtime_boot, 1, "ap-base-lost").await;
-    }
+    write_progress(sign, &runtime_boot, "radio-ready").await;
     let config = Config::ipv4_static(StaticConfigV4 {
         address: Ipv4Cidr::new(Ipv4Address::new(192, 168, 4, 1), 24),
         gateway: None,
@@ -98,6 +93,17 @@ pub async fn run(
         seed,
     );
     spawner.spawn(appliance_network_task(runner).unwrap());
+    write_progress(sign, &runtime_boot, "stack-started").await;
+    if with_timeout(
+        Duration::from_secs(10),
+        control.start_ap_open(conduit_net::APPLIANCE_SSID, 6),
+    )
+    .await
+    .is_err()
+    {
+        terminal_failure(sign, &runtime_boot, 1, "ap-base-lost").await;
+    }
+    write_progress(sign, &runtime_boot, "ap-started").await;
 
     let mut dhcp_rx_meta = [PacketMetadata::EMPTY; 1];
     let mut dhcp_tx_meta = [PacketMetadata::EMPTY; 1];
@@ -128,13 +134,16 @@ pub async fn run(
     if dns.bind(53).is_err() {
         terminal_failure(sign, &runtime_boot, 1, "dns-base-lost").await;
     }
+    write_progress(sign, &runtime_boot, "sockets-ready").await;
 
     let mut http_rx = [0; conduit_net::MAXIMUM_HTTP_REQUEST_BYTES as usize];
     let mut http_tx = [0; MAXIMUM_HTTP_RESPONSE_BYTES];
     let mut http = TcpSocket::new(stack, &mut http_rx, &mut http_tx);
     let mut leases = conduit_net::DhcpLeasePool::default();
     let mut sequence = 1_u16;
+    write_progress(sign, &runtime_boot, "before-ap-ready").await;
     write_sign(sign, &runtime_boot, sequence, "ap-ready", None, None).await;
+    write_progress(sign, &runtime_boot, "after-ap-ready").await;
 
     loop {
         let event = match select3(
@@ -313,6 +322,19 @@ async fn serve_http_once(socket: &mut TcpSocket<'_>) -> ServiceEvent {
     ServiceEvent::Http
 }
 
+async fn write_progress(sign: &mut UsbCdc, runtime_boot: &str, phase: &str) {
+    let mut line = HString::<512>::new();
+    if write!(
+        line,
+        "{{\"schema\":\"conduit.pico-appliance/progress@1\",\"firmware_build_id\":\"{FIRMWARE_BUILD_ID}\",\"host_id\":\"{HOST_ID}\",\"runtime_boot_id\":\"{runtime_boot}\",\"phase\":\"{phase}\"}}\n"
+    )
+    .is_err()
+        || sign.write_all_mandatory(line.as_bytes()).await.is_err()
+    {
+        core::future::pending::<()>().await;
+    }
+}
+
 async fn terminal_failure(sign: &mut UsbCdc, runtime_boot: &str, sequence: u16, code: &str) -> ! {
     write_sign(sign, runtime_boot, sequence, "failure", Some(code), None).await;
     write_sign(
@@ -337,7 +359,10 @@ async fn write_sign(
     failure: Option<&str>,
     address: Option<[u8; 4]>,
 ) {
-    let mut line = HString::<512>::new();
+    // The image identity admits 1 KiB per Sign. The longest current
+    // association Sign exceeds 512 bytes once exact build and runtime
+    // identities are included, so retain that reviewed image-level bound.
+    let mut line = HString::<1024>::new();
     let mut sign_id = HString::<192>::new();
     if write!(
         sign_id,

@@ -18,6 +18,10 @@ use crate::usb::MAX_PACKET_SIZE;
 // bound leaves room for longer exact runtime IDs without allocating.
 pub(crate) const RECEIPT_BUFFER_BYTES: usize = 2048;
 const RUNTIME_ID_BYTES: usize = 128;
+// Keep every CDC IN transfer short. If a long record is emitted as consecutive
+// maximum-sized packets, the host can wait for the terminating short packet
+// while the device endpoint queue fills before it can submit that packet.
+const SIGN_WRITE_CHUNK_BYTES: usize = MAX_PACKET_SIZE as usize - 1;
 
 pub struct UsbCdc {
     sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>,
@@ -423,7 +427,7 @@ impl UsbCdc {
     ) -> Result<(), UsbSignError> {
         let mut offset = 0;
         while offset < data.len() {
-            let chunk_len = (data.len() - offset).min(MAX_PACKET_SIZE as usize);
+            let chunk_len = (data.len() - offset).min(SIGN_WRITE_CHUNK_BYTES);
             if self
                 .sender
                 .write_packet(&data[offset..offset + chunk_len])

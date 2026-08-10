@@ -38,6 +38,7 @@ pub const MAXIMUM_DNS_PACKET_BYTES: u32 = 256;
 pub const MAXIMUM_HTTP_REQUEST_BYTES: u32 = 512;
 pub const MAXIMUM_HTTP_RESPONSE_BYTES: u32 = 128;
 pub const MAXIMUM_APPLIANCE_SIGNS: u16 = 32;
+pub const MAXIMUM_APPLIANCE_NETWORK_SOCKETS: u16 = 4;
 pub const APPLIANCE_SSID: &str = "Conduit-Hello";
 pub const APPLIANCE_LOCAL_NAME: &str = "hello.conduit";
 pub const APPLIANCE_HELLO_BODY: &str = "Hello from Conduit\n";

@@ -86,6 +86,13 @@ pub async fn run(
         Err(_) => terminal_failure(sign, &runtime_boot, ProbeFailure::RadioInitialization).await,
     };
 
+    let (stack, runner) = embassy_net::new(
+        device,
+        Config::dhcpv4(Default::default()),
+        NETWORK_RESOURCES.init(StackResources::new()),
+        network_seed(&runtime_boot),
+    );
+    spawner.spawn(network_task(runner).unwrap());
     match with_timeout(
         PROBE_TIMEOUT,
         control.join(
@@ -98,14 +105,6 @@ pub async fn run(
         Ok(Ok(())) => {}
         _ => terminal_failure(sign, &runtime_boot, ProbeFailure::Association).await,
     }
-
-    let (stack, runner) = embassy_net::new(
-        device,
-        Config::dhcpv4(Default::default()),
-        NETWORK_RESOURCES.init(StackResources::new()),
-        network_seed(&runtime_boot),
-    );
-    spawner.spawn(network_task(runner).unwrap());
     if with_timeout(PROBE_TIMEOUT, stack.wait_config_up())
         .await
         .is_err()
@@ -217,7 +216,7 @@ async fn write_receipt(
         }
     } else if write!(
         line,
-        ",\"leased_address\":\"{a}.{b}.{c}.{d}\",\"dns_name\":\"{}\",\"dns_address\":\"192.168.4.1\",\"http_body\":\"Hello from Conduit.\\n\"",
+        ",\"leased_address\":\"{a}.{b}.{c}.{d}\",\"dns_name\":\"{}\",\"dns_address\":\"192.168.4.1\",\"http_body\":\"Hello from Conduit\\n\"",
         conduit_net::APPLIANCE_LOCAL_NAME,
     )
     .is_err()

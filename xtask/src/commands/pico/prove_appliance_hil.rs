@@ -12,11 +12,16 @@ use super::appliance_identity::{
 use super::doctor::repo_root;
 use super::firmware::uf2_path;
 use super::prove_appliance::{
-    physical_timestamp, require_clean_exact_commit, verify_signs, wait_for_ports,
+    physical_timestamp, read_complete_bounded_line, require_clean_exact_commit, verify_signs,
+    wait_for_ports,
 };
 use super::{PicoArgs, PicoResult};
 
-const PHYSICAL_TIMEOUT: Duration = Duration::from_secs(60);
+// The fixture has two bounded 20-second radio phases followed by distinct
+// 30-second association, DHCP, and DNS phases plus bounded HTTP I/O. Keep the
+// host deadline finite while allowing the firmware to emit its exact terminal
+// failure at the end of any reviewed phase.
+const PHYSICAL_TIMEOUT: Duration = Duration::from_secs(180);
 const CLIENT_SERIAL_NEEDLE: &str = "conduit-pico-hil-client";
 
 #[derive(Serialize)]
@@ -94,21 +99,35 @@ pub fn run_prove_pico_appliance_hil(
     let (_, appliance_sign_path) =
         wait_for_ports(Some(appliance_link_port), Some(appliance_sign_port))?;
     let appliance_sign_file = open_sign(&appliance_sign_path)?;
+    let appliance_build_id = appliance_identity.firmware_build_id.clone();
+    let appliance_reader = std::thread::spawn(move || {
+        verify_signs(
+            BufReader::new(appliance_sign_file),
+            &appliance_build_id,
+            None,
+        )
+        .map_err(|error| error.to_string())
+    });
+    // Start draining the appliance endpoint before asserting client DTR. A
+    // fresh CDC open can block in the kernel long enough for the appliance's
+    // mandatory first Sign to fill its endpoint and prevent service startup.
     let client_sign_file = open_sign(&client_sign_path)?;
-
     let client_receipt = read_client_receipt(
         BufReader::new(client_sign_file),
         &client_identity.firmware_build_id,
     )?;
     let leased_address = client_receipt["leased_address"]
         .as_str()
-        .ok_or("two-Pico client receipt has no leased address")?
-        .to_owned();
-    let (appliance_runtime_boot_id, appliance_signs) = verify_signs(
-        BufReader::new(appliance_sign_file),
-        &appliance_identity.firmware_build_id,
-        &leased_address,
-    )?;
+        .map(ToOwned::to_owned);
+    let appliance_result = appliance_reader
+        .join()
+        .map_err(|_| "Pico appliance Sign reader panicked")?;
+    let (appliance_runtime_boot_id, appliance_signs) = appliance_result
+        .map_err(|error| format!("Pico appliance Sign verification failed: {error}"))?;
+    verify_client_receipt(&client_receipt, &client_identity.firmware_build_id)?;
+    let leased_address =
+        leased_address.ok_or("successful two-Pico client receipt has no leased address")?;
+    verify_appliance_lease_signs(&appliance_signs, &leased_address)?;
 
     let appliance_hardware_identity = hardware_identity(&appliance_sign_path)?;
     let client_hardware_identity = hardware_identity(&client_sign_path)?;
@@ -268,27 +287,19 @@ fn read_client_receipt(
     let deadline = Instant::now() + PHYSICAL_TIMEOUT;
     let mut line = String::new();
     loop {
-        line.clear();
-        match reader.read_line(&mut line) {
-            Ok(0) if Instant::now() < deadline => continue,
-            Err(error)
-                if error.kind() == std::io::ErrorKind::TimedOut && Instant::now() < deadline =>
-            {
-                continue
+        if !read_complete_bounded_line(&mut reader, &mut line, "appliance HIL client receipt")? {
+            if Instant::now() >= deadline {
+                return Err("timed out waiting for appliance HIL client receipt".into());
             }
-            Ok(0) | Err(_) if Instant::now() >= deadline => {
-                return Err("timed out waiting for appliance HIL client receipt".into())
-            }
-            Err(error) => return Err(error.into()),
-            Ok(_) => {}
+            continue;
         }
         let receipt: serde_json::Value = serde_json::from_str(line.trim())?;
-        verify_client_receipt(&receipt, firmware_build_id)?;
+        verify_client_identity(&receipt, firmware_build_id)?;
         return Ok(receipt);
     }
 }
 
-fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -> PicoResult<()> {
+fn verify_client_identity(receipt: &serde_json::Value, firmware_build_id: &str) -> PicoResult<()> {
     let exact = receipt["schema"].as_str() == Some("conduit.pico-appliance/hil-client@1")
         && receipt["firmware_build_id"].as_str() == Some(firmware_build_id)
         && receipt["host_id"].as_str() == Some("pico/appliance-hil-client")
@@ -296,8 +307,16 @@ fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -
             .as_str()
             .is_some_and(|value| !value.is_empty())
         && receipt["ssid"].as_str() == Some(conduit_net::APPLIANCE_SSID)
-        && receipt["terminal"].as_bool() == Some(true)
-        && receipt["success"].as_bool() == Some(true)
+        && receipt["terminal"].as_bool() == Some(true);
+    if !exact {
+        return Err(format!("Pico appliance HIL client identity is not exact: {receipt}").into());
+    }
+    Ok(())
+}
+
+fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -> PicoResult<()> {
+    verify_client_identity(receipt, firmware_build_id)?;
+    let exact = receipt["success"].as_bool() == Some(true)
         && receipt.get("failure").is_none()
         && receipt["dns_name"].as_str() == Some(conduit_net::APPLIANCE_LOCAL_NAME)
         && receipt["dns_address"].as_str() == Some("192.168.4.1")
@@ -308,6 +327,18 @@ fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -
         .and_then(|(prefix, host)| host.parse::<u8>().ok().map(|host| (prefix, host)));
     if !exact || !matches!(lease, Some(("192.168.4", 2..=5))) {
         return Err(format!("Pico appliance HIL client receipt is not exact: {receipt}").into());
+    }
+    Ok(())
+}
+
+fn verify_appliance_lease_signs(
+    signs: &[serde_json::Value],
+    leased_address: &str,
+) -> PicoResult<()> {
+    for index in [1, 2] {
+        if signs.get(index).and_then(|sign| sign["address"].as_str()) != Some(leased_address) {
+            return Err("Pico appliance association/lease Sign address mismatch".into());
+        }
     }
     Ok(())
 }
