@@ -43,6 +43,7 @@ extern "C" fn conduitos_start() -> ! {
             match proof::accepted(&record, &identities, BUILD_ID, IMAGE_ID) {
                 Ok(sign) => {
                     arch::early_write(sign.as_bytes());
+                    arch::early_write(b"CONDUIT_BOOT_STAGE identities\n");
                 }
                 Err(_) => emit_refusal("boot-sign-storage-full"),
             }
@@ -55,10 +56,12 @@ extern "C" fn conduitos_start() -> ! {
             if let Err(error) = offer.validate() {
                 emit_machine_refusal(error.as_str());
             }
+            arch::early_write(b"CONDUIT_BOOT_STAGE offer\n");
             let mut prepared = match dual_region_plan::prepare(&identities, &offer, BUILD_ID) {
                 Ok(prepared) => prepared,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
+            arch::early_write(b"CONDUIT_BOOT_STAGE plan\n");
             let observatory_export = match conduitos::observatory::prepare_export(
                 &record,
                 &identities,
@@ -70,6 +73,7 @@ extern "C" fn conduitos_start() -> ! {
                 Ok(export) => export,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
+            arch::early_write(b"CONDUIT_BOOT_STAGE inspection\n");
             let allocation_before_play = BOOT_ARENA.seal();
             arch::initialize_machine();
             let mut clock = arch::Clock::new();
@@ -77,6 +81,7 @@ extern "C" fn conduitos_start() -> ! {
             let mut serial = arch::Serial::new();
             let mut interrupts = arch::Interrupts::new();
             let mut idle = arch::Idle::new();
+            arch::early_write(b"CONDUIT_BOOT_STAGE play\n");
             match conduitos::dual_region_composition::run(
                 &mut prepared.kernel,
                 &mut clock,

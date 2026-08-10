@@ -97,12 +97,18 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         )
     })?;
     if status.code() != Some(EXPECTED_QEMU_SUCCESS) {
+        let serial = String::from_utf8_lossy(&output.stdout);
+        let desired_tail_start = serial.len().saturating_sub(360);
+        let tail_start = serial
+            .char_indices()
+            .find_map(|(index, _)| (index >= desired_tail_start).then_some(index))
+            .unwrap_or(0);
         return Err(ConduitosError::refusal(
             "qemu-boot-failed",
             format!(
-                "expected isa-debug-exit status {EXPECTED_QEMU_SUCCESS}, got {}; serial: {}",
+                "expected isa-debug-exit status {EXPECTED_QEMU_SUCCESS}, got {}; serial tail: {}",
                 status,
-                String::from_utf8_lossy(&output.stdout)
+                &serial[tail_start..]
             ),
         ));
     }
