@@ -63,10 +63,14 @@ pub fn run_prove_pico_appliance(
         );
         println!("  join open SSID: {}", conduit_net::APPLIANCE_SSID);
         println!("  require bounded DHCP, DNS, HTTP, and exact terminal Signs");
+        println!("  safety: refuse an interface with an active connection");
         println!("  proof class: physical-local-hardware");
         return Ok(());
     }
 
+    let interface = resolve_wifi_interface(client_interface)?;
+    let previous_connection = active_connection(&interface)?;
+    require_dedicated_wifi_interface(&interface, previous_connection.as_deref())?;
     super::run_build(args)?;
     let exact_commit = require_clean_exact_commit()?;
     super::run_flash(args)?;
@@ -74,7 +78,6 @@ pub fn run_prove_pico_appliance(
     if identity.git_revision != exact_commit {
         return Err("Pico appliance identity is not bound to the exact clean commit".into());
     }
-    let interface = resolve_wifi_interface(client_interface)?;
     let (_, sign_path) = wait_for_ports(link_port, sign_port)?;
     let hardware_identity = sign_path
         .file_name()
@@ -89,7 +92,6 @@ pub fn run_prove_pico_appliance(
         )
     })?;
 
-    let previous_connection = active_connection(&interface)?;
     let restoration = WifiRestoration::new(interface.clone(), previous_connection);
     wait_for_ssid(&interface)?;
     run_nmcli(&[
@@ -253,6 +255,19 @@ fn active_connection(interface: &str) -> PicoResult<Option<String>> {
     let output = nmcli_output(&["-g", "GENERAL.CONNECTION", "device", "show", interface])?;
     let value = output.trim();
     Ok((!value.is_empty() && value != "--").then(|| value.to_owned()))
+}
+
+fn require_dedicated_wifi_interface(
+    interface: &str,
+    active_connection: Option<&str>,
+) -> PicoResult<()> {
+    if let Some(connection) = active_connection {
+        return Err(format!(
+            "refusing to move active Wi-Fi interface `{interface}` from connection `{connection}`; use a disconnected dedicated client interface so the proof cannot sever this host's network path"
+        )
+        .into());
+    }
+    Ok(())
 }
 
 fn leased_address(interface: &str) -> PicoResult<String> {
@@ -451,6 +466,16 @@ mod tests {
     fn lease_parser_accepts_only_reviewed_pool() {
         assert_eq!(parse_ipv4("192.168.4.2").unwrap(), [192, 168, 4, 2]);
         assert!(parse_ipv4("192.168.4").is_err());
+    }
+
+    #[test]
+    fn physical_proof_refuses_an_active_wifi_connection() {
+        assert!(require_dedicated_wifi_interface("wlan-proof", None).is_ok());
+        let error = require_dedicated_wifi_interface("wlo1", Some("remote-access"))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("refusing to move active Wi-Fi interface `wlo1`"));
+        assert!(error.contains("disconnected dedicated client interface"));
     }
 
     fn transcript(mut mutate: impl FnMut(usize, &mut serde_json::Value)) -> Vec<u8> {
