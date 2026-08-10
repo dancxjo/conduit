@@ -561,6 +561,7 @@ dependencies = [
 name = "conduitos"
 version = "0.1.0"
 dependencies = [
+ "conduit-kernel",
  "limine",
  "sha2",
 ]

@@ -31,8 +31,8 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
     }
     let first = run::boot_once(&paths, opts)?;
     let second = run::boot_once(&paths, opts)?;
-    let fresh_host_id = first.host_id != second.host_id;
-    let fresh_boot_id = first.boot_id != second.boot_id;
+    let fresh_host_id = first.boot.host_id != second.boot.host_id;
+    let fresh_boot_id = first.boot.boot_id != second.boot.boot_id;
     if !fresh_host_id || !fresh_boot_id {
         return Err(ConduitosError::refusal(
             "stale-boot-identity",
@@ -41,10 +41,10 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
     }
     let base_commit = git_head(&paths.root)?;
     let expected_image_id = format!("conduitos-image/{base_commit}/{}/v1", arch.as_str());
-    if first.build_id != base_commit
-        || second.build_id != base_commit
-        || first.image_id != expected_image_id
-        || second.image_id != expected_image_id
+    if first.boot.build_id != base_commit
+        || second.boot.build_id != base_commit
+        || first.boot.image_id != expected_image_id
+        || second.boot.image_id != expected_image_id
     {
         return Err(ConduitosError::refusal(
             "stale-build-identity",
@@ -53,7 +53,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
     }
     let qemu_version = qemu_version(&paths)?;
     let proof = ProofRecord {
-        schema: "conduit.conduitos.boot-proof/v1",
+        schema: "conduit.conduitos.kernel-proof/v1",
         base_commit,
         architecture: arch.as_str(),
         proof_class: "freestanding-emulator",
@@ -63,8 +63,10 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
         qemu_version,
         iso_sha256: image.iso_sha256,
         reproducible_image,
-        first_boot: first,
-        second_boot: second,
+        first_boot: first.boot,
+        first_kernel: first.kernel,
+        second_boot: second.boot,
+        second_kernel: second.kernel,
         fresh_host_id,
         fresh_boot_id,
     };
@@ -80,7 +82,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
             })?
         );
     } else if !opts.quiet {
-        println!("ConduitOS P0/P1 proof: {}", paths.proof.display());
+        println!("ConduitOS P0-P3 proof: {}", paths.proof.display());
     }
     Ok(())
 }

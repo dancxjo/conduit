@@ -1,4 +1,5 @@
 use crate::render::{draw_document, BACKGROUND};
+use patchbay_model::PHOSPHOR_THEME;
 
 #[test]
 fn document_renders_unicode_scripts_on_the_software_surface() {
@@ -13,16 +14,33 @@ fn document_renders_unicode_scripts_on_the_software_surface() {
 }
 
 #[test]
-fn existing_background_and_accent_palette_roles_are_preserved() {
-    let mut buffer = vec![BACKGROUND; 320 * 40];
-    draw_document(&mut buffer, 320, 40, &["HOSTS".to_owned()]);
-    let rendered_colors = buffer
-        .iter()
-        .copied()
-        .filter(|pixel| *pixel != BACKGROUND)
-        .collect::<std::collections::BTreeSet<_>>();
-    assert_eq!(rendered_colors.len(), 1);
-    assert!(buffer.contains(&BACKGROUND));
+fn native_document_uses_every_required_phosphor_palette_role() {
+    let mut buffer = vec![BACKGROUND; 400 * 100];
+    draw_document(
+        &mut buffer,
+        400,
+        100,
+        &[
+            "HOSTS 1".into(),
+            "ordinary system fact".into(),
+            "  secondary detail".into(),
+            "> selected exact subject".into(),
+        ],
+    );
+    for color in [
+        PHOSPHOR_THEME.background,
+        PHOSPHOR_THEME.structure_primary,
+        PHOSPHOR_THEME.structure_secondary,
+        PHOSPHOR_THEME.text_primary,
+        PHOSPHOR_THEME.text_secondary,
+        PHOSPHOR_THEME.emphasis,
+        PHOSPHOR_THEME.focus,
+    ] {
+        assert!(
+            buffer.contains(&color.packed_rgb()),
+            "missing color {color:?}"
+        );
+    }
 }
 
 #[test]
@@ -30,4 +48,19 @@ fn tiny_or_inconsistent_buffers_are_clipped_without_panicking() {
     let mut one_pixel = [BACKGROUND];
     draw_document(&mut one_pixel, usize::MAX, usize::MAX, &["中".to_owned()]);
     assert_eq!(one_pixel, [BACKGROUND]);
+
+    let guard = 0x00AA_55AA;
+    let mut storage = [guard; 18];
+    draw_document(&mut storage[1..17], 4, 4, &["HOSTS".into()]);
+    assert_eq!(storage[0], guard);
+    assert_eq!(storage[17], guard);
+}
+
+#[test]
+fn selection_keeps_its_text_marker_in_addition_to_gold_color() {
+    let selected = "> gear exact-id [1..2] label";
+    assert!(selected.starts_with("> "));
+    let mut buffer = vec![BACKGROUND; 320 * 40];
+    draw_document(&mut buffer, 320, 40, &[selected.into()]);
+    assert!(buffer.contains(&PHOSPHOR_THEME.focus.packed_rgb()));
 }

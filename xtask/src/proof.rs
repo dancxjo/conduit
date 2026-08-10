@@ -158,7 +158,7 @@ impl ProofRecord {
 
 pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     ProofCommandContract {
-        id: "conduitos.limine-boot",
+        id: "conduitos.kernel-ownership",
         command: "cargo xtask conduitos prove --arch x86-64",
         proof_class: ProofClass::FreestandingEmulator,
         required_tools_or_targets: &[
@@ -174,10 +174,10 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         named_artifacts: &[
             "target/conduitos/x86_64/conduitos",
             "target/conduitos/x86_64/conduitos.iso",
-            "target/conduitos/x86_64/boot-proof.json",
+            "target/conduitos/x86_64/kernel-proof.json",
         ],
         allowed_claims: &[
-            "a reproducible pinned-Limine image boots in QEMU, emits one bounded boot Sign with fresh HostId and BootId, and exits deterministically",
+            "a reproducible pinned-Limine image boots in QEMU and one production conduit-kernel lane progresses through one real timer interrupt to one bounded serial presentation with fresh boot-scoped identities",
         ],
     },
     ProofCommandContract {

@@ -9,11 +9,11 @@ use crate::cli::GlobalOpts;
 use super::{
     image,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
-    report::GuestBootSign,
+    report::{GuestBootSign, GuestKernelSign, GuestRun},
     ConduitosArch, ConduitosError,
 };
 
-pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<GuestBootSign, ConduitosError> {
+pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<GuestRun, ConduitosError> {
     let paths = Paths::new(arch)?;
     let _image = image::execute(arch, opts)?;
     if opts.dry_run {
@@ -26,7 +26,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<GuestBootSign, 
     boot_once(&paths, opts)
 }
 
-pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestBootSign, ConduitosError> {
+pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, ConduitosError> {
     let mut child = Command::new("qemu-system-x86_64")
         .args([
             "-M",
@@ -46,7 +46,6 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestBootSig
             "-serial",
             "stdio",
             "-no-reboot",
-            "-no-shutdown",
             "-net",
             "none",
             "-rtc",
@@ -120,16 +119,33 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestBootSig
             format!("expected one structured boot Sign, found {}", signs.len()),
         ));
     }
-    let sign: GuestBootSign = serde_json::from_str(signs[0])
+    let kernel_signs: Vec<_> = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix("CONDUIT_KERNEL_SIGN "))
+        .collect();
+    if kernel_signs.len() != 1 {
+        return Err(ConduitosError::refusal(
+            "malformed-kernel-sign",
+            format!(
+                "expected one structured kernel Sign, found {}",
+                kernel_signs.len()
+            ),
+        ));
+    }
+    let boot: GuestBootSign = serde_json::from_str(signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-boot-sign", error.to_string()))?;
-    validate(&sign)?;
+    let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
+        .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
+    validate_boot(&boot)?;
+    validate_kernel(&boot, &kernel)?;
     if !opts.quiet && !opts.json {
         println!("{}", signs[0]);
+        println!("{}", kernel_signs[0]);
     }
-    Ok(sign)
+    Ok(GuestRun { boot, kernel })
 }
 
-fn validate(sign: &GuestBootSign) -> Result<(), ConduitosError> {
+fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {
     if sign.schema != "conduit.conduitos.boot-sign/v1"
         || sign.status != "accepted"
         || sign.arch != "x86_64"
@@ -143,6 +159,48 @@ fn validate(sign: &GuestBootSign) -> Result<(), ConduitosError> {
         return Err(ConduitosError::refusal(
             "invalid-boot-sign",
             format!("boot Sign failed exact validation: {sign:?}"),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), ConduitosError> {
+    let valid_base_ids = sign.base_ids.len() == 7
+        && sign.base_ids.iter().enumerate().all(|(index, id)| {
+            id.len() == 64
+                && id.bytes().all(|byte| byte.is_ascii_hexdigit())
+                && !sign.base_ids[..index].contains(id)
+        });
+    if sign.schema != "conduit.conduitos.kernel-sign/v1"
+        || sign.status != "accepted"
+        || sign.arch != "x86_64"
+        || sign.build_id != boot.build_id
+        || sign.kernel != "conduit-kernel"
+        || sign.scheduler_profile != "conduitos/single-lane-cooperative@1"
+        || sign.host_id != boot.host_id
+        || sign.boot_id != boot.boot_id
+        || sign.base_count != 7
+        || !valid_base_ids
+        || sign.memory_arena_bytes != boot.runtime_arena_bytes
+        || sign.execution_lanes != 1
+        || sign.timer_slots != 1
+        || sign.serial_slots != 1
+        || sign.serial_maximum_bytes != 16
+        || sign.interrupt_fact_slots != 4
+        || sign.sign_item_slots != 64
+        || sign.logical_operations != 2
+        || sign.kernel_decisions == 0
+        || sign.kernel_signs == 0
+        || sign.timer_irq_wakes != 1
+        || sign.idle_entries == 0
+        || sign.serial_presentations != 1
+        || !sign.clock_monotonic
+        || sign.pending_host_operations != 0
+        || !sign.sse2
+    {
+        return Err(ConduitosError::refusal(
+            "invalid-kernel-sign",
+            format!("kernel Sign failed exact validation: {sign:?}"),
         ));
     }
     Ok(())

@@ -76,5 +76,5 @@ jobs:
           cache-on-failure: true
       - name: Install deterministic image and emulator tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86
-      - name: Prove the bounded Limine boot slice
+      - name: Prove bounded ConduitOS kernel ownership
         run: cargo xtask conduitos prove --arch x86-64 --locked

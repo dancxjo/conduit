@@ -14,6 +14,16 @@ pub fn derive(entropy: [u64; 4], timestamp: u64, image_start: u64) -> BootIdenti
     BootIdentities { host, boot }
 }
 
+pub fn derive_base(boot_id: &[u8; 32], kind: &str) -> [u8; 32] {
+    let mut hash = Sha256::new();
+    hash.update((b"conduit-base-id/v1".len() as u32).to_le_bytes());
+    hash.update(b"conduit-base-id/v1");
+    hash.update(boot_id);
+    hash.update((kind.len() as u32).to_le_bytes());
+    hash.update(kind.as_bytes());
+    hash.finalize().into()
+}
+
 fn digest(domain: &[u8], entropy: &[u64; 4], timestamp: u64, image_start: u64) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash.update((domain.len() as u32).to_le_bytes());
@@ -36,5 +46,9 @@ mod tests {
         assert_ne!(ids.host, ids.boot);
         assert_eq!(ids, derive([1, 2, 3, 4], 5, 6));
         assert_ne!(ids.boot, derive([1, 2, 3, 7], 5, 6).boot);
+        assert_ne!(
+            derive_base(&ids.boot, "timer"),
+            derive_base(&ids.boot, "serial")
+        );
     }
 }
