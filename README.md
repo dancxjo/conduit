@@ -562,7 +562,21 @@ The primary local gate is:
 cargo xtask check
 ```
 
-Additional platform-specific checks are exposed by `cargo xtask --help` and documented in [STATUS.md](STATUS.md) and the relevant roadmap issues. The `justfile` contains internal compatibility aliases, not public entrances.
+Additional platform-specific checks are exposed by `cargo xtask --help` and documented in [STATUS.md](STATUS.md) and the relevant roadmap issues. The `justfile` is an optional shell façade over the same canonical entrances.
+
+If you prefer `just`, the repository provides a thin optional façade over the
+same two entrances:
+
+```bash
+just run examples/signal-demo.form --placements examples/std-local.placements
+just form-check examples/signal-demo.form
+just demo browser
+just check
+just prove std-browser-s4
+```
+
+These recipes contain no independent workflow logic; `just conduit ...` and
+`just xtask ...` are also available as complete pass-throughs.
 
 ---
 

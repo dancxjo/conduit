@@ -1,11 +1,31 @@
+# Optional shell façade. Every recipe delegates to one of the two canonical
+# entrances; no product or repository behavior is implemented here.
+conduit *args:
+    cargo run -p conduit -- {{args}}
+
+run form *args:
+    cargo run -p conduit -- run {{form}} {{args}}
+
+form-check form *args:
+    cargo run -p conduit -- check {{form}} {{args}}
+
+inspect report *args:
+    cargo run -p conduit -- inspect runtime-report {{report}} {{args}}
+
+copy *args:
+    cargo run -p conduit -- copy {{args}}
+
+xtask *args:
+    cargo xtask {{args}}
+
 std-host:
-    cargo run -p conduit -- examples/signal-demo.form --placements examples/std-local.placements
+    cargo xtask demo std
 
 demo-std:
-    cargo run -p conduit -- examples/signal-demo.form --placements examples/std-local.placements
+    cargo xtask demo std
 
 demo-triple-local:
-    cargo run -p conduit -- examples/triple-signal.form --placements examples/triple-local.placements
+    cargo xtask demo triple
 
 browser-sim:
     cargo test -p conduit-browser-sim
@@ -52,8 +72,20 @@ std-catalog:
 std-catalog-thumb-check:
     cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
 
-check:
-    cargo xtask check workspace
+check suite="workspace" *args:
+    cargo xtask check {{suite}} {{args}}
+
+prove proof *args:
+    cargo xtask prove {{proof}} {{args}}
+
+demo demonstration *args:
+    cargo xtask demo {{demonstration}} {{args}}
+
+proofs *args:
+    cargo xtask proofs {{args}}
+
+conduitos *args:
+    cargo xtask conduitos {{args}}
 
 # One live loopback std-kernel to browser-WASM-kernel Signal proof.
 prove-std-browser-s4:
