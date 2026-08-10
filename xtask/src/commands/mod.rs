@@ -7,3 +7,4 @@ pub mod proofs;
 pub mod prove;
 pub mod r1_recovery;
 pub mod toggle;
+pub mod unifont_subset;
