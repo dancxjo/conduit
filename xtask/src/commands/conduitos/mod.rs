@@ -5,6 +5,7 @@ mod profile;
 mod prove;
 mod report;
 mod run;
+mod std_gap;
 
 use std::fmt;
 
@@ -30,6 +31,8 @@ enum ConduitosCommand {
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
     Prove(TargetArgs),
+    /// Inventory the portable std nucleus and classify the exact ConduitOS gap.
+    StdGap,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -118,23 +121,25 @@ impl fmt::Display for ConduitosError {
 impl std::error::Error for ConduitosError {}
 
 pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
-    if matches!(args.command, ConduitosCommand::ArchitectureMatrix) {
-        return architecture_matrix::execute(opts);
-    }
-    let target = match args.command {
-        ConduitosCommand::ArchitectureMatrix => unreachable!(),
-        ConduitosCommand::Build(target)
-        | ConduitosCommand::Image(target)
-        | ConduitosCommand::Run(target)
-        | ConduitosCommand::Prove(target) => target,
-    };
-    target.arch.require_executable_backend()?;
     match args.command {
-        ConduitosCommand::ArchitectureMatrix => unreachable!(),
-        ConduitosCommand::Build(_) => build::execute(target.arch, opts).map(|_| ()),
-        ConduitosCommand::Image(_) => image::execute(target.arch, opts).map(|_| ()),
-        ConduitosCommand::Run(_) => run::execute(target.arch, opts).map(|_| ()),
-        ConduitosCommand::Prove(_) => prove::execute(target.arch, opts),
+        ConduitosCommand::ArchitectureMatrix => architecture_matrix::execute(opts),
+        ConduitosCommand::Build(target) => {
+            target.arch.require_executable_backend()?;
+            build::execute(target.arch, opts).map(|_| ())
+        }
+        ConduitosCommand::Image(target) => {
+            target.arch.require_executable_backend()?;
+            image::execute(target.arch, opts).map(|_| ())
+        }
+        ConduitosCommand::Run(target) => {
+            target.arch.require_executable_backend()?;
+            run::execute(target.arch, opts).map(|_| ())
+        }
+        ConduitosCommand::Prove(target) => {
+            target.arch.require_executable_backend()?;
+            prove::execute(target.arch, opts)
+        }
+        ConduitosCommand::StdGap => std_gap::execute(opts),
     }
 }
 
