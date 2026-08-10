@@ -632,6 +632,15 @@ unknown fields, wrong types, and contract bounds are covered. Refused edits
 retain byte-identical source and report that the proposed value does not fit
 the visible Gear-Face type or bounds.
 
+The native pointer entrance is additionally accepted at exact main
+`abfb7cf69322247b912c9022b1e85e33d22914ab`; push workflow `31440755159`
+passed `check`, `browser-host`, and `conduitos-boot`. Hit testing follows reverse
+paint order, so a compact control inside its containing Gear rectangle receives
+the pointer gesture before the broader Gear-selection target. The native
+vertical renders the production hit geometry, presses their overlapping
+coordinates, observes the canonical duration edit, and correlates its ordinary
+`ConfigureGear` interaction receipt.
+
 Changing configuration preserves the direct Gear identity while resealing the
 source, checked, and expanded identities. An already sealed Plan remains
 unchanged; an explicit later planning request produces the replacement Plan.
