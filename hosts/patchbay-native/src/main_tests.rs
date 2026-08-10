@@ -7,6 +7,8 @@ use super::{
 fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
     let presentation = patchbay_model::portable_demonstration().unwrap();
     let lines = portable_presentation_lines(&presentation).unwrap();
+    let nonvisual = conduit_presentation::render_linear_presentation(&presentation).unwrap();
+    assert_eq!(lines, nonvisual.lines);
     let rendered = lines.join("\n");
     assert!(rendered.contains(presentation.identity.as_str()));
     assert!(rendered.contains(presentation.basis.body_id.as_str()));
