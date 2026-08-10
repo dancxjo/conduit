@@ -2,6 +2,7 @@ mod aarch64_a0;
 mod aarch64_a1;
 mod architecture_matrix;
 mod build;
+mod ia32_a0;
 mod image;
 mod profile;
 mod prove;
@@ -76,7 +77,7 @@ impl ConduitosArch {
     }
 
     fn require_compile_link_backend(self) -> Result<(), ConduitosError> {
-        if matches!(self, Self::X86_64 | Self::Aarch64) {
+        if matches!(self, Self::Ia32 | Self::X86_64 | Self::Aarch64) {
             Ok(())
         } else {
             Err(ConduitosError::refusal(

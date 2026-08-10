@@ -3,13 +3,16 @@ use std::{fs, process::Command};
 use crate::cli::GlobalOpts;
 
 use super::{
-    aarch64_a0,
+    aarch64_a0, ia32_a0,
     profile::{Paths, COMMON_BACKBONE_TARGETS},
     report::{git_head, sha256_file, BuildRecord},
     ConduitosArch, ConduitosError,
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    if arch == ConduitosArch::Ia32 {
+        return ia32_a0::execute(opts);
+    }
     if arch == ConduitosArch::Aarch64 {
         return aarch64_a0::execute(opts);
     }

@@ -19,6 +19,9 @@ pub const COMMON_BACKBONE_TARGETS: &[&str] = &[
     "riscv64gc-unknown-none-elf",
     "loongarch64-unknown-none",
 ];
+pub const IA32_SHARED_BACKBONE_TARGET: &str = "i686-unknown-uefi";
+pub const IA32_OBJECT_TARGET: &str = "i686-unknown-linux-gnu";
+pub const IA32_LINK_PROFILE: &str = "rust-elf-object+rust-lld-elf_i386";
 
 pub struct Paths {
     pub root: PathBuf,
