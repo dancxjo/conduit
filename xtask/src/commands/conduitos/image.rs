@@ -61,7 +61,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<ImageRecord, Co
     Ok(record)
 }
 
-fn prepare_limine(paths: &Paths) -> Result<(), ConduitosError> {
+pub(super) fn prepare_limine(paths: &Paths) -> Result<(), ConduitosError> {
     let vendor = paths
         .limine_archive
         .parent()
