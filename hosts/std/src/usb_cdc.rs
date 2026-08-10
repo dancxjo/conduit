@@ -128,7 +128,12 @@ pub fn configure_raw_termios(fd: libc::c_int) -> Result<(), NativeUsbCdcError> {
 
 /// Assert DTR and verify that the kernel reports it high for this CDC endpoint.
 #[cfg(unix)]
-fn assert_dtr(fd: libc::c_int) -> Result<(), NativeUsbCdcError> {
+pub fn assert_dtr<F: AsRawFd>(file: &F) -> Result<(), NativeUsbCdcError> {
+    assert_dtr_fd(file.as_raw_fd())
+}
+
+#[cfg(unix)]
+fn assert_dtr_fd(fd: libc::c_int) -> Result<(), NativeUsbCdcError> {
     let mut set_flags: libc::c_int = libc::TIOCM_DTR;
     if unsafe { libc::ioctl(fd, libc::TIOCMBIS, &mut set_flags) } != 0 {
         return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
@@ -250,7 +255,7 @@ impl NativePathCdcLine {
         }
         let guard = FdGuard(fd);
         configure_raw_termios(fd)?;
-        assert_dtr(fd)?;
+        assert_dtr_fd(fd)?;
 
         let decoder = StreamFrameDecoder::new(maximum_frame_bytes)?;
         Ok(Self {
@@ -522,7 +527,7 @@ impl NativePathCdcLineReader {
         }
         let guard = FdGuard(fd);
         configure_raw_termios(fd)?;
-        assert_dtr(fd)?;
+        assert_dtr_fd(fd)?;
 
         Ok(Self {
             fd: guard,

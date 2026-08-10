@@ -8,6 +8,8 @@ use super::doctor::{sha256_file, CYW43_ASSETS, CYW43_COMMIT};
 use super::firmware::{identity_manifest_path, AssetEntry, PROFILE, TARGET};
 use super::PicoResult;
 
+pub const APPLIANCE_HIL_CLIENT_ARTIFACT: &str = "pico/appliance-hil-client-firmware@1";
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApplianceFirmwareIdentity {
     pub schema: String,
@@ -43,6 +45,37 @@ pub struct ApplianceGeneratedImageIdentity {
     pub maximum_http_request_bytes: u32,
     pub maximum_http_response_bytes: u32,
     pub maximum_signs: u16,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApplianceHilClientFirmwareIdentity {
+    pub schema: String,
+    pub git_revision: String,
+    pub target: String,
+    pub profile: String,
+    pub firmware_mode: String,
+    pub firmware_build_id: String,
+    pub firmware_sha256: String,
+    pub client_image: ApplianceHilClientGeneratedImageIdentity,
+    pub cyw43_commit: String,
+    pub cyw43_assets: Vec<AssetEntry>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApplianceHilClientGeneratedImageIdentity {
+    pub schema: String,
+    pub firmware_mode: String,
+    pub firmware_build_id: String,
+    pub image_artifact: String,
+    pub fixture_only: bool,
+    pub usb_serial: String,
+    pub ssid: String,
+    pub open_ap: bool,
+    pub server_address: [u8; 4],
+    pub local_name: String,
+    pub hello_body: String,
+    pub maximum_http_request_bytes: u32,
+    pub maximum_http_response_bytes: u32,
 }
 
 impl ApplianceFirmwareIdentity {
@@ -109,6 +142,46 @@ impl ApplianceFirmwareIdentity {
     }
 }
 
+impl ApplianceHilClientFirmwareIdentity {
+    pub fn verify(&self) -> PicoResult<()> {
+        let expected_radio_assets = CYW43_ASSETS
+            .iter()
+            .map(|(filename, sha256)| (*filename, *sha256))
+            .collect::<Vec<_>>();
+        let actual_radio_assets = self
+            .cyw43_assets
+            .iter()
+            .map(|asset| (asset.filename.as_str(), asset.sha256.as_str()))
+            .collect::<Vec<_>>();
+        let image = &self.client_image;
+        if self.schema != "conduit-pico-w-signal/appliance-hil-client-identity@1"
+            || self.git_revision.is_empty()
+            || self.target != TARGET
+            || self.profile != PROFILE
+            || self.firmware_sha256.len() != 64
+            || self.firmware_mode != "appliance-hil-client"
+            || image.schema != "conduit.pico-appliance/hil-client-image@1"
+            || image.firmware_mode != self.firmware_mode
+            || image.firmware_build_id != self.firmware_build_id
+            || image.image_artifact != APPLIANCE_HIL_CLIENT_ARTIFACT
+            || !image.fixture_only
+            || image.usb_serial != "conduit-pico-hil-client"
+            || image.ssid != conduit_net::APPLIANCE_SSID
+            || !image.open_ap
+            || image.server_address != conduit_net::DHCP_SERVER_ADDRESS
+            || image.local_name != conduit_net::APPLIANCE_LOCAL_NAME
+            || image.hello_body != conduit_net::APPLIANCE_HELLO_BODY
+            || image.maximum_http_request_bytes != conduit_net::MAXIMUM_HTTP_REQUEST_BYTES
+            || image.maximum_http_response_bytes != conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES
+            || self.cyw43_commit != CYW43_COMMIT
+            || actual_radio_assets != expected_radio_assets
+        {
+            return Err("Pico appliance HIL client firmware identity is inconsistent".into());
+        }
+        Ok(())
+    }
+}
+
 pub fn write_appliance_identity_manifest(
     root: &Path,
     elf: &Path,
@@ -148,12 +221,70 @@ pub fn write_appliance_identity_manifest(
     Ok(())
 }
 
+pub fn write_appliance_hil_client_identity_manifest(
+    root: &Path,
+    elf: &Path,
+    sidecar: &Path,
+) -> PicoResult<()> {
+    let git_output = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(root)
+        .output()?;
+    if !git_output.status.success() {
+        return Err("git rev-parse HEAD failed".into());
+    }
+    let client_image: ApplianceHilClientGeneratedImageIdentity =
+        serde_json::from_str(&std::fs::read_to_string(sidecar)?)?;
+    let identity = ApplianceHilClientFirmwareIdentity {
+        schema: "conduit-pico-w-signal/appliance-hil-client-identity@1".into(),
+        git_revision: String::from_utf8(git_output.stdout)?.trim().to_owned(),
+        target: TARGET.into(),
+        profile: PROFILE.into(),
+        firmware_mode: client_image.firmware_mode.clone(),
+        firmware_build_id: client_image.firmware_build_id.clone(),
+        firmware_sha256: sha256_file(elf)?,
+        client_image,
+        cyw43_commit: CYW43_COMMIT.into(),
+        cyw43_assets: CYW43_ASSETS
+            .iter()
+            .map(|(filename, expected)| AssetEntry {
+                filename: (*filename).to_owned(),
+                sha256: (*expected).to_owned(),
+            })
+            .collect(),
+    };
+    identity.verify()?;
+    let manifest_path = identity_manifest_path(root);
+    std::fs::write(&manifest_path, serde_json::to_string_pretty(&identity)?)?;
+    println!(
+        "  appliance HIL client identity manifest: {}",
+        manifest_path.display()
+    );
+    Ok(())
+}
+
 pub fn read_appliance_identity_manifest(root: &Path) -> PicoResult<ApplianceFirmwareIdentity> {
     let manifest_path = identity_manifest_path(root);
     let identity: ApplianceFirmwareIdentity = serde_json::from_str(
         &std::fs::read_to_string(&manifest_path).map_err(|error| {
             format!(
                 "failed to read Pico appliance identity at {}: {error}; run `cargo xtask pico build --appliance-hello` first",
+                manifest_path.display()
+            )
+        })?,
+    )?;
+    identity.verify()?;
+    Ok(identity)
+}
+
+pub fn read_appliance_hil_client_identity_manifest(
+    root: &Path,
+) -> PicoResult<ApplianceHilClientFirmwareIdentity> {
+    let manifest_path = identity_manifest_path(root);
+    let identity: ApplianceHilClientFirmwareIdentity = serde_json::from_str(
+        &std::fs::read_to_string(&manifest_path).map_err(|error| {
+            format!(
+                "failed to read Pico appliance HIL client identity at {}: {error}; run `cargo xtask pico build --appliance-hil-client` first",
                 manifest_path.display()
             )
         })?,

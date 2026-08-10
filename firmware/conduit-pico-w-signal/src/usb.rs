@@ -46,8 +46,16 @@ pub fn init_composite_usb(
 
     let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
     config.manufacturer = Some("Conduit");
-    config.product = Some("Pico W Signal");
-    config.serial_number = Some("conduit-pico-w-signal");
+    let (product, serial_number) = if cfg!(feature = "appliance-hil-client") {
+        (
+            "Pico W Appliance HIL Client",
+            "conduit-pico-hil-client",
+        )
+    } else {
+        ("Pico W Signal", "conduit-pico-w-signal")
+    };
+    config.product = Some(product);
+    config.serial_number = Some(serial_number);
     config.max_power = 100;
     config.max_packet_size_0 = MAX_PACKET_SIZE;
 

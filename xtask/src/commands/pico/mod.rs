@@ -6,6 +6,7 @@ mod firmware;
 mod firmware_tests;
 mod flash;
 mod prove_appliance;
+mod prove_appliance_hil;
 mod prove_usb;
 #[cfg(unix)]
 mod prove_websocket;
@@ -36,6 +37,7 @@ pub use doctor::run_doctor;
 pub use firmware::run_build;
 pub use flash::run_flash;
 pub use prove_appliance::run_prove_pico_appliance;
+pub use prove_appliance_hil::run_prove_pico_appliance_hil;
 pub use prove_usb::run_prove_std_pico_usb;
 pub use prove_wifi::run_prove_pico_wifi_bootstrap;
 pub use prove_wifi::WifiProofMode;
@@ -91,6 +93,10 @@ pub struct PicoArgs {
     #[arg(long, global = true)]
     pub appliance_hello: bool,
 
+    /// Build or flash the fixture-only second-Pico appliance client probe.
+    #[arg(long, global = true)]
+    pub appliance_hil_client: bool,
+
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long, global = true)]
     pub refresh_radio_assets: bool,
@@ -131,6 +137,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         + usize::from(args.wifi_bootstrap)
         + usize::from(args.r1_control)
         + usize::from(args.appliance_hello)
+        + usize::from(args.appliance_hil_client)
         > 1
     {
         return Err("select only one remote Pico firmware mode".into());
