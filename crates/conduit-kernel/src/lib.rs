@@ -174,6 +174,11 @@ pub trait Operation {
     fn retains_resumed_value(&self) -> bool {
         false
     }
+    /// Returns scheduler-owned values released by the current transition.
+    ///
+    /// The operation driver calls this repeatedly until it returns `None`, up
+    /// to the admitted node's port capacity. Returning more identities than
+    /// that finite bound is a protocol violation.
     fn take_released_value(&mut self) -> Option<ValueRef> {
         None
     }

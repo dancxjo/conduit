@@ -210,7 +210,7 @@ struct AdapterTransaction<const PORTS: usize> {
     outputs: [Option<ValueRef>; PORTS],
     host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
     retain_resumed_value: bool,
-    released_value: Option<ValueRef>,
+    released_values: [Option<ValueRef>; PORTS],
     terminal: AdapterTerminal,
 }
 
@@ -219,7 +219,7 @@ impl<const PORTS: usize> AdapterTransaction<PORTS> {
         self.outputs.iter().all(Option::is_none)
             && self.host_request.is_none()
             && !self.retain_resumed_value
-            && self.released_value.is_none()
+            && self.released_values.iter().all(Option::is_none)
             && matches!(self.terminal, AdapterTerminal::Continue)
     }
 }
@@ -244,7 +244,8 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
             input_cursor: 0,
             protocol_failed: false,
         };
-        let transaction = driver.collect(AdapterEvent::None, first)?;
+        let mut transaction = driver.collect(AdapterEvent::None, first)?;
+        driver.collect_released_values(&mut transaction)?;
         if !transaction.is_empty_continue() {
             driver.pending = Some(transaction);
         }
@@ -265,7 +266,7 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
             outputs: [None; PORTS],
             host_request: None,
             retain_resumed_value: false,
-            released_value: None,
+            released_values: [None; PORTS],
             terminal: AdapterTerminal::Continue,
         };
         let mut action = first;
@@ -305,6 +306,22 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
             }
         }
         Err(SchedulerError::OperationProtocolViolation)
+    }
+
+    fn collect_released_values(
+        &mut self,
+        transaction: &mut AdapterTransaction<PORTS>,
+    ) -> Result<(), SchedulerError> {
+        for released in &mut transaction.released_values {
+            let Some(value) = self.operation.take_released_value() else {
+                return Ok(());
+            };
+            *released = Some(value);
+        }
+        if self.operation.take_released_value().is_some() {
+            return Err(SchedulerError::OperationProtocolViolation);
+        }
+        Ok(())
     }
 
     fn next_event(&self, io: &StepIo<PORTS>) -> Option<AdapterEvent> {
@@ -364,7 +381,10 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                 Ok(mut transaction) => {
                     transaction.retain_resumed_value = matches!(event, AdapterEvent::Value { .. })
                         && self.operation.retains_resumed_value();
-                    transaction.released_value = self.operation.take_released_value();
+                    if self.collect_released_values(&mut transaction).is_err() {
+                        self.protocol_failed = true;
+                        return StepOutcome::Fail(u16::MAX);
+                    }
                     self.pending = Some(transaction);
                 }
                 Err(_) => {
@@ -409,7 +429,7 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                 }
             }
         }
-        if let Some(value) = transaction.released_value {
+        for value in transaction.released_values.into_iter().flatten() {
             if io.discard(value).is_err() {
                 return StepOutcome::Fail(u16::MAX);
             }
