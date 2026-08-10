@@ -600,9 +600,10 @@ duplicate, Gear removal, movement/grouping identity stability, and
 save/reopen through the native production interaction seam.
 
 This is #742's baseline composition proof, not the richer Cord or Gear-Face
-editing experience. #744 still owns catalog-derived compact configuration
-controls. #745 still owns selectable bend points, bounded Cord parameters,
-direct endpoint manipulation, and bounded undo/redo. This acceptance adds no
+editing experience. At that checkpoint #744 still owned catalog-derived compact
+configuration controls and #745 still owned selectable bend points, truthful
+Cord-parameter projection, direct endpoint manipulation, and bounded reversal.
+This acceptance adds no
 Host placement, hardware discovery, ROS import/export, scheduler view,
 implementation editing, PREWAKE automation, Line/transport selection,
 firmware behavior, or physical/HIL claim.
@@ -652,8 +653,46 @@ available without entering a separate property editor.
 This acceptance adds no generic schema-form generator, arbitrary nested-object
 editor, expanded inspector requirement, renderer-owned property database,
 automatic replan policy, mutable Plan, implementation editor, debugger,
-firmware behavior, transport behavior, or physical/HIL claim. #745 still owns
-the richer first-class Cord editing and tuning experience.
+firmware behavior, transport behavior, or physical/HIL claim. At that checkpoint
+#745 still owned the richer first-class Cord editing and tuning experience.
+
+The first-class Cord-editing story from #745 is accepted at exact main
+`349b00c539d79677a74f097d6e17585122257c44`; push workflow `31443008184`
+passed `check`, `browser-host`, and `conduitos-boot`. The native Patchbay lets a
+maker select a Cord and drag its body to one finite orthogonal waypoint. That
+waypoint is bounded, persisted in the existing layout sidecar by exact source
+and sink Port identities, and reconciled away when its semantic Cord no longer
+exists. Moving either connected Gear continues to derive the Cord endpoints
+from current Gear geometry. Route changes and save/reopen therefore preserve
+source, checked, expanded, Cord, and Plan identity.
+
+Dragging the selected Cord to either a compatible output or input reroutes that
+exact authored endpoint without reconstructing the surrounding graph. The
+gesture crosses the ordinary bounded `RerouteCord` interaction Form, exact
+Plan, production-kernel Play, receipt, and Sign path before the source edit may
+apply. The editor derives the unchanged opposite endpoint from the exact Cord,
+checks direction, Info, temporal contract, duplicates, revision, and expanded
+basis, then atomically reparses, checks, and expands the candidate. Successful
+rerouting reseals source, checked, and expanded identities; an already sealed
+Plan stays immutable until an explicit planning request produces a replacement.
+Dragging the same Cord back to its previous compatible Port is the finite
+explicit reversal path. Incompatible and stale attempts retain byte-identical
+source and remain machine-readable refusals.
+
+Cord inspection shows the current Info and temporal contract directly. The
+installed canonical Cord contracts expose no authored Cord parameter fields,
+so Patchbay states that no semantic parameters are available and keeps
+Line/transport choices on the realization surface instead of inventing
+capacity, byte, policy, label, Base, or socket meaning. Existing compatible
+Cord creation, selection, deletion, and Gear-relative geometry remain accepted
+from #742. Production-pointer tests cover body routing plus both endpoint
+directions, ordinary receipt correlation, identity resealing, immutable prior
+Plan, explicit replanning, and stale-route reconciliation.
+
+This acceptance adds no transport panel, physical wiring CAD, packet inspector,
+renderer-owned topology, generic Cord schema editor, invented Cord parameters,
+Line/Base selection, mutable Plan, automatic replan policy, firmware behavior,
+or physical/HIL claim.
 
 The first ConduitOS boot slice from #588 is accepted at exact main
 `35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
