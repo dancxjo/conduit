@@ -111,14 +111,14 @@ pub fn prepare(
     })
 }
 
-#[cfg(target_os = "none")]
+#[cfg(all(target_os = "none", target_arch = "x86_64"))]
 fn stage(name: &[u8]) {
     crate::arch::early_write(b"CONDUIT_PLAN_STAGE ");
     crate::arch::early_write(name);
     crate::arch::early_write(b"\n");
 }
 
-#[cfg(not(target_os = "none"))]
+#[cfg(not(all(target_os = "none", target_arch = "x86_64")))]
 fn stage(_name: &[u8]) {}
 
 fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
