@@ -1,8 +1,7 @@
 //! Native Patchbay document composition, kept separate from event-loop policy.
 
 use super::PatchbayApplication;
-use conduit_core::ConnectionBase;
-use conduit_presentation::{Presentation, PresentationPropertyValue};
+use conduit_presentation::{render_linear_presentation, Presentation};
 use patchbay_model::{GraphItemKind, RendererSelfInspection};
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
@@ -11,85 +10,9 @@ const MAX_FORM_PRESENTATION_LINES: usize = 256;
 pub(super) fn portable_presentation_lines(
     presentation: &Presentation,
 ) -> Result<Vec<String>, String> {
-    presentation.validate().map_err(|error| error.to_string())?;
-    let basis = &presentation.basis;
-    let mut lines = vec![
-        format!(
-            "PRESENTATION {} revision={}",
-            presentation.identity.as_str(),
-            presentation.revision
-        ),
-        format!(
-            "SEED {} body={} wake={}",
-            basis.seed_id.as_str(),
-            basis.body_id.as_str(),
-            basis.wake_id.as_str()
-        ),
-        format!(
-            "FORM source={} checked={}",
-            basis.source_document_id.as_str(),
-            basis.checked_form_id.as_str()
-        ),
-        format!(
-            "PLAN {} PLAY {}",
-            basis
-                .plan_id
-                .as_ref()
-                .map_or("not present", |id| id.as_str()),
-            basis
-                .active_play_id
-                .as_ref()
-                .map_or("not present", |id| id.as_str())
-        ),
-    ];
-    for subject in &presentation.subjects {
-        lines.push(format!(
-            "{:?} {} — {}",
-            subject.role, subject.identity, subject.label
-        ));
-        for property in presentation
-            .properties
-            .iter()
-            .filter(|property| property.subject == subject.identity)
-        {
-            lines.push(format!(
-                "  {}={}",
-                property.name,
-                display_property(&property.value)
-            ));
-        }
-        lines.extend(
-            presentation
-                .text
-                .iter()
-                .filter(|text| text.subject == subject.identity)
-                .map(|text| format!("  {}", text.text)),
-        );
-    }
-    lines.truncate(MAX_FORM_PRESENTATION_LINES);
-    Ok(lines)
-}
-
-fn display_property(value: &PresentationPropertyValue) -> String {
-    match value {
-        PresentationPropertyValue::Identity(value) | PresentationPropertyValue::Text(value) => {
-            value.clone()
-        }
-        PresentationPropertyValue::ConnectionBase(base) => display_base(*base).into(),
-        PresentationPropertyValue::Count(value) => value.to_string(),
-        PresentationPropertyValue::Flag(value) => value.to_string(),
-    }
-}
-
-fn display_base(base: ConnectionBase) -> &'static str {
-    match base {
-        ConnectionBase::Local => "local",
-        ConnectionBase::InMemory => "in-memory",
-        ConnectionBase::FixtureFrame => "fixture frame",
-        ConnectionBase::FixtureDatagram => "fixture datagram",
-        ConnectionBase::WebSocket => "WebSocket",
-        ConnectionBase::UsbCdc => "USB CDC",
-    }
+    render_linear_presentation(presentation)
+        .map(|projection| projection.lines)
+        .map_err(|error| error.to_string())
 }
 
 fn renderer_self_inspection_lines(
