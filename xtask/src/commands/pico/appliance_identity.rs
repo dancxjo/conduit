@@ -45,6 +45,7 @@ pub struct ApplianceGeneratedImageIdentity {
     pub maximum_http_request_bytes: u32,
     pub maximum_http_response_bytes: u32,
     pub maximum_signs: u16,
+    pub maximum_network_sockets: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -133,6 +134,7 @@ impl ApplianceFirmwareIdentity {
             || image.maximum_http_request_bytes != conduit_net::MAXIMUM_HTTP_REQUEST_BYTES
             || image.maximum_http_response_bytes != conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES
             || image.maximum_signs != conduit_net::MAXIMUM_APPLIANCE_SIGNS
+            || image.maximum_network_sockets != conduit_net::MAXIMUM_APPLIANCE_NETWORK_SOCKETS
             || self.cyw43_commit != CYW43_COMMIT
             || actual_radio_assets != expected_radio_assets
         {

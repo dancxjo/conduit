@@ -168,6 +168,7 @@ fn generate_pico_appliance_identity() {
         "maximum_http_request_bytes": conduit_net::MAXIMUM_HTTP_REQUEST_BYTES,
         "maximum_http_response_bytes": conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES,
         "maximum_signs": conduit_net::MAXIMUM_APPLIANCE_SIGNS,
+        "maximum_network_sockets": conduit_net::MAXIMUM_APPLIANCE_NETWORK_SOCKETS,
     });
     let sidecar = env::var_os(APPLIANCE_IDENTITY_SIDECAR_ENV)
         .map(PathBuf::from)

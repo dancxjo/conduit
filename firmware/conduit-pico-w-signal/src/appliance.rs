@@ -19,7 +19,9 @@ use crate::receipts::UsbCdc;
 const HOST_ID: &str = "pico/appliance-hello";
 const FIRMWARE_BUILD_ID: &str = env!("CONDUIT_PICO_APPLIANCE_BUILD_ID");
 const MAXIMUM_HTTP_RESPONSE_BYTES: usize = conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES as usize;
-static NETWORK_RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
+static NETWORK_RESOURCES: StaticCell<
+    StackResources<{ conduit_net::MAXIMUM_APPLIANCE_NETWORK_SOCKETS as usize }>,
+> = StaticCell::new();
 
 #[embassy_executor::task]
 async fn appliance_network_task(
