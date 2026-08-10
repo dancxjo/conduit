@@ -127,10 +127,10 @@ fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError>
         .and_then(|_| fs::create_dir_all(&efi_boot))
         .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     copy(&paths.kernel, &boot.join("conduitos"))?;
-    let config = if arch == ConduitosArch::Aarch64 {
-        "hosts/conduitos/limine-aarch64-a1.conf"
-    } else {
-        "hosts/conduitos/limine.conf"
+    let config = match arch {
+        ConduitosArch::Aarch64 => "hosts/conduitos/limine-aarch64-a1.conf",
+        ConduitosArch::Ia32 => "hosts/conduitos/limine-ia32-a1.conf",
+        _ => "hosts/conduitos/limine.conf",
     };
     copy(
         &paths.root.join(config),
@@ -145,6 +145,7 @@ fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError>
     }
     let efi_name = match arch {
         ConduitosArch::Aarch64 => "BOOTAA64.EFI",
+        ConduitosArch::Ia32 => "BOOTIA32.EFI",
         _ => "BOOTX64.EFI",
     };
     copy(&paths.limine.join(efi_name), &efi_boot.join(efi_name))?;

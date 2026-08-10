@@ -11,9 +11,10 @@ PHDRS
 
 SECTIONS
 {
-    . = 0xc0100000;
+    . = 0x00100000;
 
     .text : ALIGN(CONSTANT(MAXPAGESIZE)) {
+        KEEP(*(.multiboot))
         KEEP(*(.text.conduitos_ia32_a0_start))
         *(.text .text.*)
     } :text

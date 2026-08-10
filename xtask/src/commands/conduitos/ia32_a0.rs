@@ -21,6 +21,9 @@ const EM_386: u16 = 3;
 const PT_LOAD: u32 = 1;
 const PT_DYNAMIC: u32 = 2;
 const PT_INTERP: u32 = 3;
+const MULTIBOOT1_MAGIC: u32 = 0x1bad_b002;
+const MULTIBOOT1_FLAGS: u32 = 4;
+const MULTIBOOT1_CHECKSUM: u32 = 0xe452_4ffa;
 
 #[derive(Serialize)]
 struct Inspection {
@@ -137,6 +140,7 @@ fn check_shared_backbone(paths: &Paths, opts: &GlobalOpts) -> Result<(), Conduit
 
 fn compile_object(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
     let source = paths.root.join("hosts/conduitos/src/bin/ia32_a0.rs");
+    let base_commit = git_head(&paths.root)?;
     let status = Command::new("rustc")
         .args([
             "--crate-name",
@@ -159,6 +163,11 @@ fn compile_object(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
         ])
         .arg(source)
         .current_dir(&paths.root)
+        .env("CONDUITOS_BUILD_ID", &base_commit)
+        .env(
+            "CONDUITOS_IMAGE_ID",
+            format!("conduitos-image/{base_commit}/ia32/v1"),
+        )
         .status()
         .map_err(|error| refusal("ia32-object-toolchain-unavailable", error.to_string()))?;
     if status.success() {
@@ -286,6 +295,17 @@ fn inspect_elf(bytes: &[u8]) -> Result<ElfFacts, ConduitosError> {
     {
         return Err(invalid("entry or IA-32 ELF ABI facts are malformed"));
     }
+    let header_limit = bytes.len().min(8192);
+    let multiboot_offset = bytes[..header_limit]
+        .windows(4)
+        .position(|value| value == MULTIBOOT1_MAGIC.to_le_bytes())
+        .filter(|offset| offset % 4 == 0)
+        .ok_or_else(|| invalid("exact Multiboot1 header is absent from the first 8192 bytes"))?;
+    if u32_at(bytes, multiboot_offset + 4)? != MULTIBOOT1_FLAGS
+        || u32_at(bytes, multiboot_offset + 8)? != MULTIBOOT1_CHECKSUM
+    {
+        return Err(invalid("Multiboot1 profile flags or checksum are stale"));
+    }
     let phoff =
         usize::try_from(u32_at(bytes, 28)?).map_err(|_| invalid("program table overflow"))?;
     let phsize = usize::from(u16_at(bytes, 42)?);
@@ -385,6 +405,9 @@ mod tests {
         bytes[28..32].copy_from_slice(&52_u32.to_le_bytes());
         bytes[40..44].copy_from_slice(&[52, 0, 32, 0]);
         bytes[44..46].copy_from_slice(&3_u16.to_le_bytes());
+        bytes[148..152].copy_from_slice(&MULTIBOOT1_MAGIC.to_le_bytes());
+        bytes[152..156].copy_from_slice(&MULTIBOOT1_FLAGS.to_le_bytes());
+        bytes[156..160].copy_from_slice(&MULTIBOOT1_CHECKSUM.to_le_bytes());
         for (index, flags) in [5_u32, 4, 6].into_iter().enumerate() {
             let offset = 52 + index * 32;
             bytes[offset..offset + 4].copy_from_slice(&PT_LOAD.to_le_bytes());
@@ -412,6 +435,9 @@ mod tests {
         assert!(inspect_elf(&bytes).is_err());
         bytes = specimen();
         bytes[24..28].fill(0);
+        assert!(inspect_elf(&bytes).is_err());
+        bytes = specimen();
+        bytes[156..160].fill(0);
         assert!(inspect_elf(&bytes).is_err());
     }
 

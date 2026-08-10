@@ -10,6 +10,9 @@ use super::{
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    if arch == ConduitosArch::Ia32 {
+        return super::ia32_a1::prove(opts);
+    }
     if arch == ConduitosArch::Aarch64 {
         return super::aarch64_a1::prove(opts);
     }
