@@ -103,9 +103,9 @@ impl PatchbayApplication {
     pub(super) fn dispatch_cord_reroute(
         &mut self,
         cord: &PatchbaySubjectRef,
-        sink: &PatchbaySubjectRef,
+        endpoint: &PatchbaySubjectRef,
     ) -> Result<(), String> {
-        if cord.expanded_form_id != sink.expanded_form_id {
+        if cord.expanded_form_id != endpoint.expanded_form_id {
             return Err("Cord and Port come from different checked Form revisions".into());
         }
         let editor = self
@@ -123,7 +123,7 @@ impl PatchbayApplication {
             view.revision,
             cord.expanded_form_id.as_str(),
             cord.subject_identity,
-            sink.subject_identity
+            endpoint.subject_identity
         );
         self.dispatch_authoring_invocation(PatchbayAction::RerouteCord, target)
     }
@@ -247,7 +247,7 @@ impl PatchbayApplication {
                 fields[3],
                 fields[4],
             ),
-            PatchbayAction::RerouteCord => editor.reroute_cord_sink(
+            PatchbayAction::RerouteCord => editor.reroute_cord_endpoint(
                 revision,
                 &conduit_core::ExpandedFormId::from(fields[2]),
                 fields[3],

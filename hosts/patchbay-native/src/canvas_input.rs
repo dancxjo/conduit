@@ -71,7 +71,7 @@ impl PatchbayApplication {
             return Ok(());
         }
         if let Some(cord) = self.cord_route_drag.take() {
-            let sink = self
+            let endpoint = self
                 .hit_targets
                 .iter()
                 .rev()
@@ -87,10 +87,12 @@ impl PatchbayApplication {
                         .is_some_and(|inspection| {
                             inspection.subject_kind
                                 == patchbay_model::PatchbaySubjectKind::PortInput
+                                || inspection.subject_kind
+                                    == patchbay_model::PatchbaySubjectKind::PortOutput
                         })
                 });
-            if let Some(sink) = sink {
-                self.handle_gui_action(GuiAction::RerouteCord { cord, sink })?;
+            if let Some(endpoint) = endpoint {
+                self.handle_gui_action(GuiAction::RerouteCord { cord, endpoint })?;
             } else {
                 let graph = self
                     .graphical_form

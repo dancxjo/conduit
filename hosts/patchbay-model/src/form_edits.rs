@@ -251,14 +251,14 @@ impl FormEditor {
         self.apply_candidate(candidate)
     }
 
-    /// Replaces the sink of one exact direct authored Cord after applying the
-    /// same typed Info and temporal checks as fresh connection authoring.
-    pub fn reroute_cord_sink(
+    /// Replaces either endpoint of one exact direct authored Cord after
+    /// applying the same direction, Info, and temporal checks as connection.
+    pub fn reroute_cord_endpoint(
         &mut self,
         offered_revision: u64,
         offered_expanded_form_id: &conduit_core::ExpandedFormId,
         cord_identity: &str,
-        sink_port_identity: &str,
+        endpoint_port_identity: &str,
     ) -> Result<(), FormEditorError> {
         self.require_revision(offered_revision)?;
         let expanded = self.expand_form(&self.open_form)?;
@@ -272,18 +272,33 @@ impl FormEditor {
             .iter()
             .find(|cord| cord.identity == cord_identity)
             .ok_or_else(|| FormEditorError::UnknownCord(cord_identity.into()))?;
-        let source_port = graph
+        let old_source_port = graph
             .gears
             .iter()
             .flat_map(|gear| &gear.outputs)
             .find(|port| port.identity == cord.source_port)
             .ok_or_else(|| FormEditorError::UnknownPort(cord.source_port.clone()))?;
-        let sink_port = graph
+        let old_sink_port = graph
             .gears
             .iter()
             .flat_map(|gear| &gear.inputs)
-            .find(|port| port.identity == sink_port_identity)
-            .ok_or_else(|| FormEditorError::UnknownPort(sink_port_identity.into()))?;
+            .find(|port| port.identity == cord.sink_port)
+            .ok_or_else(|| FormEditorError::UnknownPort(cord.sink_port.clone()))?;
+        let offered_source = graph
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.outputs)
+            .find(|port| port.identity == endpoint_port_identity);
+        let offered_sink = graph
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.inputs)
+            .find(|port| port.identity == endpoint_port_identity);
+        let (source_port, sink_port) = match (offered_source, offered_sink) {
+            (Some(source), None) => (source, old_sink_port),
+            (None, Some(sink)) => (old_source_port, sink),
+            _ => return Err(FormEditorError::UnknownPort(endpoint_port_identity.into())),
+        };
         if source_port.descriptor.value_kind != sink_port.descriptor.value_kind {
             return Err(FormEditorError::IncompatiblePorts(format!(
                 "Info {} cannot feed {}",
@@ -299,8 +314,8 @@ impl FormEditor {
         }
         if graph.cords.iter().any(|candidate| {
             candidate.identity != cord_identity
-                && candidate.source_port == cord.source_port
-                && candidate.sink_port == sink_port_identity
+                && candidate.source_port == source_port.identity
+                && candidate.sink_port == sink_port.identity
         }) {
             return Err(FormEditorError::DuplicateCord);
         }

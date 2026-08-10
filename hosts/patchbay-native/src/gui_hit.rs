@@ -26,7 +26,7 @@ pub enum GuiAction {
     },
     RerouteCord {
         cord: PatchbaySubjectRef,
-        sink: PatchbaySubjectRef,
+        endpoint: PatchbaySubjectRef,
     },
     ConfigureGear {
         subject: PatchbaySubjectRef,

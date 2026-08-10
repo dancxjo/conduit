@@ -64,7 +64,9 @@ impl PatchbayApplication {
             GuiAction::ConnectPorts { source, sink } => {
                 self.dispatch_port_connection(&source, &sink)?
             }
-            GuiAction::RerouteCord { cord, sink } => self.dispatch_cord_reroute(&cord, &sink)?,
+            GuiAction::RerouteCord { cord, endpoint } => {
+                self.dispatch_cord_reroute(&cord, &endpoint)?
+            }
             GuiAction::ConfigureGear {
                 subject,
                 key,
