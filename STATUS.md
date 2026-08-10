@@ -607,6 +607,45 @@ Host placement, hardware discovery, ROS import/export, scheduler view,
 implementation editing, PREWAKE automation, Line/transport selection,
 firmware behavior, or physical/HIL claim.
 
+The compact Gear-Face configuration story from #744 is accepted at exact main
+`17993bfe50160fc912945ef1aac20d92c09abd24`; push workflow `31438596849`
+passed `check`, `browser-host`, and `conduitos-boot`. The finite Patchbay graph
+projection derives each control from the Gear's actual expanded checked
+configuration and the authoritative standard Kind contract. Native Gear Faces
+show the authored value together with its applicable numeric bounds, duration
+unit, finite Boolean choices, or text byte bound; the renderer retains no
+configuration value of its own. The currently installed canonical standard
+catalog exercises placed duration, bounded/ranged numeric, and short-text
+controls. A contract-level Boolean vector proves the same projection and native
+toggle shape as the catalog permits, with explicit `false`/`true` choices; it
+does not claim that the current installed canonical standard catalog contains a
+Boolean-configured Gear.
+
+Every native control gesture is encoded inside a finite interaction envelope
+and crosses the existing checked interaction Form, exact Plan,
+production-kernel Play, receipt, and bounded-Sign path before an edit may
+replace source. The edit replaces an exact positional or named invocation
+value, or authors a missing default as a named argument, then reparses,
+rechecks, and re-expands the complete candidate atomically. Duration spelling,
+quoted-text escaping, maximum admitted text, stale source and expanded bases,
+unknown fields, wrong types, and contract bounds are covered. Refused edits
+retain byte-identical source and report that the proposed value does not fit
+the visible Gear-Face type or bounds.
+
+Changing configuration preserves the direct Gear identity while resealing the
+source, checked, and expanded identities. An already sealed Plan remains
+unchanged; an explicit later planning request produces the replacement Plan.
+Moving the same Gear remains presentation-only and leaves those semantic
+identities and configuration unchanged. Save and reopen recover the edited
+canonical value, while ordinary Cord connection and canvas arrangement remain
+available without entering a separate property editor.
+
+This acceptance adds no generic schema-form generator, arbitrary nested-object
+editor, expanded inspector requirement, renderer-owned property database,
+automatic replan policy, mutable Plan, implementation editor, debugger,
+firmware behavior, transport behavior, or physical/HIL claim. #745 still owns
+the richer first-class Cord editing and tuning experience.
+
 The first ConduitOS boot slice from #588 is accepted at exact main
 `35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
 passed `check`, `browser-host`, and `conduitos-boot`. The architecture-neutral
