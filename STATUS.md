@@ -27,7 +27,8 @@ adapter or physical proof.
 | Retired membership prototype | historical only | deterministic table tests | no production Body model | no | no | no | no |
 | Observatory | versioned neutral host/capability/Base/link/plan/Play/pressure/current-and-historical-Sign/retention reports with exact identity and bound validation; sealed boot provenance remains distinct from live offers and Bases | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control; native Patchbay validates and linearly renders the same ordinary snapshot exported by ConduitOS | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store; the accepted ConduitOS export is freestanding-emulator proof | no new transport; observed links are report facts only | no new physical/HIL claim |
 | Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and Sign identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, bases, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
-| `conduit.std` | nine exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, and state/count; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors plus canonical Programs 1–4 | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; minimal/subset compositions advertise only selected offers | no manifestation claim for these nine revisions | no manifestation claim for these nine revisions | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
+| `conduit.std` | ten exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, state/count, and protected file/copy; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors plus canonical Programs 1–4 | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; minimal/subset compositions advertise only selected offers | no manifestation claim for these ten revisions | no manifestation claim for these ten revisions | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
+| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 10-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 2 implemented, 8 missing without advertising either missing capability | no new browser claim | no new firmware behavior or capability | no transport | no physical/HIL claim |
 | Copy a file | unsafe prototype disabled | tests removed from default tree | no admitted host operation | no chooser | no | no | no |
 
 ## Required CI claims
@@ -39,6 +40,10 @@ The `check` workflow requires:
   execution, arena, Cord, wake, Base scratch, mandatory Sign, and fault-reserve
   bounds; pre-Play unschedulable refusal; zero-allocation strict execution; and
   distinct met, missed, Base-loss, cancellation, and stale-basis Signs;
+- one bounded deterministic ConduitOS portable-std inventory/gap report derived
+  from current supported-nucleus contract and offer truth, with a semantic
+  content digest, exact Host build/profile basis, and complete implemented or
+  missing classification without capability promotion;
 - no-std checks for the salvage kernel, semantic, wire, and std-catalog contracts;
 - hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, atomic
   join, retained-state/latest, host lifecycle, closure, and cancellation vectors;
@@ -665,3 +670,25 @@ claim, physical timing evidence, remote guarantee, mixed-criticality
 framework, work stealing, CPU migration/hotplug, generic schedulability
 optimizer, RTOS, or second scheduler. A physical timing claim requires a
 separate pinned-hardware proof.
+
+The ConduitOS portable-std gap inventory from #709 is accepted at exact main
+`5c9d15295de20268b8eacc8b24852b91cea1610a`; push workflow `31393875458`
+passed `check`, `browser-host`, and `conduitos-boot`. The bounded
+`conduit.conduitos/std-gap@1` report derives all ten entries directly from
+`supported_nucleus_contracts()` and their matching canonical offers, seals
+revision, face, limits, and semantic content into SHA-256 digest
+`c30c6b445f19dbbf79abc4c7ffd3d1dd76f6ced66844d2b895dd35af80b46688`,
+and carries the exact ConduitOS build and
+`conduitos/single-lane-cooperative@1` profile basis.
+
+The exact accepted result classifies `time/tick@2` and
+`presentation/tick@1` as implemented and the remaining eight supported
+contracts as missing. Comparison uses canonical kind and contract revision;
+legacy `value/any` compatibility rows never enter the supported-nucleus
+inventory. Mutation vectors change the catalog digest, while Host build
+identity remains a separate report basis.
+
+This is an inventory and gap proof only. It advertises no missing capability
+and changes no semantic implementation, scheduler, Base, planner, runtime,
+device/network behavior, or physical claim. Follow-on work must promote one
+small implementation family rather than reopening an aggregate mega-slice.
