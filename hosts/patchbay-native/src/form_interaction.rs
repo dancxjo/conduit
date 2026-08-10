@@ -253,6 +253,7 @@ impl PatchbayApplication {
         if self.form_editor.is_none() {
             return Ok(false);
         }
+        let mut synchronize_linear_selection = true;
         match key {
             Key::Named(NamedKey::Backspace) => self.edit_source(|source| {
                 source.pop();
@@ -263,11 +264,13 @@ impl PatchbayApplication {
                 if self.graphical_form.is_some() && !self.linear_view =>
             {
                 self.move_graphical_selection(true)?;
+                synchronize_linear_selection = false;
             }
             Key::Named(NamedKey::ArrowUp) | Key::Named(NamedKey::ArrowLeft)
                 if self.graphical_form.is_some() && !self.linear_view =>
             {
                 self.move_graphical_selection(false)?;
+                synchronize_linear_selection = false;
             }
             Key::Named(NamedKey::ArrowDown) => {
                 let editor = self
@@ -333,20 +336,22 @@ impl PatchbayApplication {
             }
             _ => return Ok(false),
         }
-        let editor = self
-            .form_editor
-            .as_mut()
-            .expect("editor presence was checked");
-        let view = editor.view();
-        if let Some(identity) = view
-            .checked
-            .forms
-            .iter()
-            .find(|form| form.name == view.open_form)
-            .and_then(|form| form.items.get(self.form_selection))
-            .map(|item| item.identity.clone())
-        {
-            editor.select_graph_item(&identity);
+        if synchronize_linear_selection {
+            let editor = self
+                .form_editor
+                .as_mut()
+                .expect("editor presence was checked");
+            let view = editor.view();
+            if let Some(identity) = view
+                .checked
+                .forms
+                .iter()
+                .find(|form| form.name == view.open_form)
+                .and_then(|form| form.items.get(self.form_selection))
+                .map(|item| item.identity.clone())
+            {
+                editor.select_graph_item(&identity);
+            }
         }
         let title = self.title();
         if let Some(window) = &self.window {
