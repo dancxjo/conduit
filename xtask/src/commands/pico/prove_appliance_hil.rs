@@ -101,6 +101,15 @@ pub fn run_prove_pico_appliance_hil(
     let appliance_sign_file = open_sign(&appliance_sign_path)?;
     let client_sign_file = open_sign(&client_sign_path)?;
 
+    let appliance_build_id = appliance_identity.firmware_build_id.clone();
+    let appliance_reader = std::thread::spawn(move || {
+        verify_signs(
+            BufReader::new(appliance_sign_file),
+            &appliance_build_id,
+            None,
+        )
+        .map_err(|error| error.to_string())
+    });
     let client_receipt = read_client_receipt(
         BufReader::new(client_sign_file),
         &client_identity.firmware_build_id,
@@ -108,14 +117,15 @@ pub fn run_prove_pico_appliance_hil(
     let leased_address = client_receipt["leased_address"]
         .as_str()
         .map(ToOwned::to_owned);
-    let (appliance_runtime_boot_id, appliance_signs) = verify_signs(
-        BufReader::new(appliance_sign_file),
-        &appliance_identity.firmware_build_id,
-        leased_address.as_deref(),
-    )?;
+    let appliance_result = appliance_reader
+        .join()
+        .map_err(|_| "Pico appliance Sign reader panicked")?;
+    let (appliance_runtime_boot_id, appliance_signs) = appliance_result
+        .map_err(|error| format!("Pico appliance Sign verification failed: {error}"))?;
     verify_client_receipt(&client_receipt, &client_identity.firmware_build_id)?;
     let leased_address =
         leased_address.ok_or("successful two-Pico client receipt has no leased address")?;
+    verify_appliance_lease_signs(&appliance_signs, &leased_address)?;
 
     let appliance_hardware_identity = hardware_identity(&appliance_sign_path)?;
     let client_hardware_identity = hardware_identity(&client_sign_path)?;
@@ -315,6 +325,18 @@ fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -
         .and_then(|(prefix, host)| host.parse::<u8>().ok().map(|host| (prefix, host)));
     if !exact || !matches!(lease, Some(("192.168.4", 2..=5))) {
         return Err(format!("Pico appliance HIL client receipt is not exact: {receipt}").into());
+    }
+    Ok(())
+}
+
+fn verify_appliance_lease_signs(
+    signs: &[serde_json::Value],
+    leased_address: &str,
+) -> PicoResult<()> {
+    for index in [1, 2] {
+        if signs.get(index).and_then(|sign| sign["address"].as_str()) != Some(leased_address) {
+            return Err("Pico appliance association/lease Sign address mismatch".into());
+        }
     }
     Ok(())
 }
