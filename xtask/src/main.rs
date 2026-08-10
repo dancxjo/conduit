@@ -37,6 +37,7 @@ fn main() {
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::Site => commands::toggle::run_site(),
         },
+        Command::UnifontSubset(args) => commands::unifont_subset::run(args),
     };
 
     if let Err(error) = result {

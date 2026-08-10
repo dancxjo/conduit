@@ -51,6 +51,17 @@ pub enum Command {
     Conduitos(ConduitosArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
+    /// Generate the bounded Patchbay GNU Unifont subset.
+    UnifontSubset(UnifontSubsetArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct UnifontSubsetArgs {
+    /// Checksum-verified upstream GNU Unifont .hex.gz file.
+    pub input: std::path::PathBuf,
+
+    /// Destination for the filtered GNU Unifont .hex file.
+    pub output: std::path::PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -264,6 +275,11 @@ mod tests {
                 command: DemoCommand::Site
             })
         ));
+
+        let subset =
+            Cli::try_parse_from(["xtask", "unifont-subset", "unifont.hex.gz", "subset.hex"])
+                .expect("unifont-subset command parses");
+        assert!(matches!(subset.command, Command::UnifontSubset(_)));
 
         let check =
             Cli::try_parse_from(["xtask", "check", "workspace"]).expect("check command parses");
