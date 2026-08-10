@@ -11,7 +11,6 @@ const BOOTP_FIXED_BYTES: usize = 236;
 const DHCP_OPTIONS_OFFSET: usize = 240;
 const DHCP_MAGIC_COOKIE: [u8; 4] = [99, 130, 83, 99];
 const OPTION_SUBNET_MASK: u8 = 1;
-const OPTION_ROUTER: u8 = 3;
 const OPTION_DNS: u8 = 6;
 const OPTION_REQUESTED_ADDRESS: u8 = 50;
 const OPTION_LEASE_TIME: u8 = 51;
@@ -195,7 +194,6 @@ fn encode_response(
         &DHCP_LEASE_SECONDS.to_be_bytes(),
     );
     append_option(output, &mut cursor, OPTION_SUBNET_MASK, &DHCP_SUBNET_MASK);
-    append_option(output, &mut cursor, OPTION_ROUTER, &DHCP_SERVER_ADDRESS);
     append_option(output, &mut cursor, OPTION_DNS, &DHCP_SERVER_ADDRESS);
     output[cursor] = OPTION_END;
     cursor += 1;
@@ -279,7 +277,7 @@ mod tests {
                 DHCP_SERVER_ADDRESS
             );
             assert_eq!(parsed.subnet_mask.unwrap().octets(), DHCP_SUBNET_MASK);
-            assert_eq!(parsed.router.unwrap().octets(), DHCP_SERVER_ADDRESS);
+            assert_eq!(parsed.router, None);
         }
     }
 
