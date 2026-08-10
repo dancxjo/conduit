@@ -1,0 +1,17 @@
+[package]
+name = "conduit-netherwick"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-form = { path = "../conduit-form" }
+conduit-observatory = { path = "../conduit-observatory" }
+conduit-planner = { path = "../conduit-planner" }
+pete-brainstem = { git = "https://github.com/dancxjo/netherwick.git", rev = "f43ff13846b47b05e133d0321bdbaafffd1bcdbe", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+patchbay-model = { path = "../../hosts/patchbay-model" }
