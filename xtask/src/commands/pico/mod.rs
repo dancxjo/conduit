@@ -1,9 +1,11 @@
+mod appliance_identity;
 mod bootsel;
 mod doctor;
 mod firmware;
 #[cfg(test)]
 mod firmware_tests;
 mod flash;
+mod prove_appliance;
 mod prove_usb;
 #[cfg(unix)]
 mod prove_websocket;
@@ -33,6 +35,7 @@ pub use bootsel::run_bootsel;
 pub use doctor::run_doctor;
 pub use firmware::run_build;
 pub use flash::run_flash;
+pub use prove_appliance::run_prove_pico_appliance;
 pub use prove_usb::run_prove_std_pico_usb;
 pub use prove_wifi::run_prove_pico_wifi_bootstrap;
 pub use prove_wifi::WifiProofMode;
@@ -84,6 +87,10 @@ pub struct PicoArgs {
     #[arg(long, global = true)]
     pub r1_control: bool,
 
+    /// Build or flash the finite open AP/DHCP/DNS/HTTP Hello appliance image.
+    #[arg(long, global = true)]
+    pub appliance_hello: bool,
+
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long, global = true)]
     pub refresh_radio_assets: bool,
@@ -123,6 +130,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         + usize::from(args.triple_remote)
         + usize::from(args.wifi_bootstrap)
         + usize::from(args.r1_control)
+        + usize::from(args.appliance_hello)
         > 1
     {
         return Err("select only one remote Pico firmware mode".into());
@@ -143,7 +151,12 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
 
 pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
     apply_environment_defaults(&mut args);
-    if args.usb_remote || args.triple_remote || args.wifi_bootstrap || args.r1_control {
+    if args.usb_remote
+        || args.triple_remote
+        || args.wifi_bootstrap
+        || args.r1_control
+        || args.appliance_hello
+    {
         return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
     }
     run_doctor(args.dry_run)?;

@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::process::command_for;
 
+use super::appliance_identity::write_appliance_identity_manifest;
 use super::doctor::{
     repo_root, sha256_file, verify_sha256, CYW43_ASSETS, CYW43_ASSET_DIR, CYW43_COMMIT,
 };
@@ -169,7 +170,9 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         TARGET,
         "--release",
     ];
-    if args.r1_control {
+    if args.appliance_hello {
+        build_args.extend(["--no-default-features", "--features", "appliance-hello"]);
+    } else if args.r1_control {
         build_args.extend(["--no-default-features", "--features", "r1-control"]);
     } else if args.wifi_bootstrap {
         build_args.extend(["--no-default-features", "--features", "wifi-bootstrap"]);
@@ -181,14 +184,20 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     println!("==> pico build: cargo {}", build_args.join(" "));
     let generated_identity_sidecar = generated_identity_sidecar_path(&root);
     let control_identity_sidecars = control_identity_sidecar_paths(&root);
+    let appliance_identity_sidecar = appliance_identity_sidecar_path(&root);
     if args.dry_run {
-        println!(
-            "  planned: generated identity sidecar {}",
-            generated_identity_sidecar.display()
-        );
+        let planned_sidecar = if args.appliance_hello {
+            &appliance_identity_sidecar
+        } else {
+            &generated_identity_sidecar
+        };
+        println!("  planned: identity sidecar {}", planned_sidecar.display());
     } else {
         if generated_identity_sidecar.exists() {
             std::fs::remove_file(&generated_identity_sidecar)?;
+        }
+        if appliance_identity_sidecar.exists() {
+            std::fs::remove_file(&appliance_identity_sidecar)?;
         }
         for sidecar in &control_identity_sidecars {
             if sidecar.exists() {
@@ -213,6 +222,10 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
             .env(
                 "CONDUIT_R1_CONTROL_PLAN_C_IDENTITY_SIDECAR",
                 &control_identity_sidecars[2],
+            )
+            .env(
+                "CONDUIT_PICO_APPLIANCE_IDENTITY_SIDECAR",
+                &appliance_identity_sidecar,
             )
             .status()?;
         if !status.success() {
@@ -240,12 +253,16 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
-        write_identity_manifest(
-            &root,
-            &elf,
-            &generated_identity_sidecar,
-            &control_identity_sidecars,
-        )?;
+        if args.appliance_hello {
+            write_appliance_identity_manifest(&root, &elf, &appliance_identity_sidecar)?;
+        } else {
+            write_identity_manifest(
+                &root,
+                &elf,
+                &generated_identity_sidecar,
+                &control_identity_sidecars,
+            )?;
+        }
     }
 
     println!("==> pico build: done — {}", uf2.display());
@@ -330,8 +347,7 @@ fn control_identity_sidecar_paths(root: &Path) -> [PathBuf; 3] {
 }
 
 pub fn read_identity_manifest(root: &Path) -> PicoResult<FirmwareIdentity> {
-    let manifest_path =
-        firmware_target_profile_dir(root).join(format!("{FIRMWARE_PACKAGE}.identity.json"));
+    let manifest_path = identity_manifest_path(root);
     let text = std::fs::read_to_string(&manifest_path).map_err(|error| {
         format!(
             "failed to read Pico identity manifest at {}: {error}; run `cargo xtask pico build` first",
@@ -339,6 +355,15 @@ pub fn read_identity_manifest(root: &Path) -> PicoResult<FirmwareIdentity> {
         )
     })?;
     Ok(serde_json::from_str(&text)?)
+}
+
+pub fn read_firmware_mode(root: &Path) -> PicoResult<String> {
+    let value: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(identity_manifest_path(root))?)?;
+    value["firmware_mode"]
+        .as_str()
+        .map(str::to_owned)
+        .ok_or_else(|| "firmware identity has no firmware_mode".into())
 }
 
 fn read_generated_image_identity(sidecar: &Path) -> PicoResult<GeneratedImageIdentity> {
@@ -390,6 +415,14 @@ fn firmware_elf_path(root: &Path) -> PathBuf {
 
 fn generated_identity_sidecar_path(root: &Path) -> PathBuf {
     firmware_target_profile_dir(root).join(format!("{FIRMWARE_PACKAGE}.generated-image.json"))
+}
+
+fn appliance_identity_sidecar_path(root: &Path) -> PathBuf {
+    firmware_target_profile_dir(root).join("pico-appliance.generated-image.json")
+}
+
+pub(super) fn identity_manifest_path(root: &Path) -> PathBuf {
+    firmware_target_profile_dir(root).join(format!("{FIRMWARE_PACKAGE}.identity.json"))
 }
 
 fn build_rerun_nonce() -> String {

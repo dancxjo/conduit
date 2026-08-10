@@ -105,6 +105,10 @@ pub struct ProveArgs {
     /// value is never printed.
     #[arg(long)]
     pub credential_env: Option<String>,
+
+    /// Exact Wi-Fi client interface used for the physical Pico appliance proof.
+    #[arg(long)]
+    pub client_interface: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -137,6 +141,7 @@ pub enum ProveTarget {
     BrowserHost,
     StdPicoUsb,
     PicoWifiBootstrap,
+    PicoAppliance,
     PicoWebsocketRoute,
     R1NewPlanRecovery,
     R1NewPlanRecoveryHil,
