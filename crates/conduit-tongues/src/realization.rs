@@ -5,8 +5,9 @@ use crate::{
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION,
+    FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
+    HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
+    OfferGeneration, PROTOCOL_VERSION,
 };
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +31,7 @@ pub enum OutputCondition {
 pub struct SpeechRealizationFacts {
     pub condition: OutputCondition,
     pub output_guarantee: String,
-    pub base_id: String,
+    pub output_base_pool_id: String,
     pub maximum_text_bytes: u32,
     pub maximum_pcm_bytes: u32,
 }
@@ -77,7 +78,8 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
     let present = audio_present_contract();
     let synthesis_operation =
         host_operation(SYNTHESIZE_OPERATION, MAXIMUM_TEXT_BYTES, MAXIMUM_PCM_BYTES);
-    let output_operation_requirement = host_operation(output_operation, MAXIMUM_PCM_BYTES, 256);
+    let mut output_operation_requirement = host_operation(output_operation, MAXIMUM_PCM_BYTES, 256);
+    output_operation_requirement.target_kind = Some(kind_id(AUDIO_PRESENT_KIND));
     SpeechHostFixture {
         advertisement: HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
@@ -85,14 +87,22 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
             boot_id: BootId::from(boot),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("conduit.host/tongues-brownfield@1"),
-            resources: vec![
-                resource_offer(&format!("{host}/cpu-0"), CPU_RESOURCE, 1),
-                resource_offer(&format!("{host}/pcm-0"), PCM_BUFFER_RESOURCE, 1),
-                resource_offer(&format!("{host}/output-0"), resource, 1),
-            ],
+            resources: {
+                let mut resources = vec![
+                    resource_offer(&format!("{host}/cpu-0"), CPU_RESOURCE, 1),
+                    resource_offer(&format!("{host}/pcm-0"), PCM_BUFFER_RESOURCE, 1),
+                    resource_offer(&format!("{host}/output-0"), resource, 1),
+                ];
+                resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+                resources
+            },
             capabilities: vec![
                 CapabilityOffer {
-                    startup_parameters: vec![],
+                    startup_parameters: vec![FaceStartupParameter {
+                        name: "maximum-output-bytes".into(),
+                        value_type: "Count".into(),
+                        has_default: true,
+                    }],
                     shorthand: None,
                     capability_id: CapabilityId::from(format!("{host}/synthesize")),
                     kind_id: synth.kind_id,
@@ -109,10 +119,14 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
                         artifact_id: ArtifactId::from("tongues-pipeline/text-to-speech@5748f20e"),
                     },
                     host_operations: vec![synthesis_operation],
-                    resource_requirements: vec![
-                        resource_requirement(CPU_RESOURCE, 1),
-                        resource_requirement(PCM_BUFFER_RESOURCE, 1),
-                    ],
+                    resource_requirements: {
+                        let mut requirements = vec![
+                            resource_requirement(CPU_RESOURCE, 1),
+                            resource_requirement(PCM_BUFFER_RESOURCE, 1),
+                        ];
+                        requirements.sort_by(|left, right| left.class_id.cmp(&right.class_id));
+                        requirements
+                    },
                     authority_requirements: vec![],
                     limits: synth.limits,
                 },
@@ -146,7 +160,7 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
         facts: SpeechRealizationFacts {
             condition,
             output_guarantee: guarantee.into(),
-            base_id: format!("{host}/base-0"),
+            output_base_pool_id: format!("{host}/output-0"),
             maximum_text_bytes: MAXIMUM_TEXT_BYTES,
             maximum_pcm_bytes: MAXIMUM_PCM_BYTES,
         },
