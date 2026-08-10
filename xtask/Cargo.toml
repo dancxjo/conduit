@@ -27,5 +27,6 @@ conduit-planner = { path = "../crates/conduit-planner" }
 conduit-runtime = { path = "../crates/conduit-runtime", default-features = false }
 conduit-std-host = { path = "../hosts/std" }
 conduit-system-continuity = { path = "../crates/conduit-system-continuity", features = ["r1-recovery"] }
+conduit-tongues = { path = "../crates/conduit-tongues" }
 conduit-wire = { path = "../crates/conduit-wire" }
 patchbay-model = { path = "../hosts/patchbay-model" }

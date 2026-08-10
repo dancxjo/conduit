@@ -36,6 +36,7 @@ fn main() {
             DemoCommand::Browser => commands::toggle::run(),
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::Site => commands::toggle::run_site(),
+            DemoCommand::Tongues => commands::tongues::run(&opts),
         },
         Command::UnifontSubset(args) => commands::unifont_subset::run(args),
     };
