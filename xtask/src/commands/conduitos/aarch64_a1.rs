@@ -188,10 +188,16 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
             None if Instant::now() < deadline => thread::sleep(Duration::from_millis(10)),
             None => {
                 let _ = child.kill();
-                let _ = child.wait();
+                let output = child.wait_with_output().map_err(|error| {
+                    ConduitosError::refusal("aarch64-boot-failed", error.to_string())
+                })?;
                 return Err(ConduitosError::refusal(
                     "absent-aarch64-entry-sign",
-                    "bounded QEMU profile timed out",
+                    format!(
+                        "bounded QEMU profile timed out; stdout: {}; stderr: {}",
+                        String::from_utf8_lossy(&output.stdout).trim(),
+                        String::from_utf8_lossy(&output.stderr).trim()
+                    ),
                 ));
             }
         }
