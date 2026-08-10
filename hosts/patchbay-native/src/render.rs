@@ -51,8 +51,12 @@ pub fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[S
 
 fn is_heading(line: &str) -> bool {
     line.starts_with("HOSTS")
-        || line.starts_with("LINKS")
-        || line.starts_with("OBSERVATIONS")
+        || line.starts_with("BASES")
+        || line.starts_with("PLANS")
+        || line.starts_with("PLAYS")
+        || line.starts_with("LINES")
+        || line.starts_with("SIGNS")
+        || line.starts_with("BOOT PROVENANCE [SEALED]")
         || line.starts_with("CHECKED")
         || line.starts_with("DIAGNOSTIC")
         || line.starts_with("DISTRIBUTED")

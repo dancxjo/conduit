@@ -408,8 +408,28 @@ fn emit_report(
     Ok(())
 }
 
+fn render_linear_snapshot(path: &std::path::Path) -> Result<String, String> {
+    let encoded =
+        std::fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let snapshot = serde_json::from_slice(&encoded)
+        .map_err(|error| format!("cannot decode {}: {error}", path.display()))?;
+    let mut topology = PatchbayTopology::new(1).map_err(|error| error.to_string())?;
+    topology
+        .ingest(&snapshot)
+        .map_err(|error| error.to_string())?;
+    Ok(topology
+        .document(None)
+        .map_err(|error| error.to_string())?
+        .lines()
+        .join("\n"))
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
+    if let Some(path) = arguments.linear_snapshot_path.as_deref() {
+        println!("{}", render_linear_snapshot(path)?);
+        return Ok(());
+    }
     if arguments.distributed_play_server {
         run_distributed_server()?;
         return Ok(());

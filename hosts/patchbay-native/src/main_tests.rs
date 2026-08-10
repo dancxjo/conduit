@@ -80,6 +80,14 @@ fn arguments_are_explicit_and_fail_closed() {
             .snapshot_path,
         Some(PathBuf::from("report.json"))
     );
+    assert_eq!(
+        parse_arguments(
+            vec!["--linear-observatory-snapshot".into(), "report.json".into(),].into_iter(),
+        )
+        .unwrap()
+        .linear_snapshot_path,
+        Some(PathBuf::from("report.json"))
+    );
     assert!(
         parse_arguments(vec!["--control-demo".into()].into_iter())
             .unwrap()

@@ -117,6 +117,9 @@ identity_type!(ResourceClassId);
 identity_type!(ResourcePoolId);
 // Semantic identity of one protected resource role within an gear.
 identity_type!(ResourceBindingRoleId);
+// Boot-scoped identity and stable kind identity for one concrete Host Base.
+identity_type!(HostBaseId);
+identity_type!(HostBaseKindId);
 identity_type!(ArchitectureBaseId);
 identity_type!(ComputeTopologyGroupId);
 identity_type!(ComputeDomainId);

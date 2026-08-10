@@ -289,13 +289,15 @@ fn topology_item_count(report: &ObservatoryReport) -> usize {
         .hosts
         .len()
         .saturating_add(report.capabilities.len())
+        .saturating_add(report.bases.len())
         .saturating_add(report.lines.len())
         .saturating_add(report.plans.len())
         .saturating_add(report.fragments.len())
         .saturating_add(report.placements.len())
         .saturating_add(report.connections.len())
         .saturating_add(report.plays.len())
-        .saturating_add(report.signs.len());
+        .saturating_add(report.signs.len())
+        .saturating_add(report.sealed_boot_provenance.len());
     let host_details = report.hosts.iter().fold(0usize, |count, host| {
         count
             .saturating_add(host.planner_capabilities.len())

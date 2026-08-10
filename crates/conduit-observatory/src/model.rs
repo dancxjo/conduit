@@ -1,13 +1,13 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{
-    ActivePlayId, AdmittedLine, AuthorityBinding, AuthorityRequirement, BootId, CapabilityId,
-    CapabilityLimits, CheckedFormId, ConnectionId, ConnectionTerminalDisposition,
-    ExecutionProfileId, ExpandedFormId, FragmentId, HostAdvertisement, HostId,
-    HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision, KindId,
-    LineOffer, Observation, OfferGeneration, PlacementId, Plan, PlanId, PlannerCapabilityOffer,
-    PortDescriptor, PresentationId, ResourceBinding, ResourceOffer, ResourceRequirement, SignId,
-    SourceDocumentId, TerminalDisposition,
+    ActivePlayId, AdmittedLine, ArtifactId, AuthorityBinding, AuthorityRequirement, BootId,
+    CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionTerminalDisposition,
+    ExecutionProfileId, ExpandedFormId, FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId,
+    HostId, HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
+    KindId, LineOffer, Observation, OfferGeneration, PlacementId, Plan, PlanId,
+    PlannerCapabilityOffer, PortDescriptor, PresentationId, ResourceBinding, ResourceOffer,
+    ResourceRequirement, SignId, SourceDocumentId, TerminalDisposition,
 };
 use serde::{Deserialize, Serialize};
 
@@ -80,6 +80,63 @@ pub struct LineReport {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct BaseReport {
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub base_id: HostBaseId,
+    pub kind_id: HostBaseKindId,
+    pub state: OperationalState,
+    pub capacity_units: u64,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BootProofClass {
+    Unknown,
+    FreestandingEmulator,
+    FirmwareExecution,
+    PhysicalHil,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MemoryMapSummary {
+    pub normalized_region_count: u16,
+    pub runtime_arena_bytes: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FramebufferBasis {
+    pub base_id: HostBaseId,
+    pub width: u32,
+    pub height: u32,
+    pub pitch_bytes: u32,
+    pub bits_per_pixel: u8,
+}
+
+/// Immutable historical boot facts. This is never a live offer, Base, or
+/// authority source.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SealedBootProvenanceReport {
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub firmware_environment: String,
+    pub adapter_name: String,
+    pub adapter_version: String,
+    pub adapter_revision: String,
+    pub image_id: ArtifactId,
+    pub build_id: ArtifactId,
+    pub memory_map: MemoryMapSummary,
+    pub boot_artifacts: Vec<ArtifactId>,
+    pub initial_plan_artifact_id: Option<ArtifactId>,
+    pub recovery_plan_artifact_id: Option<ArtifactId>,
+    pub framebuffers: Vec<FramebufferBasis>,
+    pub proof_class: BootProofClass,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PressureReport {
     pub current_in_flight_items: Option<u16>,
     pub current_buffered_bytes: Option<u32>,
@@ -133,10 +190,13 @@ pub struct RetentionReport {
 pub struct ObservatorySnapshot {
     pub schema: String,
     pub hosts: Vec<HostReport>,
+    pub bases: Vec<BaseReport>,
     pub lines: Vec<LineReport>,
     pub plans: Vec<Plan>,
     pub plays: Vec<PlayReport>,
     pub observations: Vec<Observation>,
+    pub historical_observations: Vec<Observation>,
+    pub sealed_boot_provenance: Vec<SealedBootProvenanceReport>,
     pub retention: RetentionReport,
 }
 
@@ -237,6 +297,7 @@ pub struct SignRow {
     pub placement_id: Option<PlacementId>,
     pub connection_id: Option<ConnectionId>,
     pub kind: conduit_core::ObservationKind,
+    pub historical: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -252,6 +313,7 @@ pub struct RetentionRow {
 pub struct ObservatoryReport {
     pub hosts: Vec<HostRow>,
     pub capabilities: Vec<CapabilityRow>,
+    pub bases: Vec<BaseReport>,
     pub lines: Vec<LineRow>,
     pub plans: Vec<PlanRow>,
     pub fragments: Vec<FragmentRow>,
@@ -259,5 +321,6 @@ pub struct ObservatoryReport {
     pub connections: Vec<ConnectionRow>,
     pub plays: Vec<PlayReport>,
     pub signs: Vec<SignRow>,
+    pub sealed_boot_provenance: Vec<SealedBootProvenanceReport>,
     pub retention: RetentionRow,
 }

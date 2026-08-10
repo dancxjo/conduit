@@ -10,6 +10,7 @@ pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
 pub mod machine;
+pub mod observatory;
 pub mod offer;
 pub mod ordinary_plan;
 pub mod planned_kernel;

@@ -47,6 +47,7 @@ pub fn snapshot_from_execution(
     ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.to_string(),
         hosts,
+        bases: Vec::new(),
         lines,
         plans,
         plays,
@@ -56,6 +57,8 @@ pub fn snapshot_from_execution(
             dropped_items: dropped_items as u64,
         },
         observations,
+        historical_observations: Vec::new(),
+        sealed_boot_provenance: Vec::new(),
     }
 }
 

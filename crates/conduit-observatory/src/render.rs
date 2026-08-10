@@ -48,6 +48,19 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             capability.availability
         );
     }
+    let _ = writeln!(output, "bases {}", report.bases.len());
+    for base in &report.bases {
+        let _ = writeln!(
+            output,
+            "base id={} kind={} host={} boot={} state={:?} capacity_units={}",
+            base.base_id.as_str(),
+            base.kind_id.as_str(),
+            base.host_id.as_str(),
+            base.boot_id.as_str(),
+            base.state,
+            base.capacity_units
+        );
+    }
     let _ = writeln!(output, "lines {}", report.lines.len());
     for line in &report.lines {
         let binding = &line.offer.binding;
@@ -194,8 +207,9 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for sign in &report.signs {
         let _ = writeln!(
             output,
-            "sign id={} active_play={} presentation={} host={} boot={} plan={} placement={} connection={} kind={:?}",
+            "sign id={} history={} active_play={} presentation={} host={} boot={} plan={} placement={} connection={} kind={:?}",
             sign.sign_id.as_str(),
+            if sign.historical { "historical" } else { "current" },
             sign.active_play_id.as_ref().map(ActivePlayId::as_str).unwrap_or("none"),
             sign.presentation_id.as_ref().map(PresentationId::as_str).unwrap_or("none"),
             sign.host_id.as_str(),
@@ -204,6 +218,38 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             sign.placement_id.as_ref().map(PlacementId::as_str).unwrap_or("none"),
             sign.connection_id.as_ref().map(ConnectionId::as_str).unwrap_or("none"),
             sign.kind
+        );
+    }
+    let _ = writeln!(
+        output,
+        "boot provenance [sealed] {}",
+        report.sealed_boot_provenance.len()
+    );
+    for provenance in &report.sealed_boot_provenance {
+        let _ = writeln!(
+            output,
+            "sealed boot host={} boot={} firmware={} adapter={} version={} revision={} image={} build={} memory_regions={} runtime_arena_bytes={} boot_artifacts={} initial_plan_artifact={} recovery_plan_artifact={} framebuffers={} proof_class={:?}",
+            provenance.host_id.as_str(),
+            provenance.boot_id.as_str(),
+            provenance.firmware_environment,
+            provenance.adapter_name,
+            provenance.adapter_version,
+            provenance.adapter_revision,
+            provenance.image_id.as_str(),
+            provenance.build_id.as_str(),
+            provenance.memory_map.normalized_region_count,
+            provenance.memory_map.runtime_arena_bytes,
+            provenance.boot_artifacts.len(),
+            provenance
+                .initial_plan_artifact_id
+                .as_ref()
+                .map_or("none", conduit_core::ArtifactId::as_str),
+            provenance
+                .recovery_plan_artifact_id
+                .as_ref()
+                .map_or("none", conduit_core::ArtifactId::as_str),
+            provenance.framebuffers.len(),
+            provenance.proof_class,
         );
     }
     let _ = writeln!(

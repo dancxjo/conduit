@@ -96,6 +96,7 @@ pub struct GuestKernelSign {
 pub struct GuestRun {
     pub boot: GuestBootSign,
     pub kernel: GuestKernelSign,
+    pub observatory: conduit_observatory::ObservatorySnapshot,
 }
 
 #[derive(Debug, Serialize)]
@@ -112,10 +113,16 @@ pub struct ProofRecord {
     pub reproducible_image: bool,
     pub first_boot: GuestBootSign,
     pub first_kernel: GuestKernelSign,
+    pub first_observatory: conduit_observatory::ObservatorySnapshot,
     pub second_boot: GuestBootSign,
     pub second_kernel: GuestKernelSign,
+    pub second_observatory: conduit_observatory::ObservatorySnapshot,
     pub fresh_host_id: bool,
     pub fresh_boot_id: bool,
+    pub stable_semantic_identities: bool,
+    pub fresh_realization_identities: bool,
+    pub native_patchbay_consumed: bool,
+    pub native_patchbay_linear_lines: usize,
 }
 
 pub fn sha256_file(path: &Path) -> Result<String, ConduitosError> {

@@ -15,10 +15,12 @@ bench = false
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
+conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 sha2 = { version = "=0.10.9", default-features = false }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
 
 [target.'cfg(not(target_arch = "x86"))'.dependencies]
 limine = "=0.5.0"

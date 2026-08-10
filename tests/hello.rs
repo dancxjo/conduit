@@ -138,7 +138,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         &std::fs::read(&report_path).expect("runtime report artifact must exist"),
     )
     .expect("runtime report artifact must be json");
-    assert_eq!(artifact["schema"], "conduit.observatory.snapshot/v1");
+    assert_eq!(artifact["schema"], "conduit.observatory.snapshot/v2");
     assert_eq!(artifact["hosts"].as_array().unwrap().len(), 1);
     assert_eq!(artifact["plans"].as_array().unwrap().len(), 1);
     let observations = artifact["observations"].as_array().unwrap();

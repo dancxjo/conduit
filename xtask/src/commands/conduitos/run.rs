@@ -132,17 +132,40 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             ),
         ));
     }
+    let observatory_snapshots: Vec<_> = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix("CONDUIT_OBSERVATORY_SNAPSHOT "))
+        .collect();
+    if observatory_snapshots.len() != 1 {
+        return Err(ConduitosError::refusal(
+            "malformed-observatory-snapshot",
+            format!(
+                "expected one ordinary Observatory snapshot, found {}",
+                observatory_snapshots.len()
+            ),
+        ));
+    }
     let boot: GuestBootSign = serde_json::from_str(signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-boot-sign", error.to_string()))?;
     let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
+    let observatory: conduit_observatory::ObservatorySnapshot =
+        serde_json::from_str(observatory_snapshots[0]).map_err(|error| {
+            ConduitosError::refusal("malformed-observatory-snapshot", error.to_string())
+        })?;
     validate_boot(&boot)?;
     validate_kernel(&boot, &kernel)?;
+    validate_observatory(&boot, &kernel, &observatory)?;
     if !opts.quiet && !opts.json {
         println!("{}", signs[0]);
         println!("{}", kernel_signs[0]);
+        println!("{}", observatory_snapshots[0]);
     }
-    Ok(GuestRun { boot, kernel })
+    Ok(GuestRun {
+        boot,
+        kernel,
+        observatory,
+    })
 }
 
 fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {
@@ -220,6 +243,187 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
             "invalid-kernel-sign",
             format!("kernel Sign failed exact validation: {sign:?}"),
         ));
+    }
+    Ok(())
+}
+
+fn validate_observatory(
+    boot: &GuestBootSign,
+    kernel: &GuestKernelSign,
+    snapshot: &conduit_observatory::ObservatorySnapshot,
+) -> Result<(), ConduitosError> {
+    use conduit_observatory::{BootProofClass, OperationalState, PlanLifecycle};
+
+    conduit_observatory::validate_snapshot(snapshot)
+        .map_err(|error| ConduitosError::refusal("invalid-observatory-snapshot", error))?;
+    let host = snapshot.hosts.first();
+    let plan = snapshot.plans.first();
+    let play = snapshot.plays.first();
+    let provenance = snapshot.sealed_boot_provenance.first();
+    let bases_match = snapshot.bases.len() == kernel.base_ids.len()
+        && snapshot.bases.iter().all(|base| {
+            base.host_id.as_str() == boot.host_id
+                && base.boot_id.as_str() == boot.boot_id
+                && base.state == OperationalState::Available
+                && kernel.base_ids.iter().any(|id| id == base.base_id.as_str())
+        });
+    let exact_base = |kind: &str, capacity: u64| {
+        snapshot
+            .bases
+            .iter()
+            .any(|base| base.kind_id.as_str() == kind && base.capacity_units == capacity)
+    };
+    let base_inventory = exact_base("conduitos.base/memory@1", boot.runtime_arena_bytes)
+        && exact_base("conduitos.base/clock@1", 1)
+        && exact_base("conduitos.base/timer@1", 1)
+        && exact_base("conduitos.base/serial@1", 1)
+        && exact_base("conduitos.base/interrupt@1", 4)
+        && exact_base("conduitos.base/idle@1", 1)
+        && exact_base("conduitos.base/execution-lane@1", 1);
+    let current_signs = snapshot
+        .observations
+        .iter()
+        .filter(|sign| {
+            matches!(
+                sign.kind,
+                conduit_core::ObservationKind::PlacementTerminal { .. }
+                    | conduit_core::ObservationKind::ConnectionTerminal { .. }
+                    | conduit_core::ObservationKind::PlanTerminal { .. }
+            )
+        })
+        .count()
+        == 4;
+    let historical_signs = [
+        conduit_core::ObservationKind::HostStarted,
+        conduit_core::ObservationKind::AdvertisementPublished,
+        conduit_core::ObservationKind::PlanFragmentReceived,
+        conduit_core::ObservationKind::PlanPlayStarted,
+    ]
+    .iter()
+    .all(|kind| {
+        snapshot
+            .historical_observations
+            .iter()
+            .any(|sign| core::mem::discriminant(&sign.kind) == core::mem::discriminant(kind))
+    }) && snapshot
+        .historical_observations
+        .iter()
+        .filter(|sign| matches!(sign.kind, conduit_core::ObservationKind::PlacementPrepared))
+        .count()
+        == 2;
+    if snapshot.hosts.len() != 1
+        || !snapshot.lines.is_empty()
+        || snapshot.plans.len() != 1
+        || snapshot.plays.len() != 1
+        || snapshot.observations.len() != 4
+        || snapshot.historical_observations.len() != 6
+        || snapshot.sealed_boot_provenance.len() != 1
+        || !bases_match
+        || !base_inventory
+        || !current_signs
+        || !historical_signs
+        || host.is_none_or(|host| {
+            host.advertisement.host_id.as_str() != boot.host_id
+                || host.advertisement.boot_id.as_str() != boot.boot_id
+                || host.advertisement.profile.as_str() != kernel.scheduler_profile
+                || host.advertisement.capabilities.len() != 2
+                || !host.advertisement.capabilities.iter().any(|capability| {
+                    capability.kind_id.as_str() == "time/tick"
+                        && capability.implementation.implementation_id.as_str()
+                            == "conduitos/kernel-time-tick@1"
+                        && capability.limits.max_queue_items == 4
+                        && capability.limits.max_queue_bytes == 64
+                })
+                || !host.advertisement.capabilities.iter().any(|capability| {
+                    capability.kind_id.as_str() == "presentation/tick"
+                        && capability.implementation.implementation_id.as_str()
+                            == "conduitos/kernel-serial-tick@1"
+                        && capability.limits.max_queue_items == 4
+                        && capability.limits.max_queue_bytes == 64
+                })
+                || !host.advertisement.planner_capabilities.is_empty()
+                || host.advertisement.resources.len() != 4
+                || host.state != OperationalState::Available
+        })
+        || plan.is_none_or(|plan| {
+            plan.plan_id.as_str() != kernel.plan_id
+                || plan.source_document_id.as_str() != kernel.source_document_id
+                || plan.checked_form_id.as_str() != kernel.checked_form_id
+                || plan.expanded_form_id.as_str() != kernel.expanded_form_id
+                || plan.fragments.len() != 1
+                || plan.fragments[0].fragment_id.as_str() != kernel.fragment_id
+                || plan.fragments[0].placements.len() != 2
+                || plan.fragments[0].connections.len() != 1
+                || plan.fragments[0].connections[0].item_capacity != kernel.cord_item_capacity
+                || plan.fragments[0].connections[0].byte_capacity != kernel.cord_byte_capacity
+        })
+        || play.is_none_or(|play| {
+            play.active_play_id.as_str() != kernel.active_play_id
+                || play.plan_id.as_str() != kernel.plan_id
+                || play.host_id.as_str() != boot.host_id
+                || play.boot_id.as_str() != boot.boot_id
+                || play.lifecycle != PlanLifecycle::Completed
+                || play.placements.len() != 2
+                || play.connections.len() != 1
+                || play.connections[0]
+                    .pressure
+                    .as_ref()
+                    .is_none_or(|pressure| {
+                        pressure.current_in_flight_items != Some(0)
+                            || pressure.current_buffered_bytes != Some(0)
+                            || pressure.pressure_events != 0
+                            || pressure.last_pressure_sequence.is_some()
+                    })
+        })
+        || snapshot.retention.item_capacity != 64
+        || snapshot.retention.retained_items != 10
+        || snapshot.retention.dropped_items != 0
+        || provenance.is_none_or(|provenance| {
+            provenance.host_id.as_str() != boot.host_id
+                || provenance.boot_id.as_str() != boot.boot_id
+                || provenance.firmware_environment != boot.firmware
+                || provenance.adapter_name != "Limine"
+                || provenance.adapter_version != boot.limine
+                || provenance.adapter_revision != "3"
+                || provenance.image_id.as_str() != boot.image_id
+                || provenance.build_id.as_str() != boot.build_id
+                || provenance.memory_map.normalized_region_count != boot.memory_regions
+                || provenance.memory_map.runtime_arena_bytes != boot.runtime_arena_bytes
+                || !provenance.boot_artifacts.is_empty()
+                || provenance.initial_plan_artifact_id.is_some()
+                || provenance.recovery_plan_artifact_id.is_some()
+                || !provenance.framebuffers.is_empty()
+                || provenance.proof_class != BootProofClass::FreestandingEmulator
+        })
+    {
+        return Err(ConduitosError::refusal(
+            "invalid-observatory-snapshot",
+            "ordinary Observatory identities, bounds, lifecycle, or sealed provenance disagreed with boot/kernel Signs",
+        ));
+    }
+    let mut patchbay = patchbay_model::PatchbayTopology::new(1)
+        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
+    patchbay
+        .ingest(snapshot)
+        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
+    let linear = patchbay
+        .document(None)
+        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?
+        .lines()
+        .join("\n");
+    for required in [
+        boot.host_id.as_str(),
+        boot.boot_id.as_str(),
+        kernel.plan_id.as_str(),
+        kernel.active_play_id.as_str(),
+        "BOOT PROVENANCE [SEALED]",
+    ] {
+        if !linear.contains(required) {
+            return Err(ConduitosError::refusal(
+                "patchbay-linear-projection-incomplete",
+                format!("native Patchbay projection omitted {required}"),
+            ));
+        }
     }
     Ok(())
 }

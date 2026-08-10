@@ -158,7 +158,7 @@ impl ProofRecord {
 
 pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     ProofCommandContract {
-        id: "conduitos.kernel-ownership",
+        id: "conduitos.observatory",
         command: "cargo xtask conduitos prove --arch x86-64",
         proof_class: ProofClass::FreestandingEmulator,
         required_tools_or_targets: &[
@@ -175,9 +175,10 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "target/conduitos/x86_64/conduitos",
             "target/conduitos/x86_64/conduitos.iso",
             "target/conduitos/x86_64/kernel-proof.json",
+            "target/conduitos/x86_64/observatory-snapshot.json",
         ],
         allowed_claims: &[
-            "a reproducible pinned-Limine image boots in QEMU and one production conduit-kernel lane progresses through one real timer interrupt to one bounded serial presentation with fresh boot-scoped identities",
+            "a reproducible pinned-Limine image boots in QEMU, one ordinary Form executes through the production conduit-kernel, and the Host exports bounded ordinary Observatory truth consumed by native Patchbay with sealed boot provenance",
         ],
     },
     ProofCommandContract {
