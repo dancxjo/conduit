@@ -1,0 +1,17 @@
+[package]
+name = "conduit-tongues"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-form = { path = "../conduit-form" }
+conduit-kernel = { path = "../conduit-kernel" }
+conduit-planner = { path = "../conduit-planner" }
+conduit-runtime = { path = "../conduit-runtime" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tongues-pipeline = { git = "https://github.com/dancxjo/tongues.git", rev = "5748f20ee4fd133be6a9332b01d96dc0649b26a3" }
+
