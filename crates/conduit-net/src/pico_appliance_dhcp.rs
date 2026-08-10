@@ -11,6 +11,7 @@ const BOOTP_FIXED_BYTES: usize = 236;
 const DHCP_OPTIONS_OFFSET: usize = 240;
 const DHCP_MAGIC_COOKIE: [u8; 4] = [99, 130, 83, 99];
 const OPTION_SUBNET_MASK: u8 = 1;
+const OPTION_ROUTER: u8 = 3;
 const OPTION_DNS: u8 = 6;
 const OPTION_REQUESTED_ADDRESS: u8 = 50;
 const OPTION_LEASE_TIME: u8 = 51;
@@ -160,11 +161,14 @@ fn encode_response(
     kind: DhcpResponseKind,
     output: &mut [u8],
 ) -> Result<usize, ApplianceFailure> {
-    const RESPONSE_BYTES: usize = 300;
-    if output.len() < RESPONSE_BYTES {
+    // Keep the packet bounded by the admitted DHCP buffer, but transmit only
+    // the bytes belonging to the encoded message. This matches the proven
+    // Pico W AP implementation consumed by the same Embassy/smoltcp client.
+    const MAXIMUM_RESPONSE_BYTES: usize = 300;
+    if output.len() < MAXIMUM_RESPONSE_BYTES {
         return Err(ApplianceFailure::ResponseBufferTooSmall);
     }
-    output[..RESPONSE_BYTES].fill(0);
+    output[..MAXIMUM_RESPONSE_BYTES].fill(0);
     output[0..4].copy_from_slice(&[2, 1, 6, 0]);
     output[4..8].copy_from_slice(&request[4..8]);
     output[10..12].copy_from_slice(&request[10..12]);
@@ -191,11 +195,12 @@ fn encode_response(
         &DHCP_LEASE_SECONDS.to_be_bytes(),
     );
     append_option(output, &mut cursor, OPTION_SUBNET_MASK, &DHCP_SUBNET_MASK);
+    append_option(output, &mut cursor, OPTION_ROUTER, &DHCP_SERVER_ADDRESS);
     append_option(output, &mut cursor, OPTION_DNS, &DHCP_SERVER_ADDRESS);
     output[cursor] = OPTION_END;
     cursor += 1;
-    debug_assert!(cursor <= RESPONSE_BYTES);
-    Ok(RESPONSE_BYTES)
+    debug_assert!(cursor <= MAXIMUM_RESPONSE_BYTES);
+    Ok(cursor)
 }
 
 fn append_option(output: &mut [u8], cursor: &mut usize, option: u8, value: &[u8]) {
@@ -244,6 +249,38 @@ mod tests {
         .unwrap();
         assert_eq!(ack.kind, DhcpResponseKind::Acknowledgement);
         assert_eq!(ack.lease, offer.lease);
+    }
+
+    #[test]
+    fn responses_parse_as_the_exact_embassy_client_wire_contract() {
+        use smoltcp::wire::{DhcpMessageType, DhcpPacket, DhcpRepr, EthernetAddress};
+
+        let mut leases = DhcpLeasePool::default();
+        let mut output = [0; MAXIMUM_DHCP_PACKET_BYTES];
+        for (request_kind, response_kind) in
+            [(1, DhcpMessageType::Offer), (3, DhcpMessageType::Ack)]
+        {
+            let request = request(
+                request_kind,
+                (request_kind == 3).then_some([192, 168, 4, 2]),
+            );
+            let response = answer_appliance_dhcp(&request, &mut leases, &mut output).unwrap();
+            let packet = DhcpPacket::new_checked(&output[..response.len]).unwrap();
+            let parsed = DhcpRepr::parse(&packet).unwrap();
+            assert_eq!(parsed.message_type, response_kind);
+            assert_eq!(parsed.transaction_id, 0x1234_5678);
+            assert_eq!(
+                parsed.client_hardware_address,
+                EthernetAddress([2, 3, 4, 5, 6, 7])
+            );
+            assert_eq!(parsed.your_ip.octets(), [192, 168, 4, 2]);
+            assert_eq!(
+                parsed.server_identifier.unwrap().octets(),
+                DHCP_SERVER_ADDRESS
+            );
+            assert_eq!(parsed.subnet_mask.unwrap().octets(), DHCP_SUBNET_MASK);
+            assert_eq!(parsed.router.unwrap().octets(), DHCP_SERVER_ADDRESS);
+        }
     }
 
     #[test]
