@@ -17,7 +17,11 @@ use super::prove_appliance::{
 };
 use super::{PicoArgs, PicoResult};
 
-const PHYSICAL_TIMEOUT: Duration = Duration::from_secs(60);
+// The fixture has two bounded 20-second radio phases followed by distinct
+// 30-second association, DHCP, and DNS phases plus bounded HTTP I/O. Keep the
+// host deadline finite while allowing the firmware to emit its exact terminal
+// failure at the end of any reviewed phase.
+const PHYSICAL_TIMEOUT: Duration = Duration::from_secs(180);
 const CLIENT_SERIAL_NEEDLE: &str = "conduit-pico-hil-client";
 
 #[derive(Serialize)]
