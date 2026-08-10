@@ -3,7 +3,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-use crate::{PatchbayGraph, PatchbayGraphError, PatchbaySubjectRef, MAX_PATCHBAY_GEARS};
+use crate::{
+    PatchbayGraph, PatchbayGraphError, PatchbaySubjectRef, MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS,
+};
 
 pub const PATCHBAY_LAYOUT_VERSION: u8 = 1;
 pub const MAX_LAYOUT_COORDINATE: i32 = 32_767;
@@ -19,21 +21,35 @@ pub struct GearPlacement {
     pub group: Option<String>,
 }
 
+/// One finite presentation-only waypoint for an exact semantic Cord.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CordRoute {
+    pub source_port_identity: String,
+    pub sink_port_identity: String,
+    pub bend_x: i32,
+    pub bend_y: i32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchbayLayout {
     pub version: u8,
     pub gears: Vec<GearPlacement>,
+    #[serde(default)]
+    pub cords: Vec<CordRoute>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatchbayLayoutError {
     WrongVersion,
     TooManyGears,
+    TooManyCords,
     CoordinateOutOfBounds,
     GroupNameTooLarge,
     StaleGraphBasis,
     UnknownGear,
     DuplicateGearPlacement,
+    DuplicateCordRoute,
+    UnknownCord,
 }
 
 impl Default for PatchbayLayout {
@@ -41,6 +57,7 @@ impl Default for PatchbayLayout {
         Self {
             version: PATCHBAY_LAYOUT_VERSION,
             gears: Vec::with_capacity(MAX_PATCHBAY_GEARS),
+            cords: Vec::with_capacity(MAX_PATCHBAY_CORDS),
         }
     }
 }
@@ -52,6 +69,9 @@ impl PatchbayLayout {
         }
         if self.gears.len() > MAX_PATCHBAY_GEARS {
             return Err(PatchbayLayoutError::TooManyGears);
+        }
+        if self.cords.len() > MAX_PATCHBAY_CORDS {
+            return Err(PatchbayLayoutError::TooManyCords);
         }
         let mut identities = BTreeSet::new();
         for placement in &self.gears {
@@ -68,6 +88,19 @@ impl PatchbayLayout {
             {
                 return Err(PatchbayLayoutError::GroupNameTooLarge);
             }
+        }
+        let mut cord_keys = BTreeSet::new();
+        for route in &self.cords {
+            if route.source_port_identity.is_empty()
+                || route.sink_port_identity.is_empty()
+                || !cord_keys.insert((
+                    route.source_port_identity.as_str(),
+                    route.sink_port_identity.as_str(),
+                ))
+            {
+                return Err(PatchbayLayoutError::DuplicateCordRoute);
+            }
+            validate_coordinate(route.bend_x, route.bend_y)?;
         }
         Ok(())
     }
@@ -146,12 +179,65 @@ impl PatchbayLayout {
         Ok(())
     }
 
+    pub fn cord_route(&self, source_port: &str, sink_port: &str) -> Option<(i32, i32)> {
+        self.cords
+            .iter()
+            .find(|route| {
+                route.source_port_identity == source_port && route.sink_port_identity == sink_port
+            })
+            .map(|route| (route.bend_x, route.bend_y))
+    }
+
+    /// Changes only durable presentation geometry. The exact Cord must already
+    /// exist in the checked graph; no authored connectivity is created here.
+    pub fn route_cord(
+        &mut self,
+        graph: &PatchbayGraph,
+        cord: &PatchbaySubjectRef,
+        bend_x: i32,
+        bend_y: i32,
+    ) -> Result<(), PatchbayLayoutError> {
+        if cord.expanded_form_id != graph.expanded_form_id {
+            return Err(PatchbayLayoutError::StaleGraphBasis);
+        }
+        let cord = graph
+            .cords
+            .iter()
+            .find(|candidate| candidate.identity == cord.subject_identity)
+            .ok_or(PatchbayLayoutError::UnknownCord)?;
+        validate_coordinate(bend_x, bend_y)?;
+        if let Some(route) = self.cords.iter_mut().find(|route| {
+            route.source_port_identity == cord.source_port
+                && route.sink_port_identity == cord.sink_port
+        }) {
+            route.bend_x = bend_x;
+            route.bend_y = bend_y;
+            return Ok(());
+        }
+        if self.cords.len() == MAX_PATCHBAY_CORDS {
+            return Err(PatchbayLayoutError::TooManyCords);
+        }
+        self.cords.push(CordRoute {
+            source_port_identity: cord.source_port.clone(),
+            sink_port_identity: cord.sink_port.clone(),
+            bend_x,
+            bend_y,
+        });
+        Ok(())
+    }
+
     pub fn reconcile(&mut self, graph: &PatchbayGraph) {
         self.gears.retain(|placement| {
             graph
                 .gears
                 .iter()
                 .any(|gear| gear.identity == placement.gear_identity)
+        });
+        self.cords.retain(|route| {
+            graph.cords.iter().any(|cord| {
+                cord.source_port == route.source_port_identity
+                    && cord.sink_port == route.sink_port_identity
+            })
         });
     }
 }
@@ -221,6 +307,41 @@ mod tests {
                 graph.source_document_id,
                 graph.checked_form_id,
                 graph.expanded_form_id
+            )
+        );
+    }
+
+    #[test]
+    fn cord_waypoint_round_trip_is_bounded_presentation_only() {
+        let editor = FormEditor::from_source(
+            PathBuf::from("route.conduit"),
+            "form route {\n    literal: text/literal(\"hello\")\n    upper: text/upper\n    literal.text > upper.text\n}\n".into(),
+        )
+        .unwrap();
+        let graph = PatchbayGraph::from_expanded(&editor.expand_form("route").unwrap()).unwrap();
+        let identities = (
+            graph.source_document_id.clone(),
+            graph.checked_form_id.clone(),
+            graph.expanded_form_id.clone(),
+            graph.cords[0].identity.clone(),
+        );
+        let cord = graph.subject_ref(&graph.cords[0].identity).unwrap();
+        let mut layout = PatchbayLayout::default();
+        layout.route_cord(&graph, &cord, 420, 240).unwrap();
+        let encoded = serde_json::to_vec(&layout).unwrap();
+        let reopened: PatchbayLayout = serde_json::from_slice(&encoded).unwrap();
+        reopened.validate().unwrap();
+        assert_eq!(
+            reopened.cord_route(&graph.cords[0].source_port, &graph.cords[0].sink_port),
+            Some((420, 240))
+        );
+        assert_eq!(
+            identities,
+            (
+                graph.source_document_id,
+                graph.checked_form_id,
+                graph.expanded_form_id,
+                graph.cords[0].identity.clone()
             )
         );
     }

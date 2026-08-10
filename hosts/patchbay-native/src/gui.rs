@@ -106,7 +106,15 @@ pub fn draw_patchbay(
         ),
     );
     draw_navigator(&mut canvas, palette_query, theme, &mut targets);
-    draw_cords(&mut canvas, graph, &layouts, selected, theme, &mut targets);
+    draw_cords(
+        &mut canvas,
+        graph,
+        &layouts,
+        selected,
+        presentation_layout,
+        theme,
+        &mut targets,
+    );
     for layout in &layouts {
         draw_gear(&mut canvas, graph, layout, selected, theme, &mut targets);
     }
@@ -402,6 +410,7 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
     graph: &PatchbayGraph,
     layouts: &[GearLayout<'_>],
     selected: Option<&str>,
+    presentation_layout: &patchbay_model::PatchbayLayout,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
@@ -412,27 +421,28 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
         let Some(sink) = find_port(layouts, &cord.sink_port) else {
             continue;
         };
-        let middle_x = source.x + (sink.x - source.x) / 2;
+        let default_x = source.x + (sink.x - source.x) / 2;
+        let (bend_x, bend_y) = presentation_layout
+            .cord_route(&cord.source_port, &cord.sink_port)
+            .unwrap_or((default_x, source.y + (sink.y - source.y) / 2));
+        let points = [
+            source,
+            Point::new(bend_x, source.y),
+            Point::new(bend_x, bend_y),
+            Point::new(sink.x, bend_y),
+            sink,
+        ];
         let color = if selected == Some(cord.identity.as_str()) {
             theme.focus
         } else {
             theme.structure_primary
         };
-        line(target, source, Point::new(middle_x, source.y), color);
-        line(
-            target,
-            Point::new(middle_x, source.y),
-            Point::new(middle_x, sink.y),
-            color,
-        );
-        line(target, Point::new(middle_x, sink.y), sink, color);
+        for segment in points.windows(2) {
+            line(target, segment[0], segment[1], color);
+        }
         targets.push(HitTarget {
             action: select_action(graph, &cord.identity),
-            shape: HitShape::Cord {
-                source,
-                middle_x,
-                sink,
-            },
+            shape: HitShape::Cord { points },
         });
     }
 }

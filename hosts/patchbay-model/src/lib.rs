@@ -64,7 +64,7 @@ pub use interaction::{
     MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
 };
 pub use layout::{
-    GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
+    CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
     MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
 };
 pub use palette::{

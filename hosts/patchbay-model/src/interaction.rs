@@ -62,6 +62,7 @@ pub enum PatchbayAction {
     RemoveGear,
     RemoveCord,
     ConnectPorts,
+    RerouteCord,
     ConfigureGear,
 }
 
