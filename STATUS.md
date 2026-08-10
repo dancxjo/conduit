@@ -8,7 +8,7 @@ adapter or physical proof.
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation Play start vectors | same scheduler with preallocated hosted storage; installed Signal pair, local and remote three-target fan-out, typed multi-value std profiles, distributed Signal, and admitted Play start/toggle sources execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM Signal and toggle sinks execute exact remote-ingress fragments through the same scheduler before bounded DOM presentation | Pico W firmware consumes generated fixed kernel tables for exact local, std→Pico, and final three-host fragments; its active kernel/transport storage remains finite | bounded loopback WebSocket and physical USB CDC remote Cords; Bases own Line I/O only | exact Pico-local, std↔Pico, and final std/browser/Pico board runs recorded |
 | Exact local timing profile | platform-neutral deadline requirement remains separate from boot-scoped clock/timer/execution offers and the exact Plan timing/resource basis | deterministic-emulator proof admits one 1,000 µs local Plan with a sealed 730 µs worst-case basis, refuses a 100 µs request before Play, and keeps met/missed/Base-loss/cancelled/stale outcomes distinct | the accepted strict path runs the existing fixed `conduit-kernel` scheduler with zero successful heap allocations and exact Plan/Play-correlated timing Signs; inspection is excluded | no browser timing claim | no firmware timing claim | local only; no remote guarantee | no physical timing claim; any future claim requires separate pinned-hardware proof |
-| ConduitOS cooperative execution region | ordinary Plan truth seals one exact admitted placement set, cooperative bounded-step profile, selected execution-lane resource/Base, and existing finite memory/timer/Cord/Sign bounds; preemption and isolation are explicitly false | resealed lane-requirement and unavailable-lane vectors refuse before Play | the unchanged ordinary Form runs through the existing production kernel and Observatory/Patchbay linearly projects the immutable region | no browser execution-lane claim | one x86_64 freestanding-emulator Host offers and validates one boot-scoped lane | local only; no connectivity fact | no SMP, second lane, preemption, isolation, physical scheduling, or HIL claim |
+| ConduitOS cooperative execution regions | ordinary Plan truth seals two exact disjoint admitted placement sets, cooperative bounded-step profiles, distinct selected execution-lane resources under one finite Base, region-local memory/timer/Cord/Sign bounds, and explicit false preemption, isolation, and physical parallelism | membership/lane/capacity/Base/budget mutation, unavailable or duplicate lane, and resealed one-lane lies refuse before Play; a causal witness retains timer interest while the text region progresses | one unchanged two-branch Form runs through one production kernel/scheduler; Observatory/Patchbay linearly projects both immutable regions and the logical overlap witness | no browser execution-lane claim | one x86_64 freestanding-emulator Host offers and validates two boot-scoped cooperative lanes | local only; no connectivity fact | no SMP, physical parallelism, preemption, isolation, context switching, physical scheduling, or HIL claim |
 | Exact plan, play, Sign, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued Sign identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/Play start mutation, unique Sign, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and clean firmware build identity; runtime-generated boot/play plus presentation/sign identities are carried in USB records and checked across physical sessions | live sessions verify exact base instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | matching physical receipts retain exact plan/fragment/play/presentation/sign/link/base/boot/build identity |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal Sign, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Canonical Form execution corpus | canonical face/back source, declarative startup binding, recursive expansion, exact checked-face compatibility including temporal shape, and distinct source/checked/expanded/Plan identities | Programs 1–4 deterministic positive/negative corpus; Program 6 exact two-host planning and link-failure vectors | real std `text/*`, `time/every`, `state/count`, and presentation leaves execute through the existing kernel with bounded Sign and stable capacity | Program 6 browser/WASM sink executes the unchanged canonical Signal source's exact remote fragment | no new firmware claim | actual loopback WebSocket carries the Program 6 Conduit session; it is not an authored external WebSocket operation | no new physical/HIL claim |
@@ -41,10 +41,12 @@ The `check` workflow requires:
   execution, arena, Cord, wake, Base scratch, mandatory Sign, and fault-reserve
   bounds; pre-Play unschedulable refusal; zero-allocation strict execution; and
   distinct met, missed, Base-loss, cancellation, and stale-basis Signs;
-- one exact ConduitOS cooperative execution region with an admitted Gear set,
-  bounded-step profile, single selected boot-scoped lane resource/Base, sealed
-  existing memory/timer/Cord/Sign bounds, explicit no-preemption/no-isolation,
-  pre-Play stale/wrong/unavailable-lane refusal, and immutable linear inspection;
+- two exact disjoint ConduitOS cooperative execution regions with admitted Gear
+  sets, bounded-step profiles, distinct selected boot-scoped lane resources under
+  one finite Base, sealed region-local memory/timer/Cord/Sign bounds, explicit
+  no-preemption/no-isolation/no-physical-parallelism, pre-Play
+  stale/wrong/unavailable/duplicate-lane refusal, one causal overlap witness, and
+  immutable linear inspection;
 - one bounded deterministic ConduitOS portable-std inventory/gap report derived
   from current supported-nucleus contract and offer truth, with a semantic
   content digest, exact Host build/profile basis, and complete implemented or
@@ -757,6 +759,40 @@ This remains `freestanding-emulator` proof for exactly one portable transform
 on x86_64 ConduitOS. It adds no `text/join`, state/count, file/copy, locale
 collation, case folding, normalization, browser manifestation, physical/HIL,
 non-x86 realization, second scheduler, or second execution lane.
+
+The two-region ConduitOS cooperative slice from #731 is accepted at exact main
+`792f4bfbc843f716bf0c67272eacd7fc620eaa21`; push workflow `31427213079`
+passed `check`, `browser-host`, and `conduitos-boot`. One unchanged authored
+Form contains an independent `text/literal -> text/upper -> presentation/text`
+branch and `time/tick -> presentation/tick` branch without lane, Base, CPU,
+thread, scheduler, preemption, isolation, or platform facts.
+
+Ordinary checking, expansion, planning, numeric lowering, and one production
+`conduit-kernel` scheduler realize five placements and three bounded Cords. The
+Plan seals exact disjoint `region/text` and `region/timer` membership, distinct
+capacity-one execution-lane resources backed by one finite two-unit Base,
+region-local resource budgets, cooperative bounded-step scheduling, and
+explicit false preemption and isolation. Changing membership, lane selection,
+lane capacity, pool or Base identity, or any sealed finite budget changes Plan
+identity and fails current-offer validation; unavailable or duplicate lanes,
+an undersized Sign reserve, and a validly resealed one-lane lie refuse before
+Play.
+
+The QEMU execution retains one admitted timer interest while the text region
+makes meaningful progress through exact `HELLO, CONDUITOS` presentation, then
+consumes the timer wake and reaches bounded terminal Signs. The kernel Sign
+reports two regions, two lanes, five logical operations, 36 kernel Signs, one
+timer wake, two serial presentations, `overlap_witness=true`,
+`timer_pending_during_text_progress=true`, and `physical_parallelism=false`.
+Its 1 MiB boot arena reports 475,144 bytes allocated both before and after
+Play. Observatory and native Patchbay project both regions and the explicit
+overlap observation without becoming scheduler or runtime truth.
+
+This remains `freestanding-emulator` proof of logical cooperative overlap on
+one x86_64 execution mechanism. It adds no SMP, physical parallelism, second
+scheduler, context switching, preemption, isolation, affinity, migration,
+threads, processes, transport, physical scheduling, or HIL claim. Existing
+one-region Forms and the canonical strict timing projection remain valid.
 
 The ConduitOS cooperative execution-region slice from #711 is accepted at
 exact main `354c6c27a24aa87c71e4ad7ca45b486fccdae9b2`; push workflow
