@@ -116,7 +116,7 @@ pub fn machine_accepted(
     write_hex(&mut output, &identities.boot)?;
     write!(
         output,
-        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":1,\"cord_byte_capacity\":8,\"semantic_result\":\"tick-sequence-0\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
+        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":1,\"cord_byte_capacity\":{},\"semantic_result\":\"Hello from ConduitOS\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
         prepared.source_document_id.as_str(),
         prepared.checked_form_id.as_str(),
         prepared.expanded_form_id.as_str(),
@@ -125,6 +125,7 @@ pub fn machine_accepted(
         prepared.active_play.active_play_id.as_str(),
         prepared.planned_sign_items,
         prepared.planned_sign_bytes,
+        crate::ordinary_plan::TEXT_LITERAL.len(),
         allocation.before_play,
         allocation.after_play,
         allocation.capacity,
@@ -140,7 +141,7 @@ pub fn machine_accepted(
     }
     writeln!(
         output,
-        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_lanes\":1,\"timer_slots\":1,\"serial_slots\":1,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_presentations\":{},\"clock_monotonic\":{},\"pending_host_operations\":{},\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
+        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_lanes\":1,\"timer_slots\":0,\"serial_slots\":1,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_presentations\":{},\"clock_monotonic\":{},\"pending_host_operations\":{},\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
         offer.bases.len(),
         offer.runtime_arena_bytes,
         SERIAL_MAXIMUM_BYTES,

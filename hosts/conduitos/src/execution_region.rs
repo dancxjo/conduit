@@ -92,6 +92,15 @@ pub(super) fn validate_execution_region(
     advertisement: &HostAdvertisement,
     fixed: &HostOffer<'_>,
 ) -> Result<(), PreparationError> {
+    if advertisement.host_id.as_str() != hex_identity(&fixed.host_id)
+        || advertisement.boot_id.as_str() != hex_identity(&fixed.boot_id)
+        || advertisement.offer_generation.0 != fixed.generation
+        || fragment.host_id != advertisement.host_id
+        || fragment.boot_id != advertisement.boot_id
+        || fragment.offer_generation != advertisement.offer_generation
+    {
+        return Err(PreparationError::PlanRejected);
+    }
     let [region] = fragment.execution_regions.as_slice() else {
         return Err(PreparationError::PlanRejected);
     };

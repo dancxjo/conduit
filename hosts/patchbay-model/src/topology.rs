@@ -257,17 +257,38 @@ fn render_plans_and_plays(
             ),
         )?;
     }
+    for region in &report.execution_regions {
+        push_line(
+            lines,
+            format!(
+                "    REGION {} plan={} fragment={} profile={} scheduling={:?} lanes={} lane-pool={} lane-class={} lane-units={} lane-base={} runtime-memory={} timer-slots={} cord-items={} cord-bytes={} sign-items={} sign-bytes={}",
+                region.region_id.as_str(), region.plan_id.as_str(), region.fragment_id.as_str(),
+                region.execution_profile_id.as_str(), region.scheduling, region.lane_count,
+                region.lane_resource.pool_id.as_str(), region.lane_resource.class_id.as_str(),
+                region.lane_resource.units, region.lane_base_id.as_str(),
+                region.requirements.runtime_memory_bytes, region.requirements.timer_slots,
+                region.requirements.cord_item_capacity, region.requirements.cord_byte_capacity,
+                region.requirements.mandatory_sign_items, region.requirements.mandatory_sign_bytes
+            ),
+        )?;
+    }
     for placement in &report.placements {
         push_line(
             lines,
             format!(
-                "    PLACEMENT {} plan={} host={} boot={} capability={} implementation={}",
+                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} host-operations={:?} resources={:?}",
                 placement.placement_id.as_str(),
                 placement.plan_id.as_str(),
                 placement.host_id.as_str(),
                 placement.boot_id.as_str(),
                 placement.capability_id.as_str(),
-                placement.implementation_id.as_str()
+                placement.kind_id.as_str(),
+                placement.kind_contract_revision.as_str(),
+                placement.execution_profile_id.as_str(),
+                placement.implementation_id.as_str(),
+                placement.artifact_id.as_str(),
+                placement.host_operations,
+                placement.resources
             ),
         )?;
     }

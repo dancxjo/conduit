@@ -16,4 +16,8 @@ pub mod offer;
 pub mod ordinary_plan;
 pub mod planned_kernel;
 pub mod proof;
+pub mod text_composition;
+mod text_offer;
+pub mod text_planned_kernel;
+mod timing_plan;
 pub mod timing_profile;

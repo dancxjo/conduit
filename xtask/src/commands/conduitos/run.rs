@@ -136,6 +136,16 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_OBSERVATORY_SNAPSHOT "))
         .collect();
+    let presentations: Vec<_> = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix("CONDUIT_SERIAL_PRESENT "))
+        .collect();
+    if presentations != ["Hello from ConduitOS"] {
+        return Err(ConduitosError::refusal(
+            "invalid-serial-presentation",
+            format!("expected exact bounded text presentation, found {presentations:?}"),
+        ));
+    }
     if observatory_snapshots.len() != 1 {
         return Err(ConduitosError::refusal(
             "malformed-observatory-snapshot",
@@ -214,8 +224,8 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || sign.planned_sign_items == 0
         || sign.planned_sign_bytes == 0
         || sign.cord_item_capacity != 1
-        || sign.cord_byte_capacity != 8
-        || sign.semantic_result != "tick-sequence-0"
+        || sign.cord_byte_capacity != 20
+        || sign.semantic_result != "Hello from ConduitOS"
         || sign.allocation_before_play == 0
         || sign.allocation_before_play != sign.allocation_after_play
         || sign.allocation_capacity != boot.runtime_arena_bytes as usize
@@ -224,16 +234,15 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || !valid_base_ids
         || sign.memory_arena_bytes != boot.runtime_arena_bytes
         || sign.execution_lanes != 1
-        || sign.timer_slots != 1
+        || sign.timer_slots != 0
         || sign.serial_slots != 1
-        || sign.serial_maximum_bytes != 16
+        || sign.serial_maximum_bytes != 256
         || sign.interrupt_fact_slots != 4
         || sign.sign_item_slots != 64
         || sign.logical_operations != 2
         || sign.kernel_decisions == 0
         || sign.kernel_signs == 0
-        || sign.timer_irq_wakes != 1
-        || sign.idle_entries == 0
+        || sign.timer_irq_wakes != 0
         || sign.serial_presentations != 1
         || !sign.clock_monotonic
         || sign.pending_host_operations != 0
@@ -260,6 +269,55 @@ fn validate_observatory(
     let plan = snapshot.plans.first();
     let play = snapshot.plays.first();
     let provenance = snapshot.sealed_boot_provenance.first();
+    let expected_artifact = format!("conduitos-build/{}", boot.build_id);
+    let exact_placement = |kind: &str, contract: &str, implementation: &str| {
+        plan.and_then(|plan| plan.fragments.first())
+            .and_then(|fragment| {
+                fragment
+                    .placements
+                    .iter()
+                    .find(|placement| placement.kind_id.as_str() == kind)
+            })
+            .is_some_and(|placement| {
+                let runtime_memory = placement.resources.iter().any(|resource| {
+                    resource.class_id.as_str() == "conduit.resource/runtime-memory@1"
+                        && resource.units == 4_096
+                });
+                let exact_effect_realization = if kind == "text/literal" {
+                    placement.resources.len() == 1 && placement.host_operations.is_empty()
+                } else {
+                    placement.resources.len() == 2
+                        && placement.resources.iter().any(|resource| {
+                            resource.class_id.as_str() == "conduit.resource/presentation-slot@1"
+                                && resource.units == 1
+                        })
+                        && placement.host_operations.len() == 1
+                        && placement.host_operations[0].contract_id.as_str()
+                            == "conduit.host/present@1"
+                        && placement.host_operations[0].maximum_in_flight == 1
+                        && placement.host_operations[0].maximum_input_bytes == 256
+                };
+                placement.kind_contract_revision.as_str() == contract
+                    && placement.execution_profile_id.as_str()
+                        == "conduitos/single-lane-cooperative@1"
+                    && placement.implementation_id.as_str() == implementation
+                    && placement.artifact_id.as_str() == expected_artifact
+                    && placement.host_id.as_str() == boot.host_id
+                    && placement.boot_id.as_str() == boot.boot_id
+                    && placement.offer_generation.0 == 1
+                    && runtime_memory
+                    && exact_effect_realization
+            })
+    };
+    let exact_text_placements = exact_placement(
+        "text/literal",
+        "conduit.std/text-literal@1",
+        "conduitos/kernel-text-literal@1",
+    ) && exact_placement(
+        "presentation/text",
+        "conduit.std/presentation-text@1",
+        "conduitos/kernel-serial-text@1",
+    );
     let bases_match = snapshot.bases.len() == kernel.base_ids.len()
         && snapshot.bases.iter().all(|base| {
             base.host_id.as_str() == boot.host_id
@@ -320,6 +378,7 @@ fn validate_observatory(
         || snapshot.sealed_boot_provenance.len() != 1
         || !bases_match
         || !base_inventory
+        || !exact_text_placements
         || !current_signs
         || !historical_signs
         || host.is_none_or(|host| {
@@ -328,18 +387,18 @@ fn validate_observatory(
                 || host.advertisement.profile.as_str() != kernel.scheduler_profile
                 || host.advertisement.capabilities.len() != 2
                 || !host.advertisement.capabilities.iter().any(|capability| {
-                    capability.kind_id.as_str() == "time/tick"
+                    capability.kind_id.as_str() == "text/literal"
                         && capability.implementation.implementation_id.as_str()
-                            == "conduitos/kernel-time-tick@1"
+                            == "conduitos/kernel-text-literal@1"
                         && capability.limits.max_queue_items == 4
-                        && capability.limits.max_queue_bytes == 64
+                        && capability.limits.max_queue_bytes == 256
                 })
                 || !host.advertisement.capabilities.iter().any(|capability| {
-                    capability.kind_id.as_str() == "presentation/tick"
+                    capability.kind_id.as_str() == "presentation/text"
                         && capability.implementation.implementation_id.as_str()
-                            == "conduitos/kernel-serial-tick@1"
+                            == "conduitos/kernel-serial-text@1"
                         && capability.limits.max_queue_items == 4
-                        && capability.limits.max_queue_bytes == 64
+                        && capability.limits.max_queue_bytes == 256
                 })
                 || !host.advertisement.planner_capabilities.is_empty()
                 || host.advertisement.resources.len() != 4

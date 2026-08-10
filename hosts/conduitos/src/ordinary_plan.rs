@@ -8,21 +8,26 @@ use conduit_core::{
     HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
     Plan, PlanId, ResourceOffer, bind_active_play, resource_offer,
 };
-use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
+use conduit_planner::{
+    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
+};
 use conduit_runtime::lowering::lower_plan_fragment;
 
 use crate::{
     execution_region::{seal_execution_region, validate_execution_region},
     identity::BootIdentities,
     offer::{CAPABILITY_COUNT, HostOffer},
-    planned_kernel::PlannedKernel,
+    text_planned_kernel::TextPlannedKernel,
 };
 
-pub const ORDINARY_FORM_SOURCE: &str = "form 0\n\nconduitos-ordinary {\n    clock: time/tick\n    show: presentation/tick\n\n    clock.count = 1\n    clock.period-ms = 1\n    show.maximum-values = 1\n\n    clock.tick -> show.tick\n}\n";
+pub const ORDINARY_FORM_SOURCE: &str =
+    "form conduitos-text-hello {\n    \"Hello from ConduitOS\" > presentation/text\n}\n";
+pub const TEXT_LITERAL: &str = "Hello from ConduitOS";
+const ORDINARY_PLACEMENT_COUNT: usize = 2;
 pub const COOPERATIVE_REGION_PROFILE: &str = "conduitos/cooperative-bounded-step@1";
 
 pub struct PreparedOrdinaryPlay {
-    pub kernel: PlannedKernel,
+    pub kernel: TextPlannedKernel,
     pub advertisement: HostAdvertisement,
     pub plan: Plan,
     pub source_document_id: conduit_core::SourceDocumentId,
@@ -64,16 +69,12 @@ pub fn prepare(
     build_id: &str,
 ) -> Result<PreparedOrdinaryPlay, PreparationError> {
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
-    let mut catalog = conduit_std_catalog::tick_profile_catalog();
-    catalog
-        .insert(conduit_std_catalog::tick_presentation_kind_definition())
-        .map_err(|_| PreparationError::FormRejected)?;
-    let form = conduit_form::parse(ORDINARY_FORM_SOURCE, &catalog)
-        .map_err(|_| PreparationError::FormRejected)?;
+    let form = checked_expanded_text_form()?;
+    validate_text_capacity(&form, TEXT_LITERAL.len() as u32)?;
     let hosts = [advertisement.clone()];
-    let placements =
-        default_placements(&form, &hosts).map_err(|_| PreparationError::PlacementRejected)?;
-    let plan = plan_with_options(
+    let placements = default_expanded_placements(&form, &hosts)
+        .map_err(|_| PreparationError::PlacementRejected)?;
+    let plan = plan_expanded_canonical_with_options(
         &form,
         &hosts,
         &placements,
@@ -82,7 +83,7 @@ pub fn prepare(
             connection_bases: &alloc::collections::BTreeMap::new(),
             line_candidates: &alloc::collections::BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::TICK_ENCODED_LEN,
+            connection_byte_capacity: TEXT_LITERAL.len() as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -98,7 +99,7 @@ pub fn prepare(
     if fragment.host_id != hosts[0].host_id
         || fragment.boot_id != hosts[0].boot_id
         || fragment.offer_generation != hosts[0].offer_generation
-        || fragment.placements.len() != CAPABILITY_COUNT
+        || fragment.placements.len() != ORDINARY_PLACEMENT_COUNT
         || fragment.placements.iter().any(|placement| {
             placement.host_id != hosts[0].host_id || placement.boot_id != hosts[0].boot_id
         })
@@ -108,12 +109,12 @@ pub fn prepare(
     let lowered = lower_plan_fragment(fragment).map_err(|_| PreparationError::LoweringRejected)?;
     if lowered.sign_items > fixed_offer.sign_item_capacity
         || lowered.cord_value_slots > 1
-        || lowered.cord_value_bytes > conduit_std_catalog::TICK_ENCODED_LEN
+        || lowered.cord_value_bytes > TEXT_LITERAL.len() as u32
     {
         return Err(PreparationError::PlanRejected);
     }
-    let kernel =
-        PlannedKernel::prepare(fragment, &lowered).map_err(|_| PreparationError::KernelRejected)?;
+    let kernel = TextPlannedKernel::prepare(fragment, &lowered)
+        .map_err(|_| PreparationError::KernelRejected)?;
     let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     Ok(PreparedOrdinaryPlay {
         kernel,
@@ -135,17 +136,37 @@ fn advertisement(
     fixed: &HostOffer<'_>,
     build_id: &str,
 ) -> Result<HostAdvertisement, PreparationError> {
+    fixed
+        .validate()
+        .map_err(|_| PreparationError::OfferMismatch)?;
     if fixed.host_id != identities.host
         || fixed.boot_id != identities.boot
         || fixed.generation == 0
         || fixed.capabilities.len() != CAPABILITY_COUNT
-        || fixed.capabilities[0].kind != conduit_std_catalog::TICK_KIND
-        || fixed.capabilities[0].contract_revision != conduit_std_catalog::TICK_CONTRACT_REVISION
-        || fixed.capabilities[1].kind != conduit_std_catalog::TICK_PRESENTATION_KIND
-        || fixed.capabilities[1].contract_revision
-            != conduit_std_catalog::TICK_PRESENTATION_CONTRACT_REVISION
-        || fixed.capabilities[0].implementation != crate::offer::TIME_TICK_IMPLEMENTATION
-        || fixed.capabilities[1].implementation != crate::offer::TICK_PRESENTATION_IMPLEMENTATION
+        || fixed.capabilities[2].kind != conduit_std_catalog::TEXT_LITERAL_KIND
+        || fixed.capabilities[2].contract_revision
+            != conduit_std_catalog::TEXT_LITERAL_CONTRACT_REVISION
+        || fixed.capabilities[3].kind != conduit_std_catalog::TEXT_PRESENTATION_KIND
+        || fixed.capabilities[3].contract_revision
+            != conduit_std_catalog::TEXT_PRESENTATION_CONTRACT_REVISION
+        || fixed.capabilities[2].implementation != crate::offer::TEXT_LITERAL_IMPLEMENTATION
+        || fixed.capabilities[3].implementation != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
+        || fixed.capabilities[2].required_base != crate::machine::BaseKind::Memory
+        || fixed.capabilities[2].host_operation.is_some()
+        || fixed.capabilities[2].maximum_output_bytes != conduit_std_catalog::MAX_TEXT_BYTES
+        || fixed.capabilities[2].output.is_none_or(|port| {
+            port.name != "text"
+                || port.value_kind != conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND
+                || port.direction != crate::offer::PortDirection::Output
+        })
+        || fixed.capabilities[3].required_base != crate::machine::BaseKind::Serial
+        || fixed.capabilities[3].host_operation != Some("conduit.host/present@1")
+        || fixed.capabilities[3].maximum_input_bytes != crate::offer::SERIAL_MAXIMUM_BYTES
+        || fixed.capabilities[3].input.is_none_or(|port| {
+            port.name != "text"
+                || port.value_kind != conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND
+                || port.direction != crate::offer::PortDirection::Input
+        })
         || fixed
             .capabilities
             .iter()
@@ -153,14 +174,19 @@ fn advertisement(
     {
         return Err(PreparationError::OfferMismatch);
     }
-    let mut tick = conduit_std_catalog::tick_capability_offer();
-    bind_native_capability(&mut tick, &fixed.capabilities[0], build_id, "time-tick");
-    let mut presentation = conduit_std_catalog::tick_presentation_offer();
+    let mut literal = conduit_std_catalog::text_literal_offer();
+    bind_native_capability(
+        &mut literal,
+        &fixed.capabilities[2],
+        build_id,
+        "text-literal",
+    );
+    let mut presentation = conduit_std_catalog::text_presentation_offer();
     bind_native_capability(
         &mut presentation,
-        &fixed.capabilities[1],
+        &fixed.capabilities[3],
         build_id,
-        "presentation-tick",
+        "presentation-text",
     );
     Ok(HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -180,9 +206,46 @@ fn advertisement(
                 )
             })
             .collect::<Vec<ResourceOffer>>(),
-        capabilities: vec![tick, presentation],
+        capabilities: vec![literal, presentation],
         planner_capabilities: Vec::new(),
     })
+}
+
+fn checked_expanded_text_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
+    let syntax = conduit_form::parse_syntax_document(ORDINARY_FORM_SOURCE);
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+        .map_err(|_| PreparationError::FormRejected)?;
+    let checked = conduit_form::check_syntax_document(&syntax, &startup)
+        .map_err(|_| PreparationError::FormRejected)?;
+    conduit_form::expand_canonical_form(&checked, "conduitos-text-hello", &profile)
+        .map_err(|_| PreparationError::FormRejected)
+}
+
+fn validate_text_capacity(
+    form: &conduit_form::ExpandedCanonicalForm,
+    cord_bytes: u32,
+) -> Result<(), PreparationError> {
+    let literal = form
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == conduit_std_catalog::TEXT_LITERAL_KIND)
+        .and_then(|gear| {
+            gear.configuration
+                .iter()
+                .find_map(|entry| match (&*entry.key, &entry.value) {
+                    ("value", conduit_core::ConfigurationValue::Text(value)) => Some(value),
+                    _ => None,
+                })
+        })
+        .ok_or(PreparationError::FormRejected)?;
+    if literal.len() > conduit_std_catalog::MAX_TEXT_BYTES as usize
+        || literal.len() > cord_bytes as usize
+    {
+        return Err(PreparationError::PlanRejected);
+    }
+    Ok(())
 }
 
 fn bind_native_capability(
@@ -251,7 +314,7 @@ mod tests {
             panic!("ordinary Plan must contain exactly one execution region");
         };
         assert_eq!(region.region_id.as_str(), "region/0");
-        assert_eq!(region.admitted_placements.len(), CAPABILITY_COUNT);
+        assert_eq!(region.admitted_placements.len(), ORDINARY_PLACEMENT_COUNT);
         assert_eq!(
             region.execution_profile_id.as_str(),
             COOPERATIVE_REGION_PROFILE
@@ -263,11 +326,11 @@ mod tests {
         assert_eq!(region.lane_count, 1);
         assert_eq!(region.lane_resource.units, 1);
         assert_eq!(region.requirements.runtime_memory_bytes, 8_192);
-        assert_eq!(region.requirements.timer_slots, 1);
+        assert_eq!(region.requirements.timer_slots, 0);
         assert_eq!(region.requirements.cord_item_capacity, 1);
         assert_eq!(
             region.requirements.cord_byte_capacity,
-            conduit_std_catalog::TICK_ENCODED_LEN
+            TEXT_LITERAL.len() as u32
         );
         assert!(!region.preemption_required && !region.isolation_required);
         assert!(!ORDINARY_FORM_SOURCE.contains("lane"));
@@ -313,7 +376,7 @@ mod tests {
         lane.capacity = 0;
         assert_eq!(
             prepare(&identities, &offer, "build").err(),
-            Some(PreparationError::PlanRejected)
+            Some(PreparationError::OfferMismatch)
         );
     }
 
@@ -326,11 +389,45 @@ mod tests {
             Err(PreparationError::OfferMismatch)
         ));
         offer.boot_id = identities.boot;
-        offer.capabilities[0].implementation = "unavailable";
+        offer.capabilities[2].maximum_output_bytes = (TEXT_LITERAL.len() - 1) as u32;
+        assert_eq!(
+            prepare(&identities, &offer, "build").err(),
+            Some(PreparationError::OfferMismatch)
+        );
+        offer.capabilities[2].maximum_output_bytes = conduit_std_catalog::MAX_TEXT_BYTES;
+        offer.capabilities[2].implementation = "unavailable";
         assert!(matches!(
             prepare(&identities, &offer, "build"),
             Err(PreparationError::OfferMismatch)
         ));
+    }
+
+    #[test]
+    fn stale_offer_plan_identity_and_missing_serial_base_fail_closed() {
+        let (identities, mut offer) = fixture();
+        let prepared = prepare(&identities, &offer, "build").unwrap();
+
+        offer.generation += 1;
+        assert_eq!(
+            validate_execution_region(&prepared.plan.fragments[0], &prepared.advertisement, &offer,),
+            Err(PreparationError::PlanRejected)
+        );
+
+        let mut stale_plan = prepared.plan;
+        stale_plan.plan_id = PlanId::from("stale-plan");
+        assert!(!conduit_core::verify_plan(&stale_plan));
+
+        let (identities, mut offer) = fixture();
+        offer
+            .bases
+            .iter_mut()
+            .find(|base| base.kind == crate::machine::BaseKind::Serial)
+            .unwrap()
+            .capacity = 0;
+        assert_eq!(
+            prepare(&identities, &offer, "build").err(),
+            Some(PreparationError::OfferMismatch)
+        );
     }
 
     #[test]
@@ -345,7 +442,7 @@ mod tests {
         offer.resources[2].capacity = 0;
         assert!(matches!(
             prepare(&identities, &offer, "build"),
-            Err(PreparationError::PlanRejected)
+            Err(PreparationError::OfferMismatch)
         ));
         offer.resources[2].capacity = 1;
         offer.sign_item_capacity = 6;
@@ -356,39 +453,41 @@ mod tests {
     }
 
     #[test]
-    fn zero_cord_reserve_and_stale_planned_boot_fail_closed() {
+    fn undersized_cord_reserve_and_stale_planned_boot_fail_closed() {
         let (identities, offer) = fixture();
         let advertisement = advertisement(&identities, &offer, "build").unwrap();
-        let mut catalog = conduit_std_catalog::tick_profile_catalog();
-        catalog
-            .insert(conduit_std_catalog::tick_presentation_kind_definition())
-            .unwrap();
-        let form = conduit_form::parse(ORDINARY_FORM_SOURCE, &catalog).unwrap();
+        let form = checked_expanded_text_form().unwrap();
         let hosts = [advertisement];
-        let placements = default_placements(&form, &hosts).unwrap();
-        let empty_bases = alloc::collections::BTreeMap::new();
-        let empty_candidates = alloc::collections::BTreeMap::new();
-        assert!(
-            plan_with_options(
-                &form,
-                &hosts,
-                &placements,
-                &[ConnectionBase::Local],
-                PlanningOptions {
-                    connection_bases: &empty_bases,
-                    line_candidates: &empty_candidates,
-                    connection_item_capacity: 0,
-                    connection_byte_capacity: 0,
-                    authority_grants: &[],
-                    protected_resource_grants: &[],
-                    line_offers: &[],
-                },
-            )
-            .is_err()
+        let placements = default_expanded_placements(&form, &hosts).unwrap();
+        assert_eq!(
+            validate_text_capacity(&form, (TEXT_LITERAL.len() - 1) as u32),
+            Err(PreparationError::PlanRejected)
         );
-        let mut plan =
-            conduit_planner::plan(&form, &hosts, &placements, &[ConnectionBase::Local]).unwrap();
+        let mut plan = conduit_planner::plan_expanded_canonical(
+            &form,
+            &hosts,
+            &placements,
+            &[ConnectionBase::Local],
+        )
+        .unwrap();
         plan.fragments[0].boot_id = BootId::from("stale-boot");
         assert!(lower_plan_fragment(&plan.fragments[0]).is_err());
+    }
+
+    #[test]
+    fn oversized_text_is_refused_during_source_checking() {
+        let oversized = "x".repeat(conduit_std_catalog::MAX_TEXT_BYTES as usize + 1);
+        let source = format!("form too-large {{\n    \"{oversized}\" > presentation/text\n}}\n");
+        let syntax = conduit_form::parse_syntax_document(&source);
+        let mut startup = conduit_form::StartupCatalog::new();
+        let mut profile = conduit_form::ProfileCatalog::new();
+        conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+        assert!(conduit_form::expand_canonical_form(&checked, "too-large", &profile).is_err());
+
+        let malformed = conduit_form::parse_syntax_document(
+            "form malformed {\n    \"bad\\q\" > presentation/text\n}\n",
+        );
+        assert!(conduit_form::check_syntax_document(&malformed, &startup).is_err());
     }
 }

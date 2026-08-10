@@ -73,14 +73,12 @@ extern "C" fn conduitos_start() -> ! {
             let allocation_before_play = BOOT_ARENA.seal();
             arch::initialize_machine();
             let mut clock = arch::Clock::new();
-            let mut timer = arch::Timer::new();
             let mut serial = arch::Serial::new();
             let mut interrupts = arch::Interrupts::new();
             let mut idle = arch::Idle::new();
-            match conduitos::composition::run(
+            match conduitos::text_composition::run(
                 &mut prepared.kernel,
                 &mut clock,
-                &mut timer,
                 &mut serial,
                 &mut interrupts,
                 &mut idle,
