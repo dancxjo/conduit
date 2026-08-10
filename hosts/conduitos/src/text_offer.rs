@@ -3,7 +3,7 @@
 use crate::{
     machine::BaseKind,
     offer::{
-        CapabilityOffer, PortDirection, PortOffer, SERIAL_MAXIMUM_BYTES, SERIAL_OPERATION_CAPACITY,
+        CapabilityOffer, PortDirection, PortOffer, SERIAL_MAXIMUM_BYTES,
         TEXT_LITERAL_IMPLEMENTATION, TEXT_PRESENTATION_IMPLEMENTATION, TEXT_UPPER_IMPLEMENTATION,
     },
 };
@@ -73,7 +73,7 @@ pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
             closes: true,
         }),
         output: None,
-        maximum_in_flight: SERIAL_OPERATION_CAPACITY,
+        maximum_in_flight: 1,
         maximum_input_bytes: SERIAL_MAXIMUM_BYTES,
         maximum_output_bytes: 0,
     }

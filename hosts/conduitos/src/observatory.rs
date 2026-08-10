@@ -16,8 +16,8 @@ use conduit_observatory::{
 };
 
 use crate::{
-    boot::BootRecord, identity::BootIdentities, offer::HostOffer,
-    ordinary_plan::PreparedOrdinaryPlay,
+    boot::BootRecord, dual_region_plan::PreparedDualRegionPlay, identity::BootIdentities,
+    offer::HostOffer,
 };
 
 pub const EXPORT_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
@@ -59,7 +59,7 @@ pub fn prepare_export(
     record: &BootRecord,
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
-    prepared: &PreparedOrdinaryPlay,
+    prepared: &PreparedDualRegionPlay,
     build_id: &str,
     image_id: &str,
 ) -> Result<PreparedObservatoryExport, ExportError> {
@@ -201,7 +201,7 @@ pub fn prepare_export(
 }
 
 fn historical_signs(
-    prepared: &PreparedOrdinaryPlay,
+    prepared: &PreparedDualRegionPlay,
     fragment: &conduit_core::PlanFragment,
 ) -> Vec<Observation> {
     let mut observations = vec![
@@ -246,7 +246,7 @@ fn historical_signs(
     }
     observations.push(observation(
         prepared,
-        5,
+        3 + fragment.placements.len() as u64,
         Some(prepared.active_play.active_play_id.clone()),
         Some(prepared.plan_id.clone()),
         None,
@@ -257,29 +257,44 @@ fn historical_signs(
 }
 
 fn terminal_signs(
-    prepared: &PreparedOrdinaryPlay,
+    prepared: &PreparedDualRegionPlay,
     fragment: &conduit_core::PlanFragment,
 ) -> Vec<Observation> {
     let active_play_id = Some(prepared.active_play.active_play_id.clone());
     let plan_id = Some(prepared.plan_id.clone());
-    let mut observations = fragment
-        .placements
-        .iter()
-        .enumerate()
-        .map(|(index, placement)| {
-            observation(
-                prepared,
-                6 + index as u64,
-                active_play_id.clone(),
-                plan_id.clone(),
-                Some(placement.placement_id.clone()),
-                None,
-                ObservationKind::PlacementTerminal {
-                    disposition: TerminalDisposition::Completed,
-                },
-            )
-        })
-        .collect::<Vec<_>>();
+    let terminal_start = 4 + fragment.placements.len() as u64;
+    let mut observations = vec![observation(
+        prepared,
+        terminal_start,
+        active_play_id.clone(),
+        plan_id.clone(),
+        None,
+        None,
+        ObservationKind::ExecutionRegionOverlap {
+            waiting_region_id: conduit_core::ExecutionRegionId::from("region/timer"),
+            progressing_region_id: conduit_core::ExecutionRegionId::from("region/text"),
+            physical_parallelism: false,
+        },
+    )];
+    observations.extend(
+        fragment
+            .placements
+            .iter()
+            .enumerate()
+            .map(|(index, placement)| {
+                observation(
+                    prepared,
+                    terminal_start + 1 + index as u64,
+                    active_play_id.clone(),
+                    plan_id.clone(),
+                    Some(placement.placement_id.clone()),
+                    None,
+                    ObservationKind::PlacementTerminal {
+                        disposition: TerminalDisposition::Completed,
+                    },
+                )
+            }),
+    );
     observations.extend(
         fragment
             .connections
@@ -288,7 +303,7 @@ fn terminal_signs(
             .map(|(index, connection)| {
                 observation(
                     prepared,
-                    6 + fragment.placements.len() as u64 + index as u64,
+                    terminal_start + 1 + fragment.placements.len() as u64 + index as u64,
                     active_play_id.clone(),
                     plan_id.clone(),
                     None,
@@ -306,7 +321,7 @@ fn terminal_signs(
     );
     observations.push(observation(
         prepared,
-        6 + fragment.placements.len() as u64 + fragment.connections.len() as u64,
+        terminal_start + 1 + fragment.placements.len() as u64 + fragment.connections.len() as u64,
         active_play_id,
         plan_id,
         None,
@@ -319,7 +334,7 @@ fn terminal_signs(
 }
 
 fn observation(
-    prepared: &PreparedOrdinaryPlay,
+    prepared: &PreparedDualRegionPlay,
     sequence: u64,
     active_play_id: Option<conduit_core::ActivePlayId>,
     plan_id: Option<conduit_core::PlanId>,
@@ -358,9 +373,9 @@ fn hex_identity(bytes: &[u8; 32]) -> String {
 mod tests {
     use super::*;
     use crate::{
+        dual_region_plan,
         identity::BootIdentities,
         offer::{CpuFeatures, HostOffer},
-        ordinary_plan,
     };
 
     fn fixture() -> (BootRecord, BootIdentities, HostOffer<'static>) {
@@ -376,7 +391,7 @@ mod tests {
                 rdrand: true,
                 invariant_tsc: true,
             },
-            256 * 1024,
+            512 * 1024,
         );
         let record = BootRecord {
             firmware: crate::boot::Firmware::X86Bios,
@@ -390,7 +405,7 @@ mod tests {
             command_line_bytes: 0,
             runtime_arena: crate::boot::RuntimeArena {
                 physical_start: 6,
-                length: 256 * 1024,
+                length: 512 * 1024,
             },
         };
         (record, identities, offer)
@@ -399,7 +414,7 @@ mod tests {
     #[test]
     fn export_is_an_exact_bounded_v2_snapshot() {
         let (record, identities, offer) = fixture();
-        let prepared = ordinary_plan::prepare(&identities, &offer, "build").unwrap();
+        let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
         let export =
             prepare_export(&record, &identities, &offer, &prepared, "build", "image").unwrap();
         let snapshot: ObservatorySnapshot = serde_json::from_slice(export.as_bytes()).unwrap();
@@ -411,16 +426,20 @@ mod tests {
             0
         );
         assert_eq!(snapshot.plays[0].lifecycle, PlanLifecycle::Completed);
-        assert_eq!(snapshot.observations.len(), 6);
-        assert_eq!(snapshot.historical_observations.len(), 7);
+        assert_eq!(snapshot.observations.len(), 10);
+        assert_eq!(snapshot.historical_observations.len(), 9);
         assert_eq!(snapshot.sealed_boot_provenance.len(), 1);
         assert!(snapshot.bases.iter().all(|base| {
             base.kind_id.as_str() != "Limine" && base.kind_id.as_str() != "x86-bios"
         }));
         let report = conduit_observatory::build_report(&snapshot).unwrap();
         let linear = conduit_observatory::render_text_report(&report);
-        assert_eq!(report.execution_regions.len(), 1);
-        assert!(linear.contains("execution_regions 1"));
+        assert_eq!(report.execution_regions.len(), 2);
+        assert!(linear.contains("execution_regions 2"));
+        assert!(linear.contains("region=region/text"));
+        assert!(linear.contains("region=region/timer"));
+        assert!(linear.contains("ExecutionRegionOverlap"));
+        assert!(linear.contains("physical_parallelism: false"));
         assert!(linear.contains("scheduling=CooperativeBoundedStep lane_count=1"));
         assert!(linear.contains("preemption_required=false isolation_required=false"));
         let mut rendered_copy = report.clone();
@@ -438,7 +457,7 @@ mod tests {
     #[test]
     fn stale_provenance_duplicate_bases_and_signs_fail_closed_while_gaps_remain_visible() {
         let (record, identities, offer) = fixture();
-        let prepared = ordinary_plan::prepare(&identities, &offer, "build").unwrap();
+        let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
         let export =
             prepare_export(&record, &identities, &offer, &prepared, "build", "image").unwrap();
         let snapshot: ObservatorySnapshot = serde_json::from_slice(export.as_bytes()).unwrap();
@@ -467,7 +486,7 @@ mod tests {
     #[test]
     fn unrepresentable_boot_inputs_fail_before_play() {
         let (mut record, identities, offer) = fixture();
-        let prepared = ordinary_plan::prepare(&identities, &offer, "build").unwrap();
+        let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
         record.artifact_count = 1;
         assert_eq!(
             prepare_export(&record, &identities, &offer, &prepared, "build", "image").err(),

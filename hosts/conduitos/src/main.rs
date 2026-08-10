@@ -8,7 +8,7 @@ compile_error!("#588 currently promotes only the executable x86_64 ConduitOS bac
 use core::panic::PanicInfo;
 
 #[cfg(target_os = "none")]
-use conduitos::{allocation::BOOT_ARENA, arch, boot, identity, ordinary_plan, proof};
+use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, proof};
 
 #[cfg(target_os = "none")]
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
@@ -55,7 +55,7 @@ extern "C" fn conduitos_start() -> ! {
             if let Err(error) = offer.validate() {
                 emit_machine_refusal(error.as_str());
             }
-            let mut prepared = match ordinary_plan::prepare(&identities, &offer, BUILD_ID) {
+            let mut prepared = match dual_region_plan::prepare(&identities, &offer, BUILD_ID) {
                 Ok(prepared) => prepared,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
@@ -73,12 +73,14 @@ extern "C" fn conduitos_start() -> ! {
             let allocation_before_play = BOOT_ARENA.seal();
             arch::initialize_machine();
             let mut clock = arch::Clock::new();
+            let mut timer = arch::Timer::new();
             let mut serial = arch::Serial::new();
             let mut interrupts = arch::Interrupts::new();
             let mut idle = arch::Idle::new();
-            match conduitos::text_composition::run(
+            match conduitos::dual_region_composition::run(
                 &mut prepared.kernel,
                 &mut clock,
+                &mut timer,
                 &mut serial,
                 &mut interrupts,
                 &mut idle,

@@ -19,6 +19,9 @@ pub struct MachineProof {
     pub serial_presentations: u32,
     pub clock_monotonic: bool,
     pub pending_host_operations: u8,
+    pub overlap_witness: bool,
+    pub timer_pending_during_text_progress: bool,
+    pub physical_parallelism: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -132,6 +135,9 @@ where
                     serial_presentations: serial.presentation_count(),
                     clock_monotonic: ended >= started,
                     pending_host_operations: kernel.pending_host_operations() as u8,
+                    overlap_witness: false,
+                    timer_pending_during_text_progress: false,
+                    physical_parallelism: false,
                 });
             }
             SchedulerStatus::Cancelled => return Err(MachineRunError::KernelFailure),

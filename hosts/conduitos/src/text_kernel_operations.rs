@@ -7,6 +7,128 @@ use conduit_kernel::{
 
 const UPPER_REQUEST: RequestId = RequestId(1);
 const PRESENT_REQUEST: RequestId = RequestId(2);
+const TIMER_REQUEST: RequestId = RequestId(3);
+const TICK_PRESENT_REQUEST: RequestId = RequestId(4);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum TimerState {
+    Waiting,
+    Emitting,
+    Complete,
+    Cancelled,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct TimerOperation {
+    pub wait: BoundedValueRef,
+    pub tick: ValueRef,
+    pub state: TimerState,
+}
+
+impl Operation for TimerOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::RequestHostOperation {
+            request: TIMER_REQUEST,
+            operation: conduit_kernel::HostOperationId(0),
+            input: self.wait,
+        }
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::HostOperationCompleted { request, outcome }
+                if request == TIMER_REQUEST
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.output.is_none()
+                    && outcome.failure.is_none() =>
+            {
+                self.state = TimerState::Emitting;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value: self.tick,
+                }
+            }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if request == TIMER_REQUEST
+                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+            {
+                failure(conduit_kernel::FailureCode::Cancelled, 40)
+            }
+            _ => failure(conduit_kernel::FailureCode::HostOperationFailed, 41),
+        }
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        if self.state == TimerState::Emitting {
+            self.state = TimerState::Complete;
+            OperationAction::Complete
+        } else {
+            OperationAction::Await
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.state = TimerState::Cancelled;
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct TickPresentationOperation {
+    pub pending: bool,
+    pub complete: bool,
+}
+
+impl Operation for TickPresentationOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if !self.pending => {
+                let Ok(input) = BoundedValueRef::new(value, conduit_std_catalog::TICK_ENCODED_LEN)
+                else {
+                    return invalid(50);
+                };
+                self.pending = true;
+                OperationAction::RequestHostOperation {
+                    request: TICK_PRESENT_REQUEST,
+                    operation: conduit_kernel::HostOperationId(0),
+                    input,
+                }
+            }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if request == TICK_PRESENT_REQUEST
+                    && self.pending
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.output.is_none()
+                    && outcome.failure.is_none() =>
+            {
+                self.pending = false;
+                self.complete = true;
+                OperationAction::Await
+            }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if request == TICK_PRESENT_REQUEST
+                    && self.pending
+                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+            {
+                failure(conduit_kernel::FailureCode::Cancelled, 51)
+            }
+            OperationInput::Closed { port: PortId(0) } if self.complete && !self.pending => {
+                OperationAction::Complete
+            }
+            _ => invalid(52),
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum LiteralState {
@@ -196,6 +318,8 @@ pub(super) enum PlannedOperation {
     Literal(LiteralOperation),
     Upper(UpperOperation),
     Presentation(PresentationOperation),
+    Timer(TimerOperation),
+    TickPresentation(TickPresentationOperation),
 }
 
 impl Operation for PlannedOperation {
@@ -204,6 +328,8 @@ impl Operation for PlannedOperation {
             Self::Literal(operation) => operation.start(),
             Self::Upper(operation) => operation.start(),
             Self::Presentation(operation) => operation.start(),
+            Self::Timer(operation) => operation.start(),
+            Self::TickPresentation(operation) => operation.start(),
         }
     }
 
@@ -212,6 +338,8 @@ impl Operation for PlannedOperation {
             Self::Literal(operation) => operation.resume(input),
             Self::Upper(operation) => operation.resume(input),
             Self::Presentation(operation) => operation.resume(input),
+            Self::Timer(operation) => operation.resume(input),
+            Self::TickPresentation(operation) => operation.resume(input),
         }
     }
 
@@ -220,6 +348,8 @@ impl Operation for PlannedOperation {
             Self::Literal(operation) => operation.advance(),
             Self::Upper(operation) => operation.advance(),
             Self::Presentation(operation) => operation.advance(),
+            Self::Timer(operation) => operation.advance(),
+            Self::TickPresentation(operation) => operation.advance(),
         }
     }
 
@@ -228,6 +358,8 @@ impl Operation for PlannedOperation {
             Self::Literal(operation) => operation.cancel(),
             Self::Upper(operation) => operation.cancel(),
             Self::Presentation(operation) => operation.cancel(),
+            Self::Timer(operation) => operation.cancel(),
+            Self::TickPresentation(operation) => operation.cancel(),
         }
     }
 }

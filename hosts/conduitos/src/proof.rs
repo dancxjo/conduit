@@ -5,9 +5,9 @@ use core::fmt::{self, Write};
 use crate::{
     boot::BootRecord,
     composition::MachineProof,
+    dual_region_plan::PreparedDualRegionPlay,
     identity::BootIdentities,
     offer::{HostOffer, SERIAL_MAXIMUM_BYTES},
-    ordinary_plan::PreparedOrdinaryPlay,
 };
 
 pub const BOOT_SIGN_SCHEMA: &str = "conduit.conduitos.boot-sign/v1";
@@ -99,10 +99,14 @@ pub fn machine_accepted(
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
     report: &MachineProof,
-    prepared: &PreparedOrdinaryPlay,
+    prepared: &PreparedDualRegionPlay,
     allocation: AllocationProof,
     build_id: &str,
 ) -> Result<FixedText, fmt::Error> {
+    let [text_region, timer_region] = prepared.plan.fragments[0].execution_regions.as_slice()
+    else {
+        return Err(fmt::Error);
+    };
     let mut output = FixedText::new();
     write!(
         output,
@@ -116,7 +120,7 @@ pub fn machine_accepted(
     write_hex(&mut output, &identities.boot)?;
     write!(
         output,
-        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":2,\"cord_byte_capacity\":{},\"semantic_result\":\"{}\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
+        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":3,\"cord_byte_capacity\":{},\"semantic_result\":\"{}\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
         prepared.source_document_id.as_str(),
         prepared.checked_form_id.as_str(),
         prepared.expanded_form_id.as_str(),
@@ -125,8 +129,8 @@ pub fn machine_accepted(
         prepared.active_play.active_play_id.as_str(),
         prepared.planned_sign_items,
         prepared.planned_sign_bytes,
-        conduit_std_catalog::MAX_TEXT_BYTES * 2,
-        crate::ordinary_plan::TEXT_RESULT,
+        64 * 3,
+        crate::dual_region_plan::TEXT_RESULT,
         allocation.before_play,
         allocation.after_play,
         allocation.capacity,
@@ -142,9 +146,12 @@ pub fn machine_accepted(
     }
     writeln!(
         output,
-        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_lanes\":1,\"timer_slots\":0,\"serial_slots\":1,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_presentations\":{},\"clock_monotonic\":{},\"pending_host_operations\":{},\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
+        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_regions\":2,\"execution_lanes\":2,\"region_ids\":[\"region/text\",\"region/timer\"],\"lane_resource_ids\":[\"{}\",\"{}\"],\"lane_base_id\":\"{}\",\"timer_slots\":1,\"serial_slots\":2,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_presentations\":{},\"clock_monotonic\":{},\"pending_host_operations\":{},\"overlap_witness\":{},\"timer_pending_during_text_progress\":{},\"physical_parallelism\":{},\"preemption\":false,\"isolation\":false,\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
         offer.bases.len(),
         offer.runtime_arena_bytes,
+        text_region.lane_resource.pool_id.as_str(),
+        timer_region.lane_resource.pool_id.as_str(),
+        text_region.lane_base_id.as_str(),
         SERIAL_MAXIMUM_BYTES,
         offer.interrupt_fact_capacity,
         offer.sign_item_capacity,
@@ -156,6 +163,9 @@ pub fn machine_accepted(
         report.serial_presentations,
         report.clock_monotonic,
         report.pending_host_operations,
+        report.overlap_witness,
+        report.timer_pending_during_text_progress,
+        report.physical_parallelism,
         offer.cpu_features.sse2,
         offer.cpu_features.rdrand,
         offer.cpu_features.invariant_tsc,
@@ -247,8 +257,11 @@ mod tests {
                 serial_presentations: 1,
                 clock_monotonic: true,
                 pending_host_operations: 0,
+                overlap_witness: true,
+                timer_pending_during_text_progress: true,
+                physical_parallelism: false,
             },
-            &crate::ordinary_plan::prepare(&identities, &offer, "build").unwrap(),
+            &crate::dual_region_plan::prepare(&identities, &offer, "build").unwrap(),
             AllocationProof {
                 before_play: 1024,
                 after_play: 1024,
