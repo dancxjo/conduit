@@ -27,13 +27,14 @@ const ROUTE_TARGETS: usize = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
 const PENDING_REQUESTS: usize = 4;
 const VALUE_SLOTS: usize = 10;
-const VALUE_BYTES: usize = (conduit_std_catalog::MAX_TEXT_BYTES as usize) * 4;
-const SIGN_CAPACITY: usize = 96;
+const VALUE_SLOT_BYTES: usize = conduit_std_catalog::MAX_TEXT_BYTES as usize;
+const VALUE_BUDGET_BYTES: u32 = conduit_std_catalog::MAX_TEXT_BYTES * 4;
+const SIGN_CAPACITY: usize = 64;
 
 type Driver = OperationDriver<PlannedOperation, PORTS>;
 type Scheduler = FixedScheduler<
     Driver,
-    FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
+    FixedValueStore<VALUE_SLOTS, VALUE_SLOT_BYTES>,
     FixedSignLog<SIGN_CAPACITY>,
     MAX_NODES,
     MAX_CORDS,
@@ -70,7 +71,7 @@ impl DualRegionKernel {
         let literal = configured_text(&fragment.placements[literal_index].configuration, "value")?;
         let period_ms =
             configured_u64(&fragment.placements[timer_index].configuration, "period-ms")?;
-        let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32)?;
+        let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_SLOT_BYTES>::new(VALUE_BUDGET_BYTES)?;
         let literal_value = values.store(literal.as_bytes())?;
         let wait = values.store(&period_ms.to_le_bytes())?;
         let tick = values.store(&0_u64.to_le_bytes())?;
