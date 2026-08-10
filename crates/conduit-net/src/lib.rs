@@ -18,6 +18,8 @@ mod external_websocket;
 pub use external_websocket::*;
 mod pico_appliance;
 pub use pico_appliance::*;
+mod pico_appliance_dhcp;
+pub use pico_appliance_dhcp::*;
 mod pico_appliance_protocol;
 pub use pico_appliance_protocol::*;
 mod network_info;

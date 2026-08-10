@@ -3,7 +3,7 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 
 use super::doctor::repo_root;
-use super::firmware::{read_identity_manifest, uf2_path};
+use super::firmware::{read_firmware_mode, uf2_path};
 use super::run_bootsel;
 use super::{PicoArgs, PicoResult};
 
@@ -32,8 +32,10 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
         .into());
     }
 
-    let identity = read_identity_manifest(&root)?;
-    let expected_mode = if args.r1_control {
+    let actual_mode = read_firmware_mode(&root)?;
+    let expected_mode = if args.appliance_hello {
+        "appliance-hello"
+    } else if args.r1_control {
         "r1-control"
     } else if args.wifi_bootstrap {
         "wifi-bootstrap"
@@ -44,10 +46,10 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     } else {
         "pico-local"
     };
-    if identity.firmware_mode != expected_mode {
+    if actual_mode != expected_mode {
         return Err(format!(
             "refusing to flash {} artifact as {expected_mode}; rebuild with the matching pico build mode",
-            identity.firmware_mode
+            actual_mode
         )
         .into());
     }

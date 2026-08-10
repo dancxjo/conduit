@@ -1,6 +1,8 @@
 use conduit_system_continuity::R1SignalRouteSet;
 
-use super::firmware::{FirmwareIdentity, GeneratedImageIdentity, R1ControlImageFamily};
+use super::appliance_identity::{ApplianceFirmwareIdentity, ApplianceGeneratedImageIdentity};
+use super::doctor::{CYW43_ASSETS, CYW43_COMMIT};
+use super::firmware::{AssetEntry, FirmwareIdentity, GeneratedImageIdentity, R1ControlImageFamily};
 
 fn control_image(routes: R1SignalRouteSet) -> GeneratedImageIdentity {
     let exact = conduit_system_continuity::exact_r1_control_plan(
@@ -118,4 +120,85 @@ fn composite_manifest_requires_the_exact_ordered_control_family() {
     let mut wrong_primary = identity;
     wrong_primary.generated_image.schema = "conduit.pico-signal.generated-image@1".into();
     assert!(wrong_primary.verified_r1_control_images().is_err());
+}
+
+fn appliance_identity() -> ApplianceFirmwareIdentity {
+    let advertisement = conduit_net::pico_appliance_advertisement(
+        "pico/appliance-hello",
+        "image/boot-bound-at-runtime",
+        conduit_net::PicoApplianceComposition::Hello,
+        conduit_net::PicoApplianceInitialization::hello_ready(),
+    )
+    .unwrap();
+    ApplianceFirmwareIdentity {
+        schema: "conduit-pico-w-signal/appliance-identity@1".into(),
+        git_revision: "revision".into(),
+        target: "thumbv6m-none-eabi".into(),
+        profile: "release".into(),
+        firmware_mode: "appliance-hello".into(),
+        firmware_build_id: "appliance-build".into(),
+        firmware_sha256: "a".repeat(64),
+        appliance_image: ApplianceGeneratedImageIdentity {
+            schema: "conduit.pico-appliance/generated-image@1".into(),
+            firmware_mode: "appliance-hello".into(),
+            firmware_build_id: "appliance-build".into(),
+            image_artifact: conduit_net::PICO_APPLIANCE_ARTIFACT.into(),
+            service_artifacts: [
+                conduit_net::AP_SERVICE_ARTIFACT,
+                conduit_net::DHCP_SERVICE_ARTIFACT,
+                conduit_net::DNS_SERVICE_ARTIFACT,
+                conduit_net::HTTP_SERVICE_ARTIFACT,
+            ]
+            .map(str::to_owned)
+            .to_vec(),
+            host_advertisement: advertisement,
+            ssid: conduit_net::APPLIANCE_SSID.into(),
+            open_ap: true,
+            channel: 6,
+            server_address: conduit_net::DHCP_SERVER_ADDRESS,
+            local_name: conduit_net::APPLIANCE_LOCAL_NAME.into(),
+            hello_body: conduit_net::APPLIANCE_HELLO_BODY.into(),
+            maximum_associations: conduit_net::MAXIMUM_AP_ASSOCIATIONS,
+            maximum_dhcp_leases: conduit_net::MAXIMUM_DHCP_LEASES,
+            maximum_dhcp_packet_bytes: conduit_net::MAXIMUM_DHCP_PACKET_BYTES,
+            maximum_dns_packet_bytes: conduit_net::MAXIMUM_DNS_PACKET_BYTES,
+            maximum_http_request_bytes: conduit_net::MAXIMUM_HTTP_REQUEST_BYTES,
+            maximum_http_response_bytes: conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES,
+            maximum_signs: conduit_net::MAXIMUM_APPLIANCE_SIGNS,
+        },
+        cyw43_commit: CYW43_COMMIT.into(),
+        cyw43_assets: CYW43_ASSETS
+            .iter()
+            .map(|(filename, sha256)| AssetEntry {
+                filename: (*filename).into(),
+                sha256: (*sha256).into(),
+            })
+            .collect(),
+    }
+}
+
+#[test]
+fn appliance_manifest_seals_radio_service_offer_and_bounds() {
+    let identity = appliance_identity();
+    identity.verify().unwrap();
+
+    let mut wrong_radio = identity.clone();
+    wrong_radio.cyw43_assets[0].sha256 = "0".repeat(64);
+    assert!(wrong_radio.verify().is_err());
+
+    let mut wrong_service = identity.clone();
+    wrong_service.appliance_image.service_artifacts.swap(0, 1);
+    assert!(wrong_service.verify().is_err());
+
+    let mut invented_offer = identity.clone();
+    invented_offer
+        .appliance_image
+        .host_advertisement
+        .capabilities
+        .pop();
+    assert!(invented_offer.verify().is_err());
+
+    let mut enlarged_bound = identity;
+    enlarged_bound.appliance_image.maximum_dhcp_leases += 1;
+    assert!(enlarged_bound.verify().is_err());
 }
