@@ -356,6 +356,16 @@ pub(super) fn verify_signs(
         }
         let sign: serde_json::Value = serde_json::from_str(line.trim())?;
         line.clear();
+        if sign["schema"].as_str() == Some("conduit.pico-appliance/progress@1") {
+            verify_field(&sign, "firmware_build_id", firmware_build_id)?;
+            verify_field(&sign, "host_id", "pico/appliance-hello")?;
+            let phase = sign["phase"]
+                .as_str()
+                .filter(|phase| !phase.is_empty())
+                .ok_or("Pico appliance progress receipt has no phase")?;
+            println!("==> Pico appliance progress: {phase}");
+            continue;
+        }
         let index = signs.len();
         verify_field(&sign, "schema", "conduit.pico-appliance/sign@1")?;
         verify_field(&sign, "firmware_build_id", firmware_build_id)?;

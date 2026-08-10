@@ -55,6 +55,7 @@ pub async fn run(
 ) -> ! {
     sign.wait_dtr().await;
     let runtime_boot = runtime_boot_id();
+    write_progress(sign, &runtime_boot, "dtr-ready").await;
     let (device, mut control) = match crate::radio::init_cyw43_network(
         spawner, pio0, dma, pin23, pin24, pin25, pin29, fw, nvram, clm,
     )
@@ -76,6 +77,7 @@ pub async fn run(
             }
         }
     };
+    write_progress(sign, &runtime_boot, "radio-ready").await;
     if with_timeout(
         Duration::from_secs(10),
         control.start_ap_open(conduit_net::APPLIANCE_SSID, 6),
@@ -85,6 +87,7 @@ pub async fn run(
     {
         terminal_failure(sign, &runtime_boot, 1, "ap-base-lost").await;
     }
+    write_progress(sign, &runtime_boot, "ap-started").await;
     let config = Config::ipv4_static(StaticConfigV4 {
         address: Ipv4Cidr::new(Ipv4Address::new(192, 168, 4, 1), 24),
         gateway: None,
@@ -98,6 +101,7 @@ pub async fn run(
         seed,
     );
     spawner.spawn(appliance_network_task(runner).unwrap());
+    write_progress(sign, &runtime_boot, "stack-started").await;
 
     let mut dhcp_rx_meta = [PacketMetadata::EMPTY; 1];
     let mut dhcp_tx_meta = [PacketMetadata::EMPTY; 1];
@@ -128,6 +132,7 @@ pub async fn run(
     if dns.bind(53).is_err() {
         terminal_failure(sign, &runtime_boot, 1, "dns-base-lost").await;
     }
+    write_progress(sign, &runtime_boot, "sockets-ready").await;
 
     let mut http_rx = [0; conduit_net::MAXIMUM_HTTP_REQUEST_BYTES as usize];
     let mut http_tx = [0; MAXIMUM_HTTP_RESPONSE_BYTES];
@@ -311,6 +316,19 @@ async fn serve_http_once(socket: &mut TcpSocket<'_>) -> ServiceEvent {
         ));
     }
     ServiceEvent::Http
+}
+
+async fn write_progress(sign: &mut UsbCdc, runtime_boot: &str, phase: &str) {
+    let mut line = HString::<512>::new();
+    if write!(
+        line,
+        "{{\"schema\":\"conduit.pico-appliance/progress@1\",\"firmware_build_id\":\"{FIRMWARE_BUILD_ID}\",\"host_id\":\"{HOST_ID}\",\"runtime_boot_id\":\"{runtime_boot}\",\"phase\":\"{phase}\"}}\n"
+    )
+    .is_err()
+        || sign.write_all_mandatory(line.as_bytes()).await.is_err()
+    {
+        core::future::pending::<()>().await;
+    }
 }
 
 async fn terminal_failure(sign: &mut UsbCdc, runtime_boot: &str, sequence: u16, code: &str) -> ! {
