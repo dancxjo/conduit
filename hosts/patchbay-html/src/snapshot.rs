@@ -50,6 +50,7 @@ impl RendererSnapshot {
                 .self_inspection()
                 .map_err(|_| SnapshotError::InvalidIdentity)?,
             presentation: execution.presentation,
+            interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
         Ok(value)
