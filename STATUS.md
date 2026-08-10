@@ -541,6 +541,28 @@ completion as machine-readable failure rather than success. The HTML adapter
 constructs the same request types without DOM, pixel, Wayland, widget, socket,
 or address identity.
 
+The dependency-safe Gear-palette foundation from #747 is accepted at exact
+main `bbcf5bf1d08fc6f648966c57e4cb0109cb78d2b2`; push workflow
+`31430352301` passed `check`, `browser-host`, and `conduitos-boot`. It derives
+the finite supported-nucleus Kind contracts into one authoritative palette,
+supports bounded search and native drag/drop, runs placement through the
+ordinary interaction kernel, edits canonical Form source, redraws exact typed
+Ports, refuses stale or unknown placement, and survives save/reopen. This is a
+foundation slice only: #747 remains open for its Cord and direct-configuration
+continuations.
+
+The categorized canonical-icon continuation from #748 is accepted at exact
+main `5461442076f53afebb46c6060f67b195072a57ae`; push workflow
+`31432188828` passed `check`, `browser-host`, and `conduitos-boot`. Every
+supported user-facing Kind now has mandatory category, searchable tags, and a
+shared icon key outside its semantic contract. Native Patchbay renders five
+stably ordered, text-accessible groups from that metadata. Lucide 1.31.0 is
+pinned as the one upstream source; the repository retains only nine licensed
+SVGs, and `cargo xtask palette-icons` deterministically generates the bounded
+native masks. Missing metadata rejects palette construction; missing rendered
+data uses one visible, machine-detectable generic fallback. Category and icon
+changes do not enter Form, Kind, Gear, Plan, Play, Host, or runtime identity.
+
 This acceptance adds no widget ontology, semantic coordinates, raw-input
 Kinds, drag-to-rewire behavior, retry or authority policy, second planner,
 runtime, controller, truth store, or authority store. The Weston evidence
