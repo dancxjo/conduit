@@ -216,7 +216,7 @@ async fn write_receipt(
         }
     } else if write!(
         line,
-        ",\"leased_address\":\"{a}.{b}.{c}.{d}\",\"dns_name\":\"{}\",\"dns_address\":\"192.168.4.1\",\"http_body\":\"Hello from Conduit.\\n\"",
+        ",\"leased_address\":\"{a}.{b}.{c}.{d}\",\"dns_name\":\"{}\",\"dns_address\":\"192.168.4.1\",\"http_body\":\"Hello from Conduit\\n\"",
         conduit_net::APPLIANCE_LOCAL_NAME,
     )
     .is_err()
