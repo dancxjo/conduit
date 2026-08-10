@@ -1,3 +1,4 @@
+mod architecture_matrix;
 mod build;
 mod image;
 mod profile;
@@ -19,6 +20,8 @@ pub struct ConduitosArgs {
 
 #[derive(Subcommand, Debug)]
 enum ConduitosCommand {
+    /// Verify and report the pinned Limine architecture/backend matrix.
+    ArchitectureMatrix,
     /// Compile and mechanically inspect the freestanding executable.
     Build(TargetArgs),
     /// Create the tiny pinned-Limine hybrid ISO image.
@@ -46,6 +49,14 @@ pub enum ConduitosArch {
 }
 
 impl ConduitosArch {
+    const ALL: [Self; 5] = [
+        Self::Ia32,
+        Self::X86_64,
+        Self::Aarch64,
+        Self::Riscv64,
+        Self::Loongarch64,
+    ];
+
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Ia32 => "ia32",
@@ -63,7 +74,7 @@ impl ConduitosArch {
             Err(ConduitosError::refusal(
                 "unsupported-architecture-backend",
                 format!(
-                    "{} is in the architecture-valued command contract but remains frozen by #588",
+                    "{} is present in the pinned Limine matrix but has no accepted ConduitOS executable backend",
                     self.as_str()
                 ),
             ))
@@ -107,7 +118,11 @@ impl fmt::Display for ConduitosError {
 impl std::error::Error for ConduitosError {}
 
 pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    if matches!(args.command, ConduitosCommand::ArchitectureMatrix) {
+        return architecture_matrix::execute(opts);
+    }
     let target = match args.command {
+        ConduitosCommand::ArchitectureMatrix => unreachable!(),
         ConduitosCommand::Build(target)
         | ConduitosCommand::Image(target)
         | ConduitosCommand::Run(target)
@@ -115,6 +130,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
     };
     target.arch.require_executable_backend()?;
     match args.command {
+        ConduitosCommand::ArchitectureMatrix => unreachable!(),
         ConduitosCommand::Build(_) => build::execute(target.arch, opts).map(|_| ()),
         ConduitosCommand::Image(_) => image::execute(target.arch, opts).map(|_| ()),
         ConduitosCommand::Run(_) => run::execute(target.arch, opts).map(|_| ()),
@@ -148,7 +164,7 @@ mod tests {
     }
 
     #[test]
-    fn frozen_backend_refuses_instead_of_aliasing_x86_64() {
+    fn unavailable_backend_refuses_instead_of_aliasing_x86_64() {
         let error = ConduitosArch::Aarch64
             .require_executable_backend()
             .unwrap_err();
