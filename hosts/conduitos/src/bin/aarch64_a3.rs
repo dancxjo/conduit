@@ -61,6 +61,15 @@ pub extern "C" fn conduitos_aarch64_a3_start() -> ! {
         .unwrap_or_else(|error| refuse(error.as_str()));
     let mut prepared = dual_region_plan::prepare(&identities, &offer, BUILD_ID)
         .unwrap_or_else(|error| refuse(error.as_str()));
+    let observatory_export = conduitos::observatory::prepare_export(
+        &record,
+        &identities,
+        &offer,
+        &prepared,
+        BUILD_ID,
+        IMAGE_ID,
+    )
+    .unwrap_or_else(|error| refuse(error.as_str()));
     let allocation_before_play = BOOT_ARENA.seal();
 
     let mut clock = arch::Clock::new();
@@ -91,6 +100,9 @@ pub extern "C" fn conduitos_aarch64_a3_start() -> ! {
     )
     .unwrap_or_else(|_| refuse("kernel-sign-storage-full"));
     arch::present(sign.as_bytes());
+    arch::present(conduitos::observatory::EXPORT_PREFIX.as_bytes());
+    arch::present(observatory_export.as_bytes());
+    arch::present(b"\n");
     arch::present(b"CONDUIT_AARCH64_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
     arch::present(b"\",\"wake_source\":\"arm-generic-virtual-timer-ppi-27\",\"wake_irq\":27,\"a3_ordinary_form_claimed\":true}\n");

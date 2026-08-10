@@ -19,6 +19,7 @@ use super::{
 const FIRMWARE: &str = "/usr/share/qemu-efi-aarch64/QEMU_EFI.fd";
 const SIGN_PREFIX: &str = "CONDUIT_KERNEL_SIGN ";
 const IDENTITY_PREFIX: &str = "CONDUIT_AARCH64_A3_IDENTITY ";
+const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct KernelSign {
@@ -82,12 +83,14 @@ struct A3Proof {
     fresh_host_id: bool,
     fresh_boot_id: bool,
     a3_ordinary_form_claimed: bool,
+    a4_observatory_patchbay_claimed: bool,
+    native_patchbay_consumed: bool,
 }
 
 pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Aarch64)?;
     let _ = image::execute(ConduitosArch::Aarch64, opts)?;
-    let (kernel, identity) = boot_once(&paths)?;
+    let (kernel, identity, _) = boot_once(&paths)?;
     if opts.json {
         println!("{}", serde_json::to_string(&kernel).map_err(encoding)?);
     } else if !opts.quiet {
@@ -119,8 +122,8 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "identical AArch64 inputs produced different images",
         ));
     }
-    let (first_kernel, first_identity) = boot_once(&paths)?;
-    let (second_kernel, second_identity) = boot_once(&paths)?;
+    let (first_kernel, first_identity, first_observatory) = boot_once(&paths)?;
+    let (second_kernel, second_identity, _) = boot_once(&paths)?;
     let fresh_host_id = first_kernel.host_id != second_kernel.host_id;
     let fresh_boot_id = first_kernel.boot_id != second_kernel.boot_id;
     if !fresh_host_id || !fresh_boot_id {
@@ -129,9 +132,16 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "independent AArch64 boots reused HostId or BootId",
         ));
     }
+    let snapshot_path = paths.target.join("a4-observatory-snapshot.json");
+    fs::write(
+        &snapshot_path,
+        serde_json::to_vec_pretty(&first_observatory).map_err(encoding)?,
+    )
+    .map_err(|error| ConduitosError::refusal("proof-record-failed", error.to_string()))?;
+    prove_native_patchbay(&paths, &snapshot_path, &first_kernel)?;
     let proof = A3Proof {
-        schema: "conduit.conduitos.aarch64-a3-proof/v1",
-        proof_class: "freestanding-emulator-ordinary-form",
+        schema: "conduit.conduitos.aarch64-a4-proof/v1",
+        proof_class: "freestanding-emulator-observatory-patchbay",
         base_commit: git_head(&paths.root)?,
         architecture: "aarch64",
         rust_target: super::aarch64_a0::TARGET,
@@ -149,9 +159,11 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         fresh_host_id,
         fresh_boot_id,
         a3_ordinary_form_claimed: true,
+        a4_observatory_patchbay_claimed: true,
+        native_patchbay_consumed: true,
     };
     fs::write(
-        paths.target.join("a3-proof.json"),
+        paths.target.join("a4-proof.json"),
         serde_json::to_vec_pretty(&proof).map_err(encoding)?,
     )
     .map_err(|error| ConduitosError::refusal("proof-record-failed", error.to_string()))?;
@@ -159,14 +171,23 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         println!("{}", serde_json::to_string(&proof).map_err(encoding)?);
     } else if !opts.quiet {
         println!(
-            "ConduitOS AArch64 A3 proof: {}",
-            paths.target.join("a3-proof.json").display()
+            "ConduitOS AArch64 A4 proof: {}",
+            paths.target.join("a4-proof.json").display()
         );
     }
     Ok(())
 }
 
-fn boot_once(paths: &Paths) -> Result<(KernelSign, IdentitySign), ConduitosError> {
+fn boot_once(
+    paths: &Paths,
+) -> Result<
+    (
+        KernelSign,
+        IdentitySign,
+        conduit_observatory::ObservatorySnapshot,
+    ),
+    ConduitosError,
+> {
     let firmware = firmware_path();
     if !paths.limine.join("BOOTAA64.EFI").is_file() || !firmware.is_file() {
         return Err(ConduitosError::refusal(
@@ -229,8 +250,9 @@ fn boot_once(paths: &Paths) -> Result<(KernelSign, IdentitySign), ConduitosError
     let serial = String::from_utf8_lossy(&transcript);
     let kernel: KernelSign = parse_one(&serial, SIGN_PREFIX, "kernel")?;
     let identity: IdentitySign = parse_one(&serial, IDENTITY_PREFIX, "identity")?;
-    validate(&kernel, &identity, paths)?;
-    Ok((kernel, identity))
+    let observatory = parse_one(&serial, OBSERVATORY_PREFIX, "Observatory")?;
+    validate(&kernel, &identity, &observatory, paths)?;
+    Ok((kernel, identity, observatory))
 }
 
 fn parse_one<T: for<'a> Deserialize<'a>>(
@@ -260,6 +282,7 @@ fn parse_one<T: for<'a> Deserialize<'a>>(
 fn validate(
     kernel: &KernelSign,
     identity: &IdentitySign,
+    observatory: &conduit_observatory::ObservatorySnapshot,
     paths: &Paths,
 ) -> Result<(), ConduitosError> {
     let commit = git_head(&paths.root)?;
@@ -299,6 +322,72 @@ fn validate(
         || !identity.a3_ordinary_form_claimed
     {
         return Err(ConduitosError::refusal("stale-or-invalid-aarch64-a3-sign", "A3 Sign does not prove the exact portable Form, Plan, Bases, wake, semantic result, and terminal Play"));
+    }
+    conduit_observatory::validate_snapshot(observatory)
+        .map_err(|error| ConduitosError::refusal("invalid-aarch64-observatory", error))?;
+    if observatory.schema != conduit_observatory::SNAPSHOT_SCHEMA
+        || observatory.hosts.len() != 1
+        || observatory.bases.len() != kernel.base_count as usize
+        || observatory.plans.len() != 1
+        || observatory.plays.len() != 1
+        || observatory.plans[0].plan_id.as_str() != kernel.plan_id
+        || observatory.plans[0].source_document_id.as_str() != kernel.source_document_id
+        || observatory.plans[0].checked_form_id.as_str() != kernel.checked_form_id
+        || observatory.plans[0].expanded_form_id.as_str() != kernel.expanded_form_id
+        || observatory.plays[0].active_play_id.as_str() != kernel.active_play_id
+        || observatory.plays[0].boot_id.as_str() != kernel.boot_id
+        || observatory.sealed_boot_provenance.len() != 1
+        || observatory.sealed_boot_provenance[0].image_id.as_str() != identity.image_id
+    {
+        return Err(ConduitosError::refusal(
+            "wrong-aarch64-observatory-correlation",
+            "ordinary snapshot does not correlate the exact AArch64 Form, Plan, Play, Bases, and boot provenance",
+        ));
+    }
+    Ok(())
+}
+
+fn prove_native_patchbay(
+    paths: &Paths,
+    snapshot: &std::path::Path,
+    kernel: &KernelSign,
+) -> Result<(), ConduitosError> {
+    let snapshot = snapshot
+        .to_str()
+        .ok_or_else(|| ConduitosError::refusal("patchbay-rejected-report", "non-UTF-8 path"))?;
+    let output = super::profile::command(
+        "cargo",
+        &[
+            "run",
+            "--quiet",
+            "-p",
+            "patchbay-native",
+            "--",
+            "--linear-observatory-snapshot",
+            snapshot,
+        ],
+        &paths.root,
+        "patchbay-rejected-report",
+    )?;
+    let linear = String::from_utf8(output.stdout)
+        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
+    for required in [
+        kernel.host_id.as_str(),
+        kernel.boot_id.as_str(),
+        kernel.plan_id.as_str(),
+        kernel.active_play_id.as_str(),
+        "BASES 7",
+        "SIGNS 19",
+        "ExecutionRegionOverlap",
+        "lifecycle=Completed",
+        "proof=FreestandingEmulator",
+    ] {
+        if !linear.contains(required) {
+            return Err(ConduitosError::refusal(
+                "patchbay-linear-projection-incomplete",
+                format!("native Patchbay omitted {required}"),
+            ));
+        }
     }
     Ok(())
 }
