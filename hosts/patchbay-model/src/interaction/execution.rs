@@ -173,7 +173,7 @@ impl PatchbayInteraction {
             .map_err(|error| InteractionError::Execution(format!("request value: {error:?}")))?;
         let operations = operations(fragment, &lowered, request_value)?;
         let drivers = operations
-            .map(|operation| OperationDriver::new(operation))
+            .map(OperationDriver::new)
             .into_iter()
             .collect::<Result<Vec<_>, _>>()
             .map_err(scheduler_error("prepare interaction driver"))?
