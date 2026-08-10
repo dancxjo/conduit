@@ -322,6 +322,7 @@ fn palette_placement_runs_an_ordinary_interaction_before_editing_canonical_sourc
     assert_eq!(reopened.graphical_form.as_ref().unwrap().gears.len(), 2);
 
     std::fs::remove_file(path).unwrap();
+    std::fs::remove_file(directory.join("making.conduit.patchbay.json")).unwrap();
     std::fs::remove_dir(directory).unwrap();
 }
 
@@ -361,6 +362,147 @@ fn stale_palette_drop_is_refused_before_canonical_source_changes() {
     );
 
     std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
+    let directory = std::env::temp_dir().join(format!("patchbay-compose-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("making.conduit");
+    std::fs::write(
+        &path,
+        "form making {\n    literal: text/literal(\"hello\")\n    upper: text/upper\n    show: presentation/text\n    count: state/count(0)\n}\n",
+    )
+    .unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    let graph = application.graphical_form.as_ref().unwrap();
+    let source = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "making/literal")
+        .unwrap()
+        .outputs[0]
+        .identity
+        .clone();
+    let sink = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "making/upper")
+        .unwrap()
+        .inputs[0]
+        .identity
+        .clone();
+    let source = graph.subject_ref(&source).unwrap();
+    let sink = graph.subject_ref(&sink).unwrap();
+    let count_output = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "making/count")
+        .unwrap()
+        .outputs[0]
+        .identity
+        .clone();
+    let incompatible_source = graph.subject_ref(&count_output).unwrap();
+    let before_refusal = application.form_editor.as_ref().unwrap().view().source;
+    assert!(application
+        .handle_gui_action(GuiAction::ConnectPorts {
+            source: incompatible_source,
+            sink: sink.clone(),
+        })
+        .unwrap_err()
+        .contains("Info or temporal contracts differ"));
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().source,
+        before_refusal
+    );
+    application
+        .handle_gui_action(GuiAction::ConnectPorts { source, sink })
+        .unwrap();
+
+    let graph = application.graphical_form.as_ref().unwrap();
+    let literal = graph.subject_ref("gear/making/literal").unwrap();
+    application
+        .handle_gui_action(GuiAction::DuplicateGear(literal))
+        .unwrap();
+    let graph = application.graphical_form.as_ref().unwrap();
+    let upper = graph.subject_ref("gear/making/upper").unwrap();
+    application
+        .handle_gui_action(GuiAction::RemoveGear(upper))
+        .unwrap();
+    let graph = application.graphical_form.as_ref().unwrap();
+    let literal = graph.subject_ref("gear/making/literal").unwrap();
+    let semantic_ids = (
+        graph.source_document_id.clone(),
+        graph.checked_form_id.clone(),
+        graph.expanded_form_id.clone(),
+    );
+    application
+        .layout
+        .move_gear(graph, &literal, 410, 180)
+        .unwrap();
+    application
+        .layout
+        .group_gear(graph, &literal, Some("sources".into()))
+        .unwrap();
+    assert_eq!(
+        semantic_ids,
+        (
+            graph.source_document_id.clone(),
+            graph.checked_form_id.clone(),
+            graph.expanded_form_id.clone(),
+        )
+    );
+    application.handle_gui_action(GuiAction::SaveForm).unwrap();
+
+    let view = application.form_editor.as_ref().unwrap().view();
+    assert!(view.source.contains("literal-2: text/literal(\"hello\")"));
+    assert!(!view.source.contains("upper:"));
+    assert!(!view.source.contains("literal.text > upper.text"));
+    let actions = application
+        .interaction
+        .as_ref()
+        .unwrap()
+        .history()
+        .filter_map(|receipt| match &receipt.request {
+            patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. } => {
+                Some(invocation.action)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert!(actions.contains(&patchbay_model::PatchbayAction::ConnectPorts));
+    assert!(actions.contains(&patchbay_model::PatchbayAction::DuplicateGear));
+    assert!(actions.contains(&patchbay_model::PatchbayAction::RemoveGear));
+    drop(application);
+
+    let reopened = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+    assert_eq!(reopened.graphical_form.as_ref().unwrap().gears.len(), 4);
+    assert!(reopened.graphical_form.as_ref().unwrap().cords.is_empty());
+    assert_eq!(
+        reopened.layout.position("gear/making/literal"),
+        Some((410, 180))
+    );
+    assert_eq!(
+        reopened
+            .layout
+            .gears
+            .iter()
+            .find(|placement| placement.gear_identity == "gear/making/literal")
+            .and_then(|placement| placement.group.as_deref()),
+        Some("sources")
+    );
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_file(directory.join("making.conduit.patchbay.json")).unwrap();
     std::fs::remove_dir(directory).unwrap();
 }
 
@@ -469,7 +611,7 @@ fn invalid_request_construction_restores_interaction_state() {
         .subject_ref(graph.subject_identities().next().unwrap())
         .unwrap();
     let mut oversized = valid.clone();
-    oversized.subject_identity = "x".repeat(129);
+    oversized.subject_identity = "x".repeat(patchbay_model::MAX_INTERACTION_ID_BYTES + 1);
     assert!(application
         .handle_gui_action(GuiAction::SelectSubject(oversized))
         .unwrap_err()

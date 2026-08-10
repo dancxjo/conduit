@@ -17,6 +17,12 @@ pub enum GuiAction {
     SaveForm,
     ToggleLinearView,
     PlacePaletteKind(String),
+    DuplicateGear(patchbay_model::PatchbaySubjectRef),
+    RemoveGear(patchbay_model::PatchbaySubjectRef),
+    ConnectPorts {
+        source: patchbay_model::PatchbaySubjectRef,
+        sink: patchbay_model::PatchbaySubjectRef,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

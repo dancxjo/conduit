@@ -6,41 +6,9 @@ use conduit_form::{
 };
 use std::path::{Path, PathBuf};
 
+pub use crate::form_editor_error::FormEditorError;
+
 const MAX_GRAPH_ITEMS: usize = 512;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FormEditorError {
-    NotCanonicalFormPath,
-    SourceTooLarge,
-    Catalog(String),
-    StaleRevision { current: u64, offered: u64 },
-    UnknownForm(String),
-    GraphTooLarge,
-    UnknownPaletteKind(String),
-    InvalidGearName,
-}
-
-impl std::fmt::Display for FormEditorError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NotCanonicalFormPath => f.write_str("canonical Form paths must end in .conduit"),
-            Self::SourceTooLarge => {
-                f.write_str("canonical Form source exceeds its finite byte bound")
-            }
-            Self::Catalog(message) => write!(f, "Form catalog error: {message}"),
-            Self::StaleRevision { current, offered } => write!(
-                f,
-                "stale checked revision {offered} cannot replace current revision {current}"
-            ),
-            Self::UnknownForm(name) => write!(f, "checked Form has no reusable form '{name}'"),
-            Self::GraphTooLarge => f.write_str("checked Form graph exceeds its finite item bound"),
-            Self::UnknownPaletteKind(kind) => write!(f, "palette Kind '{kind}' is unavailable"),
-            Self::InvalidGearName => f.write_str("generated Gear name is not canonical"),
-        }
-    }
-}
-
-impl std::error::Error for FormEditorError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EditorDiagnostic {

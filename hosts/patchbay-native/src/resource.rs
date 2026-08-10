@@ -53,6 +53,61 @@ pub fn save_form_resource(editor: &mut FormEditor) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+const MAX_LAYOUT_BYTES: u64 = 64 * 1024;
+
+pub fn open_layout_resource(editor: &FormEditor) -> Result<patchbay_model::PatchbayLayout, String> {
+    let path = layout_path(editor);
+    let metadata = match fs::symlink_metadata(&path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Default::default()),
+        Err(error) => return Err(error.to_string()),
+    };
+    if !metadata.file_type().is_file() || metadata.len() > MAX_LAYOUT_BYTES {
+        return Err("Patchbay layout resource is not one bounded regular file".into());
+    }
+    let encoded = fs::read(&path).map_err(|error| error.to_string())?;
+    let layout: patchbay_model::PatchbayLayout =
+        serde_json::from_slice(&encoded).map_err(|error| error.to_string())?;
+    layout
+        .validate()
+        .map_err(|error| format!("invalid Patchbay layout: {error:?}"))?;
+    Ok(layout)
+}
+
+pub fn save_layout_resource(
+    editor: &FormEditor,
+    layout: &patchbay_model::PatchbayLayout,
+) -> Result<(), String> {
+    layout
+        .validate()
+        .map_err(|error| format!("invalid Patchbay layout: {error:?}"))?;
+    let path = layout_path(editor);
+    let encoded = serde_json::to_vec_pretty(layout).map_err(|error| error.to_string())?;
+    if encoded.len() as u64 > MAX_LAYOUT_BYTES {
+        return Err("Patchbay layout resource exceeds its finite byte bound".into());
+    }
+    let temporary = path.with_extension("patchbay-layout-save");
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .map_err(|error| error.to_string())?;
+    if let Err(error) = file.write_all(&encoded).and_then(|_| file.sync_all()) {
+        let _ = fs::remove_file(&temporary);
+        return Err(error.to_string());
+    }
+    fs::rename(&temporary, path).map_err(|error| {
+        let _ = fs::remove_file(&temporary);
+        error.to_string()
+    })
+}
+
+pub fn layout_path(editor: &FormEditor) -> PathBuf {
+    let mut value = editor.view().path.into_os_string();
+    value.push(".patchbay.json");
+    PathBuf::from(value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

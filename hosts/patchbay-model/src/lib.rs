@@ -19,9 +19,11 @@ mod build_birth;
 mod control;
 mod cross_host_renderer;
 mod form_editor;
+mod form_editor_error;
 mod form_edits;
 mod graphical_patchbay;
 mod interaction;
+mod layout;
 mod palette;
 mod portable_demo;
 mod portable_projection;
@@ -56,7 +58,11 @@ pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction,
     PatchbayInteraction, PatchbayInteractionRequest, PatchbayInteractionRequestId,
     PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal, MAX_INTERACTION_HISTORY,
-    MAX_INTERACTION_VALUE_BYTES,
+    MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
+};
+pub use layout::{
+    GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
+    MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
 };
 pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,

@@ -42,12 +42,20 @@ pub struct LifecycleContext {
     pub play_id: Option<String>,
 }
 
+pub struct PatchbayViewContext<'a> {
+    pub selected: Option<&'a str>,
+    pub lifecycle: &'a LifecycleContext,
+    pub palette_query: &'a str,
+    pub presentation_layout: &'a patchbay_model::PatchbayLayout,
+}
+
 #[derive(Clone)]
 struct GearLayout<'a> {
     gear: &'a PatchbayGear,
     bounds: PixelRect,
     inputs: Vec<(String, Point)>,
     outputs: Vec<(String, Point)>,
+    group: Option<String>,
 }
 
 pub fn draw_patchbay(
@@ -55,10 +63,14 @@ pub fn draw_patchbay(
     width: usize,
     height: usize,
     graph: &PatchbayGraph,
-    selected: Option<&str>,
-    lifecycle: &LifecycleContext,
-    palette_query: &str,
+    view: PatchbayViewContext<'_>,
 ) -> Vec<HitTarget> {
+    let PatchbayViewContext {
+        selected,
+        lifecycle,
+        palette_query,
+        presentation_layout,
+    } = view;
     debug_assert!(Icon::ALL
         .iter()
         .all(|icon| !icon.accessibility_name().is_empty()));
@@ -79,7 +91,7 @@ pub fn draw_patchbay(
         theme,
     );
     draw_header(&mut canvas, graph, lifecycle, theme);
-    let layouts = layout_gears(graph, width);
+    let layouts = layout_gears(graph, width, presentation_layout);
     let mut targets = Vec::with_capacity(
         MAX_HIT_TARGETS.min(
             3 + graph.gears.len()
@@ -234,7 +246,11 @@ fn action_button<D: DrawTarget<Color = Rgb888>>(
     });
 }
 
-fn layout_gears(graph: &PatchbayGraph, width: i32) -> Vec<GearLayout<'_>> {
+fn layout_gears<'a>(
+    graph: &'a PatchbayGraph,
+    width: i32,
+    presentation_layout: &patchbay_model::PatchbayLayout,
+) -> Vec<GearLayout<'a>> {
     let canvas_left = NAV_WIDTH + 28;
     let canvas_right = (width - INSPECTOR_WIDTH - 28).max(canvas_left + NODE_WIDTH);
     let columns = ((canvas_right - canvas_left) / (NODE_WIDTH + 64)).max(1) as usize;
@@ -245,14 +261,17 @@ fn layout_gears(graph: &PatchbayGraph, width: i32) -> Vec<GearLayout<'_>> {
         .map(|(index, gear)| {
             let column = index % columns;
             let row = index / columns;
-            let x = canvas_left + column as i32 * (NODE_WIDTH + 64);
+            let default_x = canvas_left + column as i32 * (NODE_WIDTH + 64);
             let prior_height = graph
                 .gears
                 .chunks(columns)
                 .take(row)
                 .map(|gears| gears.iter().map(gear_height).max().unwrap_or(0) + 36)
                 .sum::<i32>();
-            let y = HEADER_HEIGHT + 28 + prior_height;
+            let default_y = HEADER_HEIGHT + 28 + prior_height;
+            let (x, y) = presentation_layout
+                .position(&gear.identity)
+                .unwrap_or((default_x, default_y));
             let node_height = gear_height(gear);
             let bounds = PixelRect {
                 x,
@@ -265,6 +284,11 @@ fn layout_gears(graph: &PatchbayGraph, width: i32) -> Vec<GearLayout<'_>> {
                 bounds,
                 inputs: port_points(&gear.inputs, x, y),
                 outputs: port_points(&gear.outputs, x + NODE_WIDTH, y),
+                group: presentation_layout
+                    .gears
+                    .iter()
+                    .find(|placement| placement.gear_identity == gear.identity)
+                    .and_then(|placement| placement.group.clone()),
             }
         })
         .collect()
@@ -315,7 +339,10 @@ fn draw_gear<D: DrawTarget<Color = Rgb888>>(
     text(
         target,
         Point::new(layout.bounds.x + 34, layout.bounds.y + 10),
-        layout.gear.gear_id.as_str(),
+        &match &layout.group {
+            Some(group) => format!("{} [{group}]", layout.gear.gear_id.as_str()),
+            None => layout.gear.gear_id.as_str().to_owned(),
+        },
         theme.text_primary,
     );
     text(

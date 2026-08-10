@@ -1,5 +1,5 @@
 use crate::{
-    gui::{draw_patchbay, GuiAction, LifecycleContext},
+    gui::{draw_patchbay, GuiAction, LifecycleContext, PatchbayViewContext},
     icon::Icon,
     render::BACKGROUND,
 };
@@ -32,9 +32,12 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
         1100,
         720,
         &graph,
-        None,
-        &LifecycleContext::default(),
-        "",
+        PatchbayViewContext {
+            selected: None,
+            lifecycle: &LifecycleContext::default(),
+            palette_query: "",
+            presentation_layout: &Default::default(),
+        },
     );
     assert_eq!(
         targets.len(),
@@ -88,9 +91,12 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
         10,
         10,
         &graph,
-        Some(&selected),
-        &LifecycleContext::default(),
-        "",
+        PatchbayViewContext {
+            selected: Some(&selected),
+            lifecycle: &LifecycleContext::default(),
+            palette_query: "",
+            presentation_layout: &Default::default(),
+        },
     );
     assert_eq!(storage[0], guard);
     assert_eq!(storage[101], guard);
@@ -113,9 +119,12 @@ fn palette_query_visibly_filters_the_authoritative_entries() {
         1100,
         720,
         &graph,
-        None,
-        &LifecycleContext::default(),
-        "value/count",
+        PatchbayViewContext {
+            selected: None,
+            lifecycle: &LifecycleContext::default(),
+            palette_query: "value/count",
+            presentation_layout: &Default::default(),
+        },
     );
     let kinds = targets
         .iter()
@@ -125,4 +134,46 @@ fn palette_query_visibly_filters_the_authoritative_entries() {
         })
         .collect::<Vec<_>>();
     assert_eq!(kinds, ["state/count", "presentation/count"]);
+}
+
+#[test]
+fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
+    let graph = graph();
+    let identities = (
+        graph.source_document_id.clone(),
+        graph.checked_form_id.clone(),
+        graph.expanded_form_id.clone(),
+        graph.cords.clone(),
+    );
+    let subject = graph.subject_ref(&graph.gears[0].identity).unwrap();
+    let mut layout = patchbay_model::PatchbayLayout::default();
+    layout.move_gear(&graph, &subject, 500, 300).unwrap();
+    let mut pixels = vec![BACKGROUND; 1100 * 720];
+    let targets = draw_patchbay(
+        &mut pixels,
+        1100,
+        720,
+        &graph,
+        PatchbayViewContext {
+            selected: None,
+            lifecycle: &LifecycleContext::default(),
+            palette_query: "",
+            presentation_layout: &layout,
+        },
+    );
+    assert!(targets.iter().any(|target| {
+        matches!(
+            &target.action,
+            GuiAction::SelectSubject(candidate) if candidate == &subject
+        ) && target.contains(510.0, 310.0)
+    }));
+    assert_eq!(
+        identities,
+        (
+            graph.source_document_id,
+            graph.checked_form_id,
+            graph.expanded_form_id,
+            graph.cords,
+        )
+    );
 }
