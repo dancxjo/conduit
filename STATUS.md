@@ -7,6 +7,7 @@ adapter or physical proof.
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation Play start vectors | same scheduler with preallocated hosted storage; installed Signal pair, local and remote three-target fan-out, typed multi-value std profiles, distributed Signal, and admitted Play start/toggle sources execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM Signal and toggle sinks execute exact remote-ingress fragments through the same scheduler before bounded DOM presentation | Pico W firmware consumes generated fixed kernel tables for exact local, std→Pico, and final three-host fragments; its active kernel/transport storage remains finite | bounded loopback WebSocket and physical USB CDC remote Cords; Bases own Line I/O only | exact Pico-local, std↔Pico, and final std/browser/Pico board runs recorded |
+| Exact local timing profile | platform-neutral deadline requirement remains separate from boot-scoped clock/timer/execution offers and the exact Plan timing/resource basis | deterministic-emulator proof admits one 1,000 µs local Plan with a sealed 730 µs worst-case basis, refuses a 100 µs request before Play, and keeps met/missed/Base-loss/cancelled/stale outcomes distinct | the accepted strict path runs the existing fixed `conduit-kernel` scheduler with zero successful heap allocations and exact Plan/Play-correlated timing Signs; inspection is excluded | no browser timing claim | no firmware timing claim | local only; no remote guarantee | no physical timing claim; any future claim requires separate pinned-hardware proof |
 | Exact plan, play, Sign, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued Sign identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/Play start mutation, unique Sign, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and clean firmware build identity; runtime-generated boot/play plus presentation/sign identities are carried in USB records and checked across physical sessions | live sessions verify exact base instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | matching physical receipts retain exact plan/fragment/play/presentation/sign/link/base/boot/build identity |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal Sign, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Canonical Form execution corpus | canonical face/back source, declarative startup binding, recursive expansion, exact checked-face compatibility including temporal shape, and distinct source/checked/expanded/Plan identities | Programs 1–4 deterministic positive/negative corpus; Program 6 exact two-host planning and link-failure vectors | real std `text/*`, `time/every`, `state/count`, and presentation leaves execute through the existing kernel with bounded Sign and stable capacity | Program 6 browser/WASM sink executes the unchanged canonical Signal source's exact remote fragment | no new firmware claim | actual loopback WebSocket carries the Program 6 Conduit session; it is not an authored external WebSocket operation | no new physical/HIL claim |
@@ -34,6 +35,10 @@ adapter or physical proof.
 The `check` workflow requires:
 
 - workspace formatting, Clippy, and tests;
+- one exact deterministic local timing profile with finite clock, timer,
+  execution, arena, Cord, wake, Base scratch, mandatory Sign, and fault-reserve
+  bounds; pre-Play unschedulable refusal; zero-allocation strict execution; and
+  distinct met, missed, Base-loss, cancellation, and stale-basis Signs;
 - no-std checks for the salvage kernel, semantic, wire, and std-catalog contracts;
 - hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, atomic
   join, retained-state/latest, host lifecycle, closure, and cancellation vectors;
@@ -639,3 +644,24 @@ backend, firmware, or physical/HIL claim. The active P0-P5 #588 spine is now
 implemented; frozen architecture, profile, lane/preemption, and platform
 breadth remain dormant until deliberately promoted. The final #588 closure
 audit remains separate from this acceptance record.
+
+The first exact local timing profile from #706 is accepted at exact main
+`bd1fdebf3c22da0553743bedfdaeb886078c56b2`; push workflow `31394899842`
+passed `check`, `browser-host`, and `conduitos-boot`. The unchanged
+platform-neutral `time/tick -> presentation/tick` Form is paired with one
+boot-scoped deterministic clock/timer/execution offer. Planning seals a finite
+730 µs worst-case timing and resource basis for a 1,000 µs deadline and
+refuses an otherwise-compatible 100 µs request before an ActivePlay exists.
+
+The exact basis includes arena, capacity-one eight-byte Cord, wake and timer
+slots, Base scratch, mandatory Sign storage, and fault reserve. The admitted
+Play executes through the existing fixed `conduit-kernel` scheduler with zero
+successful heap allocations after Play entry. Exact Plan/Play-correlated Signs
+keep deadline met, deadline miss, Timer Base loss, cancellation, and stale
+timing basis distinct. Optional inspection is excluded from the strict path.
+
+This remains `deterministic-emulator` proof. It adds no universal hard-real-time
+claim, physical timing evidence, remote guarantee, mixed-criticality
+framework, work stealing, CPU migration/hotplug, generic schedulability
+optimizer, RTOS, or second scheduler. A physical timing claim requires a
+separate pinned-hardware proof.
