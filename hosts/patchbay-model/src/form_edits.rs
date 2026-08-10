@@ -251,7 +251,7 @@ impl FormEditor {
         self.apply_candidate(candidate)
     }
 
-    fn require_revision(&self, offered: u64) -> Result<(), FormEditorError> {
+    pub(crate) fn require_revision(&self, offered: u64) -> Result<(), FormEditorError> {
         if offered != self.revision {
             return Err(FormEditorError::StaleRevision {
                 current: self.revision,
@@ -269,7 +269,7 @@ impl FormEditor {
             .ok_or_else(|| FormEditorError::UnknownForm(self.open_form.clone()))
     }
 
-    fn apply_candidate(&mut self, candidate: String) -> Result<(), FormEditorError> {
+    pub(crate) fn apply_candidate(&mut self, candidate: String) -> Result<(), FormEditorError> {
         ensure_source_bound(&candidate)?;
         let next_revision = self.revision.saturating_add(1);
         let checked = check_revision(next_revision, &candidate)?;

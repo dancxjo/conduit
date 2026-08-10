@@ -24,6 +24,11 @@ pub enum GuiAction {
         source: patchbay_model::PatchbaySubjectRef,
         sink: patchbay_model::PatchbaySubjectRef,
     },
+    ConfigureGear {
+        subject: PatchbaySubjectRef,
+        key: String,
+        value: conduit_core::ConfigurationValue,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

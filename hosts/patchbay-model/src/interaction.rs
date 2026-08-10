@@ -18,8 +18,8 @@ use conduit_form::{
 };
 use std::collections::VecDeque;
 
-pub const MAX_INTERACTION_ID_BYTES: usize = 384;
-pub const MAX_INTERACTION_VALUE_BYTES: u32 = 512;
+pub const MAX_INTERACTION_ID_BYTES: usize = 768;
+pub const MAX_INTERACTION_VALUE_BYTES: u32 = 1_024;
 pub const MAX_INTERACTION_HISTORY: usize = 32;
 
 const SELECT_KIND: &str = "interaction/select";
@@ -62,6 +62,7 @@ pub enum PatchbayAction {
     RemoveGear,
     RemoveCord,
     ConnectPorts,
+    ConfigureGear,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,6 +92,7 @@ pub enum PatchbayRefusal {
     OperationRejected,
     IncompatiblePorts,
     DuplicateCord,
+    InvalidConfiguration,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

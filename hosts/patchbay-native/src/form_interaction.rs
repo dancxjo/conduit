@@ -64,6 +64,11 @@ impl PatchbayApplication {
             GuiAction::ConnectPorts { source, sink } => {
                 self.dispatch_port_connection(&source, &sink)?
             }
+            GuiAction::ConfigureGear {
+                subject,
+                key,
+                value,
+            } => self.dispatch_gear_configuration(&subject, &key, value)?,
         }
         if let Some(window) = &self.window {
             window.request_redraw();
@@ -133,6 +138,9 @@ impl PatchbayApplication {
             InteractionDisposition::Refused(PatchbayRefusal::DuplicateCord) => {
                 Err("those Ports already have a Cord".into())
             }
+            InteractionDisposition::Refused(PatchbayRefusal::InvalidConfiguration) => {
+                Err("That value does not fit the type or visible bounds on this Gear Face".into())
+            }
             InteractionDisposition::Refused(reason) => {
                 Err(format!("interaction refused: {reason:?}"))
             }
@@ -153,6 +161,7 @@ impl PatchbayApplication {
                 | PatchbayAction::RemoveGear
                 | PatchbayAction::RemoveCord
                 | PatchbayAction::ConnectPorts
+                | PatchbayAction::ConfigureGear
         ) {
             return self.apply_authoring_edit(invocation);
         }
@@ -195,7 +204,8 @@ impl PatchbayApplication {
             PatchbayAction::DuplicateGear
             | PatchbayAction::RemoveGear
             | PatchbayAction::RemoveCord
-            | PatchbayAction::ConnectPorts => unreachable!("authoring edit returned above"),
+            | PatchbayAction::ConnectPorts
+            | PatchbayAction::ConfigureGear => unreachable!("authoring edit returned above"),
         };
         match result {
             Ok(()) => PatchbayInvocationOutcome::Succeeded,

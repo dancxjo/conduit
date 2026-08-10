@@ -17,6 +17,8 @@ pub enum FormEditorError {
     DuplicateCord,
     NestedGearEditUnsupported(String),
     StaleGraphBasis,
+    UnknownConfiguration(String),
+    InvalidConfiguration(String),
 }
 
 impl std::fmt::Display for FormEditorError {
@@ -47,6 +49,10 @@ impl std::fmt::Display for FormEditorError {
             Self::StaleGraphBasis => {
                 f.write_str("the visual edit names a stale expanded Form revision")
             }
+            Self::UnknownConfiguration(key) => {
+                write!(f, "Gear configuration '{key}' is unavailable")
+            }
+            Self::InvalidConfiguration(reason) => write!(f, "configuration edit refused: {reason}"),
         }
     }
 }

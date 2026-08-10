@@ -18,6 +18,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod build_birth;
 mod control;
 mod cross_host_renderer;
+mod face_configuration;
+mod face_controls;
 mod form_editor;
 mod form_editor_error;
 mod form_edits;
@@ -45,6 +47,7 @@ pub use cross_host_renderer::{
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
     PRESENTATION_PROJECT_KIND,
 };
+pub use face_controls::{FaceControl, FaceControlKind, MAX_FACE_CONTROLS};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
@@ -91,6 +94,8 @@ pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES
 
 #[cfg(test)]
 mod build_birth_tests;
+#[cfg(test)]
+mod face_configuration_tests;
 #[cfg(test)]
 mod graphical_patchbay_tests;
 #[cfg(test)]

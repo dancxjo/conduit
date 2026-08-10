@@ -23,6 +23,7 @@ mod font;
 mod form_authoring;
 mod form_interaction;
 mod gui;
+mod gui_face_controls;
 mod gui_hit;
 mod gui_inspector;
 mod gui_primitives;
@@ -494,3 +495,7 @@ mod render_tests;
 #[cfg(test)]
 #[path = "gui_tests.rs"]
 mod gui_tests;
+
+#[cfg(test)]
+#[path = "face_configuration_tests.rs"]
+mod face_configuration_tests;

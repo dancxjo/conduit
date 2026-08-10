@@ -15,6 +15,8 @@ pub enum PatchbayGraphError {
     TooManyGears,
     TooManyPorts,
     TooManyCords,
+    TooManyControls,
+    InvalidConfigurationContract,
     MissingCordEndpoint,
     CordContractMismatch,
     StaleGraphBasis,
@@ -27,6 +29,10 @@ impl std::fmt::Display for PatchbayGraphError {
             Self::TooManyGears => "Patchbay graph exceeds its finite Gear bound",
             Self::TooManyPorts => "Patchbay graph exceeds its finite Port bound",
             Self::TooManyCords => "Patchbay graph exceeds its finite Cord bound",
+            Self::TooManyControls => "Patchbay Gear exceeds its finite Face-control bound",
+            Self::InvalidConfigurationContract => {
+                "Patchbay Gear configuration differs from its authoritative Kind contract"
+            }
             Self::MissingCordEndpoint => "Patchbay Cord does not name two admitted exact Ports",
             Self::CordContractMismatch => {
                 "Patchbay Cord Info or temporal contract differs from its exact Ports"
@@ -62,6 +68,9 @@ pub struct PatchbayGear {
     pub kind_id: KindId,
     pub inputs: Vec<PatchbayPort>,
     pub outputs: Vec<PatchbayPort>,
+    /// Direct, finite controls projected from the exact checked configuration
+    /// and its authoritative Kind contract. This is never a configuration store.
+    pub controls: Vec<crate::FaceControl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -119,22 +128,25 @@ impl PatchbayGraph {
         let gears = form
             .gears
             .iter()
-            .map(|gear| PatchbayGear {
-                identity: format!("gear/{}", gear.gear_id.as_str()),
-                gear_id: gear.gear_id.clone(),
-                kind_id: gear.kind_id.clone(),
-                inputs: gear
-                    .inputs
-                    .iter()
-                    .map(|port| patchbay_port(&gear.gear_id, port))
-                    .collect(),
-                outputs: gear
-                    .outputs
-                    .iter()
-                    .map(|port| patchbay_port(&gear.gear_id, port))
-                    .collect(),
+            .map(|gear| {
+                Ok(PatchbayGear {
+                    identity: format!("gear/{}", gear.gear_id.as_str()),
+                    gear_id: gear.gear_id.clone(),
+                    kind_id: gear.kind_id.clone(),
+                    inputs: gear
+                        .inputs
+                        .iter()
+                        .map(|port| patchbay_port(&gear.gear_id, port))
+                        .collect(),
+                    outputs: gear
+                        .outputs
+                        .iter()
+                        .map(|port| patchbay_port(&gear.gear_id, port))
+                        .collect(),
+                    controls: crate::face_controls::project_controls(gear)?,
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, PatchbayGraphError>>()?;
         let mut cords = Vec::with_capacity(form.connections.len());
         for (index, connection) in form.connections.iter().enumerate() {
             let source = port_identity(

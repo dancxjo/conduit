@@ -7,6 +7,33 @@ use patchbay_model::{
 };
 
 impl PatchbayApplication {
+    pub(super) fn dispatch_gear_configuration(
+        &mut self,
+        subject: &PatchbaySubjectRef,
+        key: &str,
+        value: conduit_core::ConfigurationValue,
+    ) -> Result<(), String> {
+        let editor = self
+            .form_editor
+            .as_ref()
+            .ok_or("canonical Form editor is absent")?;
+        let view = editor.view();
+        let source_id = view
+            .checked
+            .source_document_id
+            .ok_or("checked canonical Form identity is absent")?;
+        let target = format!(
+            "{}@{}@{}@{}@{}@{}",
+            source_id.as_str(),
+            view.revision,
+            subject.expanded_form_id.as_str(),
+            subject.subject_identity,
+            key,
+            encode_value(&value)
+        );
+        self.dispatch_authoring_invocation(PatchbayAction::ConfigureGear, target)
+    }
+
     pub(super) fn dispatch_palette_placement(&mut self, kind: &str) -> Result<(), String> {
         let editor = self
             .form_editor
@@ -145,10 +172,10 @@ impl PatchbayApplication {
         invocation: &PatchbayInvocation,
     ) -> PatchbayInvocationOutcome {
         let fields = invocation.target_identity.split('@').collect::<Vec<_>>();
-        let expected = if invocation.action == PatchbayAction::ConnectPorts {
-            5
-        } else {
-            4
+        let expected = match invocation.action {
+            PatchbayAction::ConnectPorts => 5,
+            PatchbayAction::ConfigureGear => 6,
+            _ => 4,
         };
         if fields.len() != expected {
             return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
@@ -192,6 +219,16 @@ impl PatchbayApplication {
                 fields[3],
                 fields[4],
             ),
+            PatchbayAction::ConfigureGear => direct_gear_name(fields[3]).and_then(|name| {
+                let value = decode_value(fields[5])?;
+                editor.set_gear_configuration(
+                    revision,
+                    &conduit_core::ExpandedFormId::from(fields[2]),
+                    name,
+                    fields[4],
+                    value,
+                )
+            }),
             _ => unreachable!("authoring action was matched"),
         };
         if let Err(error) = edit {
@@ -201,6 +238,10 @@ impl PatchbayApplication {
                 }
                 patchbay_model::FormEditorError::DuplicateCord => {
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::DuplicateCord)
+                }
+                patchbay_model::FormEditorError::InvalidConfiguration(_)
+                | patchbay_model::FormEditorError::UnknownConfiguration(_) => {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::InvalidConfiguration)
                 }
                 patchbay_model::FormEditorError::StaleRevision { .. }
                 | patchbay_model::FormEditorError::StaleGraphBasis => {
@@ -214,6 +255,62 @@ impl PatchbayApplication {
             return PatchbayInvocationOutcome::Failed;
         }
         PatchbayInvocationOutcome::Succeeded
+    }
+}
+
+fn encode_value(value: &conduit_core::ConfigurationValue) -> String {
+    let (tag, bytes): (&str, Vec<u8>) = match value {
+        conduit_core::ConfigurationValue::Bool(value) => ("b", value.to_string().into_bytes()),
+        conduit_core::ConfigurationValue::U64(value) => ("u", value.to_string().into_bytes()),
+        conduit_core::ConfigurationValue::Text(value) => ("t", value.as_bytes().to_vec()),
+    };
+    let hex = bytes
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("{tag}{hex}")
+}
+
+fn decode_value(
+    encoded: &str,
+) -> Result<conduit_core::ConfigurationValue, patchbay_model::FormEditorError> {
+    let (tag, hex) = encoded.split_at(encoded.len().min(1));
+    if hex.len() % 2 != 0 {
+        return Err(patchbay_model::FormEditorError::InvalidConfiguration(
+            "malformed control value".into(),
+        ));
+    }
+    let bytes = (0..hex.len())
+        .step_by(2)
+        .map(|index| u8::from_str_radix(&hex[index..index + 2], 16))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| {
+            patchbay_model::FormEditorError::InvalidConfiguration("malformed control value".into())
+        })?;
+    let text = String::from_utf8(bytes).map_err(|_| {
+        patchbay_model::FormEditorError::InvalidConfiguration("control text is not UTF-8".into())
+    })?;
+    match tag {
+        "b" => text
+            .parse::<bool>()
+            .map(conduit_core::ConfigurationValue::Bool)
+            .map_err(|_| {
+                patchbay_model::FormEditorError::InvalidConfiguration(
+                    "expected true or false".into(),
+                )
+            }),
+        "u" => text
+            .parse::<u64>()
+            .map(conduit_core::ConfigurationValue::U64)
+            .map_err(|_| {
+                patchbay_model::FormEditorError::InvalidConfiguration(
+                    "expected a whole number".into(),
+                )
+            }),
+        "t" => Ok(conduit_core::ConfigurationValue::Text(text)),
+        _ => Err(patchbay_model::FormEditorError::InvalidConfiguration(
+            "unknown control value type".into(),
+        )),
     }
 }
 
