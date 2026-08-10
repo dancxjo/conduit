@@ -523,3 +523,35 @@ ordinary checking/planning/lowering, preemption, SMP, APIC/IOAPIC,
 framebuffer, network, transport, non-x86_64 execution, physical/HIL claim,
 ConduitOS inspection surface, or second runtime. Those remain owned by later
 #588 slices.
+
+The ConduitOS ordinary-Form slice from #588 is accepted at exact main
+`4d368a8f55197fcc7416ea82f2ffca5b61ce830e`; push workflow `31345447440`
+passed `check`, `browser-host`, and `conduitos-boot`. On each of two fresh
+x86_64 QEMU boots, ConduitOS checks the same authored
+`time/tick -> presentation/tick` Form, constructs a finite boot-scoped host
+advertisement, plans exact placements and a capacity-one eight-byte Cord,
+lowers the resulting fragment into production `conduit-kernel` tables, issues
+an ActivePlay, services one real PIT wake through an admitted Timer operation,
+and presents semantic result `tick-sequence-0` through the admitted bounded
+Serial operation. Source-document, checked-form, and expanded-form identities
+remain stable across boots; Host, Boot, Plan, fragment, ActivePlay, and Base
+identities remain exact and boot-scoped.
+
+The shared Form, planner, lowering, and standard-catalog path runs here under
+`no_std + alloc`; a 256 KiB boot arena admits all semantic preparation and is
+sealed before Play. Both exact-main boots reported 80,422 bytes allocated
+before and after Play, zero pending host operations, and finite Cord, Sign,
+timer, serial, interrupt-fact, route, value, and operation storage. A std-host
+compatibility vector proves that materially different implementations produce
+different exact Plans while preserving the same Form result. Deterministic
+negatives keep stale boot and Plan identities, unavailable implementations,
+insufficient memory/Timer/Sign/Cord budgets, cancellation and late wake, and
+Timer Base failure distinct and fail-closed.
+
+This remains `freestanding-emulator` proof. It adds no Observatory/Patchbay
+inspection surface, full Rust standard library, preemption, SMP, APIC/IOAPIC,
+filesystem, framebuffer, network, transport, non-x86_64 execution, firmware,
+or physical/HIL claim. The earlier hand-lowered profile remains only a named
+P2/P3 regression fixture; production boot follows the ordinary Form pipeline
+and the single `conduit-kernel`. P5 inspection truth and the final #588 audit
+remain open.
