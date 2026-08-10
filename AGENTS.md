@@ -58,6 +58,16 @@ Parallel work is encouraged only when ownership is clear.
 - Do not close an issue through a PR-body keyword unless every acceptance criterion is complete and exact-main evidence exists.
 - Preserve old evidence and discussion. Correct stale claims in place; do not erase history to make the present look cleaner.
 
+## Executable entrances
+
+`conduit` is the product entrance. `cargo xtask` is the repository-development entrance.
+
+- Public executable workflows MUST enter through `conduit`.
+- Repository development, validation, proof, hardware development, and demonstration workflows MUST enter through `cargo xtask`.
+- A documented runnable capability MUST have one of those entrances.
+- `just` may provide optional thin recipes only when each delegates directly to `conduit` or `cargo xtask`; it may not own behavior or become a required interface. Direct Cargo package invocations, npm/npx, test-runner commands, platform build commands, raw implementation environment switches, and implementation binaries remain internal conveniences and MUST NOT be required user interfaces. Named credential-environment references accepted by `cargo xtask` remain permitted so secrets do not enter arguments or logs.
+- Promoting an experience from `cargo xtask demo ...` to `conduit ...` is a product-boundary change. Do not merely alias repository paths into the installed CLI.
+
 ## Rust module boundaries
 
 Large Rust files are an architectural warning, not a badge of productivity. Do not make a crate root, host adapter, scheduler, parser, or integration-test file the dumping ground for an entire subsystem.

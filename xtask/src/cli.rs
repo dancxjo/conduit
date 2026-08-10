@@ -136,6 +136,14 @@ pub struct DemoArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum DemoCommand {
+    /// Run the native Signal Form through the production kernel.
+    Std,
+    /// Run the three-sink Form entirely on the native Host.
+    Triple,
+    /// Build and launch the native Patchbay from this checkout.
+    Patchbay,
+    /// Alias for the actual-browser distributed toggle demonstration.
+    Browser,
     /// Run the S4 distributed toggle proof interactively.
     Toggle,
     /// Run the Conduit-driven project homepage interactively.
@@ -212,6 +220,11 @@ mod tests {
                 command: DemoCommand::Toggle
             })
         ));
+
+        for command in ["std", "triple", "patchbay", "browser"] {
+            Cli::try_parse_from(["xtask", "demo", command])
+                .unwrap_or_else(|error| panic!("demo {command} must parse: {error}"));
+        }
 
         let site =
             Cli::try_parse_from(["xtask", "demo", "site"]).expect("demo site command parses");

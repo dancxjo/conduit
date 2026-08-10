@@ -72,8 +72,8 @@ present in default production `StdHost`.
 ## Proof commands
 
 ```bash
-just check-kernel-takeover
-just check
+cargo xtask check kernel-takeover
+cargo xtask check workspace
 ```
 
 WASM, browser, socket, firmware, and physical tests do not prove this gate.

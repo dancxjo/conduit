@@ -38,7 +38,7 @@ cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulat
 cargo check -p conduit-browser-sim --target wasm32-unknown-unknown
 cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
 cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
-just check-sim-readiness
+cargo xtask check sim
 npm run test:browser-host
 ```
 

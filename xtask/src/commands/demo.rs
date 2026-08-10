@@ -1,0 +1,65 @@
+//! Repository demonstration entrances that hide package and fixture details.
+
+use crate::cli::GlobalOpts;
+use crate::process::{run_step, Step};
+use crate::workspace::workspace_root;
+
+pub fn run_std(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    run(
+        "demo.std",
+        "Run the native Signal Form",
+        &[
+            "run",
+            "-p",
+            "conduit",
+            "--",
+            "run",
+            "examples/signal-demo.form",
+            "--placements",
+            "examples/std-local.placements",
+        ],
+        opts,
+    )
+}
+
+pub fn run_triple(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    run(
+        "demo.triple",
+        "Run the three-sink Form locally",
+        &[
+            "run",
+            "-p",
+            "conduit",
+            "--",
+            "run",
+            "examples/triple-signal.form",
+            "--placements",
+            "examples/triple-local.placements",
+        ],
+        opts,
+    )
+}
+
+fn run(
+    id: &'static str,
+    description: &'static str,
+    args: &'static [&'static str],
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let step = Step::new(id, description, "cargo", args);
+    run_step(&step, &root, opts)?;
+    Ok(())
+}
+
+pub fn run_patchbay(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let step = Step::new(
+        "demo.patchbay",
+        "Build and launch the native Patchbay from this checkout",
+        "cargo",
+        &["run", "-p", "patchbay-native"],
+    );
+    run_step(&step, &root, opts)?;
+    Ok(())
+}

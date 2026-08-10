@@ -301,6 +301,7 @@ dependencies = [
 name = "conduit"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "conduit-browser-sim",
  "conduit-core",
  "conduit-form",

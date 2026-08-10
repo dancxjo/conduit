@@ -10,25 +10,25 @@ boundary when those categories differ.
 
 ## Prerequisites
 
-Start from the repository root with a recent Rust toolchain. The convenience
-commands below use `just`; repository orchestration itself lives in `xtask`.
+Start from the repository root with a recent Rust toolchain. Repository
+orchestration, demonstrations, and proofs enter through `cargo xtask`.
 
 Inspect the current host before trying platform-specific programs:
 
 ```bash
-just doctor
+cargo xtask doctor
 ```
 
 For browser work:
 
 ```bash
-just doctor browser
+cargo xtask doctor browser
 ```
 
 For Pico W work:
 
 ```bash
-just doctor pico
+cargo xtask doctor pico
 ```
 
 ## 1. Run one form on the native std host
@@ -36,7 +36,7 @@ just doctor pico
 The smallest useful program is the unchanged Signal form:
 
 ```bash
-just demo-std
+cargo xtask demo std
 ```
 
 This parses and checks `examples/signal-demo.form`, plans it onto the actual
@@ -70,7 +70,7 @@ plan facts.
 A larger all-local fan-out is available with:
 
 ```bash
-just demo-triple-local
+cargo xtask demo triple
 ```
 
 ## 2. See an actual browser host
@@ -78,7 +78,7 @@ just demo-triple-local
 The most immediate visual demonstration is the interactive distributed toggle:
 
 ```bash
-just toggle
+cargo xtask demo browser
 ```
 
 This is not the browser simulation. The command:
@@ -120,8 +120,8 @@ globalThis.__distributedToggleProof
 For non-interactive accepted browser proofs, use:
 
 ```bash
-just prove-std-browser-s4
-just prove-std-browser-toggle
+cargo xtask prove std-browser-s4
+cargo xtask prove std-browser-toggle
 ```
 
 These run deterministic hosted proof suites rather than asking an operator to
@@ -132,8 +132,7 @@ press keys.
 A native run can emit a neutral runtime-report artifact:
 
 ```bash
-cargo run -p conduit -- \
-  examples/signal-demo.form \
+conduit run examples/signal-demo.form \
   --placements examples/std-local.placements \
   --report /tmp/conduit-run.json
 ```
@@ -141,8 +140,7 @@ cargo run -p conduit -- \
 Render that artifact without controlling the runtime:
 
 ```bash
-cargo run -p conduit -- \
-  observatory-report /tmp/conduit-run.json
+conduit inspect runtime-report /tmp/conduit-run.json
 ```
 
 The resulting report exposes the machine Conduit actually realized. Among other
@@ -198,24 +196,11 @@ or mount path. The ordinary flash command uses it automatically; no desktop
 automounter is required.
 
 ```bash
-just pico-build-remote
-just pico-flash-remote
-```
-
-Or using `xtask` directly:
-
-```bash
 cargo xtask pico build --usb-remote
 cargo xtask pico flash --usb-remote
 ```
 
 Then start the interactive std-to-Pico session:
-
-```bash
-just prove-std-pico-usb --interactive
-```
-
-or via `xtask`:
 
 ```bash
 cargo xtask prove std-pico-usb --interactive
@@ -238,12 +223,6 @@ the board.
 The non-interactive exact Line proof is:
 
 ```bash
-just prove-std-pico-usb
-```
-
-or:
-
-```bash
 cargo xtask prove std-pico-usb
 ```
 
@@ -262,40 +241,23 @@ ordinary no-hardware browser suite.
 Build and flash the exact Pico image:
 
 ```bash
-just pico-build --triple-remote
-just pico-flash --triple-remote
-```
-
-or via `xtask`:
-
-```bash
 cargo xtask pico build --triple-remote
 cargo xtask pico flash --triple-remote
 ```
 
-Then run the hardware-gated browser/physical proof:
+The current one-command hardware-gated browser/Pico recovery proof supersedes
+the older direct test-runner recipe:
 
 ```bash
-CONDUIT_THREE_HOST=1 \
-  npx playwright test \
-  --config hosts/browser/playwright.config.mjs \
-  hosts/browser/triple-signal.spec.mjs
+cargo xtask prove r1-hil --interactive \
+  --ssid-env CONDUIT_WIFI_SSID \
+  --credential-env CONDUIT_WIFI_PASSWORD
 ```
 
-The accepted success vector records sixteen matching ordered stdout, DOM, and
-physical LED receipts. The corresponding broken-browser-link physical negative
-is available with:
-
-```bash
-CONDUIT_THREE_HOST=1 \
-CONDUIT_THREE_HOST_FAILURE=1 \
-  npx playwright test \
-  --config hosts/browser/playwright.config.mjs \
-  hosts/browser/triple-signal.spec.mjs
-```
-
-See issue #350 and `STATUS.md` for the exact accepted Sign boundary rather
-than treating these commands alone as proof of a historical run.
+The accepted success vector records matching stdout, DOM, and physical LED
+receipts across the R1 recovery lifecycle. See closed roadmap issue #361 and
+`STATUS.md` for the exact accepted Sign boundary rather than treating this
+command alone as proof of a historical run.
 
 ## 6. What the platform can do now
 
@@ -320,13 +282,12 @@ reason to blur the difference between installed code and user-facing programs.
 
 These commands intentionally represent different levels of Sign:
 
-- `just demo-std` and `just demo-triple-local`: executable native programs;
-- `just toggle`: interactive hosted browser demonstration;
-- `just prove-std-browser-*`: deterministic actual-browser proofs;
-- `observatory-report`: read-only inspection of a recorded runtime artifact;
+- `cargo xtask demo std` and `cargo xtask demo triple`: executable native programs;
+- `cargo xtask demo browser`: interactive hosted browser demonstration;
+- `cargo xtask prove std-browser-*`: deterministic actual-browser proofs;
+- `conduit inspect runtime-report`: read-only inspection of a recorded runtime artifact;
 - `cargo xtask prove std-pico-usb`: attached-board physical transport proof;
-- `CONDUIT_THREE_HOST=1 ... triple-signal.spec.mjs`: attached-board final
-  three-host proof.
+- `cargo xtask prove r1-hil --interactive`: attached-board final R1 proof.
 
 Compilation is not execution. Simulation is not an actual browser. Firmware
 build is not board execution. A live Line is not automatically a general
@@ -334,4 +295,4 @@ network stack. Conduit keeps those distinctions explicit because they are part
 of the architecture, not documentation caveats.
 
 For the precise accepted claim boundary, read [`../STATUS.md`](../STATUS.md).
-For the implementation sequence and current frontier, read roadmap issue #361.
+For the completed R1 sequence and its evidence, read roadmap issue #361.

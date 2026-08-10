@@ -388,12 +388,14 @@ The architecture and vocabulary are moving quickly. **[STATUS.md](STATUS.md)** i
 
 # Try it
 
-You will need a recent Rust toolchain and [`just`](https://github.com/casey/just).
+From a source checkout, you will need a recent Rust toolchain. Repository
+development, demonstrations, and proofs enter through `cargo xtask`; installed
+product workflows enter through `conduit`.
 
 ## Run a graph on the native Host
 
 ```bash
-just demo-std
+cargo xtask demo std
 ```
 
 This parses a Form, asks the actual std Host what it can truthfully offer, plans an exact realization, and executes it through `conduit-kernel`.
@@ -401,11 +403,11 @@ This parses a Form, asks the actual std Host what it can truthfully offer, plans
 ## See a real browser Host
 
 ```bash
-just doctor browser
-just toggle
+cargo xtask doctor browser
+cargo xtask demo browser
 ```
 
-`just toggle` builds the Rust/WASM browser runtime, starts the native side of a bounded WebSocket session, and prints a URL. Open it in an ordinary browser and use the terminal as instructed.
+`cargo xtask demo browser` builds the Rust/WASM browser runtime, starts the native side of a bounded WebSocket session, and prints a URL. Open it in an ordinary browser and use the terminal as instructed.
 
 This is an actual browser-hosted Conduit realization, not a browser simulation.
 
@@ -449,7 +451,7 @@ Because physical proofs require attached hardware, they are intentionally hardwa
 Check prerequisites with:
 
 ```bash
-just doctor
+cargo xtask doctor
 ```
 
 ---
@@ -495,7 +497,7 @@ docs/         architecture, design records, proofs, and guides
 
 If you are new to the project, a good path is:
 
-1. Run `just demo-std`.
+1. Run `cargo xtask demo std`.
 2. Read [Try Conduit](docs/try-conduit.md).
 3. Open [the Conduit canon](docs/conduit-canon.md).
 4. Check [STATUS.md](STATUS.md) to see what is proven today.
@@ -557,10 +559,24 @@ Narrow changes are easier to reason about than giant ones. Keep architectural cl
 The primary local gate is:
 
 ```bash
-just check
+cargo xtask check
 ```
 
-Additional platform-specific checks are documented in the `justfile`, [STATUS.md](STATUS.md), and the relevant roadmap issues.
+Additional platform-specific checks are exposed by `cargo xtask --help` and documented in [STATUS.md](STATUS.md) and the relevant roadmap issues. The `justfile` is an optional shell façade over the same canonical entrances.
+
+If you prefer `just`, the repository provides a thin optional façade over the
+same two entrances:
+
+```bash
+just run examples/signal-demo.form --placements examples/std-local.placements
+just form-check examples/signal-demo.form
+just demo browser
+just check
+just prove std-browser-s4
+```
+
+These recipes contain no independent workflow logic; `just conduit ...` and
+`just xtask ...` are also available as complete pass-throughs.
 
 ---
 

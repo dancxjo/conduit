@@ -20,6 +20,7 @@ fn signal_demo_runs_locally() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
+            "run",
             form_path.to_str().expect("form path must be utf-8"),
             "--placements",
             placements_path
@@ -116,6 +117,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
 
     let run = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
+            "run",
             form_path.to_str().expect("form path must be utf-8"),
             "--placements",
             placements_path
@@ -158,7 +160,8 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
 
     let inspect = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
-            "observatory-report",
+            "inspect",
+            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()
@@ -206,7 +209,8 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     .expect("gap report can be written");
     let gap_report = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
-            "observatory-report",
+            "inspect",
+            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()
@@ -227,7 +231,8 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     .expect("tampered report can be written");
     let rejected = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
-            "observatory-report",
+            "inspect",
+            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()
@@ -316,6 +321,7 @@ fn triple_signal_form_runs_through_local_std_kernel() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
+            "run",
             form_path.to_str().expect("form path must be utf-8"),
             "--placements",
             placements_path

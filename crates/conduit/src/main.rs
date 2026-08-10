@@ -1,14 +1,15 @@
+mod cli;
 mod copy_task;
 mod diagnostics;
 mod report_artifact;
 
+use clap::Parser;
 use conduit_observatory::{build_report, render_text_report};
 use conduit_std_host::{
     load_checked_form, load_placements, run_kernel_multivalue_path_to, StdHost, ThreadTimer,
 };
-use std::env;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::report_artifact::{read_report, snapshot_from_execution, write_report};
 
@@ -49,102 +50,44 @@ fn render_runtime_report(path: &Path) -> Result<String, String> {
 }
 
 fn main() {
-    let mut args = env::args();
-    let _program = args.next();
-    let path = match args.next() {
-        Some(path) => path,
-        None => {
-            eprintln!(
-                "usage: conduit <form-file> [--placements <placements-file>]\n       conduit diagnose-form <form-file> [--json]\n       {}",
-                copy_task::USAGE
-            );
-            std::process::exit(2);
+    let command = cli::Cli::parse().command;
+    let result = match command {
+        cli::Command::Run {
+            form,
+            placements,
+            report,
+        } => run_with_placements(
+            &form.to_string_lossy(),
+            placements.as_deref().map(Path::to_string_lossy).as_deref(),
+            report.as_deref(),
+        ),
+        cli::Command::Check { form, json } | cli::Command::DiagnoseForm { form, json } => {
+            match diagnostics::run(&form, json) {
+                Ok(true) => Ok(()),
+                Ok(false) => std::process::exit(1),
+                Err(error) => Err(error),
+            }
+        }
+        cli::Command::Inspect {
+            command: cli::InspectCommand::RuntimeReport { report },
+        }
+        | cli::Command::ObservatoryReport { report } => {
+            render_runtime_report(&report).map(|rendered| {
+                print!("{rendered}");
+            })
+        }
+        cli::Command::Copy { arguments } => copy_task::run(arguments),
+        cli::Command::KernelMultivalue { form } => {
+            let mut stdout = io::stdout().lock();
+            run_kernel_multivalue_path_to(
+                form.to_string_lossy().as_ref(),
+                &mut stdout,
+                &mut ThreadTimer,
+            )
+            .map(|_| ())
         }
     };
-    if path == "observatory-report" {
-        let Some(report_path) = args.next() else {
-            eprintln!("usage: conduit observatory-report <runtime-report.json>");
-            std::process::exit(2);
-        };
-        if args.next().is_some() {
-            eprintln!("usage: conduit observatory-report <runtime-report.json>");
-            std::process::exit(2);
-        }
-        match render_runtime_report(Path::new(&report_path)) {
-            Ok(rendered) => print!("{rendered}"),
-            Err(err) => {
-                eprintln!("error: {err}");
-                std::process::exit(1);
-            }
-        }
-        return;
-    }
-    if path == "copy" {
-        if let Err(error) = copy_task::run(args.collect()) {
-            eprintln!("error: {error}");
-            std::process::exit(1);
-        }
-        return;
-    }
-    if path == "diagnose-form" {
-        let Some(form_path) = args.next() else {
-            eprintln!("usage: conduit diagnose-form <form-file> [--json]");
-            std::process::exit(2);
-        };
-        let json = match args.next().as_deref() {
-            None => false,
-            Some("--json") if args.next().is_none() => true,
-            _ => {
-                eprintln!("usage: conduit diagnose-form <form-file> [--json]");
-                std::process::exit(2);
-            }
-        };
-        match diagnostics::run(Path::new(&form_path), json) {
-            Ok(true) => {}
-            Ok(false) => std::process::exit(1),
-            Err(error) => {
-                eprintln!("error: {error}");
-                std::process::exit(1);
-            }
-        }
-        return;
-    }
-    if path == "kernel-multivalue" {
-        let Some(form_path) = args.next() else {
-            eprintln!("usage: conduit kernel-multivalue <form-file>");
-            std::process::exit(2);
-        };
-        if args.next().is_some() {
-            eprintln!("usage: conduit kernel-multivalue <form-file>");
-            std::process::exit(2);
-        }
-        let mut stdout = io::stdout().lock();
-        if let Err(err) = run_kernel_multivalue_path_to(&form_path, &mut stdout, &mut ThreadTimer) {
-            eprintln!("error: {err}");
-            std::process::exit(1);
-        }
-        return;
-    }
-
-    let mut placements_path = None;
-    let mut report_path = None;
-    while let Some(option) = args.next() {
-        let value = args.next().unwrap_or_else(|| {
-            eprintln!("missing value for {option}");
-            std::process::exit(2);
-        });
-        match option.as_str() {
-            "--placements" if placements_path.is_none() => placements_path = Some(value),
-            "--report" if report_path.is_none() => report_path = Some(PathBuf::from(value)),
-            _ => {
-                eprintln!("usage: conduit <form-file> [--placements <placements-file>] [--report <runtime-report.json>]\nunexpected or duplicate argument: {option}");
-                std::process::exit(2);
-            }
-        }
-    }
-
-    if let Err(err) = run_with_placements(&path, placements_path.as_deref(), report_path.as_deref())
-    {
+    if let Err(err) = result {
         eprintln!("error: {err}");
         std::process::exit(1);
     }

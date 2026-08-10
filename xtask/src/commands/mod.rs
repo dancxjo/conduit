@@ -1,5 +1,6 @@
 pub mod check;
 pub mod conduitos;
+pub mod demo;
 pub mod doctor;
 pub mod pico;
 pub mod proofs;
