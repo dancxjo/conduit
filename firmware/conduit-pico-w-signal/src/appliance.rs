@@ -80,16 +80,6 @@ pub async fn run(
         }
     };
     write_progress(sign, &runtime_boot, "radio-ready").await;
-    if with_timeout(
-        Duration::from_secs(10),
-        control.start_ap_open(conduit_net::APPLIANCE_SSID, 6),
-    )
-    .await
-    .is_err()
-    {
-        terminal_failure(sign, &runtime_boot, 1, "ap-base-lost").await;
-    }
-    write_progress(sign, &runtime_boot, "ap-started").await;
     let config = Config::ipv4_static(StaticConfigV4 {
         address: Ipv4Cidr::new(Ipv4Address::new(192, 168, 4, 1), 24),
         gateway: None,
@@ -104,6 +94,16 @@ pub async fn run(
     );
     spawner.spawn(appliance_network_task(runner).unwrap());
     write_progress(sign, &runtime_boot, "stack-started").await;
+    if with_timeout(
+        Duration::from_secs(10),
+        control.start_ap_open(conduit_net::APPLIANCE_SSID, 6),
+    )
+    .await
+    .is_err()
+    {
+        terminal_failure(sign, &runtime_boot, 1, "ap-base-lost").await;
+    }
+    write_progress(sign, &runtime_boot, "ap-started").await;
 
     let mut dhcp_rx_meta = [PacketMetadata::EMPTY; 1];
     let mut dhcp_tx_meta = [PacketMetadata::EMPTY; 1];
