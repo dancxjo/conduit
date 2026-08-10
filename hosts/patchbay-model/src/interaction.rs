@@ -60,6 +60,7 @@ pub enum PatchbayAction {
     PlaceGear,
     DuplicateGear,
     RemoveGear,
+    RemoveCord,
     ConnectPorts,
 }
 

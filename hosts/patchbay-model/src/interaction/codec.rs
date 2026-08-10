@@ -18,6 +18,7 @@ impl PatchbayAction {
             Self::PlaceGear => "place-gear",
             Self::DuplicateGear => "duplicate-gear",
             Self::RemoveGear => "remove-gear",
+            Self::RemoveCord => "remove-cord",
             Self::ConnectPorts => "connect-ports",
         }
     }
@@ -37,6 +38,7 @@ impl PatchbayAction {
             "place-gear" => Ok(Self::PlaceGear),
             "duplicate-gear" => Ok(Self::DuplicateGear),
             "remove-gear" => Ok(Self::RemoveGear),
+            "remove-cord" => Ok(Self::RemoveCord),
             "connect-ports" => Ok(Self::ConnectPorts),
             _ => Err(InteractionError::MalformedValue),
         }

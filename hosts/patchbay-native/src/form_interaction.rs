@@ -58,6 +58,9 @@ impl PatchbayApplication {
             GuiAction::RemoveGear(subject) => {
                 self.dispatch_gear_edit(PatchbayAction::RemoveGear, &subject)?
             }
+            GuiAction::RemoveCord(subject) => {
+                self.dispatch_gear_edit(PatchbayAction::RemoveCord, &subject)?
+            }
             GuiAction::ConnectPorts { source, sink } => {
                 self.dispatch_port_connection(&source, &sink)?
             }
@@ -148,6 +151,7 @@ impl PatchbayApplication {
             invocation.action,
             PatchbayAction::DuplicateGear
                 | PatchbayAction::RemoveGear
+                | PatchbayAction::RemoveCord
                 | PatchbayAction::ConnectPorts
         ) {
             return self.apply_authoring_edit(invocation);
@@ -190,6 +194,7 @@ impl PatchbayApplication {
             PatchbayAction::PlaceGear => unreachable!("palette placement returned above"),
             PatchbayAction::DuplicateGear
             | PatchbayAction::RemoveGear
+            | PatchbayAction::RemoveCord
             | PatchbayAction::ConnectPorts => unreachable!("authoring edit returned above"),
         };
         match result {
@@ -331,8 +336,22 @@ impl PatchbayApplication {
             Key::Named(NamedKey::Delete) if !self.linear_view => {
                 let subject = self
                     .selected_graphical_subject()
-                    .ok_or("select a Gear before removing it")?;
-                self.handle_gui_action(GuiAction::RemoveGear(subject))?;
+                    .ok_or("select a Gear or Cord before removing it")?;
+                let action = match self
+                    .graphical_form
+                    .as_ref()
+                    .and_then(|graph| graph.inspect(&subject.subject_identity).ok())
+                    .map(|inspection| inspection.subject_kind)
+                {
+                    Some(patchbay_model::PatchbaySubjectKind::Gear) => {
+                        GuiAction::RemoveGear(subject)
+                    }
+                    Some(patchbay_model::PatchbaySubjectKind::Cord) => {
+                        GuiAction::RemoveCord(subject)
+                    }
+                    _ => return Err("select a Gear or Cord before removing it".into()),
+                };
+                self.handle_gui_action(action)?;
                 synchronize_linear_selection = false;
             }
             Key::Named(NamedKey::Backspace) => self.edit_source(|source| {

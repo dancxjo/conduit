@@ -183,18 +183,40 @@ fn duplicate_connect_and_remove_are_atomic_canonical_form_edits() {
         .unwrap();
     let view = editor.view();
     assert!(view.source.contains("literal.text > upper.text"));
-    assert_eq!(
-        PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap())
-            .unwrap()
-            .cords
-            .len(),
-        1
-    );
+    let graph = PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap()).unwrap();
+    assert_eq!(graph.cords.len(), 1);
+    editor
+        .remove_cord(4, &graph.expanded_form_id, &graph.cords[0].identity)
+        .unwrap();
+    assert!(!editor.view().source.contains("literal.text > upper.text"));
 
-    editor.remove_gear(4, "upper").unwrap();
+    let graph = PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap()).unwrap();
+    let output = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "compose/literal-2")
+        .unwrap()
+        .outputs[0]
+        .identity
+        .clone();
+    let input = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "compose/upper")
+        .unwrap()
+        .inputs[0]
+        .identity
+        .clone();
+    editor
+        .connect_ports(5, &graph.expanded_form_id, &output, &input)
+        .unwrap();
+    assert!(editor.view().source.contains("literal-2.text > upper.text"));
+
+    editor.remove_gear(6, "upper").unwrap();
     let view = editor.view();
     assert!(!view.source.contains("upper:"));
     assert!(!view.source.contains("literal.text > upper.text"));
+    assert!(!view.source.contains("literal-2.text > upper.text"));
     assert!(view.source.contains("literal-2: text/literal(\"hello\")"));
     assert_eq!(
         PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap())

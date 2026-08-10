@@ -12,6 +12,7 @@ pub enum FormEditorError {
     InvalidGearName,
     UnknownGear(String),
     UnknownPort(String),
+    UnknownCord(String),
     IncompatiblePorts(String),
     DuplicateCord,
     NestedGearEditUnsupported(String),
@@ -36,6 +37,7 @@ impl std::fmt::Display for FormEditorError {
             Self::InvalidGearName => f.write_str("generated Gear name is not canonical"),
             Self::UnknownGear(gear) => write!(f, "Gear '{gear}' is not in the open Form"),
             Self::UnknownPort(port) => write!(f, "Port '{port}' is not in the current typed Form"),
+            Self::UnknownCord(cord) => write!(f, "Cord '{cord}' is not in the current typed Form"),
             Self::IncompatiblePorts(reason) => write!(f, "Ports cannot connect: {reason}"),
             Self::DuplicateCord => f.write_str("those Ports already have a Cord"),
             Self::NestedGearEditUnsupported(gear) => write!(

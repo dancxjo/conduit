@@ -19,6 +19,7 @@ pub enum GuiAction {
     PlacePaletteKind(String),
     DuplicateGear(patchbay_model::PatchbaySubjectRef),
     RemoveGear(patchbay_model::PatchbaySubjectRef),
+    RemoveCord(patchbay_model::PatchbaySubjectRef),
     ConnectPorts {
         source: patchbay_model::PatchbaySubjectRef,
         sink: patchbay_model::PatchbaySubjectRef,
