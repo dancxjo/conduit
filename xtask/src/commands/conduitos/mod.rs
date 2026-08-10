@@ -4,6 +4,7 @@ mod architecture_matrix;
 mod build;
 mod ia32_a0;
 mod ia32_a1;
+mod ia32_a2;
 mod image;
 mod loongarch64_a0;
 mod profile;

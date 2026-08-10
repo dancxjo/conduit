@@ -16,6 +16,7 @@ use crate::cli::GlobalOpts;
 use serde::{Deserialize, Serialize};
 
 const SIGN_PREFIX: &str = "CONDUIT_IA32_ENTRY_SIGN ";
+const MACHINE_PREFIX: &str = "CONDUIT_IA32_MACHINE_SIGN ";
 const QEMU_PROFILE: &str = "qemu-i386-q35-single-cpu-512m-uefi-debugcon";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -31,8 +32,32 @@ struct EntrySign {
     boot_id: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct MachineSign {
+    schema: String,
+    status: String,
+    architecture: String,
+    boot_id: String,
+    lane_id: String,
+    base_count: u32,
+    lane_count: u32,
+    memory_arena_bytes: u32,
+    timer_slots: u32,
+    interrupt_fact_slots: u32,
+    controller: String,
+    wake_source: String,
+    wake_irq: u32,
+    idle_entries: u32,
+    timer_wakes: u32,
+    kernel_decisions: u32,
+    kernel_signs: u32,
+    pending_host_operations: u32,
+    sequence: Vec<String>,
+    a3_ordinary_form_claimed: bool,
+}
+
 #[derive(Serialize)]
-struct A1Proof {
+struct A2Proof {
     schema: &'static str,
     proof_class: &'static str,
     base_commit: String,
@@ -49,23 +74,30 @@ struct A1Proof {
     qemu_version: String,
     first_entry: EntrySign,
     second_entry: EntrySign,
+    first_machine: MachineSign,
+    second_machine: MachineSign,
     fresh_host_id: bool,
     fresh_boot_id: bool,
     runtime_bases_available: bool,
     a2_machine_wake_claimed: bool,
+    a3_ordinary_form_claimed: bool,
 }
 
 pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Ia32)?;
     image::execute(ConduitosArch::Ia32, opts)?;
-    let sign = boot_once(&paths)?;
+    let (sign, machine) = boot_once(&paths)?;
     if opts.json {
         println!("{}", serde_json::to_string(&sign).map_err(encoding)?);
     } else if !opts.quiet {
         println!(
             "{SIGN_PREFIX}{}",
             serde_json::to_string(&sign).map_err(encoding)?
+        );
+        println!(
+            "{MACHINE_PREFIX}{}",
+            serde_json::to_string(&machine).map_err(encoding)?
         );
     }
     Ok(())
@@ -82,8 +114,8 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "identical IA-32 inputs produced different images",
         ));
     }
-    let first_entry = boot_once(&paths)?;
-    let second_entry = boot_once(&paths)?;
+    let (first_entry, first_machine) = boot_once(&paths)?;
+    let (second_entry, second_machine) = boot_once(&paths)?;
     let fresh_host_id = first_entry.host_id != second_entry.host_id;
     let fresh_boot_id = first_entry.boot_id != second_entry.boot_id;
     if !fresh_host_id || !fresh_boot_id {
@@ -93,9 +125,9 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let (firmware, _) = firmware_paths(&paths)?;
-    let proof = A1Proof {
-        schema: "conduit.conduitos.ia32-a1-proof/v1",
-        proof_class: "freestanding-ia32-uefi-emulator-entry",
+    let proof = A2Proof {
+        schema: "conduit.conduitos.ia32-a2-proof/v1",
+        proof_class: "freestanding-ia32-production-kernel-real-pit-wake",
         base_commit: git_head(&paths.root)?,
         architecture: "ia32",
         artifact_target: "i686-freestanding-elf32",
@@ -110,12 +142,15 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         qemu_version: qemu_version(&paths)?,
         first_entry,
         second_entry,
+        first_machine,
+        second_machine,
         fresh_host_id,
         fresh_boot_id,
-        runtime_bases_available: false,
-        a2_machine_wake_claimed: false,
+        runtime_bases_available: true,
+        a2_machine_wake_claimed: true,
+        a3_ordinary_form_claimed: false,
     };
-    let proof_path = paths.target.join("a1-proof.json");
+    let proof_path = paths.target.join("a2-proof.json");
     fs::write(
         &proof_path,
         serde_json::to_vec_pretty(&proof).map_err(encoding)?,
@@ -124,7 +159,7 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.json {
         println!("{}", serde_json::to_string(&proof).map_err(encoding)?);
     } else if !opts.quiet {
-        println!("ConduitOS IA-32 A1 proof: {}", proof_path.display());
+        println!("ConduitOS IA-32 A2 proof: {}", proof_path.display());
     }
     Ok(())
 }
@@ -140,7 +175,7 @@ fn reject_dry_run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
 }
 
-fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
+fn boot_once(paths: &Paths) -> Result<(EntrySign, MachineSign), ConduitosError> {
     if !paths.limine.join("BOOTIA32.EFI").is_file() {
         return Err(refusal(
             "missing-ia32-bootloader-artifact",
@@ -213,7 +248,10 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
             ));
         }
         let transcript = fs::read_to_string(&transcript_path).unwrap_or_default();
-        if transcript.contains(SIGN_PREFIX) && transcript.ends_with('\n') {
+        if transcript.contains(SIGN_PREFIX)
+            && transcript.contains(MACHINE_PREFIX)
+            && transcript.ends_with('\n')
+        {
             child
                 .kill()
                 .map_err(|error| refusal("ia32-boot-failed", error.to_string()))?;
@@ -222,7 +260,8 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
                 .map_err(|error| refusal("ia32-boot-failed", error.to_string()))?;
             let sign = parse_one(&transcript)?;
             validate(&sign, paths)?;
-            return Ok(sign);
+            let machine = parse_machine(&transcript, &sign)?;
+            return Ok((sign, machine));
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
@@ -230,6 +269,58 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
         }
         thread::sleep(Duration::from_millis(10));
     }
+}
+
+fn parse_machine(transcript: &str, entry: &EntrySign) -> Result<MachineSign, ConduitosError> {
+    let values: Vec<_> = transcript
+        .split(MACHINE_PREFIX)
+        .skip(1)
+        .filter_map(|suffix| suffix.lines().next())
+        .collect();
+    if values.len() != 1 {
+        return Err(refusal(
+            "absent-ia32-machine-sign",
+            format!("expected one machine Sign, found {}", values.len()),
+        ));
+    }
+    let sign: MachineSign = serde_json::from_str(values[0])
+        .map_err(|error| refusal("malformed-ia32-machine-sign", error.to_string()))?;
+    validate_machine(&sign, entry)?;
+    Ok(sign)
+}
+
+fn validate_machine(sign: &MachineSign, entry: &EntrySign) -> Result<(), ConduitosError> {
+    if sign.schema != "conduit.conduitos.ia32-a2-sign/v1"
+        || sign.status != "completed"
+        || sign.architecture != "ia32"
+        || sign.boot_id != entry.boot_id
+        || sign.lane_id != "lane/ia32/cooperative/0"
+        || sign.base_count != 7
+        || sign.lane_count != 1
+        || sign.memory_arena_bytes != 4096
+        || sign.timer_slots != 1
+        || sign.interrupt_fact_slots != 1
+        || sign.controller != "8259-pic-remapped-irq0-vector32"
+        || sign.wake_source != "8254-pit-channel0-irq0"
+        || sign.wake_irq != 32
+        || sign.idle_entries == 0
+        || sign.timer_wakes != 1
+        || sign.kernel_decisions == 0
+        || sign.kernel_signs == 0
+        || sign.pending_host_operations != 0
+        || sign.sequence
+            != [
+                "machine-init",
+                "lane-handoff",
+                "idle",
+                "timer-wake",
+                "terminal",
+            ]
+        || sign.a3_ordinary_form_claimed
+    {
+        return Err(refusal("stale-or-invalid-ia32-machine-sign", "machine Sign does not prove exact finite Bases, sole kernel lane, real PIT wake, and terminal progress"));
+    }
+    Ok(())
 }
 
 fn parse_one(transcript: &str) -> Result<EntrySign, ConduitosError> {
@@ -345,5 +436,59 @@ mod tests {
         wrong.architecture = "ia32".into();
         wrong.emulator_profile = "stale-profile".into();
         assert!(validate_fields(&wrong, "commit").is_err());
+    }
+
+    #[test]
+    fn machine_sign_rejects_wrong_wake_controller_and_duplicate_lane() {
+        let entry = EntrySign {
+            schema: "conduit.conduitos.ia32-entry-sign/v1".into(),
+            status: "entered".into(),
+            architecture: "ia32".into(),
+            build_id: "commit".into(),
+            image_id: "conduitos-image/commit/ia32/v1".into(),
+            bootloader: "Limine 12.5.2/BOOTIA32.EFI".into(),
+            emulator_profile: QEMU_PROFILE.into(),
+            host_id: "host-ia32-1".into(),
+            boot_id: "boot-ia32-1".into(),
+        };
+        let mut machine = MachineSign {
+            schema: "conduit.conduitos.ia32-a2-sign/v1".into(),
+            status: "completed".into(),
+            architecture: "ia32".into(),
+            boot_id: entry.boot_id.clone(),
+            lane_id: "lane/ia32/cooperative/0".into(),
+            base_count: 7,
+            lane_count: 1,
+            memory_arena_bytes: 4096,
+            timer_slots: 1,
+            interrupt_fact_slots: 1,
+            controller: "8259-pic-remapped-irq0-vector32".into(),
+            wake_source: "8254-pit-channel0-irq0".into(),
+            wake_irq: 32,
+            idle_entries: 1,
+            timer_wakes: 1,
+            kernel_decisions: 2,
+            kernel_signs: 5,
+            pending_host_operations: 0,
+            sequence: [
+                "machine-init",
+                "lane-handoff",
+                "idle",
+                "timer-wake",
+                "terminal",
+            ]
+            .map(String::from)
+            .into(),
+            a3_ordinary_form_claimed: false,
+        };
+        assert!(validate_machine(&machine, &entry).is_ok());
+        machine.wake_source = "synthetic".into();
+        assert!(validate_machine(&machine, &entry).is_err());
+        machine.wake_source = "8254-pit-channel0-irq0".into();
+        machine.controller = "stale-pic".into();
+        assert!(validate_machine(&machine, &entry).is_err());
+        machine.controller = "8259-pic-remapped-irq0-vector32".into();
+        machine.lane_count = 2;
+        assert!(validate_machine(&machine, &entry).is_err());
     }
 }
