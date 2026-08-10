@@ -1,6 +1,6 @@
 use super::{
-    arguments::parse_arguments, presentation::portable_presentation_lines, render::draw_document,
-    Arguments, PatchbayApplication, BACKGROUND,
+    arguments::parse_arguments, gui::GuiAction, presentation::portable_presentation_lines,
+    render::draw_document, Arguments, PatchbayApplication, BACKGROUND,
 };
 
 #[test]
@@ -191,6 +191,48 @@ fn native_build_mode_drives_explicit_birth_wake_plan_play_and_lull() {
     assert_eq!(application.build_birth.body().unwrap().body_id, born_id);
     let revised = application.presentation_lines().join("\n");
     assert!(revised.contains("current=1 saved=0 checked=1 last-born=0"));
+
+    application
+        .edit_source(|source| {
+            let closing = source.rfind('}').expect("example has a closing brace");
+            source.remove(closing);
+        })
+        .unwrap();
+    assert!(application.graphical_form.is_none());
+    assert!(application
+        .presentation_lines()
+        .join("\n")
+        .contains("DIAGNOSTIC"));
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-gui-actions-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("count.conduit");
+    std::fs::write(&path, include_str!("../../../examples/count.conduit")).unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    assert!(application.graphical_form.is_none());
+    application
+        .handle_gui_action(GuiAction::OpenNextForm)
+        .unwrap();
+    assert_eq!(
+        application.graphical_form.as_ref().unwrap().form_name,
+        "count-demo"
+    );
+    application
+        .handle_gui_action(GuiAction::ToggleLinearView)
+        .unwrap();
+    assert!(application.linear_view);
 
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
