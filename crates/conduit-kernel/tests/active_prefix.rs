@@ -1,6 +1,6 @@
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus, StepIo,
-    StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus,
+    StepInputBytes, StepIo, StepOperation, StepOutcome,
 };
 use conduit_kernel::{
     CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
@@ -57,7 +57,11 @@ impl Driver {
 }
 
 impl StepOperation<PORTS> for Driver {
-    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match &mut self.role {
             Role::Source { values, next } => {
                 let Some(value) = values.get(*next).copied().flatten() else {

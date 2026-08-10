@@ -161,6 +161,13 @@ pub enum OperationAction {
 pub trait Operation {
     fn start(&mut self) -> OperationAction;
     fn resume(&mut self, input: OperationInput) -> OperationAction;
+    /// Resumes one exact admitted value with its canonical bytes borrowed
+    /// read-only for this call. The default preserves the opaque-value
+    /// contract used by operations that only route or retain identity.
+    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
+        let _ = canonical;
+        self.resume(OperationInput::Value { port, value })
+    }
     fn advance(&mut self) -> OperationAction {
         OperationAction::Await
     }
