@@ -14,6 +14,7 @@ use super::serial::resolve_dual_ports;
 use super::{PicoArgs, PicoResult};
 
 const PHYSICAL_TIMEOUT: Duration = Duration::from_secs(30);
+pub(super) const MAXIMUM_SIGN_LINE_BYTES: usize = 2048;
 const EXPECTED_SIGNS: [&str; 8] = [
     "ap-ready",
     "client-associated",
@@ -348,14 +349,11 @@ pub(super) fn verify_signs(
     let mut signs = Vec::new();
     let mut runtime_boot = None;
     while signs.len() < EXPECTED_SIGNS.len() && Instant::now() < deadline {
-        line.clear();
-        match reader.read_line(&mut line) {
-            Ok(0) => continue,
-            Err(error) if error.kind() == std::io::ErrorKind::TimedOut => continue,
-            Err(error) => return Err(error.into()),
-            Ok(_) => {}
+        if !read_complete_bounded_line(&mut reader, &mut line, "Pico appliance Sign")? {
+            continue;
         }
         let sign: serde_json::Value = serde_json::from_str(line.trim())?;
+        line.clear();
         let index = signs.len();
         verify_field(&sign, "schema", "conduit.pico-appliance/sign@1")?;
         verify_field(&sign, "firmware_build_id", firmware_build_id)?;
@@ -395,6 +393,22 @@ pub(super) fn verify_signs(
         .into());
     }
     Ok((runtime_boot.unwrap(), signs))
+}
+
+pub(super) fn read_complete_bounded_line(
+    reader: &mut impl BufRead,
+    line: &mut String,
+    record: &str,
+) -> PicoResult<bool> {
+    match reader.read_line(line) {
+        Ok(0) => Ok(false),
+        Err(error) if error.kind() == std::io::ErrorKind::TimedOut => Ok(false),
+        Err(error) => Err(error.into()),
+        Ok(_) if line.len() > MAXIMUM_SIGN_LINE_BYTES => {
+            Err(format!("{record} exceeds its fixed line bound").into())
+        }
+        Ok(_) => Ok(line.ends_with('\n')),
+    }
 }
 
 fn verify_field(record: &serde_json::Value, field: &str, expected: &str) -> PicoResult<()> {
@@ -472,7 +486,8 @@ fn restore_wifi(interface: &str, previous: Option<&str>) -> PicoResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Cursor;
+    use std::collections::VecDeque;
+    use std::io::{BufReader, Cursor};
 
     #[test]
     fn physical_sign_contract_is_exact_and_bounded() {
@@ -545,5 +560,40 @@ mod tests {
 
         let wrong_lease = transcript(|_, _| {});
         assert!(verify_signs(Cursor::new(wrong_lease), "build/1", "192.168.4.3").is_err());
+    }
+
+    struct TimeoutSplitReader {
+        chunks: VecDeque<Vec<u8>>,
+    }
+
+    impl Read for TimeoutSplitReader {
+        fn read(&mut self, output: &mut [u8]) -> std::io::Result<usize> {
+            let Some(mut chunk) = self.chunks.pop_front() else {
+                return Ok(0);
+            };
+            let count = output.len().min(chunk.len());
+            output[..count].copy_from_slice(&chunk[..count]);
+            if count < chunk.len() {
+                chunk.drain(..count);
+                self.chunks.push_front(chunk);
+            }
+            Ok(count)
+        }
+    }
+
+    #[test]
+    fn serial_timeout_does_not_promote_a_partial_json_fragment() {
+        let mut reader = BufReader::new(TimeoutSplitReader {
+            chunks: VecDeque::from([
+                br#"{"schema":"conduit""#.to_vec(),
+                Vec::new(),
+                b"}\n".to_vec(),
+            ]),
+        });
+        let mut line = String::new();
+        assert!(!read_complete_bounded_line(&mut reader, &mut line, "test").unwrap());
+        assert_eq!(line, r#"{"schema":"conduit""#);
+        assert!(read_complete_bounded_line(&mut reader, &mut line, "test").unwrap());
+        assert_eq!(line, "{\"schema\":\"conduit\"}\n");
     }
 }

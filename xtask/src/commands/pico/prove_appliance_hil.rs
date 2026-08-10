@@ -12,7 +12,8 @@ use super::appliance_identity::{
 use super::doctor::repo_root;
 use super::firmware::uf2_path;
 use super::prove_appliance::{
-    physical_timestamp, require_clean_exact_commit, verify_signs, wait_for_ports,
+    physical_timestamp, read_complete_bounded_line, require_clean_exact_commit, verify_signs,
+    wait_for_ports,
 };
 use super::{PicoArgs, PicoResult};
 
@@ -268,19 +269,11 @@ fn read_client_receipt(
     let deadline = Instant::now() + PHYSICAL_TIMEOUT;
     let mut line = String::new();
     loop {
-        line.clear();
-        match reader.read_line(&mut line) {
-            Ok(0) if Instant::now() < deadline => continue,
-            Err(error)
-                if error.kind() == std::io::ErrorKind::TimedOut && Instant::now() < deadline =>
-            {
-                continue
+        if !read_complete_bounded_line(&mut reader, &mut line, "appliance HIL client receipt")? {
+            if Instant::now() >= deadline {
+                return Err("timed out waiting for appliance HIL client receipt".into());
             }
-            Ok(0) | Err(_) if Instant::now() >= deadline => {
-                return Err("timed out waiting for appliance HIL client receipt".into())
-            }
-            Err(error) => return Err(error.into()),
-            Ok(_) => {}
+            continue;
         }
         let receipt: serde_json::Value = serde_json::from_str(line.trim())?;
         verify_client_receipt(&receipt, firmware_build_id)?;
