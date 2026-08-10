@@ -5,6 +5,7 @@ use super::contract::{
     TIME_EVERY_EXECUTION_PROFILE, TIME_EVERY_IMPLEMENTATION, TIME_EVERY_KIND,
 };
 use super::count_operations::{CountPresentationOperation, StateCountOperation};
+use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
 use super::text_operations::{
@@ -77,6 +78,7 @@ pub(super) enum InstalledOperation {
     CountPresentation(CountPresentationOperation),
     StateLatestScalar(StateLatestScalarOperation),
     FlowTeeScalar(FlowTeeScalarOperation),
+    FlowGateScalar(FlowGateScalarOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
@@ -85,6 +87,10 @@ pub(super) enum InstalledOperation {
     TestScalarSource(super::test_scalar_flow::TestScalarSourceOperation),
     #[cfg(test)]
     TestScalarSink(super::test_scalar_flow::TestScalarSinkOperation),
+    #[cfg(test)]
+    TestGateScript(super::test_gate::TestGateScriptOperation),
+    #[cfg(test)]
+    TestSlowScalarSink(super::test_gate::TestSlowScalarSinkOperation),
     #[cfg(test)]
     TestObserver(TestObserverOperation),
     Inactive,
@@ -116,7 +122,7 @@ impl InstalledOperation {
             Self::TextPresentation(_) => 0,
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::CountPresentation(_) => 0,
-            Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) => 0,
+            Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) | Self::FlowGateScalar(_) => 0,
             Self::ExternalWebSocketListener(_) => 0,
             Self::GenerateText(_) => 0,
             #[cfg(test)]
@@ -127,6 +133,12 @@ impl InstalledOperation {
             }
             #[cfg(test)]
             Self::TestScalarSink(_) => 0,
+            #[cfg(test)]
+            Self::TestGateScript(operation) => {
+                operation.items.capacity() + operation.waits.capacity()
+            }
+            #[cfg(test)]
+            Self::TestSlowScalarSink(operation) => operation.waits.capacity(),
             #[cfg(test)]
             Self::TestObserver(_) => 0,
             Self::Inactive => 0,
@@ -156,6 +168,7 @@ impl Operation for InstalledOperation {
             Self::CountPresentation(operation) => operation.start(),
             Self::StateLatestScalar(operation) => operation.start(),
             Self::FlowTeeScalar(operation) => operation.start(),
+            Self::FlowGateScalar(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
@@ -164,6 +177,10 @@ impl Operation for InstalledOperation {
             Self::TestScalarSource(operation) => operation.start(),
             #[cfg(test)]
             Self::TestScalarSink(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestGateScript(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestSlowScalarSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestObserver(_) => OperationAction::Await,
             Self::Inactive => OperationAction::Complete,
@@ -198,6 +215,7 @@ impl Operation for InstalledOperation {
             (Self::CountPresentation(operation), input) => operation.resume(input),
             (Self::StateLatestScalar(operation), input) => operation.resume(input),
             (Self::FlowTeeScalar(operation), input) => operation.resume(input),
+            (Self::FlowGateScalar(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -245,6 +263,10 @@ impl Operation for InstalledOperation {
             (Self::TestScalarSink(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestScalarSource(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestGateScript(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestSlowScalarSink(operation), input) => operation.resume(input),
             (Self::Inactive, _) => Self::fail(4),
         }
     }
@@ -266,6 +288,7 @@ impl Operation for InstalledOperation {
             Self::CountPresentation(_) => OperationAction::Await,
             Self::StateLatestScalar(operation) => operation.advance(),
             Self::FlowTeeScalar(operation) => operation.advance(),
+            Self::FlowGateScalar(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             #[cfg(test)]
@@ -277,6 +300,10 @@ impl Operation for InstalledOperation {
             Self::TestScalarSource(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestScalarSink(_) => OperationAction::Await,
+            #[cfg(test)]
+            Self::TestGateScript(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestSlowScalarSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestObserver(_) => OperationAction::Await,
             Self::Inactive => OperationAction::Complete,
@@ -295,6 +322,7 @@ impl Operation for InstalledOperation {
             Self::CountPresentation(operation) => operation.cancel(),
             Self::StateLatestScalar(operation) => operation.cancel(),
             Self::FlowTeeScalar(operation) => operation.cancel(),
+            Self::FlowGateScalar(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]
@@ -303,6 +331,10 @@ impl Operation for InstalledOperation {
             Self::TestScalarSource(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestScalarSink(_) => {}
+            #[cfg(test)]
+            Self::TestGateScript(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestSlowScalarSink(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestObserver(operation) => operation.pending = None,
             Self::Inactive => {}

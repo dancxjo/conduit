@@ -120,6 +120,7 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::count_presentation_offer(),
             conduit_std_catalog::state_latest_scalar_offer(),
             conduit_std_catalog::flow_tee_scalar_offer(),
+            conduit_std_catalog::flow_gate_scalar_offer(),
         ]);
     }
     if composition.files {
@@ -134,6 +135,8 @@ pub(super) fn build_advertisement(
         capabilities.push(installed_std::test_text_source_offer());
         capabilities.push(installed_std::test_scalar_source_offer());
         capabilities.push(installed_std::test_scalar_sink_offer());
+        capabilities.push(installed_std::test_gate_script_offer());
+        capabilities.push(installed_std::test_slow_scalar_sink_offer());
     }
     let mut resources = signal_resource_offers("std/timer", "std/presentation", 16);
     resources.retain(|offer| match offer.pool_id.as_str() {
@@ -301,6 +304,7 @@ mod tests {
             "presentation/count",
             "state/latest",
             "flow/tee",
+            "flow/gate",
             "file/copy",
         ] {
             assert!(!offered(&minimal, kind), "minimal host offered {kind}");

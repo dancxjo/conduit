@@ -244,7 +244,7 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
         stdout.contains("host id=pico-sim-triple boot=pico-sim-boot-triple"),
         "{stdout}"
     );
-    assert!(stdout.contains("capabilities 18"), "{stdout}");
+    assert!(stdout.contains("capabilities 19"), "{stdout}");
     assert!(
         stdout.contains("capability=time-tick-v2 kind=time/tick contract=conduit.std/time-tick@2"),
         "{stdout}"
@@ -277,6 +277,12 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
     assert!(
         stdout.contains(
             "capability=flow-tee-scalar-v2 kind=flow/tee contract=conduit.std/flow-tee-scalar@2"
+        ),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "capability=flow-gate-scalar-v1 kind=flow/gate contract=conduit.std/flow-gate-scalar@1"
         ),
         "{stdout}"
     );
