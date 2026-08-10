@@ -49,10 +49,10 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     assert!(pixels.contains(&PHOSPHOR_THEME.emphasis.packed_rgb()));
     assert!(targets
         .iter()
-        .any(|target| matches!(&target.action, GuiAction::SelectSubject(identity) if identity.starts_with("cord/"))));
+        .any(|target| matches!(&target.action, GuiAction::SelectSubject(subject) if subject.subject_identity.starts_with("cord/") && subject.expanded_form_id == graph.expanded_form_id)));
     assert!(targets
         .iter()
-        .any(|target| matches!(&target.action, GuiAction::SelectSubject(identity) if identity.starts_with("port/"))));
+        .any(|target| matches!(&target.action, GuiAction::SelectSubject(subject) if subject.subject_identity.starts_with("port/") && subject.expanded_form_id == graph.expanded_form_id)));
     assert!(targets
         .iter()
         .any(|target| target.action == GuiAction::OpenNextForm && target.contains(20.0, 250.0)));

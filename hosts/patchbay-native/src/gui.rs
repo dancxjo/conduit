@@ -2,6 +2,7 @@
 
 use crate::{
     canvas::SoftwareCanvas,
+    gui_hit::HitShape,
     gui_inspector::draw_inspector,
     gui_primitives::{
         draw_regions, fill_rect, frame_rect, icon_label, layer_label, line, rgb, text, PixelRect,
@@ -16,6 +17,8 @@ use embedded_graphics::{
     Drawable,
 };
 use patchbay_model::{PatchbayGear, PatchbayGraph, PatchbayTheme, PHOSPHOR_THEME};
+
+pub use crate::gui_hit::{GuiAction, HitTarget};
 
 pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_PORTS
@@ -35,47 +38,6 @@ pub struct LifecycleContext {
     pub wake_id: Option<String>,
     pub plan_id: Option<String>,
     pub play_id: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HitTarget {
-    pub action: GuiAction,
-    shape: HitShape,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum GuiAction {
-    SelectSubject(String),
-    OpenNextForm,
-    SaveForm,
-    ToggleLinearView,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum HitShape {
-    Rect(PixelRect),
-    Cord {
-        source: Point,
-        middle_x: i32,
-        sink: Point,
-    },
-}
-
-impl HitTarget {
-    pub fn contains(&self, x: f64, y: f64) -> bool {
-        match self.shape {
-            HitShape::Rect(bounds) => bounds.contains(x, y),
-            HitShape::Cord {
-                source,
-                middle_x,
-                sink,
-            } => {
-                near_horizontal(x, y, source.x, middle_x, source.y)
-                    || near_vertical(x, y, middle_x, source.y, sink.y)
-                    || near_horizontal(x, y, middle_x, sink.x, sink.y)
-            }
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -129,7 +91,7 @@ pub fn draw_patchbay(
     draw_navigator(&mut canvas, theme, &mut targets);
     draw_cords(&mut canvas, graph, &layouts, selected, theme, &mut targets);
     for layout in &layouts {
-        draw_gear(&mut canvas, layout, selected, theme, &mut targets);
+        draw_gear(&mut canvas, graph, layout, selected, theme, &mut targets);
     }
     draw_inspector(&mut canvas, graph, selected, width, INSPECTOR_WIDTH, theme);
     draw_footer(&mut canvas, graph, selected, height, theme);
@@ -315,6 +277,7 @@ fn port_points(ports: &[patchbay_model::PatchbayPort], x: i32, y: i32) -> Vec<(S
 
 fn draw_gear<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
+    graph: &PatchbayGraph,
     layout: &GearLayout<'_>,
     selected: Option<&str>,
     theme: &PatchbayTheme,
@@ -351,7 +314,7 @@ fn draw_gear<D: DrawTarget<Color = Rgb888>>(
         theme.emphasis,
     );
     targets.push(HitTarget {
-        action: GuiAction::SelectSubject(layout.gear.identity.clone()),
+        action: select_action(graph, &layout.gear.identity),
         shape: HitShape::Rect(layout.bounds),
     });
     for (identity, point) in layout.inputs.iter().chain(&layout.outputs) {
@@ -382,7 +345,7 @@ fn draw_gear<D: DrawTarget<Color = Rgb888>>(
             theme.text_secondary,
         );
         targets.push(HitTarget {
-            action: GuiAction::SelectSubject(identity.clone()),
+            action: select_action(graph, identity),
             shape: HitShape::Rect(PixelRect {
                 x: point.x - 10,
                 y: point.y - 10,
@@ -423,7 +386,7 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
         );
         line(target, Point::new(middle_x, sink.y), sink, color);
         targets.push(HitTarget {
-            action: GuiAction::SelectSubject(cord.identity.clone()),
+            action: select_action(graph, &cord.identity),
             shape: HitShape::Cord {
                 source,
                 middle_x,
@@ -433,25 +396,19 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
     }
 }
 
+fn select_action(graph: &PatchbayGraph, identity: &str) -> GuiAction {
+    GuiAction::SelectSubject(
+        graph
+            .subject_ref(identity)
+            .expect("drawn subject belongs to the exact graph"),
+    )
+}
+
 fn find_port(layouts: &[GearLayout<'_>], identity: &str) -> Option<Point> {
     layouts
         .iter()
         .flat_map(|layout| layout.inputs.iter().chain(&layout.outputs))
         .find_map(|(candidate, point)| (candidate == identity).then_some(*point))
-}
-
-fn near_horizontal(x: f64, y: f64, x1: i32, x2: i32, line_y: i32) -> bool {
-    const TOLERANCE: f64 = 5.0;
-    x >= f64::from(x1.min(x2)) - TOLERANCE
-        && x <= f64::from(x1.max(x2)) + TOLERANCE
-        && (y - f64::from(line_y)).abs() <= TOLERANCE
-}
-
-fn near_vertical(x: f64, y: f64, line_x: i32, y1: i32, y2: i32) -> bool {
-    const TOLERANCE: f64 = 5.0;
-    y >= f64::from(y1.min(y2)) - TOLERANCE
-        && y <= f64::from(y1.max(y2)) + TOLERANCE
-        && (x - f64::from(line_x)).abs() <= TOLERANCE
 }
 
 fn draw_footer<D: DrawTarget<Color = Rgb888>>(

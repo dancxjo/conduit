@@ -17,6 +17,7 @@ pub enum PatchbayGraphError {
     TooManyCords,
     MissingCordEndpoint,
     CordContractMismatch,
+    StaleGraphBasis,
     UnknownSubject,
 }
 
@@ -30,6 +31,7 @@ impl std::fmt::Display for PatchbayGraphError {
             Self::CordContractMismatch => {
                 "Patchbay Cord Info or temporal contract differs from its exact Ports"
             }
+            Self::StaleGraphBasis => "Patchbay selection candidate names a stale expanded Form",
             Self::UnknownSubject => "Patchbay inspector subject is not in the typed graph",
         };
         formatter.write_str(message)
@@ -86,6 +88,16 @@ pub struct PatchbayInspection {
     pub subject_identity: String,
     pub subject_kind: PatchbaySubjectKind,
     pub exact_facts: Vec<String>,
+}
+
+/// Exact pre-admission subject resolved from renderer-local geometry.
+///
+/// This contains no coordinates or platform identity. Binding the subject to its expanded Form
+/// prevents a retained hit target from being applied to a replacement projection.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbaySubjectRef {
+    pub expanded_form_id: ExpandedFormId,
+    pub subject_identity: String,
 }
 
 impl PatchbayGraph {
@@ -182,6 +194,24 @@ impl PatchbayGraph {
             .chain(self.cords.iter().map(|cord| cord.identity.as_str()))
     }
 
+    pub fn subject_ref(&self, identity: &str) -> Result<PatchbaySubjectRef, PatchbayGraphError> {
+        self.subject_index(identity)?;
+        Ok(PatchbaySubjectRef {
+            expanded_form_id: self.expanded_form_id.clone(),
+            subject_identity: identity.into(),
+        })
+    }
+
+    pub fn resolve_subject_ref(
+        &self,
+        subject: &PatchbaySubjectRef,
+    ) -> Result<usize, PatchbayGraphError> {
+        if subject.expanded_form_id != self.expanded_form_id {
+            return Err(PatchbayGraphError::StaleGraphBasis);
+        }
+        self.subject_index(&subject.subject_identity)
+    }
+
     pub fn inspect(&self, identity: &str) -> Result<PatchbayInspection, PatchbayGraphError> {
         if let Some(gear) = self.gears.iter().find(|gear| gear.identity == identity) {
             return Ok(PatchbayInspection {
@@ -232,6 +262,12 @@ impl PatchbayGraph {
             });
         }
         Err(PatchbayGraphError::UnknownSubject)
+    }
+
+    fn subject_index(&self, identity: &str) -> Result<usize, PatchbayGraphError> {
+        self.subject_identities()
+            .position(|candidate| candidate == identity)
+            .ok_or(PatchbayGraphError::UnknownSubject)
     }
 }
 

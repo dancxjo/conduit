@@ -46,7 +46,8 @@ pub use form_editor::{
 };
 pub use graphical_patchbay::{
     PatchbayCord, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
-    PatchbayPort, PatchbaySubjectKind, MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS,
+    PatchbayPort, PatchbaySubjectKind, PatchbaySubjectRef, MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS,
+    MAX_PATCHBAY_PORTS,
 };
 pub use portable_demo::portable_demonstration;
 pub use portable_projection::PortableProjectionError;

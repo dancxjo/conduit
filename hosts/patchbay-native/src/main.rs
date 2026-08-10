@@ -21,6 +21,7 @@ mod file_task;
 mod font;
 mod form_interaction;
 mod gui;
+mod gui_hit;
 mod gui_inspector;
 mod gui_primitives;
 mod icon;

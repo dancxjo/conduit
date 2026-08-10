@@ -57,6 +57,28 @@ fn inspector_can_only_report_a_subject_from_the_typed_projection() {
 }
 
 #[test]
+fn selection_candidate_requires_the_exact_graph_basis_and_an_admitted_subject() {
+    let graph = count_graph();
+    let identity = graph.subject_identities().nth(1).unwrap();
+    let candidate = graph.subject_ref(identity).unwrap();
+    assert_eq!(graph.resolve_subject_ref(&candidate), Ok(1));
+
+    let mut stale = candidate.clone();
+    stale.expanded_form_id = conduit_core::ExpandedFormId::from("expanded/stale");
+    assert_eq!(
+        graph.resolve_subject_ref(&stale),
+        Err(PatchbayGraphError::StaleGraphBasis)
+    );
+
+    let mut invented = candidate;
+    invented.subject_identity = "renderer-invented/subject".into();
+    assert_eq!(
+        graph.resolve_subject_ref(&invented),
+        Err(PatchbayGraphError::UnknownSubject)
+    );
+}
+
+#[test]
 fn missing_or_retyped_cord_endpoints_fail_closed() {
     let editor = FormEditor::from_source(
         PathBuf::from("count.conduit"),

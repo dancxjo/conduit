@@ -39,14 +39,14 @@ pub(super) fn graphical_form_for_editor(
 impl PatchbayApplication {
     pub(super) fn handle_gui_action(&mut self, action: GuiAction) -> Result<(), String> {
         match action {
-            GuiAction::SelectSubject(identity) => {
-                if let Some(index) = self.graphical_form.as_ref().and_then(|graph| {
-                    graph
-                        .subject_identities()
-                        .position(|candidate| candidate == identity)
-                }) {
-                    self.graphical_selection = index;
-                }
+            GuiAction::SelectSubject(subject) => {
+                let graph = self
+                    .graphical_form
+                    .as_ref()
+                    .ok_or("graphical Form projection is absent")?;
+                self.graphical_selection = graph
+                    .resolve_subject_ref(&subject)
+                    .map_err(|error| error.to_string())?;
             }
             GuiAction::OpenNextForm => self.open_next_form()?,
             GuiAction::SaveForm => save_form_resource(

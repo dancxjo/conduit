@@ -32,6 +32,11 @@ disclosure, and a finite hit-target table. Pointer hits choose an existing typed
 three explicit UI actions. They cannot create graph identities. Resize, repaint, selection, theme,
 and panel layout do not enter source, checked, expanded, Plan, or Play identity.
 
+Every graph hit stores a `PatchbaySubjectRef` containing both the admitted subject identity and the
+exact expanded-Form identity from which its geometry was built. Applying a target to a replacement
+projection fails as `StaleGraphBasis`; a fabricated subject fails separately as `UnknownSubject`.
+These are pre-admission candidates for #694, not operation-success records.
+
 The selected-subject index and current action dispatch are provisional integration state, not an
 accepted semantic boundary. Issue #694 still owns the typed platform-neutral interaction path. This
 GUI branch must remain draft and must not merge while pointer/keyboard selection can change the
