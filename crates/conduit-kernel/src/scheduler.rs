@@ -146,8 +146,26 @@ struct PendingHostOperation {
 }
 
 pub trait StepOperation<const PORTS: usize> {
-    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome;
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome;
     fn cancel(&mut self) {}
+}
+
+/// Read-only canonical bytes for the exact inputs presented in one step.
+///
+/// This view cannot resolve arbitrary [`ValueRef`]s and does not escape the
+/// scheduler-owned value store.
+pub struct StepInputBytes<'a, const PORTS: usize> {
+    inputs: [Option<&'a [u8]>; PORTS],
+}
+
+impl<const PORTS: usize> StepInputBytes<'_, PORTS> {
+    pub fn input(&self, port: PortId) -> Option<&[u8]> {
+        self.inputs.get(usize::from(port.0)).copied().flatten()
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -315,7 +333,11 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
 }
 
 impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<O, PORTS> {
-    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         if self.protocol_failed {
             return StepOutcome::Fail(u16::MAX);
         }
@@ -323,10 +345,21 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
             let Some(event) = self.next_event(io) else {
                 return StepOutcome::Await;
             };
-            let Some(input) = event.operation_input() else {
-                return StepOutcome::Fail(u16::MAX);
+            let action = match event {
+                AdapterEvent::Value { port, value } => {
+                    let Some(canonical) = input_bytes.input(port) else {
+                        self.protocol_failed = true;
+                        return StepOutcome::Fail(u16::MAX);
+                    };
+                    self.operation.resume_value(port, value, canonical)
+                }
+                _ => {
+                    let Some(input) = event.operation_input() else {
+                        return StepOutcome::Fail(u16::MAX);
+                    };
+                    self.operation.resume(input)
+                }
             };
-            let action = self.operation.resume(input);
             match self.collect(event, action) {
                 Ok(mut transaction) => {
                     transaction.retain_resumed_value = matches!(event, AdapterEvent::Value { .. })
@@ -909,7 +942,16 @@ where
             .record(NodeId(as_u16(node)?), None, None, KernelEventKind::Decision)?;
 
         let mut io = self.context(node)?;
-        let outcome = self.drivers[node].step(&mut io);
+        let mut current_input_bytes = [None; PORTS];
+        for (port, value) in io.inputs.iter().copied().enumerate() {
+            if let Some(value) = value {
+                current_input_bytes[port] = Some(self.values.get(value)?);
+            }
+        }
+        let input_bytes = StepInputBytes {
+            inputs: current_input_bytes,
+        };
+        let outcome = self.drivers[node].step(&mut io, &input_bytes);
         if let Some(fault) = io.fault {
             return Err(fault);
         }

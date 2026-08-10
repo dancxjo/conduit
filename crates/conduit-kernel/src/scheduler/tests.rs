@@ -1,6 +1,6 @@
 use super::{
     CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, RemoteIngressOutcome,
-    SchedulerError, SchedulerStatus, StepIo, StepOperation, StepOutcome,
+    SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
 };
 use crate::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
@@ -36,7 +36,11 @@ enum Driver {
 }
 
 impl StepOperation<PORTS> for Driver {
-    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Source { values, next } => {
                 let Some(value) = values.get(*next).copied().flatten() else {
@@ -154,7 +158,11 @@ enum HostDriver {
 }
 
 impl StepOperation<PORTS> for HostDriver {
-    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Source { value } => {
                 let Some(current) = *value else {
@@ -234,7 +242,11 @@ enum JoinDriver {
 }
 
 impl StepOperation<PORTS> for JoinDriver {
-    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Source { value } => {
                 let Some(current) = *value else {
