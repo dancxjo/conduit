@@ -11,7 +11,7 @@ use super::{
 };
 
 pub const TARGET: &str = "aarch64-unknown-none";
-const BINARY: &str = "conduitos-aarch64-a2";
+const BINARY: &str = "conduitos-aarch64-a3";
 const MACHINE_AARCH64: u16 = 183;
 const ET_EXEC: u16 = 2;
 const PT_DYNAMIC: u32 = 2;
@@ -35,6 +35,7 @@ struct A0Inspection {
     runtime_bases_available: bool,
     boot_claimed: bool,
     a2_machine_wake_claimed: bool,
+    a3_ordinary_form_claimed: bool,
     elf_sha256: String,
 }
 
@@ -43,7 +44,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     let paths = Paths::new(ConduitosArch::Aarch64)?;
     if opts.dry_run {
         println!(
-            "cargo build -p conduitos --bin {BINARY} --features aarch64-a2 --target {TARGET} --release"
+            "cargo build -p conduitos --bin {BINARY} --features aarch64-a3 --target {TARGET} --release"
         );
         return record(&paths, "dry-run".to_owned());
     }
@@ -60,13 +61,16 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
             "--bin",
             BINARY,
             "--features",
-            "aarch64-a2",
+            "aarch64-a3",
             "--target",
             TARGET,
             "--release",
         ])
         .current_dir(&paths.root)
-        .env("RUSTFLAGS", "-C relocation-model=static -C panic=abort")
+        .env(
+            "RUSTFLAGS",
+            "-C relocation-model=static -C panic=abort -C opt-level=z -C codegen-units=1",
+        )
         .env(
             "CONDUITOS_BUILD_ID",
             format!("conduitos-build/{base_commit}/aarch64/v1"),
@@ -114,7 +118,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         byte_order: "little-endian",
         machine: "AArch64",
         abi_flags: facts.abi_flags,
-        entry_symbol: "conduitos_aarch64_a2_start",
+        entry_symbol: "conduitos_aarch64_a3_start",
         entry_address: facts.entry,
         required_sections: facts.sections,
         hosted_interpreter: false,
@@ -122,6 +126,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         runtime_bases_available: true,
         boot_claimed: true,
         a2_machine_wake_claimed: true,
+        a3_ordinary_form_claimed: true,
         elf_sha256: digest.clone(),
     };
     let inspection_bytes = serde_json::to_vec_pretty(&inspection)
@@ -281,12 +286,14 @@ fn assert_profile(architecture: &str, target: &str) -> Result<(), ConduitosError
 fn assert_symbol_contract(symbols: &str) -> Result<(), ConduitosError> {
     if !symbols.lines().any(|line| {
         line.contains("GLOBAL")
-            && line.contains("conduitos_aarch64_a2_start")
+            && line.contains("conduitos_aarch64_a3_start")
             && !line.contains(" UND ")
     }) {
         return Err(invalid("linked AArch64 entry symbol is missing"));
     }
-    let forbidden = ["cpuid", "pic_", "pit_", "gdt", "idt", "com1", "serial"];
+    let forbidden = [
+        "cpuid", "pic_", "pit_", "x86_64", "::gdt::", "::idt::", "com1",
+    ];
     if let Some(symbol) = forbidden
         .iter()
         .find(|symbol| symbols.to_ascii_lowercase().contains(*symbol))
@@ -425,7 +432,7 @@ mod tests {
     #[test]
     fn entry_symbol_and_x86_leak_contract_is_negative() {
         assert_symbol_contract(
-            "1: 0000000040000000 4 FUNC GLOBAL DEFAULT 1 conduitos_aarch64_a2_start",
+            "1: 0000000040000000 4 FUNC GLOBAL DEFAULT 1 conduitos_aarch64_a3_start",
         )
         .unwrap();
         assert!(assert_symbol_contract("1: 0 4 FUNC GLOBAL DEFAULT 1 cpuid").is_err());

@@ -21,9 +21,9 @@ mod aarch64;
 
 #[cfg(target_arch = "aarch64")]
 pub use aarch64::{
-    InterruptFact, disable_interrupts, enable_fp_simd, enable_interrupts, initialize_machine,
-    install_low_mmio_map, interruptible_idle, mmio_table_addresses, pop_interrupt, present,
-    read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_fp_simd,
+    enable_interrupts, initialize_machine, install_low_mmio_map, interruptible_idle,
+    mmio_table_addresses, pop_interrupt, present, read_counter, timer_arm,
 };
 
 #[cfg(target_arch = "aarch64")]

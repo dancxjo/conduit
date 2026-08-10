@@ -5,6 +5,9 @@ use core::{
     sync::atomic::{AtomicBool, AtomicU32, Ordering},
 };
 
+mod providers;
+pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
+
 const UART_BASE: usize = 0x0900_0000;
 const GICD_BASE: usize = 0x0800_0000;
 const GICC_BASE: usize = 0x0801_0000;
@@ -147,6 +150,12 @@ pub fn read_counter() -> u64 {
         core::arch::asm!("mrs {value}, cntvct_el0", value = out(reg) value, options(nostack))
     };
     value
+}
+
+pub fn interrupts_enabled() -> bool {
+    let value: u64;
+    unsafe { core::arch::asm!("mrs {value}, daif", value = out(reg) value, options(nostack)) };
+    value & (1 << 7) == 0
 }
 
 fn counter_frequency() -> u64 {
