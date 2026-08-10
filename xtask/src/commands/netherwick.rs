@@ -7,11 +7,21 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
-    let projection = conduit_netherwick::describe_projection();
+    let mut projection = conduit_netherwick::describe_projection();
     conduit_observatory::validate_snapshot(&projection.snapshot)?;
     conduit_netherwick::observation_plan()?;
     conduit_netherwick::attempt_actuator_plan()
         .expect_err("describe-only profile must refuse actuator placement");
+    assert_eq!(
+        projection.signs.pop(),
+        Some(conduit_netherwick::DescribeSign::Terminal)
+    );
+    projection
+        .signs
+        .push(conduit_netherwick::DescribeSign::ActuatorCommandRefused);
+    projection
+        .signs
+        .push(conduit_netherwick::DescribeSign::Terminal);
     if opts.json {
         println!("{}", serde_json::to_string_pretty(&projection)?);
     } else if !opts.quiet {
