@@ -99,8 +99,6 @@ pub fn run_prove_pico_appliance_hil(
     let (_, appliance_sign_path) =
         wait_for_ports(Some(appliance_link_port), Some(appliance_sign_port))?;
     let appliance_sign_file = open_sign(&appliance_sign_path)?;
-    let client_sign_file = open_sign(&client_sign_path)?;
-
     let appliance_build_id = appliance_identity.firmware_build_id.clone();
     let appliance_reader = std::thread::spawn(move || {
         verify_signs(
@@ -110,6 +108,10 @@ pub fn run_prove_pico_appliance_hil(
         )
         .map_err(|error| error.to_string())
     });
+    // Start draining the appliance endpoint before asserting client DTR. A
+    // fresh CDC open can block in the kernel long enough for the appliance's
+    // mandatory first Sign to fill its endpoint and prevent service startup.
+    let client_sign_file = open_sign(&client_sign_path)?;
     let client_receipt = read_client_receipt(
         BufReader::new(client_sign_file),
         &client_identity.firmware_build_id,
