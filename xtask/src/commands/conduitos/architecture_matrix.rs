@@ -109,12 +109,13 @@ fn build_matrix(artifacts: &BTreeSet<String>) -> Result<ArchitectureMatrix, Cond
 fn row(arch: ConduitosArch) -> ArchitectureRow {
     let boot_accepted = matches!(arch, ConduitosArch::X86_64 | ConduitosArch::Aarch64);
     let full_spine_accepted = arch == ConduitosArch::X86_64;
-    let compile_link_accepted = boot_accepted || arch == ConduitosArch::Aarch64;
+    let compile_link_accepted =
+        boot_accepted || matches!(arch, ConduitosArch::Ia32 | ConduitosArch::Aarch64);
     let (artifact, target, blocker) = match arch {
         ConduitosArch::Ia32 => (
             "BOOTIA32.EFI",
             "i686-unknown-uefi",
-            "no accepted freestanding IA-32 ConduitOS ELF backend",
+            "A0 compile/link accepted; A1 boot not established",
         ),
         ConduitosArch::X86_64 => ("BOOTX64.EFI", "x86_64-unknown-none", ""),
         ConduitosArch::Aarch64 => (
@@ -168,7 +169,7 @@ mod tests {
                 .iter()
                 .filter(|row| row.executable_backend_present)
                 .count(),
-            2
+            3
         );
         let aarch64 = matrix
             .architectures
@@ -180,6 +181,14 @@ mod tests {
         assert!(!aarch64.a2_machine_wake);
         assert!(!aarch64.a3_ordinary_form);
         assert!(!aarch64.a4_observatory_patchbay);
+        let ia32 = matrix
+            .architectures
+            .iter()
+            .find(|row| row.architecture == "ia32")
+            .unwrap();
+        assert!(ia32.executable_backend_present);
+        assert!(ia32.a0_compile_link);
+        assert!(!ia32.a1_boot);
     }
 
     #[test]
