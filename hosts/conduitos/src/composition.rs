@@ -25,6 +25,8 @@ pub struct MachineProof {
 pub enum MachineRunError {
     KernelConstruction,
     KernelFailure,
+    TextMalformedUtf8,
+    TextOutputOverflow,
     UnexpectedHostOperation,
     TimerBaseFailure,
     SerialBaseFailure,
@@ -38,6 +40,8 @@ impl MachineRunError {
         match self {
             Self::KernelConstruction => "kernel-construction-failed",
             Self::KernelFailure => "production-kernel-failed",
+            Self::TextMalformedUtf8 => "text-upper-malformed-utf8",
+            Self::TextOutputOverflow => "text-upper-output-overflow",
             Self::UnexpectedHostOperation => "unadmitted-host-operation",
             Self::TimerBaseFailure => "timer-base-failed",
             Self::SerialBaseFailure => "serial-base-failed",

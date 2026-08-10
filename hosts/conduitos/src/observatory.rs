@@ -411,8 +411,8 @@ mod tests {
             0
         );
         assert_eq!(snapshot.plays[0].lifecycle, PlanLifecycle::Completed);
-        assert_eq!(snapshot.observations.len(), 4);
-        assert_eq!(snapshot.historical_observations.len(), 6);
+        assert_eq!(snapshot.observations.len(), 6);
+        assert_eq!(snapshot.historical_observations.len(), 7);
         assert_eq!(snapshot.sealed_boot_provenance.len(), 1);
         assert!(snapshot.bases.iter().all(|base| {
             base.kind_id.as_str() != "Limine" && base.kind_id.as_str() != "x86-bios"

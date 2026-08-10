@@ -36,6 +36,25 @@ where
 
     for _ in 0..MAXIMUM_KERNEL_STEPS {
         while let Some(request) = kernel.next_host_request() {
+            if kernel.is_upper_request(&request) {
+                let output = {
+                    let value = kernel
+                        .host_value(request.input.value)
+                        .map_err(|_| MachineRunError::KernelFailure)?;
+                    crate::text_upper::uppercase(value).map_err(|error| match error {
+                        crate::text_upper::UppercaseError::MalformedUtf8 => {
+                            MachineRunError::TextMalformedUtf8
+                        }
+                        crate::text_upper::UppercaseError::OutputOverflow => {
+                            MachineRunError::TextOutputOverflow
+                        }
+                    })?
+                };
+                kernel
+                    .complete_upper(request, output.as_bytes())
+                    .map_err(|_| MachineRunError::KernelFailure)?;
+                continue;
+            }
             if !kernel.is_presentation_request(&request) {
                 return Err(MachineRunError::UnexpectedHostOperation);
             }
@@ -64,7 +83,7 @@ where
             }
             SchedulerStatus::Complete => {
                 return Ok(MachineProof {
-                    logical_operations: 2,
+                    logical_operations: 3,
                     decisions: kernel.decisions(),
                     kernel_signs: kernel.sign_count(),
                     timer_irq_wakes: 0,

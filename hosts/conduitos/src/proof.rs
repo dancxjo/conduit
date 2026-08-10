@@ -116,7 +116,7 @@ pub fn machine_accepted(
     write_hex(&mut output, &identities.boot)?;
     write!(
         output,
-        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":1,\"cord_byte_capacity\":{},\"semantic_result\":\"Hello from ConduitOS\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
+        "\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"planned_sign_items\":{},\"planned_sign_bytes\":{},\"cord_item_capacity\":2,\"cord_byte_capacity\":{},\"semantic_result\":\"{}\",\"allocation_before_play\":{},\"allocation_after_play\":{},\"allocation_capacity\":{},\"allocation_stable_during_play\":{},\"base_ids\":[",
         prepared.source_document_id.as_str(),
         prepared.checked_form_id.as_str(),
         prepared.expanded_form_id.as_str(),
@@ -125,7 +125,8 @@ pub fn machine_accepted(
         prepared.active_play.active_play_id.as_str(),
         prepared.planned_sign_items,
         prepared.planned_sign_bytes,
-        crate::ordinary_plan::TEXT_LITERAL.len(),
+        conduit_std_catalog::MAX_TEXT_BYTES * 2,
+        crate::ordinary_plan::TEXT_RESULT,
         allocation.before_play,
         allocation.after_play,
         allocation.capacity,
@@ -238,7 +239,7 @@ mod tests {
             &identities,
             &offer,
             &MachineProof {
-                logical_operations: 2,
+                logical_operations: 3,
                 decisions: 6,
                 kernel_signs: 12,
                 timer_irq_wakes: 1,

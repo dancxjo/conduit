@@ -1,5 +1,7 @@
 //! Allocation-independent boot identity derivation.
 
+use alloc::string::String;
+use core::fmt::Write;
 use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,6 +24,14 @@ pub fn derive_base(boot_id: &[u8; 32], kind: &str) -> [u8; 32] {
     hash.update((kind.len() as u32).to_le_bytes());
     hash.update(kind.as_bytes());
     hash.finalize().into()
+}
+
+pub fn hex(bytes: &[u8; 32]) -> String {
+    let mut result = String::with_capacity(64);
+    for byte in bytes {
+        write!(&mut result, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    result
 }
 
 fn digest(domain: &[u8], entropy: &[u64; 4], timestamp: u64, image_start: u64) -> [u8; 32] {

@@ -9,7 +9,7 @@ use crate::{identity::BootIdentities, machine::BaseKind};
 
 pub const BASE_COUNT: usize = 7;
 pub const RESOURCE_COUNT: usize = 4;
-pub const CAPABILITY_COUNT: usize = 4;
+pub const CAPABILITY_COUNT: usize = 5;
 pub const TIMER_SLOT_CAPACITY: u16 = 1;
 pub const SERIAL_OPERATION_CAPACITY: u16 = 1;
 pub const SERIAL_MAXIMUM_BYTES: u32 = conduit_std_catalog::MAX_TEXT_BYTES;
@@ -18,6 +18,7 @@ pub const INTERRUPT_FACT_CAPACITY: u16 = 4;
 pub const TIME_TICK_IMPLEMENTATION: &str = "conduitos/kernel-time-tick@1";
 pub const TICK_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-tick@1";
 pub const TEXT_LITERAL_IMPLEMENTATION: &str = "conduitos/kernel-text-literal@1";
+pub const TEXT_UPPER_IMPLEMENTATION: &str = "conduitos/kernel-text-upper@1";
 pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-text@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -205,6 +206,7 @@ impl<'a> HostOffer<'a> {
                     maximum_output_bytes: 0,
                 },
                 crate::text_offer::literal(build_id),
+                crate::text_offer::upper(build_id),
                 crate::text_offer::presentation(build_id),
             ],
             cpu_features,
