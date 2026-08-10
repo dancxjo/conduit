@@ -36,6 +36,7 @@ struct A0Inspection {
     boot_claimed: bool,
     a2_machine_wake_claimed: bool,
     a3_ordinary_form_claimed: bool,
+    a4_observatory_patchbay_claimed: bool,
     elf_sha256: String,
 }
 
@@ -127,6 +128,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         boot_claimed: true,
         a2_machine_wake_claimed: true,
         a3_ordinary_form_claimed: true,
+        a4_observatory_patchbay_claimed: true,
         elf_sha256: digest.clone(),
     };
     let inspection_bytes = serde_json::to_vec_pretty(&inspection)

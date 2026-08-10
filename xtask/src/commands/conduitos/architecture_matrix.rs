@@ -110,6 +110,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
     let boot_accepted = matches!(arch, ConduitosArch::X86_64 | ConduitosArch::Aarch64);
     let full_spine_accepted = arch == ConduitosArch::X86_64;
     let ordinary_form_accepted = full_spine_accepted || arch == ConduitosArch::Aarch64;
+    let observatory_patchbay_accepted = ordinary_form_accepted;
     let machine_wake_accepted = full_spine_accepted || arch == ConduitosArch::Aarch64;
     let compile_link_accepted =
         boot_accepted || matches!(arch, ConduitosArch::Ia32 | ConduitosArch::Aarch64);
@@ -120,11 +121,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
             "A0 compile/link accepted; A1 boot not established",
         ),
         ConduitosArch::X86_64 => ("BOOTX64.EFI", "x86_64-unknown-none", ""),
-        ConduitosArch::Aarch64 => (
-            "BOOTAA64.EFI",
-            aarch64_a0::TARGET,
-            "A3 ordinary Form accepted; A4 Observatory/Patchbay not established",
-        ),
+        ConduitosArch::Aarch64 => ("BOOTAA64.EFI", aarch64_a0::TARGET, ""),
         ConduitosArch::Riscv64 => (
             "BOOTRISCV64.EFI",
             "riscv64gc-unknown-none-elf",
@@ -147,8 +144,8 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         a1_boot: boot_accepted,
         a2_machine_wake: machine_wake_accepted,
         a3_ordinary_form: ordinary_form_accepted,
-        a4_observatory_patchbay: full_spine_accepted,
-        blocker: (!full_spine_accepted).then_some(blocker),
+        a4_observatory_patchbay: observatory_patchbay_accepted,
+        blocker: (!observatory_patchbay_accepted).then_some(blocker),
     }
 }
 
@@ -182,7 +179,7 @@ mod tests {
         assert!(aarch64.a1_boot);
         assert!(aarch64.a2_machine_wake);
         assert!(aarch64.a3_ordinary_form);
-        assert!(!aarch64.a4_observatory_patchbay);
+        assert!(aarch64.a4_observatory_patchbay);
         let ia32 = matrix
             .architectures
             .iter()
