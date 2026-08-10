@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 use super::{
-    image,
+    aarch64_a0, image,
     profile::{Paths, LIMINE_ARCHIVE_SHA256, LIMINE_ARCHIVE_URL, LIMINE_VERSION},
     ConduitosArch, ConduitosError,
 };
@@ -107,7 +107,8 @@ fn build_matrix(artifacts: &BTreeSet<String>) -> Result<ArchitectureMatrix, Cond
 }
 
 fn row(arch: ConduitosArch) -> ArchitectureRow {
-    let accepted = arch == ConduitosArch::X86_64;
+    let boot_accepted = arch == ConduitosArch::X86_64;
+    let compile_link_accepted = boot_accepted || arch == ConduitosArch::Aarch64;
     let (artifact, target, blocker) = match arch {
         ConduitosArch::Ia32 => (
             "BOOTIA32.EFI",
@@ -117,8 +118,8 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::X86_64 => ("BOOTX64.EFI", "x86_64-unknown-none", ""),
         ConduitosArch::Aarch64 => (
             "BOOTAA64.EFI",
-            "aarch64-unknown-none",
-            "no accepted AArch64 ConduitOS executable backend",
+            aarch64_a0::TARGET,
+            "A0 compile/link accepted; A1 boot not established",
         ),
         ConduitosArch::Riscv64 => (
             "BOOTRISCV64.EFI",
@@ -137,13 +138,13 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         in_pinned_limine_matrix: true,
         shared_backbone_target: target,
         shared_backbone_profile_known: true,
-        executable_backend_present: accepted,
-        a0_compile_link: accepted,
-        a1_boot: accepted,
-        a2_machine_wake: accepted,
-        a3_ordinary_form: accepted,
-        a4_observatory_patchbay: accepted,
-        blocker: (!accepted).then_some(blocker),
+        executable_backend_present: compile_link_accepted,
+        a0_compile_link: compile_link_accepted,
+        a1_boot: boot_accepted,
+        a2_machine_wake: boot_accepted,
+        a3_ordinary_form: boot_accepted,
+        a4_observatory_patchbay: boot_accepted,
+        blocker: (!boot_accepted).then_some(blocker),
     }
 }
 
@@ -166,8 +167,18 @@ mod tests {
                 .iter()
                 .filter(|row| row.executable_backend_present)
                 .count(),
-            1
+            2
         );
+        let aarch64 = matrix
+            .architectures
+            .iter()
+            .find(|row| row.architecture == "aarch64")
+            .unwrap();
+        assert!(aarch64.a0_compile_link);
+        assert!(!aarch64.a1_boot);
+        assert!(!aarch64.a2_machine_wake);
+        assert!(!aarch64.a3_ordinary_form);
+        assert!(!aarch64.a4_observatory_patchbay);
     }
 
     #[test]
