@@ -15,3 +15,4 @@ pub mod offer;
 pub mod ordinary_plan;
 pub mod planned_kernel;
 pub mod proof;
+pub mod timing_profile;
