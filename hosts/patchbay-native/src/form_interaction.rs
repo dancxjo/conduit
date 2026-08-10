@@ -64,6 +64,9 @@ impl PatchbayApplication {
             GuiAction::ConnectPorts { source, sink } => {
                 self.dispatch_port_connection(&source, &sink)?
             }
+            GuiAction::RerouteCord { cord, endpoint } => {
+                self.dispatch_cord_reroute(&cord, &endpoint)?
+            }
             GuiAction::ConfigureGear {
                 subject,
                 key,
@@ -161,6 +164,7 @@ impl PatchbayApplication {
                 | PatchbayAction::RemoveGear
                 | PatchbayAction::RemoveCord
                 | PatchbayAction::ConnectPorts
+                | PatchbayAction::RerouteCord
                 | PatchbayAction::ConfigureGear
         ) {
             return self.apply_authoring_edit(invocation);
@@ -205,6 +209,7 @@ impl PatchbayApplication {
             | PatchbayAction::RemoveGear
             | PatchbayAction::RemoveCord
             | PatchbayAction::ConnectPorts
+            | PatchbayAction::RerouteCord
             | PatchbayAction::ConfigureGear => unreachable!("authoring edit returned above"),
         };
         match result {

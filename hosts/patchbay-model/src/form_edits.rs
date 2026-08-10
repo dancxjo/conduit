@@ -251,6 +251,106 @@ impl FormEditor {
         self.apply_candidate(candidate)
     }
 
+    /// Replaces either endpoint of one exact direct authored Cord after
+    /// applying the same direction, Info, and temporal checks as connection.
+    pub fn reroute_cord_endpoint(
+        &mut self,
+        offered_revision: u64,
+        offered_expanded_form_id: &conduit_core::ExpandedFormId,
+        cord_identity: &str,
+        endpoint_port_identity: &str,
+    ) -> Result<(), FormEditorError> {
+        self.require_revision(offered_revision)?;
+        let expanded = self.expand_form(&self.open_form)?;
+        let graph = PatchbayGraph::from_expanded(&expanded)
+            .map_err(|error| FormEditorError::Catalog(error.to_string()))?;
+        if &graph.expanded_form_id != offered_expanded_form_id {
+            return Err(FormEditorError::StaleGraphBasis);
+        }
+        let cord = graph
+            .cords
+            .iter()
+            .find(|cord| cord.identity == cord_identity)
+            .ok_or_else(|| FormEditorError::UnknownCord(cord_identity.into()))?;
+        let old_source_port = graph
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.outputs)
+            .find(|port| port.identity == cord.source_port)
+            .ok_or_else(|| FormEditorError::UnknownPort(cord.source_port.clone()))?;
+        let old_sink_port = graph
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.inputs)
+            .find(|port| port.identity == cord.sink_port)
+            .ok_or_else(|| FormEditorError::UnknownPort(cord.sink_port.clone()))?;
+        let offered_source = graph
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.outputs)
+            .find(|port| port.identity == endpoint_port_identity);
+        let offered_sink = graph
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.inputs)
+            .find(|port| port.identity == endpoint_port_identity);
+        let (source_port, sink_port) = match (offered_source, offered_sink) {
+            (Some(source), None) => (source, old_sink_port),
+            (None, Some(sink)) => (old_source_port, sink),
+            _ => return Err(FormEditorError::UnknownPort(endpoint_port_identity.into())),
+        };
+        if source_port.descriptor.value_kind != sink_port.descriptor.value_kind {
+            return Err(FormEditorError::IncompatiblePorts(format!(
+                "Info {} cannot feed {}",
+                source_port.descriptor.value_kind.as_str(),
+                sink_port.descriptor.value_kind.as_str()
+            )));
+        }
+        if source_port.descriptor.temporal != sink_port.descriptor.temporal {
+            return Err(FormEditorError::IncompatiblePorts(format!(
+                "temporal contract {:?} cannot feed {:?}",
+                source_port.descriptor.temporal, sink_port.descriptor.temporal
+            )));
+        }
+        if graph.cords.iter().any(|candidate| {
+            candidate.identity != cord_identity
+                && candidate.source_port == source_port.identity
+                && candidate.sink_port == sink_port.identity
+        }) {
+            return Err(FormEditorError::DuplicateCord);
+        }
+        let old_source = direct_port_reference(&self.open_form, &cord.source_port, "output")?;
+        let old_sink = direct_port_reference(&self.open_form, &cord.sink_port, "input")?;
+        let form = self.open_graph_form()?;
+        let item = form
+            .cords
+            .iter()
+            .zip(
+                form.items
+                    .iter()
+                    .filter(|item| item.kind == GraphItemKind::Cord),
+            )
+            .find(|(candidate, _)| {
+                candidate.stages.as_slice()
+                    == [
+                        crate::GraphCordStage::Reference(old_source.clone()),
+                        crate::GraphCordStage::Reference(old_sink.clone()),
+                    ]
+            })
+            .map(|(_, item)| item)
+            .ok_or_else(|| FormEditorError::UnknownCord(cord_identity.into()))?;
+        let source_name = direct_gear_name(&self.open_form, source_port.gear_id.as_str())?;
+        let sink_name = direct_gear_name(&self.open_form, sink_port.gear_id.as_str())?;
+        let statement = format!(
+            "{source_name}.{} > {sink_name}.{}",
+            source_port.descriptor.port_id.as_str(),
+            sink_port.descriptor.port_id.as_str()
+        );
+        let mut candidate = self.source.clone();
+        candidate.replace_range(item.source_span.start..item.source_span.end, &statement);
+        self.apply_candidate(candidate)
+    }
+
     pub(crate) fn require_revision(&self, offered: u64) -> Result<(), FormEditorError> {
         if offered != self.revision {
             return Err(FormEditorError::StaleRevision {

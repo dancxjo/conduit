@@ -30,6 +30,9 @@ impl PatchbayApplication {
                 Some(patchbay_model::PatchbaySubjectKind::Gear) => {
                     self.gear_drag = Some((subject.clone(), self.cursor_position));
                 }
+                Some(patchbay_model::PatchbaySubjectKind::Cord) => {
+                    self.cord_route_drag = Some(subject.clone());
+                }
                 _ => {}
             }
         }
@@ -64,6 +67,48 @@ impl PatchbayApplication {
                 });
             if let Some(sink) = sink {
                 self.handle_gui_action(GuiAction::ConnectPorts { source, sink })?;
+            }
+            return Ok(());
+        }
+        if let Some(cord) = self.cord_route_drag.take() {
+            let endpoint = self
+                .hit_targets
+                .iter()
+                .rev()
+                .find(|target| target.contains(self.cursor_position.0, self.cursor_position.1))
+                .and_then(|target| match &target.action {
+                    GuiAction::SelectSubject(subject) => Some(subject.clone()),
+                    _ => None,
+                })
+                .filter(|subject| {
+                    self.graphical_form
+                        .as_ref()
+                        .and_then(|graph| graph.inspect(&subject.subject_identity).ok())
+                        .is_some_and(|inspection| {
+                            inspection.subject_kind
+                                == patchbay_model::PatchbaySubjectKind::PortInput
+                                || inspection.subject_kind
+                                    == patchbay_model::PatchbaySubjectKind::PortOutput
+                        })
+                });
+            if let Some(endpoint) = endpoint {
+                self.handle_gui_action(GuiAction::RerouteCord { cord, endpoint })?;
+            } else {
+                let graph = self
+                    .graphical_form
+                    .as_ref()
+                    .ok_or("graphical Form projection is absent")?;
+                self.layout
+                    .route_cord(
+                        graph,
+                        &cord,
+                        self.cursor_position.0 as i32,
+                        self.cursor_position.1 as i32,
+                    )
+                    .map_err(|error| format!("native Cord routing failed: {error:?}"))?;
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
             }
             return Ok(());
         }

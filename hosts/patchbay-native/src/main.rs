@@ -60,6 +60,7 @@ struct PatchbayApplication {
     palette_search_active: bool,
     palette_drag: Option<String>,
     cord_drag: Option<patchbay_model::PatchbaySubjectRef>,
+    cord_route_drag: Option<patchbay_model::PatchbaySubjectRef>,
     gear_drag: Option<(patchbay_model::PatchbaySubjectRef, (f64, f64))>,
     control: NativeControl,
     build_birth: BuildBirthController,
@@ -181,6 +182,7 @@ impl PatchbayApplication {
             palette_search_active: false,
             palette_drag: None,
             cord_drag: None,
+            cord_route_drag: None,
             gear_drag: None,
             control,
             build_birth: BuildBirthController::new(),
@@ -499,3 +501,7 @@ mod gui_tests;
 #[cfg(test)]
 #[path = "face_configuration_tests.rs"]
 mod face_configuration_tests;
+
+#[cfg(test)]
+#[path = "cord_editing_tests.rs"]
+mod cord_editing_tests;

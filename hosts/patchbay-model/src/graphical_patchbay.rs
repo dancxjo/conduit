@@ -270,6 +270,8 @@ impl PatchbayGraph {
                     format!("to {}", cord.sink_port),
                     format!("Info {}", cord.value_kind.as_str()),
                     format!("temporal={:?}", cord.temporal),
+                    "semantic parameters: none exposed by this Cord contract".into(),
+                    "Line / transport choices belong to realization".into(),
                 ],
             });
         }

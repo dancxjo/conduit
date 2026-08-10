@@ -24,6 +24,10 @@ pub enum GuiAction {
         source: patchbay_model::PatchbaySubjectRef,
         sink: patchbay_model::PatchbaySubjectRef,
     },
+    RerouteCord {
+        cord: PatchbaySubjectRef,
+        endpoint: PatchbaySubjectRef,
+    },
     ConfigureGear {
         subject: PatchbaySubjectRef,
         key: String,
@@ -34,27 +38,27 @@ pub enum GuiAction {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum HitShape {
     Rect(PixelRect),
-    Cord {
-        source: Point,
-        middle_x: i32,
-        sink: Point,
-    },
+    Cord { points: [Point; 5] },
 }
 
 impl HitTarget {
     pub fn contains(&self, x: f64, y: f64) -> bool {
         match self.shape {
             HitShape::Rect(bounds) => bounds.contains(x, y),
-            HitShape::Cord {
-                source,
-                middle_x,
-                sink,
-            } => {
-                near_horizontal(x, y, source.x, middle_x, source.y)
-                    || near_vertical(x, y, middle_x, source.y, sink.y)
-                    || near_horizontal(x, y, middle_x, sink.x, sink.y)
-            }
+            HitShape::Cord { points } => points
+                .windows(2)
+                .any(|segment| near_segment(x, y, segment[0], segment[1])),
         }
+    }
+}
+
+fn near_segment(x: f64, y: f64, first: Point, second: Point) -> bool {
+    if first.y == second.y {
+        near_horizontal(x, y, first.x, second.x, first.y)
+    } else if first.x == second.x {
+        near_vertical(x, y, first.x, first.y, second.y)
+    } else {
+        false
     }
 }
 

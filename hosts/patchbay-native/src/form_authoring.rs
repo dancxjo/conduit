@@ -100,6 +100,34 @@ impl PatchbayApplication {
         self.dispatch_authoring_invocation(PatchbayAction::ConnectPorts, target)
     }
 
+    pub(super) fn dispatch_cord_reroute(
+        &mut self,
+        cord: &PatchbaySubjectRef,
+        endpoint: &PatchbaySubjectRef,
+    ) -> Result<(), String> {
+        if cord.expanded_form_id != endpoint.expanded_form_id {
+            return Err("Cord and Port come from different checked Form revisions".into());
+        }
+        let editor = self
+            .form_editor
+            .as_ref()
+            .ok_or("canonical Form editor is absent")?;
+        let view = editor.view();
+        let source_id = view
+            .checked
+            .source_document_id
+            .ok_or("checked canonical Form identity is absent")?;
+        let target = format!(
+            "{}@{}@{}@{}@{}",
+            source_id.as_str(),
+            view.revision,
+            cord.expanded_form_id.as_str(),
+            cord.subject_identity,
+            endpoint.subject_identity
+        );
+        self.dispatch_authoring_invocation(PatchbayAction::RerouteCord, target)
+    }
+
     fn dispatch_authoring_invocation(
         &mut self,
         action: PatchbayAction,
@@ -173,7 +201,7 @@ impl PatchbayApplication {
     ) -> PatchbayInvocationOutcome {
         let fields = invocation.target_identity.split('@').collect::<Vec<_>>();
         let expected = match invocation.action {
-            PatchbayAction::ConnectPorts => 5,
+            PatchbayAction::ConnectPorts | PatchbayAction::RerouteCord => 5,
             PatchbayAction::ConfigureGear => 6,
             _ => 4,
         };
@@ -214,6 +242,12 @@ impl PatchbayApplication {
                 fields[3],
             ),
             PatchbayAction::ConnectPorts => editor.connect_ports(
+                revision,
+                &conduit_core::ExpandedFormId::from(fields[2]),
+                fields[3],
+                fields[4],
+            ),
+            PatchbayAction::RerouteCord => editor.reroute_cord_endpoint(
                 revision,
                 &conduit_core::ExpandedFormId::from(fields[2]),
                 fields[3],

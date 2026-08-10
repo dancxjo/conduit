@@ -252,3 +252,121 @@ fn incompatible_duplicate_and_stale_composition_edits_preserve_source() {
     );
     assert_eq!(editor.view().source, before);
 }
+
+#[test]
+fn reroute_either_cord_endpoint_changes_identities_and_can_be_reversed() {
+    let mut editor = FormEditor::from_source(
+        PathBuf::from("reroute.conduit"),
+        "form reroute {\n    literal: text/literal(\"hello\")\n    literal-2: text/literal(\"again\")\n    upper: text/upper\n    upper-2: text/upper\n    count: state/count(0)\n    literal.text > upper.text\n}\n".into(),
+    )
+    .unwrap();
+    let original = PatchbayGraph::from_expanded(&editor.expand_form("reroute").unwrap()).unwrap();
+    let original_ids = (
+        original.source_document_id.clone(),
+        original.checked_form_id.clone(),
+        original.expanded_form_id.clone(),
+    );
+    let second_sink = original
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "reroute/upper-2")
+        .unwrap()
+        .inputs[0]
+        .identity
+        .clone();
+    let incompatible_sink = original
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "reroute/count")
+        .unwrap()
+        .inputs[0]
+        .identity
+        .clone();
+    let unchanged_source = editor.view().source;
+    assert!(matches!(
+        editor.reroute_cord_endpoint(
+            0,
+            &original.expanded_form_id,
+            &original.cords[0].identity,
+            &incompatible_sink,
+        ),
+        Err(FormEditorError::IncompatiblePorts(_))
+    ));
+    assert_eq!(editor.view().source, unchanged_source);
+    editor
+        .reroute_cord_endpoint(
+            0,
+            &original.expanded_form_id,
+            &original.cords[0].identity,
+            &second_sink,
+        )
+        .unwrap();
+    assert!(editor.view().source.contains("literal.text > upper-2.text"));
+    let rerouted = PatchbayGraph::from_expanded(&editor.expand_form("reroute").unwrap()).unwrap();
+    assert_ne!(
+        original_ids,
+        (
+            rerouted.source_document_id.clone(),
+            rerouted.checked_form_id.clone(),
+            rerouted.expanded_form_id.clone()
+        )
+    );
+    let original_sink = rerouted
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "reroute/upper")
+        .unwrap()
+        .inputs[0]
+        .identity
+        .clone();
+    let second_source = rerouted
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "reroute/literal-2")
+        .unwrap()
+        .outputs[0]
+        .identity
+        .clone();
+    editor
+        .reroute_cord_endpoint(
+            1,
+            &rerouted.expanded_form_id,
+            &rerouted.cords[0].identity,
+            &second_source,
+        )
+        .unwrap();
+    assert!(editor
+        .view()
+        .source
+        .contains("literal-2.text > upper-2.text"));
+    let source_rerouted =
+        PatchbayGraph::from_expanded(&editor.expand_form("reroute").unwrap()).unwrap();
+    editor
+        .reroute_cord_endpoint(
+            2,
+            &source_rerouted.expanded_form_id,
+            &source_rerouted.cords[0].identity,
+            &original_sink,
+        )
+        .unwrap();
+    assert!(editor.view().source.contains("literal-2.text > upper.text"));
+    let sink_reversed =
+        PatchbayGraph::from_expanded(&editor.expand_form("reroute").unwrap()).unwrap();
+    let original_source = sink_reversed
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "reroute/literal")
+        .unwrap()
+        .outputs[0]
+        .identity
+        .clone();
+    editor
+        .reroute_cord_endpoint(
+            3,
+            &sink_reversed.expanded_form_id,
+            &sink_reversed.cords[0].identity,
+            &original_source,
+        )
+        .unwrap();
+    assert!(editor.view().source.contains("literal.text > upper.text"));
+}
