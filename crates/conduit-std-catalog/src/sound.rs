@@ -4,8 +4,11 @@ use super::{StandardKindContract, TerminalBehavior};
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, AUDIO_PCM_INFO_ID, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID, SOUND_TONE_INFO_ID,
+    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    AUDIO_PCM_INFO_ID, CONTROL_EVENT_ENCODED_LEN, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
+    NOTE_EVENT_ENCODED_LEN, PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +19,11 @@ pub const AUDIO_PLAY_KIND: &str = "audio/play";
 pub const SOUND_TONE_PLAY_REVISION: &str = "conduit.std/sound-tone-play@1";
 pub const MUSIC_PLAY_REVISION: &str = "conduit.std/music-play@1";
 pub const MUSIC_SYNTH_REVISION: &str = "conduit.std/music-synth@1";
+pub const MUSIC_SYNTH_REFERENCE_PROFILE: &str = "conduit.reference/music-synth-fixed-q16@1";
+pub const MUSIC_SYNTH_REFERENCE_IMPLEMENTATION: &str = "std/kernel-music-synth-fixed-q16@1";
+pub const MUSIC_SYNTH_REFERENCE_ARTIFACT: &str = "conduit-std-host/music-synth-fixed-q16@1";
+pub const MUSIC_SYNTH_HOST_OPERATION: &str = "conduit.host/music-synth-render-fixed-q16@1";
+pub const MUSIC_SYNTH_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 256 * 2;
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
 
 pub const MAXIMUM_MUSICAL_EVENT_ITEMS: u16 = 256;
@@ -95,10 +103,38 @@ pub fn music_synth_contract() -> StandardKindContract {
         configuration: Vec::new(),
         limits: audio_limits(),
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
-        hosted_implementation_required: false,
+        hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "synth: music/synth".to_string(),
+    }
+}
+
+pub fn music_synth_reference_offer() -> CapabilityOffer {
+    let contract = music_synth_contract();
+    CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: CapabilityId::from("music-synth-fixed-q16"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindContractRevision::from(MUSIC_SYNTH_REVISION),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(MUSIC_SYNTH_REFERENCE_PROFILE),
+            implementation_id: ImplementationId::from(MUSIC_SYNTH_REFERENCE_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(MUSIC_SYNTH_REFERENCE_ARTIFACT),
+        },
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(MUSIC_SYNTH_HOST_OPERATION),
+            target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: NOTE_EVENT_ENCODED_LEN.max(CONTROL_EVENT_ENCODED_LEN) as u32,
+            maximum_output_bytes: MUSIC_SYNTH_PCM_BLOCK_BYTES,
+        }],
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: audio_limits(),
     }
 }
 

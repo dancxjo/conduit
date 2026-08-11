@@ -22,6 +22,7 @@ conduit-presentation = { path = "../../crates/conduit-presentation" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }
+conduit-synth = { path = "../../crates/conduit-synth" }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 conduit-wire = { path = "../../crates/conduit-wire" }
 tungstenite = "0.30.0"

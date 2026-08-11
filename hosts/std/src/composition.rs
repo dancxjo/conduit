@@ -151,6 +151,7 @@ pub(super) fn build_advertisement(
         capabilities.extend([
             installed_std::tick_offer(),
             installed_std::every_offer(),
+            installed_std::synth_offer(),
             conduit_std_catalog::time_debounce_offer(),
             conduit_std_catalog::time_timeout_offer(),
             conduit_std_catalog::time_delay_offer(),

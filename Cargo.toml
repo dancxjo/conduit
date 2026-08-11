@@ -18,6 +18,7 @@ members = [
 	"crates/conduit-chat",
 	"crates/conduit-ai",
 	"crates/conduit-tongues",
+	"crates/conduit-synth",
 	"crates/conduit-std-catalog",
 	"crates/conduit",
 	"fixtures/browser-sim",
