@@ -126,6 +126,7 @@ fn check_shared_backbone(paths: &Paths, opts: &GlobalOpts) -> Result<(), Conduit
 
 fn compile_object(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
     let source = paths.root.join("hosts/conduitos/src/bin/loongarch64_a0.rs");
+    let commit = git_head(&paths.root)?;
     let status = Command::new("rustc")
         .args([
             "--crate-name",
@@ -141,6 +142,11 @@ fn compile_object(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
         .arg(format!("obj={}", object.display()))
         .args(["-C", "panic=abort", "-C", "relocation-model=static", "-O"])
         .arg(source)
+        .env("CONDUITOS_BUILD_ID", &commit)
+        .env(
+            "CONDUITOS_IMAGE_ID",
+            format!("conduitos-image/{commit}/loongarch64/v1"),
+        )
         .current_dir(&paths.root)
         .status()
         .map_err(|error| {

@@ -121,3 +121,5 @@ jobs:
         run: cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos prove --arch ia32 --locked
       - name: Prove RISC-V64 ConduitOS entry
         run: cargo xtask conduitos prove --arch riscv64 --locked
+      - name: Prove LoongArch64 ConduitOS entry
+        run: cargo xtask conduitos prove --arch loongarch64 --locked
