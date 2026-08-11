@@ -92,8 +92,8 @@ fn push(
     Ok(())
 }
 
-pub(super) fn retain_transition(
-    output: &mut [HidKeyTransition; 2],
+pub(super) fn retain_transition<const N: usize>(
+    output: &mut [HidKeyTransition; N],
     count: &mut usize,
     transition: HidKeyTransition,
 ) -> Result<(), HidError> {

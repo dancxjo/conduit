@@ -159,6 +159,41 @@ extern "C" fn conduitos_start() -> ! {
                 Ok(ready) => ready,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
+            arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-ready\n");
+            let mut hid_session =
+                match arch::receive_first_boot_keyboard_report(&mut xhci, &usb, hid_ready) {
+                    Ok(session) => session,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+            let mut rescue_matcher = conduitos::local_rescue::LocalRescueMatcher::new();
+            let mut modifier_prefix = !hid_session.transitions().is_empty()
+                && hid_session
+                    .transitions()
+                    .iter()
+                    .all(|transition| (0xe0..=0xe7).contains(&transition.usage()));
+            for transition in hid_session.transitions().iter().copied() {
+                observe_local_rescue(
+                    &identities,
+                    &mut rescue_matcher,
+                    transition.into_local_rescue(),
+                );
+            }
+            while modifier_prefix {
+                let (transitions, count) = match hid_session.receive_followup(&mut xhci, &usb) {
+                    Ok(batch) => batch,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+                for transition in transitions[..count].iter().copied() {
+                    observe_local_rescue(
+                        &identities,
+                        &mut rescue_matcher,
+                        transition.into_local_rescue(),
+                    );
+                }
+                modifier_prefix = transitions[..count]
+                    .iter()
+                    .all(|transition| (0xe0..=0xe7).contains(&transition.usage()));
+            }
             let offer = match conduitos::offer::HostOffer::new(
                 &identities,
                 BUILD_ID,
@@ -188,23 +223,23 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-offer-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-plan-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-play-started\n");
-            let hid = match arch::receive_boot_keyboard(&mut xhci, &usb, hid_ready) {
+            let hid = match arch::finish_boot_keyboard(&mut xhci, &usb, hid_session) {
                 Ok(proof) => proof,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
             let portable_values = [
                 match conduitos::keyboard_bridge::portable_key_event(
-                    hid.transitions[0].usage,
-                    hid.transitions[0].pressed,
-                    hid.transitions[0].modifiers,
+                    hid.transitions[0].usage(),
+                    hid.transitions[0].pressed(),
+                    hid.transitions[0].modifiers(),
                 ) {
                     Ok(value) => value,
                     Err(_) => emit_machine_refusal("keyboard-portable-value-invalid"),
                 },
                 match conduitos::keyboard_bridge::portable_key_event(
-                    hid.transitions[1].usage,
-                    hid.transitions[1].pressed,
-                    hid.transitions[1].modifiers,
+                    hid.transitions[1].usage(),
+                    hid.transitions[1].pressed(),
+                    hid.transitions[1].modifiers(),
                 ) {
                     Ok(value) => value,
                     Err(_) => emit_machine_refusal("keyboard-portable-value-invalid"),
@@ -239,20 +274,20 @@ extern "C" fn conduitos_start() -> ! {
                 hid.sign_slots,
                 hid.interrupt_poll_windows,
                 hid.transition_count,
-                hid.transitions[0].usage,
-                if hid.transitions[0].pressed {
+                hid.transitions[0].usage(),
+                if hid.transitions[0].pressed() {
                     "pressed"
                 } else {
                     "released"
                 },
-                hid.transitions[0].modifiers,
-                hid.transitions[1].usage,
-                if hid.transitions[1].pressed {
+                hid.transitions[0].modifiers(),
+                hid.transitions[1].usage(),
+                if hid.transitions[1].pressed() {
                     "pressed"
                 } else {
                     "released"
                 },
-                hid.transitions[1].modifiers,
+                hid.transitions[1].modifiers(),
             );
             arch::early_write(hid_sign.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE hid-transitions\n");
@@ -358,6 +393,37 @@ extern "C" fn conduitos_start() -> ! {
             }
         }
         Err(error) => emit_refusal(error.as_str()),
+    }
+}
+
+#[cfg(target_os = "none")]
+fn observe_local_rescue(
+    identities: &conduitos::identity::BootIdentities,
+    matcher: &mut conduitos::local_rescue::LocalRescueMatcher,
+    transition: conduitos::local_rescue::ValidatedLocalTransition,
+) {
+    let policy = conduitos::local_rescue::LocalRescuePolicy {
+        enabled: true,
+        reboot_base_available: true,
+    };
+    match matcher.observe(policy, transition) {
+        conduitos::local_rescue::RescueDecision::NoRequest => {}
+        conduitos::local_rescue::RescueDecision::RebootBaseUnavailable { .. } => {
+            emit_machine_refusal("local-rescue-reboot-base-unavailable")
+        }
+        conduitos::local_rescue::RescueDecision::RequestAccepted { policy, operation } => {
+            let boot_id = identity::hex(&identities.boot);
+            let receipt = format!(
+                "CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"{}\",\"authority\":\"local-physical-input\",\"policy\":\"{}\",\"operation\":\"{}\",\"request_id\":\"local-rescue/{}/1\",\"ordinary_keyboard_plan\":false}}\n",
+                boot_id, policy, operation, boot_id,
+            );
+            arch::early_write(receipt.as_bytes());
+            arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-reset-requested\n");
+            match arch::local_reboot_base().request() {
+                Ok(never) => match never {},
+                Err(error) => emit_machine_refusal(error.as_str()),
+            }
+        }
     }
 }
 

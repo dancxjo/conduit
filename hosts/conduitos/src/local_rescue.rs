@@ -22,7 +22,8 @@ pub struct ValidatedLocalTransition {
 impl ValidatedLocalTransition {
     /// Wrap fields only after the local adapter has validated the physical HID
     /// report. Portable semantic adapters must not invoke this constructor.
-    pub const fn from_validated_hid(usage: u8, pressed: bool, modifiers: u8) -> Self {
+    #[cfg_attr(not(target_arch = "x86_64"), allow(dead_code))]
+    pub(crate) const fn from_validated_hid(usage: u8, pressed: bool, modifiers: u8) -> Self {
         Self {
             usage,
             pressed,
