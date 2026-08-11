@@ -1244,6 +1244,34 @@ cooperative lane. It adds no per-Gear task, thread, process, or context
 identity; SMP, second lane, context switching, preemption, isolation, new
 scheduler, transport, physical scheduling, and HIL remain outside the claim.
 
+The canonical portable Boolean toggle slice from #900 is accepted at exact
+main `bb316a547af746ef0057dcd9ac3f13c2a6fb0abf`; push workflow
+`31464280116` passed `check`, `browser-host`, and `conduitos-boot`. One
+`conduit.std/state-toggle@1` contract now defines exact closing Tick input,
+Boolean Current output, initial state, finite transitions, pressure, closure,
+cancellation, malformed-input failure, and terminal behavior. The ordinary
+std profile installs `std/kernel-state-toggle@1` through planning, lowering,
+and the production kernel with every possible emitted Boolean Value admitted
+before Play.
+
+The distributed browser demo remains intact as a consumer of that same
+contract: its authored Form uses `state/toggle` and `presentation/bool`, the
+browser receives canonical Boolean values after remote-ingress kernel
+execution, and pinned Chromium proves sixteen ordered presentations, one real
+pressure retry, and a distinct broken-link failure. The former Signal-only
+revision, trigger value, implementation identity, and artifact identity are
+absent; no compatibility facade or second toggle meaning remains active.
+
+This exact-main result also supplies the finite missing-family promotion
+required by #883. The generated Host x Kind report from #893 automatically
+contains the toggle row: the ordinary std and bounded Signal profiles expose
+exact direct cells, browser exposes the exact Boolean presenter cell, and
+other profiles remain explicit missing or unsupported obligations. Semantic
+support, installed realization, and intentionally supplied current-offer
+truth remain separate; the matrix is explanatory input and never planner or
+Boot truth. This adds no latch, selector, merge, UI state store, generic
+reducer, `value/any`, universal Host coverage, or physical proof.
+
 The bounded ConduitOS xHCI Base slice from #805 is accepted at exact main
 `ccc26d3a0597d3254e58fcc5c106795f48d01298`; push workflow `31456936589`
 passed `check`, `browser-host`, and `conduitos-boot`. The ConduitOS job ran the
