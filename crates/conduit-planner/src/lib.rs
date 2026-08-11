@@ -598,6 +598,7 @@ pub(crate) fn plan_validated_form(
                 source_document_id: form.source_document_id.clone(),
                 checked_form_id: form.checked_form_id.clone(),
                 expanded_form_id: form.expanded_form_id.clone(),
+                realization_backs: Vec::new(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
                 offer_generation: host.offer_generation,

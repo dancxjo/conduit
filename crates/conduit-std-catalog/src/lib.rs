@@ -49,6 +49,8 @@ mod math;
 pub use math::*;
 mod layout;
 pub use layout::*;
+mod patchbay_presentation;
+pub use patchbay_presentation::*;
 mod robotics;
 pub use robotics::*;
 #[cfg(feature = "form-catalog")]
@@ -111,6 +113,10 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         graphics_rect_contract(),
         graphics_text_contract(),
         graphics_icon_contract(),
+        patchbay_presentation_contracts()[0].clone(),
+        patchbay_presentation_contracts()[1].clone(),
+        patchbay_presentation_contracts()[2].clone(),
+        patchbay_presentation_contracts()[3].clone(),
         robotics_observe_bump_contract(),
         robotics_observe_imu_contract(),
         robotics_observe_range_contract(),
@@ -165,6 +171,10 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         graphics_rect_offer(),
         graphics_text_offer(),
         graphics_icon_offer(),
+        patchbay_presentation_offers()[0].clone(),
+        patchbay_presentation_offers()[1].clone(),
+        patchbay_presentation_offers()[2].clone(),
+        patchbay_presentation_offers()[3].clone(),
         robotics_observe_bump_offer(),
         robotics_observe_imu_offer(),
         robotics_observe_range_offer(),
@@ -399,7 +409,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 44);
+        assert_eq!(contracts.len(), 48);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
@@ -412,7 +422,10 @@ mod supported_nucleus_tests {
             assert!(contract.hosted_implementation_required);
             assert_eq!(
                 contract.browser_manifestation_honest,
-                contract.kind_id.as_str() == BOOL_PRESENTATION_KIND
+                matches!(
+                    contract.kind_id.as_str(),
+                    BOOL_PRESENTATION_KIND | PATCHBAY_PRESENTATION_KIND
+                )
             );
             assert!(!contract.pico_manifestation_honest);
             assert!(contract

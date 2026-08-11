@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn current_gap_is_derived_and_exact() {
         let report = build_report("test-build").unwrap();
-        assert_eq!(report.catalog_entry_count, 44);
+        assert_eq!(report.catalog_entry_count, 48);
         assert_eq!(report.implemented_count, 5);
         assert_eq!(report.missing_count, 39);
         assert!(report.entries.iter().any(|entry| {

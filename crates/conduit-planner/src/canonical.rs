@@ -70,7 +70,16 @@ pub fn plan_expanded_canonical_with_options(
         exports: Vec::new(),
         nested_forms: Vec::new(),
     };
-    plan_validated_form(&planning_form, hosts, placements, bases, options)
+    let plan = plan_validated_form(&planning_form, hosts, placements, bases, options)?;
+    Ok(conduit_core::seal_plan_with_realization_backs(
+        conduit_core::FormIdentity {
+            source_document_id: form.source_document_id.clone(),
+            checked_form_id: form.checked_form_id.clone(),
+            expanded_form_id: form.expanded_form_id.clone(),
+        },
+        form.realization_backs.clone(),
+        plan.fragments,
+    ))
 }
 
 pub fn plan_expanded_canonical_with_shared_pools(

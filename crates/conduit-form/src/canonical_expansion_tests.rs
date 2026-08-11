@@ -89,6 +89,85 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     (startup, profile)
 }
 
+#[test]
+fn selected_canonical_back_changes_only_expansion_identity_and_records_exact_provenance() {
+    let (mut startup, mut profile) = catalogs();
+    startup
+        .insert(KindSignature {
+            kind: "test/high".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let high = KindDefinition {
+        kind_id: kind_id("test/high"),
+        kind_contract_revision: KindContractRevision::from("test/high@1"),
+        inputs: vec![port("in", PortDirection::Input)],
+        outputs: vec![port("out", PortDirection::Output)],
+        configuration: vec![],
+    };
+    profile.insert(high.clone()).unwrap();
+
+    let user = check_syntax_document(
+        &parse_syntax_document(
+            "form main {\n source: test/source\n high: test/high\n sink: test/sink\n source > high > sink\n}\n",
+        ),
+        &startup,
+    )
+    .unwrap();
+    let direct = expand_canonical_form(&user, "main", &profile).unwrap();
+
+    let back_document = check_syntax_document(
+        &parse_syntax_document(
+            "form test/high (\n in: test/value > out: test/value\n) {\n leaf: test/pass\n in > leaf > out\n}\n",
+        ),
+        &startup,
+    )
+    .unwrap();
+    let mut backs = crate::CanonicalBackCatalog::new();
+    backs.insert(&high, &back_document, "test/high").unwrap();
+    let recursive =
+        crate::expand_canonical_form_with_backs(&user, "main", &profile, &backs).unwrap();
+
+    assert_eq!(direct.source_document_id, recursive.source_document_id);
+    assert_eq!(direct.checked_form_id, recursive.checked_form_id);
+    assert_ne!(direct.expanded_form_id, recursive.expanded_form_id);
+    assert!(direct.realization_backs.is_empty());
+    assert_eq!(recursive.realization_backs.len(), 1);
+    assert_eq!(recursive.realization_backs[0].invocation_path, "main/high");
+    assert_eq!(recursive.realization_backs[0].kind_id.as_str(), "test/high");
+    assert_eq!(
+        recursive.realization_backs[0].source_document_id,
+        back_document.source_document_id
+    );
+    assert!(recursive
+        .gears
+        .iter()
+        .any(|gear| gear.gear_id.as_str() == "main/high/leaf"));
+    recursive.validate_expansion().unwrap();
+}
+
+#[test]
+fn canonical_back_refuses_a_face_that_differs_from_the_high_level_kind() {
+    let (startup, profile) = catalogs();
+    let document = check_syntax_document(
+        &parse_syntax_document("form wrong {\n leaf: test/source\n}\n"),
+        &startup,
+    )
+    .unwrap();
+    let mut backs = crate::CanonicalBackCatalog::new();
+    let error = backs
+        .insert(
+            profile.get(&kind_id("test/pass")).unwrap(),
+            &document,
+            "wrong",
+        )
+        .unwrap_err();
+    assert_eq!(
+        error,
+        crate::CanonicalBackError::FaceMismatch("test/pass".into())
+    );
+}
+
 fn expand(source: &str, root: &str) -> crate::ExpandedCanonicalForm {
     let (startup, profile) = catalogs();
     let syntax = parse_syntax_document(source);

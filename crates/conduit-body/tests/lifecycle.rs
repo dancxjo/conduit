@@ -9,6 +9,7 @@ fn plan(identity: &str) -> Plan {
         source_document_id: SourceDocumentId::from("source-a"),
         checked_form_id: CheckedFormId::from("checked-a"),
         expanded_form_id: "expanded".into(),
+        realization_backs: vec![],
         plan_id: PlanId::from(identity),
         fragments: vec![],
     }

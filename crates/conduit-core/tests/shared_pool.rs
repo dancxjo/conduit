@@ -82,6 +82,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         source_document_id: SourceDocumentId::from("source"),
         checked_form_id: CheckedFormId::from("checked"),
         expanded_form_id: ExpandedFormId::from("expanded"),
+        realization_backs: Vec::new(),
         host_id: HostId::from("browser-host"),
         boot_id: BootId::from("browser-boot"),
         offer_generation: conduit_core::OfferGeneration(1),

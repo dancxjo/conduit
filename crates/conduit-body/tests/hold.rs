@@ -33,6 +33,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
         source_document_id: SourceDocumentId::from("source-a"),
         checked_form_id: CheckedFormId::from("checked-a"),
         expanded_form_id: ExpandedFormId::from(label),
+        realization_backs: Vec::new(),
         host_id: HostId::from(host),
         boot_id: BootId::from(format!("{host}-boot")),
         offer_generation: OfferGeneration(7),

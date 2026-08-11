@@ -11,13 +11,14 @@ use crate::{
     GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, KEYBOARD_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND,
     LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
     LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
-    MATH_DEADBAND_KIND, MATH_SCALE_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND,
-    PRESENTATION_ICON_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND,
-    ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
-    ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND,
-    STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND,
-    TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_DELAY_KIND,
-    TIME_EVERY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
+    MATH_DEADBAND_KIND, MATH_SCALE_KIND, PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND,
+    PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND, PRESENTATION_BADGE_KIND,
+    PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
+    ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_IMU_KIND,
+    ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND,
+    STATE_COUNT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND,
+    TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND,
+    TIME_DELAY_KIND, TIME_EVERY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -284,6 +285,26 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["graphics", "resolved", "icon", "clip"],
             PaletteIconKey::Presentation,
         ),
+        PATCHBAY_PRESENTATION_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["patchbay", "canvas", "portable", "presenter"],
+            PaletteIconKey::Presentation,
+        ),
+        PATCHBAY_GEAR_FACE_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["patchbay", "gear", "face", "controls"],
+            PaletteIconKey::Presentation,
+        ),
+        PATCHBAY_PORT_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["patchbay", "port", "typed", "accessible"],
+            PaletteIconKey::Combine,
+        ),
+        PATCHBAY_CORD_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["patchbay", "cord", "connection", "line"],
+            PaletteIconKey::Combine,
+        ),
         COPY_FILE_KIND => metadata(
             PaletteCategory::Files,
             &["copy", "filesystem", "resource"],
@@ -314,7 +335,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 45);
+        assert_eq!(contracts.len(), 49);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

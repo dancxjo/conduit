@@ -762,6 +762,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
             source_document_id: SourceDocumentId::from("echo-source"),
             checked_form_id: CheckedFormId::from("echo-form"),
             expanded_form_id: ExpandedFormId::from("echo-expanded"),
+            realization_backs: Vec::new(),
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             offer_generation: advertisement.offer_generation,

@@ -261,11 +261,11 @@ pub fn install_graphics_catalogs(
                     name: field.key.clone(),
                     value_type: match field.default_value {
                         ConfigurationValue::Text(_) => "Text",
-                        _ => "U64",
+                        _ => "Count",
                     }
                     .to_string(),
                     default: Some(match &field.default_value {
-                        ConfigurationValue::Text(value) => value.clone(),
+                        ConfigurationValue::Text(value) => alloc::format!("{value:?}"),
                         ConfigurationValue::U64(value) => value.to_string(),
                         _ => unreachable!(),
                     }),

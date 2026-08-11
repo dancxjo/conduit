@@ -216,7 +216,7 @@ pub fn install_presentation_composition_catalogs(
                     name: field.key.clone(),
                     value_type: "Text".to_string(),
                     default: match &field.default_value {
-                        ConfigurationValue::Text(value) => Some(value.clone()),
+                        ConfigurationValue::Text(value) => Some(alloc::format!("{value:?}")),
                         _ => unreachable!(),
                     },
                 })

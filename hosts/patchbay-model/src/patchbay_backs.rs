@@ -7,10 +7,7 @@ use conduit_presentation::{
     LayoutRect, PresentationComposition, PresentationIconKey,
 };
 
-pub const PATCHBAY_GEAR_FACE_KIND: &str = "patchbay/gear-face";
-pub const PATCHBAY_PORT_KIND: &str = "patchbay/port";
-pub const PATCHBAY_CORD_KIND: &str = "patchbay/cord";
-pub const MAX_PATCHBAY_BACK_STEPS: usize = 12;
+pub use conduit_std_catalog::{PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND};
 pub const MAX_PATCHBAY_PRESENTATION_TEXT_BYTES: usize = 256;
 pub const PATCHBAY_BACK_KINDS: [&str; 3] = [
     PATCHBAY_GEAR_FACE_KIND,
@@ -19,41 +16,9 @@ pub const PATCHBAY_BACK_KINDS: [&str; 3] = [
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PatchbayBackRealization {
-    Direct,
-    Recursive,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackInspection {
     Hidden,
     Explicit,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PatchbayBackPlan {
-    pub realization: PatchbayBackRealization,
-    pub subject_kind: &'static str,
-    pub steps: Vec<KindId>,
-}
-
-impl PatchbayBackPlan {
-    fn direct(subject_kind: &'static str) -> Self {
-        Self {
-            realization: PatchbayBackRealization::Direct,
-            subject_kind,
-            steps: vec![KindId::from(subject_kind)],
-        }
-    }
-
-    fn recursive(subject_kind: &'static str, steps: &[&str]) -> Self {
-        debug_assert!(steps.len() <= MAX_PATCHBAY_BACK_STEPS);
-        Self {
-            realization: PatchbayBackRealization::Recursive,
-            subject_kind,
-            steps: steps.iter().map(|kind| KindId::from(*kind)).collect(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -105,8 +70,9 @@ pub enum PatchbaySubjectPresentation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayRealization {
     pub subject: PatchbaySubjectPresentation,
-    /// Hidden on the default canvas; populated only for explicit inspection.
-    pub inspected_plan: Option<PatchbayBackPlan>,
+    /// Back details stay hidden on the default canvas. Exact expansion and
+    /// implementation facts live only in the canonical expanded Form and Plan.
+    pub back_inspected: bool,
     pub graphics: Option<GraphicsScene>,
 }
 
@@ -203,13 +169,11 @@ pub fn cord_presentation(
 
 pub fn realize_direct(
     subject: PatchbaySubjectPresentation,
-    inspection: BackInspection,
+    _inspection: BackInspection,
 ) -> PatchbayRealization {
-    let kind = subject_kind(&subject);
     PatchbayRealization {
         subject,
-        inspected_plan: (inspection == BackInspection::Explicit)
-            .then(|| PatchbayBackPlan::direct(kind)),
+        back_inspected: false,
         graphics: None,
     }
 }
@@ -218,48 +182,18 @@ pub fn realize_recursive(
     subject: PatchbaySubjectPresentation,
     inspection: BackInspection,
 ) -> Result<PatchbayRealization, PatchbayBackError> {
-    let kind = subject_kind(&subject);
-    let (steps, graphics) = match &subject {
-        PatchbaySubjectPresentation::GearFace(face) => (
-            &[
-                "layout/viewport",
-                "layout/inset",
-                "layout/column",
-                "layout/stack",
-                "presentation/icon",
-                "presentation/text",
-                "presentation/frame",
-                "presentation/badge",
-                "graphics/rect",
-                "graphics/text",
-                "graphics/icon",
-            ][..],
-            gear_graphics(face)?,
-        ),
-        PatchbaySubjectPresentation::Port(port) => (
-            &[
-                "layout/align",
-                "presentation/text",
-                "presentation/frame",
-                "graphics/rect",
-                "graphics/text",
-            ][..],
-            label_graphics(&port.accessibility_name, GraphicsPaintRole::Foreground)?,
-        ),
-        PatchbaySubjectPresentation::Cord(cord) => (
-            &[
-                "layout/stack",
-                "presentation/badge",
-                "graphics/rect",
-                "graphics/text",
-            ][..],
-            label_graphics(&cord.accessibility_name, GraphicsPaintRole::Status)?,
-        ),
+    let graphics = match &subject {
+        PatchbaySubjectPresentation::GearFace(face) => gear_graphics(face)?,
+        PatchbaySubjectPresentation::Port(port) => {
+            label_graphics(&port.accessibility_name, GraphicsPaintRole::Foreground)?
+        }
+        PatchbaySubjectPresentation::Cord(cord) => {
+            label_graphics(&cord.accessibility_name, GraphicsPaintRole::Status)?
+        }
     };
     Ok(PatchbayRealization {
         subject,
-        inspected_plan: (inspection == BackInspection::Explicit)
-            .then(|| PatchbayBackPlan::recursive(kind, steps)),
+        back_inspected: inspection == BackInspection::Explicit,
         graphics: Some(graphics),
     })
 }
@@ -275,14 +209,6 @@ pub fn normalized_subject(realization: &PatchbayRealization) -> (&str, &str) {
         PatchbaySubjectPresentation::Cord(value) => {
             (&value.subject_identity, &value.accessibility_name)
         }
-    }
-}
-
-fn subject_kind(subject: &PatchbaySubjectPresentation) -> &'static str {
-    match subject {
-        PatchbaySubjectPresentation::GearFace(_) => PATCHBAY_GEAR_FACE_KIND,
-        PatchbaySubjectPresentation::Port(_) => PATCHBAY_PORT_KIND,
-        PatchbaySubjectPresentation::Cord(_) => PATCHBAY_CORD_KIND,
     }
 }
 
@@ -400,22 +326,8 @@ mod tests {
         let direct = realize_direct(subject.clone(), BackInspection::Hidden);
         let recursive = realize_recursive(subject, BackInspection::Explicit).unwrap();
         assert_eq!(normalized_subject(&direct), normalized_subject(&recursive));
-        assert!(direct.inspected_plan.is_none());
-        assert_eq!(
-            recursive
-                .inspected_plan
-                .as_ref()
-                .unwrap()
-                .steps
-                .first()
-                .unwrap()
-                .as_str(),
-            "layout/viewport"
-        );
-        assert_ne!(
-            PatchbayBackPlan::direct(PATCHBAY_GEAR_FACE_KIND),
-            recursive.inspected_plan.unwrap()
-        );
+        assert!(!direct.back_inspected);
+        assert!(recursive.back_inspected);
         assert!(recursive.graphics.unwrap().commands().len() >= 4);
         let PatchbaySubjectPresentation::GearFace(face) = &direct.subject else {
             panic!("Gear Face subject");
@@ -461,7 +373,8 @@ mod tests {
             let direct = realize_direct(subject.clone(), BackInspection::Explicit);
             let recursive = realize_recursive(subject, BackInspection::Explicit).unwrap();
             assert_eq!(normalized_subject(&direct), normalized_subject(&recursive));
-            assert_ne!(direct.inspected_plan, recursive.inspected_plan);
+            assert!(!direct.back_inspected);
+            assert!(recursive.back_inspected);
         }
         assert_eq!(PATCHBAY_BACK_KINDS.len(), 3);
     }

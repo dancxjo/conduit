@@ -19,6 +19,7 @@ use conduit_core::{
 };
 use sha2::{Digest, Sha256};
 
+mod back_catalog;
 mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
@@ -31,6 +32,7 @@ mod syntax_identity;
 mod text_value;
 mod value_type;
 
+pub use back_catalog::*;
 pub use canonical_expansion::*;
 pub use checked_syntax::*;
 pub use diagnostic::*;
