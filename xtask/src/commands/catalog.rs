@@ -110,6 +110,7 @@ struct MatrixEntry {
 #[derive(Serialize)]
 struct MatrixReport {
     schema: &'static str,
+    coverage_vocabulary: [Coverage; 4],
     catalog_basis: &'static str,
     catalog_inventory_schema: &'static str,
     catalog_digest_algorithm: &'static str,
@@ -173,6 +174,12 @@ fn build_report(
     }
     Ok(MatrixReport {
         schema: MATRIX_SCHEMA,
+        coverage_vocabulary: [
+            Coverage::Direct,
+            Coverage::Recursive,
+            Coverage::MissingImplementation,
+            Coverage::Unsupported,
+        ],
         catalog_basis:
             "conduit_std_catalog::supported_nucleus_contracts()+supported_nucleus_offers()",
         catalog_inventory_schema: inventory::SCHEMA,
