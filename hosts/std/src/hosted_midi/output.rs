@@ -203,6 +203,12 @@ impl MidiOutputSession {
     }
 }
 
+impl Drop for MidiOutputSession {
+    fn drop(&mut self) {
+        let _ = self.stop();
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn open_nonblocking(path: &str) -> io::Result<File> {
     use std::os::unix::fs::OpenOptionsExt;
@@ -281,6 +287,32 @@ mod tests {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).unwrap();
         assert_eq!(bytes, [0x90, 60, 100, 0x80, 60, 0, 0xb0, 123, 0]);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn dropping_an_open_session_attempts_all_notes_off_before_close() {
+        let path = std::env::temp_dir().join(format!(
+            "conduit-raw-midi-output-drop-{}-{}",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("test")
+        ));
+        let mut reader = File::options()
+            .create(true)
+            .truncate(true)
+            .read(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        {
+            let writer = reader.try_clone().unwrap();
+            let mut session = MidiOutputSession::prepare_test_raw(writer);
+            session.send([0x90, 60, 100]).unwrap();
+        }
+        reader.seek(SeekFrom::Start(0)).unwrap();
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).unwrap();
+        assert_eq!(bytes, [0x90, 60, 100, 0xb0, 123, 0]);
         std::fs::remove_file(path).unwrap();
     }
 

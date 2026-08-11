@@ -1,6 +1,8 @@
 mod discovery;
 mod host;
 mod input;
+#[cfg(test)]
+mod input_fake;
 mod output;
 #[cfg(test)]
 pub(crate) mod output_fake;
