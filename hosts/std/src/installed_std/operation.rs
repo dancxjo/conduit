@@ -2,10 +2,13 @@ use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
+use super::layout_operations::LayoutOperation;
 use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
 use super::math_operations::MathScalarOperation;
+use super::pacing_operations::{DelayOperation, ThrottleOperation};
+use super::presentation_composition::PresentationCompositionOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::text_operations::{
@@ -16,6 +19,7 @@ use super::tick_operations::TestObserverOperation;
 use super::tick_operations::TickOperation;
 use super::tick_presentation::TickPresentationOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
+use super::toggle_operation::StateToggleOperation;
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
@@ -42,12 +46,15 @@ pub(super) enum InstalledOperation {
     Tick(TickOperation),
     TimeDebounce(DebounceOperation),
     TimeTimeout(TimeoutOperation),
+    TimeDelay(DelayOperation),
+    TimeThrottle(ThrottleOperation),
     TickPresentation(TickPresentationOperation),
     TextLiteral(TextLiteralOperation),
     TextUpper(TextTransformOperation),
     TextJoin(TextTransformOperation),
     TextPresentation(TextPresentationOperation),
     StateCount(StateCountOperation),
+    StateToggle(StateToggleOperation),
     CountPresentation(CountPresentationOperation),
     StateLatestScalar(StateLatestScalarOperation),
     FlowTeeScalar(FlowTeeScalarOperation),
@@ -56,6 +63,12 @@ pub(super) enum InstalledOperation {
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),
     MathScalar(MathScalarOperation),
+    Layout(LayoutOperation),
+    PresentationComposition(PresentationCompositionOperation),
+    #[cfg(test)]
+    TestPresentationSink(super::presentation_composition::PresentationSinkOperation),
+    #[cfg(test)]
+    TestLayoutSink(super::layout_operations::LayoutSinkOperation),
     RoboticsSource(RoboticsSourceOperation),
     RoboticsDrive(RoboticsDriveOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
@@ -95,14 +108,23 @@ impl InstalledOperation {
             Self::Tick(operation) => operation.allocation_capacity(),
             Self::TimeDebounce(operation) => operation.allocation_capacity(),
             Self::TimeTimeout(operation) => operation.allocation_capacity(),
+            Self::TimeDelay(operation) => operation.allocation_capacity(),
+            Self::TimeThrottle(operation) => operation.allocation_capacity(),
             Self::TickPresentation(_) => 0,
             Self::TextLiteral(_) | Self::TextUpper(_) | Self::TextJoin(_) => 0,
             Self::TextPresentation(_) => 0,
             Self::StateCount(operation) => operation.allocation_capacity(),
+            Self::StateToggle(_) => 0,
             Self::CountPresentation(_) => 0,
             Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) | Self::FlowGateScalar(_) => 0,
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => 0,
             Self::MathScalar(_) => 0,
+            Self::Layout(_) => 0,
+            Self::PresentationComposition(_) => 0,
+            #[cfg(test)]
+            Self::TestPresentationSink(_) => 0,
+            #[cfg(test)]
+            Self::TestLayoutSink(_) => 0,
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
             Self::RoboticsDrive(_) => 0,
             Self::ExternalWebSocketListener(_) => 0,
@@ -153,12 +175,15 @@ impl Operation for InstalledOperation {
             Self::Tick(operation) => operation.start(),
             Self::TimeDebounce(operation) => operation.start(),
             Self::TimeTimeout(operation) => operation.start(),
+            Self::TimeDelay(operation) => operation.start(),
+            Self::TimeThrottle(operation) => operation.start(),
             Self::TickPresentation(operation) => operation.start(),
             Self::TextLiteral(operation) => operation.start(),
             Self::TextUpper(operation) => operation.start(),
             Self::TextJoin(operation) => operation.start(),
             Self::TextPresentation(operation) => operation.start(),
             Self::StateCount(operation) => operation.start(),
+            Self::StateToggle(operation) => operation.start(),
             Self::CountPresentation(operation) => operation.start(),
             Self::StateLatestScalar(operation) => operation.start(),
             Self::FlowTeeScalar(operation) => operation.start(),
@@ -167,6 +192,12 @@ impl Operation for InstalledOperation {
             Self::LogicNot(operation) => operation.start(),
             Self::LogicSelectScalar(operation) => operation.start(),
             Self::MathScalar(operation) => operation.start(),
+            Self::Layout(operation) => operation.start(),
+            Self::PresentationComposition(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestPresentationSink(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestLayoutSink(operation) => operation.start(),
             Self::RoboticsSource(operation) => operation.start(),
             Self::RoboticsDrive(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
@@ -203,11 +234,14 @@ impl Operation for InstalledOperation {
             (Self::TextLiteral(operation), input) => operation.resume(input),
             (Self::TimeDebounce(operation), input) => operation.resume(input),
             (Self::TimeTimeout(operation), input) => operation.resume(input),
+            (Self::TimeDelay(operation), input) => operation.resume(input),
+            (Self::TimeThrottle(operation), input) => operation.resume(input),
             (Self::TextUpper(operation), input) => operation.resume(input),
             (Self::TextJoin(operation), input) => operation.resume(input),
             (Self::TextPresentation(operation), input) => operation.resume(input),
             (Self::TickPresentation(operation), input) => operation.resume(input),
             (Self::StateCount(operation), input) => operation.resume(input),
+            (Self::StateToggle(operation), input) => operation.resume(input),
             (Self::CountPresentation(operation), input) => operation.resume(input),
             (Self::StateLatestScalar(operation), input) => operation.resume(input),
             (Self::FlowTeeScalar(operation), input) => operation.resume(input),
@@ -216,6 +250,12 @@ impl Operation for InstalledOperation {
             (Self::LogicNot(operation), input) => operation.resume(input),
             (Self::LogicSelectScalar(operation), input) => operation.resume(input),
             (Self::MathScalar(operation), input) => operation.resume(input),
+            (Self::Layout(operation), input) => operation.resume(input),
+            (Self::PresentationComposition(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestPresentationSink(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestLayoutSink(operation), input) => operation.resume(input),
             (Self::RoboticsSource(operation), input) => operation.resume(input),
             (Self::RoboticsDrive(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
@@ -264,11 +304,14 @@ impl Operation for InstalledOperation {
             Self::TickPresentation(_) => OperationAction::Await,
             Self::TimeDebounce(operation) => operation.advance(),
             Self::TimeTimeout(operation) => operation.advance(),
+            Self::TimeDelay(operation) => operation.advance(),
+            Self::TimeThrottle(operation) => operation.advance(),
             Self::TextLiteral(operation) => operation.advance(),
             Self::TextUpper(_) => OperationAction::Await,
             Self::TextJoin(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
             Self::StateCount(operation) => operation.advance(),
+            Self::StateToggle(operation) => operation.advance(),
             Self::CountPresentation(_) => OperationAction::Await,
             Self::StateLatestScalar(operation) => operation.advance(),
             Self::FlowTeeScalar(operation) => operation.advance(),
@@ -277,6 +320,12 @@ impl Operation for InstalledOperation {
                 OperationAction::Complete
             }
             Self::MathScalar(_) => OperationAction::Complete,
+            Self::Layout(operation) => operation.advance(),
+            Self::PresentationComposition(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestPresentationSink(_) => OperationAction::Await,
+            #[cfg(test)]
+            Self::TestLayoutSink(_) => OperationAction::Await,
             Self::RoboticsSource(operation) => operation.advance(),
             Self::RoboticsDrive(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
@@ -316,11 +365,14 @@ impl Operation for InstalledOperation {
             Self::TickPresentation(operation) => operation.cancel(),
             Self::TimeDebounce(operation) => operation.cancel(),
             Self::TimeTimeout(operation) => operation.cancel(),
+            Self::TimeDelay(operation) => operation.cancel(),
+            Self::TimeThrottle(operation) => operation.cancel(),
             Self::TextLiteral(_) => {}
             Self::TextUpper(operation) => operation.cancel(),
             Self::TextJoin(operation) => operation.cancel(),
             Self::TextPresentation(operation) => operation.cancel(),
             Self::StateCount(_) => {}
+            Self::StateToggle(_) => {}
             Self::CountPresentation(operation) => operation.cancel(),
             Self::StateLatestScalar(operation) => operation.cancel(),
             Self::FlowTeeScalar(operation) => operation.cancel(),
@@ -329,6 +381,12 @@ impl Operation for InstalledOperation {
             Self::LogicNot(operation) => operation.cancel(),
             Self::LogicSelectScalar(operation) => operation.cancel(),
             Self::MathScalar(operation) => operation.cancel(),
+            Self::Layout(operation) => operation.cancel(),
+            Self::PresentationComposition(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestPresentationSink(_) => {}
+            #[cfg(test)]
+            Self::TestLayoutSink(_) => {}
             Self::RoboticsSource(operation) => operation.cancel(),
             Self::RoboticsDrive(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
@@ -364,6 +422,7 @@ impl Operation for InstalledOperation {
             Self::StateLatestScalar(operation) => operation.retains_resumed_value(),
             Self::LogicSelectScalar(operation) => operation.retains_resumed_value(),
             Self::TimeDebounce(operation) => operation.retains_resumed_value(),
+            Self::TimeDelay(operation) => operation.retains_resumed_value(),
             _ => false,
         }
     }
@@ -376,18 +435,27 @@ impl Operation for InstalledOperation {
             Self::LogicSelectScalar(operation) => operation.take_released_value(),
             Self::TimeDebounce(operation) => operation.take_released_value(),
             Self::TimeTimeout(operation) => operation.take_released_value(),
+            Self::TimeDelay(operation) => operation.take_released_value(),
+            Self::TimeThrottle(operation) => operation.take_released_value(),
             _ => None,
         }
     }
 
     fn accepts_input_while_host_operation_pending(&self) -> bool {
-        matches!(self, Self::TimeDebounce(_) | Self::TimeTimeout(_))
+        matches!(
+            self,
+            Self::TimeDebounce(_)
+                | Self::TimeTimeout(_)
+                | Self::TimeDelay(_)
+                | Self::TimeThrottle(_)
+        )
     }
 
     fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
         match self {
             Self::TimeDebounce(operation) => operation.take_host_operation_cancellation(),
             Self::TimeTimeout(operation) => operation.take_host_operation_cancellation(),
+            Self::TimeThrottle(operation) => operation.take_host_operation_cancellation(),
             _ => None,
         }
     }

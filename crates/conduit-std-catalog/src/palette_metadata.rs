@@ -4,15 +4,20 @@
 //! absent from Kind contracts and therefore cannot alter semantic identity.
 
 use conduit_core::KindId;
+pub use conduit_presentation::PresentationIconKey as PaletteIconKey;
 
 use crate::{
-    COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, KEYBOARD_KIND, LATEST_KIND,
-    LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND,
-    MATH_SCALE_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND,
+    BOOL_PRESENTATION_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, GRAPHICS_ICON_KIND,
+    GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, KEYBOARD_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND,
+    LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
+    LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
+    MATH_DEADBAND_KIND, MATH_SCALE_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND,
+    PRESENTATION_ICON_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND,
     ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
-    ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, TEE_KIND,
-    TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND,
-    TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_EVERY_KIND, TIME_TIMEOUT_KIND,
+    ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND,
+    STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND,
+    TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_DELAY_KIND,
+    TIME_EVERY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -51,72 +56,6 @@ impl PaletteCategory {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PaletteIconKey {
-    Clock,
-    Repeat2,
-    Presentation,
-    Type,
-    CaseUpper,
-    Combine,
-    Tally5,
-    ChartColumnsIncreasing,
-    FileOutput,
-    Keyboard,
-    GenericGear,
-}
-
-impl PaletteIconKey {
-    pub const ALL_UPSTREAM: [Self; 10] = [
-        Self::Clock,
-        Self::Repeat2,
-        Self::Presentation,
-        Self::Type,
-        Self::CaseUpper,
-        Self::Combine,
-        Self::Tally5,
-        Self::ChartColumnsIncreasing,
-        Self::FileOutput,
-        Self::Keyboard,
-    ];
-
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Clock => "clock",
-            Self::Repeat2 => "repeat-2",
-            Self::Presentation => "presentation",
-            Self::Type => "type",
-            Self::CaseUpper => "case-upper",
-            Self::Combine => "combine",
-            Self::Tally5 => "tally-5",
-            Self::ChartColumnsIncreasing => "chart-no-axes-column-increasing",
-            Self::FileOutput => "file-output",
-            Self::Keyboard => "keyboard",
-            Self::GenericGear => "conduit-generic-gear",
-        }
-    }
-
-    pub const fn accessibility_name(self) -> &'static str {
-        match self {
-            Self::Clock => "clock",
-            Self::Repeat2 => "repeating flow",
-            Self::Presentation => "presentation screen",
-            Self::Type => "text",
-            Self::CaseUpper => "uppercase letters",
-            Self::Combine => "combined values",
-            Self::Tally5 => "count tally",
-            Self::ChartColumnsIncreasing => "count chart",
-            Self::FileOutput => "file output",
-            Self::Keyboard => "keyboard input",
-            Self::GenericGear => "generic Gear; icon metadata missing",
-        }
-    }
-
-    pub const fn is_fallback(self) -> bool {
-        matches!(self, Self::GenericGear)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PaletteMetadata {
     pub category: PaletteCategory,
     pub tags: &'static [&'static str],
@@ -145,6 +84,16 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["timer", "timeout", "heartbeat", "safety"],
             PaletteIconKey::Clock,
         ),
+        TIME_DELAY_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["timer", "delay", "pace", "ordered"],
+            PaletteIconKey::Clock,
+        ),
+        TIME_THROTTLE_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["timer", "throttle", "pace", "leading"],
+            PaletteIconKey::Clock,
+        ),
         KEYBOARD_KIND => metadata(
             PaletteCategory::Input,
             &["input", "keyboard", "key", "source"],
@@ -169,6 +118,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::State,
             &["counter", "total", "accumulate"],
             PaletteIconKey::Tally5,
+        ),
+        STATE_TOGGLE_KIND => metadata(
+            PaletteCategory::State,
+            &["toggle", "boolean", "state"],
+            PaletteIconKey::Repeat2,
         ),
         LATEST_KIND => metadata(
             PaletteCategory::State,
@@ -215,6 +169,51 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["deadband", "neutral", "joystick"],
             PaletteIconKey::Combine,
         ),
+        LAYOUT_VIEWPORT_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "viewport", "extent"],
+            PaletteIconKey::Presentation,
+        ),
+        LAYOUT_INSET_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "inset", "clip"],
+            PaletteIconKey::Presentation,
+        ),
+        LAYOUT_ROW_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "row", "horizontal"],
+            PaletteIconKey::Combine,
+        ),
+        LAYOUT_COLUMN_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "column", "vertical"],
+            PaletteIconKey::Combine,
+        ),
+        LAYOUT_STACK_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "stack", "overlay"],
+            PaletteIconKey::Combine,
+        ),
+        LAYOUT_ALIGN_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "align", "placement"],
+            PaletteIconKey::Presentation,
+        ),
+        PRESENTATION_ICON_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["presentation", "icon", "accessible"],
+            PaletteIconKey::Presentation,
+        ),
+        PRESENTATION_FRAME_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["presentation", "frame", "group"],
+            PaletteIconKey::Presentation,
+        ),
+        PRESENTATION_BADGE_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["presentation", "badge", "status"],
+            PaletteIconKey::Presentation,
+        ),
         ROBOTICS_OBSERVE_BUMP_KIND => metadata(
             PaletteCategory::Robotics,
             &["robot", "bumper", "contact", "safety"],
@@ -255,6 +254,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["display", "tick", "indicator"],
             PaletteIconKey::Presentation,
         ),
+        BOOL_PRESENTATION_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["boolean", "state", "present"],
+            PaletteIconKey::Presentation,
+        ),
         TEXT_PRESENTATION_KIND => metadata(
             PaletteCategory::Presentation,
             &["display", "text", "screen"],
@@ -264,6 +268,21 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::Presentation,
             &["display", "count", "chart"],
             PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        GRAPHICS_RECT_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["graphics", "rectangle", "frame", "clip"],
+            PaletteIconKey::Presentation,
+        ),
+        GRAPHICS_TEXT_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["graphics", "resolved", "text", "clip"],
+            PaletteIconKey::Type,
+        ),
+        GRAPHICS_ICON_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["graphics", "resolved", "icon", "clip"],
+            PaletteIconKey::Presentation,
         ),
         COPY_FILE_KIND => metadata(
             PaletteCategory::Files,
@@ -295,7 +314,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 29);
+        assert_eq!(contracts.len(), 45);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

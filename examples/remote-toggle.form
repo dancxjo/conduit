@@ -3,10 +3,10 @@ form 0
 remote-toggle {
     trigger: interaction/trigger
     toggle: state/toggle
-    show: presentation/show
+    show: presentation/bool
 
-    trigger.count = 16
-    toggle.initial = false
+    trigger.count = 15
+    toggle.initial = true
 
     trigger > toggle
     toggle > show

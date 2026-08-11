@@ -1,15 +1,15 @@
 //! Kernel operation for the S4 toggle-demo browser sink.
 //!
-//! `ToggleShowOperation` awaits incoming `Signal` values over the remote cord
-//! and drives `presentation/show` through the browser kernel.
+//! `ToggleShowOperation` awaits canonical Boolean values over the remote cord
+//! and drives `presentation/bool` through the browser kernel.
 
+use conduit_core::BOOL_ENCODED_LEN;
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
     OperationAction, OperationInput, PortId, RequestId,
 };
-use conduit_signal::SIGNAL_ENCODED_LEN;
 
-/// Maximum Signal values that the toggle sink will receive (must match `lib.rs`).
+/// Maximum Boolean values that the toggle sink will receive (must match `lib.rs`).
 pub(super) const MAXIMUM_RECEIPTS: usize = 16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,8 +53,8 @@ impl Operation for ToggleShowOperation {
                 OperationAction::RequestHostOperation {
                     request,
                     operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
-                        .expect("remote Signal was admitted at its exact byte bound"),
+                    input: BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32)
+                        .expect("remote Boolean was admitted at its exact byte bound"),
                 }
             }
             OperationInput::HostOperationCompleted { request, outcome }

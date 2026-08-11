@@ -5,6 +5,7 @@
 //! distinctions without adding an allocator or pretending Base presence is
 //! semantic authority.
 
+use crate::keyboard_offer::{KeyboardOffer, KeyboardOfferError, KeyboardRealization};
 use crate::{identity::BootIdentities, machine::BaseKind};
 
 pub const BASE_COUNT: usize = 7;
@@ -85,6 +86,7 @@ pub struct HostOffer<'a> {
     pub runtime_arena_bytes: u64,
     pub sign_item_capacity: u16,
     pub interrupt_fact_capacity: u16,
+    pub keyboard: Option<KeyboardOffer<'a>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -96,6 +98,7 @@ pub enum OfferError {
     StaleObservation,
     ArtifactRequirementMismatch,
     MissingIsaFeature,
+    InvalidDeviceOffer,
 }
 
 impl OfferError {
@@ -108,6 +111,7 @@ impl OfferError {
             Self::StaleObservation => "stale-feature-observation",
             Self::ArtifactRequirementMismatch => "artifact-feature-mismatch",
             Self::MissingIsaFeature => "missing-isa-feature",
+            Self::InvalidDeviceOffer => "invalid-device-offer",
         }
     }
 }
@@ -219,7 +223,24 @@ impl<'a> HostOffer<'a> {
             runtime_arena_bytes,
             sign_item_capacity: SIGN_ITEM_CAPACITY,
             interrupt_fact_capacity: INTERRUPT_FACT_CAPACITY,
+            keyboard: None,
         }
+    }
+
+    pub fn with_keyboard(
+        mut self,
+        realization: KeyboardRealization,
+        build_id: &'a str,
+    ) -> Result<Self, OfferError> {
+        let keyboard = KeyboardOffer {
+            artifact_build: build_id,
+            realization,
+        };
+        keyboard
+            .validate(self.capabilities[0].artifact_build)
+            .map_err(|_| OfferError::InvalidDeviceOffer)?;
+        self.keyboard = Some(keyboard);
+        Ok(self)
     }
 
     pub fn validate(&self) -> Result<(), OfferError> {
@@ -299,6 +320,11 @@ impl<'a> HostOffer<'a> {
             {
                 return Err(OfferError::InvalidCapacity);
             }
+        }
+        if let Some(keyboard) = self.keyboard {
+            keyboard
+                .validate(self.capabilities[0].artifact_build)
+                .map_err(|_error: KeyboardOfferError| OfferError::InvalidDeviceOffer)?;
         }
         Ok(())
     }

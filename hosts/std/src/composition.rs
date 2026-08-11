@@ -26,6 +26,8 @@ pub struct StdHostComposition {
     pub state: bool,
     pub logic: bool,
     pub math: bool,
+    pub layout: bool,
+    pub presentation: bool,
     pub robotics: bool,
     pub files: bool,
     pub external_websocket: bool,
@@ -41,6 +43,8 @@ impl StdHostComposition {
             state: true,
             logic: true,
             math: true,
+            layout: true,
+            presentation: true,
             robotics: true,
             files: true,
             external_websocket: false,
@@ -57,6 +61,8 @@ impl StdHostComposition {
             state: false,
             logic: false,
             math: false,
+            layout: false,
+            presentation: false,
             robotics: false,
             files: false,
             external_websocket: false,
@@ -90,6 +96,16 @@ impl StdHostComposition {
 
     pub const fn with_math(mut self) -> Self {
         self.math = true;
+        self
+    }
+
+    pub const fn with_layout(mut self) -> Self {
+        self.layout = true;
+        self
+    }
+
+    pub const fn with_presentation(mut self) -> Self {
+        self.presentation = true;
         self
     }
 
@@ -129,6 +145,8 @@ pub(super) fn build_advertisement(
             installed_std::every_offer(),
             conduit_std_catalog::time_debounce_offer(),
             conduit_std_catalog::time_timeout_offer(),
+            conduit_std_catalog::time_delay_offer(),
+            conduit_std_catalog::time_throttle_offer(),
             conduit_std_catalog::tick_presentation_offer(),
         ]);
     }
@@ -143,6 +161,7 @@ pub(super) fn build_advertisement(
     if composition.state {
         capabilities.extend([
             conduit_std_catalog::state_count_offer(),
+            conduit_std_catalog::state_toggle_offer(),
             conduit_std_catalog::count_presentation_offer(),
             conduit_std_catalog::state_latest_scalar_offer(),
             conduit_std_catalog::flow_tee_scalar_offer(),
@@ -161,6 +180,26 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::math_clamp_offer(),
             conduit_std_catalog::math_scale_offer(),
             conduit_std_catalog::math_deadband_offer(),
+        ]);
+    }
+    if composition.layout {
+        capabilities.extend([
+            conduit_std_catalog::layout_viewport_offer(),
+            conduit_std_catalog::layout_inset_offer(),
+            conduit_std_catalog::layout_row_offer(),
+            conduit_std_catalog::layout_column_offer(),
+            conduit_std_catalog::layout_stack_offer(),
+            conduit_std_catalog::layout_align_offer(),
+        ]);
+    }
+    if composition.presentation {
+        capabilities.extend([
+            conduit_std_catalog::presentation_icon_offer(),
+            conduit_std_catalog::presentation_frame_offer(),
+            conduit_std_catalog::presentation_badge_offer(),
+            conduit_std_catalog::graphics_rect_offer(),
+            conduit_std_catalog::graphics_text_offer(),
+            conduit_std_catalog::graphics_icon_offer(),
         ]);
     }
     if composition.robotics {
@@ -185,6 +224,9 @@ pub(super) fn build_advertisement(
         capabilities.push(installed_std::test_observer_offer());
         capabilities.push(installed_std::test_text_source_offer());
         capabilities.push(installed_std::test_scalar_source_offer());
+        capabilities.push(installed_std::test_layout_sink_offer());
+        capabilities.push(installed_std::test_presentation_sink_offer());
+        capabilities.push(installed_std::test_graphics_sink_offer());
         capabilities.push(installed_std::test_scalar_literal_offer());
         capabilities.push(installed_std::test_scalar_sink_offer());
         capabilities.push(installed_std::test_gate_script_offer());
@@ -367,11 +409,14 @@ mod tests {
             "time/every",
             "time/debounce",
             "time/timeout",
+            "time/delay",
+            "time/throttle",
             "text/literal",
             "text/upper",
             "text/join",
             "presentation/text",
             "state/count",
+            "state/toggle",
             "presentation/count",
             "state/latest",
             "flow/tee",
@@ -437,7 +482,16 @@ mod tests {
             })
             .cloned()
             .collect::<Vec<_>>();
-        let supported = conduit_std_catalog::supported_nucleus_offers();
+        let supported = conduit_std_catalog::supported_nucleus_offers()
+            .into_iter()
+            .filter(|offer| {
+                offer
+                    .implementation
+                    .implementation_id
+                    .as_str()
+                    .starts_with("std/")
+            })
+            .collect::<Vec<_>>();
 
         assert_eq!(advertised, supported);
     }

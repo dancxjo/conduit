@@ -120,8 +120,8 @@ impl PatchbayApplication {
             .next_request_id(action.as_str())
             .and_then(|request_id| PatchbayInteractionRequest::invoke(request_id, action, target))
             .and_then(|request| {
-                interaction.execute(graph.as_ref(), request, |invocation| {
-                    self.apply_invocation(invocation)
+                interaction.execute(graph.as_ref(), request, |request| {
+                    self.apply_interaction_request(request)
                 })
             });
         self.interaction = Some(interaction);
@@ -155,20 +155,6 @@ impl PatchbayApplication {
         &mut self,
         invocation: &PatchbayInvocation,
     ) -> PatchbayInvocationOutcome {
-        if invocation.action == PatchbayAction::PlaceGear {
-            return self.apply_palette_placement(&invocation.target_identity);
-        }
-        if matches!(
-            invocation.action,
-            PatchbayAction::DuplicateGear
-                | PatchbayAction::RemoveGear
-                | PatchbayAction::RemoveCord
-                | PatchbayAction::ConnectPorts
-                | PatchbayAction::RerouteCord
-                | PatchbayAction::ConfigureGear
-        ) {
-            return self.apply_authoring_edit(invocation);
-        }
         let current_target = match self
             .graphical_form
             .as_ref()
@@ -204,17 +190,34 @@ impl PatchbayApplication {
             PatchbayAction::Play => self.play_plan(),
             PatchbayAction::Stop => self.control.stop(),
             PatchbayAction::Hold => self.mark_unsatisfied(),
-            PatchbayAction::PlaceGear => unreachable!("palette placement returned above"),
-            PatchbayAction::DuplicateGear
+            PatchbayAction::PlaceGear
+            | PatchbayAction::DuplicateGear
             | PatchbayAction::RemoveGear
             | PatchbayAction::RemoveCord
             | PatchbayAction::ConnectPorts
             | PatchbayAction::RerouteCord
-            | PatchbayAction::ConfigureGear => unreachable!("authoring edit returned above"),
+            | PatchbayAction::ConfigureGear => {
+                return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
+            }
         };
         match result {
             Ok(()) => PatchbayInvocationOutcome::Succeeded,
             Err(_) => PatchbayInvocationOutcome::Failed,
+        }
+    }
+
+    pub(super) fn apply_interaction_request(
+        &mut self,
+        request: &PatchbayInteractionRequest,
+    ) -> PatchbayInvocationOutcome {
+        match request {
+            PatchbayInteractionRequest::Invoke { invocation, .. } => {
+                self.apply_invocation(invocation)
+            }
+            PatchbayInteractionRequest::Edit { edit, .. } => self.apply_authoring_edit(edit),
+            PatchbayInteractionRequest::Select { .. } => {
+                PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
+            }
         }
     }
 

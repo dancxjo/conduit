@@ -8,9 +8,10 @@ conduit-core = { path = "../conduit-core", optional = true }
 conduit-form = { path = "../conduit-form", optional = true }
 conduit-runtime = { path = "../conduit-runtime", optional = true, default-features = false }
 conduit-planner = { path = "../conduit-planner", optional = true }
+conduit-std-catalog = { path = "../conduit-std-catalog", optional = true, default-features = false }
 serde = { version = "1", default-features = false, features = ["derive"] }
 
 [features]
 default = []
-host-profile = ["dep:conduit-core", "dep:conduit-form", "dep:conduit-planner"]
+host-profile = ["dep:conduit-core", "dep:conduit-form", "dep:conduit-planner", "dep:conduit-std-catalog", "conduit-std-catalog/form-catalog"]
 legacy-fixture-driver = ["host-profile", "dep:conduit-runtime", "conduit-runtime/compatibility-executor"]

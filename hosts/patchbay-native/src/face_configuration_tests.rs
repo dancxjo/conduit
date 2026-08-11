@@ -65,8 +65,10 @@ fn native_face_control_uses_interaction_execution_and_persists_canonical_source(
         .history()
         .any(|receipt| matches!(
             &receipt.request,
-            patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. }
-                if invocation.action == patchbay_model::PatchbayAction::ConfigureGear
+            patchbay_model::PatchbayInteractionRequest::Edit {
+                edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
+                ..
+            }
         )));
     assert_eq!(
         application.control.plan().unwrap().plan_id,
@@ -231,9 +233,13 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
         .unwrap()
         .history()
         .any(|receipt| {
-            matches!(&receipt.request,
-            patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. }
-                if invocation.action == patchbay_model::PatchbayAction::ConfigureGear)
+            matches!(
+                &receipt.request,
+                patchbay_model::PatchbayInteractionRequest::Edit {
+                    edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
+                    ..
+                }
+            )
         }));
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();

@@ -8,7 +8,7 @@ use std::{
 use crate::cli::GlobalOpts;
 
 use super::{
-    hid_qmp, hid_run, image,
+    hid_qmp, hid_run, image, keyboard_run,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
     report::{GuestBootSign, GuestKernelSign, GuestRun, GuestXhciSign},
     usb_run, ConduitosArch, ConduitosError,
@@ -204,6 +204,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .map_err(|error| ConduitosError::refusal("malformed-xhci-sign", error.to_string()))?;
     let usb = usb_run::extract(&serial)?;
     let hid = hid_run::extract(&serial)?;
+    let keyboard = keyboard_run::extract(&serial)?;
     let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
     let observatory: conduit_observatory::ObservatorySnapshot =
@@ -214,6 +215,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     validate_xhci(&boot, &xhci)?;
     usb_run::validate(&boot, &xhci, &usb)?;
     hid_run::validate(&boot, &xhci, &usb, &hid)?;
+    keyboard_run::validate(&boot, &xhci, &usb, &hid, &keyboard, &observatory)?;
     validate_kernel(&boot, &kernel)?;
     validate_observatory(&boot, &kernel, &observatory)?;
     if !opts.quiet && !opts.json {
@@ -226,6 +228,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         xhci,
         usb,
         hid,
+        keyboard,
         kernel,
         observatory,
         serial,
@@ -588,7 +591,7 @@ fn validate_observatory(
             host.advertisement.host_id.as_str() != boot.host_id
                 || host.advertisement.boot_id.as_str() != boot.boot_id
                 || host.advertisement.profile.as_str() != kernel.scheduler_profile
-                || host.advertisement.capabilities.len() != 5
+                || host.advertisement.capabilities.len() != 6
                 || !host.advertisement.capabilities.iter().any(|capability| {
                     capability.kind_id.as_str() == "text/upper"
                         && capability.implementation.implementation_id.as_str()
@@ -611,7 +614,7 @@ fn validate_observatory(
                         && capability.limits.max_queue_bytes == 256
                 })
                 || !host.advertisement.planner_capabilities.is_empty()
-                || host.advertisement.resources.len() != 5
+                || host.advertisement.resources.len() != 12
                 || host.state != OperationalState::Available
         })
         || plan.is_none_or(|plan| {
@@ -713,6 +716,8 @@ fn validate_observatory(
         boot.boot_id.as_str(),
         kernel.plan_id.as_str(),
         kernel.active_play_id.as_str(),
+        "input/keyboard",
+        "conduitos/usb-hid-keyboard@1",
         "BOOT PROVENANCE [SEALED]",
     ] {
         if !linear.contains(required) {

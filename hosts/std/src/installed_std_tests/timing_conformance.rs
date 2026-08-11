@@ -35,6 +35,10 @@ const DEBOUNCE_FORM: &str = "form robot-debounce {\n    switch: test/timing-bool
 
 const TIMEOUT_FORM: &str = "form robot-timeout {\n    clock: time/tick(count = 2, period-ms = 10)\n    stale: time/timeout(duration-ms = 7ms, maximum-values = 2)\n    sink: test/timing-bool-sink\n    clock > stale > sink\n}\n";
 
+const DELAY_FORM: &str = "form ordinary-delay {\n    source: test/timing-bool-source\n    paced: time/delay(duration-ms = 5ms, maximum-values = 3)\n    sink: test/timing-bool-sink\n    source > paced > sink\n}\n";
+
+const THROTTLE_FORM: &str = "form patchbay-refresh-throttle {\n    edits: test/timing-bool-source\n    refresh: time/throttle(duration-ms = 5ms, policy = \"leading\", maximum-values = 3)\n    presenter: test/timing-bool-sink\n    edits > refresh > presenter\n}\n";
+
 fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut startup_profile = conduit_form::ProfileCatalog::new();
@@ -114,6 +118,16 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
             "robot-timeout",
             conduit_std_catalog::TIME_TIMEOUT_KIND,
         ),
+        (
+            DELAY_FORM,
+            "ordinary-delay",
+            conduit_std_catalog::TIME_DELAY_KIND,
+        ),
+        (
+            THROTTLE_FORM,
+            "patchbay-refresh-throttle",
+            conduit_std_catalog::TIME_THROTTLE_KIND,
+        ),
     ] {
         let mut planned_host = host(id);
         let planned = fragment(&planned_host, source);
@@ -145,7 +159,12 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
             kernel.value_allocation_capacity_before,
             kernel.value_allocation_capacity_after
         );
-        assert!(!timer.deadlines.is_empty());
+        if kind == conduit_std_catalog::TIME_THROTTLE_KIND {
+            assert!(kernel.kernel_sign.iter().any(|event| event.kind
+                == conduit_kernel::KernelEventKind::HostOperationCancellationRequested));
+        } else {
+            assert!(!timer.deadlines.is_empty(), "{kind} requested no deadlines");
+        }
     }
 }
 
@@ -154,6 +173,8 @@ fn identical_simulated_schedules_have_identical_normalized_output_and_signs() {
     for (source, id) in [
         (DEBOUNCE_FORM, "repeat-debounce"),
         (TIMEOUT_FORM, "repeat-timeout"),
+        (DELAY_FORM, "repeat-delay"),
+        (THROTTLE_FORM, "repeat-throttle"),
     ] {
         let (left, left_timer) = run(source, id);
         let (right, right_timer) = run(source, id);
@@ -268,6 +289,42 @@ fn zero_and_maximum_duration_schedules_are_deterministic() {
         assert_eq!(
             first.kernel.expect("first kernel report").kernel_sign,
             repeated.kernel.expect("repeated kernel report").kernel_sign
+        );
+    }
+}
+
+#[test]
+fn delay_zero_maximum_and_late_wakes_preserve_exact_ordered_schedule() {
+    let maximum = conduit_std_catalog::TIME_MAXIMUM_DURATION_MS;
+    for (source, id, late_by_ms) in [
+        (DELAY_FORM.replace("5ms", "0ms"), "zero-duration-delay", 0),
+        (
+            DELAY_FORM.replace("5ms", &format!("{maximum}ms")),
+            "maximum-duration-delay",
+            0,
+        ),
+        (DELAY_FORM.to_string(), "late-delay", 7),
+    ] {
+        let mut host = host(id);
+        let planned = fragment(&host, &source);
+        let mut output = Vec::with_capacity(4_096);
+        let mut timer = ScheduledTimer {
+            now_ms: 0,
+            deadlines: Vec::with_capacity(8),
+            regress_after_wait: false,
+            late_by_ms,
+        };
+        let report = host
+            .run_fragment_to(planned, &mut output, &mut timer)
+            .expect("bounded delay schedule completes");
+        let expected_deadlines = if id == "zero-duration-delay" { 0 } else { 3 };
+        assert_eq!(timer.deadlines.len(), expected_deadlines, "{id}");
+        assert_eq!(
+            report
+                .kernel
+                .expect("delay kernel report")
+                .post_play_start_allocations,
+            0
         );
     }
 }

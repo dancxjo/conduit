@@ -934,10 +934,26 @@ fn write_presentation_frame(
     projection: &PreparedProjection,
     input: &[u8],
 ) -> Result<(), i32> {
+    write_typed_presentation_frame(
+        writer,
+        projection,
+        "presentation/signal",
+        "value/signal",
+        input,
+    )
+}
+
+fn write_typed_presentation_frame(
+    writer: &mut FrameWriter<'_>,
+    projection: &PreparedProjection,
+    presentation_kind: &str,
+    value_kind: &str,
+    input: &[u8],
+) -> Result<(), i32> {
     writer.text(projection.presentation.presentation_id.as_str())?;
     writer.text(projection.sign.sign_id.as_str())?;
-    writer.text("presentation/signal")?;
-    writer.text("value/signal")?;
+    writer.text(presentation_kind)?;
+    writer.text(value_kind)?;
     writer.bytes(input)
 }
 
@@ -946,9 +962,18 @@ fn write_presentation_completion_frame(
     projection: &PreparedProjection,
     input: &[u8],
 ) -> Result<(), i32> {
+    write_typed_presentation_completion_frame(writer, projection, "value/signal", input)
+}
+
+fn write_typed_presentation_completion_frame(
+    writer: &mut FrameWriter<'_>,
+    projection: &PreparedProjection,
+    value_kind: &str,
+    input: &[u8],
+) -> Result<(), i32> {
     writer.text(projection.presentation.presentation_id.as_str())?;
     writer.text(projection.sign.sign_id.as_str())?;
-    writer.text("value/signal")?;
+    writer.text(value_kind)?;
     writer.bytes(input)
 }
 

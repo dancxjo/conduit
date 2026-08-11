@@ -13,10 +13,14 @@ use super::{
 #[path = "hid_report.rs"]
 mod report;
 use report::{BootReport, derive_transitions, parse_report, retain_transition};
+#[path = "hid_session.rs"]
+mod session;
+pub use session::{HidKeyboardSession, finish_boot_keyboard, receive_first_boot_keyboard_report};
 
 pub const BOOT_REPORT_BYTES: usize = 8;
 pub const MAX_TRANSITIONS_PER_REPORT: usize = 20;
 pub const REPORT_BUFFERS: usize = 2;
+pub const MAX_SESSION_REPORTS: usize = 4;
 pub const MAX_OUTSTANDING_INTERRUPT_TRANSFERS: u8 = 2;
 pub const INTERRUPT_TRANSFER_TRBS: usize = 16;
 pub const HID_SIGN_SLOTS: u8 = 8;
@@ -48,6 +52,7 @@ pub enum HidError {
     Rollover,
     DuplicateUsage,
     TransitionOverflow,
+    TransferOverflow,
 }
 
 impl HidError {
@@ -77,15 +82,39 @@ impl HidError {
             Self::Rollover => "hid-report-rollover",
             Self::DuplicateUsage => "hid-report-duplicate-usage",
             Self::TransitionOverflow => "hid-transition-overflow",
+            Self::TransferOverflow => "hid-transfer-overflow",
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct HidKeyTransition {
-    pub usage: u8,
-    pub pressed: bool,
-    pub modifiers: u8,
+    usage: u8,
+    pressed: bool,
+    modifiers: u8,
+}
+
+impl HidKeyTransition {
+    pub const fn usage(self) -> u8 {
+        self.usage
+    }
+
+    pub const fn pressed(self) -> bool {
+        self.pressed
+    }
+
+    pub const fn modifiers(self) -> u8 {
+        self.modifiers
+    }
+
+    /// Crosses the local adapter boundary only after HID report validation.
+    pub const fn into_local_rescue(self) -> crate::local_rescue::ValidatedLocalTransition {
+        crate::local_rescue::ValidatedLocalTransition::from_validated_hid(
+            self.usage,
+            self.pressed,
+            self.modifiers,
+        )
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -110,6 +139,19 @@ pub struct HidProof {
     pub transitions: [HidKeyTransition; 2],
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HidKeyboardReady {
+    pub interface_number: u8,
+    pub endpoint_address: u8,
+    pub endpoint_dci: u8,
+    pub endpoint_maximum_packet_size: u16,
+    pub endpoint_interval: u8,
+    pub report_buffers: u16,
+    pub transition_slots: u16,
+    pub operation_slots: u16,
+    dma_physical: u64,
+}
+
 #[repr(C, align(4096))]
 struct HidDma {
     input_context: [u8; 2112],
@@ -128,6 +170,15 @@ pub fn run_boot_keyboard(
     device: &UsbDevice,
     image_virtual_to_physical: fn(u64) -> Option<u64>,
 ) -> Result<HidProof, HidError> {
+    let ready = prepare_boot_keyboard(controller, device, image_virtual_to_physical)?;
+    receive_boot_keyboard(controller, device, ready)
+}
+
+pub fn prepare_boot_keyboard(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    image_virtual_to_physical: fn(u64) -> Option<u64>,
+) -> Result<HidKeyboardReady, HidError> {
     let (interface, endpoint) = match_keyboard(device)?;
     select_boot_protocol(
         controller,
@@ -150,52 +201,26 @@ pub fn run_boot_keyboard(
     }
     let dci = endpoint_dci(endpoint.address)?;
     configure_interrupt_endpoint(controller, device, endpoint, dci, dma_physical)?;
-    let mut previous = BootReport::default();
-    let mut observed = [HidKeyTransition::default(); 2];
-    let mut observed_count = 0usize;
-    for report_index in 0..REPORT_BUFFERS {
-        receive_report(controller, device, dci, report_index, dma_physical)?;
-        if report_index == 0 {
-            super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-press-report\n");
-        } else {
-            super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-release-report\n");
-        }
-        let bytes = unsafe { &HID_DMA.reports[report_index] };
-        let current = parse_report(bytes)?;
-        let (transitions, count) = derive_transitions(previous, current)?;
-        for transition in transitions[..count].iter().copied() {
-            retain_transition(&mut observed, &mut observed_count, transition)?;
-        }
-        previous = current;
-    }
-    if observed_count != 2
-        || observed[0].usage != 4
-        || !observed[0].pressed
-        || observed[1].usage != 4
-        || observed[1].pressed
-    {
-        return Err(HidError::TransferError);
-    }
-    Ok(HidProof {
+    Ok(HidKeyboardReady {
         interface_number: interface.number,
         endpoint_address: endpoint.address,
         endpoint_dci: dci,
         endpoint_maximum_packet_size: endpoint.maximum_packet_size,
         endpoint_interval: endpoint.interval,
-        set_protocol_transfers: 1,
-        interrupt_transfers: REPORT_BUFFERS as u8,
-        report_bytes: BOOT_REPORT_BYTES as u8,
-        report_buffers: REPORT_BUFFERS as u8,
-        maximum_outstanding_interrupt_transfers: MAX_OUTSTANDING_INTERRUPT_TRANSFERS,
-        maximum_transitions_per_report: MAX_TRANSITIONS_PER_REPORT as u8,
-        transfer_trbs: INTERRUPT_TRANSFER_TRBS as u8,
-        dma_bytes: core::mem::size_of::<HidDma>() as u16,
-        dma_alignment: core::mem::align_of::<HidDma>() as u16,
-        sign_slots: HID_SIGN_SLOTS,
-        interrupt_poll_windows: INTERRUPT_POLL_WINDOWS,
-        transition_count: observed_count as u8,
-        transitions: observed,
+        report_buffers: REPORT_BUFFERS as u16,
+        transition_slots: HID_SIGN_SLOTS as u16,
+        operation_slots: MAX_OUTSTANDING_INTERRUPT_TRANSFERS as u16,
+        dma_physical,
     })
+}
+
+pub fn receive_boot_keyboard(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    ready: HidKeyboardReady,
+) -> Result<HidProof, HidError> {
+    let session = receive_first_boot_keyboard_report(controller, device, ready)?;
+    finish_boot_keyboard(controller, device, session)
 }
 
 fn map_protocol_error(error: UsbError) -> HidError {
@@ -357,7 +382,7 @@ unsafe fn write_input_u32(offset: usize, value: u32) {
     }
 }
 
-fn receive_report(
+pub(super) fn receive_report(
     controller: &mut XhciReady,
     device: &UsbDevice,
     dci: u8,
@@ -384,6 +409,26 @@ fn receive_report(
         }
         controller.ring_endpoint(device.slot, dci);
         super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-awaiting-qemu-key\n");
+    } else if index >= REPORT_BUFFERS {
+        if index >= MAX_SESSION_REPORTS {
+            return Err(HidError::TransferOverflow);
+        }
+        let buffer_slot = index % REPORT_BUFFERS;
+        let buffer = dma_physical
+            + core::mem::offset_of!(HidDma, reports) as u64
+            + (buffer_slot * BOOT_REPORT_BYTES) as u64;
+        unsafe {
+            write_volatile(
+                core::ptr::addr_of_mut!(HID_DMA.transfer_ring[index]),
+                [
+                    buffer as u32,
+                    (buffer >> 32) as u32,
+                    BOOT_REPORT_BYTES as u32,
+                    (1 << 10) | (1 << 5) | 1,
+                ],
+            );
+        }
+        controller.ring_endpoint(device.slot, dci);
     }
     let mut completed = None;
     for _ in 0..INTERRUPT_POLL_WINDOWS {

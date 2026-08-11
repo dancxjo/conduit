@@ -8,7 +8,7 @@ use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_signal::{
     distributed_toggle_browser_sink_advertisement, distributed_toggle_std_source_advertisement,
     distributed_toggle_websocket_line_offer, signal_profile_catalog,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
 };
 use std::collections::BTreeMap;
 
@@ -59,7 +59,7 @@ pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> 
         &placements,
         &[ConnectionBase::Local, ConnectionBase::WebSocket],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-        SIGNAL_ENCODED_LEN,
+        conduit_signal::TRIGGER_ENCODED_LEN,
         &[link],
     )
     .map_err(|error| error.to_string())?;

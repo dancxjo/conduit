@@ -304,8 +304,10 @@ fn palette_placement_runs_an_ordinary_interaction_before_editing_canonical_sourc
             .iter()
             .filter(|receipt| matches!(
                 &receipt.request,
-                patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. }
-                    if invocation.action == patchbay_model::PatchbayAction::PlaceGear
+                patchbay_model::PatchbayInteractionRequest::Edit {
+                    edit: patchbay_model::PatchbayEdit::PlaceGear { .. },
+                    ..
+                }
             ))
             .count(),
         2
@@ -338,17 +340,21 @@ fn stale_palette_drop_is_refused_before_canonical_source_changes() {
         ..Arguments::default()
     })
     .unwrap();
-    let source_id = application
-        .form_editor
-        .as_ref()
-        .unwrap()
-        .view()
-        .checked
-        .source_document_id
-        .unwrap();
-    let outcome = application.apply_invocation(&patchbay_model::PatchbayInvocation {
-        action: patchbay_model::PatchbayAction::PlaceGear,
-        target_identity: format!("{}@1@text/upper", source_id.as_str()),
+    let view = application.form_editor.as_ref().unwrap().view();
+    let basis = patchbay_model::PatchbayEditBasis::new(
+        view.checked.source_document_id.unwrap(),
+        view.revision.saturating_add(1),
+        application
+            .graphical_form
+            .as_ref()
+            .unwrap()
+            .expanded_form_id
+            .clone(),
+    )
+    .unwrap();
+    let outcome = application.apply_authoring_edit(&patchbay_model::PatchbayEdit::PlaceGear {
+        basis,
+        kind_id: "text/upper".into(),
     });
     assert_eq!(
         outcome,
@@ -506,16 +512,14 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
         .unwrap()
         .history()
         .filter_map(|receipt| match &receipt.request {
-            patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. } => {
-                Some(invocation.action)
-            }
+            patchbay_model::PatchbayInteractionRequest::Edit { edit, .. } => Some(edit.operation()),
             _ => None,
         })
         .collect::<Vec<_>>();
-    assert!(actions.contains(&patchbay_model::PatchbayAction::ConnectPorts));
-    assert!(actions.contains(&patchbay_model::PatchbayAction::RemoveCord));
-    assert!(actions.contains(&patchbay_model::PatchbayAction::DuplicateGear));
-    assert!(actions.contains(&patchbay_model::PatchbayAction::RemoveGear));
+    assert!(actions.contains(&"connect-ports"));
+    assert!(actions.contains(&"remove-cord"));
+    assert!(actions.contains(&"duplicate-gear"));
+    assert!(actions.contains(&"remove-gear"));
     drop(application);
 
     let reopened = PatchbayApplication::new(Arguments {

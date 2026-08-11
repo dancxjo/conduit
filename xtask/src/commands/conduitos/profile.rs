@@ -36,6 +36,8 @@ pub struct Paths {
     pub xhci_proof: PathBuf,
     pub usb_proof: PathBuf,
     pub hid_proof: PathBuf,
+    pub keyboard_proof: PathBuf,
+    pub rescue_proof: PathBuf,
 }
 
 impl Paths {
@@ -58,6 +60,8 @@ impl Paths {
             xhci_proof: target.join("xhci-proof.json"),
             usb_proof: target.join("usb-proof.json"),
             hid_proof: target.join("hid-proof.json"),
+            keyboard_proof: target.join("keyboard-proof.json"),
+            rescue_proof: target.join("rescue-proof.json"),
             root,
             target,
         })

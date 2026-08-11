@@ -13,6 +13,8 @@ adapter or physical proof.
 | ConduitOS bounded USB enumeration | one attachment-scoped device identity binds the exact boot, xHCI Base, root port, slot, USB address, structural interfaces, and endpoints; all enumeration storage and progress are finite | deterministic descriptor, topology, capacity, reset, vanish, transfer, completion-identity, and stale-attachment vectors remain distinct; a real device-absent QEMU boot refuses without a device | no hosted implementation; `cargo xtask conduitos usb-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned root-attached QEMU USB device completes bounded reset, enable/address, five EP0 control transfers, descriptor parsing, and `SET_CONFIGURATION` through the accepted xHCI Base | no hub, hotplug, or external transport claim | the enumeration slice itself claims no HID report parsing, semantic input, key event, physical device, or HIL proof |
 | ConduitOS bounded HID boot keyboard | one attachment-scoped HID-local identity binds the exact boot, xHCI Base, USB device, boot-keyboard interface, interrupt-IN endpoint, transfer completions, and ordered usage transitions; all report, queue, transfer, polling, and Sign work is finite | deterministic interface, endpoint, packet, protocol, report, rollover, duplicate-usage, completion-identity, removal, and pressure refusals remain distinct without fabricated transitions | no hosted implementation; `cargo xtask conduitos hid-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned QEMU USB boot keyboard receives an acknowledged QMP key action, completes `SET_PROTOCOL` and two real interrupt-IN transfers, and derives exact usage `0x04` press then release through the accepted xHCI/USB path | no external transport claim | freestanding-emulator only; no semantic `input/keyboard` offer, layout, Unicode, general HID parser, physical device, or HIL claim |
 | Portable keyboard semantics | `input/key-event@1` is one exact 3-byte value using the HID Keyboard/Keypad usage page as host-neutral vocabulary, Pressed/Released, and eight distinct modifier bits after the transition; `input/keyboard` is a normal typed closing-flow source with an exact revision, finite queue, input resource, and bounded next-event host-operation requirement | reusable A, Shift+A, left/right modifier, and simultaneous-key vectors cross the fixed kernel unchanged; capacity-one pressure, closure, cancellation, host-input failure, malformed encoding, reserved usage, and inconsistent modifier state remain distinct | contract/catalog only; Patchbay discovers the semantic Kind, but the std Host truthfully advertises no implementation offer | no browser implementation claim | no firmware or ConduitOS semantic binding claim | no transport | no physical keyboard or HIL claim |
+| ConduitOS portable keyboard realization | one ready boot-local xHCI/device/interface/endpoint chain yields one exact `conduitos/usb-hid-keyboard@1` offer, ordinary keyboard Plan, production-kernel Play, and portable press/release values with finite device, report, transition, operation, memory, and Cord reservations | absent/unhealthy/ambiguous device truth, stale boot or artifact identity, capacity exhaustion, malformed values, Cord pressure, cancellation, transfer failure, device loss, and closure remain distinct; a real no-device boot emits no keyboard offer | no hosted implementation; `cargo xtask conduitos keyboard-proof` owns the repository proof entrance and retained JSON report | no browser implementation claim | one pinned QEMU USB keyboard produces `[4,0,0]` then `[4,1,0]` through the planned source and native Observatory/Patchbay projection | no external transport claim | freestanding-emulator only; no keymap/text, hotplug, physical keyboard, or HIL claim |
+| ConduitOS low-level local rescue | one interactive x86_64 profile taps opaque validated physical HID transitions before semantic routing, admits exact Ctrl+Alt+Delete under local-only policy, records one boot-scoped request, and crosses one bounded machine-reset Base without making an ordinary Form or second runtime authoritative | finite matcher, malformed-report, held-key, disabled-policy, unavailable-reset, stale/same-Boot, and physical Ctrl+Delete, Alt+Delete, and Ctrl+Alt+Backspace refusal vectors remain distinct | no hosted implementation; `cargo xtask conduitos rescue-proof` owns same-QEMU request/completion correlation and retained JSON/transcript evidence | no browser rescue claim | one pinned QEMU process observes B1, one guest-issued reset request, and fresh B2 with `B2 != B1`; request acceptance and reboot completion remain distinct | local physical/emulator input only; remote semantic key values cannot construct local authority | freestanding-emulator only; active-K6-Play independence remains unproved until #812, and there is no frozen-machine/NMI, physical keyboard, or HIL claim |
 | Exact plan, play, Sign, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued Sign identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/Play start mutation, unique Sign, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and clean firmware build identity; runtime-generated boot/play plus presentation/sign identities are carried in USB records and checked across physical sessions | live sessions verify exact base instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | matching physical receipts retain exact plan/fragment/play/presentation/sign/link/base/boot/build identity |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal Sign, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Canonical Form execution corpus | canonical face/back source, declarative startup binding, recursive expansion, exact checked-face compatibility including temporal shape, and distinct source/checked/expanded/Plan identities | Programs 1–4 deterministic positive/negative corpus; Program 6 exact two-host planning and link-failure vectors | real std `text/*`, `time/every`, `state/count`, and presentation leaves execute through the existing kernel with bounded Sign and stable capacity | Program 6 browser/WASM sink executes the unchanged canonical Signal source's exact remote fragment | no new firmware claim | actual loopback WebSocket carries the Program 6 Conduit session; it is not an authored external WebSocket operation | no new physical/HIL claim |
@@ -74,6 +76,18 @@ The `check` workflow requires:
   cross-implementation vectors, ordinary-kernel pressure/cancellation/terminal
   proof, authoritative Patchbay metadata, and no current Host implementation
   offer;
+- one exact boot-scoped ConduitOS `input/keyboard` realization whose ready
+  xHCI/USB/HID chain, finite resources, ordinary Plan, production-kernel Play,
+  portable press/release values, absent-device refusal, and read-only
+  Observatory/Patchbay projection are checked by `cargo xtask conduitos
+  keyboard-proof` and retained as a machine-readable report;
+- one bounded low-level ConduitOS local rescue path that consumes only opaque
+  validated physical HID transitions before ordinary keyboard planning,
+  recognizes exact Ctrl+Alt+Delete once, records B1 and exact local authority,
+  issues one guest reset, and is correlated by `cargo xtask conduitos
+  rescue-proof` to a distinct B2 in the same QEMU process; retained proof and
+  transcript evidence also establish physical near-miss refusal and preserve
+  request acceptance separately from reboot completion;
 - one bounded deterministic ConduitOS portable-std inventory/gap report derived
   from current supported-nucleus contract and offer truth, with a semantic
   content digest, exact Host build/profile basis, and complete implemented or
@@ -1244,6 +1258,34 @@ cooperative lane. It adds no per-Gear task, thread, process, or context
 identity; SMP, second lane, context switching, preemption, isolation, new
 scheduler, transport, physical scheduling, and HIL remain outside the claim.
 
+The canonical portable Boolean toggle slice from #900 is accepted at exact
+main `bb316a547af746ef0057dcd9ac3f13c2a6fb0abf`; push workflow
+`31464280116` passed `check`, `browser-host`, and `conduitos-boot`. One
+`conduit.std/state-toggle@1` contract now defines exact closing Tick input,
+Boolean Current output, initial state, finite transitions, pressure, closure,
+cancellation, malformed-input failure, and terminal behavior. The ordinary
+std profile installs `std/kernel-state-toggle@1` through planning, lowering,
+and the production kernel with every possible emitted Boolean Value admitted
+before Play.
+
+The distributed browser demo remains intact as a consumer of that same
+contract: its authored Form uses `state/toggle` and `presentation/bool`, the
+browser receives canonical Boolean values after remote-ingress kernel
+execution, and pinned Chromium proves sixteen ordered presentations, one real
+pressure retry, and a distinct broken-link failure. The former Signal-only
+revision, trigger value, implementation identity, and artifact identity are
+absent; no compatibility facade or second toggle meaning remains active.
+
+This exact-main result also supplies the finite missing-family promotion
+required by #883. The generated Host x Kind report from #893 automatically
+contains the toggle row: the ordinary std and bounded Signal profiles expose
+exact direct cells, browser exposes the exact Boolean presenter cell, and
+other profiles remain explicit missing or unsupported obligations. Semantic
+support, installed realization, and intentionally supplied current-offer
+truth remain separate; the matrix is explanatory input and never planner or
+Boot truth. This adds no latch, selector, merge, UI state store, generic
+reducer, `value/any`, universal Host coverage, or physical proof.
+
 The bounded ConduitOS xHCI Base slice from #805 is accepted at exact main
 `ccc26d3a0597d3254e58fcc5c106795f48d01298`; push workflow `31456936589`
 passed `check`, `browser-host`, and `conduitos-boot`. The ConduitOS job ran the
@@ -1357,6 +1399,76 @@ Bluetooth binding; keymap, text/Unicode, IME/compose/dead keys, repeat policy,
 LED/output reports, shortcuts/hotkeys, discovery, physical keyboard, and HIL
 remain outside the claim and are owned by later #804 milestones.
 
+The truthful ConduitOS keyboard-binding slice from #809 is accepted at exact
+main `fa642fb55a7a4c9021a6d9e7b2fb4c8409dfec37`; push workflow
+`31465190414` passed `check`, `browser-host`, and `conduitos-boot`, including
+the separately retained `keyboard-proof.json` emulator record.
+
+ConduitOS publishes `input/keyboard` only after the boot-local xHCI Base, USB
+device, HID Boot Keyboard interface, interrupt-IN endpoint, and fixed report,
+transition, and operation storage are ready. The offer uses exact stable
+implementation `conduitos/usb-hid-keyboard@1`, execution profile
+`conduitos/usb-input-cooperative@1`, and current build artifact identities.
+Controller, device, interface, and endpoint identities remain generic planned
+resource bindings rather than portable Kind or Info facts. A real QEMU boot
+without the USB device refuses before any keyboard Sign or offer exists.
+
+The authored Form names only `input/keyboard`. Ordinary checking, placement,
+planning, lowering, active-Play binding, and one fixed production scheduler
+carry the exact Host, Boot, offer generation, implementation, artifact, eight
+resource reservations, and capacity-one/three-byte Cord. The acknowledged QMP
+key action completes real HID transfers, then the responsibility-named bridge
+produces exact portable values `[4, 0, 0]` and `[4, 1, 0]`; those values contain
+no USB, controller, endpoint, QEMU, architecture, layout, or Unicode fact.
+
+Absent or incompatible device truth, ambiguous HID candidates, stale Boot and
+artifact identities, insufficient resources, malformed semantic values, Cord
+pressure, cancellation, USB transfer failure, device loss, and normal closure
+remain distinct. The ordinary Observatory snapshot advertises the same exact
+finite realization and native Patchbay consumes it read-only. This slice adds
+no keymap/text conversion, selection UX, multi-keyboard aggregation, hub,
+hotplug replanning, browser implementation, physical-device claim, or HIL
+proof; those remain owned by later #804 milestones.
+
+The no-Form local rescue slice from #816 is established at exact main
+`5660cabb8d07044c8e367c4b2dc27346492e33d4`; push workflow `31470574806`
+passed `check`, `browser-host`, and `conduitos-boot`, including the separately
+retained `rescue-proof.json` and correlated serial transcript. PR-head workflow
+`31470268374` passed the same complete matrix.
+
+The ordinary interactive x86_64 composition observes only opaque transitions
+produced after HID Boot reports pass reserved-byte, rollover, duplicate-usage,
+completion-identity, device-presence, and finite-capacity checks. The
+local-authority constructor is crate-private and is crossed only by that HID
+transition type; portable text or remote `input/key-event` values cannot invoke
+it. The tap runs before any ordinary keyboard offer, Plan, or Play exists.
+
+Either left or right Control plus either left or right Alt and the actual HID
+Delete usage admits one request under policy
+`conduitos/local-physical-rescue@1` for operation
+`conduitos.machine/reboot@1`. A held Delete is latched to one request until
+release. The receipt binds the old BootId, local-physical authority, policy,
+operation, request identity, and absence of an ordinary keyboard Plan. The
+finite HID session may observe at most four successive reports while reusing
+the same two admitted report buffers and fixed transfer ring.
+
+The x86_64 reset Base performs a finite controller-readiness check and emits
+exactly one guest reset command. Controller busy and a reset command that
+returns are explicit failures; the old boot cannot report completion. The
+runner observes B1, the request, disappearance/reset, and a fresh B2 with
+`B2 != B1` while the original QEMU process remains alive, then terminates that
+process only as post-proof cleanup. Ctrl+Delete, Alt+Delete, and
+Ctrl+Alt+Backspace physical injections remain in B1 without a rescue receipt;
+malformed HID, held-key repeat, disabled policy, unavailable reset Base, and
+stale/same-Boot correlation are deterministic negative cases.
+
+This is low-level local rescue while the CPU, xHCI/USB/HID service, and reset
+Base remain responsive, not a hardware NMI or completely-frozen-machine claim.
+The additional required demonstration while the ordinary K6 Play is active is
+not yet established because #812 depends on the still-open keymap work. #816
+therefore remains open, and no active-Play independence or final K9 acceptance
+is claimed here.
+
 The documentation-only CI fast path from #863 is accepted at exact main
 `965e5ef34b87d180a13fd7cf88e70331a416e40e`; push workflow `31453748480`
 classified the workflow and helper changes as executable, then passed the
@@ -1372,3 +1484,166 @@ be skipped. Classification failure remains fail-closed, PR permissions are
 unchanged, and `merge_group` uses the same required workflow without disabling
 strict up-to-date protection. This is CI routing only: it changes no product,
 runtime, proof semantics, or accepted proof class.
+
+The finite presentation-pacing slice from #886 is accepted at exact main
+`09da76a69d2e1233291cb216673646ef84aa00a5`; push workflow `31465601893`
+passed `check`, `browser-host`, and `conduitos-boot`. Canonical
+`conduit.std/time-delay-bool@1` delays every admitted Boolean Current value by
+one exact configured duration, retains at most eight pending values in input
+order, and drains those values after input closure. Canonical
+`conduit.std/time-throttle-bool-leading@1` emits the first eligible value,
+drops values arriving during its exact cooldown, retains no hidden latest
+value, and cancels its one exact pending timer when input closes.
+
+Both contracts use the existing planned monotonic-millisecond deadline
+requirement and ordinary std planning, lowering, and production-kernel path.
+The Host supplies only admitted, correlated timer operations; renderer frame
+cadence, browser timers, and ambient async timing do not enter portable
+meaning. Values, timer slots, queues, and mandatory work are finite before
+Play. Deterministic conformance covers zero and maximum durations,
+simultaneous values, late wakes, ordered closure drain, leading-edge drops,
+timer completion, cancellation, and regressed monotonic time.
+
+An ordinary non-UI Form and a Patchbay-oriented refresh Form exercise the same
+installed operations. The generated Host x Kind inventory now includes both
+rows and keeps other Host cells explicitly missing or unsupported. This adds
+no animation framework, retry/backoff policy, arbitrary timer wheel,
+scheduler redesign, hard-real-time claim, browser `setTimeout`, or physical
+timing proof.
+
+The typed Patchbay interaction slice from #887 is accepted at exact main
+`f909ca84bf3842555516086cf24c4731d2731798`; push workflow `31466734393`
+passed `check`, `browser-host`, and `conduitos-boot`. Existing exact
+`interaction/select` and `interaction/invoke` meanings remain current for
+selection, navigation, and lifecycle. One new `interaction/edit` request
+family carries source-document identity, source revision, expanded-Form
+basis, canonical subject identities, Kind identity, configuration key, and
+typed `ConfigurationValue` as distinct bounded fields.
+
+Native palette placement, duplication/removal, Port-to-Port connection, Cord
+rerouting, and Boolean/scalar/choice/text Face controls now normalize to exact
+`PatchbayEdit` variants before ordinary Form checking, planning, lowering,
+and production-kernel execution. Structured browser input constructs the same
+typed request without DOM or widget identity; the read-only browser adapter
+truthfully refuses authoring because it lacks edit authority. Renderer-local
+Gear movement and Cord waypoints remain presentation state and do not pretend
+to be portable semantic edits.
+
+The former delimiter-packed target identity and hexadecimal configuration
+codec are absent. There is one current finite interaction encoding and no
+legacy decoder or alternate edit revision. The fixed two-node interaction
+Plan, four queue slots, one pending host operation, bounded value and Sign
+stores, and 32-receipt history remain authoritative. Stale source or
+presentation basis, unknown subjects, incompatible Ports, duplicate Cords,
+invalid values, pressure, cancellation, refusal, failure, and terminal
+completion remain distinct. This adds no raw-pointer stream, universal
+gesture recognizer, widget ontology, arbitrary command bus, renderer-owned
+edit authority, or semantic layout geometry.
+
+The bounded portable layout-algebra slice from #888 is accepted at exact main
+`979ce39e6a61a8ceafd457b5042e7e940135f18e`; push workflow `31469291940`
+passed `check`, `browser-host`, and `conduitos-boot`. One allocator-free,
+fixed-capacity `presentation/layout-frame@1` Info encoding carries bounded
+viewport and child geometry. Six exact Kinds cover viewport, inset, row,
+column, stack, and alignment without placing CSS, toolkit, framebuffer, font,
+DOM, or device facts in authored meaning.
+
+The reference layout operations and an independently implemented eager
+Patchbay presenter normalize materially different internal representations to
+the same canonical geometry bytes. A representative Patchbay shell and Gear
+Face composition exercises viewport, inset, distribution, stacking, and
+alignment. The existing renderer-local Patchbay demo layout remains intact;
+it is a presentation consumer, not a second portable layout contract or source
+of runtime truth.
+
+An ordinary authored Form runs the six operations through checking, planning,
+lowering, and the production kernel before a typed test sink observes the
+result. All successful Play-time storage is preallocated. Zero and maximum
+extents, undersized frames, child-capacity and arithmetic overflow, clipping,
+division remainder, malformed encoding, pressure, cancellation, and terminal
+behavior have deterministic coverage. Layout values do not alter source,
+checked, expanded, Plan, Play, Port, Gear, or Sign identity. The generated Host
+x Kind inventory includes all six exact rows and leaves other Hosts explicitly
+unsupported. This adds no constraint solver, graph layout, animation system,
+scene graph, font measurement, pixel renderer, or physical/HIL claim.
+
+The bounded presentation-composition and graphics-leaf slices from #889 and
+#890 are accepted together at exact main
+`fddb2344ecc4e9545d6b3e17cf90dac45a651233`; push workflow `31473617082`
+passed `check`, `browser-host`, and `conduitos-boot`, and Pages workflow
+`31473617076` completed for the same commit. The ConduitOS job's first attempt
+was refused when `curl` returned certificate error 60 while fetching the pinned
+Limine 12.5.2 archive; rerunning only that failed job completed the identical
+exact-main proof.
+
+Existing `presentation/text` remains the text semantic. Three additional
+renderer-neutral semantic Backs cover one canonical icon identity, a bounded
+frame, and a bounded status badge. Their allocator-free
+`presentation/composition@1` Info carries at most eight ordered obligations,
+finite tokens and accessible names, exact roles, and the single canonical
+`PresentationIconKey` vocabulary. Missing icon metadata uses one explicit
+generic-Gear fallback; partial or unknown metadata refuses instead of guessing.
+
+Below that seam, only `graphics/rect`, `graphics/text`, and `graphics/icon`
+passed cross-presenter admission. Every command uses #888 `LayoutRect`
+geometry, an exact clip rectangle, paint role, stable integer coordinates,
+finite resolved content, and canonical ordering in one fixed-capacity
+`presentation/graphics-scene@1` encoding. Clip is a property of each command,
+not a stateful Kind. Line and path remain renderer helpers because no current
+presentation Back gives them separate portable meaning.
+
+The std implementation transforms the exact values through admitted host
+operations and the production kernel. An ordinary seven-Gear Form lowers
+icon, frame, and badge through rectangle, resolved text, and resolved icon,
+then completes at a typed sink with all successful Play-time storage
+preallocated. The constrained Patchbay presenter lowers the same composition
+through the canonical graphics leaves, while an independently implemented
+native normalizer preserves geometry, clipping class, resolved content,
+ordering, paint, and style without requiring pixel parity. A ConduitOS
+framebuffer presenter can consume those same obligations before its private
+raster writes; framebuffer addresses remain below the contract. Direct
+higher-level presenters may still join semantic presentation without exposing
+graphics primitives.
+
+Malformed and noncanonical encodings, empty or oversized payloads, zero or
+overflow geometry, unknown icons, capacity pressure, cancellation, and forged
+execution profiles remain distinct refusals or terminal outcomes. The
+generated palette, Host x Kind inventory, Observatory fixture, and ConduitOS
+std-gap report include the exact accepted rows. The existing Patchbay demo and
+its semantic identities remain intact. This adds no line/path/clip Kind, pixel
+API, toolkit contract, scene-graph runtime, font shaping, icon registry clone,
+SVG/PostScript language, shader/GPU pipeline, image codec, or physical/HIL
+claim.
+
+The first Patchbay-specific presentation-Back slice from #891 is accepted at
+exact main `ea259e838c7bad57de32b0cf55601265c283cbbe`; push workflow
+`31475550408` passed `check`, `browser-host`, and `conduitos-boot`, and Pages
+workflow `31475550397` completed for the same commit.
+
+Exactly three thin meanings cover `patchbay/gear-face`, `patchbay/port`, and
+`patchbay/cord`. They consume the existing canonical `PatchbayGear`,
+`PatchbayPort`, `PatchbayCord`, `PortDescriptor`, and `FaceControl` values;
+they do not create replacement Gear, Port, Cord, or control identities. Port
+direction, Info Kind, temporal contract, concise accessible name, and exact
+subject identity remain recognizable. Optional Line and Plan facts are
+active-lens annotations on a Cord presentation and never replace or equal the
+Cord identity.
+
+A direct realization joins each high-level subject without exposing its Back.
+Explicit inspection may reveal a distinct finite recursive expansion. The Gear
+Face expansion composes accepted layout, icon, text, frame, badge, rectangle,
+resolved-text, and resolved-icon leaves into the canonical bounded graphics
+scene. Port and Cord expansions reuse the same admitted layout, presentation,
+and graphics vocabulary. Normalized direct and recursive realizations preserve
+the same subject identity and accessibility obligations while their expansion
+descriptions remain visibly distinct. Face controls retain authoritative typed
+value intents; no slider, checkbox, knob, textbox, or other widget type enters
+portable meaning.
+
+The default Patchbay canvas, existing renderer, interaction path, and
+documentary demo remain intact and do not expose recursive machinery unless
+asked. The finite `PATCHBAY_BACK_KINDS` inventory records the three accepted
+Backs without advertising them as ambient std-host capabilities. This adds no
+second Patchbay model, renderer-owned semantic graph, path Kind, widget
+ontology, palette or inspector expansion, graph-layout engine, toolkit
+contract, self-hosting recursion, or physical/HIL claim.

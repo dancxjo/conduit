@@ -28,7 +28,11 @@ mod interaction;
 mod layout;
 mod maker_environment;
 mod palette;
+mod patchbay_backs;
+mod portable_composition;
 mod portable_demo;
+mod portable_graphics;
+mod portable_layout;
 mod portable_projection;
 mod renderer_execution;
 mod renderer_inspection;
@@ -59,10 +63,10 @@ pub use graphical_patchbay::{
     MAX_PATCHBAY_PORTS,
 };
 pub use interaction::{
-    InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction,
-    PatchbayInteraction, PatchbayInteractionRequest, PatchbayInteractionRequestId,
-    PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal, MAX_INTERACTION_HISTORY,
-    MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
+    InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
+    PatchbayEditBasis, PatchbayInteraction, PatchbayInteractionRequest,
+    PatchbayInteractionRequestId, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
+    MAX_INTERACTION_HISTORY, MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
 };
 pub use layout::{
     CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
@@ -79,7 +83,13 @@ pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
 };
+pub use patchbay_backs::*;
+pub use portable_composition::{
+    constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
+};
 pub use portable_demo::portable_demonstration;
+pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
+pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,

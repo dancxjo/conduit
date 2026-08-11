@@ -69,7 +69,7 @@ pub fn prepare(
     build_id: &str,
 ) -> Result<PreparedOrdinaryPlay, PreparationError> {
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
-    let form = checked_expanded_text_form()?;
+    let form = crate::ordinary_form::checked_expanded_text_form(ORDINARY_FORM_SOURCE)?;
     validate_text_capacity(&form, CORD_BYTES)?;
     let hosts = [advertisement.clone()];
     let placements = default_expanded_placements(&form, &hosts)
@@ -131,7 +131,7 @@ pub fn prepare(
     })
 }
 
-fn advertisement(
+pub(crate) fn advertisement(
     identities: &BootIdentities,
     fixed: &HostOffer<'_>,
     build_id: &str,
@@ -199,7 +199,7 @@ fn advertisement(
         build_id,
         "presentation-text",
     );
-    Ok(HostAdvertisement {
+    let mut advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(hex_identity(&identities.host)),
         boot_id: BootId::from(hex_identity(&identities.boot)),
@@ -219,19 +219,12 @@ fn advertisement(
             .collect::<Vec<ResourceOffer>>(),
         capabilities: vec![literal, upper, presentation],
         planner_capabilities: Vec::new(),
-    })
-}
-
-fn checked_expanded_text_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
-    let syntax = conduit_form::parse_syntax_document(ORDINARY_FORM_SOURCE);
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
-        .map_err(|_| PreparationError::FormRejected)?;
-    let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|_| PreparationError::FormRejected)?;
-    conduit_form::expand_canonical_form(&checked, "conduitos-text-upper", &profile)
-        .map_err(|_| PreparationError::FormRejected)
+    };
+    if let Some(keyboard) = fixed.keyboard {
+        crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
+            .map_err(|_| PreparationError::OfferMismatch)?;
+    }
+    Ok(advertisement)
 }
 
 fn validate_text_capacity(
@@ -462,7 +455,7 @@ mod tests {
     fn undersized_cord_reserve_and_stale_planned_boot_fail_closed() {
         let (identities, offer) = fixture();
         let advertisement = advertisement(&identities, &offer, "build").unwrap();
-        let form = checked_expanded_text_form().unwrap();
+        let form = crate::ordinary_form::checked_expanded_text_form(ORDINARY_FORM_SOURCE).unwrap();
         let hosts = [advertisement];
         let placements = default_expanded_placements(&form, &hosts).unwrap();
         assert_eq!(
