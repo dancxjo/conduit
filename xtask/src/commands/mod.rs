@@ -1,3 +1,4 @@
+pub mod catalog;
 pub mod check;
 pub mod conduitos;
 pub mod demo;
