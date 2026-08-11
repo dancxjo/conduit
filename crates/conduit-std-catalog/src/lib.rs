@@ -43,6 +43,8 @@ mod logic;
 pub use logic::*;
 mod math;
 pub use math::*;
+mod layout;
+pub use layout::*;
 mod robotics;
 pub use robotics::*;
 #[cfg(feature = "form-catalog")]
@@ -83,6 +85,12 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         math_clamp_contract(),
         math_scale_contract(),
         math_deadband_contract(),
+        layout_viewport_contract(),
+        layout_inset_contract(),
+        layout_row_contract(),
+        layout_column_contract(),
+        layout_stack_contract(),
+        layout_align_contract(),
         robotics_observe_bump_contract(),
         robotics_observe_imu_contract(),
         robotics_observe_range_contract(),
@@ -125,6 +133,12 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         math_clamp_offer(),
         math_scale_offer(),
         math_deadband_offer(),
+        layout_viewport_offer(),
+        layout_inset_offer(),
+        layout_row_offer(),
+        layout_column_offer(),
+        layout_stack_offer(),
+        layout_align_offer(),
         robotics_observe_bump_offer(),
         robotics_observe_imu_offer(),
         robotics_observe_range_offer(),
@@ -359,7 +373,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 32);
+        assert_eq!(contracts.len(), 38);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts

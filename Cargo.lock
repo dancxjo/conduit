@@ -621,6 +621,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-runtime",
  "serde",
 ]
@@ -636,6 +637,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-net",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-runtime",
  "conduit-signal",
  "conduit-std-catalog",

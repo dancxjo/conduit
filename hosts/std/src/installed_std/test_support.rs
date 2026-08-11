@@ -91,7 +91,55 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         .expect("logic catalogs are exact and unique");
     conduit_std_catalog::install_math_catalogs(&mut startup, &mut catalog)
         .expect("math catalogs are exact and unique");
+    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut catalog)
+        .expect("layout catalogs are exact and unique");
+    catalog
+        .insert(KindDefinition {
+            kind_id: kind_id("conduit.test/layout-sink"),
+            kind_contract_revision: KindContractRevision::from("conduit.test/layout-sink@1"),
+            inputs: vec![PortDescriptor {
+                port_id: conduit_core::port_id("in"),
+                value_kind: kind_id(conduit_presentation::LAYOUT_FRAME_KIND),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+            }],
+            outputs: Vec::new(),
+            configuration: Vec::new(),
+        })
+        .expect("layout sink is unique");
     conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut catalog)
         .expect("robotics catalogs are exact and unique");
     catalog
+}
+
+pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
+    CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
+        capability_id: CapabilityId::from("test-layout-sink"),
+        kind_id: kind_id("conduit.test/layout-sink"),
+        kind_contract_revision: KindContractRevision::from("conduit.test/layout-sink@1"),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("conduit.test/layout-sink-kernel@1"),
+            implementation_id: conduit_core::ImplementationId::from(
+                "conduit.test/layout-sink-implementation@1",
+            ),
+            artifact_id: ArtifactId::from("conduit-std-host/test-layout-sink@1"),
+        },
+        inputs: vec![PortDescriptor {
+            port_id: conduit_core::port_id("in"),
+            value_kind: kind_id(conduit_presentation::LAYOUT_FRAME_KIND),
+            direction: PortDirection::Input,
+            temporal: conduit_core::PortTemporal::Value,
+        }],
+        outputs: Vec::new(),
+        host_operations: Vec::new(),
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u32,
+        },
+    }
 }
