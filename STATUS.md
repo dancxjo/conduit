@@ -1647,3 +1647,28 @@ Backs without advertising them as ambient std-host capabilities. This adds no
 second Patchbay model, renderer-owned semantic graph, path Kind, widget
 ontology, palette or inspector expansion, graph-layout engine, toolkit
 contract, self-hosting recursion, or physical/HIL claim.
+
+The canonical direct-versus-recursive Patchbay presenter capstone from #892,
+which also completes #891's exact-Plan requirement, is accepted at exact main
+`40e4ca6be2933ce127233b7a2fce485eea60137f`; push workflow `31480668293`
+passed `check`, `browser-host`, and `conduitos-boot` for that merged commit.
+
+One unchanged bounded user Form carries `presentation/patchbay` meaning. A
+high-capability browser profile plans that Kind to one exact direct presenter;
+the constrained profile selects four exact reusable canonical Forms and
+expands them into ordinary layout, presentation, and graphics placements.
+Selected Back source and checked identities are sealed into the expanded Form,
+Plan, and every Plan fragment. Tampering with either Plan-level or
+fragment-level provenance invalidates verification. Both realizations use
+ordinary planning, lowering, and the production kernel with finite admitted
+operations and Signs; there is no fixture-local Plan or recursive executor.
+
+The realizations preserve the same normalized Patchbay subjects,
+relationships, labels, accessibility text, semantic actions, and lens
+obligations while retaining distinct expanded Form and Plan identities. The
+same portable selection request succeeds through both shapes. Direct presenter
+absence and recursive leaf absence remain distinct failures without mutating
+the user's source or checked Form. The authoritative catalog matrix derives
+`DIRECT` browser coverage and `RECURSIVE` constrained coverage, including exact
+implementation and Back provenance. This is software execution evidence, not
+pixel parity, a universal framebuffer claim, or physical/HIL proof.
