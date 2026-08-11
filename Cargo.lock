@@ -515,6 +515,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-midi"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
 name = "conduit-net"
 version = "0.1.0"
 dependencies = [
@@ -637,6 +644,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-kernel",
+ "conduit-midi",
  "conduit-net",
  "conduit-planner",
  "conduit-presentation",

@@ -13,7 +13,7 @@ mod suites;
 mod workspace;
 
 use clap::Parser;
-use cli::{AudioCommand, Cli, Command, DemoCommand, GlobalOpts};
+use cli::{AudioCommand, Cli, Command, DemoCommand, GlobalOpts, MidiCommand};
 
 fn main() {
     let cli = Cli::parse();
@@ -40,6 +40,9 @@ fn main() {
                 device,
                 authorize_output,
             } => commands::audio::prove(&opts, &card_id, device, authorize_output),
+        },
+        Command::Midi(args) => match args.command {
+            MidiCommand::List => commands::midi::list(&opts),
         },
         Command::Demo(args) => match args.command {
             DemoCommand::Std => commands::demo::run_std(&opts),
