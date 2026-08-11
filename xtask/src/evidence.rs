@@ -14,9 +14,13 @@ use std::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod gallery;
 mod verification;
 
-pub use verification::{verify, ExpectedEvidenceResult, VerificationRequest};
+pub use gallery::{publish_gallery, GalleryRequest};
+pub use verification::{
+    verify, ExpectedEvidenceResult, VerificationRequest, VerifiedEvidence, VerifiedOutput,
+};
 
 pub const EVIDENCE_SCHEMA: &str = "conduit.evidence-manifest/v1";
 pub const MAX_EVIDENCE_OUTPUTS: usize = 64;

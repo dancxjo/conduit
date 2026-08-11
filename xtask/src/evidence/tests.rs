@@ -172,8 +172,21 @@ fn bounded_capture_declarations_import_exact_provenance() {
 #[test]
 fn verifier_recomputes_complete_browser_evidence() {
     let root = temporary_root("verify-complete");
+    let commit = complete_browser_evidence(&root);
+    verify(&VerificationRequest {
+        root: root.clone(),
+        commit,
+        result: ExpectedEvidenceResult::Complete,
+        proof_id: "browser-host".into(),
+        suite_id: "prove.browser-host".into(),
+    })
+    .unwrap();
+    fs::remove_dir_all(root).unwrap();
+}
+
+fn complete_browser_evidence(root: &Path) -> String {
     let mut evidence = EvidenceManifest::new(
-        &root,
+        root,
         Path::new(env!("CARGO_MANIFEST_DIR")),
         "browser-host",
         "prove.browser-host",
@@ -220,16 +233,46 @@ fn verifier_recomputes_complete_browser_evidence() {
     evidence.finish(EvidenceResult::Complete).unwrap();
     let document: serde_json::Value =
         serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
-    let commit = document["git_commit"].as_str().unwrap().to_owned();
-    verify(&VerificationRequest {
-        root: root.clone(),
-        commit,
-        result: ExpectedEvidenceResult::Complete,
-        proof_id: "browser-host".into(),
-        suite_id: "prove.browser-host".into(),
+    document["git_commit"].as_str().unwrap().to_owned()
+}
+
+#[test]
+fn gallery_publishes_current_history_and_provenance() {
+    let evidence_root = temporary_root("gallery-evidence");
+    let site_root = temporary_root("gallery-site");
+    let commit = complete_browser_evidence(&evidence_root);
+    publish_gallery(&GalleryRequest {
+        evidence_root: evidence_root.clone(),
+        site_root: site_root.clone(),
+        commit: commit.clone(),
     })
     .unwrap();
-    fs::remove_dir_all(root).unwrap();
+    let index = fs::read_to_string(site_root.join("index.html")).unwrap();
+    let scenario =
+        fs::read_to_string(site_root.join("current/patchbay/overview/index.html")).unwrap();
+    assert!(index.contains(&commit));
+    assert!(index.contains("latest 32 published main commits"));
+    assert!(scenario.contains("1440x1000"));
+    assert!(scenario.contains("Exact provenance"));
+    assert!(site_root
+        .join(format!("commits/{commit}/patchbay/overview.png"))
+        .is_file());
+    assert!(site_root
+        .join(format!("commits/{commit}/manifest.json"))
+        .is_file());
+    fs::write(evidence_root.join("output-1"), b"tampered-evidence!!").unwrap();
+    assert!(publish_gallery(&GalleryRequest {
+        evidence_root: evidence_root.clone(),
+        site_root: site_root.clone(),
+        commit,
+    })
+    .is_err());
+    assert_eq!(
+        fs::read_to_string(site_root.join("index.html")).unwrap(),
+        index
+    );
+    fs::remove_dir_all(evidence_root).unwrap();
+    fs::remove_dir_all(site_root).unwrap();
 }
 
 #[test]
