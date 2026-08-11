@@ -7,6 +7,7 @@ use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
 use std::time::Duration;
 
+mod audio_playback_conformance;
 mod gate_conformance;
 mod graphics_conformance;
 mod input_semantics_conformance;
@@ -424,6 +425,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
     let report = installed_std::run_fragment(
         &advertisement,
         &plan.fragments[0],
+        None,
         0,
         &mut sign_sequence,
         &mut output,
@@ -452,6 +454,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
     let error = installed_std::run_fragment(
         &advertisement,
         &substituted,
+        None,
         1,
         &mut sign_sequence,
         &mut output,

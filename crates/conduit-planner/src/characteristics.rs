@@ -221,6 +221,34 @@ pub fn plan_selected_realizations_with_characteristics(
     observations: &[ResourceObservation],
     policies: &BTreeMap<GearId, RealizationPolicy>,
 ) -> Result<Plan, PlannerError> {
+    plan_selected_realizations_with_characteristics_and_authority(
+        form,
+        hosts,
+        bases,
+        requirements,
+        advertisements,
+        observations,
+        policies,
+        conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+        conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+        &[],
+    )
+}
+
+/// Selects against fresh resource observations and exact realization facts,
+/// then seals independently supplied authority grants into the ordinary Plan.
+pub fn plan_selected_realizations_with_characteristics_and_authority(
+    form: &CheckedForm,
+    hosts: &[HostAdvertisement],
+    bases: &[ConnectionBase],
+    requirements: &BTreeMap<GearId, HardRealizationRequirements>,
+    advertisements: &[RealizationAdvertisement],
+    observations: &[ResourceObservation],
+    policies: &BTreeMap<GearId, RealizationPolicy>,
+    connection_item_capacity: u16,
+    connection_byte_capacity: u32,
+    authority_grants: &[conduit_core::AuthorityGrant],
+) -> Result<Plan, PlannerError> {
     reject_unknown_operation_inputs(form, requirements, policies)?;
     validate_resource_observations(hosts, observations)?;
     validate_advertisements(hosts, advertisements)?;
@@ -249,12 +277,24 @@ pub fn plan_selected_realizations_with_characteristics(
         requirement.required_characteristic_flags.clear();
         requirement.required_characteristic_labels.clear();
     }
-    let plan = crate::plan_with_hard_requirements(
+    let placements = PlacementChoices { by_gear };
+    crate::requirements::validate_hard_requirements(form, hosts, &placements, &plain_requirements)?;
+    let connection_bases = BTreeMap::new();
+    let line_candidates = BTreeMap::new();
+    let plan = crate::plan_with_options(
         form,
         hosts,
-        &PlacementChoices { by_gear },
+        &placements,
         bases,
-        &plain_requirements,
+        crate::PlanningOptions {
+            connection_bases: &connection_bases,
+            line_candidates: &line_candidates,
+            connection_item_capacity,
+            connection_byte_capacity,
+            authority_grants,
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
     )?;
     seal_characteristics(plan, advertisements)
 }

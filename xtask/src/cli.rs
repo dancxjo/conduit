@@ -55,6 +55,8 @@ pub enum Command {
     PicoLocal(PicoArgs),
     /// Build and prove the freestanding ConduitOS reference Host.
     Conduitos(ConduitosArgs),
+    /// Inspect and prove one explicit hosted PCM playback resource.
+    Audio(AudioArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
     /// Generate the bounded Patchbay GNU Unifont subset.
@@ -222,6 +224,30 @@ pub enum DemoCommand {
 }
 
 #[derive(Args, Debug)]
+pub struct AudioArgs {
+    #[command(subcommand)]
+    pub command: AudioCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AudioCommand {
+    /// List freshly observed ALSA playback resources without opening them.
+    List,
+    /// Run the bounded audible specimen through one exact selected output.
+    PlaybackProof {
+        /// Exact ALSA card identity from `cargo xtask audio list`.
+        #[arg(long)]
+        card_id: String,
+        /// Exact ALSA device number on the selected card.
+        #[arg(long)]
+        device: u16,
+        /// Explicitly authorize sounding the selected output for this proof.
+        #[arg(long, required = true)]
+        authorize_output: bool,
+    },
+}
+
+#[derive(Args, Debug)]
 pub struct DoctorArgs {
     /// What to inspect (default: all).
     #[arg(default_value = "all")]
@@ -361,5 +387,30 @@ mod tests {
         ])
         .expect("ConduitOS evidence command parses");
         assert!(matches!(conduitos_evidence.command, Command::Conduitos(_)));
+
+        let audio = Cli::try_parse_from(["xtask", "audio", "list"])
+            .expect("audio discovery command parses");
+        assert!(matches!(audio.command, Command::Audio(_)));
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "audio",
+            "playback-proof",
+            "--card-id",
+            "PCH",
+            "--device",
+            "0",
+        ])
+        .is_err());
+        Cli::try_parse_from([
+            "xtask",
+            "audio",
+            "playback-proof",
+            "--card-id",
+            "PCH",
+            "--device",
+            "0",
+            "--authorize-output",
+        ])
+        .expect("audio proof requires explicit output authority");
     }
 }

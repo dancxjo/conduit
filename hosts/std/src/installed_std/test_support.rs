@@ -1,4 +1,5 @@
 use super::contract::{self, TICK_ENCODED_LEN, TICK_VALUE_KIND};
+use super::test_audio_source;
 use super::test_gate;
 use super::test_input_semantics;
 use super::test_logic;
@@ -63,6 +64,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         })
         .expect("test observer kind is distinct from typed tick");
     test_text_source::install_catalog(&mut catalog);
+    test_audio_source::install_catalog(&mut catalog);
     test_scalar_flow::install_catalog(&mut catalog);
     test_gate::install_catalog(&mut catalog);
     test_input_semantics::install_catalog(&mut catalog);
@@ -85,6 +87,8 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         .expect("presentation composition catalogs are exact and unique");
     conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut catalog)
         .expect("graphics catalogs are exact and unique");
+    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut catalog)
+        .expect("sound catalogs are exact and unique");
     catalog
         .insert(KindDefinition {
             kind_id: kind_id("conduit.test/presentation-sink"),

@@ -1,3 +1,4 @@
+use super::audio_play_operation::AudioPlayOperation;
 use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
@@ -77,10 +78,12 @@ pub(super) enum InstalledOperation {
     RoboticsSource(RoboticsSourceOperation),
     RoboticsDrive(RoboticsDriveOperation),
     MusicSynth(MusicSynthOperation),
+    AudioPlay(AudioPlayOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
+    TestPcmSource(super::test_audio_source::TestPcmSourceOperation),
     #[cfg(test)]
     TestKeyEventSource(super::test_input_semantics::TestKeyEventSourceOperation),
     #[cfg(test)]
@@ -155,10 +158,12 @@ impl Operation for InstalledOperation {
             Self::RoboticsSource(operation) => operation.start(),
             Self::RoboticsDrive(operation) => operation.start(),
             Self::MusicSynth(operation) => operation.start(),
+            Self::AudioPlay(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
+            Self::TestPcmSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.start(),
             #[cfg(test)]
@@ -222,10 +227,12 @@ impl Operation for InstalledOperation {
             (Self::RoboticsSource(operation), input) => operation.resume(input),
             (Self::RoboticsDrive(operation), input) => operation.resume(input),
             (Self::MusicSynth(operation), input) => operation.resume(input),
+            (Self::AudioPlay(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestTextSource(_), _) => Self::fail(6),
+            (Self::TestPcmSource(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestKeyEventSource(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -301,6 +308,7 @@ impl Operation for InstalledOperation {
             Self::RoboticsSource(operation) => operation.advance(),
             Self::RoboticsDrive(operation) => operation.advance(),
             Self::MusicSynth(operation) => operation.advance(),
+            Self::AudioPlay(_) => OperationAction::Await,
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             #[cfg(test)]
@@ -308,6 +316,7 @@ impl Operation for InstalledOperation {
                 operation.next += 1;
                 operation.emit_or_complete()
             }
+            Self::TestPcmSource(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.advance(),
             #[cfg(test)]
@@ -369,10 +378,12 @@ impl Operation for InstalledOperation {
             Self::RoboticsSource(operation) => operation.cancel(),
             Self::RoboticsDrive(operation) => operation.cancel(),
             Self::MusicSynth(operation) => operation.cancel(),
+            Self::AudioPlay(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
+            Self::TestPcmSource(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.cancel(),
             #[cfg(test)]

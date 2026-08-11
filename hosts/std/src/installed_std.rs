@@ -1,3 +1,4 @@
+mod audio_play_operation;
 mod catalog;
 pub(super) mod contract;
 mod count_operations;
@@ -18,6 +19,7 @@ mod presentation_composition;
 mod robotics_effect;
 mod robotics_operations;
 mod synth_operation;
+mod test_audio_source;
 #[cfg(test)]
 mod test_gate;
 #[cfg(test)]
@@ -93,6 +95,19 @@ pub(super) use test_support::{
 #[cfg(test)]
 pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
     test_text_source::offer()
+}
+
+pub(super) fn test_pcm_source_offer() -> conduit_core::CapabilityOffer {
+    test_audio_source::offer()
+}
+
+pub(crate) fn playback_proof_catalog() -> conduit_form::ProfileCatalog {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profile)
+        .expect("sound proof catalog identities are unique");
+    test_audio_source::install_catalog(&mut profile);
+    profile
 }
 
 #[cfg(test)]
@@ -173,6 +188,7 @@ pub(super) use contract::tick_offer;
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
+    playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
     play_sequence: u64,
     next_sign_sequence: &mut u64,
     _output: &mut W,
@@ -434,6 +450,19 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mut playback_sessions = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_catalog::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
+            {
+                audio_play_operation::prepare_session(placement, playback).map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
@@ -458,7 +487,25 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         }
         while let Some(cancellation) = scheduler.next_host_cancellation() {
-            deadlines.cancel(cancellation, &mut scheduler)?;
+            let cancelled_operation = lowered
+                .host_operations
+                .iter()
+                .find(|operation| {
+                    operation.node == cancellation.node
+                        && operation.operation == cancellation.operation
+                })
+                .ok_or_else(|| "cancelled host request has no lowered identity".to_string())?;
+            if cancelled_operation.contract_id.as_str() == audio_play_operation::HOST_OPERATION {
+                let session = playback_sessions
+                    .get_mut(usize::from(cancellation.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "cancelled audio/play has no admitted session".to_string())?;
+                session
+                    .stop()
+                    .map_err(|error| format!("stop cancelled audio/play: {error:?}"))?;
+            } else {
+                deadlines.cancel(cancellation, &mut scheduler)?;
+            }
         }
         while let Some(request) = scheduler.next_host_request() {
             let input = scheduler
@@ -501,6 +548,38 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete reference synth render: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == audio_play_operation::HOST_OPERATION {
+                let session = playback_sessions
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "audio/play request has no exact admitted session".to_string()
+                    })?;
+                let outcome = audio_play_operation::execute(session, input);
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete audio/play host operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == test_audio_source::YIELD_OPERATION
+                && lowered_operation.target_kind.is_none()
+            {
+                if input != [0] {
+                    return Err("proof PCM source yield marker is malformed".to_string());
+                }
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: None,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_ai::GENERATE_TEXT_HOST_OPERATION {
                 let placement = fragment
@@ -932,6 +1011,13 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     for state in synth_states.iter_mut().flatten() {
         state.stop();
     }
+    for session in playback_sessions.iter_mut().flatten() {
+        if session.lifecycle() != crate::hosted_audio::PlaybackLifecycle::StoppedClosed {
+            session
+                .stop()
+                .map_err(|error| format!("close terminal audio/play: {error:?}"))?;
+        }
+    }
     if !deadlines.is_empty() {
         return Err("installed deadline effects survived terminal Play state".to_string());
     }
@@ -1026,6 +1112,11 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         })
         .into_iter()
         .collect();
+    let playback = playback_sessions
+        .iter()
+        .flatten()
+        .map(crate::hosted_audio::PlaybackSession::report)
+        .collect();
     Ok(StdRunReport {
         observations,
         receipts: Vec::new(),
@@ -1038,6 +1129,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids: Vec::new(),
+            playback,
             identity: execution_identity,
             #[cfg(test)]
             post_play_start_allocations,

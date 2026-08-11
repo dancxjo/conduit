@@ -13,8 +13,10 @@ impl InstalledOperation {
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
             Self::MusicSynth(_) => 0,
+            Self::AudioPlay(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
+            Self::TestPcmSource(_) => 0,
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => {
                 operation.values.capacity() + operation.waits.capacity()
