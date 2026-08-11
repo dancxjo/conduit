@@ -24,6 +24,24 @@ fn request(path: &str, method: &str) -> String {
     response
 }
 
+fn post_interaction(snapshot: patchbay_html::RendererSnapshot, body: &[u8]) -> String {
+    let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = std::thread::spawn(move || server.serve_count(1));
+    let mut stream = TcpStream::connect(address).unwrap();
+    write!(
+        stream,
+        "POST /api/interaction HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
+        body.len()
+    )
+    .unwrap();
+    stream.write_all(body).unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    worker.join().unwrap().unwrap();
+    response
+}
+
 #[test]
 fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let index = request("/", "GET");
@@ -88,6 +106,48 @@ fn server_rejects_non_loopback_exposure() {
         ),
         Err(ServerError::NonLoopbackBind)
     ));
+}
+
+#[test]
+fn structured_browser_edit_normalizes_without_dom_or_widget_identity() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let presentation_id = snapshot.presentation.identity.as_str();
+    let basis = &snapshot.presentation.basis;
+    let expanded = basis.expanded_form_id.as_ref().unwrap().as_str();
+    let body = serde_json::to_vec(&serde_json::json!({
+        "presentation_id": presentation_id,
+        "kind": "edit",
+        "subject": null,
+        "action": null,
+        "target": null,
+        "edit": {
+            "source_document_id": basis.source_document_id.as_str(),
+            "source_revision": 7,
+            "expanded_form_id": expanded,
+            "operation": "configure-gear",
+            "primary": "gear/count-demo/counter",
+            "secondary": null,
+            "key": "label",
+            "value": {"Text": "literal@delimiter:is-data"}
+        }
+    }))
+    .unwrap();
+    let response = post_interaction(snapshot, &body);
+    assert!(response.starts_with("HTTP/1.1 200 OK"));
+    let decoded = patchbay_html::RendererSnapshot::decode(
+        response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
+        1,
+    )
+    .unwrap();
+    assert_eq!(
+        decoded.interaction.last_disposition.as_deref(),
+        Some("Refused(OperationUnavailable)")
+    );
+    assert!(decoded
+        .interaction
+        .last_request_id
+        .as_deref()
+        .is_some_and(|id| id.contains("/edit/")));
 }
 
 #[test]

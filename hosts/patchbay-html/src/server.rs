@@ -2,9 +2,9 @@ use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::SignId;
 use conduit_presentation::ManifestationFailure;
 use patchbay_model::{
-    InteractionDisposition, PatchbayAction, PatchbayInteraction, PatchbayInteractionRequest,
-    PatchbayInvocationOutcome, PatchbayRefusal, PatchbaySubjectRef, PatchbayTheme, ThemeColor,
-    PHOSPHOR_THEME,
+    InteractionDisposition, PatchbayAction, PatchbayEdit, PatchbayEditBasis, PatchbayInteraction,
+    PatchbayInteractionRequest, PatchbayInvocationOutcome, PatchbayRefusal, PatchbaySubjectRef,
+    PatchbayTheme, ThemeColor, PHOSPHOR_THEME,
 };
 use serde::Deserialize;
 use std::io::{Read, Write};
@@ -261,6 +261,10 @@ impl PatchbayHtmlServer {
                 parse_html_action(input.action.as_deref().ok_or(ServerError::InvalidRequest)?)?,
                 input.target.ok_or(ServerError::InvalidRequest)?,
             ),
+            "edit" => PatchbayInteractionRequest::edit(
+                request_id,
+                parse_html_edit(input.edit.ok_or(ServerError::InvalidRequest)?)?,
+            ),
             _ => return Err(ServerError::InvalidRequest),
         }
         .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
@@ -276,14 +280,24 @@ impl PatchbayHtmlServer {
         let presentation = self.snapshot.presentation.clone();
         let receipt = self
             .interaction
-            .execute_presentation(&presentation, request, |invocation| {
-                if stale_presentation || invocation.target_identity != expected_target {
+            .execute_presentation(&presentation, request, |request| match request {
+                PatchbayInteractionRequest::Invoke { invocation, .. }
+                    if stale_presentation || invocation.target_identity != expected_target =>
+                {
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
-                } else if invocation.action == PatchbayAction::ToggleLinearView {
-                    PatchbayInvocationOutcome::Succeeded
-                } else {
-                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
                 }
+                PatchbayInteractionRequest::Invoke { invocation, .. }
+                    if invocation.action == PatchbayAction::ToggleLinearView =>
+                {
+                    PatchbayInvocationOutcome::Succeeded
+                }
+                PatchbayInteractionRequest::Edit { edit, .. }
+                    if stale_presentation
+                        || edit.basis().expanded_form_id.as_str() != expected_target =>
+                {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+                }
+                _ => PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
             })
             .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
         self.snapshot.interaction.revision = self.snapshot.interaction.revision.saturating_add(1);
@@ -314,6 +328,64 @@ struct HtmlInteractionInput {
     subject: Option<String>,
     action: Option<String>,
     target: Option<String>,
+    edit: Option<HtmlEditInput>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HtmlEditInput {
+    source_document_id: String,
+    source_revision: u64,
+    expanded_form_id: String,
+    operation: String,
+    primary: String,
+    secondary: Option<String>,
+    key: Option<String>,
+    value: Option<conduit_core::ConfigurationValue>,
+}
+
+fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
+    let basis = PatchbayEditBasis::new(
+        conduit_core::SourceDocumentId::from(input.source_document_id),
+        input.source_revision,
+        conduit_core::ExpandedFormId::from(input.expanded_form_id),
+    )
+    .map_err(|_| ServerError::InvalidRequest)?;
+    match input.operation.as_str() {
+        "place-gear" => Ok(PatchbayEdit::PlaceGear {
+            basis,
+            kind_id: input.primary,
+        }),
+        "duplicate-gear" => Ok(PatchbayEdit::DuplicateGear {
+            basis,
+            subject_identity: input.primary,
+        }),
+        "remove-gear" => Ok(PatchbayEdit::RemoveGear {
+            basis,
+            subject_identity: input.primary,
+        }),
+        "remove-cord" => Ok(PatchbayEdit::RemoveCord {
+            basis,
+            subject_identity: input.primary,
+        }),
+        "connect-ports" => Ok(PatchbayEdit::ConnectPorts {
+            basis,
+            source_identity: input.primary,
+            sink_identity: input.secondary.ok_or(ServerError::InvalidRequest)?,
+        }),
+        "reroute-cord" => Ok(PatchbayEdit::RerouteCord {
+            basis,
+            cord_identity: input.primary,
+            endpoint_identity: input.secondary.ok_or(ServerError::InvalidRequest)?,
+        }),
+        "configure-gear" => Ok(PatchbayEdit::ConfigureGear {
+            basis,
+            subject_identity: input.primary,
+            key: input.key.ok_or(ServerError::InvalidRequest)?,
+            value: input.value.ok_or(ServerError::InvalidRequest)?,
+        }),
+        _ => Err(ServerError::InvalidRequest),
+    }
 }
 
 fn parse_html_action(value: &str) -> Result<PatchbayAction, ServerError> {
