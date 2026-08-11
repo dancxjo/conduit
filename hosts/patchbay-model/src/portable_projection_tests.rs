@@ -166,6 +166,29 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
             && property.value
                 == PresentationPropertyValue::ConnectionBase(ConnectionBase::WebSocket)
     }));
+    for required in [
+        "new-plan-prior-id",
+        "new-plan-replacement-id",
+        "new-plan-unavailable-binding-id",
+        "same-plan-id",
+        "same-plan-selected-binding-id",
+        "sign-new-plan-unsatisfied",
+        "sign-same-plan-selected",
+        "sign-refused-observation",
+    ] {
+        assert!(portable
+            .properties
+            .iter()
+            .any(|property| property.name == required));
+    }
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "route-status"
+            && property.value == PresentationPropertyValue::Text("unavailable".into())
+    }));
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "route-status"
+            && property.value == PresentationPropertyValue::Text("selected".into())
+    }));
     assert!(portable.validate().is_ok());
 }
 

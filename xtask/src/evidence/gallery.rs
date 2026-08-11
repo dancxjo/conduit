@@ -20,6 +20,10 @@ const MAX_GALLERY_BYTES: u64 = 600 * 1024 * 1024;
 const SCENARIOS: &[(&str, &str)] = &[
     ("overview", "Overview"),
     ("selected-gear", "Selected Gear"),
+    ("plan-lens", "Plan lens"),
+    ("play-lens", "Play lens"),
+    ("signs-lens", "Signs lens"),
+    ("route-recovery", "Route recovery"),
     ("interaction", "Interaction"),
     ("high-contrast", "High contrast"),
     ("disconnected", "Disconnected and retained"),

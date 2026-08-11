@@ -55,6 +55,16 @@ g.selected line,g.selected .port-anchor,g.selected .diagnostic-badge { stroke:va
 .route-card { border-left:5px solid var(--patchbay-structure-primary); padding:.8rem; background:var(--patchbay-surface); }
 .unavailable { text-decoration:line-through; color:var(--patchbay-muted); }
 .selected-route { font-weight:700; color:var(--patchbay-success); }
+.route-recovery-frame { fill:var(--patchbay-surface); stroke:var(--patchbay-structure-primary); stroke-width:2; }
+.route-recovery-title { fill:var(--patchbay-emphasis); font-size:13px; font-weight:700; }
+.route-recovery-label { fill:var(--patchbay-text-primary); font-size:11px; }
+.route-candidate-line { stroke:var(--patchbay-structure-secondary); stroke-width:5; }
+.route-candidate-marker { fill:var(--patchbay-text-secondary); font-size:10px; font-weight:700; }
+.route-candidate.status-unavailable .route-candidate-line { stroke:var(--patchbay-danger); stroke-dasharray:8 5; }
+.route-candidate.status-unavailable .route-candidate-marker { fill:var(--patchbay-danger); }
+.route-candidate.status-selected .route-candidate-line { stroke:var(--patchbay-success); }
+.route-candidate.status-selected .route-candidate-marker { fill:var(--patchbay-success); }
+.route-recovery.selected .route-recovery-frame,.route-candidate.selected .route-candidate-line { stroke-width:7; }
 dt { color:var(--patchbay-text-secondary); }
 dd { overflow-wrap:anywhere; margin-bottom:.5rem; }
 @media (max-width:1000px) { .workspace { grid-template-columns:minmax(11rem,15rem) minmax(0,1fr); } .inspector { grid-column:1/-1; max-height:18rem; } }

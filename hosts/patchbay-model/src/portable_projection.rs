@@ -73,7 +73,7 @@ impl ContentBuilder {
         });
     }
 
-    fn describes(&mut self, source: &str, target: &str) {
+    pub(super) fn describes(&mut self, source: &str, target: &str) {
         self.relationships.push(PresentationRelationship {
             source: source.into(),
             target: target.into(),
@@ -81,7 +81,7 @@ impl ContentBuilder {
         });
     }
 
-    fn line(&mut self, subject: &str, value: impl Into<String>) {
+    pub(super) fn line(&mut self, subject: &str, value: impl Into<String>) {
         self.text.push(PresentationText {
             subject: subject.into(),
             text: nonempty(value.into()),
@@ -140,7 +140,7 @@ impl PatchbayPresentation {
         append_document(self, &document, &mut content);
         append_plan_and_play(self, &document, &mut content);
         append_topology(self, &document, &mut content);
-        append_routes(self, &document, &mut content);
+        crate::portable_route_projection::append_routes(self, &document, &mut content);
 
         Presentation::new(
             self.revision,
@@ -347,85 +347,6 @@ fn append_topology(
     }
     for sign in &topology.signs {
         append_sign(document, &sign.sign_id, content);
-    }
-}
-
-fn append_routes(
-    presentation: &PatchbayPresentation,
-    document: &str,
-    content: &mut ContentBuilder,
-) {
-    for route in &presentation.routes {
-        let subject = content.subject(
-            PresentationRole::Route,
-            route.same_plan.plan.connection_id.as_str(),
-            format!(
-                "Route {} under Plan {}",
-                route.same_plan.plan.connection_id.as_str(),
-                route.same_plan.plan.plan_id.as_str()
-            ),
-        );
-        content.describes(&subject, document);
-        for line in route.linear_lines() {
-            content.line(&subject, line);
-        }
-        append_line_candidates(&subject, "prior", &route.new_plan.prior, content);
-        append_line_candidates(&subject, "same-plan", &route.same_plan.plan, content);
-    }
-}
-
-fn append_line_candidates(
-    route: &str,
-    phase: &str,
-    plan: &crate::RoutePlanPresentation,
-    content: &mut ContentBuilder,
-) {
-    for candidate in &plan.candidates {
-        let subject = content.subject(
-            PresentationRole::Cord,
-            candidate.binding_id.as_str(),
-            format!(
-                "Route candidate {} in Plan {}",
-                candidate.binding_id.as_str(),
-                plan.plan_id.as_str()
-            ),
-        );
-        content.contains(route, &subject);
-        content.property(
-            &subject,
-            "phase",
-            PresentationPropertyValue::Text(phase.into()),
-        );
-        content.property(
-            &subject,
-            "plan-id",
-            PresentationPropertyValue::Identity(plan.plan_id.as_str().into()),
-        );
-        content.property(
-            &subject,
-            "connection-id",
-            PresentationPropertyValue::Identity(plan.connection_id.as_str().into()),
-        );
-        content.property(
-            &subject,
-            "binding-id",
-            PresentationPropertyValue::Identity(candidate.binding_id.as_str().into()),
-        );
-        content.property(
-            &subject,
-            "base",
-            PresentationPropertyValue::ConnectionBase(candidate.base),
-        );
-        content.property(
-            &subject,
-            "base-instance-id",
-            PresentationPropertyValue::Identity(candidate.base_instance_id.as_str().into()),
-        );
-        content.property(
-            &subject,
-            "order",
-            PresentationPropertyValue::Count(candidate.order as u64),
-        );
     }
 }
 
