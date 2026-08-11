@@ -82,3 +82,25 @@ pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Erro
     run_step(&step, &root, opts)?;
     Ok(())
 }
+
+pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let step = Step::new(
+        "demo.prewake",
+        "Rehearse the canonical Form against authored simulation truth",
+        "cargo",
+        &[
+            "run",
+            "-p",
+            "patchbay-native",
+            "--",
+            "--prewake",
+            "--form",
+            "examples/hello.conduit",
+            "--environment",
+            "examples/maker-workbench.json",
+        ],
+    );
+    run_step(&step, &root, opts)?;
+    Ok(())
+}

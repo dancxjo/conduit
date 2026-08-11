@@ -15,8 +15,9 @@ pub(super) struct OpenedWorkspace {
 pub(super) fn open_workspace(
     form_path: Option<PathBuf>,
     environment_path: Option<PathBuf>,
+    allow_combined: bool,
 ) -> Result<OpenedWorkspace, String> {
-    if form_path.is_some() && environment_path.is_some() {
+    if form_path.is_some() && environment_path.is_some() && !allow_combined {
         return Err("--form and --environment are distinct workspaces".into());
     }
     let environment = environment_path
