@@ -4,7 +4,11 @@ use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
 };
-use conduit_presentation::{PresentationComposition, MAX_PRESENTATION_COMPOSITION_BYTES};
+use conduit_presentation::{
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    PresentationComposition, PresentationIconKey, MAX_GRAPHICS_SCENE_BYTES,
+    MAX_PRESENTATION_COMPOSITION_BYTES,
+};
 
 macro_rules! factory {
     ($name:ident, $implementation:ident) => {
@@ -24,9 +28,18 @@ factory!(
     PRESENTATION_BADGE_FACTORY,
     PRESENTATION_BADGE_IMPLEMENTATION
 );
+factory!(GRAPHICS_RECT_FACTORY, GRAPHICS_RECT_IMPLEMENTATION);
+factory!(GRAPHICS_TEXT_FACTORY, GRAPHICS_TEXT_IMPLEMENTATION);
+factory!(GRAPHICS_ICON_FACTORY, GRAPHICS_ICON_IMPLEMENTATION);
 #[cfg(test)]
 pub(super) static TEST_PRESENTATION_SINK_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: "conduit.test/presentation-sink-implementation@1",
+    budget: sink_budget,
+    prepare: prepare_sink,
+};
+#[cfg(test)]
+pub(super) static TEST_GRAPHICS_SINK_FACTORY: InstalledFactory = InstalledFactory {
+    implementation_id: "conduit.test/graphics-sink-implementation@1",
     budget: sink_budget,
     prepare: prepare_sink,
 };
@@ -144,16 +157,76 @@ pub(super) fn transform_bytes(
     Ok((output.encode(), output.encoded_len()))
 }
 
+pub(super) fn transform_graphics_bytes(
+    placement: &PlannedGear,
+    input: &[u8],
+) -> Result<([u8; MAX_GRAPHICS_SCENE_BYTES], usize), String> {
+    let bounds = configured_rect(placement, false)?;
+    let clip = configured_rect(placement, true)?;
+    let paint = match text_config(placement, conduit_std_catalog::PAINT_KEY)? {
+        "background" => GraphicsPaintRole::Background,
+        "foreground" => GraphicsPaintRole::Foreground,
+        "accent" => GraphicsPaintRole::Accent,
+        "status" => GraphicsPaintRole::Status,
+        _ => return Err("unsupported graphics paint role".into()),
+    };
+    let mut scene = if placement.kind_id.as_str() == conduit_std_catalog::GRAPHICS_RECT_KIND {
+        let composition = PresentationComposition::decode(input)
+            .map_err(|error| format!("decode presentation composition: {error:?}"))?;
+        if composition.items().is_empty() {
+            return Err("graphics rectangle requires a resolved presentation obligation".into());
+        }
+        GraphicsScene::empty()
+    } else {
+        GraphicsScene::decode(input).map_err(|error| format!("decode graphics scene: {error:?}"))?
+    };
+    let command = match placement.kind_id.as_str() {
+        conduit_std_catalog::GRAPHICS_RECT_KIND => GraphicsCommand::rect(
+            bounds,
+            clip,
+            paint,
+            match text_config(placement, conduit_std_catalog::STYLE_KEY)? {
+                "fill" => GraphicsShapeStyle::Fill,
+                "stroke" => GraphicsShapeStyle::Stroke,
+                _ => return Err("unsupported graphics shape style".into()),
+            },
+        ),
+        conduit_std_catalog::GRAPHICS_TEXT_KIND => GraphicsCommand::text(
+            bounds,
+            clip,
+            paint,
+            text_config(placement, conduit_std_catalog::GRAPHICS_TEXT_KEY)?,
+        ),
+        conduit_std_catalog::GRAPHICS_ICON_KIND => GraphicsCommand::icon(
+            bounds,
+            clip,
+            paint,
+            PresentationIconKey::from_token(text_config(
+                placement,
+                conduit_std_catalog::GRAPHICS_ICON_KEY,
+            )?)
+            .ok_or_else(|| "unknown canonical graphics icon".to_string())?,
+        ),
+        _ => return Err("unsupported graphics Kind".into()),
+    }
+    .map_err(|error| format!("graphics command refused: {error:?}"))?;
+    scene
+        .push(command)
+        .map_err(|error| format!("graphics scene refused: {error:?}"))?;
+    Ok((scene.encode(), scene.encoded_len()))
+}
+
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     Ok(OperationBudget {
         value_items: 1,
-        value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+        value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES.max(MAX_GRAPHICS_SCENE_BYTES) as u32,
         host_requests: usize::from(
             placement.kind_id.as_str() != conduit_std_catalog::PRESENTATION_ICON_KIND,
         ),
         sign_items: 32,
-        maximum_value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+        maximum_value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES.max(MAX_GRAPHICS_SCENE_BYTES)
+            as u32,
     })
 }
 
@@ -188,7 +261,8 @@ fn prepare(
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_catalog::presentation_composition_offer_for(placement.kind_id.as_str())
-        .ok_or_else(|| "unsupported presentation composition Kind".to_string())?;
+        .or_else(|| conduit_std_catalog::graphics_offer_for(placement.kind_id.as_str()))
+        .ok_or_else(|| "unsupported presentation or graphics Kind".to_string())?;
     if placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
         || placement.implementation_id != offer.implementation.implementation_id
@@ -208,6 +282,45 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
+fn configured_rect(placement: &PlannedGear, clip: bool) -> Result<LayoutRect, String> {
+    let keys = if clip {
+        [
+            conduit_std_catalog::CLIP_X_KEY,
+            conduit_std_catalog::CLIP_Y_KEY,
+            conduit_std_catalog::CLIP_WIDTH_KEY,
+            conduit_std_catalog::CLIP_HEIGHT_KEY,
+        ]
+    } else {
+        [
+            conduit_std_catalog::GRAPHICS_X_KEY,
+            conduit_std_catalog::GRAPHICS_Y_KEY,
+            conduit_std_catalog::GRAPHICS_WIDTH_KEY,
+            conduit_std_catalog::GRAPHICS_HEIGHT_KEY,
+        ]
+    };
+    Ok(LayoutRect {
+        x: i16::try_from(u64_config(placement, keys[0])?)
+            .map_err(|_| "graphics x coordinate overflows".to_string())?,
+        y: i16::try_from(u64_config(placement, keys[1])?)
+            .map_err(|_| "graphics y coordinate overflows".to_string())?,
+        width: u16::try_from(u64_config(placement, keys[2])?)
+            .map_err(|_| "graphics width overflows".to_string())?,
+        height: u16::try_from(u64_config(placement, keys[3])?)
+            .map_err(|_| "graphics height overflows".to_string())?,
+    })
+}
+
+fn u64_config(placement: &PlannedGear, key: &str) -> Result<u64, String> {
+    placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::U64(value)) if found == key => Some(*value),
+            _ => None,
+        })
+        .ok_or_else(|| format!("graphics configuration '{key}' is missing"))
+}
+
 fn text_config<'a>(placement: &'a PlannedGear, key: &str) -> Result<&'a str, String> {
     placement
         .configuration
@@ -221,7 +334,10 @@ fn text_config<'a>(placement: &'a PlannedGear, key: &str) -> Result<&'a str, Str
 
 #[cfg(test)]
 fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    if placement.kind_id.as_str() != "conduit.test/presentation-sink" {
+    if !matches!(
+        placement.kind_id.as_str(),
+        "conduit.test/presentation-sink" | "conduit.test/graphics-sink"
+    ) {
         return Err("wrong presentation sink Kind".into());
     }
     Ok(OperationBudget {

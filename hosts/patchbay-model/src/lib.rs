@@ -30,6 +30,7 @@ mod maker_environment;
 mod palette;
 mod portable_composition;
 mod portable_demo;
+mod portable_graphics;
 mod portable_layout;
 mod portable_projection;
 mod renderer_execution;
@@ -81,8 +82,11 @@ pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
 };
-pub use portable_composition::{constrained_frame_layout, DirectObligation, DirectPresentation};
+pub use portable_composition::{
+    constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
+};
 pub use portable_demo::portable_demonstration;
+pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;
 pub use renderer_execution::{
