@@ -25,6 +25,7 @@ pub struct StdHostComposition {
     pub text: bool,
     pub state: bool,
     pub logic: bool,
+    pub math: bool,
     pub files: bool,
     pub external_websocket: bool,
 }
@@ -38,6 +39,7 @@ impl StdHostComposition {
             text: true,
             state: true,
             logic: true,
+            math: true,
             files: true,
             external_websocket: false,
         }
@@ -52,6 +54,7 @@ impl StdHostComposition {
             text: false,
             state: false,
             logic: false,
+            math: false,
             files: false,
             external_websocket: false,
         }
@@ -79,6 +82,11 @@ impl StdHostComposition {
 
     pub const fn with_logic(mut self) -> Self {
         self.logic = true;
+        self
+    }
+
+    pub const fn with_math(mut self) -> Self {
+        self.math = true;
         self
     }
 
@@ -138,6 +146,13 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::logic_select_scalar_offer(),
         ]);
     }
+    if composition.math {
+        capabilities.extend([
+            conduit_std_catalog::math_clamp_offer(),
+            conduit_std_catalog::math_scale_offer(),
+            conduit_std_catalog::math_deadband_offer(),
+        ]);
+    }
     if composition.files {
         capabilities.push(conduit_std_catalog::copy_file_offer());
     }
@@ -149,6 +164,7 @@ pub(super) fn build_advertisement(
         capabilities.push(installed_std::test_observer_offer());
         capabilities.push(installed_std::test_text_source_offer());
         capabilities.push(installed_std::test_scalar_source_offer());
+        capabilities.push(installed_std::test_scalar_literal_offer());
         capabilities.push(installed_std::test_scalar_sink_offer());
         capabilities.push(installed_std::test_gate_script_offer());
         capabilities.push(installed_std::test_logic_script_offer());
@@ -164,6 +180,7 @@ pub(super) fn build_advertisement(
                 || composition.text
                 || composition.state
                 || composition.logic
+                || composition.math
         }
         _ => false,
     });

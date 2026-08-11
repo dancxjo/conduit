@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub enum ConfigurationValue {
     Bool(bool),
     U64(u64),
+    /// Signed fixed-point scalar microunits, matching `value/scalar@1`.
+    I64(i64),
     Text(String),
 }
 

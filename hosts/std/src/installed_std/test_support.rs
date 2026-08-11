@@ -86,5 +86,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     let mut startup = conduit_form::StartupCatalog::new();
     conduit_std_catalog::install_logic_catalogs(&mut startup, &mut catalog)
         .expect("logic catalogs are exact and unique");
+    conduit_std_catalog::install_math_catalogs(&mut startup, &mut catalog)
+        .expect("math catalogs are exact and unique");
     catalog
 }

@@ -11,6 +11,7 @@ use super::generate_text::GenerateTextOperation;
 use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
+use super::math_operations::MathScalarOperation;
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
@@ -85,12 +86,15 @@ pub(super) enum InstalledOperation {
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),
+    MathScalar(MathScalarOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
     #[cfg(test)]
     TestScalarSource(super::test_scalar_flow::TestScalarSourceOperation),
+    #[cfg(test)]
+    TestScalarLiteral(super::test_scalar_flow::TestScalarLiteralOperation),
     #[cfg(test)]
     TestScalarSink(super::test_scalar_flow::TestScalarSinkOperation),
     #[cfg(test)]
@@ -134,6 +138,7 @@ impl InstalledOperation {
             Self::CountPresentation(_) => 0,
             Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) | Self::FlowGateScalar(_) => 0,
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => 0,
+            Self::MathScalar(_) => 0,
             Self::ExternalWebSocketListener(_) => 0,
             Self::GenerateText(_) => 0,
             #[cfg(test)]
@@ -142,6 +147,8 @@ impl InstalledOperation {
             Self::TestScalarSource(operation) => {
                 operation.values.capacity() + operation.waits.capacity()
             }
+            #[cfg(test)]
+            Self::TestScalarLiteral(_) => 0,
             #[cfg(test)]
             Self::TestScalarSink(_) => 0,
             #[cfg(test)]
@@ -187,12 +194,15 @@ impl Operation for InstalledOperation {
             Self::LogicCompareScalar(operation) => operation.start(),
             Self::LogicNot(operation) => operation.start(),
             Self::LogicSelectScalar(operation) => operation.start(),
+            Self::MathScalar(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
             Self::TestScalarSource(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestScalarLiteral(operation) => operation.start(),
             #[cfg(test)]
             Self::TestScalarSink(operation) => operation.start(),
             #[cfg(test)]
@@ -241,6 +251,7 @@ impl Operation for InstalledOperation {
             (Self::LogicCompareScalar(operation), input) => operation.resume(input),
             (Self::LogicNot(operation), input) => operation.resume(input),
             (Self::LogicSelectScalar(operation), input) => operation.resume(input),
+            (Self::MathScalar(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -289,6 +300,8 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             (Self::TestScalarSource(operation), input) => operation.resume(input),
             #[cfg(test)]
+            (Self::TestScalarLiteral(_), _) => Self::fail(26),
+            #[cfg(test)]
             (Self::TestGateScript(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestLogicScript(_), _) => Self::fail(23),
@@ -332,6 +345,7 @@ impl Operation for InstalledOperation {
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => {
                 OperationAction::Complete
             }
+            Self::MathScalar(_) => OperationAction::Complete,
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             #[cfg(test)]
@@ -341,6 +355,8 @@ impl Operation for InstalledOperation {
             }
             #[cfg(test)]
             Self::TestScalarSource(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestScalarLiteral(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestScalarSink(_) => OperationAction::Await,
             #[cfg(test)]
@@ -373,12 +389,15 @@ impl Operation for InstalledOperation {
             Self::LogicCompareScalar(operation) => operation.cancel(),
             Self::LogicNot(operation) => operation.cancel(),
             Self::LogicSelectScalar(operation) => operation.cancel(),
+            Self::MathScalar(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]
             Self::TestScalarSource(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestScalarLiteral(_) => {}
             #[cfg(test)]
             Self::TestScalarSink(_) => {}
             #[cfg(test)]

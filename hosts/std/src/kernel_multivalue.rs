@@ -606,6 +606,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
             name: field.key.clone(),
             value_type: match field.default_value {
                 ConfigurationValue::Bool(_) => "Boolean",
+                ConfigurationValue::I64(_) => "Scalar",
                 ConfigurationValue::U64(_) => "Count",
                 ConfigurationValue::Text(_) => "Text",
             }
@@ -1273,6 +1274,7 @@ fn configuration_u64(configuration: &[ConfigurationEntry], key: &str) -> Result<
         .and_then(|entry| match entry.value {
             ConfigurationValue::U64(value) => Some(value),
             ConfigurationValue::Bool(_) => None,
+            ConfigurationValue::I64(_) => None,
             ConfigurationValue::Text(_) => None,
         })
         .ok_or_else(|| format!("missing u64 configuration '{key}'"))

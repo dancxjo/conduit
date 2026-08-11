@@ -7,9 +7,9 @@ use conduit_core::KindId;
 
 use crate::{
     COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, LATEST_KIND, LOGIC_COMPARE_KIND,
-    LOGIC_NOT_KIND, LOGIC_SELECT_KIND, STATE_COUNT_KIND, TEE_KIND, TEXT_JOIN_KIND,
-    TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND,
-    TIME_EVERY_KIND,
+    LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND,
+    STATE_COUNT_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND,
+    TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_EVERY_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -172,6 +172,21 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["select", "boolean", "choice"],
             PaletteIconKey::Combine,
         ),
+        MATH_CLAMP_KIND => metadata(
+            PaletteCategory::Transform,
+            &["clamp", "limit", "scalar"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        MATH_SCALE_KIND => metadata(
+            PaletteCategory::Transform,
+            &["scale", "gain", "multiply"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        MATH_DEADBAND_KIND => metadata(
+            PaletteCategory::Transform,
+            &["deadband", "neutral", "joystick"],
+            PaletteIconKey::Combine,
+        ),
         TICK_PRESENTATION_KIND => metadata(
             PaletteCategory::Presentation,
             &["display", "tick", "indicator"],
@@ -217,7 +232,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 16);
+        assert_eq!(contracts.len(), 19);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

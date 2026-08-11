@@ -123,6 +123,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
                 name: field.key.clone(),
                 value_type: match field.default_value {
                     ConfigurationValue::Bool(_) => "Boolean",
+                    ConfigurationValue::I64(_) => "Scalar",
                     ConfigurationValue::U64(_) => "Count",
                     ConfigurationValue::Text(_) => "Text",
                 }

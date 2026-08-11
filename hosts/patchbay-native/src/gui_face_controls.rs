@@ -59,6 +59,7 @@ fn displayed_value(value: &conduit_core::ConfigurationValue) -> String {
     match value {
         conduit_core::ConfigurationValue::Bool(value) => value.to_string(),
         conduit_core::ConfigurationValue::U64(value) => value.to_string(),
+        conduit_core::ConfigurationValue::I64(value) => value.to_string(),
         conduit_core::ConfigurationValue::Text(value) => format!("\"{value}\""),
     }
 }
@@ -79,6 +80,11 @@ fn displayed_contract(kind: &patchbay_model::FaceControlKind) -> String {
             maximum,
             unit,
         } => format!("{minimum}..{maximum}{}", unit.unwrap_or("")),
+        patchbay_model::FaceControlKind::ScalarNumber {
+            minimum,
+            maximum,
+            unit,
+        } => format!("{minimum}..{maximum}{unit}"),
         patchbay_model::FaceControlKind::ShortText { maximum_bytes } => {
             format!("max {maximum_bytes}B")
         }
@@ -112,6 +118,15 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
         ) => vec![
             conduit_core::ConfigurationValue::U64(value.saturating_sub(1).max(*minimum)),
             conduit_core::ConfigurationValue::U64(value.saturating_add(1).min(*maximum)),
+        ],
+        (
+            patchbay_model::FaceControlKind::ScalarNumber {
+                minimum, maximum, ..
+            },
+            conduit_core::ConfigurationValue::I64(value),
+        ) => vec![
+            conduit_core::ConfigurationValue::I64(value.saturating_sub(1).max(*minimum)),
+            conduit_core::ConfigurationValue::I64(value.saturating_add(1).min(*maximum)),
         ],
         (
             patchbay_model::FaceControlKind::ShortText { .. },

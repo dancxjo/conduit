@@ -58,6 +58,10 @@ pub(super) fn configuration(
                     ConfigurationValue::U64(value),
                 ) => (*minimum..=*maximum).contains(value),
                 (
+                    ConfigurationRule::I64Range { minimum, maximum },
+                    ConfigurationValue::I64(value),
+                ) => (*minimum..=*maximum).contains(value),
+                (
                     ConfigurationRule::DurationMillis { minimum, maximum },
                     ConfigurationValue::U64(value),
                 ) => (*minimum..=*maximum).contains(value),
@@ -124,6 +128,16 @@ fn parse_configuration_value(
                 CanonicalExpansionDiagnostic::new(
                     "CND-FRM-041",
                     format!("primitive startup duration '{name}' is invalid or overflows"),
+                )
+            })
+    } else if matches!(validation, ConfigurationRule::I64Range { .. }) {
+        literal
+            .parse::<i64>()
+            .map(ConfigurationValue::I64)
+            .map_err(|_| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    format!("primitive startup scalar '{name}' is invalid or overflows"),
                 )
             })
     } else if literal == "true" || literal == "false" {
