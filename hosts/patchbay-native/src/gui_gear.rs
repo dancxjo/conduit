@@ -13,14 +13,22 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyle},
     Drawable,
 };
-use patchbay_model::{PatchbayGraph, PatchbayLayout, PatchbayTheme};
+use patchbay_model::{
+    GearRealizationInspection, PatchbayGraph, PatchbayLayout, PatchbayTheme, RealizationDisposition,
+};
+
+pub(super) struct GearViewContext<'a> {
+    pub(super) presentation_layout: &'a PatchbayLayout,
+    pub(super) realization_plan: Option<&'a conduit_core::Plan>,
+    pub(super) realization_hosts: &'a [conduit_core::HostAdvertisement],
+}
 
 pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
     layout: &GearLayout<'_>,
     selected: Option<&str>,
-    presentation_layout: &PatchbayLayout,
+    view: &GearViewContext<'_>,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
@@ -51,28 +59,99 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
         },
         theme.text_primary,
     );
-    let reversed = presentation_layout.is_reversed(&layout.gear.identity);
-    text(
-        target,
-        Point::new(layout.bounds.x + 12, layout.bounds.y + 29),
-        &if reversed {
-            format!(
-                "REALIZATION  {}@{}",
-                layout.gear.kind_id.as_str(),
-                layout.gear.kind_contract_revision.as_str()
-            )
-        } else {
-            layout.gear.kind_id.as_str().to_owned()
-        },
-        theme.emphasis,
-    );
+    let reversed = view.presentation_layout.is_reversed(&layout.gear.identity);
+    if reversed {
+        draw_realization(
+            target,
+            graph,
+            layout,
+            view.realization_plan,
+            view.realization_hosts,
+            theme,
+            targets,
+        );
+    } else {
+        text(
+            target,
+            Point::new(layout.bounds.x + 12, layout.bounds.y + 29),
+            layout.gear.kind_id.as_str(),
+            theme.emphasis,
+        );
+    }
     targets.push(HitTarget {
         action: select_action(graph, &layout.gear.identity),
         shape: HitShape::Rect(layout.bounds),
     });
     draw_flip_control(target, graph, layout, reversed, theme, targets);
-    draw_ports(target, graph, layout, selected, theme, targets);
-    draw_face_controls(target, graph, layout.gear, layout.bounds, theme, targets);
+    if !reversed {
+        draw_ports(target, graph, layout, selected, theme, targets);
+        draw_face_controls(target, graph, layout.gear, layout.bounds, theme, targets);
+    }
+}
+
+fn draw_realization<D: DrawTarget<Color = Rgb888>>(
+    target: &mut D,
+    graph: &PatchbayGraph,
+    layout: &GearLayout<'_>,
+    plan: Option<&conduit_core::Plan>,
+    hosts: &[conduit_core::HostAdvertisement],
+    theme: &PatchbayTheme,
+    targets: &mut Vec<HitTarget>,
+) {
+    let subject = graph
+        .subject_ref(&layout.gear.identity)
+        .expect("drawn Gear belongs to the exact graph");
+    let Ok(inspection) = GearRealizationInspection::inspect(graph, &subject, plan, hosts) else {
+        text(
+            target,
+            Point::new(layout.bounds.x + 12, layout.bounds.y + 32),
+            "NO EXACT PLAN",
+            theme.text_secondary,
+        );
+        return;
+    };
+    if let Some(selected) = &inspection.selected {
+        text(
+            target,
+            Point::new(layout.bounds.x + 12, layout.bounds.y + 31),
+            selected.implementation_id.as_str(),
+            theme.emphasis,
+        );
+        text(
+            target,
+            Point::new(layout.bounds.x + 12, layout.bounds.y + 47),
+            &format!(
+                "{} / {}",
+                selected.host_id.as_str(),
+                selected.boot_id.as_str()
+            ),
+            theme.text_secondary,
+        );
+    }
+    let alternatives = inspection
+        .alternatives
+        .iter()
+        .filter(|candidate| candidate.disposition == RealizationDisposition::Compatible)
+        .count();
+    if alternatives > 0 {
+        let bounds = PixelRect {
+            x: layout.bounds.x + 12,
+            y: layout.bounds.y + 64,
+            width: 112,
+            height: 20,
+        };
+        frame_rect(target, bounds, theme.structure_secondary, 1);
+        text(
+            target,
+            Point::new(bounds.x + 5, bounds.y + 4),
+            &format!("NEXT IMPL ({alternatives})"),
+            theme.text_primary,
+        );
+        targets.push(HitTarget {
+            action: GuiAction::PrewakeNextImplementation(subject),
+            shape: HitShape::Rect(bounds),
+        });
+    }
 }
 
 fn draw_flip_control<D: DrawTarget<Color = Rgb888>>(

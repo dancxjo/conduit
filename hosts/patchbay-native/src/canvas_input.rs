@@ -23,6 +23,7 @@ impl PatchbayApplication {
                     | GuiAction::PrewakeToggleHold
                     | GuiAction::PrewakeRelease
                     | GuiAction::PrewakeExit
+                    | GuiAction::PrewakeNextImplementation(_)
             ) {
                 return self.handle_prewake_action(action);
             }

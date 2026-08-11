@@ -109,3 +109,42 @@ fn invalid_edit_preserves_last_coherent_rehearsal_and_never_runs() {
     assert_eq!(prewake.state(), &coherent);
     assert_eq!(prewake.last_refusal(), Some(&PrewakeError::InvalidForm));
 }
+
+#[test]
+fn implementation_request_replans_through_the_same_prewake_path() {
+    let mut environment = environment();
+    environment
+        .add_part(AuthoredPart::reviewed(
+            "laptop-b",
+            "Second simulator",
+            MachineProfile::LaptopLinux,
+        ))
+        .unwrap();
+    let editor = editor("form one {\n    literal: text/literal(\"hello\")\n}\n");
+    let mut prewake = PrewakeController::default();
+    prewake.set_hold(true);
+    prewake.enter(&editor, &environment).unwrap();
+    let (prior_plan, prior_placement, subject) = match prewake.state() {
+        PrewakeState::Held { plan, .. } => {
+            let expanded = editor.expand_form("one").unwrap();
+            let graph = crate::PatchbayGraph::from_expanded(&expanded).unwrap();
+            (
+                plan.plan_id.clone(),
+                plan.fragments[0].placements[0].clone(),
+                graph.subject_ref(&graph.gears[0].identity).unwrap(),
+            )
+        }
+        state => panic!("unexpected state {state:?}"),
+    };
+    prewake
+        .request_next_implementation(&editor, &environment, &subject)
+        .unwrap();
+    let PrewakeState::Held { plan, .. } = prewake.state() else {
+        panic!()
+    };
+    let replacement = &plan.fragments[0].placements[0];
+    assert_ne!(plan.plan_id, prior_plan);
+    assert_eq!(replacement.gear_id, prior_placement.gear_id);
+    assert_ne!(replacement.host_id, prior_placement.host_id);
+    assert_eq!(editor.view().open_form, "one");
+}

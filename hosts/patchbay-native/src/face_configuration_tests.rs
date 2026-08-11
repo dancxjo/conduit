@@ -217,6 +217,8 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
             lifecycle: &Default::default(),
             palette_query: "",
             presentation_layout: &application.layout,
+            realization_plan: None,
+            realization_hosts: &[],
         },
     );
     // The first control is inside the first Gear rectangle. Later control hit

@@ -12,6 +12,8 @@ fn redraw(application: &mut PatchbayApplication) {
             lifecycle: &Default::default(),
             palette_query: "",
             presentation_layout: &application.layout,
+            realization_plan: None,
+            realization_hosts: &[],
         },
     );
 }

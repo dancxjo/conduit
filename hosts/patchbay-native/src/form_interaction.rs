@@ -50,6 +50,7 @@ impl PatchbayApplication {
                 | GuiAction::PrewakeToggleHold
                 | GuiAction::PrewakeRelease
                 | GuiAction::PrewakeExit
+                | GuiAction::PrewakeNextImplementation(_)
         ) {
             return self.handle_prewake_action(action);
         }
@@ -74,7 +75,8 @@ impl PatchbayApplication {
             GuiAction::PrewakeToggleWorkspace
             | GuiAction::PrewakeToggleHold
             | GuiAction::PrewakeRelease
-            | GuiAction::PrewakeExit => unreachable!("handled above"),
+            | GuiAction::PrewakeExit
+            | GuiAction::PrewakeNextImplementation(_) => unreachable!("handled above"),
             GuiAction::SelectSubject(subject) => self.dispatch_selection(subject)?,
             GuiAction::FlipGear(subject) => {
                 let graph = self

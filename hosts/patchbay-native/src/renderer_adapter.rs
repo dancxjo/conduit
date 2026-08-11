@@ -7,6 +7,7 @@ use super::{
 };
 use conduit_core::SignId;
 use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
+use patchbay_model::{simulated_advertisements, PrewakeState};
 use std::num::NonZeroU32;
 
 impl PatchbayApplication {
@@ -72,6 +73,18 @@ impl PatchbayApplication {
                     .map(|play| play.as_str().to_owned())
             }),
         };
+        let realization_hosts = self
+            .environment
+            .as_ref()
+            .map(simulated_advertisements)
+            .unwrap_or_default();
+        let realization_plan =
+            self.prewake
+                .as_ref()
+                .and_then(|controller| match controller.state() {
+                    PrewakeState::Auto { plan, .. } | PrewakeState::Held { plan, .. } => Some(plan),
+                    PrewakeState::Off => None,
+                });
         let surface = self.surface.as_mut().ok_or("native surface is absent")?;
         surface
             .resize(width, height)
@@ -115,6 +128,8 @@ impl PatchbayApplication {
                         lifecycle: &lifecycle,
                         palette_query: &self.palette_query,
                         presentation_layout: &self.layout,
+                        realization_plan,
+                        realization_hosts: &realization_hosts,
                     },
                 )
             }

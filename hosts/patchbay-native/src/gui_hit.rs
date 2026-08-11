@@ -22,6 +22,7 @@ pub enum GuiAction {
     PrewakeToggleHold,
     PrewakeRelease,
     PrewakeExit,
+    PrewakeNextImplementation(PatchbaySubjectRef),
     SelectSubject(PatchbaySubjectRef),
     FlipGear(PatchbaySubjectRef),
     OpenNextForm,

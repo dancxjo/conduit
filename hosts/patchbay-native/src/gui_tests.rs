@@ -37,6 +37,8 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
             presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
         },
     );
     assert_eq!(
@@ -136,6 +138,8 @@ fn reverse_face_is_renderer_local_and_keeps_the_demo_graph_intact() {
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
             presentation_layout: &layout,
+            realization_plan: None,
+            realization_hosts: &[],
         },
     );
     assert!(targets.iter().any(
@@ -166,6 +170,8 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
             presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
         },
     );
     assert_eq!(storage[0], guard);
@@ -194,6 +200,8 @@ fn palette_query_visibly_filters_the_authoritative_entries() {
             lifecycle: &LifecycleContext::default(),
             palette_query: "value/count",
             presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
         },
     );
     let kinds = targets
@@ -229,6 +237,8 @@ fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
             presentation_layout: &layout,
+            realization_plan: None,
+            realization_hosts: &[],
         },
     );
     assert!(targets.iter().any(|target| {
