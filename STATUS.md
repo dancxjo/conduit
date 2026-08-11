@@ -791,6 +791,44 @@ pixel-diff policy, Actions upload, accepted-main gallery, documentation
 publication, ConduitOS screenshot, second runtime, or pixel-derived semantic
 claim. #823 owns transport of the already-validated proof directory.
 
+The exact-head pull-request evidence transport from #823 is accepted at exact
+main `819a2df287714a319ab59f37414ef48f5d0e07cb`; push workflow
+`31449085682` passed `check`, `browser-host`, and `conduitos-boot`, including
+independent complete-evidence verification at the checked-out main commit. PR
+workflow `31448877430` first passed the same semantic proof and verifier, then
+uploaded artifact
+`conduit-visual-evidence-f7b0fbdbb856a10485975914e6c07724b5e4baa3` for its
+exact checked pull-request merge commit. The artifact expires after the
+explicit 14-day review retention period.
+
+The repository-owned `cargo xtask evidence verify` entrance reopens the
+versioned manifest before transport and requires the requested complete or
+diagnostic-incomplete disposition, exact 40-character checked commit, proof
+and suite identities, reviewed count and per-file size bounds, unique IDs and
+paths, regular root-confined files, exact recorded lengths, and recomputed
+SHA-256 values. It rejects symlinks and undeclared files. Complete
+`browser-host` evidence additionally requires the declaration document and
+exactly the five required PNG identities from #822, with non-empty semantic
+and canonical-camera provenance sufficient to reconstruct what each image
+depicts.
+
+The accepted PR artifact was downloaded independently and contained exactly
+`manifest.json`, `captures.json`, and the overview, selected-gear,
+interaction, high-contrast, and disconnected PNGs. Reverification of those
+downloaded bytes succeeded against commit
+`f7b0fbdbb856a10485975914e6c07724b5e4baa3`. A real local browser-proof failure
+also produced a 313-byte diagnostic-incomplete manifest that passed only the
+diagnostic verifier; requesting complete verification failed closed.
+
+The semantic browser proof remains the job's acceptance gate. PR execution
+retains only `contents: read`; artifact upload receives no repository-content,
+Pages, documentation, or accepted-main mutation authority. Successful and
+failed runs use visibly distinct artifact names and manifest dispositions.
+Main push CI verifies complete evidence but deliberately skips PR artifact
+transport. This acceptance adds no stable gallery, README or docs publication,
+pixel-regression gate, screenshot-derived semantic verdict, or long-term
+history policy. #824 owns accepted-main gallery publication.
+
 The typed decision-Kind slice from #776 is accepted at exact main
 `b14d83742205f8dfd54e10d22a5eb90ea2333f79`; push workflow `31445629459`
 passed `check`, `browser-host`, and `conduitos-boot`. The portable catalog now
