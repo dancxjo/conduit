@@ -48,6 +48,7 @@ jobs:
           --result complete
       - name: Prepare bounded accepted history
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           if git fetch origin refs/heads/conduit-visual-evidence-history:refs/remotes/origin/conduit-visual-evidence-history; then
             git worktree add --detach target/conduit-gallery-history refs/remotes/origin/conduit-visual-evidence-history
           else
