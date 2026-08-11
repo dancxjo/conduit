@@ -1,8 +1,9 @@
 {
   "schema": "conduit.visual-evidence-gallery/v1",
-  "current_commit": "b8056d8c404e90dbca8c36d7717f9455b3a965f7",
+  "current_commit": "d801751c5f583b9e290e1262076d9498ded44af0",
   "retention_commits": 32,
   "commits": [
+    "d801751c5f583b9e290e1262076d9498ded44af0",
     "b8056d8c404e90dbca8c36d7717f9455b3a965f7",
     "c6629ec1cbc16dc9869065fe5f04a87586a194ce",
     "6dd23917ded0170d1713eb826051c653508354e6",
