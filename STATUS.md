@@ -6,7 +6,7 @@ adapter or physical proof.
 
 | Surface | Contract | Simulation | Executable hosted implementation | Actual browser adapter | Actual firmware | Live transport | Physical/HIL proof |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, cancellation, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host-lifecycle, cancellation, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation Play start vectors | same scheduler with preallocated hosted storage; installed Signal pair, local and remote three-target fan-out, typed multi-value std profiles, distributed Signal, and admitted Play start/toggle sources execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM Signal and toggle sinks execute exact remote-ingress fragments through the same scheduler before bounded DOM presentation | Pico W firmware consumes generated fixed kernel tables for exact local, std→Pico, and final three-host fragments; its active kernel/transport storage remains finite | bounded loopback WebSocket and physical USB CDC remote Cords; Bases own Line I/O only | exact Pico-local, std↔Pico, and final std/browser/Pico board runs recorded |
+| Port-aware salvage kernel | port protocol, fixed scheduler, Operation adapter, retained state, node-scoped correlated host operations, exact per-request cancellation, one host-neutral monotonic-millisecond deadline contract, and exact local/remote-plan numeric lowering | fixed/hosted full adapter form, atomic join, real latest, host lifecycle, cancellation/replace ordering, finite virtual-clock deadline reactor, exact signal/multi-value lowering, remote pressure/delivery, and zero-allocation vectors | same scheduler with preallocated hosted storage; a fixed-slot reactor supplies the admitted hosted monotonic clock effect; installed Signal pair, local and remote three-target fan-out, typed multi-value std profiles, distributed Signal, and admitted Play start/toggle sources execute through it; unsupported forms fail closed without a production legacy pump | browser/WASM Signal and toggle sinks execute exact remote-ingress fragments through the same scheduler before bounded DOM presentation; no browser deadline adapter is claimed | Pico W firmware consumes generated fixed kernel tables for exact local, std→Pico, and final three-host fragments; its active kernel/transport storage remains finite; no firmware deadline adapter is claimed | bounded loopback WebSocket and physical USB CDC remote Cords; Bases own Line I/O only | exact Pico-local, std↔Pico, and final std/browser/Pico board runs recorded; no physical timing claim |
 | Exact local timing profile | platform-neutral deadline requirement remains separate from boot-scoped clock/timer/execution offers and the exact Plan timing/resource basis | deterministic-emulator proof admits one 1,000 µs local Plan with a sealed 730 µs worst-case basis, refuses a 100 µs request before Play, and keeps met/missed/Base-loss/cancelled/stale outcomes distinct | the accepted strict path runs the existing fixed `conduit-kernel` scheduler with zero successful heap allocations and exact Plan/Play-correlated timing Signs; inspection is excluded | no browser timing claim | no firmware timing claim | local only; no remote guarantee | no physical timing claim; any future claim requires separate pinned-hardware proof |
 | ConduitOS cooperative execution regions | ordinary Plan truth seals two exact disjoint admitted placement sets, cooperative bounded-step profiles, distinct selected execution-lane resources under one finite Base, region-local memory/timer/Cord/Sign bounds, and explicit false preemption, isolation, and physical parallelism | membership/lane/capacity/Base/budget mutation, unavailable or duplicate lane, and resealed one-lane lies refuse before Play; a causal witness retains timer interest while the text region progresses | one unchanged two-branch Form runs through one production kernel/scheduler; Observatory/Patchbay linearly projects both immutable regions and the logical overlap witness | no browser execution-lane claim | one x86_64 freestanding-emulator Host offers and validates two boot-scoped cooperative lanes | local only; no connectivity fact | no SMP, physical parallelism, preemption, isolation, context switching, physical scheduling, or HIL claim |
 | Exact plan, play, Sign, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued Sign identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/Play start mutation, unique Sign, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and clean firmware build identity; runtime-generated boot/play plus presentation/sign identities are carried in USB records and checked across physical sessions | live sessions verify exact base instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | matching physical receipts retain exact plan/fragment/play/presentation/sign/link/base/boot/build identity |
@@ -53,7 +53,12 @@ The `check` workflow requires:
   missing classification without capability promotion;
 - no-std checks for the salvage kernel, semantic, wire, and std-catalog contracts;
 - hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, atomic
-  join, retained-state/latest, host lifecycle, closure, and cancellation vectors;
+  join, retained-state/latest, host lifecycle, closure, exact dispatched-request
+  cancellation/replacement, completion-before-cancel, and cancellation vectors;
+- one no-std monotonic-millisecond deadline operation/resource contract plus a
+  finite std Host reactor with deterministic equal-deadline order, virtual and
+  hosted monotonic clocks, distinct stale/full/clock failures, and one
+  production-kernel arm/cancel/replace/complete flow;
 - exact semantic-contract/profile/port, host-operation/resource/authority/link, and
   policy/budget planning with cycle, mutation-negative, action/completion and
   authority/link admission, reservation/release, and executable
@@ -217,7 +222,19 @@ hosted/fixed lifecycle vectors. The capacity-one conformance graph now includes
 a stateful latest operation, atomic joins, and a stable hosted allocation shape.
 The published `OperationInput`/`OperationAction` contract runs the complete
 four-value tick/tee/filter/latest/show graph through the same fixed-capacity
-scheduler in fixed and hosted profiles. S1 is accepted. The first S2 slice
+scheduler in fixed and hosted profiles. S1 is accepted and now also admits
+exact cancellation of one dispatched host request without
+cancelling the Play. A completion already accepted by the kernel wins; an
+accepted cancellation is returned as one correlated `Cancelled` completion
+before a replacement request. The portable no-std contract names one
+host/boot-scoped monotonic millisecond timer slot with an exact eight-byte
+duration, no output, and one in-flight request. The std Host realizes that
+contract through one fixed-slot reactor shared by virtual and hosted monotonic
+clocks; it owns only arm/cancel/wake effects, not semantic timing policy. This
+generic prerequisite is accepted at exact main
+`7c275d8ed3958481feb790cd16977f1fee0cd4c7`; workflow `31452774926` passed all
+required jobs. It adds no debounce/timeout Kind, browser or firmware timing
+adapter, live transport, physical timing, or HIL claim. The first S2 slice
 removes `CapabilityLimits.value_kind` and binds exact semantic contract
 revisions, execution profiles, and complete per-port contracts through form
 identity, planning, preparation, and Observatory projection. Source-document,
