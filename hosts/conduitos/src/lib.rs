@@ -10,6 +10,8 @@ pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
+#[cfg(target_arch = "x86_64")]
+pub mod hotplug_guest;
 pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
@@ -34,6 +36,8 @@ mod ordinary_form;
 pub mod ordinary_plan;
 pub mod planned_kernel;
 pub mod proof;
+#[cfg(target_arch = "x86_64")]
+pub mod rescue_guest;
 pub mod text_composition;
 mod text_kernel_operations;
 mod text_offer;

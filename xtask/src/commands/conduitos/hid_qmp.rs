@@ -246,7 +246,7 @@ pub(super) fn inject_near_miss(
     )
 }
 
-fn connect(
+pub(super) fn connect(
     socket: &Path,
     child: &mut Child,
 ) -> Result<(UnixStream, BufReader<UnixStream>), ConduitosError> {
@@ -338,7 +338,7 @@ fn send_rescue_delete(
     require_return(reader, "rescue-delete-down")
 }
 
-fn send_named_keys(
+pub(super) fn send_named_keys(
     qmp: &mut UnixStream,
     reader: &mut BufReader<UnixStream>,
     keys: &[&str],
@@ -361,7 +361,7 @@ fn send_named_keys(
     require_return(reader, action)
 }
 
-fn wait_for_stage(
+pub(super) fn wait_for_stage(
     serial_path: &Path,
     child: &mut Child,
     stage: &str,
@@ -404,7 +404,7 @@ fn wait_for_stage_count(
     }
 }
 
-fn require_return(
+pub(super) fn require_return(
     reader: &mut BufReader<UnixStream>,
     action: &'static str,
 ) -> Result<(), ConduitosError> {
@@ -429,7 +429,11 @@ fn require_return(
     ))
 }
 
-fn stop<T>(child: &mut Child, reason: &'static str, detail: String) -> Result<T, ConduitosError> {
+pub(super) fn stop<T>(
+    child: &mut Child,
+    reason: &'static str,
+    detail: String,
+) -> Result<T, ConduitosError> {
     let _ = child.kill();
     let _ = child.wait();
     Err(ConduitosError::refusal(reason, detail))

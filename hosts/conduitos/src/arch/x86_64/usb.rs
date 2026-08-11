@@ -65,6 +65,17 @@ pub fn enumerate_one(
     controller: &mut XhciReady,
     image_virtual_to_physical: fn(u64) -> Option<u64>,
 ) -> Result<UsbDevice, UsbError> {
+    enumerate_one_at_epoch(controller, image_virtual_to_physical, 1)
+}
+
+pub fn enumerate_one_at_epoch(
+    controller: &mut XhciReady,
+    image_virtual_to_physical: fn(u64) -> Option<u64>,
+    attachment_epoch: u32,
+) -> Result<UsbDevice, UsbError> {
+    if attachment_epoch == 0 {
+        return Err(UsbError::StaleDeviceInstance);
+    }
     let dma_virtual = core::ptr::addr_of_mut!(USB_DMA) as u64;
     let dma_physical = image_virtual_to_physical(dma_virtual).ok_or(UsbError::DmaAddressInvalid)?;
     if dma_physical & 0xfff != 0 {
@@ -176,6 +187,7 @@ pub fn enumerate_one(
     let device_bytes = unsafe { &USB_DMA.descriptor[..18] };
     validate_header(device_bytes, 18, 1)?;
     let mut result = device_from_descriptor(root_port, slot, device_address, ep0, device_bytes)?;
+    result.attachment_epoch = attachment_epoch;
     let header_length = control(
         controller,
         &mut ring,
@@ -240,6 +252,36 @@ pub fn enumerate_one(
     result.dma_alignment = core::mem::align_of::<UsbDma>() as u16;
     result.port_poll_steps = PORT_POLL_STEPS;
     Ok(result)
+}
+
+pub fn wait_for_attachment_state(
+    controller: &XhciReady,
+    root_port: u8,
+    attached: bool,
+) -> Result<(), UsbError> {
+    for _ in 0..PORT_POLL_STEPS {
+        if (controller.port_status(root_port) & 1 != 0) == attached {
+            return Ok(());
+        }
+        spin_loop();
+    }
+    Err(if attached {
+        UsbError::NoDevice
+    } else {
+        UsbError::DeviceVanished
+    })
+}
+
+pub fn retire_removed_device(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+) -> Result<u8, UsbError> {
+    if controller.port_status(device.root_port) & 1 != 0 {
+        return Err(UsbError::StaleDeviceInstance);
+    }
+    controller
+        .disable_removed_slot(device.slot)
+        .map_err(UsbError::from)
 }
 
 pub(super) fn select_boot_protocol(

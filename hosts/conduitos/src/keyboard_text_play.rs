@@ -92,6 +92,14 @@ pub struct KeyboardTextKernel {
     keymap: ConduitIntlKeymap,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum KeyboardTextRequestKind {
+    Keyboard,
+    Keymap,
+    Upper,
+    Presentation,
+}
+
 impl KeyboardTextKernel {
     pub fn prepare(
         prepared: &PreparedKeyboardTextPlay,
@@ -219,6 +227,23 @@ impl KeyboardTextKernel {
         self.scheduler.next_host_request()
     }
 
+    pub fn request_kind(
+        &self,
+        request: HostOperationRequest,
+    ) -> Result<KeyboardTextRequestKind, SchedulerError> {
+        if request.node == self.keyboard_node {
+            Ok(KeyboardTextRequestKind::Keyboard)
+        } else if request.node == self.keymap_node {
+            Ok(KeyboardTextRequestKind::Keymap)
+        } else if request.node == self.upper_node {
+            Ok(KeyboardTextRequestKind::Upper)
+        } else if request.node == self.presentation_node {
+            Ok(KeyboardTextRequestKind::Presentation)
+        } else {
+            Err(SchedulerError::InvalidHostOperationAccess)
+        }
+    }
+
     pub fn host_value(&self, value: ValueRef) -> Result<&[u8], SchedulerError> {
         self.scheduler.host_value(value)
     }
@@ -229,6 +254,16 @@ impl KeyboardTextKernel {
         event: KeyEvent,
     ) -> Result<(), SchedulerError> {
         self.complete_with_output(request, self.keyboard_node, &event.encode())
+    }
+
+    pub fn fail_keyboard_device_removed(
+        &mut self,
+        request: HostOperationRequest,
+    ) -> Result<(), SchedulerError> {
+        if request.node != self.keyboard_node {
+            return Err(SchedulerError::InvalidHostOperationAccess);
+        }
+        self.complete_failed(request, FailureCode::HostOperationFailed, 81)
     }
 
     pub fn complete_keymap(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {

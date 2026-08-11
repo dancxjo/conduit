@@ -20,10 +20,10 @@ pub use session::{HidKeyboardSession, finish_boot_keyboard, receive_first_boot_k
 pub const BOOT_REPORT_BYTES: usize = 8;
 pub const MAX_TRANSITIONS_PER_REPORT: usize = 20;
 pub const REPORT_BUFFERS: usize = 2;
-pub const MAX_SESSION_REPORTS: usize = 48;
-pub const MAX_SESSION_TRANSITIONS: usize = 48;
+pub const MAX_SESSION_REPORTS: usize = 64;
+pub const MAX_SESSION_TRANSITIONS: usize = 64;
 pub const MAX_OUTSTANDING_INTERRUPT_TRANSFERS: u8 = 2;
-pub const INTERRUPT_TRANSFER_TRBS: usize = 48;
+pub const INTERRUPT_TRANSFER_TRBS: usize = 64;
 pub const HID_SIGN_SLOTS: u8 = 8;
 pub const INTERRUPT_POLL_WINDOWS: u16 = 1024;
 
@@ -435,12 +435,16 @@ pub(super) fn receive_report(
     for _ in 0..INTERRUPT_POLL_WINDOWS {
         ensure_device_present(controller.port_status(device.root_port))?;
         match controller.next_event() {
+            Ok(event) if event.event_type == 34 => return Err(HidError::DeviceRemoved),
             Ok(event) => {
                 completed = Some(event);
                 break;
             }
             Err(XhciError::CommandTimeout) => {}
-            Err(_) => return Err(HidError::TransferError),
+            Err(_) => {
+                ensure_device_present(controller.port_status(device.root_port))?;
+                return Err(HidError::TransferError);
+            }
         }
     }
     let event = completed.ok_or(HidError::TransferTimeout)?;

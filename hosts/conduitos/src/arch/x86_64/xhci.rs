@@ -385,6 +385,48 @@ impl XhciReady {
         Err(XhciError::UnexpectedCompletion)
     }
 
+    /// Retires one removed slot while boundedly draining only its stale
+    /// transfer completions. Port-change events are controller observations,
+    /// not command completions or semantic input.
+    pub(super) fn disable_removed_slot(&mut self, slot: u8) -> Result<u8, XhciError> {
+        if slot == 0 || self.command_enqueue >= COMMAND_TRBS - 1 {
+            return Err(XhciError::CommandRingFull);
+        }
+        let index = self.command_enqueue;
+        let pointer = self.dma_physical
+            + core::mem::offset_of!(DmaStorage, command_ring) as u64
+            + (index * 16) as u64;
+        let command = [
+            0,
+            0,
+            0,
+            (10 << 10) | (u32::from(slot) << 24) | self.command_cycle,
+        ];
+        unsafe { write_volatile(core::ptr::addr_of_mut!(DMA.command_ring[index]), command) };
+        self.command_enqueue += 1;
+        unsafe { write32(self.doorbell, 0) };
+        let mut stale_transfers = 0_u8;
+        for _ in 0..EVENT_TRBS {
+            let event = self.next_event()?;
+            match event.event_type {
+                34 => continue,
+                32 if event.slot == slot => {
+                    stale_transfers = stale_transfers
+                        .checked_add(1)
+                        .ok_or(XhciError::UnexpectedCompletion)?;
+                }
+                33 if event.pointer == pointer && event.completion_code == 1 => {
+                    unsafe {
+                        write_volatile(core::ptr::addr_of_mut!(DMA.dcbaa[usize::from(slot)]), 0)
+                    };
+                    return Ok(stale_transfers);
+                }
+                _ => return Err(XhciError::UnexpectedCompletion),
+            }
+        }
+        Err(XhciError::UnexpectedCompletion)
+    }
+
     pub(super) fn ring_endpoint(&self, slot: u8, endpoint: u8) {
         unsafe { write32(self.doorbell + usize::from(slot) * 4, u32::from(endpoint)) }
     }

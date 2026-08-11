@@ -23,6 +23,14 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<ImageRecord, Co
     assemble(arch, opts)
 }
 
+pub(super) fn execute_hotplug(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
+    let _build = build::execute_hotplug(arch, opts)?;
+    assemble(arch, opts)
+}
+
 pub(super) fn assemble(
     arch: ConduitosArch,
     opts: &GlobalOpts,
