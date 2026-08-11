@@ -118,18 +118,10 @@ impl EvidenceManifest {
         let root = root
             .canonicalize()
             .map_err(|error| format!("cannot resolve evidence root {}: {error}", root.display()))?;
-        let output = Command::new("git")
-            .args(["rev-parse", "HEAD"])
-            .current_dir(workspace_root)
-            .output()
-            .map_err(|error| format!("cannot determine evidence git commit: {error}"))?;
-        if !output.status.success() {
-            return Err("git rev-parse HEAD failed for evidence manifest".into());
-        }
-        let git_commit = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-        if git_commit.len() != 40 || !git_commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err("git rev-parse HEAD did not return an exact 40-character SHA".into());
-        }
+        let actions_sha = (std::env::var("GITHUB_ACTIONS").as_deref() == Ok("true"))
+            .then(|| std::env::var("GITHUB_SHA").ok())
+            .flatten();
+        let git_commit = exact_git_commit(workspace_root, actions_sha.as_deref())?;
 
         Ok(Self {
             root,
@@ -260,6 +252,35 @@ impl EvidenceManifest {
                 missing_required.join(", ")
             ))
         }
+    }
+}
+
+fn exact_git_commit(workspace_root: &Path, actions_sha: Option<&str>) -> Result<String, String> {
+    if let Some(sha) = actions_sha {
+        return validate_git_commit(sha, "GITHUB_SHA");
+    }
+
+    let output = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(workspace_root)
+        .output()
+        .map_err(|error| format!("cannot determine evidence git commit: {error}"))?;
+    if !output.status.success() {
+        return Err("git rev-parse HEAD failed for evidence manifest".into());
+    }
+    validate_git_commit(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "git rev-parse HEAD",
+    )
+}
+
+fn validate_git_commit(value: &str, source: &str) -> Result<String, String> {
+    if value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        Ok(value.to_ascii_lowercase())
+    } else {
+        Err(format!(
+            "{source} did not provide an exact 40-character commit SHA"
+        ))
     }
 }
 
@@ -438,5 +459,15 @@ mod tests {
             serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
         assert_eq!(document["result"], "diagnostic-incomplete");
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn actions_checkout_sha_is_validated_without_invoking_git() {
+        let sha = "ABCDEF0123456789ABCDEF0123456789ABCDEF01";
+        assert_eq!(
+            exact_git_commit(Path::new("/not/a/checkout"), Some(sha)).unwrap(),
+            sha.to_ascii_lowercase()
+        );
+        assert!(exact_git_commit(Path::new("/not/a/checkout"), Some("floating-main")).is_err());
     }
 }
