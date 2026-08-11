@@ -67,7 +67,7 @@ fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogError> {
     offer
         .validate()
         .map_err(|error| CatalogError::new("conduitos-offer-invalid", error.as_str()))?;
-    Ok(HostAdvertisement {
+    let mut advertisement = HostAdvertisement {
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: HostId::from("catalog-conduitos-reference"),
         boot_id: BootId::from("catalog-static-not-a-boot"),
@@ -97,5 +97,13 @@ fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogError> {
                 Ok(exact)
             })
             .collect::<Result<Vec<_>, CatalogError>>()?,
-    })
+    };
+    let presentation = conduit_std_catalog::conduitos_presentation_nucleus_offers();
+    advertisement.capabilities.retain(|capability| {
+        !presentation
+            .iter()
+            .any(|offer| offer.kind_id == capability.kind_id)
+    });
+    advertisement.capabilities.extend(presentation);
+    Ok(advertisement)
 }

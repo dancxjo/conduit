@@ -102,6 +102,36 @@ pub struct GuestKernelSign {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GuestPresentationSign {
+    pub schema: String,
+    pub status: String,
+    pub proof_class: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub display_base_id: String,
+    pub display_width: u32,
+    pub display_height: u32,
+    pub display_pitch: u32,
+    pub display_bits_per_pixel: u8,
+    pub execution_profile: String,
+    pub artifact: String,
+    pub source_document_id: String,
+    pub checked_form_id: String,
+    pub expanded_form_id: String,
+    pub plan_id: String,
+    pub fragment_id: String,
+    pub text: String,
+    pub layout_children: u8,
+    pub graphics_commands: u8,
+    pub text_commands: u8,
+    pub text_pixels_written: u32,
+    pub graphics_pixels_written: u32,
+    pub kernel_signs: u16,
+    pub bounded: bool,
+    pub completed: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GuestXhciSign {
     pub schema: String,
     pub status: String,
@@ -278,6 +308,7 @@ pub struct GuestKeyboardTextSign {
 #[derive(Debug, Clone)]
 pub struct GuestRun {
     pub boot: GuestBootSign,
+    pub presentation: GuestPresentationSign,
     pub xhci: GuestXhciSign,
     pub usb: GuestUsbSign,
     pub hid: GuestHidSign,
@@ -302,9 +333,11 @@ pub struct ProofRecord {
     pub iso_sha256: String,
     pub reproducible_image: bool,
     pub first_boot: GuestBootSign,
+    pub first_presentation: GuestPresentationSign,
     pub first_kernel: GuestKernelSign,
     pub first_observatory: conduit_observatory::ObservatorySnapshot,
     pub second_boot: GuestBootSign,
+    pub second_presentation: GuestPresentationSign,
     pub second_kernel: GuestKernelSign,
     pub second_observatory: conduit_observatory::ObservatorySnapshot,
     pub fresh_host_id: bool,

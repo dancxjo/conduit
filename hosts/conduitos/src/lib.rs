@@ -36,6 +36,7 @@ pub mod offer;
 mod ordinary_form;
 pub mod ordinary_plan;
 pub mod planned_kernel;
+pub mod presentation_nucleus;
 pub mod proof;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;
