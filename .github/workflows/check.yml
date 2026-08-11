@@ -202,6 +202,16 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+      - name: Prove the realized portable ConduitOS keyboard offer
+        run: cargo xtask conduitos keyboard-proof --locked
+      - name: Retain portable ConduitOS keyboard proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduitos-keyboard-proof-${{ github.sha }}
+          path: target/conduitos/x86_64/keyboard-proof.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
       - name: Prove bounded AArch64 ConduitOS machine wake
         run: cargo xtask conduitos prove --arch aarch64 --locked
       - name: Prove IA-32 ConduitOS machine wake

@@ -119,6 +119,7 @@ pub(super) fn prove_absent(paths: &Paths) -> Result<String, ConduitosError> {
         || !serial.contains("CONDUIT_BOOT_STAGE xhci-ready")
         || !serial.contains(expected)
         || serial.contains("CONDUIT_USB_SIGN")
+        || serial.contains("CONDUIT_KEYBOARD_SIGN")
     {
         return Err(ConduitosError::refusal(
             "usb-absence-not-refused",

@@ -70,6 +70,26 @@ duplicate, pressure, loss, and completion-identity vectors also pass. This
 layer performs no report-descriptor interpretation, layout or Unicode
 translation, and still does not advertise `input/keyboard`.
 
+Prove the exact portable keyboard realization separately:
+
+```text
+cargo xtask conduitos keyboard-proof --locked
+```
+
+That command requires the real bounded HID device path before ConduitOS offers
+`input/keyboard`, then checks an ordinary Plan, one production-kernel Play, and
+the exact portable values `[4, 0, 0]` (press) and `[4, 1, 0]` (release). The
+retained report correlates the boot-local controller, device, interface, and
+endpoint identities with the advertised implementation, finite resource
+reservations, Plan and active Play. The ordinary Observatory snapshot must
+contain the same exact capability for native Patchbay projection. A real boot
+without the USB device must refuse without emitting a keyboard offer, and the
+focused suite covers stale identity, incompatible or ambiguous devices,
+capacity, pressure, transfer failure, device loss, closure, and invalid-value
+cases as distinct outcomes. This slice does not add keymaps, text or Unicode
+translation, hotplug, multiple-device policy, browser proof, or physical/HIL
+proof.
+
 That report derives the five supported architecture names from the exact
 `BOOT*.EFI` artifacts in the pinned Limine archive and refuses if they disagree
 with the architecture-valued command contract. It does not make an unavailable

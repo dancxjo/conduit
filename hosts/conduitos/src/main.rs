@@ -151,9 +151,68 @@ extern "C" fn conduitos_start() -> ! {
             );
             arch::early_write(usb_sign.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE hid-start\n");
-            let hid =
-                match arch::run_boot_keyboard(&mut xhci, &usb, boot::executable_physical_address) {
-                    Ok(proof) => proof,
+            let hid_ready = match arch::prepare_boot_keyboard(
+                &mut xhci,
+                &usb,
+                boot::executable_physical_address,
+            ) {
+                Ok(ready) => ready,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let offer = match conduitos::offer::HostOffer::new(
+                &identities,
+                BUILD_ID,
+                arch::feature_basis(),
+                record.runtime_arena.length,
+            )
+            .with_keyboard(
+                conduitos::keyboard_offer::KeyboardRealization {
+                    controller_id: xhci_base,
+                    device_id,
+                    interface_id,
+                    endpoint_id,
+                    report_buffers: hid_ready.report_buffers,
+                    transition_slots: hid_ready.transition_slots,
+                    operation_slots: hid_ready.operation_slots,
+                },
+                BUILD_ID,
+            ) {
+                Ok(offer) => offer,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let keyboard_prepared =
+                match conduitos::keyboard_plan::prepare(&identities, &offer, BUILD_ID) {
+                    Ok(prepared) => prepared,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+            arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-offer-ready\n");
+            arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-plan-ready\n");
+            arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-play-started\n");
+            let hid = match arch::receive_boot_keyboard(&mut xhci, &usb, hid_ready) {
+                Ok(proof) => proof,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let portable_values = [
+                match conduitos::keyboard_bridge::portable_key_event(
+                    hid.transitions[0].usage,
+                    hid.transitions[0].pressed,
+                    hid.transitions[0].modifiers,
+                ) {
+                    Ok(value) => value,
+                    Err(_) => emit_machine_refusal("keyboard-portable-value-invalid"),
+                },
+                match conduitos::keyboard_bridge::portable_key_event(
+                    hid.transitions[1].usage,
+                    hid.transitions[1].pressed,
+                    hid.transitions[1].modifiers,
+                ) {
+                    Ok(value) => value,
+                    Err(_) => emit_machine_refusal("keyboard-portable-value-invalid"),
+                },
+            ];
+            let keyboard_report =
+                match conduitos::keyboard_play::run(&keyboard_prepared, portable_values) {
+                    Ok(report) => report,
                     Err(error) => emit_machine_refusal(error.as_str()),
                 };
             let hid_sign = format!(
@@ -197,6 +256,39 @@ extern "C" fn conduitos_start() -> ! {
             );
             arch::early_write(hid_sign.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE hid-transitions\n");
+            let keyboard_sign = format!(
+                "CONDUIT_KEYBOARD_SIGN {{\"schema\":\"conduit.conduitos.keyboard-offer/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"kind\":\"input/keyboard\",\"contract_revision\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"artifact_build\":\"{}\",\"controller_base_id\":\"{}\",\"device_instance_id\":\"{}\",\"interface_id\":\"{}\",\"endpoint_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"resource_bindings\":{},\"report_buffers\":{},\"transition_slots\":{},\"operation_slots\":{},\"cord_item_capacity\":{},\"cord_byte_capacity\":{},\"event_count\":2,\"first_value\":[{},{},{}],\"second_value\":[{},{},{}],\"semantic_usb_facts\":false,\"layout_translation\":false,\"unicode_translation\":false,\"completed\":{}}}\n",
+                identity::hex(&identities.host),
+                identity::hex(&identities.boot),
+                offer.generation,
+                conduit_std_catalog::KEYBOARD_CONTRACT_REVISION,
+                conduitos::keyboard_offer::KEYBOARD_IMPLEMENTATION,
+                conduitos::keyboard_offer::KEYBOARD_EXECUTION_PROFILE,
+                BUILD_ID,
+                xhci_base_id,
+                identity::hex(&device_id),
+                identity::hex(&interface_id),
+                identity::hex(&endpoint_id),
+                keyboard_prepared.plan.plan_id.as_str(),
+                keyboard_prepared.active_play.active_play_id.as_str(),
+                keyboard_prepared.plan.fragments[0].placements[0]
+                    .resources
+                    .len(),
+                hid_ready.report_buffers,
+                hid_ready.transition_slots,
+                hid_ready.operation_slots,
+                keyboard_report.cord_item_capacity,
+                keyboard_report.cord_byte_capacity,
+                keyboard_report.values[0].encode()[0],
+                keyboard_report.values[0].encode()[1],
+                keyboard_report.values[0].encode()[2],
+                keyboard_report.values[1].encode()[0],
+                keyboard_report.values[1].encode()[1],
+                keyboard_report.values[1].encode()[2],
+                keyboard_report.completed,
+            );
+            arch::early_write(keyboard_sign.as_bytes());
+            arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-completed\n");
             match proof::accepted(&record, &identities, BUILD_ID, IMAGE_ID) {
                 Ok(sign) => {
                     arch::early_write(sign.as_bytes());
@@ -204,12 +296,6 @@ extern "C" fn conduitos_start() -> ! {
                 }
                 Err(_) => emit_refusal("boot-sign-storage-full"),
             }
-            let offer = conduitos::offer::HostOffer::new(
-                &identities,
-                BUILD_ID,
-                arch::feature_basis(),
-                record.runtime_arena.length,
-            );
             if let Err(error) = offer.validate() {
                 emit_machine_refusal(error.as_str());
             }

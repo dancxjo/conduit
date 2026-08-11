@@ -169,7 +169,7 @@ fn advertisement(
         }
         bind_native_capability(capability, fixed_capability, build_id, index);
     }
-    Ok(HostAdvertisement {
+    let mut advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(hex_identity(&identities.host)),
         boot_id: BootId::from(hex_identity(&identities.boot)),
@@ -189,7 +189,12 @@ fn advertisement(
             .collect::<Vec<ResourceOffer>>(),
         capabilities,
         planner_capabilities: Vec::new(),
-    })
+    };
+    if let Some(keyboard) = fixed.keyboard {
+        crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
+            .map_err(|_| PreparationError::OfferMismatch)?;
+    }
+    Ok(advertisement)
 }
 
 fn bind_native_capability(

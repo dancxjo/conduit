@@ -9,6 +9,8 @@ mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
 mod image;
+mod keyboard_proof;
+mod keyboard_run;
 mod loongarch64_a0;
 #[allow(dead_code)]
 mod loongarch64_a1;
@@ -69,6 +71,8 @@ enum ConduitosCommand {
     UsbProof,
     /// Prove one real HID boot-keyboard press/release stream without semantics.
     HidProof,
+    /// Prove the exact portable keyboard offer, Plan, Play, and event values.
+    KeyboardProof,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -226,6 +230,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::XhciProof => xhci_proof::execute(opts),
         ConduitosCommand::UsbProof => usb_proof::execute(opts),
         ConduitosCommand::HidProof => hid_proof::execute(opts),
+        ConduitosCommand::KeyboardProof => keyboard_proof::execute(opts),
     }
 }
 
