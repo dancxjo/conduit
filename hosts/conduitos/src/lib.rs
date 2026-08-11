@@ -6,6 +6,7 @@ pub mod allocation;
 pub mod arch;
 pub mod boot;
 pub mod composition;
+pub mod display;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;

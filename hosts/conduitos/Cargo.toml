@@ -133,6 +133,7 @@ conduit-form = { path = "../../crates/conduit-form" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-planner = { path = "../../crates/conduit-planner" }
+conduit-presentation = { path = "../../crates/conduit-presentation" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 sha2 = { version = "=0.10.9", default-features = false }

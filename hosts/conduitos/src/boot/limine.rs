@@ -17,6 +17,7 @@ use super::observation::{
     BootArtifact, BootError, BootNormalizer, BootRecord, Firmware, MemoryKind, MemoryRegion,
     hhdm_to_physical, stable_hash,
 };
+use crate::display::{DisplayError, DisplayFormat, RawDisplay};
 
 const PINNED_BOOTLOADER_NAME: &str = "Limine";
 const PINNED_BOOTLOADER_VERSION: &str = "12.5.2";
@@ -73,6 +74,35 @@ pub fn executable_physical_address(virtual_address: u64) -> Option<u64> {
     virtual_address
         .checked_sub(response.virtual_base())?
         .checked_add(response.physical_base())
+}
+
+pub fn framebuffer_display() -> Result<RawDisplay, DisplayError> {
+    let response = FRAMEBUFFERS.get_response().ok_or(DisplayError::Absent)?;
+    let mut framebuffers = response.framebuffers();
+    let framebuffer = framebuffers.next().ok_or(DisplayError::Absent)?;
+    if framebuffers.next().is_some()
+        || framebuffer.memory_model() != limine::framebuffer::MemoryModel::RGB
+        || framebuffer.red_mask_size() != 8
+        || framebuffer.green_mask_size() != 8
+        || framebuffer.blue_mask_size() != 8
+    {
+        return Err(DisplayError::UnsupportedFormat);
+    }
+    let format = DisplayFormat {
+        width: u32::try_from(framebuffer.width()).map_err(|_| DisplayError::InvalidExtent)?,
+        height: u32::try_from(framebuffer.height()).map_err(|_| DisplayError::InvalidExtent)?,
+        pitch: u32::try_from(framebuffer.pitch()).map_err(|_| DisplayError::InvalidExtent)?,
+        bits_per_pixel: u8::try_from(framebuffer.bpp())
+            .map_err(|_| DisplayError::UnsupportedFormat)?,
+        red_shift: framebuffer.red_mask_shift(),
+        green_shift: framebuffer.green_mask_shift(),
+        blue_shift: framebuffer.blue_mask_shift(),
+    };
+    let address = core::ptr::NonNull::new(framebuffer.addr()).ok_or(DisplayError::Absent)?;
+    let byte_len = format.byte_len()?;
+    // SAFETY: Limine owns the selected framebuffer response and promises its
+    // address and current-mode extent as writable framebuffer memory.
+    unsafe { RawDisplay::new(address, byte_len, format) }
 }
 
 unsafe extern "C" {
