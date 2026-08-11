@@ -5,6 +5,7 @@
 
 mod cli;
 mod commands;
+mod evidence;
 mod obligation;
 mod process;
 mod proof;

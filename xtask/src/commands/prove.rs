@@ -1,5 +1,6 @@
 use crate::{
     cli::{GlobalOpts, ProveArgs, ProveTarget},
+    evidence::{EvidenceManifest, EvidenceResult},
     process::{run_suite, StepError},
     suites::prove::{
         PROVE_BROWSER_HOST_STEPS, PROVE_STD_BROWSER_S4_STEPS, PROVE_STD_BROWSER_TOGGLE_STEPS,
@@ -13,7 +14,31 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
     match args.proof {
         ProveTarget::StdBrowserS4 => run_suite(PROVE_STD_BROWSER_S4_STEPS, &root, opts),
         ProveTarget::StdBrowserToggle => run_suite(PROVE_STD_BROWSER_TOGGLE_STEPS, &root, opts),
-        ProveTarget::BrowserHost => run_suite(PROVE_BROWSER_HOST_STEPS, &root, opts),
+        ProveTarget::BrowserHost => {
+            let evidence_root = args
+                .evidence_root
+                .unwrap_or_else(|| root.join("target/conduit-evidence/browser-host"));
+            if opts.dry_run {
+                return run_suite(PROVE_BROWSER_HOST_STEPS, &root, opts);
+            }
+
+            let mut evidence =
+                EvidenceManifest::new(&evidence_root, &root, "browser-host", "prove.browser-host")
+                    .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))?;
+            match run_suite(PROVE_BROWSER_HOST_STEPS, &root, opts) {
+                Ok(()) => evidence
+                    .finish(EvidenceResult::Complete)
+                    .map_err(|error| StepError::prereq("prove.browser-host.evidence", error)),
+                Err(proof_error) => {
+                    if let Err(evidence_error) =
+                        evidence.finish(EvidenceResult::DiagnosticIncomplete)
+                    {
+                        eprintln!("xtask evidence error after proof failure: {evidence_error}");
+                    }
+                    Err(proof_error)
+                }
+            }
+        }
         ProveTarget::StdPicoUsb => {
             let pico_args = crate::commands::pico::PicoArgs {
                 dry_run: opts.dry_run,
