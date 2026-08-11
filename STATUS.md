@@ -1566,3 +1566,51 @@ checked, expanded, Plan, Play, Port, Gear, or Sign identity. The generated Host
 x Kind inventory includes all six exact rows and leaves other Hosts explicitly
 unsupported. This adds no constraint solver, graph layout, animation system,
 scene graph, font measurement, pixel renderer, or physical/HIL claim.
+
+The bounded presentation-composition and graphics-leaf slices from #889 and
+#890 are accepted together at exact main
+`fddb2344ecc4e9545d6b3e17cf90dac45a651233`; push workflow `31473617082`
+passed `check`, `browser-host`, and `conduitos-boot`, and Pages workflow
+`31473617076` completed for the same commit. The ConduitOS job's first attempt
+was refused when `curl` returned certificate error 60 while fetching the pinned
+Limine 12.5.2 archive; rerunning only that failed job completed the identical
+exact-main proof.
+
+Existing `presentation/text` remains the text semantic. Three additional
+renderer-neutral semantic Backs cover one canonical icon identity, a bounded
+frame, and a bounded status badge. Their allocator-free
+`presentation/composition@1` Info carries at most eight ordered obligations,
+finite tokens and accessible names, exact roles, and the single canonical
+`PresentationIconKey` vocabulary. Missing icon metadata uses one explicit
+generic-Gear fallback; partial or unknown metadata refuses instead of guessing.
+
+Below that seam, only `graphics/rect`, `graphics/text`, and `graphics/icon`
+passed cross-presenter admission. Every command uses #888 `LayoutRect`
+geometry, an exact clip rectangle, paint role, stable integer coordinates,
+finite resolved content, and canonical ordering in one fixed-capacity
+`presentation/graphics-scene@1` encoding. Clip is a property of each command,
+not a stateful Kind. Line and path remain renderer helpers because no current
+presentation Back gives them separate portable meaning.
+
+The std implementation transforms the exact values through admitted host
+operations and the production kernel. An ordinary seven-Gear Form lowers
+icon, frame, and badge through rectangle, resolved text, and resolved icon,
+then completes at a typed sink with all successful Play-time storage
+preallocated. The constrained Patchbay presenter lowers the same composition
+through the canonical graphics leaves, while an independently implemented
+native normalizer preserves geometry, clipping class, resolved content,
+ordering, paint, and style without requiring pixel parity. A ConduitOS
+framebuffer presenter can consume those same obligations before its private
+raster writes; framebuffer addresses remain below the contract. Direct
+higher-level presenters may still join semantic presentation without exposing
+graphics primitives.
+
+Malformed and noncanonical encodings, empty or oversized payloads, zero or
+overflow geometry, unknown icons, capacity pressure, cancellation, and forged
+execution profiles remain distinct refusals or terminal outcomes. The
+generated palette, Host x Kind inventory, Observatory fixture, and ConduitOS
+std-gap report include the exact accepted rows. The existing Patchbay demo and
+its semantic identities remain intact. This adds no line/path/clip Kind, pixel
+API, toolkit contract, scene-graph runtime, font shaping, icon registry clone,
+SVG/PostScript language, shader/GPU pipeline, image codec, or physical/HIL
+claim.
