@@ -79,6 +79,7 @@ pub extern "C" fn conduitos_riscv64_a3_start() -> ! {
             &prepared,
             BUILD_ID,
             IMAGE_ID,
+            None,
         )
         .unwrap_or_else(|error| refuse(error.as_str()))
     };

@@ -10,9 +10,10 @@ use conduit_core::{
 };
 use conduit_observatory::{
     BaseReport, BootProofClass, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
-    HostReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness, OperationalState,
-    PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport, PressureReport,
-    RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport, validate_snapshot,
+    FramebufferBasis, HostReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
+    OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport,
+    PressureReport, RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport,
+    validate_snapshot,
 };
 
 use crate::{
@@ -62,11 +63,12 @@ pub fn prepare_export(
     prepared: &PreparedDualRegionPlay,
     build_id: &str,
     image_id: &str,
+    framebuffer: Option<&FramebufferBasis>,
 ) -> Result<PreparedObservatoryExport, ExportError> {
     if record.artifact_count != 0 {
         return Err(ExportError::UnsupportedBootArtifacts);
     }
-    if record.framebuffer_count != 0 {
+    if usize::from(record.framebuffer_count) != framebuffer.iter().count() {
         return Err(ExportError::UnsupportedFramebuffer);
     }
     let host_id = prepared.advertisement.host_id.clone();
@@ -183,7 +185,7 @@ pub fn prepare_export(
             boot_artifacts: Vec::new(),
             initial_plan_artifact_id: None,
             recovery_plan_artifact_id: None,
-            framebuffers: Vec::new(),
+            framebuffers: framebuffer.into_iter().cloned().collect(),
             proof_class: BootProofClass::FreestandingEmulator,
         }],
         retention: RetentionReport {
@@ -415,8 +417,16 @@ mod tests {
     fn export_is_an_exact_bounded_v2_snapshot() {
         let (record, identities, offer) = fixture();
         let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
-        let export =
-            prepare_export(&record, &identities, &offer, &prepared, "build", "image").unwrap();
+        let export = prepare_export(
+            &record,
+            &identities,
+            &offer,
+            &prepared,
+            "build",
+            "image",
+            None,
+        )
+        .unwrap();
         let snapshot: ObservatorySnapshot = serde_json::from_slice(export.as_bytes()).unwrap();
 
         validate_snapshot(&snapshot).unwrap();
@@ -458,8 +468,16 @@ mod tests {
     fn stale_provenance_duplicate_bases_and_signs_fail_closed_while_gaps_remain_visible() {
         let (record, identities, offer) = fixture();
         let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
-        let export =
-            prepare_export(&record, &identities, &offer, &prepared, "build", "image").unwrap();
+        let export = prepare_export(
+            &record,
+            &identities,
+            &offer,
+            &prepared,
+            "build",
+            "image",
+            None,
+        )
+        .unwrap();
         let snapshot: ObservatorySnapshot = serde_json::from_slice(export.as_bytes()).unwrap();
 
         let mut duplicate_base = snapshot.clone();
@@ -489,13 +507,31 @@ mod tests {
         let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
         record.artifact_count = 1;
         assert_eq!(
-            prepare_export(&record, &identities, &offer, &prepared, "build", "image").err(),
+            prepare_export(
+                &record,
+                &identities,
+                &offer,
+                &prepared,
+                "build",
+                "image",
+                None
+            )
+            .err(),
             Some(ExportError::UnsupportedBootArtifacts)
         );
         record.artifact_count = 0;
         record.framebuffer_count = 1;
         assert_eq!(
-            prepare_export(&record, &identities, &offer, &prepared, "build", "image").err(),
+            prepare_export(
+                &record,
+                &identities,
+                &offer,
+                &prepared,
+                "build",
+                "image",
+                None
+            )
+            .err(),
             Some(ExportError::UnsupportedFramebuffer)
         );
     }

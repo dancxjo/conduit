@@ -71,6 +71,13 @@ extern "C" fn conduitos_start() -> ! {
             let display_format = presentation_display.format();
             let display_base =
                 identity::derive_base(&identities.boot, "conduitos/display/limine/0");
+            let framebuffer_basis = conduit_observatory::FramebufferBasis {
+                base_id: conduit_core::HostBaseId::from(identity::hex(&display_base)),
+                width: display_format.width,
+                height: display_format.height,
+                pitch_bytes: display_format.pitch,
+                bits_per_pixel: display_format.bits_per_pixel,
+            };
             let prepared_presentation = match presentation_nucleus::prepare(
                 &identity::hex(&identities.host),
                 &identity::hex(&identities.boot),
@@ -414,6 +421,7 @@ extern "C" fn conduitos_start() -> ! {
                 BUILD_ID,
                 IMAGE_ID,
                 &keyboard_text_events,
+                Some(&framebuffer_basis),
             ) {
                 emit_machine_refusal(reason);
             }
@@ -452,6 +460,7 @@ extern "C" fn conduitos_start() -> ! {
                 &prepared,
                 BUILD_ID,
                 IMAGE_ID,
+                Some(&framebuffer_basis),
             ) {
                 Ok(export) => export,
                 Err(error) => emit_machine_refusal(error.as_str()),

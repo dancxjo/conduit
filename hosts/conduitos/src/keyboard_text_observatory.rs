@@ -8,9 +8,10 @@ use conduit_core::{
 };
 use conduit_observatory::{
     BaseReport, BootProofClass, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
-    HostReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness, OperationalState,
-    PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport, PressureReport,
-    RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport, validate_snapshot,
+    FramebufferBasis, HostReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
+    OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport,
+    PressureReport, RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport,
+    validate_snapshot,
 };
 
 use crate::{
@@ -28,11 +29,12 @@ pub fn completed_snapshot(
     prepared: &PreparedKeyboardTextPlay,
     build_id: &str,
     image_id: &str,
+    framebuffer: Option<&FramebufferBasis>,
 ) -> Result<String, ExportError> {
     if record.artifact_count != 0 {
         return Err(ExportError::UnsupportedBootArtifacts);
     }
-    if record.framebuffer_count != 0 {
+    if usize::from(record.framebuffer_count) != framebuffer.iter().count() {
         return Err(ExportError::UnsupportedFramebuffer);
     }
     let host_id = prepared.advertisement.host_id.clone();
@@ -176,7 +178,7 @@ pub fn completed_snapshot(
             boot_artifacts: Vec::new(),
             initial_plan_artifact_id: None,
             recovery_plan_artifact_id: None,
-            framebuffers: Vec::new(),
+            framebuffers: framebuffer.into_iter().cloned().collect(),
             proof_class: BootProofClass::FreestandingEmulator,
         }],
         retention: RetentionReport {

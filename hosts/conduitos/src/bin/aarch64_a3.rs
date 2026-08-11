@@ -68,6 +68,7 @@ pub extern "C" fn conduitos_aarch64_a3_start() -> ! {
         &prepared,
         BUILD_ID,
         IMAGE_ID,
+        None,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     let allocation_before_play = BOOT_ARENA.seal();

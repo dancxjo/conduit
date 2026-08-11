@@ -187,6 +187,7 @@ extern "C" fn conduitos_ia32_a3_rust_entry() -> ! {
         &prepared,
         BUILD_ID,
         IMAGE_ID,
+        None,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     let before = BOOT_ARENA.seal();
