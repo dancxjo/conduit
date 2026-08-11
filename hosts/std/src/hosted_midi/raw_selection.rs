@@ -454,4 +454,122 @@ mod tests {
             format!("hw:{0},{0},0", u16::MAX)
         );
     }
+
+    #[test]
+    fn input_host_construction_offers_exact_resource_and_independent_authority() {
+        let boot_id = BootId::from("boot-input-host");
+        let generation = OfferGeneration(9);
+        let selected = HostedRawMidiSelection::select(
+            &[RawMidiEndpointObservation {
+                card: u16::MAX,
+                device: u16::MAX,
+                subdevice: 0,
+                name: "Absent input proof endpoint".into(),
+                direction: MidiEndpointDirection::ReadableSource,
+            }],
+            MidiEndpointDirection::ReadableSource,
+            u16::MAX,
+            u16::MAX,
+            0,
+            boot_id.clone(),
+            generation,
+        )
+        .unwrap();
+        let expected_pool = selected.resource_pool_id();
+        let host = crate::StdHost::new_with_raw_midi_input(
+            crate::StdHostConfig {
+                host_id: HostId::from("host-input"),
+                boot_id: boot_id.clone(),
+                offer_generation: generation,
+            },
+            crate::StdHostComposition::minimal(),
+            selected,
+        )
+        .expect("Host construction must not open the selected input device");
+
+        assert_eq!(
+            host.raw_midi_input_selection().unwrap().resource_pool_id(),
+            expected_pool
+        );
+        let capability = host
+            .advertisement()
+            .capabilities
+            .iter()
+            .find(|offer| offer.capability_id.as_str() == "music-input-midi1")
+            .unwrap();
+        assert_eq!(
+            capability.implementation.implementation_id.as_str(),
+            conduit_std_catalog::MUSIC_INPUT_MIDI_IMPLEMENTATION
+        );
+        let resource = host
+            .advertisement()
+            .resources
+            .iter()
+            .find(|offer| offer.pool_id == expected_pool)
+            .unwrap();
+        assert_eq!(
+            resource.class_id.as_str(),
+            conduit_std_catalog::MIDI_INPUT_RESOURCE_CLASS
+        );
+        assert_eq!(resource.capacity_units, 1);
+
+        let grant = host.midi_input_authority_grant("allow-controller").unwrap();
+        assert_eq!(
+            grant.contract_id.as_str(),
+            conduit_std_catalog::MIDI_INPUT_AUTHORITY_CONTRACT
+        );
+        assert_eq!(
+            grant.host_operation_contract_id.as_str(),
+            conduit_std_catalog::MUSIC_INPUT_MIDI_OPERATION
+        );
+        assert_eq!(grant.host_id.as_str(), "host-input");
+        assert_eq!(grant.boot_id, boot_id);
+        assert_eq!(grant.capability_id.as_str(), "music-input-midi1");
+    }
+
+    #[test]
+    fn input_host_refuses_output_direction_or_stale_identity() {
+        let boot_id = BootId::from("boot-input-host");
+        let selected = HostedRawMidiSelection::select(
+            &[observation(MidiEndpointDirection::WritableDestination, 0)],
+            MidiEndpointDirection::WritableDestination,
+            2,
+            1,
+            0,
+            boot_id.clone(),
+            OfferGeneration(3),
+        )
+        .unwrap();
+        assert!(crate::StdHost::new_with_raw_midi_input(
+            crate::StdHostConfig {
+                host_id: HostId::from("host-input"),
+                boot_id,
+                offer_generation: OfferGeneration(3),
+            },
+            crate::StdHostComposition::minimal(),
+            selected,
+        )
+        .is_err());
+
+        let stale = HostedRawMidiSelection::select(
+            &[observation(MidiEndpointDirection::ReadableSource, 0)],
+            MidiEndpointDirection::ReadableSource,
+            2,
+            1,
+            0,
+            BootId::from("old-boot"),
+            OfferGeneration(2),
+        )
+        .unwrap();
+        assert!(crate::StdHost::new_with_raw_midi_input(
+            crate::StdHostConfig {
+                host_id: HostId::from("host-input"),
+                boot_id: BootId::from("new-boot"),
+                offer_generation: OfferGeneration(2),
+            },
+            crate::StdHostComposition::minimal(),
+            stale,
+        )
+        .is_err());
+    }
 }
