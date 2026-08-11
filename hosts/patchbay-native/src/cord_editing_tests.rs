@@ -173,8 +173,10 @@ fn pointer_moves_presentation_route_then_reroutes_authored_sink() {
         .any(|receipt| {
             matches!(
                 &receipt.request,
-                patchbay_model::PatchbayInteractionRequest::Invoke { invocation, .. }
-                    if invocation.action == patchbay_model::PatchbayAction::RerouteCord
+                patchbay_model::PatchbayInteractionRequest::Edit {
+                    edit: patchbay_model::PatchbayEdit::RerouteCord { .. },
+                    ..
+                }
             )
         }));
     std::fs::remove_file(path).unwrap();

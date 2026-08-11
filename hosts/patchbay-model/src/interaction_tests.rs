@@ -1,8 +1,9 @@
 use crate::{
-    FormEditor, InteractionDisposition, PatchbayAction, PatchbayGraph, PatchbayInteraction,
-    PatchbayInteractionRequest, PatchbayInvocationOutcome, PatchbayRefusal,
+    FormEditor, InteractionDisposition, PatchbayAction, PatchbayEdit, PatchbayEditBasis,
+    PatchbayGraph, PatchbayInteraction, PatchbayInteractionRequest, PatchbayInvocationOutcome,
+    PatchbayRefusal,
 };
-use conduit_core::{BootId, ExpandedFormId, HostId};
+use conduit_core::{BootId, ConfigurationValue, ExpandedFormId, HostId};
 use conduit_kernel::KernelEventKind;
 use std::path::PathBuf;
 
@@ -127,13 +128,17 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     .unwrap();
     let mut invoked = None;
     let receipt = interaction
-        .execute(None, request, |invocation| {
-            invoked = Some(invocation.clone());
+        .execute(None, request, |request| {
+            invoked = Some(request.clone());
             PatchbayInvocationOutcome::Succeeded
         })
         .unwrap();
     assert_eq!(receipt.disposition, InteractionDisposition::Succeeded);
-    assert_eq!(invoked.unwrap().action, PatchbayAction::Birth);
+    assert!(matches!(
+        invoked.unwrap(),
+        PatchbayInteractionRequest::Invoke { invocation, .. }
+            if invocation.action == PatchbayAction::Birth
+    ));
 
     let request = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("birth").unwrap(),
@@ -185,4 +190,44 @@ fn interaction_values_are_platform_neutral_and_bounded() {
         "x".repeat(crate::interaction::MAX_INTERACTION_ID_BYTES + 1),
     )
     .is_err());
+}
+
+#[test]
+fn typed_edit_round_trips_through_form_plan_kernel_and_binary_value_without_packing() {
+    let graph = count_graph();
+    let basis = PatchbayEditBasis::new(
+        graph.source_document_id.clone(),
+        7,
+        graph.expanded_form_id.clone(),
+    )
+    .unwrap();
+    let edit = PatchbayEdit::ConfigureGear {
+        basis,
+        subject_identity: "gear/count-demo/counter".into(),
+        key: "label".into(),
+        value: ConfigurationValue::Text("literal@delimiter:is-data".into()),
+    };
+    let mut interaction = interaction();
+    let request = PatchbayInteractionRequest::edit(
+        interaction.next_request_id("configure-gear").unwrap(),
+        edit.clone(),
+    )
+    .unwrap();
+    let receipt = interaction
+        .execute(Some(&graph), request.clone(), |planned| {
+            assert_eq!(planned, &request);
+            PatchbayInvocationOutcome::Succeeded
+        })
+        .unwrap();
+
+    assert_eq!(receipt.disposition, InteractionDisposition::Succeeded);
+    assert_eq!(receipt.request, request);
+    assert!(matches!(
+        receipt.request,
+        PatchbayInteractionRequest::Edit { edit: decoded, .. } if decoded == edit
+    ));
+    assert!(interaction
+        .lines()
+        .join("\n")
+        .contains("kind=interaction/edit"));
 }

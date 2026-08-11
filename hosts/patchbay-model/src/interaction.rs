@@ -1,7 +1,14 @@
 //! Bounded platform-neutral Patchbay interaction values and ordinary execution.
 
 mod codec;
+mod edit;
+mod edit_form;
 mod execution;
+
+pub use edit::{PatchbayEdit, PatchbayEditBasis};
+use edit_form::{
+    edit_definition, edit_from_configuration, edit_offer, edit_signature, request_source,
+};
 
 use conduit_core::ConfigurationValue;
 use conduit_core::{
@@ -24,6 +31,7 @@ pub const MAX_INTERACTION_HISTORY: usize = 32;
 
 const SELECT_KIND: &str = "interaction/select";
 const INVOKE_KIND: &str = "interaction/invoke";
+const EDIT_KIND: &str = "interaction/edit";
 const APPLY_KIND: &str = "interaction/apply";
 const REQUEST_VALUE_KIND: &str = "interaction/request@1";
 const APPLY_HOST_OPERATION: &str = "conduit.patchbay/apply-interaction@1";
@@ -82,6 +90,10 @@ pub enum PatchbayInteractionRequest {
     Invoke {
         request_id: PatchbayInteractionRequestId,
         invocation: PatchbayInvocation,
+    },
+    Edit {
+        request_id: PatchbayInteractionRequestId,
+        edit: PatchbayEdit,
     },
 }
 
@@ -181,6 +193,7 @@ impl PatchbayInteraction {
                 let source_kind = match &receipt.request {
                     PatchbayInteractionRequest::Select { .. } => SELECT_KIND,
                     PatchbayInteractionRequest::Invoke { .. } => INVOKE_KIND,
+                    PatchbayInteractionRequest::Edit { .. } => EDIT_KIND,
                 };
                 format!(
                     "INTERACTION request={} kind={} gears=request,apply port=request:{} plan={} play={} disposition={:?} signs={}",
@@ -205,7 +218,7 @@ impl PatchbayInteraction {
             profile: HostProfileId::from("patchbay-interaction"),
             resources: vec![],
             planner_capabilities: vec![],
-            capabilities: vec![select_offer(), invoke_offer(), apply_offer()],
+            capabilities: vec![select_offer(), invoke_offer(), edit_offer(), apply_offer()],
         }
     }
 
@@ -223,7 +236,7 @@ fn request_from_expanded(
     let source = form
         .gears
         .iter()
-        .find(|gear| matches!(gear.kind_id.as_str(), SELECT_KIND | INVOKE_KIND))
+        .find(|gear| matches!(gear.kind_id.as_str(), SELECT_KIND | INVOKE_KIND | EDIT_KIND))
         .ok_or_else(|| InteractionError::Form("interaction source Gear is absent".into()))?;
     let text = |key: &str| {
         source
@@ -251,6 +264,10 @@ fn request_from_expanded(
                 target_identity: text("target")?,
             },
         }),
+        EDIT_KIND => Ok(PatchbayInteractionRequest::Edit {
+            request_id,
+            edit: edit_from_configuration(&source.configuration)?,
+        }),
         _ => Err(InteractionError::MalformedValue),
     }
 }
@@ -276,12 +293,16 @@ fn interaction_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Interactio
         .insert(signature(INVOKE_KIND, &["request", "action", "target"]))
         .map_err(|error| InteractionError::Form(error.to_string()))?;
     startup
+        .insert(edit_signature())
+        .map_err(|error| InteractionError::Form(error.to_string()))?;
+    startup
         .insert(signature(APPLY_KIND, &[]))
         .map_err(|error| InteractionError::Form(error.to_string()))?;
     let mut profile = ProfileCatalog::new();
     for definition in [
         source_definition(SELECT_KIND),
         source_definition(INVOKE_KIND),
+        edit_definition(),
         apply_definition(),
     ] {
         profile
@@ -439,44 +460,4 @@ fn interaction_limits() -> CapabilityLimits {
         max_queue_items: 4,
         max_queue_bytes: MAX_INTERACTION_VALUE_BYTES * 4,
     }
-}
-
-fn request_source(request: &PatchbayInteractionRequest) -> String {
-    let (kind, fields) = match request {
-        PatchbayInteractionRequest::Select {
-            request_id,
-            expanded_form_id,
-            subject_identity,
-        } => (
-            SELECT_KIND,
-            vec![
-                request_id.as_str(),
-                expanded_form_id.as_str(),
-                subject_identity.as_str(),
-            ],
-        ),
-        PatchbayInteractionRequest::Invoke {
-            request_id,
-            invocation,
-        } => (
-            INVOKE_KIND,
-            vec![
-                request_id.as_str(),
-                invocation.action.as_str(),
-                invocation.target_identity.as_str(),
-            ],
-        ),
-    };
-    let arguments = fields
-        .into_iter()
-        .map(|field| format!("\"{}\"", escape_form_text(field)))
-        .collect::<Vec<_>>()
-        .join(", ");
-    format!(
-        "form patchbay-interaction {{\n    request: {kind}({arguments})\n    apply: {APPLY_KIND}\n    request > apply\n}}\n"
-    )
-}
-
-fn escape_form_text(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
 }

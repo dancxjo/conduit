@@ -59,10 +59,10 @@ pub use graphical_patchbay::{
     MAX_PATCHBAY_PORTS,
 };
 pub use interaction::{
-    InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction,
-    PatchbayInteraction, PatchbayInteractionRequest, PatchbayInteractionRequestId,
-    PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal, MAX_INTERACTION_HISTORY,
-    MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
+    InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
+    PatchbayEditBasis, PatchbayInteraction, PatchbayInteractionRequest,
+    PatchbayInteractionRequestId, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
+    MAX_INTERACTION_HISTORY, MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
 };
 pub use layout::{
     CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,

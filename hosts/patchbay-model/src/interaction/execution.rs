@@ -124,7 +124,7 @@ impl PatchbayInteraction {
         invoke: F,
     ) -> Result<InteractionReceipt, InteractionError>
     where
-        F: FnOnce(&PatchbayInvocation) -> PatchbayInvocationOutcome,
+        F: FnOnce(&PatchbayInteractionRequest) -> PatchbayInvocationOutcome,
     {
         self.execute_with_subject_resolver(request, invoke, |candidate| {
             graph
@@ -153,7 +153,7 @@ impl PatchbayInteraction {
         invoke: F,
     ) -> Result<InteractionReceipt, InteractionError>
     where
-        F: FnOnce(&PatchbayInvocation) -> PatchbayInvocationOutcome,
+        F: FnOnce(&PatchbayInteractionRequest) -> PatchbayInvocationOutcome,
     {
         self.execute_with_subject_resolver(request, invoke, |candidate| {
             if presentation.basis.expanded_form_id.as_ref() != Some(&candidate.expanded_form_id) {
@@ -175,7 +175,7 @@ impl PatchbayInteraction {
         resolve_subject: R,
     ) -> Result<InteractionReceipt, InteractionError>
     where
-        F: FnOnce(&PatchbayInvocation) -> PatchbayInvocationOutcome,
+        F: FnOnce(&PatchbayInteractionRequest) -> PatchbayInvocationOutcome,
         R: Fn(&crate::PatchbaySubjectRef) -> Result<(), PatchbayRefusal>,
     {
         let expanded = expanded_request(&request)?;
@@ -310,11 +310,12 @@ impl PatchbayInteraction {
                                 }
                             }
                         }
-                        PatchbayInteractionRequest::Invoke { invocation, .. } => {
+                        PatchbayInteractionRequest::Invoke { .. }
+                        | PatchbayInteractionRequest::Edit { .. } => {
                             match invoke
                                 .take()
                                 .map_or(PatchbayInvocationOutcome::Failed, |invoke| {
-                                    invoke(invocation)
+                                    invoke(&decoded)
                                 }) {
                                 PatchbayInvocationOutcome::Succeeded => {
                                     disposition = Some(InteractionDisposition::Succeeded);
@@ -409,7 +410,7 @@ fn operations(
             .get(usize::from(node.node.0))
             .ok_or_else(|| InteractionError::Execution("node placement is absent".into()))?;
         let operation = match placement.kind_id.as_str() {
-            SELECT_KIND | INVOKE_KIND => InteractionOperation::Source {
+            SELECT_KIND | INVOKE_KIND | EDIT_KIND => InteractionOperation::Source {
                 value: request,
                 emitted: false,
             },

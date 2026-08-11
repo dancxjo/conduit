@@ -1,9 +1,9 @@
-//! Native dispatch adapter for source-preserving Patchbay authoring interactions.
+//! Native dispatch adapter for source-preserving typed Patchbay authoring edits.
 
 use super::PatchbayApplication;
 use patchbay_model::{
-    PatchbayAction, PatchbayInteractionRequest, PatchbayInvocation, PatchbayInvocationOutcome,
-    PatchbayRefusal, PatchbaySubjectRef,
+    PatchbayAction, PatchbayEdit, PatchbayEditBasis, PatchbayInteractionRequest,
+    PatchbayInvocationOutcome, PatchbayRefusal, PatchbaySubjectRef,
 };
 
 impl PatchbayApplication {
@@ -13,39 +13,27 @@ impl PatchbayApplication {
         key: &str,
         value: conduit_core::ConfigurationValue,
     ) -> Result<(), String> {
-        let editor = self
-            .form_editor
-            .as_ref()
-            .ok_or("canonical Form editor is absent")?;
-        let view = editor.view();
-        let source_id = view
-            .checked
-            .source_document_id
-            .ok_or("checked canonical Form identity is absent")?;
-        let target = format!(
-            "{}@{}@{}@{}@{}@{}",
-            source_id.as_str(),
-            view.revision,
-            subject.expanded_form_id.as_str(),
-            subject.subject_identity,
-            key,
-            encode_value(&value)
-        );
-        self.dispatch_authoring_invocation(PatchbayAction::ConfigureGear, target)
+        let basis = self.edit_basis(subject.expanded_form_id.clone())?;
+        self.dispatch_authoring_edit(PatchbayEdit::ConfigureGear {
+            basis,
+            subject_identity: subject.subject_identity.clone(),
+            key: key.into(),
+            value,
+        })
     }
 
     pub(super) fn dispatch_palette_placement(&mut self, kind: &str) -> Result<(), String> {
-        let editor = self
-            .form_editor
+        let expanded_form_id = self
+            .graphical_form
             .as_ref()
-            .ok_or("canonical Form editor is absent")?;
-        let view = editor.view();
-        let source_id = view
-            .checked
-            .source_document_id
-            .ok_or("checked canonical Form identity is absent")?;
-        let target = format!("{}@{}@{kind}", source_id.as_str(), view.revision);
-        self.dispatch_authoring_invocation(PatchbayAction::PlaceGear, target)
+            .ok_or("graphical Form projection is absent")?
+            .expanded_form_id
+            .clone();
+        let basis = self.edit_basis(expanded_form_id)?;
+        self.dispatch_authoring_edit(PatchbayEdit::PlaceGear {
+            basis,
+            kind_id: kind.into(),
+        })
     }
 
     pub(super) fn dispatch_gear_edit(
@@ -53,23 +41,23 @@ impl PatchbayApplication {
         action: PatchbayAction,
         subject: &PatchbaySubjectRef,
     ) -> Result<(), String> {
-        let editor = self
-            .form_editor
-            .as_ref()
-            .ok_or("canonical Form editor is absent")?;
-        let view = editor.view();
-        let source_id = view
-            .checked
-            .source_document_id
-            .ok_or("checked canonical Form identity is absent")?;
-        let target = format!(
-            "{}@{}@{}@{}",
-            source_id.as_str(),
-            view.revision,
-            subject.expanded_form_id.as_str(),
-            subject.subject_identity
-        );
-        self.dispatch_authoring_invocation(action, target)
+        let basis = self.edit_basis(subject.expanded_form_id.clone())?;
+        let edit = match action {
+            PatchbayAction::DuplicateGear => PatchbayEdit::DuplicateGear {
+                basis,
+                subject_identity: subject.subject_identity.clone(),
+            },
+            PatchbayAction::RemoveGear => PatchbayEdit::RemoveGear {
+                basis,
+                subject_identity: subject.subject_identity.clone(),
+            },
+            PatchbayAction::RemoveCord => PatchbayEdit::RemoveCord {
+                basis,
+                subject_identity: subject.subject_identity.clone(),
+            },
+            _ => return Err("action is not a typed Gear or Cord edit".into()),
+        };
+        self.dispatch_authoring_edit(edit)
     }
 
     pub(super) fn dispatch_port_connection(
@@ -80,24 +68,12 @@ impl PatchbayApplication {
         if source.expanded_form_id != sink.expanded_form_id {
             return Err("Ports come from different checked Form revisions".into());
         }
-        let editor = self
-            .form_editor
-            .as_ref()
-            .ok_or("canonical Form editor is absent")?;
-        let view = editor.view();
-        let source_id = view
-            .checked
-            .source_document_id
-            .ok_or("checked canonical Form identity is absent")?;
-        let target = format!(
-            "{}@{}@{}@{}@{}",
-            source_id.as_str(),
-            view.revision,
-            source.expanded_form_id.as_str(),
-            source.subject_identity,
-            sink.subject_identity
-        );
-        self.dispatch_authoring_invocation(PatchbayAction::ConnectPorts, target)
+        let basis = self.edit_basis(source.expanded_form_id.clone())?;
+        self.dispatch_authoring_edit(PatchbayEdit::ConnectPorts {
+            basis,
+            source_identity: source.subject_identity.clone(),
+            sink_identity: sink.subject_identity.clone(),
+        })
     }
 
     pub(super) fn dispatch_cord_reroute(
@@ -108,164 +84,116 @@ impl PatchbayApplication {
         if cord.expanded_form_id != endpoint.expanded_form_id {
             return Err("Cord and Port come from different checked Form revisions".into());
         }
+        let basis = self.edit_basis(cord.expanded_form_id.clone())?;
+        self.dispatch_authoring_edit(PatchbayEdit::RerouteCord {
+            basis,
+            cord_identity: cord.subject_identity.clone(),
+            endpoint_identity: endpoint.subject_identity.clone(),
+        })
+    }
+
+    fn edit_basis(
+        &self,
+        expanded_form_id: conduit_core::ExpandedFormId,
+    ) -> Result<PatchbayEditBasis, String> {
         let editor = self
             .form_editor
             .as_ref()
             .ok_or("canonical Form editor is absent")?;
         let view = editor.view();
-        let source_id = view
+        let source_document_id = view
             .checked
             .source_document_id
             .ok_or("checked canonical Form identity is absent")?;
-        let target = format!(
-            "{}@{}@{}@{}@{}",
-            source_id.as_str(),
-            view.revision,
-            cord.expanded_form_id.as_str(),
-            cord.subject_identity,
-            endpoint.subject_identity
-        );
-        self.dispatch_authoring_invocation(PatchbayAction::RerouteCord, target)
+        PatchbayEditBasis::new(source_document_id, view.revision, expanded_form_id)
+            .map_err(|error| format!("typed edit basis: {error:?}"))
     }
 
-    fn dispatch_authoring_invocation(
-        &mut self,
-        action: PatchbayAction,
-        target: String,
-    ) -> Result<(), String> {
+    fn dispatch_authoring_edit(&mut self, edit: PatchbayEdit) -> Result<(), String> {
         let mut interaction = self
             .interaction
             .take()
             .expect("interaction state is installed");
         let graph = self.graphical_form.clone();
         let result = interaction
-            .next_request_id(action.as_str())
-            .and_then(|request_id| PatchbayInteractionRequest::invoke(request_id, action, target))
+            .next_request_id(edit.operation())
+            .and_then(|request_id| PatchbayInteractionRequest::edit(request_id, edit))
             .and_then(|request| {
-                interaction.execute(graph.as_ref(), request, |invocation| {
-                    self.apply_invocation(invocation)
+                interaction.execute(graph.as_ref(), request, |request| {
+                    self.apply_interaction_request(request)
                 })
             });
         self.interaction = Some(interaction);
         self.finish_interaction(result)
     }
 
-    pub(super) fn apply_palette_placement(&mut self, target: &str) -> PatchbayInvocationOutcome {
-        let mut fields = target.splitn(3, '@');
-        let (Some(source_id), Some(revision), Some(kind)) =
-            (fields.next(), fields.next(), fields.next())
-        else {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
-        };
-        let Ok(revision) = revision.parse::<u64>() else {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
-        };
-        let Some(editor) = self.form_editor.as_mut() else {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
-        };
-        let view = editor.view();
-        if view.revision != revision
-            || view
-                .checked
-                .source_document_id
-                .as_ref()
-                .map(|id| id.as_str())
-                != Some(source_id)
-        {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
-        }
-        let kind_id = conduit_core::kind_id(kind);
-        let Ok(palette) = patchbay_model::GearPalette::standard() else {
-            return PatchbayInvocationOutcome::Failed;
-        };
-        if palette.find(&kind_id).is_none() {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
-        }
-        if editor.place_palette_kind(revision, &kind_id).is_err() {
-            return PatchbayInvocationOutcome::Failed;
-        }
-        self.form_selection = 0;
-        if self.refresh_graphical_form().is_err() {
-            return PatchbayInvocationOutcome::Failed;
-        }
-        let title = self.title();
-        if let Some(window) = &self.window {
-            window.set_title(&title);
-        }
-        PatchbayInvocationOutcome::Succeeded
-    }
-
     pub(super) fn apply_authoring_edit(
         &mut self,
-        invocation: &PatchbayInvocation,
+        edit: &PatchbayEdit,
     ) -> PatchbayInvocationOutcome {
-        let fields = invocation.target_identity.split('@').collect::<Vec<_>>();
-        let expected = match invocation.action {
-            PatchbayAction::ConnectPorts | PatchbayAction::RerouteCord => 5,
-            PatchbayAction::ConfigureGear => 6,
-            _ => 4,
-        };
-        if fields.len() != expected {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
-        }
-        let Ok(revision) = fields[1].parse::<u64>() else {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected);
-        };
+        let basis = edit.basis();
         let Some(editor) = self.form_editor.as_mut() else {
             return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
         };
         let view = editor.view();
-        if view.revision != revision
-            || view
-                .checked
-                .source_document_id
-                .as_ref()
-                .map(|id| id.as_str())
-                != Some(fields[0])
+        if view.revision != basis.source_revision
+            || view.checked.source_document_id.as_ref() != Some(&basis.source_document_id)
             || self
                 .graphical_form
                 .as_ref()
-                .map(|graph| graph.expanded_form_id.as_str())
-                != Some(fields[2])
+                .map(|graph| &graph.expanded_form_id)
+                != Some(&basis.expanded_form_id)
         {
             return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
         }
-        let edit = match invocation.action {
-            PatchbayAction::DuplicateGear => direct_gear_name(fields[3])
-                .and_then(|name| editor.duplicate_gear(revision, name).map(|_| ())),
-            PatchbayAction::RemoveGear => {
-                direct_gear_name(fields[3]).and_then(|name| editor.remove_gear(revision, name))
+        let revision = basis.source_revision;
+        let expanded = &basis.expanded_form_id;
+        let result = match edit {
+            PatchbayEdit::PlaceGear { kind_id, .. } => {
+                let kind_id = conduit_core::kind_id(kind_id);
+                match patchbay_model::GearPalette::standard() {
+                    Ok(palette) if palette.find(&kind_id).is_some() => {
+                        editor.place_palette_kind(revision, &kind_id).map(|_| ())
+                    }
+                    Ok(_) => {
+                        return PatchbayInvocationOutcome::Refused(
+                            PatchbayRefusal::OperationRejected,
+                        )
+                    }
+                    Err(_) => return PatchbayInvocationOutcome::Failed,
+                }
             }
-            PatchbayAction::RemoveCord => editor.remove_cord(
-                revision,
-                &conduit_core::ExpandedFormId::from(fields[2]),
-                fields[3],
-            ),
-            PatchbayAction::ConnectPorts => editor.connect_ports(
-                revision,
-                &conduit_core::ExpandedFormId::from(fields[2]),
-                fields[3],
-                fields[4],
-            ),
-            PatchbayAction::RerouteCord => editor.reroute_cord_endpoint(
-                revision,
-                &conduit_core::ExpandedFormId::from(fields[2]),
-                fields[3],
-                fields[4],
-            ),
-            PatchbayAction::ConfigureGear => direct_gear_name(fields[3]).and_then(|name| {
-                let value = decode_value(fields[5])?;
-                editor.set_gear_configuration(
-                    revision,
-                    &conduit_core::ExpandedFormId::from(fields[2]),
-                    name,
-                    fields[4],
-                    value,
-                )
+            PatchbayEdit::DuplicateGear {
+                subject_identity, ..
+            } => direct_gear_name(subject_identity)
+                .and_then(|name| editor.duplicate_gear(revision, name).map(|_| ())),
+            PatchbayEdit::RemoveGear {
+                subject_identity, ..
+            } => direct_gear_name(subject_identity)
+                .and_then(|name| editor.remove_gear(revision, name)),
+            PatchbayEdit::RemoveCord {
+                subject_identity, ..
+            } => editor.remove_cord(revision, expanded, subject_identity),
+            PatchbayEdit::ConnectPorts {
+                source_identity,
+                sink_identity,
+                ..
+            } => editor.connect_ports(revision, expanded, source_identity, sink_identity),
+            PatchbayEdit::RerouteCord {
+                cord_identity,
+                endpoint_identity,
+                ..
+            } => editor.reroute_cord_endpoint(revision, expanded, cord_identity, endpoint_identity),
+            PatchbayEdit::ConfigureGear {
+                subject_identity,
+                key,
+                value,
+                ..
+            } => direct_gear_name(subject_identity).and_then(|name| {
+                editor.set_gear_configuration(revision, expanded, name, key, value.clone())
             }),
-            _ => unreachable!("authoring action was matched"),
         };
-        if let Err(error) = edit {
+        if let Err(error) = result {
             return match error {
                 patchbay_model::FormEditorError::IncompatiblePorts(_) => {
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::IncompatiblePorts)
@@ -288,72 +216,11 @@ impl PatchbayApplication {
         if self.refresh_graphical_form().is_err() {
             return PatchbayInvocationOutcome::Failed;
         }
+        let title = self.title();
+        if let Some(window) = &self.window {
+            window.set_title(&title);
+        }
         PatchbayInvocationOutcome::Succeeded
-    }
-}
-
-fn encode_value(value: &conduit_core::ConfigurationValue) -> String {
-    let (tag, bytes): (&str, Vec<u8>) = match value {
-        conduit_core::ConfigurationValue::Bool(value) => ("b", value.to_string().into_bytes()),
-        conduit_core::ConfigurationValue::U64(value) => ("u", value.to_string().into_bytes()),
-        conduit_core::ConfigurationValue::I64(value) => ("i", value.to_string().into_bytes()),
-        conduit_core::ConfigurationValue::Text(value) => ("t", value.as_bytes().to_vec()),
-    };
-    let hex = bytes
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    format!("{tag}{hex}")
-}
-
-fn decode_value(
-    encoded: &str,
-) -> Result<conduit_core::ConfigurationValue, patchbay_model::FormEditorError> {
-    let (tag, hex) = encoded.split_at(encoded.len().min(1));
-    if hex.len() % 2 != 0 {
-        return Err(patchbay_model::FormEditorError::InvalidConfiguration(
-            "malformed control value".into(),
-        ));
-    }
-    let bytes = (0..hex.len())
-        .step_by(2)
-        .map(|index| u8::from_str_radix(&hex[index..index + 2], 16))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| {
-            patchbay_model::FormEditorError::InvalidConfiguration("malformed control value".into())
-        })?;
-    let text = String::from_utf8(bytes).map_err(|_| {
-        patchbay_model::FormEditorError::InvalidConfiguration("control text is not UTF-8".into())
-    })?;
-    match tag {
-        "b" => text
-            .parse::<bool>()
-            .map(conduit_core::ConfigurationValue::Bool)
-            .map_err(|_| {
-                patchbay_model::FormEditorError::InvalidConfiguration(
-                    "expected true or false".into(),
-                )
-            }),
-        "u" => text
-            .parse::<u64>()
-            .map(conduit_core::ConfigurationValue::U64)
-            .map_err(|_| {
-                patchbay_model::FormEditorError::InvalidConfiguration(
-                    "expected a whole number".into(),
-                )
-            }),
-        "i" => text
-            .parse::<i64>()
-            .map(conduit_core::ConfigurationValue::I64)
-            .map_err(|_| {
-                patchbay_model::FormEditorError::InvalidConfiguration(
-                    "expected signed scalar microunits".into(),
-                )
-            }),
-        "t" => Ok(conduit_core::ConfigurationValue::Text(text)),
-        _ => Err(patchbay_model::FormEditorError::InvalidConfiguration(
-            "unknown control value type".into(),
-        )),
     }
 }
 
