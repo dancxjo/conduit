@@ -16,6 +16,7 @@ mod execution;
 mod face;
 mod implementation;
 mod info;
+mod key_event;
 mod port;
 mod resource;
 mod robotics_info;
@@ -32,6 +33,7 @@ pub use implementation::{
     RealizationCharacteristicValue,
 };
 pub use info::*;
+pub use key_event::*;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use resource::*;
 pub use robotics_info::*;

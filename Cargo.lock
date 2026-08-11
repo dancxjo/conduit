@@ -508,6 +508,9 @@ dependencies = [
 [[package]]
 name = "conduit-kernel"
 version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
 
 [[package]]
 name = "conduit-net"

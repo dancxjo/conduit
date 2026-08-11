@@ -6,3 +6,6 @@ edition = "2021"
 [features]
 default = []
 alloc = []
+
+[dev-dependencies]
+conduit-core = { path = "../conduit-core" }
