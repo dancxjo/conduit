@@ -52,6 +52,34 @@ requires all five after a successful proof, and writes their exact identities,
 rendering inputs, semantic provenance, byte lengths, and SHA-256 digests into
 the ordinary evidence manifest.
 
+## Accepted current views
+
+These stable links advance only when the trusted main-only publisher accepts a
+new exact commit. Each image links to its provenance page. The prose states the
+same essential result because the images document a rendering; they do not
+define semantic success.
+
+After keyboard selection succeeds through an admitted interaction Play, the
+selected Gear is correlated across the structural list, graph, and inspector.
+
+[![Current accepted Patchbay state with one Gear selected and correlated in the inspector](https://dancxjo.github.io/conduit/current/patchbay/selected-gear.png)](https://dancxjo.github.io/conduit/current/patchbay/selected-gear/)
+
+After an ordinary control invocation succeeds, Patchbay exposes the correlated
+Interaction Plan, Play, and disposition alongside the resulting presentation.
+
+[![Current accepted Patchbay state after an interaction Play succeeds](https://dancxjo.github.io/conduit/current/patchbay/interaction.png)](https://dancxjo.github.io/conduit/current/patchbay/interaction/)
+
+After renderer delivery is lost, the UI reports disconnection while retaining
+the last accepted presentation revision and exact Plan rather than inventing a
+new success or erasing the known state.
+
+[![Current accepted Patchbay state retaining its exact Plan after renderer delivery loss](https://dancxjo.github.io/conduit/current/patchbay/disconnected.png)](https://dancxjo.github.io/conduit/current/patchbay/disconnected/)
+
+`cargo xtask evidence docs-verify` rejects missing, duplicated, immutable-commit,
+or ephemeral-artifact references. At publication, the same command additionally
+requires each stable image to match the exact current commit bytes and requires
+its page to expose that commit's provenance before Pages can deploy.
+
 ## Selective visual regression
 
 Documentary capture and pixel assertions deliberately use different specs and

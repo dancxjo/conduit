@@ -14,9 +14,11 @@ use std::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod documentation;
 mod gallery;
 mod verification;
 
+pub use documentation::{verify_documentation_references, DocumentationReferenceRequest};
 pub use gallery::{publish_gallery, GalleryRequest};
 pub use verification::{
     verify, ExpectedEvidenceResult, VerificationRequest, VerifiedEvidence, VerifiedOutput,

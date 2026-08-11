@@ -75,7 +75,7 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
     index.current_commit = evidence.commit.clone();
 
     write_commit_snapshot(&site_root, &request.evidence_root, &evidence)?;
-    write_current_pages(&site_root, &evidence)?;
+    write_current_pages(&site_root, &request.evidence_root, &evidence)?;
     write_root_index(&site_root, &index)?;
     write_json(&site_root.join("gallery.json"), &index)?;
     fs::write(site_root.join(".nojekyll"), b"")
@@ -254,7 +254,11 @@ fn write_commit_snapshot(
     )
 }
 
-fn write_current_pages(root: &Path, evidence: &VerifiedEvidence) -> Result<(), String> {
+fn write_current_pages(
+    root: &Path,
+    evidence_root: &Path,
+    evidence: &VerifiedEvidence,
+) -> Result<(), String> {
     let current_root = root.join("current/patchbay");
     if current_root.exists() {
         fs::remove_dir_all(&current_root)
@@ -264,15 +268,16 @@ fn write_current_pages(root: &Path, evidence: &VerifiedEvidence) -> Result<(), S
         .map_err(|error| format!("cannot create current gallery: {error}"))?;
     for (scenario, label) in SCENARIOS {
         let output = required_output(evidence, &format!("patchbay.{scenario}"))?;
+        copy_file(
+            &evidence_root.join(&output.path),
+            &current_root.join(format!("{scenario}.png")),
+        )?;
         write_scenario_page(
             &current_root.join(scenario).join("index.html"),
             label,
             evidence,
             output,
-            &format!(
-                "../../../commits/{}/patchbay/{scenario}.png",
-                evidence.commit
-            ),
+            &format!("../{scenario}.png"),
             "../../../index.html",
         )?;
     }

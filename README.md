@@ -22,6 +22,16 @@ Conduit then asks a different question:
 
 That is where Hosts, Bases, Signs, Plans, and Plays enter.
 
+## Current accepted Patchbay
+
+The Patchbay view below is generated only after the exact accepted `main`
+commit passes the semantic browser proof. It shows one manifestation of the
+current Form and its structural subjects; the Form, Plan, Play, and Signs—not
+the pixels—remain authoritative. Follow the image to inspect its exact commit,
+browser, viewport, digest, and semantic provenance.
+
+[![Current accepted Conduit Patchbay overview showing the Form graph and structural view](https://dancxjo.github.io/conduit/current/patchbay/overview.png)](https://dancxjo.github.io/conduit/current/patchbay/overview/)
+
 ---
 
 ## A tiny example
