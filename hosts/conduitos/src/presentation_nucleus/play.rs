@@ -143,22 +143,30 @@ pub fn run(
                 }
                 _ => {
                     let output = transform(placement, &input)?;
-                    if placement.kind_id.as_str() == conduit_std_catalog::LAYOUT_COLUMN_KIND {
+                    let terminal_layout =
+                        placement.kind_id.as_str() == conduit_std_catalog::LAYOUT_COLUMN_KIND;
+                    if terminal_layout {
                         let frame = LayoutFrame::decode(&output)
                             .map_err(|_| PresentationRunError::Layout)?;
                         layout_children = Some(frame.child_count);
                     }
-                    let value = scheduler
-                        .store_host_value(&output)
-                        .map_err(|_| PresentationRunError::Value)?;
-                    let maximum = placement
-                        .host_operations
-                        .first()
-                        .ok_or(PresentationRunError::Shape)?
-                        .maximum_output_bytes;
-                    let bounded = BoundedValueRef::new(value, maximum)
-                        .map_err(|_| PresentationRunError::Value)?;
-                    complete(&mut scheduler, request, Some(bounded))?;
+                    let bounded = if terminal_layout {
+                        None
+                    } else {
+                        let value = scheduler
+                            .store_host_value(&output)
+                            .map_err(|_| PresentationRunError::Value)?;
+                        let maximum = placement
+                            .host_operations
+                            .first()
+                            .ok_or(PresentationRunError::Shape)?
+                            .maximum_output_bytes;
+                        Some(
+                            BoundedValueRef::new(value, maximum)
+                                .map_err(|_| PresentationRunError::Value)?,
+                        )
+                    };
+                    complete(&mut scheduler, request, bounded)?;
                 }
             }
             continue;
@@ -270,7 +278,8 @@ fn prepare_scheduler(
             }
             TEXT_SOURCE_KIND => source(&mut values, b"Gear Face")?,
             conduit_std_catalog::TEXT_PRESENTATION_KIND
-            | conduit_std_catalog::GRAPHICS_PRESENTATION_KIND => PresentationOperation::Sink {
+            | conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
+            | conduit_std_catalog::LAYOUT_COLUMN_KIND => PresentationOperation::Sink {
                 maximum_input_bytes: placement
                     .host_operations
                     .first()

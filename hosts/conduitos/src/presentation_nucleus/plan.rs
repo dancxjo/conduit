@@ -16,7 +16,7 @@ use conduit_runtime::lowering::{LoweredPlanFragment, lower_plan_fragment};
 
 use super::TEXT_SOURCE_KIND;
 
-pub const FORM_SOURCE: &str = "form conduitos-gear-face {\n source: conduitos.fixture/text-source\n face: patchbay/gear-face\n source > face.subject\n}\n";
+pub const FORM_SOURCE: &str = "form conduitos-gear-face {\n source: conduitos/fixture-text-source\n face: patchbay/gear-face\n source > face.subject\n}\n";
 
 pub struct PreparedPresentationPlay {
     pub advertisement: HostAdvertisement,
@@ -116,7 +116,7 @@ fn text_source_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-text-source@1"),
         kind_id: kind_id(TEXT_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from("conduitos.fixture/text-source@1"),
+        kind_contract_revision: KindContractRevision::from("conduitos/fixture-text-source@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE,
@@ -166,7 +166,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
     profile
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(TEXT_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from("conduitos.fixture/text-source@1"),
+            kind_contract_revision: KindContractRevision::from("conduitos/fixture-text-source@1"),
             inputs: Vec::new(),
             outputs: text_source_offer().outputs,
             configuration: Vec::new(),
@@ -222,13 +222,16 @@ mod tests {
     fn missing_back_and_missing_terminal_leaf_are_distinct_failures() {
         let (startup, profile) = catalogs().unwrap();
         let checked = check_syntax_document(&parse_syntax_document(FORM_SOURCE), &startup).unwrap();
-        let missing_back = expand_canonical_form_with_backs(
+        let unexpanded = expand_canonical_form_with_backs(
             &checked,
             "conduitos-gear-face",
             &profile,
             &CanonicalBackCatalog::new(),
         )
-        .unwrap_err();
+        .unwrap();
+        let missing_back =
+            default_expanded_placements(&unexpanded, &[advertisement("test-host", "test-boot")])
+                .unwrap_err();
 
         let mut backs = CanonicalBackCatalog::new();
         conduit_std_catalog::install_patchbay_presentation_backs(&startup, &profile, &mut backs)
