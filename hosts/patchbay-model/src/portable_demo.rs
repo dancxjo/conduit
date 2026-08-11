@@ -6,8 +6,8 @@ use conduit_presentation::Presentation;
 use conduit_std_host::{StdHost, StdHostConfig, ThreadTimer};
 
 use crate::{
-    AttemptedEditPresentation, DistributedRouteDemo, FormEditor, PatchbayModel,
-    PatchbayPresentation, PatchbayRequestId, PatchbayTopology, PlanDocument, PlayDocument,
+    DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayPresentation, PatchbayRequestId,
+    PatchbayTopology, PlanDocument, PlayDocument,
 };
 
 pub fn portable_demonstration() -> Result<Presentation, String> {
@@ -49,14 +49,6 @@ pub fn portable_demonstration() -> Result<Presentation, String> {
         .map_err(|error| format!("{error:?}"))?
         .presentation()
         .clone();
-    let malformed_source = format!(
-        "{}\nform malformed {{\n",
-        include_str!("../../../examples/hello.conduit")
-    );
-    let malformed =
-        FormEditor::from_source("examples/hello.conduit".into(), malformed_source.clone())
-            .map_err(|error| error.to_string())?
-            .view();
     let projection = PatchbayPresentation::new(
         1,
         editor.view(),
@@ -67,12 +59,6 @@ pub fn portable_demonstration() -> Result<Presentation, String> {
     )
     .map_err(|error| error.to_string())?
     .with_graph(crate::PatchbayGraph::from_expanded(&expanded).map_err(|error| error.to_string())?)
-    .map_err(|error| error.to_string())?
-    .with_attempted_edit(AttemptedEditPresentation {
-        revision: 1,
-        source: malformed_source,
-        diagnostics: malformed.checked.diagnostics,
-    })
     .map_err(|error| error.to_string())?;
     let body = Body::born(
         plan.source_document_id.clone(),
@@ -108,5 +94,15 @@ mod tests {
         assert_eq!(first.basis.plan_id, second.basis.plan_id);
         assert_eq!(first.basis.active_play_id, second.basis.active_play_id);
         assert_eq!(first.subjects, second.subjects);
+    }
+
+    #[test]
+    fn ordinary_startup_has_no_synthetic_diagnostics() {
+        let presentation = portable_demonstration().unwrap();
+
+        assert!(presentation
+            .subjects
+            .iter()
+            .all(|subject| subject.role != conduit_presentation::PresentationRole::Diagnostic));
     }
 }

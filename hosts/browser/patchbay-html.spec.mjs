@@ -63,8 +63,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
     await expect(page.locator("#route-cards h3").first()).toContainText("Route");
-    await expect(page.locator("#diagnostics li")).toHaveCount(1);
-    await expect(page.locator("#diagnostics li")).toContainText("CND-FRM-004");
+    await expect(page.locator("#diagnostics li")).toHaveCount(0);
     await expect(page.locator("#realizations li").first()).toBeVisible();
     await expect(page.locator("#plan")).toContainText("presentation/renderer");
     await expect(page.locator("#plan")).toContainText("presentation/renderer-dom-svg@1");
@@ -163,13 +162,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#inspector .selected-summary")).toContainText("source-port");
     expect(await page.locator("#graph .cord.selected").getAttribute("data-subject")).toBe(await third.getAttribute("data-subject"));
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/3");
-    const diagnostic=page.locator('#subjects button[data-role="Diagnostic"]').first();await diagnostic.click();
-    await expect(diagnostic).toHaveAttribute("aria-pressed","true");
-    await expect(page.locator("#inspector .inspector-hint")).toContainText("Diagnostic");
-    expect(await page.locator("#graph .diagnostic-overlay.selected").getAttribute("data-subject")).toBe(await diagnostic.getAttribute("data-subject"));
-    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/4");
     await page.locator("#toggle-linear").click();
-    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/invoke/5");
+    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/invoke/4");
     await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
     const interactionSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
     expect(interactionSnapshot.interaction.last_disposition).toBe("Succeeded");
