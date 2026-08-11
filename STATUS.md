@@ -1492,3 +1492,30 @@ invalid values, pressure, cancellation, refusal, failure, and terminal
 completion remain distinct. This adds no raw-pointer stream, universal
 gesture recognizer, widget ontology, arbitrary command bus, renderer-owned
 edit authority, or semantic layout geometry.
+
+The bounded portable layout-algebra slice from #888 is accepted at exact main
+`979ce39e6a61a8ceafd457b5042e7e940135f18e`; push workflow `31469291940`
+passed `check`, `browser-host`, and `conduitos-boot`. One allocator-free,
+fixed-capacity `presentation/layout-frame@1` Info encoding carries bounded
+viewport and child geometry. Six exact Kinds cover viewport, inset, row,
+column, stack, and alignment without placing CSS, toolkit, framebuffer, font,
+DOM, or device facts in authored meaning.
+
+The reference layout operations and an independently implemented eager
+Patchbay presenter normalize materially different internal representations to
+the same canonical geometry bytes. A representative Patchbay shell and Gear
+Face composition exercises viewport, inset, distribution, stacking, and
+alignment. The existing renderer-local Patchbay demo layout remains intact;
+it is a presentation consumer, not a second portable layout contract or source
+of runtime truth.
+
+An ordinary authored Form runs the six operations through checking, planning,
+lowering, and the production kernel before a typed test sink observes the
+result. All successful Play-time storage is preallocated. Zero and maximum
+extents, undersized frames, child-capacity and arithmetic overflow, clipping,
+division remainder, malformed encoding, pressure, cancellation, and terminal
+behavior have deterministic coverage. Layout values do not alter source,
+checked, expanded, Plan, Play, Port, Gear, or Sign identity. The generated Host
+x Kind inventory includes all six exact rows and leaves other Hosts explicitly
+unsupported. This adds no constraint solver, graph layout, animation system,
+scene graph, font measurement, pixel renderer, or physical/HIL claim.
