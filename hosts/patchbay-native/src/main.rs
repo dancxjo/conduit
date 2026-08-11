@@ -24,6 +24,7 @@ mod form_authoring;
 mod form_interaction;
 mod gui;
 mod gui_face_controls;
+mod gui_gear;
 mod gui_hit;
 mod gui_inspector;
 mod gui_primitives;

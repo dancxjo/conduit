@@ -36,6 +36,9 @@ pub struct PatchbayLayout {
     pub gears: Vec<GearPlacement>,
     #[serde(default)]
     pub cords: Vec<CordRoute>,
+    /// Gear reverse visibility is presentation state, never Form or Plan truth.
+    #[serde(default)]
+    pub reversed_gears: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,6 +61,7 @@ impl Default for PatchbayLayout {
             version: PATCHBAY_LAYOUT_VERSION,
             gears: Vec::with_capacity(MAX_PATCHBAY_GEARS),
             cords: Vec::with_capacity(MAX_PATCHBAY_CORDS),
+            reversed_gears: Vec::with_capacity(MAX_PATCHBAY_GEARS),
         }
     }
 }
@@ -102,6 +106,15 @@ impl PatchbayLayout {
             }
             validate_coordinate(route.bend_x, route.bend_y)?;
         }
+        let mut reversed = BTreeSet::new();
+        if self.reversed_gears.len() > MAX_PATCHBAY_GEARS
+            || self
+                .reversed_gears
+                .iter()
+                .any(|identity| identity.is_empty() || !reversed.insert(identity.as_str()))
+        {
+            return Err(PatchbayLayoutError::DuplicateGearPlacement);
+        }
         Ok(())
     }
 
@@ -111,6 +124,34 @@ impl PatchbayLayout {
             .find(|placement| placement.gear_identity == gear_identity)
             .filter(|placement| placement.positioned)
             .map(|placement| (placement.x, placement.y))
+    }
+
+    pub fn is_reversed(&self, gear_identity: &str) -> bool {
+        self.reversed_gears
+            .iter()
+            .any(|identity| identity == gear_identity)
+    }
+
+    pub fn flip_gear(
+        &mut self,
+        graph: &PatchbayGraph,
+        gear: &PatchbaySubjectRef,
+    ) -> Result<bool, PatchbayLayoutError> {
+        validate_gear(graph, gear)?;
+        if let Some(index) = self
+            .reversed_gears
+            .iter()
+            .position(|identity| identity == &gear.subject_identity)
+        {
+            self.reversed_gears.remove(index);
+            Ok(false)
+        } else {
+            if self.reversed_gears.len() == MAX_PATCHBAY_GEARS {
+                return Err(PatchbayLayoutError::TooManyGears);
+            }
+            self.reversed_gears.push(gear.subject_identity.clone());
+            Ok(true)
+        }
     }
 
     pub fn move_gear(
@@ -239,6 +280,8 @@ impl PatchbayLayout {
                     && cord.sink_port == route.sink_port_identity
             })
         });
+        self.reversed_gears
+            .retain(|identity| graph.gears.iter().any(|gear| &gear.identity == identity));
     }
 }
 

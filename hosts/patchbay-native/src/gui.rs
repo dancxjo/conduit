@@ -2,27 +2,25 @@
 
 use crate::{
     canvas::SoftwareCanvas,
-    gui_face_controls::draw_face_controls,
+    gui_gear::draw_gear,
     gui_hit::HitShape,
     gui_inspector::draw_inspector,
     gui_primitives::{
-        draw_regions, fill_rect, frame_rect, icon_label, layer_label, line, rgb, text, PixelRect,
-        RegionMetrics,
+        draw_regions, frame_rect, icon_label, layer_label, line, text, PixelRect, RegionMetrics,
     },
-    icon::{draw_icon, Icon},
+    icon::Icon,
     palette_view::draw_palette,
 };
 use embedded_graphics::{
     pixelcolor::Rgb888,
-    prelude::{DrawTarget, Point, Primitive},
-    primitives::{Circle, PrimitiveStyle},
-    Drawable,
+    prelude::{DrawTarget, Point},
 };
 use patchbay_model::{PatchbayGear, PatchbayGraph, PatchbayTheme, PHOSPHOR_THEME};
 
 pub use crate::gui_hit::{GuiAction, HitTarget};
 
 pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
+    + patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_PORTS
     + patchbay_model::MAX_PATCHBAY_CORDS
     + patchbay_model::MAX_PALETTE_ENTRIES
@@ -52,12 +50,12 @@ pub struct PatchbayViewContext<'a> {
 }
 
 #[derive(Clone)]
-struct GearLayout<'a> {
-    gear: &'a PatchbayGear,
-    bounds: PixelRect,
-    inputs: Vec<(String, Point)>,
-    outputs: Vec<(String, Point)>,
-    group: Option<String>,
+pub(super) struct GearLayout<'a> {
+    pub(super) gear: &'a PatchbayGear,
+    pub(super) bounds: PixelRect,
+    pub(super) inputs: Vec<(String, Point)>,
+    pub(super) outputs: Vec<(String, Point)>,
+    pub(super) group: Option<String>,
 }
 
 pub fn draw_patchbay(
@@ -116,7 +114,15 @@ pub fn draw_patchbay(
         &mut targets,
     );
     for layout in &layouts {
-        draw_gear(&mut canvas, graph, layout, selected, theme, &mut targets);
+        draw_gear(
+            &mut canvas,
+            graph,
+            layout,
+            selected,
+            presentation_layout,
+            theme,
+            &mut targets,
+        );
     }
     draw_inspector(&mut canvas, graph, selected, width, INSPECTOR_WIDTH, theme);
     draw_footer(&mut canvas, graph, selected, height, theme);
@@ -318,91 +324,6 @@ fn port_points(ports: &[patchbay_model::PatchbayPort], x: i32, y: i32) -> Vec<(S
             (port.identity.clone(), Point::new(x, y + offset))
         })
         .collect()
-}
-
-fn draw_gear<D: DrawTarget<Color = Rgb888>>(
-    target: &mut D,
-    graph: &PatchbayGraph,
-    layout: &GearLayout<'_>,
-    selected: Option<&str>,
-    theme: &PatchbayTheme,
-    targets: &mut Vec<HitTarget>,
-) {
-    let is_selected = selected == Some(layout.gear.identity.as_str());
-    fill_rect(target, layout.bounds, theme.surface);
-    frame_rect(
-        target,
-        layout.bounds,
-        if is_selected {
-            theme.focus
-        } else {
-            theme.structure_primary
-        },
-        if is_selected { 2 } else { 1 },
-    );
-    draw_icon(
-        target,
-        Icon::Gear,
-        Point::new(layout.bounds.x + 10, layout.bounds.y + 9),
-        rgb(theme.emphasis),
-    );
-    text(
-        target,
-        Point::new(layout.bounds.x + 34, layout.bounds.y + 10),
-        &match &layout.group {
-            Some(group) => format!("{} [{group}]", layout.gear.gear_id.as_str()),
-            None => layout.gear.gear_id.as_str().to_owned(),
-        },
-        theme.text_primary,
-    );
-    text(
-        target,
-        Point::new(layout.bounds.x + 12, layout.bounds.y + 29),
-        layout.gear.kind_id.as_str(),
-        theme.emphasis,
-    );
-    targets.push(HitTarget {
-        action: select_action(graph, &layout.gear.identity),
-        shape: HitShape::Rect(layout.bounds),
-    });
-    for (identity, point) in layout.inputs.iter().chain(&layout.outputs) {
-        let selected_port = selected == Some(identity.as_str());
-        let _ = Circle::with_center(*point, 9)
-            .into_styled(PrimitiveStyle::with_fill(rgb(if selected_port {
-                theme.focus
-            } else {
-                theme.structure_primary
-            })))
-            .draw(target);
-        let port = layout
-            .gear
-            .inputs
-            .iter()
-            .chain(&layout.gear.outputs)
-            .find(|port| port.identity == *identity)
-            .expect("layout Ports come from the Gear");
-        let label_x = if port.descriptor.direction == conduit_core::PortDirection::Input {
-            point.x + 12
-        } else {
-            point.x - 72
-        };
-        text(
-            target,
-            Point::new(label_x, point.y - 7),
-            port.descriptor.port_id.as_str(),
-            theme.text_secondary,
-        );
-        targets.push(HitTarget {
-            action: select_action(graph, identity),
-            shape: HitShape::Rect(PixelRect {
-                x: point.x - 10,
-                y: point.y - 10,
-                width: 20,
-                height: 20,
-            }),
-        });
-    }
-    draw_face_controls(target, graph, layout.gear, layout.bounds, theme, targets);
 }
 
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(

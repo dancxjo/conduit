@@ -13,6 +13,7 @@ pub struct HitTarget {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
     SelectSubject(PatchbaySubjectRef),
+    FlipGear(PatchbaySubjectRef),
     OpenNextForm,
     SaveForm,
     ToggleLinearView,

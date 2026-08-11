@@ -46,6 +46,15 @@ impl PatchbayApplication {
     pub(super) fn handle_gui_action(&mut self, action: GuiAction) -> Result<(), String> {
         match action {
             GuiAction::SelectSubject(subject) => self.dispatch_selection(subject)?,
+            GuiAction::FlipGear(subject) => {
+                let graph = self
+                    .graphical_form
+                    .as_ref()
+                    .ok_or("graphical Form projection is absent")?;
+                self.layout
+                    .flip_gear(graph, &subject)
+                    .map_err(|error| format!("Gear flip: {error:?}"))?;
+            }
             GuiAction::OpenNextForm => self.dispatch_invocation(PatchbayAction::OpenBack)?,
             GuiAction::SaveForm => self.dispatch_invocation(PatchbayAction::Save)?,
             GuiAction::ToggleLinearView => {
