@@ -9,11 +9,14 @@ impl PatchbayApplication {
             .with_signal()
             .with_time()
             .with_text()
+            .with_input()
             .with_state();
         if native_file_base.is_some() {
             composition = composition.with_files();
         }
-        let model = PatchbayModel::fresh_with_composition(composition);
+        let model = PatchbayModel::fresh_with_composition_and(composition, |advertisement| {
+            portable_keyboard::append_offer(advertisement)
+        })?;
         emit_report("startup", &model.startup_snapshot())?;
         let mut topology =
             PatchbayTopology::new(HISTORY_CAPACITY).map_err(|error| error.to_string())?;
@@ -122,6 +125,7 @@ impl PatchbayApplication {
             cursor_position: (0.0, 0.0),
             linear_view: false,
             modifiers: winit::keyboard::ModifiersState::empty(),
+            native_keyboard: portable_keyboard::NativeKeyboardInput::new(),
             palette_query: String::new(),
             palette_search_active: false,
             palette_drag: None,

@@ -185,7 +185,7 @@ impl HostProjection {
 }
 
 pub struct PatchbayModel {
-    host: StdHost,
+    advertisement: HostAdvertisement,
     projection: HostProjection,
 }
 
@@ -197,11 +197,21 @@ impl PatchbayModel {
 
     /// Creates a fresh process-scoped identity with the exact native host image.
     pub fn fresh_with_composition(composition: StdHostComposition) -> Self {
+        Self::fresh_with_composition_and(composition, |_| Ok(())).expect("empty extension succeeds")
+    }
+
+    /// Creates a fresh native Host image and admits platform-owned offers
+    /// before its immutable startup projection is published.
+    pub fn fresh_with_composition_and(
+        composition: StdHostComposition,
+        extend: impl FnOnce(&mut HostAdvertisement) -> Result<(), String>,
+    ) -> Result<Self, String> {
         let nonce = fresh_nonce();
-        Self::with_identity_and_composition(
+        Self::with_identity_composition_and(
             HostId::from(format!("patchbay-native/{nonce}")),
             BootId::from(format!("patchbay-boot/{nonce}")),
             composition,
+            extend,
         )
     }
 
@@ -219,6 +229,16 @@ impl PatchbayModel {
         boot_id: BootId,
         composition: StdHostComposition,
     ) -> Self {
+        Self::with_identity_composition_and(host_id, boot_id, composition, |_| Ok(()))
+            .expect("empty extension succeeds")
+    }
+
+    pub fn with_identity_composition_and(
+        host_id: HostId,
+        boot_id: BootId,
+        composition: StdHostComposition,
+        extend: impl FnOnce(&mut HostAdvertisement) -> Result<(), String>,
+    ) -> Result<Self, String> {
         let host = StdHost::new_with_composition(
             StdHostConfig {
                 host_id,
@@ -227,8 +247,13 @@ impl PatchbayModel {
             },
             composition,
         );
-        let projection = HostProjection::from_advertisement(host.advertisement());
-        Self { host, projection }
+        let mut advertisement = host.advertisement().clone();
+        extend(&mut advertisement)?;
+        let projection = HostProjection::from_advertisement(&advertisement);
+        Ok(Self {
+            advertisement,
+            projection,
+        })
     }
 
     pub fn projection(&self) -> &HostProjection {
@@ -236,7 +261,7 @@ impl PatchbayModel {
     }
 
     pub fn advertisement(&self) -> &HostAdvertisement {
-        self.host.advertisement()
+        &self.advertisement
     }
 
     pub fn startup_snapshot(&self) -> ObservatorySnapshot {

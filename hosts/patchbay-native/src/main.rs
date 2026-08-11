@@ -33,10 +33,14 @@ mod gui_hit;
 mod gui_inspector;
 mod gui_primitives;
 mod icon;
+mod keyboard_input;
 mod palette_icon;
 mod palette_icon_data;
 mod palette_input;
 mod palette_view;
+mod portable_keyboard;
+#[cfg(test)]
+mod portable_keyboard_tests;
 mod presentation;
 mod prewake_interaction;
 mod render;
@@ -72,6 +76,7 @@ struct PatchbayApplication {
     cursor_position: (f64, f64),
     linear_view: bool,
     modifiers: winit::keyboard::ModifiersState,
+    native_keyboard: portable_keyboard::NativeKeyboardInput,
     palette_query: String,
     palette_search_active: bool,
     palette_drag: Option<String>,
@@ -137,7 +142,11 @@ impl ApplicationHandler for PatchbayApplication {
             return;
         }
         match event {
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => {
+                self.native_keyboard.close();
+                event_loop.exit();
+            }
+            WindowEvent::Focused(false) => self.native_keyboard.focus_lost(),
             WindowEvent::Resized(_) => {
                 if let Some(window) = &self.window {
                     window.request_redraw();
@@ -172,40 +181,8 @@ impl ApplicationHandler for PatchbayApplication {
                     self.failure = Some(format!("native canvas release failed: {error}"));
                 }
             }
-            WindowEvent::KeyboardInput { event, .. } if event.state.is_pressed() => {
-                let prewake_handled = match self.handle_prewake_key(&event.logical_key) {
-                    Ok(handled) => handled,
-                    Err(error) => {
-                        self.failure = Some(format!("PREWAKE control failed: {error}"));
-                        event_loop.exit();
-                        true
-                    }
-                };
-                let environment_handled = match if self.prewake.is_none()
-                    || self.prewake_environment_view
-                {
-                    self.handle_environment_key(&event.logical_key)
-                } else {
-                    Ok(false)
-                } {
-                    Ok(handled) => handled,
-                    Err(error) => {
-                        self.failure = Some(format!("authored environment edit failed: {error}"));
-                        event_loop.exit();
-                        true
-                    }
-                };
-                if prewake_handled
-                    || environment_handled
-                    || self.handle_palette_key(&event.logical_key)
-                {
-                    if let Some(window) = &self.window {
-                        window.request_redraw();
-                    }
-                } else if let Err(error) = self.handle_form_key(&event.logical_key) {
-                    self.failure = Some(format!("canonical Form edit failed: {error}"));
-                    event_loop.exit();
-                }
+            WindowEvent::KeyboardInput { event, .. } => {
+                self.handle_keyboard_input(event_loop, &event)
             }
             _ => {}
         }
