@@ -51,3 +51,22 @@ bounded `captures.json` declarations. `xtask` imports those declarations,
 requires all five after a successful proof, and writes their exact identities,
 rendering inputs, semantic provenance, byte lengths, and SHA-256 digests into
 the ordinary evidence manifest.
+
+## Selective visual regression
+
+Documentary capture and pixel assertions deliberately use different specs and
+output paths. `patchbay-html.spec.mjs` always produces the five canonical images
+above after semantic proof. `patchbay-html.visual.spec.mjs` separately gates only
+four reviewed rendering contracts: canvas-control geometry, graph routing,
+selected-node styling, and high-contrast control treatment. It does not
+establish semantic identity or replace the assertions in the documentary spec.
+
+The visual-regression project uses the same pinned Chromium camera, font, and
+fixture. Its checked-in baselines admit zero differing pixels. The routing image
+masks only graph label glyphs so volatile semantic identities are not pixel-gated;
+node and line geometry remain visible and exact. No other image is masked.
+Retries, sleeps, and CI baseline updates are disabled. Intentional visual changes
+therefore appear as ordinary baseline diffs in a pull request. On mismatch,
+Playwright writes expected, actual, and diff diagnostics beneath
+`target/playwright/patchbay-visual`; the pull-request workflow retains that
+directory as failed-run diagnostics, never as canonical gallery evidence.
