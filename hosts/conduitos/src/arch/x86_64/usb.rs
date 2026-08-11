@@ -11,7 +11,7 @@ use core::{
 use super::xhci::{Event, XhciReady};
 
 #[path = "usb_descriptor.rs"]
-mod descriptor;
+pub(super) mod descriptor;
 #[path = "usb_error.rs"]
 mod error;
 
@@ -24,18 +24,18 @@ pub const MAX_CONTROL_TRANSFERS: u8 = 5;
 pub const MAX_OUTSTANDING_CONTROL_TRANSFERS: u8 = 1;
 pub const MAX_ENUMERATION_RETRIES: u8 = 0;
 pub const USB_SIGN_SLOTS: u8 = 12;
-const TRANSFER_TRBS: usize = 16;
+const TRANSFER_TRBS: usize = 32;
 const PORT_POLL_STEPS: u32 = 2_000_000;
 
 #[repr(C, align(4096))]
-struct UsbDma {
-    device_context: [u8; 2048],
-    input_context: [u8; 2112],
+pub(super) struct UsbDma {
+    pub(super) device_context: [u8; 2048],
+    pub(super) input_context: [u8; 2112],
     transfer_ring: [[u32; 4]; TRANSFER_TRBS],
     descriptor: [u8; MAX_CONFIGURATION_BYTES],
 }
 
-static mut USB_DMA: UsbDma = UsbDma {
+pub(super) static mut USB_DMA: UsbDma = UsbDma {
     device_context: [0; 2048],
     input_context: [0; 2112],
     transfer_ring: [[0; 4]; TRANSFER_TRBS],
@@ -240,6 +240,38 @@ pub fn enumerate_one(
     result.dma_alignment = core::mem::align_of::<UsbDma>() as u16;
     result.port_poll_steps = PORT_POLL_STEPS;
     Ok(result)
+}
+
+pub(super) fn select_boot_protocol(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    interface: u8,
+    image_virtual_to_physical: fn(u64) -> Option<u64>,
+) -> Result<(), UsbError> {
+    let dma_virtual = core::ptr::addr_of_mut!(USB_DMA) as u64;
+    let dma_physical = image_virtual_to_physical(dma_virtual).ok_or(UsbError::DmaAddressInvalid)?;
+    let mut ring = ControlRing {
+        enqueue: 14,
+        cycle: 1,
+        physical: dma_physical + core::mem::offset_of!(UsbDma, transfer_ring) as u64,
+        buffer_physical: dma_physical + core::mem::offset_of!(UsbDma, descriptor) as u64,
+        root_port: device.root_port,
+        short_packets: 0,
+    };
+    control(
+        controller,
+        &mut ring,
+        device.slot,
+        ControlRequest {
+            request_type: 0x21,
+            request: 11,
+            value: 0,
+            index: u16::from(interface),
+            length: 0,
+            input: false,
+        },
+    )?;
+    Ok(())
 }
 
 fn attached_root_port(controller: &XhciReady) -> Result<u8, UsbError> {

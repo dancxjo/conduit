@@ -53,6 +53,23 @@ oversized, topology, completion, disappearance, and stale-identity vectors must
 also pass. Enumeration retains structural HID-class facts for later matching;
 it does not parse HID or advertise `input/keyboard`.
 
+Prove one bounded HID boot-keyboard transition stream separately:
+
+```text
+cargo xtask conduitos hid-proof --locked
+```
+
+That command matches only the enumerated HID boot-keyboard interface and its
+single eight-byte interrupt-IN endpoint, selects Boot Protocol, configures the
+endpoint through xHCI, and admits exactly two report buffers and transfer TRBs.
+The harness waits for the armed guest transfer, then injects acknowledged QMP
+key-down and key-up actions through QEMU's input path. ConduitOS must retain
+usage `0x04` as one press and one release with exact controller, device,
+interface, and endpoint correlation. Deterministic malformed, rollover,
+duplicate, pressure, loss, and completion-identity vectors also pass. This
+layer performs no report-descriptor interpretation, layout or Unicode
+translation, and still does not advertise `input/keyboard`.
+
 That report derives the five supported architecture names from the exact
 `BOOT*.EFI` artifacts in the pinned Limine archive and refuses if they disagree
 with the architecture-valued command contract. It does not make an unavailable

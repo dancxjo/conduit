@@ -60,7 +60,7 @@ pub(super) fn validate(
         || sign.enumeration_retries != 0
         || sign.control_transfers != 5
         || sign.short_packets > sign.control_transfers
-        || sign.transfer_trbs != 16
+        || sign.transfer_trbs != 32
         || sign.dma_bytes != 8192
         || sign.dma_alignment != 4096
         || sign.port_poll_steps != 2_000_000

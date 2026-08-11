@@ -192,6 +192,14 @@ jobs:
           name: conduitos-usb-proof-${{ github.sha }}
           path: target/conduitos/x86_64/usb-proof.json
           if-no-files-found: error
+      - name: Prove one bounded ConduitOS HID boot keyboard
+        run: cargo xtask conduitos hid-proof --locked
+      - name: Retain bounded ConduitOS HID boot-keyboard proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduitos-hid-proof-${{ github.sha }}
+          path: target/conduitos/x86_64/hid-proof.json
+          if-no-files-found: error
           retention-days: 14
           compression-level: 0
       - name: Prove bounded AArch64 ConduitOS machine wake

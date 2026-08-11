@@ -1,4 +1,5 @@
 use std::{
+    fs,
     process::{Command, Stdio},
     thread,
     time::{Duration, Instant},
@@ -7,7 +8,7 @@ use std::{
 use crate::cli::GlobalOpts;
 
 use super::{
-    image,
+    hid_qmp, hid_run, image,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
     report::{GuestBootSign, GuestKernelSign, GuestRun, GuestXhciSign},
     usb_run, ConduitosArch, ConduitosError,
@@ -27,6 +28,15 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<GuestRun, Condu
 }
 
 pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, ConduitosError> {
+    let monitor_socket = paths.target.join("hid-monitor.sock");
+    let serial_path = paths.target.join("boot-serial.log");
+    let _ = fs::remove_file(&monitor_socket);
+    let _ = fs::remove_file(&serial_path);
+    let monitor = format!(
+        "unix:{},server=on,wait=off",
+        monitor_socket.to_string_lossy()
+    );
+    let serial_target = format!("file:{}", serial_path.to_string_lossy());
     let mut child = Command::new("qemu-system-x86_64")
         .args([
             "-M",
@@ -43,8 +53,10 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             "none",
             "-monitor",
             "none",
+            "-qmp",
+            &monitor,
             "-serial",
-            "stdio",
+            &serial_target,
             "-no-reboot",
             "-net",
             "none",
@@ -63,7 +75,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         ])
         .current_dir(&paths.root)
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
+        .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| {
@@ -72,6 +84,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
                 format!("cannot launch qemu-system-x86_64: {error}"),
             )
         })?;
+    hid_qmp::inject(&monitor_socket, &serial_path, &mut child)?;
     let deadline = Instant::now() + Duration::from_secs(20);
     let status = loop {
         match child.try_wait().map_err(|error| {
@@ -94,14 +107,15 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             }
         }
     };
-    let output = child.wait_with_output().map_err(|error| {
+    let _output = child.wait_with_output().map_err(|error| {
         ConduitosError::refusal(
             "qemu-boot-failed",
             format!("cannot collect QEMU output: {error}"),
         )
     })?;
+    let _ = fs::remove_file(&monitor_socket);
     if status.code() != Some(EXPECTED_QEMU_SUCCESS) {
-        let serial = String::from_utf8_lossy(&output.stdout);
+        let serial = fs::read_to_string(&serial_path).unwrap_or_default();
         let desired_tail_start = serial.len().saturating_sub(360);
         let tail_start = serial
             .char_indices()
@@ -116,8 +130,11 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             ),
         ));
     }
-    let serial = String::from_utf8(output.stdout).map_err(|error| {
-        ConduitosError::refusal("malformed-boot-sign", format!("non-UTF-8 serial: {error}"))
+    let serial = fs::read_to_string(&serial_path).map_err(|error| {
+        ConduitosError::refusal(
+            "malformed-boot-sign",
+            format!("cannot read serial: {error}"),
+        )
     })?;
     let signs: Vec<_> = serial
         .lines()
@@ -186,6 +203,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     let xhci: GuestXhciSign = serde_json::from_str(xhci_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-xhci-sign", error.to_string()))?;
     let usb = usb_run::extract(&serial)?;
+    let hid = hid_run::extract(&serial)?;
     let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
     let observatory: conduit_observatory::ObservatorySnapshot =
@@ -195,6 +213,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     validate_boot(&boot)?;
     validate_xhci(&boot, &xhci)?;
     usb_run::validate(&boot, &xhci, &usb)?;
+    hid_run::validate(&boot, &xhci, &usb, &hid)?;
     validate_kernel(&boot, &kernel)?;
     validate_observatory(&boot, &kernel, &observatory)?;
     if !opts.quiet && !opts.json {
@@ -206,6 +225,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         boot,
         xhci,
         usb,
+        hid,
         kernel,
         observatory,
         serial,

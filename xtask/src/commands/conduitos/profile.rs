@@ -35,6 +35,7 @@ pub struct Paths {
     pub observatory_snapshot: PathBuf,
     pub xhci_proof: PathBuf,
     pub usb_proof: PathBuf,
+    pub hid_proof: PathBuf,
 }
 
 impl Paths {
@@ -56,6 +57,7 @@ impl Paths {
             observatory_snapshot: target.join("observatory-snapshot.json"),
             xhci_proof: target.join("xhci-proof.json"),
             usb_proof: target.join("usb-proof.json"),
+            hid_proof: target.join("hid-proof.json"),
             root,
             target,
         })
