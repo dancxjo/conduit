@@ -716,6 +716,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-observatory",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-runtime",
  "conduit-std-catalog",
  "conduit-std-host",
