@@ -721,6 +721,40 @@ This acceptance adds no package marketplace, remote registry, dependency
 resolver, code download, implementation installation, Host placement,
 automatic hardware discovery, or physical/HIL claim.
 
+The proof-native visual-evidence contract from #821 is accepted at exact main
+`68b332af90690ef9fae69403bb4c77557118ef18`; push workflow `31445944339`
+passed `check`, `browser-host`, and `conduitos-boot`. The repository-owned
+`cargo xtask prove browser-host` entrance writes the versioned
+`conduit.evidence-manifest/v1` envelope beneath a deterministic
+`target/conduit-evidence/browser-host` root, with an explicit bounded-root
+override available to local and CI consumers. GitHub Actions transports no
+special semantic format: the same `xtask` implementation owns local and CI
+manifest meaning.
+
+Evidence declarations carry exact capture, kind, relative path, media type,
+requiredness, scenario and optional step identities. Their provenance can bind
+the pinned browser and rendering environment, presentation revision, Plan,
+active Play, manifestation and renderer identities, plus the semantic
+disposition already asserted before capture. The envelope records the exact
+checked-out commit and proof/suite identities without putting wall-clock time
+into evidence identity. Existing proof suites without evidence declarations
+retain their previous execution behavior.
+
+Before a result can be `complete`, validation confines regular-file outputs
+beneath the configured root, rejects traversal, symlink escape, duplicate
+identities and paths, more than 64 declarations, files above 16 MiB, and any
+missing required declaration, and SHA-256 binds every listed object to its
+exact bytes. A failed, interrupted, or incomplete proof writes the distinct
+`diagnostic-incomplete` disposition instead of publishable success. The local
+negative run exercised that distinction when its WebKit dependency was absent;
+the merged-main browser-host job completed the same proof-native manifest path
+in the pinned CI environment.
+
+This acceptance defines the evidence and provenance contract only. It emits no
+canonical Patchbay screenshot yet and adds no Actions artifact upload, accepted
+main gallery, documentation publication, pixel-diff policy, second runtime, or
+new source of semantic truth. #822 owns the first deterministic captures.
+
 The first ConduitOS boot slice from #588 is accepted at exact main
 `35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
 passed `check`, `browser-host`, and `conduitos-boot`. The architecture-neutral
