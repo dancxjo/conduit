@@ -36,6 +36,7 @@ mod portable_graph_projection;
 mod portable_graphics;
 mod portable_layout;
 mod portable_projection;
+mod portable_route_projection;
 mod presenter_capstone;
 #[cfg(test)]
 mod presenter_capstone_tests;

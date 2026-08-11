@@ -17,6 +17,10 @@ const REQUIRED_BROWSER_OUTPUTS: &[&str] = &[
     "patchbay.capture-declarations",
     "patchbay.overview",
     "patchbay.selected-gear",
+    "patchbay.plan-lens",
+    "patchbay.play-lens",
+    "patchbay.signs-lens",
+    "patchbay.route-recovery",
     "patchbay.interaction",
     "patchbay.high-contrast",
     "patchbay.disconnected",
@@ -184,7 +188,7 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
             .filter(|output| output.kind == EvidenceKind::Screenshot)
             .collect();
         if screenshots.len() != REQUIRED_BROWSER_OUTPUTS.len() - 1 {
-            return Err("complete browser evidence must contain exactly five screenshots".into());
+            return Err("complete browser evidence must contain exactly nine screenshots".into());
         }
         for screenshot in screenshots {
             if screenshot.media_type != "image/png"
