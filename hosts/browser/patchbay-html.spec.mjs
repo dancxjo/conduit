@@ -59,7 +59,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.goto(url);
     await expect(page.locator("#status")).toContainText("Presentation revision 1");
     await expect(page.locator("#status")).toContainText("Manifestation Available");
-    await expect(page.getByRole("heading",{name:"Form"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Semantic canvas"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
     await expect(page.locator("#route-cards h3").first()).toContainText("Route");
@@ -84,6 +84,15 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#topology li").first()).toContainText("boot");
     await expect(page.locator("#route-cards li").filter({hasText:"USB CDC"}).first()).toBeVisible();
     await expect(page.locator("#route-cards li").filter({hasText:"WebSocket"}).first()).toBeVisible();
+    const workspace=await page.locator(".workspace").boundingBox();
+    const canvas=await page.locator("#form").boundingBox();
+    const inspector=await page.locator("#inspector").boundingBox();
+    expect(workspace).not.toBeNull();expect(canvas).not.toBeNull();expect(inspector).not.toBeNull();
+    expect(canvas.width).toBeGreaterThan(workspace.width/2);
+    expect(canvas.height).toBeGreaterThan(600);
+    expect(canvas.y).toBeLessThan(180);
+    expect(inspector.x).toBeGreaterThan(canvas.x);
+    await expect(page.getByRole("navigation",{name:"Patchbay workspace"})).toContainText("Linear");
 
     expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--patchbay-theme-identity").trim())).toBe('"conduit.patchbay/phosphor@1"');
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");

@@ -49,7 +49,8 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     assert!(index.contains("Cache-Control: no-store"));
     assert!(index.contains("X-Content-Type-Options: nosniff"));
     assert!(index.contains("Content-Security-Policy: default-src 'self'"));
-    assert!(index.contains("One truth, rendered for the browser"));
+    assert!(index.contains("Semantic canvas"));
+    assert!(index.contains("Exact truth and accessibility"));
 
     let response = request("/api/snapshot", "GET");
     let body = response.split("\r\n\r\n").nth(1).unwrap();
