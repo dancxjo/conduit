@@ -143,6 +143,7 @@ pub(super) fn build_advertisement(
     config: StdHostConfig,
     composition: StdHostComposition,
     playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+    midi_output: Option<&crate::hosted_midi::HostedMidiSelection>,
     playback_proof: bool,
 ) -> HostAdvertisement {
     let mut capabilities = Vec::new();
@@ -240,6 +241,9 @@ pub(super) fn build_advertisement(
     if playback.is_some() {
         capabilities.push(conduit_std_catalog::audio_play_alsa_hw_offer());
     }
+    if midi_output.is_some() {
+        capabilities.push(conduit_std_catalog::music_play_midi_offer());
+    }
     if playback_proof {
         capabilities.push(installed_std::test_pcm_source_offer());
     }
@@ -282,6 +286,14 @@ pub(super) fn build_advertisement(
         resources.push(resource_offer(
             playback.pool_id().as_str(),
             conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CLASS,
+            1,
+        ));
+        resources.sort();
+    }
+    if let Some(midi_output) = midi_output {
+        resources.push(resource_offer(
+            midi_output.resource_pool_id().as_str(),
+            conduit_std_catalog::MIDI_OUTPUT_RESOURCE_CLASS,
             1,
         ));
         resources.sort();

@@ -269,6 +269,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 pub struct StdHost {
     advertisement: HostAdvertisement,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
+    midi_output: Option<hosted_midi::HostedMidiSelection>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -294,12 +295,14 @@ impl StdHost {
     }
 
     pub fn new_with_composition(config: StdHostConfig, composition: StdHostComposition) -> Self {
-        let advertisement = composition::build_advertisement(config, composition, None, false);
+        let advertisement =
+            composition::build_advertisement(config, composition, None, None, false);
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)
             .expect("std kernel resource offers are exact and bounded");
         Self {
             advertisement,
             playback: None,
+            midi_output: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -319,11 +322,39 @@ impl StdHost {
             );
         }
         let advertisement =
-            composition::build_advertisement(config, composition, Some(&playback), false);
+            composition::build_advertisement(config, composition, Some(&playback), None, false);
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
             playback: Some(playback),
+            midi_output: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    pub fn new_with_midi_output(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        midi_output: hosted_midi::HostedMidiSelection,
+    ) -> Result<Self, String> {
+        if midi_output.boot_id() != &config.boot_id
+            || midi_output.offer_generation() != config.offer_generation
+            || midi_output.observation().direction
+                != hosted_midi::MidiEndpointDirection::WritableDestination
+        {
+            return Err(
+                "MIDI output observation does not match direction, Boot, and generation".into(),
+            );
+        }
+        let advertisement =
+            composition::build_advertisement(config, composition, None, Some(&midi_output), false);
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            playback: None,
+            midi_output: Some(midi_output),
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -332,6 +363,10 @@ impl StdHost {
 
     pub fn advertisement(&self) -> &HostAdvertisement {
         &self.advertisement
+    }
+
+    pub fn midi_output_selection(&self) -> Option<&hosted_midi::HostedMidiSelection> {
+        self.midi_output.as_ref()
     }
 
     pub(crate) fn new_with_playback_proof(
@@ -349,12 +384,14 @@ impl StdHost {
             config,
             StdHostComposition::minimal(),
             Some(&playback),
+            None,
             true,
         );
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
             playback: Some(playback),
+            midi_output: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -540,8 +577,13 @@ pub struct LegacyStdFixtureHost {
 #[cfg(feature = "legacy-fixture-driver")]
 impl LegacyStdFixtureHost {
     pub fn new_with_config(config: StdHostConfig) -> Self {
-        let advertisement =
-            composition::build_advertisement(config, StdHostComposition::reference(), None, false);
+        let advertisement = composition::build_advertisement(
+            config,
+            StdHostComposition::reference(),
+            None,
+            None,
+            false,
+        );
         let registry = signal_registry(
             ImplementationId::from("std/pulse-v1"),
             ImplementationId::from("std/stdout-show-signal-v1"),
