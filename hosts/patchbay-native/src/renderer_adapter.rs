@@ -10,6 +10,28 @@ use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
 use patchbay_model::{simulated_advertisements, PrewakeState};
 use std::num::NonZeroU32;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum RenderView {
+    Environment,
+    Patchbay,
+    Document,
+}
+
+fn select_render_view(
+    has_graph: bool,
+    has_environment: bool,
+    has_prewake: bool,
+    prewake_environment_view: bool,
+) -> RenderView {
+    if has_prewake && prewake_environment_view && has_environment {
+        RenderView::Environment
+    } else if has_graph {
+        RenderView::Patchbay
+    } else {
+        RenderView::Document
+    }
+}
+
 impl PatchbayApplication {
     pub(super) fn render(&mut self) -> Result<(), String> {
         match self.render_output() {
@@ -91,7 +113,13 @@ impl PatchbayApplication {
             .map_err(|error| error.to_string())?;
         let mut buffer = surface.buffer_mut().map_err(|error| error.to_string())?;
         buffer.fill(BACKGROUND);
-        let hit_targets = if self.prewake.is_none() || self.prewake_environment_view {
+        let render_view = select_render_view(
+            graph.is_some(),
+            self.environment.is_some(),
+            self.prewake.is_some(),
+            self.prewake_environment_view,
+        );
+        let hit_targets = if render_view == RenderView::Environment {
             if let Some(environment) = &self.environment {
                 crate::environment_view::draw_environment(
                     &mut buffer,
@@ -159,5 +187,28 @@ impl PatchbayApplication {
         }
         self.rendered_once = true;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{select_render_view, RenderView};
+
+    #[test]
+    fn render_selection_keeps_default_form_launch_on_patchbay() {
+        let cases = [
+            (true, false, false, false, RenderView::Patchbay),
+            (true, true, false, false, RenderView::Patchbay),
+            (true, true, true, false, RenderView::Patchbay),
+            (true, true, true, true, RenderView::Environment),
+            (false, false, false, false, RenderView::Document),
+        ];
+
+        for (has_graph, has_environment, has_prewake, environment_view, expected) in cases {
+            assert_eq!(
+                select_render_view(has_graph, has_environment, has_prewake, environment_view,),
+                expected
+            );
+        }
     }
 }
