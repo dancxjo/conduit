@@ -17,6 +17,7 @@ pub fn run_reviewed_sequences(
     build_id: &str,
     image_id: &str,
     events: &[KeyEvent; PHYSICAL_TRANSITIONS],
+    framebuffer: Option<&conduit_observatory::FramebufferBasis>,
 ) -> Result<(), &'static str> {
     let prepared = prepare(identities, offer, build_id)?;
     arch::early_write(b"CONDUIT_KEYBOARD_TEXT_PRESENT ");
@@ -57,7 +58,13 @@ pub fn run_reviewed_sequences(
     );
     arch::early_write(sign.as_bytes());
     let snapshot = keyboard_text_observatory::completed_snapshot(
-        record, identities, offer, &prepared, build_id, image_id,
+        record,
+        identities,
+        offer,
+        &prepared,
+        build_id,
+        image_id,
+        framebuffer,
     )
     .map_err(|_| "keyboard-text-observatory-refused")?;
     arch::early_write(keyboard_text_observatory::EXPORT_PREFIX.as_bytes());

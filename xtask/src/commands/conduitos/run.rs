@@ -260,7 +260,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         &keyboard_text_observatory,
     )?;
     validate_kernel(&boot, &kernel)?;
-    validate_observatory(&boot, &kernel, &observatory)?;
+    validate_observatory(&boot, &kernel, &presentation, &observatory)?;
     if !opts.quiet && !opts.json {
         println!("{}", signs[0]);
         println!("{}", kernel_signs[0]);
@@ -410,7 +410,7 @@ fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {
         || sign.host_id.len() != 64
         || sign.boot_id.len() != 64
         || sign.memory_regions == 0
-        || sign.runtime_arena_bytes != 4_194_304
+        || sign.runtime_arena_bytes != 1_048_576
     {
         return Err(ConduitosError::refusal(
             "invalid-boot-sign",
@@ -493,6 +493,7 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
 fn validate_observatory(
     boot: &GuestBootSign,
     kernel: &GuestKernelSign,
+    presentation: &GuestPresentationSign,
     snapshot: &conduit_observatory::ObservatorySnapshot,
 ) -> Result<(), ConduitosError> {
     use conduit_observatory::{BootProofClass, OperationalState, PlanLifecycle};
@@ -779,7 +780,12 @@ fn validate_observatory(
                 || !provenance.boot_artifacts.is_empty()
                 || provenance.initial_plan_artifact_id.is_some()
                 || provenance.recovery_plan_artifact_id.is_some()
-                || !provenance.framebuffers.is_empty()
+                || provenance.framebuffers.len() != 1
+                || provenance.framebuffers[0].base_id.as_str() != presentation.display_base_id
+                || provenance.framebuffers[0].width != presentation.display_width
+                || provenance.framebuffers[0].height != presentation.display_height
+                || provenance.framebuffers[0].pitch_bytes != presentation.display_pitch
+                || provenance.framebuffers[0].bits_per_pixel != presentation.display_bits_per_pixel
                 || provenance.proof_class != BootProofClass::FreestandingEmulator
         })
     {
