@@ -112,10 +112,12 @@ jobs:
         with:
           cache-on-failure: true
       - name: Install deterministic image and emulator tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-efi-aarch64 ovmf-ia32
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
       - name: Prove bounded ConduitOS kernel ownership
         run: cargo xtask conduitos prove --arch x86-64 --locked
       - name: Prove bounded AArch64 ConduitOS machine wake
         run: cargo xtask conduitos prove --arch aarch64 --locked
       - name: Prove IA-32 ConduitOS machine wake
         run: cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos prove --arch ia32 --locked
+      - name: Prove RISC-V64 ConduitOS entry
+        run: cargo xtask conduitos prove --arch riscv64 --locked

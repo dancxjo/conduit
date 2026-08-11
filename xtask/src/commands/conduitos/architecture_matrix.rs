@@ -109,7 +109,10 @@ fn build_matrix(artifacts: &BTreeSet<String>) -> Result<ArchitectureMatrix, Cond
 fn row(arch: ConduitosArch) -> ArchitectureRow {
     let boot_accepted = matches!(
         arch,
-        ConduitosArch::Ia32 | ConduitosArch::X86_64 | ConduitosArch::Aarch64
+        ConduitosArch::Ia32
+            | ConduitosArch::X86_64
+            | ConduitosArch::Aarch64
+            | ConduitosArch::Riscv64
     );
     let full_spine_accepted = arch == ConduitosArch::X86_64;
     let ordinary_form_accepted =
@@ -132,7 +135,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::Riscv64 => (
             "BOOTRISCV64.EFI",
             riscv64_a0::TARGET,
-            "A0 compile/link accepted; A1 boot not established",
+            "A1 boot accepted; A2 machine wake not established",
         ),
         ConduitosArch::Loongarch64 => (
             "BOOTLOONGARCH64.EFI",
@@ -205,7 +208,8 @@ mod tests {
             .unwrap();
         assert!(riscv64.executable_backend_present);
         assert!(riscv64.a0_compile_link);
-        assert!(!riscv64.a1_boot);
+        assert!(riscv64.a1_boot);
+        assert!(!riscv64.a2_machine_wake);
         let loongarch64 = matrix
             .architectures
             .iter()

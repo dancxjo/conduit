@@ -11,6 +11,7 @@ mod profile;
 mod prove;
 mod report;
 mod riscv64_a0;
+mod riscv64_a1;
 mod run;
 mod std_gap;
 mod timing_profile;
@@ -98,7 +99,10 @@ impl ConduitosArch {
     }
 
     fn require_boot_backend(self) -> Result<(), ConduitosError> {
-        if matches!(self, Self::Ia32 | Self::X86_64 | Self::Aarch64) {
+        if matches!(
+            self,
+            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64
+        ) {
             Ok(())
         } else {
             Err(ConduitosError::refusal(
@@ -160,12 +164,17 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             match target.arch {
                 ConduitosArch::Aarch64 => aarch64_a1::run(opts),
                 ConduitosArch::Ia32 => ia32_a1::run(opts),
+                ConduitosArch::Riscv64 => riscv64_a1::run(opts),
                 _ => run::execute(target.arch, opts).map(|_| ()),
             }
         }
         ConduitosCommand::Prove(target) => {
             target.arch.require_boot_backend()?;
-            prove::execute(target.arch, opts)
+            if target.arch == ConduitosArch::Riscv64 {
+                riscv64_a1::prove(opts)
+            } else {
+                prove::execute(target.arch, opts)
+            }
         }
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
