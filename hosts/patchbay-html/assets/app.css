@@ -28,6 +28,7 @@ main { padding:.75rem 1rem 2rem; }
 #subjects { list-style:none; padding:0; }
 #subjects button { width:100%; text-align:left; margin:.15rem 0; overflow-wrap:anywhere; }
 .inspector-hint { color:var(--patchbay-text-secondary); font-size:.85rem; }
+.exact-selection[hidden] { display:none; }
 .status-strip { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; min-height:2.75rem; margin:.75rem 0; padding:.55rem .8rem; border:1px solid var(--patchbay-structure-secondary); border-left:5px solid var(--patchbay-success); background:var(--patchbay-surface); }
 .status-strip span { color:var(--patchbay-text-secondary); }
 .deep-inspection { margin-top:.75rem; }
@@ -36,8 +37,16 @@ main { padding:.75rem 1rem 2rem; }
 .node { fill:var(--patchbay-surface); stroke:var(--patchbay-structure-primary); stroke-width:2; }
 .node-label { fill:var(--patchbay-text-primary); pointer-events:none; }
 .relationship { stroke:var(--patchbay-structure-primary); stroke-width:2; }
+.gear-icon { fill:var(--patchbay-emphasis); font-size:24px; font-weight:700; pointer-events:none; }
+.gear-label { font-size:13px; font-weight:700; }
+.authored-control { fill:var(--patchbay-text-secondary); font-size:9px; pointer-events:none; }
+.port-anchor { fill:var(--patchbay-background); stroke:var(--patchbay-structure-primary); stroke-width:3; }
+.port-label { fill:var(--patchbay-text-primary); font-size:11px; pointer-events:none; }
+.cord-line { stroke-width:4; }
+.diagnostic-badge { fill:var(--patchbay-surface); stroke:var(--patchbay-warning); stroke-width:2; }
+.diagnostic-label { fill:var(--patchbay-warning); font-size:10px; pointer-events:none; }
 g.selected .node { stroke:var(--patchbay-focus); stroke-width:4; }
-g.selected line { stroke:var(--patchbay-focus); stroke-width:5; }
+g.selected line,g.selected .port-anchor,g.selected .diagnostic-badge { stroke:var(--patchbay-focus); stroke-width:5; }
 .route-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; }
 .route-card { border-left:5px solid var(--patchbay-structure-primary); padding:.8rem; background:var(--patchbay-surface); }
 .unavailable { text-decoration:line-through; color:var(--patchbay-muted); }

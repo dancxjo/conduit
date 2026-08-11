@@ -32,6 +32,7 @@ mod palette;
 mod patchbay_backs;
 mod portable_composition;
 mod portable_demo;
+mod portable_graph_projection;
 mod portable_graphics;
 mod portable_layout;
 mod portable_projection;

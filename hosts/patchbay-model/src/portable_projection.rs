@@ -32,9 +32,9 @@ impl core::fmt::Display for PortableProjectionError {
 
 impl std::error::Error for PortableProjectionError {}
 
-struct ContentBuilder {
+pub(super) struct ContentBuilder {
     subjects: Vec<PresentationSubject>,
-    relationships: Vec<PresentationRelationship>,
+    pub(super) relationships: Vec<PresentationRelationship>,
     properties: Vec<PresentationProperty>,
     text: Vec<PresentationText>,
 }
@@ -49,7 +49,7 @@ impl ContentBuilder {
         }
     }
 
-    fn subject(
+    pub(super) fn subject(
         &mut self,
         role: PresentationRole,
         label: impl Into<String>,
@@ -65,7 +65,7 @@ impl ContentBuilder {
         identity
     }
 
-    fn contains(&mut self, source: &str, target: &str) {
+    pub(super) fn contains(&mut self, source: &str, target: &str) {
         self.relationships.push(PresentationRelationship {
             source: source.into(),
             target: target.into(),
@@ -88,7 +88,7 @@ impl ContentBuilder {
         });
     }
 
-    fn property(&mut self, subject: &str, name: &str, value: PresentationPropertyValue) {
+    pub(super) fn property(&mut self, subject: &str, name: &str, value: PresentationPropertyValue) {
         self.properties.push(PresentationProperty {
             subject: subject.into(),
             name: name.into(),
@@ -244,6 +244,12 @@ fn append_document(
                 form.checked_form_id.as_str()
             ),
         );
+        if presentation.document.open_form == form.name {
+            if let Some(graph) = &presentation.graph {
+                crate::portable_graph_projection::append_exact_graph(&form_subject, graph, content);
+                continue;
+            }
+        }
         for item in &form.items {
             let role = match item.kind {
                 GraphItemKind::FaceInput | GraphItemKind::FaceOutput => PresentationRole::Port,

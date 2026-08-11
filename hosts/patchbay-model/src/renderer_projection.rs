@@ -1,8 +1,8 @@
 //! Finite, toolkit-independent facts shared by Patchbay renderers.
 
 use crate::{
-    DistributedRoutePresentation, EditorDiagnostic, FormDocumentView, PlanDocument, PlayDocument,
-    SourceSelection,
+    DistributedRoutePresentation, EditorDiagnostic, FormDocumentView, PatchbayGraph, PlanDocument,
+    PlayDocument, SourceSelection,
 };
 use conduit_core::{
     verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SignId, SourceDocumentId,
@@ -32,6 +32,7 @@ pub enum RendererProjectionError {
     OpenFormMissing,
     IdentityMismatch,
     InvalidAttemptedEdit,
+    GraphBasisMismatch,
 }
 
 impl std::fmt::Display for RendererProjectionError {
@@ -67,6 +68,9 @@ impl std::fmt::Display for RendererProjectionError {
             Self::InvalidAttemptedEdit => {
                 formatter.write_str("renderer attempted edit is stale, empty, or unbounded")
             }
+            Self::GraphBasisMismatch => {
+                formatter.write_str("renderer graph does not describe the open checked Form")
+            }
         }
     }
 }
@@ -97,6 +101,7 @@ pub struct PatchbayPresentation {
     pub play: Option<PlayDocument>,
     pub topology: Option<ObservatoryReport>,
     pub routes: Vec<DistributedRoutePresentation>,
+    pub graph: Option<PatchbayGraph>,
     pub attempted_edit: Option<AttemptedEditPresentation>,
 }
 
@@ -221,8 +226,31 @@ impl PatchbayPresentation {
             play,
             topology,
             routes,
+            graph: None,
             attempted_edit: None,
         })
+    }
+
+    pub fn with_graph(mut self, graph: PatchbayGraph) -> Result<Self, RendererProjectionError> {
+        let open = self
+            .document
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.name == self.document.open_form);
+        if open.is_none_or(|form| {
+            form.checked_form_id != graph.checked_form_id
+                || self.document.checked.source_document_id.as_ref()
+                    != Some(&graph.source_document_id)
+                || self
+                    .plan
+                    .as_ref()
+                    .is_some_and(|plan| plan.expanded_form_id != graph.expanded_form_id)
+        }) {
+            return Err(RendererProjectionError::GraphBasisMismatch);
+        }
+        self.graph = Some(graph);
+        Ok(self)
     }
 
     pub fn with_attempted_edit(

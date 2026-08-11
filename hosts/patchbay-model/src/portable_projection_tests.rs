@@ -6,8 +6,8 @@ use conduit_presentation::{
 use conduit_std_host::{StdHost, ThreadTimer};
 
 use crate::{
-    DistributedRouteDemo, FormEditor, PatchbayPresentation, PatchbayRequestId, PlanDocument,
-    PlayDocument, PortableProjectionError,
+    DistributedRouteDemo, FormEditor, PatchbayGraph, PatchbayPresentation, PatchbayRequestId,
+    PlanDocument, PlayDocument, PortableProjectionError,
 };
 
 fn living_portable() -> (
@@ -51,6 +51,7 @@ fn living_portable() -> (
         .play_started(&active_play, SignId::from("patchbay/playing"))
         .unwrap();
     let route = DistributedRouteDemo::build().unwrap();
+    let graph = PatchbayGraph::from_expanded(&expanded).unwrap();
     let projection = PatchbayPresentation::new(
         7,
         editor.view(),
@@ -59,6 +60,8 @@ fn living_portable() -> (
         None,
         vec![route.presentation().clone()],
     )
+    .unwrap()
+    .with_graph(graph)
     .unwrap();
     let portable = projection.to_portable(&body, &wake).unwrap();
     (projection, body, wake, portable)
@@ -93,6 +96,36 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
         .subjects
         .iter()
         .any(|subject| subject.role == PresentationRole::Play));
+    assert_eq!(
+        portable
+            .subjects
+            .iter()
+            .filter(|subject| subject.role == PresentationRole::Gear)
+            .count(),
+        projection.graph.as_ref().unwrap().gears.len()
+    );
+    assert_eq!(
+        portable
+            .subjects
+            .iter()
+            .filter(|subject| subject.role == PresentationRole::Port)
+            .count(),
+        projection
+            .graph
+            .as_ref()
+            .unwrap()
+            .gears
+            .iter()
+            .map(|gear| gear.inputs.len() + gear.outputs.len())
+            .sum::<usize>()
+    );
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "icon-token"
+            && property.value == PresentationPropertyValue::Text("case-upper".into())
+    }));
+    assert!(portable.relationships.iter().any(|relationship| {
+        relationship.kind == conduit_presentation::PresentationRelationshipKind::Connects
+    }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "base"
             && property.value == PresentationPropertyValue::ConnectionBase(ConnectionBase::UsbCdc)
@@ -142,4 +175,24 @@ fn portable_projection_remains_inside_the_reviewed_aggregate_bound() {
     let (_, _, _, portable) = living_portable();
     let encoded = serde_json::to_vec(&portable).unwrap();
     assert!(encoded.len() <= MAX_PRESENTATION_TOTAL_BYTES);
+}
+
+#[test]
+fn portable_graph_must_share_the_open_form_identity_chain() {
+    let (projection, _, _, _) = living_portable();
+    let mut graph = projection.graph.clone().unwrap();
+    graph.expanded_form_id = "expanded/stale".into();
+    let without_graph = PatchbayPresentation::new(
+        projection.revision,
+        projection.document,
+        projection.plan,
+        projection.play,
+        projection.topology,
+        projection.routes,
+    )
+    .unwrap();
+    assert_eq!(
+        without_graph.with_graph(graph),
+        Err(crate::RendererProjectionError::GraphBasisMismatch)
+    );
 }
