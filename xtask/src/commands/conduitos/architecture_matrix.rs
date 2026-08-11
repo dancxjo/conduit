@@ -113,6 +113,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
             | ConduitosArch::X86_64
             | ConduitosArch::Aarch64
             | ConduitosArch::Riscv64
+            | ConduitosArch::Loongarch64
     );
     let full_spine_accepted = arch == ConduitosArch::X86_64;
     let ordinary_form_accepted = full_spine_accepted
@@ -146,7 +147,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::Loongarch64 => (
             "BOOTLOONGARCH64.EFI",
             loongarch64_a0::TARGET,
-            "A0 compile/link accepted; A1 boot not established",
+            "A1 boot accepted; A2 machine wake not established",
         ),
     };
     ArchitectureRow {
@@ -225,7 +226,10 @@ mod tests {
             .unwrap();
         assert!(loongarch64.executable_backend_present);
         assert!(loongarch64.a0_compile_link);
-        assert!(!loongarch64.a1_boot);
+        assert!(loongarch64.a1_boot);
+        assert!(!loongarch64.a2_machine_wake);
+        assert!(!loongarch64.a3_ordinary_form);
+        assert!(!loongarch64.a4_observatory_patchbay);
     }
 
     #[test]
