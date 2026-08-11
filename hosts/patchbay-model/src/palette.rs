@@ -67,7 +67,7 @@ impl GearPalette {
     /// Projects the supported executable nucleus, rather than maintaining a
     /// Patchbay-private list of Kind contracts.
     pub fn standard() -> Result<Self, PaletteError> {
-        let contracts = conduit_std_catalog::supported_nucleus_contracts();
+        let contracts = conduit_std_catalog::palette_contracts();
         if contracts.len() > MAX_PALETTE_ENTRIES {
             return Err(PaletteError::CatalogTooLarge);
         }
@@ -129,8 +129,8 @@ mod tests {
     #[test]
     fn standard_palette_is_exact_bounded_and_searches_contract_truth() {
         let palette = GearPalette::standard().unwrap();
-        assert_eq!(palette.entries().len(), 28);
-        assert_eq!(palette.search("").unwrap().len(), 28);
+        assert_eq!(palette.entries().len(), 29);
+        assert_eq!(palette.search("").unwrap().len(), 29);
         assert_eq!(
             palette.search("uppercase").unwrap()[0].kind_id.as_str(),
             "text/upper"
@@ -145,6 +145,9 @@ mod tests {
             palette.search("files").unwrap()[0].kind_id.as_str(),
             "file/copy"
         );
+        let keyboard = palette.search("keyboard").unwrap()[0];
+        assert_eq!(keyboard.kind_id.as_str(), "input/keyboard");
+        assert_eq!(keyboard.outputs[0].value_kind.as_str(), "input/key-event@1");
         assert!(palette
             .entries()
             .iter()

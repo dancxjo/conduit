@@ -173,6 +173,25 @@ const FILE_OUTPUT: [u16; 16] = [
     0b0001111111111000,
 ];
 
+const KEYBOARD: [u16; 16] = [
+    0b0000000000000000,
+    0b0000000000000000,
+    0b0111111111111110,
+    0b1111111111111111,
+    0b1101101001011011,
+    0b1101101111011011,
+    0b1100000000000011,
+    0b1100110110110011,
+    0b1100110110110011,
+    0b1100000000000011,
+    0b1100111111110011,
+    0b1100111111110011,
+    0b1111111111111111,
+    0b0111111111111110,
+    0b0000000000000000,
+    0b0000000000000000,
+];
+
 pub const fn mask(key: PaletteIconKey) -> Option<&'static [u16; 16]> {
     match key {
         PaletteIconKey::Clock => Some(&CLOCK),
@@ -184,6 +203,7 @@ pub const fn mask(key: PaletteIconKey) -> Option<&'static [u16; 16]> {
         PaletteIconKey::Tally5 => Some(&TALLY_5),
         PaletteIconKey::ChartColumnsIncreasing => Some(&CHART_COLUMNS_INCREASING),
         PaletteIconKey::FileOutput => Some(&FILE_OUTPUT),
+        PaletteIconKey::Keyboard => Some(&KEYBOARD),
         PaletteIconKey::GenericGear => None,
     }
 }

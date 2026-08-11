@@ -6,13 +6,13 @@
 use conduit_core::KindId;
 
 use crate::{
-    COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, LATEST_KIND, LOGIC_COMPARE_KIND,
-    LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND,
-    ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
-    ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND,
-    ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND,
-    TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND,
-    TIME_EVERY_KIND, TIME_TIMEOUT_KIND,
+    COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, KEYBOARD_KIND, LATEST_KIND,
+    LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND,
+    MATH_SCALE_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND,
+    ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
+    ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, TEE_KIND,
+    TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND,
+    TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_EVERY_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -23,16 +23,18 @@ pub enum PaletteCategory {
     Presentation,
     Files,
     Robotics,
+    Input,
 }
 
 impl PaletteCategory {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::TimeAndFlow,
         Self::Transform,
         Self::State,
         Self::Presentation,
         Self::Files,
         Self::Robotics,
+        Self::Input,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -43,6 +45,7 @@ impl PaletteCategory {
             Self::Presentation => "Presentation",
             Self::Files => "Files",
             Self::Robotics => "Robotics",
+            Self::Input => "Input",
         }
     }
 }
@@ -58,11 +61,12 @@ pub enum PaletteIconKey {
     Tally5,
     ChartColumnsIncreasing,
     FileOutput,
+    Keyboard,
     GenericGear,
 }
 
 impl PaletteIconKey {
-    pub const ALL_UPSTREAM: [Self; 9] = [
+    pub const ALL_UPSTREAM: [Self; 10] = [
         Self::Clock,
         Self::Repeat2,
         Self::Presentation,
@@ -72,6 +76,7 @@ impl PaletteIconKey {
         Self::Tally5,
         Self::ChartColumnsIncreasing,
         Self::FileOutput,
+        Self::Keyboard,
     ];
 
     pub const fn as_str(self) -> &'static str {
@@ -85,6 +90,7 @@ impl PaletteIconKey {
             Self::Tally5 => "tally-5",
             Self::ChartColumnsIncreasing => "chart-no-axes-column-increasing",
             Self::FileOutput => "file-output",
+            Self::Keyboard => "keyboard",
             Self::GenericGear => "conduit-generic-gear",
         }
     }
@@ -100,6 +106,7 @@ impl PaletteIconKey {
             Self::Tally5 => "count tally",
             Self::ChartColumnsIncreasing => "count chart",
             Self::FileOutput => "file output",
+            Self::Keyboard => "keyboard input",
             Self::GenericGear => "generic Gear; icon metadata missing",
         }
     }
@@ -137,6 +144,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::TimeAndFlow,
             &["timer", "timeout", "heartbeat", "safety"],
             PaletteIconKey::Clock,
+        ),
+        KEYBOARD_KIND => metadata(
+            PaletteCategory::Input,
+            &["input", "keyboard", "key", "source"],
+            PaletteIconKey::Keyboard,
         ),
         TEXT_LITERAL_KIND => metadata(
             PaletteCategory::Transform,
@@ -282,8 +294,8 @@ mod tests {
 
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
-        let contracts = crate::supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 28);
+        let contracts = crate::palette_contracts();
+        assert_eq!(contracts.len(), 29);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());
@@ -293,7 +305,7 @@ mod tests {
 
     #[test]
     fn categories_and_upstream_icon_keys_are_finite_and_unique() {
-        assert_eq!(PaletteCategory::ALL.len(), 6);
+        assert_eq!(PaletteCategory::ALL.len(), 7);
         let keys = PaletteIconKey::ALL_UPSTREAM
             .iter()
             .map(|key| key.as_str())

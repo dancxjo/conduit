@@ -14,6 +14,8 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 mod functional_face;
+mod keyboard;
+pub use keyboard::*;
 mod palette_metadata;
 mod tick;
 use functional_face::startup_face;
@@ -161,6 +163,15 @@ pub enum TerminalBehavior {
     InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
     SimulatedCurrentObservationEmitsOnce,
     SimulatedDriveProjectionCompletesWhenInputsClose,
+    HostInputEndsOrFailsSource,
+}
+
+/// User-facing semantic contracts, including portable Kinds without a currently
+/// installed std implementation. This is discovery truth, not a Host offer.
+pub fn palette_contracts() -> Vec<StandardKindContract> {
+    let mut contracts = supported_nucleus_contracts();
+    contracts.push(keyboard_contract());
+    contracts
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

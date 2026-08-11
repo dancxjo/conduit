@@ -20,6 +20,12 @@ pub enum InfoDecodeError {
         actual: usize,
     },
     NonCanonicalBoolean(u8),
+    NonCanonicalEnum(u8),
+    InconsistentValue(&'static str),
+    ReservedValue {
+        field: &'static str,
+        actual: u8,
+    },
     OutOfRange {
         field: &'static str,
         minimum: i64,

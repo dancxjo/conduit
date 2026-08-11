@@ -96,6 +96,7 @@ const fn constant_name(key: PaletteIconKey) -> &'static str {
         PaletteIconKey::Tally5 => "TALLY_5",
         PaletteIconKey::ChartColumnsIncreasing => "CHART_COLUMNS_INCREASING",
         PaletteIconKey::FileOutput => "FILE_OUTPUT",
+        PaletteIconKey::Keyboard => "KEYBOARD",
         PaletteIconKey::GenericGear => "GENERIC_GEAR",
     }
 }
