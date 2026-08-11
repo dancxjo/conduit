@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod audio_info;
 mod configuration;
 mod control_loop;
 mod deadline;
@@ -22,7 +23,9 @@ mod resource;
 mod robotics_info;
 mod route;
 mod shared_pool;
+mod sound_info;
 
+pub use audio_info::*;
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use control_loop::*;
 pub use deadline::*;
@@ -39,6 +42,7 @@ pub use resource::*;
 pub use robotics_info::*;
 pub use route::*;
 pub use shared_pool::*;
+pub use sound_info::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;

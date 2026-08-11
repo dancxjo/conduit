@@ -344,7 +344,7 @@ fn scheduler(
                         .binding
                         .maximum_input_bytes,
                 },
-                crate::AUDIO_PRESENT_KIND => SpeechOperation::Present {
+                crate::AUDIO_PLAY_KIND => SpeechOperation::Present {
                     stage: 0,
                     input: None,
                     operation: lowered

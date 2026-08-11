@@ -30,7 +30,7 @@ pub(crate) fn outcome_signs(outcome: &SpeechOutcome) -> Vec<SpeechSign> {
             pcm_sha256,
         } => vec![
             SpeechSign::Synthesized {
-                pcm_bytes: wav_bytes - 44,
+                pcm_bytes: u32::try_from(deterministic_pcm(SPECIMEN_TEXT).len()).unwrap(),
                 pcm_sha256: pcm_sha256.clone(),
             },
             SpeechSign::Degraded {
