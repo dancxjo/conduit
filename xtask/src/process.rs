@@ -1,5 +1,7 @@
 use std::{
-    env, fmt,
+    env,
+    ffi::OsStr,
+    fmt,
     path::{Path, PathBuf},
     process::{Command, ExitStatus, Stdio},
     time::Instant,
@@ -199,14 +201,33 @@ pub fn run_probe(step: &Step, working_dir: &Path, opts: &GlobalOpts) -> ProbeOut
 
 /// Run a sequence of orchestrated steps in order.
 pub fn run_suite(steps: &[Step], root: &Path, opts: &GlobalOpts) -> Result<(), StepError> {
+    run_suite_with_environment(steps, root, opts, &[])
+}
+
+/// Run a suite with a finite set of explicit environment values inherited by each step.
+pub fn run_suite_with_environment(
+    steps: &[Step],
+    root: &Path,
+    opts: &GlobalOpts,
+    environment: &[(&str, &OsStr)],
+) -> Result<(), StepError> {
     for step in steps {
-        run_step(step, root, opts)?;
+        run_step_with_environment(step, root, opts, environment)?;
     }
     Ok(())
 }
 
 /// Run one orchestrated step, forwarding `--locked` to Cargo when specified in `opts`.
 pub fn run_step(step: &Step, root: &Path, opts: &GlobalOpts) -> Result<(), StepError> {
+    run_step_with_environment(step, root, opts, &[])
+}
+
+fn run_step_with_environment(
+    step: &Step,
+    root: &Path,
+    opts: &GlobalOpts,
+    environment: &[(&str, &OsStr)],
+) -> Result<(), StepError> {
     let work_dir = match step.cwd {
         Some(rel) => root.join(rel),
         None => root.to_path_buf(),
@@ -243,7 +264,9 @@ pub fn run_step(step: &Step, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     }
 
     let mut cmd = command_for(step.program);
-    cmd.args(&effective_args).current_dir(&work_dir);
+    cmd.args(&effective_args)
+        .current_dir(&work_dir)
+        .envs(environment.iter().copied());
 
     match cmd.status() {
         Ok(status) if status.success() => Ok(()),

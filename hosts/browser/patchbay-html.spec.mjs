@@ -1,6 +1,44 @@
 import { spawn } from "node:child_process";
+import { mkdir, rename, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
+
+const captureDeclarations=[];
+
+async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposition) {
+  await page.evaluate(()=>scrollTo(0,0));
+  const relativePath=`${name}.png`;
+  await page.screenshot({path:path.join(evidenceRoot,relativePath),fullPage:true,animations:"disabled",caret:"hide",scale:"css"});
+  captureDeclarations.push({
+    id:`patchbay.${name}`,
+    kind:"screenshot",
+    path:relativePath,
+    media_type:"image/png",
+    required:true,
+    provenance:{
+      scenario_id:`patchbay-html.${name}@1`,
+      step_id:"prove.browser-host.patchbay-html-matrix",
+      browser_engine:"chromium",
+      browser_version:browser.version(),
+      viewport:"1440x1000",
+      device_scale_factor:"1",
+      locale:"en-US",
+      timezone:"UTC",
+      presentation_id:snapshot.presentation.identity,
+      presentation_revision:String(snapshot.presentation.revision),
+      plan_id:snapshot.presentation.basis.plan_id,
+      active_play_id:snapshot.presentation.basis.active_play_id,
+      manifestation_id:snapshot.renderer.manifestation.manifestation_id,
+      renderer_id:"patchbay-html/dom-svg@1",
+      asserted_semantic_disposition:disposition,
+    },
+  });
+  const document=JSON.stringify({schema:"conduit.capture-declarations/v1",outputs:captureDeclarations},null,2);
+  const temporary=path.join(evidenceRoot,"captures.json.tmp");
+  await writeFile(temporary,`${document}\n`,{encoding:"utf8"});
+  await rename(temporary,path.join(evidenceRoot,"captures.json"));
+}
 
 function startServer() {
   const process = spawn("target/debug/patchbay-html", [], { stdio:["ignore","pipe","pipe"] });
@@ -10,7 +48,10 @@ function startServer() {
   return { process, lines, url };
 }
 
-test("HTML Patchbay reconstructs one typed state accessibly and survives delivery loss", async ({page}) => {
+test("HTML Patchbay reconstructs one typed state accessibly and survives delivery loss", async ({page,browser},testInfo) => {
+  const evidenceRoot=process.env.CONDUIT_EVIDENCE_ROOT;
+  const canonical=testInfo.project.name==="chromium"&&Boolean(evidenceRoot);
+  if(canonical)await mkdir(evidenceRoot,{recursive:true});
   const server=startServer();
   try {
     const url=await server.url;
@@ -47,6 +88,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--patchbay-theme-identity").trim())).toBe('"conduit.patchbay/phosphor@1"');
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
     expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
+    await page.evaluate(()=>document.fonts.ready);
+    if(canonical) {
+      expect(await page.evaluate(()=>document.fonts.check('16px "DejaVu Sans"'))).toBe(true);
+      expect((await page.evaluate(()=>getComputedStyle(document.documentElement).fontFamily)).replaceAll('"',"")).toBe("DejaVu Sans, sans-serif");
+    }
+
+    if(canonical)await captureCanonical(page,browser,evidenceRoot,"overview",snapshot,"available-after-form-plan-play-and-signs-asserted");
 
     const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
@@ -63,12 +111,21 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/0");
     await expect(page.locator("#interaction-proof")).toContainText("Interaction Plan");
     await expect(page.locator("#interaction-proof")).toContainText("Interaction Play");
+    const selectedSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(selectedSnapshot.interaction.last_disposition).toBe("Succeeded");
+    expect(selectedSnapshot.interaction.selected_subject).toBe(identity);
+    if(canonical)await captureCanonical(page,browser,evidenceRoot,"selected-gear",selectedSnapshot,"selection-succeeded-and-inspector-correlated");
     const second=page.locator("#subjects button").nth(1);await first.press("Tab");await expect(second).toBeFocused();await second.click();
     await expect(second).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/1");
     await page.locator("#toggle-linear").click();
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/invoke/2");
     await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
+    const interactionSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(interactionSnapshot.interaction.last_disposition).toBe("Succeeded");
+    expect(interactionSnapshot.interaction.interaction_plan_id).toBeTruthy();
+    expect(interactionSnapshot.interaction.interaction_play_id).toBeTruthy();
+    if(canonical)await captureCanonical(page,browser,evidenceRoot,"interaction",interactionSnapshot,"control-invocation-plan-play-succeeded");
     const selectedBeforeStale=await page.locator("#subjects [aria-pressed=true]").getAttribute("data-subject");
     const stale=await page.evaluate(async()=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:"presentation/stale",kind:"select",subject:"dom-node-should-not-apply"})})).json());
     expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
@@ -90,6 +147,11 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("body")).toHaveClass(/high-contrast/);
     expect(await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort())).toEqual(identitiesBefore.subjects);
     await expect(page.locator("#status")).toContainText(identitiesBefore.content);await expect(page.locator("#plan")).toContainText(identitiesBefore.plan);await expect(page.locator("#plan")).toContainText(identitiesBefore.manifestation);await expect(page.locator("#play")).toContainText(identitiesBefore.play);
+    const contrastSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(contrastSnapshot.presentation.identity).toBe(identitiesBefore.content);
+    expect(contrastSnapshot.presentation.basis.plan_id).toBe(identitiesBefore.plan);
+    expect(contrastSnapshot.presentation.basis.active_play_id).toBe(identitiesBefore.play);
+    if(canonical)await captureCanonical(page,browser,evidenceRoot,"high-contrast",contrastSnapshot,"presentation-changed-semantic-identities-stable");
 
     const planBefore=await page.locator("#plan").textContent(); await page.reload();
     await expect(page.locator("#plan")).toContainText(snapshot.presentation.basis.plan_id); expect(await page.locator("#plan").textContent()).toBe(planBefore);
@@ -97,5 +159,6 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.evaluate(()=>window.patchbayReload());
     await expect(page.locator("#status")).toContainText("Renderer disconnected; retained revision 1");
     await expect(page.locator("#plan")).toContainText(snapshot.presentation.basis.plan_id);
+    if(canonical)await captureCanonical(page,browser,evidenceRoot,"disconnected",contrastSnapshot,"delivery-unavailable-revision-and-plan-retained");
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
 });

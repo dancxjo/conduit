@@ -10,7 +10,18 @@ export default defineConfig({
   reporter: "line",
   trace: "retain-on-failure",
   projects: [
-    { name: "chromium", use: { browserName: "chromium" } },
+    {
+      name: "chromium",
+      use: {
+        browserName: "chromium",
+        viewport: { width: 1440, height: 1000 },
+        deviceScaleFactor: 1,
+        locale: "en-US",
+        timezoneId: "UTC",
+        colorScheme: "dark",
+        reducedMotion: "reduce",
+      },
+    },
     { name: "firefox", use: { browserName: "firefox" } },
     { name: "webkit", use: { browserName: "webkit" } },
   ],
