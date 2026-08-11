@@ -5,8 +5,9 @@
 //! reference composition operations.
 
 use conduit_presentation::{
-    AccessibilityRole, CompositionError, CompositionItem, CompositionItemKind, LayoutAlignment,
-    LayoutFrame, PresentationComposition,
+    AccessibilityRole, CompositionError, CompositionItem, CompositionItemKind, GraphicsCommand,
+    GraphicsError, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutAlignment,
+    LayoutFrame, PresentationComposition, PresentationIconKey,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,8 +73,7 @@ impl DirectPresentation {
 }
 
 /// Honest constrained-presenter preparation: semantic obligations remain
-/// separate while #888 supplies finite region placement. #890 owns converting
-/// those resolved leaves into accepted graphics operations.
+/// separate while finite layout supplies exact region placement.
 pub fn constrained_frame_layout(
     width: u16,
     height: u16,
@@ -81,6 +81,49 @@ pub fn constrained_frame_layout(
     LayoutFrame::viewport(width, height, 2, 24, 12)?
         .inset(4)?
         .align(LayoutAlignment::Center, LayoutAlignment::Center)
+}
+
+/// Lower resolved composition obligations through the one canonical graphics
+/// leaf vocabulary. Direct higher-level presenters remain free to bypass it.
+pub fn constrained_graphics_scene(
+    composition: &PresentationComposition,
+    width: u16,
+    height: u16,
+) -> Result<GraphicsScene, GraphicsError> {
+    let layout =
+        constrained_frame_layout(width, height).map_err(|_| GraphicsError::InvalidGeometry)?;
+    let mut scene = GraphicsScene::empty();
+    for item in composition.items() {
+        match item.kind {
+            CompositionItemKind::Icon => scene.push(GraphicsCommand::icon(
+                layout.children[1],
+                layout.viewport,
+                GraphicsPaintRole::Accent,
+                PresentationIconKey::from_token(item.token()).ok_or(GraphicsError::UnknownIcon)?,
+            )?)?,
+            CompositionItemKind::Frame => scene.push(GraphicsCommand::rect(
+                layout.viewport,
+                layout.viewport,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Stroke,
+            )?)?,
+            CompositionItemKind::Badge => {
+                scene.push(GraphicsCommand::rect(
+                    layout.children[0],
+                    layout.viewport,
+                    GraphicsPaintRole::Status,
+                    GraphicsShapeStyle::Fill,
+                )?)?;
+                scene.push(GraphicsCommand::text(
+                    layout.children[0],
+                    layout.viewport,
+                    GraphicsPaintRole::Foreground,
+                    item.token(),
+                )?)?;
+            }
+        }
+    }
+    Ok(scene)
 }
 
 #[cfg(test)]
@@ -108,5 +151,17 @@ mod tests {
         assert_eq!(layout.child_count, 2);
         assert_eq!(layout.viewport.x, 4);
         assert_eq!(layout.children[0].x, 50);
+
+        let graphics = constrained_graphics_scene(&reference, 120, 80).unwrap();
+        assert_eq!(graphics.commands().len(), 4);
+        assert_eq!(
+            graphics.commands()[0].kind,
+            conduit_presentation::GraphicsCommandKind::Icon
+        );
+        assert_eq!(
+            graphics.commands()[1].kind,
+            conduit_presentation::GraphicsCommandKind::Rect
+        );
+        assert_eq!(graphics.commands()[3].payload(), "warning");
     }
 }

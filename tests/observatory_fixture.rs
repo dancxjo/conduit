@@ -244,7 +244,7 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
         stdout.contains("host id=pico-sim-triple boot=pico-sim-boot-triple"),
         "{stdout}"
     );
-    assert!(stdout.contains("capabilities 46"), "{stdout}");
+    assert!(stdout.contains("capabilities 49"), "{stdout}");
     assert!(
         stdout.contains("kind=layout/row contract=conduit.std/layout-frame@1"),
         "{stdout}"

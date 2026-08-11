@@ -80,7 +80,8 @@ const ROUTE_TARGETS: usize = 64;
 pub(super) use contract::text_offer;
 #[cfg(test)]
 pub(super) use test_support::{
-    test_catalog, test_layout_sink_offer, test_observer_offer, test_presentation_sink_offer,
+    test_catalog, test_graphics_sink_offer, test_layout_sink_offer, test_observer_offer,
+    test_presentation_sink_offer,
 };
 
 #[cfg(test)]
@@ -384,6 +385,13 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         kind_id(conduit_std_catalog::PRESENTATION_FRAME_KIND),
         kind_id(conduit_std_catalog::PRESENTATION_BADGE_KIND),
     ];
+    let graphics_contract_id =
+        conduit_core::HostOperationContractId::from(conduit_std_catalog::GRAPHICS_HOST_OPERATION);
+    let graphics_target_kinds = [
+        kind_id(conduit_std_catalog::GRAPHICS_RECT_KIND),
+        kind_id(conduit_std_catalog::GRAPHICS_TEXT_KIND),
+        kind_id(conduit_std_catalog::GRAPHICS_ICON_KIND),
+    ];
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
@@ -672,6 +680,40 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete layout frame host operation: {error:?}"))?;
+                continue;
+            } else if contract == &graphics_contract_id
+                && lowered_operation
+                    .target_kind
+                    .as_ref()
+                    .is_some_and(|target| graphics_target_kinds.contains(target))
+            {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "graphics request has no exact placement".to_string())?;
+                let (encoded, encoded_len) =
+                    presentation_composition::transform_graphics_bytes(placement, input)?;
+                let value = scheduler
+                    .store_host_value(&encoded[..encoded_len])
+                    .map_err(|error| format!("store graphics scene: {error:?}"))?;
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32,
+                                )
+                                .map_err(|error| format!("bound graphics scene: {error:?}"))?,
+                            ),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete graphics host operation: {error:?}"))?;
                 continue;
             } else if contract == &presentation_composition_contract_id
                 && lowered_operation

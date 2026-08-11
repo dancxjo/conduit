@@ -261,6 +261,8 @@ fn standard_catalogs() -> Result<(StartupCatalog, conduit_form::ProfileCatalog),
         .map_err(FormEditorError::Catalog)?;
     conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
+    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
     conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     Ok((startup, profile))

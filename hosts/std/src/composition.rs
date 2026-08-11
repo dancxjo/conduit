@@ -197,6 +197,9 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::presentation_icon_offer(),
             conduit_std_catalog::presentation_frame_offer(),
             conduit_std_catalog::presentation_badge_offer(),
+            conduit_std_catalog::graphics_rect_offer(),
+            conduit_std_catalog::graphics_text_offer(),
+            conduit_std_catalog::graphics_icon_offer(),
         ]);
     }
     if composition.robotics {
@@ -223,6 +226,7 @@ pub(super) fn build_advertisement(
         capabilities.push(installed_std::test_scalar_source_offer());
         capabilities.push(installed_std::test_layout_sink_offer());
         capabilities.push(installed_std::test_presentation_sink_offer());
+        capabilities.push(installed_std::test_graphics_sink_offer());
         capabilities.push(installed_std::test_scalar_literal_offer());
         capabilities.push(installed_std::test_scalar_sink_offer());
         capabilities.push(installed_std::test_gate_script_offer());
