@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
+conduit-midi = { path = "../conduit-midi" }
 conduit-presentation = { path = "../conduit-presentation" }
 conduit-form = { path = "../conduit-form", optional = true }
 conduit-runtime = { path = "../conduit-runtime", optional = true, default-features = false }

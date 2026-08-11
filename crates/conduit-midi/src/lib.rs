@@ -7,6 +7,7 @@
 
 mod adapter;
 mod message;
+mod observation;
 mod parser;
 
 pub use adapter::{
@@ -14,4 +15,8 @@ pub use adapter::{
     PortableMidiEvent, MIDI_PITCH_BEND_RANGE_MICROCENTS,
 };
 pub use message::MidiMessage;
+pub use observation::{
+    MidiInputObservation, MidiObservationCodecError, MIDI_INPUT_OBSERVATION_ENCODED_LEN,
+    MIDI_INPUT_OBSERVATION_INFO_ID,
+};
 pub use parser::{MidiParseError, MidiParser, ParsedMidi};
