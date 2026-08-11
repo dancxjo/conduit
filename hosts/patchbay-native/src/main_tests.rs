@@ -72,6 +72,11 @@ fn arguments_are_explicit_and_fail_closed() {
         Some(PathBuf::from("greet.conduit"))
     );
     assert!(
+        parse_arguments(vec!["--help".into()].into_iter())
+            .unwrap()
+            .help
+    );
+    assert!(
         parse_arguments(vec!["--smoke-exit-after-window".into()].into_iter())
             .unwrap()
             .exit_after_window
@@ -123,6 +128,7 @@ fn arguments_are_explicit_and_fail_closed() {
     assert!(parse_arguments(vec!["--unknown".into()].into_iter()).is_err());
     assert!(parse_arguments(vec!["--observatory-snapshot".into()].into_iter()).is_err());
     assert!(parse_arguments(vec!["--form".into()].into_iter()).is_err());
+    assert!(parse_arguments(vec!["--help".into(), "--help".into()].into_iter()).is_err());
 }
 
 #[test]
