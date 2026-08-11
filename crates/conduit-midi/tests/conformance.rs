@@ -182,11 +182,23 @@ fn parser_refuses_truncation_unframed_data_and_oversize_sysex() {
     parser.feed(0x90).unwrap();
     parser.feed(60).unwrap();
     assert_eq!(parser.finish(), Err(MidiParseError::DataByteExpected(1)));
+    parser.feed(0x90).unwrap();
+    parser.feed(60).unwrap();
+    assert_eq!(parser.feed(0x80), Err(MidiParseError::DataByteExpected(1)));
     parser.feed(0xf0).unwrap();
     for _ in 1..256 {
         parser.feed(1).unwrap();
     }
     assert_eq!(parser.feed(1), Err(MidiParseError::SysExCapacityExceeded));
+
+    parser.feed(0xf0).unwrap();
+    for _ in 1..256 {
+        parser.feed(1).unwrap();
+    }
+    assert_eq!(
+        parser.feed(0xf7),
+        Err(MidiParseError::SysExCapacityExceeded)
+    );
 }
 
 #[test]

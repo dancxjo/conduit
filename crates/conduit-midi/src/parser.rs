@@ -63,6 +63,11 @@ impl MidiParser {
                 Ok(Some(ParsedMidi::UnsupportedSystem { status: byte }))
             }
             0x80..=0xef => {
+                if self.data_length != 0 {
+                    let missing = self.expected_length - self.data_length;
+                    self.reset();
+                    return Err(MidiParseError::DataByteExpected(missing));
+                }
                 self.running_status = Some(byte);
                 self.data_length = 0;
                 self.expected_length = message_length(byte);
@@ -108,6 +113,9 @@ impl MidiParser {
         if byte == 0xf7 {
             let bytes = self.sysex_bytes.saturating_add(1);
             self.reset();
+            if bytes > MAXIMUM_SYSEX_BYTES {
+                return Err(MidiParseError::SysExCapacityExceeded);
+            }
             return Ok(Some(ParsedMidi::UnsupportedSysEx { bytes }));
         }
         if byte & 0x80 != 0 {
