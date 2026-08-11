@@ -1,15 +1,17 @@
 //! Host-neutral sound/music semantic waist.
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{
+    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+};
 use crate::{music_input_contract, MUSIC_INPUT_KIND, MUSIC_INPUT_REVISION};
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    AUDIO_PCM_INFO_ID, CONTROL_EVENT_ENCODED_LEN, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
-    NOTE_EVENT_ENCODED_LEN, PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
+    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, AUDIO_PCM_INFO_ID, CONTROL_EVENT_ENCODED_LEN, MUSIC_CONTROL_INFO_ID,
+    MUSIC_NOTE_INFO_ID, NOTE_EVENT_ENCODED_LEN, PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
 };
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +33,21 @@ pub const MUSIC_SYNTH_REFERENCE_PROFILE: &str = "conduit.reference/music-synth-f
 pub const MUSIC_SYNTH_REFERENCE_IMPLEMENTATION: &str = "std/kernel-music-synth-fixed-q16@1";
 pub const MUSIC_SYNTH_REFERENCE_ARTIFACT: &str = "conduit-std-host/music-synth-fixed-q16@1";
 pub const MUSIC_SYNTH_HOST_OPERATION: &str = "conduit.host/music-synth-render-fixed-q16@1";
-pub const MUSIC_SYNTH_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 256 * 2;
+pub const MUSIC_SYNTH_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 256 * 4;
+pub const SYNTH_MAXIMUM_VOICES_KEY: &str = "maximum-voices";
+pub const SYNTH_OSCILLATOR_KEY: &str = "oscillator";
+pub const SYNTH_PULSE_WIDTH_KEY: &str = "pulse-width-q16";
+pub const SYNTH_ATTACK_KEY: &str = "attack-micros";
+pub const SYNTH_DECAY_KEY: &str = "decay-micros";
+pub const SYNTH_SUSTAIN_KEY: &str = "sustain-level-q16";
+pub const SYNTH_RELEASE_KEY: &str = "release-micros";
+pub const SYNTH_FILTER_CUTOFF_KEY: &str = "filter-cutoff-q16";
+pub const SYNTH_FILTER_RESONANCE_KEY: &str = "filter-resonance-q16";
+pub const SYNTH_FILTER_ENVELOPE_KEY: &str = "filter-envelope-amount-q16";
+pub const SYNTH_LFO_RATE_KEY: &str = "lfo-rate-millihertz";
+pub const SYNTH_LFO_DEPTH_KEY: &str = "lfo-depth-q16";
+pub const SYNTH_MASTER_GAIN_KEY: &str = "master-gain-q16";
+pub const SYNTH_STEAL_POLICY_KEY: &str = "voice-steal-policy";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
 pub const AUDIO_PLAY_ALSA_HW_PROFILE: &str = "std/alsa-hw-s16le-48000-stereo-p256-b1024@1";
 pub const AUDIO_PLAY_ALSA_HW_IMPLEMENTATION: &str = "std/kernel-audio-play-alsa-hw@1";
@@ -182,7 +198,7 @@ pub fn music_synth_contract() -> StandardKindContract {
             .to_string(),
         inputs: music_inputs(),
         outputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: music_synth_configuration(),
         limits: audio_limits(),
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
@@ -195,7 +211,7 @@ pub fn music_synth_contract() -> StandardKindContract {
 pub fn music_synth_reference_offer() -> CapabilityOffer {
     let contract = music_synth_contract();
     CapabilityOffer {
-        startup_parameters: Vec::new(),
+        startup_parameters: crate::startup_face(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from("music-synth-fixed-q16"),
         kind_id: contract.kind_id,
@@ -217,6 +233,73 @@ pub fn music_synth_reference_offer() -> CapabilityOffer {
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: audio_limits(),
+    }
+}
+
+pub fn music_synth_configuration() -> Vec<StandardConfigurationField> {
+    vec![
+        u64_configuration(SYNTH_MAXIMUM_VOICES_KEY, 8, 8, 16),
+        text_one_of_configuration(
+            SYNTH_OSCILLATOR_KEY,
+            "saw",
+            &["sine", "triangle", "saw", "pulse"],
+        ),
+        u64_configuration(SYNTH_PULSE_WIDTH_KEY, 32_768, 3_277, 62_259),
+        u64_configuration(SYNTH_ATTACK_KEY, 10_000, 0, 30_000_000),
+        u64_configuration(SYNTH_DECAY_KEY, 80_000, 0, 30_000_000),
+        u64_configuration(SYNTH_SUSTAIN_KEY, 45_875, 0, 65_535),
+        u64_configuration(SYNTH_RELEASE_KEY, 150_000, 0, 30_000_000),
+        u64_configuration(SYNTH_FILTER_CUTOFF_KEY, 18_000, 1, 32_768),
+        u64_configuration(SYNTH_FILTER_RESONANCE_KEY, 20_000, 0, 60_000),
+        i64_configuration(SYNTH_FILTER_ENVELOPE_KEY, 12_000, -32_768, 32_768),
+        u64_configuration(SYNTH_LFO_RATE_KEY, 5_000, 0, 20_000),
+        u64_configuration(SYNTH_LFO_DEPTH_KEY, 2_000, 0, 65_535),
+        u64_configuration(SYNTH_MASTER_GAIN_KEY, 16_384, 0, 65_535),
+        text_one_of_configuration(
+            SYNTH_STEAL_POLICY_KEY,
+            "oldest-released-then-oldest-active",
+            &["oldest-released-then-oldest-active", "refuse"],
+        ),
+    ]
+}
+
+fn u64_configuration(
+    key: &str,
+    default_value: u64,
+    minimum: u64,
+    maximum: u64,
+) -> StandardConfigurationField {
+    StandardConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::U64(default_value),
+        rule: StandardConfigurationRule::U64Range { minimum, maximum },
+    }
+}
+
+fn i64_configuration(
+    key: &str,
+    default_value: i64,
+    minimum: i64,
+    maximum: i64,
+) -> StandardConfigurationField {
+    StandardConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::I64(default_value),
+        rule: StandardConfigurationRule::I64Range { minimum, maximum },
+    }
+}
+
+fn text_one_of_configuration(
+    key: &str,
+    default_value: &str,
+    values: &[&str],
+) -> StandardConfigurationField {
+    StandardConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::Text(default_value.into()),
+        rule: StandardConfigurationRule::TextOneOf {
+            values: values.iter().map(|value| String::from(*value)).collect(),
+        },
     }
 }
 
@@ -427,6 +510,53 @@ mod tests {
                 PressureDisposition::WaitWithoutConsumption
             );
         }
+    }
+
+    #[cfg(feature = "form-catalog")]
+    #[test]
+    fn authored_synth_patch_has_exact_defaults_and_overrides() {
+        let mut startup = conduit_form::StartupCatalog::new();
+        let mut profile = conduit_form::ProfileCatalog::new();
+        crate::install_sound_catalogs(&mut startup, &mut profile).unwrap();
+        let checked = conduit_form::parse(
+            "form 0\n\npatch {\n synth: music/synth\n synth.maximum-voices = 12\n synth.oscillator = \"triangle\"\n synth.filter-envelope-amount-q16 = -4096\n}\n",
+            &profile,
+        )
+        .unwrap();
+        let configuration = &checked.gears[0].configuration;
+        assert_eq!(configuration.len(), music_synth_configuration().len());
+        assert_eq!(
+            configuration
+                .iter()
+                .find(|entry| entry.key.as_str() == SYNTH_MAXIMUM_VOICES_KEY)
+                .unwrap()
+                .value,
+            ConfigurationValue::U64(12)
+        );
+        assert_eq!(
+            configuration
+                .iter()
+                .find(|entry| entry.key.as_str() == SYNTH_OSCILLATOR_KEY)
+                .unwrap()
+                .value,
+            ConfigurationValue::Text("triangle".into())
+        );
+        assert_eq!(
+            configuration
+                .iter()
+                .find(|entry| entry.key.as_str() == SYNTH_FILTER_ENVELOPE_KEY)
+                .unwrap()
+                .value,
+            ConfigurationValue::I64(-4096)
+        );
+        assert_eq!(
+            configuration
+                .iter()
+                .find(|entry| entry.key.as_str() == SYNTH_ATTACK_KEY)
+                .unwrap()
+                .value,
+            ConfigurationValue::U64(10_000)
+        );
     }
 
     #[test]

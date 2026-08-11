@@ -469,7 +469,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_synth::REFERENCE_SYNTH_IMPLEMENTATION_ID
             {
-                synth_operation::InstalledSynthState::new().map(Some)
+                synth_operation::InstalledSynthState::from_placement(placement).map(Some)
             } else {
                 Ok(None)
             }

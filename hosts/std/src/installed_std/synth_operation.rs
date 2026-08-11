@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
-    CapabilityOffer, HostOperationRequirement, PlannedGear, CONTROL_EVENT_ENCODED_LEN,
-    NOTE_EVENT_ENCODED_LEN,
+    CapabilityOffer, ConfigurationValue, HostOperationRequirement, PlannedGear,
+    CONTROL_EVENT_ENCODED_LEN, NOTE_EVENT_ENCODED_LEN,
 };
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
@@ -17,12 +17,15 @@ pub(super) struct InstalledSynthState {
 }
 
 impl InstalledSynthState {
-    pub(super) fn new() -> Result<Self, String> {
+    pub(super) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
+        validate(placement)?;
+        Self::new(profile(placement)?)
+    }
+
+    fn new(profile: conduit_synth::ReferenceSynthProfile) -> Result<Self, String> {
         Ok(Self {
-            synth: conduit_synth::ReferenceSynth::new(
-                conduit_synth::ReferenceSynthProfile::musician_reference(),
-            )
-            .map_err(|error| format!("prepare reference synth: {error:?}"))?,
+            synth: conduit_synth::ReferenceSynth::new(profile)
+                .map_err(|error| format!("prepare reference synth: {error:?}"))?,
             last_event: None,
         })
     }
@@ -79,7 +82,7 @@ pub(super) fn execute(
         let header = conduit_core::PcmFrameHeader::new(
             conduit_core::PcmSampleRepresentation::Signed16LittleEndian,
             conduit_synth::REFERENCE_SAMPLE_RATE_HZ,
-            conduit_core::PcmChannelLayout::Mono,
+            conduit_core::PcmChannelLayout::StereoLeftRight,
             frame_count,
             1,
             state.synth.frame_cursor(),
@@ -88,14 +91,16 @@ pub(super) fn execute(
         .map_err(|error| format!("frame reference synth PCM: {error:?}"))?;
         output.extend_from_slice(&header.encode());
         let payload_start = output.len();
-        output.resize(payload_start + usize::from(frame_count) * 2, 0);
+        output.resize(payload_start + usize::from(frame_count) * 4, 0);
         let mut samples = [0_i16; conduit_synth::REFERENCE_MAXIMUM_BLOCK_FRAMES as usize];
         state.synth.render(&mut samples[..usize::from(frame_count)]);
         for (encoded, sample) in output[payload_start..]
-            .chunks_exact_mut(2)
+            .chunks_exact_mut(4)
             .zip(samples.iter())
         {
-            encoded.copy_from_slice(&sample.to_le_bytes());
+            let sample = sample.to_le_bytes();
+            encoded[..2].copy_from_slice(&sample);
+            encoded[2..].copy_from_slice(&sample);
         }
     }
     match event {
@@ -222,6 +227,7 @@ impl MusicSynthOperation {
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
+    profile(placement)?;
     Ok(OperationBudget {
         value_items: 3,
         value_bytes: PCM_BLOCK_BYTES * 3,
@@ -246,6 +252,16 @@ fn prepare(
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
+    let expected_configuration = conduit_std_catalog::music_synth_configuration();
+    let configuration_is_exact = placement.configuration.len() == expected_configuration.len()
+        && expected_configuration.iter().all(|field| {
+            placement
+                .configuration
+                .iter()
+                .filter(|entry| entry.key == field.key)
+                .count()
+                == 1
+        });
     if placement.kind_id.as_str() != conduit_std_catalog::MUSIC_SYNTH_KIND
         || placement.kind_contract_revision.as_str() != conduit_std_catalog::MUSIC_SYNTH_REVISION
         || placement.execution_profile_id.as_str() != conduit_synth::REFERENCE_SYNTH_PROFILE_ID
@@ -254,6 +270,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.host_operations != [host_requirement()]
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
+        || !configuration_is_exact
     {
         return Err(
             "planned music/synth placement does not match the installed reference profile"
@@ -261,6 +278,86 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         );
     }
     Ok(())
+}
+
+fn profile(placement: &PlannedGear) -> Result<conduit_synth::ReferenceSynthProfile, String> {
+    use conduit_std_catalog::*;
+
+    let oscillator = match text(placement, SYNTH_OSCILLATOR_KEY)? {
+        "sine" => conduit_synth::OscillatorShape::Sine,
+        "triangle" => conduit_synth::OscillatorShape::Triangle,
+        "saw" => conduit_synth::OscillatorShape::Saw,
+        "pulse" => conduit_synth::OscillatorShape::Pulse,
+        _ => return Err("planned synth oscillator is unsupported".into()),
+    };
+    let steal_policy = match text(placement, SYNTH_STEAL_POLICY_KEY)? {
+        "oldest-released-then-oldest-active" => {
+            conduit_synth::VoiceStealPolicy::OldestReleasedThenOldestActive
+        }
+        "refuse" => conduit_synth::VoiceStealPolicy::Refuse,
+        _ => return Err("planned synth voice-steal policy is unsupported".into()),
+    };
+    let profile = conduit_synth::ReferenceSynthProfile {
+        maximum_voices: integer(placement, SYNTH_MAXIMUM_VOICES_KEY)?,
+        maximum_block_frames: conduit_synth::REFERENCE_MAXIMUM_BLOCK_FRAMES,
+        oscillator,
+        pulse_width_q16: integer(placement, SYNTH_PULSE_WIDTH_KEY)?,
+        attack_micros: integer(placement, SYNTH_ATTACK_KEY)?,
+        decay_micros: integer(placement, SYNTH_DECAY_KEY)?,
+        sustain_level_q16: integer(placement, SYNTH_SUSTAIN_KEY)?,
+        release_micros: integer(placement, SYNTH_RELEASE_KEY)?,
+        filter_cutoff_q16: integer(placement, SYNTH_FILTER_CUTOFF_KEY)?,
+        filter_resonance_q16: integer(placement, SYNTH_FILTER_RESONANCE_KEY)?,
+        filter_envelope_amount_q16: signed_integer(placement, SYNTH_FILTER_ENVELOPE_KEY)?,
+        lfo_rate_millihertz: integer(placement, SYNTH_LFO_RATE_KEY)?,
+        lfo_depth_q16: integer(placement, SYNTH_LFO_DEPTH_KEY)?,
+        master_gain_q16: integer(placement, SYNTH_MASTER_GAIN_KEY)?,
+        steal_policy,
+    };
+    profile
+        .validate()
+        .map_err(|error| format!("planned reference synth profile is invalid: {error:?}"))
+}
+
+fn integer<T>(placement: &PlannedGear, key: &str) -> Result<T, String>
+where
+    T: TryFrom<u64>,
+{
+    let value = placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::U64(value)) if found == key => Some(*value),
+            _ => None,
+        })
+        .ok_or_else(|| format!("planned synth configuration '{key}' is missing or invalid"))?;
+    T::try_from(value).map_err(|_| format!("planned synth configuration '{key}' is out of range"))
+}
+
+fn signed_integer<T>(placement: &PlannedGear, key: &str) -> Result<T, String>
+where
+    T: TryFrom<i64>,
+{
+    let value = placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::I64(value)) if found == key => Some(*value),
+            _ => None,
+        })
+        .ok_or_else(|| format!("planned synth configuration '{key}' is missing or invalid"))?;
+    T::try_from(value).map_err(|_| format!("planned synth configuration '{key}' is out of range"))
+}
+
+fn text<'a>(placement: &'a PlannedGear, key: &str) -> Result<&'a str, String> {
+    placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::Text(value)) if found == key => Some(value.as_str()),
+            _ => None,
+        })
+        .ok_or_else(|| format!("planned synth configuration '{key}' is missing or invalid"))
 }
 
 #[cfg(test)]
@@ -282,7 +379,9 @@ mod tests {
 
     #[test]
     fn admitted_event_interval_becomes_exact_bounded_pcm() {
-        let mut state = InstalledSynthState::new().unwrap();
+        let mut state =
+            InstalledSynthState::new(conduit_synth::ReferenceSynthProfile::musician_reference())
+                .unwrap();
         let mut output = Vec::with_capacity(PCM_BLOCK_BYTES as usize);
         assert!(!execute(&mut state, &note(1, Gate::On, 0, 0).encode(), &mut output).unwrap());
         assert!(execute(
@@ -294,14 +393,23 @@ mod tests {
         let (header, payload) = PcmFrameHeader::decode_frame(&output).unwrap();
         assert_eq!(header.frame_count, 240);
         assert_eq!(header.start_frame, 0);
-        assert_eq!(payload.len(), 480);
+        assert_eq!(
+            header.layout,
+            conduit_core::PcmChannelLayout::StereoLeftRight
+        );
+        assert_eq!(payload.len(), 960);
+        assert!(payload
+            .chunks_exact(4)
+            .all(|frame| frame[..2] == frame[2..]));
         assert!(payload.iter().any(|byte| *byte != 0));
         assert!(output.len() <= PCM_BLOCK_BYTES as usize);
     }
 
     #[test]
     fn global_order_and_block_horizon_are_refused_exactly() {
-        let mut state = InstalledSynthState::new().unwrap();
+        let mut state =
+            InstalledSynthState::new(conduit_synth::ReferenceSynthProfile::musician_reference())
+                .unwrap();
         let mut output = Vec::with_capacity(PCM_BLOCK_BYTES as usize);
         execute(&mut state, &note(1, Gate::On, 0, 2).encode(), &mut output).unwrap();
         assert!(
@@ -310,7 +418,9 @@ mod tests {
                 .contains("global timestamp/order")
         );
 
-        let mut later = InstalledSynthState::new().unwrap();
+        let mut later =
+            InstalledSynthState::new(conduit_synth::ReferenceSynthProfile::musician_reference())
+                .unwrap();
         assert!(execute(
             &mut later,
             &note(2, Gate::On, 1_000_000, 0).encode(),
