@@ -2,6 +2,9 @@ mod aarch64_a0;
 mod aarch64_a1;
 mod architecture_matrix;
 mod build;
+mod hid_proof;
+mod hid_qmp;
+mod hid_run;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
@@ -64,6 +67,8 @@ enum ConduitosCommand {
     XhciProof,
     /// Prove one real bounded root-attached USB device without semantic input.
     UsbProof,
+    /// Prove one real HID boot-keyboard press/release stream without semantics.
+    HidProof,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -220,6 +225,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::XhciProof => xhci_proof::execute(opts),
         ConduitosCommand::UsbProof => usb_proof::execute(opts),
+        ConduitosCommand::HidProof => hid_proof::execute(opts),
     }
 }
 

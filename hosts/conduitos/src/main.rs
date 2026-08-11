@@ -150,6 +150,53 @@ extern "C" fn conduitos_start() -> ! {
                 usb.sign_slots,
             );
             arch::early_write(usb_sign.as_bytes());
+            arch::early_write(b"CONDUIT_BOOT_STAGE hid-start\n");
+            let hid =
+                match arch::run_boot_keyboard(&mut xhci, &usb, boot::executable_physical_address) {
+                    Ok(proof) => proof,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+            let hid_sign = format!(
+                "CONDUIT_HID_SIGN {{\"schema\":\"conduit.conduitos.hid-boot-keyboard/v1\",\"status\":\"transitions-observed\",\"proof_class\":\"freestanding-emulator\",\"controller_base_id\":\"{}\",\"boot_id\":\"{}\",\"device_instance_id\":\"{}\",\"interface_id\":\"{}\",\"endpoint_id\":\"{}\",\"interface_number\":{},\"endpoint_address\":{},\"endpoint_dci\":{},\"endpoint_maximum_packet_size\":{},\"endpoint_interval\":{},\"set_protocol_transfers\":{},\"interrupt_transfers\":{},\"report_bytes\":{},\"report_buffers\":{},\"maximum_outstanding_interrupt_transfers\":{},\"maximum_transitions_per_report\":{},\"transfer_trbs\":{},\"dma_bytes\":{},\"dma_alignment\":{},\"sign_slots\":{},\"interrupt_poll_windows\":{},\"transition_count\":{},\"first_usage_page\":\"keyboard-keypad\",\"first_usage\":{},\"first_state\":\"{}\",\"first_modifiers\":{},\"second_usage_page\":\"keyboard-keypad\",\"second_usage\":{},\"second_state\":\"{}\",\"second_modifiers\":{},\"layout_translation\":false,\"unicode_translation\":false,\"semantic_keyboard_offer\":false}}\n",
+                xhci_base_id,
+                identity::hex(&identities.boot),
+                identity::hex(&device_id),
+                identity::hex(&interface_id),
+                identity::hex(&endpoint_id),
+                hid.interface_number,
+                hid.endpoint_address,
+                hid.endpoint_dci,
+                hid.endpoint_maximum_packet_size,
+                hid.endpoint_interval,
+                hid.set_protocol_transfers,
+                hid.interrupt_transfers,
+                hid.report_bytes,
+                hid.report_buffers,
+                hid.maximum_outstanding_interrupt_transfers,
+                hid.maximum_transitions_per_report,
+                hid.transfer_trbs,
+                hid.dma_bytes,
+                hid.dma_alignment,
+                hid.sign_slots,
+                hid.interrupt_poll_windows,
+                hid.transition_count,
+                hid.transitions[0].usage,
+                if hid.transitions[0].pressed {
+                    "pressed"
+                } else {
+                    "released"
+                },
+                hid.transitions[0].modifiers,
+                hid.transitions[1].usage,
+                if hid.transitions[1].pressed {
+                    "pressed"
+                } else {
+                    "released"
+                },
+                hid.transitions[1].modifiers,
+            );
+            arch::early_write(hid_sign.as_bytes());
+            arch::early_write(b"CONDUIT_BOOT_STAGE hid-transitions\n");
             match proof::accepted(&record, &identities, BUILD_ID, IMAGE_ID) {
                 Ok(sign) => {
                     arch::early_write(sign.as_bytes());

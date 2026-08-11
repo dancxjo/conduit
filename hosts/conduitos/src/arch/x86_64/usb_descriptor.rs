@@ -72,7 +72,7 @@ pub(super) fn validate_header(bytes: &[u8], length: usize, kind: u8) -> Result<(
     }
 }
 
-pub(super) fn device_from_descriptor(
+pub(crate) fn device_from_descriptor(
     port: u8,
     slot: u8,
     address: u8,
