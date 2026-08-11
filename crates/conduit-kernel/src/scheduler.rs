@@ -138,10 +138,19 @@ pub struct HostOperationRequest {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HostOperationCancellation {
+    pub node: NodeId,
+    pub request: RequestId,
+    pub operation: HostOperationId,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct PendingHostOperation {
     request: HostOperationRequest,
     maximum_output_bytes: u32,
     dispatched: bool,
+    cancellation_requested: bool,
+    cancellation_dispatched: bool,
     completion: Option<HostOperationOutcome>,
 }
 
@@ -151,6 +160,9 @@ pub trait StepOperation<const PORTS: usize> {
         io: &mut StepIo<PORTS>,
         input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome;
+    fn accepts_input_while_host_operation_pending(&self) -> bool {
+        false
+    }
     fn cancel(&mut self) {}
 }
 
@@ -209,6 +221,7 @@ struct AdapterTransaction<const PORTS: usize> {
     event: AdapterEvent,
     outputs: [Option<ValueRef>; PORTS],
     host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+    host_cancellation: Option<RequestId>,
     retain_resumed_value: bool,
     released_values: [Option<ValueRef>; PORTS],
     terminal: AdapterTerminal,
@@ -218,6 +231,7 @@ impl<const PORTS: usize> AdapterTransaction<PORTS> {
     fn is_empty_continue(&self) -> bool {
         self.outputs.iter().all(Option::is_none)
             && self.host_request.is_none()
+            && self.host_cancellation.is_none()
             && !self.retain_resumed_value
             && self.released_values.iter().all(Option::is_none)
             && matches!(self.terminal, AdapterTerminal::Continue)
@@ -246,6 +260,7 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
         };
         let mut transaction = driver.collect(AdapterEvent::None, first)?;
         driver.collect_released_values(&mut transaction)?;
+        driver.collect_host_cancellation(&mut transaction)?;
         if !transaction.is_empty_continue() {
             driver.pending = Some(transaction);
         }
@@ -265,6 +280,7 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
             event,
             outputs: [None; PORTS],
             host_request: None,
+            host_cancellation: None,
             retain_resumed_value: false,
             released_values: [None; PORTS],
             terminal: AdapterTerminal::Continue,
@@ -319,6 +335,17 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
             *released = Some(value);
         }
         if self.operation.take_released_value().is_some() {
+            return Err(SchedulerError::OperationProtocolViolation);
+        }
+        Ok(())
+    }
+
+    fn collect_host_cancellation(
+        &mut self,
+        transaction: &mut AdapterTransaction<PORTS>,
+    ) -> Result<(), SchedulerError> {
+        transaction.host_cancellation = self.operation.take_host_operation_cancellation();
+        if self.operation.take_host_operation_cancellation().is_some() {
             return Err(SchedulerError::OperationProtocolViolation);
         }
         Ok(())
@@ -382,6 +409,10 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                     transaction.retain_resumed_value = matches!(event, AdapterEvent::Value { .. })
                         && self.operation.retains_resumed_value();
                     if self.collect_released_values(&mut transaction).is_err() {
+                        self.protocol_failed = true;
+                        return StepOutcome::Fail(u16::MAX);
+                    }
+                    if self.collect_host_cancellation(&mut transaction).is_err() {
                         self.protocol_failed = true;
                         return StepOutcome::Fail(u16::MAX);
                     }
@@ -452,6 +483,11 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                 return StepOutcome::Fail(u16::MAX);
             }
         }
+        if let Some(request) = transaction.host_cancellation {
+            if io.cancel_host_operation(request).is_err() {
+                return StepOutcome::Fail(u16::MAX);
+            }
+        }
         self.pending = None;
         match transaction.terminal {
             AdapterTerminal::Continue => StepOutcome::Progress,
@@ -463,6 +499,10 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
     fn cancel(&mut self) {
         self.pending = None;
         self.operation.cancel();
+    }
+
+    fn accepts_input_while_host_operation_pending(&self) -> bool {
+        self.operation.accepts_input_while_host_operation_pending()
     }
 }
 
@@ -478,6 +518,7 @@ pub struct StepIo<const PORTS: usize> {
     host_completion: Option<(RequestId, HostOperationOutcome)>,
     consumed_host_completion: bool,
     host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+    host_cancellation: Option<RequestId>,
     maximum_work: u16,
     work: u16,
     fault: Option<SchedulerError>,
@@ -492,6 +533,7 @@ struct StagedStep<const PORTS: usize> {
     discards: [Option<ValueRef>; PORTS],
     consumed_host_completion: bool,
     host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+    host_cancellation: Option<RequestId>,
 }
 
 impl<const PORTS: usize> StepIo<PORTS> {
@@ -607,6 +649,15 @@ impl<const PORTS: usize> StepIo<PORTS> {
         Ok(())
     }
 
+    pub fn cancel_host_operation(&mut self, request: RequestId) -> Result<(), SchedulerError> {
+        self.charge_work(1)?;
+        if self.host_cancellation.is_some() {
+            return self.fail(SchedulerError::InvalidHostOperationAccess);
+        }
+        self.host_cancellation = Some(request);
+        Ok(())
+    }
+
     pub fn discard(&mut self, value: ValueRef) -> Result<(), SchedulerError> {
         self.charge_work(1)?;
         if self
@@ -655,6 +706,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             || self.discards.iter().any(Option::is_some)
             || self.consumed_host_completion
             || self.host_request.is_some()
+            || self.host_cancellation.is_some()
             || self.consumed_closed.iter().any(|value| *value)
     }
 
@@ -667,6 +719,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             discards: self.discards,
             consumed_host_completion: self.consumed_host_completion,
             host_request: self.host_request,
+            host_cancellation: self.host_cancellation,
         }
     }
 }
@@ -685,6 +738,9 @@ pub enum SchedulerError {
     InvalidActiveCapacity,
     InvalidPortAccess,
     InvalidHostOperationAccess,
+    HostOperationCancellationRejected,
+    HostOperationCancellationDuplicate,
+    HostOperationCancellationUndispatched,
     OutputBlocked,
     QueueCapacityExceeded,
     QueueByteCapacityExceeded,
@@ -1322,6 +1378,24 @@ where
         Some(pending.request)
     }
 
+    pub fn next_host_cancellation(&mut self) -> Option<HostOperationCancellation> {
+        let pending = self
+            .pending_host_operations
+            .iter_mut()
+            .flatten()
+            .find(|pending| {
+                pending.cancellation_requested
+                    && !pending.cancellation_dispatched
+                    && pending.completion.is_none()
+            })?;
+        pending.cancellation_dispatched = true;
+        Some(HostOperationCancellation {
+            node: pending.request.node,
+            request: pending.request.request,
+            operation: pending.request.operation,
+        })
+    }
+
     pub fn complete_host_operation(
         &mut self,
         node: NodeId,
@@ -1464,7 +1538,11 @@ where
                     .any(|pending| {
                         usize::from(pending.request.node.0) == node && pending.completion.is_none()
                     });
-            if self.ready[node] && !self.completed[node] && !waiting_for_host_completion {
+            if self.ready[node]
+                && !self.completed[node]
+                && (!waiting_for_host_completion
+                    || self.drivers[node].accepts_input_while_host_operation_pending())
+            {
                 self.cursor = (node + 1) % self.active_nodes;
                 return Some(node);
             }
@@ -1540,6 +1618,7 @@ where
             host_completion,
             consumed_host_completion: false,
             host_request: None,
+            host_cancellation: None,
             maximum_work: self.node_specs[node].maximum_step_work,
             work: 0,
             fault: None,
@@ -1571,8 +1650,13 @@ where
                     .checked_add(1)
                     .ok_or(SchedulerError::InvalidPlan)?;
             }
+            if io.host_cancellation.is_some() {
+                sign_records = sign_records
+                    .checked_add(1)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+            }
             if matches!(outcome, StepOutcome::Complete) {
-                if io.host_request.is_some() {
+                if io.host_request.is_some() || io.host_cancellation.is_some() {
                     return Err(SchedulerError::InvalidHostOperationAccess);
                 }
                 sign_records = sign_records
@@ -1584,7 +1668,9 @@ where
             self.commit(node, io.staged_step())?;
         }
         match outcome {
-            StepOutcome::Progress => self.ready[node] = io.host_request.is_none(),
+            StepOutcome::Progress => {
+                self.ready[node] = io.host_request.is_none() && io.host_cancellation.is_none()
+            }
             StepOutcome::Yield => self.ready[node] = true,
             StepOutcome::Await => self.ready[node] = false,
             StepOutcome::Complete => {
@@ -1612,6 +1698,7 @@ where
             discards,
             consumed_host_completion,
             host_request,
+            host_cancellation,
         } = staged;
         let mut retained_values = [None; PORTS];
         for (port, retained) in retained_inputs.iter().copied().enumerate() {
@@ -1622,6 +1709,25 @@ where
             }
         }
         let admitted_host_request = self.preflight_step(node, &staged, &retained_values)?;
+
+        if let Some(request) = host_cancellation {
+            let pending = self
+                .pending_host_operations
+                .iter_mut()
+                .flatten()
+                .find(|pending| {
+                    usize::from(pending.request.node.0) == node
+                        && pending.request.request == request
+                })
+                .ok_or(SchedulerError::HostOperationCancellationRejected)?;
+            pending.cancellation_requested = true;
+            self.signs.record(
+                NodeId(as_u16(node)?),
+                None,
+                Some(request),
+                KernelEventKind::HostOperationCancellationRequested,
+            )?;
+        }
 
         for (port, consumed) in consumed_closed.iter().copied().enumerate() {
             if consumed {
@@ -1763,6 +1869,8 @@ where
                 },
                 maximum_output_bytes: binding.maximum_output_bytes,
                 dispatched: false,
+                cancellation_requested: false,
+                cancellation_dispatched: false,
                 completion: None,
             });
             self.last_host_request[node] = Some(request);
@@ -1814,6 +1922,13 @@ where
         let discards = &staged.discards;
         let consumed_host_completion = staged.consumed_host_completion;
         let host_request = staged.host_request;
+        let host_cancellation = staged.host_cancellation;
+        if host_request.is_some() && host_cancellation.is_some() {
+            return Err(SchedulerError::InvalidHostOperationAccess);
+        }
+        if consumed_host_completion && host_cancellation.is_some() {
+            return Err(SchedulerError::InvalidHostOperationAccess);
+        }
         if retained_inputs
             .iter()
             .zip(consumed)
@@ -1842,6 +1957,25 @@ where
             None
         };
         let node_id = NodeId(as_u16(node)?);
+        if let Some(request) = host_cancellation {
+            let pending = self
+                .pending_host_operations
+                .iter()
+                .flatten()
+                .find(|pending| {
+                    pending.request.node == node_id && pending.request.request == request
+                })
+                .ok_or(SchedulerError::HostOperationCancellationRejected)?;
+            if !pending.dispatched {
+                return Err(SchedulerError::HostOperationCancellationUndispatched);
+            }
+            if pending.completion.is_some() {
+                return Err(SchedulerError::HostOperationCancellationRejected);
+            }
+            if pending.cancellation_requested {
+                return Err(SchedulerError::HostOperationCancellationDuplicate);
+            }
+        }
         let admitted_host_request = if let Some((request, operation, input)) = host_request {
             if self.last_host_request[node].is_some_and(|last| request <= last)
                 || self
