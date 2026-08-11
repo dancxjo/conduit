@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "environment_id": "maker-workbench",
+  "revision": 6,
+  "parts": [
+    {
+      "part_id": "pico",
+      "name": "Pico W",
+      "profile": "pico-w",
+      "resources": {
+        "compute_units": 1,
+        "memory_bytes": 270336,
+        "connectivity": ["wifi", "usb-cdc", "gpio"]
+      },
+      "x": 230,
+      "y": 170
+    },
+    {
+      "part_id": "motherbrain",
+      "name": "Motherbrain",
+      "profile": "raspberry-pi5",
+      "resources": {
+        "compute_units": 8,
+        "memory_bytes": 8589934592,
+        "connectivity": ["wifi", "ethernet", "usb", "audio", "video"]
+      },
+      "x": 500,
+      "y": 170
+    },
+    {
+      "part_id": "forebrain",
+      "name": "Forebrain laptop",
+      "profile": "laptop-linux",
+      "resources": {
+        "compute_units": 16,
+        "memory_bytes": 17179869184,
+        "connectivity": ["wifi", "ethernet", "usb", "browser", "audio", "video", "gpu"]
+      },
+      "x": 770,
+      "y": 170
+    }
+  ],
+  "links": [
+    {
+      "link_id": "pico-wifi-motherbrain",
+      "left_part_id": "pico",
+      "right_part_id": "motherbrain",
+      "kind": "wifi"
+    },
+    {
+      "link_id": "motherbrain-ethernet-forebrain",
+      "left_part_id": "motherbrain",
+      "right_part_id": "forebrain",
+      "kind": "ethernet"
+    }
+  ]
+}

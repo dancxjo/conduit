@@ -13,6 +13,12 @@ impl PatchbayApplication {
         else {
             return Ok(());
         };
+        if self.environment.is_some() {
+            if let GuiAction::EnvironmentSelect(part_id) = &action {
+                self.environment_drag = Some((part_id.clone(), self.cursor_position));
+            }
+            return self.handle_environment_action(action);
+        }
         if let GuiAction::PlacePaletteKind(kind) = action {
             self.palette_drag = Some(kind);
             return Ok(());
@@ -40,6 +46,25 @@ impl PatchbayApplication {
     }
 
     pub(super) fn handle_canvas_release(&mut self) -> Result<(), String> {
+        if let Some((part_id, start)) = self.environment_drag.take() {
+            if (self.cursor_position.0 - start.0).abs() > 2.0
+                || (self.cursor_position.1 - start.1).abs() > 2.0
+            {
+                self.environment
+                    .as_mut()
+                    .ok_or("authored environment is absent")?
+                    .move_part(
+                        &part_id,
+                        self.cursor_position.0 as i32 - 90,
+                        self.cursor_position.1 as i32 - 34,
+                    )
+                    .map_err(|error| format!("environment movement: {error:?}"))?;
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+            }
+            return Ok(());
+        }
         if let Some(kind) = self.palette_drag.take() {
             if self.cursor_position.0 > 176.0 {
                 self.handle_gui_action(GuiAction::PlacePaletteKind(kind))?;
