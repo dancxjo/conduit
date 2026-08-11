@@ -54,6 +54,37 @@ fn timing_controls_expose_bounded_duration_policy_and_capacity() {
 }
 
 #[test]
+fn input_semantic_controls_project_authoritative_finite_defaults() {
+    let editor =
+        editor("form input_controls {\n    keymap: input/keymap\n    chords: input/chords\n}\n");
+    let graph =
+        PatchbayGraph::from_expanded(&editor.expand_form("input_controls").unwrap()).unwrap();
+    let keymap = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str().ends_with("keymap"))
+        .unwrap();
+    assert_eq!(
+        keymap.controls[0].value,
+        ConfigurationValue::Text(conduit_core::CONDUIT_INTL_LAYOUT.into())
+    );
+    assert!(matches!(
+        keymap.controls[0].kind,
+        FaceControlKind::TextChoice { ref choices }
+            if choices == &[conduit_core::CONDUIT_INTL_LAYOUT.to_string()]
+    ));
+    let chords = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str().ends_with("chords"))
+        .unwrap();
+    assert_eq!(
+        chords.controls[0].value,
+        ConfigurationValue::Text(conduit_core::CORE_CHORD_MAP.into())
+    );
+}
+
+#[test]
 fn signed_scalar_control_is_visible_bounded_and_authored_exactly() {
     let mut editor =
         editor("form controls {\n    clamp: math/clamp(minimum = -7, maximum = 9)\n}\n");

@@ -7,16 +7,20 @@ mod external_websocket_host;
 mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
+mod input_semantic_operations;
 mod layout_operations;
 mod logic_operations;
 mod math_operations;
 mod operation;
+mod operation_capacity;
 mod pacing_operations;
 mod presentation_composition;
 mod robotics_effect;
 mod robotics_operations;
 #[cfg(test)]
 mod test_gate;
+#[cfg(test)]
+mod test_input_semantics;
 #[cfg(test)]
 mod test_logic;
 #[cfg(test)]
@@ -87,6 +91,16 @@ pub(super) use test_support::{
 #[cfg(test)]
 pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
     test_text_source::offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_key_event_source_offer() -> conduit_core::CapabilityOffer {
+    test_input_semantics::source_offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_chord_sink_offer() -> conduit_core::CapabilityOffer {
+    test_input_semantics::sink_offer()
 }
 
 #[cfg(test)]
@@ -359,6 +373,12 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT,
     );
     let gate_bool_target_kind = kind_id(conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_TARGET);
+    let keymap_contract_id =
+        conduit_core::HostOperationContractId::from(conduit_std_catalog::KEYMAP_HOST_OPERATION);
+    let keymap_target_kind = kind_id(conduit_std_catalog::KEYMAP_HOST_TARGET);
+    let chords_contract_id =
+        conduit_core::HostOperationContractId::from(conduit_std_catalog::CHORDS_HOST_OPERATION);
+    let chords_target_kind = kind_id(conduit_std_catalog::CHORDS_HOST_TARGET);
     let math_clamp_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_catalog::MATH_CLAMP_HOST_OPERATION);
     let math_scale_contract_id =
@@ -393,6 +413,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         kind_id(conduit_std_catalog::GRAPHICS_ICON_KIND),
     ];
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
+    let mut input_keymaps = [conduit_core::ConduitIntlKeymap::new(); MAX_NODES];
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     let mut generate_text_output =
@@ -612,6 +633,54 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete flow/gate bool decode: {error:?}"))?;
+                continue;
+            } else if (contract == &keymap_contract_id
+                && lowered_operation.target_kind.as_ref() == Some(&keymap_target_kind))
+                || (contract == &chords_contract_id
+                    && lowered_operation.target_kind.as_ref() == Some(&chords_target_kind))
+            {
+                let node = usize::from(request.node.0);
+                let completion = input_semantic_operations::execute_host(
+                    contract == &keymap_contract_id,
+                    &mut input_keymaps[node],
+                    input,
+                );
+                let outcome = match completion {
+                    Ok(Some(encoded)) => {
+                        let value = scheduler
+                            .store_host_value(encoded.as_slice())
+                            .map_err(|error| format!("store input semantic output: {error:?}"))?;
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound input semantic output: {error:?}")
+                                })?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    Ok(None) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output: None,
+                        failure: None,
+                    },
+                    Err(failure) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Failed,
+                        output: None,
+                        failure: Some(failure),
+                    },
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| {
+                        format!("complete input semantic host operation: {error:?}")
+                    })?;
                 continue;
             } else if [
                 (&math_clamp_contract_id, &math_clamp_target_kind),

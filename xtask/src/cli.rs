@@ -99,6 +99,7 @@ pub enum CheckSuite {
     FormS3,
     Observatory,
     StdCatalog,
+    InputSemantics,
     All,
 }
 

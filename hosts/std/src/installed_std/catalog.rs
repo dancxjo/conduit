@@ -7,6 +7,7 @@ use super::flow_state_operations::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_
 use super::generate_text::{
     GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
 };
+use super::input_semantic_operations::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
 #[cfg(test)]
 use super::layout_operations::TEST_LAYOUT_SINK_FACTORY;
 use super::layout_operations::{
@@ -32,6 +33,8 @@ use super::robotics_operations::{
 };
 #[cfg(test)]
 use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
+#[cfg(test)]
+use super::test_input_semantics::{TEST_CHORD_SINK_FACTORY, TEST_KEY_EVENT_SOURCE_FACTORY};
 #[cfg(test)]
 use super::test_logic::{TEST_LOGIC_SCRIPT_FACTORY, TEST_LOGIC_SINK_FACTORY};
 #[cfg(test)]
@@ -71,6 +74,9 @@ const FACTORIES: &[&InstalledFactory] = &[
     &STATE_LATEST_SCALAR_FACTORY,
     &FLOW_TEE_SCALAR_FACTORY,
     &FLOW_GATE_SCALAR_FACTORY,
+    &KEY_EVENT_TEE_FACTORY,
+    &KEYMAP_FACTORY,
+    &CHORDS_FACTORY,
     &LOGIC_COMPARE_SCALAR_FACTORY,
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,
@@ -116,6 +122,10 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEST_SCALAR_SINK_FACTORY,
     #[cfg(test)]
     &TEST_GATE_SCRIPT_FACTORY,
+    #[cfg(test)]
+    &TEST_KEY_EVENT_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_CHORD_SINK_FACTORY,
     #[cfg(test)]
     &TEST_LOGIC_SCRIPT_FACTORY,
     #[cfg(test)]

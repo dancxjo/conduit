@@ -16,6 +16,8 @@ use serde::{Deserialize, Serialize};
 mod functional_face;
 mod keyboard;
 pub use keyboard::*;
+mod input_semantics;
+pub use input_semantics::*;
 mod palette_metadata;
 mod tick;
 use functional_face::startup_face;
@@ -89,6 +91,9 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         text_upper_contract(),
         text_join_contract(),
         text_presentation_contract(),
+        key_event_tee_contract(),
+        keymap_contract(),
+        chords_contract(),
         state_count_contract(),
         state_toggle_contract(),
         count_presentation_contract(),
@@ -147,6 +152,9 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         text_upper_offer(),
         text_join_offer(),
         text_presentation_offer(),
+        key_event_tee_offer(),
+        keymap_offer(),
+        chords_offer(),
         state_count_offer(),
         state_toggle_offer(),
         count_presentation_offer(),
@@ -409,7 +417,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 48);
+        assert_eq!(contracts.len(), 51);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
