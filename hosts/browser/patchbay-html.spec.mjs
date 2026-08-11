@@ -133,6 +133,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(selectedSnapshot.interaction.last_disposition).toBe("Succeeded");
     expect(selectedSnapshot.interaction.selected_subject).toBe(identity);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"selected-gear",selectedSnapshot,"selection-succeeded-and-inspector-correlated");
+    const stableLensIdentity={presentation:selectedSnapshot.presentation.identity,plan:selectedSnapshot.presentation.basis.plan_id,play:selectedSnapshot.presentation.basis.active_play_id,selection:selectedSnapshot.interaction.selected_subject,interactionRevision:selectedSnapshot.interaction.revision};
+    await page.locator('[data-lens="plan"]').click();await expect(page.locator("body")).toHaveAttribute("data-lens","plan");await expect(page.locator("#lens-label")).toHaveText("PLAN LENS");await expect(page.locator("#graph .gear.selected .plan-overlay")).toBeVisible();await expect(page.locator("#inspector .selected-summary")).toContainText("host-id");
+    await page.locator('[data-lens="play"]').click();await expect(page.locator("#graph .gear.selected .play-overlay")).toBeVisible();await expect(page.locator("#inspector .selected-summary")).toContainText("play-state");await expect(page.locator("#inspector .selected-summary")).toContainText("pressure");
+    await page.locator('[data-lens="signs"]').click();await expect(page.locator("#graph .gear.selected .signs-overlay")).toBeVisible();await expect(page.locator("#inspector .selected-summary")).toContainText("Evidence");
+    await page.locator('[data-lens="form"]').click();await expect(page.locator("#graph .gear.selected .plan-overlay")).toBeHidden();await expect(page.locator("#inspector .selected-summary")).toContainText("kind-id");
+    const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({presentation:afterLenses.presentation.identity,plan:afterLenses.presentation.basis.plan_id,play:afterLenses.presentation.basis.active_play_id,selection:afterLenses.interaction.selected_subject,interactionRevision:afterLenses.interaction.revision}).toEqual(stableLensIdentity);
     const second=page.locator('#subjects button[data-role="Port"]').first();await second.click();
     await expect(second).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .selected-summary")).toContainText(/receiving|outgoing/);

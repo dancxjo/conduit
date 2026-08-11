@@ -1,6 +1,6 @@
 //! Project the exact typed Patchbay graph into renderer-neutral subjects.
 
-use crate::{FaceControlKind, PatchbayGraph};
+use crate::{FaceControlKind, PatchbayGraph, PlanDocument, PlayDocument};
 use conduit_presentation::{
     PresentationIconKey, PresentationPropertyValue, PresentationRelationship,
     PresentationRelationshipKind, PresentationRole,
@@ -8,7 +8,13 @@ use conduit_presentation::{
 
 use crate::portable_projection::ContentBuilder;
 
-pub(super) fn append_exact_graph(form: &str, graph: &PatchbayGraph, content: &mut ContentBuilder) {
+pub(super) fn append_exact_graph(
+    form: &str,
+    graph: &PatchbayGraph,
+    plan: Option<&PlanDocument>,
+    play: Option<&PlayDocument>,
+    content: &mut ContentBuilder,
+) {
     let mut semantic_subjects = Vec::new();
     for gear in &graph.gears {
         let icon = conduit_std_catalog::palette_metadata(&gear.kind_id)
@@ -37,6 +43,7 @@ pub(super) fn append_exact_graph(form: &str, graph: &PatchbayGraph, content: &mu
                 ),
             );
         }
+        append_gear_plan(content, &subject, gear, plan, play);
         semantic_subjects.push((gear.identity.as_str(), subject.clone()));
         for port in gear.inputs.iter().chain(&gear.outputs) {
             let port_subject = content.subject(
@@ -86,6 +93,7 @@ pub(super) fn append_exact_graph(form: &str, graph: &PatchbayGraph, content: &mu
         identity(content, &subject, "source-port", &cord.source_port);
         identity(content, &subject, "sink-port", &cord.sink_port);
         identity(content, &subject, "value-kind", cord.value_kind.as_str());
+        append_cord_plan(content, &subject, graph, cord, plan, play);
         for endpoint in [&cord.source_port, &cord.sink_port] {
             if let Some((_, port_subject)) = semantic_subjects
                 .iter()
@@ -98,6 +106,229 @@ pub(super) fn append_exact_graph(form: &str, graph: &PatchbayGraph, content: &mu
                 });
             }
         }
+    }
+}
+
+fn append_gear_plan(
+    content: &mut ContentBuilder,
+    subject: &str,
+    gear: &crate::PatchbayGear,
+    plan: Option<&PlanDocument>,
+    play: Option<&PlayDocument>,
+) {
+    let Some(plan) = plan else { return };
+    let Some(placement) = plan
+        .exact
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .find(|placement| placement.gear_id == gear.gear_id)
+    else {
+        return;
+    };
+    identity(content, subject, "plan-id", plan.plan_id.as_str());
+    text(
+        content,
+        subject,
+        "plan-status",
+        if play.is_some() {
+            "active"
+        } else {
+            "candidate"
+        },
+    );
+    text(
+        content,
+        subject,
+        "realization-layer",
+        if plan.exact.realization_backs.is_empty() {
+            "direct"
+        } else {
+            "expanded"
+        },
+    );
+    for (name, value) in [
+        ("placement-id", placement.placement_id.as_str()),
+        ("host-id", placement.host_id.as_str()),
+        ("boot-id", placement.boot_id.as_str()),
+        ("implementation-id", placement.implementation_id.as_str()),
+        ("artifact-id", placement.artifact_id.as_str()),
+    ] {
+        identity(content, subject, name, value);
+    }
+    text(
+        content,
+        subject,
+        "admitted-capacity",
+        &format!(
+            "active={} queue-items={} queue-bytes={}",
+            placement.limits.max_active_instances,
+            placement.limits.max_queue_items,
+            placement.limits.max_queue_bytes
+        ),
+    );
+    for (index, resource) in placement.resources.iter().enumerate() {
+        text(
+            content,
+            subject,
+            &format!("resource-{index}"),
+            &format!(
+                "{} · class {} · units {}",
+                resource.pool_id.as_str(),
+                resource.class_id.as_str(),
+                resource.units
+            ),
+        );
+    }
+    append_play(
+        content,
+        subject,
+        play,
+        Some(placement.placement_id.as_str()),
+        None,
+    );
+}
+
+fn append_cord_plan(
+    content: &mut ContentBuilder,
+    subject: &str,
+    graph: &PatchbayGraph,
+    cord: &crate::PatchbayCord,
+    plan: Option<&PlanDocument>,
+    play: Option<&PlayDocument>,
+) {
+    let Some(plan) = plan else { return };
+    let Some(connection) = planned_connection(graph, cord, plan) else {
+        return;
+    };
+    identity(content, subject, "plan-id", plan.plan_id.as_str());
+    text(
+        content,
+        subject,
+        "plan-status",
+        if play.is_some() {
+            "active"
+        } else {
+            "candidate"
+        },
+    );
+    text(
+        content,
+        subject,
+        "admitted-capacity",
+        &format!(
+            "items={} bytes={}",
+            connection.item_capacity, connection.byte_capacity
+        ),
+    );
+    if let Some(line) = &connection.selected_line {
+        identity(content, subject, "line-id", line.line_id.as_str());
+        text(
+            content,
+            subject,
+            "base",
+            &format!("{:?}", line.binding.base),
+        );
+        identity(
+            content,
+            subject,
+            "base-instance-id",
+            line.binding.base_instance_id.as_str(),
+        );
+    } else {
+        text(content, subject, "line", "local Cord; no external Line");
+    }
+    append_play(
+        content,
+        subject,
+        play,
+        None,
+        Some(connection.connection_id.as_str()),
+    );
+}
+
+fn planned_connection<'a>(
+    graph: &PatchbayGraph,
+    cord: &crate::PatchbayCord,
+    plan: &'a PlanDocument,
+) -> Option<&'a conduit_core::PlannedConnection> {
+    let source = graph
+        .gears
+        .iter()
+        .flat_map(|gear| &gear.outputs)
+        .find(|port| port.identity == cord.source_port)?;
+    let sink = graph
+        .gears
+        .iter()
+        .flat_map(|gear| &gear.inputs)
+        .find(|port| port.identity == cord.sink_port)?;
+    let source_placement = plan
+        .exact
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .find(|placement| placement.gear_id == source.gear_id)?;
+    let sink_placement = plan
+        .exact
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .find(|placement| placement.gear_id == sink.gear_id)?;
+    plan.exact
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+        .find(|connection| {
+            connection.source_placement_id == source_placement.placement_id
+                && connection.sink_placement_id == sink_placement.placement_id
+                && connection.source_port_id == source.descriptor.port_id
+                && connection.sink_port_id == sink.descriptor.port_id
+        })
+}
+
+fn append_play(
+    content: &mut ContentBuilder,
+    subject: &str,
+    play: Option<&PlayDocument>,
+    placement: Option<&str>,
+    connection: Option<&str>,
+) {
+    let Some(play) = play else { return };
+    identity(
+        content,
+        subject,
+        "active-play-id",
+        play.active_play_id.as_str(),
+    );
+    text(
+        content,
+        subject,
+        "play-state",
+        &format!("{:?}", play.terminal),
+    );
+    text(content, subject, "pressure", "not exposed by this Play");
+    for (index, sign) in play
+        .signs
+        .iter()
+        .filter(|sign| {
+            placement.is_some_and(|value| {
+                sign.placement_id
+                    .as_ref()
+                    .is_some_and(|id| id.as_str() == value)
+            }) || connection.is_some_and(|value| {
+                sign.connection_id
+                    .as_ref()
+                    .is_some_and(|id| id.as_str() == value)
+            })
+        })
+        .enumerate()
+    {
+        text(
+            content,
+            subject,
+            &format!("sign-{index}"),
+            &format!("{} · {:?}", sign.sign_id.as_str(), sign.kind),
+        );
     }
 }
 
