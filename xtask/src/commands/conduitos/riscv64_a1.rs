@@ -18,7 +18,7 @@ const PREFIX: &str = "CONDUIT_RISCV64_ENTRY_SIGN ";
 const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-opensbi-uboot";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct EntrySign {
+pub(super) struct EntrySign {
     schema: String,
     status: String,
     architecture: String,
@@ -131,6 +131,13 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 }
 
 fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
+    let text = boot_until(paths, PREFIX)?;
+    let sign = parse(&text)?;
+    validate(&sign, paths)?;
+    Ok(sign)
+}
+
+pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String, ConduitosError> {
     if !paths.limine.join("BOOTRISCV64.EFI").is_file() {
         return Err(refusal(
             "missing-riscv64-bootloader-artifact",
@@ -196,16 +203,14 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
             ));
         }
         let text = fs::read_to_string(&log).unwrap_or_default();
-        if text.contains(PREFIX) && text.ends_with('\n') {
+        if text.contains(terminal_prefix) && text.ends_with('\n') {
             child
                 .kill()
                 .map_err(|e| refusal("riscv64-boot-failed", e.to_string()))?;
             child
                 .wait()
                 .map_err(|e| refusal("riscv64-boot-failed", e.to_string()))?;
-            let sign = parse(&text)?;
-            validate(&sign, paths)?;
-            return Ok(sign);
+            return Ok(text);
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
@@ -215,7 +220,7 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
     }
 }
 
-fn parse(text: &str) -> Result<EntrySign, ConduitosError> {
+pub(super) fn parse(text: &str) -> Result<EntrySign, ConduitosError> {
     let values: Vec<_> = text
         .split(PREFIX)
         .skip(1)
@@ -231,7 +236,7 @@ fn parse(text: &str) -> Result<EntrySign, ConduitosError> {
         .map_err(|e| refusal("malformed-riscv64-entry-sign", e.to_string()))
 }
 
-fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosError> {
+pub(super) fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosError> {
     let commit = git_head(&paths.root)?;
     if sign.schema != "conduit.conduitos.riscv64-entry-sign/v1"
         || sign.status != "entered"
@@ -251,7 +256,7 @@ fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosError> {
     Ok(())
 }
 
-fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf, PathBuf), ConduitosError> {
+pub(super) fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf, PathBuf), ConduitosError> {
     let local = paths.root.join("target/conduitos/toolchain/riscv64-root");
     let qemu = [
         PathBuf::from("/usr/bin/qemu-system-riscv64"),

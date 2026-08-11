@@ -174,7 +174,7 @@ fn link(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
     }
 }
 
-fn rust_lld(root: &Path) -> Result<PathBuf, ConduitosError> {
+pub(super) fn rust_lld(root: &Path) -> Result<PathBuf, ConduitosError> {
     let sysroot = output(
         "rustc",
         &["--print", "sysroot"],

@@ -36,6 +36,13 @@ pub use aarch64::{
 #[cfg(target_arch = "aarch64")]
 pub const ARCHITECTURE: &str = "aarch64";
 #[cfg(target_arch = "riscv64")]
+mod riscv64;
+#[cfg(target_arch = "riscv64")]
+pub use riscv64::{
+    InterruptFact, disable_interrupts, enable_interrupts, initialize_machine, interruptible_idle,
+    pop_interrupt, present, read_counter, timer_arm,
+};
+#[cfg(target_arch = "riscv64")]
 pub const ARCHITECTURE: &str = "riscv64";
 #[cfg(target_arch = "loongarch64")]
 pub const ARCHITECTURE: &str = "loongarch64";
