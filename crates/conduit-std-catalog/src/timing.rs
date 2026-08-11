@@ -313,5 +313,14 @@ mod tests {
                 monotonic_timer_resource_requirement()
             );
         }
+        for contract in [time_debounce_contract(), time_timeout_contract()] {
+            assert!(matches!(
+                contract.configuration[0].rule,
+                StandardConfigurationRule::DurationMillis {
+                    minimum: 0,
+                    maximum: TIME_MAXIMUM_DURATION_MS
+                }
+            ));
+        }
     }
 }
