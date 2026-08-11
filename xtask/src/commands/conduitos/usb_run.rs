@@ -89,7 +89,7 @@ pub(super) fn prove_absent(paths: &Paths) -> Result<String, ConduitosError> {
             "-display",
             "none",
             "-vga",
-            "none",
+            "std",
             "-monitor",
             "none",
             "-serial",

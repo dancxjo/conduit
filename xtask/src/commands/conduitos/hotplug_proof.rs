@@ -70,7 +70,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "-display",
             "none",
             "-vga",
-            "none",
+            "std",
             "-monitor",
             "none",
             "-qmp",

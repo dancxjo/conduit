@@ -141,7 +141,7 @@ fn launch_qemu(
             "-display",
             "none",
             "-vga",
-            "none",
+            "std",
             "-monitor",
             "none",
             "-qmp",
