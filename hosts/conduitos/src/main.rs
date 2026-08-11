@@ -176,6 +176,7 @@ extern "C" fn conduitos_start() -> ! {
                     &identities,
                     &mut rescue_matcher,
                     transition.into_local_rescue(),
+                    false,
                 );
             }
             while modifier_prefix {
@@ -188,6 +189,7 @@ extern "C" fn conduitos_start() -> ! {
                         &identities,
                         &mut rescue_matcher,
                         transition.into_local_rescue(),
+                        false,
                     );
                 }
                 modifier_prefix = transitions[..count]
@@ -328,10 +330,18 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(keyboard_sign.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-completed\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-text-play-started\n");
-            if let Err(error) = hid_session.receive_until(
+            if let Err(error) = hid_session.receive_until_observing(
                 &mut xhci,
                 &usb,
                 2 + conduitos::keyboard_text_guest::PHYSICAL_TRANSITIONS,
+                |transition| {
+                    observe_local_rescue(
+                        &identities,
+                        &mut rescue_matcher,
+                        transition.into_local_rescue(),
+                        true,
+                    )
+                },
             ) {
                 emit_machine_refusal(error.as_str());
             }
@@ -433,6 +443,7 @@ fn observe_local_rescue(
     identities: &conduitos::identity::BootIdentities,
     matcher: &mut conduitos::local_rescue::LocalRescueMatcher,
     transition: conduitos::local_rescue::ValidatedLocalTransition,
+    ordinary_keyboard_plan: bool,
 ) {
     let policy = conduitos::local_rescue::LocalRescuePolicy {
         enabled: true,
@@ -446,8 +457,8 @@ fn observe_local_rescue(
         conduitos::local_rescue::RescueDecision::RequestAccepted { policy, operation } => {
             let boot_id = identity::hex(&identities.boot);
             let receipt = format!(
-                "CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"{}\",\"authority\":\"local-physical-input\",\"policy\":\"{}\",\"operation\":\"{}\",\"request_id\":\"local-rescue/{}/1\",\"ordinary_keyboard_plan\":false}}\n",
-                boot_id, policy, operation, boot_id,
+                "CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"{}\",\"authority\":\"local-physical-input\",\"policy\":\"{}\",\"operation\":\"{}\",\"request_id\":\"local-rescue/{}/1\",\"ordinary_keyboard_plan\":{}}}\n",
+                boot_id, policy, operation, boot_id, ordinary_keyboard_plan,
             );
             arch::early_write(receipt.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-reset-requested\n");

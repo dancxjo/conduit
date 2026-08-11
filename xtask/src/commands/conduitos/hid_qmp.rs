@@ -144,6 +144,50 @@ pub(super) fn inject_rescue_and_wait_for_reboot(
     )
 }
 
+pub(super) fn inject_active_play_rescue_and_wait_for_reboot(
+    socket: &Path,
+    serial_path: &Path,
+    child: &mut Child,
+) -> Result<(), ConduitosError> {
+    let (mut qmp, mut reader) = connect(socket, child)?;
+    wait_for_stage(
+        serial_path,
+        child,
+        "CONDUIT_BOOT_STAGE hid-awaiting-qemu-key",
+        "active-rescue-hid-ready-timeout",
+    )?;
+    send_key(&mut qmp, &mut reader, true)?;
+    wait_for_stage(
+        serial_path,
+        child,
+        "CONDUIT_BOOT_STAGE hid-press-report",
+        "active-rescue-press-timeout",
+    )?;
+    send_key(&mut qmp, &mut reader, false)?;
+    wait_for_stage(
+        serial_path,
+        child,
+        "CONDUIT_BOOT_STAGE keyboard-text-play-started",
+        "active-rescue-play-timeout",
+    )?;
+    send_rescue_modifiers(&mut qmp, &mut reader)?;
+    wait_for_stage_count(
+        serial_path,
+        child,
+        "CONDUIT_BOOT_STAGE hid-release-report",
+        2,
+        "active-rescue-modifiers-timeout",
+    )?;
+    send_rescue_delete(&mut qmp, &mut reader)?;
+    wait_for_stage_count(
+        serial_path,
+        child,
+        "CONDUIT_BOOT_STAGE local-rescue-ready",
+        2,
+        "active-rescue-reboot-timeout",
+    )
+}
+
 pub(super) fn inject_near_miss(
     socket: &Path,
     serial_path: &Path,
