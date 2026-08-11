@@ -304,4 +304,69 @@ mod tests {
                 .is_err()
         );
     }
+
+    #[test]
+    fn presentation_base_loss_and_cord_underprovision_refuse_before_play() {
+        let (identities, mut offer) = fixture();
+        offer
+            .bases
+            .iter_mut()
+            .find(|base| base.kind == crate::machine::BaseKind::Serial)
+            .unwrap()
+            .capacity = 0;
+        assert!(prepare(&identities, &offer, "build").is_err());
+
+        let (identities, offer) = fixture();
+        let mut advertisement = advertisement(&identities, &offer, "build").unwrap();
+        append_keymap_offer(&mut advertisement, "build");
+        let form = checked_expanded_form().unwrap();
+        let hosts = [advertisement];
+        let placements = default_expanded_placements(&form, &hosts).unwrap();
+        let underprovisioned = plan_expanded_canonical_with_options(
+            &form,
+            &hosts,
+            &placements,
+            &[ConnectionBase::Local],
+            PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: 2,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+        )
+        .unwrap();
+        assert!(validate(&underprovisioned, &hosts[0], &offer, "build").is_err());
+    }
+
+    #[test]
+    fn authored_form_contains_only_portable_meaning() {
+        for forbidden in [
+            "xhci",
+            "pci",
+            "usb",
+            "hid",
+            "qemu",
+            "x86",
+            "endpoint",
+            "interrupt",
+            "base",
+            "host",
+            "boot",
+            "device",
+            "socket",
+            "address",
+            "dom",
+            "gpio",
+            "stdout",
+            "credential",
+            "resource",
+            "layout",
+            "locale",
+        ] {
+            assert!(!FORM_SOURCE.to_ascii_lowercase().contains(forbidden));
+        }
+    }
 }

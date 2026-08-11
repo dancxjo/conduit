@@ -283,6 +283,7 @@ pub struct GuestRun {
     pub hid: GuestHidSign,
     pub keyboard: GuestKeyboardSign,
     pub keyboard_text: GuestKeyboardTextSign,
+    pub keyboard_text_observatory: conduit_observatory::ObservatorySnapshot,
     pub kernel: GuestKernelSign,
     pub observatory: conduit_observatory::ObservatorySnapshot,
     pub serial: String,
