@@ -36,6 +36,7 @@ pub use deadline_reactor::{
     DeadlineReactor, DeadlineReactorError, DeadlineWake, ThreadMonotonicClock,
 };
 pub mod external_websocket;
+pub mod hosted_audio;
 mod installed_std;
 #[cfg(test)]
 mod installed_std_tests;
@@ -163,6 +164,7 @@ pub struct StdKernelExecutionReport {
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
+    pub playback: Vec<hosted_audio::PlaybackReport>,
     pub identity: conduit_runtime::lowering::KernelExecutionIdentityMap,
     #[cfg(test)]
     pub post_play_start_allocations: usize,
@@ -265,6 +267,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 
 pub struct StdHost {
     advertisement: HostAdvertisement,
+    playback: Option<hosted_audio::HostedPlaybackSelection>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -290,19 +293,71 @@ impl StdHost {
     }
 
     pub fn new_with_composition(config: StdHostConfig, composition: StdHostComposition) -> Self {
-        let advertisement = composition::build_advertisement(config, composition);
+        let advertisement = composition::build_advertisement(config, composition, None, false);
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)
             .expect("std kernel resource offers are exact and bounded");
         Self {
             advertisement,
+            playback: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
         }
     }
 
+    pub fn new_with_playback(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        playback: hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        if playback.boot_id != config.boot_id
+            || playback.offer_generation != config.offer_generation
+        {
+            return Err(
+                "playback observation does not match the advertised Boot/generation".into(),
+            );
+        }
+        let advertisement =
+            composition::build_advertisement(config, composition, Some(&playback), false);
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            playback: Some(playback),
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
     pub fn advertisement(&self) -> &HostAdvertisement {
         &self.advertisement
+    }
+
+    pub(crate) fn new_with_playback_proof(
+        config: StdHostConfig,
+        playback: hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        if playback.boot_id != config.boot_id
+            || playback.offer_generation != config.offer_generation
+        {
+            return Err(
+                "playback observation does not match the advertised Boot/generation".into(),
+            );
+        }
+        let advertisement = composition::build_advertisement(
+            config,
+            StdHostComposition::minimal(),
+            Some(&playback),
+            true,
+        );
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            playback: Some(playback),
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
     }
 
     pub fn plan_local(
@@ -316,6 +371,66 @@ impl StdHost {
             None => default_placements(form, &hosts)?,
         };
         Ok(plan(form, &hosts, &placements, &[ConnectionBase::Local])?)
+    }
+
+    pub fn plan_local_with_authority(
+        &self,
+        form: &CheckedForm,
+        placements: Option<&PlacementChoices>,
+        authority_grants: &[conduit_core::AuthorityGrant],
+    ) -> Result<Plan, Box<dyn std::error::Error>> {
+        let hosts = vec![self.advertisement().clone()];
+        let placements = match placements {
+            Some(placements) => placements.clone(),
+            None => default_placements(form, &hosts)?,
+        };
+        Ok(conduit_planner::plan_with_authority_grants(
+            form,
+            &hosts,
+            &placements,
+            &[ConnectionBase::Local],
+            authority_grants,
+        )?)
+    }
+
+    /// Constructs the explicit grant shape for a caller that has independently
+    /// authorized this exact selected playback capability. Merely constructing
+    /// or discovering a Host never calls this method.
+    pub fn playback_authority_grant(
+        &self,
+        grant_id: &str,
+    ) -> Result<conduit_core::AuthorityGrant, String> {
+        let playback = self
+            .playback
+            .as_ref()
+            .ok_or_else(|| "std Host has no selected playback resource".to_string())?;
+        if playback.boot_id != self.advertisement.boot_id
+            || playback.offer_generation != self.advertisement.offer_generation
+        {
+            return Err("selected playback observation is stale for this Host".into());
+        }
+        let capability = self
+            .advertisement
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_catalog::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
+            })
+            .ok_or_else(|| "selected playback capability is not advertised".to_string())?;
+        let requirement = capability
+            .authority_requirements
+            .first()
+            .ok_or_else(|| "playback capability has no authority contract".to_string())?;
+        Ok(conduit_core::AuthorityGrant {
+            grant_id: conduit_core::AuthorityGrantId::from(grant_id),
+            contract_id: requirement.contract_id.clone(),
+            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            subject_kind: requirement.subject_kind.clone(),
+            host_id: self.advertisement.host_id.clone(),
+            boot_id: self.advertisement.boot_id.clone(),
+            capability_id: capability.capability_id.clone(),
+        })
     }
 
     pub fn plan_expanded_local(
@@ -366,7 +481,10 @@ impl StdHost {
                 .ok_or_else(|| "kernel Play sequence exhausted".to_string())?;
             if installed_standard {
                 installed_std::run_fragment(
-                    &advertisement,
+                    installed_std::InstalledRunHost {
+                        advertisement: &advertisement,
+                        playback: self.playback.as_ref(),
+                    },
                     &fragment,
                     play_sequence,
                     &mut self.next_kernel_sign_sequence,
@@ -422,7 +540,7 @@ pub struct LegacyStdFixtureHost {
 impl LegacyStdFixtureHost {
     pub fn new_with_config(config: StdHostConfig) -> Self {
         let advertisement =
-            composition::build_advertisement(config, StdHostComposition::reference());
+            composition::build_advertisement(config, StdHostComposition::reference(), None, false);
         let registry = signal_registry(
             ImplementationId::from("std/pulse-v1"),
             ImplementationId::from("std/stdout-show-signal-v1"),

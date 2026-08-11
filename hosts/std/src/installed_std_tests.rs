@@ -7,6 +7,7 @@ use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
 use std::time::Duration;
 
+mod audio_playback_conformance;
 mod gate_conformance;
 mod graphics_conformance;
 mod input_semantics_conformance;
@@ -422,7 +423,10 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
     let mut timer = RecordingTimer { waits: Vec::new() };
     let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
-        &advertisement,
+        installed_std::InstalledRunHost {
+            advertisement: &advertisement,
+            playback: None,
+        },
         &plan.fragments[0],
         0,
         &mut sign_sequence,
@@ -450,7 +454,10 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         conduit_core::ImplementationId::from(conduit_ai::REMOTE_FRONTIER_IMPLEMENTATION);
     let mut output = Vec::new();
     let error = installed_std::run_fragment(
-        &advertisement,
+        installed_std::InstalledRunHost {
+            advertisement: &advertisement,
+            playback: None,
+        },
         &substituted,
         1,
         &mut sign_sequence,

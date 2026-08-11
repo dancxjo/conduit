@@ -25,6 +25,18 @@ pub const MUSIC_SYNTH_REFERENCE_ARTIFACT: &str = "conduit-std-host/music-synth-f
 pub const MUSIC_SYNTH_HOST_OPERATION: &str = "conduit.host/music-synth-render-fixed-q16@1";
 pub const MUSIC_SYNTH_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 256 * 2;
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
+pub const AUDIO_PLAY_ALSA_HW_PROFILE: &str = "std/alsa-hw-s16le-48000-stereo-p256-b1024@1";
+pub const AUDIO_PLAY_ALSA_HW_IMPLEMENTATION: &str = "std/kernel-audio-play-alsa-hw@1";
+pub const AUDIO_PLAY_ALSA_HW_ARTIFACT: &str = "conduit-std-host/alsa-aplay-hw@1";
+pub const AUDIO_PLAY_ALSA_HW_OPERATION: &str = "conduit.host/audio-play-alsa-hw@1";
+pub const AUDIO_PLAYBACK_RESOURCE_CLASS: &str = "conduit.resource/audio-playback-alsa-hw@1";
+pub const AUDIO_PLAYBACK_AUTHORITY_CONTRACT: &str = "conduit.authority/audio-playback@1";
+pub const AUDIO_PLAY_ALSA_PERIOD_FRAMES: u16 = 256;
+pub const AUDIO_PLAY_ALSA_BUFFER_FRAMES: u16 = 1_024;
+pub const AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS: u16 = 256;
+pub const AUDIO_PLAY_ALSA_FRAME_BYTES: u32 = 4;
+pub const AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32
+    + AUDIO_PLAY_ALSA_PERIOD_FRAMES as u32 * AUDIO_PLAY_ALSA_FRAME_BYTES;
 
 pub const MAXIMUM_MUSICAL_EVENT_ITEMS: u16 = 256;
 pub const MAXIMUM_MUSICAL_EVENT_BYTES: u32 = 16_384;
@@ -146,6 +158,48 @@ pub fn audio_play_contract() -> StandardKindContract {
         vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
         audio_limits(),
     )
+}
+
+/// Exact direct-ALSA playback implementation. The containing Host
+/// advertisement must contribute one freshly observed playback resource; the
+/// offer alone neither discovers nor authorizes a device.
+pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
+    let contract = audio_play_contract();
+    CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: CapabilityId::from("audio-play-alsa-hw"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindContractRevision::from(AUDIO_PLAY_REVISION),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(AUDIO_PLAY_ALSA_HW_PROFILE),
+            implementation_id: ImplementationId::from(AUDIO_PLAY_ALSA_HW_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(AUDIO_PLAY_ALSA_HW_ARTIFACT),
+        },
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
+            target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            maximum_output_bytes: 0,
+        }],
+        resource_requirements: vec![conduit_core::resource_requirement(
+            AUDIO_PLAYBACK_RESOURCE_CLASS,
+            1,
+        )],
+        authority_requirements: vec![conduit_core::AuthorityRequirement {
+            contract_id: conduit_core::AuthorityContractId::from(AUDIO_PLAYBACK_AUTHORITY_CONTRACT),
+            host_operation_contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
+            subject_kind: kind_id(AUDIO_PCM_INFO_ID),
+        }],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: MAXIMUM_AUDIO_QUEUE_ITEMS,
+            max_queue_bytes: MAXIMUM_AUDIO_QUEUE_BYTES,
+        },
+    }
 }
 
 pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 4] {
@@ -298,6 +352,21 @@ mod tests {
                 PressureDisposition::WaitWithoutConsumption
             );
         }
+    }
+
+    #[test]
+    fn alsa_playback_offer_requires_resource_and_independent_authority() {
+        let offer = audio_play_alsa_hw_offer();
+        assert_eq!(offer.kind_id.as_str(), AUDIO_PLAY_KIND);
+        assert_eq!(offer.resource_requirements.len(), 1);
+        assert_eq!(offer.authority_requirements.len(), 1);
+        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
+        assert_eq!(offer.host_operations[0].maximum_output_bytes, 0);
+        assert_eq!(
+            offer.host_operations[0].maximum_input_bytes,
+            AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
+        );
     }
 
     #[cfg(feature = "form-catalog")]

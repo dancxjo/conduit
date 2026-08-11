@@ -28,6 +28,17 @@ pub const AUDIO_SAMPLE_RATE_CHARACTERISTIC: &str = "audio/sample-rate-hz@1";
 pub const AUDIO_CHANNEL_LAYOUT_CHARACTERISTIC: &str = "audio/channel-layout@1";
 pub const AUDIO_MAXIMUM_FRAMES_CHARACTERISTIC: &str = "audio/maximum-frames-per-block@1";
 pub const AUDIO_MAXIMUM_FRAME_BYTES_CHARACTERISTIC: &str = "audio/maximum-frame-bytes@1";
+pub const AUDIO_PERIOD_FRAMES_CHARACTERISTIC: &str = "audio/period-frames@1";
+pub const AUDIO_BUFFER_FRAMES_CHARACTERISTIC: &str = "audio/buffer-frames@1";
+pub const AUDIO_MAXIMUM_BLOCKS_CHARACTERISTIC: &str = "audio/maximum-blocks-per-play@1";
+pub const AUDIO_SOURCE_CLOCK_ID_CHARACTERISTIC: &str = "audio/source-clock-id@1";
+pub const AUDIO_DEVICE_CLOCK_CHARACTERISTIC: &str = "audio/device-clock@1";
+pub const AUDIO_PLAYBACK_RESOURCE_CHARACTERISTIC: &str = "audio/playback-resource@1";
+pub const AUDIO_BACKEND_CHARACTERISTIC: &str = "audio/backend@1";
+pub const AUDIO_STARTUP_POLICY_CHARACTERISTIC: &str = "audio/startup-policy@1";
+pub const AUDIO_DRAIN_POLICY_CHARACTERISTIC: &str = "audio/drain-policy@1";
+pub const AUDIO_TIMING_CLASS_CHARACTERISTIC: &str = "audio/timing-class@1";
+pub const AUDIO_CONTROLLED_STAGING_BYTES_CHARACTERISTIC: &str = "audio/controlled-staging-bytes@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SoundSeam {

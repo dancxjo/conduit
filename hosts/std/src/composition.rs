@@ -142,6 +142,8 @@ impl Default for StdHostComposition {
 pub(super) fn build_advertisement(
     config: StdHostConfig,
     composition: StdHostComposition,
+    playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+    playback_proof: bool,
 ) -> HostAdvertisement {
     let mut capabilities = Vec::new();
     if composition.signal {
@@ -235,6 +237,12 @@ pub(super) fn build_advertisement(
     if composition.external_websocket {
         capabilities.push(conduit_net::std_external_websocket_family().capability);
     }
+    if playback.is_some() {
+        capabilities.push(conduit_std_catalog::audio_play_alsa_hw_offer());
+    }
+    if playback_proof {
+        capabilities.push(installed_std::test_pcm_source_offer());
+    }
     #[cfg(test)]
     crate::composition_test_offers::extend(&mut capabilities);
     let mut resources = signal_resource_offers("std/timer", "std/presentation", 16);
@@ -268,6 +276,14 @@ pub(super) fn build_advertisement(
     }
     if composition.external_websocket {
         resources.push(conduit_net::std_external_websocket_family().resource);
+        resources.sort();
+    }
+    if let Some(playback) = playback {
+        resources.push(resource_offer(
+            playback.pool_id().as_str(),
+            conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CLASS,
+            1,
+        ));
         resources.sort();
     }
 

@@ -7,6 +7,7 @@ pub(super) fn extend(capabilities: &mut Vec<CapabilityOffer>) {
     capabilities.extend([
         installed_std::test_observer_offer(),
         installed_std::test_text_source_offer(),
+        installed_std::test_pcm_source_offer(),
         installed_std::test_key_event_source_offer(),
         installed_std::test_chord_sink_offer(),
         installed_std::test_scalar_source_offer(),

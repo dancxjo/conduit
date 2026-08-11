@@ -185,6 +185,19 @@ fn validate_exact_profile(
                         })
                 })
             });
+        let authority_match = capability.authority_requirements.len() == placement.authority.len()
+            && capability.authority_requirements.iter().all(|requirement| {
+                placement.authority.iter().any(|binding| {
+                    !binding.grant_id.as_str().is_empty()
+                        && binding.contract_id == requirement.contract_id
+                        && binding.host_operation_contract_id
+                            == requirement.host_operation_contract_id
+                        && binding.subject_kind == requirement.subject_kind
+                        && binding.host_id == placement.host_id
+                        && binding.boot_id == placement.boot_id
+                        && binding.capability_id == placement.capability_id
+                })
+            });
         if capability.kind_id != placement.kind_id
             || capability.kind_contract_revision != placement.kind_contract_revision
             || capability.implementation.execution_profile_id != placement.execution_profile_id
@@ -194,8 +207,7 @@ fn validate_exact_profile(
             || capability.outputs != placement.outputs
             || capability.host_operations != placement.host_operations
             || !resources_match
-            || !capability.authority_requirements.is_empty()
-            || !placement.authority.is_empty()
+            || !authority_match
         {
             return Err(format!(
                 "placement '{}' differs from the installed exact capability",

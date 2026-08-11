@@ -13,7 +13,7 @@ mod suites;
 mod workspace;
 
 use clap::Parser;
-use cli::{Cli, Command, DemoCommand, GlobalOpts};
+use cli::{AudioCommand, Cli, Command, DemoCommand, GlobalOpts};
 
 fn main() {
     let cli = Cli::parse();
@@ -33,6 +33,14 @@ fn main() {
         Command::PicoLocal(mut args) => run_pico(&opts, &mut args, true),
         Command::Conduitos(args) => commands::conduitos::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        Command::Audio(args) => match args.command {
+            AudioCommand::List => commands::audio::list(&opts),
+            AudioCommand::PlaybackProof {
+                card_id,
+                device,
+                authorize_output,
+            } => commands::audio::prove(&opts, &card_id, device, authorize_output),
+        },
         Command::Demo(args) => match args.command {
             DemoCommand::Std => commands::demo::run_std(&opts),
             DemoCommand::Triple => commands::demo::run_triple(&opts),

@@ -1,5 +1,6 @@
 //! Exact installed implementation factory catalog.
 
+use super::audio_play_operation::AUDIO_PLAY_FACTORY;
 use super::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
 use super::flow_gate_operation::FLOW_GATE_SCALAR_FACTORY;
@@ -32,6 +33,7 @@ use super::robotics_operations::{
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
 use super::synth_operation::MUSIC_SYNTH_FACTORY;
+use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 #[cfg(test)]
 use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
 #[cfg(test)]
@@ -110,12 +112,14 @@ const FACTORIES: &[&InstalledFactory] = &[
     &ROBOTICS_VELOCITY_INTENT_FACTORY,
     &ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY,
     &MUSIC_SYNTH_FACTORY,
+    &AUDIO_PLAY_FACTORY,
     &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,
     &GENERATE_TEXT_SMALL_FACTORY,
     &GENERATE_TEXT_LARGE_FACTORY,
     &GENERATE_TEXT_REMOTE_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
+    &TEST_PCM_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_SCALAR_SOURCE_FACTORY,
     #[cfg(test)]
