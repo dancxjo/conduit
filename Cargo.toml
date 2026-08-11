@@ -19,6 +19,7 @@ members = [
 	"crates/conduit-ai",
 	"crates/conduit-tongues",
 	"crates/conduit-synth",
+	"crates/conduit-midi",
 	"crates/conduit-std-catalog",
 	"crates/conduit",
 	"fixtures/browser-sim",
