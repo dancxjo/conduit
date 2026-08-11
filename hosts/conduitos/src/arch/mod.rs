@@ -18,8 +18,8 @@ pub const ARCHITECTURE: &str = "x86_64";
 mod ia32;
 #[cfg(target_arch = "x86")]
 pub use ia32::{
-    InterruptFact, disable_interrupts, enable_interrupts, initialize_machine, interruptible_idle,
-    pop_interrupt, present, read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
+    initialize_machine, interruptible_idle, pop_interrupt, present, read_counter, timer_arm,
 };
 #[cfg(target_arch = "x86")]
 pub const ARCHITECTURE: &str = "ia32";

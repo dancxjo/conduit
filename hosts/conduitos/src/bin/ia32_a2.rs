@@ -18,6 +18,8 @@ const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
 #[global_allocator]
 static BOOT_ARENA: BootArena = BootArena::new();
 static mut MEMORY_ARENA: [u8; 4096] = [0; 4096];
+#[cfg(feature = "ia32-a3")]
+static mut A3_MEMORY_ARENA: [u8; 1024 * 1024] = [0; 1024 * 1024];
 
 #[used]
 #[unsafe(link_section = ".multiboot")]
@@ -37,6 +39,31 @@ conduitos_ia32_a2_start:
     or eax, 0x600
     mov cr4, eax
     jmp conduitos_ia32_a2_rust_entry
+"#
+);
+
+#[cfg(feature = "ia32-a3")]
+core::arch::global_asm!(
+    r#"
+.section .bss.conduitos_ia32_a3_stack,"aw",@nobits
+.balign 16
+conduitos_ia32_a3_stack:
+    .skip 1048576
+.section .text.conduitos_ia32_a3_start,"ax",@progbits
+.global conduitos_ia32_a3_start
+.type conduitos_ia32_a3_start,@function
+conduitos_ia32_a3_start:
+    lea esp, [conduitos_ia32_a3_stack + 1048576]
+    sub esp, 4
+    xor ebp, ebp
+    mov eax, cr0
+    and eax, 0xfffffffb
+    or eax, 0x2
+    mov cr0, eax
+    mov eax, cr4
+    or eax, 0x600
+    mov cr4, eax
+    jmp conduitos_ia32_a3_rust_entry
 "#
 );
 
@@ -99,6 +126,82 @@ extern "C" fn conduitos_ia32_a2_rust_entry() -> ! {
     }
 }
 
+#[cfg(feature = "ia32-a3")]
+#[unsafe(no_mangle)]
+extern "C" fn conduitos_ia32_a3_rust_entry() -> ! {
+    unsafe {
+        BOOT_ARENA
+            .initialize(
+                core::ptr::addr_of_mut!(A3_MEMORY_ARENA) as *mut u8 as usize,
+                1024 * 1024,
+            )
+            .unwrap_or_else(|_| refuse("memory-base-unavailable"));
+    }
+    arch::initialize_machine();
+    let counter = arch::read_counter();
+    entry_sign(counter);
+    let identities = conduitos::identity::derive(
+        [
+            counter,
+            counter.rotate_left(13),
+            counter.rotate_left(29),
+            counter.rotate_left(47),
+        ],
+        counter,
+        0x0010_0000,
+    );
+    let offer = conduitos::offer::HostOffer::new(
+        &identities,
+        BUILD_ID,
+        conduitos::offer::CpuFeatures {
+            sse2: true,
+            rdrand: false,
+            invariant_tsc: false,
+        },
+        1024 * 1024,
+    );
+    offer
+        .validate()
+        .unwrap_or_else(|error| refuse(error.as_str()));
+    let mut prepared = conduitos::dual_region_plan::prepare(&identities, &offer, BUILD_ID)
+        .unwrap_or_else(|error| refuse(error.as_str()));
+    let before = BOOT_ARENA.seal();
+    let mut clock = arch::Clock::new();
+    let mut timer = arch::Timer::new();
+    let mut serial = arch::Serial::new();
+    let mut interrupts = arch::Interrupts::new();
+    let mut idle = arch::Idle::new();
+    let report = conduitos::dual_region_composition::run(
+        &mut prepared.kernel,
+        &mut clock,
+        &mut timer,
+        &mut serial,
+        &mut interrupts,
+        &mut idle,
+    )
+    .unwrap_or_else(|error| refuse(error.as_str()));
+    let sign = conduitos::proof::machine_accepted(
+        &identities,
+        &offer,
+        &report,
+        &prepared,
+        conduitos::proof::AllocationProof {
+            before_play: before,
+            after_play: BOOT_ARENA.used(),
+            capacity: BOOT_ARENA.capacity(),
+        },
+        BUILD_ID,
+    )
+    .unwrap_or_else(|_| refuse("kernel-sign-storage-full"));
+    arch::present(sign.as_bytes());
+    arch::present(b"CONDUIT_IA32_A3_IDENTITY {\"image_id\":\"");
+    arch::present(IMAGE_ID.as_bytes());
+    arch::present(b"\",\"wake_source\":\"8254-pit-channel0-irq0\",\"wake_irq\":32,\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":false}\n");
+    loop {
+        unsafe { core::arch::asm!("hlt", options(nomem, nostack)) }
+    }
+}
+
 fn entry_sign(nonce: u64) {
     let mut out = Output::new();
     out.push(b"CONDUIT_IA32_ENTRY_SIGN {\"schema\":\"conduit.conduitos.ia32-entry-sign/v1\",\"status\":\"entered\",\"architecture\":\"ia32\",\"build_id\":\"");
@@ -144,6 +247,48 @@ fn refuse(reason: &str) -> ! {
     loop {
         core::hint::spin_loop();
     }
+}
+
+// The hosted i686 target lowers a few core/alloc operations to C ABI symbols.
+// ConduitOS supplies those primitives directly; no hosted C runtime is linked.
+#[cfg(feature = "ia32-a3")]
+#[unsafe(no_mangle)]
+unsafe extern "C" fn memcmp(left: *const u8, right: *const u8, length: usize) -> i32 {
+    for index in 0..length {
+        let left = unsafe { *left.add(index) };
+        let right = unsafe { *right.add(index) };
+        if left != right {
+            return i32::from(left) - i32::from(right);
+        }
+    }
+    0
+}
+
+#[cfg(feature = "ia32-a3")]
+#[unsafe(no_mangle)]
+unsafe extern "C" fn bcmp(left: *const u8, right: *const u8, length: usize) -> i32 {
+    unsafe { memcmp(left, right, length) }
+}
+
+#[cfg(feature = "ia32-a3")]
+#[unsafe(no_mangle)]
+unsafe extern "C" fn memmove(destination: *mut u8, source: *const u8, length: usize) -> *mut u8 {
+    if (destination as usize) <= (source as usize) {
+        for index in 0..length {
+            unsafe { destination.add(index).write(source.add(index).read()) };
+        }
+    } else {
+        for index in (0..length).rev() {
+            unsafe { destination.add(index).write(source.add(index).read()) };
+        }
+    }
+    destination
+}
+
+#[cfg(feature = "ia32-a3")]
+#[unsafe(no_mangle)]
+extern "C" fn _Unwind_Resume() -> ! {
+    refuse("unexpected-unwind")
 }
 
 struct Output {

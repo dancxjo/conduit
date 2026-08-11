@@ -8,12 +8,12 @@ use super::{
 };
 use crate::cli::GlobalOpts;
 
-const BINARY: &str = "conduitos-ia32-a2";
+const BINARY: &str = "conduitos-ia32-a3";
 
 pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     let paths = Paths::new(ConduitosArch::Ia32)?;
     if opts.dry_run {
-        println!("cargo build -p conduitos --bin {BINARY} --features ia32-a2 --target {IA32_OBJECT_TARGET} --release");
+        println!("cargo build -p conduitos --bin {BINARY} --features ia32-a3 --target {IA32_OBJECT_TARGET} --release");
         return record(&paths, "dry-run".into());
     }
     let _ = ia32_a0::execute(opts)?;
@@ -21,7 +21,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         .map_err(|error| refusal("build-output-unavailable", error.to_string()))?;
     let commit = git_head(&paths.root)?;
     let linker = ia32_a0::rust_lld(&paths.root)?;
-    let script = paths.root.join("hosts/conduitos/linker/ia32_a2.ld");
+    let script = paths.root.join("hosts/conduitos/linker/ia32_a3.ld");
     let rustflags = format!(
         "-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib",
         linker.display(), script.display()
@@ -35,7 +35,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
             "--bin",
             BINARY,
             "--features",
-            "ia32-a2",
+            "ia32-a3",
             "--target",
             IA32_OBJECT_TARGET,
             "--release",
@@ -52,9 +52,9 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     }
     let status = command
         .status()
-        .map_err(|error| refusal("ia32-a2-toolchain-unavailable", error.to_string()))?;
+        .map_err(|error| refusal("ia32-a3-toolchain-unavailable", error.to_string()))?;
     if !status.success() {
-        return Err(refusal("ia32-a2-compile-link-failed", status.to_string()));
+        return Err(refusal("ia32-a3-compile-link-failed", status.to_string()));
     }
     let built = paths
         .root
@@ -73,13 +73,13 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     let symbols = String::from_utf8_lossy(&symbols.stdout);
     if !symbols
         .lines()
-        .any(|line| line.contains("GLOBAL") && line.ends_with("conduitos_ia32_a2_start"))
+        .any(|line| line.contains("GLOBAL") && line.ends_with("conduitos_ia32_a3_start"))
         || symbols.contains("x86_64")
         || symbols.contains("aarch64")
     {
         return Err(refusal(
-            "invalid-ia32-a2-artifact",
-            "exact IA-32 A2 entry absent or architecture alias leaked",
+            "invalid-ia32-a3-artifact",
+            "exact IA-32 A3 entry absent or architecture alias leaked",
         ));
     }
     let digest = sha256_file(&paths.kernel)?;
@@ -91,7 +91,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     )
     .map_err(|e| refusal("build-record-failed", e.to_string()))?;
     if !opts.quiet && !opts.json {
-        println!("ConduitOS IA-32 A2 ELF: {}", paths.kernel.display());
+        println!("ConduitOS IA-32 A3 ELF: {}", paths.kernel.display());
     }
     Ok(record)
 }
