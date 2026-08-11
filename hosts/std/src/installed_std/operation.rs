@@ -8,6 +8,7 @@ use super::logic_operations::{
 };
 use super::math_operations::MathScalarOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
+use super::presentation_composition::PresentationCompositionOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::text_operations::{
@@ -63,6 +64,9 @@ pub(super) enum InstalledOperation {
     LogicSelectScalar(LogicSelectScalarOperation),
     MathScalar(MathScalarOperation),
     Layout(LayoutOperation),
+    PresentationComposition(PresentationCompositionOperation),
+    #[cfg(test)]
+    TestPresentationSink(super::presentation_composition::PresentationSinkOperation),
     #[cfg(test)]
     TestLayoutSink(super::layout_operations::LayoutSinkOperation),
     RoboticsSource(RoboticsSourceOperation),
@@ -116,6 +120,9 @@ impl InstalledOperation {
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => 0,
             Self::MathScalar(_) => 0,
             Self::Layout(_) => 0,
+            Self::PresentationComposition(_) => 0,
+            #[cfg(test)]
+            Self::TestPresentationSink(_) => 0,
             #[cfg(test)]
             Self::TestLayoutSink(_) => 0,
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
@@ -186,6 +193,9 @@ impl Operation for InstalledOperation {
             Self::LogicSelectScalar(operation) => operation.start(),
             Self::MathScalar(operation) => operation.start(),
             Self::Layout(operation) => operation.start(),
+            Self::PresentationComposition(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestPresentationSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestLayoutSink(operation) => operation.start(),
             Self::RoboticsSource(operation) => operation.start(),
@@ -241,6 +251,9 @@ impl Operation for InstalledOperation {
             (Self::LogicSelectScalar(operation), input) => operation.resume(input),
             (Self::MathScalar(operation), input) => operation.resume(input),
             (Self::Layout(operation), input) => operation.resume(input),
+            (Self::PresentationComposition(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestPresentationSink(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestLayoutSink(operation), input) => operation.resume(input),
             (Self::RoboticsSource(operation), input) => operation.resume(input),
@@ -308,6 +321,9 @@ impl Operation for InstalledOperation {
             }
             Self::MathScalar(_) => OperationAction::Complete,
             Self::Layout(operation) => operation.advance(),
+            Self::PresentationComposition(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestPresentationSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestLayoutSink(_) => OperationAction::Await,
             Self::RoboticsSource(operation) => operation.advance(),
@@ -366,6 +382,9 @@ impl Operation for InstalledOperation {
             Self::LogicSelectScalar(operation) => operation.cancel(),
             Self::MathScalar(operation) => operation.cancel(),
             Self::Layout(operation) => operation.cancel(),
+            Self::PresentationComposition(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestPresentationSink(_) => {}
             #[cfg(test)]
             Self::TestLayoutSink(_) => {}
             Self::RoboticsSource(operation) => operation.cancel(),
