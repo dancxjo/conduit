@@ -1,5 +1,5 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{PlannedGear, PortDirection};
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, CanonicalValue, Failure, FailureCode, HostOperationDisposition,
     HostOperationId, HostOperationOutcome, OperationAction, PortId, RequestId, ValueRef,
@@ -113,6 +113,7 @@ impl MidiInputOperation {
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
+    profile(placement)?;
     Ok(OperationBudget {
         value_items: 3,
         value_bytes: (conduit_midi::MIDI_INPUT_OBSERVATION_ENCODED_LEN
@@ -128,8 +129,7 @@ fn prepare(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
-    let profile = MidiProfile::new(crate::hosted_midi::A4_REFERENCE_MILLIHERTZ, None, 0)
-        .map_err(|error| format!("prepare MIDI input profile: {error:?}"))?;
+    let profile = profile(placement)?;
     let adapter = MidiInputAdapter::new(profile, 1)
         .map_err(|error| format!("prepare MIDI input occurrence sequence: {error:?}"))?;
     let empty_input = values
@@ -172,7 +172,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.resources[0].protected.is_some()
         || placement.resources[0].compute.is_some()
         || placement.authority.len() != 1
-        || !placement.configuration.is_empty()
+        || !configuration_is_exact(placement)
     {
         return Err("planned music/input MIDI identity/resource/authority mismatch".into());
     }
@@ -192,6 +192,45 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         return Err("planned MIDI input authority does not match typed operation".into());
     }
     Ok(())
+}
+
+fn configuration_is_exact(placement: &PlannedGear) -> bool {
+    let expected = conduit_std_catalog::music_input_configuration();
+    placement.configuration.len() == expected.len()
+        && expected.iter().all(|field| {
+            placement
+                .configuration
+                .iter()
+                .filter(|entry| entry.key == field.key)
+                .count()
+                == 1
+        })
+}
+
+fn profile(placement: &PlannedGear) -> Result<MidiProfile, String> {
+    let a4_reference_millihertz = placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (conduit_std_catalog::MUSIC_INPUT_A4_REFERENCE_KEY, ConfigurationValue::U64(value)) => {
+                Some(*value)
+            }
+            _ => None,
+        })
+        .ok_or_else(|| "planned MIDI input A4 reference is missing or invalid".to_string())?;
+    let transpose_semitones = placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (conduit_std_catalog::MUSIC_INPUT_TRANSPOSE_KEY, ConfigurationValue::I64(value)) => {
+                i16::try_from(*value).ok()
+            }
+            _ => None,
+        })
+        .ok_or_else(|| "planned MIDI input transpose is missing or invalid".to_string())?;
+    MidiProfile::new(a4_reference_millihertz, None, 0)
+        .and_then(|profile| profile.with_transpose(transpose_semitones))
+        .map_err(|error| format!("prepare planned MIDI input profile: {error:?}"))
 }
 
 pub(super) fn prepare_session(

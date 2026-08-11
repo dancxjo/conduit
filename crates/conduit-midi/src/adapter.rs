@@ -11,6 +11,7 @@ pub const MIDI_PITCH_BEND_RANGE_MICROCENTS: u32 = 200_000_000;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MidiProfile {
     pub a4_reference_millihertz: u64,
+    pub transpose_semitones: i16,
     pub input_channel: Option<u8>,
     pub output_channel: u8,
 }
@@ -28,9 +29,18 @@ impl MidiProfile {
             .map_err(|_| MidiAdapterError::TuningUnsupported)?;
         Ok(Self {
             a4_reference_millihertz,
+            transpose_semitones: 0,
             input_channel,
             output_channel,
         })
+    }
+
+    pub fn with_transpose(mut self, transpose_semitones: i16) -> Result<Self, MidiAdapterError> {
+        if !(-48..=48).contains(&transpose_semitones) {
+            return Err(MidiAdapterError::TransposeOutOfRange);
+        }
+        self.transpose_semitones = transpose_semitones;
+        Ok(self)
     }
 }
 
@@ -45,6 +55,7 @@ pub enum PortableMidiEvent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MidiAdapterError {
     ChannelOutOfRange,
+    TransposeOutOfRange,
     TuningUnsupported,
     ActiveNoteCapacityExceeded,
     NoteOffWithoutActiveOccurrence,
@@ -224,7 +235,7 @@ impl MidiInputAdapter {
         event_time_micros: u64,
     ) -> Result<PortableMidiEvent, MidiAdapterError> {
         let pitch = MusicalPitch::from_equal_tempered(
-            i16::from(key) - 69,
+            i16::from(key) - 69 + self.profile.transpose_semitones,
             self.profile.a4_reference_millihertz,
             0,
         )

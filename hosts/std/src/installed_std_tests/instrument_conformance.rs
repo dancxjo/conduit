@@ -63,7 +63,7 @@ fn host() -> StdHost {
 
 fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
     let form = conduit_form::parse(
-        "form 0\n\ninstrument {\n input: music/input\n synth: music/synth\n output: audio/play\n synth.maximum-voices = 8\n synth.oscillator = \"saw\"\n input.notes -> synth.notes\n input.controls -> synth.controls\n synth.audio -> output.audio\n}\n",
+        "form 0\n\ninstrument {\n input: music/input\n synth: music/synth\n output: audio/play\n input.a4-reference-millihertz = 442000\n input.transpose-semitones = 12\n synth.maximum-voices = 8\n synth.oscillator = \"saw\"\n input.notes -> synth.notes\n input.controls -> synth.controls\n synth.audio -> output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .unwrap();
@@ -145,6 +145,20 @@ fn ordinary_form_runs_midi_synth_and_playback_through_one_kernel() {
     assert_eq!(synth.configuration.len(), 14);
     assert_eq!(synth.resources.len(), 0);
     assert_eq!(synth.authority.len(), 0);
+    let input = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::MUSIC_INPUT_KIND)
+        .unwrap();
+    assert_eq!(input.configuration.len(), 2);
+    assert!(input.configuration.iter().any(|entry| {
+        entry.key == conduit_std_catalog::MUSIC_INPUT_A4_REFERENCE_KEY
+            && entry.value == conduit_core::ConfigurationValue::U64(442_000)
+    }));
+    assert!(input.configuration.iter().any(|entry| {
+        entry.key == conduit_std_catalog::MUSIC_INPUT_TRANSPOSE_KEY
+            && entry.value == conduit_core::ConfigurationValue::I64(12)
+    }));
 
     let control = RunControl::default();
     let mut timer = StopAfterFourthObservation {
