@@ -13,6 +13,7 @@ adapter or physical proof.
 | ConduitOS bounded USB enumeration | one attachment-scoped device identity binds the exact boot, xHCI Base, root port, slot, USB address, structural interfaces, and endpoints; all enumeration storage and progress are finite | deterministic descriptor, topology, capacity, reset, vanish, transfer, completion-identity, and stale-attachment vectors remain distinct; a real device-absent QEMU boot refuses without a device | no hosted implementation; `cargo xtask conduitos usb-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned root-attached QEMU USB device completes bounded reset, enable/address, five EP0 control transfers, descriptor parsing, and `SET_CONFIGURATION` through the accepted xHCI Base | no hub, hotplug, or external transport claim | the enumeration slice itself claims no HID report parsing, semantic input, key event, physical device, or HIL proof |
 | ConduitOS bounded HID boot keyboard | one attachment-scoped HID-local identity binds the exact boot, xHCI Base, USB device, boot-keyboard interface, interrupt-IN endpoint, transfer completions, and ordered usage transitions; all report, queue, transfer, polling, and Sign work is finite | deterministic interface, endpoint, packet, protocol, report, rollover, duplicate-usage, completion-identity, removal, and pressure refusals remain distinct without fabricated transitions | no hosted implementation; `cargo xtask conduitos hid-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned QEMU USB boot keyboard receives an acknowledged QMP key action, completes `SET_PROTOCOL` and two real interrupt-IN transfers, and derives exact usage `0x04` press then release through the accepted xHCI/USB path | no external transport claim | freestanding-emulator only; no semantic `input/keyboard` offer, layout, Unicode, general HID parser, physical device, or HIL claim |
 | Portable keyboard semantics | `input/key-event@1` is one exact 3-byte value using the HID Keyboard/Keypad usage page as host-neutral vocabulary, Pressed/Released, and eight distinct modifier bits after the transition; `input/keyboard` is a normal typed closing-flow source with an exact revision, finite queue, input resource, and bounded next-event host-operation requirement | reusable A, Shift+A, left/right modifier, and simultaneous-key vectors cross the fixed kernel unchanged; capacity-one pressure, closure, cancellation, host-input failure, malformed encoding, reserved usage, and inconsistent modifier state remain distinct | contract/catalog only; Patchbay discovers the semantic Kind, but the std Host truthfully advertises no implementation offer | no browser implementation claim | no firmware or ConduitOS semantic binding claim | no transport | no physical keyboard or HIL claim |
+| ConduitOS portable keyboard realization | one ready boot-local xHCI/device/interface/endpoint chain yields one exact `conduitos/usb-hid-keyboard@1` offer, ordinary keyboard Plan, production-kernel Play, and portable press/release values with finite device, report, transition, operation, memory, and Cord reservations | absent/unhealthy/ambiguous device truth, stale boot or artifact identity, capacity exhaustion, malformed values, Cord pressure, cancellation, transfer failure, device loss, and closure remain distinct; a real no-device boot emits no keyboard offer | no hosted implementation; `cargo xtask conduitos keyboard-proof` owns the repository proof entrance and retained JSON report | no browser implementation claim | one pinned QEMU USB keyboard produces `[4,0,0]` then `[4,1,0]` through the planned source and native Observatory/Patchbay projection | no external transport claim | freestanding-emulator only; no keymap/text, hotplug, physical keyboard, or HIL claim |
 | Exact plan, play, Sign, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued Sign identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/Play start mutation, unique Sign, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and clean firmware build identity; runtime-generated boot/play plus presentation/sign identities are carried in USB records and checked across physical sessions | live sessions verify exact base instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | matching physical receipts retain exact plan/fragment/play/presentation/sign/link/base/boot/build identity |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal Sign, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Canonical Form execution corpus | canonical face/back source, declarative startup binding, recursive expansion, exact checked-face compatibility including temporal shape, and distinct source/checked/expanded/Plan identities | Programs 1–4 deterministic positive/negative corpus; Program 6 exact two-host planning and link-failure vectors | real std `text/*`, `time/every`, `state/count`, and presentation leaves execute through the existing kernel with bounded Sign and stable capacity | Program 6 browser/WASM sink executes the unchanged canonical Signal source's exact remote fragment | no new firmware claim | actual loopback WebSocket carries the Program 6 Conduit session; it is not an authored external WebSocket operation | no new physical/HIL claim |
@@ -74,6 +75,11 @@ The `check` workflow requires:
   cross-implementation vectors, ordinary-kernel pressure/cancellation/terminal
   proof, authoritative Patchbay metadata, and no current Host implementation
   offer;
+- one exact boot-scoped ConduitOS `input/keyboard` realization whose ready
+  xHCI/USB/HID chain, finite resources, ordinary Plan, production-kernel Play,
+  portable press/release values, absent-device refusal, and read-only
+  Observatory/Patchbay projection are checked by `cargo xtask conduitos
+  keyboard-proof` and retained as a machine-readable report;
 - one bounded deterministic ConduitOS portable-std inventory/gap report derived
   from current supported-nucleus contract and offer truth, with a semantic
   content digest, exact Host build/profile basis, and complete implemented or
@@ -1384,6 +1390,37 @@ This acceptance adds no concrete ConduitOS/USB, browser, native, PS/2, or
 Bluetooth binding; keymap, text/Unicode, IME/compose/dead keys, repeat policy,
 LED/output reports, shortcuts/hotkeys, discovery, physical keyboard, and HIL
 remain outside the claim and are owned by later #804 milestones.
+
+The truthful ConduitOS keyboard-binding slice from #809 is accepted at exact
+main `fa642fb55a7a4c9021a6d9e7b2fb4c8409dfec37`; push workflow
+`31465190414` passed `check`, `browser-host`, and `conduitos-boot`, including
+the separately retained `keyboard-proof.json` emulator record.
+
+ConduitOS publishes `input/keyboard` only after the boot-local xHCI Base, USB
+device, HID Boot Keyboard interface, interrupt-IN endpoint, and fixed report,
+transition, and operation storage are ready. The offer uses exact stable
+implementation `conduitos/usb-hid-keyboard@1`, execution profile
+`conduitos/usb-input-cooperative@1`, and current build artifact identities.
+Controller, device, interface, and endpoint identities remain generic planned
+resource bindings rather than portable Kind or Info facts. A real QEMU boot
+without the USB device refuses before any keyboard Sign or offer exists.
+
+The authored Form names only `input/keyboard`. Ordinary checking, placement,
+planning, lowering, active-Play binding, and one fixed production scheduler
+carry the exact Host, Boot, offer generation, implementation, artifact, eight
+resource reservations, and capacity-one/three-byte Cord. The acknowledged QMP
+key action completes real HID transfers, then the responsibility-named bridge
+produces exact portable values `[4, 0, 0]` and `[4, 1, 0]`; those values contain
+no USB, controller, endpoint, QEMU, architecture, layout, or Unicode fact.
+
+Absent or incompatible device truth, ambiguous HID candidates, stale Boot and
+artifact identities, insufficient resources, malformed semantic values, Cord
+pressure, cancellation, USB transfer failure, device loss, and normal closure
+remain distinct. The ordinary Observatory snapshot advertises the same exact
+finite realization and native Patchbay consumes it read-only. This slice adds
+no keymap/text conversion, selection UX, multi-keyboard aggregation, hub,
+hotplug replanning, browser implementation, physical-device claim, or HIL
+proof; those remain owned by later #804 milestones.
 
 The documentation-only CI fast path from #863 is accepted at exact main
 `965e5ef34b87d180a13fd7cf88e70331a416e40e`; push workflow `31453748480`
