@@ -12,15 +12,12 @@ use conduit_presentation::{
 };
 use conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
 
-use super::{
-    DISPLAY_KIND, LAYOUT_SINK_KIND, PreparedPresentationPlay, TEXT_SOURCE_KIND,
-    operation::PresentationOperation,
-};
+use super::{PreparedPresentationPlay, TEXT_SOURCE_KIND, operation::PresentationOperation};
 use crate::display::{DisplayReceipt, PixelTarget, render_scene};
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const NODES: usize = 15;
-const CORDS: usize = 12;
+const NODES: usize = 10;
+const CORDS: usize = 7;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
 const VALUES: usize = 32;
@@ -52,6 +49,9 @@ pub struct PresentationProof {
     pub text_display: DisplayReceipt,
     pub display: DisplayReceipt,
     pub kernel_signs: u16,
+    pub realization_back: conduit_core::RealizationBack,
+    pub node_count: u8,
+    pub cord_count: u8,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -92,6 +92,15 @@ pub fn run(
         .fragments
         .first()
         .ok_or(PresentationRunError::Shape)?;
+    let [realization_back] = prepared.plan.realization_backs.as_slice() else {
+        return Err(PresentationRunError::Shape);
+    };
+    if realization_back.kind_id.as_str() != conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND
+        || realization_back.invocation_path != "conduitos-gear-face/face"
+        || fragment.realization_backs != prepared.plan.realization_backs
+    {
+        return Err(PresentationRunError::Shape);
+    }
     let mut scheduler = prepare_scheduler(fragment, &prepared.lowered)?;
     let mut text = None;
     let mut text_display_receipt = None;
@@ -118,16 +127,7 @@ pub fn run(
                     text = Some(value);
                     complete(&mut scheduler, request, None)?;
                 }
-                LAYOUT_SINK_KIND => {
-                    if layout_children.is_some() {
-                        return Err(PresentationRunError::Layout);
-                    }
-                    let frame =
-                        LayoutFrame::decode(&input).map_err(|_| PresentationRunError::Layout)?;
-                    layout_children = Some(frame.child_count);
-                    complete(&mut scheduler, request, None)?;
-                }
-                DISPLAY_KIND => {
+                conduit_std_catalog::GRAPHICS_PRESENTATION_KIND => {
                     if display_receipt.is_some() {
                         return Err(PresentationRunError::Graphics);
                     }
@@ -143,6 +143,11 @@ pub fn run(
                 }
                 _ => {
                     let output = transform(placement, &input)?;
+                    if placement.kind_id.as_str() == conduit_std_catalog::LAYOUT_COLUMN_KIND {
+                        let frame = LayoutFrame::decode(&output)
+                            .map_err(|_| PresentationRunError::Layout)?;
+                        layout_children = Some(frame.child_count);
+                    }
                     let value = scheduler
                         .store_host_value(&output)
                         .map_err(|_| PresentationRunError::Value)?;
@@ -175,6 +180,11 @@ pub fn run(
         text_display: text_display_receipt.ok_or(PresentationRunError::MissingManifestation)?,
         display: display_receipt.ok_or(PresentationRunError::MissingManifestation)?,
         kernel_signs: prepared.lowered.sign_items,
+        realization_back: realization_back.clone(),
+        node_count: u8::try_from(fragment.placements.len())
+            .map_err(|_| PresentationRunError::Shape)?,
+        cord_count: u8::try_from(fragment.connections.len())
+            .map_err(|_| PresentationRunError::Shape)?,
     })
 }
 
@@ -259,17 +269,16 @@ fn prepare_scheduler(
                 source(&mut values, &encoded[..value.encoded_len()])?
             }
             TEXT_SOURCE_KIND => source(&mut values, b"Gear Face")?,
-            conduit_std_catalog::TEXT_PRESENTATION_KIND | DISPLAY_KIND | LAYOUT_SINK_KIND => {
-                PresentationOperation::Sink {
-                    maximum_input_bytes: placement
-                        .host_operations
-                        .first()
-                        .ok_or(PresentationRunError::Shape)?
-                        .maximum_input_bytes,
-                    pending: false,
-                    complete: false,
-                }
-            }
+            conduit_std_catalog::TEXT_PRESENTATION_KIND
+            | conduit_std_catalog::GRAPHICS_PRESENTATION_KIND => PresentationOperation::Sink {
+                maximum_input_bytes: placement
+                    .host_operations
+                    .first()
+                    .ok_or(PresentationRunError::Shape)?
+                    .maximum_input_bytes,
+                pending: false,
+                complete: false,
+            },
             _ => PresentationOperation::Transform {
                 maximum_input_bytes: placement
                     .host_operations

@@ -1,66 +1,22 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
-    OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan, PortDescriptor,
-    PortDirection, PortTemporal, kind_id, port_id, resource_offer,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    KindContractRevision, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
+    PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
-use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
-use conduit_presentation::{GRAPHICS_SCENE_KIND, LAYOUT_FRAME_KIND, MAX_GRAPHICS_SCENE_BYTES};
+use conduit_form::{
+    CanonicalBackCatalog, ProfileCatalog, StartupCatalog, check_syntax_document,
+    expand_canonical_form_with_backs, parse_syntax_document,
+};
+use conduit_planner::{
+    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
+};
 use conduit_runtime::lowering::{LoweredPlanFragment, lower_plan_fragment};
 
-use super::{DISPLAY_HOST_OPERATION, DISPLAY_KIND, LAYOUT_SINK_KIND, TEXT_SOURCE_KIND};
+use super::TEXT_SOURCE_KIND;
 
-pub const FORM_SOURCE: &str = r#"form 0
-
-conduitos-presentation-nucleus {
- source: conduitos.fixture/text-source
- show: presentation/text
- viewport: layout/viewport
- row: layout/row
- column: layout/column
- stack: layout/stack
- align: layout/align
- layout_sink: conduitos.fixture/layout-observe
- icon: presentation/icon
- frame: presentation/frame
- badge: presentation/badge
- rect: graphics/rect
- text: graphics/text
- glyph: graphics/icon
- display: conduitos.fixture/framebuffer-present
- source.text -> show.text
- viewport.width = 320
- viewport.height = 200
- viewport.children = 3
- viewport.child-width = 40
- viewport.child-height = 30
- row.gap = 4
- column.gap = 3
- align.horizontal = "center"
- align.vertical = "end"
- viewport.placements -> row.frame
- row.placements -> column.frame
- column.placements -> stack.frame
- stack.placements -> align.frame
- align.placements -> layout_sink.input
- icon.icon = "type"
- icon.accessibility-name = "Patchbay"
- frame.role = "panel"
- frame.accessibility-name = "Gear Face"
- badge.state = "ready"
- badge.accessibility-name = "ready"
- rect.style = "stroke"
- text.text = "r"
- glyph.icon = "type"
- icon.presented -> frame.content
- frame.presented -> badge.content
- badge.presented -> rect.input
- rect.scene -> text.input
- text.scene -> glyph.input
- glyph.scene -> display.input
-}"#;
+pub const FORM_SOURCE: &str = "form conduitos-gear-face {\n source: conduitos.fixture/text-source\n face: patchbay/gear-face\n source.text -> face.subject\n}\n";
 
 pub struct PreparedPresentationPlay {
     pub advertisement: HostAdvertisement,
@@ -72,6 +28,7 @@ pub struct PreparedPresentationPlay {
 pub enum PreparationError {
     Catalog,
     Form,
+    Back,
     Placement,
     Plan,
     Lowering,
@@ -82,6 +39,7 @@ impl PreparationError {
         match self {
             Self::Catalog => "presentation-catalog-invalid",
             Self::Form => "presentation-form-rejected",
+            Self::Back => "presentation-back-rejected",
             Self::Placement => "presentation-placement-rejected",
             Self::Plan => "presentation-plan-rejected",
             Self::Lowering => "presentation-lowering-rejected",
@@ -90,12 +48,19 @@ impl PreparationError {
 }
 
 pub fn prepare(host: &str, boot: &str) -> Result<PreparedPresentationPlay, PreparationError> {
-    let catalog = catalog()?;
-    let form = conduit_form::parse(FORM_SOURCE, &catalog).map_err(|_| PreparationError::Form)?;
+    let (startup, profile) = catalogs()?;
+    let checked = check_syntax_document(&parse_syntax_document(FORM_SOURCE), &startup)
+        .map_err(|_| PreparationError::Form)?;
+    let mut backs = CanonicalBackCatalog::new();
+    conduit_std_catalog::install_patchbay_presentation_backs(&startup, &profile, &mut backs)
+        .map_err(|_| PreparationError::Back)?;
+    let form = expand_canonical_form_with_backs(&checked, "conduitos-gear-face", &profile, &backs)
+        .map_err(|_| PreparationError::Back)?;
     let advertisement = advertisement(host, boot);
     let hosts = [advertisement.clone()];
-    let placements = default_placements(&form, &hosts).map_err(|_| PreparationError::Placement)?;
-    let plan = plan_with_options(
+    let placements =
+        default_expanded_placements(&form, &hosts).map_err(|_| PreparationError::Placement)?;
+    let plan = plan_expanded_canonical_with_options(
         &form,
         &hosts,
         &placements,
@@ -129,16 +94,6 @@ pub fn prepare(host: &str, boot: &str) -> Result<PreparedPresentationPlay, Prepa
 fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
     let mut capabilities = conduit_std_catalog::conduitos_presentation_nucleus_offers();
     capabilities.push(text_source_offer());
-    capabilities.push(sink_offer(
-        DISPLAY_KIND,
-        GRAPHICS_SCENE_KIND,
-        MAX_GRAPHICS_SCENE_BYTES as u32,
-    ));
-    capabilities.push(sink_offer(
-        LAYOUT_SINK_KIND,
-        LAYOUT_FRAME_KIND,
-        conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u32,
-    ));
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
@@ -187,80 +142,28 @@ fn text_source_offer() -> CapabilityOffer {
     }
 }
 
-fn sink_offer(kind: &str, value_kind: &str, maximum_bytes: u32) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(format!("{kind}-capability@1").as_str()),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from("conduitos.fixture/display-sink@1"),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE,
-            ),
-            implementation_id: ImplementationId::from(format!("{kind}-implementation@1").as_str()),
-            artifact_id: ArtifactId::from(conduit_std_catalog::CONDUITOS_PRESENTATION_ARTIFACT),
-        },
-        inputs: vec![PortDescriptor {
-            port_id: port_id("input"),
-            value_kind: kind_id(value_kind),
-            direction: PortDirection::Input,
-            temporal: PortTemporal::Value,
-        }],
-        outputs: Vec::new(),
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(DISPLAY_HOST_OPERATION),
-            target_kind: Some(kind_id(kind)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: maximum_bytes,
-            maximum_output_bytes: 0,
-        }],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: maximum_bytes,
-        },
-    }
-}
-
-fn catalog() -> Result<conduit_form::ProfileCatalog, PreparationError> {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut catalog = conduit_std_catalog::standard_profile_catalog();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)
+fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut catalog)
+    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut catalog)
+    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut catalog)
+    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    for (kind, value_kind) in [
-        (DISPLAY_KIND, GRAPHICS_SCENE_KIND),
-        (LAYOUT_SINK_KIND, LAYOUT_FRAME_KIND),
-    ] {
-        catalog
-            .insert(conduit_form::KindDefinition {
-                kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(
-                    "conduitos.fixture/display-sink@1",
-                ),
-                inputs: vec![PortDescriptor {
-                    port_id: port_id("input"),
-                    value_kind: kind_id(value_kind),
-                    direction: PortDirection::Input,
-                    temporal: PortTemporal::Value,
-                }],
-                outputs: Vec::new(),
-                configuration: Vec::new(),
-            })
-            .map_err(|_| PreparationError::Catalog)?;
-    }
-    catalog
+    conduit_std_catalog::install_graphics_presentation_catalogs(&mut startup, &mut profile)
+        .map_err(|_| PreparationError::Catalog)?;
+    conduit_std_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
+        .map_err(|_| PreparationError::Catalog)?;
+    startup
+        .insert(conduit_form::KindSignature {
+            kind: TEXT_SOURCE_KIND.into(),
+            startup_parameters: Vec::new(),
+        })
+        .map_err(|_| PreparationError::Catalog)?;
+    profile
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(TEXT_SOURCE_KIND),
             kind_contract_revision: KindContractRevision::from("conduitos.fixture/text-source@1"),
@@ -269,5 +172,74 @@ fn catalog() -> Result<conduit_form::ProfileCatalog, PreparationError> {
             configuration: Vec::new(),
         })
         .map_err(|_| PreparationError::Catalog)?;
-    Ok(catalog)
+    Ok((startup, profile))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plan_is_one_exact_recursive_gear_face_realization() {
+        let prepared = prepare("test-host", "test-boot").unwrap();
+        let [back] = prepared.plan.realization_backs.as_slice() else {
+            panic!("expected one realization Back")
+        };
+        assert_eq!(
+            back.kind_id.as_str(),
+            conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND
+        );
+        assert_eq!(back.invocation_path, "conduitos-gear-face/face");
+        assert_ne!(
+            prepared.plan.source_document_id.as_str(),
+            prepared.plan.checked_form_id.as_str()
+        );
+        assert_ne!(
+            prepared.plan.checked_form_id.as_str(),
+            prepared.plan.expanded_form_id.as_str()
+        );
+        let fragment = &prepared.plan.fragments[0];
+        assert_eq!(fragment.placements.len(), 10);
+        assert_eq!(fragment.connections.len(), 7);
+        assert_eq!(fragment.realization_backs, prepared.plan.realization_backs);
+        let manifestation = fragment
+            .placements
+            .iter()
+            .find(|placement| {
+                placement.kind_id.as_str() == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
+            })
+            .unwrap();
+        assert_eq!(
+            manifestation.execution_profile_id.as_str(),
+            conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE
+        );
+        assert_eq!(manifestation.host_operations.len(), 1);
+        assert_eq!(manifestation.resources.len(), 1);
+    }
+
+    #[test]
+    fn missing_back_and_missing_terminal_leaf_are_distinct_failures() {
+        let (startup, profile) = catalogs().unwrap();
+        let checked = check_syntax_document(&parse_syntax_document(FORM_SOURCE), &startup).unwrap();
+        let missing_back = expand_canonical_form_with_backs(
+            &checked,
+            "conduitos-gear-face",
+            &profile,
+            &CanonicalBackCatalog::new(),
+        )
+        .unwrap_err();
+
+        let mut backs = CanonicalBackCatalog::new();
+        conduit_std_catalog::install_patchbay_presentation_backs(&startup, &profile, &mut backs)
+            .unwrap();
+        let expanded =
+            expand_canonical_form_with_backs(&checked, "conduitos-gear-face", &profile, &backs)
+                .unwrap();
+        let mut host = advertisement("test-host", "test-boot");
+        host.capabilities.retain(|offer| {
+            offer.kind_id.as_str() != conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
+        });
+        let missing_leaf = default_expanded_placements(&expanded, &[host]).unwrap_err();
+        assert_ne!(missing_back.to_string(), missing_leaf.to_string());
+    }
 }

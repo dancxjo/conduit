@@ -346,14 +346,22 @@ mod tests {
                 .iter()
                 .filter(|entry| matches!(entry.coverage, Coverage::Direct))
                 .count(),
-            16
+            17
         );
         let missing = os
             .entries
             .iter()
             .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
             .count();
-        assert_eq!(missing, os.catalog_entry_count - 16);
+        assert_eq!(missing, os.catalog_entry_count - 18);
+        let gear_face = os
+            .entries
+            .iter()
+            .find(|entry| entry.kind_id == conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND)
+            .unwrap();
+        assert!(matches!(gear_face.coverage, Coverage::Recursive));
+        assert!(gear_face.implementation.is_none());
+        assert_eq!(gear_face.recursive_implementations.len(), 9);
     }
 
     #[test]
