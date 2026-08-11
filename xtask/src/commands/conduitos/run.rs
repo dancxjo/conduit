@@ -9,7 +9,7 @@ use crate::cli::GlobalOpts;
 use super::{
     image,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
-    report::{GuestBootSign, GuestKernelSign, GuestRun},
+    report::{GuestBootSign, GuestKernelSign, GuestRun, GuestXhciSign},
     ConduitosArch, ConduitosError,
 };
 
@@ -52,6 +52,8 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             "base=2026-08-09T00:00:00,clock=vm",
             "-device",
             "isa-debug-exit,iobase=0xf4,iosize=0x04",
+            "-device",
+            "qemu-xhci,id=conduitos-xhci,p2=1,p3=0",
             "-cdrom",
             paths.iso.to_str().unwrap(),
             "-boot",
@@ -119,6 +121,19 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_BOOT_SIGN "))
         .collect();
+    let xhci_signs: Vec<_> = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix("CONDUIT_XHCI_SIGN "))
+        .collect();
+    if xhci_signs.len() != 1 {
+        return Err(ConduitosError::refusal(
+            "malformed-xhci-sign",
+            format!(
+                "expected one structured xHCI Sign, found {}",
+                xhci_signs.len()
+            ),
+        ));
+    }
     if signs.len() != 1 {
         return Err(ConduitosError::refusal(
             "malformed-boot-sign",
@@ -166,6 +181,8 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     }
     let boot: GuestBootSign = serde_json::from_str(signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-boot-sign", error.to_string()))?;
+    let xhci: GuestXhciSign = serde_json::from_str(xhci_signs[0])
+        .map_err(|error| ConduitosError::refusal("malformed-xhci-sign", error.to_string()))?;
     let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
     let observatory: conduit_observatory::ObservatorySnapshot =
@@ -173,6 +190,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             ConduitosError::refusal("malformed-observatory-snapshot", error.to_string())
         })?;
     validate_boot(&boot)?;
+    validate_xhci(&boot, &xhci)?;
     validate_kernel(&boot, &kernel)?;
     validate_observatory(&boot, &kernel, &observatory)?;
     if !opts.quiet && !opts.json {
@@ -182,9 +200,89 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     }
     Ok(GuestRun {
         boot,
+        xhci,
         kernel,
         observatory,
     })
+}
+
+pub(super) fn prove_xhci_absent(paths: &Paths) -> Result<String, ConduitosError> {
+    let output = Command::new("qemu-system-x86_64")
+        .args([
+            "-M",
+            "q35",
+            "-cpu",
+            "max",
+            "-m",
+            "64M",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-vga",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-net",
+            "none",
+            "-rtc",
+            "base=2026-08-09T00:00:00,clock=vm",
+            "-device",
+            "isa-debug-exit,iobase=0xf4,iosize=0x04",
+            "-cdrom",
+            paths.iso.to_str().unwrap(),
+            "-boot",
+            "d",
+        ])
+        .current_dir(&paths.root)
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
+    let serial = String::from_utf8(output.stdout)
+        .map_err(|error| ConduitosError::refusal("malformed-xhci-refusal", error.to_string()))?;
+    let expected = "\"status\":\"refused\",\"reason\":\"xhci-controller-absent\"";
+    if output.status.code() != Some(35)
+        || !serial.contains(expected)
+        || serial.contains("CONDUIT_XHCI_SIGN")
+    {
+        return Err(ConduitosError::refusal(
+            "xhci-absence-not-refused",
+            format!("status {}; serial {serial}", output.status),
+        ));
+    }
+    Ok("xhci-controller-absent".to_owned())
+}
+
+fn validate_xhci(boot: &GuestBootSign, sign: &GuestXhciSign) -> Result<(), ConduitosError> {
+    if sign.schema != "conduit.conduitos.xhci-base/v1"
+        || sign.status != "ready"
+        || sign.proof_class != "freestanding-emulator"
+        || sign.base_id.len() != 64
+        || sign.boot_id != boot.boot_id
+        || sign.segment != 0
+        || sign.vendor != 0x1b36
+        || sign.device_id != 0x000d
+        || sign.bar_physical == 0
+        || sign.hardware_slots < sign.admitted_slots
+        || sign.admitted_slots != 1
+        || sign.command_trbs != 16
+        || sign.event_trbs != 16
+        || sign.dma_bytes != 640
+        || sign.dma_alignment != 64
+        || sign.maximum_pending_commands != 1
+        || sign.poll_steps == 0
+        || sign.sign_slots != 8
+        || sign.semantic_keyboard_offer
+    {
+        return Err(ConduitosError::refusal(
+            "invalid-xhci-sign",
+            format!("xHCI Sign failed exact validation: {sign:?}"),
+        ));
+    }
+    Ok(())
 }
 
 fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {

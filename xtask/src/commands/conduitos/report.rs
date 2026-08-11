@@ -101,9 +101,36 @@ pub struct GuestKernelSign {
     pub invariant_tsc: bool,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GuestXhciSign {
+    pub schema: String,
+    pub status: String,
+    pub proof_class: String,
+    pub base_id: String,
+    pub boot_id: String,
+    pub segment: u8,
+    pub bus: u8,
+    pub device: u8,
+    pub function: u8,
+    pub vendor: u16,
+    pub device_id: u16,
+    pub bar_physical: u64,
+    pub hardware_slots: u8,
+    pub admitted_slots: u8,
+    pub command_trbs: u8,
+    pub event_trbs: u8,
+    pub dma_bytes: u16,
+    pub dma_alignment: u16,
+    pub maximum_pending_commands: u8,
+    pub poll_steps: u32,
+    pub sign_slots: u8,
+    pub semantic_keyboard_offer: bool,
+}
+
 #[derive(Debug, Clone)]
 pub struct GuestRun {
     pub boot: GuestBootSign,
+    pub xhci: GuestXhciSign,
     pub kernel: GuestKernelSign,
     pub observatory: conduit_observatory::ObservatorySnapshot,
 }
