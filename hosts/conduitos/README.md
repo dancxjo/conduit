@@ -25,6 +25,18 @@ with:
 cargo xtask conduitos architecture-matrix --locked
 ```
 
+Prove the first bounded x86_64 xHCI controller Base separately:
+
+```text
+cargo xtask conduitos xhci-proof
+```
+
+That command pins one QEMU `qemu-xhci` PCI function, performs real MMIO
+halt/reset/start and command/event-ring work, retains exact boot-scoped Base
+identity and finite storage/work limits, and separately proves that an absent
+controller refuses. It remains freestanding-emulator proof: it claims no USB
+device, HID interface, keyboard capability, or physical controller.
+
 That report derives the five supported architecture names from the exact
 `BOOT*.EFI` artifacts in the pinned Limine archive and refuses if they disagree
 with the architecture-valued command contract. It does not make an unavailable

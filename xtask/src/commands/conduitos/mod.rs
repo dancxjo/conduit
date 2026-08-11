@@ -28,6 +28,7 @@ mod riscv64_a4;
 mod run;
 mod std_gap;
 mod timing_profile;
+mod xhci_proof;
 
 use std::fmt;
 
@@ -57,6 +58,8 @@ enum ConduitosCommand {
     StdGap,
     /// Prove one exact deterministic deadline-bounded local Plan and refusal.
     TimingProfile,
+    /// Prove one real bounded xHCI Base and fail-closed controller absence.
+    XhciProof,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -194,6 +197,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
+        ConduitosCommand::XhciProof => xhci_proof::execute(opts),
     }
 }
 
