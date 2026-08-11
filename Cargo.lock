@@ -629,6 +629,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-midi",
  "conduit-planner",
  "conduit-presentation",
  "conduit-runtime",
