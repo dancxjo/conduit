@@ -95,6 +95,12 @@ impl MidiParser {
         self.reset();
     }
 
+    /// Data bytes retained toward the next channel message. Running status and
+    /// bounded SysEx state are protocol state, not retained payload bytes.
+    pub const fn pending_data_bytes(&self) -> u8 {
+        self.data_length
+    }
+
     fn feed_data(&mut self, byte: u8) -> Result<Option<ParsedMidi>, MidiParseError> {
         let Some(status) = self.running_status else {
             return Err(MidiParseError::UnexpectedData(byte));

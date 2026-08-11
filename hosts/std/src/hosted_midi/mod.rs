@@ -1,5 +1,6 @@
 mod discovery;
 mod host;
+mod input;
 mod output;
 #[cfg(test)]
 pub(crate) mod output_fake;
@@ -10,6 +11,11 @@ mod raw_selection;
 pub use discovery::{
     discover_alsa_sequencer_endpoints, MidiDiscoveryError, MidiEndpointDirection,
     MidiEndpointObservation,
+};
+pub use input::{
+    MidiInputFailure, MidiInputLifecycle, MidiInputPoll, MidiInputReport, MidiInputSession,
+    MAXIMUM_INPUT_BYTES_PER_POLL, MAXIMUM_INPUT_BYTES_PER_SESSION, MAXIMUM_INPUT_PENDING_BYTES,
+    MAXIMUM_INPUT_PENDING_MESSAGES,
 };
 pub(crate) use output::MidiOutputSession;
 pub use output::{MidiOutputFailure, MidiOutputLifecycle, MidiOutputReport};
@@ -31,6 +37,7 @@ pub const A4_REFERENCE_MILLIHERTZ: u64 = 440_000;
 pub const MAXIMUM_PENDING_MESSAGES: u16 = 256;
 pub const MAXIMUM_PENDING_BYTES: u16 = MAXIMUM_PENDING_MESSAGES * 3;
 pub const MAXIMUM_MESSAGES_PER_KERNEL_STEP: u16 = 32;
+pub const MAXIMUM_INPUT_OBSERVATIONS_PER_KERNEL_STEP: u16 = 1;
 pub const MIDI_DIRECTION_CHARACTERISTIC: &str = "midi/direction@1";
 pub const MIDI_RESOURCE_CHARACTERISTIC: &str = "midi/resource@1";
 pub const MIDI_BACKEND_CHARACTERISTIC: &str = "midi/backend@1";
@@ -42,6 +49,7 @@ pub const MIDI_MESSAGES_PER_STEP_CHARACTERISTIC: &str = "midi/maximum-messages-p
 pub const MIDI_TIMING_PROFILE_CHARACTERISTIC: &str = "midi/timing-profile@1";
 pub const MIDI_PRESSURE_POLICY_CHARACTERISTIC: &str = "midi/pressure-policy@1";
 pub const MIDI_CANCEL_POLICY_CHARACTERISTIC: &str = "midi/cancel-policy@1";
+pub const MIDI_BYTES_PER_STEP_CHARACTERISTIC: &str = "midi/maximum-bytes-per-step@1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostedMidiSelection {
