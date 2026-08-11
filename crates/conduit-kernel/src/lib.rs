@@ -148,6 +148,10 @@ pub enum OperationAction {
         port: PortId,
         value: ValueRef,
     },
+    EmitCanonical {
+        port: PortId,
+        value: CanonicalValue,
+    },
     RequestHostOperation {
         request: RequestId,
         operation: HostOperationId,
@@ -180,6 +184,18 @@ pub trait Operation {
         let _ = canonical;
         self.resume(OperationInput::Value { port, value })
     }
+    /// Resumes one exact host completion with the completed output's canonical
+    /// bytes borrowed read-only for this call. The default preserves the
+    /// opaque host-output contract.
+    fn resume_host_operation(
+        &mut self,
+        request: RequestId,
+        outcome: HostOperationOutcome,
+        canonical: Option<&[u8]>,
+    ) -> OperationAction {
+        let _ = canonical;
+        self.resume(OperationInput::HostOperationCompleted { request, outcome })
+    }
     fn advance(&mut self) -> OperationAction {
         OperationAction::Await
     }
@@ -196,6 +212,8 @@ pub trait Operation {
     }
     fn cancel(&mut self) {}
 }
+
+pub use scheduler::CanonicalValue;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProtocolError {

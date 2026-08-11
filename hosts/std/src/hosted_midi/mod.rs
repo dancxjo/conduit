@@ -50,6 +50,8 @@ pub const MIDI_TIMING_PROFILE_CHARACTERISTIC: &str = "midi/timing-profile@1";
 pub const MIDI_PRESSURE_POLICY_CHARACTERISTIC: &str = "midi/pressure-policy@1";
 pub const MIDI_CANCEL_POLICY_CHARACTERISTIC: &str = "midi/cancel-policy@1";
 pub const MIDI_BYTES_PER_STEP_CHARACTERISTIC: &str = "midi/maximum-bytes-per-step@1";
+pub const MIDI_READINESS_WAIT_MILLIS_CHARACTERISTIC: &str = "midi/readiness-wait-millis@1";
+pub const MIDI_READINESS_WAIT_MILLIS: u16 = 10;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostedMidiSelection {

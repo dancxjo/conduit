@@ -7,6 +7,7 @@ use super::{
     MIDI_CHANNEL_CHARACTERISTIC, MIDI_DIRECTION_CHARACTERISTIC,
     MIDI_MESSAGES_PER_STEP_CHARACTERISTIC, MIDI_PENDING_BYTES_CHARACTERISTIC,
     MIDI_PENDING_MESSAGES_CHARACTERISTIC, MIDI_PRESSURE_POLICY_CHARACTERISTIC,
+    MIDI_READINESS_WAIT_MILLIS, MIDI_READINESS_WAIT_MILLIS_CHARACTERISTIC,
     MIDI_RESOURCE_CHARACTERISTIC, MIDI_TIMING_PROFILE_CHARACTERISTIC, OUTPUT_CHANNEL,
 };
 use conduit_core::{
@@ -23,6 +24,8 @@ pub struct HostedRawMidiSelection {
     observation: RawMidiEndpointObservation,
     boot_id: BootId,
     offer_generation: OfferGeneration,
+    #[cfg(test)]
+    fake_input: Option<Vec<u8>>,
 }
 
 impl HostedRawMidiSelection {
@@ -54,7 +57,20 @@ impl HostedRawMidiSelection {
             observation,
             boot_id,
             offer_generation,
+            #[cfg(test)]
+            fake_input: None,
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_fake_input(mut self, bytes: Vec<u8>) -> Self {
+        self.fake_input = Some(bytes);
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fake_input(&self) -> Option<&[u8]> {
+        self.fake_input.as_deref()
     }
 
     pub const fn observation(&self) -> &RawMidiEndpointObservation {
@@ -161,6 +177,10 @@ impl HostedRawMidiSelection {
             count(
                 MIDI_BYTES_PER_STEP_CHARACTERISTIC,
                 MAXIMUM_INPUT_BYTES_PER_POLL as u64,
+            ),
+            count(
+                MIDI_READINESS_WAIT_MILLIS_CHARACTERISTIC,
+                u64::from(MIDI_READINESS_WAIT_MILLIS),
             ),
             label(
                 MIDI_TIMING_PROFILE_CHARACTERISTIC,

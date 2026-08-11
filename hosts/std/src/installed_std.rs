@@ -12,6 +12,7 @@ mod input_semantic_operations;
 mod layout_operations;
 mod logic_operations;
 mod math_operations;
+mod midi_input_operation;
 mod midi_output_operation;
 mod operation;
 mod operation_capacity;
@@ -196,6 +197,7 @@ pub(super) use contract::tick_offer;
 pub(super) struct InstalledRunHost<'a> {
     pub advertisement: &'a HostAdvertisement,
     pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
+    pub midi_input: Option<&'a crate::hosted_midi::HostedRawMidiSelection>,
     pub midi_output: Option<&'a crate::hosted_midi::MidiOutputSelection>,
 }
 
@@ -211,6 +213,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let InstalledRunHost {
         advertisement,
         playback,
+        midi_input,
         midi_output,
     } = host;
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
@@ -393,6 +396,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let deadline_contract_id = conduit_core::HostOperationContractId::from(
         conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT,
     );
+    let midi_input_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_std_catalog::MUSIC_INPUT_MIDI_OPERATION,
+    );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
     let text_target_kind = kind_id("presentation/stdout-text");
     let tick_target_kind = kind_id(conduit_std_catalog::TICK_PRESENTATION_TARGET);
@@ -481,6 +487,20 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mut midi_input_sessions = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_catalog::MUSIC_INPUT_MIDI_IMPLEMENTATION
+            {
+                midi_input_operation::prepare_session(placement, midi_input).map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let mut midi_input_requests = vec![None; active_nodes];
     let mut midi_output_sessions = fragment
         .placements
         .iter()
@@ -559,6 +579,14 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 session
                     .stop()
                     .map_err(|error| format!("stop cancelled MIDI output: {error:?}"))?;
+            } else if cancelled_operation.contract_id == midi_input_contract_id {
+                let node = usize::from(cancellation.node.0);
+                let session = midi_input_sessions
+                    .get_mut(node)
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "cancelled MIDI input has no admitted session".to_string())?;
+                session.cancel();
+                midi_input_requests[node] = None;
             } else {
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
@@ -575,7 +603,17 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if contract.as_str() == synth_operation::SYNTH_HOST_OPERATION {
+            if contract == &midi_input_contract_id {
+                if !input.is_empty() {
+                    return Err("MIDI input request carries unexpected bytes".into());
+                }
+                let node = usize::from(request.node.0);
+                if midi_input_requests[node].replace(request).is_some() {
+                    return Err("MIDI input node has two pending host requests".into());
+                }
+                requests.push(request);
+                continue;
+            } else if contract.as_str() == synth_operation::SYNTH_HOST_OPERATION {
                 let state = synth_states
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
@@ -1070,6 +1108,77 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => break TerminalDisposition::Completed,
             SchedulerStatus::Idle => {
+                let mut completed_midi_input = false;
+                let mut pending_midi_input = false;
+                for node in 0..midi_input_requests.len() {
+                    let Some(request) = midi_input_requests[node] else {
+                        continue;
+                    };
+                    pending_midi_input = true;
+                    let session = midi_input_sessions[node]
+                        .as_mut()
+                        .ok_or_else(|| "pending MIDI input has no admitted session".to_string())?;
+                    let readable = match session.wait_readable(Duration::from_millis(u64::from(
+                        crate::hosted_midi::MIDI_READINESS_WAIT_MILLIS,
+                    ))) {
+                        Ok(readable) => readable,
+                        Err(error) => {
+                            scheduler
+                                .complete_host_operation(
+                                    request.node,
+                                    request.request,
+                                    midi_input_operation::failure_outcome(error),
+                                )
+                                .map_err(|completion| {
+                                    format!("complete MIDI input readiness failure: {completion:?}")
+                                })?;
+                            midi_input_requests[node] = None;
+                            completed_midi_input = true;
+                            continue;
+                        }
+                    };
+                    if !readable {
+                        continue;
+                    }
+                    let now_micros = timer.monotonic_now_micros().ok_or_else(|| {
+                        "admitted MIDI input monotonic-microsecond Base is unavailable".to_string()
+                    })?;
+                    let outcome = match session.poll(now_micros) {
+                        Ok(crate::hosted_midi::MidiInputPoll::Pending) => continue,
+                        Ok(crate::hosted_midi::MidiInputPoll::Observation(observation)) => {
+                            let encoded = observation.encode().map_err(|error| {
+                                format!("encode exact MIDI input observation: {error:?}")
+                            })?;
+                            let value = scheduler.store_host_value(&encoded).map_err(|error| {
+                                format!("store MIDI input observation: {error:?}")
+                            })?;
+                            HostOperationOutcome {
+                                disposition: HostOperationDisposition::Completed,
+                                output: Some(
+                                    BoundedValueRef::new(
+                                        value,
+                                        conduit_midi::MIDI_INPUT_OBSERVATION_ENCODED_LEN as u32,
+                                    )
+                                    .map_err(|error| {
+                                        format!("bound MIDI input observation: {error:?}")
+                                    })?,
+                                ),
+                                failure: None,
+                            }
+                        }
+                        Err(error) => midi_input_operation::failure_outcome(error),
+                    };
+                    scheduler
+                        .complete_host_operation(request.node, request.request, outcome)
+                        .map_err(|error| {
+                            format!("complete MIDI input host operation: {error:?}")
+                        })?;
+                    midi_input_requests[node] = None;
+                    completed_midi_input = true;
+                }
+                if completed_midi_input || pending_midi_input {
+                    continue;
+                }
                 if deadlines.complete_next(&mut scheduler, timer)? {
                     continue;
                 }
@@ -1194,6 +1303,16 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .flatten()
         .map(crate::hosted_audio::PlaybackSession::report)
         .collect();
+    for session in midi_input_sessions.iter_mut().flatten() {
+        if session.report().lifecycle == crate::hosted_midi::MidiInputLifecycle::Open {
+            session.cancel();
+        }
+    }
+    let midi_input = midi_input_sessions
+        .iter()
+        .flatten()
+        .map(crate::hosted_midi::MidiInputSession::report)
+        .collect();
     for session in midi_output_sessions.iter_mut().flatten() {
         if session.report().lifecycle != crate::hosted_midi::MidiOutputLifecycle::StoppedClosed {
             session
@@ -1219,6 +1338,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids: Vec::new(),
             playback,
+            midi_input,
             midi_output,
             identity: execution_identity,
             #[cfg(test)]

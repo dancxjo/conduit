@@ -1,13 +1,14 @@
 use super::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, RemoteIngressOutcome,
-    SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    AdapterTransaction, CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver,
+    RemoteIngressOutcome, SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
+    StepOutcome,
 };
 use crate::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    FixedSignLog, FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEventKind, NodeId, Operation, OperationAction, OperationInput,
-    PortId, ProtocolError, RemoteEndpointId, RequestId, RouteRange, RouteTarget, SignQuery,
-    SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostOperationBindings,
+    FixedRoutes, FixedSignLog, FixedValueStore, HostOperationBinding, HostOperationDisposition,
+    HostOperationId, HostOperationOutcome, KernelEventKind, NodeId, Operation, OperationAction,
+    OperationInput, PortId, ProtocolError, RemoteEndpointId, RequestId, RouteRange, RouteTarget,
+    SignQuery, SignSink, ValueRef, ValueStorage,
 };
 
 mod host_cancellation;
@@ -15,6 +16,11 @@ mod host_cancellation;
 const NODES: usize = 6;
 const CORDS: usize = 5;
 const PORTS: usize = 2;
+
+#[test]
+fn derived_output_staging_is_bounded_independently_of_port_capacity() {
+    assert!(core::mem::size_of::<AdapterTransaction<32>>() < 1_024);
+}
 
 #[derive(Clone, Copy, Debug)]
 enum Driver {
@@ -157,13 +163,20 @@ enum HostDriver {
     Sink {
         seen: Option<ValueRef>,
     },
+    Transform {
+        input: ValueRef,
+        phase: u8,
+    },
+    DecodedSink {
+        seen: Option<[u8; 5]>,
+    },
 }
 
 impl StepOperation<PORTS> for HostDriver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
-        _input_bytes: &StepInputBytes<'_, PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome {
         match self {
             Self::Source { value } => {
@@ -218,6 +231,62 @@ impl StepOperation<PORTS> for HostDriver {
                 if let Some(value) = io.input(PortId(0)) {
                     io.consume(PortId(0)).unwrap();
                     *seen = Some(value);
+                    StepOutcome::Progress
+                } else if io.input_closed(PortId(0)) {
+                    io.consume_closed(PortId(0)).unwrap();
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Await
+                }
+            }
+            Self::Transform { input, phase } => match *phase {
+                0 => {
+                    io.request_host_operation(
+                        RequestId(1),
+                        HostOperationId(0),
+                        BoundedValueRef::new(*input, 0).unwrap(),
+                    )
+                    .unwrap();
+                    *phase = 1;
+                    StepOutcome::Progress
+                }
+                1 => {
+                    let Some((RequestId(1), outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    assert_eq!(input_bytes.host_output(), Some([0x90, 60, 100].as_slice()));
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    assert_eq!(outcome.disposition, HostOperationDisposition::Completed);
+                    io.consume_host_completion().unwrap();
+                    io.send_canonical(PortId(0), CanonicalValue::new(&[9, 8, 7, 6, 5]).unwrap())
+                        .unwrap();
+                    io.request_host_operation(
+                        RequestId(2),
+                        HostOperationId(0),
+                        BoundedValueRef::new(*input, 0).unwrap(),
+                    )
+                    .unwrap();
+                    *phase = 2;
+                    StepOutcome::Progress
+                }
+                2 => {
+                    let Some((RequestId(2), _)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    assert_eq!(input_bytes.host_output(), Some([0x80, 60, 0].as_slice()));
+                    io.consume_host_completion().unwrap();
+                    io.discard(*input).unwrap();
+                    *phase = 3;
+                    StepOutcome::Complete
+                }
+                _ => StepOutcome::Complete,
+            },
+            Self::DecodedSink { seen } => {
+                if io.input(PortId(0)).is_some() {
+                    *seen = Some(input_bytes.input(PortId(0)).unwrap().try_into().unwrap());
+                    io.consume(PortId(0)).unwrap();
                     StepOutcome::Progress
                 } else if io.input_closed(PortId(0)) {
                     io.consume_closed(PortId(0)).unwrap();
@@ -1479,6 +1548,108 @@ where
     E: SignSink,
 {
     host_scheduler_with_binding_node(values, signs, NodeId(1))
+}
+
+#[test]
+fn host_output_bytes_are_borrowed_and_derived_output_uses_admitted_storage() {
+    let mut values = FixedValueStore::<4, 64>::new(128).unwrap();
+    let empty = values.store(&[]).unwrap();
+    let mut routes = FixedRoutes::<2, 1>::new(2);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    bindings
+        .install(
+            NodeId(0),
+            HostOperationBinding {
+                operation: HostOperationId(0),
+                maximum_input_bytes: 0,
+                maximum_output_bytes: 3,
+            },
+        )
+        .unwrap();
+    bindings.seal().unwrap();
+    let signs =
+        FixedSignLog::<32>::new((32 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler =
+        FixedScheduler::<_, _, _, 2, 1, 2, 1, 2, 1, 2, 1>::new_with_host_operations(
+            [node([None, None]), node([Some(CordId(0)), None])],
+            [CordSpec::local(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 8,
+                },
+            )],
+            routes,
+            bindings,
+            [
+                HostDriver::Transform {
+                    input: empty,
+                    phase: 0,
+                },
+                HostDriver::DecodedSink { seen: None },
+            ],
+            values,
+            signs,
+        )
+        .unwrap();
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    let request = scheduler.next_host_request().unwrap();
+    let observation = scheduler.store_host_value(&[0x90, 60, 100]).unwrap();
+    scheduler
+        .complete_host_operation(
+            request.node,
+            request.request,
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(BoundedValueRef::new(observation, 3).unwrap()),
+                failure: None,
+            },
+        )
+        .unwrap();
+    let second_request = (0..3)
+        .find_map(|_| {
+            let _ = scheduler.step().unwrap();
+            scheduler.next_host_request()
+        })
+        .expect("derived output and repeated zero-byte request make bounded progress");
+    assert_eq!(second_request.request, RequestId(2));
+    assert_eq!(second_request.input, request.input);
+    let second_observation = scheduler.store_host_value(&[0x80, 60, 0]).unwrap();
+    scheduler
+        .complete_host_operation(
+            second_request.node,
+            second_request.request,
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(BoundedValueRef::new(second_observation, 3).unwrap()),
+                failure: None,
+            },
+        )
+        .unwrap();
+    scheduler.run(16).unwrap();
+    let HostDriver::DecodedSink { seen } = scheduler.drivers()[1] else {
+        panic!("derived sink identity changed");
+    };
+    assert_eq!(seen, Some([9, 8, 7, 6, 5]));
+    assert_eq!(scheduler.values().used_items(), 0);
 }
 
 fn host_scheduler_with_binding_node<S, E>(

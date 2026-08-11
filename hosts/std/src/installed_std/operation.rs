@@ -9,6 +9,7 @@ use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
 use super::math_operations::MathScalarOperation;
+use super::midi_input_operation::MidiInputOperation;
 use super::midi_output_operation::MidiOutputOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::presentation_composition::PresentationCompositionOperation;
@@ -81,6 +82,7 @@ pub(super) enum InstalledOperation {
     MusicSynth(MusicSynthOperation),
     AudioPlay(AudioPlayOperation),
     MidiOutput(MidiOutputOperation),
+    MidiInput(Box<MidiInputOperation>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
@@ -164,6 +166,7 @@ impl Operation for InstalledOperation {
             Self::MusicSynth(operation) => operation.start(),
             Self::AudioPlay(operation) => operation.start(),
             Self::MidiOutput(operation) => operation.start(),
+            Self::MidiInput(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
@@ -236,6 +239,7 @@ impl Operation for InstalledOperation {
             (Self::MusicSynth(operation), input) => operation.resume(input),
             (Self::AudioPlay(operation), input) => operation.resume(input),
             (Self::MidiOutput(operation), input) => operation.resume(input),
+            (Self::MidiInput(operation), _) => operation.resume(),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -285,6 +289,20 @@ impl Operation for InstalledOperation {
         }
     }
 
+    fn resume_host_operation(
+        &mut self,
+        request: RequestId,
+        outcome: conduit_kernel::HostOperationOutcome,
+        canonical: Option<&[u8]>,
+    ) -> OperationAction {
+        match self {
+            Self::MidiInput(operation) => {
+                operation.resume_host_operation(request, outcome, canonical)
+            }
+            _ => self.resume(OperationInput::HostOperationCompleted { request, outcome }),
+        }
+    }
+
     fn advance(&mut self) -> OperationAction {
         match self {
             Self::Tick(operation) => operation.advance(),
@@ -320,6 +338,7 @@ impl Operation for InstalledOperation {
             Self::MusicSynth(operation) => operation.advance(),
             Self::AudioPlay(_) => OperationAction::Await,
             Self::MidiOutput(_) => OperationAction::Await,
+            Self::MidiInput(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             #[cfg(test)]
@@ -393,6 +412,7 @@ impl Operation for InstalledOperation {
             Self::MusicSynth(operation) => operation.cancel(),
             Self::AudioPlay(operation) => operation.cancel(),
             Self::MidiOutput(operation) => operation.cancel(),
+            Self::MidiInput(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]

@@ -1,7 +1,90 @@
+#[cfg(test)]
+use super::HostedMidiSelection;
 use super::{HostedRawMidiSelection, MidiEndpointDirection, MidiOutputSelection};
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 
 impl StdHost {
+    #[cfg(test)]
+    pub(crate) fn new_with_raw_midi_input_and_midi_output(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        midi_input: HostedRawMidiSelection,
+        midi_output: HostedMidiSelection,
+    ) -> Result<Self, String> {
+        if midi_input.boot_id() != &config.boot_id
+            || midi_input.offer_generation() != config.offer_generation
+            || midi_input.observation().direction != MidiEndpointDirection::ReadableSource
+            || midi_input.observation().direct_device_path().is_none()
+            || midi_output.boot_id() != &config.boot_id
+            || midi_output.offer_generation() != config.offer_generation
+            || midi_output.observation().direction != MidiEndpointDirection::WritableDestination
+        {
+            return Err("MIDI input/output observations do not match Host identity".into());
+        }
+        let midi_output = MidiOutputSelection::sequencer(midi_output);
+        let advertisement = crate::composition::build_advertisement(
+            config,
+            composition,
+            None,
+            Some(&midi_input),
+            Some(&midi_output),
+            false,
+        );
+        let kernel_resources =
+            crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            playback: None,
+            midi_input: Some(midi_input),
+            midi_output: Some(midi_output),
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    pub fn new_with_raw_midi_io(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        midi_input: HostedRawMidiSelection,
+        midi_output: HostedRawMidiSelection,
+    ) -> Result<Self, String> {
+        if midi_input.boot_id() != &config.boot_id
+            || midi_input.offer_generation() != config.offer_generation
+            || midi_input.observation().direction != MidiEndpointDirection::ReadableSource
+            || midi_input.observation().direct_device_path().is_none()
+            || midi_output.boot_id() != &config.boot_id
+            || midi_output.offer_generation() != config.offer_generation
+            || midi_output.observation().direction != MidiEndpointDirection::WritableDestination
+            || midi_output.observation().direct_device_path().is_none()
+        {
+            return Err(
+                "raw MIDI I/O observations do not match directions, Boot, generation, or direct nodes"
+                    .into(),
+            );
+        }
+        let midi_output = MidiOutputSelection::raw(midi_output);
+        let advertisement = crate::composition::build_advertisement(
+            config,
+            composition,
+            None,
+            Some(&midi_input),
+            Some(&midi_output),
+            false,
+        );
+        let kernel_resources =
+            crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            playback: None,
+            midi_input: Some(midi_input),
+            midi_output: Some(midi_output),
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
     pub fn new_with_raw_midi_input(
         config: StdHostConfig,
         composition: StdHostComposition,
