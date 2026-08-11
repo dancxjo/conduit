@@ -131,7 +131,6 @@ jobs:
           name: conduit-visual-evidence-diagnostic-${{ github.sha }}
           path: |
             target/conduit-evidence/browser-host
-            target/playwright/patchbay-visual
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
