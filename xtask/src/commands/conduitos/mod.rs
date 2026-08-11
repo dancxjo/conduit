@@ -7,6 +7,7 @@ mod ia32_a1;
 mod ia32_a2;
 mod image;
 mod loongarch64_a0;
+mod loongarch64_a1;
 mod profile;
 mod prove;
 mod report;
@@ -107,7 +108,7 @@ impl ConduitosArch {
     fn require_boot_backend(self) -> Result<(), ConduitosError> {
         if matches!(
             self,
-            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64
+            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64 | Self::Loongarch64
         ) {
             Ok(())
         } else {
@@ -171,6 +172,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 ConduitosArch::Aarch64 => aarch64_a1::run(opts),
                 ConduitosArch::Ia32 => ia32_a1::run(opts),
                 ConduitosArch::Riscv64 => riscv64_a4::run(opts),
+                ConduitosArch::Loongarch64 => loongarch64_a1::run(opts),
                 _ => run::execute(target.arch, opts).map(|_| ()),
             }
         }
@@ -178,6 +180,8 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             target.arch.require_boot_backend()?;
             if target.arch == ConduitosArch::Riscv64 {
                 riscv64_a4::prove(opts)
+            } else if target.arch == ConduitosArch::Loongarch64 {
+                loongarch64_a1::prove(opts)
             } else {
                 prove::execute(target.arch, opts)
             }
@@ -234,5 +238,13 @@ mod tests {
     fn ia32_has_a_bounded_boot_backend() {
         ConduitosArch::Ia32.require_compile_link_backend().unwrap();
         ConduitosArch::Ia32.require_boot_backend().unwrap();
+    }
+
+    #[test]
+    fn loongarch64_has_a_bounded_boot_backend() {
+        ConduitosArch::Loongarch64
+            .require_compile_link_backend()
+            .unwrap();
+        ConduitosArch::Loongarch64.require_boot_backend().unwrap();
     }
 }

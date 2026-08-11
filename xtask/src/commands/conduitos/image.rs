@@ -138,6 +138,7 @@ fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError>
         ConduitosArch::Aarch64 => "hosts/conduitos/limine-aarch64-a1.conf",
         ConduitosArch::Ia32 => "hosts/conduitos/limine-ia32-a1.conf",
         ConduitosArch::Riscv64 => "hosts/conduitos/limine-riscv64-a1.conf",
+        ConduitosArch::Loongarch64 => "hosts/conduitos/limine-loongarch64-a1.conf",
         _ => "hosts/conduitos/limine.conf",
     };
     copy(
@@ -155,6 +156,7 @@ fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError>
         ConduitosArch::Aarch64 => "BOOTAA64.EFI",
         ConduitosArch::Ia32 => "BOOTIA32.EFI",
         ConduitosArch::Riscv64 => "BOOTRISCV64.EFI",
+        ConduitosArch::Loongarch64 => "BOOTLOONGARCH64.EFI",
         _ => "BOOTX64.EFI",
     };
     copy(&paths.limine.join(efi_name), &efi_boot.join(efi_name))?;
