@@ -1,7 +1,9 @@
 use crate::{
     cli::{GlobalOpts, ProveArgs, ProveTarget},
-    evidence::{EvidenceManifest, EvidenceResult},
-    process::{run_suite, StepError},
+    evidence::{
+        EvidenceKind, EvidenceManifest, EvidenceOutput, EvidenceProvenance, EvidenceResult,
+    },
+    process::{run_suite, run_suite_with_environment, StepError},
     suites::prove::{
         PROVE_BROWSER_HOST_STEPS, PROVE_STD_BROWSER_S4_STEPS, PROVE_STD_BROWSER_TOGGLE_STEPS,
     },
@@ -25,11 +27,38 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             let mut evidence =
                 EvidenceManifest::new(&evidence_root, &root, "browser-host", "prove.browser-host")
                     .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))?;
-            match run_suite(PROVE_BROWSER_HOST_STEPS, &root, opts) {
-                Ok(()) => evidence
-                    .finish(EvidenceResult::Complete)
-                    .map_err(|error| StepError::prereq("prove.browser-host.evidence", error)),
+            clear_patchbay_capture_outputs(evidence.root())?;
+            evidence
+                .declare(EvidenceOutput {
+                    id: "patchbay.capture-declarations".into(),
+                    kind: EvidenceKind::MachineReadableManifest,
+                    path: "captures.json".into(),
+                    media_type: "application/json".into(),
+                    required: true,
+                    provenance: EvidenceProvenance {
+                        scenario_id: "patchbay-html.canonical-captures@1".into(),
+                        step_id: Some("prove.browser-host.patchbay-html-matrix".into()),
+                        asserted_semantic_disposition: Some(
+                            "five-canonical-states-asserted".into(),
+                        ),
+                        ..Default::default()
+                    },
+                })
+                .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))?;
+            let environment = [("CONDUIT_EVIDENCE_ROOT", evidence.root().as_os_str())];
+            match run_suite_with_environment(PROVE_BROWSER_HOST_STEPS, &root, opts, &environment) {
+                Ok(()) => {
+                    import_patchbay_captures(&mut evidence, true)?;
+                    evidence
+                        .finish(EvidenceResult::Complete)
+                        .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))
+                }
                 Err(proof_error) => {
+                    if evidence.root().join("captures.json").is_file() {
+                        if let Err(error) = import_patchbay_captures(&mut evidence, false) {
+                            eprintln!("xtask evidence import error after proof failure: {error}");
+                        }
+                    }
                     if let Err(evidence_error) =
                         evidence.finish(EvidenceResult::DiagnosticIncomplete)
                     {
@@ -173,4 +202,49 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
         ProveTarget::R1NewPlanRecovery => crate::commands::r1_recovery::run(opts),
     }
+}
+
+const PATCHBAY_CAPTURE_IDS: &[&str] = &[
+    "patchbay.overview",
+    "patchbay.selected-gear",
+    "patchbay.interaction",
+    "patchbay.high-contrast",
+    "patchbay.disconnected",
+];
+
+fn import_patchbay_captures(
+    evidence: &mut EvidenceManifest,
+    require_complete: bool,
+) -> Result<(), StepError> {
+    let required = if require_complete {
+        PATCHBAY_CAPTURE_IDS
+    } else {
+        &[]
+    };
+    evidence
+        .import_capture_declarations(std::path::Path::new("captures.json"), required)
+        .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))
+}
+
+fn clear_patchbay_capture_outputs(root: &std::path::Path) -> Result<(), StepError> {
+    for name in [
+        "captures.json",
+        "captures.json.tmp",
+        "overview.png",
+        "selected-gear.png",
+        "interaction.png",
+        "high-contrast.png",
+        "disconnected.png",
+    ] {
+        let path = root.join(name);
+        if path.exists() || path.is_symlink() {
+            std::fs::remove_file(&path).map_err(|error| {
+                StepError::prereq(
+                    "prove.browser-host.evidence",
+                    format!("cannot remove stale evidence {}: {error}", path.display()),
+                )
+            })?;
+        }
+    }
+    Ok(())
 }
