@@ -411,7 +411,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn absent_sign_refuses() {
+    fn absent_and_duplicate_entry_signs_refuse() {
         assert!(parse("").is_err());
+        assert!(parse(&format!("{PREFIX}{{}}\n{PREFIX}{{}}\n")).is_err());
     }
 }
