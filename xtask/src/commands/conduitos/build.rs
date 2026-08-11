@@ -10,6 +10,21 @@ use super::{
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(arch, opts, &[])
+}
+
+pub(super) fn execute_hotplug(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(arch, opts, &["hotplug-proof"])
+}
+
+fn execute_with_features(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+    features: &[&str],
+) -> Result<BuildRecord, ConduitosError> {
     if arch == ConduitosArch::Ia32 {
         return ia32_a2::execute(opts);
     }
@@ -48,6 +63,9 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, Co
         .env("RUSTFLAGS", "-C relocation-model=static -C panic=abort")
         .env("CONDUITOS_BUILD_ID", &base_commit)
         .env("CONDUITOS_IMAGE_ID", image_id);
+    if !features.is_empty() {
+        command.arg("--features").arg(features.join(","));
+    }
     if opts.locked {
         command.arg("--locked");
     }

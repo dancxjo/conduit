@@ -172,7 +172,7 @@ extern "C" fn conduitos_start() -> ! {
                     .iter()
                     .all(|transition| (0xe0..=0xe7).contains(&transition.usage()));
             for transition in hid_session.transitions().iter().copied() {
-                observe_local_rescue(
+                conduitos::rescue_guest::observe(
                     &identities,
                     &mut rescue_matcher,
                     transition.into_local_rescue(),
@@ -185,7 +185,7 @@ extern "C" fn conduitos_start() -> ! {
                     Err(error) => emit_machine_refusal(error.as_str()),
                 };
                 for transition in transitions[..count].iter().copied() {
-                    observe_local_rescue(
+                    conduitos::rescue_guest::observe(
                         &identities,
                         &mut rescue_matcher,
                         transition.into_local_rescue(),
@@ -335,7 +335,7 @@ extern "C" fn conduitos_start() -> ! {
                 &usb,
                 2 + conduitos::keyboard_text_guest::PHYSICAL_TRANSITIONS,
                 |transition| {
-                    observe_local_rescue(
+                    conduitos::rescue_guest::observe(
                         &identities,
                         &mut rescue_matcher,
                         transition.into_local_rescue(),
@@ -367,6 +367,18 @@ extern "C" fn conduitos_start() -> ! {
                 &keyboard_text_events,
             ) {
                 emit_machine_refusal(reason);
+            }
+            if cfg!(feature = "hotplug-proof") {
+                conduitos::hotplug_guest::run(conduitos::hotplug_guest::HotplugProofInputs {
+                    record: &record,
+                    identities: &identities,
+                    controller: &mut xhci,
+                    d1: usb,
+                    d1_session: hid_session,
+                    d1_offer: offer,
+                    controller_id: xhci_base,
+                    build_id: BUILD_ID,
+                });
             }
             match proof::accepted(&record, &identities, BUILD_ID, IMAGE_ID) {
                 Ok(sign) => {
@@ -437,38 +449,6 @@ extern "C" fn conduitos_start() -> ! {
             }
         }
         Err(error) => emit_refusal(error.as_str()),
-    }
-}
-
-#[cfg(target_os = "none")]
-fn observe_local_rescue(
-    identities: &conduitos::identity::BootIdentities,
-    matcher: &mut conduitos::local_rescue::LocalRescueMatcher,
-    transition: conduitos::local_rescue::ValidatedLocalTransition,
-    ordinary_keyboard_plan: bool,
-) {
-    let policy = conduitos::local_rescue::LocalRescuePolicy {
-        enabled: true,
-        reboot_base_available: true,
-    };
-    match matcher.observe(policy, transition) {
-        conduitos::local_rescue::RescueDecision::NoRequest => {}
-        conduitos::local_rescue::RescueDecision::RebootBaseUnavailable { .. } => {
-            emit_machine_refusal("local-rescue-reboot-base-unavailable")
-        }
-        conduitos::local_rescue::RescueDecision::RequestAccepted { policy, operation } => {
-            let boot_id = identity::hex(&identities.boot);
-            let receipt = format!(
-                "CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"{}\",\"authority\":\"local-physical-input\",\"policy\":\"{}\",\"operation\":\"{}\",\"request_id\":\"local-rescue/{}/1\",\"ordinary_keyboard_plan\":{}}}\n",
-                boot_id, policy, operation, boot_id, ordinary_keyboard_plan,
-            );
-            arch::early_write(receipt.as_bytes());
-            arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-reset-requested\n");
-            match arch::local_reboot_base().request() {
-                Ok(never) => match never {},
-                Err(error) => emit_machine_refusal(error.as_str()),
-            }
-        }
     }
 }
 

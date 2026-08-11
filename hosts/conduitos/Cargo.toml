@@ -111,6 +111,7 @@ required-features = ["loongarch64-a4"]
 
 [features]
 default = []
+hotplug-proof = []
 aarch64-a0 = []
 aarch64-a2 = []
 aarch64-a3 = []

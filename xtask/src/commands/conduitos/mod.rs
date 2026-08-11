@@ -6,6 +6,8 @@ mod build;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
+mod hotplug_proof;
+mod hotplug_qmp;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
@@ -76,6 +78,8 @@ enum ConduitosCommand {
     HidProof,
     /// Prove the exact portable keyboard offer, Plan, Play, and event values.
     KeyboardProof,
+    /// Prove real USB keyboard detach/reattach across immutable and fresh Plans.
+    HotplugProof,
     /// Prove one low-level local rescue request and real fresh boot.
     RescueProof,
 }
@@ -236,6 +240,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::UsbProof => usb_proof::execute(opts),
         ConduitosCommand::HidProof => hid_proof::execute(opts),
         ConduitosCommand::KeyboardProof => keyboard_proof::execute(opts),
+        ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
         ConduitosCommand::RescueProof => rescue_proof::execute(opts),
     }
 }
