@@ -133,10 +133,6 @@ fn build_report(build: &str) -> Result<StdGapReport<'_>, ConduitosError> {
     })
 }
 
-fn encoding_error(error: serde_json::Error) -> ConduitosError {
-    ConduitosError::refusal("std-gap-encoding-failed", error.to_string())
-}
-
 fn git_head() -> Result<String, ConduitosError> {
     let output = Command::new("git")
         .args(["rev-parse", "HEAD"])

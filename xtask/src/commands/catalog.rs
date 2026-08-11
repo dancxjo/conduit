@@ -79,7 +79,7 @@ impl Error for CatalogError {}
 
 #[derive(Serialize)]
 #[serde(rename_all = "kebab-case")]
-enum Coverage {
+pub enum Coverage {
     Direct,
     Recursive,
     MissingImplementation,
