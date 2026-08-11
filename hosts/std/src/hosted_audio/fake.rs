@@ -135,3 +135,113 @@ impl FakePlaybackSession {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::hosted_audio::AlsaPlaybackObservation;
+    use conduit_core::{BootId, OfferGeneration};
+
+    fn selection() -> HostedPlaybackSelection {
+        HostedPlaybackSelection::deterministic_fake(
+            AlsaPlaybackObservation {
+                card_index: 0,
+                card_id: "FIXTURE".into(),
+                card_name: "fixture".into(),
+                device: 0,
+                device_name: "fixture".into(),
+                base_identity: "fixture-base".into(),
+            },
+            BootId::from("fixture-boot"),
+            OfferGeneration(1),
+            FakePlaybackBehavior::Success,
+        )
+    }
+
+    fn frame(
+        representation: PcmSampleRepresentation,
+        sample_rate_hz: u32,
+        layout: PcmChannelLayout,
+    ) -> Vec<u8> {
+        let channels = match layout {
+            PcmChannelLayout::Mono => 1,
+            PcmChannelLayout::StereoLeftRight => 2,
+        };
+        let bytes_per_sample = match representation {
+            PcmSampleRepresentation::Signed16LittleEndian => 2,
+            PcmSampleRepresentation::Signed24LittleEndian => 3,
+            PcmSampleRepresentation::Float32LittleEndian => 4,
+        };
+        PcmFrameHeader::new(
+            representation,
+            sample_rate_hz,
+            layout,
+            PERIOD_FRAMES,
+            SOURCE_CLOCK_ID,
+            0,
+            false,
+        )
+        .unwrap()
+        .encode_frame(&vec![
+            0;
+            PERIOD_FRAMES as usize * channels * bytes_per_sample
+        ])
+        .unwrap()
+    }
+
+    #[test]
+    fn unsupported_representation_rate_and_layout_refuse_before_open() {
+        for encoded in [
+            frame(
+                PcmSampleRepresentation::Float32LittleEndian,
+                SAMPLE_RATE_HZ,
+                PcmChannelLayout::StereoLeftRight,
+            ),
+            frame(
+                PcmSampleRepresentation::Signed16LittleEndian,
+                44_100,
+                PcmChannelLayout::StereoLeftRight,
+            ),
+            frame(
+                PcmSampleRepresentation::Signed16LittleEndian,
+                SAMPLE_RATE_HZ,
+                PcmChannelLayout::Mono,
+            ),
+        ] {
+            let mut session = FakePlaybackSession::new(selection(), FakePlaybackBehavior::Success);
+            assert_eq!(
+                session.write_frame(&encoded),
+                Err(PlaybackFailure::InvalidPcm)
+            );
+            assert_eq!(session.lifecycle(), PlaybackLifecycle::ResolvedAvailable);
+            assert_eq!(session.metrics.blocks_committed, 0);
+        }
+    }
+
+    #[test]
+    fn cancellation_closes_exactly_from_each_nonterminal_lifecycle() {
+        for lifecycle in [
+            PlaybackLifecycle::ResolvedAvailable,
+            PlaybackLifecycle::OpenedPrepared,
+            PlaybackLifecycle::Started,
+            PlaybackLifecycle::FirstFrameCommitted,
+            PlaybackLifecycle::Active,
+            PlaybackLifecycle::DrainRequested,
+        ] {
+            let mut session = FakePlaybackSession::new(selection(), FakePlaybackBehavior::Success);
+            session.lifecycle = lifecycle;
+            session.stop().unwrap();
+            assert_eq!(session.lifecycle(), PlaybackLifecycle::StoppedClosed);
+            session.stop().unwrap();
+            assert_eq!(session.lifecycle(), PlaybackLifecycle::StoppedClosed);
+        }
+    }
+
+    #[test]
+    fn injected_cleanup_failure_is_not_clean_completion() {
+        let mut session = FakePlaybackSession::new(selection(), FakePlaybackBehavior::CloseFailure);
+        session.lifecycle = PlaybackLifecycle::Active;
+        assert_eq!(session.stop(), Err(PlaybackFailure::CloseFailed));
+        assert_eq!(session.lifecycle(), PlaybackLifecycle::Failed);
+    }
+}
