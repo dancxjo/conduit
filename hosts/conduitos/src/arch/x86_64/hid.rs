@@ -110,6 +110,19 @@ pub struct HidProof {
     pub transitions: [HidKeyTransition; 2],
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HidKeyboardReady {
+    pub interface_number: u8,
+    pub endpoint_address: u8,
+    pub endpoint_dci: u8,
+    pub endpoint_maximum_packet_size: u16,
+    pub endpoint_interval: u8,
+    pub report_buffers: u16,
+    pub transition_slots: u16,
+    pub operation_slots: u16,
+    dma_physical: u64,
+}
+
 #[repr(C, align(4096))]
 struct HidDma {
     input_context: [u8; 2112],
@@ -128,6 +141,15 @@ pub fn run_boot_keyboard(
     device: &UsbDevice,
     image_virtual_to_physical: fn(u64) -> Option<u64>,
 ) -> Result<HidProof, HidError> {
+    let ready = prepare_boot_keyboard(controller, device, image_virtual_to_physical)?;
+    receive_boot_keyboard(controller, device, ready)
+}
+
+pub fn prepare_boot_keyboard(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    image_virtual_to_physical: fn(u64) -> Option<u64>,
+) -> Result<HidKeyboardReady, HidError> {
     let (interface, endpoint) = match_keyboard(device)?;
     select_boot_protocol(
         controller,
@@ -150,11 +172,35 @@ pub fn run_boot_keyboard(
     }
     let dci = endpoint_dci(endpoint.address)?;
     configure_interrupt_endpoint(controller, device, endpoint, dci, dma_physical)?;
+    Ok(HidKeyboardReady {
+        interface_number: interface.number,
+        endpoint_address: endpoint.address,
+        endpoint_dci: dci,
+        endpoint_maximum_packet_size: endpoint.maximum_packet_size,
+        endpoint_interval: endpoint.interval,
+        report_buffers: REPORT_BUFFERS as u16,
+        transition_slots: HID_SIGN_SLOTS as u16,
+        operation_slots: MAX_OUTSTANDING_INTERRUPT_TRANSFERS as u16,
+        dma_physical,
+    })
+}
+
+pub fn receive_boot_keyboard(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    ready: HidKeyboardReady,
+) -> Result<HidProof, HidError> {
     let mut previous = BootReport::default();
     let mut observed = [HidKeyTransition::default(); 2];
     let mut observed_count = 0usize;
     for report_index in 0..REPORT_BUFFERS {
-        receive_report(controller, device, dci, report_index, dma_physical)?;
+        receive_report(
+            controller,
+            device,
+            ready.endpoint_dci,
+            report_index,
+            ready.dma_physical,
+        )?;
         if report_index == 0 {
             super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-press-report\n");
         } else {
@@ -177,11 +223,11 @@ pub fn run_boot_keyboard(
         return Err(HidError::TransferError);
     }
     Ok(HidProof {
-        interface_number: interface.number,
-        endpoint_address: endpoint.address,
-        endpoint_dci: dci,
-        endpoint_maximum_packet_size: endpoint.maximum_packet_size,
-        endpoint_interval: endpoint.interval,
+        interface_number: ready.interface_number,
+        endpoint_address: ready.endpoint_address,
+        endpoint_dci: ready.endpoint_dci,
+        endpoint_maximum_packet_size: ready.endpoint_maximum_packet_size,
+        endpoint_interval: ready.endpoint_interval,
         set_protocol_transfers: 1,
         interrupt_transfers: REPORT_BUFFERS as u8,
         report_bytes: BOOT_REPORT_BYTES as u8,

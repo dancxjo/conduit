@@ -220,12 +220,47 @@ pub struct GuestHidSign {
     pub semantic_keyboard_offer: bool,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GuestKeyboardSign {
+    pub schema: String,
+    pub status: String,
+    pub proof_class: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub offer_generation: u64,
+    pub kind: String,
+    pub contract_revision: String,
+    pub implementation: String,
+    pub execution_profile: String,
+    pub artifact_build: String,
+    pub controller_base_id: String,
+    pub device_instance_id: String,
+    pub interface_id: String,
+    pub endpoint_id: String,
+    pub plan_id: String,
+    pub active_play_id: String,
+    pub resource_bindings: usize,
+    pub report_buffers: u16,
+    pub transition_slots: u16,
+    pub operation_slots: u16,
+    pub cord_item_capacity: u16,
+    pub cord_byte_capacity: u32,
+    pub event_count: u8,
+    pub first_value: [u8; 3],
+    pub second_value: [u8; 3],
+    pub semantic_usb_facts: bool,
+    pub layout_translation: bool,
+    pub unicode_translation: bool,
+    pub completed: bool,
+}
+
 #[derive(Debug, Clone)]
 pub struct GuestRun {
     pub boot: GuestBootSign,
     pub xhci: GuestXhciSign,
     pub usb: GuestUsbSign,
     pub hid: GuestHidSign,
+    pub keyboard: GuestKeyboardSign,
     pub kernel: GuestKernelSign,
     pub observatory: conduit_observatory::ObservatorySnapshot,
     pub serial: String,

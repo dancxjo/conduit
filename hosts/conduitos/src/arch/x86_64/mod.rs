@@ -12,7 +12,7 @@ mod usb;
 mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
-pub use hid::{HidProof, run_boot_keyboard};
+pub use hid::{HidProof, prepare_boot_keyboard, receive_boot_keyboard, run_boot_keyboard};
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer, initialize_machine};
 pub use serial::early_write;
 pub use usb::{UsbDevice, enumerate_one as enumerate_usb};

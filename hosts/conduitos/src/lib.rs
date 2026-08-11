@@ -13,10 +13,15 @@ mod execution_region;
 pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
+pub mod keyboard_bridge;
+pub mod keyboard_offer;
+pub mod keyboard_plan;
+pub mod keyboard_play;
 pub mod machine;
 pub mod machine_a2_kernel;
 pub mod observatory;
 pub mod offer;
+mod ordinary_form;
 pub mod ordinary_plan;
 pub mod planned_kernel;
 pub mod proof;
