@@ -340,6 +340,7 @@ fn sealed_current_fragment() -> PlanFragment {
         source_document_id: form_identity.source_document_id.clone(),
         checked_form_id: form_identity.checked_form_id.clone(),
         expanded_form_id: form_identity.expanded_form_id.clone(),
+        realization_backs: Vec::new(),
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(1),

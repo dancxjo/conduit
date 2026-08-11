@@ -1,15 +1,12 @@
 pub(crate) mod inventory;
 mod observation;
+mod profiles;
+mod recursive;
 
 use std::{error::Error, fmt, path::PathBuf};
 
 use clap::{Args, Subcommand, ValueEnum};
-use conduit_core::{BootId, CapabilityOffer, HostAdvertisement, HostId, OfferGeneration};
-use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
-use conduitos::{
-    identity::BootIdentities,
-    offer::{CpuFeatures, HostOffer},
-};
+use conduit_core::{CapabilityOffer, HostAdvertisement};
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
@@ -44,10 +41,17 @@ pub enum CatalogHost {
     Browser,
     Conduitos,
     Pico,
+    PatchbayConstrained,
 }
 
 impl CatalogHost {
-    const ALL: [Self; 4] = [Self::Std, Self::Browser, Self::Conduitos, Self::Pico];
+    const ALL: [Self; 5] = [
+        Self::Std,
+        Self::Browser,
+        Self::Conduitos,
+        Self::Pico,
+        Self::PatchbayConstrained,
+    ];
 }
 
 #[derive(Debug)]
@@ -86,13 +90,13 @@ pub enum Coverage {
     Unsupported,
 }
 
-#[derive(Serialize)]
-struct InstalledImplementation {
-    implementation_id: String,
-    artifact_id: String,
-    execution_profile_id: String,
-    host_operation_families: Vec<String>,
-    resource_families: Vec<String>,
+#[derive(Clone, Serialize)]
+pub(super) struct InstalledImplementation {
+    pub(super) implementation_id: String,
+    pub(super) artifact_id: String,
+    pub(super) execution_profile_id: String,
+    pub(super) host_operation_families: Vec<String>,
+    pub(super) resource_families: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -104,6 +108,7 @@ struct MatrixEntry {
     reason_code: Option<&'static str>,
     realization_id: Option<String>,
     implementation: Option<InstalledImplementation>,
+    recursive_implementations: Vec<InstalledImplementation>,
     current_offer: observation::CurrentOffer,
 }
 
@@ -157,8 +162,9 @@ fn build_report(
     let advertisements = hosts
         .iter()
         .copied()
-        .map(profile_advertisement)
+        .map(profiles::advertisement)
         .collect::<Result<Vec<_>, _>>()?;
+    let recursive = recursive::derive()?;
     for advertisement in &advertisements {
         validate_catalog_revisions(advertisement, &inventory.entries)?;
     }
@@ -169,7 +175,18 @@ fn build_report(
                 capability.kind_id.as_str() == kind.kind_id
                     && capability.kind_contract_revision.as_str() == kind.contract_revision
             });
-            entries.push(matrix_entry(advertisement, kind, capability, snapshot));
+            let back = recursive.iter().find(|back| {
+                back.host_profile == advertisement.profile.as_str()
+                    && back.kind_id == kind.kind_id
+                    && back.contract_revision == kind.contract_revision
+            });
+            entries.push(matrix_entry(
+                advertisement,
+                kind,
+                capability,
+                back,
+                snapshot,
+            ));
         }
     }
     Ok(MatrixReport {
@@ -229,6 +246,7 @@ fn matrix_entry(
     host: &HostAdvertisement,
     kind: &inventory::InventoryEntry,
     capability: Option<&CapabilityOffer>,
+    recursive: Option<&recursive::Coverage>,
     snapshot: Option<&conduit_observatory::ObservatorySnapshot>,
 ) -> MatrixEntry {
     let implementation = capability.map(|capability| InstalledImplementation {
@@ -260,84 +278,22 @@ fn matrix_entry(
         contract_revision: kind.contract_revision.clone(),
         coverage: if capability.is_some() {
             Coverage::Direct
+        } else if recursive.is_some() {
+            Coverage::Recursive
         } else {
             Coverage::MissingImplementation
         },
-        reason_code: capability.is_none().then_some("no-exact-installed-offer"),
-        realization_id: capability.map(|offer| offer.capability_id.as_str().to_owned()),
+        reason_code: (capability.is_none() && recursive.is_none())
+            .then_some("no-exact-installed-offer"),
+        realization_id: capability
+            .map(|offer| offer.capability_id.as_str().to_owned())
+            .or_else(|| recursive.map(|back| back.realization_id.clone())),
         implementation,
+        recursive_implementations: recursive
+            .map(|back| back.leaves.clone())
+            .unwrap_or_default(),
         current_offer: observation::current(host, kind, snapshot),
     }
-}
-
-fn profile_advertisement(host: CatalogHost) -> Result<HostAdvertisement, CatalogError> {
-    match host {
-        CatalogHost::Std => Ok(StdHost::new_with_composition(
-            StdHostConfig {
-                host_id: HostId::from("catalog-std-reference"),
-                boot_id: BootId::from("catalog-static-not-a-boot"),
-                offer_generation: OfferGeneration(1),
-            },
-            StdHostComposition::reference(),
-        )
-        .advertisement()
-        .clone()),
-        CatalogHost::Browser => Ok(conduit_signal::distributed_browser_sink_advertisement()),
-        CatalogHost::Pico => Ok(conduit_signal::pico_local_advertisement()),
-        CatalogHost::Conduitos => conduitos_advertisement(),
-    }
-}
-
-fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogError> {
-    let ids = BootIdentities {
-        host: [1; 32],
-        boot: [2; 32],
-    };
-    let offer = HostOffer::new(
-        &ids,
-        "catalog-static-artifact",
-        CpuFeatures {
-            sse2: true,
-            rdrand: true,
-            invariant_tsc: true,
-        },
-        256 * 1024,
-    );
-    offer
-        .validate()
-        .map_err(|error| CatalogError::new("conduitos-offer-invalid", error.as_str()))?;
-    Ok(HostAdvertisement {
-        protocol_version: conduit_core::PROTOCOL_VERSION,
-        host_id: HostId::from("catalog-conduitos-reference"),
-        boot_id: BootId::from("catalog-static-not-a-boot"),
-        offer_generation: OfferGeneration(offer.generation),
-        profile: conduit_core::HostProfileId::from(offer.profile),
-        resources: Vec::new(),
-        planner_capabilities: Vec::new(),
-        capabilities: offer
-            .capabilities
-            .iter()
-            .map(|capability| {
-                let canonical = conduit_std_catalog::supported_nucleus_offers()
-                    .into_iter()
-                    .find(|candidate| {
-                        candidate.kind_id.as_str() == capability.kind
-                            && candidate.kind_contract_revision.as_str()
-                                == capability.contract_revision
-                    })
-                    .ok_or_else(|| {
-                        CatalogError::new("conduitos-capability-not-in-catalog", capability.kind)
-                    })?;
-                let mut exact = canonical;
-                exact.capability_id = conduit_core::CapabilityId::from(capability.implementation);
-                exact.implementation.implementation_id =
-                    conduit_core::ImplementationId::from(capability.implementation);
-                exact.implementation.artifact_id =
-                    conduit_core::ArtifactId::from(capability.artifact_build);
-                Ok(exact)
-            })
-            .collect::<Result<Vec<_>, CatalogError>>()?,
-    })
 }
 
 #[cfg(test)]
@@ -347,7 +303,7 @@ mod tests {
     #[test]
     fn matrix_has_one_obligation_per_profile_and_kind() {
         let report = build_report(&CatalogHost::ALL, None).unwrap();
-        assert_eq!(report.host_profile_count, 4);
+        assert_eq!(report.host_profile_count, 5);
         assert_eq!(
             report.matrix_entry_count,
             report.catalog_entry_count * report.host_profile_count
@@ -365,7 +321,13 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(
             std_missing,
-            vec![conduit_std_catalog::BOOL_PRESENTATION_KIND]
+            vec![
+                conduit_std_catalog::BOOL_PRESENTATION_KIND,
+                conduit_std_catalog::PATCHBAY_PRESENTATION_KIND,
+                conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND,
+                conduit_std_catalog::PATCHBAY_PORT_KIND,
+                conduit_std_catalog::PATCHBAY_CORD_KIND,
+            ]
         );
         assert!(std.entries.iter().any(|entry| {
             entry.kind_id == conduit_std_catalog::STATE_TOGGLE_KIND
@@ -397,7 +359,7 @@ mod tests {
     #[test]
     fn profile_offer_removal_cannot_leave_a_stale_positive() {
         let inventory = inventory::derive().unwrap();
-        let mut profile = profile_advertisement(CatalogHost::Std).unwrap();
+        let mut profile = profiles::advertisement(CatalogHost::Std).unwrap();
         let index = profile
             .capabilities
             .iter()
@@ -414,7 +376,7 @@ mod tests {
             .iter()
             .find(|entry| entry.kind_id == removed.kind_id.as_str())
             .unwrap();
-        let entry = matrix_entry(&profile, kind, None, None);
+        let entry = matrix_entry(&profile, kind, None, None, None);
         assert!(matches!(entry.coverage, Coverage::MissingImplementation));
         assert_eq!(entry.reason_code, Some("no-exact-installed-offer"));
     }
@@ -422,7 +384,7 @@ mod tests {
     #[test]
     fn stale_installed_revision_is_a_drift_error() {
         let inventory = inventory::derive().unwrap();
-        let mut profile = profile_advertisement(CatalogHost::Std).unwrap();
+        let mut profile = profiles::advertisement(CatalogHost::Std).unwrap();
         let capability = profile
             .capabilities
             .iter_mut()
@@ -449,5 +411,29 @@ mod tests {
             serde_json::to_string(&Coverage::Unsupported).unwrap(),
             "\"unsupported\""
         );
+    }
+
+    #[test]
+    fn patchbay_high_level_and_subject_kinds_are_recursive_on_the_constrained_profile() {
+        let report = build_report(&[CatalogHost::PatchbayConstrained], None).unwrap();
+        for kind in [
+            conduit_std_catalog::PATCHBAY_PRESENTATION_KIND,
+            conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND,
+            conduit_std_catalog::PATCHBAY_PORT_KIND,
+            conduit_std_catalog::PATCHBAY_CORD_KIND,
+        ] {
+            let entry = report
+                .entries
+                .iter()
+                .find(|entry| entry.kind_id == kind)
+                .unwrap();
+            assert!(matches!(entry.coverage, Coverage::Recursive));
+            assert!(entry
+                .realization_id
+                .as_deref()
+                .unwrap()
+                .starts_with("canonical-back:"));
+            assert!(!entry.recursive_implementations.is_empty());
+        }
     }
 }

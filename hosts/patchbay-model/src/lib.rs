@@ -34,6 +34,9 @@ mod portable_demo;
 mod portable_graphics;
 mod portable_layout;
 mod portable_projection;
+mod presenter_capstone;
+#[cfg(test)]
+mod presenter_capstone_tests;
 mod renderer_execution;
 mod renderer_inspection;
 mod renderer_projection;
@@ -91,6 +94,7 @@ pub use portable_demo::portable_demonstration;
 pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;
+pub use presenter_capstone::*;
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
 };

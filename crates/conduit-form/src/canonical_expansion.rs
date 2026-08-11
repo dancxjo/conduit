@@ -1,101 +1,22 @@
 use crate::prelude::*;
 use crate::{
-    hash_string, CanonicalExpansionDiagnostic, CanonicalStartupValue, CheckedCanonicalForm,
-    CheckedCanonicalGear, CheckedConnection, CheckedCordStage, CheckedGear, CheckedSyntaxDocument,
-    ConfigurationRule, ConfigurationValue, ExpandedCanonicalForm, ExpandedGearProvenance,
-    ExpandedSharedPool, ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
+    hash_string, CanonicalBackCatalog, CanonicalExpansionDiagnostic, CanonicalStartupValue,
+    CheckedCanonicalForm, CheckedCanonicalGear, CheckedConnection, CheckedCordStage, CheckedGear,
+    CheckedSyntaxDocument, ConfigurationRule, ConfigurationValue, ExpandedCanonicalForm,
+    ExpandedGearProvenance, ExpandedSharedPool, ProfileCatalog, RuntimePortDirection,
+    MAXIMUM_FORM_NESTING_DEPTH,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
 
+mod entry;
 mod graph;
 mod identity;
 mod shared_pool;
+pub use entry::{expand_canonical_form, expand_canonical_form_with_backs};
 use graph::*;
 use identity::{expanded_identity, provenance_digest};
 use shared_pool::{bind_pool_environment, expanded_pool_declarations, seal_pool_consumers};
-
-pub fn expand_canonical_form(
-    document: &CheckedSyntaxDocument,
-    form_name: &str,
-    catalog: &ProfileCatalog,
-) -> Result<ExpandedCanonicalForm, CanonicalExpansionDiagnostic> {
-    let forms = document
-        .forms
-        .iter()
-        .map(|form| (form.name.as_str(), form))
-        .collect::<BTreeMap<_, _>>();
-    let form = forms.get(form_name).copied().ok_or_else(|| {
-        CanonicalExpansionDiagnostic::new(
-            "CND-FRM-031",
-            format!("canonical form '{form_name}' is not defined"),
-        )
-    })?;
-    let mut environment = BTreeMap::new();
-    for parameter in &form.startup_parameters {
-        let value = parameter.default.clone().ok_or_else(|| {
-            CanonicalExpansionDiagnostic::new(
-                "CND-FRM-032",
-                format!(
-                    "root form '{form_name}' requires startup parameter '{}'",
-                    parameter.name
-                ),
-            )
-        })?;
-        environment.insert(parameter.name.clone(), value);
-    }
-    let mut stack = Vec::new();
-    let fragment = expand_instance(
-        form,
-        &forms,
-        catalog,
-        &environment,
-        core::slice::from_ref(&form.name),
-        &mut stack,
-        0,
-    )?;
-    if !fragment.inputs.is_empty() || !fragment.outputs.is_empty() {
-        return Err(CanonicalExpansionDiagnostic::new(
-            "CND-FRM-033",
-            format!("root form '{form_name}' has unbound runtime face ports"),
-        ));
-    }
-    let mut gears = fragment.gears;
-    let mut connections = fragment.connections;
-    let mut shared_pools = fragment.shared_pools;
-    let mut provenance = fragment.provenance;
-    gears.sort_by(|left, right| left.gear_id.cmp(&right.gear_id));
-    connections.sort_by(|left, right| {
-        (
-            &left.source_gear_id,
-            &left.source_port_id,
-            &left.sink_gear_id,
-            &left.sink_port_id,
-        )
-            .cmp(&(
-                &right.source_gear_id,
-                &right.source_port_id,
-                &right.sink_gear_id,
-                &right.sink_port_id,
-            ))
-    });
-    provenance.sort_by(|left, right| left.gear_id.cmp(&right.gear_id));
-    seal_pool_consumers(&mut shared_pools, &gears)?;
-    let expanded_form_id =
-        expanded_identity(form, &gears, &connections, &shared_pools, &provenance);
-    let provenance_digest = provenance_digest(&document.source_document_id, &provenance);
-    Ok(ExpandedCanonicalForm {
-        source_document_id: document.source_document_id.clone(),
-        checked_form_id: form.checked_form_id.clone(),
-        expanded_form_id,
-        name: form.name.clone(),
-        gears,
-        connections,
-        shared_pools,
-        provenance,
-        provenance_digest,
-    })
-}
 
 #[derive(Debug, Clone)]
 struct Endpoint {
@@ -139,13 +60,16 @@ struct Stage {
     output: Option<StageSource>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn expand_instance(
     form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
     catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
+    realization_backs: &mut Vec<conduit_core::RealizationBack>,
     depth: usize,
 ) -> Result<Fragment, CanonicalExpansionDiagnostic> {
     if depth > MAXIMUM_FORM_NESTING_DEPTH {
@@ -163,18 +87,31 @@ fn expand_instance(
         ));
     }
     stack.push(form.name.clone());
-    let result = expand_instance_inner(form, forms, catalog, environment, path, stack, depth);
+    let result = expand_instance_inner(
+        form,
+        forms,
+        catalog,
+        backs,
+        environment,
+        path,
+        stack,
+        realization_backs,
+        depth,
+    );
     stack.pop();
     result
 }
 
+#[allow(clippy::too_many_arguments)]
 fn expand_instance_inner(
     form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
     catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
+    realization_backs: &mut Vec<conduit_core::RealizationBack>,
     depth: usize,
 ) -> Result<Fragment, CanonicalExpansionDiagnostic> {
     let scoped_environment = bind_pool_environment(form, environment, path)?;
@@ -193,9 +130,11 @@ fn expand_instance_inner(
             form,
             forms,
             catalog,
+            backs,
             environment,
             path,
             stack,
+            realization_backs,
             depth,
             &mut gears,
             &mut connections,
@@ -232,9 +171,11 @@ fn expand_instance_inner(
                         form,
                         forms,
                         catalog,
+                        backs,
                         environment,
                         path,
                         stack,
+                        realization_backs,
                         depth,
                         &mut gears,
                         &mut connections,
@@ -276,9 +217,11 @@ fn expand_instance_inner(
                         form,
                         forms,
                         catalog,
+                        backs,
                         environment,
                         path,
                         stack,
+                        realization_backs,
                         depth,
                         &mut gears,
                         &mut connections,
@@ -344,9 +287,11 @@ fn instantiate_gear(
     source_form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
     catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
+    realization_backs: &mut Vec<conduit_core::RealizationBack>,
     depth: usize,
     gears: &mut Vec<CheckedGear>,
     connections: &mut Vec<CheckedConnection>,
@@ -362,9 +307,11 @@ fn instantiate_gear(
             child,
             forms,
             catalog,
+            backs,
             &child_environment,
             &child_path,
             stack,
+            realization_backs,
             depth + 1,
         )?;
         gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
@@ -388,6 +335,35 @@ fn instantiate_gear(
             format!("primitive gear '{}' has no planning contract", gear.kind),
         )
     })?;
+    if let Some(back) = backs.get(&kind_id) {
+        let mut selected = back.realization.clone();
+        selected.invocation_path = child_path.join("/");
+        realization_backs.push(selected);
+        let child_environment = bind_child_environment(gear, environment)?;
+        let fragment = expand_instance(
+            &back.form,
+            forms,
+            catalog,
+            backs,
+            &child_environment,
+            &child_path,
+            stack,
+            realization_backs,
+            depth + 1,
+        )?;
+        gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
+        gears.extend(fragment.gears);
+        connections.extend(fragment.connections);
+        shared_pools.extend(fragment.shared_pools);
+        provenance.extend(fragment.provenance);
+        return Ok(Instance {
+            inputs: fragment.inputs,
+            outputs: fragment.outputs,
+            bare_ports: fragment
+                .shorthand
+                .map(|(input, output)| (Some(input), Some(output))),
+        });
+    }
     let gear_id = GearId::from(child_path.join("/"));
     if !gear_ids.insert(gear_id.clone()) {
         return Err(CanonicalExpansionDiagnostic::new(

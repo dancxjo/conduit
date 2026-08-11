@@ -1,0 +1,184 @@
+//! One canonical Patchbay meaning with direct and ordinary Back realizations.
+
+use conduit_core::{
+    resource_offer, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration, Plan,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+};
+use conduit_form::{
+    check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
+    parse_syntax_document, CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
+};
+
+pub use conduit_std_catalog::PATCHBAY_PRESENTATION_KIND;
+
+const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject > canvas.subject\n}\n";
+const ROOT_BACK: &str = "form presentation/patchbay (\n > subject: Text\n) {\n face: patchbay/gear-face\n port: patchbay/port\n cord: patchbay/cord\n subject > face.subject\n subject > port.subject\n subject > cord.subject\n}\n";
+const GEAR_BACK: &str = "form patchbay/gear-face (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n column: layout/column\n icon: presentation/icon\n frame: presentation/frame\n rect: graphics/rect\n resolved-text: graphics/text\n resolved-icon: graphics/icon\n subject > text.text\n viewport > column\n icon > frame > rect > resolved-text > resolved-icon\n}\n";
+const PORT_BACK: &str = "form patchbay/port (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n align: layout/align\n icon: presentation/icon\n frame: presentation/frame\n rect: graphics/rect\n resolved-text: graphics/text\n subject > text.text\n viewport > align\n icon > frame > rect > resolved-text\n}\n";
+const CORD_BACK: &str = "form patchbay/cord (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n stack: layout/stack\n icon: presentation/icon\n badge: presentation/badge\n rect: graphics/rect\n resolved-text: graphics/text\n subject > text.text\n viewport > stack\n icon > badge > rect > resolved-text\n}\n";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbayPresenterPlans {
+    pub direct_expanded: conduit_form::ExpandedCanonicalForm,
+    pub recursive_expanded: conduit_form::ExpandedCanonicalForm,
+    pub direct_host: HostAdvertisement,
+    pub recursive_host: HostAdvertisement,
+    pub direct: Plan,
+    pub recursive: Plan,
+}
+
+pub fn patchbay_presenter_plans() -> Result<PatchbayPresenterPlans, String> {
+    let (startup, profile) = catalogs()?;
+    let checked = check_syntax_document(&parse_syntax_document(USER_SOURCE), &startup)
+        .map_err(|error| format!("check Patchbay specimen: {error:?}"))?;
+    let direct_expanded = expand_canonical_form(&checked, "patchbay-capstone", &profile)
+        .map_err(|error| error.to_string())?;
+    let backs = backs(&startup, &profile)?;
+    let recursive_expanded =
+        expand_canonical_form_with_backs(&checked, "patchbay-capstone", &profile, &backs)
+            .map_err(|error| error.to_string())?;
+    let direct_host = direct_host();
+    let recursive_host = recursive_host();
+    let direct = plan(&direct_expanded, &direct_host)?;
+    let recursive = plan(&recursive_expanded, &recursive_host)?;
+    Ok(PatchbayPresenterPlans {
+        direct_expanded,
+        recursive_expanded,
+        direct_host,
+        recursive_host,
+        direct,
+        recursive,
+    })
+}
+
+fn plan(
+    form: &conduit_form::ExpandedCanonicalForm,
+    host: &HostAdvertisement,
+) -> Result<Plan, String> {
+    let placements =
+        conduit_planner::default_expanded_placements(form, core::slice::from_ref(host)).map_err(
+            |error| {
+                let unmatched = form
+                    .gears
+                    .iter()
+                    .filter(|gear| {
+                        !host
+                            .capabilities
+                            .iter()
+                            .any(|offer| offer.checked_face() == gear.checked_face())
+                    })
+                    .map(|gear| gear.kind_id.as_str())
+                    .collect::<Vec<_>>();
+                format!("{error}; unmatched checked faces={unmatched:?}")
+            },
+        )?;
+    conduit_planner::plan_expanded_canonical_with_options(
+        form,
+        core::slice::from_ref(host),
+        &placements,
+        &[conduit_core::ConnectionBase::Local],
+        conduit_planner::PlanningOptions {
+            connection_bases: &std::collections::BTreeMap::new(),
+            line_candidates: &std::collections::BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 64,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
+    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
+    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)?;
+    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
+    conduit_std_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
+    Ok((startup, profile))
+}
+
+fn backs(
+    startup: &StartupCatalog,
+    profile: &ProfileCatalog,
+) -> Result<CanonicalBackCatalog, String> {
+    let mut backs = CanonicalBackCatalog::new();
+    for (kind, source) in [
+        (PATCHBAY_PRESENTATION_KIND, ROOT_BACK),
+        (conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND, GEAR_BACK),
+        (conduit_std_catalog::PATCHBAY_PORT_KIND, PORT_BACK),
+        (conduit_std_catalog::PATCHBAY_CORD_KIND, CORD_BACK),
+    ] {
+        let document = check_syntax_document(&parse_syntax_document(source), startup)
+            .map_err(|error| format!("check Back {kind}: {error:?}"))?;
+        backs
+            .insert(
+                profile
+                    .get(&kind.into())
+                    .ok_or_else(|| format!("missing Kind {kind}"))?,
+                &document,
+                kind,
+            )
+            .map_err(|error| format!("register Back {kind}: {error:?}"))?;
+    }
+    Ok(backs)
+}
+
+fn direct_host() -> HostAdvertisement {
+    host(
+        "patchbay-browser",
+        "patchbay-browser-boot",
+        "patchbay/browser-direct@1",
+        vec![
+            conduit_std_catalog::text_literal_offer(),
+            conduit_std_catalog::patchbay_presentation_offers()[0].clone(),
+        ],
+    )
+}
+
+fn recursive_host() -> HostAdvertisement {
+    host(
+        "patchbay-constrained",
+        "patchbay-constrained-boot",
+        "patchbay/constrained-recursive@1",
+        vec![
+            conduit_std_catalog::text_literal_offer(),
+            conduit_std_catalog::text_presentation_offer(),
+            conduit_std_catalog::layout_viewport_offer(),
+            conduit_std_catalog::layout_column_offer(),
+            conduit_std_catalog::layout_align_offer(),
+            conduit_std_catalog::layout_stack_offer(),
+            conduit_std_catalog::presentation_icon_offer(),
+            conduit_std_catalog::presentation_frame_offer(),
+            conduit_std_catalog::presentation_badge_offer(),
+            conduit_std_catalog::graphics_rect_offer(),
+            conduit_std_catalog::graphics_text_offer(),
+            conduit_std_catalog::graphics_icon_offer(),
+        ],
+    )
+}
+
+fn host(
+    host: &str,
+    boot: &str,
+    profile: &str,
+    capabilities: Vec<conduit_core::CapabilityOffer>,
+) -> HostAdvertisement {
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from(host),
+        boot_id: BootId::from(boot),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from(profile),
+        resources: vec![resource_offer(
+            &format!("{host}/display"),
+            PRESENTATION_RESOURCE_CLASS,
+            32,
+        )],
+        capabilities,
+        planner_capabilities: Vec::new(),
+    }
+}

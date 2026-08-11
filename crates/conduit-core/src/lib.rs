@@ -18,6 +18,7 @@ mod face;
 mod implementation;
 mod info;
 mod key_event;
+mod plan_realization;
 mod port;
 mod resource;
 mod robotics_info;
@@ -37,6 +38,7 @@ pub use implementation::{
 };
 pub use info::*;
 pub use key_event::*;
+pub use plan_realization::RealizationBack;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use resource::*;
 pub use robotics_info::*;
@@ -558,6 +560,8 @@ pub struct PlanFragment {
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
+    #[serde(default)]
+    pub realization_backs: Vec<RealizationBack>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -583,15 +587,29 @@ pub struct Plan {
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
+    /// Exact reusable Forms selected while expanding high-level Kinds.
+    /// Empty means the checked Form reached primitive implementations directly.
+    #[serde(default)]
+    pub realization_backs: Vec<RealizationBack>,
     pub fragments: Vec<PlanFragment>,
 }
 
-pub fn seal_plan(form_identity: FormIdentity, mut fragments: Vec<PlanFragment>) -> Plan {
+pub fn seal_plan(form_identity: FormIdentity, fragments: Vec<PlanFragment>) -> Plan {
+    seal_plan_with_realization_backs(form_identity, Vec::new(), fragments)
+}
+
+pub fn seal_plan_with_realization_backs(
+    form_identity: FormIdentity,
+    mut realization_backs: Vec<RealizationBack>,
+    mut fragments: Vec<PlanFragment>,
+) -> Plan {
+    realization_backs.sort();
     for fragment in &mut fragments {
         fragment.plan_id = PlanId::from("");
         fragment.source_document_id = form_identity.source_document_id.clone();
         fragment.checked_form_id = form_identity.checked_form_id.clone();
         fragment.expanded_form_id = form_identity.expanded_form_id.clone();
+        fragment.realization_backs = realization_backs.clone();
         fragment.fragment_id = compute_fragment_id(fragment);
         fragment.plan_fragments.clear();
     }
@@ -603,7 +621,7 @@ pub fn seal_plan(form_identity: FormIdentity, mut fragments: Vec<PlanFragment>) 
         })
         .collect::<Vec<_>>();
     commitments.sort();
-    let plan_id = compute_plan_id(&form_identity, &commitments);
+    let plan_id = compute_plan_id(&form_identity, &realization_backs, &commitments);
     for fragment in &mut fragments {
         fragment.plan_id = plan_id.clone();
         fragment.plan_fragments = commitments.clone();
@@ -613,17 +631,44 @@ pub fn seal_plan(form_identity: FormIdentity, mut fragments: Vec<PlanFragment>) 
         source_document_id: form_identity.source_document_id,
         checked_form_id: form_identity.checked_form_id,
         expanded_form_id: form_identity.expanded_form_id,
+        realization_backs,
         fragments,
     }
 }
 
 pub fn verify_plan(plan: &Plan) -> bool {
-    plan.fragments.iter().all(verify_plan_fragment)
+    let form_identity = FormIdentity {
+        source_document_id: plan.source_document_id.clone(),
+        checked_form_id: plan.checked_form_id.clone(),
+        expanded_form_id: plan.expanded_form_id.clone(),
+    };
+    let mut commitments = plan
+        .fragments
+        .iter()
+        .map(|fragment| FragmentCommitment {
+            host_id: fragment.host_id.clone(),
+            fragment_id: fragment.fragment_id.clone(),
+        })
+        .collect::<Vec<_>>();
+    commitments.sort();
+    plan.realization_backs
+        .windows(2)
+        .all(|pair| pair[0] < pair[1])
+        && plan.realization_backs.iter().all(|back| {
+            !back.invocation_path.is_empty()
+                && !back.kind_id.as_str().is_empty()
+                && !back.kind_contract_revision.as_str().is_empty()
+                && !back.source_document_id.as_str().is_empty()
+                && !back.checked_form_id.as_str().is_empty()
+        })
+        && plan.plan_id == compute_plan_id(&form_identity, &plan.realization_backs, &commitments)
+        && plan.fragments.iter().all(verify_plan_fragment)
         && plan.fragments.iter().all(|fragment| {
             fragment.plan_id == plan.plan_id
                 && fragment.source_document_id == plan.source_document_id
                 && fragment.checked_form_id == plan.checked_form_id
                 && fragment.expanded_form_id == plan.expanded_form_id
+                && fragment.realization_backs == plan.realization_backs
         })
         && plan
             .fragments
@@ -810,6 +855,7 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
                 checked_form_id: fragment.checked_form_id.clone(),
                 expanded_form_id: fragment.expanded_form_id.clone(),
             },
+            &fragment.realization_backs,
             &commitments,
         ) == fragment.plan_id
 }
@@ -819,6 +865,9 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     push_string(&mut canonical, fragment.source_document_id.as_str());
     push_string(&mut canonical, fragment.checked_form_id.as_str());
     push_string(&mut canonical, fragment.expanded_form_id.as_str());
+    if !fragment.realization_backs.is_empty() {
+        plan_realization::push_canonical(&mut canonical, &fragment.realization_backs);
+    }
     push_string(&mut canonical, fragment.host_id.as_str());
     push_string(&mut canonical, fragment.boot_id.as_str());
     push_u64(&mut canonical, fragment.offer_generation.0);
@@ -1150,11 +1199,18 @@ fn push_admitted_line(canonical: &mut Vec<u8>, line: &AdmittedLine) {
     canonical.push(line.contract.security as u8);
 }
 
-fn compute_plan_id(form_identity: &FormIdentity, commitments: &[FragmentCommitment]) -> PlanId {
+fn compute_plan_id(
+    form_identity: &FormIdentity,
+    realization_backs: &[RealizationBack],
+    commitments: &[FragmentCommitment],
+) -> PlanId {
     let mut canonical = Vec::new();
     push_string(&mut canonical, form_identity.source_document_id.as_str());
     push_string(&mut canonical, form_identity.checked_form_id.as_str());
     push_string(&mut canonical, form_identity.expanded_form_id.as_str());
+    if !realization_backs.is_empty() {
+        plan_realization::push_canonical(&mut canonical, realization_backs);
+    }
     push_u32(&mut canonical, commitments.len() as u32);
     for commitment in commitments {
         push_string(&mut canonical, commitment.host_id.as_str());

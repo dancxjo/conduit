@@ -154,6 +154,7 @@ pub struct ExpandedCanonicalForm {
     pub shared_pools: Vec<ExpandedSharedPool>,
     pub provenance: Vec<ExpandedGearProvenance>,
     pub provenance_digest: String,
+    pub realization_backs: Vec<conduit_core::RealizationBack>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

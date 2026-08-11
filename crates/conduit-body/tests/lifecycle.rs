@@ -2,16 +2,24 @@ use conduit_body::{
     Body, BodyLifecycleError, BodyLifecycleEvent, BodyState, WakeLifecycle, WakeLifecycleEvent,
     WakePlanState, MAX_WAKE_SIGNS,
 };
-use conduit_core::{bind_active_play, CheckedFormId, Plan, PlanId, SignId, SourceDocumentId};
+use conduit_core::{
+    bind_active_play, seal_plan, CheckedFormId, ExpandedFormId, FormIdentity, Plan, PlanId, SignId,
+    SourceDocumentId,
+};
 
 fn plan(identity: &str) -> Plan {
-    Plan {
-        source_document_id: SourceDocumentId::from("source-a"),
-        checked_form_id: CheckedFormId::from("checked-a"),
-        expanded_form_id: "expanded".into(),
-        plan_id: PlanId::from(identity),
-        fragments: vec![],
-    }
+    plan_for("source-a", identity)
+}
+
+fn plan_for(source: &str, identity: &str) -> Plan {
+    seal_plan(
+        FormIdentity {
+            source_document_id: SourceDocumentId::from(source),
+            checked_form_id: CheckedFormId::from("checked-a"),
+            expanded_form_id: ExpandedFormId::from(format!("expanded-{identity}")),
+        },
+        vec![],
+    )
 }
 fn body() -> Body {
     Body::born(
@@ -62,10 +70,7 @@ fn stale_inputs_and_duplicate_sign_fail_closed() {
         wake.lull(SignId::from("woke")),
         Err(BodyLifecycleError::DuplicateSign)
     );
-    let stale = Plan {
-        source_document_id: SourceDocumentId::from("other"),
-        ..plan("stale")
-    };
+    let stale = plan_for("other", "stale");
     assert_eq!(
         wake.plan_ready(&stale, SignId::from("stale")),
         Err(BodyLifecycleError::StalePlan)

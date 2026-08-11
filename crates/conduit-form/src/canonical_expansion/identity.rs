@@ -20,6 +20,7 @@ impl ExpandedCanonicalForm {
             &self.connections,
             &self.shared_pools,
             &self.provenance,
+            &self.realization_backs,
         );
         if self.expanded_form_id != expected {
             return Err(CanonicalExpansionDiagnostic::new(
@@ -31,6 +32,16 @@ impl ExpandedCanonicalForm {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-049",
                 "expanded source provenance differs from its exact source document mapping".into(),
+            ));
+        }
+        if self
+            .realization_backs
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-049",
+                "expanded Back selections must have unique canonical ordering".into(),
             ));
         }
         let gears = self
@@ -117,6 +128,7 @@ pub(super) fn expanded_identity(
     connections: &[CheckedConnection],
     shared_pools: &[ExpandedSharedPool],
     provenance: &[ExpandedGearProvenance],
+    realization_backs: &[conduit_core::RealizationBack],
 ) -> ExpandedFormId {
     let mut canonical = format!("canonical-expanded:{}", form.checked_form_id.as_str());
     for gear in gears {
@@ -221,6 +233,14 @@ pub(super) fn expanded_identity(
         push(&mut canonical, &row.form_path.join("/"));
         push(&mut canonical, &row.source_form);
         push(&mut canonical, &row.source_gear);
+    }
+    for back in realization_backs {
+        push(&mut canonical, "realization-back");
+        push(&mut canonical, &back.invocation_path);
+        push(&mut canonical, back.kind_id.as_str());
+        push(&mut canonical, back.kind_contract_revision.as_str());
+        push(&mut canonical, back.source_document_id.as_str());
+        push(&mut canonical, back.checked_form_id.as_str());
     }
     ExpandedFormId::from(hash_string(&canonical))
 }
