@@ -16,6 +16,7 @@ use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
 use super::tick_presentation::TickPresentationOperation;
+use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
@@ -73,6 +74,8 @@ pub(super) static TEST_OBSERVER_FACTORY: InstalledFactory = InstalledFactory {
 
 pub(super) enum InstalledOperation {
     Tick(TickOperation),
+    TimeDebounce(DebounceOperation),
+    TimeTimeout(TimeoutOperation),
     TickPresentation(TickPresentationOperation),
     TextLiteral(TextLiteralOperation),
     TextUpper(TextTransformOperation),
@@ -106,6 +109,10 @@ pub(super) enum InstalledOperation {
     #[cfg(test)]
     TestSlowScalarSink(super::test_gate::TestSlowScalarSinkOperation),
     #[cfg(test)]
+    TestTimingSink(super::test_timing_sink::TestTimingSinkOperation),
+    #[cfg(test)]
+    TestTimingSource(super::test_timing_sink::TestTimingSourceOperation),
+    #[cfg(test)]
     TestObserver(TestObserverOperation),
     Inactive,
 }
@@ -131,6 +138,8 @@ impl InstalledOperation {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
             Self::Tick(operation) => operation.values.capacity() + operation.waits.capacity(),
+            Self::TimeDebounce(operation) => operation.allocation_capacity(),
+            Self::TimeTimeout(operation) => operation.allocation_capacity(),
             Self::TickPresentation(_) => 0,
             Self::TextLiteral(_) | Self::TextUpper(_) | Self::TextJoin(_) => 0,
             Self::TextPresentation(_) => 0,
@@ -162,6 +171,12 @@ impl InstalledOperation {
             #[cfg(test)]
             Self::TestSlowScalarSink(operation) => operation.waits.capacity(),
             #[cfg(test)]
+            Self::TestTimingSink(_) => 0,
+            #[cfg(test)]
+            Self::TestTimingSource(operation) => {
+                operation.values.capacity() + operation.waits.capacity()
+            }
+            #[cfg(test)]
             Self::TestObserver(_) => 0,
             Self::Inactive => 0,
         }
@@ -181,6 +196,8 @@ impl Operation for InstalledOperation {
             Self::Tick(operation) => operation
                 .request_wait()
                 .unwrap_or(OperationAction::Complete),
+            Self::TimeDebounce(operation) => operation.start(),
+            Self::TimeTimeout(operation) => operation.start(),
             Self::TickPresentation(operation) => operation.start(),
             Self::TextLiteral(operation) => operation.start(),
             Self::TextUpper(operation) => operation.start(),
@@ -214,6 +231,10 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestSlowScalarSink(operation) => operation.start(),
             #[cfg(test)]
+            Self::TestTimingSink(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestTimingSource(operation) => operation.start(),
+            #[cfg(test)]
             Self::TestObserver(_) => OperationAction::Await,
             Self::Inactive => OperationAction::Complete,
         }
@@ -239,6 +260,8 @@ impl Operation for InstalledOperation {
                 )
             }
             (Self::TextLiteral(operation), input) => operation.resume(input),
+            (Self::TimeDebounce(operation), input) => operation.resume(input),
+            (Self::TimeTimeout(operation), input) => operation.resume(input),
             (Self::TextUpper(operation), input) => operation.resume(input),
             (Self::TextJoin(operation), input) => operation.resume(input),
             (Self::TextPresentation(operation), input) => operation.resume(input),
@@ -309,6 +332,10 @@ impl Operation for InstalledOperation {
             (Self::TestLogicSink(_), _) => Self::fail(24),
             #[cfg(test)]
             (Self::TestSlowScalarSink(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestTimingSink(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestTimingSource(operation), input) => operation.resume(input),
             (Self::Inactive, _) => Self::fail(4),
         }
     }
@@ -333,6 +360,8 @@ impl Operation for InstalledOperation {
                     .unwrap_or(OperationAction::Complete)
             }
             Self::TickPresentation(_) => OperationAction::Await,
+            Self::TimeDebounce(operation) => operation.advance(),
+            Self::TimeTimeout(operation) => operation.advance(),
             Self::TextLiteral(operation) => operation.advance(),
             Self::TextUpper(_) => OperationAction::Await,
             Self::TextJoin(_) => OperationAction::Await,
@@ -368,6 +397,10 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestSlowScalarSink(_) => OperationAction::Await,
             #[cfg(test)]
+            Self::TestTimingSink(_) => OperationAction::Await,
+            #[cfg(test)]
+            Self::TestTimingSource(operation) => operation.advance(),
+            #[cfg(test)]
             Self::TestObserver(_) => OperationAction::Await,
             Self::Inactive => OperationAction::Complete,
         }
@@ -377,6 +410,8 @@ impl Operation for InstalledOperation {
         match self {
             Self::Tick(operation) => operation.pending = None,
             Self::TickPresentation(operation) => operation.cancel(),
+            Self::TimeDebounce(operation) => operation.cancel(),
+            Self::TimeTimeout(operation) => operation.cancel(),
             Self::TextLiteral(_) => {}
             Self::TextUpper(operation) => operation.cancel(),
             Self::TextJoin(operation) => operation.cancel(),
@@ -409,6 +444,10 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestSlowScalarSink(operation) => operation.cancel(),
             #[cfg(test)]
+            Self::TestTimingSink(_) => {}
+            #[cfg(test)]
+            Self::TestTimingSource(operation) => operation.cancel(),
+            #[cfg(test)]
             Self::TestObserver(operation) => operation.pending = None,
             Self::Inactive => {}
         }
@@ -418,6 +457,7 @@ impl Operation for InstalledOperation {
         match self {
             Self::StateLatestScalar(operation) => operation.retains_resumed_value(),
             Self::LogicSelectScalar(operation) => operation.retains_resumed_value(),
+            Self::TimeDebounce(operation) => operation.retains_resumed_value(),
             _ => false,
         }
     }
@@ -428,6 +468,20 @@ impl Operation for InstalledOperation {
             Self::LogicCompareScalar(operation) => operation.take_released_value(),
             Self::LogicNot(operation) => operation.take_released_value(),
             Self::LogicSelectScalar(operation) => operation.take_released_value(),
+            Self::TimeDebounce(operation) => operation.take_released_value(),
+            Self::TimeTimeout(operation) => operation.take_released_value(),
+            _ => None,
+        }
+    }
+
+    fn accepts_input_while_host_operation_pending(&self) -> bool {
+        matches!(self, Self::TimeDebounce(_) | Self::TimeTimeout(_))
+    }
+
+    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+        match self {
+            Self::TimeDebounce(operation) => operation.take_host_operation_cancellation(),
+            Self::TimeTimeout(operation) => operation.take_host_operation_cancellation(),
             _ => None,
         }
     }

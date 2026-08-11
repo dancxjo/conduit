@@ -129,14 +129,14 @@ mod tests {
     #[test]
     fn standard_palette_is_exact_bounded_and_searches_contract_truth() {
         let palette = GearPalette::standard().unwrap();
-        assert_eq!(palette.entries().len(), 19);
-        assert_eq!(palette.search("").unwrap().len(), 19);
+        assert_eq!(palette.entries().len(), 21);
+        assert_eq!(palette.search("").unwrap().len(), 21);
         assert_eq!(
             palette.search("uppercase").unwrap()[0].kind_id.as_str(),
             "text/upper"
         );
         assert_eq!(palette.search("value/count").unwrap().len(), 2);
-        assert_eq!(palette.search("maximum-values").unwrap().len(), 3);
+        assert_eq!(palette.search("maximum-values").unwrap().len(), 5);
         assert_eq!(
             palette.search("interval").unwrap()[0].kind_id.as_str(),
             "time/every"

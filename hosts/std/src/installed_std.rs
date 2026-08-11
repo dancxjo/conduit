@@ -1,6 +1,7 @@
 mod catalog;
 pub(super) mod contract;
 mod count_operations;
+mod deadline_host;
 mod external_websocket;
 mod external_websocket_host;
 mod flow_gate_operation;
@@ -19,10 +20,14 @@ mod test_scalar_flow;
 mod test_support;
 #[cfg(test)]
 mod test_text_source;
+#[cfg(test)]
+mod test_timing_sink;
 mod text_operations;
 #[cfg(test)]
 mod text_operations_tests;
 mod tick_presentation;
+mod timing_configuration;
+mod timing_operations;
 
 use self::catalog::factory;
 pub(crate) use self::catalog::supports;
@@ -107,6 +112,16 @@ pub(super) fn test_logic_sink_offer() -> conduit_core::CapabilityOffer {
 #[cfg(test)]
 pub(super) fn test_slow_scalar_sink_offer() -> conduit_core::CapabilityOffer {
     test_gate::slow_sink_offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_timing_sink_offer() -> conduit_core::CapabilityOffer {
+    test_timing_sink::offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_timing_source_offer() -> conduit_core::CapabilityOffer {
+    test_timing_sink::source_offer()
 }
 const HOST_OPERATIONS_PER_NODE: u16 = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
@@ -315,6 +330,10 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
     let mut requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
     let wait_contract_id = wait_host_operation_requirement().contract_id;
+    let deadline_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT,
+    );
+    let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
     let text_target_kind = kind_id("presentation/stdout-text");
     let tick_target_kind = kind_id(conduit_std_catalog::TICK_PRESENTATION_TARGET);
     let count_target_kind = kind_id(conduit_std_catalog::COUNT_PRESENTATION_TARGET);
@@ -364,8 +383,12 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 scheduler
                     .cancel()
                     .map_err(|error| format!("cancel installed kernel: {error:?}"))?;
+                deadlines.clear();
                 accepted_stop = Some(request_id);
             }
+        }
+        while let Some(cancellation) = scheduler.next_host_cancellation() {
+            deadlines.cancel(cancellation, &mut scheduler)?;
         }
         while let Some(request) = scheduler.next_host_request() {
             let input = scheduler
@@ -488,7 +511,21 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 continue;
             } else if contract == &wait_contract_id {
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
+                if let Some(now_ms) = timer.monotonic_now_ms() {
+                    deadlines.arm(request, duration, now_ms)?;
+                    requests.push(request);
+                    continue;
+                }
                 timer.wait(Duration::from_millis(duration));
+            } else if contract == &deadline_contract_id {
+                let duration = conduit_core::decode_monotonic_duration(input)
+                    .map_err(|error| format!("decode admitted deadline: {error:?}"))?;
+                let now_ms = timer
+                    .monotonic_now_ms()
+                    .ok_or_else(|| "admitted monotonic deadline Base is unavailable".to_string())?;
+                deadlines.arm(request, duration, now_ms)?;
+                requests.push(request);
+                continue;
             } else if contract == &upper_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&upper_target_kind)
             {
@@ -624,6 +661,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => break TerminalDisposition::Completed,
             SchedulerStatus::Idle => {
+                if deadlines.complete_next(&mut scheduler, timer)? {
+                    continue;
+                }
                 return Err("installed kernel became idle before completion".to_string());
             }
             SchedulerStatus::Cancelled => {
@@ -633,6 +673,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         }
     };
+    if !deadlines.is_empty() {
+        return Err("installed deadline effects survived terminal Play state".to_string());
+    }
     #[cfg(test)]
     let post_play_start_allocations = play_start_probe.finish();
 

@@ -119,6 +119,8 @@ pub(super) fn build_advertisement(
         capabilities.extend([
             installed_std::tick_offer(),
             installed_std::every_offer(),
+            conduit_std_catalog::time_debounce_offer(),
+            conduit_std_catalog::time_timeout_offer(),
             conduit_std_catalog::tick_presentation_offer(),
         ]);
     }
@@ -170,6 +172,8 @@ pub(super) fn build_advertisement(
         capabilities.push(installed_std::test_logic_script_offer());
         capabilities.push(installed_std::test_logic_sink_offer());
         capabilities.push(installed_std::test_slow_scalar_sink_offer());
+        capabilities.push(installed_std::test_timing_sink_offer());
+        capabilities.push(installed_std::test_timing_source_offer());
     }
     let mut resources = signal_resource_offers("std/timer", "std/presentation", 16);
     resources.retain(|offer| match offer.pool_id.as_str() {
@@ -184,6 +188,14 @@ pub(super) fn build_advertisement(
         }
         _ => false,
     });
+    if composition.time {
+        resources.push(resource_offer(
+            "std/monotonic-deadline",
+            conduit_core::MONOTONIC_MILLISECOND_TIMER_RESOURCE_CLASS,
+            16,
+        ));
+        resources.sort();
+    }
     if composition.files {
         resources.push(resource_offer(
             "std/protected-file",
@@ -334,6 +346,8 @@ mod tests {
             "presentation/show",
             "time/tick",
             "time/every",
+            "time/debounce",
+            "time/timeout",
             "text/literal",
             "text/upper",
             "text/join",
