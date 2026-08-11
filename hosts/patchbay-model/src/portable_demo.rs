@@ -66,6 +66,8 @@ pub fn portable_demonstration() -> Result<Presentation, String> {
         vec![route],
     )
     .map_err(|error| error.to_string())?
+    .with_graph(crate::PatchbayGraph::from_expanded(&expanded).map_err(|error| error.to_string())?)
+    .map_err(|error| error.to_string())?
     .with_attempted_edit(AttemptedEditPresentation {
         revision: 1,
         source: malformed_source,
