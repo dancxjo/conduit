@@ -1,6 +1,6 @@
 //! Sole adapter from Limine protocol types into bootloader-neutral boot truth.
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 use limine::request::StackSizeRequest;
 use limine::{
     BaseRevision,
@@ -62,7 +62,11 @@ static EXECUTABLE_CMDLINE: ExecutableCmdlineRequest = ExecutableCmdlineRequest::
 #[used]
 #[unsafe(link_section = ".requests")]
 #[cfg(target_arch = "aarch64")]
-static STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
+static AARCH64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
+#[used]
+#[unsafe(link_section = ".requests")]
+#[cfg(target_arch = "x86_64")]
+static X86_64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(1024 * 1024);
 
 pub fn executable_physical_address(virtual_address: u64) -> Option<u64> {
     let response = EXECUTABLE_ADDRESS.get_response()?;

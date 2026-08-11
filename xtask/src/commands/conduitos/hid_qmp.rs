@@ -38,7 +38,73 @@ pub(super) fn inject(
         "CONDUIT_BOOT_STAGE hid-press-report",
         "hid-press-timeout",
     )?;
-    send_key(&mut qmp, &mut reader, false)
+    send_key(&mut qmp, &mut reader, false)?;
+    wait_for_stage(
+        serial_path,
+        child,
+        "CONDUIT_BOOT_STAGE keyboard-text-play-started",
+        "keyboard-text-start-timeout",
+    )?;
+    inject_keyboard_text(&mut qmp, &mut reader, serial_path, child)
+}
+
+fn inject_keyboard_text(
+    qmp: &mut UnixStream,
+    reader: &mut BufReader<UnixStream>,
+    serial_path: &Path,
+    child: &mut Child,
+) -> Result<(), ConduitosError> {
+    const EVENTS: [(&str, bool); 38] = [
+        ("h", true),
+        ("h", false),
+        ("e", true),
+        ("e", false),
+        ("l", true),
+        ("l", false),
+        ("l", true),
+        ("l", false),
+        ("o", true),
+        ("o", false),
+        ("alt_r", true),
+        ("a", true),
+        ("a", false),
+        ("alt_r", false),
+        ("alt_r", true),
+        ("spc", true),
+        ("spc", false),
+        ("alt_r", false),
+        ("apostrophe", true),
+        ("apostrophe", false),
+        ("e", true),
+        ("e", false),
+        ("alt_r", true),
+        ("shift", true),
+        ("spc", true),
+        ("spc", false),
+        ("shift", false),
+        ("alt_r", false),
+        ("0", true),
+        ("0", false),
+        ("3", true),
+        ("3", false),
+        ("b", true),
+        ("b", false),
+        ("b", true),
+        ("b", false),
+        ("ret", true),
+        ("ret", false),
+    ];
+    for (index, (key, down)) in EVENTS.iter().copied().enumerate() {
+        send_named_keys(qmp, reader, &[key], down, "keyboard-text-key")?;
+        wait_for_stage_count(
+            serial_path,
+            child,
+            "CONDUIT_BOOT_STAGE hid-release-report",
+            index + 2,
+            "keyboard-text-report-timeout",
+        )?;
+    }
+    Ok(())
 }
 
 pub(super) fn inject_rescue_and_wait_for_reboot(

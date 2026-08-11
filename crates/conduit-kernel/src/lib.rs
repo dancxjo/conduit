@@ -82,7 +82,7 @@ pub struct BoundedValueRef {
 
 impl BoundedValueRef {
     pub const fn new(value: ValueRef, admitted_bytes: u32) -> Result<Self, ProtocolError> {
-        if admitted_bytes == 0 || value.byte_len > admitted_bytes {
+        if value.byte_len > admitted_bytes {
             return Err(ProtocolError::HostOperationInputExceeded);
         }
         Ok(Self {
@@ -251,9 +251,6 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
     ) -> Result<(), ProtocolError> {
         if self.sealed {
             return Err(ProtocolError::HostOperationTableSealed);
-        }
-        if binding.maximum_input_bytes == 0 {
-            return Err(ProtocolError::HostOperationTableInvalid);
         }
         let slot = self.slot(node, binding.operation)?;
         if self.bindings[slot].is_some() {

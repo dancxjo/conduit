@@ -8,7 +8,7 @@ use std::{
 use crate::cli::GlobalOpts;
 
 use super::{
-    hid_qmp, hid_run, image, keyboard_run,
+    hid_qmp, hid_run, image, keyboard_run, keyboard_text_run,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
     report::{GuestBootSign, GuestKernelSign, GuestRun, GuestXhciSign},
     usb_run, ConduitosArch, ConduitosError,
@@ -205,6 +205,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     let usb = usb_run::extract(&serial)?;
     let hid = hid_run::extract(&serial)?;
     let keyboard = keyboard_run::extract(&serial)?;
+    let keyboard_text = keyboard_text_run::extract(&serial)?;
     let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
     let observatory: conduit_observatory::ObservatorySnapshot =
@@ -216,6 +217,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     usb_run::validate(&boot, &xhci, &usb)?;
     hid_run::validate(&boot, &xhci, &usb, &hid)?;
     keyboard_run::validate(&boot, &xhci, &usb, &hid, &keyboard, &observatory)?;
+    keyboard_text_run::validate(&serial, &boot, &keyboard, &keyboard_text)?;
     validate_kernel(&boot, &kernel)?;
     validate_observatory(&boot, &kernel, &observatory)?;
     if !opts.quiet && !opts.json {
@@ -229,6 +231,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         usb,
         hid,
         keyboard,
+        keyboard_text,
         kernel,
         observatory,
         serial,

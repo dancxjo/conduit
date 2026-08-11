@@ -223,7 +223,10 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-offer-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-plan-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-play-started\n");
-            let hid = match arch::finish_boot_keyboard(&mut xhci, &usb, hid_session) {
+            if let Err(error) = hid_session.receive_followup(&mut xhci, &usb) {
+                emit_machine_refusal(error.as_str());
+            }
+            let hid = match hid_session.initial_proof() {
                 Ok(proof) => proof,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
@@ -324,6 +327,35 @@ extern "C" fn conduitos_start() -> ! {
             );
             arch::early_write(keyboard_sign.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-completed\n");
+            arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-text-play-started\n");
+            if let Err(error) = hid_session.receive_until(
+                &mut xhci,
+                &usb,
+                2 + conduitos::keyboard_text_guest::PHYSICAL_TRANSITIONS,
+            ) {
+                emit_machine_refusal(error.as_str());
+            }
+            let keyboard_text_events: [conduit_core::KeyEvent;
+                conduitos::keyboard_text_guest::PHYSICAL_TRANSITIONS] =
+                core::array::from_fn(|index| {
+                    let transition = hid_session.transitions()[index + 2];
+                    match conduitos::keyboard_bridge::portable_key_event(
+                        transition.usage(),
+                        transition.pressed(),
+                        transition.modifiers(),
+                    ) {
+                        Ok(event) => event,
+                        Err(_) => emit_machine_refusal("keyboard-text-portable-value-invalid"),
+                    }
+                });
+            if let Err(reason) = conduitos::keyboard_text_guest::run_reviewed_sequences(
+                &identities,
+                &offer,
+                BUILD_ID,
+                &keyboard_text_events,
+            ) {
+                emit_machine_refusal(reason);
+            }
             match proof::accepted(&record, &identities, BUILD_ID, IMAGE_ID) {
                 Ok(sign) => {
                     arch::early_write(sign.as_bytes());

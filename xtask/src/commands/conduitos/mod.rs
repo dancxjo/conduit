@@ -11,6 +11,7 @@ mod ia32_a2;
 mod image;
 mod keyboard_proof;
 mod keyboard_run;
+mod keyboard_text_run;
 mod loongarch64_a0;
 #[allow(dead_code)]
 mod loongarch64_a1;
