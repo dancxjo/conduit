@@ -5,11 +5,9 @@ use conduit_kernel::{
     OperationInput, PortId, RequestId, ValueRef,
 };
 
-use crate::keyboard_text_play::MAXIMUM_INPUT_EVENTS;
-
 #[derive(Clone, Copy)]
 pub(crate) struct KeyboardOperation {
-    pub(crate) empty_inputs: [ValueRef; MAXIMUM_INPUT_EVENTS],
+    pub(crate) empty: ValueRef,
     pub(crate) pending: Option<RequestId>,
     pub(crate) next: u32,
     pub(crate) maximum: u32,
@@ -92,8 +90,7 @@ impl KeyboardOperation {
         OperationAction::RequestHostOperation {
             request,
             operation: conduit_kernel::HostOperationId(0),
-            input: BoundedValueRef::new(self.empty_inputs[self.next as usize], 0)
-                .expect("empty input is admitted"),
+            input: BoundedValueRef::new(self.empty, 0).expect("empty input is admitted"),
         }
     }
 }
