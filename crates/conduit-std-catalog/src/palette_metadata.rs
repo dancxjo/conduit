@@ -13,7 +13,7 @@ use crate::{
     ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND,
     STATE_COUNT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND,
     TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND,
-    TIME_EVERY_KIND, TIME_TIMEOUT_KIND,
+    TIME_DELAY_KIND, TIME_EVERY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -144,6 +144,16 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
         TIME_TIMEOUT_KIND => metadata(
             PaletteCategory::TimeAndFlow,
             &["timer", "timeout", "heartbeat", "safety"],
+            PaletteIconKey::Clock,
+        ),
+        TIME_DELAY_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["timer", "delay", "pace", "ordered"],
+            PaletteIconKey::Clock,
+        ),
+        TIME_THROTTLE_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["timer", "throttle", "pace", "leading"],
             PaletteIconKey::Clock,
         ),
         KEYBOARD_KIND => metadata(
@@ -306,7 +316,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 31);
+        assert_eq!(contracts.len(), 33);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());
