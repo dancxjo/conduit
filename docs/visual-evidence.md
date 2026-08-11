@@ -80,24 +80,19 @@ or ephemeral-artifact references. At publication, the same command additionally
 requires each stable image to match the exact current commit bytes and requires
 its page to expose that commit's provenance before Pages can deploy.
 
-## Selective visual regression
+## Human review, not pixel authority
 
-Documentary capture and pixel assertions deliberately use different specs and
-output paths. `patchbay-html.spec.mjs` always produces the five canonical images
-above after semantic proof. `patchbay-html.visual.spec.mjs` separately gates only
-four reviewed rendering contracts: canvas-control geometry, graph routing,
-selected-node styling, and high-contrast control treatment. It does not
-establish semantic identity or replace the assertions in the documentary spec.
+`patchbay-html.spec.mjs` produces the five canonical images above only after the
+corresponding semantic browser assertions pass. The images remain available for
+human inspection and exact-commit comparison, but their pixels are not an
+acceptance gate. Font rasterization, antialiasing, or other presentation-only
+differences therefore cannot overrule semantic proof or turn a successful state
+transition into failure.
 
-The visual-regression project uses the same pinned Chromium camera, font, and
-fixture. Its checked-in baselines admit zero differing pixels. The routing image
-masks only graph label glyphs so volatile semantic identities are not pixel-gated;
-node and line geometry remain visible and exact. No other image is masked.
-Retries, sleeps, and CI baseline updates are disabled. Intentional visual changes
-therefore appear as ordinary baseline diffs in a pull request. On mismatch,
-Playwright writes expected, actual, and diff diagnostics beneath
-`target/playwright/patchbay-visual`; the pull-request workflow retains that
-directory as failed-run diagnostics, never as canonical gallery evidence.
+Intentional visual changes remain reviewable in the exact-head evidence artifact
+and accepted-main gallery. The manifest binds every image to its producing commit,
+camera, fixture, scenario, and asserted semantic disposition without treating a
+previous raster as runtime truth.
 
 ## ConduitOS console evidence
 

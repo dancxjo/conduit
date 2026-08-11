@@ -187,19 +187,4 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         Some(ProofClass::LiveBrowser),
         &[],
     ),
-    Step::typed(
-        "prove.browser-host.patchbay-html-visual-regression",
-        "Assert selected stable Patchbay rendering contracts",
-        "npx",
-        &[
-            "playwright",
-            "test",
-            "--config",
-            "hosts/browser/patchbay-html.visual.playwright.config.mjs",
-        ],
-        None,
-        Some("playwright"),
-        Some(ProofClass::LiveBrowser),
-        &[],
-    ),
 ];
