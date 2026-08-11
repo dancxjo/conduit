@@ -48,6 +48,9 @@ impl FakeMidiOutputSession {
         if self.lifecycle == MidiOutputLifecycle::StoppedClosed {
             return Ok(());
         }
+        if self.lifecycle == MidiOutputLifecycle::Failed {
+            return Err(MidiOutputFailure::ProviderLost);
+        }
         let all_notes_off = [0xb0 | super::OUTPUT_CHANNEL, 123, 0];
         if self.messages.len() >= self.messages.capacity() {
             self.lifecycle = MidiOutputLifecycle::Failed;
@@ -67,4 +70,19 @@ impl FakeMidiOutputSession {
             encoded_messages: self.messages.clone(),
         }
     }
+}
+
+#[test]
+fn provider_loss_does_not_fabricate_successful_all_notes_off() {
+    let mut session = FakeMidiOutputSession::new(FakeMidiOutputBehavior::FailAfter(1));
+    session.send([0x90, 60, 100]).unwrap();
+    assert_eq!(
+        session.send([0x80, 60, 0]),
+        Err(MidiOutputFailure::ProviderLost)
+    );
+    assert_eq!(session.stop(), Err(MidiOutputFailure::ProviderLost));
+    let report = session.report();
+    assert_eq!(report.lifecycle, MidiOutputLifecycle::Failed);
+    assert!(!report.all_notes_off_sent);
+    assert_eq!(report.encoded_messages, vec![[0x90, 60, 100]]);
 }

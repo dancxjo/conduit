@@ -11,6 +11,18 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 fn host() -> StdHost {
+    host_with_input(
+        vec![
+            0x90, 60, 100, // note on
+            0xb0, 64, 127, // sustain
+            0x80, 60, 0,    // note off
+            0xf8, // bounded unsupported observation used as the Stop boundary
+        ],
+        false,
+    )
+}
+
+fn host_with_input(bytes: Vec<u8>, disconnect_after_input: bool) -> StdHost {
     let config = StdHostConfig {
         host_id: HostId::from("midi-input-loopback-host"),
         boot_id: BootId::from("midi-input-loopback-boot"),
@@ -31,13 +43,12 @@ fn host() -> StdHost {
         config.boot_id.clone(),
         config.offer_generation,
     )
-    .unwrap()
-    .with_fake_input(vec![
-        0x90, 60, 100, // note on
-        0xb0, 64, 127, // sustain
-        0x80, 60, 0,    // note off
-        0xf8, // bounded unsupported observation used as the Stop boundary
-    ]);
+    .unwrap();
+    let input = if disconnect_after_input {
+        input.with_fake_input_then_disconnect(bytes)
+    } else {
+        input.with_fake_input(bytes)
+    };
     let output = HostedMidiSelection::select(
         &[MidiEndpointObservation {
             client: 42,
@@ -62,6 +73,17 @@ fn host() -> StdHost {
         output,
     )
     .unwrap()
+}
+
+struct AdvancingTimer(u64);
+
+impl TimerAdapter for AdvancingTimer {
+    fn wait(&mut self, _duration: Duration) {}
+
+    fn monotonic_now_micros(&mut self) -> Option<u64> {
+        self.0 += 100;
+        Some(self.0)
+    }
 }
 
 fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
@@ -187,4 +209,20 @@ fn authored_input_reaches_portable_ports_and_output_through_one_kernel() {
             [0xb0, 123, 0],
         ]
     );
+}
+
+#[test]
+fn provider_loss_with_an_active_note_fails_the_semantic_run() {
+    let mut host = host_with_input(vec![0x90, 60, 100], true);
+    let fragment = fragment(&host);
+    let error = host
+        .run_fragment_controlled_to(
+            fragment,
+            &mut Vec::with_capacity(2_048),
+            &mut AdvancingTimer(0),
+            &RunControl::default(),
+        )
+        .expect_err("provider loss must terminate the semantic run");
+
+    assert!(error.contains("OperationFailed(103)"), "{error}");
 }

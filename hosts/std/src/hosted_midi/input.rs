@@ -62,7 +62,7 @@ impl MidiInputSession {
         }
         #[cfg(test)]
         if let Some(bytes) = selection.fake_input() {
-            return Self::prepare_test_pipe(bytes);
+            return Self::prepare_test_pipe(bytes, selection.fake_input_stays_open());
         }
         let path = selection
             .observation()
@@ -241,38 +241,18 @@ impl MidiInputSession {
         Err(failure)
     }
 
-    #[cfg(all(test, unix))]
-    fn prepare_test_pipe(bytes: &[u8]) -> Result<Self, MidiInputFailure> {
-        use std::io::Write;
-        use std::os::fd::FromRawFd;
-
-        let mut descriptors = [0; 2];
-        if unsafe { libc::pipe(descriptors.as_mut_ptr()) } != 0 {
-            return Err(MidiInputFailure::BackendUnavailable);
-        }
-        let flags = unsafe { libc::fcntl(descriptors[0], libc::F_GETFL) };
-        if flags < 0
-            || unsafe { libc::fcntl(descriptors[0], libc::F_SETFL, flags | libc::O_NONBLOCK) } != 0
-        {
-            unsafe {
-                libc::close(descriptors[0]);
-                libc::close(descriptors[1]);
-            }
-            return Err(MidiInputFailure::BackendUnavailable);
-        }
-        let reader = unsafe { File::from_raw_fd(descriptors[0]) };
-        let mut writer = unsafe { File::from_raw_fd(descriptors[1]) };
-        writer
-            .write_all(bytes)
-            .map_err(|_| MidiInputFailure::ProviderLost)?;
+    #[cfg(test)]
+    fn prepare_test_pipe(bytes: &[u8], stays_open: bool) -> Result<Self, MidiInputFailure> {
+        let (reader, writer) = super::input_fake::pipe(bytes, stays_open)?;
         let mut session = Self::from_file(reader);
-        session.fake_writer = Some(writer);
+        session.fake_writer = writer;
         Ok(session)
     }
+}
 
-    #[cfg(all(test, not(unix)))]
-    fn prepare_test_pipe(_bytes: &[u8]) -> Result<Self, MidiInputFailure> {
-        Err(MidiInputFailure::BackendUnavailable)
+impl Drop for MidiInputSession {
+    fn drop(&mut self) {
+        self.cancel();
     }
 }
 

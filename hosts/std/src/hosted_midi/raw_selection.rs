@@ -26,6 +26,8 @@ pub struct HostedRawMidiSelection {
     offer_generation: OfferGeneration,
     #[cfg(test)]
     fake_input: Option<Vec<u8>>,
+    #[cfg(test)]
+    fake_input_stays_open: bool,
 }
 
 impl HostedRawMidiSelection {
@@ -59,18 +61,33 @@ impl HostedRawMidiSelection {
             offer_generation,
             #[cfg(test)]
             fake_input: None,
+            #[cfg(test)]
+            fake_input_stays_open: false,
         })
     }
 
     #[cfg(test)]
     pub(crate) fn with_fake_input(mut self, bytes: Vec<u8>) -> Self {
         self.fake_input = Some(bytes);
+        self.fake_input_stays_open = true;
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_fake_input_then_disconnect(mut self, bytes: Vec<u8>) -> Self {
+        self.fake_input = Some(bytes);
+        self.fake_input_stays_open = false;
         self
     }
 
     #[cfg(test)]
     pub(crate) fn fake_input(&self) -> Option<&[u8]> {
         self.fake_input.as_deref()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fake_input_stays_open(&self) -> bool {
+        self.fake_input_stays_open
     }
 
     pub const fn observation(&self) -> &RawMidiEndpointObservation {
@@ -589,6 +606,44 @@ mod tests {
             },
             crate::StdHostComposition::minimal(),
             stale,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn reconnect_requires_a_fresh_generation_scoped_resource_identity() {
+        let observation = observation(MidiEndpointDirection::ReadableSource, 0);
+        let boot_id = BootId::from("boot-reconnect");
+        let before = HostedRawMidiSelection::select(
+            std::slice::from_ref(&observation),
+            MidiEndpointDirection::ReadableSource,
+            2,
+            1,
+            0,
+            boot_id.clone(),
+            OfferGeneration(4),
+        )
+        .unwrap();
+        let after = HostedRawMidiSelection::select(
+            &[observation],
+            MidiEndpointDirection::ReadableSource,
+            2,
+            1,
+            0,
+            boot_id.clone(),
+            OfferGeneration(5),
+        )
+        .unwrap();
+
+        assert_ne!(before.resource_pool_id(), after.resource_pool_id());
+        assert!(crate::StdHost::new_with_raw_midi_input(
+            crate::StdHostConfig {
+                host_id: HostId::from("host-reconnect"),
+                boot_id,
+                offer_generation: OfferGeneration(5),
+            },
+            crate::StdHostComposition::minimal(),
+            before,
         )
         .is_err());
     }
