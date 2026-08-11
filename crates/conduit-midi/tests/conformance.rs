@@ -68,6 +68,36 @@ fn canonical_messages_running_status_and_velocity_zero_are_exact() {
 }
 
 #[test]
+fn tuning_and_transpose_become_exact_portable_pitch() {
+    let profile = MidiProfile::new(442_000, Some(0), 0)
+        .unwrap()
+        .with_transpose(12)
+        .unwrap();
+    let mut adapter = MidiInputAdapter::new(profile, 1).unwrap();
+    let PortableMidiEvent::Note(note) = adapter
+        .accept(
+            MidiMessage::NoteOn {
+                channel: 0,
+                key: 69,
+                velocity: 100,
+            },
+            10,
+        )
+        .unwrap()
+    else {
+        panic!("note-on must produce portable note Info")
+    };
+    assert_eq!(note.pitch.a4_reference_millihertz, 442_000);
+    assert_eq!(note.pitch.frequency_millihertz, 884_000);
+    assert_eq!(
+        MidiProfile::new(440_000, None, 0)
+            .unwrap()
+            .with_transpose(49),
+        Err(MidiAdapterError::TransposeOutOfRange)
+    );
+}
+
+#[test]
 fn overlapping_equal_keys_pair_last_on_first_off_deterministically() {
     let mut adapter = MidiInputAdapter::new(profile(), 40).unwrap();
     let first = adapter

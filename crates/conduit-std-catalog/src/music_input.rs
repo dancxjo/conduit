@@ -1,10 +1,13 @@
 //! Portable musical-input source contract.
 
-use crate::{sound::event_limits, sound::music_ports, StandardKindContract, TerminalBehavior};
+use crate::{
+    sound::event_limits, sound::music_ports, StandardConfigurationField, StandardConfigurationRule,
+    StandardKindContract, TerminalBehavior,
+};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    CapabilityId, CapabilityOffer, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
     HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
     PortDirection,
 };
@@ -17,6 +20,8 @@ pub const MUSIC_INPUT_MIDI_ARTIFACT: &str = "conduit-std-host/music-input-midi1@
 pub const MUSIC_INPUT_MIDI_OPERATION: &str = "conduit.host/midi1-input-next-observation@1";
 pub const MIDI_INPUT_RESOURCE_CLASS: &str = "conduit.resource/midi-input@1";
 pub const MIDI_INPUT_AUTHORITY_CONTRACT: &str = "conduit.authority/midi-input@1";
+pub const MUSIC_INPUT_A4_REFERENCE_KEY: &str = "a4-reference-millihertz";
+pub const MUSIC_INPUT_TRANSPOSE_KEY: &str = "transpose-semitones";
 
 pub fn music_input_contract() -> StandardKindContract {
     StandardKindContract {
@@ -25,7 +30,7 @@ pub fn music_input_contract() -> StandardKindContract {
         summary: "Produce portable note and typed expressive-control events.".to_string(),
         inputs: Vec::new(),
         outputs: music_ports(PortDirection::Output),
-        configuration: Vec::new(),
+        configuration: music_input_configuration(),
         limits: event_limits(),
         terminal_behavior: TerminalBehavior::HostInputEndsOrFailsSource,
         hosted_implementation_required: true,
@@ -50,7 +55,7 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
         maximum_output_bytes: conduit_midi::MIDI_INPUT_OBSERVATION_ENCODED_LEN as u32,
     };
     CapabilityOffer {
-        startup_parameters: Vec::new(),
+        startup_parameters: crate::startup_face(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from("music-input-midi1"),
         kind_id: contract.kind_id,
@@ -73,6 +78,27 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
     }
 }
 
+pub fn music_input_configuration() -> Vec<StandardConfigurationField> {
+    vec![
+        StandardConfigurationField {
+            key: MUSIC_INPUT_A4_REFERENCE_KEY.to_string(),
+            default_value: ConfigurationValue::U64(440_000),
+            rule: StandardConfigurationRule::U64Range {
+                minimum: conduit_core::MINIMUM_A4_MILLIHERTZ,
+                maximum: conduit_core::MAXIMUM_A4_MILLIHERTZ,
+            },
+        },
+        StandardConfigurationField {
+            key: MUSIC_INPUT_TRANSPOSE_KEY.to_string(),
+            default_value: ConfigurationValue::I64(0),
+            rule: StandardConfigurationRule::I64Range {
+                minimum: -48,
+                maximum: 48,
+            },
+        },
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -87,6 +113,7 @@ mod tests {
             contract.terminal_behavior,
             TerminalBehavior::HostInputEndsOrFailsSource
         );
+        assert_eq!(contract.configuration, music_input_configuration());
         assert_eq!(
             sound_contract_revision(MUSIC_INPUT_KIND).unwrap().as_str(),
             MUSIC_INPUT_REVISION
@@ -113,6 +140,7 @@ mod tests {
         );
         assert_eq!(offer.resource_requirements.len(), 1);
         assert_eq!(offer.authority_requirements.len(), 1);
+        assert_eq!(offer.startup_parameters.len(), 2);
         assert_eq!(
             offer.authority_requirements[0].subject_kind,
             operation.target_kind.clone().unwrap()
