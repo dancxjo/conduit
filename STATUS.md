@@ -10,6 +10,7 @@ adapter or physical proof.
 | Exact local timing profile | platform-neutral deadline requirement remains separate from boot-scoped clock/timer/execution offers and the exact Plan timing/resource basis | deterministic-emulator proof admits one 1,000 µs local Plan with a sealed 730 µs worst-case basis, refuses a 100 µs request before Play, and keeps met/missed/Base-loss/cancelled/stale outcomes distinct | the accepted strict path runs the existing fixed `conduit-kernel` scheduler with zero successful heap allocations and exact Plan/Play-correlated timing Signs; inspection is excluded | no browser timing claim | no firmware timing claim | local only; no remote guarantee | no physical timing claim; any future claim requires separate pinned-hardware proof |
 | ConduitOS cooperative execution regions | ordinary Plan truth seals two exact disjoint admitted placement sets, cooperative bounded-step profiles, distinct selected execution-lane resources under one finite Base, region-local memory/timer/Cord/Sign bounds, and explicit false preemption, isolation, and physical parallelism | membership/lane/capacity/Base/budget mutation, unavailable or duplicate lane, and resealed one-lane lies refuse before Play; a causal witness retains timer interest while the text region progresses | one unchanged two-branch Form runs through one production kernel/scheduler; Observatory/Patchbay linearly projects both immutable regions and the logical overlap witness | no browser execution-lane claim | one x86_64 freestanding-emulator Host offers and validates two boot-scoped cooperative lanes | local only; no connectivity fact | no SMP, physical parallelism, preemption, isolation, context switching, physical scheduling, or HIL claim |
 | ConduitOS bounded xHCI Base | one boot-scoped Base identity binds one exact PCI function, MMIO BAR, fixed controller/ring storage, finite admitted limits, and machine-readable progress/failure Signs without becoming a semantic input capability | deterministic absence, class, BAR, capability, bounds, timeout, and completion refusal vectors remain distinct; a controller-absent QEMU boot refuses without a usable Base | no hosted implementation; `cargo xtask conduitos xhci-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned x86_64 QEMU `qemu-xhci` controller completes bounded halt/reset/start and one real No-Op command through fixed command/event rings | no USB-device enumeration or external transport claim | no physical controller, device, input, or HIL claim |
+| ConduitOS bounded USB enumeration | one attachment-scoped device identity binds the exact boot, xHCI Base, root port, slot, USB address, structural interfaces, and endpoints; all enumeration storage and progress are finite | deterministic descriptor, topology, capacity, reset, vanish, transfer, completion-identity, and stale-attachment vectors remain distinct; a real device-absent QEMU boot refuses without a device | no hosted implementation; `cargo xtask conduitos usb-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned root-attached QEMU USB device completes bounded reset, enable/address, five EP0 control transfers, descriptor parsing, and `SET_CONFIGURATION` through the accepted xHCI Base | no hub, hotplug, or external transport claim | freestanding-emulator only; no HID report parsing, semantic input, key event, physical device, or HIL claim |
 | Exact plan, play, Sign, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued Sign identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/Play start mutation, unique Sign, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and clean firmware build identity; runtime-generated boot/play plus presentation/sign identities are carried in USB records and checked across physical sessions | live sessions verify exact base instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | matching physical receipts retain exact plan/fragment/play/presentation/sign/link/base/boot/build identity |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal Sign, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Canonical Form execution corpus | canonical face/back source, declarative startup binding, recursive expansion, exact checked-face compatibility including temporal shape, and distinct source/checked/expanded/Plan identities | Programs 1–4 deterministic positive/negative corpus; Program 6 exact two-host planning and link-failure vectors | real std `text/*`, `time/every`, `state/count`, and presentation leaves execute through the existing kernel with bounded Sign and stable capacity | Program 6 browser/WASM sink executes the unchanged canonical Signal source's exact remote fragment | no new firmware claim | actual loopback WebSocket carries the Program 6 Conduit session; it is not an authored external WebSocket operation | no new physical/HIL claim |
@@ -53,6 +54,11 @@ The `check` workflow requires:
   bounded halt/reset/start and No-Op completion progress, distinct absence and
   malformed-controller refusals, no semantic keyboard offer, and a separately
   retained machine-readable proof report;
+- one pinned root-attached QEMU USB device enumerated through that xHCI Base
+  with fixed device/input contexts, transfer ring, descriptor buffer, finite
+  polling and five EP0 control transfers, exact attachment/interface/endpoint
+  identities, distinct refusal vectors, no semantic keyboard offer, a real
+  device-absent boot, and a separately retained machine-readable proof report;
 - one bounded deterministic ConduitOS portable-std inventory/gap report derived
   from current supported-nucleus contract and offer truth, with a semantic
   content digest, exact Host build/profile basis, and complete implemented or
@@ -1235,9 +1241,37 @@ A real controller-absent QEMU boot and deterministic malformed-controller,
 capacity, timeout, and completion vectors refuse without manufacturing a usable
 Base. The accepted Base advertises no semantic keyboard capability, and the
 pre-existing ordinary Form still executes through the same production kernel.
-This is `freestanding-emulator` proof only: USB device enumeration, HID report
-parsing, key events, keymaps, chords, hotplug, external transport, physical
-devices, and HIL remain unclaimed and owned by later #804 milestones.
+That Base-only acceptance was `freestanding-emulator` proof and did not itself
+claim USB device enumeration. HID report parsing, key events, keymaps, chords,
+hotplug, external transport, physical devices, and HIL remain unclaimed and
+owned by later #804 milestones.
+
+The bounded ConduitOS USB-enumeration slice from #806 is accepted at exact main
+`b846832a5692d63b010059081a46084dab16d35c`; push workflow `31459165964`
+passed `check`, `browser-host`, and `conduitos-boot`. The ConduitOS job ran the
+dedicated `cargo xtask conduitos usb-proof --locked` entrance and retained its
+SHA-named `usb-proof.json` separately from ordinary console and xHCI evidence.
+
+One real root-attached QEMU USB device is reset, assigned one xHCI slot and USB
+address, queried through five finite EP0 control transfers, structurally parsed,
+and configured through the already-accepted xHCI Base. The resulting Sign and
+report bind the exact controller Base, boot, attachment epoch, root port, slot,
+address, device instance, first interface, and first endpoint identities. They
+also retain the fixed configuration/interface/endpoint/descriptor maxima,
+single outstanding transfer, zero retries, 16-TRB transfer ring, aligned DMA
+storage, polling budget, and mandatory Sign capacity.
+
+A second real QEMU boot with the controller present and device absent refuses
+with `usb-device-absent`. Deterministic conformance keeps malformed and
+oversized descriptors, exhausted interface/endpoint/record capacities,
+unsupported topology, reset failure and timeout, device vanish, stall, transfer
+error and timeout, wrong controller/slot/endpoint completion identity, and stale
+same-boot reattachment identity distinct and machine-readable.
+
+This is `freestanding-emulator` structural enumeration proof only. It adds no
+hub traversal, hotplug policy, HID descriptor or report parsing, semantic
+`input/keyboard` offer, key events, keymaps, chords, external transport,
+physical device, or HIL claim; those remain owned by later #804 milestones.
 
 The documentation-only CI fast path from #863 is accepted at exact main
 `965e5ef34b87d180a13fd7cf88e70331a416e40e`; push workflow `31453748480`
