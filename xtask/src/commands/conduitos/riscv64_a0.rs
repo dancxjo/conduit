@@ -141,6 +141,11 @@ fn compile_object(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
         .args(["-C", "panic=abort", "-C", "relocation-model=static", "-O"])
         .arg(source)
         .current_dir(&paths.root)
+        .env("CONDUITOS_BUILD_ID", git_head(&paths.root)?)
+        .env(
+            "CONDUITOS_IMAGE_ID",
+            format!("conduitos-image/{}/riscv64/v1", git_head(&paths.root)?),
+        )
         .status()
         .map_err(|error| refusal("riscv64-object-toolchain-unavailable", error.to_string()))?;
     if status.success() {
