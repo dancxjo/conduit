@@ -17,12 +17,12 @@ pub(super) fn derive() -> Result<Vec<Coverage>, CatalogError> {
         "catalog-static-not-a-boot",
     )
     .map_err(|error| CatalogError::new("conduitos-recursive-profile-invalid", error.as_str()))?;
-    let mut coverage = coverage(proof.recursive_host.profile.as_str(), &proof.recursive);
-    coverage.extend(coverage(
+    let mut entries = coverage(proof.recursive_host.profile.as_str(), &proof.recursive);
+    entries.extend(coverage(
         conduitos.advertisement.profile.as_str(),
         &conduitos.plan,
     ));
-    Ok(coverage)
+    Ok(entries)
 }
 
 fn coverage(host_profile: &str, plan: &conduit_core::Plan) -> Vec<Coverage> {
