@@ -55,6 +55,33 @@ pub extern "C" fn conduitos_riscv64_a3_start() -> ! {
         .unwrap_or_else(|error| refuse(error.as_str()));
     let mut prepared = dual_region_plan::prepare(&identities, &offer, BUILD_ID)
         .unwrap_or_else(|error| refuse(error.as_str()));
+    #[cfg(feature = "riscv64-a4")]
+    let observatory_export = {
+        let record = conduitos::boot::BootRecord {
+            firmware: conduitos::boot::Firmware::Sbi,
+            timestamp: counter,
+            hhdm_offset: 0,
+            image_physical_start: 0x8020_0000,
+            image_length: 0,
+            memory_region_count: 1,
+            artifact_count: 0,
+            framebuffer_count: 0,
+            command_line_bytes: 0,
+            runtime_arena: conduitos::boot::RuntimeArena {
+                physical_start: core::ptr::addr_of!(MEMORY_ARENA) as u64,
+                length: 1024 * 1024,
+            },
+        };
+        conduitos::observatory::prepare_export(
+            &record,
+            &identities,
+            &offer,
+            &prepared,
+            BUILD_ID,
+            IMAGE_ID,
+        )
+        .unwrap_or_else(|error| refuse(error.as_str()))
+    };
     let before = BOOT_ARENA.seal();
     let mut clock = arch::Clock::new();
     let mut timer = arch::Timer::new();
@@ -84,8 +111,17 @@ pub extern "C" fn conduitos_riscv64_a3_start() -> ! {
     )
     .unwrap_or_else(|_| refuse("kernel-sign-storage-full"));
     arch::present(sign.as_bytes());
+    #[cfg(feature = "riscv64-a4")]
+    {
+        arch::present(conduitos::observatory::EXPORT_PREFIX.as_bytes());
+        arch::present(observatory_export.as_bytes());
+        arch::present(b"\n");
+    }
     arch::present(b"CONDUIT_RISCV64_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
+    #[cfg(feature = "riscv64-a4")]
+    arch::present(b"\",\"wake_source\":\"riscv-supervisor-timer-interrupt\",\"wake_cause\":5,\"sbi_mechanism\":\"TIME/set_timer\",\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":true}\n");
+    #[cfg(not(feature = "riscv64-a4"))]
     arch::present(b"\",\"wake_source\":\"riscv-supervisor-timer-interrupt\",\"wake_cause\":5,\"sbi_mechanism\":\"TIME/set_timer\",\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":false}\n");
     loop {
         core::hint::spin_loop();

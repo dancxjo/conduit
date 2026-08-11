@@ -17,22 +17,22 @@ const IDENTITY_PREFIX: &str = "CONDUIT_RISCV64_A3_IDENTITY ";
 const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-opensbi-uboot";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct KernelSign {
+pub(super) struct KernelSign {
     schema: String,
     status: String,
     arch: String,
     build_id: String,
     kernel: String,
     scheduler_profile: String,
-    host_id: String,
-    boot_id: String,
+    pub(super) host_id: String,
+    pub(super) boot_id: String,
     pipeline: String,
-    source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
-    plan_id: String,
-    fragment_id: String,
-    active_play_id: String,
+    pub(super) source_document_id: String,
+    pub(super) checked_form_id: String,
+    pub(super) expanded_form_id: String,
+    pub(super) plan_id: String,
+    pub(super) fragment_id: String,
+    pub(super) active_play_id: String,
     planned_sign_items: u32,
     planned_sign_bytes: u32,
     cord_item_capacity: u32,
@@ -68,13 +68,13 @@ struct KernelSign {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct IdentitySign {
+pub(super) struct IdentitySign {
     image_id: String,
     wake_source: String,
     wake_cause: u32,
     sbi_mechanism: String,
     a3_ordinary_form_claimed: bool,
-    a4_observatory_patchbay_claimed: bool,
+    pub(super) a4_observatory_patchbay_claimed: bool,
 }
 
 #[derive(Serialize)]
@@ -105,7 +105,7 @@ struct Proof {
 pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Riscv64)?;
-    build(opts)?;
+    build_variant(opts, BINARY, "riscv64-a3")?;
     image::assemble(ConduitosArch::Riscv64, opts)?;
     let (kernel, identity) = boot_once(&paths)?;
     if opts.json {
@@ -126,9 +126,9 @@ pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Riscv64)?;
-    build(opts)?;
+    build_variant(opts, BINARY, "riscv64-a3")?;
     let first_image = image::assemble(ConduitosArch::Riscv64, opts)?;
-    build(opts)?;
+    build_variant(opts, BINARY, "riscv64-a3")?;
     let second_image = image::assemble(ConduitosArch::Riscv64, opts)?;
     if first_image.iso_sha256 != second_image.iso_sha256 {
         return Err(refusal(
@@ -200,7 +200,11 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     Ok(())
 }
 
-fn build(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+pub(super) fn build_variant(
+    opts: &GlobalOpts,
+    binary: &str,
+    feature: &str,
+) -> Result<BuildRecord, ConduitosError> {
     let paths = Paths::new(ConduitosArch::Riscv64)?;
     fs::create_dir_all(&paths.target)
         .map_err(|e| refusal("build-output-unavailable", e.to_string()))?;
@@ -215,9 +219,9 @@ fn build(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
             "-p",
             "conduitos",
             "--bin",
-            BINARY,
+            binary,
             "--features",
-            "riscv64-a3",
+            feature,
             "--target",
             riscv64_a0::TARGET,
             "--release",
@@ -247,7 +251,7 @@ fn build(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     }
     let built = paths
         .root
-        .join(format!("target/{}/release/{BINARY}", riscv64_a0::TARGET));
+        .join(format!("target/{}/release/{binary}", riscv64_a0::TARGET));
     fs::copy(built, &paths.kernel)
         .map_err(|e| refusal("build-output-unavailable", e.to_string()))?;
     let record = BuildRecord {
@@ -267,16 +271,20 @@ fn build(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
 }
 
 fn boot_once(paths: &Paths) -> Result<(KernelSign, IdentitySign), ConduitosError> {
-    let text = riscv64_a1::boot_until(paths, IDENTITY_PREFIX)?;
+    let text = boot_transcript(paths)?;
     let entry = riscv64_a1::parse(&text)?;
     riscv64_a1::validate(&entry, paths)?;
     let kernel = parse_one(&text, KERNEL_PREFIX, "kernel")?;
     let identity = parse_one(&text, IDENTITY_PREFIX, "identity")?;
-    validate(&kernel, &identity, paths)?;
+    validate(&kernel, &identity, paths, false)?;
     Ok((kernel, identity))
 }
 
-fn parse_one<T: for<'a> Deserialize<'a>>(
+pub(super) fn boot_transcript(paths: &Paths) -> Result<String, ConduitosError> {
+    riscv64_a1::boot_until(paths, IDENTITY_PREFIX)
+}
+
+pub(super) fn parse_one<T: for<'a> Deserialize<'a>>(
     text: &str,
     prefix: &str,
     name: &str,
@@ -296,10 +304,11 @@ fn parse_one<T: for<'a> Deserialize<'a>>(
         .map_err(|e| refusal("malformed-riscv64-a3-sign", e.to_string()))
 }
 
-fn validate(
+pub(super) fn validate(
     kernel: &KernelSign,
     identity: &IdentitySign,
     paths: &Paths,
+    expected_a4: bool,
 ) -> Result<(), ConduitosError> {
     let commit = git_head(&paths.root)?;
     let exact_id =
@@ -365,7 +374,7 @@ fn validate(
         || identity.wake_cause != 5
         || identity.sbi_mechanism != "TIME/set_timer"
         || !identity.a3_ordinary_form_claimed
-        || identity.a4_observatory_patchbay_claimed
+        || identity.a4_observatory_patchbay_claimed != expected_a4
     {
         return Err(refusal(
             "stale-or-invalid-riscv64-a3-sign",

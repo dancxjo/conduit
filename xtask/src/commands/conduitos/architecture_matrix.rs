@@ -120,8 +120,11 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
             arch,
             ConduitosArch::Ia32 | ConduitosArch::Aarch64 | ConduitosArch::Riscv64
         );
-    let observatory_patchbay_accepted =
-        full_spine_accepted || matches!(arch, ConduitosArch::Ia32 | ConduitosArch::Aarch64);
+    let observatory_patchbay_accepted = full_spine_accepted
+        || matches!(
+            arch,
+            ConduitosArch::Ia32 | ConduitosArch::Aarch64 | ConduitosArch::Riscv64
+        );
     let machine_wake_accepted = full_spine_accepted
         || matches!(
             arch,
@@ -139,11 +142,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::Ia32 => ("BOOTIA32.EFI", "i686-unknown-uefi", ""),
         ConduitosArch::X86_64 => ("BOOTX64.EFI", "x86_64-unknown-none", ""),
         ConduitosArch::Aarch64 => ("BOOTAA64.EFI", aarch64_a0::TARGET, ""),
-        ConduitosArch::Riscv64 => (
-            "BOOTRISCV64.EFI",
-            riscv64_a0::TARGET,
-            "A3 ordinary Form accepted; A4 Observatory/Patchbay not established",
-        ),
+        ConduitosArch::Riscv64 => ("BOOTRISCV64.EFI", riscv64_a0::TARGET, ""),
         ConduitosArch::Loongarch64 => (
             "BOOTLOONGARCH64.EFI",
             loongarch64_a0::TARGET,
@@ -218,7 +217,7 @@ mod tests {
         assert!(riscv64.a1_boot);
         assert!(riscv64.a2_machine_wake);
         assert!(riscv64.a3_ordinary_form);
-        assert!(!riscv64.a4_observatory_patchbay);
+        assert!(riscv64.a4_observatory_patchbay);
         let loongarch64 = matrix
             .architectures
             .iter()
