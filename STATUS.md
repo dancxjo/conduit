@@ -755,6 +755,42 @@ canonical Patchbay screenshot yet and adds no Actions artifact upload, accepted
 main gallery, documentation publication, pixel-diff policy, second runtime, or
 new source of semantic truth. #822 owns the first deterministic captures.
 
+The deterministic canonical Patchbay captures from #822 are accepted at exact
+main `f85e8ae04743d3cf6dc1029568aad8ea8c5ff45e`; push workflow
+`31447628162` passed `check`, `browser-host`, and `conduitos-boot`. The existing
+HTML Patchbay semantic proof now emits exactly `overview`, `selected-gear`,
+`interaction`, `high-contrast`, and `disconnected` PNGs only after the Form,
+exact Plan, active Play, Signs, successful selection, ordinary interaction
+Plan/Play, presentation-only identity stability, or retained disconnected
+state asserted for that image has passed.
+
+One Chromium project is the documentation camera. Playwright and the CI image
+are pinned at 1.62.0; viewport is 1440 by 1000 CSS pixels at scale 1 with
+`en-US`, UTC, dark scheme, reduced motion, disabled screenshot animation,
+hidden caret, and loaded DejaVu Sans. The portable demonstration uses a fixed
+fixture Host and boot identity through the existing injectable Host
+configuration seam. Two independent local Chromium processes produced the same
+presentation, Plan, active Play, and manifestation identities and byte-identical
+SHA-256 values for all five images. Exact identities remain visible and
+provenance-bound rather than masked or redacted.
+
+After each capture Chromium atomically refreshes the bounded `captures.json`
+declarations. `xtask` rejects stale prior outputs, imports only root-confined
+relative paths, requires all five identities after semantic success, and binds
+the declaration document and every PNG into the ordinary #821 manifest with
+exact byte length, SHA-256, browser version, camera, scenario, presentation,
+Plan, active Play, manifestation, renderer, and asserted semantic disposition.
+The merged-main `browser-host` job completed that same manifest path. A local
+missing-WebKit-library run instead retained the successful Chromium objects in
+a `diagnostic-incomplete` manifest, proving partial compatibility execution
+cannot become canonical success.
+
+Firefox and WebKit still execute the same semantic compatibility test in the
+pinned CI image but never write canonical evidence. This acceptance adds no
+pixel-diff policy, Actions upload, accepted-main gallery, documentation
+publication, ConduitOS screenshot, second runtime, or pixel-derived semantic
+claim. #823 owns transport of the already-validated proof directory.
+
 The typed decision-Kind slice from #776 is accepted at exact main
 `b14d83742205f8dfd54e10d22a5eb90ea2333f79`; push workflow `31445629459`
 passed `check`, `browser-host`, and `conduitos-boot`. The portable catalog now
