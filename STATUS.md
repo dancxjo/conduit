@@ -14,6 +14,7 @@ adapter or physical proof.
 | ConduitOS bounded HID boot keyboard | one attachment-scoped HID-local identity binds the exact boot, xHCI Base, USB device, boot-keyboard interface, interrupt-IN endpoint, transfer completions, and ordered usage transitions; all report, queue, transfer, polling, and Sign work is finite | deterministic interface, endpoint, packet, protocol, report, rollover, duplicate-usage, completion-identity, removal, and pressure refusals remain distinct without fabricated transitions | no hosted implementation; `cargo xtask conduitos hid-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned QEMU USB boot keyboard receives an acknowledged QMP key action, completes `SET_PROTOCOL` and two real interrupt-IN transfers, and derives exact usage `0x04` press then release through the accepted xHCI/USB path | no external transport claim | freestanding-emulator only; no semantic `input/keyboard` offer, layout, Unicode, general HID parser, physical device, or HIL claim |
 | Portable keyboard semantics | `input/key-event@1` is one exact 3-byte value using the HID Keyboard/Keypad usage page as host-neutral vocabulary, Pressed/Released, and eight distinct modifier bits after the transition; `input/keyboard` is a normal typed closing-flow source with an exact revision, finite queue, input resource, and bounded next-event host-operation requirement | reusable A, Shift+A, left/right modifier, and simultaneous-key vectors cross the fixed kernel unchanged; capacity-one pressure, closure, cancellation, host-input failure, malformed encoding, reserved usage, and inconsistent modifier state remain distinct | contract/catalog only; Patchbay discovers the semantic Kind, but the std Host truthfully advertises no implementation offer | no browser implementation claim | no firmware or ConduitOS semantic binding claim | no transport | no physical keyboard or HIL claim |
 | ConduitOS portable keyboard realization | one ready boot-local xHCI/device/interface/endpoint chain yields one exact `conduitos/usb-hid-keyboard@1` offer, ordinary keyboard Plan, production-kernel Play, and portable press/release values with finite device, report, transition, operation, memory, and Cord reservations | absent/unhealthy/ambiguous device truth, stale boot or artifact identity, capacity exhaustion, malformed values, Cord pressure, cancellation, transfer failure, device loss, and closure remain distinct; a real no-device boot emits no keyboard offer | no hosted implementation; `cargo xtask conduitos keyboard-proof` owns the repository proof entrance and retained JSON report | no browser implementation claim | one pinned QEMU USB keyboard produces `[4,0,0]` then `[4,1,0]` through the planned source and native Observatory/Patchbay projection | no external transport claim | freestanding-emulator only; no keymap/text, hotplug, physical keyboard, or HIL claim |
+| ConduitOS low-level local rescue | one interactive x86_64 profile taps opaque validated physical HID transitions before semantic routing, admits exact Ctrl+Alt+Delete under local-only policy, records one boot-scoped request, and crosses one bounded machine-reset Base without making an ordinary Form or second runtime authoritative | finite matcher, malformed-report, held-key, disabled-policy, unavailable-reset, stale/same-Boot, and physical Ctrl+Delete, Alt+Delete, and Ctrl+Alt+Backspace refusal vectors remain distinct | no hosted implementation; `cargo xtask conduitos rescue-proof` owns same-QEMU request/completion correlation and retained JSON/transcript evidence | no browser rescue claim | one pinned QEMU process observes B1, one guest-issued reset request, and fresh B2 with `B2 != B1`; request acceptance and reboot completion remain distinct | local physical/emulator input only; remote semantic key values cannot construct local authority | freestanding-emulator only; active-K6-Play independence remains unproved until #812, and there is no frozen-machine/NMI, physical keyboard, or HIL claim |
 | Exact plan, play, Sign, and presentation identities | S2 planning plus S3/S4 runtime identity acceptance: separate source/checked/expanded/plan types; boot-scoped active-play issuance; host-issued Sign identities; exact active-play/presentation correlation at platform and remote-cord boundaries | semantic/spelling, cycle, mutation/resealed-lie, host-operation admission/bounds, resource reservation/release, authority/link denial, observation-overflow, boot/Play start mutation, unique Sign, wrong-presentation identity, wrong session identity, generated-image mutation, firmware-build mismatch, and runtime-identity mutation vectors | yes, std preparation enforces S2 truth and distributed sources bind exact plan/fragment/play/link/connection identities | browser sinks independently reconstruct and lower exact fragments and reject stale/wrong session facts | generated image and manifest bind source/checked/expanded/plan/fragment identities and clean firmware build identity; runtime-generated boot/play plus presentation/sign identities are carried in USB records and checked across physical sessions | live sessions verify exact base instance, endpoints, limits, host/boot, fragments, plays, connection, and value kind | matching physical receipts retain exact plan/fragment/play/presentation/sign/link/base/boot/build identity |
 | Lossless form and composite boundary | S3 plus #398/#399 corrections: exact source, bounded lossless CST, located diagnostics, inline checked forms, recursively bound expansion identity, and checked named input/output faces with exact endpoint, value-kind, direction, and independent-terminal contracts | round-trip/recovery/limits, expansion and face mutation denial, standalone/nested equality, two-input/two-output typed control/data execution, input-only/output-only planning, exact pressure/retry, independent closure, cancellation/failure, parent terminal Sign, and topology hiding | parser/checker and planner are general for the checked face contract; the hosted composite compatibility façade routes exact named ports atomically while production std execution remains on `conduit-kernel` | no | no | fixture in-memory links only; face mappings are not transport | no |
 | Canonical Form execution corpus | canonical face/back source, declarative startup binding, recursive expansion, exact checked-face compatibility including temporal shape, and distinct source/checked/expanded/Plan identities | Programs 1–4 deterministic positive/negative corpus; Program 6 exact two-host planning and link-failure vectors | real std `text/*`, `time/every`, `state/count`, and presentation leaves execute through the existing kernel with bounded Sign and stable capacity | Program 6 browser/WASM sink executes the unchanged canonical Signal source's exact remote fragment | no new firmware claim | actual loopback WebSocket carries the Program 6 Conduit session; it is not an authored external WebSocket operation | no new physical/HIL claim |
@@ -80,6 +81,13 @@ The `check` workflow requires:
   portable press/release values, absent-device refusal, and read-only
   Observatory/Patchbay projection are checked by `cargo xtask conduitos
   keyboard-proof` and retained as a machine-readable report;
+- one bounded low-level ConduitOS local rescue path that consumes only opaque
+  validated physical HID transitions before ordinary keyboard planning,
+  recognizes exact Ctrl+Alt+Delete once, records B1 and exact local authority,
+  issues one guest reset, and is correlated by `cargo xtask conduitos
+  rescue-proof` to a distinct B2 in the same QEMU process; retained proof and
+  transcript evidence also establish physical near-miss refusal and preserve
+  request acceptance separately from reboot completion;
 - one bounded deterministic ConduitOS portable-std inventory/gap report derived
   from current supported-nucleus contract and offer truth, with a semantic
   content digest, exact Host build/profile basis, and complete implemented or
@@ -1421,6 +1429,45 @@ finite realization and native Patchbay consumes it read-only. This slice adds
 no keymap/text conversion, selection UX, multi-keyboard aggregation, hub,
 hotplug replanning, browser implementation, physical-device claim, or HIL
 proof; those remain owned by later #804 milestones.
+
+The no-Form local rescue slice from #816 is established at exact main
+`5660cabb8d07044c8e367c4b2dc27346492e33d4`; push workflow `31470574806`
+passed `check`, `browser-host`, and `conduitos-boot`, including the separately
+retained `rescue-proof.json` and correlated serial transcript. PR-head workflow
+`31470268374` passed the same complete matrix.
+
+The ordinary interactive x86_64 composition observes only opaque transitions
+produced after HID Boot reports pass reserved-byte, rollover, duplicate-usage,
+completion-identity, device-presence, and finite-capacity checks. The
+local-authority constructor is crate-private and is crossed only by that HID
+transition type; portable text or remote `input/key-event` values cannot invoke
+it. The tap runs before any ordinary keyboard offer, Plan, or Play exists.
+
+Either left or right Control plus either left or right Alt and the actual HID
+Delete usage admits one request under policy
+`conduitos/local-physical-rescue@1` for operation
+`conduitos.machine/reboot@1`. A held Delete is latched to one request until
+release. The receipt binds the old BootId, local-physical authority, policy,
+operation, request identity, and absence of an ordinary keyboard Plan. The
+finite HID session may observe at most four successive reports while reusing
+the same two admitted report buffers and fixed transfer ring.
+
+The x86_64 reset Base performs a finite controller-readiness check and emits
+exactly one guest reset command. Controller busy and a reset command that
+returns are explicit failures; the old boot cannot report completion. The
+runner observes B1, the request, disappearance/reset, and a fresh B2 with
+`B2 != B1` while the original QEMU process remains alive, then terminates that
+process only as post-proof cleanup. Ctrl+Delete, Alt+Delete, and
+Ctrl+Alt+Backspace physical injections remain in B1 without a rescue receipt;
+malformed HID, held-key repeat, disabled policy, unavailable reset Base, and
+stale/same-Boot correlation are deterministic negative cases.
+
+This is low-level local rescue while the CPU, xHCI/USB/HID service, and reset
+Base remain responsive, not a hardware NMI or completely-frozen-machine claim.
+The additional required demonstration while the ordinary K6 Play is active is
+not yet established because #812 depends on the still-open keymap work. #816
+therefore remains open, and no active-Play independence or final K9 acceptance
+is claimed here.
 
 The documentation-only CI fast path from #863 is accepted at exact main
 `965e5ef34b87d180a13fd7cf88e70331a416e40e`; push workflow `31453748480`
