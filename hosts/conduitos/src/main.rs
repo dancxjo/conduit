@@ -93,7 +93,15 @@ extern "C" fn conduitos_start() -> ! {
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
             let presentation_sign = format!(
-                "CONDUIT_PRESENTATION_SIGN {{\"schema\":\"conduit.conduitos.framebuffer-presentation/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"display_base_id\":\"{}\",\"display_width\":{},\"display_height\":{},\"display_pitch\":{},\"display_bits_per_pixel\":{},\"execution_profile\":\"{}\",\"artifact\":\"{}\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"text\":\"{}\",\"layout_children\":{},\"graphics_commands\":{},\"text_commands\":{},\"text_pixels_written\":{},\"graphics_pixels_written\":{},\"kernel_signs\":{},\"bounded\":true,\"completed\":true}}\n",
+                "CONDUIT_PRESENTATION_SIGN {{\"schema\":\"conduit.conduitos.framebuffer-presentation/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"realization\":\"recursive\",\"back_kind\":\"{}\",\"back_contract_revision\":\"{}\",\"back_invocation_path\":\"{}\",\"back_source_document_id\":\"{}\",\"back_checked_form_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"display_base_id\":\"{}\",\"display_width\":{},\"display_height\":{},\"display_pitch\":{},\"display_bits_per_pixel\":{},\"execution_profile\":\"{}\",\"artifact\":\"{}\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"node_count\":{},\"cord_count\":{},\"text\":\"{}\",\"layout_children\":{},\"graphics_commands\":{},\"text_commands\":{},\"text_pixels_written\":{},\"graphics_pixels_written\":{},\"kernel_signs\":{},\"bounded\":true,\"completed\":true}}\n",
+                presentation.realization_back.kind_id.as_str(),
+                presentation
+                    .realization_back
+                    .kind_contract_revision
+                    .as_str(),
+                presentation.realization_back.invocation_path,
+                presentation.realization_back.source_document_id.as_str(),
+                presentation.realization_back.checked_form_id.as_str(),
                 identity::hex(&identities.host),
                 identity::hex(&identities.boot),
                 identity::hex(&display_base),
@@ -108,6 +116,8 @@ extern "C" fn conduitos_start() -> ! {
                 prepared_presentation.plan.expanded_form_id.as_str(),
                 presentation.plan_id.as_str(),
                 presentation.fragment_id.as_str(),
+                presentation.node_count,
+                presentation.cord_count,
                 presentation.text,
                 presentation.layout_children,
                 presentation.graphics_commands,

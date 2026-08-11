@@ -12,18 +12,29 @@ pub(super) struct Coverage {
 pub(super) fn derive() -> Result<Vec<Coverage>, CatalogError> {
     let proof = patchbay_model::patchbay_presenter_plans()
         .map_err(|error| CatalogError::new("patchbay-recursive-profile-invalid", error))?;
-    let placements = proof
-        .recursive
+    let conduitos = conduitos::presentation_nucleus::prepare(
+        "catalog-conduitos-reference",
+        "catalog-static-not-a-boot",
+    )
+    .map_err(|error| CatalogError::new("conduitos-recursive-profile-invalid", error.as_str()))?;
+    let mut entries = coverage(proof.recursive_host.profile.as_str(), &proof.recursive);
+    entries.extend(coverage(
+        conduitos.advertisement.profile.as_str(),
+        &conduitos.plan,
+    ));
+    Ok(entries)
+}
+
+fn coverage(host_profile: &str, plan: &conduit_core::Plan) -> Vec<Coverage> {
+    let placements = plan
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
         .collect::<Vec<_>>();
-    Ok(proof
-        .recursive
-        .realization_backs
+    plan.realization_backs
         .iter()
         .map(|back| Coverage {
-            host_profile: proof.recursive_host.profile.as_str().to_owned(),
+            host_profile: host_profile.to_owned(),
             kind_id: back.kind_id.as_str().to_owned(),
             contract_revision: back.kind_contract_revision.as_str().to_owned(),
             realization_id: identity(back),
@@ -52,7 +63,7 @@ pub(super) fn derive() -> Result<Vec<Coverage>, CatalogError> {
                 })
                 .collect(),
         })
-        .collect())
+        .collect()
 }
 
 fn identity(back: &conduit_core::RealizationBack) -> String {

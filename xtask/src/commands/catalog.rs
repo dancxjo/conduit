@@ -346,14 +346,22 @@ mod tests {
                 .iter()
                 .filter(|entry| matches!(entry.coverage, Coverage::Direct))
                 .count(),
-            16
+            17
         );
         let missing = os
             .entries
             .iter()
             .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
             .count();
-        assert_eq!(missing, os.catalog_entry_count - 16);
+        assert_eq!(missing, os.catalog_entry_count - 18);
+        let gear_face = os
+            .entries
+            .iter()
+            .find(|entry| entry.kind_id == conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND)
+            .unwrap();
+        assert!(matches!(gear_face.coverage, Coverage::Recursive));
+        assert!(gear_face.implementation.is_none());
+        assert_eq!(gear_face.recursive_implementations.len(), 9);
     }
 
     #[test]
@@ -460,17 +468,36 @@ mod tests {
             std.implementation.as_ref().unwrap().implementation_id,
             conduit_std_catalog::GRAPHICS_PRESENTATION_IMPLEMENTATION
         );
-        for host in [CatalogHost::Browser, CatalogHost::Conduitos] {
-            let profile = profiles::advertisement(host)
-                .unwrap()
-                .profile
-                .as_str()
-                .to_owned();
-            let entry = entries
-                .iter()
-                .find(|entry| entry.host_profile == profile)
-                .unwrap();
-            assert!(matches!(entry.coverage, Coverage::MissingImplementation));
-        }
+        let conduitos_profile = profiles::advertisement(CatalogHost::Conduitos)
+            .unwrap()
+            .profile
+            .as_str()
+            .to_owned();
+        let conduitos = entries
+            .iter()
+            .find(|entry| entry.host_profile == conduitos_profile)
+            .unwrap();
+        assert!(matches!(conduitos.coverage, Coverage::Direct));
+        let conduitos_implementation = conduit_std_catalog::conduitos_presentation_nucleus_offers()
+            .into_iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND)
+            .unwrap()
+            .implementation
+            .implementation_id;
+        assert_eq!(
+            conduitos.implementation.as_ref().unwrap().implementation_id,
+            conduitos_implementation.as_str()
+        );
+
+        let browser_profile = profiles::advertisement(CatalogHost::Browser)
+            .unwrap()
+            .profile
+            .as_str()
+            .to_owned();
+        let browser = entries
+            .iter()
+            .find(|entry| entry.host_profile == browser_profile)
+            .unwrap();
+        assert!(matches!(browser.coverage, Coverage::MissingImplementation));
     }
 }

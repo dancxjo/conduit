@@ -290,6 +290,12 @@ fn validate_presentation(
     if sign.schema != "conduit.conduitos.framebuffer-presentation/v1"
         || sign.status != "completed"
         || sign.proof_class != "freestanding-emulator"
+        || sign.realization != "recursive"
+        || sign.back_kind != conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND
+        || sign.back_contract_revision != conduit_std_catalog::PATCHBAY_PRESENTATION_REVISION
+        || sign.back_invocation_path != "conduitos-gear-face/face"
+        || !exact_id(&sign.back_source_document_id)
+        || !exact_id(&sign.back_checked_form_id)
         || sign.host_id != boot.host_id
         || sign.boot_id != boot.boot_id
         || !exact_id(&sign.display_base_id)
@@ -304,6 +310,8 @@ fn validate_presentation(
         || !exact_id(&sign.expanded_form_id)
         || !exact_id(&sign.plan_id)
         || !exact_id(&sign.fragment_id)
+        || sign.node_count != 10
+        || sign.cord_count != 7
         || sign.text != "Gear Face"
         || sign.layout_children != 3
         || sign.graphics_commands != 3
