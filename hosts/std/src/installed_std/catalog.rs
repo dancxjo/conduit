@@ -19,6 +19,7 @@ use super::logic_operations::{
     LOGIC_COMPARE_SCALAR_FACTORY, LOGIC_NOT_FACTORY, LOGIC_SELECT_SCALAR_FACTORY,
 };
 use super::math_operations::{MATH_CLAMP_FACTORY, MATH_DEADBAND_FACTORY, MATH_SCALE_FACTORY};
+use super::midi_input_operation::MIDI_INPUT_FACTORY;
 use super::midi_output_operation::MIDI_OUTPUT_FACTORY;
 use super::operation::InstalledFactory;
 use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
@@ -117,6 +118,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &MUSIC_SYNTH_FACTORY,
     &AUDIO_PLAY_FACTORY,
     &MIDI_OUTPUT_FACTORY,
+    &MIDI_INPUT_FACTORY,
     &EXTERNAL_WEBSOCKET_LISTENER_FACTORY,
     &GENERATE_TEXT_SMALL_FACTORY,
     &GENERATE_TEXT_LARGE_FACTORY,

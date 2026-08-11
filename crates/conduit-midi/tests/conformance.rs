@@ -152,6 +152,24 @@ fn sustain_modulation_and_pitch_bend_become_typed_controls() {
             3,
         )
         .unwrap();
+    let bend_minimum = adapter
+        .accept(
+            MidiMessage::PitchBend {
+                channel: 0,
+                value: 0,
+            },
+            4,
+        )
+        .unwrap();
+    let bend_maximum = adapter
+        .accept(
+            MidiMessage::PitchBend {
+                channel: 0,
+                value: 16_383,
+            },
+            5,
+        )
+        .unwrap();
     assert!(matches!(
         sustain,
         PortableMidiEvent::Control(event)
@@ -172,6 +190,16 @@ fn sustain_modulation_and_pitch_bend_become_typed_controls() {
                 amount_millionths: 0,
                 range_microcents: 200_000_000,
             }
+    ));
+    assert!(matches!(
+        bend_minimum,
+        PortableMidiEvent::Control(event)
+            if matches!(event.control, MusicalControl::PitchBend { amount_millionths: -1_000_000, .. })
+    ));
+    assert!(matches!(
+        bend_maximum,
+        PortableMidiEvent::Control(event)
+            if matches!(event.control, MusicalControl::PitchBend { amount_millionths: 1_000_000, .. })
     ));
 }
 

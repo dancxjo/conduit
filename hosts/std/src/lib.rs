@@ -166,6 +166,7 @@ pub struct StdKernelExecutionReport {
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
     pub playback: Vec<hosted_audio::PlaybackReport>,
+    pub midi_input: Vec<hosted_midi::MidiInputReport>,
     pub midi_output: Vec<hosted_midi::MidiOutputReport>,
     pub identity: conduit_runtime::lowering::KernelExecutionIdentityMap,
     #[cfg(test)]
@@ -188,6 +189,11 @@ pub trait TimerAdapter {
         None
     }
 
+    /// Returns the admitted Host/Boot-scoped monotonic microsecond reading.
+    fn monotonic_now_micros(&mut self) -> Option<u64> {
+        None
+    }
+
     /// Waits until one exact reading on the same monotonic basis. Returning
     /// false means the adapter does not offer that basis.
     fn wait_until_monotonic_ms(&mut self, deadline_ms: u64) -> bool {
@@ -201,14 +207,31 @@ pub trait TimerAdapter {
 
 pub struct ThreadTimer;
 
+static THREAD_TIMER_EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+
 impl TimerAdapter for ThreadTimer {
     fn wait(&mut self, duration: Duration) {
         thread::sleep(duration);
     }
 
     fn monotonic_now_ms(&mut self) -> Option<u64> {
-        static EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
-        u64::try_from(EPOCH.get_or_init(Instant::now).elapsed().as_millis()).ok()
+        u64::try_from(
+            THREAD_TIMER_EPOCH
+                .get_or_init(Instant::now)
+                .elapsed()
+                .as_millis(),
+        )
+        .ok()
+    }
+
+    fn monotonic_now_micros(&mut self) -> Option<u64> {
+        u64::try_from(
+            THREAD_TIMER_EPOCH
+                .get_or_init(Instant::now)
+                .elapsed()
+                .as_micros(),
+        )
+        .ok()
     }
 }
 
@@ -587,6 +610,7 @@ impl StdHost {
                     installed_std::InstalledRunHost {
                         advertisement: &advertisement,
                         playback: self.playback.as_ref(),
+                        midi_input: self.midi_input.as_ref(),
                         midi_output: self.midi_output.as_ref(),
                     },
                     &fragment,

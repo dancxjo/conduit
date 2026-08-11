@@ -14,6 +14,7 @@ mod input_semantics_conformance;
 mod layout_conformance;
 mod logic_conformance;
 mod math_conformance;
+mod midi_input_conformance;
 mod midi_output_conformance;
 mod presentation_composition;
 mod robotics_conformance;
@@ -427,6 +428,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
             playback: None,
+            midi_input: None,
             midi_output: None,
         },
         &plan.fragments[0],
@@ -459,6 +461,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
             playback: None,
+            midi_input: None,
             midi_output: None,
         },
         &substituted,

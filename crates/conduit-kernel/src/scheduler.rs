@@ -8,7 +8,9 @@ use crate::{
 };
 
 mod active_capacity;
+mod derived_value;
 use active_capacity::validate_active_capacity;
+pub use derived_value::CanonicalValue;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeSpec<const PORTS: usize> {
@@ -147,6 +149,7 @@ pub struct HostOperationCancellation {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct PendingHostOperation {
     request: HostOperationRequest,
+    maximum_input_bytes: u32,
     maximum_output_bytes: u32,
     dispatched: bool,
     cancellation_requested: bool,
@@ -172,11 +175,16 @@ pub trait StepOperation<const PORTS: usize> {
 /// scheduler-owned value store.
 pub struct StepInputBytes<'a, const PORTS: usize> {
     inputs: [Option<&'a [u8]>; PORTS],
+    host_output: Option<&'a [u8]>,
 }
 
 impl<const PORTS: usize> StepInputBytes<'_, PORTS> {
     pub fn input(&self, port: PortId) -> Option<&[u8]> {
         self.inputs.get(usize::from(port.0)).copied().flatten()
+    }
+
+    pub fn host_output(&self) -> Option<&[u8]> {
+        self.host_output
     }
 }
 
@@ -220,6 +228,7 @@ enum AdapterTerminal {
 struct AdapterTransaction<const PORTS: usize> {
     event: AdapterEvent,
     outputs: [Option<ValueRef>; PORTS],
+    canonical_output: Option<(PortId, CanonicalValue)>,
     host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
     host_cancellation: Option<RequestId>,
     retain_resumed_value: bool,
@@ -279,6 +288,7 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
         let mut transaction = AdapterTransaction {
             event,
             outputs: [None; PORTS],
+            canonical_output: None,
             host_request: None,
             host_cancellation: None,
             retain_resumed_value: false,
@@ -298,6 +308,17 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
                         return Err(SchedulerError::OperationProtocolViolation);
                     }
                     *output = Some(value);
+                    action = self.operation.advance();
+                }
+                OperationAction::EmitCanonical { port, value } => {
+                    let output = transaction
+                        .outputs
+                        .get(usize::from(port.0))
+                        .ok_or(SchedulerError::InvalidPortAccess)?;
+                    if output.is_some() || transaction.canonical_output.is_some() {
+                        return Err(SchedulerError::OperationProtocolViolation);
+                    }
+                    transaction.canonical_output = Some((port, value));
                     action = self.operation.advance();
                 }
                 OperationAction::RequestHostOperation {
@@ -397,6 +418,9 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                     };
                     self.operation.resume_value(port, value, canonical)
                 }
+                AdapterEvent::HostCompleted { request, outcome } => self
+                    .operation
+                    .resume_host_operation(request, outcome, input_bytes.host_output()),
                 _ => {
                     let Some(input) = event.operation_input() else {
                         return StepOutcome::Fail(u16::MAX);
@@ -428,6 +452,11 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
         for (port, output) in transaction.outputs.iter().enumerate() {
             if output.is_some() && !io.output_ready(PortId(u16::try_from(port).unwrap_or(u16::MAX)))
             {
+                return StepOutcome::Await;
+            }
+        }
+        if let Some((port, _)) = transaction.canonical_output {
+            if !io.output_ready(port) {
                 return StepOutcome::Await;
             }
         }
@@ -475,6 +504,11 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                 }
             }
         }
+        if let Some((port, value)) = transaction.canonical_output {
+            if io.send_canonical(port, value).is_err() {
+                return StepOutcome::Fail(u16::MAX);
+            }
+        }
         if let Some((request, operation, input)) = transaction.host_request {
             if io
                 .request_host_operation(request, operation, input)
@@ -514,6 +548,7 @@ pub struct StepIo<const PORTS: usize> {
     retained_inputs: [bool; PORTS],
     consumed_closed: [bool; PORTS],
     outputs: [Option<ValueRef>; PORTS],
+    canonical_output: Option<(PortId, CanonicalValue)>,
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostOperationOutcome)>,
     consumed_host_completion: bool,
@@ -617,6 +652,30 @@ impl<const PORTS: usize> StepIo<PORTS> {
         Ok(())
     }
 
+    pub fn send_canonical(
+        &mut self,
+        port: PortId,
+        value: CanonicalValue,
+    ) -> Result<(), SchedulerError> {
+        self.charge_work(1)?;
+        let index = usize::from(port.0);
+        let maximum = self
+            .output_maximum_bytes
+            .get(index)
+            .copied()
+            .flatten()
+            .ok_or(SchedulerError::OutputBlocked)?;
+        if value.as_slice().len() as u32 > maximum
+            || self.outputs.get(index).is_none()
+            || self.outputs[index].is_some()
+            || self.canonical_output.is_some()
+        {
+            return self.fail(SchedulerError::OutputBlocked);
+        }
+        self.canonical_output = Some((port, value));
+        Ok(())
+    }
+
     pub fn host_completion(&self) -> Option<(RequestId, HostOperationOutcome)> {
         self.host_completion
     }
@@ -703,6 +762,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
     fn staged(&self) -> bool {
         self.consumed.iter().any(|value| *value)
             || self.outputs.iter().any(Option::is_some)
+            || self.canonical_output.is_some()
             || self.discards.iter().any(Option::is_some)
             || self.consumed_host_completion
             || self.host_request.is_some()
@@ -1026,6 +1086,11 @@ where
         }
         let input_bytes = StepInputBytes {
             inputs: current_input_bytes,
+            host_output: io
+                .host_completion
+                .and_then(|(_, outcome)| outcome.output)
+                .map(|output| self.values.get(output.value))
+                .transpose()?,
         };
         let outcome = self.drivers[node].step(&mut io, &input_bytes);
         if let Some(fault) = io.fault {
@@ -1435,7 +1500,11 @@ where
             self.values.get(output.value)?;
         }
         self.ensure_sign_capacity(1)?;
-        if outcome.output.map(|output| output.value) != Some(pending.request.input.value) {
+        // A zero-byte operation has no payload ownership to transfer. Its
+        // exact empty marker remains reusable by a bounded source operation.
+        if pending.maximum_input_bytes > 0
+            && outcome.output.map(|output| output.value) != Some(pending.request.input.value)
+        {
             self.values.release(pending.request.input.value)?;
         }
         self.pending_host_operations[slot]
@@ -1614,6 +1683,7 @@ where
             retained_inputs: [false; PORTS],
             consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
+            canonical_output: None,
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -1629,7 +1699,7 @@ where
         &mut self,
         node: usize,
         outcome: StepOutcome,
-        io: StepIo<PORTS>,
+        mut io: StepIo<PORTS>,
     ) -> Result<(), SchedulerError> {
         let staged = io.staged();
         match outcome {
@@ -1643,29 +1713,54 @@ where
         }
 
         if matches!(outcome, StepOutcome::Progress | StepOutcome::Complete) {
-            let mut sign_records =
-                self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)?;
-            if io.host_request.is_some() {
-                sign_records = sign_records
-                    .checked_add(1)
-                    .ok_or(SchedulerError::InvalidPlan)?;
-            }
-            if io.host_cancellation.is_some() {
-                sign_records = sign_records
-                    .checked_add(1)
-                    .ok_or(SchedulerError::InvalidPlan)?;
-            }
-            if matches!(outcome, StepOutcome::Complete) {
+            let complete_sign_records = if matches!(outcome, StepOutcome::Complete) {
                 if io.host_request.is_some() || io.host_cancellation.is_some() {
                     return Err(SchedulerError::InvalidHostOperationAccess);
                 }
-                sign_records = sign_records
-                    .checked_add(self.output_route_count(node)?)
-                    .and_then(|value| value.checked_add(1))
-                    .ok_or(SchedulerError::InvalidPlan)?;
+                self.output_route_count(node)?
+                    .checked_add(1)
+                    .ok_or(SchedulerError::InvalidPlan)?
+            } else {
+                0
+            };
+            let host_sign_records = usize::from(io.host_request.is_some())
+                .checked_add(usize::from(io.host_cancellation.is_some()))
+                .and_then(|count| count.checked_add(complete_sign_records))
+                .ok_or(SchedulerError::InvalidPlan)?;
+            let generated =
+                derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)?;
+            let mut sign_records =
+                match self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)
+                {
+                    Ok(count) => count,
+                    Err(error) => {
+                        if let Some(value) = generated {
+                            let _ = self.values.release(value);
+                        }
+                        return Err(error);
+                    }
+                };
+            sign_records = match sign_records.checked_add(host_sign_records) {
+                Some(count) => count,
+                None => {
+                    if let Some(value) = generated {
+                        let _ = self.values.release(value);
+                    }
+                    return Err(SchedulerError::InvalidPlan);
+                }
+            };
+            if let Err(error) = self.ensure_sign_capacity(sign_records) {
+                if let Some(value) = generated {
+                    let _ = self.values.release(value);
+                }
+                return Err(error);
             }
-            self.ensure_sign_capacity(sign_records)?;
-            self.commit(node, io.staged_step())?;
+            if let Err(error) = self.commit(node, io.staged_step()) {
+                if let Some(value) = generated {
+                    let _ = self.values.release(value);
+                }
+                return Err(error);
+            }
         }
         match outcome {
             StepOutcome::Progress => {
@@ -1867,6 +1962,7 @@ where
                     operation,
                     input,
                 },
+                maximum_input_bytes: binding.maximum_input_bytes,
                 maximum_output_bytes: binding.maximum_output_bytes,
                 dispatched: false,
                 cancellation_requested: false,

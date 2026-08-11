@@ -353,9 +353,9 @@ const fn seven_bit_to_millionths(value: u8) -> u32 {
 
 const fn pitch_bend_to_millionths(value: u16) -> i32 {
     if value >= 8192 {
-        ((value - 8192) as i32 * 1_000_000) / 8191
+        (((value - 8192) as i64 * 1_000_000) / 8191) as i32
     } else {
-        -(((8192 - value) as i32 * 1_000_000) / 8192)
+        -((((8192 - value) as i64 * 1_000_000) / 8192) as i32)
     }
 }
 
