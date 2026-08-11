@@ -2,6 +2,9 @@
 
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
+mod providers;
+pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
+
 const SBI_EXT_TIME: usize = 0x5449_4d45;
 const SUPERVISOR_TIMER_INTERRUPT: usize = 5;
 const SIE_STIE: usize = 1 << SUPERVISOR_TIMER_INTERRUPT;
@@ -106,6 +109,12 @@ pub fn enable_interrupts() {
 
 pub fn disable_interrupts() {
     unsafe { core::arch::asm!("csrc sstatus, {0}", in(reg) SSTATUS_SIE, options(nostack)) }
+}
+
+pub fn interrupts_enabled() -> bool {
+    let status: usize;
+    unsafe { core::arch::asm!("csrr {0}, sstatus", out(reg) status, options(nostack)) };
+    status & SSTATUS_SIE != 0
 }
 
 pub fn interruptible_idle() {
