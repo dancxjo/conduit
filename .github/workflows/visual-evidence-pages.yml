@@ -50,31 +50,31 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           if git fetch origin refs/heads/conduit-visual-evidence-history:refs/remotes/origin/conduit-visual-evidence-history; then
-            git worktree add --detach target/conduit-gallery-history refs/remotes/origin/conduit-visual-evidence-history
+            git worktree add --detach "$RUNNER_TEMP/conduit-gallery-history" refs/remotes/origin/conduit-visual-evidence-history
           else
-            git worktree add --detach target/conduit-gallery-history HEAD
-            git -C target/conduit-gallery-history switch --orphan conduit-visual-evidence-history
+            git worktree add --detach "$RUNNER_TEMP/conduit-gallery-history" HEAD
+            git -C "$RUNNER_TEMP/conduit-gallery-history" switch --orphan conduit-visual-evidence-history
           fi
-          mkdir -p target/conduit-gallery-history/public
+          mkdir -p "$RUNNER_TEMP/conduit-gallery-history/public"
       - name: Build provenance-bearing gallery
         run: >-
           cargo xtask evidence gallery --locked
           --evidence-root target/conduit-evidence/browser-host
-          --site-root target/conduit-gallery-history/public
+          --site-root "$RUNNER_TEMP/conduit-gallery-history/public"
           --commit "${{ github.sha }}"
       - name: Retain latest 32 accepted main galleries
         run: |
-          git -C target/conduit-gallery-history config user.name github-actions[bot]
-          git -C target/conduit-gallery-history config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git -C target/conduit-gallery-history add -A public
-          if ! git -C target/conduit-gallery-history diff --cached --quiet; then
-            git -C target/conduit-gallery-history commit -m "Publish visual evidence ${{ github.sha }}"
+          git -C "$RUNNER_TEMP/conduit-gallery-history" config user.name github-actions[bot]
+          git -C "$RUNNER_TEMP/conduit-gallery-history" config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git -C "$RUNNER_TEMP/conduit-gallery-history" add -A public
+          if ! git -C "$RUNNER_TEMP/conduit-gallery-history" diff --cached --quiet; then
+            git -C "$RUNNER_TEMP/conduit-gallery-history" commit -m "Publish visual evidence ${{ github.sha }}"
           fi
-          git -C target/conduit-gallery-history push origin HEAD:refs/heads/conduit-visual-evidence-history
+          git -C "$RUNNER_TEMP/conduit-gallery-history" push origin HEAD:refs/heads/conduit-visual-evidence-history
       - name: Upload accepted-main Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: target/conduit-gallery-history/public
+          path: ${{ runner.temp }}/conduit-gallery-history/public
 
   deploy:
     needs: build
