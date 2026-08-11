@@ -10,6 +10,8 @@ use crate::{
     SignSink, ValueRef, ValueStorage,
 };
 
+mod host_cancellation;
+
 const NODES: usize = 6;
 const CORDS: usize = 5;
 const PORTS: usize = 2;

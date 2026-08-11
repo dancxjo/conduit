@@ -21,12 +21,17 @@ use std::time::Duration;
 mod boot_identity;
 mod composition;
 mod copy_task;
+mod deadline_reactor;
 pub mod distributed_signal;
 pub mod distributed_toggle;
 pub use composition::StdHostComposition;
 pub use copy_task::{
     prepare_copy_task, CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, PreparedCopyTask,
     ProtectedFileAvailability, ProtectedFileRegistry,
+};
+pub use deadline_reactor::{
+    DeadlineClock, DeadlineClockError, DeadlineHostAdapter, DeadlineHostError, DeadlineKey,
+    DeadlineReactor, DeadlineReactorError, DeadlineWake, ThreadMonotonicClock,
 };
 pub mod external_websocket;
 mod installed_std;

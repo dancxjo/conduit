@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 
 mod configuration;
 mod control_loop;
+mod deadline;
 mod execution;
 mod face;
 mod implementation;
@@ -22,6 +23,7 @@ mod shared_pool;
 
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use control_loop::*;
+pub use deadline::*;
 pub use execution::*;
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use implementation::{

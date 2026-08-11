@@ -161,6 +161,18 @@ pub enum OperationAction {
 pub trait Operation {
     fn start(&mut self) -> OperationAction;
     fn resume(&mut self, input: OperationInput) -> OperationAction;
+    /// Whether this operation may consume another input while one exact host
+    /// request remains pending. The default preserves backpressure for
+    /// operations whose host interaction must complete before more input.
+    fn accepts_input_while_host_operation_pending(&self) -> bool {
+        false
+    }
+    /// Returns one exact pending host request that this operation wants the
+    /// adapter to cancel. The scheduler validates ownership and dispatch state
+    /// before exposing the cancellation to the host.
+    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+        None
+    }
     /// Resumes one exact admitted value with its canonical bytes borrowed
     /// read-only for this call. The default preserves the opaque-value
     /// contract used by operations that only route or retain identity.
@@ -682,6 +694,7 @@ pub enum KernelEventKind {
     RemoteInputClosed,
     InputClosed,
     HostOperationRequested,
+    HostOperationCancellationRequested,
     HostOperationCompleted,
     OperationCompleted,
     OperationFailed,
