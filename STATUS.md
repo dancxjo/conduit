@@ -28,8 +28,8 @@ adapter or physical proof.
 | Retired membership prototype | historical only | deterministic table tests | no production Body model | no | no | no | no |
 | Observatory | versioned neutral host/capability/Base/link/plan/Play/pressure/current-and-historical-Sign/retention reports with exact identity and bound validation; sealed boot provenance remains distinct from live offers and Bases | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control; native Patchbay validates and linearly renders the same ordinary snapshot exported by ConduitOS | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store; the accepted ConduitOS export is freestanding-emulator proof | no new transport; observed links are report facts only | no new physical/HIL claim |
 | Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and Sign identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, bases, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
-| `conduit.std` | ten exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, state/count, and protected file/copy; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors plus canonical Programs 1–4 | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; minimal/subset compositions advertise only selected offers | no manifestation claim for these ten revisions | no manifestation claim for these ten revisions | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
-| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 10-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 5 implemented, 5 missing without advertising any missing capability | no new browser claim | one x86_64 freestanding-emulator ConduitOS Host runs the unchanged bounded `text/literal -> text/upper -> presentation/text` Form through ordinary planning and the production kernel, then presents exactly `HELLO, CONDUITOS` through its admitted serial Base | no transport | no physical/HIL claim |
+| `conduit.std` | sixteen exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, state/count, scalar latest/tee/gate, scalar compare/select, Boolean not, and protected file/copy; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors, canonical Programs 1–4, and deterministic flow/state/decision pressure, closure, cancellation, and mutation vectors | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; combined scalar flow/state and compare/not/select Forms execute through ordinary planning/lowering, while minimal/subset compositions advertise only selected offers | no manifestation claim for these sixteen revisions | no new firmware manifestation for the six flow/state/decision revisions; the separate ConduitOS row owns its narrower five-contract proof | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
+| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 16-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 5 implemented, 11 missing without advertising any missing capability | no new browser claim | one x86_64 freestanding-emulator ConduitOS Host runs the unchanged bounded `text/literal -> text/upper -> presentation/text` Form through ordinary planning and the production kernel, then presents exactly `HELLO, CONDUITOS` through its admitted serial Base; all six flow/state/decision revisions remain classified missing | no transport | no physical/HIL claim |
 | Copy a file | unsafe prototype disabled | tests removed from default tree | no admitted host operation | no chooser | no | no | no |
 
 ## Required CI claims
@@ -754,6 +754,34 @@ This acceptance defines the evidence and provenance contract only. It emits no
 canonical Patchbay screenshot yet and adds no Actions artifact upload, accepted
 main gallery, documentation publication, pixel-diff policy, second runtime, or
 new source of semantic truth. #822 owns the first deterministic captures.
+
+The typed decision-Kind slice from #776 is accepted at exact main
+`b14d83742205f8dfd54e10d22a5eb90ea2333f79`; push workflow `31445629459`
+passed `check`, `browser-host`, and `conduitos-boot`. The portable catalog now
+defines one-shot `logic/compare`, `logic/not`, and scalar `logic/select` Ports
+using only exact `value/scalar@1` and `value/bool@1` Info. Comparison admits the
+finite configured set `lt`, `le`, `eq`, `ne`, `ge`, and `gt`; Boolean input is
+canonical and never coerced; select requires both candidates to have the same
+complete scalar Value contract.
+
+The std Host advertises exact revisions, implementations, artifacts, and finite
+limits for the three Kinds. One ordinary seven-Cord Form plans, lowers, and
+executes compare, not, and select together through the production
+`conduit-kernel` with capacity-one pressure and zero successful post-Play
+allocations. Scalar minimum, maximum, and equality boundaries cover all six
+operators. Unknown selection retains both finite candidates until a canonical
+selector arrives; success transfers the selected exact value identity and
+atomically releases the other. Closure before a decision, noncanonical Boolean
+input, incompatible branches, cancellation, unsupported configuration, and a
+mutated selected implementation remain deterministic terminal outcomes or
+fail-closed refusals.
+
+Patchbay derives the finite operator control and legibility metadata from the
+authoritative contract. This acceptance adds no expression language, predicate
+or callback registry, truthiness, three-valued logic, erased-value select,
+browser or firmware implementation, transport, physical actuation, or HIL
+claim. ConduitOS truth remains narrower: its gap inventory includes all three
+revisions as missing and advertises none of them.
 
 The first ConduitOS boot slice from #588 is accepted at exact main
 `35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
