@@ -20,6 +20,8 @@ use std::time::{Duration, Instant};
 
 mod boot_identity;
 mod composition;
+#[cfg(test)]
+mod composition_test_offers;
 mod copy_task;
 mod deadline_reactor;
 pub mod distributed_signal;

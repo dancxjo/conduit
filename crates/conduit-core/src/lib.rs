@@ -17,6 +17,8 @@ mod execution;
 mod face;
 mod implementation;
 mod info;
+mod input_chord;
+mod input_keymap;
 mod key_event;
 mod plan_realization;
 mod port;
@@ -37,6 +39,8 @@ pub use implementation::{
     RealizationCharacteristicValue,
 };
 pub use info::*;
+pub use input_chord::*;
+pub use input_keymap::*;
 pub use key_event::*;
 pub use plan_realization::RealizationBack;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};

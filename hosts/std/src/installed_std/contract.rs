@@ -8,8 +8,8 @@ use conduit_core::{
 pub(crate) use conduit_std_catalog::{text_presentation_offer as text_offer, MAX_TEXT_BYTES};
 #[cfg(test)]
 pub(crate) use conduit_std_catalog::{
-    MAX_TEXT_VALUES, TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_IMPLEMENTATION,
-    TEXT_PRESENTATION_KIND, TEXT_PRESENTATION_VALUE_KIND,
+    TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_IMPLEMENTATION, TEXT_PRESENTATION_KIND,
+    TEXT_PRESENTATION_VALUE_KIND,
 };
 
 pub(crate) const TICK_KIND: &str = "time/tick";

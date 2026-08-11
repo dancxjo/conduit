@@ -2,6 +2,7 @@ use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
+use super::input_semantic_operations::{InputSemanticOperation, KeyEventTeeOperation};
 use super::layout_operations::LayoutOperation;
 use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
@@ -59,6 +60,9 @@ pub(super) enum InstalledOperation {
     StateLatestScalar(StateLatestScalarOperation),
     FlowTeeScalar(FlowTeeScalarOperation),
     FlowGateScalar(FlowGateScalarOperation),
+    KeyEventTee(KeyEventTeeOperation),
+    InputKeymap(InputSemanticOperation),
+    InputChords(InputSemanticOperation),
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),
@@ -75,6 +79,10 @@ pub(super) enum InstalledOperation {
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
+    #[cfg(test)]
+    TestKeyEventSource(super::test_input_semantics::TestKeyEventSourceOperation),
+    #[cfg(test)]
+    TestChordSink(super::test_input_semantics::TestChordSinkOperation),
     #[cfg(test)]
     TestScalarSource(super::test_scalar_flow::TestScalarSourceOperation),
     #[cfg(test)]
@@ -101,64 +109,6 @@ pub(super) enum InstalledOperation {
 impl InstalledOperation {
     pub(super) fn inactive() -> Self {
         Self::Inactive
-    }
-
-    pub(super) fn allocation_capacity(&self) -> usize {
-        match self {
-            Self::Tick(operation) => operation.allocation_capacity(),
-            Self::TimeDebounce(operation) => operation.allocation_capacity(),
-            Self::TimeTimeout(operation) => operation.allocation_capacity(),
-            Self::TimeDelay(operation) => operation.allocation_capacity(),
-            Self::TimeThrottle(operation) => operation.allocation_capacity(),
-            Self::TickPresentation(_) => 0,
-            Self::TextLiteral(_) | Self::TextUpper(_) | Self::TextJoin(_) => 0,
-            Self::TextPresentation(_) => 0,
-            Self::StateCount(operation) => operation.allocation_capacity(),
-            Self::StateToggle(_) => 0,
-            Self::CountPresentation(_) => 0,
-            Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) | Self::FlowGateScalar(_) => 0,
-            Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => 0,
-            Self::MathScalar(_) => 0,
-            Self::Layout(_) => 0,
-            Self::PresentationComposition(_) => 0,
-            #[cfg(test)]
-            Self::TestPresentationSink(_) => 0,
-            #[cfg(test)]
-            Self::TestLayoutSink(_) => 0,
-            Self::RoboticsSource(operation) => operation.allocation_capacity(),
-            Self::RoboticsDrive(_) => 0,
-            Self::ExternalWebSocketListener(_) => 0,
-            Self::GenerateText(_) => 0,
-            #[cfg(test)]
-            Self::TestTextSource(operation) => operation.values.capacity(),
-            #[cfg(test)]
-            Self::TestScalarSource(operation) => {
-                operation.values.capacity() + operation.waits.capacity()
-            }
-            #[cfg(test)]
-            Self::TestScalarLiteral(_) => 0,
-            #[cfg(test)]
-            Self::TestScalarSink(_) => 0,
-            #[cfg(test)]
-            Self::TestGateScript(operation) => {
-                operation.items.capacity() + operation.waits.capacity()
-            }
-            #[cfg(test)]
-            Self::TestLogicScript(_) => 0,
-            #[cfg(test)]
-            Self::TestLogicSink(_) => 0,
-            #[cfg(test)]
-            Self::TestSlowScalarSink(operation) => operation.waits.capacity(),
-            #[cfg(test)]
-            Self::TestTimingSink(_) => 0,
-            #[cfg(test)]
-            Self::TestTimingSource(operation) => {
-                operation.values.capacity() + operation.waits.capacity()
-            }
-            #[cfg(test)]
-            Self::TestObserver(_) => 0,
-            Self::Inactive => 0,
-        }
     }
 
     pub(super) fn fail(detail: u16) -> OperationAction {
@@ -188,6 +138,8 @@ impl Operation for InstalledOperation {
             Self::StateLatestScalar(operation) => operation.start(),
             Self::FlowTeeScalar(operation) => operation.start(),
             Self::FlowGateScalar(operation) => operation.start(),
+            Self::KeyEventTee(operation) => operation.start(),
+            Self::InputKeymap(operation) | Self::InputChords(operation) => operation.start(),
             Self::LogicCompareScalar(operation) => operation.start(),
             Self::LogicNot(operation) => operation.start(),
             Self::LogicSelectScalar(operation) => operation.start(),
@@ -204,6 +156,10 @@ impl Operation for InstalledOperation {
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
+            #[cfg(test)]
+            Self::TestKeyEventSource(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestChordSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestScalarSource(operation) => operation.start(),
             #[cfg(test)]
@@ -246,6 +202,10 @@ impl Operation for InstalledOperation {
             (Self::StateLatestScalar(operation), input) => operation.resume(input),
             (Self::FlowTeeScalar(operation), input) => operation.resume(input),
             (Self::FlowGateScalar(operation), input) => operation.resume(input),
+            (Self::KeyEventTee(operation), input) => operation.resume(input),
+            (Self::InputKeymap(operation), input) | (Self::InputChords(operation), input) => {
+                operation.resume(input)
+            }
             (Self::LogicCompareScalar(operation), input) => operation.resume(input),
             (Self::LogicNot(operation), input) => operation.resume(input),
             (Self::LogicSelectScalar(operation), input) => operation.resume(input),
@@ -262,6 +222,10 @@ impl Operation for InstalledOperation {
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestTextSource(_), _) => Self::fail(6),
+            #[cfg(test)]
+            (Self::TestKeyEventSource(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestChordSink(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestObserver(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -294,6 +258,8 @@ impl Operation for InstalledOperation {
             Self::RoboticsDrive(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
             Self::TestLogicSink(operation) => operation.resume_value(port, value, canonical),
+            #[cfg(test)]
+            Self::TestChordSink(operation) => operation.resume_value(port, canonical),
             _ => self.resume(OperationInput::Value { port, value }),
         }
     }
@@ -316,6 +282,8 @@ impl Operation for InstalledOperation {
             Self::StateLatestScalar(operation) => operation.advance(),
             Self::FlowTeeScalar(operation) => operation.advance(),
             Self::FlowGateScalar(operation) => operation.advance(),
+            Self::KeyEventTee(operation) => operation.advance(),
+            Self::InputKeymap(_) | Self::InputChords(_) => OperationAction::Await,
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => {
                 OperationAction::Complete
             }
@@ -335,6 +303,10 @@ impl Operation for InstalledOperation {
                 operation.next += 1;
                 operation.emit_or_complete()
             }
+            #[cfg(test)]
+            Self::TestKeyEventSource(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestChordSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestScalarSource(operation) => operation.advance(),
             #[cfg(test)]
@@ -377,6 +349,8 @@ impl Operation for InstalledOperation {
             Self::StateLatestScalar(operation) => operation.cancel(),
             Self::FlowTeeScalar(operation) => operation.cancel(),
             Self::FlowGateScalar(operation) => operation.cancel(),
+            Self::KeyEventTee(operation) => operation.cancel(),
+            Self::InputKeymap(operation) | Self::InputChords(operation) => operation.cancel(),
             Self::LogicCompareScalar(operation) => operation.cancel(),
             Self::LogicNot(operation) => operation.cancel(),
             Self::LogicSelectScalar(operation) => operation.cancel(),
@@ -393,6 +367,10 @@ impl Operation for InstalledOperation {
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
+            #[cfg(test)]
+            Self::TestKeyEventSource(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestChordSink(_) => {}
             #[cfg(test)]
             Self::TestScalarSource(operation) => operation.cancel(),
             #[cfg(test)]

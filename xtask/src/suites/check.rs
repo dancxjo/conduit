@@ -876,6 +876,47 @@ pub const STD_CATALOG_READINESS_STEPS: &[Step] = &[
     ),
 ];
 
+/// Deterministic K5/K5b contract proof below any platform boundary.
+pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
+    Step::new(
+        "check.input-semantics.core",
+        "test the reusable keymap and chord contracts",
+        "cargo",
+        &["test", "-p", "conduit-core", "--test", "input_semantics"],
+    ),
+    Step::new(
+        "check.input-semantics.std-host",
+        "test ordinary std Host input Forms and bounded operations",
+        "cargo",
+        &["test", "-p", "conduit-std-host", "input_semantics"],
+    ),
+    Step::new(
+        "check.input-semantics.patchbay",
+        "test finite Patchbay input controls",
+        "cargo",
+        &["test", "-p", "patchbay-model", "input_semantic_controls"],
+    ),
+    Step::typed(
+        "check.input-semantics.thumb",
+        "check reusable input contracts for the thumb target",
+        "cargo",
+        &[
+            "check",
+            "-p",
+            "conduit-core",
+            "-p",
+            "conduit-std-catalog",
+            "--no-default-features",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
+    ),
+];
+
 pub const SIM_READINESS_STEPS: &[Step] = &[
     Step::new(
         "check.sim.signal-no-default",

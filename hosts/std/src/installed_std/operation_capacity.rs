@@ -1,0 +1,38 @@
+//! Pre-Play allocation-capacity accounting for installed operations.
+
+use super::operation::InstalledOperation;
+
+impl InstalledOperation {
+    pub(super) fn allocation_capacity(&self) -> usize {
+        match self {
+            Self::Tick(operation) => operation.allocation_capacity(),
+            Self::TimeDebounce(operation) => operation.allocation_capacity(),
+            Self::TimeTimeout(operation) => operation.allocation_capacity(),
+            Self::TimeDelay(operation) => operation.allocation_capacity(),
+            Self::TimeThrottle(operation) => operation.allocation_capacity(),
+            Self::StateCount(operation) => operation.allocation_capacity(),
+            Self::RoboticsSource(operation) => operation.allocation_capacity(),
+            #[cfg(test)]
+            Self::TestTextSource(operation) => operation.values.capacity(),
+            #[cfg(test)]
+            Self::TestKeyEventSource(operation) => {
+                operation.values.capacity() + operation.waits.capacity()
+            }
+            #[cfg(test)]
+            Self::TestScalarSource(operation) => {
+                operation.values.capacity() + operation.waits.capacity()
+            }
+            #[cfg(test)]
+            Self::TestGateScript(operation) => {
+                operation.items.capacity() + operation.waits.capacity()
+            }
+            #[cfg(test)]
+            Self::TestSlowScalarSink(operation) => operation.waits.capacity(),
+            #[cfg(test)]
+            Self::TestTimingSource(operation) => {
+                operation.values.capacity() + operation.waits.capacity()
+            }
+            _ => 0,
+        }
+    }
+}

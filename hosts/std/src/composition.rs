@@ -23,6 +23,7 @@ pub struct StdHostComposition {
     pub signal: bool,
     pub time: bool,
     pub text: bool,
+    pub input: bool,
     pub state: bool,
     pub logic: bool,
     pub math: bool,
@@ -40,6 +41,7 @@ impl StdHostComposition {
             signal: true,
             time: true,
             text: true,
+            input: true,
             state: true,
             logic: true,
             math: true,
@@ -58,6 +60,7 @@ impl StdHostComposition {
             signal: false,
             time: false,
             text: false,
+            input: false,
             state: false,
             logic: false,
             math: false,
@@ -81,6 +84,11 @@ impl StdHostComposition {
 
     pub const fn with_text(mut self) -> Self {
         self.text = true;
+        self
+    }
+
+    pub const fn with_input(mut self) -> Self {
+        self.input = true;
         self
     }
 
@@ -158,6 +166,13 @@ pub(super) fn build_advertisement(
             installed_std::text_offer(),
         ]);
     }
+    if composition.input {
+        capabilities.extend([
+            conduit_std_catalog::key_event_tee_offer(),
+            conduit_std_catalog::keymap_offer(),
+            conduit_std_catalog::chords_offer(),
+        ]);
+    }
     if composition.state {
         capabilities.extend([
             conduit_std_catalog::state_count_offer(),
@@ -220,22 +235,7 @@ pub(super) fn build_advertisement(
         capabilities.push(conduit_net::std_external_websocket_family().capability);
     }
     #[cfg(test)]
-    {
-        capabilities.push(installed_std::test_observer_offer());
-        capabilities.push(installed_std::test_text_source_offer());
-        capabilities.push(installed_std::test_scalar_source_offer());
-        capabilities.push(installed_std::test_layout_sink_offer());
-        capabilities.push(installed_std::test_presentation_sink_offer());
-        capabilities.push(installed_std::test_graphics_sink_offer());
-        capabilities.push(installed_std::test_scalar_literal_offer());
-        capabilities.push(installed_std::test_scalar_sink_offer());
-        capabilities.push(installed_std::test_gate_script_offer());
-        capabilities.push(installed_std::test_logic_script_offer());
-        capabilities.push(installed_std::test_logic_sink_offer());
-        capabilities.push(installed_std::test_slow_scalar_sink_offer());
-        capabilities.push(installed_std::test_timing_sink_offer());
-        capabilities.push(installed_std::test_timing_source_offer());
-    }
+    crate::composition_test_offers::extend(&mut capabilities);
     let mut resources = signal_resource_offers("std/timer", "std/presentation", 16);
     resources.retain(|offer| match offer.pool_id.as_str() {
         "std/timer" => composition.signal || composition.time,
@@ -475,10 +475,8 @@ mod tests {
             .capabilities
             .iter()
             .filter(|offer| {
-                offer
-                    .kind_contract_revision
-                    .as_str()
-                    .starts_with("conduit.std/")
+                let revision = offer.kind_contract_revision.as_str();
+                revision.starts_with("conduit.std/") || revision.starts_with("conduit.input/")
             })
             .cloned()
             .collect::<Vec<_>>();

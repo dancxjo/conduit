@@ -1,5 +1,6 @@
 use super::contract::{self, TICK_ENCODED_LEN, TICK_VALUE_KIND};
 use super::test_gate;
+use super::test_input_semantics;
 use super::test_logic;
 use super::test_scalar_flow;
 use super::test_text_source;
@@ -54,24 +55,6 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     let mut catalog = contract::test_tick_catalog();
     catalog
         .insert(KindDefinition {
-            kind_id: kind_id(contract::TEXT_PRESENTATION_KIND),
-            kind_contract_revision: KindContractRevision::from(
-                contract::TEXT_PRESENTATION_CONTRACT_REVISION,
-            ),
-            inputs: conduit_std_catalog::text_presentation_inputs(),
-            outputs: Vec::new(),
-            configuration: vec![conduit_form::ConfigurationField {
-                key: "maximum-values".to_string(),
-                default_value: conduit_core::ConfigurationValue::U64(contract::MAX_TEXT_VALUES),
-                validation: conduit_form::ConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: contract::MAX_TEXT_VALUES,
-                },
-            }],
-        })
-        .expect("text presentation kind is distinct from typed tick");
-    catalog
-        .insert(KindDefinition {
             kind_id: kind_id(TEST_OBSERVER_KIND),
             kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),
             inputs: test_observer_offer().inputs,
@@ -82,9 +65,12 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     test_text_source::install_catalog(&mut catalog);
     test_scalar_flow::install_catalog(&mut catalog);
     test_gate::install_catalog(&mut catalog);
+    test_input_semantics::install_catalog(&mut catalog);
     test_logic::install_catalog(&mut catalog);
     super::test_timing_sink::install_catalog(&mut catalog);
     let mut startup = conduit_form::StartupCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)
+        .expect("text catalogs are exact and unique");
     conduit_std_catalog::install_timing_catalogs(&mut startup, &mut catalog)
         .expect("timing catalogs are exact and unique");
     conduit_std_catalog::install_logic_catalogs(&mut startup, &mut catalog)
@@ -93,6 +79,8 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         .expect("math catalogs are exact and unique");
     conduit_std_catalog::install_layout_catalogs(&mut startup, &mut catalog)
         .expect("layout catalogs are exact and unique");
+    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut catalog)
+        .expect("input semantic catalogs are exact and unique");
     conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut catalog)
         .expect("presentation composition catalogs are exact and unique");
     conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut catalog)

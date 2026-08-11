@@ -2,8 +2,9 @@ use crate::{
     cli::{CheckArgs, CheckSuite, GlobalOpts},
     process::{run_suite, StepError},
     suites::check::{
-        BROWSER_CHECK_STEPS, FORM_S3_STEPS, KERNEL_TAKEOVER_STEPS, OBSERVATORY_READINESS_STEPS,
-        PLANNING_S2_STEPS, SIM_READINESS_STEPS, STD_CATALOG_READINESS_STEPS, WORKSPACE_STEPS,
+        BROWSER_CHECK_STEPS, FORM_S3_STEPS, INPUT_SEMANTICS_STEPS, KERNEL_TAKEOVER_STEPS,
+        OBSERVATORY_READINESS_STEPS, PLANNING_S2_STEPS, SIM_READINESS_STEPS,
+        STD_CATALOG_READINESS_STEPS, WORKSPACE_STEPS,
     },
     suites::network_capability::NETWORK_CAPABILITY_STEPS,
     suites::pico_compositions::PICO_COMPOSITION_STEPS,
@@ -28,6 +29,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::FormS3 => run_suite(FORM_S3_STEPS, &root, opts),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
         CheckSuite::StdCatalog => run_suite(STD_CATALOG_READINESS_STEPS, &root, opts),
+        CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
