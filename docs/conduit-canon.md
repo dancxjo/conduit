@@ -107,6 +107,12 @@ The DOM, stdout, LEDs, dashboards, and future Workbench canvases are manifestati
 
 A presentation may summarize or arrange runtime facts. It may not manufacture them.
 
+An already-resolved bounded graphics scene may cross one terminal presentation
+Face to request manifestation. That Face names no framebuffer, DOM, window,
+pixel format, or toolkit object: the selected implementation, admitted host
+operation, finite presentation resource, and exact display Base remain Plan and
+Host truth. Transform Kinds do not acquire hidden manifestation side effects.
+
 ## Execution invariants
 
 ### Exact typed ports

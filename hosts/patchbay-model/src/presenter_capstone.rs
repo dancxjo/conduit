@@ -12,11 +12,6 @@ use conduit_form::{
 pub use conduit_std_catalog::PATCHBAY_PRESENTATION_KIND;
 
 const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject > canvas.subject\n}\n";
-const ROOT_BACK: &str = "form presentation/patchbay (\n > subject: Text\n) {\n face: patchbay/gear-face\n port: patchbay/port\n cord: patchbay/cord\n subject > face.subject\n subject > port.subject\n subject > cord.subject\n}\n";
-const GEAR_BACK: &str = "form patchbay/gear-face (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n column: layout/column\n icon: presentation/icon\n frame: presentation/frame\n rect: graphics/rect\n resolved-text: graphics/text\n resolved-icon: graphics/icon\n subject > text.text\n viewport > column\n icon > frame > rect > resolved-text > resolved-icon\n}\n";
-const PORT_BACK: &str = "form patchbay/port (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n align: layout/align\n icon: presentation/icon\n frame: presentation/frame\n rect: graphics/rect\n resolved-text: graphics/text\n subject > text.text\n viewport > align\n icon > frame > rect > resolved-text\n}\n";
-const CORD_BACK: &str = "form patchbay/cord (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n stack: layout/stack\n icon: presentation/icon\n badge: presentation/badge\n rect: graphics/rect\n resolved-text: graphics/text\n subject > text.text\n viewport > stack\n icon > badge > rect > resolved-text\n}\n";
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayPresenterPlans {
     pub direct_expanded: conduit_form::ExpandedCanonicalForm,
@@ -97,6 +92,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)?;
     conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
+    conduit_std_catalog::install_graphics_presentation_catalogs(&mut startup, &mut profile)?;
     conduit_std_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
     Ok((startup, profile))
 }
@@ -106,24 +102,7 @@ fn backs(
     profile: &ProfileCatalog,
 ) -> Result<CanonicalBackCatalog, String> {
     let mut backs = CanonicalBackCatalog::new();
-    for (kind, source) in [
-        (PATCHBAY_PRESENTATION_KIND, ROOT_BACK),
-        (conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND, GEAR_BACK),
-        (conduit_std_catalog::PATCHBAY_PORT_KIND, PORT_BACK),
-        (conduit_std_catalog::PATCHBAY_CORD_KIND, CORD_BACK),
-    ] {
-        let document = check_syntax_document(&parse_syntax_document(source), startup)
-            .map_err(|error| format!("check Back {kind}: {error:?}"))?;
-        backs
-            .insert(
-                profile
-                    .get(&kind.into())
-                    .ok_or_else(|| format!("missing Kind {kind}"))?,
-                &document,
-                kind,
-            )
-            .map_err(|error| format!("register Back {kind}: {error:?}"))?;
-    }
+    conduit_std_catalog::install_patchbay_presentation_backs(startup, profile, &mut backs)?;
     Ok(backs)
 }
 
@@ -157,6 +136,7 @@ fn recursive_host() -> HostAdvertisement {
             conduit_std_catalog::graphics_rect_offer(),
             conduit_std_catalog::graphics_text_offer(),
             conduit_std_catalog::graphics_icon_offer(),
+            conduit_std_catalog::graphics_presentation_offer(),
         ],
     )
 }

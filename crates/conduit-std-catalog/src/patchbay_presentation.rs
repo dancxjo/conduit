@@ -16,6 +16,10 @@ pub const PATCHBAY_PRESENTATION_REVISION: &str = "conduit.patchbay/presentation@
 pub const PATCHBAY_PRESENTATION_INPUT: &str = "subject";
 pub const PATCHBAY_PRESENTATION_VALUE_KIND: &str = "value/text@1";
 pub const MAX_PATCHBAY_PRESENTATION_BYTES: u32 = 1_024;
+pub const PATCHBAY_ROOT_BACK_SOURCE: &str = "form presentation/patchbay (\n > subject: Text\n) {\n face: patchbay/gear-face\n port: patchbay/port\n cord: patchbay/cord\n subject > face.subject\n subject > port.subject\n subject > cord.subject\n}\n";
+pub const PATCHBAY_GEAR_FACE_BACK_SOURCE: &str = "form patchbay/gear-face (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport(width = 320, height = 200, children = 3, child-width = 40, child-height = 30)\n column: layout/column(gap = 3)\n icon: presentation/icon(icon = \"type\", accessibility-name = \"Patchbay\")\n frame: presentation/frame(role = \"panel\", accessibility-name = \"Gear Face\")\n rect: graphics/rect(style = \"stroke\")\n resolved-text: graphics/text(text = \"r\")\n resolved-icon: graphics/icon(icon = \"type\")\n manifest: presentation/graphics\n subject > text.text\n viewport > column\n icon > frame > rect > resolved-text > resolved-icon > manifest.scene\n}\n";
+pub const PATCHBAY_PORT_BACK_SOURCE: &str = "form patchbay/port (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n align: layout/align\n icon: presentation/icon\n frame: presentation/frame\n rect: graphics/rect\n resolved-text: graphics/text\n subject > text.text\n viewport > align\n icon > frame > rect > resolved-text\n}\n";
+pub const PATCHBAY_CORD_BACK_SOURCE: &str = "form patchbay/cord (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport\n stack: layout/stack\n icon: presentation/icon\n badge: presentation/badge\n rect: graphics/rect\n resolved-text: graphics/text\n subject > text.text\n viewport > stack\n icon > badge > rect > resolved-text\n}\n";
 
 pub fn patchbay_presentation_contracts() -> [StandardKindContract; 4] {
     [
@@ -120,6 +124,34 @@ pub fn install_patchbay_presentation_catalogs(
                 configuration: Vec::new(),
             })
             .map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn install_patchbay_presentation_backs(
+    startup: &conduit_form::StartupCatalog,
+    profile: &conduit_form::ProfileCatalog,
+    backs: &mut conduit_form::CanonicalBackCatalog,
+) -> Result<(), alloc::string::String> {
+    use conduit_form::{check_syntax_document, parse_syntax_document};
+    for (kind, source) in [
+        (PATCHBAY_PRESENTATION_KIND, PATCHBAY_ROOT_BACK_SOURCE),
+        (PATCHBAY_GEAR_FACE_KIND, PATCHBAY_GEAR_FACE_BACK_SOURCE),
+        (PATCHBAY_PORT_KIND, PATCHBAY_PORT_BACK_SOURCE),
+        (PATCHBAY_CORD_KIND, PATCHBAY_CORD_BACK_SOURCE),
+    ] {
+        let document = check_syntax_document(&parse_syntax_document(source), startup)
+            .map_err(|error| alloc::format!("check Back {kind}: {error:?}"))?;
+        backs
+            .insert(
+                profile
+                    .get(&kind.into())
+                    .ok_or_else(|| alloc::format!("missing Kind {kind}"))?,
+                &document,
+                kind,
+            )
+            .map_err(|error| alloc::format!("register Back {kind}: {error:?}"))?;
     }
     Ok(())
 }

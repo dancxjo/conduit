@@ -37,6 +37,8 @@ mod conduitos_presentation;
 pub use conduitos_presentation::*;
 mod graphics;
 pub use graphics::*;
+mod graphics_presentation;
+pub use graphics_presentation::*;
 mod time_every;
 pub use time_every::*;
 mod timing;
@@ -127,6 +129,7 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         graphics_rect_contract(),
         graphics_text_contract(),
         graphics_icon_contract(),
+        graphics_presentation_contract(),
         patchbay_presentation_contracts()[0].clone(),
         patchbay_presentation_contracts()[1].clone(),
         patchbay_presentation_contracts()[2].clone(),
@@ -189,6 +192,7 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         graphics_rect_offer(),
         graphics_text_offer(),
         graphics_icon_offer(),
+        graphics_presentation_offer(),
         patchbay_presentation_offers()[0].clone(),
         patchbay_presentation_offers()[1].clone(),
         patchbay_presentation_offers()[2].clone(),
@@ -427,7 +431,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 52);
+        assert_eq!(contracts.len(), 53);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
@@ -443,6 +447,7 @@ mod supported_nucleus_tests {
                 matches!(
                     contract.kind_id.as_str(),
                     BOOL_PRESENTATION_KIND
+                        | GRAPHICS_PRESENTATION_KIND
                         | PATCHBAY_PRESENTATION_KIND
                         | TEXT_PRESENTATION_KIND
                         | LAYOUT_VIEWPORT_KIND

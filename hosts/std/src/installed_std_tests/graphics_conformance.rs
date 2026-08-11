@@ -2,7 +2,27 @@ use super::{host, installed_std, BTreeMap, ConnectionBase, PlanningOptions, Reco
 use conduit_core::{ObservationKind, TerminalDisposition};
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
-use conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES;
+use conduit_presentation::MAX_GRAPHICS_SCENE_BYTES;
+use std::io::{self, Write};
+
+struct LostGraphicsSurface;
+
+impl Write for LostGraphicsSurface {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        if bytes.starts_with(b"graphics scene commands=") {
+            Err(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "graphics surface lost",
+            ))
+        } else {
+            Ok(bytes.len())
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
 
 const FORM: &str = r#"form 0
 
@@ -13,7 +33,7 @@ canonical_gear_face {
  rect: graphics/rect
  text: graphics/text
  glyph: graphics/icon
- sink: conduit.test/graphics-sink
+ sink: presentation/graphics
  icon.icon = "presentation"
  icon.accessibility-name = "Patchbay"
  frame.role = "panel"
@@ -28,7 +48,7 @@ canonical_gear_face {
  badge.presented -> rect.input
  rect.scene -> text.input
  text.scene -> glyph.input
- glyph.scene -> sink.in
+ glyph.scene -> sink.scene
  export face: presentation/gear-face {
   output graphics: presentation/graphics-scene@1 = glyph.scene terminal independent
  }
@@ -50,7 +70,7 @@ fn ordinary_presentation_back_lowers_through_multiple_graphics_kinds() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+            connection_byte_capacity: MAX_GRAPHICS_SCENE_BYTES as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -61,9 +81,13 @@ fn ordinary_presentation_back_lowers_through_multiple_graphics_kinds() {
     assert_eq!(fragment.placements.len(), 7);
     assert_eq!(fragment.connections.len(), 6);
     let mut timer = RecordingTimer { waits: Vec::new() };
+    let mut output = Vec::new();
     let report = host
-        .run_fragment_to(fragment.clone(), &mut Vec::new(), &mut timer)
+        .run_fragment_to(fragment.clone(), &mut output, &mut timer)
         .expect("graphics Form executes through production kernel");
+    assert!(String::from_utf8(output)
+        .unwrap()
+        .contains("graphics scene commands=3\n"));
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
@@ -76,6 +100,11 @@ fn ordinary_presentation_back_lowers_through_multiple_graphics_kinds() {
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
     );
+
+    let error = host
+        .run_fragment_to(fragment.clone(), &mut LostGraphicsSurface, &mut timer)
+        .expect_err("lost graphics surface is not presentation success");
+    assert!(error.contains("graphics surface lost"), "{error}");
 
     let mut unsupported = fragment.clone();
     let graphics = unsupported
