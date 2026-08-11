@@ -12,6 +12,7 @@ use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::presentation_composition::PresentationCompositionOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
+use super::synth_operation::MusicSynthOperation;
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
@@ -75,6 +76,7 @@ pub(super) enum InstalledOperation {
     TestLayoutSink(super::layout_operations::LayoutSinkOperation),
     RoboticsSource(RoboticsSourceOperation),
     RoboticsDrive(RoboticsDriveOperation),
+    MusicSynth(MusicSynthOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
@@ -152,6 +154,7 @@ impl Operation for InstalledOperation {
             Self::TestLayoutSink(operation) => operation.start(),
             Self::RoboticsSource(operation) => operation.start(),
             Self::RoboticsDrive(operation) => operation.start(),
+            Self::MusicSynth(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
@@ -218,6 +221,7 @@ impl Operation for InstalledOperation {
             (Self::TestLayoutSink(operation), input) => operation.resume(input),
             (Self::RoboticsSource(operation), input) => operation.resume(input),
             (Self::RoboticsDrive(operation), input) => operation.resume(input),
+            (Self::MusicSynth(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -296,6 +300,7 @@ impl Operation for InstalledOperation {
             Self::TestLayoutSink(_) => OperationAction::Await,
             Self::RoboticsSource(operation) => operation.advance(),
             Self::RoboticsDrive(operation) => operation.advance(),
+            Self::MusicSynth(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             #[cfg(test)]
@@ -363,6 +368,7 @@ impl Operation for InstalledOperation {
             Self::TestLayoutSink(_) => {}
             Self::RoboticsSource(operation) => operation.cancel(),
             Self::RoboticsDrive(operation) => operation.cancel(),
+            Self::MusicSynth(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]
@@ -401,6 +407,7 @@ impl Operation for InstalledOperation {
             Self::LogicSelectScalar(operation) => operation.retains_resumed_value(),
             Self::TimeDebounce(operation) => operation.retains_resumed_value(),
             Self::TimeDelay(operation) => operation.retains_resumed_value(),
+            Self::MusicSynth(operation) => operation.retains_resumed_value(),
             _ => false,
         }
     }
@@ -415,6 +422,7 @@ impl Operation for InstalledOperation {
             Self::TimeTimeout(operation) => operation.take_released_value(),
             Self::TimeDelay(operation) => operation.take_released_value(),
             Self::TimeThrottle(operation) => operation.take_released_value(),
+            Self::MusicSynth(operation) => operation.take_released_value(),
             _ => None,
         }
     }

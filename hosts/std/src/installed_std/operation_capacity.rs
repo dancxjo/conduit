@@ -12,6 +12,7 @@ impl InstalledOperation {
             Self::TimeThrottle(operation) => operation.allocation_capacity(),
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
+            Self::MusicSynth(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
             #[cfg(test)]

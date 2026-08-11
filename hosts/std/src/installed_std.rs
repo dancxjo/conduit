@@ -17,6 +17,7 @@ mod pacing_operations;
 mod presentation_composition;
 mod robotics_effect;
 mod robotics_operations;
+mod synth_operation;
 #[cfg(test)]
 mod test_gate;
 #[cfg(test)]
@@ -82,6 +83,7 @@ const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 64;
 
 pub(super) use contract::text_offer;
+pub(super) use synth_operation::offer as synth_offer;
 #[cfg(test)]
 pub(super) use test_support::{
     test_catalog, test_graphics_sink_offer, test_layout_sink_offer, test_observer_offer,
@@ -418,6 +420,20 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     let mut generate_text_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
+    let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
+    let mut synth_states = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_synth::REFERENCE_SYNTH_IMPLEMENTATION_ID
+            {
+                synth_operation::InstalledSynthState::new().map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
@@ -456,7 +472,37 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if contract.as_str() == conduit_ai::GENERATE_TEXT_HOST_OPERATION {
+            if contract.as_str() == synth_operation::SYNTH_HOST_OPERATION {
+                let state = synth_states
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "synth request has no exact admitted state".to_string())?;
+                let has_output = synth_operation::execute(state, input, &mut synth_output)?;
+                let output = if has_output {
+                    let value = scheduler
+                        .store_host_value(&synth_output)
+                        .map_err(|error| format!("store reference synth PCM: {error:?}"))?;
+                    Some(
+                        BoundedValueRef::new(value, synth_operation::PCM_BLOCK_BYTES)
+                            .map_err(|error| format!("bound reference synth PCM: {error:?}"))?,
+                    )
+                } else {
+                    None
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete reference synth render: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_ai::GENERATE_TEXT_HOST_OPERATION {
                 let placement = fragment
                     .placements
                     .get(usize::from(request.node.0))
@@ -883,6 +929,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         }
     };
+    for state in synth_states.iter_mut().flatten() {
+        state.stop();
+    }
     if !deadlines.is_empty() {
         return Err("installed deadline effects survived terminal Play state".to_string());
     }
