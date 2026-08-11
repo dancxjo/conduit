@@ -644,6 +644,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-kernel",
+ "conduit-midi",
  "conduit-net",
  "conduit-planner",
  "conduit-presentation",

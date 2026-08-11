@@ -57,6 +57,8 @@ pub enum Command {
     Conduitos(ConduitosArgs),
     /// Inspect and prove one explicit hosted PCM playback resource.
     Audio(AudioArgs),
+    /// Inspect exact hosted MIDI sequencer endpoints.
+    Midi(MidiArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
     /// Generate the bounded Patchbay GNU Unifont subset.
@@ -248,6 +250,18 @@ pub enum AudioCommand {
 }
 
 #[derive(Args, Debug)]
+pub struct MidiArgs {
+    #[command(subcommand)]
+    pub command: MidiCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum MidiCommand {
+    /// List fresh directional ALSA sequencer metadata without opening a port.
+    List,
+}
+
+#[derive(Args, Debug)]
 pub struct DoctorArgs {
     /// What to inspect (default: all).
     #[arg(default_value = "all")]
@@ -391,6 +405,9 @@ mod tests {
         let audio = Cli::try_parse_from(["xtask", "audio", "list"])
             .expect("audio discovery command parses");
         assert!(matches!(audio.command, Command::Audio(_)));
+        let midi =
+            Cli::try_parse_from(["xtask", "midi", "list"]).expect("MIDI discovery command parses");
+        assert!(matches!(midi.command, Command::Midi(_)));
         assert!(Cli::try_parse_from([
             "xtask",
             "audio",
