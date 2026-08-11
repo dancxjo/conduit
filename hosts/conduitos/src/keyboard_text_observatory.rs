@@ -95,6 +95,7 @@ pub fn completed_snapshot(
             capacity_units: capacity,
         });
     }
+    crate::observatory::append_framebuffer_base(&mut bases, &host_id, &boot_id, framebuffer)?;
     let play = PlayReport {
         active_play_id: prepared.active_play.active_play_id.clone(),
         plan_id: prepared.plan.plan_id.clone(),

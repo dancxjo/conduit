@@ -89,7 +89,7 @@ pub fn prepare_export(
             availability: CapabilityAvailability::Available,
         })
         .collect();
-    let bases = offer
+    let mut bases = offer
         .bases
         .iter()
         .map(|base| BaseReport {
@@ -101,6 +101,7 @@ pub fn prepare_export(
             capacity_units: u64::from(base.capacity),
         })
         .collect::<Vec<_>>();
+    append_framebuffer_base(&mut bases, &host_id, &boot_id, framebuffer)?;
     let fragment = prepared
         .plan
         .fragments
@@ -200,6 +201,29 @@ pub fn prepare_export(
         return Err(ExportError::ExportTooLarge);
     }
     Ok(PreparedObservatoryExport { encoded })
+}
+
+pub(crate) fn append_framebuffer_base(
+    bases: &mut Vec<BaseReport>,
+    host_id: &conduit_core::HostId,
+    boot_id: &conduit_core::BootId,
+    framebuffer: Option<&FramebufferBasis>,
+) -> Result<(), ExportError> {
+    let Some(framebuffer) = framebuffer else {
+        return Ok(());
+    };
+    let capacity_units = u64::from(framebuffer.pitch_bytes)
+        .checked_mul(u64::from(framebuffer.height))
+        .ok_or(ExportError::InvalidSnapshot)?;
+    bases.push(BaseReport {
+        host_id: host_id.clone(),
+        boot_id: boot_id.clone(),
+        base_id: framebuffer.base_id.clone(),
+        kind_id: HostBaseKindId::from("conduitos.base/framebuffer@1"),
+        state: OperationalState::Available,
+        capacity_units,
+    });
+    Ok(())
 }
 
 fn historical_signs(

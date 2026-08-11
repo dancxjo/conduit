@@ -336,7 +336,7 @@ pub(super) fn prove_xhci_absent(paths: &Paths) -> Result<String, ConduitosError>
             "-display",
             "none",
             "-vga",
-            "none",
+            "std",
             "-monitor",
             "none",
             "-serial",
@@ -410,7 +410,7 @@ fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {
         || sign.host_id.len() != 64
         || sign.boot_id.len() != 64
         || sign.memory_regions == 0
-        || sign.runtime_arena_bytes != 1_048_576
+        || sign.runtime_arena_bytes != 4_194_304
     {
         return Err(ConduitosError::refusal(
             "invalid-boot-sign",
@@ -599,12 +599,13 @@ fn validate_observatory(
         "conduit.std/presentation-tick@1",
         "conduitos/kernel-serial-tick@1",
     );
-    let bases_match = snapshot.bases.len() == kernel.base_ids.len()
+    let bases_match = snapshot.bases.len() == kernel.base_ids.len() + 1
         && snapshot.bases.iter().all(|base| {
             base.host_id.as_str() == boot.host_id
                 && base.boot_id.as_str() == boot.boot_id
                 && base.state == OperationalState::Available
-                && kernel.base_ids.iter().any(|id| id == base.base_id.as_str())
+                && (kernel.base_ids.iter().any(|id| id == base.base_id.as_str())
+                    || base.base_id.as_str() == presentation.display_base_id)
         });
     let exact_base = |kind: &str, capacity: u64| {
         snapshot
@@ -618,7 +619,11 @@ fn validate_observatory(
         && exact_base("conduitos.base/serial@1", 2)
         && exact_base("conduitos.base/interrupt@1", 4)
         && exact_base("conduitos.base/idle@1", 1)
-        && exact_base("conduitos.base/execution-lane@1", 2);
+        && exact_base("conduitos.base/execution-lane@1", 2)
+        && exact_base(
+            "conduitos.base/framebuffer@1",
+            u64::from(presentation.display_pitch) * u64::from(presentation.display_height),
+        );
     let current_signs = snapshot
         .observations
         .iter()
