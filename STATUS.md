@@ -13,7 +13,8 @@ adapter or physical proof.
 | ConduitOS bounded USB enumeration | one attachment-scoped device identity binds the exact boot, xHCI Base, root port, slot, USB address, structural interfaces, and endpoints; all enumeration storage and progress are finite | deterministic descriptor, topology, capacity, reset, vanish, transfer, completion-identity, and stale-attachment vectors remain distinct; a real device-absent QEMU boot refuses without a device | no hosted implementation; `cargo xtask conduitos usb-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned root-attached QEMU USB device completes bounded reset, enable/address, five EP0 control transfers, descriptor parsing, and `SET_CONFIGURATION` through the accepted xHCI Base | no hub, hotplug, or external transport claim | the enumeration slice itself claims no HID report parsing, semantic input, key event, physical device, or HIL proof |
 | ConduitOS bounded HID boot keyboard | one attachment-scoped HID-local identity binds the exact boot, xHCI Base, USB device, boot-keyboard interface, interrupt-IN endpoint, transfer completions, and ordered usage transitions; all report, queue, transfer, polling, and Sign work is finite | deterministic interface, endpoint, packet, protocol, report, rollover, duplicate-usage, completion-identity, removal, and pressure refusals remain distinct without fabricated transitions | no hosted implementation; `cargo xtask conduitos hid-proof` owns the repository proof entrance and retained JSON report | no browser claim | one pinned QEMU USB boot keyboard receives an acknowledged QMP key action, completes `SET_PROTOCOL` and two real interrupt-IN transfers, and derives exact usage `0x04` press then release through the accepted xHCI/USB path | no external transport claim | freestanding-emulator only; no semantic `input/keyboard` offer, layout, Unicode, general HID parser, physical device, or HIL claim |
 | Portable keyboard semantics | `input/key-event@1` is one exact 3-byte value using the HID Keyboard/Keypad usage page as host-neutral vocabulary, Pressed/Released, and eight distinct modifier bits after the transition; `input/keyboard` is a normal typed closing-flow source with an exact revision, finite queue, input resource, and bounded next-event host-operation requirement | reusable A, Shift+A, left/right modifier, and simultaneous-key vectors cross the fixed kernel unchanged; capacity-one pressure, closure, cancellation, host-input failure, malformed encoding, reserved usage, and inconsistent modifier state remain distinct | contract/catalog only; Patchbay discovers the semantic Kind, but the std Host truthfully advertises no implementation offer | no browser implementation claim | no firmware or ConduitOS semantic binding claim | no transport | no physical keyboard or HIL claim |
-| Portable text and chord semantics | `input/keymap` maps exact key events through the finite `conduit-intl` base, Shift, AltGr, Compose, and Unicode-scalar tables into canonical text; `input/chords` maps exact Control/LeftAlt/LeftMeta combinations into structural `input/chord@1` values; `input/key-tee` performs exact typed atomic fan-out | complete reviewed mappings, invalid/malformed/overflow/reset paths, RightAlt/RightMeta reservation, unknown/release suppression, cross-plane type refusal, capacity-one branching pressure, cancellation, and closure are deterministic | the std Host installs all three bounded operations and runs one ordinary production-kernel Form with independent text and explicit chord-control branches; keymap text also feeds `text/upper` without adaptation; `cargo xtask check input-semantics` owns the repository proof entrance | no browser implementation claim | K6 executes the unchanged default-keymap text branch through `text/upper` and serial presentation on ConduitOS; a second Host for the chord branch remains later work | no transport | no physical keyboard or HIL claim |
+| Portable text and chord semantics | `input/keymap` maps exact key events through the finite `conduit-intl` base, Shift, AltGr, Compose, and Unicode-scalar tables into canonical text; `input/chords` maps exact Control/LeftAlt/LeftMeta combinations into structural `input/chord@1` values; `input/key-tee` performs exact typed atomic fan-out | complete reviewed mappings, invalid/malformed/overflow/reset paths, RightAlt/RightMeta reservation, unknown/release suppression, cross-plane type refusal, capacity-one branching pressure, cancellation, and closure are deterministic | the std Host installs all three bounded operations and runs one ordinary production-kernel Form with independent text and explicit chord-control branches; the native Patchbay peer passes the same keymap/chord vectors; `cargo xtask check input-semantics` owns the repository proof entrance | no browser implementation claim | K6 executes the unchanged default-keymap text branch through `text/upper` and serial presentation on ConduitOS; its USB bridge and the native peer emit byte-identical shared key-event vectors | no transport | no physical keyboard or HIL claim |
+| Highest-honest-seam keyboard peers | one unchanged platform-neutral keyboard Form and one exact `input/key-event@1` meaning admit materially different truthful sources at their highest honest seam | unidentified or unsupported physical codes, repeats, duplicate presses, unmatched releases, queue pressure, focus loss, cancellation, closure, and ConduitOS USB mechanism failures remain distinct | native Patchbay maps real `winit::PhysicalKey::Code` transitions directly through `patchbay-native/winit-keyboard@1`, retaining exact left/right modifiers, sixteen held keys, eight event slots, one operation slot, and one boot-scoped window-input Base; it reuses the portable keymap/chord tables and can plan the unchanged K6 Form | no browser keyboard implementation claim | ConduitOS continues to select `conduitos/usb-hid-keyboard@1` over exact xHCI/device/interface/endpoint Bases; it shares normalized bytes and semantics with the native peer without either inventing the other's lower machinery | no external transport claim | conformance plus the already-accepted freestanding-emulator USB proof; no native UI automation, physical keyboard, or HIL claim |
 | ConduitOS portable keyboard realization | one ready boot-local xHCI/device/interface/endpoint chain yields one exact `conduitos/usb-hid-keyboard@1` offer, ordinary keyboard Plan, production-kernel Play, and portable press/release values with finite device, report, transition, operation, memory, and Cord reservations | absent/unhealthy/ambiguous device truth, stale boot or artifact identity, capacity exhaustion, malformed values, Cord pressure, cancellation, transfer failure, device loss, and closure remain distinct; a real no-device boot emits no keyboard offer | no hosted implementation; `cargo xtask conduitos keyboard-proof` owns the repository proof entrance and retained JSON report | no browser implementation claim | one pinned QEMU USB keyboard produces `[4,0,0]` then `[4,1,0]` through the planned source and native Observatory/Patchbay projection | no external transport claim | freestanding-emulator only; no keymap/text, hotplug, physical keyboard, or HIL claim |
 | ConduitOS keyboard-text ordinary Form | one unchanged platform-neutral authored `input/keyboard -> input/keymap -> text/upper -> presentation/text` Form defaults omitted configuration to exact `conduit-intl`, plans four exact implementations and three typed bounded Cords, and executes through the production kernel | absent offer, stale realization, unsupported layout, malformed key, invalid Unicode, Cord pressure and byte underprovision, presentation or source failure, cancellation, device loss, closure, and synthetic-proof substitution remain distinct | no hosted implementation; `cargo xtask conduitos keyboard-proof` owns the typed repository entrance and retains the complete snapshot | no browser adapter claim | one pinned QEMU USB keyboard types ordinary, AltGr, Compose, and Unicode-hex sequences; visible serial fragments prove `HELLO` and `ÆÉΛ`; a standard Observatory snapshot and generic Patchbay rendering preserve the exact Form/Plan/Play, placements, Cords, Signs, boot provenance, and xHCI/device/interface/endpoint Bases | no external transport claim | freestanding-emulator only; no hotplug, peer input, physical keyboard, or HIL claim |
 | ConduitOS low-level local rescue | one interactive x86_64 profile taps opaque validated physical HID transitions before semantic routing, admits exact Ctrl+Alt+Delete under local-only policy, records one boot-scoped request, and crosses one bounded machine-reset Base without making an ordinary Form or second runtime authoritative | finite matcher, malformed-report, held-key, disabled-policy, unavailable-reset, stale/same-Boot, and physical Ctrl+Delete, Alt+Delete, and Ctrl+Alt+Backspace refusal vectors remain distinct | no hosted implementation; `cargo xtask conduitos rescue-proof` owns same-QEMU request/completion correlation and retained JSON/transcript evidence | no browser rescue claim | separate no-Form and active ordinary K6 Play cases each observe B1, one guest-issued reset request, and fresh B2 with `B2 != B1` in one pinned QEMU process; request acceptance and reboot completion remain distinct | local physical/emulator input only; remote semantic key values cannot construct local authority | freestanding-emulator only; no frozen-machine/NMI, physical keyboard, or HIL claim |
@@ -90,6 +91,13 @@ The `check` workflow requires:
   distinct refusal outcomes, and standard Observatory snapshot consumed by
   generic Patchbay rendering are checked and retained by that same typed
   `cargo xtask conduitos keyboard-proof` entrance;
+- one documented highest-honest-seam rule and real native Patchbay keyboard
+  peer that maps physical codes directly to the portable key-event vocabulary,
+  advertises an exact finite window-input realization without USB/HID fiction,
+  matches the ConduitOS USB bridge byte-for-byte, reuses the exact Unicode and
+  chord semantics, plans the unchanged K6 Form, and keeps platform mapping,
+  pressure, focus, cancellation, and closure failures distinct under
+  `cargo xtask check input-semantics`;
 - one bounded low-level ConduitOS local rescue path that consumes only opaque
   validated physical HID transitions before ordinary keyboard planning,
   recognizes exact Ctrl+Alt+Delete once, records B1 and exact local authority,
@@ -1563,8 +1571,54 @@ presentation, USB source failure, source failure versus cancellation, late
 output after cancellation, device loss versus closure, omitted default versus
 explicit unsupported locale, and synthetic/emulator proof substitution
 machine-readable and distinct. This is freestanding-emulator proof only.
-Hotplug remains owned by #813, a live peer Host by #815, and no physical
-keyboard or HIL proof is claimed.
+Hotplug remains owned by #813, and no physical keyboard or HIL proof is
+claimed.
+
+The portable modifier-chord K5b slice from #814 and highest-honest-seam K8
+slice from #815 are accepted at exact main
+`cca1aa480546e901a689810a69ec2c143d91025b`. PR-head workflow `31490336051`
+and exact-main push workflow `31490835414` passed `classify`, `check`,
+`browser-host`, and `conduitos-boot`. The prerequisite portable input semantics
+landed at exact main `d9c28dccf076dc63715de6daca14965d3f55ae31` after
+PR-head workflow `31481385019`; exact-main workflow `31481729557` passed the
+same full matrix.
+
+`input/chord@1` remains a four-byte structural semantic value and
+`input/chords` remains one normal bounded Gear. Its finite `conduit-core` table
+maps reviewed Control, LeftAlt, and LeftMeta combinations to semantic hints
+without executing actions, synthesizing C0 bytes or POSIX signals, or stealing
+RightAlt/RightMeta from Unicode entry. The std Host ordinary production-kernel
+Form uses exact atomic key-event fan-out so normal text continues independently
+while Ctrl+G reaches an explicit typed control sink under capacity-one pressure.
+The native peer passes the same Ctrl+G, LeftAlt+P, and LeftMeta+P vectors and
+keeps RightAlt/RightMeta reserved for the exact shared keymap.
+
+The documented highest-honest-seam rule now has two materially different real
+entrances. ConduitOS converts validated HID transitions above exact
+xHCI/device/interface/endpoint Bases. Native Patchbay consumes real
+`winit::PhysicalKey::Code` transitions directly and advertises
+`patchbay-native/winit-keyboard@1` over one boot-scoped window-input Base,
+eight event slots (24 bytes), sixteen held-key slots, one input slot, and one
+operation slot. It does not inspect localized logical text, XKB/OS layout,
+timestamps, window identity, HID reports, or USB facts to construct portable
+values.
+
+Both entrances pass the same byte-exact raw vectors for press/release,
+left/right Shift, shifted A, simultaneous A/B, Alt, and Meta identity. The
+native values then exercise the exact shared `conduit-intl` state machine for
+plain and shifted letters, AltGr `æ`, Compose `é`, and Unicode-hex `λ`, plus
+the exact shared chord mapper. The unchanged K6 authored source checks and
+plans with the native source while retaining its semantic identity; the native
+Plan selects distinct Host, Boot, implementation, artifact, window-input Base,
+and finite resources and contains no xHCI, USB, or HID claim.
+
+Native unidentified/unsupported keys, platform repeats, duplicate presses,
+unmatched releases, queue pressure, focus loss, cancellation, and closure stay
+distinct. ConduitOS device/endpoint failures retain their already-accepted
+mechanism-specific diagnostics rather than being normalized away. This adds no
+browser keyboard, Bluetooth, PS/2, remote-control authority, global shortcut
+daemon, alternate keymap/chord contract, physical keyboard, or HIL claim.
+Hotplug and fresh device realization remain owned by #813.
 
 The documentation-only CI fast path from #863 is accepted at exact main
 `965e5ef34b87d180a13fd7cf88e70331a416e40e`; push workflow `31453748480`
