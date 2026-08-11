@@ -247,3 +247,27 @@ fn simultaneous_input_deadline_order_is_deterministic_and_late_wakes_remain_corr
         .expect("late monotonic wake still completes the correlated request");
     assert!(!late_timer.deadlines.is_empty());
 }
+
+#[test]
+fn zero_and_maximum_duration_schedules_are_deterministic() {
+    let maximum = conduit_std_catalog::TIME_MAXIMUM_DURATION_MS;
+    let zero = TIMEOUT_FORM
+        .replace("period-ms = 10", "period-ms = 0")
+        .replace("7ms", "0ms");
+    let maximum = TIMEOUT_FORM
+        .replace("period-ms = 10", &format!("period-ms = {maximum}"))
+        .replace("7ms", &format!("{maximum}ms"));
+
+    for (source, id) in [
+        (zero.as_str(), "zero-duration-timeout"),
+        (maximum.as_str(), "maximum-duration-timeout"),
+    ] {
+        let (first, first_timer) = run(source, id);
+        let (repeated, repeated_timer) = run(source, id);
+        assert_eq!(first_timer.deadlines, repeated_timer.deadlines);
+        assert_eq!(
+            first.kernel.expect("first kernel report").kernel_sign,
+            repeated.kernel.expect("repeated kernel report").kernel_sign
+        );
+    }
+}
