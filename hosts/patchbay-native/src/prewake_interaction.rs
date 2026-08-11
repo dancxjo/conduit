@@ -50,6 +50,18 @@ impl PatchbayApplication {
                     .release(editor, environment);
             }
             GuiAction::PrewakeExit => self.prewake.as_mut().expect("PREWAKE present").exit(),
+            GuiAction::PrewakeNextImplementation(subject) => {
+                let editor = self.form_editor.as_ref().ok_or("PREWAKE Form is absent")?;
+                let environment = self
+                    .environment
+                    .as_ref()
+                    .ok_or("PREWAKE environment is absent")?;
+                let _ = self
+                    .prewake
+                    .as_mut()
+                    .expect("PREWAKE present")
+                    .request_next_implementation(editor, environment, &subject);
+            }
             _ => return Err("non-PREWAKE action reached PREWAKE controls".into()),
         }
         if let Some(window) = &self.window {

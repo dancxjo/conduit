@@ -2,7 +2,7 @@
 
 use crate::{
     canvas::SoftwareCanvas,
-    gui_gear::draw_gear,
+    gui_gear::{draw_gear, GearViewContext},
     gui_hit::HitShape,
     gui_inspector::draw_inspector,
     gui_primitives::{
@@ -20,6 +20,7 @@ use patchbay_model::{PatchbayGear, PatchbayGraph, PatchbayTheme, PHOSPHOR_THEME}
 pub use crate::gui_hit::{GuiAction, HitTarget};
 
 pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
+    + patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_PORTS
     + patchbay_model::MAX_PATCHBAY_CORDS
@@ -47,6 +48,8 @@ pub struct PatchbayViewContext<'a> {
     pub lifecycle: &'a LifecycleContext,
     pub palette_query: &'a str,
     pub presentation_layout: &'a patchbay_model::PatchbayLayout,
+    pub realization_plan: Option<&'a conduit_core::Plan>,
+    pub realization_hosts: &'a [conduit_core::HostAdvertisement],
 }
 
 #[derive(Clone)]
@@ -70,6 +73,8 @@ pub fn draw_patchbay(
         lifecycle,
         palette_query,
         presentation_layout,
+        realization_plan,
+        realization_hosts,
     } = view;
     debug_assert!(Icon::ALL
         .iter()
@@ -113,13 +118,18 @@ pub fn draw_patchbay(
         theme,
         &mut targets,
     );
+    let gear_view = GearViewContext {
+        presentation_layout,
+        realization_plan,
+        realization_hosts,
+    };
     for layout in &layouts {
         draw_gear(
             &mut canvas,
             graph,
             layout,
             selected,
-            presentation_layout,
+            &gear_view,
             theme,
             &mut targets,
         );

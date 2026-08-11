@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 
 pub const MAX_PREWAKE_HISTORY: usize = 8;
 
@@ -90,6 +90,8 @@ pub struct PrewakeController {
     provenance: PrewakeProvenance,
     history: VecDeque<(PrewakeBasis, PlanId, Option<SimulatedPlay>)>,
     last_refusal: Option<PrewakeError>,
+    implementation_preferences:
+        BTreeMap<conduit_core::GearId, (HostId, conduit_core::CapabilityId)>,
 }
 
 impl Default for PrewakeController {
@@ -100,6 +102,7 @@ impl Default for PrewakeController {
             provenance: PrewakeProvenance::default(),
             history: VecDeque::with_capacity(MAX_PREWAKE_HISTORY),
             last_refusal: None,
+            implementation_preferences: BTreeMap::new(),
         }
     }
 }
@@ -194,6 +197,82 @@ impl PrewakeController {
         self.state = PrewakeState::Off;
         self.hold = false;
         self.last_refusal = None;
+        self.implementation_preferences.clear();
+    }
+
+    pub fn realization_inspection(
+        &self,
+        editor: &FormEditor,
+        environment: &AuthoredEnvironment,
+        subject: &crate::PatchbaySubjectRef,
+    ) -> Result<crate::GearRealizationInspection, PrewakeError> {
+        let expanded = editor
+            .expand_form(&editor.view().open_form)
+            .map_err(|_| PrewakeError::InvalidForm)?;
+        let graph = crate::PatchbayGraph::from_expanded(&expanded)
+            .map_err(|_| PrewakeError::InvalidForm)?;
+        let plan = match &self.state {
+            PrewakeState::Auto { plan, .. } | PrewakeState::Held { plan, .. } => Some(plan),
+            PrewakeState::Off => None,
+        };
+        crate::GearRealizationInspection::inspect(
+            &graph,
+            subject,
+            plan,
+            &simulated_advertisements(environment),
+        )
+        .map_err(|error| PrewakeError::Planning(error.to_string()))
+    }
+
+    pub fn request_next_implementation(
+        &mut self,
+        editor: &FormEditor,
+        environment: &AuthoredEnvironment,
+        subject: &crate::PatchbaySubjectRef,
+    ) -> Result<(), PrewakeError> {
+        let inspection = match self.realization_inspection(editor, environment, subject) {
+            Ok(inspection) => inspection,
+            Err(error) => {
+                self.last_refusal = Some(error.clone());
+                return Err(error);
+            }
+        };
+        let gear_id = inspection.gear_id.clone();
+        let alternative = inspection
+            .alternatives
+            .iter()
+            .find(|candidate| candidate.disposition == crate::RealizationDisposition::Compatible)
+            .ok_or_else(|| {
+                PrewakeError::Planning(
+                    "no other compatible simulated implementation is available".into(),
+                )
+            });
+        let alternative = match alternative {
+            Ok(alternative) => alternative,
+            Err(error) => {
+                self.last_refusal = Some(error.clone());
+                return Err(error);
+            }
+        };
+        let prior = self.implementation_preferences.insert(
+            gear_id.clone(),
+            (
+                alternative.host_id.clone(),
+                alternative.capability_id.clone(),
+            ),
+        );
+        if let Err(error) = self.rehearse(editor, environment) {
+            match prior {
+                Some(value) => {
+                    self.implementation_preferences.insert(gear_id, value);
+                }
+                None => {
+                    self.implementation_preferences.remove(&gear_id);
+                }
+            }
+            return Err(error);
+        }
+        Ok(())
     }
 
     fn prepare(
@@ -219,8 +298,17 @@ impl PrewakeController {
             .iter()
             .map(|host| host.advertisement().clone())
             .collect::<Vec<HostAdvertisement>>();
-        let placements = default_expanded_placements(&expanded, &advertisements)
+        let mut placements = default_expanded_placements(&expanded, &advertisements)
             .map_err(|error| PrewakeError::Planning(error.to_string()))?;
+        for (gear_id, (host_id, capability_id)) in &self.implementation_preferences {
+            placements.by_gear.insert(
+                gear_id.clone(),
+                conduit_planner::PlacementChoice {
+                    host_id: host_id.clone(),
+                    capability_id: capability_id.clone(),
+                },
+            );
+        }
         let plan = plan_expanded_canonical(
             &expanded,
             &advertisements,
@@ -297,6 +385,13 @@ fn simulated_hosts(environment: &AuthoredEnvironment) -> Vec<StdHost> {
         )
     });
     hosts
+}
+
+pub fn simulated_advertisements(environment: &AuthoredEnvironment) -> Vec<HostAdvertisement> {
+    simulated_hosts(environment)
+        .iter()
+        .map(|host| host.advertisement().clone())
+        .collect()
 }
 
 fn execute_simulated(plan: &Plan, hosts: &mut [StdHost]) -> Result<SimulatedPlay, PrewakeError> {
