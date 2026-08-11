@@ -220,6 +220,7 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::graphics_rect_offer(),
             conduit_std_catalog::graphics_text_offer(),
             conduit_std_catalog::graphics_icon_offer(),
+            conduit_std_catalog::graphics_presentation_offer(),
         ]);
     }
     if composition.robotics {

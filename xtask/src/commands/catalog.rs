@@ -436,4 +436,41 @@ mod tests {
             assert!(!entry.recursive_implementations.is_empty());
         }
     }
+
+    #[test]
+    fn terminal_graphics_manifestation_is_direct_only_where_installed() {
+        let report = build_report(&CatalogHost::ALL, None).unwrap();
+        let entries = report
+            .entries
+            .iter()
+            .filter(|entry| entry.kind_id == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND)
+            .collect::<Vec<_>>();
+        assert_eq!(entries.len(), CatalogHost::ALL.len());
+        let std_profile = profiles::advertisement(CatalogHost::Std)
+            .unwrap()
+            .profile
+            .as_str()
+            .to_owned();
+        let std = entries
+            .iter()
+            .find(|entry| entry.host_profile == std_profile)
+            .unwrap();
+        assert!(matches!(std.coverage, Coverage::Direct));
+        assert_eq!(
+            std.implementation.as_ref().unwrap().implementation_id,
+            conduit_std_catalog::GRAPHICS_PRESENTATION_IMPLEMENTATION
+        );
+        for host in [CatalogHost::Browser, CatalogHost::Conduitos] {
+            let profile = profiles::advertisement(host)
+                .unwrap()
+                .profile
+                .as_str()
+                .to_owned();
+            let entry = entries
+                .iter()
+                .find(|entry| entry.host_profile == profile)
+                .unwrap();
+            assert!(matches!(entry.coverage, Coverage::MissingImplementation));
+        }
+    }
 }

@@ -13,8 +13,8 @@ use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NO
 
 const DIRECT_NODES: usize = 2;
 const DIRECT_CORDS: usize = 1;
-const RECURSIVE_NODES: usize = 23;
-const RECURSIVE_CORDS: usize = 16;
+const RECURSIVE_NODES: usize = 24;
+const RECURSIVE_CORDS: usize = 17;
 const SIGN_ITEMS: u16 = 128;
 
 #[derive(Debug)]
@@ -99,6 +99,7 @@ fn unchanged_patchbay_meaning_has_distinct_truthful_direct_and_recursive_plans()
         "graphics/rect",
         "graphics/text",
         "graphics/icon",
+        "presentation/graphics",
     ] {
         assert!(recursive_kinds.contains(&expected));
     }

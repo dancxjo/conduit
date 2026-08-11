@@ -12,7 +12,9 @@ use super::math_operations::MathScalarOperation;
 use super::midi_input_operation::MidiInputOperation;
 use super::midi_output_operation::MidiOutputOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
-use super::presentation_composition::PresentationCompositionOperation;
+use super::presentation_composition::{
+    GraphicsPresentationOperation, PresentationCompositionOperation,
+};
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::synth_operation::MusicSynthOperation;
@@ -73,6 +75,7 @@ pub(super) enum InstalledOperation {
     MathScalar(MathScalarOperation),
     Layout(LayoutOperation),
     PresentationComposition(PresentationCompositionOperation),
+    GraphicsPresentation(GraphicsPresentationOperation),
     #[cfg(test)]
     TestPresentationSink(super::presentation_composition::PresentationSinkOperation),
     #[cfg(test)]
@@ -157,6 +160,7 @@ impl Operation for InstalledOperation {
             Self::MathScalar(operation) => operation.start(),
             Self::Layout(operation) => operation.start(),
             Self::PresentationComposition(operation) => operation.start(),
+            Self::GraphicsPresentation(operation) => operation.start(),
             #[cfg(test)]
             Self::TestPresentationSink(operation) => operation.start(),
             #[cfg(test)]
@@ -230,6 +234,7 @@ impl Operation for InstalledOperation {
             (Self::MathScalar(operation), input) => operation.resume(input),
             (Self::Layout(operation), input) => operation.resume(input),
             (Self::PresentationComposition(operation), input) => operation.resume(input),
+            (Self::GraphicsPresentation(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestPresentationSink(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -329,6 +334,7 @@ impl Operation for InstalledOperation {
             Self::MathScalar(_) => OperationAction::Complete,
             Self::Layout(operation) => operation.advance(),
             Self::PresentationComposition(operation) => operation.advance(),
+            Self::GraphicsPresentation(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestPresentationSink(_) => OperationAction::Await,
             #[cfg(test)]
@@ -403,6 +409,7 @@ impl Operation for InstalledOperation {
             Self::MathScalar(operation) => operation.cancel(),
             Self::Layout(operation) => operation.cancel(),
             Self::PresentationComposition(operation) => operation.cancel(),
+            Self::GraphicsPresentation(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestPresentationSink(_) => {}
             #[cfg(test)]

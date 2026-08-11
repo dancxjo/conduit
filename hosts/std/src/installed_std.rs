@@ -401,6 +401,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
     let text_target_kind = kind_id("presentation/stdout-text");
+    let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
     let tick_target_kind = kind_id(conduit_std_catalog::TICK_PRESENTATION_TARGET);
     let count_target_kind = kind_id(conduit_std_catalog::COUNT_PRESENTATION_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(
@@ -1062,6 +1063,19 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete presentation composition: {error:?}"))?;
                 continue;
+            } else if lowered_operation.target_kind.as_ref()
+                == Some(&graphics_presentation_target_kind)
+            {
+                let scene =
+                    conduit_presentation::GraphicsScene::decode(input).map_err(|error| {
+                        format!("graphics presentation input is invalid: {error:?}")
+                    })?;
+                writeln!(
+                    _output,
+                    "graphics scene commands={}",
+                    scene.commands().len()
+                )
+                .map_err(|error| error.to_string())?;
             } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
                 let text = std::str::from_utf8(input)
                     .map_err(|_| "text presentation input is not valid UTF-8".to_string())?;
