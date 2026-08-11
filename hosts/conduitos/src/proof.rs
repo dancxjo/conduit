@@ -65,7 +65,7 @@ pub fn accepted(
     let mut output = FixedText::new();
     write!(
         output,
-        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci\",\"host_id\":\"",
+        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd\",\"host_id\":\"",
         crate::arch::ARCHITECTURE,
         record.firmware.as_str(),
         build_id,

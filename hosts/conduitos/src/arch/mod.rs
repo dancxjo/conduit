@@ -8,8 +8,8 @@ mod x86_64;
 
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{
-    Clock, Idle, Interrupts, Serial, Timer, boot_entropy, deterministic_exit, early_write,
-    feature_basis, initialize_machine, initialize_xhci,
+    Clock, Idle, Interrupts, Serial, Timer, UsbDevice, boot_entropy, deterministic_exit,
+    early_write, enumerate_usb, feature_basis, initialize_machine, initialize_xhci,
 };
 
 #[cfg(target_arch = "x86_64")]
