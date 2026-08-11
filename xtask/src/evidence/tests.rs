@@ -257,9 +257,39 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(site_root
         .join(format!("commits/{commit}/patchbay/overview.png"))
         .is_file());
+    assert_eq!(
+        fs::read(site_root.join("current/patchbay/overview.png")).unwrap(),
+        fs::read(site_root.join(format!("commits/{commit}/patchbay/overview.png"))).unwrap()
+    );
     assert!(site_root
         .join(format!("commits/{commit}/manifest.json"))
         .is_file());
+    let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+    verify_documentation_references(&DocumentationReferenceRequest {
+        workspace_root: workspace.to_path_buf(),
+        site_root: Some(site_root.clone()),
+        commit: Some(commit.clone()),
+    })
+    .unwrap();
+    fs::write(
+        site_root.join("current/patchbay/overview.png"),
+        b"stale current image",
+    )
+    .unwrap();
+    assert!(
+        verify_documentation_references(&DocumentationReferenceRequest {
+            workspace_root: workspace.to_path_buf(),
+            site_root: Some(site_root.clone()),
+            commit: Some(commit.clone()),
+        })
+        .unwrap_err()
+        .contains("drifted")
+    );
+    fs::copy(
+        site_root.join(format!("commits/{commit}/patchbay/overview.png")),
+        site_root.join("current/patchbay/overview.png"),
+    )
+    .unwrap();
     fs::write(evidence_root.join("output-1"), b"tampered-evidence!!").unwrap();
     assert!(publish_gallery(&GalleryRequest {
         evidence_root: evidence_root.clone(),

@@ -16,6 +16,23 @@ enum EvidenceCommand {
     Verify(EvidenceVerifyArgs),
     /// Promote verified complete evidence into a bounded static gallery.
     Gallery(EvidenceGalleryArgs),
+    /// Verify canonical documentation links structurally and against a built gallery.
+    DocsVerify(EvidenceDocsVerifyArgs),
+}
+
+#[derive(Args, Debug)]
+struct EvidenceDocsVerifyArgs {
+    /// Repository root containing README.md and docs/visual-evidence.md.
+    #[arg(long, default_value = ".")]
+    workspace_root: PathBuf,
+
+    /// Built gallery root for exact publication-boundary verification.
+    #[arg(long, requires = "commit")]
+    site_root: Option<PathBuf>,
+
+    /// Exact accepted commit that the built gallery must advertise.
+    #[arg(long, requires = "site_root")]
+    commit: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -86,5 +103,13 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
             commit: args.commit,
         })
         .map_err(Into::into),
+        EvidenceCommand::DocsVerify(args) => {
+            evidence::verify_documentation_references(&evidence::DocumentationReferenceRequest {
+                workspace_root: args.workspace_root,
+                site_root: args.site_root,
+                commit: args.commit,
+            })
+            .map_err(Into::into)
+        }
     }
 }

@@ -62,6 +62,12 @@ jobs:
           --evidence-root target/conduit-evidence/browser-host
           --site-root "$RUNNER_TEMP/conduit-gallery-history/public"
           --commit "${{ github.sha }}"
+      - name: Verify canonical documentation references against exact gallery
+        run: >-
+          cargo xtask evidence docs-verify --locked
+          --workspace-root .
+          --site-root "$RUNNER_TEMP/conduit-gallery-history/public"
+          --commit "${{ github.sha }}"
       - name: Retain latest 32 accepted main galleries
         run: |
           git -C "$RUNNER_TEMP/conduit-gallery-history" config user.name github-actions[bot]

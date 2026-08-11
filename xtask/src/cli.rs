@@ -325,6 +325,11 @@ mod tests {
         assert!(proofs.global.json);
         assert!(matches!(proofs.command, Command::Proofs(_)));
 
+        let docs =
+            Cli::try_parse_from(["xtask", "evidence", "docs-verify", "--workspace-root", "."])
+                .expect("evidence docs verifier parses");
+        assert!(matches!(docs.command, Command::Evidence(_)));
+
         let conduitos = Cli::try_parse_from(["xtask", "conduitos", "prove", "--arch", "x86-64"])
             .expect("ConduitOS command parses");
         assert!(matches!(conduitos.command, Command::Conduitos(_)));
