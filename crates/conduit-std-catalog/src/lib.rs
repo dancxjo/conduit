@@ -25,6 +25,8 @@ mod tick_presentation;
 pub use tick_presentation::*;
 mod presentation_bool;
 pub use presentation_bool::*;
+mod presentation_composition;
+pub use presentation_composition::*;
 mod time_every;
 pub use time_every::*;
 mod timing;
@@ -91,6 +93,9 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         layout_column_contract(),
         layout_stack_contract(),
         layout_align_contract(),
+        presentation_icon_contract(),
+        presentation_frame_contract(),
+        presentation_badge_contract(),
         robotics_observe_bump_contract(),
         robotics_observe_imu_contract(),
         robotics_observe_range_contract(),
@@ -139,6 +144,9 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         layout_column_offer(),
         layout_stack_offer(),
         layout_align_offer(),
+        presentation_icon_offer(),
+        presentation_frame_offer(),
+        presentation_badge_offer(),
         robotics_observe_bump_offer(),
         robotics_observe_imu_offer(),
         robotics_observe_range_offer(),
@@ -373,7 +381,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 38);
+        assert_eq!(contracts.len(), 41);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts

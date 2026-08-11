@@ -28,6 +28,7 @@ mod interaction;
 mod layout;
 mod maker_environment;
 mod palette;
+mod portable_composition;
 mod portable_demo;
 mod portable_layout;
 mod portable_projection;
@@ -80,6 +81,7 @@ pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
 };
+pub use portable_composition::{constrained_frame_layout, DirectObligation, DirectPresentation};
 pub use portable_demo::portable_demonstration;
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;

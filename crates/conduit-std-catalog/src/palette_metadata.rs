@@ -4,12 +4,14 @@
 //! absent from Kind contracts and therefore cannot alter semantic identity.
 
 use conduit_core::KindId;
+pub use conduit_presentation::PresentationIconKey as PaletteIconKey;
 
 use crate::{
     BOOL_PRESENTATION_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, KEYBOARD_KIND,
     LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND,
     LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND,
-    MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
+    MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, PRESENTATION_BADGE_KIND,
+    PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
     ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_IMU_KIND,
     ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND,
     STATE_COUNT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND,
@@ -49,72 +51,6 @@ impl PaletteCategory {
             Self::Robotics => "Robotics",
             Self::Input => "Input",
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PaletteIconKey {
-    Clock,
-    Repeat2,
-    Presentation,
-    Type,
-    CaseUpper,
-    Combine,
-    Tally5,
-    ChartColumnsIncreasing,
-    FileOutput,
-    Keyboard,
-    GenericGear,
-}
-
-impl PaletteIconKey {
-    pub const ALL_UPSTREAM: [Self; 10] = [
-        Self::Clock,
-        Self::Repeat2,
-        Self::Presentation,
-        Self::Type,
-        Self::CaseUpper,
-        Self::Combine,
-        Self::Tally5,
-        Self::ChartColumnsIncreasing,
-        Self::FileOutput,
-        Self::Keyboard,
-    ];
-
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Clock => "clock",
-            Self::Repeat2 => "repeat-2",
-            Self::Presentation => "presentation",
-            Self::Type => "type",
-            Self::CaseUpper => "case-upper",
-            Self::Combine => "combine",
-            Self::Tally5 => "tally-5",
-            Self::ChartColumnsIncreasing => "chart-no-axes-column-increasing",
-            Self::FileOutput => "file-output",
-            Self::Keyboard => "keyboard",
-            Self::GenericGear => "conduit-generic-gear",
-        }
-    }
-
-    pub const fn accessibility_name(self) -> &'static str {
-        match self {
-            Self::Clock => "clock",
-            Self::Repeat2 => "repeating flow",
-            Self::Presentation => "presentation screen",
-            Self::Type => "text",
-            Self::CaseUpper => "uppercase letters",
-            Self::Combine => "combined values",
-            Self::Tally5 => "count tally",
-            Self::ChartColumnsIncreasing => "count chart",
-            Self::FileOutput => "file output",
-            Self::Keyboard => "keyboard input",
-            Self::GenericGear => "generic Gear; icon metadata missing",
-        }
-    }
-
-    pub const fn is_fallback(self) -> bool {
-        matches!(self, Self::GenericGear)
     }
 }
 
@@ -262,6 +198,21 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["layout", "align", "placement"],
             PaletteIconKey::Presentation,
         ),
+        PRESENTATION_ICON_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["presentation", "icon", "accessible"],
+            PaletteIconKey::Presentation,
+        ),
+        PRESENTATION_FRAME_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["presentation", "frame", "group"],
+            PaletteIconKey::Presentation,
+        ),
+        PRESENTATION_BADGE_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["presentation", "badge", "status"],
+            PaletteIconKey::Presentation,
+        ),
         ROBOTICS_OBSERVE_BUMP_KIND => metadata(
             PaletteCategory::Robotics,
             &["robot", "bumper", "contact", "safety"],
@@ -347,7 +298,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 39);
+        assert_eq!(contracts.len(), 42);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

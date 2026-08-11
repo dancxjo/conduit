@@ -27,6 +27,7 @@ pub struct StdHostComposition {
     pub logic: bool,
     pub math: bool,
     pub layout: bool,
+    pub presentation: bool,
     pub robotics: bool,
     pub files: bool,
     pub external_websocket: bool,
@@ -43,6 +44,7 @@ impl StdHostComposition {
             logic: true,
             math: true,
             layout: true,
+            presentation: true,
             robotics: true,
             files: true,
             external_websocket: false,
@@ -60,6 +62,7 @@ impl StdHostComposition {
             logic: false,
             math: false,
             layout: false,
+            presentation: false,
             robotics: false,
             files: false,
             external_websocket: false,
@@ -98,6 +101,11 @@ impl StdHostComposition {
 
     pub const fn with_layout(mut self) -> Self {
         self.layout = true;
+        self
+    }
+
+    pub const fn with_presentation(mut self) -> Self {
+        self.presentation = true;
         self
     }
 
@@ -184,6 +192,13 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::layout_align_offer(),
         ]);
     }
+    if composition.presentation {
+        capabilities.extend([
+            conduit_std_catalog::presentation_icon_offer(),
+            conduit_std_catalog::presentation_frame_offer(),
+            conduit_std_catalog::presentation_badge_offer(),
+        ]);
+    }
     if composition.robotics {
         capabilities.extend([
             conduit_std_catalog::robotics_observe_bump_offer(),
@@ -207,6 +222,7 @@ pub(super) fn build_advertisement(
         capabilities.push(installed_std::test_text_source_offer());
         capabilities.push(installed_std::test_scalar_source_offer());
         capabilities.push(installed_std::test_layout_sink_offer());
+        capabilities.push(installed_std::test_presentation_sink_offer());
         capabilities.push(installed_std::test_scalar_literal_offer());
         capabilities.push(installed_std::test_scalar_sink_offer());
         capabilities.push(installed_std::test_gate_script_offer());
