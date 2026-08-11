@@ -161,7 +161,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 
 pub(super) fn prepare_session(
     placement: &PlannedGear,
-    selected: Option<&crate::hosted_midi::HostedMidiSelection>,
+    selected: Option<&crate::hosted_midi::MidiOutputSelection>,
 ) -> Result<crate::hosted_midi::MidiOutputSession, String> {
     validate(placement)?;
     let selected = selected
@@ -176,9 +176,8 @@ pub(super) fn prepare_session(
     {
         return Err("planned MIDI output resource is stale or differs from selection".into());
     }
-    Ok(crate::hosted_midi::MidiOutputSession::resolved(
-        selected.clone(),
-    ))
+    crate::hosted_midi::MidiOutputSession::prepare(selected.clone())
+        .map_err(|error| format!("open planned MIDI output: {error:?}"))
 }
 
 pub(super) fn prepare_adapter() -> Result<conduit_midi::MidiOutputAdapter, String> {

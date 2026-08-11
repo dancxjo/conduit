@@ -270,7 +270,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 pub struct StdHost {
     advertisement: HostAdvertisement,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
-    midi_output: Option<hosted_midi::HostedMidiSelection>,
+    midi_output: Option<hosted_midi::MidiOutputSelection>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -349,6 +349,7 @@ impl StdHost {
                 "MIDI output observation does not match direction, Boot, and generation".into(),
             );
         }
+        let midi_output = hosted_midi::MidiOutputSelection::sequencer(midi_output);
         let advertisement =
             composition::build_advertisement(config, composition, None, Some(&midi_output), false);
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
@@ -367,7 +368,9 @@ impl StdHost {
     }
 
     pub fn midi_output_selection(&self) -> Option<&hosted_midi::HostedMidiSelection> {
-        self.midi_output.as_ref()
+        self.midi_output
+            .as_ref()
+            .and_then(|selection| selection.as_sequencer())
     }
 
     pub(crate) fn new_with_playback_proof(

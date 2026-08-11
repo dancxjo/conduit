@@ -1,11 +1,11 @@
 use super::{
     count, label, MidiEndpointDirection, RawMidiEndpointObservation, A4_REFERENCE_MILLIHERTZ,
-    MAXIMUM_MESSAGES_PER_KERNEL_STEP, MAXIMUM_PENDING_BYTES, MAXIMUM_PENDING_MESSAGES,
-    MIDI_A4_REFERENCE_CHARACTERISTIC, MIDI_BACKEND_CHARACTERISTIC,
-    MIDI_CANCEL_POLICY_CHARACTERISTIC, MIDI_CHANNEL_CHARACTERISTIC, MIDI_DIRECTION_CHARACTERISTIC,
-    MIDI_MESSAGES_PER_STEP_CHARACTERISTIC, MIDI_PENDING_BYTES_CHARACTERISTIC,
-    MIDI_PENDING_MESSAGES_CHARACTERISTIC, MIDI_PRESSURE_POLICY_CHARACTERISTIC,
-    MIDI_RESOURCE_CHARACTERISTIC, MIDI_TIMING_PROFILE_CHARACTERISTIC, OUTPUT_CHANNEL,
+    MAXIMUM_MESSAGES_PER_KERNEL_STEP, MIDI_A4_REFERENCE_CHARACTERISTIC,
+    MIDI_BACKEND_CHARACTERISTIC, MIDI_CANCEL_POLICY_CHARACTERISTIC, MIDI_CHANNEL_CHARACTERISTIC,
+    MIDI_DIRECTION_CHARACTERISTIC, MIDI_MESSAGES_PER_STEP_CHARACTERISTIC,
+    MIDI_PENDING_BYTES_CHARACTERISTIC, MIDI_PENDING_MESSAGES_CHARACTERISTIC,
+    MIDI_PRESSURE_POLICY_CHARACTERISTIC, MIDI_RESOURCE_CHARACTERISTIC,
+    MIDI_TIMING_PROFILE_CHARACTERISTIC, OUTPUT_CHANNEL,
 };
 use conduit_core::{
     BootId, CapabilityId, HostId, OfferGeneration, RealizationAdvertisement, ResourceHealth,
@@ -142,14 +142,8 @@ impl HostedRawMidiSelection {
             label(MIDI_BACKEND_CHARACTERISTIC, "alsa-raw-midi1@1"),
             count(MIDI_CHANNEL_CHARACTERISTIC, u64::from(OUTPUT_CHANNEL)),
             count(MIDI_A4_REFERENCE_CHARACTERISTIC, A4_REFERENCE_MILLIHERTZ),
-            count(
-                MIDI_PENDING_MESSAGES_CHARACTERISTIC,
-                u64::from(MAXIMUM_PENDING_MESSAGES),
-            ),
-            count(
-                MIDI_PENDING_BYTES_CHARACTERISTIC,
-                u64::from(MAXIMUM_PENDING_BYTES),
-            ),
+            count(MIDI_PENDING_MESSAGES_CHARACTERISTIC, 0),
+            count(MIDI_PENDING_BYTES_CHARACTERISTIC, 0),
             count(
                 MIDI_MESSAGES_PER_STEP_CHARACTERISTIC,
                 u64::from(MAXIMUM_MESSAGES_PER_KERNEL_STEP),
@@ -251,6 +245,16 @@ mod tests {
                         "alsa-raw-midi1@1".into(),
                     )
         }));
+        for id in [
+            MIDI_PENDING_MESSAGES_CHARACTERISTIC,
+            MIDI_PENDING_BYTES_CHARACTERISTIC,
+        ] {
+            assert!(advertisement.characteristics.iter().any(|characteristic| {
+                characteristic.characteristic_id.as_str() == id
+                    && characteristic.value
+                        == conduit_core::RealizationCharacteristicValue::Count(0)
+            }));
+        }
 
         let subdevice = HostedRawMidiSelection::select(
             &[observation(MidiEndpointDirection::WritableDestination, 4)],
@@ -265,6 +269,45 @@ mod tests {
         assert_eq!(
             subdevice.output_realization_advertisement(HostId::from("host-a")),
             Err("raw MIDI subdevice has no exact direct device node")
+        );
+    }
+
+    #[test]
+    fn host_construction_advertises_without_opening_the_observed_device() {
+        let boot_id = BootId::from("boot-no-open");
+        let generation = OfferGeneration(4);
+        let selected = HostedRawMidiSelection::select(
+            &[RawMidiEndpointObservation {
+                card: u16::MAX,
+                device: u16::MAX,
+                subdevice: 0,
+                name: "Absent proof endpoint".into(),
+                direction: MidiEndpointDirection::WritableDestination,
+            }],
+            MidiEndpointDirection::WritableDestination,
+            u16::MAX,
+            u16::MAX,
+            0,
+            boot_id.clone(),
+            generation,
+        )
+        .unwrap();
+        let host = crate::StdHost::new_with_raw_midi_output(
+            crate::StdHostConfig {
+                host_id: HostId::from("host-no-open"),
+                boot_id,
+                offer_generation: generation,
+            },
+            crate::StdHostComposition::minimal(),
+            selected,
+        )
+        .expect("Host construction must not open the selected device");
+        assert_eq!(
+            host.raw_midi_output_selection()
+                .unwrap()
+                .observation()
+                .alsa_device_name(),
+            format!("hw:{0},{0},0", u16::MAX)
         );
     }
 }

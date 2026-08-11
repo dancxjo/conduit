@@ -1,7 +1,9 @@
 mod discovery;
+mod host;
 mod output;
 #[cfg(test)]
 pub(crate) mod output_fake;
+mod output_selection;
 mod raw_discovery;
 mod raw_selection;
 
@@ -11,6 +13,7 @@ pub use discovery::{
 };
 pub(crate) use output::MidiOutputSession;
 pub use output::{MidiOutputFailure, MidiOutputLifecycle, MidiOutputReport};
+pub(crate) use output_selection::MidiOutputSelection;
 pub use raw_discovery::{
     discover_raw_midi_endpoints, RawMidiDiscoveryError, RawMidiEndpointObservation,
     MAXIMUM_RAW_MIDI_ENDPOINTS,

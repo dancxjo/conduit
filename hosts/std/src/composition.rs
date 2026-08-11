@@ -143,7 +143,7 @@ pub(super) fn build_advertisement(
     config: StdHostConfig,
     composition: StdHostComposition,
     playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
-    midi_output: Option<&crate::hosted_midi::HostedMidiSelection>,
+    midi_output: Option<&crate::hosted_midi::MidiOutputSelection>,
     playback_proof: bool,
 ) -> HostAdvertisement {
     let mut capabilities = Vec::new();

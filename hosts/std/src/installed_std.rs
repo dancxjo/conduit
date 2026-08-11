@@ -196,7 +196,7 @@ pub(super) use contract::tick_offer;
 pub(super) struct InstalledRunHost<'a> {
     pub advertisement: &'a HostAdvertisement,
     pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
-    pub midi_output: Option<&'a crate::hosted_midi::HostedMidiSelection>,
+    pub midi_output: Option<&'a crate::hosted_midi::MidiOutputSelection>,
 }
 
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
