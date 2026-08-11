@@ -210,6 +210,16 @@ jobs:
           name: conduitos-keyboard-proof-${{ github.sha }}
           path: target/conduitos/x86_64/keyboard-proof.json
           if-no-files-found: error
+      - name: Prove bounded local ConduitOS rescue reboot
+        run: cargo xtask conduitos rescue-proof --locked
+      - name: Retain local ConduitOS rescue reboot proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduitos-rescue-proof-${{ github.sha }}
+          path: |
+            target/conduitos/x86_64/rescue-proof.json
+            target/conduitos/x86_64/rescue-serial.log
+          if-no-files-found: error
           retention-days: 14
           compression-level: 0
       - name: Prove bounded AArch64 ConduitOS machine wake

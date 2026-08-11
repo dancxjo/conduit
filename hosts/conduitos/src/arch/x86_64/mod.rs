@@ -13,7 +13,10 @@ mod usb;
 mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
-pub use hid::{HidProof, prepare_boot_keyboard, receive_boot_keyboard, run_boot_keyboard};
+pub use hid::{
+    HidKeyboardSession, HidProof, finish_boot_keyboard, prepare_boot_keyboard,
+    receive_boot_keyboard, receive_first_boot_keyboard_report, run_boot_keyboard,
+};
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer, initialize_machine};
 pub use reboot::{RebootBase, RebootError, local_reboot_base};
 pub use serial::early_write;
