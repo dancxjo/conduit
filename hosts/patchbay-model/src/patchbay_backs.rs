@@ -312,6 +312,9 @@ mod tests {
             identity: "gear/demo".into(),
             gear_id: GearId::from("demo"),
             kind_id: kind_id("presentation/text"),
+            kind_contract_revision: conduit_core::KindContractRevision::from(
+                "conduit.std/presentation-text@1",
+            ),
             inputs: vec![input.clone()],
             outputs: vec![output.clone()],
             controls: vec![FaceControl {

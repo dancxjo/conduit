@@ -46,6 +46,7 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
             .entries()
             .len()
             + graph.gears.len()
+            + graph.gears.len()
             + graph.cords.len()
             + graph
                 .gears
@@ -89,6 +90,59 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     assert!(targets
         .iter()
         .any(|target| matches!(&target.action, GuiAction::ConfigureGear { .. })));
+    assert_eq!(
+        targets
+            .iter()
+            .filter(|target| matches!(target.action, GuiAction::FlipGear(_)))
+            .count(),
+        graph.gears.len()
+    );
+}
+
+#[test]
+fn reverse_face_is_renderer_local_and_keeps_the_demo_graph_intact() {
+    let graph = graph();
+    let gear = &graph.gears[0];
+    let subject = graph.subject_ref(&gear.identity).unwrap();
+    let identities = (
+        graph.source_document_id.clone(),
+        graph.checked_form_id.clone(),
+        graph.expanded_form_id.clone(),
+        gear.identity.clone(),
+    );
+    let mut layout = patchbay_model::PatchbayLayout::default();
+    layout.move_gear(&graph, &subject, 310, 140).unwrap();
+
+    assert!(layout.flip_gear(&graph, &subject).unwrap());
+    assert_eq!(layout.position(&gear.identity), Some((310, 140)));
+    assert_eq!(
+        identities,
+        (
+            graph.source_document_id.clone(),
+            graph.checked_form_id.clone(),
+            graph.expanded_form_id.clone(),
+            graph.gears[0].identity.clone(),
+        )
+    );
+
+    let mut pixels = vec![BACKGROUND; 1100 * 720];
+    let targets = draw_patchbay(
+        &mut pixels,
+        1100,
+        720,
+        &graph,
+        PatchbayViewContext {
+            selected: Some(&gear.identity),
+            lifecycle: &LifecycleContext::default(),
+            palette_query: "",
+            presentation_layout: &layout,
+        },
+    );
+    assert!(targets.iter().any(
+        |target| matches!(&target.action, GuiAction::FlipGear(candidate) if candidate == &subject)
+    ));
+    assert!(!layout.flip_gear(&graph, &subject).unwrap());
+    assert_eq!(layout.position(&gear.identity), Some((310, 140)));
 }
 
 #[test]

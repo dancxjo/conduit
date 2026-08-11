@@ -1,8 +1,8 @@
 //! Finite typed graph facts for graphical Patchbay renderers.
 
 use conduit_core::{
-    CheckedFormId, ExpandedFormId, GearId, KindId, PortDescriptor, PortDirection, PortTemporal,
-    SourceDocumentId,
+    CheckedFormId, ExpandedFormId, GearId, KindContractRevision, KindId, PortDescriptor,
+    PortDirection, PortTemporal, SourceDocumentId,
 };
 use conduit_form::ExpandedCanonicalForm;
 
@@ -66,6 +66,7 @@ pub struct PatchbayGear {
     pub identity: String,
     pub gear_id: GearId,
     pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PatchbayPort>,
     pub outputs: Vec<PatchbayPort>,
     /// Direct, finite controls projected from the exact checked configuration
@@ -133,6 +134,7 @@ impl PatchbayGraph {
                     identity: format!("gear/{}", gear.gear_id.as_str()),
                     gear_id: gear.gear_id.clone(),
                     kind_id: gear.kind_id.clone(),
+                    kind_contract_revision: gear.kind_contract_revision.clone(),
                     inputs: gear
                         .inputs
                         .iter()

@@ -1,0 +1,162 @@
+//! Native rendering for the two presentation faces of one semantic Gear.
+
+use crate::{
+    gui::{GearLayout, GuiAction, HitTarget},
+    gui_face_controls::draw_face_controls,
+    gui_hit::HitShape,
+    gui_primitives::{fill_rect, frame_rect, rgb, text, PixelRect},
+    icon::{draw_icon, Icon},
+};
+use embedded_graphics::{
+    pixelcolor::Rgb888,
+    prelude::{DrawTarget, Point, Primitive},
+    primitives::{Circle, PrimitiveStyle},
+    Drawable,
+};
+use patchbay_model::{PatchbayGraph, PatchbayLayout, PatchbayTheme};
+
+pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
+    target: &mut D,
+    graph: &PatchbayGraph,
+    layout: &GearLayout<'_>,
+    selected: Option<&str>,
+    presentation_layout: &PatchbayLayout,
+    theme: &PatchbayTheme,
+    targets: &mut Vec<HitTarget>,
+) {
+    let is_selected = selected == Some(layout.gear.identity.as_str());
+    fill_rect(target, layout.bounds, theme.surface);
+    frame_rect(
+        target,
+        layout.bounds,
+        if is_selected {
+            theme.focus
+        } else {
+            theme.structure_primary
+        },
+        if is_selected { 2 } else { 1 },
+    );
+    draw_icon(
+        target,
+        Icon::Gear,
+        Point::new(layout.bounds.x + 10, layout.bounds.y + 9),
+        rgb(theme.emphasis),
+    );
+    text(
+        target,
+        Point::new(layout.bounds.x + 34, layout.bounds.y + 10),
+        &match &layout.group {
+            Some(group) => format!("{} [{group}]", layout.gear.gear_id.as_str()),
+            None => layout.gear.gear_id.as_str().to_owned(),
+        },
+        theme.text_primary,
+    );
+    let reversed = presentation_layout.is_reversed(&layout.gear.identity);
+    text(
+        target,
+        Point::new(layout.bounds.x + 12, layout.bounds.y + 29),
+        &if reversed {
+            format!(
+                "REALIZATION  {}@{}",
+                layout.gear.kind_id.as_str(),
+                layout.gear.kind_contract_revision.as_str()
+            )
+        } else {
+            layout.gear.kind_id.as_str().to_owned()
+        },
+        theme.emphasis,
+    );
+    targets.push(HitTarget {
+        action: select_action(graph, &layout.gear.identity),
+        shape: HitShape::Rect(layout.bounds),
+    });
+    draw_flip_control(target, graph, layout, reversed, theme, targets);
+    draw_ports(target, graph, layout, selected, theme, targets);
+    draw_face_controls(target, graph, layout.gear, layout.bounds, theme, targets);
+}
+
+fn draw_flip_control<D: DrawTarget<Color = Rgb888>>(
+    target: &mut D,
+    graph: &PatchbayGraph,
+    layout: &GearLayout<'_>,
+    reversed: bool,
+    theme: &PatchbayTheme,
+    targets: &mut Vec<HitTarget>,
+) {
+    let bounds = PixelRect {
+        x: layout.bounds.x + i32::try_from(layout.bounds.width).unwrap_or(i32::MAX) - 48,
+        y: layout.bounds.y + 7,
+        width: 40,
+        height: 20,
+    };
+    frame_rect(target, bounds, theme.structure_secondary, 1);
+    text(
+        target,
+        Point::new(bounds.x + 5, bounds.y + 4),
+        if reversed { "FACE" } else { "FLIP" },
+        theme.text_primary,
+    );
+    targets.push(HitTarget {
+        action: GuiAction::FlipGear(
+            graph
+                .subject_ref(&layout.gear.identity)
+                .expect("drawn Gear belongs to the exact graph"),
+        ),
+        shape: HitShape::Rect(bounds),
+    });
+}
+
+fn draw_ports<D: DrawTarget<Color = Rgb888>>(
+    target: &mut D,
+    graph: &PatchbayGraph,
+    layout: &GearLayout<'_>,
+    selected: Option<&str>,
+    theme: &PatchbayTheme,
+    targets: &mut Vec<HitTarget>,
+) {
+    for (identity, point) in layout.inputs.iter().chain(&layout.outputs) {
+        let selected_port = selected == Some(identity.as_str());
+        let _ = Circle::with_center(*point, 9)
+            .into_styled(PrimitiveStyle::with_fill(rgb(if selected_port {
+                theme.focus
+            } else {
+                theme.structure_primary
+            })))
+            .draw(target);
+        let port = layout
+            .gear
+            .inputs
+            .iter()
+            .chain(&layout.gear.outputs)
+            .find(|port| port.identity == *identity)
+            .expect("layout Ports come from the Gear");
+        let label_x = if port.descriptor.direction == conduit_core::PortDirection::Input {
+            point.x + 12
+        } else {
+            point.x - 72
+        };
+        text(
+            target,
+            Point::new(label_x, point.y - 7),
+            port.descriptor.port_id.as_str(),
+            theme.text_secondary,
+        );
+        targets.push(HitTarget {
+            action: select_action(graph, identity),
+            shape: HitShape::Rect(PixelRect {
+                x: point.x - 10,
+                y: point.y - 10,
+                width: 20,
+                height: 20,
+            }),
+        });
+    }
+}
+
+fn select_action(graph: &PatchbayGraph, identity: &str) -> GuiAction {
+    GuiAction::SelectSubject(
+        graph
+            .subject_ref(identity)
+            .expect("drawn subject belongs to the exact graph"),
+    )
+}
