@@ -8,9 +8,10 @@ mod x86_64;
 
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{
-    Clock, HidProof, Idle, Interrupts, Serial, Timer, UsbDevice, boot_entropy, deterministic_exit,
-    early_write, enumerate_usb, feature_basis, initialize_machine, initialize_xhci,
-    prepare_boot_keyboard, receive_boot_keyboard, run_boot_keyboard,
+    Clock, HidProof, Idle, Interrupts, RebootBase, RebootError, Serial, Timer, UsbDevice,
+    boot_entropy, deterministic_exit, early_write, enumerate_usb, feature_basis,
+    initialize_machine, initialize_xhci, local_reboot_base, prepare_boot_keyboard,
+    receive_boot_keyboard, run_boot_keyboard,
 };
 
 #[cfg(target_arch = "x86_64")]
