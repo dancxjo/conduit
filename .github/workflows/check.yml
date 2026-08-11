@@ -58,10 +58,47 @@ jobs:
       - name: Install browser test dependencies
         run: npm ci --ignore-scripts --prefer-offline
       - name: Run browser host proof suite
+        id: browser-proof
+        continue-on-error: true
         env:
           HOME: /root
           RUSTUP_HOME: /github/home/.rustup
-        run: cargo xtask prove browser-host --locked
+        run: cargo xtask prove browser-host --locked --evidence-root target/conduit-evidence/browser-host
+      - name: Verify complete exact-head visual evidence
+        if: steps.browser-proof.outcome == 'success'
+        run: >-
+          cargo xtask evidence verify --locked
+          --root target/conduit-evidence/browser-host
+          --commit "${{ github.sha }}"
+          --result complete
+      - name: Upload complete exact-head visual evidence
+        if: github.event_name == 'pull_request' && steps.browser-proof.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduit-visual-evidence-${{ github.sha }}
+          path: target/conduit-evidence/browser-host
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Verify failed-run diagnostic evidence
+        if: steps.browser-proof.outcome == 'failure'
+        run: >-
+          cargo xtask evidence verify --locked
+          --root target/conduit-evidence/browser-host
+          --commit "${{ github.sha }}"
+          --result diagnostic-incomplete
+      - name: Upload failed-run diagnostic evidence
+        if: github.event_name == 'pull_request' && steps.browser-proof.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduit-visual-evidence-diagnostic-${{ github.sha }}
+          path: target/conduit-evidence/browser-host
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Preserve semantic browser proof as the acceptance gate
+        if: steps.browser-proof.outcome == 'failure'
+        run: exit 1
 
   conduitos-boot:
     runs-on: ubuntu-latest
