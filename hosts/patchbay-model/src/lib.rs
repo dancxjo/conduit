@@ -29,6 +29,7 @@ mod layout;
 mod maker_environment;
 mod palette;
 mod portable_demo;
+mod portable_layout;
 mod portable_projection;
 mod renderer_execution;
 mod renderer_inspection;
@@ -80,6 +81,7 @@ pub use palette::{
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
 };
 pub use portable_demo::portable_demonstration;
+pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,

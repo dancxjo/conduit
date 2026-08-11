@@ -7,8 +7,9 @@ use conduit_core::KindId;
 
 use crate::{
     BOOL_PRESENTATION_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, KEYBOARD_KIND,
-    LATEST_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
-    MATH_DEADBAND_KIND, MATH_SCALE_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
+    LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND,
+    LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND,
+    MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
     ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_IMU_KIND,
     ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND,
     STATE_COUNT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND,
@@ -231,6 +232,36 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["deadband", "neutral", "joystick"],
             PaletteIconKey::Combine,
         ),
+        LAYOUT_VIEWPORT_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "viewport", "extent"],
+            PaletteIconKey::Presentation,
+        ),
+        LAYOUT_INSET_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "inset", "clip"],
+            PaletteIconKey::Presentation,
+        ),
+        LAYOUT_ROW_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "row", "horizontal"],
+            PaletteIconKey::Combine,
+        ),
+        LAYOUT_COLUMN_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "column", "vertical"],
+            PaletteIconKey::Combine,
+        ),
+        LAYOUT_STACK_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "stack", "overlay"],
+            PaletteIconKey::Combine,
+        ),
+        LAYOUT_ALIGN_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["layout", "align", "placement"],
+            PaletteIconKey::Presentation,
+        ),
         ROBOTICS_OBSERVE_BUMP_KIND => metadata(
             PaletteCategory::Robotics,
             &["robot", "bumper", "contact", "safety"],
@@ -316,7 +347,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 33);
+        assert_eq!(contracts.len(), 39);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

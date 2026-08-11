@@ -26,6 +26,7 @@ pub struct StdHostComposition {
     pub state: bool,
     pub logic: bool,
     pub math: bool,
+    pub layout: bool,
     pub robotics: bool,
     pub files: bool,
     pub external_websocket: bool,
@@ -41,6 +42,7 @@ impl StdHostComposition {
             state: true,
             logic: true,
             math: true,
+            layout: true,
             robotics: true,
             files: true,
             external_websocket: false,
@@ -57,6 +59,7 @@ impl StdHostComposition {
             state: false,
             logic: false,
             math: false,
+            layout: false,
             robotics: false,
             files: false,
             external_websocket: false,
@@ -90,6 +93,11 @@ impl StdHostComposition {
 
     pub const fn with_math(mut self) -> Self {
         self.math = true;
+        self
+    }
+
+    pub const fn with_layout(mut self) -> Self {
+        self.layout = true;
         self
     }
 
@@ -166,6 +174,16 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::math_deadband_offer(),
         ]);
     }
+    if composition.layout {
+        capabilities.extend([
+            conduit_std_catalog::layout_viewport_offer(),
+            conduit_std_catalog::layout_inset_offer(),
+            conduit_std_catalog::layout_row_offer(),
+            conduit_std_catalog::layout_column_offer(),
+            conduit_std_catalog::layout_stack_offer(),
+            conduit_std_catalog::layout_align_offer(),
+        ]);
+    }
     if composition.robotics {
         capabilities.extend([
             conduit_std_catalog::robotics_observe_bump_offer(),
@@ -188,6 +206,7 @@ pub(super) fn build_advertisement(
         capabilities.push(installed_std::test_observer_offer());
         capabilities.push(installed_std::test_text_source_offer());
         capabilities.push(installed_std::test_scalar_source_offer());
+        capabilities.push(installed_std::test_layout_sink_offer());
         capabilities.push(installed_std::test_scalar_literal_offer());
         capabilities.push(installed_std::test_scalar_sink_offer());
         capabilities.push(installed_std::test_gate_script_offer());

@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 mod gate_conformance;
+mod layout_conformance;
 mod logic_conformance;
 mod math_conformance;
 mod robotics_conformance;

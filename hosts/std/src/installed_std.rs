@@ -7,6 +7,7 @@ mod external_websocket_host;
 mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
+mod layout_operations;
 mod logic_operations;
 mod math_operations;
 mod operation;
@@ -77,7 +78,7 @@ const ROUTE_TARGETS: usize = 64;
 
 pub(super) use contract::text_offer;
 #[cfg(test)]
-pub(super) use test_support::{test_catalog, test_observer_offer};
+pub(super) use test_support::{test_catalog, test_layout_sink_offer, test_observer_offer};
 
 #[cfg(test)]
 pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
@@ -364,6 +365,15 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let math_clamp_target_kind = kind_id(conduit_std_catalog::MATH_CLAMP_KIND);
     let math_scale_target_kind = kind_id(conduit_std_catalog::MATH_SCALE_KIND);
     let math_deadband_target_kind = kind_id(conduit_std_catalog::MATH_DEADBAND_KIND);
+    let layout_contract_id =
+        conduit_core::HostOperationContractId::from(conduit_std_catalog::LAYOUT_HOST_OPERATION);
+    let layout_target_kinds = [
+        kind_id(conduit_std_catalog::LAYOUT_INSET_KIND),
+        kind_id(conduit_std_catalog::LAYOUT_ROW_KIND),
+        kind_id(conduit_std_catalog::LAYOUT_COLUMN_KIND),
+        kind_id(conduit_std_catalog::LAYOUT_STACK_KIND),
+        kind_id(conduit_std_catalog::LAYOUT_ALIGN_KIND),
+    ];
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
@@ -620,6 +630,39 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete math scalar transform: {error:?}"))?;
                 continue;
+            } else if contract == &layout_contract_id
+                && lowered_operation
+                    .target_kind
+                    .as_ref()
+                    .is_some_and(|target| layout_target_kinds.contains(target))
+            {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "layout request has no exact placement".to_string())?;
+                let (encoded, encoded_len) = layout_operations::transform_bytes(placement, input)?;
+                let value = scheduler
+                    .store_host_value(&encoded[..encoded_len])
+                    .map_err(|error| format!("store layout frame output: {error:?}"))?;
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u32,
+                                )
+                                .map_err(|error| format!("bound layout frame output: {error:?}"))?,
+                            ),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete layout frame host operation: {error:?}"))?;
+                continue;
             } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
                 let text = std::str::from_utf8(input)
                     .map_err(|_| "text presentation input is not valid UTF-8".to_string())?;
@@ -669,7 +712,10 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 if deadlines.complete_next(&mut scheduler, timer)? {
                     continue;
                 }
-                return Err("installed kernel became idle before completion".to_string());
+                return Err(format!(
+                    "installed kernel became idle before completion: {:?}",
+                    scheduler.signs().events().collect::<Vec<_>>()
+                ));
             }
             SchedulerStatus::Cancelled => {
                 break TerminalDisposition::Cancelled {

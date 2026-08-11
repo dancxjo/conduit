@@ -2,6 +2,7 @@ use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
+use super::layout_operations::LayoutOperation;
 use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
@@ -61,6 +62,9 @@ pub(super) enum InstalledOperation {
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),
     MathScalar(MathScalarOperation),
+    Layout(LayoutOperation),
+    #[cfg(test)]
+    TestLayoutSink(super::layout_operations::LayoutSinkOperation),
     RoboticsSource(RoboticsSourceOperation),
     RoboticsDrive(RoboticsDriveOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
@@ -111,6 +115,9 @@ impl InstalledOperation {
             Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) | Self::FlowGateScalar(_) => 0,
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => 0,
             Self::MathScalar(_) => 0,
+            Self::Layout(_) => 0,
+            #[cfg(test)]
+            Self::TestLayoutSink(_) => 0,
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
             Self::RoboticsDrive(_) => 0,
             Self::ExternalWebSocketListener(_) => 0,
@@ -178,6 +185,9 @@ impl Operation for InstalledOperation {
             Self::LogicNot(operation) => operation.start(),
             Self::LogicSelectScalar(operation) => operation.start(),
             Self::MathScalar(operation) => operation.start(),
+            Self::Layout(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestLayoutSink(operation) => operation.start(),
             Self::RoboticsSource(operation) => operation.start(),
             Self::RoboticsDrive(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
@@ -230,6 +240,9 @@ impl Operation for InstalledOperation {
             (Self::LogicNot(operation), input) => operation.resume(input),
             (Self::LogicSelectScalar(operation), input) => operation.resume(input),
             (Self::MathScalar(operation), input) => operation.resume(input),
+            (Self::Layout(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestLayoutSink(operation), input) => operation.resume(input),
             (Self::RoboticsSource(operation), input) => operation.resume(input),
             (Self::RoboticsDrive(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
@@ -294,6 +307,9 @@ impl Operation for InstalledOperation {
                 OperationAction::Complete
             }
             Self::MathScalar(_) => OperationAction::Complete,
+            Self::Layout(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestLayoutSink(_) => OperationAction::Await,
             Self::RoboticsSource(operation) => operation.advance(),
             Self::RoboticsDrive(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
@@ -349,6 +365,9 @@ impl Operation for InstalledOperation {
             Self::LogicNot(operation) => operation.cancel(),
             Self::LogicSelectScalar(operation) => operation.cancel(),
             Self::MathScalar(operation) => operation.cancel(),
+            Self::Layout(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestLayoutSink(_) => {}
             Self::RoboticsSource(operation) => operation.cancel(),
             Self::RoboticsDrive(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
