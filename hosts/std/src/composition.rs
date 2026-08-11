@@ -26,6 +26,7 @@ pub struct StdHostComposition {
     pub state: bool,
     pub logic: bool,
     pub math: bool,
+    pub robotics: bool,
     pub files: bool,
     pub external_websocket: bool,
 }
@@ -40,6 +41,7 @@ impl StdHostComposition {
             state: true,
             logic: true,
             math: true,
+            robotics: true,
             files: true,
             external_websocket: false,
         }
@@ -55,6 +57,7 @@ impl StdHostComposition {
             state: false,
             logic: false,
             math: false,
+            robotics: false,
             files: false,
             external_websocket: false,
         }
@@ -87,6 +90,11 @@ impl StdHostComposition {
 
     pub const fn with_math(mut self) -> Self {
         self.math = true;
+        self
+    }
+
+    pub const fn with_robotics(mut self) -> Self {
+        self.robotics = true;
         self
     }
 
@@ -153,6 +161,17 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::math_clamp_offer(),
             conduit_std_catalog::math_scale_offer(),
             conduit_std_catalog::math_deadband_offer(),
+        ]);
+    }
+    if composition.robotics {
+        capabilities.extend([
+            conduit_std_catalog::robotics_observe_bump_offer(),
+            conduit_std_catalog::robotics_observe_imu_offer(),
+            conduit_std_catalog::robotics_observe_range_offer(),
+            conduit_std_catalog::robotics_observe_odometry_offer(),
+            conduit_std_catalog::robotics_observe_battery_offer(),
+            conduit_std_catalog::robotics_velocity_intent_offer(),
+            conduit_std_catalog::robotics_drive_differential_offer(),
         ]);
     }
     if composition.files {
@@ -357,6 +376,13 @@ mod tests {
             "state/latest",
             "flow/tee",
             "flow/gate",
+            "robotics/observe-bump",
+            "robotics/observe-imu",
+            "robotics/observe-range",
+            "robotics/observe-odometry",
+            "robotics/observe-battery",
+            "robotics/velocity-intent",
+            "robotics/drive-differential",
             "file/copy",
         ] {
             assert!(!offered(&minimal, kind), "minimal host offered {kind}");

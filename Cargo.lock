@@ -530,6 +530,7 @@ dependencies = [
  "conduit-form",
  "conduit-observatory",
  "conduit-planner",
+ "conduit-std-catalog",
  "patchbay-model",
  "pete-brainstem",
  "serde",

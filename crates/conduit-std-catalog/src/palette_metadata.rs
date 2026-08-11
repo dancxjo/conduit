@@ -8,9 +8,11 @@ use conduit_core::KindId;
 use crate::{
     COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, LATEST_KIND, LOGIC_COMPARE_KIND,
     LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND,
-    STATE_COUNT_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND,
-    TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_EVERY_KIND,
-    TIME_TIMEOUT_KIND,
+    ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
+    ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND,
+    ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND,
+    TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND,
+    TIME_EVERY_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -20,15 +22,17 @@ pub enum PaletteCategory {
     State,
     Presentation,
     Files,
+    Robotics,
 }
 
 impl PaletteCategory {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::TimeAndFlow,
         Self::Transform,
         Self::State,
         Self::Presentation,
         Self::Files,
+        Self::Robotics,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -38,6 +42,7 @@ impl PaletteCategory {
             Self::State => "State",
             Self::Presentation => "Presentation",
             Self::Files => "Files",
+            Self::Robotics => "Robotics",
         }
     }
 }
@@ -198,6 +203,41 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["deadband", "neutral", "joystick"],
             PaletteIconKey::Combine,
         ),
+        ROBOTICS_OBSERVE_BUMP_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "bumper", "contact", "safety"],
+            PaletteIconKey::Combine,
+        ),
+        ROBOTICS_OBSERVE_IMU_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "imu", "orientation", "sensor"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_OBSERVE_RANGE_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "range", "distance", "sensor"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_OBSERVE_ODOMETRY_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "odometry", "pose", "motion"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_OBSERVE_BATTERY_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "battery", "charge", "power"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_VELOCITY_INTENT_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "velocity", "intent", "motion"],
+            PaletteIconKey::Combine,
+        ),
+        ROBOTICS_DRIVE_DIFFERENTIAL_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "drive", "differential", "prewake"],
+            PaletteIconKey::Combine,
+        ),
         TICK_PRESENTATION_KIND => metadata(
             PaletteCategory::Presentation,
             &["display", "tick", "indicator"],
@@ -243,7 +283,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 21);
+        assert_eq!(contracts.len(), 28);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());
@@ -253,7 +293,7 @@ mod tests {
 
     #[test]
     fn categories_and_upstream_icon_keys_are_finite_and_unique() {
-        assert_eq!(PaletteCategory::ALL.len(), 5);
+        assert_eq!(PaletteCategory::ALL.len(), 6);
         let keys = PaletteIconKey::ALL_UPSTREAM
             .iter()
             .map(|key| key.as_str())

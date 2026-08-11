@@ -37,6 +37,12 @@ mod logic;
 pub use logic::*;
 mod math;
 pub use math::*;
+mod robotics;
+pub use robotics::*;
+#[cfg(feature = "form-catalog")]
+mod robotics_catalog;
+#[cfg(feature = "form-catalog")]
+pub use robotics_catalog::install_robotics_catalogs;
 mod copy_file;
 pub use copy_file::*;
 
@@ -67,6 +73,13 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         math_clamp_contract(),
         math_scale_contract(),
         math_deadband_contract(),
+        robotics_observe_bump_contract(),
+        robotics_observe_imu_contract(),
+        robotics_observe_range_contract(),
+        robotics_observe_odometry_contract(),
+        robotics_observe_battery_contract(),
+        robotics_velocity_intent_contract(),
+        robotics_drive_differential_contract(),
         copy_file_contract(),
     ]
 }
@@ -98,6 +111,13 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         math_clamp_offer(),
         math_scale_offer(),
         math_deadband_offer(),
+        robotics_observe_bump_offer(),
+        robotics_observe_imu_offer(),
+        robotics_observe_range_offer(),
+        robotics_observe_odometry_offer(),
+        robotics_observe_battery_offer(),
+        robotics_velocity_intent_offer(),
+        robotics_drive_differential_offer(),
         copy_file_offer(),
     ]
 }
@@ -139,6 +159,8 @@ pub enum TerminalBehavior {
     EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
     TrailingDebounceFlushesPendingValueThenCompletesWhenInputCloses,
     InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
+    SimulatedCurrentObservationEmitsOnce,
+    SimulatedDriveProjectionCompletesWhenInputsClose,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -311,7 +333,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 21);
+        assert_eq!(contracts.len(), 28);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
