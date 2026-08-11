@@ -4,6 +4,12 @@ use crate::PatchbayApplication;
 
 impl PatchbayApplication {
     pub(super) fn title(&self) -> String {
+        if let Some(prewake) = &self.prewake {
+            return format!(
+                "Conduit Patchbay — PREWAKE {:?} — SIMULATION ONLY — NO PHYSICAL AUTHORITY",
+                prewake.state()
+            );
+        }
         if let Some(environment) = &self.environment {
             return format!(
                 "Conduit Patchbay — AUTHORED SIMULATION — {} revision {} — NO PHYSICAL AUTHORITY",

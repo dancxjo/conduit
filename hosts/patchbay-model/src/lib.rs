@@ -38,6 +38,7 @@ mod portable_projection;
 mod presenter_capstone;
 #[cfg(test)]
 mod presenter_capstone_tests;
+mod prewake;
 mod renderer_execution;
 mod renderer_inspection;
 mod renderer_projection;
@@ -100,6 +101,7 @@ pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;
 pub use presenter_capstone::*;
+pub use prewake::*;
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
 };
@@ -133,6 +135,8 @@ mod interaction_tests;
 mod maker_environment_tests;
 #[cfg(test)]
 mod portable_projection_tests;
+#[cfg(test)]
+mod prewake_tests;
 #[cfg(test)]
 mod renderer_execution_tests;
 #[cfg(test)]

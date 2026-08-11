@@ -13,9 +13,18 @@ impl PatchbayApplication {
         else {
             return Ok(());
         };
-        if self.environment.is_some() {
+        if self.environment.is_some() && (self.prewake.is_none() || self.prewake_environment_view) {
             if let GuiAction::EnvironmentSelect(part_id) = &action {
                 self.environment_drag = Some((part_id.clone(), self.cursor_position));
+            }
+            if matches!(
+                action,
+                GuiAction::PrewakeToggleWorkspace
+                    | GuiAction::PrewakeToggleHold
+                    | GuiAction::PrewakeRelease
+                    | GuiAction::PrewakeExit
+            ) {
+                return self.handle_prewake_action(action);
             }
             return self.handle_environment_action(action);
         }
@@ -59,6 +68,7 @@ impl PatchbayApplication {
                         self.cursor_position.1 as i32 - 34,
                     )
                     .map_err(|error| format!("environment movement: {error:?}"))?;
+                self.refresh_prewake()?;
                 if let Some(window) = &self.window {
                     window.request_redraw();
                 }

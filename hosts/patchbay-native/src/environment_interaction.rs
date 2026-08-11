@@ -48,10 +48,16 @@ impl PatchbayApplication {
         environment
             .rename_part(&part_id, next)
             .map_err(|error| format!("environment rename: {error:?}"))?;
+        self.refresh_prewake()?;
         Ok(true)
     }
 
     pub(super) fn handle_environment_action(&mut self, action: GuiAction) -> Result<(), String> {
+        let changes_environment = matches!(
+            &action,
+            GuiAction::EnvironmentAdd(_) | GuiAction::EnvironmentRemove(_)
+        ) || (matches!(&action, GuiAction::EnvironmentSelect(_))
+            && self.pending_environment_link.is_some());
         match action {
             GuiAction::EnvironmentAdd(profile) => self.add_environment_part(profile)?,
             GuiAction::EnvironmentSelect(part_id) => {
@@ -106,6 +112,9 @@ impl PatchbayApplication {
                     "Form action is unavailable in the authored-environment workspace".into(),
                 )
             }
+        }
+        if changes_environment {
+            self.refresh_prewake()?;
         }
         if let Some(window) = &self.window {
             window.request_redraw();

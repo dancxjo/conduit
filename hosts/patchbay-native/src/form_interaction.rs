@@ -44,6 +44,25 @@ pub(super) fn graphical_form_for_editor(
 
 impl PatchbayApplication {
     pub(super) fn handle_gui_action(&mut self, action: GuiAction) -> Result<(), String> {
+        if matches!(
+            &action,
+            GuiAction::PrewakeToggleWorkspace
+                | GuiAction::PrewakeToggleHold
+                | GuiAction::PrewakeRelease
+                | GuiAction::PrewakeExit
+        ) {
+            return self.handle_prewake_action(action);
+        }
+        let semantic_edit = matches!(
+            &action,
+            GuiAction::PlacePaletteKind(_)
+                | GuiAction::DuplicateGear(_)
+                | GuiAction::RemoveGear(_)
+                | GuiAction::RemoveCord(_)
+                | GuiAction::ConnectPorts { .. }
+                | GuiAction::RerouteCord { .. }
+                | GuiAction::ConfigureGear { .. }
+        );
         match action {
             GuiAction::EnvironmentAdd(_)
             | GuiAction::EnvironmentSelect(_)
@@ -52,6 +71,10 @@ impl PatchbayApplication {
             | GuiAction::EnvironmentLink(_) => {
                 return Err("environment action is unavailable in the Form workspace".into())
             }
+            GuiAction::PrewakeToggleWorkspace
+            | GuiAction::PrewakeToggleHold
+            | GuiAction::PrewakeRelease
+            | GuiAction::PrewakeExit => unreachable!("handled above"),
             GuiAction::SelectSubject(subject) => self.dispatch_selection(subject)?,
             GuiAction::FlipGear(subject) => {
                 let graph = self
@@ -88,6 +111,9 @@ impl PatchbayApplication {
                 key,
                 value,
             } => self.dispatch_gear_configuration(&subject, &key, value)?,
+        }
+        if semantic_edit {
+            self.refresh_prewake()?;
         }
         if let Some(window) = &self.window {
             window.request_redraw();

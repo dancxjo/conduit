@@ -12,15 +12,26 @@ use patchbay_model::{AuthoredEnvironment, EnvironmentLinkKind, MachineProfile, P
 const PART_WIDTH: u32 = 180;
 const PART_HEIGHT: u32 = 112;
 
+pub(super) struct EnvironmentViewContext<'a> {
+    pub(super) selected: Option<&'a str>,
+    pub(super) pending_link: Option<&'a (String, EnvironmentLinkKind)>,
+    pub(super) observed: Option<&'a conduit_observatory::ObservatorySnapshot>,
+    pub(super) prewake: Option<&'a patchbay_model::PrewakeController>,
+}
+
 pub(super) fn draw_environment(
     pixels: &mut [u32],
     width: usize,
     height: usize,
     environment: &AuthoredEnvironment,
-    selected: Option<&str>,
-    pending_link: Option<&(String, EnvironmentLinkKind)>,
-    observed: Option<&conduit_observatory::ObservatorySnapshot>,
+    view: EnvironmentViewContext<'_>,
 ) -> Vec<HitTarget> {
+    let EnvironmentViewContext {
+        selected,
+        pending_link,
+        observed,
+        prewake,
+    } = view;
     let mut canvas = SoftwareCanvas::new(pixels, width, height);
     let theme = &PHOSPHOR_THEME;
     fill_rect(
@@ -137,6 +148,144 @@ pub(super) fn draw_environment(
                     host.advertisement.profile.as_str()
                 ),
                 theme.text_secondary,
+            );
+        }
+    }
+    if let Some(prewake) = prewake {
+        let (state, plan, play) = match prewake.state() {
+            patchbay_model::PrewakeState::Off => ("OFF", "none", "none"),
+            patchbay_model::PrewakeState::Held { plan, .. } => {
+                ("HOLD", plan.plan_id.as_str(), "not-started")
+            }
+            patchbay_model::PrewakeState::Auto { plan, play, .. } => (
+                "AUTO",
+                plan.plan_id.as_str(),
+                play.active_play_ids
+                    .first()
+                    .map(|id| id.as_str())
+                    .unwrap_or("none"),
+            ),
+        };
+        text(
+            &mut canvas,
+            Point::new(184, 88),
+            &format!("PREWAKE {state}  SIMULATED PLAN {plan}  PLAY {play}"),
+            theme.focus,
+        );
+        text(
+            &mut canvas,
+            Point::new(184, 106),
+            "SIMULATED HOST/BOOT/BASE/SIGN — ZERO PHYSICAL EFFECT AUTHORITY",
+            theme.emphasis,
+        );
+        if let Some(error) = prewake.last_refusal() {
+            text(
+                &mut canvas,
+                Point::new(184, 124),
+                &format!("REFUSED {error:?}"),
+                theme.focus,
+            );
+        }
+        for (index, (label, action)) in [
+            ("FORM VIEW (F3)", GuiAction::PrewakeToggleWorkspace),
+            (
+                if prewake.hold_enabled() {
+                    "AUTO (F6)"
+                } else {
+                    "HOLD (F6)"
+                },
+                GuiAction::PrewakeToggleHold,
+            ),
+            ("RELEASE (F7)", GuiAction::PrewakeRelease),
+            ("EXIT PREWAKE", GuiAction::PrewakeExit),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let bounds = PixelRect {
+                x: 184 + index as i32 * 158,
+                y: 136,
+                width: 148,
+                height: 24,
+            };
+            frame_rect(&mut canvas, bounds, theme.structure_secondary, 1);
+            text(
+                &mut canvas,
+                Point::new(bounds.x + 6, bounds.y + 5),
+                label,
+                theme.text_primary,
+            );
+            targets.push(HitTarget {
+                action,
+                shape: HitShape::Rect(bounds),
+            });
+        }
+        let plan = match prewake.state() {
+            patchbay_model::PrewakeState::Held { plan, .. }
+            | patchbay_model::PrewakeState::Auto { plan, .. } => Some(plan),
+            patchbay_model::PrewakeState::Off => None,
+        };
+        if let Some(plan) = plan {
+            let placements = plan
+                .fragments
+                .iter()
+                .map(|fragment| fragment.placements.len())
+                .sum::<usize>();
+            let lines = plan
+                .fragments
+                .iter()
+                .map(|fragment| fragment.connections.len())
+                .sum::<usize>();
+            let resources = plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .map(|placement| placement.resources.len())
+                .sum::<usize>();
+            text(
+                &mut canvas,
+                Point::new(184, 500),
+                &format!(
+                    "EXACT PLAN fragments={} placements={} resources={} Lines={}",
+                    plan.fragments.len(),
+                    placements,
+                    resources,
+                    lines
+                ),
+                theme.text_secondary,
+            );
+            for (index, placement) in plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .take(4)
+                .enumerate()
+            {
+                text(
+                    &mut canvas,
+                    Point::new(184, 518 + index as i32 * 18),
+                    &format!(
+                        "{} -> host={} boot={} implementation={}",
+                        placement.gear_id.as_str(),
+                        placement.host_id.as_str(),
+                        placement.boot_id.as_str(),
+                        placement.implementation_id.as_str()
+                    ),
+                    theme.text_secondary,
+                );
+            }
+        }
+        if let patchbay_model::PrewakeState::Auto { play, .. } = prewake.state() {
+            text(
+                &mut canvas,
+                Point::new(184, 596),
+                &format!(
+                    "SIMULATED TERMINAL {:?}  kernel Signs={}  output-bytes={}",
+                    play.terminal,
+                    play.kernel_sign.len(),
+                    play.output.len()
+                ),
+                theme.emphasis,
             );
         }
     }
@@ -283,9 +432,12 @@ mod tests {
             1000,
             600,
             &environment,
-            Some("pico"),
-            None,
-            None,
+            EnvironmentViewContext {
+                selected: Some("pico"),
+                pending_link: None,
+                observed: None,
+                prewake: None,
+            },
         );
         assert!(targets
             .iter()

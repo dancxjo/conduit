@@ -7,6 +7,7 @@ pub struct Arguments {
     pub linear_snapshot_path: Option<PathBuf>,
     pub form_path: Option<PathBuf>,
     pub environment_path: Option<PathBuf>,
+    pub prewake: bool,
     pub control_demo: bool,
     pub control_demo_stop: bool,
     pub native_copy_demo: bool,
@@ -49,6 +50,7 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
                         .into(),
                 );
             }
+            "--prewake" if !parsed.prewake => parsed.prewake = true,
             "--control-demo" if !parsed.control_demo && !parsed.control_demo_stop => {
                 parsed.control_demo = true;
             }

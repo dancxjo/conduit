@@ -1,0 +1,159 @@
+//! Native application composition and exclusive workspace initialization.
+
+use super::*;
+
+impl PatchbayApplication {
+    pub(super) fn new(arguments: Arguments) -> Result<Self, String> {
+        let native_file_base = probe_native_file_base();
+        let mut composition = StdHostComposition::minimal()
+            .with_signal()
+            .with_time()
+            .with_text()
+            .with_state();
+        if native_file_base.is_some() {
+            composition = composition.with_files();
+        }
+        let model = PatchbayModel::fresh_with_composition(composition);
+        emit_report("startup", &model.startup_snapshot())?;
+        let mut topology =
+            PatchbayTopology::new(HISTORY_CAPACITY).map_err(|error| error.to_string())?;
+        let observed_environment_snapshot = if let Some(path) = arguments.snapshot_path {
+            let encoded = std::fs::read(&path)
+                .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+            let snapshot = serde_json::from_slice(&encoded)
+                .map_err(|error| format!("cannot decode {}: {error}", path.display()))?;
+            topology
+                .ingest(&snapshot)
+                .map_err(|error| error.to_string())?;
+            Some(snapshot)
+        } else {
+            topology
+                .ingest(&model.startup_snapshot())
+                .map_err(|error| error.to_string())?;
+            None
+        };
+        let topology_lines = topology
+            .document(None)
+            .map_err(|error| error.to_string())?
+            .lines()
+            .to_vec();
+        let workspace = workspace_open::open_workspace(
+            arguments.form_path,
+            arguments.environment_path,
+            arguments.prewake,
+        )?;
+        if arguments.prewake && (workspace.form_editor.is_none() || workspace.environment.is_none())
+        {
+            return Err("--prewake requires both --form and --environment".into());
+        }
+        let mut prewake = arguments
+            .prewake
+            .then(patchbay_model::PrewakeController::default);
+        if let Some(controller) = &mut prewake {
+            controller
+                .enter(
+                    workspace
+                        .form_editor
+                        .as_ref()
+                        .expect("PREWAKE Form checked"),
+                    workspace
+                        .environment
+                        .as_ref()
+                        .expect("PREWAKE environment checked"),
+                )
+                .map_err(|error| error.to_string())?;
+        }
+        let source_host_id = model.projection().host_id().clone();
+        let source_boot_id = model.projection().boot_id().clone();
+        let control =
+            NativeControl::for_host(source_host_id.clone(), source_boot_id.clone(), composition);
+        let file_task = NativeFileTask::for_host(
+            native_file_base,
+            source_host_id.clone(),
+            source_boot_id.clone(),
+            composition,
+        );
+        let route_demo = (arguments.distributed_route_demo || arguments.distributed_play)
+            .then(|| {
+                DistributedRouteDemo::build_for_source(
+                    source_host_id.clone(),
+                    source_boot_id.clone(),
+                )
+            })
+            .transpose()
+            .map_err(|error| format!("distributed route demo: {error:?}"))?;
+        let renderer_execution = (arguments.distributed_route_demo || arguments.distributed_play)
+            .then(|| {
+                RendererExecution::prepare(
+                    patchbay_model::portable_demonstration()?,
+                    RendererAdapterKind::NativeWayland,
+                    RendererAdapterIdentity {
+                        host_id: source_host_id.clone(),
+                        boot_id: source_boot_id.clone(),
+                        target_subject: "patchbay-native/window-0".into(),
+                    },
+                    SignId::from("patchbay-native/manifestation-prepared"),
+                )
+                .map_err(|error| error.to_string())
+            })
+            .transpose()?;
+        let distributed_play = arguments
+            .distributed_play
+            .then(|| NativeDistributedPlay::start(source_host_id.clone(), source_boot_id.clone()))
+            .transpose()?;
+        let mut application = Self {
+            model,
+            topology_lines,
+            form_editor: workspace.form_editor,
+            environment: workspace.environment,
+            environment_path: workspace.environment_path,
+            selected_environment_part: None,
+            environment_drag: None,
+            pending_environment_link: None,
+            environment_name_editing: false,
+            observed_environment_snapshot,
+            prewake,
+            prewake_environment_view: arguments.prewake,
+            form_selection: 0,
+            graphical_form: workspace.graphical_form,
+            layout: workspace.layout,
+            interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
+            hit_targets: Vec::new(),
+            cursor_position: (0.0, 0.0),
+            linear_view: false,
+            modifiers: winit::keyboard::ModifiersState::empty(),
+            palette_query: String::new(),
+            palette_search_active: false,
+            palette_drag: None,
+            cord_drag: None,
+            cord_route_drag: None,
+            gear_drag: None,
+            control,
+            build_birth: BuildBirthController::new(),
+            lifecycle_sequence: 0,
+            file_task,
+            route_demo,
+            renderer_execution,
+            distributed_play,
+            window: None,
+            surface_context: None,
+            surface: None,
+            exit_after_window: arguments.exit_after_window,
+            rendered_once: false,
+            failure: None,
+        };
+        if arguments.control_demo || arguments.control_demo_stop {
+            application.birth_body()?;
+            application.wake_body()?;
+            application.plan_play()?;
+            application.play_plan()?;
+            if arguments.control_demo_stop {
+                application.control.stop()?;
+            }
+        }
+        if arguments.native_copy_demo {
+            application.file_task.run_choice_demo()?;
+        }
+        Ok(application)
+    }
+}

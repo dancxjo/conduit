@@ -207,6 +207,8 @@ pub enum DemoCommand {
     Patchbay,
     /// Open the authored physical-environment Patchbay demonstration.
     Environment,
+    /// Rehearse a canonical Form against the authored environment before Wake.
+    Prewake,
     /// Alias for the actual-browser distributed toggle demonstration.
     Browser,
     /// Run the S4 distributed toggle proof interactively.

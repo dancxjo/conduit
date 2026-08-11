@@ -78,16 +78,23 @@ impl PatchbayApplication {
             .map_err(|error| error.to_string())?;
         let mut buffer = surface.buffer_mut().map_err(|error| error.to_string())?;
         buffer.fill(BACKGROUND);
-        let hit_targets = if let Some(environment) = &self.environment {
-            crate::environment_view::draw_environment(
-                &mut buffer,
-                size.width as usize,
-                size.height as usize,
-                environment,
-                self.selected_environment_part.as_deref(),
-                self.pending_environment_link.as_ref(),
-                self.observed_environment_snapshot.as_ref(),
-            )
+        let hit_targets = if self.prewake.is_none() || self.prewake_environment_view {
+            if let Some(environment) = &self.environment {
+                crate::environment_view::draw_environment(
+                    &mut buffer,
+                    size.width as usize,
+                    size.height as usize,
+                    environment,
+                    crate::environment_view::EnvironmentViewContext {
+                        selected: self.selected_environment_part.as_deref(),
+                        pending_link: self.pending_environment_link.as_ref(),
+                        observed: self.observed_environment_snapshot.as_ref(),
+                        prewake: self.prewake.as_ref(),
+                    },
+                )
+            } else {
+                Vec::new()
+            }
         } else if let Some(graph) = graph {
             if linear_view {
                 draw_document(

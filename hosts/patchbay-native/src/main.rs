@@ -12,6 +12,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
 const HISTORY_CAPACITY: usize = 4;
+mod application_init;
 mod arguments;
 mod build_birth;
 mod canvas;
@@ -37,6 +38,7 @@ mod palette_icon_data;
 mod palette_input;
 mod palette_view;
 mod presentation;
+mod prewake_interaction;
 mod render;
 mod renderer_adapter;
 mod resource;
@@ -60,6 +62,8 @@ struct PatchbayApplication {
     pending_environment_link: Option<(String, patchbay_model::EnvironmentLinkKind)>,
     environment_name_editing: bool,
     observed_environment_snapshot: Option<conduit_observatory::ObservatorySnapshot>,
+    prewake: Option<patchbay_model::PrewakeController>,
+    prewake_environment_view: bool,
     form_selection: usize,
     graphical_form: Option<patchbay_model::PatchbayGraph>,
     layout: patchbay_model::PatchbayLayout,
@@ -87,136 +91,6 @@ struct PatchbayApplication {
     exit_after_window: bool,
     rendered_once: bool,
     failure: Option<String>,
-}
-
-impl PatchbayApplication {
-    fn new(arguments: Arguments) -> Result<Self, String> {
-        let native_file_base = probe_native_file_base();
-        let mut composition = StdHostComposition::minimal()
-            .with_signal()
-            .with_time()
-            .with_text()
-            .with_state();
-        if native_file_base.is_some() {
-            composition = composition.with_files();
-        }
-        let model = PatchbayModel::fresh_with_composition(composition);
-        emit_report("startup", &model.startup_snapshot())?;
-        let mut topology =
-            PatchbayTopology::new(HISTORY_CAPACITY).map_err(|error| error.to_string())?;
-        let observed_environment_snapshot = if let Some(path) = arguments.snapshot_path {
-            let encoded = std::fs::read(&path)
-                .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-            let snapshot = serde_json::from_slice(&encoded)
-                .map_err(|error| format!("cannot decode {}: {error}", path.display()))?;
-            topology
-                .ingest(&snapshot)
-                .map_err(|error| error.to_string())?;
-            Some(snapshot)
-        } else {
-            topology
-                .ingest(&model.startup_snapshot())
-                .map_err(|error| error.to_string())?;
-            None
-        };
-        let topology_lines = topology
-            .document(None)
-            .map_err(|error| error.to_string())?
-            .lines()
-            .to_vec();
-        let workspace =
-            workspace_open::open_workspace(arguments.form_path, arguments.environment_path)?;
-        let source_host_id = model.projection().host_id().clone();
-        let source_boot_id = model.projection().boot_id().clone();
-        let control =
-            NativeControl::for_host(source_host_id.clone(), source_boot_id.clone(), composition);
-        let file_task = NativeFileTask::for_host(
-            native_file_base,
-            source_host_id.clone(),
-            source_boot_id.clone(),
-            composition,
-        );
-        let route_demo = (arguments.distributed_route_demo || arguments.distributed_play)
-            .then(|| {
-                DistributedRouteDemo::build_for_source(
-                    source_host_id.clone(),
-                    source_boot_id.clone(),
-                )
-            })
-            .transpose()
-            .map_err(|error| format!("distributed route demo: {error:?}"))?;
-        let renderer_execution = (arguments.distributed_route_demo || arguments.distributed_play)
-            .then(|| {
-                RendererExecution::prepare(
-                    patchbay_model::portable_demonstration()?,
-                    RendererAdapterKind::NativeWayland,
-                    RendererAdapterIdentity {
-                        host_id: source_host_id.clone(),
-                        boot_id: source_boot_id.clone(),
-                        target_subject: "patchbay-native/window-0".into(),
-                    },
-                    SignId::from("patchbay-native/manifestation-prepared"),
-                )
-                .map_err(|error| error.to_string())
-            })
-            .transpose()?;
-        let distributed_play = arguments
-            .distributed_play
-            .then(|| NativeDistributedPlay::start(source_host_id.clone(), source_boot_id.clone()))
-            .transpose()?;
-        let mut application = Self {
-            model,
-            topology_lines,
-            form_editor: workspace.form_editor,
-            environment: workspace.environment,
-            environment_path: workspace.environment_path,
-            selected_environment_part: None,
-            environment_drag: None,
-            pending_environment_link: None,
-            environment_name_editing: false,
-            observed_environment_snapshot,
-            form_selection: 0,
-            graphical_form: workspace.graphical_form,
-            layout: workspace.layout,
-            interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
-            hit_targets: Vec::new(),
-            cursor_position: (0.0, 0.0),
-            linear_view: false,
-            modifiers: winit::keyboard::ModifiersState::empty(),
-            palette_query: String::new(),
-            palette_search_active: false,
-            palette_drag: None,
-            cord_drag: None,
-            cord_route_drag: None,
-            gear_drag: None,
-            control,
-            build_birth: BuildBirthController::new(),
-            lifecycle_sequence: 0,
-            file_task,
-            route_demo,
-            renderer_execution,
-            distributed_play,
-            window: None,
-            surface_context: None,
-            surface: None,
-            exit_after_window: arguments.exit_after_window,
-            rendered_once: false,
-            failure: None,
-        };
-        if arguments.control_demo || arguments.control_demo_stop {
-            application.birth_body()?;
-            application.wake_body()?;
-            application.plan_play()?;
-            application.play_plan()?;
-            if arguments.control_demo_stop {
-                application.control.stop()?;
-            }
-        }
-        if arguments.native_copy_demo {
-            application.file_task.run_choice_demo()?;
-        }
-        Ok(application)
-    }
 }
 
 impl ApplicationHandler for PatchbayApplication {
@@ -299,7 +173,21 @@ impl ApplicationHandler for PatchbayApplication {
                 }
             }
             WindowEvent::KeyboardInput { event, .. } if event.state.is_pressed() => {
-                let environment_handled = match self.handle_environment_key(&event.logical_key) {
+                let prewake_handled = match self.handle_prewake_key(&event.logical_key) {
+                    Ok(handled) => handled,
+                    Err(error) => {
+                        self.failure = Some(format!("PREWAKE control failed: {error}"));
+                        event_loop.exit();
+                        true
+                    }
+                };
+                let environment_handled = match if self.prewake.is_none()
+                    || self.prewake_environment_view
+                {
+                    self.handle_environment_key(&event.logical_key)
+                } else {
+                    Ok(false)
+                } {
                     Ok(handled) => handled,
                     Err(error) => {
                         self.failure = Some(format!("authored environment edit failed: {error}"));
@@ -307,7 +195,10 @@ impl ApplicationHandler for PatchbayApplication {
                         true
                     }
                 };
-                if environment_handled || self.handle_palette_key(&event.logical_key) {
+                if prewake_handled
+                    || environment_handled
+                    || self.handle_palette_key(&event.logical_key)
+                {
                     if let Some(window) = &self.window {
                         window.request_redraw();
                     }
