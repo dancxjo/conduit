@@ -1,5 +1,7 @@
 use conduit_core::{verify_plan, BootId, ConnectionBase, HostId, SignId};
-use conduit_presentation::{ManifestationError, ManifestationFailure, ManifestationLifecycle};
+use conduit_presentation::{
+    render_linear_presentation, ManifestationError, ManifestationFailure, ManifestationLifecycle,
+};
 
 use crate::{
     cross_host_renderer_plan, portable_demonstration, RendererAdapterIdentity, RendererAdapterKind,
@@ -91,6 +93,57 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
         ManifestationLifecycle::Closed
     );
     assert!(native.validate().is_ok() && html.validate().is_ok());
+}
+
+#[test]
+fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
+    let presentation = portable_demonstration().unwrap();
+    let native = RendererExecution::prepare(
+        presentation.clone(),
+        RendererAdapterKind::NativeWayland,
+        identity("native-host", "native-boot", "native/display-0"),
+        SignId::from("native/prepared"),
+    )
+    .unwrap();
+    let browser = RendererExecution::prepare(
+        presentation.clone(),
+        RendererAdapterKind::HtmlDomSvg,
+        identity("browser-host", "browser-boot", "browser/document-0"),
+        SignId::from("browser/prepared"),
+    )
+    .unwrap();
+    let linear = render_linear_presentation(&presentation).unwrap();
+
+    for realized in [&native.presentation, &browser.presentation] {
+        assert_eq!(realized.identity, presentation.identity);
+        assert_eq!(realized.basis, presentation.basis);
+        assert_eq!(realized.subjects, presentation.subjects);
+        assert_eq!(realized.relationships, presentation.relationships);
+        assert_eq!(realized.properties, presentation.properties);
+        assert_eq!(realized.text, presentation.text);
+    }
+    assert_eq!(linear.presentation_id, presentation.identity);
+    assert_eq!(linear.revision, presentation.revision);
+
+    let records = linear.lines.join("\n");
+    for subject in &presentation.subjects {
+        assert!(records.contains(&format!("id={:?}", subject.identity)));
+        assert!(records.contains(&format!("label={:?}", subject.label)));
+        assert!(records.contains(&format!("accessibility={:?}", subject.accessibility_name)));
+    }
+    for relationship in &presentation.relationships {
+        assert!(records.contains(&format!("source={:?}", relationship.source)));
+        assert!(records.contains(&format!("target={:?}", relationship.target)));
+    }
+
+    let native_placement = &native.plan.fragments[0].placements[0];
+    let browser_placement = &browser.plan.fragments[0].placements[0];
+    assert_ne!(native.plan.plan_id, browser.plan.plan_id);
+    assert_ne!(
+        native_placement.implementation_id,
+        browser_placement.implementation_id
+    );
+    assert!(!records.contains("pixel=") && !records.contains("dom-id="));
 }
 
 #[test]
