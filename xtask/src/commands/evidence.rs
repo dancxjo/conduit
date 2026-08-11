@@ -41,6 +41,10 @@ struct EvidenceGalleryArgs {
     #[arg(long)]
     evidence_root: PathBuf,
 
+    /// Optional complete x86_64 ConduitOS console evidence for the same commit.
+    #[arg(long)]
+    conduitos_evidence_root: Option<PathBuf>,
+
     /// Existing or empty gallery root to update atomically by accepted commit.
     #[arg(long)]
     site_root: PathBuf,
@@ -99,6 +103,7 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
         }
         EvidenceCommand::Gallery(args) => evidence::publish_gallery(&evidence::GalleryRequest {
             evidence_root: args.evidence_root,
+            conduitos_evidence_root: args.conduitos_evidence_root,
             site_root: args.site_root,
             commit: args.commit,
         })

@@ -203,6 +203,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         xhci,
         kernel,
         observatory,
+        serial,
     })
 }
 

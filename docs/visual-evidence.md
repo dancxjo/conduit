@@ -98,3 +98,32 @@ therefore appear as ordinary baseline diffs in a pull request. On mismatch,
 Playwright writes expected, actual, and diff diagnostics beneath
 `target/playwright/patchbay-visual`; the pull-request workflow retains that
 directory as failed-run diagnostics, never as canonical gallery evidence.
+
+## ConduitOS console evidence
+
+`cargo xtask conduitos prove --arch x86-64 --evidence-root <directory>` can
+emit one bounded UTF-8 console transcript after the existing x86_64 proof has
+validated its boot Sign, kernel Sign, Observatory snapshot, exact semantic
+presentation, and terminal QEMU debug exit. The ordinary proof remains the
+acceptance authority; capture is not triggered by a sleep or an image timer.
+
+The manifest classifies this artifact as `console-transcript` and records the
+exact commit, x86_64 architecture and accepted P5 rung, `freestanding-emulator`
+proof class, QEMU executable/version and finite machine profile, firmware,
+Host/Boot, Plan/Play, kernel artifact identity/digest, semantic trigger, output
+digest, and 256 KiB transcript ceiling. Its physical-evidence field is
+explicitly false. No width or height is invented for a console transcript.
+
+The complete x86_64 evidence set contains exactly one required transcript.
+Verification rejects missing semantic markers, an incomplete terminal line,
+wrong proof/rung/machine facts, a physical claim, digest drift, extra files, or
+an oversized output. CI invokes the same `cargo xtask` entrance and retains the
+exact-head directory as an Actions artifact.
+
+The static gallery accepts this evidence only when its manifest commit equals
+the simultaneously verified Patchbay evidence commit. When supplied to the
+gallery command, it writes separate current and commit-addressed ConduitOS
+pages whose heading warns that the transcript is emulator evidence, not
+physical-hardware evidence. No framebuffer capture is claimed: the accepted
+x86_64 proof currently reports zero framebuffers, so console evidence is the
+truthful first specimen.

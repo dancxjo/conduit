@@ -9,6 +9,10 @@ use super::{
     verify, ExpectedEvidenceResult, VerificationRequest, VerifiedEvidence, VerifiedOutput,
 };
 
+mod conduitos;
+
+use conduitos::{write_conduitos_commit, write_conduitos_current};
+
 const GALLERY_SCHEMA: &str = "conduit.visual-evidence-gallery/v1";
 const RETAINED_COMMITS: usize = 32;
 const MAX_GALLERY_FILES: usize = 1_024;
@@ -23,6 +27,7 @@ const SCENARIOS: &[(&str, &str)] = &[
 
 pub struct GalleryRequest {
     pub evidence_root: PathBuf,
+    pub conduitos_evidence_root: Option<PathBuf>,
     pub site_root: PathBuf,
     pub commit: String,
 }
@@ -44,6 +49,19 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
         proof_id: "browser-host".into(),
         suite_id: "prove.browser-host".into(),
     })?;
+    let conduitos = request
+        .conduitos_evidence_root
+        .as_ref()
+        .map(|root| {
+            verify(&VerificationRequest {
+                root: root.clone(),
+                commit: request.commit.clone(),
+                result: ExpectedEvidenceResult::Complete,
+                proof_id: "conduitos-x86_64".into(),
+                suite_id: "conduitos.prove.x86_64".into(),
+            })
+        })
+        .transpose()?;
     fs::create_dir_all(&request.site_root).map_err(|error| {
         format!(
             "cannot create gallery root {}: {error}",
@@ -76,7 +94,18 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
 
     write_commit_snapshot(&site_root, &request.evidence_root, &evidence)?;
     write_current_pages(&site_root, &request.evidence_root, &evidence)?;
-    write_root_index(&site_root, &index)?;
+    if let (Some(root), Some(conduitos)) = (&request.conduitos_evidence_root, &conduitos) {
+        write_conduitos_commit(&site_root, root, conduitos)?;
+        write_conduitos_current(&site_root, root, conduitos)?;
+    } else {
+        let current = site_root.join("current/conduitos");
+        if current.exists() {
+            fs::remove_dir_all(current).map_err(|error| {
+                format!("cannot clear stale ConduitOS current evidence: {error}")
+            })?;
+        }
+    }
+    write_root_index(&site_root, &index, conduitos.is_some())?;
     write_json(&site_root.join("gallery.json"), &index)?;
     fs::write(site_root.join(".nojekyll"), b"")
         .map_err(|error| format!("cannot write gallery marker: {error}"))?;
@@ -290,17 +319,36 @@ fn write_current_pages(
     )
 }
 
-fn write_root_index(root: &Path, index: &GalleryIndex) -> Result<(), String> {
+fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> Result<(), String> {
     let history = index
         .commits
         .iter()
         .map(|commit| {
-            format!("<li><a href=\"commits/{commit}/patchbay/\"><code>{commit}</code></a></li>")
+            let conduitos = if root
+                .join("commits")
+                .join(commit)
+                .join("conduitos/x86_64/index.html")
+                .is_file()
+            {
+                format!(
+                    " · <a href=\"commits/{commit}/conduitos/x86_64/\">ConduitOS x86_64</a>"
+                )
+            } else {
+                String::new()
+            };
+            format!(
+                "<li><code>{commit}</code>: <a href=\"commits/{commit}/patchbay/\">Patchbay</a>{conduitos}</li>"
+            )
         })
         .collect::<Vec<_>>()
         .join("\n");
+    let conduitos = if has_conduitos {
+        "\n<p><a href=\"current/conduitos/x86_64/\">Current x86_64 ConduitOS emulator console evidence</a></p>"
+    } else {
+        ""
+    };
     let body = format!(
-        "<h1>Conduit visual evidence</h1>\n<p>Current accepted main: <code>{}</code></p>\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>\n<h2>Retained accepted commits</h2>\n<ul>{history}</ul>\n<p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; these images are documentary evidence.</p>",
+        "<h1>Conduit visual evidence</h1>\n<p>Current accepted main: <code>{}</code></p>\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>{conduitos}\n<h2>Retained accepted commits</h2>\n<ul>{history}</ul>\n<p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; these images and transcripts are documentary evidence.</p>",
         escape_html(&index.current_commit)
     );
     write_html(&root.join("index.html"), "Conduit visual evidence", &body)
@@ -381,7 +429,7 @@ fn write_scenario_page(
     write_html(path, label, &body)
 }
 
-fn required_output<'a>(
+pub(super) fn required_output<'a>(
     evidence: &'a VerifiedEvidence,
     identity: &str,
 ) -> Result<&'a VerifiedOutput, String> {
@@ -392,7 +440,7 @@ fn required_output<'a>(
         .ok_or_else(|| format!("verified evidence lost required output '{identity}'"))
 }
 
-fn write_html(path: &Path, title: &str, body: &str) -> Result<(), String> {
+pub(super) fn write_html(path: &Path, title: &str, body: &str) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|error| format!("cannot create gallery page directory: {error}"))?;
@@ -410,7 +458,7 @@ fn write_json(path: &Path, value: &impl Serialize) -> Result<(), String> {
     fs::write(path, bytes).map_err(|error| format!("cannot write gallery index: {error}"))
 }
 
-fn copy_file(source: &Path, destination: &Path) -> Result<(), String> {
+pub(super) fn copy_file(source: &Path, destination: &Path) -> Result<(), String> {
     fs::copy(source, destination).map_err(|error| {
         format!(
             "cannot copy gallery evidence {} to {}: {error}",
@@ -438,11 +486,11 @@ fn validate_commit(value: &str) -> Result<(), String> {
     }
 }
 
-fn optional(value: &Option<String>) -> &str {
+pub(super) fn optional(value: &Option<String>) -> &str {
     value.as_deref().unwrap_or("not recorded")
 }
 
-fn escape_html(value: &str) -> String {
+pub(super) fn escape_html(value: &str) -> String {
     value
         .replace('&', "&amp;")
         .replace('<', "&lt;")

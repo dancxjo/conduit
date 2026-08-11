@@ -133,6 +133,7 @@ pub struct GuestRun {
     pub xhci: GuestXhciSign,
     pub kernel: GuestKernelSign,
     pub observatory: conduit_observatory::ObservatorySnapshot,
+    pub serial: String,
 }
 
 #[derive(Debug, Serialize)]
