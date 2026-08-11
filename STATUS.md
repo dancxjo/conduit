@@ -29,8 +29,8 @@ adapter or physical proof.
 | Retired membership prototype | historical only | deterministic table tests | no production Body model | no | no | no | no |
 | Observatory | versioned neutral host/capability/Base/link/plan/Play/pressure/current-and-historical-Sign/retention reports with exact identity and bound validation; sealed boot provenance remains distinct from live offers and Bases | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control; native Patchbay validates and linearly renders the same ordinary snapshot exported by ConduitOS | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store; the accepted ConduitOS export is freestanding-emulator proof | no new transport; observed links are report facts only | no new physical/HIL claim |
 | Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and Sign identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, bases, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
-| `conduit.std` | nineteen exact typed contracts: time tick/every, typed tick/text/count presentation, text literal/upper/join, state/count, scalar latest/tee/gate, scalar compare/select, Boolean not, scalar clamp/scale/deadband, and protected file/copy; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors, canonical Programs 1–4, and deterministic flow/state/decision/math pressure, closure, cancellation, boundary, overflow, and mutation vectors | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; combined scalar flow/state, compare/not/select, and deadband/scale/clamp Forms execute through ordinary planning/lowering, while minimal/subset compositions advertise only selected offers | no manifestation claim for these nineteen revisions | no new firmware manifestation for the nine flow/state/decision/math revisions; the separate ConduitOS row owns its narrower five-contract proof | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
-| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 19-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 5 implemented, 14 missing without advertising any missing capability | no new browser claim | one x86_64 freestanding-emulator ConduitOS Host runs the unchanged bounded `text/literal -> text/upper -> presentation/text` Form through ordinary planning and the production kernel, then presents exactly `HELLO, CONDUITOS` through its admitted serial Base; all nine flow/state/decision/math revisions remain classified missing | no transport | no physical/HIL claim |
+| `conduit.std` | twenty-one exact typed contracts: time tick/every, Boolean debounce and tick inactivity timeout, typed tick/text/count presentation, text literal/upper/join, state/count, scalar latest/tee/gate, scalar compare/select, Boolean not, scalar clamp/scale/deadband, and protected file/copy; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors, canonical Programs 1–4, and deterministic flow/state/decision/math/temporal pressure, closure, cancellation, boundary, overflow, and mutation vectors | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; combined scalar flow/state, compare/not/select, deadband/scale/clamp, and separate robot debounce/timeout Forms execute through ordinary planning/lowering, while minimal/subset compositions advertise only selected offers | no manifestation claim for these twenty-one revisions | no new firmware manifestation for the eleven flow/state/decision/math/temporal revisions; the separate ConduitOS row owns its narrower five-contract proof | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
+| ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 21-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 5 implemented, 16 missing without advertising any missing capability | no new browser claim | one x86_64 freestanding-emulator ConduitOS Host runs the unchanged bounded `text/literal -> text/upper -> presentation/text` Form through ordinary planning and the production kernel, then presents exactly `HELLO, CONDUITOS` through its admitted serial Base; all eleven flow/state/decision/math/temporal revisions remain classified missing | no transport | no physical/HIL claim |
 | Copy a file | unsafe prototype disabled | tests removed from default tree | no admitted host operation | no chooser | no | no | no |
 
 ## Required CI claims
@@ -65,6 +65,11 @@ The `check` workflow requires:
   finite std Host reactor with deterministic equal-deadline order, virtual and
   hosted monotonic clocks, distinct stale/full/clock failures, and one
   production-kernel arm/cancel/replace/complete flow;
+- exact typed Boolean trailing-debounce and tick inactivity-timeout contracts
+  with finite duration/value bounds, ordinary Form planning and production-
+  kernel execution, deterministic virtual schedules and Signs, zero/maximum,
+  simultaneous, late, burst/reset, closure, cancellation, and stale/missing-
+  Base vectors, and zero successful post-Play allocations;
 - exact semantic-contract/profile/port, host-operation/resource/authority/link, and
   policy/budget planning with cycle, mutation-negative, action/completion and
   authority/link admission, reservation/release, and executable
@@ -913,6 +918,36 @@ PID controller, trajectory planner, physics engine, browser or firmware
 implementation, transport, physical actuation, or HIL claim. ConduitOS truth
 remains narrower: its gap inventory includes all three math revisions as
 missing and advertises none of them.
+
+The explicit planned-time debounce/timeout slice from #779 is accepted at
+exact main `6dd23917ded0170d1713eb826051c653508354e6`; push workflow
+`31457216826` passed `check`, `browser-host`, and `conduitos-boot`. Its main
+implementation merged as `7df3462f989220da3702a62118c69ecb11431274`, whose
+push workflow `31455996699` passed the same required jobs. The portable catalog
+now defines exact `time/debounce` Boolean Current-to-Current trailing semantics
+and exact `time/timeout` tick Flow-to-Boolean Current inactivity semantics.
+Both bind the admitted monotonic-millisecond Host operation and timer resource,
+accept only durations from zero through 86,400,000 milliseconds, and retain
+finite one-item/eight-byte queue limits. Debounce admits at most eight values;
+timeout admits at most two state values, emits false initially, true once after
+inactivity, and false again on recovered activity.
+
+The std Host advertises exact revisions, implementations, artifacts, and finite
+limits for both Kinds. Representative robot Forms check, plan, lower, and run
+through the one production `conduit-kernel` with stable preallocated value
+storage and zero successful post-Play allocations. Repeated virtual schedules
+produce identical deadlines, outputs, observations, receipts, and kernel Signs;
+the conformance set covers zero and maximum duration, simultaneous input and
+deadline, late wakes, debounce burst/reset and terminal pending flush, timeout
+expiry/recovery/reset, exact deadline cancellation, and unavailable or
+regressed monotonic Base. Patchbay derives the bounded duration, trailing-policy,
+and maximum-value controls from the authoritative configuration schema.
+
+This acceptance adds no `value/any`, wall clock, scheduler-order timing,
+async/callback runtime, delay, throttle, timer wheel, retry policy, browser or
+firmware implementation, live transport, physical timing, or HIL claim.
+ConduitOS truth remains narrower: its current inventory classifies both exact
+revisions as missing and advertises neither one.
 
 The first ConduitOS boot slice from #588 is accepted at exact main
 `35a7522703164cdc1758a3bfebfd5ac3f0649a0e`; push workflow `31340517738`
