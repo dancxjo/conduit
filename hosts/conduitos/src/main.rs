@@ -359,9 +359,11 @@ extern "C" fn conduitos_start() -> ! {
                     }
                 });
             if let Err(reason) = conduitos::keyboard_text_guest::run_reviewed_sequences(
+                &record,
                 &identities,
                 &offer,
                 BUILD_ID,
+                IMAGE_ID,
                 &keyboard_text_events,
             ) {
                 emit_machine_refusal(reason);

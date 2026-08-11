@@ -3,14 +3,19 @@
 use alloc::format;
 use conduit_core::KeyEvent;
 
-use crate::{arch, identity, keyboard_text_plan, keyboard_text_play, offer::HostOffer};
+use crate::{
+    arch, boot::BootRecord, identity, keyboard_text_observatory, keyboard_text_plan,
+    keyboard_text_play, offer::HostOffer,
+};
 
 pub const PHYSICAL_TRANSITIONS: usize = 38;
 
 pub fn run_reviewed_sequences(
+    record: &BootRecord,
     identities: &identity::BootIdentities,
     offer: &HostOffer<'_>,
     build_id: &str,
+    image_id: &str,
     events: &[KeyEvent; PHYSICAL_TRANSITIONS],
 ) -> Result<(), &'static str> {
     let prepared = prepare(identities, offer, build_id)?;
@@ -51,6 +56,13 @@ pub fn run_reviewed_sequences(
         PHYSICAL_TRANSITIONS,
     );
     arch::early_write(sign.as_bytes());
+    let snapshot = keyboard_text_observatory::completed_snapshot(
+        record, identities, offer, &prepared, build_id, image_id,
+    )
+    .map_err(|_| "keyboard-text-observatory-refused")?;
+    arch::early_write(keyboard_text_observatory::EXPORT_PREFIX.as_bytes());
+    arch::early_write(snapshot.as_bytes());
+    arch::early_write(b"\n");
     arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-text-completed\n");
     Ok(())
 }

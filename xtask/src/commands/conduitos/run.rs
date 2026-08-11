@@ -176,6 +176,10 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_OBSERVATORY_SNAPSHOT "))
         .collect();
+    let keyboard_text_observatory_snapshots: Vec<_> = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix(conduitos::keyboard_text_observatory::EXPORT_PREFIX))
+        .collect();
     let presentations: Vec<_> = serial
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_SERIAL_PRESENT "))
@@ -198,6 +202,15 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             ),
         ));
     }
+    if keyboard_text_observatory_snapshots.len() != 1 {
+        return Err(ConduitosError::refusal(
+            "malformed-keyboard-text-observatory",
+            format!(
+                "expected one keyboard-text Observatory snapshot, found {}",
+                keyboard_text_observatory_snapshots.len()
+            ),
+        ));
+    }
     let boot: GuestBootSign = serde_json::from_str(signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-boot-sign", error.to_string()))?;
     let xhci: GuestXhciSign = serde_json::from_str(xhci_signs[0])
@@ -212,12 +225,22 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         serde_json::from_str(observatory_snapshots[0]).map_err(|error| {
             ConduitosError::refusal("malformed-observatory-snapshot", error.to_string())
         })?;
+    let keyboard_text_observatory: conduit_observatory::ObservatorySnapshot =
+        serde_json::from_str(keyboard_text_observatory_snapshots[0]).map_err(|error| {
+            ConduitosError::refusal("malformed-keyboard-text-observatory", error.to_string())
+        })?;
     validate_boot(&boot)?;
     validate_xhci(&boot, &xhci)?;
     usb_run::validate(&boot, &xhci, &usb)?;
     hid_run::validate(&boot, &xhci, &usb, &hid)?;
     keyboard_run::validate(&boot, &xhci, &usb, &hid, &keyboard, &observatory)?;
-    keyboard_text_run::validate(&serial, &boot, &keyboard, &keyboard_text)?;
+    keyboard_text_run::validate(
+        &serial,
+        &boot,
+        &keyboard,
+        &keyboard_text,
+        &keyboard_text_observatory,
+    )?;
     validate_kernel(&boot, &kernel)?;
     validate_observatory(&boot, &kernel, &observatory)?;
     if !opts.quiet && !opts.json {
@@ -232,6 +255,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         hid,
         keyboard,
         keyboard_text,
+        keyboard_text_observatory,
         kernel,
         observatory,
         serial,

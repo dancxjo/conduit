@@ -11,17 +11,24 @@ use super::{
     run, usb_run, ConduitosArch, ConduitosError,
 };
 
-const NEGATIVE_CASES: [&str; 10] = [
+const NEGATIVE_CASES: [&str; 17] = [
     "device-absent-no-offer",
     "not-a-boot-keyboard",
     "ambiguous-compatible-device",
     "stale-boot-identity",
     "artifact-build-mismatch",
     "resource-capacity-exhausted",
-    "portable-value-invalid",
-    "cord-pressure",
-    "transfer-failure-distinct-from-pressure",
+    "malformed-key-event-refused-before-text-upper",
+    "invalid-unicode-entry-resets-without-text",
+    "cord-item-pressure-is-finite",
+    "cord-byte-underprovision-refuses-before-play",
+    "presentation-base-unavailable-is-realization-failure",
+    "usb-transfer-failure-is-source-failure",
+    "source-failure-distinct-from-cancellation",
+    "cancellation-terminal-without-late-output",
     "device-loss-distinct-from-closure",
+    "omitted-layout-is-conduit-intl-not-host-locale",
+    "synthetic-key-event-cannot-satisfy-freestanding-emulator-proof",
 ];
 
 #[derive(Serialize)]
@@ -33,6 +40,7 @@ struct KeyboardProofRecord {
     qemu_device: &'static str,
     positive: GuestKeyboardSign,
     keyboard_text: GuestKeyboardTextSign,
+    keyboard_text_observatory: conduit_observatory::ObservatorySnapshot,
     device_absent_refusal: String,
     deterministic_device_command: &'static str,
     deterministic_kernel_command: &'static str,
@@ -95,6 +103,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         qemu_device: "usb-kbd,bus=conduitos-xhci.0,port=1",
         positive: positive_run.keyboard,
         keyboard_text: positive_run.keyboard_text,
+        keyboard_text_observatory: positive_run.keyboard_text_observatory,
         device_absent_refusal: absent,
         deterministic_device_command: "cargo test -p conduitos --lib",
         deterministic_kernel_command: "cargo test -p conduit-kernel multi_value_port_graph_handles_pressure_closure_and_uneven_consumers",
