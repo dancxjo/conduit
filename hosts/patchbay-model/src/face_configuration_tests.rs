@@ -150,3 +150,27 @@ fn bounded_text_control_escapes_canonical_source() {
         ConfigurationValue::Text("say \\\"hi\\\"".into())
     );
 }
+
+#[test]
+fn finite_text_contract_projects_an_exact_choice_and_rejects_invented_values() {
+    let mut editor = editor("form controls {\n    compare: logic/compare(operator = \"eq\")\n}\n");
+    let before = editor.expand_form("controls").unwrap();
+    let control = &PatchbayGraph::from_expanded(&before).unwrap().gears[0].controls[0];
+    assert!(matches!(
+        &control.kind,
+        FaceControlKind::TextChoice { choices }
+            if choices == &["lt", "le", "eq", "ne", "ge", "gt"]
+    ));
+    let source = editor.view().source;
+    assert!(matches!(
+        editor.set_gear_configuration(
+            0,
+            &before.expanded_form_id,
+            "compare",
+            "operator",
+            ConfigurationValue::Text("contains".into()),
+        ),
+        Err(FormEditorError::InvalidConfiguration(message)) if message.contains("choose one of")
+    ));
+    assert_eq!(editor.view().source, source);
+}

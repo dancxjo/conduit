@@ -8,6 +8,9 @@ use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
+use super::logic_operations::{
+    LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
+};
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
@@ -79,6 +82,9 @@ pub(super) enum InstalledOperation {
     StateLatestScalar(StateLatestScalarOperation),
     FlowTeeScalar(FlowTeeScalarOperation),
     FlowGateScalar(FlowGateScalarOperation),
+    LogicCompareScalar(LogicCompareScalarOperation),
+    LogicNot(LogicNotOperation),
+    LogicSelectScalar(LogicSelectScalarOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
@@ -89,6 +95,10 @@ pub(super) enum InstalledOperation {
     TestScalarSink(super::test_scalar_flow::TestScalarSinkOperation),
     #[cfg(test)]
     TestGateScript(super::test_gate::TestGateScriptOperation),
+    #[cfg(test)]
+    TestLogicScript(super::test_logic::TestLogicScriptOperation),
+    #[cfg(test)]
+    TestLogicSink(super::test_logic::TestLogicSinkOperation),
     #[cfg(test)]
     TestSlowScalarSink(super::test_gate::TestSlowScalarSinkOperation),
     #[cfg(test)]
@@ -123,6 +133,7 @@ impl InstalledOperation {
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::CountPresentation(_) => 0,
             Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) | Self::FlowGateScalar(_) => 0,
+            Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => 0,
             Self::ExternalWebSocketListener(_) => 0,
             Self::GenerateText(_) => 0,
             #[cfg(test)]
@@ -137,6 +148,10 @@ impl InstalledOperation {
             Self::TestGateScript(operation) => {
                 operation.items.capacity() + operation.waits.capacity()
             }
+            #[cfg(test)]
+            Self::TestLogicScript(_) => 0,
+            #[cfg(test)]
+            Self::TestLogicSink(_) => 0,
             #[cfg(test)]
             Self::TestSlowScalarSink(operation) => operation.waits.capacity(),
             #[cfg(test)]
@@ -169,6 +184,9 @@ impl Operation for InstalledOperation {
             Self::StateLatestScalar(operation) => operation.start(),
             Self::FlowTeeScalar(operation) => operation.start(),
             Self::FlowGateScalar(operation) => operation.start(),
+            Self::LogicCompareScalar(operation) => operation.start(),
+            Self::LogicNot(operation) => operation.start(),
+            Self::LogicSelectScalar(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
@@ -179,6 +197,10 @@ impl Operation for InstalledOperation {
             Self::TestScalarSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestGateScript(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestLogicScript(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestLogicSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestSlowScalarSink(operation) => operation.start(),
             #[cfg(test)]
@@ -216,6 +238,9 @@ impl Operation for InstalledOperation {
             (Self::StateLatestScalar(operation), input) => operation.resume(input),
             (Self::FlowTeeScalar(operation), input) => operation.resume(input),
             (Self::FlowGateScalar(operation), input) => operation.resume(input),
+            (Self::LogicCompareScalar(operation), input) => operation.resume(input),
+            (Self::LogicNot(operation), input) => operation.resume(input),
+            (Self::LogicSelectScalar(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -266,8 +291,23 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             (Self::TestGateScript(operation), input) => operation.resume(input),
             #[cfg(test)]
+            (Self::TestLogicScript(_), _) => Self::fail(23),
+            #[cfg(test)]
+            (Self::TestLogicSink(_), _) => Self::fail(24),
+            #[cfg(test)]
             (Self::TestSlowScalarSink(operation), input) => operation.resume(input),
             (Self::Inactive, _) => Self::fail(4),
+        }
+    }
+
+    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
+        match self {
+            Self::LogicCompareScalar(operation) => operation.resume_value(port, value, canonical),
+            Self::LogicNot(operation) => operation.resume_value(port, value, canonical),
+            Self::LogicSelectScalar(operation) => operation.resume_value(port, value, canonical),
+            #[cfg(test)]
+            Self::TestLogicSink(operation) => operation.resume_value(port, value, canonical),
+            _ => self.resume(OperationInput::Value { port, value }),
         }
     }
 
@@ -289,6 +329,9 @@ impl Operation for InstalledOperation {
             Self::StateLatestScalar(operation) => operation.advance(),
             Self::FlowTeeScalar(operation) => operation.advance(),
             Self::FlowGateScalar(operation) => operation.advance(),
+            Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => {
+                OperationAction::Complete
+            }
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             #[cfg(test)]
@@ -302,6 +345,10 @@ impl Operation for InstalledOperation {
             Self::TestScalarSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestGateScript(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestLogicScript(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestLogicSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestSlowScalarSink(_) => OperationAction::Await,
             #[cfg(test)]
@@ -323,6 +370,9 @@ impl Operation for InstalledOperation {
             Self::StateLatestScalar(operation) => operation.cancel(),
             Self::FlowTeeScalar(operation) => operation.cancel(),
             Self::FlowGateScalar(operation) => operation.cancel(),
+            Self::LogicCompareScalar(operation) => operation.cancel(),
+            Self::LogicNot(operation) => operation.cancel(),
+            Self::LogicSelectScalar(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]
@@ -334,6 +384,10 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestGateScript(operation) => operation.cancel(),
             #[cfg(test)]
+            Self::TestLogicScript(_) => {}
+            #[cfg(test)]
+            Self::TestLogicSink(_) => {}
+            #[cfg(test)]
             Self::TestSlowScalarSink(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestObserver(operation) => operation.pending = None,
@@ -344,6 +398,7 @@ impl Operation for InstalledOperation {
     fn retains_resumed_value(&self) -> bool {
         match self {
             Self::StateLatestScalar(operation) => operation.retains_resumed_value(),
+            Self::LogicSelectScalar(operation) => operation.retains_resumed_value(),
             _ => false,
         }
     }
@@ -351,6 +406,9 @@ impl Operation for InstalledOperation {
     fn take_released_value(&mut self) -> Option<ValueRef> {
         match self {
             Self::StateLatestScalar(operation) => operation.take_released_value(),
+            Self::LogicCompareScalar(operation) => operation.take_released_value(),
+            Self::LogicNot(operation) => operation.take_released_value(),
+            Self::LogicSelectScalar(operation) => operation.take_released_value(),
             _ => None,
         }
     }

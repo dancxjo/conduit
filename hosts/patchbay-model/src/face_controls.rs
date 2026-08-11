@@ -14,6 +14,9 @@ pub enum FaceControlKind {
     BooleanChoice {
         choices: [&'static str; 2],
     },
+    TextChoice {
+        choices: Vec<String>,
+    },
     Number {
         minimum: u64,
         maximum: u64,
@@ -95,6 +98,9 @@ pub(crate) fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, P
                     FaceControlKind::ShortText {
                         maximum_bytes: maximum,
                     }
+                }
+                (ConfigurationValue::Text(_), StandardConfigurationRule::TextOneOf { values }) => {
+                    FaceControlKind::TextChoice { choices: values }
                 }
                 _ => return Err(PatchbayGraphError::InvalidConfigurationContract),
             };

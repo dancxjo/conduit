@@ -6,9 +6,12 @@ mod external_websocket_host;
 mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
+mod logic_operations;
 mod operation;
 #[cfg(test)]
 mod test_gate;
+#[cfg(test)]
+mod test_logic;
 #[cfg(test)]
 mod test_scalar_flow;
 #[cfg(test)]
@@ -82,6 +85,16 @@ pub(super) fn test_scalar_sink_offer() -> conduit_core::CapabilityOffer {
 #[cfg(test)]
 pub(super) fn test_gate_script_offer() -> conduit_core::CapabilityOffer {
     test_gate::source_offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_logic_script_offer() -> conduit_core::CapabilityOffer {
+    test_logic::offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_logic_sink_offer() -> conduit_core::CapabilityOffer {
+    test_logic::sink_offer()
 }
 
 #[cfg(test)]
@@ -592,7 +605,11 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         }
     }
     if scheduler.values().used_items() != 0 {
-        return Err("installed kernel retained values after completion".to_string());
+        return Err(format!(
+            "installed kernel retained values after completion: items={} bytes={}",
+            scheduler.values().used_items(),
+            scheduler.values().used_bytes()
+        ));
     }
     let driver_capacity_after = scheduler
         .drivers()
