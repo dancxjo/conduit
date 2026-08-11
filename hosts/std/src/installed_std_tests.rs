@@ -423,9 +423,11 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
     let mut timer = RecordingTimer { waits: Vec::new() };
     let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
-        &advertisement,
+        installed_std::InstalledRunHost {
+            advertisement: &advertisement,
+            playback: None,
+        },
         &plan.fragments[0],
-        None,
         0,
         &mut sign_sequence,
         &mut output,
@@ -452,9 +454,11 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         conduit_core::ImplementationId::from(conduit_ai::REMOTE_FRONTIER_IMPLEMENTATION);
     let mut output = Vec::new();
     let error = installed_std::run_fragment(
-        &advertisement,
+        installed_std::InstalledRunHost {
+            advertisement: &advertisement,
+            playback: None,
+        },
         &substituted,
-        None,
         1,
         &mut sign_sequence,
         &mut output,

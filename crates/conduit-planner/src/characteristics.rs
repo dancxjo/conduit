@@ -223,32 +223,49 @@ pub fn plan_selected_realizations_with_characteristics(
 ) -> Result<Plan, PlannerError> {
     plan_selected_realizations_with_characteristics_and_authority(
         form,
-        hosts,
-        bases,
-        requirements,
-        advertisements,
-        observations,
-        policies,
-        conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
-        conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-        &[],
+        SelectedRealizationPlanning {
+            hosts,
+            bases,
+            requirements,
+            advertisements,
+            observations,
+            policies,
+            connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+            connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+            authority_grants: &[],
+        },
     )
+}
+
+pub struct SelectedRealizationPlanning<'a> {
+    pub hosts: &'a [HostAdvertisement],
+    pub bases: &'a [ConnectionBase],
+    pub requirements: &'a BTreeMap<GearId, HardRealizationRequirements>,
+    pub advertisements: &'a [RealizationAdvertisement],
+    pub observations: &'a [ResourceObservation],
+    pub policies: &'a BTreeMap<GearId, RealizationPolicy>,
+    pub connection_item_capacity: u16,
+    pub connection_byte_capacity: u32,
+    pub authority_grants: &'a [conduit_core::AuthorityGrant],
 }
 
 /// Selects against fresh resource observations and exact realization facts,
 /// then seals independently supplied authority grants into the ordinary Plan.
 pub fn plan_selected_realizations_with_characteristics_and_authority(
     form: &CheckedForm,
-    hosts: &[HostAdvertisement],
-    bases: &[ConnectionBase],
-    requirements: &BTreeMap<GearId, HardRealizationRequirements>,
-    advertisements: &[RealizationAdvertisement],
-    observations: &[ResourceObservation],
-    policies: &BTreeMap<GearId, RealizationPolicy>,
-    connection_item_capacity: u16,
-    connection_byte_capacity: u32,
-    authority_grants: &[conduit_core::AuthorityGrant],
+    options: SelectedRealizationPlanning<'_>,
 ) -> Result<Plan, PlannerError> {
+    let SelectedRealizationPlanning {
+        hosts,
+        bases,
+        requirements,
+        advertisements,
+        observations,
+        policies,
+        connection_item_capacity,
+        connection_byte_capacity,
+        authority_grants,
+    } = options;
     reject_unknown_operation_inputs(form, requirements, policies)?;
     validate_resource_observations(hosts, observations)?;
     validate_advertisements(hosts, advertisements)?;

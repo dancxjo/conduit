@@ -62,15 +62,17 @@ fn fragment(host: &StdHost, with_authority: bool) -> Result<conduit_core::PlanFr
         );
     let plan = conduit_planner::plan_selected_realizations_with_characteristics_and_authority(
         &form,
-        &advertisements,
-        &[ConnectionBase::Local],
-        &BTreeMap::new(),
-        &[realization],
-        &[observation],
-        &BTreeMap::new(),
-        1,
-        conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
-        &grants,
+        conduit_planner::SelectedRealizationPlanning {
+            hosts: &advertisements,
+            bases: &[ConnectionBase::Local],
+            requirements: &BTreeMap::new(),
+            advertisements: &[realization],
+            observations: &[observation],
+            policies: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            authority_grants: &grants,
+        },
     )
     .map_err(|error| format!("plan audio fixture: {error:?}"))?;
     Ok(plan.fragments[0].clone())

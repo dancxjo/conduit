@@ -203,12 +203,14 @@ fn prepare(
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
         .map_err(|_| "test PCM yield count changed")?;
-    Ok(InstalledOperation::TestPcmSource(TestPcmSourceOperation {
-        values: stored
-            .try_into()
-            .map_err(|_| "test PCM block count changed")?,
-        yield_markers,
-        next: 0,
-        pending: None,
-    }))
+    Ok(InstalledOperation::TestPcmSource(Box::new(
+        TestPcmSourceOperation {
+            values: stored
+                .try_into()
+                .map_err(|_| "test PCM block count changed")?,
+            yield_markers,
+            next: 0,
+            pending: None,
+        },
+    )))
 }

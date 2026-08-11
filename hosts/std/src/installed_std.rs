@@ -185,16 +185,24 @@ type InstalledScheduler = FixedScheduler<
 pub(super) use contract::every_offer;
 pub(super) use contract::tick_offer;
 
+pub(super) struct InstalledRunHost<'a> {
+    pub advertisement: &'a HostAdvertisement,
+    pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
+}
+
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
-    advertisement: &HostAdvertisement,
+    host: InstalledRunHost<'_>,
     fragment: &PlanFragment,
-    playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
     play_sequence: u64,
     next_sign_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
     control: &RunControl,
 ) -> Result<StdRunReport, String> {
+    let InstalledRunHost {
+        advertisement,
+        playback,
+    } = host;
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();

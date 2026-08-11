@@ -481,9 +481,11 @@ impl StdHost {
                 .ok_or_else(|| "kernel Play sequence exhausted".to_string())?;
             if installed_standard {
                 installed_std::run_fragment(
-                    &advertisement,
+                    installed_std::InstalledRunHost {
+                        advertisement: &advertisement,
+                        playback: self.playback.as_ref(),
+                    },
                     &fragment,
-                    self.playback.as_ref(),
                     play_sequence,
                     &mut self.next_kernel_sign_sequence,
                     output,

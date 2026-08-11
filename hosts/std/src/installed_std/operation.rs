@@ -83,7 +83,7 @@ pub(super) enum InstalledOperation {
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
-    TestPcmSource(super::test_audio_source::TestPcmSourceOperation),
+    TestPcmSource(Box<super::test_audio_source::TestPcmSourceOperation>),
     #[cfg(test)]
     TestKeyEventSource(super::test_input_semantics::TestKeyEventSourceOperation),
     #[cfg(test)]

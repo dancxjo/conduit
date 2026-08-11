@@ -50,7 +50,7 @@ pub use characteristics::{
     plan_selected_realizations_with_characteristics_and_authority,
     select_realization_with_characteristics, select_realization_with_characteristics_and_signs,
     RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection,
-    RealizationSelection, MAXIMUM_REALIZATION_DECISION_RECORDS,
+    RealizationSelection, SelectedRealizationPlanning, MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
