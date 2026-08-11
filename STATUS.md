@@ -1463,3 +1463,32 @@ rows and keeps other Host cells explicitly missing or unsupported. This adds
 no animation framework, retry/backoff policy, arbitrary timer wheel,
 scheduler redesign, hard-real-time claim, browser `setTimeout`, or physical
 timing proof.
+
+The typed Patchbay interaction slice from #887 is accepted at exact main
+`f909ca84bf3842555516086cf24c4731d2731798`; push workflow `31466734393`
+passed `check`, `browser-host`, and `conduitos-boot`. Existing exact
+`interaction/select` and `interaction/invoke` meanings remain current for
+selection, navigation, and lifecycle. One new `interaction/edit` request
+family carries source-document identity, source revision, expanded-Form
+basis, canonical subject identities, Kind identity, configuration key, and
+typed `ConfigurationValue` as distinct bounded fields.
+
+Native palette placement, duplication/removal, Port-to-Port connection, Cord
+rerouting, and Boolean/scalar/choice/text Face controls now normalize to exact
+`PatchbayEdit` variants before ordinary Form checking, planning, lowering,
+and production-kernel execution. Structured browser input constructs the same
+typed request without DOM or widget identity; the read-only browser adapter
+truthfully refuses authoring because it lacks edit authority. Renderer-local
+Gear movement and Cord waypoints remain presentation state and do not pretend
+to be portable semantic edits.
+
+The former delimiter-packed target identity and hexadecimal configuration
+codec are absent. There is one current finite interaction encoding and no
+legacy decoder or alternate edit revision. The fixed two-node interaction
+Plan, four queue slots, one pending host operation, bounded value and Sign
+stores, and 32-receipt history remain authoritative. Stale source or
+presentation basis, unknown subjects, incompatible Ports, duplicate Cords,
+invalid values, pressure, cancellation, refusal, failure, and terminal
+completion remain distinct. This adds no raw-pointer stream, universal
+gesture recognizer, widget ontology, arbitrary command bus, renderer-owned
+edit authority, or semantic layout geometry.
