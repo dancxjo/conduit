@@ -12,7 +12,7 @@ use conduit_planner::{
 
 use crate::{
     identity::BootIdentities,
-    keyboard_offer::KEYBOARD_IMPLEMENTATION,
+    keyboard_offer::{KEYBOARD_IMPLEMENTATION, OPERATION_RESOURCE},
     offer::HostOffer,
     ordinary_plan::{PreparationError, advertisement},
 };
@@ -132,7 +132,9 @@ pub fn validate(
         || keymap.configuration[0].key.as_str() != "layout"
         || keymap.configuration[0].value
             != conduit_core::ConfigurationValue::Text(conduit_core::CONDUIT_INTL_LAYOUT.into())
-        || !keymap.host_operations.is_empty()
+        || keymap.host_operations.len() != 1
+        || keymap.host_operations[0].contract_id.as_str()
+            != conduit_std_catalog::KEYMAP_HOST_OPERATION
     {
         return Err(PreparationError::PlanRejected);
     }
@@ -191,11 +193,10 @@ fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_id: &str) {
     keymap.implementation.execution_profile_id = ExecutionProfileId::from(KEYMAP_EXECUTION_PROFILE);
     keymap.implementation.implementation_id = ImplementationId::from(KEYMAP_IMPLEMENTATION);
     keymap.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
-    keymap.host_operations.clear();
-    keymap.resource_requirements = vec![resource_requirement(
-        "conduit.resource/runtime-memory@1",
-        4_096,
-    )];
+    keymap.resource_requirements = vec![
+        resource_requirement("conduit.resource/runtime-memory@1", 4_096),
+        resource_requirement(OPERATION_RESOURCE, 1),
+    ];
     advertisement.capabilities.push(keymap);
 }
 

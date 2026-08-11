@@ -17,7 +17,11 @@ pub mod keyboard_bridge;
 pub mod keyboard_offer;
 pub mod keyboard_plan;
 pub mod keyboard_play;
+mod keyboard_text_operations;
 pub mod keyboard_text_plan;
+pub mod keyboard_text_play;
+#[cfg(test)]
+mod keyboard_text_play_tests;
 pub mod local_rescue;
 pub mod machine;
 pub mod machine_a2_kernel;

@@ -239,6 +239,42 @@ fn admitted_sink_host_operation_may_have_no_output_payload() {
 }
 
 #[test]
+fn admitted_source_host_operation_may_have_no_input_payload() {
+    let mut bindings = FixedHostOperationBindings::<1>::new(1);
+    bindings
+        .install(
+            NodeId(0),
+            HostOperationBinding {
+                operation: HostOperationId(0),
+                maximum_input_bytes: 0,
+                maximum_output_bytes: 3,
+            },
+        )
+        .unwrap();
+    bindings.seal().unwrap();
+    let action = OperationAction::RequestHostOperation {
+        request: RequestId(1),
+        operation: HostOperationId(0),
+        input: BoundedValueRef::new(
+            super::ValueRef {
+                slot: 0,
+                generation: 1,
+                byte_len: 0,
+            },
+            0,
+        )
+        .unwrap(),
+    };
+    assert_eq!(
+        bindings
+            .admit(NodeId(0), action)
+            .unwrap()
+            .maximum_output_bytes,
+        3
+    );
+}
+
+#[test]
 fn fixed_sign_has_independent_item_and_byte_budgets() {
     let charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
     let mut log = FixedSignLog::<3>::new(charge * 2).unwrap();
