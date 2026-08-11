@@ -47,6 +47,7 @@ struct RescueProofRecord {
     ordinary_keyboard_plan_before_request: bool,
     same_qemu_process_observed_after_new_boot: bool,
     request_acceptance_distinct_from_completion: bool,
+    active_play_case: super::active_rescue_proof::ActivePlayProof,
     physical_near_miss_cases: Vec<String>,
     deterministic_negative_cases: &'static [&'static str],
     deterministic_matcher_command: &'static str,
@@ -142,6 +143,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let _ = child.wait();
     let _ = fs::remove_file(&monitor_socket);
     let mut proof = result?;
+    proof.active_play_case = super::active_rescue_proof::prove(&paths)?;
     proof.physical_near_miss_cases = [
         (
             hid_qmp::RescueNearMiss::ControlDelete,
@@ -251,6 +253,7 @@ fn validate(
         ordinary_keyboard_plan_before_request: ordinary_plan_before_request,
         same_qemu_process_observed_after_new_boot: still_running,
         request_acceptance_distinct_from_completion: true,
+        active_play_case: super::active_rescue_proof::ActivePlayProof::default(),
         physical_near_miss_cases: Vec::new(),
         deterministic_negative_cases: DETERMINISTIC_NEGATIVE_CASES,
         deterministic_matcher_command: "cargo test -p conduitos local_rescue",

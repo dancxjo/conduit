@@ -1,5 +1,6 @@
 mod aarch64_a0;
 mod aarch64_a1;
+mod active_rescue_proof;
 mod architecture_matrix;
 mod build;
 mod hid_proof;

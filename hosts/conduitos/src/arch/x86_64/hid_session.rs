@@ -83,13 +83,26 @@ impl HidKeyboardSession {
         device: &UsbDevice,
         expected_transitions: usize,
     ) -> Result<(), HidError> {
+        self.receive_until_observing(controller, device, expected_transitions, |_| {})
+    }
+
+    pub fn receive_until_observing(
+        &mut self,
+        controller: &mut XhciReady,
+        device: &UsbDevice,
+        expected_transitions: usize,
+        mut observe: impl FnMut(HidKeyTransition),
+    ) -> Result<(), HidError> {
         if expected_transitions > MAX_SESSION_TRANSITIONS
             || expected_transitions < self.observed_count
         {
             return Err(HidError::TransitionOverflow);
         }
         while self.observed_count < expected_transitions {
-            self.receive_followup(controller, device)?;
+            let (transitions, count) = self.receive_followup(controller, device)?;
+            for transition in transitions[..count].iter().copied() {
+                observe(transition);
+            }
         }
         if self.observed_count != expected_transitions {
             return Err(HidError::TransitionOverflow);
