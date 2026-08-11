@@ -2,6 +2,7 @@ pub mod check;
 pub mod conduitos;
 pub mod demo;
 pub mod doctor;
+pub mod evidence;
 pub mod netherwick;
 pub mod palette_icons;
 pub mod pico;

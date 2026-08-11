@@ -168,3 +168,94 @@ fn bounded_capture_declarations_import_exact_provenance() {
     assert_eq!(document["outputs"][0]["browser_engine"], "chromium");
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn verifier_recomputes_complete_browser_evidence() {
+    let root = temporary_root("verify-complete");
+    let mut evidence = EvidenceManifest::new(
+        &root,
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "browser-host",
+        "prove.browser-host",
+    )
+    .unwrap();
+    for (index, id) in [
+        "patchbay.capture-declarations",
+        "patchbay.overview",
+        "patchbay.selected-gear",
+        "patchbay.interaction",
+        "patchbay.high-contrast",
+        "patchbay.disconnected",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let path = format!("output-{index}");
+        fs::write(root.join(&path), id.as_bytes()).unwrap();
+        let mut declaration = output(id, &path, true);
+        if id == "patchbay.capture-declarations" {
+            declaration.kind = EvidenceKind::MachineReadableManifest;
+            declaration.media_type = "application/json".into();
+        } else {
+            declaration.provenance = EvidenceProvenance {
+                scenario_id: format!("scenario-{index}"),
+                step_id: Some("step".into()),
+                browser_engine: Some("chromium".into()),
+                browser_version: Some("1".into()),
+                viewport: Some("1440x1000".into()),
+                device_scale_factor: Some("1".into()),
+                locale: Some("en-US".into()),
+                timezone: Some("UTC".into()),
+                presentation_id: Some("presentation".into()),
+                presentation_revision: Some("1".into()),
+                plan_id: Some("plan".into()),
+                active_play_id: Some("play".into()),
+                manifestation_id: Some("manifestation".into()),
+                renderer_id: Some("renderer".into()),
+                asserted_semantic_disposition: Some("asserted".into()),
+            };
+        }
+        evidence.declare(declaration).unwrap();
+    }
+    evidence.finish(EvidenceResult::Complete).unwrap();
+    let document: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
+    let commit = document["git_commit"].as_str().unwrap().to_owned();
+    verify(&VerificationRequest {
+        root: root.clone(),
+        commit,
+        result: ExpectedEvidenceResult::Complete,
+        proof_id: "browser-host".into(),
+        suite_id: "prove.browser-host".into(),
+    })
+    .unwrap();
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn verifier_rejects_tampering_and_undeclared_files() {
+    let root = temporary_root("verify-tamper");
+    fs::write(root.join("capture.png"), b"diagnostic").unwrap();
+    let mut evidence = manifest(&root);
+    evidence
+        .declare(output("capture", "capture.png", false))
+        .unwrap();
+    evidence
+        .finish(EvidenceResult::DiagnosticIncomplete)
+        .unwrap();
+    let document: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
+    let request = VerificationRequest {
+        root: root.clone(),
+        commit: document["git_commit"].as_str().unwrap().to_owned(),
+        result: ExpectedEvidenceResult::DiagnosticIncomplete,
+        proof_id: "proof".into(),
+        suite_id: "suite".into(),
+    };
+    fs::write(root.join("capture.png"), b"tampering!").unwrap();
+    assert!(verify(&request).unwrap_err().contains("digest"));
+    fs::write(root.join("capture.png"), b"diagnostic").unwrap();
+    fs::write(root.join("undeclared.log"), b"not admitted").unwrap();
+    assert!(verify(&request).unwrap_err().contains("undeclared"));
+    fs::remove_dir_all(root).unwrap();
+}
