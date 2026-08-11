@@ -5,8 +5,9 @@
 
 use super::source::{DistributedToggleSource, MAXIMUM_VALUES};
 use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
+use conduit_core::BOOL_ENCODED_LEN;
 use conduit_kernel::{KernelEventKind, SignQuery, ValueStorage};
-use conduit_signal::{DISTRIBUTED_MAXIMUM_FRAME_BYTES, SIGNAL_ENCODED_LEN};
+use conduit_signal::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,
 };
@@ -25,7 +26,7 @@ pub(super) fn send(
     let length = encode_session_frame_into(
         frame,
         output,
-        SIGNAL_ENCODED_LEN,
+        BOOL_ENCODED_LEN as u32,
         DISTRIBUTED_MAXIMUM_FRAME_BYTES,
     )
     .map_err(|error| format!("{error:?}"))?;
@@ -43,7 +44,7 @@ pub(super) fn receive<'a>(
         .map_err(|error| format!("{error:?}"))?;
     let frame = decode_session_frame(
         &input[..length],
-        SIGNAL_ENCODED_LEN,
+        BOOL_ENCODED_LEN as u32,
         DISTRIBUTED_MAXIMUM_FRAME_BYTES,
     )
     .map_err(|error| format!("{error:?}"))?;

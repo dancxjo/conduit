@@ -23,15 +23,19 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    show_contract_revision, show_execution_profile, show_host_operation_requirements, show_inputs,
-    show_kind, show_resource_requirements, DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
-    DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, MAX_SIGNAL_COUNT,
-    SIGNAL_ENCODED_LEN,
+    DISTRIBUTED_MAXIMUM_BUFFERED_BYTES, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, MAX_SIGNAL_COUNT,
 };
 
-pub const TRIGGER_VALUE_KIND: &str = "value/trigger";
+pub const TRIGGER_VALUE_KIND: &str = conduit_std_catalog::TICK_VALUE_KIND;
 pub const TRIGGER_KIND: &str = "interaction/trigger";
-pub const TOGGLE_KIND: &str = "state/toggle";
+pub use conduit_std_catalog::{
+    BOOL_PRESENTATION_CONTRACT_REVISION as TOGGLE_PRESENTATION_CONTRACT_REVISION,
+    BOOL_PRESENTATION_EXECUTION_PROFILE as TOGGLE_PRESENTATION_EXECUTION_PROFILE,
+    BOOL_PRESENTATION_KIND as TOGGLE_PRESENTATION_KIND,
+    STATE_TOGGLE_CONTRACT_REVISION as TOGGLE_CONTRACT_REVISION,
+    STATE_TOGGLE_EXECUTION_PROFILE as TOGGLE_EXECUTION_PROFILE, STATE_TOGGLE_KIND as TOGGLE_KIND,
+};
 
 fn trigger_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
     vec![conduit_core::FaceStartupParameter {
@@ -51,9 +55,7 @@ fn toggle_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
 pub const TRIGGER_PORT: &str = "trigger";
 pub const TRIGGER_ENCODED_LEN: u32 = 8;
 pub const TRIGGER_CONTRACT_REVISION: &str = "conduit.signal/interaction-trigger@1";
-pub const TOGGLE_CONTRACT_REVISION: &str = "conduit.signal/state-toggle@1";
 pub const TRIGGER_EXECUTION_PROFILE: &str = "conduit.signal/trigger-hosted@1";
-pub const TOGGLE_EXECUTION_PROFILE: &str = "conduit.signal/toggle-hosted@1";
 pub const DISTRIBUTED_TOGGLE_STD_HOST_ID: &str = "s4/toggle-std-source";
 pub const DISTRIBUTED_TOGGLE_STD_BOOT_ID: &str = "s4/toggle-std-source-boot";
 pub const DISTRIBUTED_TOGGLE_BROWSER_HOST_ID: &str = "s4/toggle-browser-sink";
@@ -125,26 +127,16 @@ pub fn trigger_outputs() -> Vec<PortDescriptor> {
         port_id: port_id(TRIGGER_PORT),
         value_kind: trigger_value_kind(),
         direction: PortDirection::Output,
-        temporal: conduit_core::PortTemporal::Value,
+        temporal: conduit_core::PortTemporal::Flow { closes: true },
     }]
 }
 
 pub fn toggle_inputs() -> Vec<PortDescriptor> {
-    vec![PortDescriptor {
-        port_id: port_id(TRIGGER_PORT),
-        value_kind: trigger_value_kind(),
-        direction: PortDirection::Input,
-        temporal: conduit_core::PortTemporal::Value,
-    }]
+    conduit_std_catalog::state_toggle_contract().inputs
 }
 
 pub fn toggle_outputs() -> Vec<PortDescriptor> {
-    vec![PortDescriptor {
-        port_id: port_id(crate::SIGNAL_PORT),
-        value_kind: crate::signal_value_kind(),
-        direction: PortDirection::Output,
-        temporal: conduit_core::PortTemporal::Value,
-    }]
+    conduit_std_catalog::state_toggle_contract().outputs
 }
 
 pub fn trigger_configuration_entries(config: &TriggerConfiguration) -> Vec<ConfigurationEntry> {
@@ -268,21 +260,13 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 capability_id: CapabilityId::from("toggle-1"),
                 kind_id: toggle_kind(),
                 kind_contract_revision: toggle_contract_revision(),
-                implementation: conduit_core::ImplementationOffer {
-                    execution_profile_id: toggle_execution_profile(),
-                    implementation_id: ImplementationId::from("std/kernel-toggle-v1"),
-                    artifact_id: ArtifactId::from("conduit-signal/toggle-artifact-v1"),
-                },
+                implementation: conduit_std_catalog::state_toggle_offer().implementation,
                 inputs: toggle_inputs(),
                 outputs: toggle_outputs(),
                 host_operations: toggle_host_operation_requirements(),
                 resource_requirements: toggle_resource_requirements(),
                 authority_requirements: Vec::new(),
-                limits: CapabilityLimits {
-                    max_active_instances: 1,
-                    max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-                    max_queue_bytes: SIGNAL_ENCODED_LEN,
-                },
+                limits: conduit_std_catalog::state_toggle_offer().limits,
             },
         ],
     }
@@ -301,29 +285,14 @@ pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
             1,
         )],
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
-            startup_parameters: vec![],
-            shorthand: None,
-            capability_id: CapabilityId::from("toggle-dom-show-1"),
-            kind_id: show_kind(),
-            kind_contract_revision: show_contract_revision(),
-            implementation: conduit_core::ImplementationOffer {
-                execution_profile_id: show_execution_profile(),
-                implementation_id: ImplementationId::from("browser/kernel-dom-show-signal-v1"),
-                artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
-            },
-            inputs: show_inputs(),
-            outputs: Vec::new(),
-            host_operations: show_host_operation_requirements(),
-            resource_requirements: show_resource_requirements(),
-            authority_requirements: Vec::new(),
-            limits: CapabilityLimits {
-                max_active_instances: 1,
-                max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-                max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
-            },
-        }],
+        capabilities: vec![toggle_browser_presentation_offer("toggle-dom-show-1")],
     }
+}
+
+pub fn toggle_browser_presentation_offer(capability_id: &str) -> CapabilityOffer {
+    let mut offer = conduit_std_catalog::bool_presentation_browser_offer();
+    offer.capability_id = CapabilityId::from(capability_id);
+    offer
 }
 
 pub fn distributed_toggle_websocket_line_offer() -> LineOffer {
@@ -345,8 +314,8 @@ pub fn distributed_toggle_websocket_line_offer() -> LineOffer {
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
             maximum_in_flight_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-            maximum_payload_bytes: SIGNAL_ENCODED_LEN,
-            maximum_buffered_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
+            maximum_payload_bytes: TRIGGER_ENCODED_LEN,
+            maximum_buffered_bytes: TRIGGER_ENCODED_LEN,
             maximum_frame_bytes: DISTRIBUTED_MAXIMUM_FRAME_BYTES,
         },
     };
@@ -391,6 +360,8 @@ pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog)
             }],
         })
         .expect("signal profile kinds are unique");
+    conduit_std_catalog::install_bool_presentation_catalog(catalog)
+        .expect("toggle presentation kind is unique");
     catalog
         .insert(KindDefinition {
             kind_id: toggle_kind(),

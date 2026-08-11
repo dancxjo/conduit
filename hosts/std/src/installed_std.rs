@@ -31,6 +31,7 @@ mod tick_operations;
 mod tick_presentation;
 mod timing_configuration;
 mod timing_operations;
+mod toggle_operation;
 
 use self::catalog::factory;
 pub(crate) use self::catalog::supports;

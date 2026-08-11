@@ -39,7 +39,7 @@ fn unchanged_toggle_form_prepares_exact_independent_remote_fragments() {
     assert_eq!(source.binding().limits.maximum_in_flight_items, 1);
     assert_eq!(
         source.binding().limits.maximum_payload_bytes,
-        SIGNAL_ENCODED_LEN
+        conduit_signal::TRIGGER_ENCODED_LEN
     );
 }
 
@@ -83,7 +83,7 @@ fn missing_link_binding_fails_toggle_planning() {
         &placements,
         &[ConnectionBase::Local, ConnectionBase::WebSocket],
         1,
-        SIGNAL_ENCODED_LEN,
+        conduit_signal::TRIGGER_ENCODED_LEN,
         &[],
     )
     .is_err());

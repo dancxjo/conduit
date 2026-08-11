@@ -357,10 +357,26 @@ mod tests {
     #[test]
     fn exact_profile_offers_drive_positive_cells() {
         let std = build_report(&[CatalogHost::Std], None).unwrap();
-        assert!(std
+        let std_missing = std
             .entries
             .iter()
-            .all(|entry| matches!(entry.coverage, Coverage::Direct)));
+            .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
+            .map(|entry| entry.kind_id.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            std_missing,
+            vec![conduit_std_catalog::BOOL_PRESENTATION_KIND]
+        );
+        assert!(std.entries.iter().any(|entry| {
+            entry.kind_id == conduit_std_catalog::STATE_TOGGLE_KIND
+                && matches!(entry.coverage, Coverage::Direct)
+        }));
+
+        let browser = build_report(&[CatalogHost::Browser], None).unwrap();
+        assert!(browser.entries.iter().any(|entry| {
+            entry.kind_id == conduit_std_catalog::BOOL_PRESENTATION_KIND
+                && matches!(entry.coverage, Coverage::Direct)
+        }));
 
         let os = build_report(&[CatalogHost::Conduitos], None).unwrap();
         assert_eq!(

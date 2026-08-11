@@ -284,6 +284,16 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-std-catalog",
+ "serde",
+]
+
+[[package]]
+name = "conduit-std-catalog"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
  "serde",
 ]
 

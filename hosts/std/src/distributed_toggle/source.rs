@@ -25,8 +25,7 @@ use conduit_runtime::lowering::{
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 use conduit_signal::{
-    encode_signal, parse_toggle_configuration, parse_trigger_configuration, Signal,
-    SIGNAL_ENCODED_LEN, TRIGGER_ENCODED_LEN,
+    parse_toggle_configuration, parse_trigger_configuration, TRIGGER_ENCODED_LEN,
 };
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 use std::io::{BufRead, Write};
@@ -34,11 +33,10 @@ use std::io::{BufRead, Write};
 pub(super) const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 pub(super) const ROUTE_SLOTS: usize = 2 * PORTS;
 pub(super) const MAXIMUM_VALUES: usize = 16;
-pub(super) const MAXIMUM_WAITS: usize = MAXIMUM_VALUES;
-const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES * 2 + MAXIMUM_WAITS) as u16;
-const MAXIMUM_STORED_BYTES: u32 = MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN
-    + MAXIMUM_VALUES as u32 * TRIGGER_ENCODED_LEN
-    + MAXIMUM_WAITS as u32;
+pub(super) const MAXIMUM_WAITS: usize = MAXIMUM_VALUES - 1;
+const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_WAITS * 2 + MAXIMUM_VALUES) as u16;
+const MAXIMUM_STORED_BYTES: u32 =
+    MAXIMUM_WAITS as u32 * TRIGGER_ENCODED_LEN + MAXIMUM_WAITS as u32 + MAXIMUM_VALUES as u32;
 pub(super) const SIGN_ITEMS: u16 = 256;
 
 pub(super) type ToggleScheduler = FixedScheduler<
@@ -104,18 +102,18 @@ impl DistributedToggleSource {
             .map_err(|error| error.to_string())?;
         let toggle_config = parse_toggle_configuration(&toggle_placement.configuration)
             .map_err(|error| error.to_string())?;
-        if trigger_config.count != MAXIMUM_VALUES as u64 {
+        if trigger_config.count != MAXIMUM_WAITS as u64 {
             return Err("toggle form trigger count is not the S4 vector".to_string());
         }
 
         let mut store = HostedValueStore::new(
             MAXIMUM_STORED_ITEMS,
-            SIGNAL_ENCODED_LEN,
+            TRIGGER_ENCODED_LEN,
             MAXIMUM_STORED_BYTES,
         )
         .map_err(|error| format!("{error:?}"))?;
 
-        let mut trigger_values = Vec::with_capacity(MAXIMUM_VALUES);
+        let mut trigger_values = Vec::with_capacity(MAXIMUM_WAITS);
         for sequence in 0..trigger_config.count {
             trigger_values.push(
                 store
@@ -133,17 +131,16 @@ impl DistributedToggleSource {
             );
         }
 
-        let mut signal_values = Vec::with_capacity(MAXIMUM_VALUES);
-        let mut current_level = toggle_config.initial;
-        for sequence in 0..trigger_config.count {
-            current_level = !current_level;
-            let payload = encode_signal(&Signal {
-                sequence,
-                level: current_level,
-            });
-            signal_values.push(
+        let mut toggle_values = Vec::with_capacity(MAXIMUM_VALUES);
+        for index in 0..MAXIMUM_VALUES {
+            let level = if index.is_multiple_of(2) {
+                toggle_config.initial
+            } else {
+                !toggle_config.initial
+            };
+            toggle_values.push(
                 store
-                    .store(&payload.encoded)
+                    .store(&conduit_core::InfoBool::new(level).encode())
                     .map_err(|error| format!("{error:?}"))?,
             );
         }
@@ -199,9 +196,10 @@ impl DistributedToggleSource {
         })
         .map_err(|error| format!("{error:?}"))?;
         let toggle_driver = OperationDriver::new(ToggleSourceOperation::Toggle {
-            signals: signal_values,
+            values: toggle_values,
             expected_triggers: trigger_values,
             next: 0,
+            initial_emitted: false,
         })
         .map_err(|error| format!("{error:?}"))?;
 
@@ -331,7 +329,7 @@ impl DistributedToggleSource {
         }
         writeln!(
             report,
-            "Press Enter to trigger ({trigger_index}/{MAXIMUM_VALUES})"
+            "Press Enter to trigger ({trigger_index}/{MAXIMUM_WAITS})"
         )
         .map_err(|error| error.to_string())?;
         let mut line = String::new();
@@ -362,7 +360,7 @@ impl DistributedToggleSource {
         report: &mut impl Write,
         stdin: &mut R,
         trigger_index: &mut usize,
-    ) -> Result<Option<(u64, [u8; SIGNAL_ENCODED_LEN as usize])>, String> {
+    ) -> Result<Option<(u64, [u8; conduit_core::BOOL_ENCODED_LEN])>, String> {
         let (endpoint, cord) = self.remote();
         let mut completed_trigger = false;
         loop {
@@ -377,7 +375,7 @@ impl DistributedToggleSource {
                     .map_err(|error| format!("{error:?}"))?;
                 let payload = bytes
                     .try_into()
-                    .map_err(|_| "remote Signal payload width mismatch".to_string())?;
+                    .map_err(|_| "remote Boolean payload width mismatch".to_string())?;
                 return Ok(Some((offer.sequence, payload)));
             }
             if !completed_trigger {

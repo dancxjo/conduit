@@ -23,6 +23,8 @@ pub use palette_metadata::*;
 pub use tick::*;
 mod tick_presentation;
 pub use tick_presentation::*;
+mod presentation_bool;
+pub use presentation_bool::*;
 mod time_every;
 pub use time_every::*;
 mod timing;
@@ -33,6 +35,8 @@ mod text_transform;
 pub use text_transform::*;
 mod state_count;
 pub use state_count::*;
+mod state_toggle;
+pub use state_toggle::*;
 mod flow_state;
 pub use flow_state::*;
 mod logic;
@@ -60,11 +64,13 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         time_debounce_contract(),
         time_timeout_contract(),
         tick_presentation_contract(),
+        bool_presentation_contract(),
         text_literal_contract(),
         text_upper_contract(),
         text_join_contract(),
         text_presentation_contract(),
         state_count_contract(),
+        state_toggle_contract(),
         count_presentation_contract(),
         state_latest_scalar_contract(),
         flow_tee_scalar_contract(),
@@ -86,7 +92,7 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
     ]
 }
 
-/// Exact std-host offers corresponding to [`supported_nucleus_contracts`].
+/// One exact accepted implementation offer corresponding to each supported contract.
 ///
 /// These values include the revision, implementation, artifact, resource,
 /// host-operation, and finite-limit facts that an immutable Plan seals after
@@ -98,11 +104,13 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         time_debounce_offer(),
         time_timeout_offer(),
         tick_presentation_offer(),
+        bool_presentation_browser_offer(),
         text_literal_offer(),
         text_upper_offer(),
         text_join_offer(),
         text_presentation_offer(),
         state_count_offer(),
+        state_toggle_offer(),
         count_presentation_offer(),
         state_latest_scalar_offer(),
         flow_tee_scalar_offer(),
@@ -164,6 +172,7 @@ pub enum TerminalBehavior {
     SimulatedCurrentObservationEmitsOnce,
     SimulatedDriveProjectionCompletesWhenInputsClose,
     HostInputEndsOrFailsSource,
+    EmitsInitialAndTogglesUntilInputCloses,
 }
 
 /// User-facing semantic contracts, including portable Kinds without a currently
@@ -344,7 +353,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 28);
+        assert_eq!(contracts.len(), 30);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
@@ -355,7 +364,10 @@ mod supported_nucleus_tests {
 
         for contract in &contracts {
             assert!(contract.hosted_implementation_required);
-            assert!(!contract.browser_manifestation_honest);
+            assert_eq!(
+                contract.browser_manifestation_honest,
+                contract.kind_id.as_str() == BOOL_PRESENTATION_KIND
+            );
             assert!(!contract.pico_manifestation_honest);
             assert!(contract
                 .inputs

@@ -32,14 +32,14 @@ pub(super) enum ToggleSourceOperation {
         next: usize,
         pending: Option<RequestId>,
     },
-    /// Toggle: receives one trigger value, validates its exact ValueRef identity,
-    /// then emits one Signal. Rejects wrong, duplicate, skipped, or reordered triggers.
+    /// Canonical toggle: emits its initial Boolean, then validates and flips for each Tick.
     Toggle {
-        /// Pre-stored Signal payloads (emitted one-for-one with accepted triggers).
-        signals: Vec<ValueRef>,
+        /// One exact pre-stored Boolean payload per admitted emission.
+        values: Vec<ValueRef>,
         /// Expected trigger ValueRef references in order (same refs emitted by Trigger).
         expected_triggers: Vec<ValueRef>,
         next: usize,
+        initial_emitted: bool,
     },
 }
 
@@ -55,10 +55,10 @@ impl ToggleSourceOperation {
         match self {
             Self::Trigger { tokens, values, .. } => tokens.capacity() + values.capacity(),
             Self::Toggle {
-                signals,
+                values,
                 expected_triggers,
                 ..
-            } => signals.capacity() + expected_triggers.capacity(),
+            } => values.capacity() + expected_triggers.capacity(),
         }
     }
 }
@@ -86,7 +86,10 @@ impl Operation for ToggleSourceOperation {
                 }
             }
             Self::Trigger { .. } => OperationAction::Complete,
-            Self::Toggle { .. } => OperationAction::Await,
+            Self::Toggle { values, .. } => OperationAction::Emit {
+                port: PortId(0),
+                value: values[0],
+            },
         }
     }
 
@@ -116,15 +119,16 @@ impl Operation for ToggleSourceOperation {
             }
             (
                 Self::Toggle {
-                    signals,
+                    values,
                     expected_triggers,
                     next,
+                    initial_emitted,
                 },
                 OperationInput::Value {
                     port: PortId(0),
                     value,
                 },
-            ) => {
+            ) if *initial_emitted => {
                 // Validate the exact received trigger against the pre-admitted expected ref.
                 // This rejects wrong, duplicate, skipped, or reordered triggers by identity.
                 let expected = match expected_triggers.get(*next).copied() {
@@ -135,7 +139,7 @@ impl Operation for ToggleSourceOperation {
                     // Wrong, duplicate, skipped, or reordered trigger ValueRef.
                     return Self::fail(17);
                 }
-                signals.get(*next).copied().map_or_else(
+                values.get(*next + 1).copied().map_or_else(
                     || Self::fail(12),
                     |value| OperationAction::Emit {
                         port: PortId(0),
@@ -147,10 +151,11 @@ impl Operation for ToggleSourceOperation {
                 Self::Toggle {
                     next,
                     expected_triggers,
+                    initial_emitted,
                     ..
                 },
                 OperationInput::Closed { port: PortId(0) },
-            ) if *next == expected_triggers.len() => {
+            ) if *initial_emitted && *next == expected_triggers.len() => {
                 // The Trigger operation completed and the local cord closed
                 // after delivering all expected triggers.
                 OperationAction::Complete
@@ -188,8 +193,16 @@ impl Operation for ToggleSourceOperation {
                         .expect("sealed token value is exactly admitted"),
                 }
             }
-            Self::Toggle { next, .. } => {
-                *next += 1;
+            Self::Toggle {
+                next,
+                initial_emitted,
+                ..
+            } => {
+                if *initial_emitted {
+                    *next += 1;
+                } else {
+                    *initial_emitted = true;
+                }
                 OperationAction::Await
             }
         }
@@ -222,112 +235,56 @@ mod tests {
         assert_eq!(op.start(), OperationAction::Complete);
     }
 
-    /// Toggle with wrong ValueRef identity is rejected (fail detail 17).
+    fn toggle(values: Vec<ValueRef>, expected_triggers: Vec<ValueRef>) -> ToggleSourceOperation {
+        ToggleSourceOperation::Toggle {
+            values,
+            expected_triggers,
+            next: 0,
+            initial_emitted: false,
+        }
+    }
+
     #[test]
-    fn toggle_rejects_wrong_trigger_ref() {
+    fn canonical_toggle_emits_initial_then_flips_and_rejects_wrong_identity() {
         let mut store = make_value_store();
         let correct = store_bytes(&mut store, &0u64.to_le_bytes());
         let wrong = store_bytes(&mut store, &1u64.to_le_bytes());
-        let signal = store_bytes(&mut store, &[0u8; 9]);
+        let false_value = store_bytes(&mut store, &[0]);
+        let true_value = store_bytes(&mut store, &[1]);
+        let mut op = toggle(vec![false_value, true_value], vec![correct]);
 
-        let mut op = ToggleSourceOperation::Toggle {
-            signals: vec![signal],
-            expected_triggers: vec![correct],
-            next: 0,
-        };
-        assert_eq!(op.start(), OperationAction::Await);
-        let action = op.resume(OperationInput::Value {
-            port: PortId(0),
-            value: wrong,
-        });
         assert_eq!(
-            action,
-            OperationAction::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
-                detail: 17,
-            })
-        );
-    }
-
-    /// Toggle with correct ValueRef emits the pre-stored signal.
-    #[test]
-    fn toggle_accepts_correct_trigger_ref_and_emits() {
-        let mut store = make_value_store();
-        let trigger = store_bytes(&mut store, &0u64.to_le_bytes());
-        let signal = store_bytes(&mut store, &[0u8; 9]);
-
-        let mut op = ToggleSourceOperation::Toggle {
-            signals: vec![signal],
-            expected_triggers: vec![trigger],
-            next: 0,
-        };
-        let action = op.resume(OperationInput::Value {
-            port: PortId(0),
-            value: trigger,
-        });
-        assert_eq!(
-            action,
+            op.start(),
             OperationAction::Emit {
                 port: PortId(0),
-                value: signal,
+                value: false_value,
             }
         );
-    }
-
-    /// Toggle with out-of-order ref (skipped) is rejected (fail detail 17).
-    #[test]
-    fn toggle_rejects_skipped_trigger() {
-        let mut store = make_value_store();
-        let first = store_bytes(&mut store, &0u64.to_le_bytes());
-        let second = store_bytes(&mut store, &1u64.to_le_bytes());
-        let signal = store_bytes(&mut store, &[0u8; 9]);
-
-        let mut op = ToggleSourceOperation::Toggle {
-            signals: vec![signal, signal],
-            expected_triggers: vec![first, second],
-            next: 0,
-        };
-        let action = op.resume(OperationInput::Value {
-            port: PortId(0),
-            value: second,
-        });
+        assert_eq!(op.advance(), OperationAction::Await);
         assert_eq!(
-            action,
+            op.resume(OperationInput::Value {
+                port: PortId(0),
+                value: wrong,
+            }),
             OperationAction::Fail(Failure {
                 code: FailureCode::InvalidLifecycle,
                 detail: 17,
             })
         );
-    }
-
-    /// Toggle with duplicate (same ref twice) is rejected after advance.
-    #[test]
-    fn toggle_rejects_duplicate_trigger() {
-        let mut store = make_value_store();
-        let first = store_bytes(&mut store, &0u64.to_le_bytes());
-        let second = store_bytes(&mut store, &1u64.to_le_bytes());
-        let signal = store_bytes(&mut store, &[0u8; 9]);
-
-        let mut op = ToggleSourceOperation::Toggle {
-            signals: vec![signal, signal],
-            expected_triggers: vec![first, second],
-            next: 0,
-        };
-        let _ = op.resume(OperationInput::Value {
-            port: PortId(0),
-            value: first,
-        });
-        op.advance();
-        let action = op.resume(OperationInput::Value {
-            port: PortId(0),
-            value: first,
-        });
         assert_eq!(
-            action,
-            OperationAction::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
-                detail: 17,
-            })
+            op.resume(OperationInput::Value {
+                port: PortId(0),
+                value: correct,
+            }),
+            OperationAction::Emit {
+                port: PortId(0),
+                value: true_value,
+            }
+        );
+        assert_eq!(op.advance(), OperationAction::Await);
+        assert_eq!(
+            op.resume(OperationInput::Closed { port: PortId(0) }),
+            OperationAction::Complete
         );
     }
 
@@ -454,16 +411,12 @@ mod tests {
     fn toggle_completes_on_closed_after_all_triggers() {
         let mut store = make_value_store();
         let act = store_bytes(&mut store, &[0x01]);
-        let sig = store_bytes(&mut store, &[0x02]);
+        let false_value = store_bytes(&mut store, &[0]);
+        let true_value = store_bytes(&mut store, &[1]);
+        let mut op = toggle(vec![false_value, true_value], vec![act]);
 
-        let mut op = ToggleSourceOperation::Toggle {
-            signals: vec![sig],
-            expected_triggers: vec![act],
-            next: 0,
-        };
-
-        // Start: Toggle awaits input.
-        assert_eq!(op.start(), OperationAction::Await);
+        assert!(matches!(op.start(), OperationAction::Emit { .. }));
+        assert_eq!(op.advance(), OperationAction::Await);
 
         // Receive the expected trigger value.
         let action = op.resume(OperationInput::Value {
@@ -474,7 +427,7 @@ mod tests {
             action,
             OperationAction::Emit {
                 port: PortId(0),
-                value: sig,
+                value: true_value,
             },
         );
         let advance = op.advance();
@@ -491,16 +444,16 @@ mod tests {
         let mut store = make_value_store();
         let act1 = store_bytes(&mut store, &[0x01]);
         let act2 = store_bytes(&mut store, &[0x02]);
-        let sig1 = store_bytes(&mut store, &[0x11]);
-        let sig2 = store_bytes(&mut store, &[0x12]);
+        let false_value = store_bytes(&mut store, &[0]);
+        let true_value = store_bytes(&mut store, &[1]);
+        let another_false = store_bytes(&mut store, &[0]);
+        let mut op = toggle(
+            vec![false_value, true_value, another_false],
+            vec![act1, act2],
+        );
 
-        let mut op = ToggleSourceOperation::Toggle {
-            signals: vec![sig1, sig2],
-            expected_triggers: vec![act1, act2],
-            next: 0,
-        };
-
-        assert_eq!(op.start(), OperationAction::Await);
+        assert!(matches!(op.start(), OperationAction::Emit { .. }));
+        assert_eq!(op.advance(), OperationAction::Await);
 
         // Only receive one of two expected triggers.
         let action = op.resume(OperationInput::Value {

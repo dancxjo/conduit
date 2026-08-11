@@ -474,28 +474,33 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
             1,
         )],
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
-            startup_parameters: vec![],
-            shorthand: None,
-            capability_id: CapabilityId::from("dom-show-1"),
-            kind_id: show_kind(),
-            kind_contract_revision: show_contract_revision(),
-            implementation: conduit_core::ImplementationOffer {
-                execution_profile_id: show_execution_profile(),
-                implementation_id: ImplementationId::from("browser/kernel-dom-show-signal-v1"),
-                artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
+        capabilities: vec![
+            CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
+                capability_id: CapabilityId::from("dom-show-1"),
+                kind_id: show_kind(),
+                kind_contract_revision: show_contract_revision(),
+                implementation: conduit_core::ImplementationOffer {
+                    execution_profile_id: show_execution_profile(),
+                    implementation_id: ImplementationId::from("browser/kernel-dom-show-signal-v1"),
+                    artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
+                },
+                inputs: show_inputs(),
+                outputs: Vec::new(),
+                host_operations: show_host_operation_requirements(),
+                resource_requirements: show_resource_requirements(),
+                authority_requirements: Vec::new(),
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+                    max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
+                },
             },
-            inputs: show_inputs(),
-            outputs: Vec::new(),
-            host_operations: show_host_operation_requirements(),
-            resource_requirements: show_resource_requirements(),
-            authority_requirements: Vec::new(),
-            limits: CapabilityLimits {
-                max_active_instances: 1,
-                max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-                max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
-            },
-        }],
+            trigger::toggle_browser_presentation_offer(
+                conduit_std_catalog::BOOL_PRESENTATION_CAPABILITY,
+            ),
+        ],
     }
 }
 

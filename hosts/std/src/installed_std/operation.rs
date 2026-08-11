@@ -16,6 +16,7 @@ use super::tick_operations::TestObserverOperation;
 use super::tick_operations::TickOperation;
 use super::tick_presentation::TickPresentationOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
+use super::toggle_operation::StateToggleOperation;
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
@@ -48,6 +49,7 @@ pub(super) enum InstalledOperation {
     TextJoin(TextTransformOperation),
     TextPresentation(TextPresentationOperation),
     StateCount(StateCountOperation),
+    StateToggle(StateToggleOperation),
     CountPresentation(CountPresentationOperation),
     StateLatestScalar(StateLatestScalarOperation),
     FlowTeeScalar(FlowTeeScalarOperation),
@@ -99,6 +101,7 @@ impl InstalledOperation {
             Self::TextLiteral(_) | Self::TextUpper(_) | Self::TextJoin(_) => 0,
             Self::TextPresentation(_) => 0,
             Self::StateCount(operation) => operation.allocation_capacity(),
+            Self::StateToggle(_) => 0,
             Self::CountPresentation(_) => 0,
             Self::StateLatestScalar(_) | Self::FlowTeeScalar(_) | Self::FlowGateScalar(_) => 0,
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => 0,
@@ -159,6 +162,7 @@ impl Operation for InstalledOperation {
             Self::TextJoin(operation) => operation.start(),
             Self::TextPresentation(operation) => operation.start(),
             Self::StateCount(operation) => operation.start(),
+            Self::StateToggle(operation) => operation.start(),
             Self::CountPresentation(operation) => operation.start(),
             Self::StateLatestScalar(operation) => operation.start(),
             Self::FlowTeeScalar(operation) => operation.start(),
@@ -208,6 +212,7 @@ impl Operation for InstalledOperation {
             (Self::TextPresentation(operation), input) => operation.resume(input),
             (Self::TickPresentation(operation), input) => operation.resume(input),
             (Self::StateCount(operation), input) => operation.resume(input),
+            (Self::StateToggle(operation), input) => operation.resume(input),
             (Self::CountPresentation(operation), input) => operation.resume(input),
             (Self::StateLatestScalar(operation), input) => operation.resume(input),
             (Self::FlowTeeScalar(operation), input) => operation.resume(input),
@@ -269,6 +274,7 @@ impl Operation for InstalledOperation {
             Self::TextJoin(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
             Self::StateCount(operation) => operation.advance(),
+            Self::StateToggle(operation) => operation.advance(),
             Self::CountPresentation(_) => OperationAction::Await,
             Self::StateLatestScalar(operation) => operation.advance(),
             Self::FlowTeeScalar(operation) => operation.advance(),
@@ -321,6 +327,7 @@ impl Operation for InstalledOperation {
             Self::TextJoin(operation) => operation.cancel(),
             Self::TextPresentation(operation) => operation.cancel(),
             Self::StateCount(_) => {}
+            Self::StateToggle(_) => {}
             Self::CountPresentation(operation) => operation.cancel(),
             Self::StateLatestScalar(operation) => operation.cancel(),
             Self::FlowTeeScalar(operation) => operation.cancel(),

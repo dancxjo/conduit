@@ -2,11 +2,13 @@
 //!
 //! Split by stable responsibility:
 //! - `operation`: `ToggleShowOperation` kernel state machine.
+//! - `plan`: exact two-Host plan reconstruction.
 //! - `sink`: `ToggleDistributedSink` session and kernel orchestration.
 //! - `abi`: thread-local state and `#[no_mangle]` WASM ABI exports.
 
 mod abi;
 mod operation;
+mod plan;
 mod sink;
 
 // Error/status codes shared between sink and abi.

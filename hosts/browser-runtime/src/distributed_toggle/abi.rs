@@ -159,9 +159,8 @@ pub extern "C" fn conduit_browser_toggle_distributed_capacity_stable() -> u32 {
 mod tests {
     use super::super::sink::ToggleDistributedSink;
     use super::super::OUTPUT_PRESENT;
-    use conduit_signal::{
-        encode_signal, Signal, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SIGNAL_ENCODED_LEN,
-    };
+    use conduit_core::{InfoBool, BOOL_ENCODED_LEN};
+    use conduit_signal::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
     use conduit_wire::{encode_session_frame_into, SessionFrame, SessionMessage};
 
     fn ingest(sink: &mut ToggleDistributedSink, frame: SessionFrame<'_>) {
@@ -169,7 +168,7 @@ mod tests {
         let length = encode_session_frame_into(
             frame,
             &mut bytes,
-            SIGNAL_ENCODED_LEN,
+            BOOL_ENCODED_LEN as u32,
             DISTRIBUTED_MAXIMUM_FRAME_BYTES,
         )
         .expect("session frame encodes");
@@ -194,15 +193,12 @@ mod tests {
         ingest(&mut sink, binding.hello_frame());
         ingest(&mut sink, binding.frame(SessionMessage::Ready));
 
-        let signal = encode_signal(&Signal {
-            sequence: 0,
-            level: true,
-        });
+        let value = InfoBool::TRUE.encode();
         ingest(
             &mut sink,
             binding.frame(SessionMessage::Offered {
                 sequence: 0,
-                payload: &signal.encoded,
+                payload: &value,
             }),
         );
         sink.advance().expect("accepted value advances");

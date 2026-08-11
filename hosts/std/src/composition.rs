@@ -143,6 +143,7 @@ pub(super) fn build_advertisement(
     if composition.state {
         capabilities.extend([
             conduit_std_catalog::state_count_offer(),
+            conduit_std_catalog::state_toggle_offer(),
             conduit_std_catalog::count_presentation_offer(),
             conduit_std_catalog::state_latest_scalar_offer(),
             conduit_std_catalog::flow_tee_scalar_offer(),
@@ -372,6 +373,7 @@ mod tests {
             "text/join",
             "presentation/text",
             "state/count",
+            "state/toggle",
             "presentation/count",
             "state/latest",
             "flow/tee",
@@ -437,7 +439,16 @@ mod tests {
             })
             .cloned()
             .collect::<Vec<_>>();
-        let supported = conduit_std_catalog::supported_nucleus_offers();
+        let supported = conduit_std_catalog::supported_nucleus_offers()
+            .into_iter()
+            .filter(|offer| {
+                offer
+                    .implementation
+                    .implementation_id
+                    .as_str()
+                    .starts_with("std/")
+            })
+            .collect::<Vec<_>>();
 
         assert_eq!(advertised, supported);
     }

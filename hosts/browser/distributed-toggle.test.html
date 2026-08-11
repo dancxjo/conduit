@@ -51,12 +51,11 @@ if (!url) {
     const closed = await line.closed();
     globalThis.__distributedToggleProof = {
       ...result,
-      presentations: result.presentations.map((effect) => {
+      presentations: result.presentations.map((effect, sequence) => {
         const { value, ...identity } = effect;
         return {
           ...identity,
-          sequence: Number(new DataView(Uint8Array.from(value.encoded).buffer)
-            .getBigUint64(0, true)),
+          sequence,
           encoded: value.encoded,
         };
       }),

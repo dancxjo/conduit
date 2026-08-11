@@ -1,17 +1,17 @@
 //! Browser sink kernel and session logic for the S4 toggle-demo.
 //!
 //! `ToggleDistributedSink` prepares and drives the `presentation/show` fragment
-//! receiving `Signal` values over the WebSocket cord from the std source.
+//! receiving canonical Boolean values over the WebSocket cord from the std source.
 
 use super::super::{
-    map_scheduler_error, write_common_frame, write_presentation_completion_frame,
-    write_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY, MAXIMUM_RECEIPTS,
-    PORTS,
+    map_scheduler_error, write_common_frame, write_typed_presentation_completion_frame,
+    write_typed_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY,
+    MAXIMUM_RECEIPTS, PORTS,
 };
 use super::operation::{CapacitySeal, ToggleShowOperation};
+use super::plan::exact_toggle_plan;
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, CapabilityId, ConnectionBase, GearId, Plan,
-    PlanFragment,
+    bind_active_play, bind_presentation, bind_sign, InfoBool, PlanFragment, BOOL_ENCODED_LEN,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
@@ -22,21 +22,17 @@ use conduit_kernel::{
     HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId, SignError, SignQuery,
     ValueStorage,
 };
-use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
 use conduit_signal::{
-    decode_signal_bytes, distributed_toggle_browser_sink_advertisement,
-    distributed_toggle_std_source_advertisement, distributed_toggle_websocket_line_offer,
-    signal_profile_catalog, DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    SHOW_KIND, SIGNAL_ENCODED_LEN,
+    distributed_toggle_browser_sink_advertisement, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+    TOGGLE_PRESENTATION_KIND,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,
 };
-use std::collections::BTreeMap;
 
 use super::{
     ERROR_CANCELLED, ERROR_CAPACITY, ERROR_KERNEL, ERROR_PREPARE, ERROR_PRESENTATION,
@@ -90,51 +86,6 @@ pub(super) struct ToggleDistributedSink {
     pub(super) seal: CapacitySeal,
 }
 
-fn exact_toggle_plan() -> Result<Plan, i32> {
-    let source = distributed_toggle_std_source_advertisement();
-    let sink = distributed_toggle_browser_sink_advertisement();
-    let form = conduit_form::parse(
-        include_str!("../../../../examples/remote-toggle.form"),
-        &signal_profile_catalog(),
-    )
-    .map_err(|_| ERROR_PREPARE)?;
-    let placements = PlacementChoices {
-        by_gear: BTreeMap::from([
-            (
-                GearId::from("trigger"),
-                PlacementChoice {
-                    host_id: source.host_id.clone(),
-                    capability_id: CapabilityId::from("trigger-1"),
-                },
-            ),
-            (
-                GearId::from("toggle"),
-                PlacementChoice {
-                    host_id: source.host_id.clone(),
-                    capability_id: CapabilityId::from("toggle-1"),
-                },
-            ),
-            (
-                GearId::from("show"),
-                PlacementChoice {
-                    host_id: sink.host_id.clone(),
-                    capability_id: CapabilityId::from("toggle-dom-show-1"),
-                },
-            ),
-        ]),
-    };
-    plan_with_line_offers(
-        &form,
-        &[source, sink],
-        &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
-        DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-        SIGNAL_ENCODED_LEN,
-        &[distributed_toggle_websocket_line_offer()],
-    )
-    .map_err(|_| ERROR_PREPARE)
-}
-
 impl ToggleDistributedSink {
     pub(super) fn prepare(sign_override: Option<u16>) -> Result<Self, i32> {
         let advertisement = distributed_toggle_browser_sink_advertisement();
@@ -150,7 +101,7 @@ impl ToggleDistributedSink {
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Ingress
             || lowered.host_operations.len() != 1
-            || fragment.placements[0].kind_id.as_str() != SHOW_KIND
+            || fragment.placements[0].kind_id.as_str() != TOGGLE_PRESENTATION_KIND
         {
             return Err(ERROR_PREPARE);
         }
@@ -177,7 +128,7 @@ impl ToggleDistributedSink {
             )
             .map_err(|_| ERROR_PREPARE)?;
         host_bindings.seal().map_err(|_| ERROR_PREPARE)?;
-        let values = HostedValueStore::new(1, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN)
+        let values = HostedValueStore::new(1, BOOL_ENCODED_LEN as u32, BOOL_ENCODED_LEN as u32)
             .map_err(|_| ERROR_PREPARE)?;
         let sign_items = sign_override.unwrap_or(SIGN_ITEMS);
         let sign_bytes = u32::from(sign_items)
@@ -230,7 +181,7 @@ impl ToggleDistributedSink {
             identity
                 .bind_request(&lowered.identity, show_node, request, HostOperationId(0))
                 .map_err(|_| ERROR_PREPARE)?;
-            // Toggle signals: level flips each time starting from !initial (=true for initial=false)
+            // Canonical toggle emits its configured initial value, then flips for every Tick.
             let signal = conduit_signal::Signal {
                 sequence: index as u64,
                 level: index % 2 == 0,
@@ -342,7 +293,7 @@ impl ToggleDistributedSink {
         self.output_len = encode_session_frame_into(
             frame,
             &mut self.output,
-            SIGNAL_ENCODED_LEN,
+            BOOL_ENCODED_LEN as u32,
             DISTRIBUTED_MAXIMUM_FRAME_BYTES,
         )
         .map_err(|_| ERROR_SESSION)?;
@@ -363,9 +314,12 @@ impl ToggleDistributedSink {
             return Err(self.error);
         }
         self.clear_output();
-        let frame =
-            decode_session_frame(bytes, SIGNAL_ENCODED_LEN, DISTRIBUTED_MAXIMUM_FRAME_BYTES)
-                .map_err(|_| ERROR_SESSION)?;
+        let frame = decode_session_frame(
+            bytes,
+            BOOL_ENCODED_LEN as u32,
+            DISTRIBUTED_MAXIMUM_FRAME_BYTES,
+        )
+        .map_err(|_| ERROR_SESSION)?;
         self.session
             .admit_inbound(frame)
             .map_err(|_| ERROR_SESSION)?;
@@ -379,8 +333,8 @@ impl ToggleDistributedSink {
                 }
             }
             SessionMessage::Offered { sequence, payload } => {
-                let signal = decode_signal_bytes(payload).map_err(|_| ERROR_SESSION)?;
-                if signal.sequence != sequence {
+                InfoBool::decode(payload).map_err(|_| ERROR_SESSION)?;
+                if sequence >= MAXIMUM_RECEIPTS as u64 {
                     return self.fail_session(21, ERROR_SESSION);
                 }
                 let (endpoint, cord) = self.remote();
@@ -526,9 +480,12 @@ impl ToggleDistributedSink {
             .scheduler
             .host_value(request.input.value)
             .map_err(|_| ERROR_KERNEL)?;
-        let signal = decode_signal_bytes(input).map_err(|_| ERROR_PRESENTATION)?;
+        let level = InfoBool::decode(input)
+            .map_err(|_| ERROR_PRESENTATION)?
+            .get();
         if projection.node != request.node
-            || projection.signal != signal
+            || projection.signal.sequence != self.receipts as u64
+            || projection.signal.level != level
             || request_identity.operation != request.operation
         {
             return Err(ERROR_PRESENTATION);
@@ -544,7 +501,13 @@ impl ToggleDistributedSink {
             &request_identity.contract_id,
             &placement.placement_id,
         )?;
-        write_presentation_frame(&mut output, projection, input)?;
+        write_typed_presentation_frame(
+            &mut output,
+            projection,
+            conduit_signal::TOGGLE_PRESENTATION_KIND,
+            conduit_core::BOOL_INFO_ID,
+            input,
+        )?;
         self.output_len = output.len();
         let mut expected = FrameWriter::new(&mut self.expected_completion);
         write_common_frame(
@@ -556,7 +519,12 @@ impl ToggleDistributedSink {
             &request_identity.contract_id,
             &placement.placement_id,
         )?;
-        write_presentation_completion_frame(&mut expected, projection, input)?;
+        write_typed_presentation_completion_frame(
+            &mut expected,
+            projection,
+            conduit_core::BOOL_INFO_ID,
+            input,
+        )?;
         self.expected_completion_len = expected.len();
         self.current = Some((request, self.receipts));
         self.output_kind = OUTPUT_PRESENT;
