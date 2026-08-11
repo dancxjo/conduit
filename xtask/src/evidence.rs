@@ -11,17 +11,17 @@ use std::{
     process::Command,
 };
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const EVIDENCE_SCHEMA: &str = "conduit.evidence-manifest/v1";
 pub const MAX_EVIDENCE_OUTPUTS: usize = 64;
 pub const MAX_EVIDENCE_BYTES: u64 = 16 * 1024 * 1024;
 const MANIFEST_FILE: &str = "manifest.json";
+const CAPTURE_DECLARATION_SCHEMA: &str = "conduit.capture-declarations/v1";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-#[allow(dead_code)] // Both kinds are contract surface; #822 declares the first captures.
 pub enum EvidenceKind {
     Screenshot,
     MachineReadableManifest,
@@ -34,7 +34,8 @@ pub enum EvidenceResult {
     DiagnosticIncomplete,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EvidenceOutput {
     pub id: String,
     pub kind: EvidenceKind,
@@ -44,7 +45,8 @@ pub struct EvidenceOutput {
     pub provenance: EvidenceProvenance,
 }
 
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct EvidenceProvenance {
     pub scenario_id: String,
     pub step_id: Option<String>,
@@ -93,6 +95,13 @@ struct ManifestOutput {
     provenance: EvidenceProvenance,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CaptureDeclarations {
+    schema: String,
+    outputs: Vec<EvidenceOutput>,
+}
+
 pub struct EvidenceManifest {
     root: PathBuf,
     git_commit: String,
@@ -132,7 +141,6 @@ impl EvidenceManifest {
         })
     }
 
-    #[allow(dead_code)]
     pub fn declare(&mut self, output: EvidenceOutput) -> Result<(), String> {
         if self.declarations.len() == MAX_EVIDENCE_OUTPUTS {
             return Err(format!(
@@ -156,6 +164,69 @@ impl EvidenceManifest {
             return Err(format!("duplicate evidence identity '{}'", output.id));
         }
         self.declarations.push(output);
+        Ok(())
+    }
+
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
+    pub fn import_capture_declarations(
+        &mut self,
+        path: &Path,
+        required_ids: &[&str],
+    ) -> Result<(), String> {
+        validate_relative_path(path)?;
+        let candidate = self.root.join(path);
+        let metadata = fs::symlink_metadata(&candidate).map_err(|error| {
+            format!(
+                "cannot inspect capture declarations {}: {error}",
+                candidate.display()
+            )
+        })?;
+        if !metadata.file_type().is_file() || metadata.len() > MAX_EVIDENCE_BYTES {
+            return Err("capture declarations must be one bounded regular file".into());
+        }
+        let resolved = candidate.canonicalize().map_err(|error| {
+            format!(
+                "cannot resolve capture declarations {}: {error}",
+                candidate.display()
+            )
+        })?;
+        if !resolved.starts_with(&self.root) {
+            return Err("capture declarations escape the configured evidence root".into());
+        }
+        let bytes = fs::read(&candidate).map_err(|error| {
+            format!(
+                "cannot read capture declarations {}: {error}",
+                candidate.display()
+            )
+        })?;
+        let declarations: CaptureDeclarations = serde_json::from_slice(&bytes)
+            .map_err(|error| format!("invalid capture declarations: {error}"))?;
+        if declarations.schema != CAPTURE_DECLARATION_SCHEMA {
+            return Err(format!(
+                "unsupported capture declaration schema '{}'",
+                declarations.schema
+            ));
+        }
+        if declarations.outputs.len() > MAX_EVIDENCE_OUTPUTS {
+            return Err("capture declaration count exceeds the evidence bound".into());
+        }
+        for output in declarations.outputs {
+            self.declare(output)?;
+        }
+        for required in required_ids {
+            if !self
+                .declarations
+                .iter()
+                .any(|output| output.id == *required)
+            {
+                return Err(format!(
+                    "required capture declaration '{required}' is missing"
+                ));
+            }
+        }
         Ok(())
     }
 
@@ -326,148 +397,4 @@ fn sha256_file(path: &Path) -> Result<String, String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn temporary_root(name: &str) -> PathBuf {
-        let root =
-            std::env::temp_dir().join(format!("conduit-evidence-{name}-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&root);
-        fs::create_dir_all(&root).unwrap();
-        root
-    }
-
-    fn manifest(root: &Path) -> EvidenceManifest {
-        EvidenceManifest::new(
-            root,
-            Path::new(env!("CARGO_MANIFEST_DIR")),
-            "proof",
-            "suite",
-        )
-        .unwrap()
-    }
-
-    fn output(id: &str, path: &str, required: bool) -> EvidenceOutput {
-        EvidenceOutput {
-            id: id.into(),
-            kind: EvidenceKind::Screenshot,
-            path: path.into(),
-            media_type: "image/png".into(),
-            required,
-            provenance: EvidenceProvenance {
-                scenario_id: "scenario".into(),
-                asserted_semantic_disposition: Some("delivered".into()),
-                ..Default::default()
-            },
-        }
-    }
-
-    #[test]
-    fn complete_manifest_digest_binds_exact_bytes() {
-        let root = temporary_root("digest");
-        fs::write(root.join("capture.png"), b"canonical bytes").unwrap();
-        let mut evidence = manifest(&root);
-        evidence
-            .declare(output("capture", "capture.png", true))
-            .unwrap();
-        evidence.finish(EvidenceResult::Complete).unwrap();
-
-        let document: serde_json::Value =
-            serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
-        assert_eq!(document["schema"], EVIDENCE_SCHEMA);
-        assert_eq!(document["result"], "complete");
-        assert_eq!(document["outputs"][0]["bytes"], 15);
-        assert_eq!(
-            document["outputs"][0]["sha256"],
-            "a62cbfa5ab07ca2085092bb00488c2256b93dedcd2a8bd88e65b6ee055d7a499"
-        );
-        assert_eq!(document["outputs"][0]["scenario_id"], "scenario");
-        assert_eq!(
-            document["outputs"][0]["asserted_semantic_disposition"],
-            "delivered"
-        );
-        assert!(document.get("timestamp").is_none());
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn missing_required_output_is_manifested_as_incomplete_and_refused() {
-        let root = temporary_root("missing");
-        let mut evidence = manifest(&root);
-        evidence
-            .declare(output("required", "missing.png", true))
-            .unwrap();
-        let error = evidence.finish(EvidenceResult::Complete).unwrap_err();
-        assert!(error.contains("required"));
-        let document: serde_json::Value =
-            serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
-        assert_eq!(document["result"], "diagnostic-incomplete");
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn duplicate_ids_and_escaping_paths_are_rejected() {
-        let root = temporary_root("bounds");
-        let mut evidence = manifest(&root);
-        evidence.declare(output("one", "one.png", false)).unwrap();
-        assert!(evidence.declare(output("one", "two.png", false)).is_err());
-        assert!(evidence
-            .declare(output("escape", "../escape.png", false))
-            .is_err());
-        assert!(evidence
-            .declare(output("alias", "./one.png", false))
-            .is_err());
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn duplicate_paths_and_count_overflow_are_rejected() {
-        let root = temporary_root("count");
-        let mut evidence = manifest(&root);
-        evidence.declare(output("one", "same.png", false)).unwrap();
-        evidence.declare(output("two", "same.png", false)).unwrap();
-        assert!(evidence.finish(EvidenceResult::Complete).is_err());
-
-        let mut evidence = manifest(&root);
-        for index in 0..MAX_EVIDENCE_OUTPUTS {
-            evidence
-                .declare(output(
-                    &format!("output-{index}"),
-                    &format!("output-{index}.png"),
-                    false,
-                ))
-                .unwrap();
-        }
-        assert!(evidence
-            .declare(output("overflow", "overflow.png", false))
-            .is_err());
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn diagnostic_artifacts_cannot_look_complete() {
-        let root = temporary_root("diagnostic");
-        fs::write(root.join("capture.png"), b"diagnostic").unwrap();
-        let mut evidence = manifest(&root);
-        evidence
-            .declare(output("capture", "capture.png", false))
-            .unwrap();
-        evidence
-            .finish(EvidenceResult::DiagnosticIncomplete)
-            .unwrap();
-        let document: serde_json::Value =
-            serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
-        assert_eq!(document["result"], "diagnostic-incomplete");
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn actions_checkout_sha_is_validated_without_invoking_git() {
-        let sha = "ABCDEF0123456789ABCDEF0123456789ABCDEF01";
-        assert_eq!(
-            exact_git_commit(Path::new("/not/a/checkout"), Some(sha)).unwrap(),
-            sha.to_ascii_lowercase()
-        );
-        assert!(exact_git_commit(Path::new("/not/a/checkout"), Some("floating-main")).is_err());
-    }
-}
+mod tests;

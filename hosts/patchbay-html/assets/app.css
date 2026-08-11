@@ -1,4 +1,4 @@
-:root { color-scheme:dark; font:16px/1.5 system-ui,sans-serif; background:var(--patchbay-background); color:var(--patchbay-text-primary); }
+:root { color-scheme:dark; font:16px/1.5 "DejaVu Sans",sans-serif; background:var(--patchbay-background); color:var(--patchbay-text-primary); }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--patchbay-background); color:var(--patchbay-text-primary); }
 body.high-contrast section,body.high-contrast nav { background:var(--patchbay-background); }

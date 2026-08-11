@@ -1,9 +1,9 @@
 //! One living, bounded semantic input shared by renderer adapter proofs.
 
 use conduit_body::Body;
-use conduit_core::{bind_active_play, SignId};
+use conduit_core::{bind_active_play, BootId, HostId, OfferGeneration, SignId};
 use conduit_presentation::Presentation;
-use conduit_std_host::{StdHost, ThreadTimer};
+use conduit_std_host::{StdHost, StdHostConfig, ThreadTimer};
 
 use crate::{
     AttemptedEditPresentation, DistributedRouteDemo, FormEditor, PatchbayModel,
@@ -19,7 +19,11 @@ pub fn portable_demonstration() -> Result<Presentation, String> {
     let expanded = editor
         .expand_form("hello")
         .map_err(|error| error.to_string())?;
-    let mut host = StdHost::new();
+    let mut host = StdHost::new_with_config(StdHostConfig {
+        host_id: HostId::from("patchbay-portable/host"),
+        boot_id: BootId::from("patchbay-portable/boot"),
+        offer_generation: OfferGeneration(1),
+    });
     let host_id = host.advertisement().host_id.clone();
     let boot_id = host.advertisement().boot_id.clone();
     let plan = host
@@ -88,4 +92,19 @@ pub fn portable_demonstration() -> Result<Presentation, String> {
     projection
         .to_portable(&body, &wake)
         .map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn documentary_fixture_keeps_exact_semantic_identities() {
+        let first = portable_demonstration().unwrap();
+        let second = portable_demonstration().unwrap();
+        assert_eq!(first.identity, second.identity);
+        assert_eq!(first.basis.plan_id, second.basis.plan_id);
+        assert_eq!(first.basis.active_play_id, second.basis.active_play_id);
+        assert_eq!(first.subjects, second.subjects);
+    }
 }
