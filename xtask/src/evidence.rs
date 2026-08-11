@@ -35,6 +35,7 @@ const CAPTURE_DECLARATION_SCHEMA: &str = "conduit.capture-declarations/v1";
 pub enum EvidenceKind {
     Screenshot,
     MachineReadableManifest,
+    ConsoleTranscript,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -73,6 +74,22 @@ pub struct EvidenceProvenance {
     pub manifestation_id: Option<String>,
     pub renderer_id: Option<String>,
     pub asserted_semantic_disposition: Option<String>,
+    pub proof_class: Option<String>,
+    pub architecture: Option<String>,
+    pub architecture_rung: Option<String>,
+    pub emulator: Option<String>,
+    pub emulator_version: Option<String>,
+    pub machine: Option<String>,
+    pub firmware: Option<String>,
+    pub host_id: Option<String>,
+    pub boot_id: Option<String>,
+    pub kernel_artifact_id: Option<String>,
+    pub kernel_artifact_sha256: Option<String>,
+    pub capture_trigger: Option<String>,
+    pub capture_byte_limit: Option<u64>,
+    pub image_width: Option<u32>,
+    pub image_height: Option<u32>,
+    pub physical_evidence: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]

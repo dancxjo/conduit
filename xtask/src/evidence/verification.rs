@@ -197,6 +197,10 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
             }
         }
     }
+    if request.result == ExpectedEvidenceResult::Complete && request.proof_id == "conduitos-x86_64"
+    {
+        verify_conduitos_console(&root, &manifest, &request.commit)?;
+    }
 
     reject_undeclared_files(&root, &root, &paths)?;
     println!(
@@ -223,6 +227,84 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
             })
             .collect(),
     })
+}
+
+fn verify_conduitos_console(root: &Path, manifest: &Manifest, commit: &str) -> Result<(), String> {
+    if manifest.outputs.len() != 1 {
+        return Err("complete ConduitOS console evidence must contain exactly one output".into());
+    }
+    let output = &manifest.outputs[0];
+    let provenance = &output.provenance;
+    let exact_sha = |value: Option<&str>| {
+        value.is_some_and(|value| {
+            value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+        })
+    };
+    if output.id != "conduitos.x86_64.console"
+        || !output.required
+        || output.kind != EvidenceKind::ConsoleTranscript
+        || output.media_type != "text/plain; charset=utf-8"
+        || provenance.scenario_id != "conduitos.x86_64.p5-console@1"
+        || provenance.proof_class.as_deref() != Some("freestanding-emulator")
+        || provenance.architecture.as_deref() != Some("x86_64")
+        || provenance.architecture_rung.as_deref()
+            != Some("conduitos/x86_64/P5-observatory-patchbay")
+        || provenance.emulator.as_deref() != Some("qemu-system-x86_64")
+        || !provenance
+            .emulator_version
+            .as_deref()
+            .is_some_and(|value| value.starts_with("QEMU emulator version "))
+        || provenance.machine.as_deref() != Some("q35-single-cpu-64m-headless")
+        || !provenance
+            .firmware
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        || !exact_sha(provenance.host_id.as_deref())
+        || !exact_sha(provenance.boot_id.as_deref())
+        || provenance.kernel_artifact_id.as_deref()
+            != Some(format!("conduitos-build/{}", commit.to_ascii_lowercase()).as_str())
+        || !exact_sha(provenance.kernel_artifact_sha256.as_deref())
+        || !provenance
+            .capture_trigger
+            .as_deref()
+            .is_some_and(|value| value.contains("semantic-result"))
+        || provenance.capture_byte_limit != Some(256 * 1024)
+        || output.bytes > provenance.capture_byte_limit.unwrap_or(0)
+        || provenance.image_width.is_some()
+        || provenance.image_height.is_some()
+        || provenance.physical_evidence != Some(false)
+        || ![
+            provenance.step_id.as_deref(),
+            provenance.plan_id.as_deref(),
+            provenance.active_play_id.as_deref(),
+            provenance.asserted_semantic_disposition.as_deref(),
+        ]
+        .into_iter()
+        .all(|value| value.is_some_and(|value| !value.trim().is_empty()))
+    {
+        return Err(
+            "complete ConduitOS console evidence lacks exact emulator/rung/artifact provenance"
+                .into(),
+        );
+    }
+    let transcript = fs::read_to_string(root.join(&output.path))
+        .map_err(|error| format!("ConduitOS console evidence is not UTF-8: {error}"))?;
+    for marker in [
+        "CONDUIT_BOOT_SIGN ",
+        "CONDUIT_KERNEL_SIGN ",
+        "CONDUIT_OBSERVATORY_SNAPSHOT ",
+        "CONDUIT_SERIAL_PRESENT HELLO, CONDUITOS",
+    ] {
+        if transcript.matches(marker).count() != 1 {
+            return Err(format!(
+                "ConduitOS console evidence lacks exactly one validated marker '{marker}'"
+            ));
+        }
+    }
+    if !transcript.ends_with('\n') {
+        return Err("ConduitOS console evidence is not terminal-line complete".into());
+    }
+    Ok(())
 }
 
 fn complete_screenshot_provenance(provenance: &EvidenceProvenance) -> bool {

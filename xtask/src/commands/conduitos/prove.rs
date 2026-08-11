@@ -1,6 +1,11 @@
-use std::fs;
+use std::{fs, path::Path};
 
-use crate::cli::GlobalOpts;
+use crate::{
+    cli::GlobalOpts,
+    evidence::{
+        EvidenceKind, EvidenceManifest, EvidenceOutput, EvidenceProvenance, EvidenceResult,
+    },
+};
 
 use super::{
     image,
@@ -9,7 +14,13 @@ use super::{
     run, ConduitosArch, ConduitosError,
 };
 
-pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosError> {
+const CONSOLE_EVIDENCE_MAX_BYTES: u64 = 256 * 1024;
+
+pub fn execute(
+    arch: ConduitosArch,
+    evidence_root: Option<&Path>,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
     if arch == ConduitosArch::Ia32 {
         return super::ia32_a1::prove(opts);
     }
@@ -71,6 +82,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
         ));
     }
     let qemu_version = qemu_version(&paths)?;
+    let first_serial = first.serial;
     let mut proof = ProofRecord {
         schema: "conduit.conduitos.observatory-proof/v1",
         base_commit,
@@ -105,6 +117,9 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
         .map_err(|error| ConduitosError::refusal("proof-record-failed", error.to_string()))?;
     fs::write(&paths.proof, bytes)
         .map_err(|error| ConduitosError::refusal("proof-record-failed", error.to_string()))?;
+    if let Some(root) = evidence_root {
+        emit_console_evidence(root, &paths, &proof, &first_serial)?;
+    }
     if opts.json {
         println!(
             "{}",
@@ -120,6 +135,73 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
         );
     }
     Ok(())
+}
+
+fn emit_console_evidence(
+    root: &Path,
+    paths: &Paths,
+    proof: &ProofRecord,
+    serial: &str,
+) -> Result<(), ConduitosError> {
+    if serial.len() as u64 > CONSOLE_EVIDENCE_MAX_BYTES {
+        return Err(ConduitosError::refusal(
+            "console-evidence-too-large",
+            format!(
+                "validated serial transcript has {} bytes; maximum is {CONSOLE_EVIDENCE_MAX_BYTES}",
+                serial.len()
+            ),
+        ));
+    }
+    let mut evidence = EvidenceManifest::new(
+        root,
+        &paths.root,
+        "conduitos-x86_64",
+        "conduitos.prove.x86_64",
+    )
+    .map_err(|error| ConduitosError::refusal("console-evidence-failed", error))?;
+    let relative = Path::new("x86_64-console.txt");
+    fs::write(evidence.root().join(relative), serial)
+        .map_err(|error| ConduitosError::refusal("console-evidence-failed", error.to_string()))?;
+    evidence
+        .declare(EvidenceOutput {
+            id: "conduitos.x86_64.console".into(),
+            kind: EvidenceKind::ConsoleTranscript,
+            path: relative.into(),
+            media_type: "text/plain; charset=utf-8".into(),
+            required: true,
+            provenance: EvidenceProvenance {
+                scenario_id: "conduitos.x86_64.p5-console@1".into(),
+                step_id: Some("conduitos.prove.x86_64.semantic-terminal".into()),
+                plan_id: Some(proof.first_kernel.plan_id.clone()),
+                active_play_id: Some(proof.first_kernel.active_play_id.clone()),
+                asserted_semantic_disposition: Some(
+                    "validated-boot-kernel-observatory-and-terminal-debug-exit".into(),
+                ),
+                proof_class: Some(proof.proof_class.into()),
+                architecture: Some(proof.architecture.into()),
+                architecture_rung: Some("conduitos/x86_64/P5-observatory-patchbay".into()),
+                emulator: Some("qemu-system-x86_64".into()),
+                emulator_version: Some(proof.qemu_version.clone()),
+                machine: Some(proof.qemu_profile.into()),
+                firmware: Some(proof.first_boot.firmware.clone()),
+                host_id: Some(proof.first_boot.host_id.clone()),
+                boot_id: Some(proof.first_boot.boot_id.clone()),
+                kernel_artifact_id: Some(format!("conduitos-build/{}", proof.base_commit)),
+                kernel_artifact_sha256: Some(super::report::sha256_file(&paths.kernel)?),
+                capture_trigger: Some(
+                    "semantic-result-and-structured-terminal-signs-validated".into(),
+                ),
+                capture_byte_limit: Some(CONSOLE_EVIDENCE_MAX_BYTES),
+                image_width: None,
+                image_height: None,
+                physical_evidence: Some(false),
+                ..Default::default()
+            },
+        })
+        .map_err(|error| ConduitosError::refusal("console-evidence-failed", error))?;
+    evidence
+        .finish(EvidenceResult::Complete)
+        .map_err(|error| ConduitosError::refusal("console-evidence-failed", error))
 }
 
 fn prove_native_patchbay(paths: &Paths, proof: &ProofRecord) -> Result<usize, ConduitosError> {

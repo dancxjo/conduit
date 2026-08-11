@@ -30,7 +30,7 @@ mod std_gap;
 mod timing_profile;
 mod xhci_proof;
 
-use std::fmt;
+use std::{fmt, path::PathBuf};
 
 use clap::{Args, Subcommand, ValueEnum};
 
@@ -53,7 +53,7 @@ enum ConduitosCommand {
     /// Boot one deterministic QEMU session and validate its boot Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
-    Prove(TargetArgs),
+    Prove(ProveArgs),
     /// Inventory the portable std nucleus and classify the exact ConduitOS gap.
     StdGap,
     /// Prove one exact deterministic deadline-bounded local Plan and refusal.
@@ -67,6 +67,17 @@ struct TargetArgs {
     /// Architecture backend selected explicitly from the pinned Limine matrix.
     #[arg(long, value_enum, default_value_t = ConduitosArch::X86_64)]
     arch: ConduitosArch,
+}
+
+#[derive(Args, Debug, Clone)]
+struct ProveArgs {
+    /// Architecture backend selected explicitly from the pinned Limine matrix.
+    #[arg(long, value_enum, default_value_t = ConduitosArch::X86_64)]
+    arch: ConduitosArch,
+
+    /// Emit bounded proof-native console evidence beneath this root.
+    #[arg(long)]
+    evidence_root: Option<PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -185,14 +196,20 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 _ => run::execute(target.arch, opts).map(|_| ()),
             }
         }
-        ConduitosCommand::Prove(target) => {
-            target.arch.require_boot_backend()?;
-            if target.arch == ConduitosArch::Riscv64 {
+        ConduitosCommand::Prove(prove_args) => {
+            prove_args.arch.require_boot_backend()?;
+            if prove_args.evidence_root.is_some() && prove_args.arch != ConduitosArch::X86_64 {
+                return Err(ConduitosError::refusal(
+                    "unsupported-evidence-architecture",
+                    "proof-native ConduitOS evidence currently owns only the x86_64 emulator rung",
+                ));
+            }
+            if prove_args.arch == ConduitosArch::Riscv64 {
                 riscv64_a4::prove(opts)
-            } else if target.arch == ConduitosArch::Loongarch64 {
+            } else if prove_args.arch == ConduitosArch::Loongarch64 {
                 loongarch64_a4::prove(opts)
             } else {
-                prove::execute(target.arch, opts)
+                prove::execute(prove_args.arch, prove_args.evidence_root.as_deref(), opts)
             }
         }
         ConduitosCommand::StdGap => std_gap::execute(opts),

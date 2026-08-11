@@ -333,5 +333,17 @@ mod tests {
         let conduitos = Cli::try_parse_from(["xtask", "conduitos", "prove", "--arch", "x86-64"])
             .expect("ConduitOS command parses");
         assert!(matches!(conduitos.command, Command::Conduitos(_)));
+
+        let conduitos_evidence = Cli::try_parse_from([
+            "xtask",
+            "conduitos",
+            "prove",
+            "--arch",
+            "x86-64",
+            "--evidence-root",
+            "target/conduit-evidence/conduitos-x86_64",
+        ])
+        .expect("ConduitOS evidence command parses");
+        assert!(matches!(conduitos_evidence.command, Command::Conduitos(_)));
     }
 }

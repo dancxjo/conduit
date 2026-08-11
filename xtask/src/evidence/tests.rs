@@ -226,6 +226,7 @@ fn complete_browser_evidence(root: &Path) -> String {
                 manifestation_id: Some("manifestation".into()),
                 renderer_id: Some("renderer".into()),
                 asserted_semantic_disposition: Some("asserted".into()),
+                ..Default::default()
             };
         }
         evidence.declare(declaration).unwrap();
@@ -236,13 +237,65 @@ fn complete_browser_evidence(root: &Path) -> String {
     document["git_commit"].as_str().unwrap().to_owned()
 }
 
+fn complete_conduitos_evidence(root: &Path, commit: &str) {
+    let transcript = concat!(
+        "CONDUIT_BOOT_SIGN {}\n",
+        "CONDUIT_KERNEL_SIGN {}\n",
+        "CONDUIT_OBSERVATORY_SNAPSHOT {}\n",
+        "CONDUIT_SERIAL_PRESENT HELLO, CONDUITOS\n",
+    );
+    fs::write(root.join("x86_64-console.txt"), transcript).unwrap();
+    let mut evidence = EvidenceManifest::new(
+        root,
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "conduitos-x86_64",
+        "conduitos.prove.x86_64",
+    )
+    .unwrap();
+    evidence
+        .declare(EvidenceOutput {
+            id: "conduitos.x86_64.console".into(),
+            kind: EvidenceKind::ConsoleTranscript,
+            path: "x86_64-console.txt".into(),
+            media_type: "text/plain; charset=utf-8".into(),
+            required: true,
+            provenance: EvidenceProvenance {
+                scenario_id: "conduitos.x86_64.p5-console@1".into(),
+                step_id: Some("conduitos.prove.x86_64.semantic-terminal".into()),
+                plan_id: Some("plan".into()),
+                active_play_id: Some("play".into()),
+                asserted_semantic_disposition: Some("terminal-validated".into()),
+                proof_class: Some("freestanding-emulator".into()),
+                architecture: Some("x86_64".into()),
+                architecture_rung: Some("conduitos/x86_64/P5-observatory-patchbay".into()),
+                emulator: Some("qemu-system-x86_64".into()),
+                emulator_version: Some("QEMU emulator version 10.0.0".into()),
+                machine: Some("q35-single-cpu-64m-headless".into()),
+                firmware: Some("limine".into()),
+                host_id: Some("a".repeat(64)),
+                boot_id: Some("b".repeat(64)),
+                kernel_artifact_id: Some(format!("conduitos-build/{commit}")),
+                kernel_artifact_sha256: Some("c".repeat(64)),
+                capture_trigger: Some("semantic-result-and-terminal-signs".into()),
+                capture_byte_limit: Some(256 * 1024),
+                physical_evidence: Some(false),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    evidence.finish(EvidenceResult::Complete).unwrap();
+}
+
 #[test]
 fn gallery_publishes_current_history_and_provenance() {
     let evidence_root = temporary_root("gallery-evidence");
+    let conduitos_root = temporary_root("gallery-conduitos-evidence");
     let site_root = temporary_root("gallery-site");
     let commit = complete_browser_evidence(&evidence_root);
+    complete_conduitos_evidence(&conduitos_root, &commit);
     publish_gallery(&GalleryRequest {
         evidence_root: evidence_root.clone(),
+        conduitos_evidence_root: Some(conduitos_root.clone()),
         site_root: site_root.clone(),
         commit: commit.clone(),
     })
@@ -252,6 +305,7 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read_to_string(site_root.join("current/patchbay/overview/index.html")).unwrap();
     assert!(index.contains(&commit));
     assert!(index.contains("latest 32 published main commits"));
+    assert!(index.contains("Current x86_64 ConduitOS emulator console evidence"));
     assert!(scenario.contains("1440x1000"));
     assert!(scenario.contains("Exact provenance"));
     assert!(site_root
@@ -264,6 +318,11 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(site_root
         .join(format!("commits/{commit}/manifest.json"))
         .is_file());
+    let console_page =
+        fs::read_to_string(site_root.join("current/conduitos/x86_64/index.html")).unwrap();
+    assert!(console_page.contains("NOT PHYSICAL HARDWARE EVIDENCE"));
+    assert!(console_page.contains("freestanding-emulator"));
+    assert!(console_page.contains(&commit));
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     verify_documentation_references(&DocumentationReferenceRequest {
         workspace_root: workspace.to_path_buf(),
@@ -293,6 +352,7 @@ fn gallery_publishes_current_history_and_provenance() {
     fs::write(evidence_root.join("output-1"), b"tampered-evidence!!").unwrap();
     assert!(publish_gallery(&GalleryRequest {
         evidence_root: evidence_root.clone(),
+        conduitos_evidence_root: None,
         site_root: site_root.clone(),
         commit,
     })
@@ -302,6 +362,7 @@ fn gallery_publishes_current_history_and_provenance() {
         index
     );
     fs::remove_dir_all(evidence_root).unwrap();
+    fs::remove_dir_all(conduitos_root).unwrap();
     fs::remove_dir_all(site_root).unwrap();
 }
 
@@ -330,5 +391,78 @@ fn verifier_rejects_tampering_and_undeclared_files() {
     fs::write(root.join("capture.png"), b"diagnostic").unwrap();
     fs::write(root.join("undeclared.log"), b"not admitted").unwrap();
     assert!(verify(&request).unwrap_err().contains("undeclared"));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn conduitos_console_requires_emulator_provenance_and_semantic_markers() {
+    let root = temporary_root("conduitos-console");
+    let transcript = concat!(
+        "CONDUIT_BOOT_SIGN {}\n",
+        "CONDUIT_KERNEL_SIGN {}\n",
+        "CONDUIT_OBSERVATORY_SNAPSHOT {}\n",
+        "CONDUIT_SERIAL_PRESENT HELLO, CONDUITOS\n",
+    );
+    fs::write(root.join("x86_64-console.txt"), transcript).unwrap();
+    let commit = exact_git_commit(Path::new(env!("CARGO_MANIFEST_DIR")), None).unwrap();
+    let mut evidence = EvidenceManifest::new(
+        &root,
+        Path::new(env!("CARGO_MANIFEST_DIR")),
+        "conduitos-x86_64",
+        "conduitos.prove.x86_64",
+    )
+    .unwrap();
+    evidence
+        .declare(EvidenceOutput {
+            id: "conduitos.x86_64.console".into(),
+            kind: EvidenceKind::ConsoleTranscript,
+            path: "x86_64-console.txt".into(),
+            media_type: "text/plain; charset=utf-8".into(),
+            required: true,
+            provenance: EvidenceProvenance {
+                scenario_id: "conduitos.x86_64.p5-console@1".into(),
+                step_id: Some("conduitos.prove.x86_64.semantic-terminal".into()),
+                plan_id: Some("plan".into()),
+                active_play_id: Some("play".into()),
+                asserted_semantic_disposition: Some("terminal-validated".into()),
+                proof_class: Some("freestanding-emulator".into()),
+                architecture: Some("x86_64".into()),
+                architecture_rung: Some("conduitos/x86_64/P5-observatory-patchbay".into()),
+                emulator: Some("qemu-system-x86_64".into()),
+                emulator_version: Some("QEMU emulator version 10.0.0".into()),
+                machine: Some("q35-single-cpu-64m-headless".into()),
+                firmware: Some("limine".into()),
+                host_id: Some("a".repeat(64)),
+                boot_id: Some("b".repeat(64)),
+                kernel_artifact_id: Some(format!("conduitos-build/{commit}")),
+                kernel_artifact_sha256: Some("c".repeat(64)),
+                capture_trigger: Some("semantic-result-and-terminal-signs".into()),
+                capture_byte_limit: Some(256 * 1024),
+                physical_evidence: Some(false),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    evidence.finish(EvidenceResult::Complete).unwrap();
+    let request = VerificationRequest {
+        root: root.clone(),
+        commit,
+        result: ExpectedEvidenceResult::Complete,
+        proof_id: "conduitos-x86_64".into(),
+        suite_id: "conduitos.prove.x86_64".into(),
+    };
+    verify(&request).unwrap();
+    let manifest_path = root.join(MANIFEST_FILE);
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    document["outputs"][0]["physical_evidence"] = serde_json::Value::Bool(true);
+    fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&document).unwrap(),
+    )
+    .unwrap();
+    assert!(verify(&request)
+        .unwrap_err()
+        .contains("emulator/rung/artifact provenance"));
     fs::remove_dir_all(root).unwrap();
 }
