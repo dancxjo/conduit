@@ -9,6 +9,7 @@ use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
 use super::math_operations::MathScalarOperation;
+use super::midi_output_operation::MidiOutputOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::presentation_composition::PresentationCompositionOperation;
 use super::robotics_effect::SimulatedDriveEffect;
@@ -79,6 +80,7 @@ pub(super) enum InstalledOperation {
     RoboticsDrive(RoboticsDriveOperation),
     MusicSynth(MusicSynthOperation),
     AudioPlay(AudioPlayOperation),
+    MidiOutput(MidiOutputOperation),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
@@ -159,6 +161,7 @@ impl Operation for InstalledOperation {
             Self::RoboticsDrive(operation) => operation.start(),
             Self::MusicSynth(operation) => operation.start(),
             Self::AudioPlay(operation) => operation.start(),
+            Self::MidiOutput(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
@@ -228,6 +231,7 @@ impl Operation for InstalledOperation {
             (Self::RoboticsDrive(operation), input) => operation.resume(input),
             (Self::MusicSynth(operation), input) => operation.resume(input),
             (Self::AudioPlay(operation), input) => operation.resume(input),
+            (Self::MidiOutput(operation), input) => operation.resume(input),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -309,6 +313,7 @@ impl Operation for InstalledOperation {
             Self::RoboticsDrive(operation) => operation.advance(),
             Self::MusicSynth(operation) => operation.advance(),
             Self::AudioPlay(_) => OperationAction::Await,
+            Self::MidiOutput(_) => OperationAction::Await,
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             #[cfg(test)]
@@ -379,6 +384,7 @@ impl Operation for InstalledOperation {
             Self::RoboticsDrive(operation) => operation.cancel(),
             Self::MusicSynth(operation) => operation.cancel(),
             Self::AudioPlay(operation) => operation.cancel(),
+            Self::MidiOutput(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]

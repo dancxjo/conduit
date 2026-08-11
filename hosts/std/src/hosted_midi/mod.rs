@@ -1,9 +1,14 @@
 mod discovery;
+mod output;
+#[cfg(test)]
+pub(crate) mod output_fake;
 
 pub use discovery::{
     discover_alsa_sequencer_endpoints, MidiDiscoveryError, MidiEndpointDirection,
     MidiEndpointObservation,
 };
+pub(crate) use output::MidiOutputSession;
+pub use output::{MidiOutputFailure, MidiOutputLifecycle, MidiOutputReport};
 
 use conduit_core::{
     BootId, CapabilityId, HostId, OfferGeneration, RealizationAdvertisement,
@@ -33,6 +38,8 @@ pub struct HostedMidiSelection {
     observation: MidiEndpointObservation,
     boot_id: BootId,
     offer_generation: OfferGeneration,
+    #[cfg(test)]
+    fake_output: Option<output_fake::FakeMidiOutputBehavior>,
 }
 
 impl HostedMidiSelection {
@@ -62,7 +69,18 @@ impl HostedMidiSelection {
             observation,
             boot_id,
             offer_generation,
+            #[cfg(test)]
+            fake_output: None,
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_fake_output(
+        mut self,
+        behavior: output_fake::FakeMidiOutputBehavior,
+    ) -> Self {
+        self.fake_output = Some(behavior);
+        self
     }
 
     pub const fn observation(&self) -> &MidiEndpointObservation {
