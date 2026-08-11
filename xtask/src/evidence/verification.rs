@@ -36,6 +36,25 @@ pub struct VerificationRequest {
     pub suite_id: String,
 }
 
+#[derive(Debug)]
+pub struct VerifiedEvidence {
+    pub commit: String,
+    pub proof_id: String,
+    pub suite_id: String,
+    pub outputs: Vec<VerifiedOutput>,
+}
+
+#[derive(Debug)]
+pub struct VerifiedOutput {
+    pub id: String,
+    pub kind: EvidenceKind,
+    pub path: PathBuf,
+    pub media_type: String,
+    pub bytes: u64,
+    pub sha256: String,
+    pub provenance: EvidenceProvenance,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Manifest {
@@ -75,7 +94,7 @@ struct ManifestOutput {
     provenance: EvidenceProvenance,
 }
 
-pub fn verify(request: &VerificationRequest) -> Result<(), String> {
+pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String> {
     validate_commit(&request.commit)?;
     let root = request.root.canonicalize().map_err(|error| {
         format!(
@@ -186,7 +205,24 @@ pub fn verify(request: &VerificationRequest) -> Result<(), String> {
         request.commit.to_ascii_lowercase(),
         root.display()
     );
-    Ok(())
+    Ok(VerifiedEvidence {
+        commit: manifest.git_commit,
+        proof_id: manifest.proof_id,
+        suite_id: manifest.suite_id,
+        outputs: manifest
+            .outputs
+            .into_iter()
+            .map(|output| VerifiedOutput {
+                id: output.id,
+                kind: output.kind,
+                path: output.path,
+                media_type: output.media_type,
+                bytes: output.bytes,
+                sha256: output.sha256,
+                provenance: output.provenance,
+            })
+            .collect(),
+    })
 }
 
 fn complete_screenshot_provenance(provenance: &EvidenceProvenance) -> bool {

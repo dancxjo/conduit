@@ -14,6 +14,23 @@ pub struct EvidenceArgs {
 enum EvidenceCommand {
     /// Recompute and validate one evidence manifest and its declared files.
     Verify(EvidenceVerifyArgs),
+    /// Promote verified complete evidence into a bounded static gallery.
+    Gallery(EvidenceGalleryArgs),
+}
+
+#[derive(Args, Debug)]
+struct EvidenceGalleryArgs {
+    /// Complete evidence directory already bound to the checked commit.
+    #[arg(long)]
+    evidence_root: PathBuf,
+
+    /// Existing or empty gallery root to update atomically by accepted commit.
+    #[arg(long)]
+    site_root: PathBuf,
+
+    /// Exact 40-character accepted main commit to publish.
+    #[arg(long)]
+    commit: String,
 }
 
 #[derive(Args, Debug)]
@@ -63,5 +80,11 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
             })?;
             Ok(())
         }
+        EvidenceCommand::Gallery(args) => evidence::publish_gallery(&evidence::GalleryRequest {
+            evidence_root: args.evidence_root,
+            site_root: args.site_root,
+            commit: args.commit,
+        })
+        .map_err(Into::into),
     }
 }
