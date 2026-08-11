@@ -1174,3 +1174,19 @@ This remains `freestanding-emulator` proof of the already-accepted single
 cooperative lane. It adds no per-Gear task, thread, process, or context
 identity; SMP, second lane, context switching, preemption, isolation, new
 scheduler, transport, physical scheduling, and HIL remain outside the claim.
+
+The documentation-only CI fast path from #863 is accepted at exact main
+`965e5ef34b87d180a13fd7cf88e70331a416e40e`; push workflow `31453748480`
+classified the workflow and helper changes as executable, then passed the
+unchanged required `check`, `browser-host`, and `conduitos-boot` jobs. The
+separate Pages workflow `31453748440` also completed for that exact commit.
+
+Only a non-empty exact base-to-head change set whose every tracked path ends
+in `.md` may take the fast path. Source, workflow, manifest, lockfile,
+image/baseline, mixed, empty, invalid, and unavailable comparisons select the
+full matrix. The required job remains named `check`; documentation-only
+changes still run exact-diff validation, while browser and ConduitOS jobs may
+be skipped. Classification failure remains fail-closed, PR permissions are
+unchanged, and `merge_group` uses the same required workflow without disabling
+strict up-to-date protection. This is CI routing only: it changes no product,
+runtime, proof semantics, or accepted proof class.
