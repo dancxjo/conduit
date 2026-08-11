@@ -1,30 +1,16 @@
 use std::process::Command;
 
-use conduit_std_catalog::{supported_nucleus_contracts, supported_nucleus_offers};
 use conduitos::{
     identity::BootIdentities,
     offer::{CpuFeatures, HostOffer},
 };
 use serde::Serialize;
-use serde_json::Value;
-use sha2::{Digest, Sha256};
 
-use crate::cli::GlobalOpts;
+use crate::{cli::GlobalOpts, commands::catalog::inventory};
 
 use super::ConduitosError;
 
 const SCHEMA: &str = "conduit.conduitos/std-gap@1";
-const INVENTORY_SCHEMA: &str = "conduit.std/supported-nucleus-inventory@1";
-const MAXIMUM_CATALOG_ENTRIES: usize = 64;
-
-#[derive(Serialize)]
-struct InventoryEntry {
-    kind_id: String,
-    contract_revision: String,
-    contract: Value,
-    canonical_offer: Value,
-}
-
 #[derive(Serialize)]
 struct HostCapability<'a> {
     kind_id: &'static str,
@@ -42,12 +28,6 @@ struct GapEntry<'a> {
 }
 
 #[derive(Serialize)]
-struct InventoryDigestBasis<'a> {
-    schema: &'static str,
-    entries: &'a [InventoryEntry],
-}
-
-#[derive(Serialize)]
 struct StdGapReport<'a> {
     schema: &'static str,
     catalog_basis: &'static str,
@@ -56,7 +36,7 @@ struct StdGapReport<'a> {
     catalog_digest: String,
     catalog_entry_count: usize,
     maximum_catalog_entries: usize,
-    catalog_entries: Vec<InventoryEntry>,
+    catalog_entries: Vec<inventory::InventoryEntry>,
     host_profile: &'static str,
     artifact_build: &'a str,
     comparison_key: &'static str,
@@ -83,40 +63,9 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 }
 
 fn build_report(build: &str) -> Result<StdGapReport<'_>, ConduitosError> {
-    let contracts = supported_nucleus_contracts();
-    let offers = supported_nucleus_offers();
-    if contracts.len() != offers.len() || contracts.len() > MAXIMUM_CATALOG_ENTRIES {
-        return Err(ConduitosError::refusal(
-            "std-catalog-inventory-out-of-bounds",
-            format!(
-                "contracts={}, offers={}, maximum={MAXIMUM_CATALOG_ENTRIES}",
-                contracts.len(),
-                offers.len()
-            ),
-        ));
-    }
-
-    let mut inventory = Vec::with_capacity(contracts.len());
-    for (contract, offer) in contracts.into_iter().zip(offers) {
-        if contract.kind_id != offer.kind_id
-            || contract.inputs != offer.inputs
-            || contract.outputs != offer.outputs
-            || contract.limits != offer.limits
-        {
-            return Err(ConduitosError::refusal(
-                "std-catalog-contract-offer-mismatch",
-                offer.kind_id.as_str(),
-            ));
-        }
-        inventory.push(InventoryEntry {
-            kind_id: offer.kind_id.as_str().to_owned(),
-            contract_revision: offer.kind_contract_revision.as_str().to_owned(),
-            contract: serde_json::to_value(contract).map_err(encoding_error)?,
-            canonical_offer: serde_json::to_value(offer).map_err(encoding_error)?,
-        });
-    }
-
-    let digest = inventory_digest(&inventory)?;
+    let inventory = inventory::derive().map_err(|error| {
+        ConduitosError::refusal("std-catalog-inventory-invalid", error.to_string())
+    })?;
 
     let ids = BootIdentities {
         host: [1; 32],
@@ -136,6 +85,7 @@ fn build_report(build: &str) -> Result<StdGapReport<'_>, ConduitosError> {
         .map_err(|error| ConduitosError::refusal("conduitos-offer-invalid", error.as_str()))?;
 
     let entries: Vec<_> = inventory
+        .entries
         .iter()
         .map(|entry| {
             let host_capability = host.capabilities.iter().find(|capability| {
@@ -168,12 +118,12 @@ fn build_report(build: &str) -> Result<StdGapReport<'_>, ConduitosError> {
         schema: SCHEMA,
         catalog_basis:
             "conduit_std_catalog::supported_nucleus_contracts()+supported_nucleus_offers()",
-        catalog_inventory_schema: INVENTORY_SCHEMA,
+        catalog_inventory_schema: inventory::SCHEMA,
         catalog_digest_algorithm: "sha256-canonical-json",
-        catalog_digest: digest,
-        catalog_entry_count: inventory.len(),
-        maximum_catalog_entries: MAXIMUM_CATALOG_ENTRIES,
-        catalog_entries: inventory,
+        catalog_digest: inventory.digest,
+        catalog_entry_count: inventory.entries.len(),
+        maximum_catalog_entries: inventory::MAXIMUM_ENTRIES,
+        catalog_entries: inventory.entries,
         host_profile: host.profile,
         artifact_build: build,
         comparison_key: "exact-kind-id+kind-contract-revision",
@@ -181,15 +131,6 @@ fn build_report(build: &str) -> Result<StdGapReport<'_>, ConduitosError> {
         missing_count: entries.len() - implemented_count,
         entries,
     })
-}
-
-fn inventory_digest(entries: &[InventoryEntry]) -> Result<String, ConduitosError> {
-    let digest_bytes = serde_json::to_vec(&InventoryDigestBasis {
-        schema: INVENTORY_SCHEMA,
-        entries,
-    })
-    .map_err(encoding_error)?;
-    Ok(format!("{:x}", Sha256::digest(digest_bytes)))
 }
 
 fn encoding_error(error: serde_json::Error) -> ConduitosError {
@@ -213,6 +154,7 @@ fn git_head() -> Result<String, ConduitosError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
 
     #[test]
     fn current_gap_is_derived_and_exact() {
@@ -251,7 +193,10 @@ mod tests {
         let mut report = build_report("test-build").unwrap();
         let original = report.catalog_digest;
         report.catalog_entries[0].contract["summary"] = Value::String("changed".into());
-        assert_ne!(original, inventory_digest(&report.catalog_entries).unwrap());
+        assert_ne!(
+            original,
+            inventory::digest(&report.catalog_entries).unwrap()
+        );
     }
 
     #[test]

@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+use crate::commands::catalog::CatalogArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::evidence::EvidenceArgs;
 use crate::commands::pico::PicoArgs;
@@ -36,6 +37,8 @@ pub struct GlobalOpts {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
+    /// Inspect mechanically derived portable Kind coverage by Host profile.
+    Catalog(CatalogArgs),
     /// Execute repository validation check suites.
     Check(CheckArgs),
     /// Execute platform and protocol proof suites.
@@ -243,6 +246,14 @@ mod tests {
 
     #[test]
     fn doctor_and_pico_commands_parse() {
+        let matrix = Cli::try_parse_from(["xtask", "catalog", "matrix"])
+            .expect("catalog matrix command parses");
+        assert!(matches!(matrix.command, Command::Catalog(_)));
+
+        let gap = Cli::try_parse_from(["xtask", "catalog", "gap", "--host", "pico"])
+            .expect("catalog gap command parses");
+        assert!(matches!(gap.command, Command::Catalog(_)));
+
         let doctor = Cli::try_parse_from(["xtask", "--dry-run", "doctor", "pico"])
             .expect("doctor command parses");
         assert!(doctor.global.dry_run);

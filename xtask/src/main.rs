@@ -19,6 +19,8 @@ fn main() {
     let cli = Cli::parse();
     let opts = cli.global;
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
+        Command::Catalog(args) => commands::catalog::run(args, &opts)
+            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Check(args) => commands::check::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Prove(args) => commands::prove::run(args, &opts)
