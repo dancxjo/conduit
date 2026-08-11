@@ -599,12 +599,13 @@ fn validate_observatory(
         "conduit.std/presentation-tick@1",
         "conduitos/kernel-serial-tick@1",
     );
-    let bases_match = snapshot.bases.len() == kernel.base_ids.len()
+    let bases_match = snapshot.bases.len() == kernel.base_ids.len() + 1
         && snapshot.bases.iter().all(|base| {
             base.host_id.as_str() == boot.host_id
                 && base.boot_id.as_str() == boot.boot_id
                 && base.state == OperationalState::Available
-                && kernel.base_ids.iter().any(|id| id == base.base_id.as_str())
+                && (kernel.base_ids.iter().any(|id| id == base.base_id.as_str())
+                    || base.base_id.as_str() == presentation.display_base_id)
         });
     let exact_base = |kind: &str, capacity: u64| {
         snapshot
@@ -618,7 +619,11 @@ fn validate_observatory(
         && exact_base("conduitos.base/serial@1", 2)
         && exact_base("conduitos.base/interrupt@1", 4)
         && exact_base("conduitos.base/idle@1", 1)
-        && exact_base("conduitos.base/execution-lane@1", 2);
+        && exact_base("conduitos.base/execution-lane@1", 2)
+        && exact_base(
+            "conduitos.base/framebuffer@1",
+            u64::from(presentation.display_pitch) * u64::from(presentation.display_height),
+        );
     let current_signs = snapshot
         .observations
         .iter()
