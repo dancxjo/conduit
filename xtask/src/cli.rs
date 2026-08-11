@@ -205,6 +205,8 @@ pub enum DemoCommand {
     Triple,
     /// Build and launch the native Patchbay from this checkout.
     Patchbay,
+    /// Open the authored physical-environment Patchbay demonstration.
+    Environment,
     /// Alias for the actual-browser distributed toggle demonstration.
     Browser,
     /// Run the S4 distributed toggle proof interactively.

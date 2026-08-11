@@ -6,6 +6,7 @@ pub struct Arguments {
     pub snapshot_path: Option<PathBuf>,
     pub linear_snapshot_path: Option<PathBuf>,
     pub form_path: Option<PathBuf>,
+    pub environment_path: Option<PathBuf>,
     pub control_demo: bool,
     pub control_demo_stop: bool,
     pub native_copy_demo: bool,
@@ -39,6 +40,14 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
             }
             "--form" if parsed.form_path.is_none() => {
                 parsed.form_path = Some(arguments.next().ok_or("--form requires a path")?.into());
+            }
+            "--environment" if parsed.environment_path.is_none() => {
+                parsed.environment_path = Some(
+                    arguments
+                        .next()
+                        .ok_or("--environment requires a path")?
+                        .into(),
+                );
             }
             "--control-demo" if !parsed.control_demo && !parsed.control_demo_stop => {
                 parsed.control_demo = true;

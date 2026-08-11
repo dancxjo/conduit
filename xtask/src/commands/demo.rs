@@ -63,3 +63,22 @@ pub fn run_patchbay(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
     run_step(&step, &root, opts)?;
     Ok(())
 }
+
+pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let step = Step::new(
+        "demo.environment",
+        "Open the bounded authored physical-environment workspace",
+        "cargo",
+        &[
+            "run",
+            "-p",
+            "patchbay-native",
+            "--",
+            "--environment",
+            "examples/maker-workbench.json",
+        ],
+    );
+    run_step(&step, &root, opts)?;
+    Ok(())
+}

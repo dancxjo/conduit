@@ -3,6 +3,7 @@
 use crate::gui_primitives::PixelRect;
 use embedded_graphics::prelude::Point;
 use patchbay_model::PatchbaySubjectRef;
+use patchbay_model::{EnvironmentLinkKind, MachineProfile};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HitTarget {
@@ -12,6 +13,11 @@ pub struct HitTarget {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
+    EnvironmentAdd(MachineProfile),
+    EnvironmentSelect(String),
+    EnvironmentRemove(String),
+    EnvironmentSave,
+    EnvironmentLink(EnvironmentLinkKind),
     SelectSubject(PatchbaySubjectRef),
     FlipGear(PatchbaySubjectRef),
     OpenNextForm,

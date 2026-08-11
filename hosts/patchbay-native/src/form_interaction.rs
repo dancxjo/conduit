@@ -45,6 +45,13 @@ pub(super) fn graphical_form_for_editor(
 impl PatchbayApplication {
     pub(super) fn handle_gui_action(&mut self, action: GuiAction) -> Result<(), String> {
         match action {
+            GuiAction::EnvironmentAdd(_)
+            | GuiAction::EnvironmentSelect(_)
+            | GuiAction::EnvironmentRemove(_)
+            | GuiAction::EnvironmentSave
+            | GuiAction::EnvironmentLink(_) => {
+                return Err("environment action is unavailable in the Form workspace".into())
+            }
             GuiAction::SelectSubject(subject) => self.dispatch_selection(subject)?,
             GuiAction::FlipGear(subject) => {
                 let graph = self

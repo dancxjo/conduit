@@ -18,6 +18,9 @@ mod canvas;
 mod canvas_input;
 mod control;
 mod distributed_play;
+mod environment_interaction;
+mod environment_resource;
+mod environment_view;
 mod file_task;
 mod font;
 mod form_authoring;
@@ -37,18 +40,26 @@ mod presentation;
 mod render;
 mod renderer_adapter;
 mod resource;
+mod window_title;
+mod workspace_open;
 use arguments::{parse_arguments, Arguments};
 use conduit_std_host::StdHostComposition;
 use control::NativeControl;
 use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
 use file_task::{probe_native_file_base, NativeFileTask};
 use render::{draw_document, BACKGROUND};
-use resource::open_form_resource;
 
 struct PatchbayApplication {
     model: PatchbayModel,
     topology_lines: Vec<String>,
     form_editor: Option<FormEditor>,
+    environment: Option<patchbay_model::AuthoredEnvironment>,
+    environment_path: Option<std::path::PathBuf>,
+    selected_environment_part: Option<String>,
+    environment_drag: Option<(String, (f64, f64))>,
+    pending_environment_link: Option<(String, patchbay_model::EnvironmentLinkKind)>,
+    environment_name_editing: bool,
+    observed_environment_snapshot: Option<conduit_observatory::ObservatorySnapshot>,
     form_selection: usize,
     graphical_form: Option<patchbay_model::PatchbayGraph>,
     layout: patchbay_model::PatchbayLayout,
@@ -93,7 +104,7 @@ impl PatchbayApplication {
         emit_report("startup", &model.startup_snapshot())?;
         let mut topology =
             PatchbayTopology::new(HISTORY_CAPACITY).map_err(|error| error.to_string())?;
-        if let Some(path) = arguments.snapshot_path {
+        let observed_environment_snapshot = if let Some(path) = arguments.snapshot_path {
             let encoded = std::fs::read(&path)
                 .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
             let snapshot = serde_json::from_slice(&encoded)
@@ -101,34 +112,20 @@ impl PatchbayApplication {
             topology
                 .ingest(&snapshot)
                 .map_err(|error| error.to_string())?;
+            Some(snapshot)
         } else {
             topology
                 .ingest(&model.startup_snapshot())
                 .map_err(|error| error.to_string())?;
-        }
+            None
+        };
         let topology_lines = topology
             .document(None)
             .map_err(|error| error.to_string())?
             .lines()
             .to_vec();
-        let form_editor = arguments
-            .form_path
-            .map(open_form_resource)
-            .transpose()
-            .map_err(|error| error.to_string())?;
-        let graphical_form = form_editor
-            .as_ref()
-            .map(form_interaction::graphical_form_for_editor)
-            .transpose()?
-            .flatten();
-        let mut layout = form_editor
-            .as_ref()
-            .map(resource::open_layout_resource)
-            .transpose()?
-            .unwrap_or_default();
-        if let Some(graph) = &graphical_form {
-            layout.reconcile(graph);
-        }
+        let workspace =
+            workspace_open::open_workspace(arguments.form_path, arguments.environment_path)?;
         let source_host_id = model.projection().host_id().clone();
         let source_boot_id = model.projection().boot_id().clone();
         let control =
@@ -170,10 +167,17 @@ impl PatchbayApplication {
         let mut application = Self {
             model,
             topology_lines,
-            form_editor,
+            form_editor: workspace.form_editor,
+            environment: workspace.environment,
+            environment_path: workspace.environment_path,
+            selected_environment_part: None,
+            environment_drag: None,
+            pending_environment_link: None,
+            environment_name_editing: false,
+            observed_environment_snapshot,
             form_selection: 0,
-            graphical_form,
-            layout,
+            graphical_form: workspace.graphical_form,
+            layout: workspace.layout,
             interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
             hit_targets: Vec::new(),
             cursor_position: (0.0, 0.0),
@@ -212,28 +216,6 @@ impl PatchbayApplication {
             application.file_task.run_choice_demo()?;
         }
         Ok(application)
-    }
-
-    fn title(&self) -> String {
-        if let Some(editor) = &self.form_editor {
-            let view = editor.view();
-            let mode = self
-                .build_birth
-                .document(editor)
-                .map(|document| format!("{:?}", document.mode))
-                .unwrap_or_else(|_| "BuildInvalid".into());
-            return format!(
-                "Conduit Patchbay — {mode} — {} — canonical Form revision {}",
-                view.path.display(),
-                view.revision
-            );
-        }
-        format!(
-            "Conduit Patchbay — host {} — boot {} — topology lines {}",
-            self.model.projection().host_id().as_str(),
-            self.model.projection().boot_id().as_str(),
-            self.topology_lines.len(),
-        )
     }
 }
 
@@ -317,7 +299,15 @@ impl ApplicationHandler for PatchbayApplication {
                 }
             }
             WindowEvent::KeyboardInput { event, .. } if event.state.is_pressed() => {
-                if self.handle_palette_key(&event.logical_key) {
+                let environment_handled = match self.handle_environment_key(&event.logical_key) {
+                    Ok(handled) => handled,
+                    Err(error) => {
+                        self.failure = Some(format!("authored environment edit failed: {error}"));
+                        event_loop.exit();
+                        true
+                    }
+                };
+                if environment_handled || self.handle_palette_key(&event.logical_key) {
                     if let Some(window) = &self.window {
                         window.request_redraw();
                     }
