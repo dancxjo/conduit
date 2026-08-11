@@ -26,6 +26,8 @@ pub const LANE_ID: &str = "lane/aarch64/cooperative/0";
 pub const LANE_ID: &str = "lane/ia32/cooperative/0";
 #[cfg(target_arch = "riscv64")]
 pub const LANE_ID: &str = "lane/riscv64/cooperative/0";
+#[cfg(target_arch = "loongarch64")]
+pub const LANE_ID: &str = "lane/loongarch64/cooperative/0";
 const PORTS: usize = 1;
 const SIGN_CAPACITY: usize = 16;
 

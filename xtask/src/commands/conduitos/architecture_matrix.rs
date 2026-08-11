@@ -115,7 +115,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
             | ConduitosArch::Riscv64
             | ConduitosArch::Loongarch64
     );
-    let full_spine_accepted = arch == ConduitosArch::X86_64;
+    let full_spine_accepted = matches!(arch, ConduitosArch::X86_64 | ConduitosArch::Loongarch64);
     let ordinary_form_accepted = full_spine_accepted
         || matches!(
             arch,
@@ -144,11 +144,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::X86_64 => ("BOOTX64.EFI", "x86_64-unknown-none", ""),
         ConduitosArch::Aarch64 => ("BOOTAA64.EFI", aarch64_a0::TARGET, ""),
         ConduitosArch::Riscv64 => ("BOOTRISCV64.EFI", riscv64_a0::TARGET, ""),
-        ConduitosArch::Loongarch64 => (
-            "BOOTLOONGARCH64.EFI",
-            loongarch64_a0::TARGET,
-            "A1 boot accepted; A2 machine wake not established",
-        ),
+        ConduitosArch::Loongarch64 => ("BOOTLOONGARCH64.EFI", loongarch64_a0::TARGET, ""),
     };
     ArchitectureRow {
         architecture: arch.as_str(),
@@ -227,9 +223,9 @@ mod tests {
         assert!(loongarch64.executable_backend_present);
         assert!(loongarch64.a0_compile_link);
         assert!(loongarch64.a1_boot);
-        assert!(!loongarch64.a2_machine_wake);
-        assert!(!loongarch64.a3_ordinary_form);
-        assert!(!loongarch64.a4_observatory_patchbay);
+        assert!(loongarch64.a2_machine_wake);
+        assert!(loongarch64.a3_ordinary_form);
+        assert!(loongarch64.a4_observatory_patchbay);
     }
 
     #[test]
