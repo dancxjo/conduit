@@ -110,7 +110,10 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     Ok(record)
 }
 
-fn check_shared_backbone(paths: &Paths, opts: &GlobalOpts) -> Result<(), ConduitosError> {
+pub(super) fn check_shared_backbone(
+    paths: &Paths,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
     let mut command = Command::new("cargo");
     command
         .args([
@@ -196,7 +199,7 @@ fn link(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
     }
 }
 
-fn rust_lld(root: &Path) -> Result<PathBuf, ConduitosError> {
+pub(super) fn rust_lld(root: &Path) -> Result<PathBuf, ConduitosError> {
     let sysroot = output(
         "rustc",
         &["--print", "sysroot"],
@@ -270,12 +273,12 @@ fn inspect_readelf(paths: &Paths) -> Result<(), ConduitosError> {
     Ok(())
 }
 
-struct ElfFacts {
+pub(super) struct ElfFacts {
     entry: u32,
     load_flags: Vec<u32>,
 }
 
-fn inspect_elf(bytes: &[u8]) -> Result<ElfFacts, ConduitosError> {
+pub(super) fn inspect_elf(bytes: &[u8]) -> Result<ElfFacts, ConduitosError> {
     if bytes.len() < 52
         || &bytes[..4] != b"\x7fELF"
         || bytes[4] != 1

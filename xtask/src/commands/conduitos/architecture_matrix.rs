@@ -114,7 +114,8 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
     let full_spine_accepted = arch == ConduitosArch::X86_64;
     let ordinary_form_accepted = full_spine_accepted || arch == ConduitosArch::Aarch64;
     let observatory_patchbay_accepted = ordinary_form_accepted;
-    let machine_wake_accepted = full_spine_accepted || arch == ConduitosArch::Aarch64;
+    let machine_wake_accepted =
+        full_spine_accepted || matches!(arch, ConduitosArch::Ia32 | ConduitosArch::Aarch64);
     let compile_link_accepted = boot_accepted
         || matches!(
             arch,
@@ -127,7 +128,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::Ia32 => (
             "BOOTIA32.EFI",
             "i686-unknown-uefi",
-            "A1 boot accepted; A2 machine wake not established",
+            "A2 machine wake accepted; A3 ordinary Form not established",
         ),
         ConduitosArch::X86_64 => ("BOOTX64.EFI", "x86_64-unknown-none", ""),
         ConduitosArch::Aarch64 => ("BOOTAA64.EFI", aarch64_a0::TARGET, ""),
@@ -197,7 +198,8 @@ mod tests {
         assert!(ia32.executable_backend_present);
         assert!(ia32.a0_compile_link);
         assert!(ia32.a1_boot);
-        assert!(!ia32.a2_machine_wake);
+        assert!(ia32.a2_machine_wake);
+        assert!(!ia32.a3_ordinary_form);
         let riscv64 = matrix
             .architectures
             .iter()

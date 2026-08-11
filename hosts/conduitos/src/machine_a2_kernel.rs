@@ -20,7 +20,10 @@ use crate::machine::KernelInterest;
 pub const TIMER_NODE: NodeId = NodeId(0);
 pub const TIMER_REQUEST: RequestId = RequestId(1);
 pub const TIMER_OPERATION: HostOperationId = HostOperationId(0);
+#[cfg(target_arch = "aarch64")]
 pub const LANE_ID: &str = "lane/aarch64/cooperative/0";
+#[cfg(target_arch = "x86")]
+pub const LANE_ID: &str = "lane/ia32/cooperative/0";
 const PORTS: usize = 1;
 const SIGN_CAPACITY: usize = 16;
 

@@ -8,8 +8,8 @@ use core::panic::PanicInfo;
 
 use conduit_kernel::scheduler::SchedulerStatus;
 use conduitos::{
-    aarch64_a2_kernel::{AdmittedLane, LANE_ID},
     arch, boot,
+    machine_a2_kernel::{AdmittedLane, LANE_ID},
 };
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");

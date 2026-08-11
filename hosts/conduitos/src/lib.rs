@@ -2,7 +2,6 @@
 
 extern crate alloc;
 
-pub mod aarch64_a2_kernel;
 pub mod allocation;
 pub mod arch;
 pub mod boot;
@@ -15,6 +14,7 @@ pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
 pub mod machine;
+pub mod machine_a2_kernel;
 pub mod observatory;
 pub mod offer;
 pub mod ordinary_plan;
