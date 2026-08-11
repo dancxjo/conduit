@@ -63,6 +63,8 @@ mod copy_file;
 pub use copy_file::*;
 mod sound;
 pub use sound::*;
+mod music_input;
+pub use music_input::*;
 mod sound_compatibility;
 pub use sound_compatibility::*;
 mod sound_stream;

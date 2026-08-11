@@ -1,6 +1,7 @@
 //! Host-neutral sound/music semantic waist.
 
 use super::{StandardKindContract, TerminalBehavior};
+use crate::{music_input_contract, MUSIC_INPUT_KIND, MUSIC_INPUT_REVISION};
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
@@ -271,9 +272,10 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
     }
 }
 
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 4] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 5] {
     [
         (sound_tone_play_contract(), SOUND_TONE_PLAY_REVISION),
+        (music_input_contract(), MUSIC_INPUT_REVISION),
         (music_play_contract(), MUSIC_PLAY_REVISION),
         (music_synth_contract(), MUSIC_SYNTH_REVISION),
         (audio_play_contract(), AUDIO_PLAY_REVISION),
@@ -289,7 +291,7 @@ pub fn stream_semantics(kind: &str) -> Option<StreamSemantics> {
             CancellationDisposition::CancelAndReleaseFiniteState,
             SoundTerminalBehavior::CompletesWhenInputsClose,
         ),
-        MUSIC_PLAY_KIND | MUSIC_SYNTH_KIND => (
+        MUSIC_INPUT_KIND | MUSIC_PLAY_KIND | MUSIC_SYNTH_KIND => (
             MAXIMUM_MUSICAL_EVENT_ITEMS,
             MAXIMUM_MUSICAL_EVENT_BYTES,
             MAXIMUM_SIMULTANEOUS_NOTES,
@@ -339,9 +341,12 @@ fn sink(
 }
 
 fn music_inputs() -> Vec<PortDescriptor> {
+    music_ports(PortDirection::Input)
+}
+pub(crate) fn music_ports(direction: PortDirection) -> Vec<PortDescriptor> {
     vec![
-        port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Input),
-        port("controls", MUSIC_CONTROL_INFO_ID, PortDirection::Input),
+        port("notes", MUSIC_NOTE_INFO_ID, direction),
+        port("controls", MUSIC_CONTROL_INFO_ID, direction),
     ]
 }
 fn port(name: &str, info: &str, direction: PortDirection) -> PortDescriptor {
@@ -359,7 +364,7 @@ fn tone_limits() -> CapabilityLimits {
         max_queue_bytes: MAXIMUM_MUSICAL_EVENT_BYTES,
     }
 }
-fn event_limits() -> CapabilityLimits {
+pub(crate) fn event_limits() -> CapabilityLimits {
     tone_limits()
 }
 fn audio_limits() -> CapabilityLimits {
@@ -409,6 +414,7 @@ mod tests {
     fn all_storage_and_pressure_are_finite() {
         for kind in [
             SOUND_TONE_PLAY_KIND,
+            MUSIC_INPUT_KIND,
             MUSIC_PLAY_KIND,
             MUSIC_SYNTH_KIND,
             AUDIO_PLAY_KIND,
