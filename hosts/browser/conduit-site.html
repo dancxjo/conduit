@@ -116,7 +116,7 @@
         <div class="manifestation" aria-live="polite" aria-atomic="true">
           <div class="pulse" aria-hidden="true"></div>
           <div class="live-copy">
-            <div><strong id="manifestation-title">Conduit is waiting</strong><span id="manifestation-detail">Start with <code>just site</code>, then press Enter.</span></div>
+            <div><strong id="manifestation-title">Conduit is waiting</strong><span id="manifestation-detail">Start with <code>just site</code>; the initial value manifests before the first Enter.</span></div>
             <span id="manifestation-state" class="state-pill">waiting</span>
           </div>
         </div>
@@ -134,7 +134,7 @@
       </section>
 
       <section class="sign" id="sign" aria-labelledby="sign-title">
-        <div class="sign-copy"><div class="eyebrow">Live proof, not theater</div><h2 id="sign-title">This light belongs to Conduit.</h2><p>The manifestation above changes only after the browser host successfully completes an admitted <code>presentation/show&lt;Signal&gt;</code> effect from the real browser/WASM runtime. The latest exact identity chain appears here.</p></div>
+        <div class="sign-copy"><div class="eyebrow">Live proof, not theater</div><h2 id="sign-title">This light belongs to Conduit.</h2><p>The manifestation above changes only after the browser host successfully completes an admitted <code>presentation/bool</code> effect carrying the canonical current Boolean from the real browser/WASM runtime. The latest exact identity chain appears here.</p></div>
         <div class="terminal" aria-label="Latest Conduit manifestation sign">
           <div class="terminal-head"><span>latest manifestation</span><span id="receipt-count">0 / 16 receipts</span></div>
           <dl class="terminal-grid">
@@ -165,7 +165,7 @@
     function showReceipt(receipt) {
       root.dataset.manifestation = String(receipt.level);
       text("#manifestation-title", receipt.level ? "Conduit is live" : "Conduit is manifest");
-      text("#manifestation-detail", `Signal ${receipt.sequence} completed by the browser host.`);
+      text("#manifestation-detail", `Boolean presentation ${receipt.sequence} completed by the browser host.`);
       text("#manifestation-state", receipt.level ? "live / true" : "live / false");
       text("#proof-status", "presentation completed successfully");
       text("#proof-plan", receipt.planId);
@@ -207,7 +207,7 @@
             return result;
           },
         });
-        text("#proof-status", "ready — press Enter in the terminal");
+        text("#proof-status", "ready — canonical initial value is admitted");
         text("#manifestation-title", "Conduit is ready");
         const result = await runDistributedToggleRuntime(runtime, line, observableDomHost);
         const closed = await line.closed();

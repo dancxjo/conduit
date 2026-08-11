@@ -100,7 +100,8 @@ std kernel, toggles state, crosses the exact `SessionMachine` over WebSocket,
 enters the Rust/WASM browser kernel, and completes through the thin DOM adapter.
 The page appends an `<output>` receipt for each presentation.
 
-There are sixteen planned Play starts. The visible Signal levels alternate:
+The canonical toggle emits its exact initial Boolean and then flips after each
+of fifteen admitted terminal triggers, producing sixteen visible values:
 
 ```text
 sequence=0 level=true

@@ -6,13 +6,14 @@
 use conduit_core::KindId;
 
 use crate::{
-    COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, KEYBOARD_KIND, LATEST_KIND,
-    LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND,
-    MATH_SCALE_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND,
-    ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
-    ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, TEE_KIND,
-    TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND,
-    TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_EVERY_KIND, TIME_TIMEOUT_KIND,
+    BOOL_PRESENTATION_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, KEYBOARD_KIND,
+    LATEST_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
+    MATH_DEADBAND_KIND, MATH_SCALE_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
+    ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND, ROBOTICS_OBSERVE_IMU_KIND,
+    ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_VELOCITY_INTENT_KIND,
+    STATE_COUNT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND,
+    TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND,
+    TIME_EVERY_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -170,6 +171,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["counter", "total", "accumulate"],
             PaletteIconKey::Tally5,
         ),
+        STATE_TOGGLE_KIND => metadata(
+            PaletteCategory::State,
+            &["toggle", "boolean", "state"],
+            PaletteIconKey::Repeat2,
+        ),
         LATEST_KIND => metadata(
             PaletteCategory::State,
             &["latest", "current", "replace"],
@@ -255,6 +261,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["display", "tick", "indicator"],
             PaletteIconKey::Presentation,
         ),
+        BOOL_PRESENTATION_KIND => metadata(
+            PaletteCategory::Presentation,
+            &["boolean", "state", "present"],
+            PaletteIconKey::Presentation,
+        ),
         TEXT_PRESENTATION_KIND => metadata(
             PaletteCategory::Presentation,
             &["display", "text", "screen"],
@@ -295,7 +306,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 29);
+        assert_eq!(contracts.len(), 31);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

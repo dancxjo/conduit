@@ -610,6 +610,7 @@ dependencies = [
  "conduit-form",
  "conduit-planner",
  "conduit-runtime",
+ "conduit-std-catalog",
  "serde",
 ]
 

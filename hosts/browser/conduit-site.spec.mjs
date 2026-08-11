@@ -64,7 +64,7 @@ test("homepage exposes a bounded error state without fabricating a receipt", asy
   await expect(page.locator("#browser-sink output")).toHaveCount(0);
 });
 
-test("terminal trigger changes the homepage only after Conduit presentation completion", async ({ page }) => {
+test("canonical initial state and terminal triggers change the homepage only after presentation completion", async ({ page }) => {
   const source = spawn(
     "cargo",
     ["run", "--quiet", "-p", "conduit-std-host", "--bin", "distributed-toggle-server"],
@@ -77,17 +77,12 @@ test("terminal trigger changes the homepage only after Conduit presentation comp
   try {
     const url = await lines.line(0);
     await page.goto(`/hosts/browser/conduit-site.html?ws=${encodeURIComponent(url)}`);
-    await expect(page.locator("#proof-status")).toHaveText("ready — press Enter in the terminal");
-    await expect(page.locator("#browser-sink output")).toHaveCount(0);
-
-    await lines.line(1);
-    source.stdin.write("\n");
     await expect(page.locator("#browser-sink output")).toHaveCount(1);
     await expect(page.locator("html")).toHaveAttribute("data-manifestation", "true");
     await expect(page.locator("#manifestation-title")).toHaveText("Conduit is live");
     await expect(page.locator("#proof-sequence")).toHaveText("0");
 
-    for (let index = 1; index < 16; index++) {
+    for (let index = 0; index < 15; index++) {
       await lines.line(index + 1);
       source.stdin.write("\n");
     }

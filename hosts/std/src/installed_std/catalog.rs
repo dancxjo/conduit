@@ -37,6 +37,7 @@ use super::tick_operations::TEST_OBSERVER_FACTORY;
 use super::tick_operations::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
 use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
+use super::toggle_operation::STATE_TOGGLE_FACTORY;
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
@@ -50,6 +51,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEXT_JOIN_FACTORY,
     &TEXT_PRESENTATION_FACTORY,
     &STATE_COUNT_FACTORY,
+    &STATE_TOGGLE_FACTORY,
     &COUNT_PRESENTATION_FACTORY,
     &STATE_LATEST_SCALAR_FACTORY,
     &FLOW_TEE_SCALAR_FACTORY,

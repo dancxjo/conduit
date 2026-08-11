@@ -7,6 +7,8 @@ export const BrowserDomFailure = Object.freeze({
 
 const SIGNAL_VALUE_KIND = "value/signal";
 const SIGNAL_PRESENTATION_KIND = "presentation/signal";
+const BOOL_VALUE_KIND = "value/bool@1";
+const BOOL_PRESENTATION_KIND = "presentation/bool";
 const LOCAL_PRESENTATION_EFFECT = 2;
 const DISTRIBUTED_PRESENTATION_EFFECT = 3;
 const SIGNAL_ENCODED_LENGTH = 9;
@@ -22,10 +24,21 @@ function boundedIdentity(value) {
     value.length <= MAXIMUM_IDENTITY_LENGTH;
 }
 
-function exactBytes(value) {
-  if (!Array.isArray(value) || value.length !== SIGNAL_ENCODED_LENGTH) return null;
+function exactBytes(value, length = SIGNAL_ENCODED_LENGTH) {
+  if (!Array.isArray(value) || value.length !== length) return null;
   if (value.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) return null;
   return Uint8Array.from(value);
+}
+
+function decodeBoolean(value, sequence) {
+  if (value?.valueKind !== BOOL_VALUE_KIND) return null;
+  const encoded = exactBytes(value.encoded, 1);
+  if (!encoded || encoded[0] > 1) return null;
+  return Object.freeze({
+    sequence: BigInt(sequence),
+    level: encoded[0] === 1,
+    encoded: Object.freeze([...encoded]),
+  });
 }
 
 function decodeSignal(value) {
@@ -90,26 +103,29 @@ export class BrowserDomHost {
     ];
     const hasRemoteIdentity = remoteIdentityFields.some((value) => value !== undefined);
     const requiresRemoteIdentity = effect?.kind === DISTRIBUTED_PRESENTATION_EFFECT;
-    const signal = decodeSignal(effect?.value);
+    const presentation = effect?.presentationKind === SIGNAL_PRESENTATION_KIND
+      ? decodeSignal(effect?.value)
+      : effect?.presentationKind === BOOL_PRESENTATION_KIND
+        ? decodeBoolean(effect?.value, this.#receipts.length)
+        : null;
     if (identityFields.some((value) => !boundedIdentity(value)) ||
         (effect?.kind !== LOCAL_PRESENTATION_EFFECT && !requiresRemoteIdentity) ||
         requiresRemoteIdentity !== hasRemoteIdentity ||
         (requiresRemoteIdentity &&
           remoteIdentityFields.some((value) => !boundedIdentity(value))) ||
-        effect?.presentationKind !== SIGNAL_PRESENTATION_KIND ||
         effect?.hostId !== this.hostId ||
         effect?.bootId !== this.bootId ||
         !Number.isSafeInteger(effect?.requestNode) ||
         !Number.isSafeInteger(effect?.requestId) ||
         !Number.isSafeInteger(effect?.operationId) ||
-        !signal) {
+        !presentation) {
       return failure(BrowserDomFailure.InvalidPresentation, "malformed-effect");
     }
     if (this.#presentationIds.has(effect.presentationId)) {
       return failure(BrowserDomFailure.DuplicatePresentation, effect.presentationId);
     }
     if (this.#receipts.length === this.maximumReceiptItems ||
-        this.#receiptBytes + signal.encoded.length > this.maximumReceiptBytes) {
+        this.#receiptBytes + presentation.encoded.length > this.maximumReceiptBytes) {
       return failure(BrowserDomFailure.ReceiptCapacity, "receipt-store-full");
     }
 
@@ -129,9 +145,9 @@ export class BrowserDomHost {
       operationId: effect.operationId,
       hostOperationContractId: effect.hostOperationContractId,
       placementId: effect.placementId,
-      sequence: signal.sequence.toString(),
-      level: signal.level,
-      encoded: signal.encoded,
+      sequence: presentation.sequence.toString(),
+      level: presentation.level,
+      encoded: presentation.encoded,
       ...(hasRemoteIdentity
         ? {
             sourceFragmentId: effect.sourceFragmentId,
@@ -159,13 +175,13 @@ export class BrowserDomHost {
     output.dataset.sequence = receipt.sequence;
     output.dataset.level = String(receipt.level);
     output.textContent =
-      `receipt signal host=${receipt.hostId} boot=${receipt.bootId} ` +
+      `receipt ${effect.presentationKind} host=${receipt.hostId} boot=${receipt.bootId} ` +
       `placement=${receipt.placementId} sequence=${receipt.sequence} level=${receipt.level}`;
     this.root.append(output);
 
     this.#presentationIds.add(effect.presentationId);
     this.#receipts.push(receipt);
-    this.#receiptBytes += signal.encoded.length;
+    this.#receiptBytes += presentation.encoded.length;
     return Object.freeze({
       ok: true,
       completion: Object.freeze({
@@ -198,8 +214,8 @@ export class BrowserDomHost {
             }
           : {}),
         value: Object.freeze({
-          valueKind: SIGNAL_VALUE_KIND,
-          encoded: signal.encoded,
+          valueKind: effect.value.valueKind,
+          encoded: presentation.encoded,
         }),
         success: true,
       }),

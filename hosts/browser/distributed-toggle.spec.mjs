@@ -74,24 +74,17 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
       `/hosts/browser/distributed-toggle.test.html?ws=${encodeURIComponent(url)}`,
     );
 
-    // Prove one admitted Enter reaches the remote DOM before allowing any more input.
-    await lines.line(1);
-    await new Promise((resolve, reject) => {
-      source.stdin.write("\n", (error) => {
-        if (error) reject(error);
-        else resolve();
-      });
-    });
+    // The canonical current output manifests its exact initial value before any Tick.
     const firstOutput = page.locator("#browser-sink output");
     await expect(firstOutput).toHaveCount(1);
     await expect(firstOutput.first()).toHaveAttribute("data-sequence", "0");
     await expect(firstOutput.first()).toHaveAttribute(
       "data-encoded",
-      "[0,0,0,0,0,0,0,0,1]",
+      "[1]",
     );
 
-    // Only after that liveness proof, send the remaining admitted triggers.
-    for (let i = 1; i < 16; i++) {
+    // Only after that initial-state proof, send all fifteen admitted triggers.
+    for (let i = 0; i < 15; i++) {
       await lines.line(1 + i);
       source.stdin.write("\n");
     }
@@ -103,7 +96,7 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
       `capacity_stable=${result.capacityStable}\n`,
     );
     await exited;
-    const summary = await lines.line(17);
+    const summary = await lines.line(16);
     process.stdout.write(`${summary}\n`);
     expect(stderr).toEqual([]);
     expect(summary).toContain("values=16 pressure_retries=1 retained=0 in_flight=0");
@@ -150,9 +143,9 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
       hostId === "s4/toggle-browser-sink")).toBe(true);
     expect(result.receipts.every(({ bootId }) =>
       bootId === "s4/toggle-browser-sink-boot")).toBe(true);
-    // Toggle: level alternates starting from true (initial=false, first flip = true)
+    // Canonical toggle emits initial=true, then alternates after each Tick.
     expect(result.presentations.every(({ encoded }, index) =>
-      encoded.length === 9 && encoded[8] === (index % 2 === 0 ? 1 : 0))).toBe(true);
+      encoded.length === 1 && encoded[0] === (index % 2 === 0 ? 1 : 0))).toBe(true);
     expect(new Set(result.presentations.map(({ planId }) => planId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ fragmentId }) => fragmentId)).size).toBe(1);
     expect(new Set(result.presentations.map(({ activePlayId }) => activePlayId)).size).toBe(1);
