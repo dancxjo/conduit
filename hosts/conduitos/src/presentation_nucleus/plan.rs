@@ -16,7 +16,7 @@ use conduit_runtime::lowering::{LoweredPlanFragment, lower_plan_fragment};
 
 use super::TEXT_SOURCE_KIND;
 
-pub const FORM_SOURCE: &str = "form conduitos-gear-face {\n source: conduitos.fixture/text-source\n face: patchbay/gear-face\n source.text -> face.subject\n}\n";
+pub const FORM_SOURCE: &str = "form conduitos-gear-face {\n source: conduitos.fixture/text-source\n face: patchbay/gear-face\n source > face.subject\n}\n";
 
 pub struct PreparedPresentationPlay {
     pub advertisement: HostAdvertisement,
