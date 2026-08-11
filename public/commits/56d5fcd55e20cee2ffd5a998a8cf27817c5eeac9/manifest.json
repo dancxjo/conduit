@@ -1,7 +1,7 @@
 {
   "schema": "conduit.evidence-manifest/v1",
   "result": "complete",
-  "git_commit": "f6ef55060934200dc5693b58880f5bb17e24b08f",
+  "git_commit": "56d5fcd55e20cee2ffd5a998a8cf27817c5eeac9",
   "proof_id": "browser-host",
   "suite_id": "prove.browser-host",
   "limits": {
