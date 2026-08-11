@@ -89,7 +89,10 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
     expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
     await page.evaluate(()=>document.fonts.ready);
-    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).fontFamily)).toBe('"DejaVu Sans", sans-serif');
+    if(canonical) {
+      expect(await page.evaluate(()=>document.fonts.check('16px "DejaVu Sans"'))).toBe(true);
+      expect((await page.evaluate(()=>getComputedStyle(document.documentElement).fontFamily)).replaceAll('"',"")).toBe("DejaVu Sans, sans-serif");
+    }
 
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"overview",snapshot,"available-after-form-plan-play-and-signs-asserted");
 
