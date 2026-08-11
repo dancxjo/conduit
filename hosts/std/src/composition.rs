@@ -143,6 +143,7 @@ pub(super) fn build_advertisement(
     config: StdHostConfig,
     composition: StdHostComposition,
     playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+    midi_input: Option<&crate::hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<&crate::hosted_midi::MidiOutputSelection>,
     playback_proof: bool,
 ) -> HostAdvertisement {
@@ -241,6 +242,9 @@ pub(super) fn build_advertisement(
     if playback.is_some() {
         capabilities.push(conduit_std_catalog::audio_play_alsa_hw_offer());
     }
+    if midi_input.is_some() {
+        capabilities.push(conduit_std_catalog::music_input_midi_offer());
+    }
     if midi_output.is_some() {
         capabilities.push(conduit_std_catalog::music_play_midi_offer());
     }
@@ -286,6 +290,14 @@ pub(super) fn build_advertisement(
         resources.push(resource_offer(
             playback.pool_id().as_str(),
             conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CLASS,
+            1,
+        ));
+        resources.sort();
+    }
+    if let Some(midi_input) = midi_input {
+        resources.push(resource_offer(
+            midi_input.resource_pool_id().as_str(),
+            conduit_std_catalog::MIDI_INPUT_RESOURCE_CLASS,
             1,
         ));
         resources.sort();

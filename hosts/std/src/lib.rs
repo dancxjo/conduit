@@ -270,6 +270,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 pub struct StdHost {
     advertisement: HostAdvertisement,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
+    midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
@@ -297,12 +298,13 @@ impl StdHost {
 
     pub fn new_with_composition(config: StdHostConfig, composition: StdHostComposition) -> Self {
         let advertisement =
-            composition::build_advertisement(config, composition, None, None, false);
+            composition::build_advertisement(config, composition, None, None, None, false);
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)
             .expect("std kernel resource offers are exact and bounded");
         Self {
             advertisement,
             playback: None,
+            midi_input: None,
             midi_output: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
@@ -322,12 +324,19 @@ impl StdHost {
                 "playback observation does not match the advertised Boot/generation".into(),
             );
         }
-        let advertisement =
-            composition::build_advertisement(config, composition, Some(&playback), None, false);
+        let advertisement = composition::build_advertisement(
+            config,
+            composition,
+            Some(&playback),
+            None,
+            None,
+            false,
+        );
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
             playback: Some(playback),
+            midi_input: None,
             midi_output: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
@@ -350,12 +359,19 @@ impl StdHost {
             );
         }
         let midi_output = hosted_midi::MidiOutputSelection::sequencer(midi_output);
-        let advertisement =
-            composition::build_advertisement(config, composition, None, Some(&midi_output), false);
+        let advertisement = composition::build_advertisement(
+            config,
+            composition,
+            None,
+            None,
+            Some(&midi_output),
+            false,
+        );
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
             playback: None,
+            midi_input: None,
             midi_output: Some(midi_output),
             kernel_resources,
             next_kernel_play_sequence: 0,
@@ -389,12 +405,14 @@ impl StdHost {
             StdHostComposition::minimal(),
             Some(&playback),
             None,
+            None,
             true,
         );
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
             playback: Some(playback),
+            midi_input: None,
             midi_output: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
@@ -628,6 +646,7 @@ impl LegacyStdFixtureHost {
         let advertisement = composition::build_advertisement(
             config,
             StdHostComposition::reference(),
+            None,
             None,
             None,
             false,
