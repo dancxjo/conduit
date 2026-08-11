@@ -129,8 +129,9 @@ mod tests {
     #[test]
     fn standard_palette_is_exact_bounded_and_searches_contract_truth() {
         let palette = GearPalette::standard().unwrap();
-        assert_eq!(palette.entries().len(), 53);
-        assert_eq!(palette.search("").unwrap().len(), 53);
+        let supported = conduit_std_catalog::palette_contracts().len();
+        assert_eq!(palette.entries().len(), supported);
+        assert_eq!(palette.search("").unwrap().len(), supported);
         assert_eq!(
             palette.search("uppercase").unwrap()[0].kind_id.as_str(),
             "text/upper"
