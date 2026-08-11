@@ -10,7 +10,7 @@ use crate::cli::GlobalOpts;
 use super::{
     hid_qmp, hid_run, image, keyboard_run, keyboard_text_run,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
-    report::{GuestBootSign, GuestKernelSign, GuestRun, GuestXhciSign},
+    report::{GuestBootSign, GuestKernelSign, GuestPresentationSign, GuestRun, GuestXhciSign},
     usb_run, ConduitosArch, ConduitosError,
 };
 
@@ -50,7 +50,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             "-display",
             "none",
             "-vga",
-            "none",
+            "std",
             "-monitor",
             "none",
             "-qmp",
@@ -163,6 +163,19 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_KERNEL_SIGN "))
         .collect();
+    let presentation_signs: Vec<_> = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix("CONDUIT_PRESENTATION_SIGN "))
+        .collect();
+    if presentation_signs.len() != 1 {
+        return Err(ConduitosError::refusal(
+            "malformed-presentation-sign",
+            format!(
+                "expected one structured presentation Sign, found {}",
+                presentation_signs.len()
+            ),
+        ));
+    }
     if kernel_signs.len() != 1 {
         return Err(ConduitosError::refusal(
             "malformed-kernel-sign",
@@ -221,6 +234,10 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     let keyboard_text = keyboard_text_run::extract(&serial)?;
     let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
+    let presentation: GuestPresentationSign =
+        serde_json::from_str(presentation_signs[0]).map_err(|error| {
+            ConduitosError::refusal("malformed-presentation-sign", error.to_string())
+        })?;
     let observatory: conduit_observatory::ObservatorySnapshot =
         serde_json::from_str(observatory_snapshots[0]).map_err(|error| {
             ConduitosError::refusal("malformed-observatory-snapshot", error.to_string())
@@ -230,6 +247,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             ConduitosError::refusal("malformed-keyboard-text-observatory", error.to_string())
         })?;
     validate_boot(&boot)?;
+    validate_presentation(&boot, &presentation)?;
     validate_xhci(&boot, &xhci)?;
     usb_run::validate(&boot, &xhci, &usb)?;
     hid_run::validate(&boot, &xhci, &usb, &hid)?;
@@ -250,6 +268,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     }
     Ok(GuestRun {
         boot,
+        presentation,
         xhci,
         usb,
         hid,
@@ -260,6 +279,47 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         observatory,
         serial,
     })
+}
+
+fn validate_presentation(
+    boot: &GuestBootSign,
+    sign: &GuestPresentationSign,
+) -> Result<(), ConduitosError> {
+    let exact_id =
+        |value: &str| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit());
+    if sign.schema != "conduit.conduitos.framebuffer-presentation/v1"
+        || sign.status != "completed"
+        || sign.proof_class != "freestanding-emulator"
+        || sign.host_id != boot.host_id
+        || sign.boot_id != boot.boot_id
+        || !exact_id(&sign.display_base_id)
+        || sign.display_width < 320
+        || sign.display_height < 200
+        || sign.display_pitch < sign.display_width.saturating_mul(4)
+        || sign.display_bits_per_pixel != 32
+        || sign.execution_profile != conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE
+        || sign.artifact != conduit_std_catalog::CONDUITOS_PRESENTATION_ARTIFACT
+        || !exact_id(&sign.source_document_id)
+        || !exact_id(&sign.checked_form_id)
+        || !exact_id(&sign.expanded_form_id)
+        || !exact_id(&sign.plan_id)
+        || !exact_id(&sign.fragment_id)
+        || sign.text != "Gear Face"
+        || sign.layout_children != 3
+        || sign.graphics_commands != 3
+        || sign.text_commands != 1
+        || sign.text_pixels_written == 0
+        || sign.graphics_pixels_written == 0
+        || sign.kernel_signs == 0
+        || !sign.bounded
+        || !sign.completed
+    {
+        return Err(ConduitosError::refusal(
+            "invalid-presentation-sign",
+            format!("presentation Sign failed exact validation: {sign:?}"),
+        ));
+    }
+    Ok(())
 }
 
 pub(super) fn prove_xhci_absent(paths: &Paths) -> Result<String, ConduitosError> {
@@ -350,7 +410,7 @@ fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {
         || sign.host_id.len() != 64
         || sign.boot_id.len() != 64
         || sign.memory_regions == 0
-        || sign.runtime_arena_bytes != 1_048_576
+        || sign.runtime_arena_bytes != 4_194_304
     {
         return Err(ConduitosError::refusal(
             "invalid-boot-sign",

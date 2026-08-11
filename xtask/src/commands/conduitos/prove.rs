@@ -59,10 +59,16 @@ pub fn execute(
     let stable_semantic_identities = first.kernel.source_document_id
         == second.kernel.source_document_id
         && first.kernel.checked_form_id == second.kernel.checked_form_id
-        && first.kernel.expanded_form_id == second.kernel.expanded_form_id;
+        && first.kernel.expanded_form_id == second.kernel.expanded_form_id
+        && first.presentation.source_document_id == second.presentation.source_document_id
+        && first.presentation.checked_form_id == second.presentation.checked_form_id
+        && first.presentation.expanded_form_id == second.presentation.expanded_form_id;
     let fresh_realization_identities = first.kernel.plan_id != second.kernel.plan_id
         && first.kernel.fragment_id != second.kernel.fragment_id
-        && first.kernel.active_play_id != second.kernel.active_play_id;
+        && first.kernel.active_play_id != second.kernel.active_play_id
+        && first.presentation.plan_id != second.presentation.plan_id
+        && first.presentation.fragment_id != second.presentation.fragment_id
+        && first.presentation.display_base_id != second.presentation.display_base_id;
     if !stable_semantic_identities || !fresh_realization_identities {
         return Err(ConduitosError::refusal(
             "observatory-identity-stage-collapse",
@@ -95,9 +101,11 @@ pub fn execute(
         iso_sha256: image.iso_sha256,
         reproducible_image,
         first_boot: first.boot,
+        first_presentation: first.presentation,
         first_kernel: first.kernel,
         first_observatory: first.observatory.clone(),
         second_boot: second.boot,
+        second_presentation: second.presentation,
         second_kernel: second.kernel,
         second_observatory: second.observatory,
         fresh_host_id,

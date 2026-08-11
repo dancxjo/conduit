@@ -346,14 +346,14 @@ mod tests {
                 .iter()
                 .filter(|entry| matches!(entry.coverage, Coverage::Direct))
                 .count(),
-            5
+            16
         );
         let missing = os
             .entries
             .iter()
             .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
             .count();
-        assert_eq!(missing, os.catalog_entry_count - 5);
+        assert_eq!(missing, os.catalog_entry_count - 16);
     }
 
     #[test]

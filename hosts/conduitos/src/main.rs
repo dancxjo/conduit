@@ -14,7 +14,10 @@ use core::panic::PanicInfo;
 use alloc::format;
 
 #[cfg(target_os = "none")]
-use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, proof};
+use conduitos::{
+    allocation::BOOT_ARENA, arch, boot, display::PixelTarget, dual_region_plan, identity,
+    presentation_nucleus, proof,
+};
 
 #[cfg(target_os = "none")]
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
@@ -61,6 +64,52 @@ extern "C" fn conduitos_start() -> ! {
             let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
             let identities =
                 identity::derive(entropy, record.timestamp, record.image_physical_start);
+            let mut presentation_display = match boot::framebuffer_display() {
+                Ok(display) => display,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let display_format = presentation_display.format();
+            let display_base =
+                identity::derive_base(&identities.boot, "conduitos/display/limine/0");
+            let prepared_presentation = match presentation_nucleus::prepare(
+                &identity::hex(&identities.host),
+                &identity::hex(&identities.boot),
+            ) {
+                Ok(prepared) => prepared,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let presentation = match presentation_nucleus::run(
+                &prepared_presentation,
+                &mut presentation_display,
+            ) {
+                Ok(proof) => proof,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let presentation_sign = format!(
+                "CONDUIT_PRESENTATION_SIGN {{\"schema\":\"conduit.conduitos.framebuffer-presentation/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"display_base_id\":\"{}\",\"display_width\":{},\"display_height\":{},\"display_pitch\":{},\"display_bits_per_pixel\":{},\"execution_profile\":\"{}\",\"artifact\":\"{}\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"text\":\"{}\",\"layout_children\":{},\"graphics_commands\":{},\"text_commands\":{},\"text_pixels_written\":{},\"graphics_pixels_written\":{},\"kernel_signs\":{},\"bounded\":true,\"completed\":true}}\n",
+                identity::hex(&identities.host),
+                identity::hex(&identities.boot),
+                identity::hex(&display_base),
+                display_format.width,
+                display_format.height,
+                display_format.pitch,
+                display_format.bits_per_pixel,
+                conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE,
+                conduit_std_catalog::CONDUITOS_PRESENTATION_ARTIFACT,
+                prepared_presentation.plan.source_document_id.as_str(),
+                prepared_presentation.plan.checked_form_id.as_str(),
+                prepared_presentation.plan.expanded_form_id.as_str(),
+                presentation.plan_id.as_str(),
+                presentation.fragment_id.as_str(),
+                presentation.text,
+                presentation.layout_children,
+                presentation.graphics_commands,
+                presentation.text_display.commands,
+                presentation.text_display.pixels_written,
+                presentation.display.pixels_written,
+                presentation.kernel_signs,
+            );
+            arch::early_write(presentation_sign.as_bytes());
             let xhci_base =
                 identity::derive_base(&identities.boot, "conduitos/xhci/0000:00:01.0/1b36:000d");
             let xhci_base_id = identity::hex(&xhci_base);
