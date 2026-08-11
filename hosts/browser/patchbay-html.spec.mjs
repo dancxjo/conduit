@@ -58,7 +58,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(first).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector dd").first()).toHaveText(identity);
     expect(await page.locator("#graph [data-subject].selected").getAttribute("data-subject")).toBe(identity);
-    expect(await page.locator("#graph [data-subject].selected .node").evaluate(element=>getComputedStyle(element).stroke)).toBe("rgb(244, 196, 0)");
+    await expect(page.locator("#graph [data-subject].selected .node")).toHaveCSS("stroke","rgb(244, 196, 0)");
     await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/0");
     await expect(page.locator("#interaction-proof")).toContainText("Interaction Plan");
