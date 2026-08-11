@@ -101,6 +101,10 @@ pub struct ProveArgs {
     /// Which proof suite to execute.
     pub proof: ProveTarget,
 
+    /// Override the bounded evidence root for proofs that declare evidence outputs.
+    #[arg(long)]
+    pub evidence_root: Option<std::path::PathBuf>,
+
     /// Explicit USB CDC link port (CDC 0).
     #[arg(long)]
     pub link_port: Option<String>,

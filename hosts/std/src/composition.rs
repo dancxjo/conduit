@@ -24,6 +24,7 @@ pub struct StdHostComposition {
     pub time: bool,
     pub text: bool,
     pub state: bool,
+    pub logic: bool,
     pub files: bool,
     pub external_websocket: bool,
 }
@@ -36,6 +37,7 @@ impl StdHostComposition {
             time: true,
             text: true,
             state: true,
+            logic: true,
             files: true,
             external_websocket: false,
         }
@@ -49,6 +51,7 @@ impl StdHostComposition {
             time: false,
             text: false,
             state: false,
+            logic: false,
             files: false,
             external_websocket: false,
         }
@@ -71,6 +74,11 @@ impl StdHostComposition {
 
     pub const fn with_state(mut self) -> Self {
         self.state = true;
+        self
+    }
+
+    pub const fn with_logic(mut self) -> Self {
+        self.logic = true;
         self
     }
 
@@ -123,6 +131,13 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::flow_gate_scalar_offer(),
         ]);
     }
+    if composition.logic {
+        capabilities.extend([
+            conduit_std_catalog::logic_compare_scalar_offer(),
+            conduit_std_catalog::logic_not_offer(),
+            conduit_std_catalog::logic_select_scalar_offer(),
+        ]);
+    }
     if composition.files {
         capabilities.push(conduit_std_catalog::copy_file_offer());
     }
@@ -136,13 +151,19 @@ pub(super) fn build_advertisement(
         capabilities.push(installed_std::test_scalar_source_offer());
         capabilities.push(installed_std::test_scalar_sink_offer());
         capabilities.push(installed_std::test_gate_script_offer());
+        capabilities.push(installed_std::test_logic_script_offer());
+        capabilities.push(installed_std::test_logic_sink_offer());
         capabilities.push(installed_std::test_slow_scalar_sink_offer());
     }
     let mut resources = signal_resource_offers("std/timer", "std/presentation", 16);
     resources.retain(|offer| match offer.pool_id.as_str() {
         "std/timer" => composition.signal || composition.time,
         "std/presentation" => {
-            composition.signal || composition.time || composition.text || composition.state
+            composition.signal
+                || composition.time
+                || composition.text
+                || composition.state
+                || composition.logic
         }
         _ => false,
     });

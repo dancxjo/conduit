@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 mod gate_conformance;
+mod logic_conformance;
 
 struct RecordingTimer {
     waits: Vec<Duration>,

@@ -68,6 +68,7 @@ fn displayed_contract(kind: &patchbay_model::FaceControlKind) -> String {
         patchbay_model::FaceControlKind::BooleanChoice { choices } => {
             format!("{}|{}", choices[0], choices[1])
         }
+        patchbay_model::FaceControlKind::TextChoice { choices } => choices.join("|"),
         patchbay_model::FaceControlKind::Number {
             minimum,
             maximum,
@@ -90,6 +91,16 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
             patchbay_model::FaceControlKind::BooleanChoice { .. },
             conduit_core::ConfigurationValue::Bool(value),
         ) => vec![conduit_core::ConfigurationValue::Bool(!value)],
+        (
+            patchbay_model::FaceControlKind::TextChoice { choices },
+            conduit_core::ConfigurationValue::Text(value),
+        ) => choices
+            .iter()
+            .find(|choice| *choice != value)
+            .cloned()
+            .map(conduit_core::ConfigurationValue::Text)
+            .into_iter()
+            .collect(),
         (
             patchbay_model::FaceControlKind::Number {
                 minimum, maximum, ..

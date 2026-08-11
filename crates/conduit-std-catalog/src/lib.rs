@@ -31,6 +31,8 @@ mod state_count;
 pub use state_count::*;
 mod flow_state;
 pub use flow_state::*;
+mod logic;
+pub use logic::*;
 mod copy_file;
 pub use copy_file::*;
 
@@ -53,6 +55,9 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         state_latest_scalar_contract(),
         flow_tee_scalar_contract(),
         flow_gate_scalar_contract(),
+        logic_compare_scalar_contract(),
+        logic_not_contract(),
+        logic_select_scalar_contract(),
         copy_file_contract(),
     ]
 }
@@ -76,6 +81,9 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         state_latest_scalar_offer(),
         flow_tee_scalar_offer(),
         flow_gate_scalar_offer(),
+        logic_compare_scalar_offer(),
+        logic_not_offer(),
+        logic_select_scalar_offer(),
         copy_file_offer(),
     ]
 }
@@ -114,6 +122,7 @@ pub enum TerminalBehavior {
     EmitsCurrentAndCompletesWhenInputCloses,
     CoupledAtomicFanoutAndMirrorsInputTerminal,
     CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
+    EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -129,6 +138,7 @@ pub enum StandardConfigurationRule {
     U64Range { minimum: u64, maximum: u64 },
     DurationMillis { minimum: u64, maximum: u64 },
     TextBytes { maximum: u32 },
+    TextOneOf { values: Vec<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -284,7 +294,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 13);
+        assert_eq!(contracts.len(), 16);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
@@ -422,6 +432,9 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
                             }
                             StandardConfigurationRule::TextBytes { maximum } => {
                                 ConfigurationRule::TextBytes { maximum }
+                            }
+                            StandardConfigurationRule::TextOneOf { values } => {
+                                ConfigurationRule::TextOneOf { values }
                             }
                         },
                     })

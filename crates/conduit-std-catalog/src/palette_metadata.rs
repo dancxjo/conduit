@@ -6,9 +6,10 @@
 use conduit_core::KindId;
 
 use crate::{
-    COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, LATEST_KIND, STATE_COUNT_KIND, TEE_KIND,
-    TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND,
-    TICK_PRESENTATION_KIND, TIME_EVERY_KIND,
+    COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, LATEST_KIND, LOGIC_COMPARE_KIND,
+    LOGIC_NOT_KIND, LOGIC_SELECT_KIND, STATE_COUNT_KIND, TEE_KIND, TEXT_JOIN_KIND,
+    TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND,
+    TIME_EVERY_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -156,6 +157,21 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["gate", "enable", "conditional"],
             PaletteIconKey::Combine,
         ),
+        LOGIC_COMPARE_KIND => metadata(
+            PaletteCategory::Transform,
+            &["compare", "scalar", "decision"],
+            PaletteIconKey::Combine,
+        ),
+        LOGIC_NOT_KIND => metadata(
+            PaletteCategory::Transform,
+            &["not", "boolean", "invert"],
+            PaletteIconKey::Repeat2,
+        ),
+        LOGIC_SELECT_KIND => metadata(
+            PaletteCategory::Transform,
+            &["select", "boolean", "choice"],
+            PaletteIconKey::Combine,
+        ),
         TICK_PRESENTATION_KIND => metadata(
             PaletteCategory::Presentation,
             &["display", "tick", "indicator"],
@@ -201,7 +217,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 13);
+        assert_eq!(contracts.len(), 16);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

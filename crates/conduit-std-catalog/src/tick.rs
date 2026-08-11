@@ -174,6 +174,9 @@ pub fn tick_profile_catalog() -> conduit_form::ProfileCatalog {
                         StandardConfigurationRule::TextBytes { maximum } => {
                             ConfigurationRule::TextBytes { maximum }
                         }
+                        StandardConfigurationRule::TextOneOf { values } => {
+                            ConfigurationRule::TextOneOf { values }
+                        }
                     },
                 })
                 .collect(),
