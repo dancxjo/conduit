@@ -19,6 +19,7 @@ use crate::cli::GlobalOpts;
 const ENTRY_PREFIX: &str = "CONDUIT_IA32_ENTRY_SIGN ";
 const KERNEL_PREFIX: &str = "CONDUIT_KERNEL_SIGN ";
 const IDENTITY_PREFIX: &str = "CONDUIT_IA32_A3_IDENTITY ";
+const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
 const QEMU_PROFILE: &str = "qemu-i386-q35-single-cpu-512m-uefi-debugcon";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -48,6 +49,7 @@ struct A3Run {
     entry: EntrySign,
     kernel: GuestKernelSign,
     identity: IdentitySign,
+    observatory: conduit_observatory::ObservatorySnapshot,
 }
 
 #[derive(Serialize)]
@@ -76,6 +78,7 @@ struct A3Proof {
     fresh_realization_identities: bool,
     a3_ordinary_form_claimed: bool,
     a4_observatory_patchbay_claimed: bool,
+    native_patchbay_consumed: bool,
 }
 
 #[derive(Serialize)]
@@ -147,9 +150,16 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let (firmware, _) = firmware_paths(&paths)?;
+    let snapshot_path = paths.target.join("a4-observatory-snapshot.json");
+    fs::write(
+        &snapshot_path,
+        serde_json::to_vec_pretty(&first.observatory).map_err(encoding)?,
+    )
+    .map_err(|error| refusal("proof-record-failed", error.to_string()))?;
+    prove_native_patchbay(&paths, &snapshot_path, &first.kernel)?;
     let proof = A3Proof {
-        schema: "conduit.conduitos.ia32-a3-proof/v1",
-        proof_class: "freestanding-ia32-ordinary-form-production-kernel-real-pit-wake",
+        schema: "conduit.conduitos.ia32-a4-proof/v1",
+        proof_class: "freestanding-ia32-emulator-observatory-patchbay",
         base_commit: git_head(&paths.root)?,
         architecture: "ia32",
         artifact_target: "i686-freestanding-elf32",
@@ -179,9 +189,10 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         stable_semantic_identities,
         fresh_realization_identities,
         a3_ordinary_form_claimed: true,
-        a4_observatory_patchbay_claimed: false,
+        a4_observatory_patchbay_claimed: true,
+        native_patchbay_consumed: true,
     };
-    let proof_path = paths.target.join("a3-proof.json");
+    let proof_path = paths.target.join("a4-proof.json");
     fs::write(
         &proof_path,
         serde_json::to_vec_pretty(&proof).map_err(encoding)?,
@@ -190,7 +201,7 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.json {
         println!("{}", serde_json::to_string(&proof).map_err(encoding)?);
     } else if !opts.quiet {
-        println!("ConduitOS IA-32 A3 proof: {}", proof_path.display());
+        println!("ConduitOS IA-32 A4 proof: {}", proof_path.display());
     }
     Ok(())
 }
@@ -270,6 +281,7 @@ fn boot_once(paths: &Paths) -> Result<A3Run, ConduitosError> {
         if transcript.contains(ENTRY_PREFIX)
             && transcript.contains(KERNEL_PREFIX)
             && transcript.contains(IDENTITY_PREFIX)
+            && transcript.contains(OBSERVATORY_PREFIX)
             && transcript.ends_with('\n')
         {
             child
@@ -282,6 +294,7 @@ fn boot_once(paths: &Paths) -> Result<A3Run, ConduitosError> {
                 entry: parse_one(&transcript, ENTRY_PREFIX, "entry")?,
                 kernel: parse_one(&transcript, KERNEL_PREFIX, "kernel")?,
                 identity: parse_one(&transcript, IDENTITY_PREFIX, "identity")?,
+                observatory: parse_one(&transcript, OBSERVATORY_PREFIX, "Observatory")?,
             };
             validate(&run, paths)?;
             return Ok(run);
@@ -370,9 +383,77 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
         || identity.wake_source != "8254-pit-channel0-irq0"
         || identity.wake_irq != 32
         || !identity.a3_ordinary_form_claimed
-        || identity.a4_observatory_patchbay_claimed
+        || !identity.a4_observatory_patchbay_claimed
     {
         return Err(refusal("stale-or-invalid-ia32-a3-sign", "A3 Signs do not prove the exact portable Form, sealed Plan, finite Bases, real PIT wake, semantic result, and terminal Play"));
+    }
+    let observatory = &run.observatory;
+    conduit_observatory::validate_snapshot(observatory)
+        .map_err(|error| refusal("invalid-ia32-observatory", error))?;
+    if observatory.schema != conduit_observatory::SNAPSHOT_SCHEMA
+        || observatory.hosts.len() != 1
+        || observatory.bases.len() != kernel.base_count
+        || observatory.plans.len() != 1
+        || observatory.plays.len() != 1
+        || observatory.plans[0].plan_id.as_str() != kernel.plan_id
+        || observatory.plans[0].source_document_id.as_str() != kernel.source_document_id
+        || observatory.plans[0].checked_form_id.as_str() != kernel.checked_form_id
+        || observatory.plans[0].expanded_form_id.as_str() != kernel.expanded_form_id
+        || observatory.plays[0].active_play_id.as_str() != kernel.active_play_id
+        || observatory.plays[0].boot_id.as_str() != kernel.boot_id
+        || observatory.sealed_boot_provenance.len() != 1
+        || observatory.sealed_boot_provenance[0].image_id.as_str() != identity.image_id
+        || observatory.sealed_boot_provenance[0].firmware_environment != "uefi32"
+    {
+        return Err(refusal(
+            "wrong-ia32-observatory-correlation",
+            "ordinary snapshot does not correlate the exact IA-32 Form, Plan, Play, Bases, and boot provenance",
+        ));
+    }
+    Ok(())
+}
+
+fn prove_native_patchbay(
+    paths: &Paths,
+    snapshot: &std::path::Path,
+    kernel: &GuestKernelSign,
+) -> Result<(), ConduitosError> {
+    let snapshot = snapshot
+        .to_str()
+        .ok_or_else(|| refusal("patchbay-rejected-report", "non-UTF-8 path"))?;
+    let output = super::profile::command(
+        "cargo",
+        &[
+            "run",
+            "--quiet",
+            "-p",
+            "patchbay-native",
+            "--",
+            "--linear-observatory-snapshot",
+            snapshot,
+        ],
+        &paths.root,
+        "patchbay-rejected-report",
+    )?;
+    let linear = String::from_utf8(output.stdout)
+        .map_err(|error| refusal("patchbay-rejected-report", error.to_string()))?;
+    for required in [
+        kernel.host_id.as_str(),
+        kernel.boot_id.as_str(),
+        kernel.plan_id.as_str(),
+        kernel.active_play_id.as_str(),
+        "BASES 7",
+        "SIGNS 19",
+        "ExecutionRegionOverlap",
+        "lifecycle=Completed",
+        "proof=FreestandingEmulator",
+    ] {
+        if !linear.contains(required) {
+            return Err(refusal(
+                "patchbay-linear-projection-incomplete",
+                format!("native Patchbay omitted {required}"),
+            ));
+        }
     }
     Ok(())
 }
