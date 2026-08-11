@@ -11,7 +11,7 @@ mod parser;
 
 pub use adapter::{
     midi_velocity_to_portable, MidiAdapterError, MidiInputAdapter, MidiOutputAdapter, MidiProfile,
-    PortableMidiEvent,
+    PortableMidiEvent, MIDI_PITCH_BEND_RANGE_MICROCENTS,
 };
 pub use message::MidiMessage;
 pub use parser::{MidiParseError, MidiParser, ParsedMidi};
