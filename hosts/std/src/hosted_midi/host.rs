@@ -4,6 +4,48 @@ use super::{HostedRawMidiSelection, MidiEndpointDirection, MidiOutputSelection};
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 
 impl StdHost {
+    /// Constructs one Host advertisement for an independently selected raw
+    /// MIDI source and PCM playback sink. Selection still grants no authority;
+    /// the caller must supply both typed grants when planning.
+    pub fn new_with_raw_midi_input_and_playback(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        midi_input: HostedRawMidiSelection,
+        playback: crate::hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        if midi_input.boot_id() != &config.boot_id
+            || midi_input.offer_generation() != config.offer_generation
+            || midi_input.observation().direction != MidiEndpointDirection::ReadableSource
+            || midi_input.observation().direct_device_path().is_none()
+            || playback.boot_id != config.boot_id
+            || playback.offer_generation != config.offer_generation
+        {
+            return Err(
+                "MIDI input/playback observations do not match direction, Boot, generation, or direct node"
+                    .into(),
+            );
+        }
+        let advertisement = crate::composition::build_advertisement(
+            config,
+            composition,
+            Some(&playback),
+            Some(&midi_input),
+            None,
+            false,
+        );
+        let kernel_resources =
+            crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            playback: Some(playback),
+            midi_input: Some(midi_input),
+            midi_output: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
     #[cfg(test)]
     pub(crate) fn new_with_raw_midi_input_and_midi_output(
         config: StdHostConfig,
