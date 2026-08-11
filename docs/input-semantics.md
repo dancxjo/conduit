@@ -5,6 +5,34 @@ Device, USB, DOM, toolkit, operating-system layout, locale, and product-action
 facts are deliberately absent. The executable source of truth is the finite
 allocator-free state in `conduit-core`.
 
+## Highest honest input seam
+
+An input implementation joins at the highest seam whose facts it can state
+exactly. ConduitOS discovers xHCI, USB, and HID facts because its keyboard
+actually depends on them. The native Patchbay Host receives `winit` physical
+key codes, so `patchbay-native/winit-keyboard@1` maps those codes directly to
+the same HID Keyboard/Keypad usage-number vocabulary in
+`input/key-event@1`. The vocabulary is portable identity, not a claim that a
+native window owns a USB controller, HID report, device, interface, or
+endpoint.
+
+The native adapter does not read localized logical text, XKB/OS layout,
+timestamps, or window identity into the portable value. It retains left/right
+modifier identity, one fixed eight-value/24-byte queue, sixteen held-key slots,
+and one admitted next-event operation. Unknown physical codes, platform
+repeats, duplicate presses, unmatched releases, queue pressure, focus loss,
+cancellation, and closure remain distinct. Renderer-local logical shortcuts
+consume a separate projection and do not become the canonical semantic map.
+
+The shared conformance vectors are byte-identical across the ConduitOS USB
+bridge and native adapter. Both then reuse the exact `conduit-intl` and
+`conduit-core` state machines below; neither implementation owns a private
+keymap or chord table. The unchanged K6 Form can therefore select either
+`conduitos/usb-hid-keyboard@1` or `patchbay-native/winit-keyboard@1` while its
+source, checked meaning, Gear/Port identities, and Info types remain unchanged.
+Their Plans retain different Host, Boot, implementation, artifact, and Base
+truth.
+
 ## `input/keymap` and `conduit-intl`
 
 `conduit-intl` is the only accepted layout in revision

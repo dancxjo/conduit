@@ -1933,10 +1933,13 @@ name = "patchbay-native"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "conduit-observatory",
+ "conduit-planner",
  "conduit-presentation",
  "conduit-std-catalog",
  "conduit-std-host",
+ "conduitos",
  "embedded-graphics",
  "patchbay-model",
  "serde_json",

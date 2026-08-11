@@ -876,7 +876,7 @@ pub const STD_CATALOG_READINESS_STEPS: &[Step] = &[
     ),
 ];
 
-/// Deterministic K5/K5b contract proof below any platform boundary.
+/// Deterministic K5/K5b contracts plus K8's two truthful platform seams.
 pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
     Step::new(
         "check.input-semantics.core",
@@ -895,6 +895,23 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
         "test finite Patchbay input controls",
         "cargo",
         &["test", "-p", "patchbay-model", "input_semantic_controls"],
+    ),
+    Step::new(
+        "check.input-semantics.conduitos-peer-vectors",
+        "test ConduitOS USB conversion against shared peer vectors",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduitos",
+            "keyboard_bridge::tests::usb_bridge_matches_every_shared_peer_conformance_value",
+        ],
+    ),
+    Step::new(
+        "check.input-semantics.native-peer",
+        "test native physical-key mapping, shared semantics, planning, and finite failures",
+        "cargo",
+        &["test", "-p", "patchbay-native", "portable_keyboard_tests"],
     ),
     Step::typed(
         "check.input-semantics.thumb",

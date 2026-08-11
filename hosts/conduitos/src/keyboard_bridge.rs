@@ -32,6 +32,19 @@ mod tests {
     }
 
     #[test]
+    fn usb_bridge_matches_every_shared_peer_conformance_value() {
+        for vector in conduit_core::KEY_EVENT_CONFORMANCE_VECTORS {
+            let value = portable_key_event(
+                vector.encoded[0],
+                vector.encoded[1] == KeyTransition::Pressed as u8,
+                vector.encoded[2],
+            )
+            .unwrap();
+            assert_eq!(value.encode(), vector.encoded, "{}", vector.name);
+        }
+    }
+
+    #[test]
     fn invalid_hid_local_transition_cannot_become_a_portable_value() {
         assert!(portable_key_event(0, true, 0).is_err());
         assert!(portable_key_event(0xe1, true, 0).is_err());
