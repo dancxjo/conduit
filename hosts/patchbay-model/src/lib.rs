@@ -26,6 +26,7 @@ mod form_edits;
 mod graphical_patchbay;
 mod interaction;
 mod layout;
+mod maker_environment;
 mod palette;
 mod portable_demo;
 mod portable_projection;
@@ -67,6 +68,13 @@ pub use layout::{
     CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
     MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
 };
+pub use maker_environment::{
+    AuthoredEnvironment, AuthoredEnvironmentError, AuthoredLink, AuthoredPart, ConnectivityKind,
+    EnvironmentComparison, EnvironmentComparisonRow, EnvironmentLinkKind, MachineProfile,
+    ObservedPartBinding, PartResources, SimulationHostCandidate, SimulationProjection,
+    SimulationProvenance, MAKER_ENVIRONMENT_VERSION, MAX_AUTHORED_LINKS, MAX_AUTHORED_PARTS,
+    MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
+};
 pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
@@ -100,6 +108,8 @@ mod face_configuration_tests;
 mod graphical_patchbay_tests;
 #[cfg(test)]
 mod interaction_tests;
+#[cfg(test)]
+mod maker_environment_tests;
 #[cfg(test)]
 mod portable_projection_tests;
 #[cfg(test)]
