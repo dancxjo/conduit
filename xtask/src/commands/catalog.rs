@@ -381,7 +381,17 @@ mod tests {
     fn profile_offer_removal_cannot_leave_a_stale_positive() {
         let inventory = inventory::derive().unwrap();
         let mut profile = profile_advertisement(CatalogHost::Std).unwrap();
-        let removed = profile.capabilities.remove(0);
+        let index = profile
+            .capabilities
+            .iter()
+            .position(|capability| {
+                inventory
+                    .entries
+                    .iter()
+                    .any(|entry| entry.kind_id == capability.kind_id.as_str())
+            })
+            .unwrap();
+        let removed = profile.capabilities.remove(index);
         let kind = inventory
             .entries
             .iter()
@@ -396,7 +406,17 @@ mod tests {
     fn stale_installed_revision_is_a_drift_error() {
         let inventory = inventory::derive().unwrap();
         let mut profile = profile_advertisement(CatalogHost::Std).unwrap();
-        profile.capabilities[0].kind_contract_revision =
+        let capability = profile
+            .capabilities
+            .iter_mut()
+            .find(|capability| {
+                inventory
+                    .entries
+                    .iter()
+                    .any(|entry| entry.kind_id == capability.kind_id.as_str())
+            })
+            .unwrap();
+        capability.kind_contract_revision =
             conduit_core::KindContractRevision::from("stale/revision@0");
         let error = validate_catalog_revisions(&profile, &inventory.entries).unwrap_err();
         assert_eq!(error.code, "installed-kind-revision-mismatch");
