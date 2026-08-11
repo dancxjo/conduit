@@ -1,9 +1,9 @@
 use super::contract::{self, TICK_ENCODED_LEN, TICK_VALUE_KIND};
-use super::operation::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
 use super::test_gate;
 use super::test_logic;
 use super::test_scalar_flow;
 use super::test_text_source;
+use super::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
 use conduit_core::{
     kind_id, present_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, KindContractRevision, PortDescriptor, PortDirection,
@@ -91,5 +91,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         .expect("logic catalogs are exact and unique");
     conduit_std_catalog::install_math_catalogs(&mut startup, &mut catalog)
         .expect("math catalogs are exact and unique");
+    conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut catalog)
+        .expect("robotics catalogs are exact and unique");
     catalog
 }

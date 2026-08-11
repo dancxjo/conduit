@@ -15,8 +15,17 @@ const SEMANTIC_DIGEST_DOMAIN: &[u8] = b"conduit.info.semantic.v1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum InfoDecodeError {
-    WrongLength { expected: usize, actual: usize },
+    WrongLength {
+        expected: usize,
+        actual: usize,
+    },
     NonCanonicalBoolean(u8),
+    OutOfRange {
+        field: &'static str,
+        minimum: i64,
+        maximum: i64,
+        actual: i64,
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -131,7 +140,7 @@ impl Scalar {
     }
 }
 
-fn semantic_digest(info_id: &str, encoded: &[u8]) -> [u8; 32] {
+pub(crate) fn semantic_digest(info_id: &str, encoded: &[u8]) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash.update(SEMANTIC_DIGEST_DOMAIN);
     hash.update((info_id.len() as u16).to_le_bytes());

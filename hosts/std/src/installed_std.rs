@@ -10,6 +10,8 @@ mod generate_text;
 mod logic_operations;
 mod math_operations;
 mod operation;
+mod robotics_effect;
+mod robotics_operations;
 #[cfg(test)]
 mod test_gate;
 #[cfg(test)]
@@ -25,6 +27,7 @@ mod test_timing_sink;
 mod text_operations;
 #[cfg(test)]
 mod text_operations_tests;
+mod tick_operations;
 mod tick_presentation;
 mod timing_configuration;
 mod timing_operations;
@@ -37,7 +40,7 @@ use self::contract::{decode_tick, TICK_ENCODED_LEN};
 use self::generate_text::execute_fixture;
 use self::operation::InstalledOperation;
 #[cfg(test)]
-use self::operation::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
+use self::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
 use super::{
     RunControl, RunControlDisposition, RunControlReceipt, StdKernelExecutionReport, StdRunReport,
     TimerAdapter,
@@ -678,6 +681,13 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     }
     #[cfg(test)]
     let post_play_start_allocations = play_start_probe.finish();
+
+    for driver in scheduler.drivers() {
+        robotics_effect::write_simulated_drive_effect(
+            _output,
+            driver.operation().simulated_drive_effect(),
+        )?;
+    }
 
     #[cfg(test)]
     if fragment

@@ -4,11 +4,11 @@ use conduit_core::{
     HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{ProfileCatalog, StartupCatalog};
 
-pub const BUMP_KIND: &str = "robotics/observe-bump";
-pub const IMU_KIND: &str = "robotics/observe-imu";
-pub const DRIVE_KIND: &str = "robotics/drive-differential";
+pub const BUMP_KIND: &str = conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_KIND;
+pub const IMU_KIND: &str = conduit_std_catalog::ROBOTICS_OBSERVE_IMU_KIND;
+pub const DRIVE_KIND: &str = conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND;
 pub const SAFETY_DESCRIPTION_KIND: &str = "robotics/observe-safety-boundary";
 pub const ACTUATOR_DESCRIPTION_KIND: &str = "robotics/describe-actuator";
 pub const OBSERVATION_VALUE: &str = "conduit.robotics/observation";
@@ -22,52 +22,7 @@ pub const SENSOR_RESOURCE: &str = "netherwick.resource/brainstem-sensor-bus@f43f
 pub fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    for (kind, revision, ports) in [
-        (
-            BUMP_KIND,
-            "conduit.robotics/observe-bump@1",
-            vec![port(
-                "observation",
-                OBSERVATION_VALUE,
-                PortDirection::Output,
-            )],
-        ),
-        (
-            IMU_KIND,
-            "conduit.robotics/observe-imu@1",
-            vec![port(
-                "observation",
-                OBSERVATION_VALUE,
-                PortDirection::Output,
-            )],
-        ),
-        (
-            DRIVE_KIND,
-            "conduit.robotics/drive-differential@1",
-            vec![port("command", COMMAND_VALUE, PortDirection::Input)],
-        ),
-    ] {
-        startup.insert(KindSignature {
-            kind: kind.into(),
-            startup_parameters: vec![],
-        })?;
-        profile
-            .insert(KindDefinition {
-                kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(revision),
-                inputs: ports
-                    .iter()
-                    .filter(|p| p.direction == PortDirection::Input)
-                    .cloned()
-                    .collect(),
-                outputs: ports
-                    .into_iter()
-                    .filter(|p| p.direction == PortDirection::Output)
-                    .collect(),
-                configuration: vec![],
-            })
-            .map_err(|error| error.to_string())?;
-    }
+    conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut profile)?;
     Ok((startup, profile))
 }
 
@@ -84,8 +39,8 @@ pub fn brainstem_advertisement() -> HostAdvertisement {
             4,
         )],
         capabilities: vec![
-            describe_offer(BUMP_KIND, "conduit.robotics/observe-bump@1", "bump"),
-            describe_offer(IMU_KIND, "conduit.robotics/observe-imu@1", "imu"),
+            sensor_describe_offer(conduit_std_catalog::robotics_observe_bump_offer(), "bump"),
+            sensor_describe_offer(conduit_std_catalog::robotics_observe_imu_offer(), "imu"),
             describe_offer(
                 SAFETY_DESCRIPTION_KIND,
                 "conduit.robotics/observe-safety-boundary@1",
@@ -99,6 +54,21 @@ pub fn brainstem_advertisement() -> HostAdvertisement {
         ],
         planner_capabilities: vec![],
     }
+}
+
+fn sensor_describe_offer(mut offer: CapabilityOffer, slug: &str) -> CapabilityOffer {
+    offer.capability_id = CapabilityId::from(format!("netherwick/pete-brainstem/{slug}"));
+    offer.implementation = ImplementationOffer {
+        execution_profile_id: ExecutionProfileId::from("netherwick/describe-only@1"),
+        implementation_id: ImplementationId::from(format!(
+            "netherwick/pete-brainstem/{slug}-describe@f43ff138"
+        )),
+        artifact_id: ArtifactId::from("netherwick/pete-brainstem@f43ff138"),
+    };
+    offer.host_operations.clear();
+    offer.resource_requirements = vec![resource_requirement(SENSOR_RESOURCE, 1)];
+    offer.authority_requirements.clear();
+    offer
 }
 
 pub fn motherbrain_advertisement() -> HostAdvertisement {

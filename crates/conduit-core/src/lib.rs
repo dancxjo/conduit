@@ -18,6 +18,7 @@ mod implementation;
 mod info;
 mod port;
 mod resource;
+mod robotics_info;
 mod route;
 mod shared_pool;
 
@@ -33,6 +34,7 @@ pub use implementation::{
 pub use info::*;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use resource::*;
+pub use robotics_info::*;
 pub use route::*;
 pub use shared_pool::*;
 
