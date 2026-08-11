@@ -10,6 +10,7 @@ mod generate_text;
 mod logic_operations;
 mod math_operations;
 mod operation;
+mod pacing_operations;
 mod robotics_effect;
 mod robotics_operations;
 #[cfg(test)]

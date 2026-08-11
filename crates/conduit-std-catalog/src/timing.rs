@@ -26,7 +26,21 @@ pub const TIME_TIMEOUT_EXECUTION_PROFILE: &str =
 pub const TIME_TIMEOUT_IMPLEMENTATION: &str = "std/kernel-time-timeout-tick-bool@1";
 pub const TIME_TIMEOUT_ARTIFACT: &str = "conduit-std-host/time-timeout-tick-bool@1";
 
+pub const TIME_DELAY_KIND: &str = "time/delay";
+pub const TIME_DELAY_CONTRACT_REVISION: &str = "conduit.std/time-delay-bool@1";
+pub const TIME_DELAY_EXECUTION_PROFILE: &str = "conduit.std/time-delay-bool-kernel-hosted@1";
+pub const TIME_DELAY_IMPLEMENTATION: &str = "std/kernel-time-delay-bool@1";
+pub const TIME_DELAY_ARTIFACT: &str = "conduit-std-host/time-delay-bool@1";
+
+pub const TIME_THROTTLE_KIND: &str = "time/throttle";
+pub const TIME_THROTTLE_CONTRACT_REVISION: &str = "conduit.std/time-throttle-bool-leading@1";
+pub const TIME_THROTTLE_EXECUTION_PROFILE: &str =
+    "conduit.std/time-throttle-bool-leading-kernel-hosted@1";
+pub const TIME_THROTTLE_IMPLEMENTATION: &str = "std/kernel-time-throttle-bool-leading@1";
+pub const TIME_THROTTLE_ARTIFACT: &str = "conduit-std-host/time-throttle-bool-leading@1";
+
 pub const TIME_POLICY_TRAILING: &str = "trailing";
+pub const TIME_POLICY_LEADING: &str = "leading";
 pub const TIME_MAXIMUM_DURATION_MS: u64 = 86_400_000;
 pub const TIME_MAXIMUM_VALUES: u64 = 8;
 pub const TIME_TIMEOUT_MAXIMUM_VALUES: u64 = 2;
@@ -101,6 +115,51 @@ pub fn time_timeout_contract() -> StandardKindContract {
     }
 }
 
+pub fn time_delay_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(TIME_DELAY_KIND),
+        plain_name: "Ordered Boolean delay".to_string(),
+        summary: "Emit every admitted Boolean in input order after one exact duration; drain admitted values on input closure.".to_string(),
+        inputs: vec![port("in", BOOL_INFO_ID, PortDirection::Input, PortTemporal::Current)],
+        outputs: vec![port("out", BOOL_INFO_ID, PortDirection::Output, PortTemporal::Current)],
+        configuration: vec![duration_field(), maximum_values_field(TIME_MAXIMUM_VALUES)],
+        limits: limits(),
+        terminal_behavior: TerminalBehavior::DelaysEachValueInOrderAndDrainsOnInputClosure,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "paced: time/delay(duration-ms = 16ms, maximum-values = 8)".to_string(),
+    }
+}
+
+pub fn time_throttle_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(TIME_THROTTLE_KIND),
+        plain_name: "Leading Boolean throttle".to_string(),
+        summary: "Emit the first admitted Boolean immediately, then drop values until the exact interval elapses.".to_string(),
+        inputs: vec![port("in", BOOL_INFO_ID, PortDirection::Input, PortTemporal::Current)],
+        outputs: vec![port("out", BOOL_INFO_ID, PortDirection::Output, PortTemporal::Current)],
+        configuration: vec![
+            duration_field(),
+            StandardConfigurationField {
+                key: "policy".to_string(),
+                default_value: ConfigurationValue::Text(TIME_POLICY_LEADING.to_string()),
+                rule: StandardConfigurationRule::TextOneOf {
+                    values: vec![TIME_POLICY_LEADING.to_string()],
+                },
+            },
+            maximum_values_field(TIME_MAXIMUM_VALUES),
+        ],
+        limits: limits(),
+        terminal_behavior:
+            TerminalBehavior::LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "paced: time/throttle(duration-ms = 16ms, policy = \"leading\", maximum-values = 8)".to_string(),
+    }
+}
+
 pub fn time_debounce_offer() -> CapabilityOffer {
     offer(
         time_debounce_contract(),
@@ -123,6 +182,28 @@ pub fn time_timeout_offer() -> CapabilityOffer {
     )
 }
 
+pub fn time_delay_offer() -> CapabilityOffer {
+    offer(
+        time_delay_contract(),
+        "time-delay-bool-v1",
+        TIME_DELAY_CONTRACT_REVISION,
+        TIME_DELAY_EXECUTION_PROFILE,
+        TIME_DELAY_IMPLEMENTATION,
+        TIME_DELAY_ARTIFACT,
+    )
+}
+
+pub fn time_throttle_offer() -> CapabilityOffer {
+    offer(
+        time_throttle_contract(),
+        "time-throttle-bool-leading-v1",
+        TIME_THROTTLE_CONTRACT_REVISION,
+        TIME_THROTTLE_EXECUTION_PROFILE,
+        TIME_THROTTLE_IMPLEMENTATION,
+        TIME_THROTTLE_ARTIFACT,
+    )
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_timing_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -133,7 +214,12 @@ pub fn install_timing_catalogs(
         StartupParameterSignature,
     };
 
-    for contract in [time_debounce_contract(), time_timeout_contract()] {
+    for contract in [
+        time_debounce_contract(),
+        time_timeout_contract(),
+        time_delay_contract(),
+        time_throttle_contract(),
+    ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: contract
@@ -151,10 +237,12 @@ pub fn install_timing_catalogs(
                 })
                 .collect(),
         })?;
-        let revision = if contract.kind_id.as_str() == TIME_DEBOUNCE_KIND {
-            TIME_DEBOUNCE_CONTRACT_REVISION
-        } else {
-            TIME_TIMEOUT_CONTRACT_REVISION
+        let revision = match contract.kind_id.as_str() {
+            TIME_DEBOUNCE_KIND => TIME_DEBOUNCE_CONTRACT_REVISION,
+            TIME_TIMEOUT_KIND => TIME_TIMEOUT_CONTRACT_REVISION,
+            TIME_DELAY_KIND => TIME_DELAY_CONTRACT_REVISION,
+            TIME_THROTTLE_KIND => TIME_THROTTLE_CONTRACT_REVISION,
+            _ => unreachable!("timing catalog loop contains only timing contracts"),
         };
         let configuration = contract
             .configuration
@@ -293,7 +381,12 @@ mod tests {
 
     #[test]
     fn timing_contracts_are_typed_bounded_and_share_one_exact_deadline_requirement() {
-        for contract in [time_debounce_contract(), time_timeout_contract()] {
+        for contract in [
+            time_debounce_contract(),
+            time_timeout_contract(),
+            time_delay_contract(),
+            time_throttle_contract(),
+        ] {
             assert!(contract
                 .inputs
                 .iter()
@@ -301,7 +394,12 @@ mod tests {
                 .all(|port| port.value_kind.as_str() != super::super::GENERIC_VALUE_KIND));
             assert_eq!(contract.limits.max_queue_items, 1);
         }
-        for offer in [time_debounce_offer(), time_timeout_offer()] {
+        for offer in [
+            time_debounce_offer(),
+            time_timeout_offer(),
+            time_delay_offer(),
+            time_throttle_offer(),
+        ] {
             assert_eq!(offer.host_operations.len(), 1);
             assert_eq!(
                 offer.host_operations[0],
@@ -313,7 +411,12 @@ mod tests {
                 monotonic_timer_resource_requirement()
             );
         }
-        for contract in [time_debounce_contract(), time_timeout_contract()] {
+        for contract in [
+            time_debounce_contract(),
+            time_timeout_contract(),
+            time_delay_contract(),
+            time_throttle_contract(),
+        ] {
             assert!(matches!(
                 contract.configuration[0].rule,
                 StandardConfigurationRule::DurationMillis {

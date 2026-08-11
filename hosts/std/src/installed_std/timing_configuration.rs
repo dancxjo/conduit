@@ -50,6 +50,42 @@ pub(super) fn parse(
     })
 }
 
+pub(super) fn parse_pacing(
+    placement: &PlannedGear,
+    policy: Option<&str>,
+) -> Result<TimingConfiguration, String> {
+    let expected = if policy.is_some() { 3 } else { 2 };
+    if placement.configuration.len() != expected {
+        return Err("pacing operation has an incomplete exact configuration".to_string());
+    }
+    let mut duration_ms = None;
+    let mut maximum_values = None;
+    let mut actual_policy = None;
+    for entry in &placement.configuration {
+        match (entry.key.as_str(), &entry.value) {
+            ("duration-ms", ConfigurationValue::U64(value)) => duration_ms = Some(*value),
+            ("maximum-values", ConfigurationValue::U64(value)) => maximum_values = Some(*value),
+            ("policy", ConfigurationValue::Text(value)) => actual_policy = Some(value.as_str()),
+            _ => return Err("pacing operation has an invalid configuration field".to_string()),
+        }
+    }
+    if actual_policy != policy {
+        return Err("pacing operation has an unsupported policy".to_string());
+    }
+    let duration_ms = duration_ms.ok_or_else(|| "pacing duration is missing".to_string())?;
+    if duration_ms > conduit_std_catalog::TIME_MAXIMUM_DURATION_MS {
+        return Err("pacing duration exceeds the reviewed maximum".to_string());
+    }
+    let maximum_values = maximum_values
+        .and_then(|value| usize::try_from(value).ok())
+        .filter(|value| *value > 0 && *value <= conduit_std_catalog::TIME_MAXIMUM_VALUES as usize)
+        .ok_or_else(|| "pacing maximum-values is invalid".to_string())?;
+    Ok(TimingConfiguration {
+        duration_ms,
+        maximum_values,
+    })
+}
+
 pub(super) fn budget(
     requests: usize,
     duration_values: usize,

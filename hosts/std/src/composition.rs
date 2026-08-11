@@ -129,6 +129,8 @@ pub(super) fn build_advertisement(
             installed_std::every_offer(),
             conduit_std_catalog::time_debounce_offer(),
             conduit_std_catalog::time_timeout_offer(),
+            conduit_std_catalog::time_delay_offer(),
+            conduit_std_catalog::time_throttle_offer(),
             conduit_std_catalog::tick_presentation_offer(),
         ]);
     }
@@ -368,6 +370,8 @@ mod tests {
             "time/every",
             "time/debounce",
             "time/timeout",
+            "time/delay",
+            "time/throttle",
             "text/literal",
             "text/upper",
             "text/join",
