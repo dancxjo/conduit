@@ -178,6 +178,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
 
     #[test]
     fn plan_is_one_exact_recursive_gear_face_realization() {
