@@ -26,6 +26,38 @@ pub fn derive_base(boot_id: &[u8; 32], kind: &str) -> [u8; 32] {
     hash.finalize().into()
 }
 
+pub fn derive_usb_device(
+    boot_id: &[u8; 32],
+    base_id: &[u8; 32],
+    root_port: u8,
+    slot: u8,
+    attachment_epoch: u32,
+) -> [u8; 32] {
+    let mut facts = [0; 6];
+    facts[0] = root_port;
+    facts[1] = slot;
+    facts[2..].copy_from_slice(&attachment_epoch.to_le_bytes());
+    subject_digest(b"conduit-usb-device-instance/v1", boot_id, base_id, &facts)
+}
+
+pub fn derive_usb_interface(device_id: &[u8; 32], number: u8, alternate: u8) -> [u8; 32] {
+    subject_digest(
+        b"conduit-usb-interface/v1",
+        device_id,
+        &[0; 32],
+        &[number, alternate],
+    )
+}
+
+pub fn derive_usb_endpoint(interface_id: &[u8; 32], address: u8) -> [u8; 32] {
+    subject_digest(
+        b"conduit-usb-endpoint/v1",
+        interface_id,
+        &[0; 32],
+        &[address],
+    )
+}
+
 pub fn hex(bytes: &[u8; 32]) -> String {
     let mut result = String::with_capacity(64);
     for byte in bytes {
@@ -46,6 +78,17 @@ fn digest(domain: &[u8], entropy: &[u64; 4], timestamp: u64, image_start: u64) -
     hash.finalize().into()
 }
 
+fn subject_digest(domain: &[u8], first: &[u8; 32], second: &[u8; 32], facts: &[u8]) -> [u8; 32] {
+    let mut hash = Sha256::new();
+    hash.update((domain.len() as u32).to_le_bytes());
+    hash.update(domain);
+    hash.update(first);
+    hash.update(second);
+    hash.update((facts.len() as u32).to_le_bytes());
+    hash.update(facts);
+    hash.finalize().into()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -60,5 +103,19 @@ mod tests {
             derive_base(&ids.boot, "timer"),
             derive_base(&ids.boot, "serial")
         );
+    }
+
+    #[test]
+    fn usb_subject_identities_remain_exact_and_boot_local() {
+        let boot = [1; 32];
+        let base = derive_base(&boot, "xhci");
+        let device = derive_usb_device(&boot, &base, 1, 1, 1);
+        let interface = derive_usb_interface(&device, 0, 0);
+        let endpoint = derive_usb_endpoint(&interface, 0x81);
+        assert_ne!(device, base);
+        assert_ne!(interface, device);
+        assert_ne!(endpoint, interface);
+        assert_ne!(device, derive_usb_device(&[2; 32], &base, 1, 1, 1));
+        assert_ne!(device, derive_usb_device(&boot, &base, 1, 1, 2));
     }
 }

@@ -27,7 +27,7 @@ extern "C" fn conduitos_start() -> ! {
     match boot::normalize_boot() {
         Ok(record) => {
             arch::early_write(b"CONDUIT_BOOT_STAGE xhci-start\n");
-            let xhci = match arch::initialize_xhci(
+            let mut xhci = match arch::initialize_xhci(
                 record.hhdm_offset,
                 boot::executable_physical_address,
             ) {
@@ -35,6 +35,12 @@ extern "C" fn conduitos_start() -> ! {
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
             arch::early_write(b"CONDUIT_BOOT_STAGE xhci-ready\n");
+            arch::early_write(b"CONDUIT_BOOT_STAGE usb-enumeration-start\n");
+            let usb = match arch::enumerate_usb(&mut xhci, boot::executable_physical_address) {
+                Ok(device) => device,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            arch::early_write(b"CONDUIT_BOOT_STAGE usb-configured\n");
             let Some(arena_virtual_start) = record
                 .hhdm_offset
                 .checked_add(record.runtime_arena.physical_start)
@@ -55,10 +61,9 @@ extern "C" fn conduitos_start() -> ! {
             let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
             let identities =
                 identity::derive(entropy, record.timestamp, record.image_physical_start);
-            let xhci_base_id = identity::hex(&identity::derive_base(
-                &identities.boot,
-                "conduitos/xhci/0000:00:01.0/1b36:000d",
-            ));
+            let xhci_base =
+                identity::derive_base(&identities.boot, "conduitos/xhci/0000:00:01.0/1b36:000d");
+            let xhci_base_id = identity::hex(&xhci_base);
             let xhci_sign = format!(
                 "CONDUIT_XHCI_SIGN {{\"schema\":\"conduit.conduitos.xhci-base/v1\",\"status\":\"ready\",\"proof_class\":\"freestanding-emulator\",\"base_id\":\"{}\",\"boot_id\":\"{}\",\"segment\":{},\"bus\":{},\"device\":{},\"function\":{},\"vendor\":{},\"device_id\":{},\"bar_physical\":{},\"hardware_slots\":{},\"admitted_slots\":{},\"command_trbs\":{},\"event_trbs\":{},\"dma_bytes\":{},\"dma_alignment\":{},\"maximum_pending_commands\":{},\"poll_steps\":{},\"sign_slots\":{},\"semantic_keyboard_offer\":false}}\n",
                 xhci_base_id,
@@ -81,6 +86,70 @@ extern "C" fn conduitos_start() -> ! {
                 xhci.sign_slots,
             );
             arch::early_write(xhci_sign.as_bytes());
+            let device_id = identity::derive_usb_device(
+                &identities.boot,
+                &xhci_base,
+                usb.root_port,
+                usb.slot,
+                usb.attachment_epoch,
+            );
+            let first_interface = usb.interfaces[0];
+            let interface_id = identity::derive_usb_interface(
+                &device_id,
+                first_interface.number,
+                first_interface.alternate_setting,
+            );
+            let first_endpoint = usb.endpoints[0];
+            let endpoint_id = identity::derive_usb_endpoint(&interface_id, first_endpoint.address);
+            let usb_sign = format!(
+                "CONDUIT_USB_SIGN {{\"schema\":\"conduit.conduitos.usb-device/v1\",\"status\":\"configured\",\"proof_class\":\"freestanding-emulator\",\"controller_base_id\":\"{}\",\"boot_id\":\"{}\",\"device_instance_id\":\"{}\",\"root_port\":{},\"slot\":{},\"address\":{},\"attachment_epoch\":{},\"usb_version\":{},\"device_class\":{},\"device_subclass\":{},\"device_protocol\":{},\"ep0_maximum_packet_size\":{},\"vendor_id\":{},\"product_id\":{},\"device_version\":{},\"configuration_value\":{},\"configuration_bytes\":{},\"descriptor_records\":{},\"interface_count\":{},\"endpoint_count\":{},\"first_interface_id\":\"{}\",\"first_interface_number\":{},\"first_interface_alternate\":{},\"first_interface_class\":{},\"first_interface_subclass\":{},\"first_interface_protocol\":{},\"first_endpoint_id\":\"{}\",\"first_endpoint_address\":{},\"first_endpoint_direction_in\":{},\"first_endpoint_transfer_type\":{},\"first_endpoint_maximum_packet_size\":{},\"first_endpoint_interval\":{},\"configuration_limit_bytes\":{},\"interface_limit\":{},\"endpoint_limit\":{},\"descriptor_record_limit\":{},\"outstanding_control_transfer_limit\":{},\"enumeration_retries\":{},\"control_transfers\":{},\"short_packets\":{},\"transfer_trbs\":{},\"dma_bytes\":{},\"dma_alignment\":{},\"port_poll_steps\":{},\"sign_slots\":{},\"semantic_keyboard_offer\":false}}\n",
+                xhci_base_id,
+                identity::hex(&identities.boot),
+                identity::hex(&device_id),
+                usb.root_port,
+                usb.slot,
+                usb.address,
+                usb.attachment_epoch,
+                usb.usb_version,
+                usb.device_class,
+                usb.device_subclass,
+                usb.device_protocol,
+                usb.ep0_maximum_packet_size,
+                usb.vendor_id,
+                usb.product_id,
+                usb.device_version,
+                usb.configuration_value,
+                usb.configuration_bytes,
+                usb.descriptor_records,
+                usb.interface_count,
+                usb.endpoint_count,
+                identity::hex(&interface_id),
+                first_interface.number,
+                first_interface.alternate_setting,
+                first_interface.class,
+                first_interface.subclass,
+                first_interface.protocol,
+                identity::hex(&endpoint_id),
+                first_endpoint.address,
+                first_endpoint.direction_in,
+                first_endpoint.transfer_type,
+                first_endpoint.maximum_packet_size,
+                first_endpoint.interval,
+                usb.configuration_limit_bytes,
+                usb.interface_limit,
+                usb.endpoint_limit,
+                usb.descriptor_record_limit,
+                usb.outstanding_control_transfer_limit,
+                usb.enumeration_retries,
+                usb.control_transfers,
+                usb.short_packets,
+                usb.transfer_trbs,
+                usb.dma_bytes,
+                usb.dma_alignment,
+                usb.port_poll_steps,
+                usb.sign_slots,
+            );
+            arch::early_write(usb_sign.as_bytes());
             match proof::accepted(&record, &identities, BUILD_ID, IMAGE_ID) {
                 Ok(sign) => {
                     arch::early_write(sign.as_bytes());

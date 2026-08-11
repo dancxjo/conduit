@@ -28,6 +28,8 @@ mod riscv64_a4;
 mod run;
 mod std_gap;
 mod timing_profile;
+mod usb_proof;
+mod usb_run;
 mod xhci_proof;
 
 use std::{fmt, path::PathBuf};
@@ -60,6 +62,8 @@ enum ConduitosCommand {
     TimingProfile,
     /// Prove one real bounded xHCI Base and fail-closed controller absence.
     XhciProof,
+    /// Prove one real bounded root-attached USB device without semantic input.
+    UsbProof,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -215,6 +219,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::XhciProof => xhci_proof::execute(opts),
+        ConduitosCommand::UsbProof => usb_proof::execute(opts),
     }
 }
 

@@ -10,7 +10,7 @@ use super::{
     image,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
     report::{GuestBootSign, GuestKernelSign, GuestRun, GuestXhciSign},
-    ConduitosArch, ConduitosError,
+    usb_run, ConduitosArch, ConduitosError,
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<GuestRun, ConduitosError> {
@@ -54,6 +54,8 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
             "isa-debug-exit,iobase=0xf4,iosize=0x04",
             "-device",
             "qemu-xhci,id=conduitos-xhci,p2=1,p3=0",
+            "-device",
+            "usb-kbd,bus=conduitos-xhci.0,port=1",
             "-cdrom",
             paths.iso.to_str().unwrap(),
             "-boot",
@@ -183,6 +185,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .map_err(|error| ConduitosError::refusal("malformed-boot-sign", error.to_string()))?;
     let xhci: GuestXhciSign = serde_json::from_str(xhci_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-xhci-sign", error.to_string()))?;
+    let usb = usb_run::extract(&serial)?;
     let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
     let observatory: conduit_observatory::ObservatorySnapshot =
@@ -191,6 +194,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         })?;
     validate_boot(&boot)?;
     validate_xhci(&boot, &xhci)?;
+    usb_run::validate(&boot, &xhci, &usb)?;
     validate_kernel(&boot, &kernel)?;
     validate_observatory(&boot, &kernel, &observatory)?;
     if !opts.quiet && !opts.json {
@@ -201,6 +205,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     Ok(GuestRun {
         boot,
         xhci,
+        usb,
         kernel,
         observatory,
         serial,

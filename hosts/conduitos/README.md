@@ -34,8 +34,24 @@ cargo xtask conduitos xhci-proof
 That command pins one QEMU `qemu-xhci` PCI function, performs real MMIO
 halt/reset/start and command/event-ring work, retains exact boot-scoped Base
 identity and finite storage/work limits, and separately proves that an absent
-controller refuses. It remains freestanding-emulator proof: it claims no USB
-device, HID interface, keyboard capability, or physical controller.
+controller refuses. It remains freestanding-emulator proof and does not by
+itself infer a device or semantic capability.
+
+Prove one bounded root-attached USB device separately:
+
+```text
+cargo xtask conduitos usb-proof --locked
+```
+
+That command attaches one deterministic QEMU `usb-kbd` below the admitted xHCI
+Base and performs real root-port reset, slot/address commands, bounded EP0
+control transfers, device/configuration descriptor reads, finite parsing, and
+`SET_CONFIGURATION`. The retained report carries exact boot-local
+device/interface/endpoint identities and limits. A second real boot with the
+controller present but no device must refuse, and deterministic malformed,
+oversized, topology, completion, disappearance, and stale-identity vectors must
+also pass. Enumeration retains structural HID-class facts for later matching;
+it does not parse HID or advertise `input/keyboard`.
 
 That report derives the five supported architecture names from the exact
 `BOOT*.EFI` artifacts in the pinned Limine archive and refuses if they disagree

@@ -9,11 +9,10 @@ use core::{
     ptr::{read_volatile, write_volatile},
 };
 
-use super::io::{inl, outl};
+#[path = "xhci_pci.rs"]
+mod pci;
 
-const PCI_CONFIG_ADDRESS: u16 = 0x0cf8;
-const PCI_CONFIG_DATA: u16 = 0x0cfc;
-const XHCI_CLASS: u32 = 0x0c03_3000;
+use pci::discover;
 const COMMAND_TRBS: usize = 16;
 const EVENT_TRBS: usize = 16;
 const ADMITTED_DEVICE_SLOTS: u8 = 1;
@@ -56,7 +55,7 @@ impl XhciError {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct XhciReady {
     pub segment: u8,
     pub bus: u8,
@@ -74,6 +73,26 @@ pub struct XhciReady {
     pub maximum_pending_commands: u8,
     pub poll_steps: u32,
     pub sign_slots: u8,
+    operational: usize,
+    runtime_interrupter: usize,
+    doorbell: usize,
+    dma_physical: u64,
+    command_enqueue: usize,
+    command_cycle: u32,
+    event_dequeue: usize,
+    event_cycle: u32,
+    maximum_ports: u8,
+    context_bytes: u8,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct Event {
+    pub event_type: u8,
+    pub completion_code: u8,
+    pub slot: u8,
+    pub endpoint: u8,
+    pub residual: u32,
+    pub pointer: u64,
 }
 
 #[repr(C, align(64))]
@@ -115,7 +134,7 @@ pub fn initialize_xhci(
     if dma_physical & 63 != 0 {
         return Err(XhciError::DmaAddressInvalid);
     }
-    let hardware_slots = unsafe { initialize_registers(mmio, dma_physical)? };
+    let registers = unsafe { initialize_registers(mmio, dma_physical)? };
     Ok(XhciReady {
         segment: 0,
         bus: pci.bus,
@@ -124,7 +143,7 @@ pub fn initialize_xhci(
         vendor: pci.vendor,
         device_id: pci.device_id,
         bar_physical: pci.bar,
-        hardware_slots,
+        hardware_slots: registers.hardware_slots,
         admitted_slots: ADMITTED_DEVICE_SLOTS,
         command_trbs: COMMAND_TRBS as u8,
         event_trbs: EVENT_TRBS as u8,
@@ -133,7 +152,26 @@ pub fn initialize_xhci(
         maximum_pending_commands: MAX_PENDING_COMMANDS,
         poll_steps: POLL_STEPS,
         sign_slots: SIGN_SLOTS,
+        operational: registers.operational,
+        runtime_interrupter: registers.runtime_interrupter,
+        doorbell: registers.doorbell,
+        dma_physical,
+        command_enqueue: 1,
+        command_cycle: 1,
+        event_dequeue: 1,
+        event_cycle: 1,
+        maximum_ports: registers.maximum_ports,
+        context_bytes: registers.context_bytes,
     })
+}
+
+struct RegisterState {
+    hardware_slots: u8,
+    maximum_ports: u8,
+    context_bytes: u8,
+    operational: usize,
+    runtime_interrupter: usize,
+    doorbell: usize,
 }
 
 fn map_mmio(
@@ -169,64 +207,17 @@ fn map_mmio(
     usize::try_from(MMIO_VIRTUAL_BASE + page_offset).map_err(|_| XhciError::InvalidLayout)
 }
 
-struct PciController {
-    bus: u8,
-    device: u8,
-    function: u8,
-    vendor: u16,
-    device_id: u16,
-    bar: u64,
-}
-
-fn discover() -> Result<PciController, XhciError> {
-    let mut saw_usb = false;
-    for bus in 0..=u8::MAX {
-        for device in 0..32 {
-            for function in 0..8 {
-                let id = pci_read(bus, device, function, 0);
-                if id & 0xffff == 0xffff {
-                    continue;
-                }
-                let class = pci_read(bus, device, function, 8) & 0xffff_ff00;
-                saw_usb |= class >> 16 == 0x0c03;
-                if class != XHCI_CLASS {
-                    continue;
-                }
-                let command = pci_read(bus, device, function, 4);
-                pci_write(bus, device, function, 4, command | 0x6);
-                let low = pci_read(bus, device, function, 0x10);
-                if low & 1 != 0 || low & 0xffff_fff0 == 0 {
-                    return Err(XhciError::InvalidBar);
-                }
-                let bar = if low & 0x6 == 0x4 {
-                    u64::from(low & 0xffff_fff0)
-                        | (u64::from(pci_read(bus, device, function, 0x14)) << 32)
-                } else {
-                    u64::from(low & 0xffff_fff0)
-                };
-                return Ok(PciController {
-                    bus,
-                    device,
-                    function,
-                    vendor: id as u16,
-                    device_id: (id >> 16) as u16,
-                    bar,
-                });
-            }
-        }
-    }
-    Err(if saw_usb {
-        XhciError::WrongClass
-    } else {
-        XhciError::Absent
-    })
-}
-
-unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<u8, XhciError> {
+unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<RegisterState, XhciError> {
     let cap_length = unsafe { read8(mmio) } as usize;
     let hcs1 = unsafe { read32(mmio + 4) };
     let hcs2 = unsafe { read32(mmio + 8) };
     let hardware_slots = (hcs1 & 0xff) as u8;
+    let maximum_ports = (hcs1 >> 24) as u8;
+    let context_bytes = if unsafe { read32(mmio + 0x10) } & (1 << 2) != 0 {
+        64
+    } else {
+        32
+    };
     let scratchpads = (((hcs2 >> 27) & 0x1f) << 5) | ((hcs2 >> 21) & 0x1f);
     let doorbells = (unsafe { read32(mmio + 0x14) } & !3) as usize;
     let runtime = (unsafe { read32(mmio + 0x18) } & !0x1f) as usize;
@@ -324,11 +315,108 @@ unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<u8, Xhc
             unsafe {
                 write64(interrupter + 0x18, (event_phys + 16) | 8);
             }
-            return Ok(hardware_slots);
+            return Ok(RegisterState {
+                hardware_slots,
+                maximum_ports,
+                context_bytes,
+                operational,
+                runtime_interrupter: interrupter,
+                doorbell,
+            });
         }
         spin_loop();
     }
     Err(XhciError::CommandTimeout)
+}
+
+impl XhciReady {
+    pub(super) const fn maximum_ports(&self) -> u8 {
+        self.maximum_ports
+    }
+
+    pub(super) const fn context_bytes(&self) -> usize {
+        self.context_bytes as usize
+    }
+
+    pub(super) fn port_status(&self, port: u8) -> u32 {
+        unsafe { read32(self.operational + 0x400 + usize::from(port - 1) * 0x10) }
+    }
+
+    pub(super) fn write_port_status(&self, port: u8, value: u32) {
+        unsafe {
+            write32(
+                self.operational + 0x400 + usize::from(port - 1) * 0x10,
+                value,
+            )
+        }
+    }
+
+    pub(super) fn set_device_context(&self, slot: u8, physical: u64) {
+        unsafe {
+            write_volatile(
+                core::ptr::addr_of_mut!(DMA.dcbaa[usize::from(slot)]),
+                physical,
+            )
+        }
+    }
+
+    pub(super) fn command(&mut self, mut trb: [u32; 4]) -> Result<Event, XhciError> {
+        if self.command_enqueue >= COMMAND_TRBS - 1 {
+            return Err(XhciError::CommandRingFull);
+        }
+        trb[3] = (trb[3] & !1) | self.command_cycle;
+        let index = self.command_enqueue;
+        let pointer = self.dma_physical
+            + core::mem::offset_of!(DmaStorage, command_ring) as u64
+            + (index * 16) as u64;
+        unsafe { write_volatile(core::ptr::addr_of_mut!(DMA.command_ring[index]), trb) };
+        self.command_enqueue += 1;
+        unsafe { write32(self.doorbell, 0) };
+        for _ in 0..EVENT_TRBS {
+            let event = self.next_event()?;
+            if event.event_type == 34 {
+                continue;
+            }
+            if event.event_type != 33 || event.pointer != pointer {
+                return Err(XhciError::UnexpectedCompletion);
+            }
+            return Ok(event);
+        }
+        Err(XhciError::UnexpectedCompletion)
+    }
+
+    pub(super) fn ring_endpoint(&self, slot: u8, endpoint: u8) {
+        unsafe { write32(self.doorbell + usize::from(slot) * 4, u32::from(endpoint)) }
+    }
+
+    pub(super) fn next_event(&mut self) -> Result<Event, XhciError> {
+        for _ in 0..POLL_STEPS {
+            let words =
+                unsafe { read_volatile(core::ptr::addr_of!(DMA.event_ring[self.event_dequeue])) };
+            if words[3] & 1 == self.event_cycle {
+                let event = Event {
+                    event_type: ((words[3] >> 10) & 0x3f) as u8,
+                    completion_code: (words[2] >> 24) as u8,
+                    slot: (words[3] >> 24) as u8,
+                    endpoint: ((words[3] >> 16) & 0x1f) as u8,
+                    residual: words[2] & 0x00ff_ffff,
+                    pointer: u64::from(words[0]) | (u64::from(words[1]) << 32),
+                };
+                self.event_dequeue += 1;
+                if self.event_dequeue == EVENT_TRBS {
+                    self.event_dequeue = 0;
+                    self.event_cycle ^= 1;
+                }
+                let event_phys = self.dma_physical
+                    + core::mem::offset_of!(DmaStorage, event_ring) as u64
+                    + (self.event_dequeue * 16) as u64;
+                unsafe { write64(self.runtime_interrupter + 0x18, event_phys | 8) };
+                return Ok(event);
+            }
+            spin_loop();
+        }
+        Err(XhciError::CommandTimeout)
+    }
 }
 
 unsafe fn poll32(
@@ -346,31 +434,6 @@ unsafe fn poll32(
     Err(error)
 }
 
-fn pci_address(bus: u8, device: u8, function: u8, offset: u8) -> u32 {
-    0x8000_0000
-        | (u32::from(bus) << 16)
-        | (u32::from(device) << 11)
-        | (u32::from(function) << 8)
-        | u32::from(offset & 0xfc)
-}
-fn pci_read(bus: u8, device: u8, function: u8, offset: u8) -> u32 {
-    unsafe {
-        outl(
-            PCI_CONFIG_ADDRESS,
-            pci_address(bus, device, function, offset),
-        );
-        inl(PCI_CONFIG_DATA)
-    }
-}
-fn pci_write(bus: u8, device: u8, function: u8, offset: u8, value: u32) {
-    unsafe {
-        outl(
-            PCI_CONFIG_ADDRESS,
-            pci_address(bus, device, function, offset),
-        );
-        outl(PCI_CONFIG_DATA, value);
-    }
-}
 unsafe fn read8(address: usize) -> u8 {
     unsafe { read_volatile(address as *const u8) }
 }
@@ -385,77 +448,5 @@ unsafe fn write64(address: usize, value: u64) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn pci_coordinates_are_exact() {
-        assert_eq!(pci_address(2, 3, 1, 0x14), 0x8002_1914);
-    }
-    #[test]
-    fn admitted_limits_do_not_follow_hardware_maxima() {
-        assert_eq!(ADMITTED_DEVICE_SLOTS, 1);
-        assert_eq!(MAX_PENDING_COMMANDS, 1);
-    }
-    #[test]
-    fn dma_shape_is_fixed_and_aligned() {
-        assert_eq!(core::mem::align_of::<DmaStorage>(), 64);
-        assert_eq!(core::mem::size_of::<DmaStorage>(), 640);
-        assert_eq!(core::mem::offset_of!(DmaStorage, dcbaa) % 64, 0);
-        assert_eq!(core::mem::offset_of!(DmaStorage, command_ring) % 64, 0);
-        assert_eq!(core::mem::offset_of!(DmaStorage, event_ring) % 64, 0);
-        assert_eq!(core::mem::offset_of!(DmaStorage, erst) % 64, 0);
-    }
-
-    #[test]
-    fn pci_and_bar_failures_are_distinct() {
-        assert_ne!(XhciError::Absent, XhciError::WrongClass);
-        assert_ne!(XhciError::WrongClass, XhciError::InvalidBar);
-        assert_ne!(XhciError::InvalidBar, XhciError::InvalidLayout);
-    }
-
-    #[test]
-    fn bounded_progress_failures_are_distinct() {
-        assert_ne!(XhciError::ResetTimeout, XhciError::StartTimeout);
-        assert_ne!(XhciError::CommandRingFull, XhciError::CommandTimeout);
-        assert_ne!(XhciError::CommandTimeout, XhciError::UnexpectedCompletion);
-    }
-
-    #[test]
-    fn unsupported_storage_and_page_shapes_fail_separately() {
-        assert_ne!(
-            XhciError::UnsupportedPageSize,
-            XhciError::ScratchpadsUnsupported
-        );
-        assert_ne!(
-            XhciError::ScratchpadsUnsupported,
-            XhciError::DmaAddressInvalid
-        );
-    }
-
-    #[test]
-    fn stale_base_identity_cannot_equal_a_fresh_boot_base() {
-        let old = crate::identity::derive_base(&[1; 32], "conduitos/xhci/0000:00:01.0/1b36:000d");
-        let fresh = crate::identity::derive_base(&[2; 32], "conduitos/xhci/0000:00:01.0/1b36:000d");
-        assert_ne!(old, fresh);
-    }
-
-    #[test]
-    fn all_refusals_remain_machine_readable() {
-        for error in [
-            XhciError::Absent,
-            XhciError::WrongClass,
-            XhciError::InvalidBar,
-            XhciError::InvalidLayout,
-            XhciError::UnsupportedPageSize,
-            XhciError::ScratchpadsUnsupported,
-            XhciError::ResetTimeout,
-            XhciError::StartTimeout,
-            XhciError::CommandRingFull,
-            XhciError::UnexpectedCompletion,
-            XhciError::CommandTimeout,
-            XhciError::DmaAddressInvalid,
-        ] {
-            assert!(error.as_str().starts_with("xhci-"));
-        }
-    }
-}
+#[path = "xhci_tests.rs"]
+mod tests;
