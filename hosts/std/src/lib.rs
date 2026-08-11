@@ -16,7 +16,7 @@ use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND};
 use std::fs;
 use std::io::Write;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 mod boot_identity;
 mod composition;
@@ -175,6 +175,22 @@ pub struct SignalReceipt {
 
 pub trait TimerAdapter {
     fn wait(&mut self, duration: Duration);
+
+    /// Returns the current host/boot-scoped monotonic millisecond reading when
+    /// this adapter offers the admitted deadline contract.
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        None
+    }
+
+    /// Waits until one exact reading on the same monotonic basis. Returning
+    /// false means the adapter does not offer that basis.
+    fn wait_until_monotonic_ms(&mut self, deadline_ms: u64) -> bool {
+        let Some(now_ms) = self.monotonic_now_ms() else {
+            return false;
+        };
+        self.wait(Duration::from_millis(deadline_ms.saturating_sub(now_ms)));
+        true
+    }
 }
 
 pub struct ThreadTimer;
@@ -182,6 +198,11 @@ pub struct ThreadTimer;
 impl TimerAdapter for ThreadTimer {
     fn wait(&mut self, duration: Duration) {
         thread::sleep(duration);
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        static EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+        u64::try_from(EPOCH.get_or_init(Instant::now).elapsed().as_millis()).ok()
     }
 }
 

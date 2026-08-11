@@ -124,6 +124,12 @@ impl<const SLOTS: usize> DeadlineReactor<SLOTS> {
         self.len() == 0
     }
 
+    /// Drops every armed host effect during whole-Play cancellation. Semantic
+    /// per-request cancellation still uses [`Self::cancel`].
+    pub fn clear(&mut self) {
+        self.slots.fill(None);
+    }
+
     fn next(&self) -> Option<(usize, ArmedDeadline)> {
         self.slots
             .iter()

@@ -23,6 +23,8 @@ mod tick_presentation;
 pub use tick_presentation::*;
 mod time_every;
 pub use time_every::*;
+mod timing;
+pub use timing::*;
 mod text_presentation;
 pub use text_presentation::*;
 mod text_transform;
@@ -47,6 +49,8 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
     vec![
         tick_contract(),
         time_every_contract(),
+        time_debounce_contract(),
+        time_timeout_contract(),
         tick_presentation_contract(),
         text_literal_contract(),
         text_upper_contract(),
@@ -76,6 +80,8 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
     vec![
         tick_capability_offer(),
         time_every_offer(),
+        time_debounce_offer(),
+        time_timeout_offer(),
         tick_presentation_offer(),
         text_literal_offer(),
         text_upper_offer(),
@@ -131,6 +137,8 @@ pub enum TerminalBehavior {
     CoupledAtomicFanoutAndMirrorsInputTerminal,
     CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
     EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+    TrailingDebounceFlushesPendingValueThenCompletesWhenInputCloses,
+    InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -303,7 +311,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 19);
+        assert_eq!(contracts.len(), 21);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts

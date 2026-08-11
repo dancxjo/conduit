@@ -23,6 +23,37 @@ fn face_controls_project_actual_values_and_visible_contracts() {
 }
 
 #[test]
+fn timing_controls_expose_bounded_duration_policy_and_capacity() {
+    let editor = editor(
+        "form controls {\n    stable: time/debounce(duration-ms = 25ms, policy = \"trailing\", maximum-values = 4)\n}\n",
+    );
+    let graph = PatchbayGraph::from_expanded(&editor.expand_form("controls").unwrap()).unwrap();
+    let controls = &graph.gears[0].controls;
+    assert_eq!(controls.len(), 3);
+    assert!(matches!(
+        controls[0].kind,
+        FaceControlKind::Number {
+            minimum: 0,
+            maximum: conduit_std_catalog::TIME_MAXIMUM_DURATION_MS,
+            unit: Some("ms")
+        }
+    ));
+    assert!(matches!(
+        controls[1].kind,
+        FaceControlKind::TextChoice { ref choices }
+            if choices == &[conduit_std_catalog::TIME_POLICY_TRAILING.to_string()]
+    ));
+    assert!(matches!(
+        controls[2].kind,
+        FaceControlKind::Range {
+            minimum: 1,
+            maximum: conduit_std_catalog::TIME_MAXIMUM_VALUES,
+            unit: None
+        }
+    ));
+}
+
+#[test]
 fn signed_scalar_control_is_visible_bounded_and_authored_exactly() {
     let mut editor =
         editor("form controls {\n    clamp: math/clamp(minimum = -7, maximum = 9)\n}\n");

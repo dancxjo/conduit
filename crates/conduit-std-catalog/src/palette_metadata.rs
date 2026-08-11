@@ -9,7 +9,8 @@ use crate::{
     COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, LATEST_KIND, LOGIC_COMPARE_KIND,
     LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND,
     STATE_COUNT_KIND, TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND,
-    TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_EVERY_KIND,
+    TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_EVERY_KIND,
+    TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -122,6 +123,16 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["timer", "interval", "repeat"],
             PaletteIconKey::Repeat2,
         ),
+        TIME_DEBOUNCE_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["timer", "debounce", "stable", "robot"],
+            PaletteIconKey::Clock,
+        ),
+        TIME_TIMEOUT_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["timer", "timeout", "heartbeat", "safety"],
+            PaletteIconKey::Clock,
+        ),
         TEXT_LITERAL_KIND => metadata(
             PaletteCategory::Transform,
             &["source", "constant", "string"],
@@ -232,7 +243,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 19);
+        assert_eq!(contracts.len(), 21);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

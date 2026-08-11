@@ -244,9 +244,21 @@ fn observatory_fixture_report_is_explicitly_synthetic_and_does_not_run_work() {
         stdout.contains("host id=pico-sim-triple boot=pico-sim-boot-triple"),
         "{stdout}"
     );
-    assert!(stdout.contains("capabilities 25"), "{stdout}");
+    assert!(stdout.contains("capabilities 27"), "{stdout}");
     assert!(
         stdout.contains("capability=time-tick-v2 kind=time/tick contract=conduit.std/time-tick@2"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "capability=time-debounce-bool-v1 kind=time/debounce contract=conduit.std/time-debounce-bool@1"
+        ),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "capability=time-timeout-tick-bool-v1 kind=time/timeout contract=conduit.std/time-timeout-tick-bool@1"
+        ),
         "{stdout}"
     );
     assert!(

@@ -24,15 +24,20 @@ use super::test_scalar_flow::{
 };
 #[cfg(test)]
 use super::test_text_source::TEST_TEXT_SOURCE_FACTORY;
+#[cfg(test)]
+use super::test_timing_sink::{TEST_TIMING_SINK_FACTORY, TEST_TIMING_SOURCE_FACTORY};
 use super::text_operations::{
     TEXT_JOIN_FACTORY, TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY,
 };
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
+use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
     &TICK_FACTORY,
     &EVERY_FACTORY,
+    &TIME_DEBOUNCE_FACTORY,
+    &TIME_TIMEOUT_FACTORY,
     &TICK_PRESENTATION_FACTORY,
     &TEXT_LITERAL_FACTORY,
     &TEXT_UPPER_FACTORY,
@@ -69,6 +74,10 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEST_LOGIC_SINK_FACTORY,
     #[cfg(test)]
     &TEST_SLOW_SCALAR_SINK_FACTORY,
+    #[cfg(test)]
+    &TEST_TIMING_SINK_FACTORY,
+    #[cfg(test)]
+    &TEST_TIMING_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_OBSERVER_FACTORY,
 ];
