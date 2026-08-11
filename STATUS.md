@@ -1437,3 +1437,29 @@ be skipped. Classification failure remains fail-closed, PR permissions are
 unchanged, and `merge_group` uses the same required workflow without disabling
 strict up-to-date protection. This is CI routing only: it changes no product,
 runtime, proof semantics, or accepted proof class.
+
+The finite presentation-pacing slice from #886 is accepted at exact main
+`09da76a69d2e1233291cb216673646ef84aa00a5`; push workflow `31465601893`
+passed `check`, `browser-host`, and `conduitos-boot`. Canonical
+`conduit.std/time-delay-bool@1` delays every admitted Boolean Current value by
+one exact configured duration, retains at most eight pending values in input
+order, and drains those values after input closure. Canonical
+`conduit.std/time-throttle-bool-leading@1` emits the first eligible value,
+drops values arriving during its exact cooldown, retains no hidden latest
+value, and cancels its one exact pending timer when input closes.
+
+Both contracts use the existing planned monotonic-millisecond deadline
+requirement and ordinary std planning, lowering, and production-kernel path.
+The Host supplies only admitted, correlated timer operations; renderer frame
+cadence, browser timers, and ambient async timing do not enter portable
+meaning. Values, timer slots, queues, and mandatory work are finite before
+Play. Deterministic conformance covers zero and maximum durations,
+simultaneous values, late wakes, ordered closure drain, leading-edge drops,
+timer completion, cancellation, and regressed monotonic time.
+
+An ordinary non-UI Form and a Patchbay-oriented refresh Form exercise the same
+installed operations. The generated Host x Kind inventory now includes both
+rows and keeps other Host cells explicitly missing or unsupported. This adds
+no animation framework, retry/backoff policy, arbitrary timer wheel,
+scheduler redesign, hard-real-time claim, browser `setTimeout`, or physical
+timing proof.
