@@ -98,6 +98,7 @@ fn invalid(placement: &PlannedGear) -> Result<bool, String> {
         .find(|entry| entry.key == "invalid")
         .and_then(|entry| match entry.value {
             ConfigurationValue::Bool(value) => Some(value),
+            ConfigurationValue::I64(_) => None,
             ConfigurationValue::U64(_) => None,
             ConfigurationValue::Text(_) => None,
         })

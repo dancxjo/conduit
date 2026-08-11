@@ -7,6 +7,7 @@ mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
 mod logic_operations;
+mod math_operations;
 mod operation;
 #[cfg(test)]
 mod test_gate;
@@ -41,6 +42,7 @@ use conduit_core::present_host_operation_requirement;
 use conduit_core::{
     bind_active_play, bind_sign, kind_id, wait_host_operation_requirement, CancellationReason,
     HostAdvertisement, Observation, ObservationKind, PlanFragment, TerminalDisposition,
+    SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
@@ -75,6 +77,11 @@ pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
 #[cfg(test)]
 pub(super) fn test_scalar_source_offer() -> conduit_core::CapabilityOffer {
     test_scalar_flow::source_offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_scalar_literal_offer() -> conduit_core::CapabilityOffer {
+    test_scalar_flow::literal_offer()
 }
 
 #[cfg(test)]
@@ -323,6 +330,16 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT,
     );
     let gate_bool_target_kind = kind_id(conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_TARGET);
+    let math_clamp_contract_id =
+        conduit_core::HostOperationContractId::from(conduit_std_catalog::MATH_CLAMP_HOST_OPERATION);
+    let math_scale_contract_id =
+        conduit_core::HostOperationContractId::from(conduit_std_catalog::MATH_SCALE_HOST_OPERATION);
+    let math_deadband_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_std_catalog::MATH_DEADBAND_HOST_OPERATION,
+    );
+    let math_clamp_target_kind = kind_id(conduit_std_catalog::MATH_CLAMP_KIND);
+    let math_scale_target_kind = kind_id(conduit_std_catalog::MATH_SCALE_KIND);
+    let math_deadband_target_kind = kind_id(conduit_std_catalog::MATH_DEADBAND_KIND);
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
@@ -525,6 +542,41 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete flow/gate bool decode: {error:?}"))?;
+                continue;
+            } else if [
+                (&math_clamp_contract_id, &math_clamp_target_kind),
+                (&math_scale_contract_id, &math_scale_target_kind),
+                (&math_deadband_contract_id, &math_deadband_target_kind),
+            ]
+            .iter()
+            .any(|(expected_contract, expected_target)| {
+                contract == *expected_contract
+                    && lowered_operation.target_kind.as_ref() == Some(*expected_target)
+            }) {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "math request has no exact placement".to_string())?;
+                let encoded = math_operations::transform_bytes(placement, input)?;
+                let value = scheduler
+                    .store_host_value(&encoded)
+                    .map_err(|error| format!("store math scalar output: {error:?}"))?;
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32).map_err(
+                                    |error| format!("bound math scalar output: {error:?}"),
+                                )?,
+                            ),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete math scalar transform: {error:?}"))?;
                 continue;
             } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
                 let text = std::str::from_utf8(input)

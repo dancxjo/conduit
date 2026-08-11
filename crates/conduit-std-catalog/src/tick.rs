@@ -168,6 +168,9 @@ pub fn tick_profile_catalog() -> conduit_form::ProfileCatalog {
                         StandardConfigurationRule::U64Range { minimum, maximum } => {
                             ConfigurationRule::U64Range { minimum, maximum }
                         }
+                        StandardConfigurationRule::I64Range { minimum, maximum } => {
+                            ConfigurationRule::I64Range { minimum, maximum }
+                        }
                         StandardConfigurationRule::DurationMillis { minimum, maximum } => {
                             ConfigurationRule::DurationMillis { minimum, maximum }
                         }

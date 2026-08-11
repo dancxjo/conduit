@@ -318,6 +318,7 @@ pub struct ConfigurationField {
 pub enum ConfigurationRule {
     Any,
     U64Range { minimum: u64, maximum: u64 },
+    I64Range { minimum: i64, maximum: i64 },
     DurationMillis { minimum: u64, maximum: u64 },
     TextBytes { maximum: u32 },
     TextOneOf { values: Vec<String> },
@@ -331,6 +332,10 @@ impl ConfigurationRule {
                 (*minimum..=*maximum).contains(value)
             }
             (Self::U64Range { .. }, _) => false,
+            (Self::I64Range { minimum, maximum }, ConfigurationValue::I64(value)) => {
+                (*minimum..=*maximum).contains(value)
+            }
+            (Self::I64Range { .. }, _) => false,
             (Self::DurationMillis { minimum, maximum }, ConfigurationValue::U64(value)) => {
                 (*minimum..=*maximum).contains(value)
             }
@@ -640,6 +645,7 @@ fn parse_form_block(
                             value_type: match field.default_value {
                                 ConfigurationValue::Bool(_) => "Boolean",
                                 ConfigurationValue::U64(_) => "Count",
+                                ConfigurationValue::I64(_) => "Scalar",
                                 ConfigurationValue::Text(_) => "Text",
                             }
                             .to_string(),
@@ -1209,6 +1215,10 @@ fn parse_configuration_value(
             .parse()
             .map(ConfigurationValue::U64)
             .map_err(|_| FormError::InvalidConfiguration(format!("invalid integer '{source}'"))),
+        ConfigurationValue::I64(_) => source
+            .parse()
+            .map(ConfigurationValue::I64)
+            .map_err(|_| FormError::InvalidConfiguration(format!("invalid scalar '{source}'"))),
         ConfigurationValue::Text(_) => text_value::parse_quoted_text(source)
             .map(ConfigurationValue::Text)
             .ok_or_else(|| FormError::InvalidConfiguration(format!("invalid text {source}"))),
@@ -1442,6 +1452,7 @@ fn render_value(value: &ConfigurationValue) -> String {
     match value {
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::U64(value) => value.to_string(),
+        ConfigurationValue::I64(value) => value.to_string(),
         ConfigurationValue::Text(value) => format!("{value:?}"),
     }
 }

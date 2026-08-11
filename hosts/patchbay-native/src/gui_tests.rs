@@ -58,6 +58,7 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
                 .flat_map(|gear| &gear.controls)
                 .map(|control| match control.kind {
                     patchbay_model::FaceControlKind::Number { .. }
+                    | patchbay_model::FaceControlKind::ScalarNumber { .. }
                     | patchbay_model::FaceControlKind::Range { .. } => 2,
                     patchbay_model::FaceControlKind::BooleanChoice { .. }
                     | patchbay_model::FaceControlKind::TextChoice { .. }

@@ -22,6 +22,11 @@ pub enum FaceControlKind {
         maximum: u64,
         unit: Option<&'static str>,
     },
+    ScalarNumber {
+        minimum: i64,
+        maximum: i64,
+        unit: &'static str,
+    },
     Range {
         minimum: u64,
         maximum: u64,
@@ -93,6 +98,14 @@ pub(crate) fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, P
                     minimum,
                     maximum,
                     unit: Some("ms"),
+                },
+                (
+                    ConfigurationValue::I64(_),
+                    StandardConfigurationRule::I64Range { minimum, maximum },
+                ) => FaceControlKind::ScalarNumber {
+                    minimum,
+                    maximum,
+                    unit: "µ",
                 },
                 (ConfigurationValue::Text(_), StandardConfigurationRule::TextBytes { maximum }) => {
                     FaceControlKind::ShortText {

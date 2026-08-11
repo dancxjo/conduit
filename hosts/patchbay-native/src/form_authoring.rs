@@ -296,6 +296,7 @@ fn encode_value(value: &conduit_core::ConfigurationValue) -> String {
     let (tag, bytes): (&str, Vec<u8>) = match value {
         conduit_core::ConfigurationValue::Bool(value) => ("b", value.to_string().into_bytes()),
         conduit_core::ConfigurationValue::U64(value) => ("u", value.to_string().into_bytes()),
+        conduit_core::ConfigurationValue::I64(value) => ("i", value.to_string().into_bytes()),
         conduit_core::ConfigurationValue::Text(value) => ("t", value.as_bytes().to_vec()),
     };
     let hex = bytes
@@ -339,6 +340,14 @@ fn decode_value(
             .map_err(|_| {
                 patchbay_model::FormEditorError::InvalidConfiguration(
                     "expected a whole number".into(),
+                )
+            }),
+        "i" => text
+            .parse::<i64>()
+            .map(conduit_core::ConfigurationValue::I64)
+            .map_err(|_| {
+                patchbay_model::FormEditorError::InvalidConfiguration(
+                    "expected signed scalar microunits".into(),
                 )
             }),
         "t" => Ok(conduit_core::ConfigurationValue::Text(text)),

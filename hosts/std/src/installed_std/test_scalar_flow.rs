@@ -17,6 +17,12 @@ const SOURCE_PROFILE: &str = "conduit.test/scalar-source-kernel@1";
 const SOURCE_IMPLEMENTATION: &str = "conduit.test/scalar-source-kernel@1";
 const SOURCE_ARTIFACT: &str = "conduit-std-host/test-scalar-source@1";
 
+const LITERAL_KIND: &str = "conduit.test/scalar-literal";
+const LITERAL_REVISION: &str = "conduit.test/scalar-literal@1";
+const LITERAL_PROFILE: &str = "conduit.test/scalar-literal-kernel@1";
+const LITERAL_IMPLEMENTATION: &str = "conduit.test/scalar-literal-kernel@1";
+const LITERAL_ARTIFACT: &str = "conduit-std-host/test-scalar-literal@1";
+
 const SINK_KIND: &str = "conduit.test/scalar-sink";
 const SINK_REVISION: &str = "conduit.test/scalar-sink@1";
 const SINK_PROFILE: &str = "conduit.test/scalar-sink-kernel@1";
@@ -30,6 +36,12 @@ pub(super) static TEST_SCALAR_SOURCE_FACTORY: InstalledFactory = InstalledFactor
     prepare: prepare_source,
 };
 
+pub(super) static TEST_SCALAR_LITERAL_FACTORY: InstalledFactory = InstalledFactory {
+    implementation_id: LITERAL_IMPLEMENTATION,
+    budget: literal_budget,
+    prepare: prepare_literal,
+};
+
 pub(super) static TEST_SCALAR_SINK_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
@@ -41,6 +53,29 @@ pub(super) struct TestScalarSourceOperation {
     pub(super) waits: Vec<ValueRef>,
     pub(super) next: usize,
     pending: Option<RequestId>,
+}
+
+pub(super) struct TestScalarLiteralOperation {
+    pub(super) value: ValueRef,
+    pub(super) emitted: bool,
+}
+
+impl TestScalarLiteralOperation {
+    pub(super) fn start(&mut self) -> OperationAction {
+        OperationAction::Emit {
+            port: PortId(0),
+            value: self.value,
+        }
+    }
+
+    pub(super) fn advance(&mut self) -> OperationAction {
+        if self.emitted {
+            InstalledOperation::fail(26)
+        } else {
+            self.emitted = true;
+            OperationAction::Complete
+        }
+    }
 }
 
 pub(super) struct TestScalarSinkOperation {
@@ -139,6 +174,25 @@ pub(super) fn source_offer() -> CapabilityOffer {
     offer
 }
 
+pub(super) fn literal_offer() -> CapabilityOffer {
+    offer(
+        TestIdentity {
+            kind: LITERAL_KIND,
+            revision: LITERAL_REVISION,
+            profile: LITERAL_PROFILE,
+            implementation: LITERAL_IMPLEMENTATION,
+            artifact: LITERAL_ARTIFACT,
+            max_active_instances: 1,
+        },
+        Vec::new(),
+        vec![scalar_port(
+            "value",
+            PortDirection::Output,
+            PortTemporal::Value,
+        )],
+    )
+}
+
 pub(super) fn sink_offer() -> CapabilityOffer {
     offer(
         TestIdentity {
@@ -214,6 +268,13 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
             configuration: Vec::new(),
         },
         KindDefinition {
+            kind_id: kind_id(LITERAL_KIND),
+            kind_contract_revision: KindContractRevision::from(LITERAL_REVISION),
+            inputs: Vec::new(),
+            outputs: literal_offer().outputs,
+            configuration: Vec::new(),
+        },
+        KindDefinition {
             kind_id: kind_id(SINK_KIND),
             kind_contract_revision: KindContractRevision::from(SINK_REVISION),
             inputs: sink_offer().inputs,
@@ -270,6 +331,33 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         sign_items: 64,
         maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
     })
+}
+
+fn literal_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+    validate_literal(placement)?;
+    Ok(OperationBudget {
+        value_items: 1,
+        value_bytes: SCALAR_ENCODED_LEN as u32,
+        host_requests: 0,
+        sign_items: 16,
+        maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
+    })
+}
+
+fn prepare_literal(
+    placement: &PlannedGear,
+    store: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledOperation, String> {
+    validate_literal(placement)?;
+    let value = store
+        .store(&Scalar::from_raw_microunits(-1).encode())
+        .map_err(|error| format!("store scalar literal fixture: {error:?}"))?;
+    Ok(InstalledOperation::TestScalarLiteral(
+        TestScalarLiteralOperation {
+            value,
+            emitted: false,
+        },
+    ))
 }
 
 fn prepare_source(
@@ -350,6 +438,21 @@ fn validate_source(placement: &PlannedGear) -> Result<(), String> {
         || !placement.configuration.is_empty()
     {
         return Err("planned scalar source does not match its fixture".into());
+    }
+    Ok(())
+}
+
+fn validate_literal(placement: &PlannedGear) -> Result<(), String> {
+    if placement.kind_id.as_str() != LITERAL_KIND
+        || placement.kind_contract_revision.as_str() != LITERAL_REVISION
+        || placement.execution_profile_id.as_str() != LITERAL_PROFILE
+        || placement.implementation_id.as_str() != LITERAL_IMPLEMENTATION
+        || placement.artifact_id.as_str() != LITERAL_ARTIFACT
+        || !placement.inputs.is_empty()
+        || placement.outputs != literal_offer().outputs
+        || !placement.configuration.is_empty()
+    {
+        return Err("planned scalar literal does not match its fixture".into());
     }
     Ok(())
 }

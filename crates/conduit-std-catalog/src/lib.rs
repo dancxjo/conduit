@@ -33,6 +33,8 @@ mod flow_state;
 pub use flow_state::*;
 mod logic;
 pub use logic::*;
+mod math;
+pub use math::*;
 mod copy_file;
 pub use copy_file::*;
 
@@ -58,6 +60,9 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         logic_compare_scalar_contract(),
         logic_not_contract(),
         logic_select_scalar_contract(),
+        math_clamp_contract(),
+        math_scale_contract(),
+        math_deadband_contract(),
         copy_file_contract(),
     ]
 }
@@ -84,6 +89,9 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         logic_compare_scalar_offer(),
         logic_not_offer(),
         logic_select_scalar_offer(),
+        math_clamp_offer(),
+        math_scale_offer(),
+        math_deadband_offer(),
         copy_file_offer(),
     ]
 }
@@ -136,6 +144,7 @@ pub struct StandardConfigurationField {
 pub enum StandardConfigurationRule {
     Any,
     U64Range { minimum: u64, maximum: u64 },
+    I64Range { minimum: i64, maximum: i64 },
     DurationMillis { minimum: u64, maximum: u64 },
     TextBytes { maximum: u32 },
     TextOneOf { values: Vec<String> },
@@ -294,7 +303,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 16);
+        assert_eq!(contracts.len(), 19);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
@@ -426,6 +435,9 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
                             StandardConfigurationRule::Any => ConfigurationRule::Any,
                             StandardConfigurationRule::U64Range { minimum, maximum } => {
                                 ConfigurationRule::U64Range { minimum, maximum }
+                            }
+                            StandardConfigurationRule::I64Range { minimum, maximum } => {
+                                ConfigurationRule::I64Range { minimum, maximum }
                             }
                             StandardConfigurationRule::DurationMillis { minimum, maximum } => {
                                 ConfigurationRule::DurationMillis { minimum, maximum }
