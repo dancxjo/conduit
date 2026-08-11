@@ -33,6 +33,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 
 mod distributed;
 mod distributed_toggle;
+pub mod presentation_nucleus;
 mod webchat;
 
 const FRAME_CAPACITY: usize = 4_096;

@@ -149,7 +149,7 @@ fn contract(
         terminal_behavior:
             TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
-        browser_manifestation_honest: false,
+        browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: format_example(kind),
     }

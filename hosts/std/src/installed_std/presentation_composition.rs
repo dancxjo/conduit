@@ -1,12 +1,11 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedGear};
+use conduit_core::PlannedGear;
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
-    PresentationComposition, PresentationIconKey, MAX_GRAPHICS_SCENE_BYTES,
+    GraphicsScene, PresentationComposition, MAX_GRAPHICS_SCENE_BYTES,
     MAX_PRESENTATION_COMPOSITION_BYTES,
 };
 
@@ -142,18 +141,7 @@ pub(super) fn transform_bytes(
 ) -> Result<([u8; MAX_PRESENTATION_COMPOSITION_BYTES], usize), String> {
     let value = PresentationComposition::decode(input)
         .map_err(|error| format!("decode presentation composition: {error:?}"))?;
-    let output = match placement.kind_id.as_str() {
-        conduit_std_catalog::PRESENTATION_FRAME_KIND => value.frame(
-            text_config(placement, conduit_std_catalog::ROLE_KEY)?,
-            text_config(placement, conduit_std_catalog::ACCESSIBILITY_NAME_KEY)?,
-        ),
-        conduit_std_catalog::PRESENTATION_BADGE_KIND => value.badge(
-            text_config(placement, conduit_std_catalog::STATE_KEY)?,
-            text_config(placement, conduit_std_catalog::ACCESSIBILITY_NAME_KEY)?,
-        ),
-        _ => return Err("unsupported presentation composition transform".into()),
-    }
-    .map_err(|error| format!("presentation composition refused: {error:?}"))?;
+    let output = conduit_std_catalog::execute_presentation_transform(placement, value)?;
     Ok((output.encode(), output.encoded_len()))
 }
 
@@ -161,58 +149,21 @@ pub(super) fn transform_graphics_bytes(
     placement: &PlannedGear,
     input: &[u8],
 ) -> Result<([u8; MAX_GRAPHICS_SCENE_BYTES], usize), String> {
-    let bounds = configured_rect(placement, false)?;
-    let clip = configured_rect(placement, true)?;
-    let paint = match text_config(placement, conduit_std_catalog::PAINT_KEY)? {
-        "background" => GraphicsPaintRole::Background,
-        "foreground" => GraphicsPaintRole::Foreground,
-        "accent" => GraphicsPaintRole::Accent,
-        "status" => GraphicsPaintRole::Status,
-        _ => return Err("unsupported graphics paint role".into()),
-    };
-    let mut scene = if placement.kind_id.as_str() == conduit_std_catalog::GRAPHICS_RECT_KIND {
-        let composition = PresentationComposition::decode(input)
-            .map_err(|error| format!("decode presentation composition: {error:?}"))?;
-        if composition.items().is_empty() {
-            return Err("graphics rectangle requires a resolved presentation obligation".into());
-        }
-        GraphicsScene::empty()
-    } else {
-        GraphicsScene::decode(input).map_err(|error| format!("decode graphics scene: {error:?}"))?
-    };
-    let command = match placement.kind_id.as_str() {
-        conduit_std_catalog::GRAPHICS_RECT_KIND => GraphicsCommand::rect(
-            bounds,
-            clip,
-            paint,
-            match text_config(placement, conduit_std_catalog::STYLE_KEY)? {
-                "fill" => GraphicsShapeStyle::Fill,
-                "stroke" => GraphicsShapeStyle::Stroke,
-                _ => return Err("unsupported graphics shape style".into()),
-            },
-        ),
-        conduit_std_catalog::GRAPHICS_TEXT_KIND => GraphicsCommand::text(
-            bounds,
-            clip,
-            paint,
-            text_config(placement, conduit_std_catalog::GRAPHICS_TEXT_KEY)?,
-        ),
-        conduit_std_catalog::GRAPHICS_ICON_KIND => GraphicsCommand::icon(
-            bounds,
-            clip,
-            paint,
-            PresentationIconKey::from_token(text_config(
-                placement,
-                conduit_std_catalog::GRAPHICS_ICON_KEY,
-            )?)
-            .ok_or_else(|| "unknown canonical graphics icon".to_string())?,
-        ),
-        _ => return Err("unsupported graphics Kind".into()),
-    }
-    .map_err(|error| format!("graphics command refused: {error:?}"))?;
-    scene
-        .push(command)
-        .map_err(|error| format!("graphics scene refused: {error:?}"))?;
+    let (composition, scene) =
+        if placement.kind_id.as_str() == conduit_std_catalog::GRAPHICS_RECT_KIND {
+            let composition = PresentationComposition::decode(input)
+                .map_err(|error| format!("decode presentation composition: {error:?}"))?;
+            (Some(composition), None)
+        } else {
+            (
+                None,
+                Some(
+                    GraphicsScene::decode(input)
+                        .map_err(|error| format!("decode graphics scene: {error:?}"))?,
+                ),
+            )
+        };
+    let scene = conduit_std_catalog::execute_graphics_transform(placement, composition, scene)?;
     Ok((scene.encode(), scene.encoded_len()))
 }
 
@@ -236,11 +187,7 @@ fn prepare(
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
     let source = if placement.kind_id.as_str() == conduit_std_catalog::PRESENTATION_ICON_KIND {
-        let value = PresentationComposition::icon(
-            text_config(placement, conduit_std_catalog::ICON_KEY)?,
-            text_config(placement, conduit_std_catalog::ACCESSIBILITY_NAME_KEY)?,
-        )
-        .map_err(|error| format!("presentation icon refused: {error:?}"))?;
+        let value = conduit_std_catalog::execute_presentation_source(placement)?;
         let bytes = value.encode();
         Some(
             values
@@ -280,56 +227,6 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         );
     }
     Ok(())
-}
-
-fn configured_rect(placement: &PlannedGear, clip: bool) -> Result<LayoutRect, String> {
-    let keys = if clip {
-        [
-            conduit_std_catalog::CLIP_X_KEY,
-            conduit_std_catalog::CLIP_Y_KEY,
-            conduit_std_catalog::CLIP_WIDTH_KEY,
-            conduit_std_catalog::CLIP_HEIGHT_KEY,
-        ]
-    } else {
-        [
-            conduit_std_catalog::GRAPHICS_X_KEY,
-            conduit_std_catalog::GRAPHICS_Y_KEY,
-            conduit_std_catalog::GRAPHICS_WIDTH_KEY,
-            conduit_std_catalog::GRAPHICS_HEIGHT_KEY,
-        ]
-    };
-    Ok(LayoutRect {
-        x: i16::try_from(u64_config(placement, keys[0])?)
-            .map_err(|_| "graphics x coordinate overflows".to_string())?,
-        y: i16::try_from(u64_config(placement, keys[1])?)
-            .map_err(|_| "graphics y coordinate overflows".to_string())?,
-        width: u16::try_from(u64_config(placement, keys[2])?)
-            .map_err(|_| "graphics width overflows".to_string())?,
-        height: u16::try_from(u64_config(placement, keys[3])?)
-            .map_err(|_| "graphics height overflows".to_string())?,
-    })
-}
-
-fn u64_config(placement: &PlannedGear, key: &str) -> Result<u64, String> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::U64(value)) if found == key => Some(*value),
-            _ => None,
-        })
-        .ok_or_else(|| format!("graphics configuration '{key}' is missing"))
-}
-
-fn text_config<'a>(placement: &'a PlannedGear, key: &str) -> Result<&'a str, String> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::Text(value)) if found == key => Some(value.as_str()),
-            _ => None,
-        })
-        .ok_or_else(|| format!("presentation configuration '{key}' is missing"))
 }
 
 #[cfg(test)]

@@ -14,6 +14,7 @@ export default defineConfig({
     "pool-webchat.spec.mjs",
     "r1-three-peer-input.spec.mjs",
     "triple-signal.spec.mjs",
+    "presentation-nucleus.spec.mjs",
   ],
   fullyParallel: false,
   workers: 1,

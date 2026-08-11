@@ -164,7 +164,7 @@ fn contract(
             TerminalBehavior::EmitsOnce
         },
         hosted_implementation_required: true,
-        browser_manifestation_honest: false,
+        browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: example.to_string(),
     }
