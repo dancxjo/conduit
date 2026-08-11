@@ -2,6 +2,7 @@ mod discovery;
 mod output;
 #[cfg(test)]
 pub(crate) mod output_fake;
+mod raw_discovery;
 
 pub use discovery::{
     discover_alsa_sequencer_endpoints, MidiDiscoveryError, MidiEndpointDirection,
@@ -9,6 +10,10 @@ pub use discovery::{
 };
 pub(crate) use output::MidiOutputSession;
 pub use output::{MidiOutputFailure, MidiOutputLifecycle, MidiOutputReport};
+pub use raw_discovery::{
+    discover_raw_midi_endpoints, RawMidiDiscoveryError, RawMidiEndpointObservation,
+    MAXIMUM_RAW_MIDI_ENDPOINTS,
+};
 
 use conduit_core::{
     BootId, CapabilityId, HostId, OfferGeneration, RealizationAdvertisement,
