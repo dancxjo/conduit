@@ -254,6 +254,27 @@ pub struct GuestKeyboardSign {
     pub completed: bool,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GuestKeyboardTextSign {
+    pub schema: String,
+    pub status: String,
+    pub proof_class: String,
+    pub source_document_id: String,
+    pub checked_form_id: String,
+    pub expanded_form_id: String,
+    pub plan_id: String,
+    pub active_play_id: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub form_machine_facts: bool,
+    pub keymap_configuration: String,
+    pub physical_transition_count: usize,
+    pub presentation_fragments: Vec<String>,
+    pub visible_ascii: String,
+    pub bounded: bool,
+    pub completed: bool,
+}
+
 #[derive(Debug, Clone)]
 pub struct GuestRun {
     pub boot: GuestBootSign,
@@ -261,6 +282,7 @@ pub struct GuestRun {
     pub usb: GuestUsbSign,
     pub hid: GuestHidSign,
     pub keyboard: GuestKeyboardSign,
+    pub keyboard_text: GuestKeyboardTextSign,
     pub kernel: GuestKernelSign,
     pub observatory: conduit_observatory::ObservatorySnapshot,
     pub serial: String,

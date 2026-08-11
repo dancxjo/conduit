@@ -20,9 +20,10 @@ pub use session::{HidKeyboardSession, finish_boot_keyboard, receive_first_boot_k
 pub const BOOT_REPORT_BYTES: usize = 8;
 pub const MAX_TRANSITIONS_PER_REPORT: usize = 20;
 pub const REPORT_BUFFERS: usize = 2;
-pub const MAX_SESSION_REPORTS: usize = 4;
+pub const MAX_SESSION_REPORTS: usize = 48;
+pub const MAX_SESSION_TRANSITIONS: usize = 48;
 pub const MAX_OUTSTANDING_INTERRUPT_TRANSFERS: u8 = 2;
-pub const INTERRUPT_TRANSFER_TRBS: usize = 16;
+pub const INTERRUPT_TRANSFER_TRBS: usize = 48;
 pub const HID_SIGN_SLOTS: u8 = 8;
 pub const INTERRUPT_POLL_WINDOWS: u16 = 1024;
 

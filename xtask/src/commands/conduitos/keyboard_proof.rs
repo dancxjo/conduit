@@ -7,7 +7,7 @@ use crate::cli::GlobalOpts;
 use super::{
     image,
     profile::{Paths, QEMU_PROFILE},
-    report::{git_head, GuestKeyboardSign},
+    report::{git_head, GuestKeyboardSign, GuestKeyboardTextSign},
     run, usb_run, ConduitosArch, ConduitosError,
 };
 
@@ -32,6 +32,7 @@ struct KeyboardProofRecord {
     qemu_profile: &'static str,
     qemu_device: &'static str,
     positive: GuestKeyboardSign,
+    keyboard_text: GuestKeyboardTextSign,
     device_absent_refusal: String,
     deterministic_device_command: &'static str,
     deterministic_kernel_command: &'static str,
@@ -93,6 +94,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         qemu_profile: QEMU_PROFILE,
         qemu_device: "usb-kbd,bus=conduitos-xhci.0,port=1",
         positive: positive_run.keyboard,
+        keyboard_text: positive_run.keyboard_text,
         device_absent_refusal: absent,
         deterministic_device_command: "cargo test -p conduitos --lib",
         deterministic_kernel_command: "cargo test -p conduit-kernel multi_value_port_graph_handles_pressure_closure_and_uneven_consumers",

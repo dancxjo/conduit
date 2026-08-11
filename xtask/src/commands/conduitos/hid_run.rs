@@ -45,7 +45,7 @@ pub(super) fn validate(
         || hid.report_buffers != 2
         || hid.maximum_outstanding_interrupt_transfers != 2
         || hid.maximum_transitions_per_report != 20
-        || hid.transfer_trbs != 16
+        || hid.transfer_trbs != 48
         || hid.dma_bytes != 4096
         || hid.dma_alignment != 4096
         || hid.sign_slots != 8

@@ -26,6 +26,9 @@ const CONNECTIONS: usize = 3;
 pub struct PreparedKeyboardTextPlay {
     pub advertisement: HostAdvertisement,
     pub plan: Plan,
+    pub source_document_id: conduit_core::SourceDocumentId,
+    pub checked_form_id: conduit_core::CheckedFormId,
+    pub expanded_form_id: conduit_core::ExpandedFormId,
     pub active_play: ActivePlayIdentity,
 }
 
@@ -64,6 +67,9 @@ pub fn prepare(
     let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 2);
     Ok(PreparedKeyboardTextPlay {
         advertisement,
+        source_document_id: plan.source_document_id.clone(),
+        checked_form_id: plan.checked_form_id.clone(),
+        expanded_form_id: plan.expanded_form_id.clone(),
         plan,
         active_play,
     })

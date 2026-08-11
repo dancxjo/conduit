@@ -1,5 +1,6 @@
 //! Fixed-storage production-kernel execution for the ordinary keyboard text Form.
 
+use alloc::boxed::Box;
 use conduit_core::{ConduitIntlKeymap, KeyEvent, KeymapDisposition, PlanFragment};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
@@ -19,7 +20,7 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
-pub const MAXIMUM_INPUT_EVENTS: usize = 32;
+pub const MAXIMUM_INPUT_EVENTS: usize = 48;
 pub const MAXIMUM_PRESENTATIONS: usize = 16;
 const MAX_NODES: usize = 4;
 const MAX_CORDS: usize = 3;
@@ -29,10 +30,10 @@ const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
 const PENDING_REQUESTS: usize = 4;
-const VALUE_SLOTS: usize = 96;
+const VALUE_SLOTS: usize = 64;
 const MAX_VALUE_BYTES: usize = conduit_std_catalog::MAX_TEXT_BYTES as usize;
-const VALUE_BYTE_CAPACITY: usize = 768;
-const SIGN_CAPACITY: usize = 512;
+const VALUE_BYTE_CAPACITY: usize = 128;
+const SIGN_CAPACITY: usize = 768;
 
 type Driver = OperationDriver<PlannedOperation, PORTS>;
 type Scheduler = FixedScheduler<
@@ -114,14 +115,12 @@ impl KeyboardTextKernel {
         let mut values =
             FixedValueStore::<VALUE_SLOTS, MAX_VALUE_BYTES>::new(VALUE_BYTE_CAPACITY as u32)
                 .map_err(|_| PreparationError::KernelRejected)?;
-        let mut empty_inputs = [ValueRef {
-            slot: 0,
-            generation: 0,
-            byte_len: 0,
-        }; MAXIMUM_INPUT_EVENTS];
-        for input in empty_inputs.iter_mut().take(event_count) {
-            *input = values
-                .store(&[])
+        let empty = values
+            .store(&[])
+            .map_err(|_| PreparationError::KernelRejected)?;
+        for _ in 1..event_count {
+            values
+                .retain(empty)
                 .map_err(|_| PreparationError::KernelRejected)?;
         }
         let nodes = lowered
@@ -160,7 +159,7 @@ impl KeyboardTextKernel {
         let mut drivers = [None, None, None, None];
         drivers[usize::from(keyboard_node.0)] = Some(
             OperationDriver::new(PlannedOperation::Keyboard(KeyboardOperation {
-                empty_inputs,
+                empty,
                 pending: None,
                 next: 0,
                 maximum: event_count as u32,
@@ -347,7 +346,17 @@ pub fn run(
     prepared: &PreparedKeyboardTextPlay,
     events: &[KeyEvent],
 ) -> Result<KeyboardTextPlayReport, PreparationError> {
-    let mut kernel = KeyboardTextKernel::prepare(prepared, events.len())?;
+    run_with_presentation(prepared, events, |_| {})
+}
+
+pub fn run_with_presentation(
+    prepared: &PreparedKeyboardTextPlay,
+    events: &[KeyEvent],
+    mut present: impl FnMut(PresentationFragment),
+) -> Result<KeyboardTextPlayReport, PreparationError> {
+    // ConduitOS admits this fixed-size kernel from its finite boot arena before
+    // the Play starts; scheduler progress itself performs no allocation.
+    let mut kernel = Box::new(KeyboardTextKernel::prepare(prepared, events.len())?);
     let mut event_index = 0usize;
     let mut presentations = [None; MAXIMUM_PRESENTATIONS];
     let mut presentation_count = 0usize;
@@ -374,11 +383,11 @@ pub fn run(
                 let slot = presentations
                     .get_mut(presentation_count)
                     .ok_or(PreparationError::KernelRejected)?;
-                *slot = Some(
-                    kernel
-                        .complete_presentation(request)
-                        .map_err(|_| PreparationError::KernelRejected)?,
-                );
+                let fragment = kernel
+                    .complete_presentation(request)
+                    .map_err(|_| PreparationError::KernelRejected)?;
+                present(fragment);
+                *slot = Some(fragment);
                 presentation_count += 1;
             } else {
                 return Err(PreparationError::KernelRejected);
