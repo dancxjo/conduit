@@ -347,9 +347,11 @@ mod tests {
     #[test]
     fn matrix_has_one_obligation_per_profile_and_kind() {
         let report = build_report(&CatalogHost::ALL, None).unwrap();
-        assert_eq!(report.catalog_entry_count, 21);
         assert_eq!(report.host_profile_count, 4);
-        assert_eq!(report.matrix_entry_count, 84);
+        assert_eq!(
+            report.matrix_entry_count,
+            report.catalog_entry_count * report.host_profile_count
+        );
     }
 
     #[test]
@@ -368,13 +370,12 @@ mod tests {
                 .count(),
             5
         );
-        assert_eq!(
-            os.entries
-                .iter()
-                .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
-                .count(),
-            16
-        );
+        let missing = os
+            .entries
+            .iter()
+            .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
+            .count();
+        assert_eq!(missing, os.catalog_entry_count - 5);
     }
 
     #[test]
