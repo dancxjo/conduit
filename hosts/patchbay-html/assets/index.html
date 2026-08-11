@@ -14,7 +14,7 @@
   </header>
   <nav aria-label="Patchbay workspace">
     <a href="#form">Canvas</a><a href="#palette">Navigate</a><a href="#inspector">Inspector</a>
-    <a href="#plan">Plan</a><a href="#play">Play</a><a href="#sign">Signs</a><a href="#linear">Linear</a>
+    <span class="lens-controls" role="toolbar" aria-label="Patchbay lenses"><button type="button" data-lens="form" aria-pressed="true">Form</button><button type="button" data-lens="plan" aria-pressed="false">Plan</button><button type="button" data-lens="play" aria-pressed="false">Play</button><button type="button" data-lens="signs" aria-pressed="false">Signs</button></span><a href="#linear">Linear</a>
   </nav>
   <main>
     <div class="workspace">
@@ -26,7 +26,7 @@
       </aside>
       <section id="form" class="canvas-panel" aria-labelledby="canvas-title">
         <div class="canvas-heading">
-          <div><p class="eyebrow">FORM LENS</p><h2 id="canvas-title">Semantic canvas</h2></div>
+          <div><p id="lens-label" class="eyebrow">FORM LENS</p><h2 id="canvas-title">Semantic canvas</h2></div>
           <div role="toolbar" aria-label="Renderer-local canvas controls">
             <button id="zoom-in" type="button">Zoom in</button><button id="zoom-out" type="button">Zoom out</button><button id="pan-right" type="button">Pan right</button><button id="arrange" type="button" aria-pressed="false">Reverse arrangement</button><button id="theme" type="button" aria-pressed="false">High contrast</button>
           </div>

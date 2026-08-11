@@ -126,6 +126,37 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     assert!(portable.relationships.iter().any(|relationship| {
         relationship.kind == conduit_presentation::PresentationRelationshipKind::Connects
     }));
+    for required in [
+        "plan-id",
+        "plan-status",
+        "placement-id",
+        "host-id",
+        "boot-id",
+        "implementation-id",
+        "artifact-id",
+        "admitted-capacity",
+        "active-play-id",
+        "play-state",
+        "pressure",
+    ] {
+        assert!(portable
+            .properties
+            .iter()
+            .any(|property| property.name == required));
+    }
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "plan-status"
+            && property.value == PresentationPropertyValue::Text("active".into())
+    }));
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "line"
+            && property.value
+                == PresentationPropertyValue::Text("local Cord; no external Line".into())
+    }));
+    assert!(!portable.properties.iter().any(|property| {
+        property.name == "plan-status"
+            && property.value == PresentationPropertyValue::Text("candidate".into())
+    }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "base"
             && property.value == PresentationPropertyValue::ConnectionBase(ConnectionBase::UsbCdc)

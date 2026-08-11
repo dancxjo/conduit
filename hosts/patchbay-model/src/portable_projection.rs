@@ -246,7 +246,13 @@ fn append_document(
         );
         if presentation.document.open_form == form.name {
             if let Some(graph) = &presentation.graph {
-                crate::portable_graph_projection::append_exact_graph(&form_subject, graph, content);
+                crate::portable_graph_projection::append_exact_graph(
+                    &form_subject,
+                    graph,
+                    presentation.plan.as_ref(),
+                    presentation.play.as_ref(),
+                    content,
+                );
                 continue;
             }
         }
