@@ -2,7 +2,7 @@ use super::RecordingTimer;
 use crate::hosted_audio::{
     AlsaPlaybackObservation, FakePlaybackBehavior, HostedPlaybackSelection, PlaybackLifecycle,
 };
-use crate::{StdHost, StdHostComposition, StdHostConfig};
+use crate::{RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHostConfig};
 use conduit_core::{
     BootId, ConnectionBase, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
 };
@@ -130,6 +130,35 @@ fn discovery_offer_without_independent_authority_refuses_planning() {
     let host = host(FakePlaybackBehavior::Success);
     let error = fragment(&host, false).unwrap_err();
     assert!(error.contains("AuthorityGrantMissing"), "{error}");
+}
+
+#[test]
+fn cancellation_before_open_never_commits_pcm_and_closes_the_session() {
+    let mut host = host(FakePlaybackBehavior::Success);
+    let fragment = fragment(&host, true).unwrap();
+    let control = RunControl::default();
+    control
+        .request_stop(RunControlRequestId::new("cancel-before-audio-open").unwrap())
+        .unwrap();
+    let report = host
+        .run_fragment_controlled_to(
+            fragment,
+            &mut Vec::with_capacity(2_048),
+            &mut RecordingTimer { waits: Vec::new() },
+            &control,
+        )
+        .expect("pre-open cancellation remains a successful control operation");
+    assert!(matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Cancelled { .. }
+        })
+    ));
+    assert_eq!(report.control_receipts.len(), 1);
+    let playback = &report.kernel.unwrap().playback[0];
+    assert_eq!(playback.lifecycle, PlaybackLifecycle::StoppedClosed);
+    assert_eq!(playback.metrics.blocks_committed, 0);
+    assert_eq!(playback.metrics.frames_committed, 0);
 }
 
 #[test]

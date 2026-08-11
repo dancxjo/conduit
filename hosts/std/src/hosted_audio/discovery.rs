@@ -137,4 +137,14 @@ mod tests {
         let error = parse_aplay_list("card nonsense", Path::new("/nonexistent")).unwrap_err();
         assert!(matches!(error, PlaybackDiscoveryError::Malformed(_)));
     }
+
+    #[test]
+    fn no_playback_device_is_an_exact_empty_observation_set() {
+        let observations = parse_aplay_list(
+            "**** List of PLAYBACK Hardware Devices ****\n",
+            Path::new("/nonexistent"),
+        )
+        .unwrap();
+        assert!(observations.is_empty());
+    }
 }
