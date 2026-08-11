@@ -131,17 +131,17 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
         },
         host_operations: vec![
             HostOperationRequirement {
-                contract_id: HostOperationContractId::from(MUSIC_PLAY_MIDI_NOTE_OPERATION),
-                target_kind: Some(kind_id(MUSIC_NOTE_INFO_ID)),
-                maximum_in_flight: 1,
-                maximum_input_bytes: NOTE_EVENT_ENCODED_LEN as u32,
-                maximum_output_bytes: 0,
-            },
-            HostOperationRequirement {
                 contract_id: HostOperationContractId::from(MUSIC_PLAY_MIDI_CONTROL_OPERATION),
                 target_kind: Some(kind_id(MUSIC_CONTROL_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: CONTROL_EVENT_ENCODED_LEN as u32,
+                maximum_output_bytes: 0,
+            },
+            HostOperationRequirement {
+                contract_id: HostOperationContractId::from(MUSIC_PLAY_MIDI_NOTE_OPERATION),
+                target_kind: Some(kind_id(MUSIC_NOTE_INFO_ID)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: NOTE_EVENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },
         ],
@@ -155,18 +155,18 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
                     MIDI_OUTPUT_AUTHORITY_CONTRACT,
                 ),
                 host_operation_contract_id: HostOperationContractId::from(
-                    MUSIC_PLAY_MIDI_NOTE_OPERATION,
+                    MUSIC_PLAY_MIDI_CONTROL_OPERATION,
                 ),
-                subject_kind: kind_id(MUSIC_NOTE_INFO_ID),
+                subject_kind: kind_id(MUSIC_CONTROL_INFO_ID),
             },
             conduit_core::AuthorityRequirement {
                 contract_id: conduit_core::AuthorityContractId::from(
                     MIDI_OUTPUT_AUTHORITY_CONTRACT,
                 ),
                 host_operation_contract_id: HostOperationContractId::from(
-                    MUSIC_PLAY_MIDI_CONTROL_OPERATION,
+                    MUSIC_PLAY_MIDI_NOTE_OPERATION,
                 ),
-                subject_kind: kind_id(MUSIC_CONTROL_INFO_ID),
+                subject_kind: kind_id(MUSIC_NOTE_INFO_ID),
             },
         ],
         limits: event_limits(),
@@ -451,7 +451,7 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .as_str(),
-            MUSIC_NOTE_INFO_ID
+            MUSIC_CONTROL_INFO_ID
         );
         assert_eq!(
             offer.host_operations[1]
@@ -459,7 +459,7 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .as_str(),
-            MUSIC_CONTROL_INFO_ID
+            MUSIC_NOTE_INFO_ID
         );
         assert!(offer.host_operations.iter().all(
             |operation| operation.maximum_in_flight == 1 && operation.maximum_output_bytes == 0

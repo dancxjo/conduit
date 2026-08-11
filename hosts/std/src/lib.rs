@@ -472,6 +472,49 @@ impl StdHost {
         })
     }
 
+    /// Constructs the two independently typed grants for an exact selected
+    /// MIDI output. Discovery and Host construction never imply these grants.
+    pub fn midi_output_authority_grants(
+        &self,
+        grant_prefix: &str,
+    ) -> Result<Vec<conduit_core::AuthorityGrant>, String> {
+        let selected = self
+            .midi_output
+            .as_ref()
+            .ok_or_else(|| "std Host has no selected MIDI output resource".to_string())?;
+        if selected.boot_id() != &self.advertisement.boot_id
+            || selected.offer_generation() != self.advertisement.offer_generation
+        {
+            return Err("selected MIDI output observation is stale for this Host".into());
+        }
+        let capability = self
+            .advertisement
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION
+            })
+            .ok_or_else(|| "selected MIDI output capability is not advertised".to_string())?;
+        if capability.authority_requirements.len() != 2 {
+            return Err("MIDI output capability authority shape changed".into());
+        }
+        Ok(capability
+            .authority_requirements
+            .iter()
+            .enumerate()
+            .map(|(index, requirement)| conduit_core::AuthorityGrant {
+                grant_id: conduit_core::AuthorityGrantId::from(format!("{grant_prefix}-{index}")),
+                contract_id: requirement.contract_id.clone(),
+                host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+                subject_kind: requirement.subject_kind.clone(),
+                host_id: self.advertisement.host_id.clone(),
+                boot_id: self.advertisement.boot_id.clone(),
+                capability_id: capability.capability_id.clone(),
+            })
+            .collect())
+    }
+
     pub fn plan_expanded_local(
         &self,
         form: &conduit_form::ExpandedCanonicalForm,

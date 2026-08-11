@@ -85,6 +85,8 @@ pub(super) enum InstalledOperation {
     GenerateText(GenerateTextOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
+    #[cfg(test)]
+    TestMidiSource(super::test_midi_source::TestMidiSourceOperation),
     TestPcmSource(Box<super::test_audio_source::TestPcmSourceOperation>),
     #[cfg(test)]
     TestKeyEventSource(super::test_input_semantics::TestKeyEventSourceOperation),
@@ -166,6 +168,8 @@ impl Operation for InstalledOperation {
             Self::GenerateText(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
+            #[cfg(test)]
+            Self::TestMidiSource(operation) => operation.emit_or_complete(),
             Self::TestPcmSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.start(),
@@ -236,6 +240,8 @@ impl Operation for InstalledOperation {
             (Self::GenerateText(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestTextSource(_), _) => Self::fail(6),
+            #[cfg(test)]
+            (Self::TestMidiSource(operation), input) => operation.resume(input),
             (Self::TestPcmSource(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestKeyEventSource(operation), input) => operation.resume(input),
@@ -321,6 +327,8 @@ impl Operation for InstalledOperation {
                 operation.next += 1;
                 operation.emit_or_complete()
             }
+            #[cfg(test)]
+            Self::TestMidiSource(operation) => operation.advance(),
             Self::TestPcmSource(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.advance(),
@@ -389,6 +397,8 @@ impl Operation for InstalledOperation {
             Self::GenerateText(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
+            #[cfg(test)]
+            Self::TestMidiSource(operation) => operation.cancel(),
             Self::TestPcmSource(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.cancel(),

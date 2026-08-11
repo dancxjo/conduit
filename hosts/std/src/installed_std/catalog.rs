@@ -42,6 +42,8 @@ use super::test_input_semantics::{TEST_CHORD_SINK_FACTORY, TEST_KEY_EVENT_SOURCE
 #[cfg(test)]
 use super::test_logic::{TEST_LOGIC_SCRIPT_FACTORY, TEST_LOGIC_SINK_FACTORY};
 #[cfg(test)]
+use super::test_midi_source::FACTORY as TEST_MIDI_SOURCE_FACTORY;
+#[cfg(test)]
 use super::test_scalar_flow::{
     TEST_SCALAR_LITERAL_FACTORY, TEST_SCALAR_SINK_FACTORY, TEST_SCALAR_SOURCE_FACTORY,
 };
@@ -121,6 +123,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &GENERATE_TEXT_REMOTE_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_MIDI_SOURCE_FACTORY,
     &TEST_PCM_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_SCALAR_SOURCE_FACTORY,

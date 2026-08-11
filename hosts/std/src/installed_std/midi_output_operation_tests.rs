@@ -220,7 +220,7 @@ fn scheduler_operation_keeps_note_and_control_bindings_distinct() {
         action,
         OperationAction::RequestHostOperation {
             request: RequestId(0),
-            operation: HostOperationId(0),
+            operation: HostOperationId(1),
             ..
         }
     ));

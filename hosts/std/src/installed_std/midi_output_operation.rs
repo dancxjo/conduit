@@ -44,7 +44,11 @@ impl MidiOutputOperation {
                 self.pending = Some(request);
                 OperationAction::RequestHostOperation {
                     request,
-                    operation: HostOperationId(port.0),
+                    operation: if port == PortId(0) {
+                        HostOperationId(1)
+                    } else {
+                        HostOperationId(0)
+                    },
                     input,
                 }
             }
