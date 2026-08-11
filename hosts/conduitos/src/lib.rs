@@ -17,6 +17,7 @@ pub mod keyboard_bridge;
 pub mod keyboard_offer;
 pub mod keyboard_plan;
 pub mod keyboard_play;
+pub mod local_rescue;
 pub mod machine;
 pub mod machine_a2_kernel;
 pub mod observatory;
