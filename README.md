@@ -24,6 +24,19 @@ That is where Hosts, Bases, Signs, Plans, and Plays enter.
 
 ## Current accepted Patchbay
 
+Open the example Form in the native Patchbay from a checkout with the canonical
+repository-development entrance:
+
+```sh
+cargo xtask demo patchbay
+```
+
+The direct package invocation is useful while developing the native adapter:
+
+```sh
+cargo run -p patchbay-native -- --form examples/hello.conduit
+```
+
 The Patchbay view below is generated only after the exact accepted `main`
 commit passes the semantic browser proof. It shows one manifestation of the
 current Form and its structural subjects; the Form, Plan, Play, and Signs—not

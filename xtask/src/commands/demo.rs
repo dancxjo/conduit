@@ -58,7 +58,14 @@ pub fn run_patchbay(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
         "demo.patchbay",
         "Build and launch the native Patchbay from this checkout",
         "cargo",
-        &["run", "-p", "patchbay-native"],
+        &[
+            "run",
+            "-p",
+            "patchbay-native",
+            "--",
+            "--form",
+            "examples/hello.conduit",
+        ],
     );
     run_step(&step, &root, opts)?;
     Ok(())

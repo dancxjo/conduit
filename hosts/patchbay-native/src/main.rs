@@ -48,7 +48,7 @@ mod renderer_adapter;
 mod resource;
 mod window_title;
 mod workspace_open;
-use arguments::{parse_arguments, Arguments};
+use arguments::{parse_arguments, Arguments, USAGE};
 use conduit_std_host::StdHostComposition;
 use control::NativeControl;
 use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
@@ -319,6 +319,10 @@ fn render_linear_snapshot(path: &std::path::Path) -> Result<String, String> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
+    if arguments.help {
+        println!("{USAGE}");
+        return Ok(());
+    }
     if let Some(path) = arguments.linear_snapshot_path.as_deref() {
         println!("{}", render_linear_snapshot(path)?);
         return Ok(());
