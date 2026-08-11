@@ -57,12 +57,14 @@ the ordinary evidence manifest.
 Documentary capture and pixel assertions deliberately use different specs and
 output paths. `patchbay-html.spec.mjs` always produces the five canonical images
 above after semantic proof. `patchbay-html.visual.spec.mjs` separately gates only
-three reviewed rendering contracts: Form geometry, selected-subject styling, and
-the high-contrast Form treatment. It does not establish semantic identity or
-replace the assertions in the documentary spec.
+four reviewed rendering contracts: canvas-control geometry, graph routing,
+selected-node styling, and high-contrast control treatment. It does not
+establish semantic identity or replace the assertions in the documentary spec.
 
 The visual-regression project uses the same pinned Chromium camera, font, and
-fixture. Its checked-in baselines admit zero differing pixels and use no masks.
+fixture. Its checked-in baselines admit zero differing pixels. The routing image
+masks only graph label glyphs so volatile semantic identities are not pixel-gated;
+node and line geometry remain visible and exact. No other image is masked.
 Retries, sleeps, and CI baseline updates are disabled. Intentional visual changes
 therefore appear as ordinary baseline diffs in a pull request. On mismatch,
 Playwright writes expected, actual, and diff diagnostics beneath
