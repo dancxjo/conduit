@@ -174,6 +174,16 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+      - name: Prove bounded ConduitOS xHCI Base ownership
+        run: cargo xtask conduitos xhci-proof --locked
+      - name: Retain bounded ConduitOS xHCI Base proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduitos-xhci-proof-${{ github.sha }}
+          path: target/conduitos/x86_64/xhci-proof.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
       - name: Prove bounded AArch64 ConduitOS machine wake
         run: cargo xtask conduitos prove --arch aarch64 --locked
       - name: Prove IA-32 ConduitOS machine wake
