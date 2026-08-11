@@ -1,6 +1,7 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use crate::commands::conduitos::ConduitosArgs;
+use crate::commands::evidence::EvidenceArgs;
 use crate::commands::pico::PicoArgs;
 
 /// Repository orchestration task runner for Conduit.
@@ -41,6 +42,8 @@ pub enum Command {
     Prove(ProveArgs),
     /// Print the versioned machine-readable proof command contract.
     Proofs(ProofsArgs),
+    /// Verify bounded proof evidence before transport or review.
+    Evidence(EvidenceArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
