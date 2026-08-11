@@ -426,6 +426,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
             playback: None,
+            midi_output: None,
         },
         &plan.fragments[0],
         0,
@@ -457,6 +458,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         installed_std::InstalledRunHost {
             advertisement: &advertisement,
             playback: None,
+            midi_output: None,
         },
         &substituted,
         1,

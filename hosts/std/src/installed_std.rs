@@ -12,6 +12,7 @@ mod input_semantic_operations;
 mod layout_operations;
 mod logic_operations;
 mod math_operations;
+mod midi_output_operation;
 mod operation;
 mod operation_capacity;
 mod pacing_operations;
@@ -188,6 +189,7 @@ pub(super) use contract::tick_offer;
 pub(super) struct InstalledRunHost<'a> {
     pub advertisement: &'a HostAdvertisement,
     pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
+    pub midi_output: Option<&'a crate::hosted_midi::HostedMidiSelection>,
 }
 
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
@@ -202,6 +204,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let InstalledRunHost {
         advertisement,
         playback,
+        midi_output,
     } = host;
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     let active_nodes = lowered.nodes.len();
@@ -471,6 +474,32 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mut midi_output_sessions = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION
+            {
+                midi_output_operation::prepare_session(placement, midi_output).map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let mut midi_output_adapters = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION
+            {
+                midi_output_operation::prepare_adapter().map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
@@ -511,6 +540,18 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 session
                     .stop()
                     .map_err(|error| format!("stop cancelled audio/play: {error:?}"))?;
+            } else if matches!(
+                cancelled_operation.contract_id.as_str(),
+                conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION
+                    | conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION
+            ) {
+                let session = midi_output_sessions
+                    .get_mut(usize::from(cancellation.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "cancelled MIDI output has no admitted session".to_string())?;
+                session
+                    .stop()
+                    .map_err(|error| format!("stop cancelled MIDI output: {error:?}"))?;
             } else {
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
@@ -569,6 +610,27 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 scheduler
                     .complete_host_operation(request.node, request.request, outcome)
                     .map_err(|error| format!("complete audio/play host operation: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION
+                    | conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION
+            ) {
+                let node = usize::from(request.node.0);
+                let session = midi_output_sessions
+                    .get_mut(node)
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "MIDI request has no exact admitted session".to_string())?;
+                let adapter = midi_output_adapters
+                    .get_mut(node)
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "MIDI request has no exact admitted adapter".to_string())?;
+                let outcome =
+                    midi_output_operation::execute(adapter, session, contract.as_str(), input);
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete MIDI output operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == test_audio_source::YIELD_OPERATION
                 && lowered_operation.target_kind.is_none()
@@ -1125,6 +1187,18 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .flatten()
         .map(crate::hosted_audio::PlaybackSession::report)
         .collect();
+    for session in midi_output_sessions.iter_mut().flatten() {
+        if session.report().lifecycle != crate::hosted_midi::MidiOutputLifecycle::StoppedClosed {
+            session
+                .stop()
+                .map_err(|error| format!("close MIDI output: {error:?}"))?;
+        }
+    }
+    let midi_output = midi_output_sessions
+        .iter()
+        .flatten()
+        .map(crate::hosted_midi::MidiOutputSession::report)
+        .collect();
     Ok(StdRunReport {
         observations,
         receipts: Vec::new(),
@@ -1138,6 +1212,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             value_allocation_capacity_after: value_allocation_after,
             presentation_ids: Vec::new(),
             playback,
+            midi_output,
             identity: execution_identity,
             #[cfg(test)]
             post_play_start_allocations,

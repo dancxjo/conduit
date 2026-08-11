@@ -166,6 +166,7 @@ pub struct StdKernelExecutionReport {
     pub value_allocation_capacity_after: (usize, usize),
     pub presentation_ids: Vec<conduit_core::PresentationId>,
     pub playback: Vec<hosted_audio::PlaybackReport>,
+    pub midi_output: Vec<hosted_midi::MidiOutputReport>,
     pub identity: conduit_runtime::lowering::KernelExecutionIdentityMap,
     #[cfg(test)]
     pub post_play_start_allocations: usize,
@@ -522,6 +523,7 @@ impl StdHost {
                     installed_std::InstalledRunHost {
                         advertisement: &advertisement,
                         playback: self.playback.as_ref(),
+                        midi_output: self.midi_output.as_ref(),
                     },
                     &fragment,
                     play_sequence,
