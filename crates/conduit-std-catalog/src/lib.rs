@@ -29,6 +29,10 @@ mod presentation_bool;
 pub use presentation_bool::*;
 mod presentation_composition;
 pub use presentation_composition::*;
+mod presentation_execution;
+pub use presentation_execution::*;
+mod browser_presentation;
+pub use browser_presentation::*;
 mod graphics;
 pub use graphics::*;
 mod time_every;
@@ -436,7 +440,21 @@ mod supported_nucleus_tests {
                 contract.browser_manifestation_honest,
                 matches!(
                     contract.kind_id.as_str(),
-                    BOOL_PRESENTATION_KIND | PATCHBAY_PRESENTATION_KIND
+                    BOOL_PRESENTATION_KIND
+                        | PATCHBAY_PRESENTATION_KIND
+                        | TEXT_PRESENTATION_KIND
+                        | LAYOUT_VIEWPORT_KIND
+                        | LAYOUT_INSET_KIND
+                        | LAYOUT_ROW_KIND
+                        | LAYOUT_COLUMN_KIND
+                        | LAYOUT_STACK_KIND
+                        | LAYOUT_ALIGN_KIND
+                        | PRESENTATION_ICON_KIND
+                        | PRESENTATION_FRAME_KIND
+                        | PRESENTATION_BADGE_KIND
+                        | GRAPHICS_RECT_KIND
+                        | GRAPHICS_TEXT_KIND
+                        | GRAPHICS_ICON_KIND
                 )
             );
             assert!(!contract.pico_manifestation_honest);

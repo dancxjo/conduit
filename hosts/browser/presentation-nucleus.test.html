@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit browser presentation nucleus proof</title>
+<p id="result">running</p>
+<main id="nucleus" aria-label="Gear Face"></main>
+<script type="module">
+import {
+  instantiatePresentationNucleus,
+  manifestPresentationNucleus,
+} from "./presentation-nucleus-runtime.mjs";
+
+const assert = (condition, message) => {
+  if (!condition) throw new Error(message);
+};
+
+try {
+  const wasmBytes = await fetch(
+    "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+  ).then((response) => {
+    assert(response.ok, "browser runtime WASM artifact loads");
+    return response.arrayBuffer();
+  });
+  const api = await instantiatePresentationNucleus(wasmBytes);
+  const root = document.querySelector("#nucleus");
+  const proof = manifestPresentationNucleus(api, root);
+  assert(proof.layout.children.length === 3, "row/column/stack layout reaches the browser");
+  assert(proof.graphics.length === 3, "rect/text/icon graphics reach the browser");
+  assert(proof.graphics.map((command) => command.kind).join(",") === "1,2,3", "graphics order is exact");
+  assert(proof.graphics[1].payload === "ready", "resolved text remains exact");
+  assert(proof.graphics[2].payload === "presentation", "canonical icon remains exact");
+  assert(proof.text === "Gear Face", "presentation/text reaches the browser");
+  let missingContext = false;
+  try {
+    manifestPresentationNucleus(api, null);
+  } catch (error) {
+    missingContext = error instanceof TypeError;
+  }
+  assert(missingContext, "missing browser manifestation context refuses distinctly");
+  globalThis.__conduitPresentationNucleus = {
+    layoutChildren: proof.layout.children.length,
+    graphicsKinds: proof.graphics.map((command) => command.kind),
+    text: proof.text,
+    missingContext,
+  };
+  document.querySelector("#result").textContent = "ok";
+} catch (error) {
+  document.querySelector("#result").textContent = `failed: ${error.message}`;
+  throw error;
+}
+</script>

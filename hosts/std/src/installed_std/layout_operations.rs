@@ -1,10 +1,10 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{ConfigurationValue, PlannedGear};
+use conduit_core::PlannedGear;
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId, ValueRef, ValueStorage,
 };
-use conduit_presentation::{LayoutAlignment, LayoutAxis, LayoutFrame, MAX_LAYOUT_FRAME_BYTES};
+use conduit_presentation::{LayoutFrame, MAX_LAYOUT_FRAME_BYTES};
 
 macro_rules! factory {
     ($name:ident, $implementation:ident) => {
@@ -119,26 +119,7 @@ pub(super) fn transform_bytes(
 ) -> Result<([u8; MAX_LAYOUT_FRAME_BYTES], usize), String> {
     let frame =
         LayoutFrame::decode(input).map_err(|error| format!("decode layout frame: {error:?}"))?;
-    let output = match placement.kind_id.as_str() {
-        conduit_std_catalog::LAYOUT_INSET_KIND => {
-            frame.inset(u16_config(placement, conduit_std_catalog::INSET_KEY)?)
-        }
-        conduit_std_catalog::LAYOUT_ROW_KIND => frame.distribute(
-            LayoutAxis::Horizontal,
-            u16_config(placement, conduit_std_catalog::GAP_KEY)?,
-        ),
-        conduit_std_catalog::LAYOUT_COLUMN_KIND => frame.distribute(
-            LayoutAxis::Vertical,
-            u16_config(placement, conduit_std_catalog::GAP_KEY)?,
-        ),
-        conduit_std_catalog::LAYOUT_STACK_KIND => Ok(frame.stack()),
-        conduit_std_catalog::LAYOUT_ALIGN_KIND => frame.align(
-            alignment(placement, conduit_std_catalog::HORIZONTAL_KEY)?,
-            alignment(placement, conduit_std_catalog::VERTICAL_KEY)?,
-        ),
-        _ => return Err("unsupported layout transform".into()),
-    }
-    .map_err(|error| format!("layout transform refused: {error:?}"))?;
+    let output = conduit_std_catalog::execute_layout_transform(placement, frame)?;
     Ok((output.encode(), output.encoded_len()))
 }
 
@@ -160,14 +141,7 @@ fn prepare(
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
     let source = if placement.kind_id.as_str() == conduit_std_catalog::LAYOUT_VIEWPORT_KIND {
-        let frame = LayoutFrame::viewport(
-            u16_config(placement, conduit_std_catalog::WIDTH_KEY)?,
-            u16_config(placement, conduit_std_catalog::HEIGHT_KEY)?,
-            u8_config(placement, conduit_std_catalog::CHILDREN_KEY)?,
-            u16_config(placement, conduit_std_catalog::CHILD_WIDTH_KEY)?,
-            u16_config(placement, conduit_std_catalog::CHILD_HEIGHT_KEY)?,
-        )
-        .map_err(|error| format!("layout viewport refused: {error:?}"))?;
+        let frame = conduit_std_catalog::execute_layout_source(placement)?;
         let encoded = frame.encode();
         Some(
             values
@@ -201,35 +175,6 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         return Err("planned layout executable identity does not match its installation".into());
     }
     Ok(())
-}
-fn u16_config(placement: &PlannedGear, key: &str) -> Result<u16, String> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::U64(value)) if found == key => u16::try_from(*value).ok(),
-            _ => None,
-        })
-        .ok_or_else(|| format!("layout configuration '{key}' is missing or out of range"))
-}
-fn u8_config(placement: &PlannedGear, key: &str) -> Result<u8, String> {
-    u8::try_from(u16_config(placement, key)?)
-        .map_err(|_| format!("layout configuration '{key}' is out of range"))
-}
-fn alignment(placement: &PlannedGear, key: &str) -> Result<LayoutAlignment, String> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::Text(value)) if found == key => match value.as_str() {
-                "start" => Some(LayoutAlignment::Start),
-                "center" => Some(LayoutAlignment::Center),
-                "end" => Some(LayoutAlignment::End),
-                _ => None,
-            },
-            _ => None,
-        })
-        .ok_or_else(|| format!("layout alignment '{key}' is invalid"))
 }
 #[cfg(test)]
 fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {

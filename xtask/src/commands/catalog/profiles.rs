@@ -29,6 +29,9 @@ pub(super) fn advertisement(host: CatalogHost) -> Result<HostAdvertisement, Cata
 
 fn browser_advertisement() -> Result<HostAdvertisement, CatalogError> {
     let mut browser = conduit_signal::distributed_browser_sink_advertisement();
+    browser
+        .capabilities
+        .extend(conduit_std_catalog::browser_presentation_nucleus_offers());
     let proof = patchbay_model::patchbay_presenter_plans()
         .map_err(|error| CatalogError::new("patchbay-direct-profile-invalid", error))?;
     browser.capabilities.extend(
