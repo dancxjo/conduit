@@ -61,6 +61,13 @@ bench = false
 required-features = ["riscv64-a0"]
 
 [[bin]]
+name = "conduitos-riscv64-a2"
+path = "src/bin/riscv64_a2.rs"
+test = false
+bench = false
+required-features = ["riscv64-a2"]
+
+[[bin]]
 name = "conduitos-loongarch64-a0"
 path = "src/bin/loongarch64_a0.rs"
 test = false
@@ -76,6 +83,7 @@ ia32-a0 = []
 ia32-a2 = []
 ia32-a3 = []
 riscv64-a0 = []
+riscv64-a2 = []
 loongarch64-a0 = []
 
 [dependencies]

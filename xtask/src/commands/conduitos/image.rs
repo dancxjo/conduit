@@ -19,8 +19,15 @@ const EXPECTED_IMAGE_FILE_COUNT: usize = 6;
 const CONDUITOS_GPT_DISK_GUID: &str = "434f4e44-5549-544f-5300-000000000001";
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
-    let paths = Paths::new(arch)?;
     let _build = build::execute(arch, opts)?;
+    assemble(arch, opts)
+}
+
+pub(super) fn assemble(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
+    let paths = Paths::new(arch)?;
     if opts.dry_run {
         println!("fetch and verify pinned Limine {LIMINE_VERSION}");
         println!("assemble {}", paths.iso.display());

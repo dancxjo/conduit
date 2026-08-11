@@ -1,4 +1,4 @@
-//! One finite, pre-admitted cooperative lane for the AArch64 A2 proof.
+//! One finite, pre-admitted cooperative lane for machine A2 proofs.
 //!
 //! The architecture supplies only an exact timer completion fact. The
 //! production kernel remains the sole owner of operation lifecycle and
@@ -24,6 +24,8 @@ pub const TIMER_OPERATION: HostOperationId = HostOperationId(0);
 pub const LANE_ID: &str = "lane/aarch64/cooperative/0";
 #[cfg(target_arch = "x86")]
 pub const LANE_ID: &str = "lane/ia32/cooperative/0";
+#[cfg(target_arch = "riscv64")]
+pub const LANE_ID: &str = "lane/riscv64/cooperative/0";
 const PORTS: usize = 1;
 const SIGN_CAPACITY: usize = 16;
 
