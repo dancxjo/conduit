@@ -7,7 +7,13 @@ mod ia32_a1;
 mod ia32_a2;
 mod image;
 mod loongarch64_a0;
+#[allow(dead_code)]
 mod loongarch64_a1;
+#[allow(dead_code)]
+mod loongarch64_a2;
+#[allow(dead_code)]
+mod loongarch64_a3;
+mod loongarch64_a4;
 mod profile;
 mod prove;
 mod report;
@@ -172,7 +178,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 ConduitosArch::Aarch64 => aarch64_a1::run(opts),
                 ConduitosArch::Ia32 => ia32_a1::run(opts),
                 ConduitosArch::Riscv64 => riscv64_a4::run(opts),
-                ConduitosArch::Loongarch64 => loongarch64_a1::run(opts),
+                ConduitosArch::Loongarch64 => loongarch64_a4::run(opts),
                 _ => run::execute(target.arch, opts).map(|_| ()),
             }
         }
@@ -181,7 +187,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             if target.arch == ConduitosArch::Riscv64 {
                 riscv64_a4::prove(opts)
             } else if target.arch == ConduitosArch::Loongarch64 {
-                loongarch64_a1::prove(opts)
+                loongarch64_a4::prove(opts)
             } else {
                 prove::execute(target.arch, opts)
             }

@@ -45,4 +45,11 @@ pub use riscv64::{
 #[cfg(target_arch = "riscv64")]
 pub const ARCHITECTURE: &str = "riscv64";
 #[cfg(target_arch = "loongarch64")]
+mod loongarch64;
+#[cfg(target_arch = "loongarch64")]
+pub use loongarch64::{
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
+    initialize_machine, interruptible_idle, pop_interrupt, present, read_counter, timer_arm,
+};
+#[cfg(target_arch = "loongarch64")]
 pub const ARCHITECTURE: &str = "loongarch64";

@@ -27,7 +27,7 @@ const QEMU_ROM_BYTES: usize = 4 * 1024 * 1024;
 const QEMU_ROM_SHA256: &str = "b4c32ce95a54346c8bc180241a21ad763c5fcf43310e95aa93ed58bf0cc0864e";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct EntrySign {
+pub(super) struct EntrySign {
     schema: String,
     status: String,
     architecture: String,
@@ -147,6 +147,13 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 }
 
 fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
+    let text = boot_until(paths, PREFIX)?;
+    let sign = parse(&text)?;
+    validate(&sign, paths)?;
+    Ok(sign)
+}
+
+pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String, ConduitosError> {
     if !paths.limine.join("BOOTLOONGARCH64.EFI").is_file() {
         return Err(refusal(
             "missing-loongarch64-bootloader-artifact",
@@ -205,16 +212,14 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
             ));
         }
         let text = fs::read_to_string(&log).unwrap_or_default();
-        if text.contains(PREFIX) && text.ends_with('\n') {
+        if text.contains(terminal_prefix) && text.ends_with('\n') {
             child
                 .kill()
                 .map_err(|error| refusal("loongarch64-boot-failed", error.to_string()))?;
             child
                 .wait()
                 .map_err(|error| refusal("loongarch64-boot-failed", error.to_string()))?;
-            let sign = parse(&text)?;
-            validate(&sign, paths)?;
-            return Ok(sign);
+            return Ok(text);
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
@@ -227,7 +232,7 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
     }
 }
 
-fn parse(text: &str) -> Result<EntrySign, ConduitosError> {
+pub(super) fn parse(text: &str) -> Result<EntrySign, ConduitosError> {
     let values: Vec<_> = text
         .split(PREFIX)
         .skip(1)
@@ -243,7 +248,7 @@ fn parse(text: &str) -> Result<EntrySign, ConduitosError> {
         .map_err(|error| refusal("malformed-loongarch64-entry-sign", error.to_string()))
 }
 
-fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosError> {
+pub(super) fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosError> {
     let commit = git_head(&paths.root)?;
     if sign.schema != "conduit.conduitos.loongarch64-entry-sign/v1"
         || sign.status != "entered"
@@ -266,7 +271,7 @@ fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosError> {
     Ok(())
 }
 
-fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError> {
+pub(super) fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError> {
     let local_qemu = paths
         .root
         .join("target/conduitos/toolchain/riscv64-root/usr/bin/qemu-system-loongarch64");
@@ -406,7 +411,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn absent_sign_refuses() {
+    fn absent_and_duplicate_entry_signs_refuse() {
         assert!(parse("").is_err());
+        assert!(parse(&format!("{PREFIX}{{}}\n{PREFIX}{{}}\n")).is_err());
     }
 }
