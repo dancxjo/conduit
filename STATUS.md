@@ -1614,3 +1614,36 @@ its semantic identities remain intact. This adds no line/path/clip Kind, pixel
 API, toolkit contract, scene-graph runtime, font shaping, icon registry clone,
 SVG/PostScript language, shader/GPU pipeline, image codec, or physical/HIL
 claim.
+
+The first Patchbay-specific presentation-Back slice from #891 is accepted at
+exact main `ea259e838c7bad57de32b0cf55601265c283cbbe`; push workflow
+`31475550408` passed `check`, `browser-host`, and `conduitos-boot`, and Pages
+workflow `31475550397` completed for the same commit.
+
+Exactly three thin meanings cover `patchbay/gear-face`, `patchbay/port`, and
+`patchbay/cord`. They consume the existing canonical `PatchbayGear`,
+`PatchbayPort`, `PatchbayCord`, `PortDescriptor`, and `FaceControl` values;
+they do not create replacement Gear, Port, Cord, or control identities. Port
+direction, Info Kind, temporal contract, concise accessible name, and exact
+subject identity remain recognizable. Optional Line and Plan facts are
+active-lens annotations on a Cord presentation and never replace or equal the
+Cord identity.
+
+A direct realization joins each high-level subject without exposing its Back.
+Explicit inspection may reveal a distinct finite recursive expansion. The Gear
+Face expansion composes accepted layout, icon, text, frame, badge, rectangle,
+resolved-text, and resolved-icon leaves into the canonical bounded graphics
+scene. Port and Cord expansions reuse the same admitted layout, presentation,
+and graphics vocabulary. Normalized direct and recursive realizations preserve
+the same subject identity and accessibility obligations while their expansion
+descriptions remain visibly distinct. Face controls retain authoritative typed
+value intents; no slider, checkbox, knob, textbox, or other widget type enters
+portable meaning.
+
+The default Patchbay canvas, existing renderer, interaction path, and
+documentary demo remain intact and do not expose recursive machinery unless
+asked. The finite `PATCHBAY_BACK_KINDS` inventory records the three accepted
+Backs without advertising them as ambient std-host capabilities. This adds no
+second Patchbay model, renderer-owned semantic graph, path Kind, widget
+ontology, palette or inspector expansion, graph-layout engine, toolkit
+contract, self-hosting recursion, or physical/HIL claim.
