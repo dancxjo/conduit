@@ -96,6 +96,32 @@ fn hosted_text_configuration_is_not_promoted_to_embedded_execution() {
 }
 
 #[test]
+fn signed_scalar_configuration_remains_exact_in_a_fixed_image() {
+    let mut fragment = sealed_current_fragment();
+    fragment.placements[0].configuration[0].value = ConfigurationValue::I64(-7);
+    let identity = FormIdentity {
+        source_document_id: fragment.source_document_id.clone(),
+        checked_form_id: fragment.checked_form_id.clone(),
+        expanded_form_id: fragment.expanded_form_id.clone(),
+    };
+    let fragment = seal_plan(identity, vec![fragment])
+        .fragments
+        .into_iter()
+        .next()
+        .unwrap();
+    let lowered = lower_plan_fragment(&fragment).expect("signed configuration lowers");
+    let generated =
+        generate_embedded_plan(&fragment, &lowered, EmbeddedImageBounds::HOST_TOOLING).unwrap();
+    assert_eq!(
+        generated.configuration[0].value,
+        GeneratedConfigurationValue::I64(-7)
+    );
+    assert!(generated
+        .render_rust_module()
+        .contains("conduit_core::ConfigurationValue::I64(-7)"));
+}
+
+#[test]
 fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
     let form = conduit_form::parse(
         include_str!("../../../examples/signal-demo.form"),

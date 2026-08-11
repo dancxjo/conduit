@@ -124,6 +124,7 @@ pub struct GeneratedPort {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GeneratedConfigurationValue {
     Bool(bool),
+    I64(i64),
     U64(u64),
 }
 

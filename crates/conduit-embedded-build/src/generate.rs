@@ -187,6 +187,7 @@ fn generate_configuration(
         for entry in &placement.configuration {
             let value = match &entry.value {
                 ConfigurationValue::Bool(value) => GeneratedConfigurationValue::Bool(*value),
+                ConfigurationValue::I64(value) => GeneratedConfigurationValue::I64(*value),
                 ConfigurationValue::U64(value) => GeneratedConfigurationValue::U64(*value),
                 ConfigurationValue::Text(_) => {
                     return Err(GenerationError::Unsupported(

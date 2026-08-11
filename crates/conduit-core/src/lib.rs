@@ -855,6 +855,10 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                     canonical.push(1);
                     push_u64(&mut canonical, value);
                 }
+                ConfigurationValue::I64(value) => {
+                    canonical.push(3);
+                    canonical.extend_from_slice(&value.to_le_bytes());
+                }
                 ConfigurationValue::Text(ref value) => {
                     canonical.push(2);
                     push_string(&mut canonical, value);

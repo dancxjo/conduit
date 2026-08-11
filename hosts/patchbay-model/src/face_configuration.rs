@@ -103,6 +103,10 @@ fn accepts(rule: &StandardConfigurationRule, value: &ConfigurationValue) -> bool
             StandardConfigurationRule::DurationMillis { minimum, maximum },
             ConfigurationValue::U64(value),
         ) => (*minimum..=*maximum).contains(value),
+        (
+            StandardConfigurationRule::I64Range { minimum, maximum },
+            ConfigurationValue::I64(value),
+        ) => (*minimum..=*maximum).contains(value),
         (StandardConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize
         }
@@ -118,6 +122,9 @@ fn configuration_refusal(rule: &StandardConfigurationRule) -> String {
         StandardConfigurationRule::Any => "expected a Boolean value".into(),
         StandardConfigurationRule::U64Range { minimum, maximum } => {
             format!("enter a number from {minimum} through {maximum}")
+        }
+        StandardConfigurationRule::I64Range { minimum, maximum } => {
+            format!("enter scalar microunits from {minimum} through {maximum}")
         }
         StandardConfigurationRule::DurationMillis { minimum, maximum } => {
             format!("enter milliseconds from {minimum} through {maximum}")
@@ -138,6 +145,7 @@ fn configuration_spelling(rule: &StandardConfigurationRule, value: &Configuratio
         }
         (_, ConfigurationValue::Bool(value)) => value.to_string(),
         (_, ConfigurationValue::U64(value)) => value.to_string(),
+        (_, ConfigurationValue::I64(value)) => value.to_string(),
         (_, ConfigurationValue::Text(value)) => {
             format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
         }

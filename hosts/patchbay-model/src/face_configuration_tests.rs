@@ -23,6 +23,32 @@ fn face_controls_project_actual_values_and_visible_contracts() {
 }
 
 #[test]
+fn signed_scalar_control_is_visible_bounded_and_authored_exactly() {
+    let mut editor =
+        editor("form controls {\n    clamp: math/clamp(minimum = -7, maximum = 9)\n}\n");
+    let before = editor.expand_form("controls").unwrap();
+    let graph = PatchbayGraph::from_expanded(&before).unwrap();
+    assert!(matches!(
+        graph.gears[0].controls[0].kind,
+        FaceControlKind::ScalarNumber {
+            minimum: i64::MIN,
+            maximum: i64::MAX,
+            unit: "µ"
+        }
+    ));
+    editor
+        .set_gear_configuration(
+            0,
+            &before.expanded_form_id,
+            "clamp",
+            "minimum",
+            ConfigurationValue::I64(-8),
+        )
+        .unwrap();
+    assert!(editor.view().source.contains("minimum = -8"));
+}
+
+#[test]
 fn boolean_contract_projects_a_toggle_with_explicit_choices() {
     let gear = conduit_form::CheckedGear {
         gear_id: conduit_core::GearId::from("controls/pulse"),
