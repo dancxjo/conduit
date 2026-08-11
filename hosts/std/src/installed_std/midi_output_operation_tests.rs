@@ -83,7 +83,8 @@ fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
 #[test]
 fn exact_portable_events_cross_the_bounded_host_boundary_in_order() {
     let (placement, selection) = fixture();
-    let mut session = prepare_session(&placement, Some(&selection)).unwrap();
+    let selected = crate::hosted_midi::MidiOutputSelection::sequencer(selection);
+    let mut session = prepare_session(&placement, Some(&selected)).unwrap();
     let mut adapter = prepare_adapter().unwrap();
     let pitch = conduit_core::MusicalPitch::from_equal_tempered(
         0,
@@ -139,10 +140,12 @@ fn exact_portable_events_cross_the_bounded_host_boundary_in_order() {
 fn stale_authority_and_unrepresentable_pitch_fail_closed() {
     let (mut placement, selection) = fixture();
     placement.authority.pop();
-    assert!(prepare_session(&placement, Some(&selection)).is_err());
+    let selected = crate::hosted_midi::MidiOutputSelection::sequencer(selection);
+    assert!(prepare_session(&placement, Some(&selected)).is_err());
 
     let (placement, selection) = fixture();
-    let mut session = prepare_session(&placement, Some(&selection)).unwrap();
+    let selected = crate::hosted_midi::MidiOutputSelection::sequencer(selection);
+    let mut session = prepare_session(&placement, Some(&selected)).unwrap();
     let mut adapter = prepare_adapter().unwrap();
     let pitch = conduit_core::MusicalPitch::from_equal_tempered(
         0,
@@ -172,7 +175,8 @@ fn provider_loss_remains_a_host_failure() {
     let (placement, selection) = fixture();
     let selection = selection
         .with_fake_output(crate::hosted_midi::output_fake::FakeMidiOutputBehavior::FailAfter(0));
-    let mut session = prepare_session(&placement, Some(&selection)).unwrap();
+    let selected = crate::hosted_midi::MidiOutputSelection::sequencer(selection);
+    let mut session = prepare_session(&placement, Some(&selected)).unwrap();
     let mut adapter = prepare_adapter().unwrap();
     let pitch = conduit_core::MusicalPitch::from_equal_tempered(
         0,
