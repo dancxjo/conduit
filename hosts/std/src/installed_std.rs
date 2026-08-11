@@ -28,6 +28,8 @@ mod test_input_semantics;
 #[cfg(test)]
 mod test_logic;
 #[cfg(test)]
+mod test_midi_source;
+#[cfg(test)]
 mod test_scalar_flow;
 #[cfg(test)]
 mod test_support;
@@ -100,6 +102,11 @@ pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
 
 pub(super) fn test_pcm_source_offer() -> conduit_core::CapabilityOffer {
     test_audio_source::offer()
+}
+
+#[cfg(test)]
+pub(super) fn test_midi_source_offer() -> conduit_core::CapabilityOffer {
+    test_midi_source::offer()
 }
 
 pub(crate) fn playback_proof_catalog() -> conduit_form::ProfileCatalog {

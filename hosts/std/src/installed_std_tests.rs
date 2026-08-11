@@ -14,6 +14,7 @@ mod input_semantics_conformance;
 mod layout_conformance;
 mod logic_conformance;
 mod math_conformance;
+mod midi_output_conformance;
 mod presentation_composition;
 mod robotics_conformance;
 mod timing_conformance;
