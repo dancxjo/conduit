@@ -1,5 +1,5 @@
 use crate::{
-    audio_present_contract, synthesize_contract, AUDIO_PRESENT_KIND, MAXIMUM_PCM_BYTES,
+    audio_play_contract, synthesize_contract, AUDIO_PLAY_KIND, MAXIMUM_PCM_BYTES,
     MAXIMUM_TEXT_BYTES,
 };
 use conduit_core::{
@@ -75,11 +75,11 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
         ),
     };
     let synth = synthesize_contract();
-    let present = audio_present_contract();
+    let present = audio_play_contract();
     let synthesis_operation =
         host_operation(SYNTHESIZE_OPERATION, MAXIMUM_TEXT_BYTES, MAXIMUM_PCM_BYTES);
     let mut output_operation_requirement = host_operation(output_operation, MAXIMUM_PCM_BYTES, 256);
-    output_operation_requirement.target_kind = Some(kind_id(AUDIO_PRESENT_KIND));
+    output_operation_requirement.target_kind = Some(kind_id(AUDIO_PLAY_KIND));
     SpeechHostFixture {
         advertisement: HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
@@ -150,7 +150,7 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
                     authority_requirements: vec![AuthorityRequirement {
                         contract_id: AuthorityContractId::from(authority),
                         host_operation_contract_id: output_operation_requirement.contract_id,
-                        subject_kind: kind_id(AUDIO_PRESENT_KIND),
+                        subject_kind: kind_id(AUDIO_PLAY_KIND),
                     }],
                     limits: present.limits,
                 },

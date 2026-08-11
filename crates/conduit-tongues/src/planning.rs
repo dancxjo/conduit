@@ -1,6 +1,6 @@
 use crate::{
     install_speech_catalogs, speech_host_fixture, OutputCondition, ARTIFACT_WRITE_AUTHORITY,
-    AUDIO_OUTPUT_AUTHORITY, AUDIO_PRESENT_KIND,
+    AUDIO_OUTPUT_AUTHORITY, AUDIO_PLAY_KIND,
 };
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, CapabilityId, ConnectionBase,
@@ -18,7 +18,7 @@ use std::collections::BTreeMap;
 
 pub const SPEECH_FORM: &str = r#"form tongues_text_to_speech {
     tts: speech/synthesize
-    output: audio/present
+    output: audio/play
     "Hello from Tongues." > tts > output
 }
 "#;
@@ -88,7 +88,7 @@ pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> 
         host_operation_contract_id: HostOperationContractId::from(
             requirement.host_operation_contract_id.as_str(),
         ),
-        subject_kind: kind_id(AUDIO_PRESENT_KIND),
+        subject_kind: kind_id(AUDIO_PLAY_KIND),
         host_id: fixture.advertisement.host_id.clone(),
         boot_id: fixture.advertisement.boot_id.clone(),
         capability_id: CapabilityId::from(output.capability_id.as_str()),
@@ -135,7 +135,7 @@ mod tests {
             let output = fragment
                 .placements
                 .iter()
-                .find(|placement| placement.kind_id.as_str() == AUDIO_PRESENT_KIND)
+                .find(|placement| placement.kind_id.as_str() == AUDIO_PLAY_KIND)
                 .unwrap();
             assert!(output
                 .resources

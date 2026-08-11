@@ -47,6 +47,16 @@ mod robotics_catalog;
 pub use robotics_catalog::install_robotics_catalogs;
 mod copy_file;
 pub use copy_file::*;
+mod sound;
+pub use sound::*;
+mod sound_compatibility;
+pub use sound_compatibility::*;
+mod sound_stream;
+pub use sound_stream::*;
+#[cfg(feature = "form-catalog")]
+mod sound_catalog;
+#[cfg(feature = "form-catalog")]
+pub use sound_catalog::install_sound_catalogs;
 
 /// Exact typed contracts currently supported by the executable `conduit.std` nucleus.
 ///
