@@ -165,6 +165,30 @@ extern "C" fn conduitos_ia32_a3_rust_entry() -> ! {
         .unwrap_or_else(|error| refuse(error.as_str()));
     let mut prepared = conduitos::dual_region_plan::prepare(&identities, &offer, BUILD_ID)
         .unwrap_or_else(|error| refuse(error.as_str()));
+    let boot_record = conduitos::boot::BootRecord {
+        firmware: conduitos::boot::Firmware::Uefi32,
+        timestamp: counter,
+        hhdm_offset: 0,
+        image_physical_start: 0x0010_0000,
+        image_length: 0,
+        memory_region_count: 1,
+        artifact_count: 0,
+        framebuffer_count: 0,
+        command_line_bytes: 0,
+        runtime_arena: conduitos::boot::RuntimeArena {
+            physical_start: core::ptr::addr_of!(A3_MEMORY_ARENA) as u64,
+            length: 1024 * 1024,
+        },
+    };
+    let observatory_export = conduitos::observatory::prepare_export(
+        &boot_record,
+        &identities,
+        &offer,
+        &prepared,
+        BUILD_ID,
+        IMAGE_ID,
+    )
+    .unwrap_or_else(|error| refuse(error.as_str()));
     let before = BOOT_ARENA.seal();
     let mut clock = arch::Clock::new();
     let mut timer = arch::Timer::new();
@@ -194,9 +218,12 @@ extern "C" fn conduitos_ia32_a3_rust_entry() -> ! {
     )
     .unwrap_or_else(|_| refuse("kernel-sign-storage-full"));
     arch::present(sign.as_bytes());
+    arch::present(conduitos::observatory::EXPORT_PREFIX.as_bytes());
+    arch::present(observatory_export.as_bytes());
+    arch::present(b"\n");
     arch::present(b"CONDUIT_IA32_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
-    arch::present(b"\",\"wake_source\":\"8254-pit-channel0-irq0\",\"wake_irq\":32,\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":false}\n");
+    arch::present(b"\",\"wake_source\":\"8254-pit-channel0-irq0\",\"wake_irq\":32,\"a3_ordinary_form_claimed\":true,\"a4_observatory_patchbay_claimed\":true}\n");
     loop {
         unsafe { core::arch::asm!("hlt", options(nomem, nostack)) }
     }
