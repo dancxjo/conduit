@@ -189,6 +189,70 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
     ),
 ];
 
+pub const PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.body-membership-hil.browser-runtime",
+        "Build the browser Host WASM artifact for the physical Body capstone",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-browser-runtime",
+            "--target",
+            "wasm32-unknown-unknown",
+            "--release",
+        ],
+        None,
+        Some("wasm32-unknown-unknown"),
+        Some(ProofClass::ContractCompile),
+        &["hosts/browser/conduit_browser_runtime.wasm"],
+    ),
+    Step::typed(
+        "prove.body-membership-hil.native",
+        "Build the native same-Body physical membership verifier",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "patchbay-native",
+            "--bin",
+            "browser-parts-capstone",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/browser-parts-capstone"],
+    ),
+    Step::typed(
+        "prove.body-membership-hil.browser-servers",
+        "Build the bounded browser Lines used by the physical Body capstone",
+        "cargo",
+        &["build", "-p", "conduit-std-host", "--bin", "webchat-server"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/webchat-server"],
+    ),
+    Step::typed(
+        "prove.body-membership-hil.live-browser-membership",
+        "Admit three Chromium Parts and the physical Pico into the exact R1 Body",
+        "npx",
+        &[
+            "playwright",
+            "test",
+            "--config",
+            "hosts/browser/playwright.config.mjs",
+            "hosts/browser/webchat.spec.mjs",
+            "--grep",
+            "one native Body presents three mixed browser Parts",
+        ],
+        None,
+        Some("playwright"),
+        Some(ProofClass::PhysicalCrossHost),
+        &[],
+    ),
+];
+
 pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
     Step::typed(
         "prove.std-browser-s4.wasm-build",

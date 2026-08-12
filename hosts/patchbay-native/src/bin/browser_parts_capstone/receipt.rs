@@ -5,6 +5,8 @@ use conduit_core::Plan;
 use patchbay_model::{PartPresentationState, PartsView};
 use serde_json::{json, Value};
 
+const RECEIPT_PATH_ENV: &str = "CONDUIT_B9_MEMBERSHIP_RECEIPT_PATH";
+
 pub(super) fn machine_receipt(
     body: &Body,
     membership: &BodyMembership,
@@ -59,4 +61,21 @@ pub(super) fn machine_receipt(
         }
     }))
     .map_err(|error| format!("encode capstone receipt: {error}"))
+}
+
+pub(super) fn retain_if_requested(receipt: &str) -> Result<(), String> {
+    let Some(path) = std::env::var_os(RECEIPT_PATH_ENV) else {
+        return Ok(());
+    };
+    let path = std::path::PathBuf::from(path);
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("{RECEIPT_PATH_ENV} has no parent directory"))?;
+    std::fs::create_dir_all(parent)
+        .map_err(|error| format!("create capstone receipt directory: {error}"))?;
+    let temporary = path.with_extension("json.tmp");
+    std::fs::write(&temporary, receipt)
+        .map_err(|error| format!("write capstone receipt: {error}"))?;
+    std::fs::rename(&temporary, &path)
+        .map_err(|error| format!("retain capstone receipt atomically: {error}"))
 }

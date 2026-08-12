@@ -1,23 +1,11 @@
 //! One bounded native Body proof for mixed browser Parts and stable replanning truth.
 
-use std::collections::BTreeMap;
-
 use conduit_body::{
     AdmissionManager, AdmissionRefusal, AdmissionSigns, AmbientAdmissionProof,
     AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory, CandidateObservation,
     DiscoveryProofId, MembershipProofId, PartId, SpawnAdmissionProof, SpawnInvitationSecret,
 };
-use conduit_core::{
-    BootId, CheckedFormId, ConnectionBase, HostAdvertisement, HostId, LinkBindingId, LinkLimits,
-    OfferGeneration, SignId, SourceDocumentId,
-};
-use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
-};
-use conduit_planner::{
-    plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
-};
+use conduit_core::{HostAdvertisement, LinkBindingId, OfferGeneration, SignId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BrowserAdmissionSocket, BROWSER_ADMISSION_PROTOCOL,
@@ -25,12 +13,14 @@ use conduit_std_host::browser_admission::{
 use patchbay_model::{PartPresentationState, PartsView};
 use serde_json::json;
 
+#[path = "browser_parts_capstone/physical_body.rs"]
+mod physical_body;
 #[path = "browser_parts_capstone/physical_pico.rs"]
 mod physical_pico;
+#[path = "browser_parts_capstone/planning.rs"]
+mod planning;
 #[path = "browser_parts_capstone/receipt.rs"]
 mod receipt;
-
-const SOURCE: &str = include_str!("../../../../examples/webchat.conduit");
 
 struct AdmittedBrowser {
     socket: BrowserAdmissionSocket,
@@ -39,15 +29,11 @@ struct AdmittedBrowser {
 }
 
 fn main() -> Result<(), String> {
-    let body = Body::born(
-        SourceDocumentId::from("source/browser-parts-capstone"),
-        CheckedFormId::from("checked/browser-parts-capstone"),
-        1,
-        SignId::from("browser-parts-capstone/body-born"),
-    )
-    .map_err(debug("Body birth"))?;
+    let mut physical = physical_body::PhysicalBody::prepare()?;
+    let body = physical.birth()?;
     let mut membership = BodyMembership::new(body.body_id.clone()).map_err(debug("membership"))?;
     let here = PartId::bind(&body.body_id, "part/here", 1).map_err(debug("Here identity"))?;
+    let (here_host, here_boot) = physical.here_identity();
     membership
         .admit(
             &body.body_id,
@@ -63,8 +49,8 @@ fn main() -> Result<(), String> {
             membership.revision,
             &here,
             AuthenticatedHostObservation {
-                host_id: HostId::from("body/std-here"),
-                boot_id: BootId::from("body/std-here-boot"),
+                host_id: here_host,
+                boot_id: here_boot,
                 offer_generation: OfferGeneration(1),
                 proof_id: MembershipProofId::bind("proof/here-present")
                     .map_err(debug("Here presence proof"))?,
@@ -76,11 +62,9 @@ fn main() -> Result<(), String> {
     let mut candidates =
         CandidateInventory::new(body.body_id.clone()).map_err(debug("candidate inventory"))?;
     let mut manager = AdmissionManager::new(body.body_id.clone()).map_err(debug("manager"))?;
-    let pico = std::env::var("CONDUIT_B9_PICO_LINK_PORT")
-        .ok()
-        .map(|path| {
-            physical_pico::admit(&path, &body, &mut candidates, &mut membership, &mut manager)
-        })
+    let pico = physical
+        .take_pending()
+        .map(|pending| pending.admit(&body, &mut candidates, &mut membership, &mut manager))
         .transpose()?;
     let secret_bytes = [37; 32];
     let invitation = manager
@@ -121,7 +105,10 @@ fn main() -> Result<(), String> {
         &mut manager,
         1,
     )?;
-    let plan = cross_browser_plan(&first.advertisement, &second.advertisement)?;
+    let plan = physical.plan().map_or_else(
+        || planning::cross_browser_plan(&first.advertisement, &second.advertisement),
+        |exact| Ok(exact.plan.clone()),
+    )?;
     let stable_plan_id = plan.plan_id.clone();
     let third = admit_spawn(&listener, &mut membership, &mut manager, false, 2)?
         .ok_or("first spawn invitation was unexpectedly refused")?;
@@ -129,14 +116,25 @@ fn main() -> Result<(), String> {
     if plan.plan_id != stable_plan_id {
         return Err("joining a third Part mutated the active Plan".into());
     }
-    let replacement = cross_browser_plan(&second.advertisement, &third.advertisement)?;
-    if replacement.plan_id == stable_plan_id
-        || !replacement
+    let replacement = if let Some(exact) = physical.plan() {
+        conduit_system_continuity::exact_r1_control_plan(
+            exact.pico_advertisement.boot_id.clone(),
+            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+        )?
+        .plan
+    } else {
+        planning::cross_browser_plan(&second.advertisement, &third.advertisement)?
+    };
+    if replacement.plan_id == stable_plan_id {
+        return Err("explicit replan did not produce a distinct Plan".into());
+    }
+    if physical.plan().is_none()
+        && !replacement
             .fragments
             .iter()
             .any(|fragment| fragment.host_id == third.advertisement.host_id)
     {
-        return Err("explicit replan did not produce a distinct Plan using the new Part".into());
+        return Err("browser replacement Plan did not use the new Part".into());
     }
 
     let expected_parts = 4 + usize::from(pico.is_some());
@@ -150,13 +148,14 @@ fn main() -> Result<(), String> {
         true,
     )
     .map_err(debug("Parts projection"))?;
+    let expected_current_plan_parts = if pico.is_some() { 1 } else { 2 };
     if before_offline.parts.len() != expected_parts
         || before_offline
             .parts
             .iter()
             .filter(|row| row.in_plan)
             .count()
-            != 2
+            != expected_current_plan_parts
         || !before_offline.new_realization_possibilities
     {
         return Err(
@@ -164,11 +163,12 @@ fn main() -> Result<(), String> {
         );
     }
     println!(
-        "ready_for_offline body={} plan={} replacement_plan={} parts={} in_plan=2 future_possibilities=true pico_parts={}",
+        "ready_for_offline body={} plan={} replacement_plan={} parts={} current_boots_in_plan={} future_possibilities=true pico_parts={}",
         body.body_id.as_str(),
         plan.plan_id.as_str(),
         replacement.plan_id.as_str(),
         expected_parts,
+        expected_current_plan_parts,
         usize::from(pico.is_some())
     );
 
@@ -210,17 +210,16 @@ fn main() -> Result<(), String> {
         offline,
         plan.fragments.len()
     );
-    println!(
-        "{}",
-        receipt::machine_receipt(
-            &body,
-            &membership,
-            &after_offline,
-            &plan,
-            &replacement,
-            pico.is_some(),
-        )?
-    );
+    let machine_receipt = receipt::machine_receipt(
+        &body,
+        &membership,
+        &after_offline,
+        &plan,
+        &replacement,
+        pico.is_some(),
+    )?;
+    receipt::retain_if_requested(&machine_receipt)?;
+    println!("{machine_receipt}");
     drop((second, third, pico));
     Ok(())
 }
@@ -354,85 +353,6 @@ fn admit_spawn(
         (true, Ok(_)) => Err("replayed invitation admitted another Part".into()),
         (true, Err(error)) => Err(format!("unexpected replay refusal: {error:?}")),
     }
-}
-
-fn cross_browser_plan(
-    source: &HostAdvertisement,
-    sink: &HostAdvertisement,
-) -> Result<conduit_core::Plan, String> {
-    let mut startup = StartupCatalog::new();
-    let mut profile = ProfileCatalog::new();
-    conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile)?;
-    conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
-    let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
-        .map_err(|error| format!("canonical webchat check: {error:?}"))?;
-    let expanded = expand_canonical_form(&checked, "webchat-browser-demo", &profile)
-        .map_err(|error| format!("canonical webchat expansion: {error:?}"))?;
-    let mut by_gear = BTreeMap::new();
-    for gear in &expanded.gears {
-        let target = if gear.kind_id.as_str() == conduit_chat::WEB_TEXT_INPUT_KIND {
-            source
-        } else {
-            sink
-        };
-        let capability = target
-            .capabilities
-            .iter()
-            .find(|offer| offer.kind_id == gear.kind_id)
-            .ok_or_else(|| format!("browser offer missing kind {}", gear.kind_id.as_str()))?;
-        by_gear.insert(
-            gear.gear_id.clone(),
-            PlacementChoice {
-                host_id: target.host_id.clone(),
-                capability_id: capability.capability_id.clone(),
-            },
-        );
-    }
-    let cross = expanded
-        .connections
-        .iter()
-        .find(|connection| {
-            expanded
-                .gears
-                .iter()
-                .find(|gear| gear.gear_id == connection.source_gear_id)
-                .is_some_and(|gear| gear.kind_id.as_str() == conduit_chat::WEB_TEXT_INPUT_KIND)
-        })
-        .ok_or("expanded webchat has no text-to-socket connection")?;
-    let line = conduit_core::process_owned_line_offer_with_limits(
-        "browser/capstone/websocket-line",
-        "browser/capstone/websocket-binding",
-        ConnectionBase::WebSocket,
-        "browser/capstone/websocket-instance",
-        source,
-        sink,
-        LinkLimits {
-            maximum_in_flight_items: 4,
-            maximum_payload_bytes: 1_024,
-            maximum_buffered_bytes: 4_096,
-            maximum_frame_bytes: 8_192,
-        },
-    );
-    let line_candidates = BTreeMap::from([(
-        (cross.source_gear_id.clone(), cross.sink_gear_id.clone()),
-        vec![line.line_id.clone()],
-    )]);
-    plan_expanded_canonical_with_options(
-        &expanded,
-        &[source.clone(), sink.clone()],
-        &PlacementChoices { by_gear },
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
-        PlanningOptions {
-            connection_bases: &BTreeMap::new(),
-            line_candidates: &line_candidates,
-            connection_item_capacity: 4,
-            connection_byte_capacity: 1_024,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            line_offers: &[line],
-        },
-    )
-    .map_err(|error| error.to_string())
 }
 
 fn ambient_proof(frame: BrowserAdmissionIngress) -> Result<AmbientAdmissionProof, String> {

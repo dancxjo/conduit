@@ -5,8 +5,8 @@ use crate::{
     },
     process::{run_suite, run_suite_with_environment, StepError},
     suites::prove::{
-        PROVE_BODY_MEMBERSHIP_STEPS, PROVE_BROWSER_HOST_STEPS, PROVE_STD_BROWSER_S4_STEPS,
-        PROVE_STD_BROWSER_TOGGLE_STEPS,
+        PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS, PROVE_BODY_MEMBERSHIP_STEPS,
+        PROVE_BROWSER_HOST_STEPS, PROVE_STD_BROWSER_S4_STEPS, PROVE_STD_BROWSER_TOGGLE_STEPS,
     },
     workspace::workspace_root,
 };
@@ -16,6 +16,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
 
     match args.proof {
         ProveTarget::BodyMembership => run_suite(PROVE_BODY_MEMBERSHIP_STEPS, &root, opts),
+        ProveTarget::BodyMembershipHil => run_body_membership_hil(&args, &root, opts),
         ProveTarget::StdBrowserS4 => run_suite(PROVE_STD_BROWSER_S4_STEPS, &root, opts),
         ProveTarget::StdBrowserToggle => run_suite(PROVE_STD_BROWSER_TOGGLE_STEPS, &root, opts),
         ProveTarget::BrowserHost => {
@@ -196,6 +197,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                 args.credential_env.as_deref(),
                 crate::commands::pico::WifiProofMode::R1Full {
                     interactive: args.interactive,
+                    membership_receipt: None,
                 },
                 &pico_args,
                 opts,
@@ -204,6 +206,63 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
         ProveTarget::R1NewPlanRecovery => crate::commands::r1_recovery::run(opts),
     }
+}
+
+fn run_body_membership_hil(
+    args: &ProveArgs,
+    root: &std::path::Path,
+    opts: &GlobalOpts,
+) -> Result<(), StepError> {
+    let link_port = args.link_port.as_deref().ok_or_else(|| {
+        StepError::prereq(
+            "prove.body-membership-hil",
+            "--link-port is required so browser admission and R1 Play use the same Pico",
+        )
+    })?;
+    let receipt_path = root.join("target/conduit-evidence/body-membership-hil/membership.json");
+    if !opts.dry_run && receipt_path.exists() {
+        std::fs::remove_file(&receipt_path).map_err(|error| {
+            StepError::prereq(
+                "prove.body-membership-hil",
+                format!("remove stale receipt: {error}"),
+            )
+        })?;
+    }
+    // The physical identity link is the capstone, not a substitute for the
+    // finite hostile, bounds, stale-Boot, and browser no-autorun suite.
+    run_suite(PROVE_BODY_MEMBERSHIP_STEPS, root, opts)?;
+    let environment = [
+        ("CONDUIT_B9_PICO_LINK_PORT", std::ffi::OsStr::new(link_port)),
+        (
+            "CONDUIT_B9_MEMBERSHIP_RECEIPT_PATH",
+            receipt_path.as_os_str(),
+        ),
+    ];
+    run_suite_with_environment(
+        PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS,
+        root,
+        opts,
+        &environment,
+    )?;
+
+    let pico_args = crate::commands::pico::PicoArgs {
+        dry_run: opts.dry_run,
+        r1_control: true,
+        ..Default::default()
+    };
+    crate::commands::pico::run_prove_pico_wifi_bootstrap(
+        Some(link_port),
+        args.sign_port.as_deref(),
+        args.ssid_env.as_deref(),
+        args.credential_env.as_deref(),
+        crate::commands::pico::WifiProofMode::R1Full {
+            interactive: args.interactive,
+            membership_receipt: Some(receipt_path),
+        },
+        &pico_args,
+        opts,
+    )
+    .map_err(|error| StepError::prereq("prove.body-membership-hil", error.to_string()))
 }
 
 const PATCHBAY_CAPTURE_IDS: &[&str] = &[
