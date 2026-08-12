@@ -27,7 +27,7 @@ jobs:
       base_sha: ${{ steps.changes.outputs.base_sha }}
       head_sha: ${{ steps.changes.outputs.head_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Classify exact change set
@@ -49,10 +49,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Restore the pinned bootloader archive
         id: limine-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target/conduitos/vendor/limine-binary-12.5.2.tar.gz
           key: conduitos-limine-12.5.2-4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055
@@ -70,7 +70,7 @@ jobs:
           test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' xtask/src/commands/conduitos/profile.rs)" = 1
           echo '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055  target/conduitos/vendor/limine-binary-12.5.2.tar.gz' | sha256sum --check --strict
       - name: Distribute the verified pinned archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: conduitos-limine-${{ github.sha }}
           path: target/conduitos/vendor/limine-binary-12.5.2.tar.gz
@@ -90,7 +90,7 @@ jobs:
           [lint, test-foundation, test-hosts, test-products, portable, pico]
     name: workspace-${{ matrix.shard }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown,thumbv6m-none-eabi
@@ -134,7 +134,7 @@ jobs:
       NPM_CONFIG_AUDIT: "false"
       NPM_CONFIG_FUND: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Rust build-script linker
         run: apt-get update && apt-get install -y --no-install-recommends build-essential
       - uses: dtolnay/rust-toolchain@stable
@@ -161,7 +161,7 @@ jobs:
           --result complete
       - name: Upload complete exact-head visual evidence
         if: steps.browser-proof.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: conduit-visual-evidence-${{ github.sha }}
           path: target/conduit-evidence/browser-host
@@ -177,7 +177,7 @@ jobs:
           --result diagnostic-incomplete
       - name: Upload failed-run diagnostic evidence
         if: github.event_name == 'pull_request' && steps.browser-proof.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: conduit-visual-evidence-diagnostic-${{ github.sha }}
           path: |
@@ -226,7 +226,7 @@ jobs:
               target/conduitos/x86_64/rescue-serial.log
     name: conduitos-x86-${{ matrix.proof }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
@@ -235,7 +235,7 @@ jobs:
           cache-on-failure: true
           shared-key: conduitos-x86-${{ matrix.proof }}
       - name: Receive the verified pinned bootloader archive
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: conduitos-limine-${{ github.sha }}
           path: target/conduitos/vendor
@@ -246,7 +246,7 @@ jobs:
           PROOF_COMMAND: ${{ matrix.command }}
         run: bash -euo pipefail -c "$PROOF_COMMAND"
       - name: Retain ${{ matrix.proof }} proof
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}-${{ github.sha }}
           path: ${{ matrix.artifact_path }}
@@ -273,7 +273,7 @@ jobs:
             command: cargo xtask conduitos prove --arch loongarch64 --locked
     name: conduitos-architecture-${{ matrix.architecture }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
@@ -283,12 +283,12 @@ jobs:
           shared-key: conduitos-architecture-${{ matrix.architecture }}
       - name: Restore pinned LoongArch64 firmware package
         if: matrix.architecture == 'loongarch64'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target/conduitos/toolchain/qemu-efi-loongarch64.deb
           key: conduitos-qemu-efi-loongarch64-2025.02-8-deb13u1-2a1bd3b00413af313d6105f38bda3f8156be514f5026f3ec29ba8e81b68f0633
       - name: Receive the verified pinned bootloader archive
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: conduitos-limine-${{ github.sha }}
           path: target/conduitos/vendor

@@ -24,7 +24,7 @@ jobs:
       NPM_CONFIG_AUDIT: "false"
       NPM_CONFIG_FUND: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install build and history tools
@@ -78,7 +78,7 @@ jobs:
           fi
           git -C "$RUNNER_TEMP/conduit-gallery-history" push origin HEAD:refs/heads/conduit-visual-evidence-history
       - name: Upload accepted-main Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ${{ runner.temp }}/conduit-gallery-history/public
 
@@ -96,7 +96,7 @@ jobs:
       id-token: write
     steps:
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Deploy accepted-main gallery
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
