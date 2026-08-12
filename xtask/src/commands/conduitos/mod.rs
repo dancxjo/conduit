@@ -24,8 +24,8 @@ mod loongarch64_a2;
 #[allow(dead_code)]
 mod loongarch64_a3;
 mod loongarch64_a4;
-mod pc_speaker_proof;
 mod opl2_proof;
+mod pc_speaker_proof;
 mod profile;
 mod prove;
 mod report;

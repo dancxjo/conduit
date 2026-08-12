@@ -8,13 +8,13 @@ mod x86_64;
 
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{
-    Clock, HidError, HidKeyTransition, HidKeyboardSession, HidProof, Idle, Interrupts, PcSpeaker,
-    Opl2,
-    RebootBase, RebootError, Serial, Timer, UsbDevice, XhciReady, boot_entropy, deterministic_exit,
-    early_write, enumerate_one_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard,
-    initialize_machine, initialize_xhci, local_reboot_base, pc_speaker_input_hz,
-    prepare_boot_keyboard, receive_boot_keyboard, receive_first_boot_keyboard_report,
-    retire_removed_device, run_boot_keyboard, wait_for_attachment_state,
+    Clock, HidError, HidKeyTransition, HidKeyboardSession, HidProof, Idle, Interrupts, Opl2,
+    PcSpeaker, RebootBase, RebootError, Serial, Timer, UsbDevice, XhciReady, boot_entropy,
+    deterministic_exit, early_write, enumerate_one_at_epoch, enumerate_usb, feature_basis,
+    finish_boot_keyboard, initialize_machine, initialize_xhci, local_reboot_base,
+    pc_speaker_input_hz, prepare_boot_keyboard, receive_boot_keyboard,
+    receive_first_boot_keyboard_report, retire_removed_device, run_boot_keyboard,
+    wait_for_attachment_state,
 };
 
 #[cfg(target_arch = "x86_64")]
