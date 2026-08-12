@@ -12,7 +12,9 @@ use super::{
 
 #[path = "hid_report.rs"]
 mod report;
-use report::{BootReport, derive_transitions, parse_report, retain_transition};
+#[cfg(test)]
+use report::retain_transition;
+use report::{BootReport, derive_transitions, parse_report};
 #[path = "hid_session.rs"]
 mod session;
 pub use session::{HidKeyboardSession, finish_boot_keyboard, receive_first_boot_keyboard_report};
@@ -54,6 +56,7 @@ pub enum HidError {
     DuplicateUsage,
     TransitionOverflow,
     TransferOverflow,
+    ProofSequenceMismatch,
 }
 
 impl HidError {
@@ -84,6 +87,7 @@ impl HidError {
             Self::DuplicateUsage => "hid-report-duplicate-usage",
             Self::TransitionOverflow => "hid-transition-overflow",
             Self::TransferOverflow => "hid-transfer-overflow",
+            Self::ProofSequenceMismatch => "hid-proof-sequence-mismatch",
         }
     }
 }
@@ -96,6 +100,14 @@ pub struct HidKeyTransition {
 }
 
 impl HidKeyTransition {
+    #[cfg(test)]
+    pub(crate) const fn new(usage: u8, pressed: bool, modifiers: u8) -> Self {
+        Self {
+            usage,
+            pressed,
+            modifiers,
+        }
+    }
     pub const fn usage(self) -> u8 {
         self.usage
     }

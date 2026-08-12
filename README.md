@@ -45,6 +45,31 @@ browser, viewport, digest, and semantic provenance.
 
 [![Current accepted Conduit Patchbay overview showing the Form graph and structural view](https://dancxjo.github.io/conduit/current/patchbay/overview.png)](https://dancxjo.github.io/conduit/current/patchbay/overview/)
 
+## See ConduitOS in QEMU
+
+Build the current x86-64 ConduitOS image and open a visible, interactive QEMU
+window with its framebuffer and USB keyboard:
+
+```sh
+cargo xtask conduitos demo --arch x86-64
+```
+
+The command reports the exact image and emulator profile, leaves serial/debug
+output in the invoking terminal, and runs until you close QEMU or interrupt it.
+It requires `xorriso`, `qemu-system-x86_64` with GTK display support, and access
+to a graphical display.
+
+Use the separate machine-verification entrances when you want reproducible
+evidence rather than an interactive window:
+
+```sh
+cargo xtask conduitos run --arch x86-64
+cargo xtask conduitos prove --arch x86-64
+```
+
+`run` and `prove` inject and validate deterministic proof inputs and terminate
+after collecting their exact evidence. The visible `demo` makes no proof claim.
+
 ---
 
 ## A tiny example
