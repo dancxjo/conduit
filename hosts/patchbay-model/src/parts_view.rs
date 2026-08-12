@@ -4,7 +4,10 @@ use conduit_body::{
     Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, MembershipEventKind,
     MembershipState, PartId,
 };
-use conduit_core::{ActivePlayIdentity, BootId, HostId, OfferGeneration, PlacementId, Plan};
+use conduit_core::{
+    ActivePlayIdentity, BootId, CapabilityId, HostId, KindId, OfferGeneration, PlacementId, Plan,
+    SignId,
+};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_PARTS_VIEW_ROWS: usize = conduit_body::MAX_BODY_PARTS;
@@ -34,9 +37,17 @@ pub struct PartDetails {
     pub boot_id: Option<BootId>,
     pub offer_generation: Option<OfferGeneration>,
     pub proof_reference: Option<String>,
+    pub evidence_signs: Vec<SignId>,
+    pub capabilities: Vec<PartCapability>,
     pub planned_placements: Vec<PlacementId>,
     pub planned_authority_bindings: usize,
     pub expected_signs: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PartCapability {
+    pub capability_id: CapabilityId,
+    pub kind_id: KindId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,6 +70,8 @@ pub struct CandidateRow {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub capabilities: usize,
+    pub capability_offers: Vec<PartCapability>,
+    pub evidence_signs: Vec<SignId>,
     pub actions: Vec<PartsAction>,
 }
 
@@ -168,6 +181,35 @@ impl PartsView {
                         || admission_proof(membership, &part.part_id),
                         |current| Some(current.proof_id.as_str().into()),
                     ),
+                    evidence_signs: membership
+                        .events
+                        .iter()
+                        .filter(|event| event.part_id == part.part_id)
+                        .map(|event| event.sign_id.clone())
+                        .collect(),
+                    capabilities: part
+                        .current
+                        .as_ref()
+                        .and_then(|current| {
+                            candidates.candidates.iter().find(|candidate| {
+                                candidate.observation.advertisement.host_id == current.host_id
+                                    && candidate.observation.advertisement.boot_id
+                                        == current.boot_id
+                            })
+                        })
+                        .map(|candidate| {
+                            candidate
+                                .observation
+                                .advertisement
+                                .capabilities
+                                .iter()
+                                .map(|offer| PartCapability {
+                                    capability_id: offer.capability_id.clone(),
+                                    kind_id: offer.kind_id.clone(),
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default(),
                     planned_placements: planned_fragment
                         .map(|fragment| {
                             fragment
@@ -211,6 +253,22 @@ impl PartsView {
                 boot_id: candidate.observation.advertisement.boot_id.clone(),
                 offer_generation: candidate.observation.advertisement.offer_generation,
                 capabilities: candidate.observation.advertisement.capabilities.len(),
+                capability_offers: candidate
+                    .observation
+                    .advertisement
+                    .capabilities
+                    .iter()
+                    .map(|offer| PartCapability {
+                        capability_id: offer.capability_id.clone(),
+                        kind_id: offer.kind_id.clone(),
+                    })
+                    .collect(),
+                evidence_signs: candidates
+                    .history
+                    .iter()
+                    .filter(|event| event.candidate_id == candidate.candidate_id)
+                    .map(|event| event.sign_id.clone())
+                    .collect(),
                 actions: if candidate.state == CandidateState::Discovered {
                     vec![
                         PartsAction::Inspect,

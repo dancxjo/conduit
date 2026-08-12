@@ -37,6 +37,11 @@ impl PatchbayHtmlServer {
                 .iter()
                 .any(|row| row.details.part_id.as_str() == input.target)
             {
+                let subject = format!("part/{}", input.target);
+                self.snapshot
+                    .entrance
+                    .select(&self.snapshot.presentation, &subject)
+                    .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
                 self.snapshot.interaction.selected_part = Some(input.target);
                 disposition = "Succeeded";
                 "Exact Part facts selected without changing Body membership".into()
@@ -45,6 +50,11 @@ impl PatchbayHtmlServer {
                 .iter()
                 .any(|row| row.candidate_id.as_str() == input.target)
             {
+                let subject = format!("candidate/{}", input.target);
+                self.snapshot
+                    .entrance
+                    .select(&self.snapshot.presentation, &subject)
+                    .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
                 self.snapshot.interaction.selected_candidate = Some(input.target);
                 disposition = "Succeeded";
                 "Exact candidate facts selected without admitting it".into()

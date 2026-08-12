@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: "patchbay-html.spec.mjs",
+  testMatch: ["patchbay-html.spec.mjs", "patchbay-front-door.spec.mjs"],
   fullyParallel: false,
   workers: 1,
   retries: 0,
@@ -22,7 +22,5 @@ export default defineConfig({
         reducedMotion: "reduce",
       },
     },
-    { name: "firefox", use: { browserName: "firefox" } },
-    { name: "webkit", use: { browserName: "webkit" } },
   ],
 });

@@ -89,6 +89,7 @@ impl PatchbayApplication {
                 if !view.parts.iter().any(|row| row.details.part_id == part_id) {
                     return Err("selected Part is not in the current Body projection".into());
                 }
+                self.select_front_door_subject(&format!("part/{}", part_id.as_str()))?;
                 self.selected_part = Some(part_id);
                 self.selected_candidate = None;
                 self.pending_revoke = None;
@@ -102,6 +103,7 @@ impl PatchbayApplication {
                 {
                     return Err("selected candidate is not in the current Body projection".into());
                 }
+                self.select_front_door_subject(&format!("candidate/{}", candidate_id.as_str()))?;
                 self.selected_candidate = Some(candidate_id);
                 self.selected_part = None;
                 self.pending_revoke = None;

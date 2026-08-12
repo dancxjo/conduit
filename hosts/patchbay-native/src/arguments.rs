@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
-pub const USAGE: &str = "Usage: patchbay-native [OPTIONS]\n\nOptions:\n  --form <PATH>                         Open a canonical .conduit Form\n  --environment <PATH>                  Open an authored environment\n  --prewake                             Rehearse against authored simulation truth\n  --observatory-snapshot <PATH>         Open an Observatory snapshot\n  --linear-observatory-snapshot <PATH>  Print an Observatory snapshot as text\n  --control-demo                        Run the native control demonstration\n  --control-demo-stop                   Run the native control stop demonstration\n  --body-parts-demo                     Birth and open the canonical Parts view\n  --browser-page-url <URL>              Browser Host page used by + Browser Part\n  --browser-chat-url <WS-URL>           Planned browser Host chat Line endpoint\n  --pico-admission-port <PATH>          Existing Pico USB CDC 0 admission Line\n  --native-copy-demo                    Run the protected-copy demonstration\n  --distributed-route-demo              Run the distributed-route demonstration\n  --distributed-play                    Run the distributed Play client\n  --distributed-play-server             Run the distributed Play server\n  --smoke-exit-after-window             Exit after the first rendered frame\n  --first-run-proof                     Run the finite native first-run acceptance journey\n  --help                                Print help";
+pub const USAGE: &str = "Usage: patchbay-native [OPTIONS]\n\nOptions:\n  --front-door                         Enter the current Body through the world-first Patchbay\n  --form <PATH>                         Open a canonical .conduit Form\n  --environment <PATH>                  Open an authored environment\n  --prewake                             Rehearse against authored simulation truth\n  --observatory-snapshot <PATH>         Open an Observatory snapshot\n  --linear-observatory-snapshot <PATH>  Print an Observatory snapshot as text\n  --control-demo                        Run the native control demonstration\n  --control-demo-stop                   Run the native control stop demonstration\n  --body-parts-demo                     Birth and open the canonical Parts view\n  --browser-page-url <URL>              Browser Host page used by + Browser Part\n  --browser-chat-url <WS-URL>           Planned browser Host chat Line endpoint\n  --pico-admission-port <PATH>          Existing Pico USB CDC 0 admission Line\n  --native-copy-demo                    Run the protected-copy demonstration\n  --distributed-route-demo              Run the distributed-route demonstration\n  --distributed-play                    Run the distributed Play client\n  --distributed-play-server             Run the distributed Play server\n  --smoke-exit-after-window             Exit after the first rendered frame\n  --first-run-proof                     Run the finite native first-run acceptance journey\n  --help                                Print help";
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Arguments {
     pub help: bool,
+    pub front_door: bool,
     pub exit_after_window: bool,
     pub snapshot_path: Option<PathBuf>,
     pub linear_snapshot_path: Option<PathBuf>,
@@ -29,6 +30,7 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
             "--help" if !parsed.help => parsed.help = true,
+            "--front-door" if !parsed.front_door => parsed.front_door = true,
             "--smoke-exit-after-window" if !parsed.exit_after_window => {
                 parsed.exit_after_window = true;
             }

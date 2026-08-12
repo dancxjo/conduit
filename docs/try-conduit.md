@@ -31,6 +31,41 @@ For Pico W work:
 cargo xtask doctor pico
 ```
 
+## First minute: enter the shared Patchbay
+
+For an installed product, choose the Host that will manifest the same semantic
+front door:
+
+```bash
+conduit patchbay --on native
+conduit patchbay --on browser
+```
+
+From a checkout, use the two thin friendly recipes:
+
+```bash
+just patchbay  # cargo xtask demo patchbay --on native
+just browser   # cargo xtask demo patchbay --on browser
+```
+
+The native command opens a real window. The browser command prints the URL of
+the loopback HTML entrance. Both begin at the current Body and its canonical
+Parts, Hosts, truthful Lines, capabilities/offers, and Signs; they then expose the checked/expanded
+Form and, after explicit actions, its immutable Plan and active Play. Selection
+is semantic and persists across current presentation revisions. DOM nodes,
+window handles, layout, and pixels remain renderer-local.
+
+Run the bounded acceptance path without package-level commands:
+
+```bash
+cargo xtask prove patchbay-front-door
+```
+
+That one proof runs the semantic equivalence oracle, the native manifestation,
+one pinned Chromium front door, and an authenticated live browser Part joining
+and going offline. It retains digest-bound JSON for exact Body, Wake, Form,
+Plan, Play, presentation, Part, Host/Boot, Sign, and Manifestation outcomes.
+
 ## 1. Run one form on the native std host
 
 The smallest useful program is the unchanged Signal form:

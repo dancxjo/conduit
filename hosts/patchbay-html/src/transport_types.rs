@@ -1,7 +1,7 @@
 //! Finite delivery envelope for one portable Conduit Presentation.
 
 use conduit_presentation::Presentation;
-use patchbay_model::{PartsView, RendererSelfInspection};
+use patchbay_model::{PartsView, PatchbayEntranceState, RendererSelfInspection};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -11,6 +11,7 @@ pub struct RendererSnapshot {
     pub revision: u64,
     pub presentation: Presentation,
     pub renderer: RendererSelfInspection,
+    pub entrance: PatchbayEntranceState,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parts: Option<PartsView>,
     pub interaction: HtmlInteractionState,

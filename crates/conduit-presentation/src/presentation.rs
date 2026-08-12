@@ -43,6 +43,9 @@ pub struct PresentationBasis {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PresentationRole {
     Document,
+    Body,
+    Part,
+    Candidate,
     Form,
     Gear,
     Port,
@@ -50,6 +53,9 @@ pub enum PresentationRole {
     Plan,
     Play,
     Host,
+    Capability,
+    Line,
+    Manifestation,
     Route,
     Diagnostic,
     Sign,
@@ -232,7 +238,7 @@ impl Presentation {
         {
             validate_id(identity)?;
         }
-        if self.basis.plan_id.is_some() != self.basis.expanded_form_id.is_some()
+        if (self.basis.plan_id.is_some() && self.basis.expanded_form_id.is_none())
             || (self.basis.active_play_id.is_some() && self.basis.plan_id.is_none())
         {
             return Err(PresentationError::InvalidBasis);

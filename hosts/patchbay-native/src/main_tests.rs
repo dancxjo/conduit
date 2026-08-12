@@ -93,6 +93,11 @@ fn arguments_are_explicit_and_fail_closed() {
         Some(PathBuf::from("greet.conduit"))
     );
     assert!(
+        parse_arguments(vec!["--front-door".into()].into_iter())
+            .unwrap()
+            .front_door
+    );
+    assert!(
         parse_arguments(vec!["--help".into()].into_iter())
             .unwrap()
             .help

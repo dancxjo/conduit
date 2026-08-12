@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-body = { path = "../../crates/conduit-body" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-presentation = { path = "../../crates/conduit-presentation" }

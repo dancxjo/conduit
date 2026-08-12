@@ -43,6 +43,8 @@ impl RendererSnapshot {
         execution
             .validate()
             .map_err(|_| SnapshotError::InvalidIdentity)?;
+        let entrance = patchbay_model::PatchbayEntranceState::enter(&execution.presentation)
+            .map_err(|_| SnapshotError::InvalidIdentity)?;
         let value = Self {
             schema: SNAPSHOT_SCHEMA.into(),
             revision: execution.presentation.revision,
@@ -50,6 +52,7 @@ impl RendererSnapshot {
                 .self_inspection()
                 .map_err(|_| SnapshotError::InvalidIdentity)?,
             presentation: execution.presentation,
+            entrance,
             parts: None,
             interaction: crate::HtmlInteractionState::default(),
         };
@@ -134,6 +137,9 @@ impl RendererSnapshot {
         if self.revision != self.presentation.revision
             || self.presentation.validate().is_err()
             || self.renderer.validate_against(&self.presentation).is_err()
+            || self.entrance.body_id != self.presentation.basis.body_id
+            || self.entrance.presentation_id != self.presentation.identity.as_str()
+            || self.entrance.presentation_revision != self.presentation.revision
             || invalid_parts
         {
             return Err(SnapshotError::InvalidIdentity);

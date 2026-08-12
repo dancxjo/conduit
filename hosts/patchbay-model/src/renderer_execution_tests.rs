@@ -4,8 +4,9 @@ use conduit_presentation::{
 };
 
 use crate::{
-    cross_host_renderer_plan, portable_demonstration, RendererAdapterIdentity, RendererAdapterKind,
-    RendererExecution, RendererExecutionError,
+    compare_entrances, cross_host_renderer_plan, portable_demonstration, EntranceEquivalenceError,
+    EntranceLayer, EntranceRefusal, LocalFrontDoor, PatchbayEntranceState, RendererAdapterIdentity,
+    RendererAdapterKind, RendererExecution, RendererExecutionError,
 };
 
 fn identity(host: &str, boot: &str, target: &str) -> RendererAdapterIdentity {
@@ -97,7 +98,13 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
 
 #[test]
 fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
-    let presentation = portable_demonstration().unwrap();
+    let mut session = LocalFrontDoor::with_identity(
+        HostId::from("front-door/conformance"),
+        BootId::from("front-door/conformance/boot-1"),
+    )
+    .unwrap();
+    session.plan_and_play().unwrap();
+    let presentation = session.project().unwrap().presentation;
     let native = RendererExecution::prepare(
         presentation.clone(),
         RendererAdapterKind::NativeWayland,
@@ -144,6 +151,59 @@ fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
         browser_placement.implementation_id
     );
     assert!(!records.contains("pixel=") && !records.contains("dom-id="));
+}
+
+#[test]
+fn native_and_browser_share_selection_actions_and_layers_without_renderer_identity() {
+    let mut session = LocalFrontDoor::with_identity(
+        HostId::from("front-door/conformance"),
+        BootId::from("front-door/conformance/boot-1"),
+    )
+    .unwrap();
+    session.plan_and_play().unwrap();
+    let presentation = session.project().unwrap().presentation;
+    let mut native = PatchbayEntranceState::enter(&presentation).unwrap();
+    let mut browser = PatchbayEntranceState::enter(&presentation).unwrap();
+    let host = presentation
+        .subjects
+        .iter()
+        .find(|subject| subject.role == conduit_presentation::PresentationRole::Host)
+        .unwrap()
+        .identity
+        .clone();
+    native.select(&presentation, &host).unwrap();
+    browser.select(&presentation, &host).unwrap();
+    native
+        .show_layer(&presentation, EntranceLayer::Realization)
+        .unwrap();
+    browser
+        .show_layer(&presentation, EntranceLayer::Realization)
+        .unwrap();
+    assert_eq!(
+        native.select(&presentation, "renderer-local/native/window"),
+        Err(EntranceRefusal::UnknownSubject)
+    );
+    assert_eq!(
+        browser.select(&presentation, "renderer-local/browser/dom"),
+        Err(EntranceRefusal::UnknownSubject)
+    );
+
+    let report = compare_entrances(&presentation, &native, &browser).unwrap();
+    assert!(report.equivalent);
+    assert_eq!(report.selected_subject, host);
+    assert_eq!(report.refusal, Some(EntranceRefusal::UnknownSubject));
+    assert!(report
+        .subjects
+        .iter()
+        .any(|subject| subject.role == conduit_presentation::PresentationRole::Play));
+    let encoded = serde_json::to_string(&report).unwrap();
+    assert!(!encoded.contains("dom") && !encoded.contains("window") && !encoded.contains("pixel"));
+
+    browser.layer = EntranceLayer::World;
+    assert_eq!(
+        compare_entrances(&presentation, &native, &browser),
+        Err(EntranceEquivalenceError::SemanticDrift)
+    );
 }
 
 #[test]

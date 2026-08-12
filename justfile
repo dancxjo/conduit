@@ -18,6 +18,13 @@ copy *args:
 xtask *args:
     cargo xtask {{args}}
 
+# Friendly front doors; all behavior remains owned by cargo xtask / conduit.
+patchbay:
+    cargo xtask demo patchbay --on native
+
+browser:
+    cargo xtask demo patchbay --on browser
+
 std-host:
     cargo xtask demo std
 

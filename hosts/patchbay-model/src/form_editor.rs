@@ -83,6 +83,7 @@ pub struct FormDocumentView {
     pub selection: Option<SourceSelection>,
 }
 
+#[derive(Clone)]
 pub struct FormEditor {
     pub(crate) path: PathBuf,
     pub(crate) source: String,

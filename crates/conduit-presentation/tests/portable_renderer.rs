@@ -2,8 +2,8 @@
 
 use conduit_body::Body;
 use conduit_core::{
-    bind_active_play, kind_id, resource_offer, resource_requirement, ArtifactId, BootId,
-    CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId,
+    bind_active_play, kind_id, resource_offer, resource_requirement, ActivePlayId, ArtifactId,
+    BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
     OfferGeneration, PlanId, SignId, PROTOCOL_VERSION,
 };
@@ -355,6 +355,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
 
     let mut incoherent = valid.basis.clone();
     incoherent.plan_id = None;
+    incoherent.active_play_id = Some(ActivePlayId::from("play/without-plan"));
     assert_eq!(
         Presentation::new(
             valid.revision,
@@ -366,6 +367,19 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
         ),
         Err(PresentationError::InvalidBasis)
     );
+
+    let mut intent_only = valid.basis.clone();
+    intent_only.plan_id = None;
+    intent_only.active_play_id = None;
+    assert!(Presentation::new(
+        valid.revision,
+        intent_only,
+        valid.subjects.clone(),
+        valid.relationships.clone(),
+        valid.properties.clone(),
+        valid.text.clone(),
+    )
+    .is_ok());
 
     let oversized_text = (0..513)
         .map(|_| PresentationText {

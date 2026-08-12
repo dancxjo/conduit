@@ -8,7 +8,7 @@ use conduit_presentation::{
     PresentationRole, PresentationSubject, PresentationText,
 };
 
-use crate::{GraphItemKind, PatchbayPresentation};
+use crate::{GraphItemKind, PartsView, PatchbayPresentation};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortableProjectionError {
@@ -33,10 +33,10 @@ impl core::fmt::Display for PortableProjectionError {
 impl std::error::Error for PortableProjectionError {}
 
 pub(super) struct ContentBuilder {
-    subjects: Vec<PresentationSubject>,
+    pub(super) subjects: Vec<PresentationSubject>,
     pub(super) relationships: Vec<PresentationRelationship>,
-    properties: Vec<PresentationProperty>,
-    text: Vec<PresentationText>,
+    pub(super) properties: Vec<PresentationProperty>,
+    pub(super) text: Vec<PresentationText>,
 }
 
 impl ContentBuilder {
@@ -56,6 +56,25 @@ impl ContentBuilder {
         accessibility_name: impl Into<String>,
     ) -> String {
         let identity = format!("patchbay/subject/{}", self.subjects.len());
+        self.subject_with_identity(identity, role, label, accessibility_name)
+    }
+
+    pub(super) fn subject_with_identity(
+        &mut self,
+        identity: impl Into<String>,
+        role: PresentationRole,
+        label: impl Into<String>,
+        accessibility_name: impl Into<String>,
+    ) -> String {
+        let identity = identity.into();
+        if let Some(existing) = self
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == identity)
+        {
+            debug_assert_eq!(existing.role, role);
+            return identity;
+        }
         self.subjects.push(PresentationSubject {
             identity: identity.clone(),
             role,
@@ -89,6 +108,11 @@ impl ContentBuilder {
     }
 
     pub(super) fn property(&mut self, subject: &str, name: &str, value: PresentationPropertyValue) {
+        if self.properties.iter().any(|property| {
+            property.subject == subject && property.name == name && property.value == value
+        }) {
+            return;
+        }
         self.properties.push(PresentationProperty {
             subject: subject.into(),
             name: name.into(),
@@ -123,7 +147,8 @@ impl PatchbayPresentation {
         sign_ids.dedup();
 
         let mut content = ContentBuilder::new();
-        let document = content.subject(
+        let document = content.subject_with_identity(
+            format!("document/{}", source_document_id.as_str()),
             PresentationRole::Document,
             source_document_id.as_str(),
             format!("Patchbay document {}", source_document_id.as_str()),
@@ -139,7 +164,7 @@ impl PatchbayPresentation {
         );
         append_document(self, &document, &mut content);
         append_plan_and_play(self, &document, &mut content);
-        append_topology(self, &document, &mut content);
+        crate::portable_world_projection::append_observatory(self, &document, &mut content);
         append_sound(self, &document, &mut content);
         crate::portable_route_projection::append_routes(self, &document, &mut content);
 
@@ -162,6 +187,47 @@ impl PatchbayPresentation {
             content.text,
         )
         .map_err(PortableProjectionError::InvalidPresentation)
+    }
+
+    pub fn to_portable_front_door(
+        &self,
+        body: &Body,
+        wake: &Wake,
+        parts: &PartsView,
+    ) -> Result<Presentation, PortableProjectionError> {
+        if parts.body_id != body.body_id {
+            return Err(PortableProjectionError::LifecycleMismatch);
+        }
+        let mut presentation = self.to_portable(body, wake)?;
+        let mut content = ContentBuilder {
+            subjects: presentation.subjects,
+            relationships: presentation.relationships,
+            properties: presentation.properties,
+            text: presentation.text,
+        };
+        crate::portable_world_projection::append_body_parts(body, parts, &mut content);
+        presentation.basis.sign_ids.extend(
+            parts
+                .parts
+                .iter()
+                .flat_map(|row| row.details.evidence_signs.iter().cloned()),
+        );
+        presentation.basis.sign_ids.extend(
+            parts
+                .wants_to_join
+                .iter()
+                .flat_map(|row| row.evidence_signs.iter().cloned()),
+        );
+        presentation = Presentation::new(
+            self.revision,
+            presentation.basis,
+            content.subjects,
+            content.relationships,
+            content.properties,
+            content.text,
+        )
+        .map_err(PortableProjectionError::InvalidPresentation)?;
+        Ok(presentation)
     }
 }
 
@@ -286,7 +352,8 @@ fn append_document(
     content: &mut ContentBuilder,
 ) {
     for form in &presentation.document.checked.forms {
-        let form_subject = content.subject(
+        let form_subject = content.subject_with_identity(
+            format!("form/{}", form.checked_form_id.as_str()),
             PresentationRole::Form,
             form.checked_form_id.as_str(),
             format!(
@@ -359,7 +426,8 @@ fn append_plan_and_play(
     content: &mut ContentBuilder,
 ) {
     if let Some(plan) = &presentation.plan {
-        let subject = content.subject(
+        let subject = content.subject_with_identity(
+            format!("plan/{}", plan.plan_id.as_str()),
             PresentationRole::Plan,
             plan.plan_id.as_str(),
             format!("Plan {}", plan.plan_id.as_str()),
@@ -370,7 +438,8 @@ fn append_plan_and_play(
         }
     }
     if let Some(play) = &presentation.play {
-        let subject = content.subject(
+        let subject = content.subject_with_identity(
+            format!("play/{}", play.active_play_id.as_str()),
             PresentationRole::Play,
             play.active_play_id.as_str(),
             format!("Play {}", play.active_play_id.as_str()),
@@ -385,33 +454,9 @@ fn append_plan_and_play(
     }
 }
 
-fn append_topology(
-    presentation: &PatchbayPresentation,
-    document: &str,
-    content: &mut ContentBuilder,
-) {
-    let Some(topology) = &presentation.topology else {
-        return;
-    };
-    for host in &topology.hosts {
-        let subject = content.subject(
-            PresentationRole::Host,
-            host.host_id.as_str(),
-            format!(
-                "Host {} boot {}",
-                host.host_id.as_str(),
-                host.boot_id.as_str()
-            ),
-        );
-        content.describes(&subject, document);
-    }
-    for sign in &topology.signs {
-        append_sign(document, &sign.sign_id, content);
-    }
-}
-
-fn append_sign(document: &str, sign: &SignId, content: &mut ContentBuilder) {
-    let subject = content.subject(
+pub(super) fn append_sign(document: &str, sign: &SignId, content: &mut ContentBuilder) {
+    let subject = content.subject_with_identity(
+        format!("sign/{}", sign.as_str()),
         PresentationRole::Sign,
         sign.as_str(),
         format!("Sign {}", sign.as_str()),

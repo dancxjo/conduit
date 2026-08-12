@@ -1,6 +1,6 @@
 //! Repository demonstration entrances that hide package and fixture details.
 
-use crate::cli::{GlobalOpts, PatchbayDemoArgs};
+use crate::cli::{GlobalOpts, PatchbayDemoArgs, PatchbayHost};
 use crate::process::{run_step, Step};
 use crate::workspace::workspace_root;
 
@@ -57,6 +57,25 @@ pub fn run_patchbay(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
+    if !args.first_run_proof && args.on == PatchbayHost::Browser {
+        run_step(
+            &Step::new(
+                "demo.patchbay.browser-host",
+                "Build the real browser Host membership runtime",
+                "cargo",
+                &[
+                    "build",
+                    "-p",
+                    "conduit-browser-runtime",
+                    "--target",
+                    "wasm32-unknown-unknown",
+                    "--release",
+                ],
+            ),
+            &root,
+            opts,
+        )?;
+    }
     let command = if args.first_run_proof {
         &[
             "run",
@@ -67,22 +86,19 @@ pub fn run_patchbay(
             "examples/default-welcome.conduit",
             "--first-run-proof",
         ][..]
+    } else if args.on == PatchbayHost::Native {
+        &["run", "-p", "patchbay-native", "--", "--front-door"][..]
     } else {
-        &[
-            "run",
-            "-p",
-            "patchbay-native",
-            "--",
-            "--form",
-            "examples/default-welcome.conduit",
-        ][..]
+        &["run", "-p", "patchbay-html"][..]
     };
     let step = Step::new(
         "demo.patchbay",
         if args.first_run_proof {
             "Prove the bounded native Patchbay first-run journey"
+        } else if args.on == PatchbayHost::Browser {
+            "Build and serve the shared Patchbay entrance through a browser Host"
         } else {
-            "Build and launch the native Patchbay from this checkout"
+            "Build and launch the shared Patchbay entrance through the native Host"
         },
         "cargo",
         command,

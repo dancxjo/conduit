@@ -22,19 +22,34 @@ Conduit then asks a different question:
 
 That is where Hosts, Bases, Signs, Plans, and Plays enter.
 
-## Current accepted Patchbay
+## Enter Patchbay
 
-Open the example Form in the native Patchbay from a checkout with the canonical
-repository-development entrance:
+An installed Conduit exposes one product entrance with two Host realizations:
 
 ```sh
-cargo xtask demo patchbay
+conduit patchbay --on native
+conduit patchbay --on browser
 ```
 
-The direct package invocation is useful while developing the native adapter:
+From a checkout, the friendly repository entrances delegate directly to
+`cargo xtask demo patchbay --on native|browser`:
 
 ```sh
-cargo run -p patchbay-native -- --form examples/hello.conduit
+just patchbay
+just browser
+```
+
+Both begin at the same live, world-first Body presentation. Select semantic
+subjects, move from Body/Parts into the Intent and Realization lenses, then
+Plan and Play the ordinary `examples/patchbay-front-door.conduit` Form. The
+native window and HTML/SVG document are distinct planned Manifestations; they
+do not own a second topology or execution runtime.
+
+The complete deterministic, native, real-Chromium, live-membership, and
+machine-evidence capstone has one repository proof entrance:
+
+```sh
+cargo xtask prove patchbay-front-door
 ```
 
 The Patchbay view below is generated only after the exact accepted `main`

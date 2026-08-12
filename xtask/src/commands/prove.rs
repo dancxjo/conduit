@@ -6,7 +6,8 @@ use crate::{
     process::{run_suite, run_suite_with_environment, StepError},
     suites::prove::{
         PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS, PROVE_BODY_MEMBERSHIP_STEPS,
-        PROVE_BROWSER_HOST_STEPS, PROVE_STD_BROWSER_S4_STEPS, PROVE_STD_BROWSER_TOGGLE_STEPS,
+        PROVE_BROWSER_HOST_STEPS, PROVE_PATCHBAY_FRONT_DOOR_STEPS, PROVE_STD_BROWSER_S4_STEPS,
+        PROVE_STD_BROWSER_TOGGLE_STEPS,
     },
     workspace::workspace_root,
 };
@@ -71,6 +72,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                 }
             }
         }
+        ProveTarget::PatchbayFrontDoor => run_patchbay_front_door(&args, &root, opts),
         ProveTarget::StdPicoUsb => {
             let pico_args = crate::commands::pico::PicoArgs {
                 dry_run: opts.dry_run,
@@ -205,6 +207,99 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             .map_err(|error| StepError::prereq("prove.r1-hil", error.to_string()))
         }
         ProveTarget::R1NewPlanRecovery => crate::commands::r1_recovery::run(opts),
+    }
+}
+
+fn run_patchbay_front_door(
+    args: &ProveArgs,
+    root: &std::path::Path,
+    opts: &GlobalOpts,
+) -> Result<(), StepError> {
+    let evidence_root = args
+        .evidence_root
+        .clone()
+        .unwrap_or_else(|| root.join("target/conduit-evidence/patchbay-front-door"));
+    if opts.dry_run {
+        return run_suite(PROVE_PATCHBAY_FRONT_DOOR_STEPS, root, opts);
+    }
+    let mut evidence = EvidenceManifest::new(
+        &evidence_root,
+        root,
+        "patchbay-front-door",
+        "prove.patchbay-front-door",
+    )
+    .map_err(|error| StepError::prereq("prove.patchbay-front-door.evidence", error))?;
+    for name in ["front-door.json", "topology.json"] {
+        let path = evidence.root().join(name);
+        if path.exists() || path.is_symlink() {
+            std::fs::remove_file(&path).map_err(|error| {
+                StepError::prereq(
+                    "prove.patchbay-front-door.evidence",
+                    format!("cannot remove stale evidence {}: {error}", path.display()),
+                )
+            })?;
+        }
+    }
+    for output in [
+        EvidenceOutput {
+            id: "patchbay.front-door".into(),
+            kind: EvidenceKind::MachineReadableManifest,
+            path: "front-door.json".into(),
+            media_type: "application/json".into(),
+            required: true,
+            provenance: EvidenceProvenance {
+                scenario_id: "patchbay.front-door@1".into(),
+                step_id: Some("prove.patchbay-front-door.browser".into()),
+                asserted_semantic_disposition: Some(
+                    "world-intent-plan-play-selection-and-refusal-asserted".into(),
+                ),
+                proof_class: Some("live-browser".into()),
+                ..Default::default()
+            },
+        },
+        EvidenceOutput {
+            id: "patchbay.live-topology".into(),
+            kind: EvidenceKind::MachineReadableManifest,
+            path: "topology.json".into(),
+            media_type: "application/json".into(),
+            required: true,
+            provenance: EvidenceProvenance {
+                scenario_id: "patchbay.live-topology@1".into(),
+                step_id: Some("prove.patchbay-front-door.live-membership".into()),
+                asserted_semantic_disposition: Some(
+                    "join-offline-plan-immutability-and-explicit-replan-asserted".into(),
+                ),
+                proof_class: Some("live-browser".into()),
+                ..Default::default()
+            },
+        },
+    ] {
+        evidence
+            .declare(output)
+            .map_err(|error| StepError::prereq("prove.patchbay-front-door.evidence", error))?;
+    }
+    let front_door_receipt = evidence.root().join("front-door.json");
+    let topology_receipt = evidence.root().join("topology.json");
+    let environment = [
+        (
+            "CONDUIT_PATCHBAY_FRONT_DOOR_RECEIPT_PATH",
+            front_door_receipt.as_os_str(),
+        ),
+        (
+            "CONDUIT_PATCHBAY_TOPOLOGY_RECEIPT_PATH",
+            topology_receipt.as_os_str(),
+        ),
+    ];
+    match run_suite_with_environment(PROVE_PATCHBAY_FRONT_DOOR_STEPS, root, opts, &environment) {
+        Ok(()) => evidence
+            .finish(EvidenceResult::Complete)
+            .map_err(|error| StepError::prereq("prove.patchbay-front-door.evidence", error)),
+        Err(proof_error) => {
+            if let Err(error) = evidence.finish(EvidenceResult::DiagnosticIncomplete) {
+                eprintln!("xtask evidence error after proof failure: {error}");
+            }
+            Err(proof_error)
+        }
     }
 }
 

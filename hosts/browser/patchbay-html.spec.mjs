@@ -41,7 +41,7 @@ async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposit
 }
 
 function startServer() {
-  const process = spawn("target/debug/patchbay-html", [], { stdio:["ignore","pipe","pipe"] });
+  const process = spawn("target/debug/patchbay-html", ["--documentary-fixture"], { stdio:["ignore","pipe","pipe"] });
   const errors=[]; process.stderr.setEncoding("utf8"); process.stderr.on("data",chunk=>errors.push(chunk));
   const lines=createInterface({input:process.stdout});
   const url=new Promise((resolve,reject)=>{lines.once("line",line=>resolve(line.replace("PATCHBAY_HTML_URL=","")));process.once("exit",code=>reject(new Error(`Patchbay HTML exited ${code}: ${errors.join("")}`)));});
@@ -84,7 +84,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(refusedParts.presentation.basis.plan_id).toBe(partPlan);
     await expect(page.getByRole("button",{name:"+ Browser Part"})).toBeVisible();
     await expect(page.getByRole("button",{name:"Plan again"})).toBeVisible();
-    await expect(page.getByRole("heading",{name:"Semantic canvas"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Live Body topology"})).toBeVisible();
+    expect(snapshot.entrance.layer).toBe("World");
+    expect(snapshot.entrance.selected_subject).toMatch(/^part\//);
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
     await expect(page.locator("#route-cards h3").first()).toContainText("Route");
@@ -134,7 +136,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     const canvasSubjects=await page.locator("#graph [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     expect(listSubjects).toEqual(expectedSubjects); expect(canvasSubjects).toEqual(semanticSubjects);
-    await expect(page.locator("#inspector .exact-selection")).toBeHidden();
+    await expect(page.locator("#inspector .exact-selection")).toBeVisible();
+    await expect(page.locator("#inspector .exact-selection")).toContainText(inspectedParts.entrance.selected_subject);
     await expect(page.locator("#graph .gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
     await expect(page.locator("#graph .port")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Port").length);
     await expect(page.locator("#graph .cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
