@@ -14,7 +14,8 @@ use embassy_rp::clocks::RoscRng;
 use crate::receipts::RuntimeTranscriptIdentity;
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
 
-const HOST_ID: &str = conduit_signal::PICO_LOCAL_HOST_ID;
+// The build script derives this from the same exact advertisement embedded below.
+const HOST_ID: &str = env!("CONDUIT_PICO_BODY_HOST_ID");
 const OFFER_GENERATION: u64 = 1;
 const BOOT_PLACEHOLDER: &str =
     "conduit-pico-w-signal/runtime-boot:0000000000000000:00000000000000000000000000000000";
