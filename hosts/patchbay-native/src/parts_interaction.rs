@@ -56,6 +56,24 @@ impl PatchbayApplication {
                     self.pending_revoke = None;
                 }
             }
+            GuiAction::SpawnBrowserPart => {
+                let body_id = self
+                    .build_birth
+                    .body()
+                    .ok_or("Birth a Body before spawning a browser Part")?
+                    .body_id
+                    .clone();
+                let target = self
+                    .browser_parts
+                    .as_mut()
+                    .ok_or("Configure the browser page and chat Line before spawning a Part")?
+                    .begin(&body_id)?;
+                std::process::Command::new("xdg-open")
+                    .arg(&target)
+                    .spawn()
+                    .map_err(|error| format!("cannot open browser Part: {error}"))?;
+                self.publish_completed("Browser Part invitation opened; awaiting exact proof");
+            }
             GuiAction::InspectPart(part_id) => {
                 let view = self.parts_projection()?.ok_or("Parts view is not open")?;
                 if !view.parts.iter().any(|row| row.details.part_id == part_id) {
@@ -142,6 +160,38 @@ impl PatchbayApplication {
         }
         Ok(())
     }
+
+    pub(super) fn poll_browser_parts(&mut self) -> Result<bool, String> {
+        let arrival = match &mut self.browser_parts {
+            Some(coordinator) => coordinator.take_arrival()?,
+            None => None,
+        };
+        let Some(arrival) = arrival else {
+            return Ok(false);
+        };
+        let signs = conduit_body::AdmissionSigns {
+            part_admitted: self.lifecycle_sign("browser-part-admitted"),
+            host_attached: self.lifecycle_sign("browser-host-attached"),
+            candidate_admitted: self.lifecycle_sign("browser-candidate-admitted"),
+        };
+        let credential = self
+            .browser_parts
+            .as_mut()
+            .expect("arrival requires coordinator")
+            .complete(
+                arrival,
+                self.build_birth
+                    .membership_mut()
+                    .ok_or("browser Part arrived before Body membership existed")?,
+                signs,
+            )?;
+        self.publish_completed(format!(
+            "Browser Part {} admitted for Host {}",
+            credential.part_id.as_str(),
+            credential.host_id.as_str()
+        ));
+        Ok(true)
+    }
 }
 
 #[cfg(test)]
@@ -214,6 +264,9 @@ mod tests {
         assert!(targets.iter().any(
             |target| matches!(&target.action, GuiAction::InspectPart(candidate) if candidate == &part_id)
         ));
+        assert!(targets
+            .iter()
+            .any(|target| target.action == GuiAction::SpawnBrowserPart));
         assert!(pixels.contains(&patchbay_model::PHOSPHOR_THEME.focus.packed_rgb()));
         application
             .handle_parts_action(GuiAction::InspectPart(part_id.clone()))

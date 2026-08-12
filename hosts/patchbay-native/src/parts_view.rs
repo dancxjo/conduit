@@ -159,7 +159,27 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
             theme.text_secondary,
         );
     }
-    let details_y = candidates_y + 54 + view.wants_to_join.len() as i32 * 54;
+    let spawn_y = candidates_y + 54 + view.wants_to_join.len() as i32 * 54;
+    if view.actions.contains(&PartsAction::SpawnBrowserPart) {
+        let bounds = PixelRect {
+            x: left,
+            y: spawn_y,
+            width: 184,
+            height: 30,
+        };
+        frame_rect(target, bounds, theme.focus, 1);
+        text(
+            target,
+            Point::new(left + 10, spawn_y + 9),
+            "+ BROWSER PART",
+            theme.emphasis,
+        );
+        targets.push(HitTarget {
+            action: GuiAction::SpawnBrowserPart,
+            shape: HitShape::Rect(bounds),
+        });
+    }
+    let details_y = spawn_y + 46;
     if let Some(row) =
         selected.and_then(|part| view.parts.iter().find(|row| &row.details.part_id == part))
     {

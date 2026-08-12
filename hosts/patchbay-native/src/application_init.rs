@@ -140,6 +140,10 @@ impl PatchbayApplication {
             selected_candidate: None,
             pending_revoke: None,
             body_candidates: None,
+            browser_parts: arguments
+                .browser_page_url
+                .zip(arguments.browser_chat_url)
+                .map(|(page, chat)| browser_parts::BrowserPartsCoordinator::new(page, chat)),
             face_control_focus: 0,
             palette_drag: None,
             cord_drag: None,
