@@ -8,8 +8,10 @@ use crate::{
     PatchbayApplication,
 };
 use embedded_graphics::{
+    draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
-    prelude::{DrawTarget, Point},
+    prelude::{DrawTarget, Point, Size},
+    primitives::Rectangle,
 };
 use patchbay_model::{PatchbayAction, PatchbayMode, PatchbayTheme, WakeLifecycle};
 
@@ -310,24 +312,34 @@ pub(super) fn draw_lifecycle_flow<D: DrawTarget<Color = Rgb888>>(
         "PLAY_UNSATISFIED" | "WAKE_FAILED" | "FORM_UNAVAILABLE" | "FORM_UNCHECKED" => theme.failure,
         _ => theme.text_secondary,
     };
-    icon_label(
-        target,
-        state_icon,
-        Point::new(250, 5),
-        &flow.state_text,
-        state_color,
-    );
-    text(
-        target,
-        Point::new(250, 28),
-        &format!(
-            "{} · {} · {}",
-            flow.state_code, flow.detail, flow.exact_basis
-        ),
-        state_color,
-    );
     let count = i32::try_from(flow.actions.len()).unwrap_or(0);
     let first_x = width.saturating_sub(count * 142 + 12);
+    {
+        let clip = Rectangle::new(
+            Point::new(242, 0),
+            Size::new(
+                u32::try_from(first_x.saturating_sub(250)).unwrap_or_default(),
+                52,
+            ),
+        );
+        let mut state = target.clipped(&clip);
+        icon_label(
+            &mut state,
+            state_icon,
+            Point::new(250, 5),
+            &flow.state_text,
+            state_color,
+        );
+        text(
+            &mut state,
+            Point::new(250, 28),
+            &format!(
+                "{} · {} · {}",
+                flow.state_code, flow.detail, flow.exact_basis
+            ),
+            state_color,
+        );
+    }
     for (index, candidate) in flow.actions.iter().enumerate() {
         let bounds = PixelRect {
             x: first_x + index as i32 * 142,
