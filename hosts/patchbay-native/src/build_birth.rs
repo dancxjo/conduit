@@ -16,15 +16,21 @@ impl PatchbayApplication {
     }
 
     pub(super) fn birth_body(&mut self) -> Result<(), String> {
-        let sign = self.lifecycle_sign("born");
+        let signs = patchbay_model::BirthSigns {
+            body_born: self.lifecycle_sign("born"),
+            part_admitted: self.lifecycle_sign("part-admitted-at-birth"),
+            host_attached: self.lifecycle_sign("host-attached-at-birth"),
+        };
         let sequence = self.lifecycle_sequence;
+        let origin = self.model.advertisement().clone();
         self.build_birth
             .birth(
                 self.form_editor
                     .as_ref()
                     .ok_or("Birth requires BUILD mode with a Form")?,
+                &origin,
                 sequence,
-                sign,
+                signs,
             )
             .map_err(|error| error.to_string())
     }

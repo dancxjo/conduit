@@ -50,8 +50,8 @@ mod theme;
 mod topology;
 
 pub use build_birth::{
-    BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus, PatchbayMode,
-    MAX_BUILD_DOCUMENT_LINES,
+    BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
+    PatchbayMode, MAX_BUILD_DOCUMENT_LINES,
 };
 pub use conduit_body::WakeLifecycle;
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
