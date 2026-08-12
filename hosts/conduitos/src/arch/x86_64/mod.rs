@@ -5,6 +5,7 @@ mod idt;
 mod io;
 mod irq;
 mod pc_speaker;
+mod opl2;
 mod pic;
 mod pit;
 mod providers;
@@ -20,6 +21,7 @@ pub use hid::{
     run_boot_keyboard,
 };
 pub use pc_speaker::PcSpeaker;
+pub use opl2::Opl2;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer, initialize_machine};
 
 pub const fn pc_speaker_input_hz() -> u64 {

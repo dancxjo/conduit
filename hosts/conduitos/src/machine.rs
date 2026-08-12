@@ -42,6 +42,8 @@ pub enum BaseError {
     PayloadTooLarge,
     Unavailable,
     UnsupportedValue,
+    OutOfRange,
+    WorkPressure,
 }
 
 impl BaseError {
@@ -56,6 +58,8 @@ impl BaseError {
             Self::PayloadTooLarge => "serial-payload-too-large",
             Self::Unavailable => "base-unavailable",
             Self::UnsupportedValue => "base-value-unsupported",
+            Self::OutOfRange => "base-value-out-of-range",
+            Self::WorkPressure => "base-work-pressure",
         }
     }
 }
@@ -75,6 +79,24 @@ pub trait ToneBase {
     fn apply(&mut self, intent: ToneIntent) -> Result<RealizedTone, BaseError>;
     fn silence(&mut self) -> Result<(), BaseError>;
     fn transition_count(&self) -> u32;
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Opl2Pitch {
+    pub requested_millihertz: u64,
+    pub realized_millihertz: u64,
+    pub f_number: u16,
+    pub block: u8,
+}
+
+pub trait Opl2Base {
+    const CHANNELS: u8 = 9;
+
+    fn reset(&mut self) -> Result<u16, BaseError>;
+    fn configure_fixed_patch(&mut self, channel: u8) -> Result<u16, BaseError>;
+    fn key_on(&mut self, channel: u8, pitch_millihertz: u64) -> Result<Opl2Pitch, BaseError>;
+    fn key_off(&mut self, channel: u8) -> Result<(), BaseError>;
+    fn quiesce(&mut self) -> Result<u16, BaseError>;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

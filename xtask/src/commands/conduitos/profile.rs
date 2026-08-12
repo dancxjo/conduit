@@ -9,7 +9,7 @@ pub const LIMINE_ARCHIVE_SHA256: &str =
     "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055";
 pub const LIMINE_ARCHIVE_URL: &str =
     "https://github.com/limine-bootloader/limine/releases/download/v12.5.2/limine-binary.tar.gz";
-pub const QEMU_PROFILE: &str = "q35-single-cpu-64m-headless-xhci-usb-kbd";
+pub const QEMU_PROFILE: &str = "q35-single-cpu-64m-headless-xhci-usb-kbd-adlib";
 pub const AARCH64_QEMU_PROFILE: &str = "qemu-virt-single-cpu-256m-uefi-semihosting";
 pub const EXPECTED_QEMU_SUCCESS: i32 = 33;
 pub const COMMON_BACKBONE_TARGETS: &[&str] = &[
@@ -40,6 +40,7 @@ pub struct Paths {
     pub keyboard_proof: PathBuf,
     pub rescue_proof: PathBuf,
     pub hotplug_proof: PathBuf,
+    pub opl2_proof: PathBuf,
 }
 
 impl Paths {
@@ -66,6 +67,7 @@ impl Paths {
             keyboard_proof: target.join("keyboard-proof.json"),
             rescue_proof: target.join("rescue-proof.json"),
             hotplug_proof: target.join("hotplug-proof.json"),
+            opl2_proof: target.join("opl2-proof.json"),
             root,
             target,
         })

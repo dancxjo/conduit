@@ -9,6 +9,7 @@ mod x86_64;
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{
     Clock, HidError, HidKeyTransition, HidKeyboardSession, HidProof, Idle, Interrupts, PcSpeaker,
+    Opl2,
     RebootBase, RebootError, Serial, Timer, UsbDevice, XhciReady, boot_entropy, deterministic_exit,
     early_write, enumerate_one_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard,
     initialize_machine, initialize_xhci, local_reboot_base, pc_speaker_input_hz,
