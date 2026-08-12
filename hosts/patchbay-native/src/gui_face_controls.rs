@@ -2,7 +2,7 @@
 
 use crate::{
     gui_hit::{GuiAction, HitShape, HitTarget},
-    gui_primitives::{text, PixelRect},
+    gui_primitives::{frame_rect, text, PixelRect},
 };
 use embedded_graphics::{
     pixelcolor::Rgb888,
@@ -15,6 +15,7 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
     graph: &PatchbayGraph,
     gear: &PatchbayGear,
     gear_bounds: PixelRect,
+    focused_action: Option<usize>,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
@@ -23,26 +24,45 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
     let subject = graph
         .subject_ref(&gear.identity)
         .expect("drawn Gear belongs to the exact graph");
+    let mut action_index = 0usize;
     for (index, control) in gear.controls.iter().enumerate() {
-        let y = first_y + index as i32 * 22;
+        let y = first_y + index as i32 * 40;
         text(
             target,
             Point::new(gear_bounds.x + 10, y),
             &format!(
-                "{}={} [{}]",
+                "{}={}  {}",
                 control.key,
                 displayed_value(&control.value),
                 displayed_contract(&control.kind)
             ),
             theme.text_secondary,
         );
-        for (side, value) in control_actions(control).into_iter().enumerate() {
+        let actions = control_actions(control);
+        for (side, value) in actions.iter().cloned().enumerate() {
             let bounds = PixelRect {
                 x: gear_bounds.x + 8 + side as i32 * 86,
-                y: y - 3,
+                y: y + 15,
                 width: 84,
-                height: 18,
+                height: 20,
             };
+            let focused = focused_action == Some(action_index);
+            frame_rect(
+                target,
+                bounds,
+                if focused {
+                    theme.focus
+                } else {
+                    theme.structure_secondary
+                },
+                if focused { 2 } else { 1 },
+            );
+            text(
+                target,
+                Point::new(bounds.x + 5, bounds.y + 4),
+                &action_label(control, &value, side, actions.len()),
+                theme.text_primary,
+            );
             targets.push(HitTarget {
                 action: GuiAction::ConfigureGear {
                     subject: subject.clone(),
@@ -51,6 +71,71 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
                 },
                 shape: HitShape::Rect(bounds),
             });
+            action_index += 1;
+        }
+    }
+}
+
+pub(super) fn focused_face_action(
+    graph: &PatchbayGraph,
+    subject_identity: &str,
+    focused: usize,
+) -> Option<GuiAction> {
+    let gear = graph
+        .gears
+        .iter()
+        .find(|gear| gear.identity == subject_identity)?;
+    let subject = graph.subject_ref(subject_identity).ok()?;
+    gear.controls
+        .iter()
+        .flat_map(|control| {
+            control_actions(control)
+                .into_iter()
+                .map(|value| GuiAction::ConfigureGear {
+                    subject: subject.clone(),
+                    key: control.key.clone(),
+                    value,
+                })
+        })
+        .nth(focused)
+}
+
+pub(super) fn face_action_count(graph: &PatchbayGraph, subject_identity: &str) -> usize {
+    graph
+        .gears
+        .iter()
+        .find(|gear| gear.identity == subject_identity)
+        .map(|gear| {
+            gear.controls
+                .iter()
+                .map(|control| control_actions(control).len())
+                .sum()
+        })
+        .unwrap_or(0)
+}
+
+fn action_label(
+    control: &patchbay_model::FaceControl,
+    value: &conduit_core::ConfigurationValue,
+    side: usize,
+    count: usize,
+) -> String {
+    match control.kind {
+        patchbay_model::FaceControlKind::Number { .. }
+        | patchbay_model::FaceControlKind::Range { .. }
+        | patchbay_model::FaceControlKind::ScalarNumber { .. } => {
+            let marker = if side == 0 { "−" } else { "+" };
+            format!("{marker} {}", displayed_value(value))
+        }
+        patchbay_model::FaceControlKind::BooleanChoice { .. } => {
+            format!("☐ {}", displayed_value(value))
+        }
+        patchbay_model::FaceControlKind::TextChoice { .. } => {
+            format!("▾ {}", displayed_value(value))
+        }
+        patchbay_model::FaceControlKind::ShortText { .. } => {
+            let prefix = if count == 1 { "EDIT" } else { "SET" };
+            format!("{prefix} {}", displayed_value(value))
         }
     }
 }
@@ -131,13 +216,10 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
         (
             patchbay_model::FaceControlKind::ShortText { .. },
             conduit_core::ConfigurationValue::Text(value),
-        ) => vec![conduit_core::ConfigurationValue::Text(
-            if value.is_empty() {
-                "text".into()
-            } else {
-                String::new()
-            },
-        )],
+        ) => (!value.is_empty())
+            .then(|| conduit_core::ConfigurationValue::Text(String::new()))
+            .into_iter()
+            .collect(),
         _ => Vec::new(),
     }
 }

@@ -24,6 +24,7 @@ mod environment_resource;
 mod environment_view;
 #[cfg(test)]
 mod environment_view_tests;
+mod face_control_keyboard;
 mod file_task;
 mod font;
 mod form_authoring;
@@ -32,6 +33,7 @@ mod gui;
 mod gui_composition;
 mod gui_face_controls;
 mod gui_gear;
+mod gui_gear_layout;
 mod gui_gesture;
 mod gui_hit;
 mod gui_inspector;
@@ -89,6 +91,8 @@ struct PatchbayApplication {
     native_keyboard: portable_keyboard::NativeKeyboardInput,
     palette_query: String,
     palette_search_active: bool,
+    exact_identity_open: bool,
+    face_control_focus: usize,
     palette_drag: Option<String>,
     cord_drag: Option<patchbay_model::PatchbaySubjectRef>,
     cord_route_drag: Option<patchbay_model::PatchbaySubjectRef>,
@@ -401,3 +405,7 @@ mod face_configuration_tests;
 #[cfg(test)]
 #[path = "cord_editing_tests.rs"]
 mod cord_editing_tests;
+
+#[cfg(test)]
+#[path = "inspector_tests.rs"]
+mod inspector_tests;

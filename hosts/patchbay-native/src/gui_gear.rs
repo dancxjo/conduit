@@ -21,6 +21,7 @@ pub(super) struct GearViewContext<'a> {
     pub(super) presentation_layout: &'a PatchbayLayout,
     pub(super) realization_plan: Option<&'a conduit_core::Plan>,
     pub(super) realization_hosts: &'a [conduit_core::HostAdvertisement],
+    pub(super) face_control_focus: usize,
 }
 
 pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
@@ -74,7 +75,7 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
         text(
             target,
             Point::new(layout.bounds.x + 12, layout.bounds.y + 29),
-            layout.gear.kind_id.as_str(),
+            &format!("FORM  {}", layout.gear.kind_id.as_str()),
             theme.emphasis,
         );
     }
@@ -85,7 +86,15 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
     draw_flip_control(target, graph, layout, reversed, theme, targets);
     if !reversed {
         draw_ports(target, graph, layout, selected, theme, targets);
-        draw_face_controls(target, graph, layout.gear, layout.bounds, theme, targets);
+        draw_face_controls(
+            target,
+            graph,
+            layout.gear,
+            layout.bounds,
+            is_selected.then_some(view.face_control_focus),
+            theme,
+            targets,
+        );
     }
 }
 
@@ -105,7 +114,7 @@ fn draw_realization<D: DrawTarget<Color = Rgb888>>(
         text(
             target,
             Point::new(layout.bounds.x + 12, layout.bounds.y + 32),
-            "NO EXACT PLAN",
+            "REALIZATION / NO PLAN",
             theme.text_secondary,
         );
         return;
@@ -114,12 +123,18 @@ fn draw_realization<D: DrawTarget<Color = Rgb888>>(
         text(
             target,
             Point::new(layout.bounds.x + 12, layout.bounds.y + 31),
-            selected.implementation_id.as_str(),
+            "REALIZATION",
             theme.emphasis,
         );
         text(
             target,
             Point::new(layout.bounds.x + 12, layout.bounds.y + 47),
+            selected.implementation_id.as_str(),
+            theme.text_primary,
+        );
+        text(
+            target,
+            Point::new(layout.bounds.x + 12, layout.bounds.y + 63),
             &format!(
                 "{} / {}",
                 selected.host_id.as_str(),
@@ -136,7 +151,7 @@ fn draw_realization<D: DrawTarget<Color = Rgb888>>(
     if alternatives > 0 {
         let bounds = PixelRect {
             x: layout.bounds.x + 12,
-            y: layout.bounds.y + 64,
+            y: layout.bounds.y + 80,
             width: 112,
             height: 20,
         };
@@ -172,7 +187,7 @@ fn draw_flip_control<D: DrawTarget<Color = Rgb888>>(
     text(
         target,
         Point::new(bounds.x + 5, bounds.y + 4),
-        if reversed { "FACE" } else { "FLIP" },
+        if reversed { "↻ FORM" } else { "↻ REAL" },
         theme.text_primary,
     );
     targets.push(HitTarget {
