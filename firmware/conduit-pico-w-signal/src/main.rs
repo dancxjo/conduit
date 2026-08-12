@@ -48,7 +48,7 @@ compile_error!("select exactly one Pico firmware mode");
 
 #[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client")))]
 mod kernel;
-#[cfg(feature = "pico-local")]
+#[cfg(any(feature = "pico-local", feature = "wifi-bootstrap"))]
 mod body_admission;
 #[cfg(feature = "appliance-hello")]
 mod appliance;
