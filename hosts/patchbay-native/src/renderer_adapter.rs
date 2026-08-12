@@ -70,7 +70,11 @@ impl PatchbayApplication {
         let size = window.inner_size();
         let width = NonZeroU32::new(size.width).ok_or("native window width is zero")?;
         let height = NonZeroU32::new(size.height).ok_or("native window height is zero")?;
-        let lines = self.presentation_lines();
+        let lines = if self.linear_view {
+            self.details_lines()
+        } else {
+            self.presentation_lines()
+        };
         let selected = self.selected_graphical_identity().map(str::to_owned);
         let graph = self.graphical_form.as_ref();
         let linear_view = self.linear_view;
@@ -110,6 +114,9 @@ impl PatchbayApplication {
                 });
         let breadcrumb = self.back_breadcrumb();
         let interaction_status = self.interaction_status.current().cloned();
+        self.canvas_viewport
+            .resize(crate::gui::canvas_rect(size.width, size.height))
+            .map_err(|error| error.message().to_owned())?;
         let gesture = crate::gui_gesture::GestureView {
             palette_kind: self.palette_drag.as_deref(),
             cord_source: self
@@ -133,6 +140,7 @@ impl PatchbayApplication {
                     .clamp(i32::MIN as f64, i32::MAX as f64) as i32,
             ),
         };
+        let forms = self.form_navigator_entries();
         let surface = self.surface.as_mut().ok_or("native surface is absent")?;
         surface
             .resize(width, height)
@@ -186,7 +194,10 @@ impl PatchbayApplication {
                         selected: selected.as_deref(),
                         breadcrumb: &breadcrumb,
                         lifecycle: &lifecycle,
-                        palette_query: &self.palette_query,
+                        palette: &self.palette,
+                        forms: &forms,
+                        form_selection: self.navigator_selection.min(forms.len().saturating_sub(1)),
+                        form_scroll: self.navigator_scroll.min(forms.len().saturating_sub(1)),
                         exact_identity_open: self.exact_identity_open,
                         face_control_focus: self.face_control_focus,
                         presentation_layout: &self.layout,
@@ -194,6 +205,7 @@ impl PatchbayApplication {
                         realization_hosts: &realization_hosts,
                         status: interaction_status.as_ref(),
                         gesture,
+                        viewport: &self.canvas_viewport,
                     },
                 )
             }

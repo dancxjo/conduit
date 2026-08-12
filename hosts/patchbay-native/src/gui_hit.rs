@@ -11,8 +11,18 @@ pub struct HitTarget {
     pub(super) shape: HitShape,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ViewportAction {
+    ZoomIn,
+    ZoomOut,
+    Fit,
+    CenterSelection,
+    Reset,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
+    Viewport(ViewportAction),
     Lifecycle(patchbay_model::PatchbayAction),
     EnvironmentAdd(MachineProfile),
     EnvironmentSelect(String),
@@ -27,10 +37,21 @@ pub enum GuiAction {
     SelectSubject(PatchbaySubjectRef),
     FlipGear(PatchbaySubjectRef),
     OpenBack,
+    OpenNavigatorComposition(PatchbaySubjectRef),
+    OpenNavigatorAncestor {
+        source_document_id: String,
+        checked_form_id: String,
+        expanded_form_id: String,
+        back_count: usize,
+    },
     SaveForm,
     ToggleLinearView,
     ToggleExactIdentity,
-    PlacePaletteKind(String),
+    BeginPaletteDrag(String),
+    PlacePaletteKind {
+        kind: String,
+        target: (i32, i32),
+    },
     DuplicateGear(patchbay_model::PatchbaySubjectRef),
     RemoveGear(patchbay_model::PatchbaySubjectRef),
     RemoveCord(patchbay_model::PatchbaySubjectRef),
@@ -47,6 +68,18 @@ pub enum GuiAction {
         key: String,
         value: conduit_core::ConfigurationValue,
     },
+}
+
+impl GuiAction {
+    pub(super) const fn is_canvas_action(&self) -> bool {
+        matches!(
+            self,
+            Self::SelectSubject(_)
+                | Self::FlipGear(_)
+                | Self::PrewakeNextImplementation(_)
+                | Self::ConfigureGear { .. }
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

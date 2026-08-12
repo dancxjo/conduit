@@ -104,6 +104,54 @@ fn renderer_self_inspection_lines(
 }
 
 impl PatchbayApplication {
+    pub(super) fn details_content_lines(&self) -> Vec<String> {
+        if self.details_lens == crate::details::DetailsLens::Source {
+            let mut lines = vec![
+                "DETAILS / SOURCE / READ ONLY".into(),
+                "LEFT/RIGHT LENS  UP/DOWN TRAVERSE  F2 CLOSE  EXACT TEXT".into(),
+            ];
+            if let Some(editor) = &self.form_editor {
+                let view = editor.view();
+                lines.push(format!(
+                    "SOURCE {} revision={} exact UTF-8",
+                    view.path.display(),
+                    view.revision
+                ));
+                lines.extend(view.source.lines().map(str::to_owned));
+            } else {
+                lines.push("  no Source document is open".into());
+            }
+            return lines;
+        }
+        let mut complete =
+            crate::details::lens_lines(self.details_lens, &self.presentation_lines());
+        if self.details_lens == crate::details::DetailsLens::Checked {
+            if let Some(graph) = &self.graphical_form {
+                complete.splice(
+                    2..2,
+                    [
+                        format!("SOURCE DOCUMENT {}", graph.source_document_id.as_str()),
+                        format!("CHECKED FORM {}", graph.checked_form_id.as_str()),
+                        format!("EXPANDED FORM {}", graph.expanded_form_id.as_str()),
+                    ],
+                );
+            }
+        }
+        complete
+    }
+
+    pub(super) fn details_lines(&self) -> Vec<String> {
+        let complete = self.details_content_lines();
+        let mut visible = complete.iter().take(2).cloned().collect::<Vec<_>>();
+        visible.extend(
+            complete
+                .iter()
+                .skip(2usize.saturating_add(self.details_scroll))
+                .cloned(),
+        );
+        visible
+    }
+
     pub(super) fn presentation_lines(&self) -> Vec<String> {
         if let Some(execution) = &self.renderer_execution {
             let mut lines = portable_presentation_lines(&execution.presentation)
@@ -174,6 +222,24 @@ impl PatchbayApplication {
             view.checked.forms.len(),
             view.open_form
         ));
+        lines.extend(
+            self.form_navigator_entries()
+                .iter()
+                .enumerate()
+                .map(|(index, entry)| {
+                    let state = if index == self.navigator_selection {
+                        "selected"
+                    } else {
+                        "not-selected"
+                    };
+                    let action = if entry.action.is_some() {
+                        "actionable"
+                    } else {
+                        "unavailable"
+                    };
+                    format!("FORM NAVIGATOR {state} {action} {}", entry.label)
+                }),
+        );
         if let Some(form) = view
             .checked
             .forms

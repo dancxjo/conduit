@@ -258,7 +258,7 @@ fn verify_conduitos_console(root: &Path, manifest: &Manifest, commit: &str) -> R
             .emulator_version
             .as_deref()
             .is_some_and(|value| value.starts_with("QEMU emulator version "))
-        || provenance.machine.as_deref() != Some("q35-single-cpu-64m-headless-xhci-usb-kbd")
+        || provenance.machine.as_deref() != Some("q35-single-cpu-64m-headless-xhci-usb-kbd-adlib")
         || !provenance
             .firmware
             .as_deref()

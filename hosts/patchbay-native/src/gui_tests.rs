@@ -36,6 +36,15 @@ fn icon_table_is_finite_and_every_icon_has_an_accessibility_name() {
 #[test]
 fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     let graph = graph();
+    let navigator = vec![crate::forms_navigation::FormNavigatorEntry {
+        label: "ROOT welcome [ANCESTOR]".into(),
+        action: Some(GuiAction::OpenNavigatorAncestor {
+            source_document_id: graph.source_document_id.as_str().into(),
+            checked_form_id: graph.checked_form_id.as_str().into(),
+            expanded_form_id: graph.expanded_form_id.as_str().into(),
+            back_count: 1,
+        }),
+    }];
     let visible_gears = graph
         .gears
         .iter()
@@ -51,7 +60,10 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
             selected: None,
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
-            palette_query: "",
+            palette: &Default::default(),
+            forms: &navigator,
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &Default::default(),
@@ -59,6 +71,7 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     assert!(!visible_gears.is_empty());
@@ -71,6 +84,10 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     assert!(targets
         .iter()
         .any(|target| matches!(&target.action, GuiAction::SelectSubject(subject) if subject.subject_identity.starts_with("port/") && subject.expanded_form_id == graph.expanded_form_id)));
+    assert!(targets.iter().any(|target| {
+        matches!(target.action, GuiAction::OpenNavigatorAncestor { .. })
+            && target.contains(20.0, 90.0)
+    }));
     assert!(targets
         .iter()
         .any(|target| target.action == GuiAction::OpenBack && target.contains(20.0, 250.0)));
@@ -80,9 +97,9 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     assert!(targets.iter().any(|target| {
         target.action == GuiAction::ToggleLinearView && target.contains(20.0, 314.0)
     }));
-    assert!(targets.iter().any(|target| {
-        matches!(&target.action, GuiAction::PlacePaletteKind(kind) if kind == "text/upper")
-    }));
+    assert!(targets
+        .iter()
+        .any(|target| { matches!(&target.action, GuiAction::BeginPaletteDrag(_)) }));
     assert!(targets
         .iter()
         .any(|target| matches!(&target.action, GuiAction::ConfigureGear { .. })));
@@ -110,7 +127,10 @@ fn parent_canvas_draws_one_composed_gear_instead_of_its_expanded_child_gears() {
             selected: None,
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
-            palette_query: "",
+            palette: &Default::default(),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &Default::default(),
@@ -118,6 +138,7 @@ fn parent_canvas_draws_one_composed_gear_instead_of_its_expanded_child_gears() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     assert!(targets.iter().any(|target| {
@@ -152,7 +173,10 @@ fn every_patchbay_drag_state_has_a_distinct_visible_manifestation() {
                 selected: None,
                 breadcrumb: "",
                 lifecycle: &LifecycleContext::default(),
-                palette_query: "",
+                palette: &Default::default(),
+                forms: &[],
+                form_selection: 0,
+                form_scroll: 0,
                 exact_identity_open: false,
                 face_control_focus: 0,
                 presentation_layout: &Default::default(),
@@ -160,6 +184,7 @@ fn every_patchbay_drag_state_has_a_distinct_visible_manifestation() {
                 realization_hosts: &[],
                 status: None,
                 gesture,
+                viewport: &Default::default(),
             },
         );
         pixels
@@ -232,7 +257,10 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
             selected: None,
             breadcrumb: "",
             lifecycle: &lifecycle,
-            palette_query: "",
+            palette: &Default::default(),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &Default::default(),
@@ -240,6 +268,7 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     let lifecycle_actions = targets
@@ -273,7 +302,10 @@ fn selected_inspector_has_one_visible_pointer_and_keyboard_exact_disclosure() {
             selected: Some(selected),
             breadcrumb: "",
             lifecycle: &Default::default(),
-            palette_query: "",
+            palette: &Default::default(),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &Default::default(),
@@ -281,6 +313,7 @@ fn selected_inspector_has_one_visible_pointer_and_keyboard_exact_disclosure() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     let disclosure = targets
@@ -300,7 +333,10 @@ fn selected_inspector_has_one_visible_pointer_and_keyboard_exact_disclosure() {
             selected: None,
             breadcrumb: "",
             lifecycle: &Default::default(),
-            palette_query: "",
+            palette: &Default::default(),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &Default::default(),
@@ -308,6 +344,7 @@ fn selected_inspector_has_one_visible_pointer_and_keyboard_exact_disclosure() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     assert!(!quiet
@@ -351,7 +388,10 @@ fn reverse_face_is_renderer_local_and_keeps_the_demo_graph_intact() {
             selected: Some(&gear.identity),
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
-            palette_query: "",
+            palette: &Default::default(),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &layout,
@@ -359,6 +399,7 @@ fn reverse_face_is_renderer_local_and_keeps_the_demo_graph_intact() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     assert!(targets.iter().any(
@@ -388,7 +429,10 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
             selected: Some(&selected),
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
-            palette_query: "",
+            palette: &Default::default(),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &Default::default(),
@@ -396,6 +440,7 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     assert_eq!(storage[0], guard);
@@ -423,7 +468,10 @@ fn palette_query_visibly_filters_the_authoritative_entries() {
             selected: None,
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
-            palette_query: "value/count",
+            palette: &crate::palette_state::PaletteChooser::for_query("value/count"),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &Default::default(),
@@ -431,12 +479,13 @@ fn palette_query_visibly_filters_the_authoritative_entries() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     let kinds = targets
         .iter()
         .filter_map(|target| match &target.action {
-            GuiAction::PlacePaletteKind(kind) => Some(kind.as_str()),
+            GuiAction::BeginPaletteDrag(kind) => Some(kind.as_str()),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -465,7 +514,10 @@ fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
             selected: None,
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
-            palette_query: "",
+            palette: &Default::default(),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &layout,
@@ -473,6 +525,7 @@ fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &Default::default(),
         },
     );
     assert!(targets.iter().any(|target| {

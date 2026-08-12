@@ -12,7 +12,14 @@ impl PatchbayApplication {
             .hit_targets
             .iter()
             .rev()
-            .find(|target| target.contains(self.cursor_position.0, self.cursor_position.1))
+            .find(|target| {
+                target.contains(self.cursor_position.0, self.cursor_position.1)
+                    && (!target.action.is_canvas_action()
+                        || self
+                            .canvas_viewport
+                            .canvas()
+                            .contains(self.cursor_position.0, self.cursor_position.1))
+            })
             .map(|target| target.action.clone())
         else {
             return Ok(());
@@ -34,7 +41,11 @@ impl PatchbayApplication {
             }
             return self.handle_environment_action(action);
         }
-        if let GuiAction::PlacePaletteKind(kind) = action {
+        if let GuiAction::BeginPaletteDrag(kind) = action {
+            if let Err(error) = self.palette.select_kind(&kind) {
+                self.publish_refusal(error.message());
+                return Ok(());
+            }
             self.publish_gesture(format!(
                 "Dragging Gear {kind}; release on the canvas to place it"
             ));
@@ -149,10 +160,21 @@ impl PatchbayApplication {
             return Ok(());
         }
         if let Some(kind) = self.palette_drag.take() {
-            if self.cursor_position.0 > 176.0 {
-                self.handle_gui_action(GuiAction::PlacePaletteKind(kind))?;
-            } else {
-                self.publish_cancelled("Gear placement cancelled outside the canvas");
+            let world = match self.canvas_world_cursor() {
+                Ok(world) => world,
+                Err(error) => {
+                    self.publish_refusal(error.message());
+                    return Ok(());
+                }
+            };
+            match crate::palette_state::PaletteChooser::pointer_target(
+                f64::from(world.x),
+                f64::from(world.y),
+            ) {
+                Ok(target) => {
+                    self.handle_gui_action(GuiAction::PlacePaletteKind { kind, target })?
+                }
+                Err(error) => self.publish_refusal(error.message()),
             }
             return Ok(());
         }
@@ -208,17 +230,15 @@ impl PatchbayApplication {
             if let Some(endpoint) = endpoint {
                 self.handle_gui_action(GuiAction::RerouteCord { cord, endpoint })?;
             } else {
+                let world = self
+                    .canvas_world_cursor()
+                    .map_err(|error| error.message().to_owned())?;
                 let graph = self
                     .graphical_form
                     .as_ref()
                     .ok_or("graphical Form projection is absent")?;
                 self.layout
-                    .route_cord(
-                        graph,
-                        &cord,
-                        self.cursor_position.0 as i32,
-                        self.cursor_position.1 as i32,
-                    )
+                    .route_cord(graph, &cord, world.x, world.y)
                     .map_err(|error| format!("native Cord routing failed: {error:?}"))?;
                 if let Some(window) = &self.window {
                     window.request_redraw();
@@ -231,10 +251,10 @@ impl PatchbayApplication {
             let moved = (self.cursor_position.0 - start.0).abs() > 2.0
                 || (self.cursor_position.1 - start.1).abs() > 2.0;
             if moved {
-                let position = (
-                    (self.cursor_position.0 as i32 - 95).max(177),
-                    (self.cursor_position.1 as i32 - 20).max(53),
-                );
+                let world = self
+                    .canvas_world_cursor()
+                    .map_err(|error| error.message().to_owned())?;
+                let position = ((world.x - 95).max(177), (world.y - 20).max(53));
                 let graph = self
                     .graphical_form
                     .as_ref()
@@ -259,6 +279,7 @@ impl PatchbayApplication {
             | self.cord_drag.take().is_some()
             | self.cord_route_drag.take().is_some()
             | self.gear_drag.take().is_some();
+        let had_gesture = had_gesture | self.canvas_pan_drag.take().is_some();
         self.last_gear_click = None;
         if had_gesture {
             self.publish_cancelled(format!("Gesture cancelled: {reason}"));
@@ -283,7 +304,7 @@ impl PatchbayApplication {
         self.request_redraw();
     }
 
-    fn publish_completed(&mut self, message: impl Into<String>) {
+    pub(super) fn publish_completed(&mut self, message: impl Into<String>) {
         self.interaction_status.publish(
             InteractionStatusLevel::Success,
             InteractionStatusCode::Completed,

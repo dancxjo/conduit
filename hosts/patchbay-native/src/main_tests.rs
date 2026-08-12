@@ -423,12 +423,12 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
         .handle_gui_action(GuiAction::SelectSubject(subject))
         .unwrap();
     application.back_navigation = vec![
-        super::form_interaction::BackNavigationEntry {
+        super::forms_navigation::BackNavigationEntry {
             parent_form: "bounded-parent".into(),
             gear_name: "bounded-gear".into(),
             child_form: "bounded-child".into(),
         };
-        super::form_interaction::MAX_BACK_NAVIGATION_DEPTH
+        super::forms_navigation::MAX_BACK_NAVIGATION_DEPTH
     ];
     assert_eq!(application.handle_gui_action(GuiAction::OpenBack), Ok(()));
     assert_eq!(
@@ -558,17 +558,32 @@ fn palette_placement_runs_an_ordinary_interaction_before_editing_canonical_sourc
     .unwrap();
 
     application
-        .handle_gui_action(GuiAction::PlacePaletteKind("text/upper".into()))
+        .handle_gui_action(GuiAction::PlacePaletteKind {
+            kind: "text/upper".into(),
+            target: (204, 80),
+        })
         .unwrap();
-    application
-        .handle_gui_action(GuiAction::PlacePaletteKind("text/upper".into()))
-        .unwrap();
+    application.palette_drag = Some("text/upper".into());
+    application.cursor_position = (553.0, 100.0);
+    application.handle_canvas_release().unwrap();
     application.handle_gui_action(GuiAction::SaveForm).unwrap();
 
     let view = application.form_editor.as_ref().unwrap().view();
     assert!(view.source.contains("upper: text/upper"));
     assert!(view.source.contains("upper-2: text/upper"));
     assert_eq!(application.graphical_form.as_ref().unwrap().gears.len(), 2);
+    let second = application
+        .graphical_form
+        .as_ref()
+        .unwrap()
+        .gears
+        .iter()
+        .find(|gear| application.layout.position(&gear.identity) == Some((458, 80)))
+        .unwrap();
+    assert_eq!(
+        application.layout.position(&second.identity),
+        Some((458, 80))
+    );
     let receipts = application
         .interaction
         .as_ref()
@@ -602,6 +617,53 @@ fn palette_placement_runs_an_ordinary_interaction_before_editing_canonical_sourc
 
     std::fs::remove_file(path).unwrap();
     std::fs::remove_file(directory.join("making.conduit.patchbay.json")).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+fn slash_query_enter_places_uppercase_at_the_explicit_deterministic_target() {
+    let directory = std::env::temp_dir().join(format!(
+        "patchbay-palette-keyboard-place-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("making.conduit");
+    std::fs::write(&path, "form making {\n}\n").unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    assert!(application.handle_palette_key(&winit::keyboard::Key::Character("/".into())));
+    assert!(application.handle_palette_key(&winit::keyboard::Key::Character("uppercase".into())));
+    assert!(application.handle_palette_key(&winit::keyboard::Key::Named(
+        winit::keyboard::NamedKey::Enter
+    )));
+
+    let graph = application.graphical_form.as_ref().unwrap();
+    let gear = graph
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == "text/upper")
+        .unwrap();
+    assert_eq!(application.layout.position(&gear.identity), Some((204, 80)));
+    let receipt = application
+        .interaction
+        .as_ref()
+        .unwrap()
+        .history()
+        .last()
+        .unwrap();
+    assert!(matches!(
+        &receipt.request,
+        patchbay_model::PatchbayInteractionRequest::Edit {
+            edit: patchbay_model::PatchbayEdit::PlaceGear { kind_id, .. },
+            ..
+        } if kind_id == "text/upper"
+    ));
+
+    std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
 }
 

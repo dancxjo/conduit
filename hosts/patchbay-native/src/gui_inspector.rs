@@ -4,6 +4,7 @@ use crate::{gui::LifecycleContext, interaction_status::InteractionStatus};
 
 pub(super) struct InspectorView<'a> {
     pub(super) selected: Option<&'a str>,
+    pub(super) palette: &'a crate::palette_state::PaletteChooser,
     pub(super) lifecycle: &'a LifecycleContext,
     pub(super) status: Option<&'a InteractionStatus>,
     pub(super) exact_open: bool,
@@ -30,6 +31,7 @@ pub(super) fn draw_inspector<D: DrawTarget<Color = Rgb888>>(
 ) {
     let InspectorView {
         selected,
+        palette,
         lifecycle,
         status,
         exact_open,
@@ -44,6 +46,10 @@ pub(super) fn draw_inspector<D: DrawTarget<Color = Rgb888>>(
         "INSPECTOR",
         theme.emphasis,
     );
+    if palette.search_active() {
+        draw_palette_inspection(target, graph, palette, x, theme);
+        return;
+    }
     let Some(inspection) = selected.and_then(|identity| graph.inspect(identity).ok()) else {
         // Empty selection is intentionally quiet: the canvas already teaches selection.
         return;
@@ -160,6 +166,125 @@ pub(super) fn draw_inspector<D: DrawTarget<Color = Rgb888>>(
     }
 }
 
+fn draw_palette_inspection<D: DrawTarget<Color = Rgb888>>(
+    target: &mut D,
+    graph: &PatchbayGraph,
+    chooser: &crate::palette_state::PaletteChooser,
+    x: i32,
+    theme: &PatchbayTheme,
+) {
+    let Ok(kind) = chooser.selected_kind() else {
+        text(
+            target,
+            Point::new(x, 96),
+            "NO MATCHING GEARS",
+            theme.failure,
+        );
+        text(
+            target,
+            Point::new(x, 118),
+            "Edit the query or press Escape.",
+            theme.text_secondary,
+        );
+        return;
+    };
+    let Ok(palette) = patchbay_model::GearPalette::standard() else {
+        text(
+            target,
+            Point::new(x, 96),
+            "CATALOG UNAVAILABLE",
+            theme.failure,
+        );
+        return;
+    };
+    let Some(entry) = palette.find(&conduit_core::KindId::from(kind)) else {
+        return;
+    };
+    text(target, Point::new(x, 96), &entry.plain_name, theme.focus);
+    text(
+        target,
+        Point::new(x, 118),
+        entry.category.label(),
+        theme.emphasis,
+    );
+    wrapped_text(
+        target,
+        Point::new(x, 140),
+        &entry.summary,
+        32,
+        2,
+        theme.text_primary,
+    );
+    identity_value(
+        target,
+        Point::new(x, 184),
+        "exact Kind",
+        entry.kind_id.as_str(),
+        theme,
+    );
+    identity_value(
+        target,
+        Point::new(x, 242),
+        "typed inputs",
+        &port_contracts(&entry.inputs),
+        theme,
+    );
+    identity_value(
+        target,
+        Point::new(x, 300),
+        "typed outputs",
+        &port_contracts(&entry.outputs),
+        theme,
+    );
+    identity_value(
+        target,
+        Point::new(x, 358),
+        "configuration",
+        &configuration_contracts(&entry.configuration),
+        theme,
+    );
+    identity_value(
+        target,
+        Point::new(x, 416),
+        "finite limits",
+        &format!(
+            "active={} queue-items={} queue-bytes={}",
+            entry.limits.max_active_instances,
+            entry.limits.max_queue_items,
+            entry.limits.max_queue_bytes
+        ),
+        theme,
+    );
+    let target_text = crate::palette_state::PaletteChooser::keyboard_target(
+        graph.gears.len() + graph.compositions.len(),
+    )
+    .map(|(x, y)| format!("ENTER adds at visible target {x}, {y}"))
+    .unwrap_or_else(|error| error.message().to_owned());
+    text(target, Point::new(x, 478), &target_text, theme.emphasis);
+}
+
+fn port_contracts(ports: &[conduit_core::PortDescriptor]) -> String {
+    if ports.is_empty() {
+        return "none".into();
+    }
+    ports
+        .iter()
+        .map(|port| format!("{}:{}", port.port_id.as_str(), port.value_kind.as_str()))
+        .collect::<Vec<_>>()
+        .join("  ")
+}
+
+fn configuration_contracts(fields: &[patchbay_model::PaletteConfigurationSummary]) -> String {
+    if fields.is_empty() {
+        return "none".into();
+    }
+    fields
+        .iter()
+        .map(|field| format!("{}:{:?}", field.key, field.rule))
+        .collect::<Vec<_>>()
+        .join("  ")
+}
+
 fn human_kind(kind: PatchbaySubjectKind) -> &'static str {
     match kind {
         PatchbaySubjectKind::Gear => "GEAR",
@@ -220,5 +345,32 @@ fn wrapped_text<D: DrawTarget<Color = Rgb888>>(
             &chunk.iter().collect::<String>(),
             color,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn palette_inspection_projects_every_authoritative_port_and_configuration_rule() {
+        let palette = patchbay_model::GearPalette::standard().unwrap();
+        let entry = palette
+            .find(&conduit_core::KindId::from("flow/gate"))
+            .unwrap();
+        let ports = format!(
+            "{} {}",
+            port_contracts(&entry.inputs),
+            port_contracts(&entry.outputs)
+        );
+        for port in entry.inputs.iter().chain(&entry.outputs) {
+            assert!(ports.contains(port.port_id.as_str()));
+            assert!(ports.contains(port.value_kind.as_str()));
+        }
+        let configuration = configuration_contracts(&entry.configuration);
+        for field in &entry.configuration {
+            assert!(configuration.contains(&field.key));
+            assert!(configuration.contains(&format!("{:?}", field.rule)));
+        }
     }
 }
