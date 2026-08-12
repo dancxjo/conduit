@@ -1,10 +1,10 @@
 use crate::prelude::*;
 use crate::{
-    hash_string, CanonicalBackCatalog, CanonicalExpansionDiagnostic, CanonicalStartupValue,
-    CheckedCanonicalForm, CheckedCanonicalGear, CheckedConnection, CheckedCordStage, CheckedGear,
-    CheckedSyntaxDocument, ConfigurationRule, ConfigurationValue, ExpandedCanonicalForm,
-    ExpandedGearProvenance, ExpandedSharedPool, ProfileCatalog, RuntimePortDirection,
-    MAXIMUM_FORM_NESTING_DEPTH,
+    hash_string, AuthoringFaceBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
+    CanonicalStartupValue, CheckedCanonicalForm, CheckedCanonicalGear, CheckedConnection,
+    CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationRule, ConfigurationValue,
+    ExpandedAuthoringForm, ExpandedCanonicalForm, ExpandedGearProvenance, ExpandedSharedPool,
+    ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
@@ -13,7 +13,10 @@ mod entry;
 mod graph;
 mod identity;
 mod shared_pool;
-pub use entry::{expand_canonical_form, expand_canonical_form_with_backs};
+pub use entry::{
+    expand_canonical_form, expand_canonical_form_for_authoring,
+    expand_canonical_form_for_authoring_with_backs, expand_canonical_form_with_backs,
+};
 use graph::*;
 use identity::{expanded_identity, provenance_digest};
 use shared_pool::{bind_pool_environment, expanded_pool_declarations, seal_pool_consumers};

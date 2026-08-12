@@ -40,10 +40,29 @@ impl PatchbayApplication {
                 .and_then(|graph| graph.inspect(&subject.subject_identity).ok())
                 .map(|inspection| inspection.subject_kind);
             match subject_kind {
-                Some(patchbay_model::PatchbaySubjectKind::PortOutput) => {
+                Some(
+                    patchbay_model::PatchbaySubjectKind::PortOutput
+                    | patchbay_model::PatchbaySubjectKind::FaceInput,
+                ) => {
                     self.cord_drag = Some(subject.clone());
                 }
                 Some(patchbay_model::PatchbaySubjectKind::Gear) => {
+                    let now = std::time::Instant::now();
+                    let double_click =
+                        self.last_gear_click
+                            .as_ref()
+                            .is_some_and(|(prior, instant)| {
+                                prior == subject
+                                    && now.duration_since(*instant)
+                                        <= std::time::Duration::from_millis(500)
+                            });
+                    self.last_gear_click = Some((subject.clone(), now));
+                    if double_click {
+                        self.last_gear_click = None;
+                        self.gear_drag = None;
+                        self.handle_gui_action(action)?;
+                        return self.handle_gui_action(GuiAction::OpenBack);
+                    }
                     self.gear_drag = Some((subject.clone(), self.cursor_position));
                 }
                 Some(patchbay_model::PatchbaySubjectKind::Cord) => {
@@ -99,6 +118,8 @@ impl PatchbayApplication {
                         .is_some_and(|inspection| {
                             inspection.subject_kind
                                 == patchbay_model::PatchbaySubjectKind::PortInput
+                                || inspection.subject_kind
+                                    == patchbay_model::PatchbaySubjectKind::FaceOutput
                         })
                 });
             if let Some(sink) = sink {

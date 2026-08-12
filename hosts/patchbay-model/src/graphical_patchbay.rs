@@ -49,6 +49,8 @@ impl std::error::Error for PatchbayGraphError {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PatchbaySubjectKind {
     Gear,
+    FaceInput,
+    FaceOutput,
     PortInput,
     PortOutput,
     Cord,
@@ -62,11 +64,19 @@ pub struct PatchbayPort {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbayFacePort {
+    pub identity: String,
+    pub descriptor: PortDescriptor,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayGear {
     pub identity: String,
     pub gear_id: GearId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
+    pub source_form: String,
+    pub form_path: Vec<String>,
     pub inputs: Vec<PatchbayPort>,
     pub outputs: Vec<PatchbayPort>,
     /// Direct, finite controls projected from the exact checked configuration
@@ -89,6 +99,8 @@ pub struct PatchbayGraph {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub form_name: String,
+    pub face_inputs: Vec<PatchbayFacePort>,
+    pub face_outputs: Vec<PatchbayFacePort>,
     pub gears: Vec<PatchbayGear>,
     pub cords: Vec<PatchbayCord>,
 }
@@ -130,11 +142,18 @@ impl PatchbayGraph {
             .gears
             .iter()
             .map(|gear| {
+                let provenance = form
+                    .provenance
+                    .iter()
+                    .find(|candidate| candidate.gear_id == gear.gear_id.as_str())
+                    .ok_or(PatchbayGraphError::UnknownSubject)?;
                 Ok(PatchbayGear {
                     identity: format!("gear/{}", gear.gear_id.as_str()),
                     gear_id: gear.gear_id.clone(),
                     kind_id: gear.kind_id.clone(),
                     kind_contract_revision: gear.kind_contract_revision.clone(),
+                    source_form: provenance.source_form.clone(),
+                    form_path: provenance.form_path.clone(),
                     inputs: gear
                         .inputs
                         .iter()
@@ -192,19 +211,115 @@ impl PatchbayGraph {
             checked_form_id: form.checked_form_id.clone(),
             expanded_form_id: form.expanded_form_id.clone(),
             form_name: form.name.clone(),
+            face_inputs: Vec::new(),
+            face_outputs: Vec::new(),
             gears,
             cords,
         })
     }
 
-    pub fn subject_identities(&self) -> impl Iterator<Item = &str> {
-        self.gears
+    pub fn from_authoring(
+        form: &conduit_form::ExpandedAuthoringForm,
+    ) -> Result<Self, PatchbayGraphError> {
+        let mut graph = Self::from_expanded(&form.expanded)?;
+        let boundary_count = form.face.inputs().len() + form.face.outputs().len();
+        let port_count = graph
+            .gears
             .iter()
-            .flat_map(|gear| {
+            .map(|gear| gear.inputs.len() + gear.outputs.len())
+            .sum::<usize>();
+        if port_count
+            .checked_add(boundary_count)
+            .is_none_or(|count| count > MAX_PATCHBAY_PORTS)
+        {
+            return Err(PatchbayGraphError::TooManyPorts);
+        }
+        graph.face_inputs = form
+            .face
+            .inputs()
+            .iter()
+            .cloned()
+            .map(|descriptor| PatchbayFacePort {
+                identity: face_port_identity(PortDirection::Input, descriptor.port_id.as_str()),
+                descriptor,
+            })
+            .collect();
+        graph.face_outputs = form
+            .face
+            .outputs()
+            .iter()
+            .cloned()
+            .map(|descriptor| PatchbayFacePort {
+                identity: face_port_identity(PortDirection::Output, descriptor.port_id.as_str()),
+                descriptor,
+            })
+            .collect();
+        let boundary_cords = form.input_bindings.len() + form.output_bindings.len();
+        if graph
+            .cords
+            .len()
+            .checked_add(boundary_cords)
+            .is_none_or(|count| count > MAX_PATCHBAY_CORDS)
+        {
+            return Err(PatchbayGraphError::TooManyCords);
+        }
+        for binding in &form.input_bindings {
+            let source = face_port_identity(PortDirection::Input, binding.face_port_id.as_str());
+            let sink = port_identity(
+                &binding.gear_id,
+                PortDirection::Input,
+                binding.gear_port_id.as_str(),
+            );
+            let descriptor = graph
+                .face_inputs
+                .iter()
+                .find(|port| port.identity == source)
+                .ok_or(PatchbayGraphError::MissingCordEndpoint)?
+                .descriptor
+                .clone();
+            graph.cords.push(PatchbayCord {
+                identity: format!("boundary/{source}->{sink}"),
+                source_port: source,
+                sink_port: sink,
+                value_kind: descriptor.value_kind,
+                temporal: descriptor.temporal,
+            });
+        }
+        for binding in &form.output_bindings {
+            let source = port_identity(
+                &binding.gear_id,
+                PortDirection::Output,
+                binding.gear_port_id.as_str(),
+            );
+            let sink = face_port_identity(PortDirection::Output, binding.face_port_id.as_str());
+            let descriptor = graph
+                .face_outputs
+                .iter()
+                .find(|port| port.identity == sink)
+                .ok_or(PatchbayGraphError::MissingCordEndpoint)?
+                .descriptor
+                .clone();
+            graph.cords.push(PatchbayCord {
+                identity: format!("boundary/{source}->{sink}"),
+                source_port: source,
+                sink_port: sink,
+                value_kind: descriptor.value_kind,
+                temporal: descriptor.temporal,
+            });
+        }
+        Ok(graph)
+    }
+
+    pub fn subject_identities(&self) -> impl Iterator<Item = &str> {
+        self.face_inputs
+            .iter()
+            .chain(&self.face_outputs)
+            .map(|port| port.identity.as_str())
+            .chain(self.gears.iter().flat_map(|gear| {
                 std::iter::once(gear.identity.as_str())
                     .chain(gear.inputs.iter().map(|port| port.identity.as_str()))
                     .chain(gear.outputs.iter().map(|port| port.identity.as_str()))
-            })
+            }))
             .chain(self.cords.iter().map(|cord| cord.identity.as_str()))
     }
 
@@ -227,6 +342,28 @@ impl PatchbayGraph {
     }
 
     pub fn inspect(&self, identity: &str) -> Result<PatchbayInspection, PatchbayGraphError> {
+        if let Some(port) = self
+            .face_inputs
+            .iter()
+            .chain(&self.face_outputs)
+            .find(|port| port.identity == identity)
+        {
+            let subject_kind = match port.descriptor.direction {
+                PortDirection::Input => PatchbaySubjectKind::FaceInput,
+                PortDirection::Output => PatchbaySubjectKind::FaceOutput,
+            };
+            return Ok(PatchbayInspection {
+                subject_identity: identity.into(),
+                subject_kind,
+                exact_facts: vec![
+                    format!("Face Port {}", port.descriptor.port_id.as_str()),
+                    format!("direction={:?}", port.descriptor.direction),
+                    format!("Info {}", port.descriptor.value_kind.as_str()),
+                    format!("temporal={:?}", port.descriptor.temporal),
+                    "authoring boundary; runnable root requires an exact binding".into(),
+                ],
+            });
+        }
         if let Some(gear) = self.gears.iter().find(|gear| gear.identity == identity) {
             return Ok(PatchbayInspection {
                 subject_identity: identity.into(),
@@ -301,4 +438,12 @@ fn port_identity(gear: &GearId, direction: PortDirection, port: &str) -> String 
         PortDirection::Output => "output",
     };
     format!("port/{}/{direction}/{port}", gear.as_str())
+}
+
+fn face_port_identity(direction: PortDirection, port: &str) -> String {
+    let direction = match direction {
+        PortDirection::Input => "input",
+        PortDirection::Output => "output",
+    };
+    format!("face/{direction}/{port}")
 }

@@ -45,6 +45,7 @@ pub struct LifecycleContext {
 
 pub struct PatchbayViewContext<'a> {
     pub selected: Option<&'a str>,
+    pub breadcrumb: &'a str,
     pub lifecycle: &'a LifecycleContext,
     pub palette_query: &'a str,
     pub presentation_layout: &'a patchbay_model::PatchbayLayout,
@@ -61,6 +62,14 @@ pub(super) struct GearLayout<'a> {
     pub(super) group: Option<String>,
 }
 
+#[derive(Clone)]
+struct BoundaryLayout {
+    identity: String,
+    point: Point,
+    bounds: PixelRect,
+    label: String,
+}
+
 pub fn draw_patchbay(
     pixels: &mut [u32],
     width: usize,
@@ -70,6 +79,7 @@ pub fn draw_patchbay(
 ) -> Vec<HitTarget> {
     let PatchbayViewContext {
         selected,
+        breadcrumb,
         lifecycle,
         palette_query,
         presentation_layout,
@@ -95,8 +105,9 @@ pub fn draw_patchbay(
         },
         theme,
     );
-    draw_header(&mut canvas, graph, lifecycle, theme);
+    draw_header(&mut canvas, graph, breadcrumb, lifecycle, theme);
     let layouts = layout_gears(graph, width, presentation_layout);
+    let boundaries = layout_boundaries(graph, width);
     let mut targets = Vec::with_capacity(
         MAX_HIT_TARGETS.min(
             3 + graph.gears.len()
@@ -112,12 +123,13 @@ pub fn draw_patchbay(
     draw_cords(
         &mut canvas,
         graph,
-        &layouts,
+        (&layouts, &boundaries),
         selected,
         presentation_layout,
         theme,
         &mut targets,
     );
+    draw_boundaries(&mut canvas, graph, &boundaries, theme, &mut targets);
     let gear_view = GearViewContext {
         presentation_layout,
         realization_plan,
@@ -143,6 +155,7 @@ pub fn draw_patchbay(
 fn draw_header<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
+    breadcrumb: &str,
     lifecycle: &LifecycleContext,
     theme: &PatchbayTheme,
 ) {
@@ -150,7 +163,14 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
         target,
         Icon::Form,
         Point::new(14, 10),
-        &format!("FORM  {}", graph.form_name),
+        &format!(
+            "FORM  {}",
+            if breadcrumb.is_empty() {
+                graph.form_name.as_str()
+            } else {
+                breadcrumb
+            }
+        ),
         theme.emphasis,
     );
     let layers = [
@@ -212,7 +232,7 @@ fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
         Icon::Open,
         "Open Back",
         246,
-        GuiAction::OpenNextForm,
+        GuiAction::OpenBack,
         theme,
         targets,
     );
@@ -339,17 +359,18 @@ fn port_points(ports: &[patchbay_model::PatchbayPort], x: i32, y: i32) -> Vec<(S
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
-    layouts: &[GearLayout<'_>],
+    layout: (&[GearLayout<'_>], &[BoundaryLayout]),
     selected: Option<&str>,
     presentation_layout: &patchbay_model::PatchbayLayout,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
+    let (layouts, boundaries) = layout;
     for cord in &graph.cords {
-        let Some(source) = find_port(layouts, &cord.source_port) else {
+        let Some(source) = find_port(layouts, boundaries, &cord.source_port) else {
             continue;
         };
-        let Some(sink) = find_port(layouts, &cord.sink_port) else {
+        let Some(sink) = find_port(layouts, boundaries, &cord.sink_port) else {
             continue;
         };
         let default_x = source.x + (sink.x - source.x) / 2;
@@ -386,11 +407,80 @@ fn select_action(graph: &PatchbayGraph, identity: &str) -> GuiAction {
     )
 }
 
-fn find_port(layouts: &[GearLayout<'_>], identity: &str) -> Option<Point> {
+fn find_port(
+    layouts: &[GearLayout<'_>],
+    boundaries: &[BoundaryLayout],
+    identity: &str,
+) -> Option<Point> {
     layouts
         .iter()
         .flat_map(|layout| layout.inputs.iter().chain(&layout.outputs))
         .find_map(|(candidate, point)| (candidate == identity).then_some(*point))
+        .or_else(|| {
+            boundaries
+                .iter()
+                .find_map(|boundary| (boundary.identity == identity).then_some(boundary.point))
+        })
+}
+
+fn layout_boundaries(graph: &PatchbayGraph, width: i32) -> Vec<BoundaryLayout> {
+    let left = NAV_WIDTH + 8;
+    let right = (width - INSPECTOR_WIDTH - 8).max(left + 80);
+    graph
+        .face_inputs
+        .iter()
+        .enumerate()
+        .map(|(index, port)| {
+            let y = HEADER_HEIGHT + 42 + index as i32 * 34;
+            BoundaryLayout {
+                identity: port.identity.clone(),
+                point: Point::new(left + 10, y + 10),
+                bounds: PixelRect {
+                    x: left,
+                    y,
+                    width: 82,
+                    height: 22,
+                },
+                label: format!("> {}", port.descriptor.port_id.as_str()),
+            }
+        })
+        .chain(graph.face_outputs.iter().enumerate().map(|(index, port)| {
+            let y = HEADER_HEIGHT + 42 + index as i32 * 34;
+            BoundaryLayout {
+                identity: port.identity.clone(),
+                point: Point::new(right - 10, y + 10),
+                bounds: PixelRect {
+                    x: right - 82,
+                    y,
+                    width: 82,
+                    height: 22,
+                },
+                label: format!("{} >", port.descriptor.port_id.as_str()),
+            }
+        }))
+        .collect()
+}
+
+fn draw_boundaries<D: DrawTarget<Color = Rgb888>>(
+    target: &mut D,
+    graph: &PatchbayGraph,
+    boundaries: &[BoundaryLayout],
+    theme: &PatchbayTheme,
+    targets: &mut Vec<HitTarget>,
+) {
+    for boundary in boundaries {
+        frame_rect(target, boundary.bounds, theme.focus, 1);
+        text(
+            target,
+            Point::new(boundary.bounds.x + 7, boundary.bounds.y + 7),
+            &boundary.label,
+            theme.text_primary,
+        );
+        targets.push(HitTarget {
+            action: select_action(graph, &boundary.identity),
+            shape: HitShape::Rect(boundary.bounds),
+        });
+    }
 }
 
 fn draw_footer<D: DrawTarget<Color = Rgb888>>(

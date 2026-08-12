@@ -229,22 +229,61 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
     let directory =
         std::env::temp_dir().join(format!("patchbay-gui-actions-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
-    let path = directory.join("count.conduit");
-    std::fs::write(&path, include_str!("../../../examples/count.conduit")).unwrap();
+    let path = directory.join("greet.conduit");
+    std::fs::write(&path, include_str!("../../../examples/greet.conduit")).unwrap();
     let mut application = PatchbayApplication::new(Arguments {
         form_path: Some(path.clone()),
         ..Arguments::default()
     })
     .unwrap();
 
-    assert!(application.graphical_form.is_none());
-    application
-        .handle_gui_action(GuiAction::OpenNextForm)
+    let composed = application
+        .graphical_form
+        .as_ref()
+        .unwrap()
+        .gears
+        .iter()
+        .find(|gear| gear.source_form == "greet")
         .unwrap();
+    let subject = application
+        .graphical_form
+        .as_ref()
+        .unwrap()
+        .subject_ref(&composed.identity)
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::SelectSubject(subject))
+        .unwrap();
+    application.handle_gui_action(GuiAction::OpenBack).unwrap();
     assert_eq!(
         application.graphical_form.as_ref().unwrap().form_name,
-        "count-demo"
+        "greet"
     );
+    assert_eq!(
+        application
+            .graphical_form
+            .as_ref()
+            .unwrap()
+            .face_inputs
+            .len(),
+        1
+    );
+    assert_eq!(
+        application
+            .graphical_form
+            .as_ref()
+            .unwrap()
+            .face_outputs
+            .len(),
+        1
+    );
+    assert_eq!(application.back_navigation[0].gear_name, "hello");
+    application.handle_gui_action(GuiAction::OpenBack).unwrap();
+    assert_eq!(
+        application.graphical_form.as_ref().unwrap().form_name,
+        "default-welcome"
+    );
+    assert!(application.back_navigation.is_empty());
     application
         .handle_gui_action(GuiAction::ToggleLinearView)
         .unwrap();
@@ -264,6 +303,7 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
     assert_eq!(
         actions,
         [
+            patchbay_model::PatchbayAction::OpenBack,
             patchbay_model::PatchbayAction::OpenBack,
             patchbay_model::PatchbayAction::ToggleLinearView
         ]

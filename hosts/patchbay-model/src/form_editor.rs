@@ -220,6 +220,18 @@ impl FormEditor {
         conduit_form::expand_canonical_form(&checked, name, &profile)
             .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.to_string()))
     }
+
+    pub fn expand_form_for_authoring(
+        &self,
+        name: &str,
+    ) -> Result<conduit_form::ExpandedAuthoringForm, FormEditorError> {
+        let syntax = parse_syntax_document(&self.source);
+        let (startup, profile) = standard_catalogs()?;
+        let checked = check_syntax_document(&syntax, &startup)
+            .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.message))?;
+        conduit_form::expand_canonical_form_for_authoring(&checked, name, &profile)
+            .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.to_string()))
+    }
 }
 
 pub(crate) fn check_revision(

@@ -9,6 +9,7 @@ fn redraw(application: &mut PatchbayApplication) {
         application.graphical_form.as_ref().unwrap(),
         super::gui::PatchbayViewContext {
             selected: application.selected_graphical_identity(),
+            breadcrumb: "",
             lifecycle: &Default::default(),
             palette_query: "",
             presentation_layout: &application.layout,

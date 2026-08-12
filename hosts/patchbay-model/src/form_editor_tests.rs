@@ -55,6 +55,35 @@ fn greet_face_is_collapsed_then_its_checked_back_can_be_opened() {
 }
 
 #[test]
+fn open_back_authoring_preserves_exact_face_ports_without_claiming_a_runnable_root() {
+    let editor = FormEditor::from_source("greet.conduit".into(), GREET.into()).unwrap();
+    let authoring = editor.expand_form_for_authoring("greet").unwrap();
+    let graph = PatchbayGraph::from_authoring(&authoring).unwrap();
+
+    assert_eq!(graph.face_inputs.len(), 1);
+    assert_eq!(graph.face_inputs[0].identity, "face/input/name");
+    assert_eq!(
+        graph.face_inputs[0].descriptor.value_kind.as_str(),
+        "value/text@1"
+    );
+    assert_eq!(graph.face_outputs.len(), 1);
+    assert_eq!(graph.face_outputs[0].identity, "face/output/text");
+    assert!(graph
+        .cords
+        .iter()
+        .any(|cord| cord.source_port == "face/input/name"));
+    assert!(graph
+        .cords
+        .iter()
+        .any(|cord| cord.sink_port == "face/output/text"));
+    assert!(editor
+        .expand_form("greet")
+        .unwrap_err()
+        .to_string()
+        .contains("unbound runtime face ports"));
+}
+
+#[test]
 fn malformed_edit_keeps_exact_diagnostic_span() {
     let mut editor = FormEditor::from_source("hello.conduit".into(), HELLO.into()).unwrap();
     let malformed = "form hello {\n    upper: missing/operation\n}\n".to_string();

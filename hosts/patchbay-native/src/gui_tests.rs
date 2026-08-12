@@ -34,6 +34,7 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
         &graph,
         PatchbayViewContext {
             selected: None,
+            breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
             presentation_layout: &Default::default(),
@@ -79,7 +80,7 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
         .any(|target| matches!(&target.action, GuiAction::SelectSubject(subject) if subject.subject_identity.starts_with("port/") && subject.expanded_form_id == graph.expanded_form_id)));
     assert!(targets
         .iter()
-        .any(|target| target.action == GuiAction::OpenNextForm && target.contains(20.0, 250.0)));
+        .any(|target| target.action == GuiAction::OpenBack && target.contains(20.0, 250.0)));
     assert!(targets
         .iter()
         .any(|target| target.action == GuiAction::SaveForm && target.contains(20.0, 282.0)));
@@ -135,6 +136,7 @@ fn reverse_face_is_renderer_local_and_keeps_the_demo_graph_intact() {
         &graph,
         PatchbayViewContext {
             selected: Some(&gear.identity),
+            breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
             presentation_layout: &layout,
@@ -167,6 +169,7 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
         &graph,
         PatchbayViewContext {
             selected: Some(&selected),
+            breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
             presentation_layout: &Default::default(),
@@ -197,6 +200,7 @@ fn palette_query_visibly_filters_the_authoritative_entries() {
         &graph,
         PatchbayViewContext {
             selected: None,
+            breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "value/count",
             presentation_layout: &Default::default(),
@@ -234,6 +238,7 @@ fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
         &graph,
         PatchbayViewContext {
             selected: None,
+            breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
             presentation_layout: &layout,

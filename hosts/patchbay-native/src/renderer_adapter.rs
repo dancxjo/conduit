@@ -146,6 +146,23 @@ impl PatchbayApplication {
                 );
                 Vec::new()
             } else {
+                let breadcrumb = self
+                    .back_navigation
+                    .iter()
+                    .map(|entry| format!("{} : {}", entry.gear_name, entry.child_form))
+                    .fold(String::new(), |mut path, entry| {
+                        if path.is_empty() {
+                            path.push_str(
+                                self.back_navigation
+                                    .first()
+                                    .map(|entry| entry.parent_form.as_str())
+                                    .unwrap_or(graph.form_name.as_str()),
+                            );
+                        }
+                        path.push_str(" > ");
+                        path.push_str(&entry);
+                        path
+                    });
                 draw_patchbay(
                     &mut buffer,
                     size.width as usize,
@@ -153,6 +170,7 @@ impl PatchbayApplication {
                     graph,
                     PatchbayViewContext {
                         selected: selected.as_deref(),
+                        breadcrumb: &breadcrumb,
                         lifecycle: &lifecycle,
                         palette_query: &self.palette_query,
                         presentation_layout: &self.layout,
