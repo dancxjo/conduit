@@ -1,6 +1,6 @@
 use crate::{
     cli::{CheckArgs, CheckSuite, GlobalOpts},
-    process::{run_suite, StepError},
+    process::{run_step, run_suite, StepError},
     suites::check::{
         BROWSER_CHECK_STEPS, FORM_S3_STEPS, INPUT_SEMANTICS_STEPS, KERNEL_TAKEOVER_STEPS,
         OBSERVATORY_READINESS_STEPS, PLANNING_S2_STEPS, SIM_READINESS_STEPS,
@@ -8,6 +8,7 @@ use crate::{
     },
     suites::network_capability::NETWORK_CAPABILITY_STEPS,
     suites::pico_compositions::PICO_COMPOSITION_STEPS,
+    suites::workspace_shards::WorkspaceShard,
     workspace::workspace_root,
 };
 
@@ -20,6 +21,18 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;
             run_suite(PICO_COMPOSITION_STEPS, &root, opts)
         }
+        CheckSuite::WorkspaceLint => run_workspace_shard(WorkspaceShard::Lint, &root, opts),
+        CheckSuite::WorkspaceTestFoundation => {
+            run_workspace_shard(WorkspaceShard::TestFoundation, &root, opts)
+        }
+        CheckSuite::WorkspaceTestHosts => {
+            run_workspace_shard(WorkspaceShard::TestHosts, &root, opts)
+        }
+        CheckSuite::WorkspaceTestProducts => {
+            run_workspace_shard(WorkspaceShard::TestProducts, &root, opts)
+        }
+        CheckSuite::WorkspacePortable => run_workspace_shard(WorkspaceShard::Portable, &root, opts),
+        CheckSuite::WorkspacePico => run_workspace_shard(WorkspaceShard::Pico, &root, opts),
         CheckSuite::Browser | CheckSuite::BrowserHost => {
             run_suite(BROWSER_CHECK_STEPS, &root, opts)
         }
@@ -37,4 +50,23 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             run_suite(BROWSER_CHECK_STEPS, &root, opts)
         }
     }
+}
+
+fn run_workspace_shard(
+    shard: WorkspaceShard,
+    root: &std::path::Path,
+    opts: &GlobalOpts,
+) -> Result<(), StepError> {
+    if let Some(step) = shard.package_test_step() {
+        run_step(step, root, opts)?;
+    }
+    for step in WORKSPACE_STEPS
+        .iter()
+        .chain(NETWORK_CAPABILITY_STEPS)
+        .chain(PICO_COMPOSITION_STEPS)
+        .filter(|step| shard.owns(step))
+    {
+        run_step(step, root, opts)?;
+    }
+    Ok(())
 }
