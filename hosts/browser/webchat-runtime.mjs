@@ -62,9 +62,11 @@ export async function createWebchatRuntime({ wasmBytes, url, list, input, button
   requireApi(api);
   const encoder = new TextEncoder();
   const decoder = new TextDecoder("utf-8", { fatal: true });
-  const urlBytes = encoder.encode(url);
-  writeInput(api, urlBytes);
-  requireStatus(api.conduit_browser_webchat_start(urlBytes.length), "start");
+  const hostId = `browser/${crypto.randomUUID()}`;
+  const bootId = `browser-boot/${crypto.randomUUID()}`;
+  const startFrame = encoder.encode(`${url}\n${hostId}\n${bootId}`);
+  writeInput(api, startFrame);
+  requireStatus(api.conduit_browser_webchat_start(startFrame.length), "start");
 
   let socket = null;
   let closed = false;

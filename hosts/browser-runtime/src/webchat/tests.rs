@@ -1,8 +1,18 @@
 use super::{BrowserChatEffect, BrowserChatSession};
+use conduit_core::{BootId, HostId};
+
+fn session() -> BrowserChatSession {
+    BrowserChatSession::prepare(
+        "ws://127.0.0.1:4178",
+        HostId::from("browser/test-host"),
+        BootId::from("browser/test-boot"),
+    )
+    .unwrap()
+}
 
 #[test]
 fn browser_chat_runs_planned_kernel_effects_with_preemption_and_disconnect() {
-    let mut session = BrowserChatSession::prepare("ws://127.0.0.1:4178").unwrap();
+    let mut session = session();
     assert_eq!(session.effect(), BrowserChatEffect::SocketOpen);
     session
         .complete_simple(BrowserChatEffect::SocketOpen)
@@ -39,7 +49,7 @@ fn browser_chat_runs_planned_kernel_effects_with_preemption_and_disconnect() {
 
 #[test]
 fn malformed_and_oversize_browser_messages_fail_before_kernel_admission() {
-    let mut session = BrowserChatSession::prepare("ws://127.0.0.1:4178").unwrap();
+    let mut session = session();
     session
         .complete_simple(BrowserChatEffect::SocketOpen)
         .unwrap();
@@ -53,4 +63,17 @@ fn malformed_and_oversize_browser_messages_fail_before_kernel_admission() {
         ])
         .is_err());
     assert_eq!(session.effect(), BrowserChatEffect::SocketReceive);
+}
+
+#[test]
+fn configured_host_and_boot_are_canonical_runtime_identity() {
+    let session = BrowserChatSession::prepare(
+        "ws://127.0.0.1:4178",
+        HostId::from("browser/independent-tab"),
+        BootId::from("browser/fresh-boot"),
+    )
+    .unwrap();
+    let identity = std::str::from_utf8(session.identity_text()).unwrap();
+    assert!(identity.contains("host=browser/independent-tab"));
+    assert!(identity.contains("boot=browser/fresh-boot"));
 }
