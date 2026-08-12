@@ -19,6 +19,7 @@ mod midi_input_conformance;
 mod midi_output_conformance;
 mod presentation_composition;
 mod robotics_conformance;
+mod sound_replanning;
 mod timing_conformance;
 
 struct RecordingTimer {
