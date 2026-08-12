@@ -740,6 +740,7 @@ dependencies = [
  "conduit-runtime",
  "conduit-std-catalog",
  "conduit-std-host",
+ "conduit-synth",
  "limine",
  "serde_json",
  "sha2 0.10.9",

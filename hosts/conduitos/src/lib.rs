@@ -60,6 +60,8 @@ pub mod presentation_nucleus;
 pub mod proof;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod synth_nucleus;
 pub mod text_composition;
 mod text_kernel_operations;
 mod text_offer;

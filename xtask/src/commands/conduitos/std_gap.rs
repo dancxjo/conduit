@@ -208,6 +208,19 @@ mod tests {
             report.implemented_count + report.missing_count,
             report.catalog_entry_count
         );
+        assert_eq!(report.implemented_count, 53);
+        assert_eq!(report.missing_count, 1);
+        let unavailable = report
+            .entries
+            .iter()
+            .find(|entry| entry.classification != catalog::GapClassification::Implemented)
+            .unwrap();
+        assert_eq!(unavailable.kind_id, "file/copy");
+        assert_eq!(
+            unavailable.classification,
+            catalog::GapClassification::MissingBase
+        );
+        assert_eq!(unavailable.unsatisfied_prerequisites, ["base:storage"]);
         for kind in [
             "layout/inset",
             "presentation/bool",
