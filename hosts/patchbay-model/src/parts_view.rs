@@ -5,18 +5,19 @@ use conduit_body::{
     MembershipState, PartId,
 };
 use conduit_core::{ActivePlayIdentity, BootId, HostId, OfferGeneration, PlacementId, Plan};
+use serde::{Deserialize, Serialize};
 
 pub const MAX_PARTS_VIEW_ROWS: usize = conduit_body::MAX_BODY_PARTS;
 pub const MAX_WANTS_TO_JOIN_ROWS: usize = conduit_body::MAX_CANDIDATES;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PartPresentationState {
     Here,
     Attached,
     Offline,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PartsAction {
     Inspect,
     Admit,
@@ -26,7 +27,7 @@ pub enum PartsAction {
     Replan,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PartDetails {
     pub part_id: PartId,
     pub host_id: Option<HostId>,
@@ -38,7 +39,7 @@ pub struct PartDetails {
     pub expected_signs: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PartRow {
     pub label: String,
     pub state: PartPresentationState,
@@ -49,7 +50,7 @@ pub struct PartRow {
     pub actions: Vec<PartsAction>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CandidateRow {
     pub candidate_id: CandidateId,
     pub label: String,
@@ -61,7 +62,7 @@ pub struct CandidateRow {
     pub actions: Vec<PartsAction>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PartsView {
     pub body_id: conduit_body::BodyId,
     pub awake: bool,

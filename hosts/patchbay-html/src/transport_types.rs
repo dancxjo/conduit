@@ -1,7 +1,7 @@
 //! Finite delivery envelope for one portable Conduit Presentation.
 
 use conduit_presentation::Presentation;
-use patchbay_model::RendererSelfInspection;
+use patchbay_model::{PartsView, RendererSelfInspection};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -11,11 +11,13 @@ pub struct RendererSnapshot {
     pub revision: u64,
     pub presentation: Presentation,
     pub renderer: RendererSelfInspection,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parts: Option<PartsView>,
     pub interaction: HtmlInteractionState,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct HtmlInteractionState {
     pub revision: u64,
     pub selected_subject: Option<String>,
@@ -23,4 +25,8 @@ pub struct HtmlInteractionState {
     pub last_disposition: Option<String>,
     pub interaction_plan_id: Option<String>,
     pub interaction_play_id: Option<String>,
+    pub selected_part: Option<String>,
+    pub selected_candidate: Option<String>,
+    pub parts_disposition: Option<String>,
+    pub parts_feedback: Option<String>,
 }

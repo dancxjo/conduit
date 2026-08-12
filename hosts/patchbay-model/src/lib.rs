@@ -102,7 +102,7 @@ pub use patchbay_backs::*;
 pub use portable_composition::{
     constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
 };
-pub use portable_demo::portable_demonstration;
+pub use portable_demo::{portable_demonstration, portable_demonstration_with_parts};
 pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;

@@ -150,8 +150,8 @@ struct Source {
 }
 
 pub fn cross_host_demonstration_snapshot() -> Result<RendererSnapshot, CrossHostRendererError> {
-    let presentation =
-        patchbay_model::portable_demonstration().map_err(CrossHostRendererError::Presentation)?;
+    let (presentation, parts) = patchbay_model::portable_demonstration_with_parts()
+        .map_err(CrossHostRendererError::Presentation)?;
     let renderer_identity = RendererAdapterIdentity {
         host_id: HostId::from("patchbay-html/host"),
         boot_id: BootId::from("patchbay-html/boot"),
@@ -176,7 +176,9 @@ pub fn cross_host_demonstration_snapshot() -> Result<RendererSnapshot, CrossHost
     let result = sink.run(&url, renderer_identity);
     let source_result = worker.join().map_err(|_| CrossHostRendererError::Worker)?;
     source_result?;
-    result
+    let mut snapshot = result?;
+    snapshot.attach_parts(parts)?;
+    Ok(snapshot)
 }
 
 fn fragment_for<'a>(

@@ -50,6 +50,7 @@ impl RendererSnapshot {
                 .self_inspection()
                 .map_err(|_| SnapshotError::InvalidIdentity)?,
             presentation: execution.presentation,
+            parts: None,
             interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
@@ -62,6 +63,14 @@ impl RendererSnapshot {
             .manifestation
             .transition(ManifestationLifecycle::Available, sign_id)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
+        self.validate()
+    }
+
+    pub fn attach_parts(&mut self, parts: patchbay_model::PartsView) -> Result<(), SnapshotError> {
+        if parts.body_id != self.presentation.basis.body_id {
+            return Err(SnapshotError::InvalidIdentity);
+        }
+        self.parts = Some(parts);
         self.validate()
     }
 
@@ -114,12 +123,18 @@ impl RendererSnapshot {
     }
 
     fn validate(&self) -> Result<(), SnapshotError> {
+        let invalid_parts = self.parts.as_ref().is_some_and(|parts| {
+            parts.body_id != self.presentation.basis.body_id
+                || parts.parts.len() > patchbay_model::MAX_PARTS_VIEW_ROWS
+                || parts.wants_to_join.len() > patchbay_model::MAX_WANTS_TO_JOIN_ROWS
+        });
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
         if self.revision != self.presentation.revision
             || self.presentation.validate().is_err()
             || self.renderer.validate_against(&self.presentation).is_err()
+            || invalid_parts
         {
             return Err(SnapshotError::InvalidIdentity);
         }
