@@ -49,6 +49,7 @@ impl PicoBodyAdmission {
         }
     }
 
+    #[cfg(feature = "pico-local")]
     pub(crate) async fn serve_once(
         &mut self,
         line: &mut UsbLinkSession,
@@ -59,11 +60,21 @@ impl PicoBodyAdmission {
         if crate::bootsel::handle_request(line, request).await? {
             return Ok(());
         }
+        self.serve_request(line, request).await?;
+        Ok(())
+    }
+
+    pub(crate) async fn serve_request(
+        &mut self,
+        line: &mut UsbLinkSession,
+        request: &[u8],
+    ) -> Result<bool, UsbLinkError> {
         if request != PICO_ADMISSION_REQUEST {
-            return Ok(());
+            return Ok(false);
         }
 
         self.freshness_sequence = self.freshness_sequence.saturating_add(1);
+        let mut input = [0u8; 1024];
         let mut output = [0u8; MAX_PICO_ADMISSION_FRAME_BYTES];
         let advertisement_length = self.write_advertisement(&mut output)?;
         line.send_raw_stream_frame(&output[..advertisement_length])
@@ -104,7 +115,8 @@ impl PicoBodyAdmission {
         };
         let proof_length = serde_json_core::to_slice(&proof, &mut output)
             .map_err(|_| UsbLinkError::BufferOverflow)?;
-        line.send_raw_stream_frame(&output[..proof_length]).await
+        line.send_raw_stream_frame(&output[..proof_length]).await?;
+        Ok(true)
     }
 
     fn write_advertisement(&self, output: &mut [u8]) -> Result<usize, UsbLinkError> {

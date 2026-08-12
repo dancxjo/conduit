@@ -352,10 +352,21 @@ pub(crate) async fn establish_usb(
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), UsbLinkError> {
     let mut frame = [0_u8; 2048];
+    let mut admission = crate::body_admission::PicoBodyAdmission::new(runtime);
     link.wait_connection().await;
     loop {
-        let raw = link.receive_raw_stream_frame(&mut frame).await?;
+        let raw = match link.receive_raw_stream_frame(&mut frame).await {
+            Ok(raw) => raw,
+            Err(UsbLinkError::UsbDisconnected) => {
+                link.wait_connection().await;
+                continue;
+            }
+            Err(error) => return Err(error),
+        };
         if crate::bootsel::handle_request(link, raw).await? {
+            continue;
+        }
+        if admission.serve_request(link, raw).await? {
             continue;
         }
         if raw == b"CONDUIT_RAW_CDC0_PROBE" {
