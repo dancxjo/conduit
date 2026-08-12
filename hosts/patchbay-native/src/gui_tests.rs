@@ -224,6 +224,9 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
                 },
             ],
         },
+        parts: None,
+        selected_part: None,
+        selected_candidate: None,
     };
     let mut pixels = vec![BACKGROUND; 1100 * 720];
     let targets = draw_patchbay(

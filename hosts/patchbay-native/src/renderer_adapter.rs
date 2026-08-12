@@ -78,6 +78,7 @@ impl PatchbayApplication {
         let selected = self.selected_graphical_identity().map(str::to_owned);
         let graph = self.graphical_form.as_ref();
         let linear_view = self.linear_view;
+        let parts = self.parts_projection()?;
         let lifecycle = LifecycleContext {
             body_id: self
                 .build_birth
@@ -99,6 +100,9 @@ impl PatchbayApplication {
                     .map(|play| play.as_str().to_owned())
             }),
             flow: self.lifecycle_flow(),
+            parts,
+            selected_part: self.selected_part.clone(),
+            selected_candidate: self.selected_candidate.clone(),
         };
         let realization_hosts = self
             .environment

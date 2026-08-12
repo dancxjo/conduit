@@ -18,6 +18,8 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     palette: &PaletteChooser,
     visible_subject_count: usize,
+    body_born: bool,
+    parts_open: bool,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
@@ -25,19 +27,29 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     for (index, (icon, label)) in [
         (Icon::Form, "Forms"),
         (Icon::Body, "Bodies"),
-        (Icon::Host, "Hosts"),
+        (Icon::Host, "Parts (F12)"),
         (Icon::Sign, "Signs"),
     ]
     .into_iter()
     .enumerate()
     {
-        icon_label(
-            target,
-            icon,
-            Point::new(14, 92 + index as i32 * 30),
-            label,
-            theme.text_primary,
-        );
+        let y = 92 + index as i32 * 30;
+        icon_label(target, icon, Point::new(14, y), label, theme.text_primary);
+        if index == 2 && body_born {
+            let bounds = PixelRect {
+                x: 10,
+                y: y - 4,
+                width: 154,
+                height: 25,
+            };
+            if parts_open {
+                frame_rect(target, bounds, theme.focus, 2);
+            }
+            targets.push(HitTarget {
+                action: GuiAction::TogglePartsView,
+                shape: HitShape::Rect(bounds),
+            });
+        }
     }
     text(target, Point::new(14, 226), "ACTIONS", theme.emphasis);
     action_button(

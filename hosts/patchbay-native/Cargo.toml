@@ -5,6 +5,7 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
+conduit-body = { path = "../../crates/conduit-body" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }

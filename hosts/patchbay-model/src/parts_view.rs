@@ -1,7 +1,8 @@
 //! Human-first projection of canonical Body membership and admission candidates.
 
 use conduit_body::{
-    Body, BodyMembership, CandidateInventory, CandidateState, MembershipState, PartId,
+    Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, MembershipEventKind,
+    MembershipState, PartId,
 };
 use conduit_core::{ActivePlayIdentity, BootId, HostId, OfferGeneration, Plan};
 
@@ -47,6 +48,7 @@ pub struct PartRow {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CandidateRow {
+    pub candidate_id: CandidateId,
     pub label: String,
     pub state: CandidateState,
     pub host_id: HostId,
@@ -157,10 +159,10 @@ impl PartsView {
                         .current
                         .as_ref()
                         .map(|current| current.offer_generation),
-                    proof_reference: part
-                        .current
-                        .as_ref()
-                        .map(|current| current.proof_id.as_str().into()),
+                    proof_reference: part.current.as_ref().map_or_else(
+                        || admission_proof(membership, &part.part_id),
+                        |current| Some(current.proof_id.as_str().into()),
+                    ),
                 },
                 actions: vec![PartsAction::Inspect, PartsAction::Revoke],
             });
@@ -169,19 +171,29 @@ impl PartsView {
         let wants_to_join = candidates
             .candidates
             .iter()
-            .filter(|candidate| candidate.state != CandidateState::Admitted)
+            .filter(|candidate| {
+                matches!(
+                    candidate.state,
+                    CandidateState::Discovered | CandidateState::RequestingAdmission
+                )
+            })
             .map(|candidate| CandidateRow {
+                candidate_id: candidate.candidate_id.clone(),
                 label: candidate.observation.friendly_label.clone(),
                 state: candidate.state,
                 host_id: candidate.observation.advertisement.host_id.clone(),
                 boot_id: candidate.observation.advertisement.boot_id.clone(),
                 offer_generation: candidate.observation.advertisement.offer_generation,
                 capabilities: candidate.observation.advertisement.capabilities.len(),
-                actions: vec![
-                    PartsAction::Inspect,
-                    PartsAction::Admit,
-                    PartsAction::Refuse,
-                ],
+                actions: if candidate.state == CandidateState::Discovered {
+                    vec![
+                        PartsAction::Inspect,
+                        PartsAction::Admit,
+                        PartsAction::Refuse,
+                    ]
+                } else {
+                    vec![PartsAction::Inspect]
+                },
             })
             .collect::<Vec<_>>();
         let new_realization_possibilities = plan.is_some()
@@ -199,6 +211,17 @@ impl PartsView {
             new_realization_possibilities,
         })
     }
+}
+
+fn admission_proof(membership: &BodyMembership, part_id: &PartId) -> Option<String> {
+    membership.events.iter().rev().find_map(|event| {
+        (&event.part_id == part_id)
+            .then_some(&event.kind)
+            .and_then(|kind| match kind {
+                MembershipEventKind::Admitted { proof_id } => Some(proof_id.as_str().into()),
+                _ => None,
+            })
+    })
 }
 
 fn friendly_host_label(host_id: &HostId) -> String {
