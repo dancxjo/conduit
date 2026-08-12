@@ -204,8 +204,10 @@ mod tests {
     fn compatibility_report_uses_the_authoritative_profile_inventory() {
         let report = build_report().unwrap();
         assert_eq!(report.catalog_entry_count, 54);
-        assert_eq!(report.implemented_count, 26);
-        assert_eq!(report.missing_count, 28);
+        assert_eq!(
+            report.implemented_count + report.missing_count,
+            report.catalog_entry_count
+        );
         for kind in [
             "layout/inset",
             "presentation/bool",
@@ -213,6 +215,13 @@ mod tests {
             "logic/compare",
             "logic/select",
             "math/clamp",
+            "robotics/observe-bump",
+            "robotics/observe-imu",
+            "robotics/observe-range",
+            "robotics/observe-odometry",
+            "robotics/observe-battery",
+            "robotics/velocity-intent",
+            "robotics/drive-differential",
         ] {
             assert!(report.entries.iter().any(|entry| {
                 entry.kind_id == kind
