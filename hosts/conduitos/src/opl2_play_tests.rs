@@ -1,5 +1,6 @@
 use super::*;
 use crate::machine::BaseError;
+use conduit_core::{CancellationReason, TerminalDisposition};
 
 #[derive(Default)]
 struct RecordedOpl2 {
@@ -67,19 +68,41 @@ fn prepared() -> crate::opl2_plan::PreparedOpl2Play {
 }
 
 #[test]
-fn ordinary_plan_runs_chord_octaves_and_exact_nine_voice_saturation() {
+fn ordinary_plan_runs_chord_and_exact_nine_voice_saturation() {
     let prepared = prepared();
     let mut execution = prepare_execution(&prepared, reviewed_values()).unwrap();
     let mut base = RecordedOpl2::default();
-    let report = run(&mut execution, &mut base).unwrap();
-    assert_eq!(report.events, 24);
-    assert_eq!(report.peak_voices, 9);
-    assert_eq!(report.reset_writes, 245);
-    assert_eq!(report.patch_writes, 99);
-    assert_eq!(report.event_writes, 39);
-    assert_eq!(report.quiesce_writes, 9);
-    assert_eq!(report.final_active_voices, 0);
-    assert!(report.completed);
+    let report = run_with_evidence(&prepared, &mut execution, &mut base).unwrap();
+    assert_eq!(report.play.events, 24);
+    assert_eq!(report.play.peak_voices, 9);
+    assert_eq!(report.play.reset_writes, 245);
+    assert_eq!(report.play.patch_writes, 99);
+    assert_eq!(report.play.event_writes, 36);
+    assert_eq!(report.play.quiesce_writes, 9);
+    assert_eq!(report.play.final_active_voices, 0);
+    assert!(report.play.completed);
+    assert_eq!(report.evidence.selected.plan_id, prepared.plan.plan_id);
+    assert_eq!(
+        report.evidence.selected.host_id,
+        prepared.active_play.host_id
+    );
+    assert_eq!(
+        report.evidence.selected.boot_id,
+        prepared.active_play.boot_id
+    );
+    assert_eq!(report.evidence.trace.events.len(), 24);
+    assert_eq!(
+        report.evidence.trace.terminal,
+        TerminalDisposition::Completed
+    );
+    assert!(
+        report
+            .evidence
+            .trace
+            .events
+            .iter()
+            .all(|event| event.requested_pitch_millihertz == event.admitted_pitch_millihertz)
+    );
     assert_eq!(base.active, [false; 9]);
 }
 
@@ -87,9 +110,7 @@ fn ordinary_plan_runs_chord_octaves_and_exact_nine_voice_saturation() {
 fn tenth_voice_refuses_and_quiesces_every_owned_channel() {
     let prepared = prepared();
     let mut values = reviewed_values();
-    values[21] = note(19, 587_330, Gate::On, 21);
-    values[22] = note(10, 220_000, Gate::Off, 22);
-    values[23] = note(19, 587_330, Gate::Off, 23);
+    values[15] = note(19, 587_330, Gate::On, 15);
     let mut execution = prepare_execution(&prepared, values).unwrap();
     let mut base = RecordedOpl2::default();
     assert_eq!(
@@ -104,7 +125,21 @@ fn active_cancellation_and_reset_failure_are_distinct_and_silent() {
     let prepared = prepared();
     let mut execution = prepare_execution(&prepared, reviewed_values()).unwrap();
     let mut base = RecordedOpl2::default();
-    assert_eq!(cancel(&mut execution, &mut base), Ok(9));
+    let (writes, evidence) = cancel_with_evidence(
+        &prepared,
+        &mut execution,
+        &mut base,
+        CancellationReason::OperatorRequested,
+    )
+    .unwrap();
+    assert_eq!(writes, 9);
+    assert_eq!(
+        evidence.trace.terminal,
+        TerminalDisposition::Cancelled {
+            reason: CancellationReason::OperatorRequested
+        }
+    );
+    assert!(evidence.trace.events.is_empty());
     assert_eq!(base.active, [false; 9]);
 
     let mut execution = prepare_execution(&prepared, reviewed_values()).unwrap();

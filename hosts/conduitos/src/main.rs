@@ -569,7 +569,11 @@ extern "C" fn conduitos_start() -> ! {
             arch::initialize_machine();
             let mut opl2 = arch::Opl2::new();
             arch::early_write(b"CONDUIT_BOOT_STAGE opl2-play-started\n");
-            let opl2_report = match conduitos::opl2_play::run(&mut opl2_execution, &mut opl2) {
+            let opl2_report = match conduitos::opl2_play::run_with_evidence(
+                &opl2_prepared,
+                &mut opl2_execution,
+                &mut opl2,
+            ) {
                 Ok(report) => report,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
@@ -577,7 +581,7 @@ extern "C" fn conduitos_start() -> ! {
             let mut opl2_sign = proof::FixedText::new();
             if writeln!(
                 opl2_sign,
-                "CONDUIT_OPL2_SIGN {{\"schema\":\"conduit.conduitos.opl2-proof/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"base_id\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"patch_profile\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"placements\":{},\"cords\":{},\"events\":{},\"peak_voices\":{},\"voice_capacity\":9,\"reset_writes\":{},\"patch_writes\":{},\"event_writes\":{},\"quiesce_writes\":{},\"register_write_capacity\":512,\"kernel_decisions\":{},\"kernel_signs\":{},\"final_active_voices\":{},\"device\":\"qemu-adlib-ym3812\",\"iobase\":904,\"pcm_claimed\":false,\"subtractive_controls_claimed\":false,\"physical_hardware_claimed\":false,\"bounded\":true,\"completed\":{}}}",
+                "CONDUIT_OPL2_SIGN {{\"schema\":\"conduit.conduitos.opl2-proof/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"base_id\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"patch_profile\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"placements\":{},\"cords\":{},\"events\":{},\"peak_voices\":{},\"voice_capacity\":9,\"reset_writes\":{},\"patch_writes\":{},\"event_writes\":{},\"quiesce_writes\":{},\"register_write_capacity\":512,\"kernel_decisions\":{},\"kernel_signs\":{},\"final_active_voices\":{},\"normalized_events\":{},\"normalized_terminal\":\"completed\",\"normalized_plan_id\":\"{}\",\"normalized_implementation\":\"{}\",\"device\":\"qemu-adlib-ym3812\",\"iobase\":904,\"pcm_claimed\":false,\"subtractive_controls_claimed\":false,\"physical_hardware_claimed\":false,\"bounded\":true,\"completed\":{}}}",
                 opl2_host_id,
                 opl2_boot_id,
                 opl2_base_id,
@@ -588,16 +592,19 @@ extern "C" fn conduitos_start() -> ! {
                 opl2_prepared.active_play.active_play_id.as_str(),
                 opl2_prepared.plan.fragments[0].placements.len(),
                 opl2_prepared.plan.fragments[0].connections.len(),
-                opl2_report.events,
-                opl2_report.peak_voices,
-                opl2_report.reset_writes,
-                opl2_report.patch_writes,
-                opl2_report.event_writes,
-                opl2_report.quiesce_writes,
-                opl2_report.kernel_decisions,
-                opl2_report.kernel_signs,
-                opl2_report.final_active_voices,
-                opl2_report.completed,
+                opl2_report.play.events,
+                opl2_report.play.peak_voices,
+                opl2_report.play.reset_writes,
+                opl2_report.play.patch_writes,
+                opl2_report.play.event_writes,
+                opl2_report.play.quiesce_writes,
+                opl2_report.play.kernel_decisions,
+                opl2_report.play.kernel_signs,
+                opl2_report.play.final_active_voices,
+                opl2_report.evidence.trace.events.len(),
+                opl2_report.evidence.selected.plan_id.as_str(),
+                opl2_report.evidence.selected.implementation_id.as_str(),
+                opl2_report.play.completed,
             )
             .is_err()
             {

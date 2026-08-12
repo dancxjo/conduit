@@ -1,5 +1,5 @@
 //! Production-kernel execution of one planned direct OPL2 musical sink.
-
+use alloc::vec::Vec;
 use conduit_core::{Gate, MusicalNoteEvent, NoteOccurrenceId};
 use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
@@ -11,6 +11,7 @@ use conduit_kernel::{
         SchedulerStatus,
     },
 };
+use conduit_std_catalog::{NormalizedNoteEvidence, SelectedSoundRealization};
 
 use crate::{
     machine::{Opl2Base, Opl2Pitch},
@@ -23,7 +24,7 @@ const SINK_NODE: NodeId = NodeId(1);
 const FIXTURE_OPERATION: HostOperationId = HostOperationId(0);
 const OPL2_OPERATION: HostOperationId = HostOperationId(0);
 const PORTS: usize = 1;
-const EVENTS: usize = 24;
+const EVENTS: usize = crate::opl2_plan::FIXTURE_EVENT_COUNT as usize;
 const SIGN_CAPACITY: usize = 256;
 
 #[derive(Clone, Copy)]
@@ -199,6 +200,8 @@ pub struct PreparedOpl2Execution {
     voices: [Option<Voice>; 9],
     register_writes: u16,
     peak_voices: u8,
+    normalized_events: Vec<NormalizedNoteEvidence>,
+    selected: Option<SelectedSoundRealization>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -329,6 +332,15 @@ pub fn prepare_execution(
         voices: [None; 9],
         register_writes: 0,
         peak_voices: 0,
+        normalized_events: Vec::with_capacity(EVENTS),
+        selected: Some(SelectedSoundRealization {
+            plan_id: prepared.plan.plan_id.clone(),
+            host_id: prepared.active_play.host_id.clone(),
+            boot_id: prepared.active_play.boot_id.clone(),
+            implementation_id: conduit_core::ImplementationId::from(
+                crate::opl2_offer::OPL2_IMPLEMENTATION,
+            ),
+        }),
     })
 }
 
@@ -369,10 +381,20 @@ pub fn run<B: Opl2Base>(
                 .map_err(|_| PreparationError::KernelRejected)?;
             let event =
                 MusicalNoteEvent::decode(encoded).map_err(|_| PreparationError::KernelRejected)?;
-            apply_event(execution, base, event).inspect_err(|_| {
-                let _ = base.quiesce();
-                execution.voices.fill(None);
-            })?;
+            let admitted_pitch_millihertz =
+                apply_event(execution, base, event).inspect_err(|_| {
+                    let _ = base.quiesce();
+                    execution.voices.fill(None);
+                })?;
+            if execution.normalized_events.len() == execution.normalized_events.capacity() {
+                return Err(PreparationError::KernelRejected);
+            }
+            execution
+                .normalized_events
+                .push(NormalizedNoteEvidence::admitted(
+                    event,
+                    admitted_pitch_millihertz,
+                ));
             event_writes = event_writes
                 .checked_add(match event.gate {
                     Gate::On => 2,
@@ -422,6 +444,9 @@ pub fn cancel<B: Opl2Base>(
     execution.voices.fill(None);
     Ok(writes)
 }
+
+mod evidence;
+pub use evidence::{Opl2ConformanceReport, cancel_with_evidence, run_with_evidence};
 
 mod voice;
 use voice::apply_event;

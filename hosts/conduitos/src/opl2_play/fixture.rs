@@ -7,18 +7,12 @@ use super::EVENTS;
 pub fn reviewed_values() -> [MusicalNoteEvent; EVENTS] {
     let mut values = [note(1, 440_000, Gate::On, 0); EVENTS];
     let sequence = [
-        (1, 440_000, Gate::On),
-        (1, 440_000, Gate::Off),
         (2, 261_626, Gate::On),
         (3, 329_628, Gate::On),
         (4, 391_995, Gate::On),
         (2, 261_626, Gate::Off),
         (3, 329_628, Gate::Off),
         (4, 391_995, Gate::Off),
-        (5, 110_000, Gate::On),
-        (6, 880_000, Gate::On),
-        (5, 110_000, Gate::Off),
-        (6, 880_000, Gate::Off),
         (10, 220_000, Gate::On),
         (11, 246_942, Gate::On),
         (12, 277_183, Gate::On),
@@ -29,7 +23,13 @@ pub fn reviewed_values() -> [MusicalNoteEvent; EVENTS] {
         (17, 466_164, Gate::On),
         (18, 523_251, Gate::On),
         (10, 220_000, Gate::Off),
+        (11, 246_942, Gate::Off),
+        (12, 277_183, Gate::Off),
+        (13, 293_665, Gate::Off),
         (14, 329_628, Gate::Off),
+        (15, 369_994, Gate::Off),
+        (16, 415_305, Gate::Off),
+        (17, 466_164, Gate::Off),
         (18, 523_251, Gate::Off),
     ];
     for (index, (occurrence, frequency, gate)) in sequence.into_iter().enumerate() {

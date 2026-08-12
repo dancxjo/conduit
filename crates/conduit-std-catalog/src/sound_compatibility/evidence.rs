@@ -88,24 +88,33 @@ impl NormalizedSoundTrace {
         if events.windows(2).any(|pair| pair[0].order >= pair[1].order) {
             return Err(SoundEvidenceError::EventOrderNotIncreasing);
         }
-        let mut active = Vec::with_capacity(events.len().min(MAXIMUM_NORMALIZED_SOUND_EVENTS));
-        for event in &events {
+        for (index, event) in events.iter().enumerate() {
+            let balance = events[..index]
+                .iter()
+                .filter(|prior| prior.occurrence == event.occurrence)
+                .fold(0_i16, |balance, prior| match prior.gate {
+                    NormalizedGate::On => balance + 1,
+                    NormalizedGate::Off => balance - 1,
+                });
             match event.gate {
-                NormalizedGate::On if active.contains(&event.occurrence) => {
+                NormalizedGate::On if balance != 0 => {
                     return Err(SoundEvidenceError::GateLifecycleInvalid)
                 }
-                NormalizedGate::On => active.push(event.occurrence),
-                NormalizedGate::Off => {
-                    match active.iter().position(|item| *item == event.occurrence) {
-                        Some(index) => {
-                            active.swap_remove(index);
-                        }
-                        None => return Err(SoundEvidenceError::GateLifecycleInvalid),
-                    }
+                NormalizedGate::On => {}
+                NormalizedGate::Off if balance != 1 => {
+                    return Err(SoundEvidenceError::GateLifecycleInvalid)
                 }
+                NormalizedGate::Off => {}
             }
         }
-        if terminal == TerminalDisposition::Completed && !active.is_empty() {
+        if terminal == TerminalDisposition::Completed
+            && events.iter().enumerate().any(|(index, event)| {
+                event.gate == NormalizedGate::On
+                    && !events[index + 1..].iter().any(|later| {
+                        later.occurrence == event.occurrence && later.gate == NormalizedGate::Off
+                    })
+            })
+        {
             return Err(SoundEvidenceError::GateLifecycleInvalid);
         }
         Ok(Self { events, terminal })
