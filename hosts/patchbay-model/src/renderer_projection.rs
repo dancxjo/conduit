@@ -8,6 +8,7 @@ use conduit_core::{
     verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SignId, SourceDocumentId,
 };
 use conduit_observatory::ObservatoryReport;
+use conduit_observatory::{validate_sound_inspection, SoundRealizationInspection};
 
 pub const MAX_RENDERER_GRAPH_ITEMS: usize = 512;
 pub const MAX_RENDERER_DIAGNOSTICS: usize = 128;
@@ -33,6 +34,7 @@ pub enum RendererProjectionError {
     IdentityMismatch,
     InvalidAttemptedEdit,
     GraphBasisMismatch,
+    InvalidSoundInspection,
 }
 
 impl std::fmt::Display for RendererProjectionError {
@@ -71,6 +73,9 @@ impl std::fmt::Display for RendererProjectionError {
             Self::GraphBasisMismatch => {
                 formatter.write_str("renderer graph does not describe the open checked Form")
             }
+            Self::InvalidSoundInspection => {
+                formatter.write_str("renderer sound inspection is invalid or identity-stale")
+            }
         }
     }
 }
@@ -103,6 +108,7 @@ pub struct PatchbayPresentation {
     pub routes: Vec<DistributedRoutePresentation>,
     pub graph: Option<PatchbayGraph>,
     pub attempted_edit: Option<AttemptedEditPresentation>,
+    pub sound_inspection: Option<SoundRealizationInspection>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -228,7 +234,37 @@ impl PatchbayPresentation {
             routes,
             graph: None,
             attempted_edit: None,
+            sound_inspection: None,
         })
+    }
+
+    pub fn with_sound_inspection(
+        mut self,
+        inspection: SoundRealizationInspection,
+    ) -> Result<Self, RendererProjectionError> {
+        validate_sound_inspection(&inspection)
+            .map_err(|_| RendererProjectionError::InvalidSoundInspection)?;
+        let identities = self.identities();
+        if identities.source_document_id.as_ref() != Some(&inspection.form.source_document_id)
+            || identities.document_checked_form_id.as_ref()
+                != Some(&inspection.form.checked_form_id)
+            || identities.expanded_form_id.as_ref() != Some(&inspection.form.expanded_form_id)
+            || inspection.active_play_id.as_ref() != identities.active_play_id.as_ref()
+        {
+            return Err(RendererProjectionError::InvalidSoundInspection);
+        }
+        if let Some(selected) = &inspection.selected_capability_id {
+            let candidate = inspection
+                .candidates
+                .iter()
+                .find(|candidate| &candidate.capability_id == selected)
+                .ok_or(RendererProjectionError::InvalidSoundInspection)?;
+            if candidate.selected_plan_id.as_ref() != identities.plan_id.as_ref() {
+                return Err(RendererProjectionError::InvalidSoundInspection);
+            }
+        }
+        self.sound_inspection = Some(inspection);
+        Ok(self)
     }
 
     pub fn with_graph(mut self, graph: PatchbayGraph) -> Result<Self, RendererProjectionError> {

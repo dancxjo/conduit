@@ -140,6 +140,7 @@ impl PatchbayPresentation {
         append_document(self, &document, &mut content);
         append_plan_and_play(self, &document, &mut content);
         append_topology(self, &document, &mut content);
+        append_sound(self, &document, &mut content);
         crate::portable_route_projection::append_routes(self, &document, &mut content);
 
         Presentation::new(
@@ -161,6 +162,65 @@ impl PatchbayPresentation {
             content.text,
         )
         .map_err(PortableProjectionError::InvalidPresentation)
+    }
+}
+
+fn append_sound(presentation: &PatchbayPresentation, document: &str, content: &mut ContentBuilder) {
+    let Some(inspection) = &presentation.sound_inspection else {
+        return;
+    };
+    let sound = content.subject(
+        PresentationRole::Plan,
+        "Sound realization",
+        "Sound realization compatibility and exact selection",
+    );
+    content.contains(document, &sound);
+    content.line(
+        &sound,
+        format!(
+            "SOUND FORM {} requirement={}",
+            inspection.form.source_document_id.as_str(),
+            inspection.requirement_profile_id
+        ),
+    );
+    for candidate in &inspection.candidates {
+        let status = match &candidate.status {
+            conduit_observatory::SoundCandidateStatus::Compatible => "compatible".to_owned(),
+            conduit_observatory::SoundCandidateStatus::Incompatible { reason } => {
+                format!("incompatible:{reason}")
+            }
+            conduit_observatory::SoundCandidateStatus::MissingRequiredProof { required } => {
+                format!("missing-proof:{required:?}")
+            }
+        };
+        let route = match &candidate.route {
+            conduit_observatory::SoundRealizationRoute::Direct => "direct".to_owned(),
+            conduit_observatory::SoundRealizationRoute::Recursive { stages } => stages
+                .iter()
+                .map(|stage| stage.as_str())
+                .collect::<Vec<_>>()
+                .join(" -> "),
+        };
+        content.line(
+            &sound,
+            format!(
+                "SOUND CANDIDATE {} status={} route={} implementation={} proof={:?} host={} boot={} plan={}",
+                candidate.capability_id.as_str(),
+                status,
+                route,
+                candidate.implementation_id.as_str(),
+                candidate.proof_class,
+                candidate.host_id.as_ref().map_or("not-selected", |id| id.as_str()),
+                candidate.boot_id.as_ref().map_or("not-selected", |id| id.as_str()),
+                candidate.selected_plan_id.as_ref().map_or("not-selected", |id| id.as_str()),
+            ),
+        );
+    }
+    if let Some(selected) = &inspection.selected_capability_id {
+        content.line(&sound, format!("SOUND SELECTED {}", selected.as_str()));
+    }
+    if let Some(play) = &inspection.active_play_id {
+        content.line(&sound, format!("SOUND PLAY {}", play.as_str()));
     }
 }
 
