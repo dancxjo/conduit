@@ -19,6 +19,7 @@ fn redraw(application: &mut PatchbayApplication) {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &application.canvas_viewport,
         },
     );
 }
@@ -63,6 +64,18 @@ fn pointer_moves_presentation_route_then_reroutes_authored_sink() {
         .request_plan(application.form_editor.as_ref().unwrap())
         .unwrap();
     let original_plan = application.control.plan().unwrap().plan_id.clone();
+    application
+        .canvas_viewport
+        .resize(super::gui::canvas_rect(1_100, 720))
+        .unwrap();
+    application
+        .canvas_viewport
+        .pan(embedded_graphics::geometry::Point::new(40, -20))
+        .unwrap();
+    application
+        .canvas_viewport
+        .zoom_by(125, embedded_graphics::geometry::Point::new(500, 320))
+        .unwrap();
     redraw(&mut application);
     let cord_identity = application.graphical_form.as_ref().unwrap().cords[0]
         .identity
@@ -73,7 +86,12 @@ fn pointer_moves_presentation_route_then_reroutes_authored_sink() {
     );
     application.cursor_position = cord_point;
     application.handle_canvas_press().unwrap();
-    application.cursor_position = (690.0, 610.0);
+    let routed_world = embedded_graphics::geometry::Point::new(690, 610);
+    let routed_screen = application
+        .canvas_viewport
+        .world_to_screen(routed_world)
+        .unwrap();
+    application.cursor_position = (f64::from(routed_screen.x), f64::from(routed_screen.y));
     application.handle_canvas_release().unwrap();
     let graph = application.graphical_form.as_ref().unwrap();
     assert_eq!(

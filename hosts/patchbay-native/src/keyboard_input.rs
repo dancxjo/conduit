@@ -37,7 +37,11 @@ impl PatchbayApplication {
                 true
             }
         };
-        if prewake_handled || environment_handled || self.handle_palette_key(&event.logical_key) {
+        if prewake_handled
+            || environment_handled
+            || self.handle_viewport_key(&event.logical_key)
+            || self.handle_palette_key(&event.logical_key)
+        {
             if let Some(window) = &self.window {
                 window.request_redraw();
             }

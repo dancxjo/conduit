@@ -126,6 +126,8 @@ impl PatchbayApplication {
             interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
             hit_targets: Vec::new(),
             cursor_position: (0.0, 0.0),
+            canvas_viewport: Default::default(),
+            canvas_pan_drag: None,
             linear_view: false,
             modifiers: winit::keyboard::ModifiersState::empty(),
             native_keyboard: portable_keyboard::NativeKeyboardInput::new(),

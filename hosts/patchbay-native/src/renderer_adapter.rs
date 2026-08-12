@@ -110,6 +110,9 @@ impl PatchbayApplication {
                 });
         let breadcrumb = self.back_breadcrumb();
         let interaction_status = self.interaction_status.current().cloned();
+        self.canvas_viewport
+            .resize(crate::gui::canvas_rect(size.width, size.height))
+            .map_err(|error| error.message().to_owned())?;
         let gesture = crate::gui_gesture::GestureView {
             palette_kind: self.palette_drag.as_deref(),
             cord_source: self
@@ -194,6 +197,7 @@ impl PatchbayApplication {
                         realization_hosts: &realization_hosts,
                         status: interaction_status.as_ref(),
                         gesture,
+                        viewport: &self.canvas_viewport,
                     },
                 )
             }
