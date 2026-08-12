@@ -9,6 +9,9 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
+mod evidence;
+pub use evidence::*;
+
 pub const SOUND_SEAM_CHARACTERISTIC: &str = "sound/seam@1";
 pub const SOUND_PROFILE_ID_CHARACTERISTIC: &str = "sound/profile-id@1";
 pub const SOUND_MINIMUM_PITCH_CHARACTERISTIC: &str = "sound/minimum-pitch-millihertz@1";
