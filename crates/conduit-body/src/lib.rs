@@ -8,6 +8,7 @@
 
 extern crate alloc;
 
+mod admission;
 mod candidate;
 mod events;
 mod hold;
@@ -16,12 +17,13 @@ mod lifecycle;
 mod membership;
 mod validation;
 
+pub use admission::*;
 pub use candidate::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 pub use hold::*;
 pub use identity::{
-    BodyId, CandidateId, DiscoveryProofId, MembershipChangeId, MembershipProofId, PartId, SeedId,
-    WakeId, MAX_LIFECYCLE_ID_BYTES,
+    AdmissionId, BodyId, CandidateId, DiscoveryProofId, MembershipChangeId, MembershipCredentialId,
+    MembershipProofId, PartId, SeedId, SpawnInvitationId, WakeId, MAX_LIFECYCLE_ID_BYTES,
 };
 pub use lifecycle::*;
 pub use membership::*;
