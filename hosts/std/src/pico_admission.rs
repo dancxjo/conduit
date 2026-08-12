@@ -213,7 +213,7 @@ mod tests {
             advertisement
         );
 
-        let mut wrong = frame;
+        let mut wrong = frame.clone();
         wrong.protocol += 1;
         assert!(matches!(
             decode_advertisement(&serde_json::to_vec(&wrong).unwrap()),
@@ -222,6 +222,17 @@ mod tests {
         assert!(matches!(
             decode_advertisement(&vec![0; MAX_PICO_ADMISSION_FRAME_BYTES + 1]),
             Err(PicoAdmissionTransportError::Oversized)
+        ));
+        assert!(matches!(
+            decode_advertisement(b"{not-json"),
+            Err(PicoAdmissionTransportError::Malformed)
+        ));
+
+        let mut invalid_key = frame;
+        invalid_key.verifying_key.pop();
+        assert!(matches!(
+            decode_advertisement(&serde_json::to_vec(&invalid_key).unwrap()),
+            Err(PicoAdmissionTransportError::InvalidVerifyingKey)
         ));
     }
 
@@ -276,7 +287,48 @@ mod tests {
         };
         let encoded = serde_json::to_vec(&wire).unwrap();
         let proof = decode_proof(&encoded).unwrap();
+        assert!(matches!(
+            decode_proof(b"{not-json"),
+            Err(PicoAdmissionTransportError::Malformed)
+        ));
+        assert!(matches!(
+            decode_proof(&vec![0; 1025]),
+            Err(PicoAdmissionTransportError::Oversized)
+        ));
+        let mut wrong_protocol = serde_json::to_value(&wire).unwrap();
+        wrong_protocol["protocol"] = serde_json::json!(PICO_ADMISSION_PROTOCOL + 1);
+        assert!(matches!(
+            decode_proof(&serde_json::to_vec(&wrong_protocol).unwrap()),
+            Err(PicoAdmissionTransportError::WrongProtocol)
+        ));
+        let mut wrong_nonce = serde_json::to_value(&wire).unwrap();
+        wrong_nonce["nonce"] = serde_json::json!([1, 2, 3]);
+        assert!(matches!(
+            decode_proof(&serde_json::to_vec(&wrong_nonce).unwrap()),
+            Err(PicoAdmissionTransportError::InvalidProof)
+        ));
+        assert!(matches!(
+            encode_challenge(&challenge, &mut [0; 1]),
+            Err(PicoAdmissionTransportError::Oversized)
+        ));
         let mut membership = BodyMembership::new(body.body_id).unwrap();
+        assert!(membership.parts.is_empty());
+        let mut stale = proof.clone();
+        stale.boot_id = BootId::from("pico/boot-stale");
+        assert_eq!(
+            manager.complete_ambient(
+                &mut candidates,
+                &mut membership,
+                &stale,
+                1_001,
+                AdmissionSigns {
+                    part_admitted: SignId::from("sign/stale-part"),
+                    host_attached: SignId::from("sign/stale-host"),
+                    candidate_admitted: SignId::from("sign/stale-candidate"),
+                },
+            ),
+            Err(conduit_body::AdmissionRefusal::StaleBoot)
+        );
         assert!(membership.parts.is_empty());
         manager
             .complete_ambient(
@@ -293,5 +345,21 @@ mod tests {
             .unwrap();
         assert_eq!(membership.parts.len(), 1);
         assert_eq!(candidates.candidates[0].state, CandidateState::Admitted);
+        let retained = membership.clone();
+        assert_eq!(
+            manager.complete_ambient(
+                &mut candidates,
+                &mut membership,
+                &proof,
+                1_002,
+                AdmissionSigns {
+                    part_admitted: SignId::from("sign/replay-part"),
+                    host_attached: SignId::from("sign/replay-host"),
+                    candidate_admitted: SignId::from("sign/replay-candidate"),
+                },
+            ),
+            Err(conduit_body::AdmissionRefusal::Replay)
+        );
+        assert_eq!(membership, retained);
     }
 }
