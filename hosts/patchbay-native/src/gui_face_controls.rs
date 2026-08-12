@@ -39,6 +39,36 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
             theme.text_secondary,
         );
         let actions = control_actions(control);
+        if let (
+            patchbay_model::FaceControlKind::ShortText { maximum_bytes },
+            conduit_core::ConfigurationValue::Text(value),
+        ) = (&control.kind, &control.value)
+        {
+            let bounds = PixelRect {
+                x: gear_bounds.x + 8,
+                y: y + 15,
+                width: 170,
+                height: 20,
+            };
+            frame_rect(target, bounds, theme.structure_secondary, 1);
+            text(
+                target,
+                Point::new(bounds.x + 5, bounds.y + 4),
+                "EDIT TEXT",
+                theme.text_primary,
+            );
+            targets.push(HitTarget {
+                action: GuiAction::BeginShortTextEdit {
+                    subject: subject.clone(),
+                    key: control.key.clone(),
+                    value: value.clone(),
+                    maximum_bytes: *maximum_bytes as usize,
+                },
+                shape: HitShape::Rect(bounds),
+            });
+            action_index += 1;
+            continue;
+        }
         for (side, value) in actions.iter().cloned().enumerate() {
             let bounds = PixelRect {
                 x: gear_bounds.x + 8 + side as i32 * 86,

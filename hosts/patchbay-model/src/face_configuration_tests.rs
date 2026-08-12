@@ -169,6 +169,26 @@ fn face_edit_preserves_gear_identity_and_reseals_all_form_identities() {
 }
 
 #[test]
+fn face_edit_accepts_an_open_back_with_runtime_face_ports() {
+    let mut editor = editor(
+        "form greet (\n    name: Text > text: Text\n) {\n    join: text/join(\"Hello\")\n    name > join > text\n}\n\nform welcome {\n    hello: greet\n    \"Travis\" > hello > presentation/text\n}\n",
+    );
+    editor.open_back("greet").unwrap();
+    let before = editor.expand_form_for_authoring("greet").unwrap();
+    editor
+        .set_gear_configuration(
+            editor.view().revision,
+            &before.expanded.expanded_form_id,
+            "join",
+            "prefix",
+            ConfigurationValue::Text("Howdy".into()),
+        )
+        .unwrap();
+    assert!(editor.view().source.contains("text/join(\"Howdy\")"));
+    assert_eq!(editor.view().open_form, "greet");
+}
+
+#[test]
 fn default_value_becomes_an_authored_named_argument() {
     let mut editor = editor("form controls {\n    show: presentation/tick\n}\n");
     let before = editor.expand_form("controls").unwrap();

@@ -206,7 +206,11 @@ impl SemanticHistory {
             return Err(SemanticHistoryRefusal::Empty);
         };
         if !current.same_current_basis(before) {
-            return Err(SemanticHistoryRefusal::StaleCurrent);
+            if current.source != before.source || current.source_revision != before.source_revision
+            {
+                return Err(SemanticHistoryRefusal::StaleCurrent);
+            }
+            self.checkpoints[self.cursor] = before.clone();
         }
         if before.source == after.source {
             return Err(SemanticHistoryRefusal::Unchanged);

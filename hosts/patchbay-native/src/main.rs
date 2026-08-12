@@ -33,6 +33,7 @@ mod environment_view;
 mod environment_view_tests;
 mod face_control_keyboard;
 mod file_task;
+mod first_run_proof;
 mod font;
 mod form_authoring;
 mod form_interaction;
@@ -127,6 +128,7 @@ struct PatchbayApplication {
     browser_parts: Option<browser_parts::BrowserPartsCoordinator>,
     pico_parts: Option<pico_parts::PicoPartsCoordinator>,
     face_control_focus: usize,
+    face_text_edit: Option<first_run_proof::ShortTextEdit>,
     palette_drag: Option<String>,
     cord_drag: Option<patchbay_model::PatchbaySubjectRef>,
     cord_route_drag: Option<patchbay_model::PatchbaySubjectRef>,
@@ -457,6 +459,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if arguments.distributed_play_server {
         run_distributed_server()?;
+        return Ok(());
+    }
+    if arguments.first_run_proof {
+        first_run_proof::run(arguments)?;
         return Ok(());
     }
     let event_loop = EventLoop::new()?;

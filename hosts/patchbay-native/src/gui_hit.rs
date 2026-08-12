@@ -79,6 +79,12 @@ pub enum GuiAction {
         key: String,
         value: conduit_core::ConfigurationValue,
     },
+    BeginShortTextEdit {
+        subject: PatchbaySubjectRef,
+        key: String,
+        value: String,
+        maximum_bytes: usize,
+    },
 }
 
 impl GuiAction {
@@ -89,6 +95,7 @@ impl GuiAction {
                 | Self::FlipGear(_)
                 | Self::PrewakeNextImplementation(_)
                 | Self::ConfigureGear { .. }
+                | Self::BeginShortTextEdit { .. }
         )
     }
 }

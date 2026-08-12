@@ -161,6 +161,7 @@ impl PatchbayApplication {
                 .map(|(page, chat)| browser_parts::BrowserPartsCoordinator::new(page, chat)),
             pico_parts: None,
             face_control_focus: 0,
+            face_text_edit: None,
             palette_drag: None,
             cord_drag: None,
             cord_route_drag: None,
