@@ -55,6 +55,34 @@ pub const MIDI_BYTES_PER_STEP_CHARACTERISTIC: &str = "midi/maximum-bytes-per-ste
 pub const MIDI_READINESS_WAIT_MILLIS_CHARACTERISTIC: &str = "midi/readiness-wait-millis@1";
 pub const MIDI_READINESS_WAIT_MILLIS: u16 = 10;
 
+/// Exact portable-musical subset preserved by the reviewed MIDI 1.0 output
+/// adapter. Endpoint availability and authority remain observation facts.
+pub fn output_compatibility_profile(
+) -> Result<conduit_std_catalog::SoundCompatibilityProfile, &'static str> {
+    let minimum_pitch =
+        conduit_core::MusicalPitch::from_equal_tempered(-69, A4_REFERENCE_MILLIHERTZ, 0)
+            .map_err(|_| "MIDI minimum pitch profile is invalid")?;
+    let maximum_pitch =
+        conduit_core::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
+            .map_err(|_| "MIDI maximum pitch profile is invalid")?;
+    Ok(conduit_std_catalog::SoundCompatibilityProfile {
+        profile_id: conduit_std_catalog::MUSIC_PLAY_MIDI_PROFILE.into(),
+        seam: conduit_std_catalog::SoundSeam::MusicalEvents,
+        minimum_pitch_millihertz: minimum_pitch.frequency_millihertz,
+        maximum_pitch_millihertz: maximum_pitch.frequency_millihertz,
+        maximum_polyphony: 128,
+        maximum_events_per_second: 1_000,
+        preserves_velocity: true,
+        preserves_sustain: true,
+        preserves_pitch_bend: true,
+        maximum_pitch_bend_range_microcents: conduit_midi::MIDI_PITCH_BEND_RANGE_MICROCENTS,
+        preserves_modulation: true,
+        accepts_microtonal_pitch: false,
+        supports_subtractive_filter: false,
+        pcm: None,
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostedMidiSelection {
     observation: MidiEndpointObservation,
@@ -161,28 +189,7 @@ impl HostedMidiSelection {
         if self.observation.direction != MidiEndpointDirection::WritableDestination {
             return Err("a readable MIDI source cannot realize music/play output");
         }
-        let minimum_pitch =
-            conduit_core::MusicalPitch::from_equal_tempered(-69, A4_REFERENCE_MILLIHERTZ, 0)
-                .map_err(|_| "MIDI minimum pitch profile is invalid")?;
-        let maximum_pitch =
-            conduit_core::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
-                .map_err(|_| "MIDI maximum pitch profile is invalid")?;
-        let profile = conduit_std_catalog::SoundCompatibilityProfile {
-            profile_id: conduit_std_catalog::MUSIC_PLAY_MIDI_PROFILE.into(),
-            seam: conduit_std_catalog::SoundSeam::MusicalEvents,
-            minimum_pitch_millihertz: minimum_pitch.frequency_millihertz,
-            maximum_pitch_millihertz: maximum_pitch.frequency_millihertz,
-            maximum_polyphony: 128,
-            maximum_events_per_second: 1_000,
-            preserves_velocity: true,
-            preserves_sustain: true,
-            preserves_pitch_bend: true,
-            maximum_pitch_bend_range_microcents: conduit_midi::MIDI_PITCH_BEND_RANGE_MICROCENTS,
-            preserves_modulation: true,
-            accepts_microtonal_pitch: false,
-            supports_subtractive_filter: false,
-            pcm: None,
-        };
+        let profile = output_compatibility_profile()?;
         let mut characteristics = conduit_std_catalog::sound_profile_characteristics(&profile);
         characteristics.extend([
             label(MIDI_DIRECTION_CHARACTERISTIC, "writable-destination"),
@@ -244,6 +251,15 @@ fn characteristic(id: &str, value: RealizationCharacteristicValue) -> Realizatio
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn output_profile_is_reusable_without_claiming_an_endpoint() {
+        let profile = output_compatibility_profile().unwrap();
+        assert_eq!(profile.seam, conduit_std_catalog::SoundSeam::MusicalEvents);
+        assert_eq!(profile.maximum_polyphony, 128);
+        assert!(profile.preserves_velocity);
+        assert!(!profile.accepts_microtonal_pitch);
+    }
 
     #[test]
     fn selection_is_exact_directional_and_boot_scoped() {
