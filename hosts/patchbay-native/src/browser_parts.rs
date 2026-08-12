@@ -18,7 +18,12 @@ pub(super) struct BrowserPartsCoordinator {
     page_url: String,
     chat_url: String,
     manager: Option<AdmissionManager>,
-    pending: Option<Receiver<Result<SpawnArrival, String>>>,
+    pending: Option<PendingSpawn>,
+}
+
+struct PendingSpawn {
+    receiver: Receiver<Result<SpawnArrival, String>>,
+    expires_at_millis: u64,
 }
 
 pub(super) struct SpawnArrival {
@@ -86,15 +91,22 @@ impl BrowserPartsCoordinator {
         std::thread::spawn(move || {
             let _ = sender.send(receive_spawn(listener));
         });
-        self.pending = Some(receiver);
+        self.pending = Some(PendingSpawn {
+            receiver,
+            expires_at_millis: invitation.claim().expires_at_millis,
+        });
         Ok(target)
     }
 
     pub(super) fn take_arrival(&mut self) -> Result<Option<SpawnArrival>, String> {
-        let Some(receiver) = &self.pending else {
+        let Some(pending) = &self.pending else {
             return Ok(None);
         };
-        match receiver.try_recv() {
+        if now_millis()? > pending.expires_at_millis {
+            self.pending = None;
+            return Err("browser Part invitation expired".into());
+        }
+        match pending.receiver.try_recv() {
             Ok(result) => {
                 self.pending = None;
                 result.map(Some)
@@ -109,6 +121,10 @@ impl BrowserPartsCoordinator {
 
     pub(super) const fn is_pending(&self) -> bool {
         self.pending.is_some()
+    }
+
+    pub(super) fn cancel(&mut self) -> bool {
+        self.pending.take().is_some()
     }
 
     pub(super) fn complete(
@@ -242,5 +258,12 @@ mod tests {
             fragment,
             "body=ws%3A%2F%2F127.0.0.1%3A9001%2Fadmit%3Fbody%3Done&spawn_hex=deadbeef"
         );
+    }
+
+    #[test]
+    fn cancellation_is_explicit_and_idempotently_fail_closed() {
+        let mut coordinator = super::BrowserPartsCoordinator::new("page".into(), "chat".into());
+        assert!(!coordinator.cancel());
+        assert!(!coordinator.is_pending());
     }
 }

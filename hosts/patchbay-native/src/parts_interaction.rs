@@ -74,6 +74,16 @@ impl PatchbayApplication {
                     .map_err(|error| format!("cannot open browser Part: {error}"))?;
                 self.publish_completed("Browser Part invitation opened; awaiting exact proof");
             }
+            GuiAction::CancelBrowserPartSpawn => {
+                if !self
+                    .browser_parts
+                    .as_mut()
+                    .is_some_and(super::browser_parts::BrowserPartsCoordinator::cancel)
+                {
+                    return Err("No browser Part spawn is pending".into());
+                }
+                self.publish_completed("Browser Part invitation cancelled");
+            }
             GuiAction::InspectPart(part_id) => {
                 let view = self.parts_projection()?.ok_or("Parts view is not open")?;
                 if !view.parts.iter().any(|row| row.details.part_id == part_id) {
@@ -236,7 +246,7 @@ mod tests {
         assert!(view.parts[0].available);
         let part_id = view.parts[0].details.part_id.clone();
         let mut pixels = vec![crate::BACKGROUND; 1_100 * 720];
-        let lifecycle = crate::gui::LifecycleContext {
+        let mut lifecycle = crate::gui::LifecycleContext {
             body_id: Some(view.body_id.as_str().into()),
             parts: Some(view.clone()),
             ..Default::default()
@@ -267,6 +277,30 @@ mod tests {
         assert!(targets
             .iter()
             .any(|target| target.action == GuiAction::SpawnBrowserPart));
+        lifecycle.browser_spawn_pending = true;
+        let cancel_targets = crate::gui::draw_patchbay(
+            &mut pixels,
+            1_100,
+            720,
+            application.graphical_form.as_ref().unwrap(),
+            crate::gui::PatchbayViewContext {
+                selected: None,
+                breadcrumb: "",
+                lifecycle: &lifecycle,
+                palette: &Default::default(),
+                exact_identity_open: false,
+                face_control_focus: 0,
+                presentation_layout: &application.layout,
+                realization_plan: None,
+                realization_hosts: &[],
+                status: None,
+                gesture: Default::default(),
+                viewport: &Default::default(),
+            },
+        );
+        assert!(cancel_targets
+            .iter()
+            .any(|target| target.action == GuiAction::CancelBrowserPartSpawn));
         assert!(pixels.contains(&patchbay_model::PHOSPHOR_THEME.focus.packed_rgb()));
         application
             .handle_parts_action(GuiAction::InspectPart(part_id.clone()))

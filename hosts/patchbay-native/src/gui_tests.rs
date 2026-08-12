@@ -250,6 +250,7 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
         selected_part: None,
         selected_candidate: None,
         pending_revoke: None,
+        browser_spawn_pending: false,
     };
     let mut pixels = vec![BACKGROUND; 1100 * 720];
     let targets = draw_patchbay(

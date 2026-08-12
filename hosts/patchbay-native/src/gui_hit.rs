@@ -24,6 +24,7 @@ pub enum ViewportAction {
 pub enum GuiAction {
     TogglePartsView,
     SpawnBrowserPart,
+    CancelBrowserPartSpawn,
     InspectPart(conduit_body::PartId),
     InspectCandidate(conduit_body::CandidateId),
     RefuseCandidate(conduit_body::CandidateId),
