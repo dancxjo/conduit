@@ -12,8 +12,8 @@ use conduit_kernel::{
 use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
+    flow_state_operation::FlowStateOperation,
     flow_state_plan::{LEFT_SINK_KIND, PreparedFlowState, RIGHT_SINK_KIND, SOURCE_KIND},
-    operation::PresentationOperation,
 };
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
@@ -27,7 +27,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 96;
 
 type Kernel = FixedScheduler<
-    OperationDriver<PresentationOperation, PORTS>,
+    OperationDriver<FlowStateOperation, PORTS>,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -194,18 +194,18 @@ fn scheduler(
         .enumerate()
         .map(|(index, placement)| {
             let operation = match placement.kind_id.as_str() {
-                SOURCE_KIND => PresentationOperation::Source {
+                SOURCE_KIND => FlowStateOperation::Source {
                     value: values
                         .store(&value.encode())
                         .map_err(|_| FlowStateError::Value)?,
                     emitted: false,
                 },
-                conduit_std_catalog::LATEST_KIND => PresentationOperation::Latest {
+                conduit_std_catalog::LATEST_KIND => FlowStateOperation::Latest {
                     held: None,
                     released: None,
                     retain_resumed: false,
                 },
-                conduit_std_catalog::TEE_KIND => PresentationOperation::Tee {
+                conduit_std_catalog::TEE_KIND => FlowStateOperation::Tee {
                     pending: None,
                     phase: 0,
                 },
@@ -215,8 +215,7 @@ fn scheduler(
                     } else {
                         right = Some(NodeId(index as u16));
                     }
-                    PresentationOperation::Sink {
-                        maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                    FlowStateOperation::Sink {
                         pending: false,
                         complete: false,
                     }

@@ -1,6 +1,7 @@
 //! Ordinary portable presentation execution on the ConduitOS display Base.
 
 mod bool_play;
+mod flow_state_operation;
 mod flow_state_plan;
 mod flow_state_play;
 #[cfg(test)]

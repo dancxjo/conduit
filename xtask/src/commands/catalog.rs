@@ -383,19 +383,28 @@ mod tests {
         }));
 
         let os = build_report(&[CatalogHost::Conduitos], None).unwrap();
+        let advertised = profiles::advertisement(CatalogHost::Conduitos).unwrap();
         assert_eq!(
             os.entries
                 .iter()
                 .filter(|entry| matches!(entry.coverage, Coverage::Direct))
                 .count(),
-            25
+            advertised.capabilities.len()
         );
         let missing = os
             .entries
             .iter()
             .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
             .count();
-        assert_eq!(missing, os.catalog_entry_count - 26);
+        let recursive = os
+            .entries
+            .iter()
+            .filter(|entry| matches!(entry.coverage, Coverage::Recursive))
+            .count();
+        assert_eq!(
+            missing + advertised.capabilities.len() + recursive,
+            os.catalog_entry_count
+        );
         let gear_face = os
             .entries
             .iter()
