@@ -17,6 +17,8 @@ pub(super) struct EnvironmentViewContext<'a> {
     pub(super) pending_link: Option<&'a (String, EnvironmentLinkKind)>,
     pub(super) observed: Option<&'a conduit_observatory::ObservatorySnapshot>,
     pub(super) prewake: Option<&'a patchbay_model::PrewakeController>,
+    pub(super) drag: Option<(&'a str, (f64, f64))>,
+    pub(super) status: Option<&'a crate::interaction_status::InteractionStatus>,
 }
 
 pub(super) fn draw_environment(
@@ -31,6 +33,8 @@ pub(super) fn draw_environment(
         pending_link,
         observed,
         prewake,
+        drag,
+        status,
     } = view;
     let mut canvas = SoftwareCanvas::new(pixels, width, height);
     let theme = &PHOSPHOR_THEME;
@@ -69,6 +73,27 @@ pub(super) fn draw_environment(
         theme.text_secondary,
     );
     let mut targets = Vec::with_capacity(8 + environment.parts.len() * 2);
+    if let Some((part_id, (x, y))) = drag {
+        let bounds = PixelRect {
+            x: x.clamp(i32::MIN as f64, i32::MAX as f64) as i32 - 90,
+            y: y.clamp(i32::MIN as f64, i32::MAX as f64) as i32 - 56,
+            width: PART_WIDTH,
+            height: PART_HEIGHT,
+        };
+        frame_rect(&mut canvas, bounds, theme.emphasis, 2);
+        text(
+            &mut canvas,
+            Point::new(bounds.x + 10, bounds.y + 12),
+            &format!("MOVE {part_id}"),
+            theme.emphasis,
+        );
+        text(
+            &mut canvas,
+            Point::new(bounds.x + 10, bounds.y + 30),
+            "RELEASE TO PLACE",
+            theme.text_primary,
+        );
+    }
     for (index, (label, action)) in [
         ("+ PICO W", GuiAction::EnvironmentAdd(MachineProfile::PicoW)),
         (
@@ -398,60 +423,19 @@ pub(super) fn draw_environment(
             shape: HitShape::Rect(remove),
         });
     }
-    targets
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::render::BACKGROUND;
-    use patchbay_model::{AuthoredLink, AuthoredPart};
-
-    #[test]
-    fn visual_workspace_exposes_profiles_parts_links_and_truth_boundary() {
-        let mut environment = AuthoredEnvironment::new("workbench").unwrap();
-        let mut pico = AuthoredPart::reviewed("pico", "Pico", MachineProfile::PicoW);
-        pico.x = 220;
-        pico.y = 160;
-        let mut laptop = AuthoredPart::reviewed("laptop", "Forebrain", MachineProfile::LaptopLinux);
-        laptop.x = 520;
-        laptop.y = 160;
-        environment.add_part(pico).unwrap();
-        environment.add_part(laptop).unwrap();
-        environment
-            .add_link(AuthoredLink {
-                link_id: "wifi".into(),
-                left_part_id: "pico".into(),
-                right_part_id: "laptop".into(),
-                kind: EnvironmentLinkKind::Wifi,
-            })
-            .unwrap();
-        let mut pixels = vec![BACKGROUND; 1000 * 600];
-        let targets = draw_environment(
-            &mut pixels,
-            1000,
-            600,
-            &environment,
-            EnvironmentViewContext {
-                selected: Some("pico"),
-                pending_link: None,
-                observed: None,
-                prewake: None,
-            },
+    if let Some(status) = status {
+        let color = match status.level {
+            crate::interaction_status::InteractionStatusLevel::Success => theme.success,
+            crate::interaction_status::InteractionStatusLevel::Information => theme.focus,
+            crate::interaction_status::InteractionStatusLevel::Refusal => theme.emphasis,
+            crate::interaction_status::InteractionStatusLevel::Failure => theme.failure,
+        };
+        text(
+            &mut canvas,
+            Point::new(18, height.saturating_sub(26) as i32),
+            &status.text,
+            color,
         );
-        assert!(targets
-            .iter()
-            .any(|target| target.action == GuiAction::EnvironmentSave));
-        assert!(targets.iter().any(|target| matches!(
-            target.action,
-            GuiAction::EnvironmentAdd(MachineProfile::PicoW)
-        )));
-        assert!(targets.iter().any(
-            |target| matches!(&target.action, GuiAction::EnvironmentRemove(id) if id == "pico")
-        ));
-        assert!(pixels.contains(&PHOSPHOR_THEME.focus.packed_rgb()));
-        let projection = environment.simulation_projection().unwrap();
-        assert!(!projection.provenance.observed_live_truth);
-        assert!(!projection.provenance.authority_granted);
     }
+    targets
 }

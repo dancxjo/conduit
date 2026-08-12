@@ -136,6 +136,7 @@ impl PatchbayApplication {
             cord_route_drag: None,
             gear_drag: None,
             last_gear_click: None,
+            interaction_status: Default::default(),
             control,
             build_birth: BuildBirthController::new(),
             lifecycle_sequence: 0,

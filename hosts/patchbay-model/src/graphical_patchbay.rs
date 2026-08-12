@@ -62,6 +62,28 @@ pub enum PatchbaySubjectKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PatchbayPortCompatibility {
+    Compatible,
+    DuplicateCord,
+    UnknownPort,
+    InvalidDirection,
+    IncompatibleInfo {
+        source: KindId,
+        sink: KindId,
+    },
+    IncompatibleTemporal {
+        source: PortTemporal,
+        sink: PortTemporal,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbayConnectionCandidate {
+    pub sink_identity: String,
+    pub compatibility: PatchbayPortCompatibility,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayPort {
     pub identity: String,
     pub gear_id: GearId,
@@ -147,6 +169,109 @@ pub struct PatchbaySubjectRef {
 }
 
 impl PatchbayGraph {
+    pub fn connection_candidates(&self, source_identity: &str) -> Vec<PatchbayConnectionCandidate> {
+        self.gears
+            .iter()
+            .flat_map(|gear| &gear.inputs)
+            .map(|port| port.identity.as_str())
+            .chain(self.face_outputs.iter().map(|port| port.identity.as_str()))
+            .chain(self.compositions.iter().flat_map(|composition| {
+                composition.inputs.iter().map(|port| port.identity.as_str())
+            }))
+            .map(|sink_identity| PatchbayConnectionCandidate {
+                sink_identity: sink_identity.to_owned(),
+                compatibility: self.connection_compatibility(source_identity, sink_identity),
+            })
+            .collect()
+    }
+
+    pub fn connection_compatibility(
+        &self,
+        source_identity: &str,
+        sink_identity: &str,
+    ) -> PatchbayPortCompatibility {
+        let source = self
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.outputs)
+            .map(|port| (&port.identity, &port.descriptor))
+            .chain(
+                self.face_inputs
+                    .iter()
+                    .map(|port| (&port.identity, &port.descriptor)),
+            )
+            .chain(self.compositions.iter().flat_map(|composition| {
+                composition
+                    .outputs
+                    .iter()
+                    .map(|port| (&port.identity, &port.descriptor))
+            }))
+            .find_map(|(identity, descriptor)| (identity == source_identity).then_some(descriptor));
+        let sink = self
+            .gears
+            .iter()
+            .flat_map(|gear| &gear.inputs)
+            .map(|port| (&port.identity, &port.descriptor))
+            .chain(
+                self.face_outputs
+                    .iter()
+                    .map(|port| (&port.identity, &port.descriptor)),
+            )
+            .chain(self.compositions.iter().flat_map(|composition| {
+                composition
+                    .inputs
+                    .iter()
+                    .map(|port| (&port.identity, &port.descriptor))
+            }))
+            .find_map(|(identity, descriptor)| (identity == sink_identity).then_some(descriptor));
+        let (Some(source), Some(sink)) = (source, sink) else {
+            let source_known = self
+                .subject_identities()
+                .any(|identity| identity == source_identity);
+            let sink_known = self
+                .subject_identities()
+                .any(|identity| identity == sink_identity);
+            return if source_known && sink_known {
+                PatchbayPortCompatibility::InvalidDirection
+            } else {
+                PatchbayPortCompatibility::UnknownPort
+            };
+        };
+        if source.value_kind != sink.value_kind {
+            return PatchbayPortCompatibility::IncompatibleInfo {
+                source: source.value_kind.clone(),
+                sink: sink.value_kind.clone(),
+            };
+        }
+        if source.temporal != sink.temporal {
+            return PatchbayPortCompatibility::IncompatibleTemporal {
+                source: source.temporal,
+                sink: sink.temporal,
+            };
+        }
+        let bound_source = self.compositions.iter().find_map(|composition| {
+            composition
+                .output_bindings
+                .iter()
+                .find(|binding| binding.face_port == source_identity)
+                .map(|binding| binding.internal_port.as_str())
+        });
+        let bound_sink = self.compositions.iter().find_map(|composition| {
+            composition
+                .input_bindings
+                .iter()
+                .find(|binding| binding.face_port == sink_identity)
+                .map(|binding| binding.internal_port.as_str())
+        });
+        if self.cords.iter().any(|cord| {
+            cord.source_port == bound_source.unwrap_or(source_identity)
+                && cord.sink_port == bound_sink.unwrap_or(sink_identity)
+        }) {
+            return PatchbayPortCompatibility::DuplicateCord;
+        }
+        PatchbayPortCompatibility::Compatible
+    }
+
     pub fn subject_count(&self) -> usize {
         self.gears.len()
             + self.compositions.len()

@@ -1,6 +1,10 @@
 //! Renderer-local pointer gesture state for Patchbay canvas authoring.
 
-use crate::{gui::GuiAction, PatchbayApplication};
+use crate::{
+    gui::GuiAction,
+    interaction_status::{InteractionStatusCode, InteractionStatusLevel},
+    PatchbayApplication,
+};
 
 impl PatchbayApplication {
     pub(super) fn handle_canvas_press(&mut self) -> Result<(), String> {
@@ -16,6 +20,7 @@ impl PatchbayApplication {
         if self.environment.is_some() && (self.prewake.is_none() || self.prewake_environment_view) {
             if let GuiAction::EnvironmentSelect(part_id) = &action {
                 self.environment_drag = Some((part_id.clone(), self.cursor_position));
+                self.publish_gesture(format!("Moving environment part {part_id}"));
             }
             if matches!(
                 action,
@@ -30,6 +35,9 @@ impl PatchbayApplication {
             return self.handle_environment_action(action);
         }
         if let GuiAction::PlacePaletteKind(kind) = action {
+            self.publish_gesture(format!(
+                "Dragging Gear {kind}; release on the canvas to place it"
+            ));
             self.palette_drag = Some(kind);
             return Ok(());
         }
@@ -45,6 +53,23 @@ impl PatchbayApplication {
                     | patchbay_model::PatchbaySubjectKind::FaceInput,
                 ) => {
                     self.cord_drag = Some(subject.clone());
+                    let candidates = self
+                        .graphical_form
+                        .as_ref()
+                        .map(|graph| graph.connection_candidates(&subject.subject_identity))
+                        .unwrap_or_default();
+                    let compatible = candidates
+                        .iter()
+                        .filter(|candidate| {
+                            candidate.compatibility
+                                == patchbay_model::PatchbayPortCompatibility::Compatible
+                        })
+                        .count();
+                    self.publish_gesture(format!(
+                        "Connecting from {}; {compatible} compatible exact Port target(s), {} incompatible or occupied",
+                        subject.subject_identity,
+                        candidates.len().saturating_sub(compatible)
+                    ));
                 }
                 Some(patchbay_model::PatchbaySubjectKind::Composition) => {
                     let now = std::time::Instant::now();
@@ -81,9 +106,17 @@ impl PatchbayApplication {
                         return self.handle_gui_action(GuiAction::OpenBack);
                     }
                     self.gear_drag = Some((subject.clone(), self.cursor_position));
+                    self.publish_gesture(format!(
+                        "Moving Gear {}; release to place or click to select",
+                        subject.subject_identity
+                    ));
                 }
                 Some(patchbay_model::PatchbaySubjectKind::Cord) => {
                     self.cord_route_drag = Some(subject.clone());
+                    self.publish_gesture(format!(
+                        "Routing Cord {}; release on a Port to reroute its endpoint",
+                        subject.subject_identity
+                    ));
                 }
                 _ => {}
             }
@@ -109,12 +142,17 @@ impl PatchbayApplication {
                 if let Some(window) = &self.window {
                     window.request_redraw();
                 }
+                self.publish_completed(format!("Moved environment part {part_id}"));
+            } else {
+                self.publish_cancelled("Environment move cancelled");
             }
             return Ok(());
         }
         if let Some(kind) = self.palette_drag.take() {
             if self.cursor_position.0 > 176.0 {
                 self.handle_gui_action(GuiAction::PlacePaletteKind(kind))?;
+            } else {
+                self.publish_cancelled("Gear placement cancelled outside the canvas");
             }
             return Ok(());
         }
@@ -141,6 +179,8 @@ impl PatchbayApplication {
                 });
             if let Some(sink) = sink {
                 self.handle_gui_action(GuiAction::ConnectPorts { source, sink })?;
+            } else {
+                self.publish_cancelled("Cord connection cancelled: release on a compatible Port");
             }
             return Ok(());
         }
@@ -183,6 +223,7 @@ impl PatchbayApplication {
                 if let Some(window) = &self.window {
                     window.request_redraw();
                 }
+                self.publish_completed("Updated Cord presentation route");
             }
             return Ok(());
         }
@@ -204,8 +245,56 @@ impl PatchbayApplication {
                 if let Some(window) = &self.window {
                     window.request_redraw();
                 }
+                self.publish_completed(format!("Moved Gear {}", gear.subject_identity));
+            } else {
+                self.publish_cancelled("Gear move cancelled; selection retained");
             }
         }
         Ok(())
+    }
+
+    pub(super) fn cancel_transient_gestures(&mut self, reason: &str) {
+        let had_gesture = self.environment_drag.take().is_some()
+            | self.palette_drag.take().is_some()
+            | self.cord_drag.take().is_some()
+            | self.cord_route_drag.take().is_some()
+            | self.gear_drag.take().is_some();
+        self.last_gear_click = None;
+        if had_gesture {
+            self.publish_cancelled(format!("Gesture cancelled: {reason}"));
+        }
+    }
+
+    fn publish_gesture(&mut self, message: impl Into<String>) {
+        self.interaction_status.publish(
+            InteractionStatusLevel::Information,
+            InteractionStatusCode::Gesture,
+            message,
+        );
+        self.request_redraw();
+    }
+
+    fn publish_cancelled(&mut self, message: impl Into<String>) {
+        self.interaction_status.publish(
+            InteractionStatusLevel::Information,
+            InteractionStatusCode::Cancelled,
+            message,
+        );
+        self.request_redraw();
+    }
+
+    fn publish_completed(&mut self, message: impl Into<String>) {
+        self.interaction_status.publish(
+            InteractionStatusLevel::Success,
+            InteractionStatusCode::Completed,
+            message,
+        );
+        self.request_redraw();
+    }
+
+    fn request_redraw(&self) {
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
     }
 }

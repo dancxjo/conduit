@@ -6,6 +6,7 @@ use crate::{
         composition_port_point, draw_compositions, layout_compositions, CompositionLayout,
     },
     gui_gear::{draw_gear, GearViewContext},
+    gui_gesture::{draw_gesture, GestureView},
     gui_hit::HitShape,
     gui_inspector::draw_inspector,
     gui_primitives::{
@@ -56,6 +57,8 @@ pub struct PatchbayViewContext<'a> {
     pub presentation_layout: &'a patchbay_model::PatchbayLayout,
     pub realization_plan: Option<&'a conduit_core::Plan>,
     pub realization_hosts: &'a [conduit_core::HostAdvertisement],
+    pub status: Option<&'a crate::interaction_status::InteractionStatus>,
+    pub gesture: GestureView<'a>,
 }
 
 #[derive(Clone)]
@@ -68,11 +71,12 @@ pub(super) struct GearLayout<'a> {
 }
 
 #[derive(Clone)]
-struct BoundaryLayout {
-    identity: String,
-    point: Point,
-    bounds: PixelRect,
-    label: String,
+pub(super) struct BoundaryLayout {
+    pub(super) identity: String,
+    pub(super) point: Point,
+    pub(super) bounds: PixelRect,
+    pub(super) label: String,
+    pub(super) is_output: bool,
 }
 
 pub fn draw_patchbay(
@@ -90,6 +94,8 @@ pub fn draw_patchbay(
         presentation_layout,
         realization_plan,
         realization_hosts,
+        status,
+        gesture,
     } = view;
     debug_assert!(Icon::ALL
         .iter()
@@ -161,8 +167,17 @@ pub fn draw_patchbay(
             &mut targets,
         );
     }
+    draw_gesture(
+        &mut canvas,
+        graph,
+        &layouts,
+        &compositions,
+        &boundaries,
+        &gesture,
+        theme,
+    );
     draw_inspector(&mut canvas, graph, selected, width, INSPECTOR_WIDTH, theme);
-    draw_footer(&mut canvas, graph, selected, height, theme);
+    draw_footer(&mut canvas, graph, selected, status, height, theme);
     targets.truncate(MAX_HIT_TARGETS);
     targets
 }
@@ -471,6 +486,7 @@ fn layout_boundaries(graph: &PatchbayGraph, width: i32) -> Vec<BoundaryLayout> {
                     height: 22,
                 },
                 label: format!("> {}", port.descriptor.port_id.as_str()),
+                is_output: false,
             }
         })
         .chain(graph.face_outputs.iter().enumerate().map(|(index, port)| {
@@ -485,6 +501,7 @@ fn layout_boundaries(graph: &PatchbayGraph, width: i32) -> Vec<BoundaryLayout> {
                     height: 22,
                 },
                 label: format!("{} >", port.descriptor.port_id.as_str()),
+                is_output: true,
             }
         }))
         .collect()
@@ -516,6 +533,7 @@ fn draw_footer<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
     selected: Option<&str>,
+    status: Option<&crate::interaction_status::InteractionStatus>,
     height: i32,
     theme: &PatchbayTheme,
 ) {
@@ -542,7 +560,17 @@ fn draw_footer<D: DrawTarget<Color = Rgb888>>(
         ),
         theme.text_primary,
     );
-    if selected.is_some() {
+    if let Some(status) = status {
+        use crate::interaction_status::InteractionStatusLevel;
+        let (icon, label, color) = match status.level {
+            InteractionStatusLevel::Success => (Icon::Success, "SUCCESS", theme.success),
+            InteractionStatusLevel::Information => (Icon::Info, "INFO", theme.focus),
+            InteractionStatusLevel::Refusal => (Icon::Warning, "REFUSED", theme.emphasis),
+            InteractionStatusLevel::Failure => (Icon::Failure, "FAILED", theme.failure),
+        };
+        icon_label(target, icon, Point::new(400, y - 4), label, color);
+        text(target, Point::new(500, y), &status.text, color);
+    } else if selected.is_some() {
         text(
             target,
             Point::new(430, y),

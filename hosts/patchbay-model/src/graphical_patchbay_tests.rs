@@ -1,6 +1,6 @@
 use crate::{
-    FormEditor, PatchbayGraph, PatchbayGraphError, PatchbaySubjectKind, MAX_PATCHBAY_GEARS,
-    MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
+    FormEditor, PatchbayGraph, PatchbayGraphError, PatchbayPortCompatibility, PatchbaySubjectKind,
+    MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
 };
 use std::path::PathBuf;
 
@@ -96,6 +96,62 @@ fn canonical_count_example_projects_three_gears_typed_ports_and_exact_cords() {
             .flat_map(|gear| &gear.inputs)
             .any(|port| port.identity == cord.sink_port));
     }
+}
+
+#[test]
+fn connection_compatibility_comes_from_exact_admitted_port_contracts() {
+    let graph = count_graph();
+    let cord = &graph.cords[0];
+    assert_eq!(
+        graph.connection_compatibility(&cord.source_port, &cord.sink_port),
+        PatchbayPortCompatibility::DuplicateCord
+    );
+    assert_eq!(
+        graph.connection_compatibility(&cord.sink_port, &cord.source_port),
+        PatchbayPortCompatibility::InvalidDirection
+    );
+    assert_eq!(
+        graph.connection_compatibility("port/invented/output/value", &cord.sink_port),
+        PatchbayPortCompatibility::UnknownPort
+    );
+
+    let mut retyped = graph.clone();
+    let sink = retyped
+        .gears
+        .iter_mut()
+        .flat_map(|gear| &mut gear.inputs)
+        .find(|port| port.identity == cord.sink_port)
+        .unwrap();
+    let source_kind = graph
+        .gears
+        .iter()
+        .flat_map(|gear| &gear.outputs)
+        .find(|port| port.identity == cord.source_port)
+        .unwrap()
+        .descriptor
+        .value_kind
+        .clone();
+    sink.descriptor.value_kind = conduit_core::KindId::from("value/incompatible@1");
+    assert_eq!(
+        retyped.connection_compatibility(&cord.source_port, &cord.sink_port),
+        PatchbayPortCompatibility::IncompatibleInfo {
+            source: source_kind,
+            sink: conduit_core::KindId::from("value/incompatible@1"),
+        }
+    );
+
+    let composition = composition_graph();
+    let hello = &composition.compositions[0];
+    let bound_source = &hello.output_bindings[0].internal_port;
+    let existing = composition
+        .cords
+        .iter()
+        .find(|cord| &cord.source_port == bound_source)
+        .unwrap();
+    assert_eq!(
+        composition.connection_compatibility(&hello.outputs[0].identity, &existing.sink_port),
+        PatchbayPortCompatibility::DuplicateCord
+    );
 }
 
 #[test]

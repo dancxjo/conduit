@@ -15,6 +15,8 @@ fn redraw(application: &mut PatchbayApplication) {
             presentation_layout: &application.layout,
             realization_plan: None,
             realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
         },
     );
 }
