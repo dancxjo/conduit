@@ -216,7 +216,8 @@ impl CandidateInventory {
             (
                 CandidateState::Discovered,
                 CandidateState::RequestingAdmission
-            ) | (CandidateState::Discovered, CandidateState::Lost)
+            ) | (CandidateState::Discovered, CandidateState::Refused)
+                | (CandidateState::Discovered, CandidateState::Lost)
                 | (CandidateState::Discovered, CandidateState::Expired)
                 | (
                     CandidateState::RequestingAdmission,

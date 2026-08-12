@@ -38,6 +38,7 @@ pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_GEARS * patchbay_model::MAX_FACE_CONTROLS * 2
     + 9
     + conduit_body::MAX_BODY_PARTS
+    + conduit_body::MAX_CANDIDATES
     + 1
     + crate::lifecycle_flow::MAX_LIFECYCLE_ACTIONS;
 

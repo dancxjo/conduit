@@ -212,6 +212,36 @@ fn candidate_lifecycle_is_explicit_and_never_implicitly_advances() {
 }
 
 #[test]
+fn operator_may_refuse_a_discovered_candidate_without_starting_admission() {
+    let body = body();
+    let mut inventory = CandidateInventory::new(body.body_id).unwrap();
+    let candidate = inventory
+        .observe(observation(
+            "host/refused",
+            "boot/refused",
+            1,
+            1,
+            "proof/refused",
+            "sign/refused-discovered",
+        ))
+        .unwrap();
+
+    inventory
+        .transition(
+            &candidate,
+            CandidateState::Refused,
+            SignId::from("sign/operator-refused"),
+        )
+        .unwrap();
+
+    assert_eq!(inventory.candidates[0].state, CandidateState::Refused);
+    assert_eq!(
+        inventory.history.last().unwrap().sign_id.as_str(),
+        "sign/operator-refused"
+    );
+}
+
+#[test]
 fn stale_duplicate_conflicting_proof_and_replayed_boot_refuse_without_mutation() {
     let body = body();
     let mut inventory = CandidateInventory::new(body.body_id).unwrap();

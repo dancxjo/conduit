@@ -25,6 +25,7 @@ pub enum GuiAction {
     TogglePartsView,
     InspectPart(conduit_body::PartId),
     InspectCandidate(conduit_body::CandidateId),
+    RefuseCandidate(conduit_body::CandidateId),
     Viewport(ViewportAction),
     Lifecycle(patchbay_model::PatchbayAction),
     EnvironmentAdd(MachineProfile),
