@@ -11,8 +11,11 @@ use crate::{
     MembershipProofId, MembershipRefusal, PartId,
 };
 
+mod continuity;
 mod invitation;
 
+use continuity::{ContinuityKeyRecord, PendingReturn};
+pub use continuity::{PartReturnChallenge, PartReturnProof};
 use invitation::InvitationRecord;
 pub use invitation::{SpawnAdmissionProof, SpawnInvitation, SpawnInvitationSecret};
 
@@ -96,6 +99,8 @@ pub struct AdmissionManager {
     pub body_id: BodyId,
     pending: Vec<PendingAdmission>,
     invitations: Vec<InvitationRecord>,
+    continuity_keys: Vec<ContinuityKeyRecord>,
+    pending_returns: Vec<PendingReturn>,
     pub receipts: Vec<AdmissionReceipt>,
 }
 
@@ -153,6 +158,8 @@ impl AdmissionManager {
             body_id,
             pending: Vec::new(),
             invitations: Vec::new(),
+            continuity_keys: Vec::new(),
+            pending_returns: Vec::new(),
             receipts: Vec::new(),
         })
     }
@@ -270,6 +277,7 @@ impl AdmissionManager {
         if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
             return Err(AdmissionRefusal::ReceiptCapacityExhausted);
         }
+        self.ensure_continuity_capacity()?;
         let advertisement = candidates
             .candidates
             .iter()
@@ -293,6 +301,11 @@ impl AdmissionManager {
             signs.candidate_admitted,
         )?;
         self.retain_receipt(pending.challenge.admission_id.clone(), credential.clone())?;
+        self.retain_continuity_key(
+            credential.part_id.clone(),
+            credential.host_id.clone(),
+            pending.verifying_key,
+        );
         self.pending.remove(index);
         *membership = next_membership;
         *candidates = next_candidates;
@@ -437,23 +450,6 @@ impl AdmissionManager {
             admission_id,
             credential,
         });
-        Ok(())
-    }
-
-    fn validate_expiry(
-        &self,
-        nonce: [u8; 32],
-        now_millis: u64,
-        expires_at_millis: u64,
-    ) -> Result<(), AdmissionRefusal> {
-        if nonce == [0; 32] {
-            return Err(AdmissionRefusal::StaleNonce);
-        }
-        if expires_at_millis <= now_millis
-            || expires_at_millis - now_millis > MAX_ADMISSION_TTL_MILLIS
-        {
-            return Err(AdmissionRefusal::InvalidExpiry);
-        }
         Ok(())
     }
 }
