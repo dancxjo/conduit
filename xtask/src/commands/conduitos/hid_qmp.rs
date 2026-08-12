@@ -95,6 +95,13 @@ fn inject_keyboard_text(
         ("ret", false),
     ];
     for (index, (key, down)) in EVENTS.iter().copied().enumerate() {
+        wait_for_stage_count(
+            serial_path,
+            child,
+            "CONDUIT_BOOT_STAGE hid-awaiting-followup-report",
+            index + 1,
+            "keyboard-text-ready-timeout",
+        )?;
         send_named_keys(qmp, reader, &[key], down, "keyboard-text-key")?;
         wait_for_stage_count(
             serial_path,
