@@ -11,6 +11,7 @@ pub(crate) enum FakePlaybackBehavior {
     OpenFailure,
     UnderrunOnFirstBlock,
     ProviderLossOnFirstBlock,
+    ProviderLossAfterFirstBlock,
     ProviderLossOnDrain,
     DrainFailure,
     CloseFailure,
@@ -86,6 +87,9 @@ impl FakePlaybackSession {
                 }
                 _ => {}
             }
+        } else if self.behavior == FakePlaybackBehavior::ProviderLossAfterFirstBlock {
+            self.lifecycle = PlaybackLifecycle::ProviderLost;
+            return Err(PlaybackFailure::ProviderLost);
         }
         self.metrics.blocks_committed += 1;
         self.metrics.frames_committed += u64::from(header.frame_count);
@@ -221,6 +225,31 @@ mod tests {
             assert_eq!(session.lifecycle(), PlaybackLifecycle::ResolvedAvailable);
             assert_eq!(session.metrics.blocks_committed, 0);
         }
+    }
+
+    #[test]
+    fn provider_loss_after_first_block_is_active_pcm_loss() {
+        let encoded = frame(
+            PcmSampleRepresentation::Signed16LittleEndian,
+            SAMPLE_RATE_HZ,
+            PcmChannelLayout::StereoLeftRight,
+        );
+        let mut session = FakePlaybackSession::new(
+            selection(),
+            FakePlaybackBehavior::ProviderLossAfterFirstBlock,
+        );
+        session.write_frame(&encoded).unwrap();
+        assert_eq!(session.lifecycle(), PlaybackLifecycle::FirstFrameCommitted);
+        assert_eq!(session.metrics.blocks_committed, 1);
+
+        let mut second = encoded;
+        second[16..24].copy_from_slice(&u64::from(PERIOD_FRAMES).to_le_bytes());
+        assert_eq!(
+            session.write_frame(&second),
+            Err(PlaybackFailure::ProviderLost)
+        );
+        assert_eq!(session.lifecycle(), PlaybackLifecycle::ProviderLost);
+        assert_eq!(session.metrics.blocks_committed, 1);
     }
 
     #[test]

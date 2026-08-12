@@ -175,6 +175,10 @@ fn busy_open_underrun_provider_loss_and_drain_remain_distinct() {
             "OperationFailed(75)",
         ),
         (
+            FakePlaybackBehavior::ProviderLossAfterFirstBlock,
+            "OperationFailed(75)",
+        ),
+        (
             FakePlaybackBehavior::ProviderLossOnDrain,
             "OperationFailed(75)",
         ),

@@ -82,7 +82,7 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
         "sound-boot-a",
         7,
         "usb-path-a",
-        FakePlaybackBehavior::ProviderLossOnFirstBlock,
+        FakePlaybackBehavior::ProviderLossAfterFirstBlock,
     );
     let plan_a = plan(&host_a, &checked_form);
     let immutable_plan_a = plan_a.clone();
