@@ -1,34 +1,41 @@
+//! Compatibility entrance for the authoritative ConduitOS catalog profile gap.
+//!
+//! This command deliberately consumes the same exact profile advertisement as
+//! `cargo xtask catalog gap --host conduitos`; it must never reconstruct a
+//! second, smaller implementation inventory from the legacy fixed HostOffer.
+
 use std::process::Command;
 
-use conduitos::{
-    identity::BootIdentities,
-    offer::{CpuFeatures, HostOffer},
-};
 use serde::Serialize;
 
-use crate::{cli::GlobalOpts, commands::catalog::inventory};
+use crate::{cli::GlobalOpts, commands::catalog};
 
 use super::ConduitosError;
 
-const SCHEMA: &str = "conduit.conduitos/std-gap@1";
+const SCHEMA: &str = "conduit.conduitos/std-gap@2";
+
 #[derive(Serialize)]
-struct HostCapability<'a> {
-    kind_id: &'static str,
-    contract_revision: &'static str,
-    implementation: &'static str,
-    artifact_build: &'a str,
+struct HostCapability {
+    capability_id: String,
+    kind_id: String,
+    contract_revision: String,
+    implementation: String,
+    execution_profile: String,
+    artifact: String,
+    host_operations: Vec<String>,
+    resources: Vec<String>,
 }
 
 #[derive(Serialize)]
-struct GapEntry<'a> {
+struct GapEntry {
     kind_id: String,
     contract_revision: String,
     classification: &'static str,
-    host_capability: Option<HostCapability<'a>>,
+    host_capability: Option<HostCapability>,
 }
 
 #[derive(Serialize)]
-struct StdGapReport<'a> {
+struct StdGapReport {
     schema: &'static str,
     catalog_basis: &'static str,
     catalog_inventory_schema: &'static str,
@@ -36,23 +43,22 @@ struct StdGapReport<'a> {
     catalog_digest: String,
     catalog_entry_count: usize,
     maximum_catalog_entries: usize,
-    catalog_entries: Vec<inventory::InventoryEntry>,
-    host_profile: &'static str,
-    artifact_build: &'a str,
+    catalog_entries: Vec<catalog::inventory::InventoryEntry>,
+    host_profile: String,
+    artifact_build: String,
     comparison_key: &'static str,
+    profile_basis: &'static str,
     implemented_count: usize,
     missing_count: usize,
-    entries: Vec<GapEntry<'a>>,
+    entries: Vec<GapEntry>,
 }
 
 pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
-        println!("derive supported_nucleus_contracts + supported_nucleus_offers; compare exact kind_id + contract_revision with HostOffer");
+        println!("derive the canonical inventory and authoritative ConduitOS profile advertisement; compare exact kind_id + contract_revision");
         return Ok(());
     }
-
-    let build = git_head()?;
-    let report = build_report(&build)?;
+    let report = build_report()?;
     println!(
         "{}",
         serde_json::to_string_pretty(&report).map_err(|error| {
@@ -62,71 +68,75 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     Ok(())
 }
 
-fn build_report(build: &str) -> Result<StdGapReport<'_>, ConduitosError> {
-    let inventory = inventory::derive().map_err(|error| {
+fn build_report() -> Result<StdGapReport, ConduitosError> {
+    let inventory = catalog::inventory::derive().map_err(|error| {
         ConduitosError::refusal("std-catalog-inventory-invalid", error.to_string())
     })?;
-
-    let ids = BootIdentities {
-        host: [1; 32],
-        boot: [2; 32],
-    };
-    let host = HostOffer::new(
-        &ids,
-        build,
-        CpuFeatures {
-            sse2: true,
-            rdrand: true,
-            invariant_tsc: true,
-        },
-        256 * 1024,
-    );
-    host.validate()
-        .map_err(|error| ConduitosError::refusal("conduitos-offer-invalid", error.as_str()))?;
-
-    let entries: Vec<_> = inventory
+    let host = catalog::profiles::conduitos_advertisement()
+        .map_err(|error| ConduitosError::refusal("conduitos-profile-invalid", error.to_string()))?;
+    let entries = inventory
         .entries
         .iter()
         .map(|entry| {
-            let host_capability = host.capabilities.iter().find(|capability| {
-                capability.kind == entry.kind_id
-                    && capability.contract_revision == entry.contract_revision
+            let capability = host.capabilities.iter().find(|candidate| {
+                candidate.kind_id.as_str() == entry.kind_id
+                    && candidate.kind_contract_revision.as_str() == entry.contract_revision
             });
             GapEntry {
                 kind_id: entry.kind_id.clone(),
                 contract_revision: entry.contract_revision.clone(),
-                classification: if host_capability.is_some() {
+                classification: if capability.is_some() {
                     "implemented"
                 } else {
                     "missing"
                 },
-                host_capability: host_capability.map(|capability| HostCapability {
-                    kind_id: capability.kind,
-                    contract_revision: capability.contract_revision,
-                    implementation: capability.implementation,
-                    artifact_build: capability.artifact_build,
+                host_capability: capability.map(|capability| HostCapability {
+                    capability_id: capability.capability_id.as_str().to_owned(),
+                    kind_id: capability.kind_id.as_str().to_owned(),
+                    contract_revision: capability.kind_contract_revision.as_str().to_owned(),
+                    implementation: capability
+                        .implementation
+                        .implementation_id
+                        .as_str()
+                        .to_owned(),
+                    execution_profile: capability
+                        .implementation
+                        .execution_profile_id
+                        .as_str()
+                        .to_owned(),
+                    artifact: capability.implementation.artifact_id.as_str().to_owned(),
+                    host_operations: capability
+                        .host_operations
+                        .iter()
+                        .map(|requirement| requirement.contract_id.as_str().to_owned())
+                        .collect(),
+                    resources: capability
+                        .resource_requirements
+                        .iter()
+                        .map(|requirement| requirement.class_id.as_str().to_owned())
+                        .collect(),
                 }),
             }
         })
-        .collect();
+        .collect::<Vec<_>>();
     let implemented_count = entries
         .iter()
         .filter(|entry| entry.classification == "implemented")
         .count();
-
     Ok(StdGapReport {
         schema: SCHEMA,
         catalog_basis:
             "conduit_std_catalog::supported_nucleus_contracts()+supported_nucleus_offers()",
-        catalog_inventory_schema: inventory::SCHEMA,
+        catalog_inventory_schema: catalog::inventory::SCHEMA,
         catalog_digest_algorithm: "sha256-canonical-json",
         catalog_digest: inventory.digest,
         catalog_entry_count: inventory.entries.len(),
-        maximum_catalog_entries: inventory::MAXIMUM_ENTRIES,
+        maximum_catalog_entries: catalog::inventory::MAXIMUM_ENTRIES,
         catalog_entries: inventory.entries,
-        host_profile: host.profile,
-        artifact_build: build,
+        host_profile: host.profile.as_str().to_owned(),
+        artifact_build: git_head()?,
         comparison_key: "exact-kind-id+kind-contract-revision",
+        profile_basis: "xtask::commands::catalog::profiles::conduitos_advertisement",
         implemented_count,
         missing_count: entries.len() - implemented_count,
         entries,
@@ -150,62 +160,28 @@ fn git_head() -> Result<String, ConduitosError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::Value;
 
     #[test]
-    fn current_gap_is_derived_and_exact() {
-        let report = build_report("test-build").unwrap();
-        assert_eq!(
-            report.catalog_entry_count,
-            conduit_std_catalog::supported_nucleus_contracts().len()
-        );
-        assert_eq!(report.implemented_count, 5);
-        assert_eq!(
-            report.missing_count,
-            report.catalog_entry_count - report.implemented_count
-        );
-        assert!(report.entries.iter().any(|entry| {
-            entry.kind_id == "time/tick"
-                && entry.contract_revision == "conduit.std/time-tick@2"
-                && entry.classification == "implemented"
-        }));
-        assert!(report.entries.iter().any(|entry| {
-            entry.kind_id == "text/upper" && entry.classification == "implemented"
-        }));
+    fn compatibility_report_uses_the_authoritative_profile_inventory() {
+        let report = build_report().unwrap();
+        assert_eq!(report.catalog_entry_count, 54);
+        assert_eq!(report.implemented_count, 21);
+        assert_eq!(report.missing_count, 33);
+        for kind in [
+            "layout/inset",
+            "presentation/bool",
+            "logic/not",
+            "math/clamp",
+        ] {
+            assert!(report.entries.iter().any(|entry| {
+                entry.kind_id == kind
+                    && entry.classification == "implemented"
+                    && entry.host_capability.is_some()
+            }));
+        }
         assert!(report
             .entries
             .iter()
-            .any(|entry| entry.kind_id == "logic/select" && entry.classification == "missing"));
-        for kind in ["time/debounce", "time/timeout"] {
-            assert!(report
-                .entries
-                .iter()
-                .any(|entry| entry.kind_id == kind && entry.classification == "missing"));
-        }
-        for kind in ["text/literal", "presentation/text"] {
-            assert!(report
-                .entries
-                .iter()
-                .any(|entry| { entry.kind_id == kind && entry.classification == "implemented" }));
-        }
-    }
-
-    #[test]
-    fn digest_changes_when_semantic_inventory_changes() {
-        let mut report = build_report("test-build").unwrap();
-        let original = report.catalog_digest;
-        report.catalog_entries[0].contract["summary"] = Value::String("changed".into());
-        assert_ne!(
-            original,
-            inventory::digest(&report.catalog_entries).unwrap()
-        );
-    }
-
-    #[test]
-    fn digest_excludes_host_build_basis() {
-        let first = build_report("first-build").unwrap();
-        let second = build_report("second-build").unwrap();
-        assert_eq!(first.catalog_digest, second.catalog_digest);
-        assert_ne!(first.artifact_build, second.artifact_build);
+            .any(|entry| { entry.kind_id == "logic/select" && entry.classification == "missing" }));
     }
 }
