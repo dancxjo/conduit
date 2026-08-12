@@ -161,5 +161,8 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement
         .capabilities
         .push(conduit_std_catalog::conduitos_time_throttle_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_music_synth_offer());
     Ok(advertisement)
 }
