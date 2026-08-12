@@ -31,6 +31,7 @@ pub struct GraphItem {
     pub identity: String,
     pub label: String,
     pub kind: GraphItemKind,
+    pub operation: Option<String>,
     pub source_span: Span,
 }
 
@@ -232,6 +233,118 @@ impl FormEditor {
         conduit_form::expand_canonical_form_for_authoring(&checked, name, &profile)
             .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.to_string()))
     }
+
+    pub fn patchbay_graph_for_authoring(
+        &self,
+        name: &str,
+    ) -> Result<crate::PatchbayGraph, FormEditorError> {
+        let authoring = self.expand_form_for_authoring(name)?;
+        let mut graph = crate::PatchbayGraph::from_authoring(&authoring)
+            .map_err(|error| FormEditorError::Catalog(error.to_string()))?;
+        let open = self
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.name == name)
+            .ok_or_else(|| FormEditorError::UnknownForm(name.into()))?;
+        for item in open
+            .items
+            .iter()
+            .filter(|item| item.kind == GraphItemKind::Gear)
+        {
+            let Some(back_name) = item.operation.as_deref() else {
+                continue;
+            };
+            let Some(back) = self
+                .checked
+                .forms
+                .iter()
+                .find(|form| form.name == back_name)
+            else {
+                continue;
+            };
+            if graph.compositions.len() == crate::MAX_PATCHBAY_GEARS {
+                return Err(FormEditorError::GraphTooLarge);
+            }
+            let gear_name = item
+                .identity
+                .rsplit('/')
+                .next()
+                .expect("graph Gear identity has a final name")
+                .to_owned();
+            let gear_id = conduit_core::GearId::from(format!("{name}/{gear_name}"));
+            let nested = self.expand_form_for_authoring(back_name)?;
+            let inputs = back
+                .face
+                .inputs()
+                .iter()
+                .cloned()
+                .map(|descriptor| crate::PatchbayFacePort {
+                    identity: format!(
+                        "composition/{gear_name}/input/{}",
+                        descriptor.port_id.as_str()
+                    ),
+                    descriptor,
+                })
+                .collect::<Vec<_>>();
+            let outputs = back
+                .face
+                .outputs()
+                .iter()
+                .cloned()
+                .map(|descriptor| crate::PatchbayFacePort {
+                    identity: format!(
+                        "composition/{gear_name}/output/{}",
+                        descriptor.port_id.as_str()
+                    ),
+                    descriptor,
+                })
+                .collect::<Vec<_>>();
+            let translated_port = |binding: &conduit_form::AuthoringFaceBinding, direction| {
+                let suffix = binding
+                    .gear_id
+                    .as_str()
+                    .strip_prefix(back_name)
+                    .unwrap_or(binding.gear_id.as_str());
+                format!(
+                    "port/{}{suffix}/{direction}/{}",
+                    gear_id.as_str(),
+                    binding.gear_port_id.as_str()
+                )
+            };
+            graph.compositions.push(crate::PatchbayComposition {
+                identity: format!("composition/{gear_name}"),
+                gear_name: gear_name.clone(),
+                back_name: back_name.into(),
+                checked_form_id: back.checked_form_id.clone(),
+                input_bindings: nested
+                    .input_bindings
+                    .iter()
+                    .map(|binding| crate::PatchbayCompositionBinding {
+                        face_port: format!(
+                            "composition/{gear_name}/input/{}",
+                            binding.face_port_id.as_str()
+                        ),
+                        internal_port: translated_port(binding, "input"),
+                    })
+                    .collect(),
+                output_bindings: nested
+                    .output_bindings
+                    .iter()
+                    .map(|binding| crate::PatchbayCompositionBinding {
+                        face_port: format!(
+                            "composition/{gear_name}/output/{}",
+                            binding.face_port_id.as_str()
+                        ),
+                        internal_port: translated_port(binding, "output"),
+                    })
+                    .collect(),
+                inputs,
+                outputs,
+            });
+        }
+        Ok(graph)
+    }
 }
 
 pub(crate) fn check_revision(
@@ -339,6 +452,8 @@ fn graph_revision(
                         .unwrap_or("unknown");
                     items.last_mut().expect("gear item was admitted").label =
                         format!("{}: {operation}", gear.name.text);
+                    items.last_mut().expect("gear item was admitted").operation =
+                        Some(operation.into());
                 }
                 BackStatement::Cord(cord) => {
                     let label = form
@@ -430,6 +545,7 @@ fn push_item(
         identity: format!("form/{form}/{class}/{name}"),
         label: name.into(),
         kind,
+        operation: None,
         source_span,
     });
     Ok(())

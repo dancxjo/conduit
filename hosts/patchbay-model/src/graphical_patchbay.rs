@@ -49,6 +49,7 @@ impl std::error::Error for PatchbayGraphError {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PatchbaySubjectKind {
     Gear,
+    Composition,
     FaceInput,
     FaceOutput,
     PortInput,
@@ -67,6 +68,24 @@ pub struct PatchbayPort {
 pub struct PatchbayFacePort {
     pub identity: String,
     pub descriptor: PortDescriptor,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbayCompositionBinding {
+    pub face_port: String,
+    pub internal_port: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbayComposition {
+    pub identity: String,
+    pub gear_name: String,
+    pub back_name: String,
+    pub checked_form_id: CheckedFormId,
+    pub inputs: Vec<PatchbayFacePort>,
+    pub outputs: Vec<PatchbayFacePort>,
+    pub input_bindings: Vec<PatchbayCompositionBinding>,
+    pub output_bindings: Vec<PatchbayCompositionBinding>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,6 +120,7 @@ pub struct PatchbayGraph {
     pub form_name: String,
     pub face_inputs: Vec<PatchbayFacePort>,
     pub face_outputs: Vec<PatchbayFacePort>,
+    pub compositions: Vec<PatchbayComposition>,
     pub gears: Vec<PatchbayGear>,
     pub cords: Vec<PatchbayCord>,
 }
@@ -213,6 +233,7 @@ impl PatchbayGraph {
             form_name: form.name.clone(),
             face_inputs: Vec::new(),
             face_outputs: Vec::new(),
+            compositions: Vec::new(),
             gears,
             cords,
         })
@@ -315,6 +336,16 @@ impl PatchbayGraph {
             .iter()
             .chain(&self.face_outputs)
             .map(|port| port.identity.as_str())
+            .chain(self.compositions.iter().flat_map(|composition| {
+                std::iter::once(composition.identity.as_str())
+                    .chain(composition.inputs.iter().map(|port| port.identity.as_str()))
+                    .chain(
+                        composition
+                            .outputs
+                            .iter()
+                            .map(|port| port.identity.as_str()),
+                    )
+            }))
             .chain(self.gears.iter().flat_map(|gear| {
                 std::iter::once(gear.identity.as_str())
                     .chain(gear.inputs.iter().map(|port| port.identity.as_str()))
@@ -342,6 +373,50 @@ impl PatchbayGraph {
     }
 
     pub fn inspect(&self, identity: &str) -> Result<PatchbayInspection, PatchbayGraphError> {
+        if let Some(composition) = self
+            .compositions
+            .iter()
+            .find(|composition| composition.identity == identity)
+        {
+            return Ok(PatchbayInspection {
+                subject_identity: identity.into(),
+                subject_kind: PatchbaySubjectKind::Composition,
+                exact_facts: vec![
+                    format!("Gear {}", composition.gear_name),
+                    format!("Back {}", composition.back_name),
+                    format!("checked {}", composition.checked_form_id.as_str()),
+                    format!(
+                        "inputs={} outputs={}",
+                        composition.inputs.len(),
+                        composition.outputs.len()
+                    ),
+                ],
+            });
+        }
+        if let Some((composition, port)) = self.compositions.iter().find_map(|composition| {
+            composition
+                .inputs
+                .iter()
+                .chain(&composition.outputs)
+                .find(|port| port.identity == identity)
+                .map(|port| (composition, port))
+        }) {
+            let subject_kind = match port.descriptor.direction {
+                PortDirection::Input => PatchbaySubjectKind::PortInput,
+                PortDirection::Output => PatchbaySubjectKind::PortOutput,
+            };
+            return Ok(PatchbayInspection {
+                subject_identity: identity.into(),
+                subject_kind,
+                exact_facts: vec![
+                    format!("Composition {}", composition.gear_name),
+                    format!("Back {}", composition.back_name),
+                    format!("Port {}", port.descriptor.port_id.as_str()),
+                    format!("Info {}", port.descriptor.value_kind.as_str()),
+                    format!("temporal={:?}", port.descriptor.temporal),
+                ],
+            });
+        }
         if let Some(port) = self
             .face_inputs
             .iter()

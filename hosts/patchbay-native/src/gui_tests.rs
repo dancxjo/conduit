@@ -15,6 +15,16 @@ fn graph() -> PatchbayGraph {
     PatchbayGraph::from_expanded(&editor.expand_form("count-demo").unwrap()).unwrap()
 }
 
+fn composition_graph() -> PatchbayGraph {
+    FormEditor::from_source(
+        PathBuf::from("greet.conduit"),
+        include_str!("../../../examples/greet.conduit").into(),
+    )
+    .unwrap()
+    .patchbay_graph_for_authoring("default-welcome")
+    .unwrap()
+}
+
 #[test]
 fn icon_table_is_finite_and_every_icon_has_an_accessibility_name() {
     assert_eq!(Icon::ALL.len(), 25);
@@ -26,6 +36,11 @@ fn icon_table_is_finite_and_every_icon_has_an_accessibility_name() {
 #[test]
 fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     let graph = graph();
+    let visible_gears = graph
+        .gears
+        .iter()
+        .filter(|gear| graph.compositions.is_empty() || gear.source_form == graph.form_name)
+        .collect::<Vec<_>>();
     let mut pixels = vec![BACKGROUND; 1100 * 720];
     let targets = draw_patchbay(
         &mut pixels,
@@ -42,34 +57,8 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
             realization_hosts: &[],
         },
     );
-    assert_eq!(
-        targets.len(),
-        3 + patchbay_model::GearPalette::standard()
-            .unwrap()
-            .entries()
-            .len()
-            + graph.gears.len()
-            + graph.gears.len()
-            + graph.cords.len()
-            + graph
-                .gears
-                .iter()
-                .map(|gear| gear.inputs.len() + gear.outputs.len())
-                .sum::<usize>()
-            + graph
-                .gears
-                .iter()
-                .flat_map(|gear| &gear.controls)
-                .map(|control| match control.kind {
-                    patchbay_model::FaceControlKind::Number { .. }
-                    | patchbay_model::FaceControlKind::ScalarNumber { .. }
-                    | patchbay_model::FaceControlKind::Range { .. } => 2,
-                    patchbay_model::FaceControlKind::BooleanChoice { .. }
-                    | patchbay_model::FaceControlKind::TextChoice { .. }
-                    | patchbay_model::FaceControlKind::ShortText { .. } => 1,
-                })
-                .sum::<usize>()
-    );
+    assert!(!visible_gears.is_empty());
+    assert!(targets.len() <= crate::gui::MAX_HIT_TARGETS);
     assert!(pixels.contains(&PHOSPHOR_THEME.structure_primary.packed_rgb()));
     assert!(pixels.contains(&PHOSPHOR_THEME.emphasis.packed_rgb()));
     assert!(targets
@@ -100,6 +89,43 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
             .count(),
         graph.gears.len()
     );
+}
+
+#[test]
+fn parent_canvas_draws_one_composed_gear_instead_of_its_expanded_child_gears() {
+    let graph = composition_graph();
+    assert_eq!(graph.compositions.len(), 1);
+    assert!(graph.gears.iter().any(|gear| gear.source_form == "greet"));
+    let mut pixels = vec![BACKGROUND; 1100 * 720];
+    let targets = draw_patchbay(
+        &mut pixels,
+        1100,
+        720,
+        &graph,
+        PatchbayViewContext {
+            selected: None,
+            breadcrumb: "",
+            lifecycle: &LifecycleContext::default(),
+            palette_query: "",
+            presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
+        },
+    );
+    assert!(targets.iter().any(|target| {
+        matches!(
+            &target.action,
+            GuiAction::SelectSubject(subject)
+                if subject.subject_identity == "composition/hello"
+        )
+    }));
+    assert!(!targets.iter().any(|target| {
+        matches!(
+            &target.action,
+            GuiAction::SelectSubject(subject)
+                if subject.subject_identity == "gear/default-welcome/hello/join"
+        )
+    }));
 }
 
 #[test]

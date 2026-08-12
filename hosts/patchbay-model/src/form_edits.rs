@@ -171,6 +171,13 @@ impl FormEditor {
             .face_inputs
             .iter()
             .find(|port| port.identity == source_port_identity);
+        let composition_source = graph.compositions.iter().find_map(|composition| {
+            composition
+                .outputs
+                .iter()
+                .find(|port| port.identity == source_port_identity)
+                .map(|port| (composition, port))
+        });
         let internal_sink = graph
             .gears
             .iter()
@@ -180,13 +187,22 @@ impl FormEditor {
             .face_outputs
             .iter()
             .find(|port| port.identity == sink_port_identity);
+        let composition_sink = graph.compositions.iter().find_map(|composition| {
+            composition
+                .inputs
+                .iter()
+                .find(|port| port.identity == sink_port_identity)
+                .map(|port| (composition, port))
+        });
         let source_descriptor = internal_source
             .map(|port| &port.descriptor)
             .or_else(|| face_source.map(|port| &port.descriptor))
+            .or_else(|| composition_source.map(|(_, port)| &port.descriptor))
             .ok_or_else(|| FormEditorError::UnknownPort(source_port_identity.into()))?;
         let sink_descriptor = internal_sink
             .map(|port| &port.descriptor)
             .or_else(|| face_sink.map(|port| &port.descriptor))
+            .or_else(|| composition_sink.map(|(_, port)| &port.descriptor))
             .ok_or_else(|| FormEditorError::UnknownPort(sink_port_identity.into()))?;
         if source_descriptor.value_kind != sink_descriptor.value_kind {
             return Err(FormEditorError::IncompatiblePorts(format!(
@@ -209,6 +225,12 @@ impl FormEditor {
         let source_reference = if let Some(source) = internal_source {
             let source_name = direct_gear_name(&self.open_form, source.gear_id.as_str())?;
             format!("{source_name}.{}", source.descriptor.port_id.as_str())
+        } else if let Some((composition, port)) = composition_source {
+            format!(
+                "{}.{}",
+                composition.gear_name,
+                port.descriptor.port_id.as_str()
+            )
         } else {
             face_source
                 .expect("source descriptor was resolved")
@@ -220,6 +242,12 @@ impl FormEditor {
         let sink_reference = if let Some(sink) = internal_sink {
             let sink_name = direct_gear_name(&self.open_form, sink.gear_id.as_str())?;
             format!("{sink_name}.{}", sink.descriptor.port_id.as_str())
+        } else if let Some((composition, port)) = composition_sink {
+            format!(
+                "{}.{}",
+                composition.gear_name,
+                port.descriptor.port_id.as_str()
+            )
         } else {
             face_sink
                 .expect("sink descriptor was resolved")

@@ -2,6 +2,9 @@
 
 use crate::{
     canvas::SoftwareCanvas,
+    gui_composition::{
+        composition_port_point, draw_compositions, layout_compositions, CompositionLayout,
+    },
     gui_gear::{draw_gear, GearViewContext},
     gui_hit::HitShape,
     gui_inspector::draw_inspector,
@@ -22,6 +25,8 @@ pub use crate::gui_hit::{GuiAction, HitTarget};
 pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_GEARS
+    + patchbay_model::MAX_PATCHBAY_GEARS
+    + patchbay_model::MAX_PATCHBAY_PORTS
     + patchbay_model::MAX_PATCHBAY_PORTS
     + patchbay_model::MAX_PATCHBAY_CORDS
     + patchbay_model::MAX_PALETTE_ENTRIES
@@ -106,12 +111,21 @@ pub fn draw_patchbay(
         theme,
     );
     draw_header(&mut canvas, graph, breadcrumb, lifecycle, theme);
+    let compositions = layout_compositions(graph, width);
     let layouts = layout_gears(graph, width, presentation_layout);
     let boundaries = layout_boundaries(graph, width);
     let mut targets = Vec::with_capacity(
         MAX_HIT_TARGETS.min(
             3 + graph.gears.len()
+                + graph.compositions.len()
                 + graph.cords.len()
+                + graph.face_inputs.len()
+                + graph.face_outputs.len()
+                + graph
+                    .compositions
+                    .iter()
+                    .map(|composition| composition.inputs.len() + composition.outputs.len())
+                    .sum::<usize>()
                 + graph
                     .gears
                     .iter()
@@ -123,13 +137,14 @@ pub fn draw_patchbay(
     draw_cords(
         &mut canvas,
         graph,
-        (&layouts, &boundaries),
+        (&layouts, &compositions, &boundaries),
         selected,
         presentation_layout,
         theme,
         &mut targets,
     );
     draw_boundaries(&mut canvas, graph, &boundaries, theme, &mut targets);
+    draw_compositions(&mut canvas, graph, &compositions, theme, &mut targets);
     let gear_view = GearViewContext {
         presentation_layout,
         realization_plan,
@@ -303,6 +318,7 @@ fn layout_gears<'a>(
     graph
         .gears
         .iter()
+        .filter(|gear| graph.compositions.is_empty() || gear.source_form == graph.form_name)
         .enumerate()
         .map(|(index, gear)| {
             let column = index % columns;
@@ -314,7 +330,14 @@ fn layout_gears<'a>(
                 .take(row)
                 .map(|gears| gears.iter().map(gear_height).max().unwrap_or(0) + 36)
                 .sum::<i32>();
-            let default_y = HEADER_HEIGHT + 28 + prior_height;
+            let default_y = HEADER_HEIGHT
+                + 28
+                + prior_height
+                + if graph.compositions.is_empty() {
+                    0
+                } else {
+                    132
+                };
             let (x, y) = presentation_layout
                 .position(&gear.identity)
                 .unwrap_or((default_x, default_y));
@@ -359,18 +382,22 @@ fn port_points(ports: &[patchbay_model::PatchbayPort], x: i32, y: i32) -> Vec<(S
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
-    layout: (&[GearLayout<'_>], &[BoundaryLayout]),
+    layout: (
+        &[GearLayout<'_>],
+        &[CompositionLayout<'_>],
+        &[BoundaryLayout],
+    ),
     selected: Option<&str>,
     presentation_layout: &patchbay_model::PatchbayLayout,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
-    let (layouts, boundaries) = layout;
+    let (layouts, compositions, boundaries) = layout;
     for cord in &graph.cords {
-        let Some(source) = find_port(layouts, boundaries, &cord.source_port) else {
+        let Some(source) = find_port(layouts, compositions, boundaries, &cord.source_port) else {
             continue;
         };
-        let Some(sink) = find_port(layouts, boundaries, &cord.sink_port) else {
+        let Some(sink) = find_port(layouts, compositions, boundaries, &cord.sink_port) else {
             continue;
         };
         let default_x = source.x + (sink.x - source.x) / 2;
@@ -409,6 +436,7 @@ fn select_action(graph: &PatchbayGraph, identity: &str) -> GuiAction {
 
 fn find_port(
     layouts: &[GearLayout<'_>],
+    compositions: &[CompositionLayout<'_>],
     boundaries: &[BoundaryLayout],
     identity: &str,
 ) -> Option<Point> {
@@ -416,6 +444,7 @@ fn find_port(
         .iter()
         .flat_map(|layout| layout.inputs.iter().chain(&layout.outputs))
         .find_map(|(candidate, point)| (candidate == identity).then_some(*point))
+        .or_else(|| composition_port_point(compositions, identity))
         .or_else(|| {
             boundaries
                 .iter()
