@@ -11,6 +11,7 @@ pub(crate) struct FakeMidiOutputSession {
     lifecycle: MidiOutputLifecycle,
     messages: Vec<[u8; 3]>,
     all_notes_off_sent: bool,
+    normalized_note_events: Vec<conduit_std_catalog::NormalizedNoteEvidence>,
 }
 
 impl FakeMidiOutputSession {
@@ -20,7 +21,21 @@ impl FakeMidiOutputSession {
             lifecycle: MidiOutputLifecycle::Resolved,
             messages: Vec::with_capacity(usize::from(super::MAXIMUM_PENDING_MESSAGES) + 1),
             all_notes_off_sent: false,
+            normalized_note_events: Vec::with_capacity(usize::from(
+                super::MAXIMUM_PENDING_MESSAGES,
+            )),
         }
+    }
+
+    pub(crate) fn record_note(
+        &mut self,
+        evidence: conduit_std_catalog::NormalizedNoteEvidence,
+    ) -> Result<(), MidiOutputFailure> {
+        if self.normalized_note_events.len() == self.normalized_note_events.capacity() {
+            return Err(MidiOutputFailure::Pressure);
+        }
+        self.normalized_note_events.push(evidence);
+        Ok(())
     }
 
     pub(crate) fn send(&mut self, encoded: [u8; 3]) -> Result<(), MidiOutputFailure> {
@@ -67,6 +82,7 @@ impl FakeMidiOutputSession {
             lifecycle: self.lifecycle,
             sent_messages: u16::try_from(self.messages.len()).unwrap_or(u16::MAX),
             all_notes_off_sent: self.all_notes_off_sent,
+            normalized_note_events: self.normalized_note_events.clone(),
             encoded_messages: self.messages.clone(),
         }
     }

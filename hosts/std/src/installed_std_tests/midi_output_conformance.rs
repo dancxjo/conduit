@@ -7,6 +7,7 @@ use crate::{RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHos
 use conduit_core::{
     BootId, ConnectionBase, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
 };
+use conduit_std_catalog::{NormalizedSoundTrace, RealizedSoundEvidence, SelectedSoundRealization};
 use std::collections::BTreeMap;
 
 fn host() -> StdHost {
@@ -98,6 +99,13 @@ fn planned_portable_performance_runs_through_the_production_kernel() {
         .connections
         .iter()
         .all(|connection| connection.item_capacity == 1));
+    let expected_plan_id = fragment.plan_id.clone();
+    let selected = SelectedSoundRealization {
+        plan_id: fragment.plan_id.clone(),
+        host_id: fragment.host_id.clone(),
+        boot_id: fragment.boot_id.clone(),
+        implementation_id: output.implementation_id.clone(),
+    };
 
     let report = host
         .run_fragment_to(
@@ -128,6 +136,22 @@ fn planned_portable_performance_runs_through_the_production_kernel() {
         kernel.midi_output[0].lifecycle,
         MidiOutputLifecycle::StoppedClosed
     );
+    let evidence = RealizedSoundEvidence {
+        selected,
+        trace: NormalizedSoundTrace::new(
+            kernel.midi_output[0].normalized_note_events.clone(),
+            TerminalDisposition::Completed,
+        )
+        .unwrap(),
+    };
+    assert_eq!(evidence.selected.plan_id, expected_plan_id);
+    assert_eq!(
+        evidence.selected.implementation_id.as_str(),
+        conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION
+    );
+    assert_eq!(evidence.trace.events[0].occurrence, 41);
+    assert_eq!(evidence.trace.events[0].admitted_pitch_millihertz, 440_000);
+    assert_eq!(evidence.trace.terminal, TerminalDisposition::Completed);
 }
 
 #[test]

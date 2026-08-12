@@ -23,6 +23,7 @@ pub struct MidiOutputReport {
     pub lifecycle: MidiOutputLifecycle,
     pub sent_messages: u16,
     pub all_notes_off_sent: bool,
+    pub normalized_note_events: Vec<conduit_std_catalog::NormalizedNoteEvidence>,
     #[cfg(test)]
     pub encoded_messages: Vec<[u8; 3]>,
 }
@@ -30,6 +31,7 @@ pub struct MidiOutputReport {
 pub(crate) enum MidiOutputSession {
     Unsupported {
         lifecycle: MidiOutputLifecycle,
+        normalized_note_events: Vec<conduit_std_catalog::NormalizedNoteEvidence>,
     },
     #[cfg(test)]
     Fake(super::output_fake::FakeMidiOutputSession),
@@ -38,6 +40,7 @@ pub(crate) enum MidiOutputSession {
         lifecycle: MidiOutputLifecycle,
         sent_messages: u16,
         all_notes_off_sent: bool,
+        normalized_note_events: Vec<conduit_std_catalog::NormalizedNoteEvidence>,
     },
 }
 
@@ -54,6 +57,9 @@ impl MidiOutputSession {
         let MidiOutputSelection::Raw(selection) = selection else {
             return Ok(Self::Unsupported {
                 lifecycle: MidiOutputLifecycle::Resolved,
+                normalized_note_events: Vec::with_capacity(usize::from(
+                    super::MAXIMUM_PENDING_MESSAGES,
+                )),
             });
         };
         let path = selection
@@ -66,6 +72,9 @@ impl MidiOutputSession {
             lifecycle: MidiOutputLifecycle::Open,
             sent_messages: 0,
             all_notes_off_sent: false,
+            normalized_note_events: Vec::with_capacity(usize::from(
+                super::MAXIMUM_PENDING_MESSAGES,
+            )),
         })
     }
 
@@ -76,12 +85,37 @@ impl MidiOutputSession {
             lifecycle: MidiOutputLifecycle::Open,
             sent_messages: 0,
             all_notes_off_sent: false,
+            normalized_note_events: Vec::with_capacity(usize::from(
+                super::MAXIMUM_PENDING_MESSAGES,
+            )),
         }
+    }
+
+    pub(crate) fn send_note(
+        &mut self,
+        event: conduit_core::MusicalNoteEvent,
+        encoded: [u8; 3],
+    ) -> Result<(), MidiOutputFailure> {
+        self.send(encoded)?;
+        let evidence = conduit_std_catalog::NormalizedNoteEvidence::exact(event);
+        match self {
+            Self::Unsupported {
+                normalized_note_events,
+                ..
+            }
+            | Self::Raw {
+                normalized_note_events,
+                ..
+            } => normalized_note_events.push(evidence),
+            #[cfg(test)]
+            Self::Fake(session) => session.record_note(evidence)?,
+        }
+        Ok(())
     }
 
     pub(crate) fn send(&mut self, encoded: [u8; 3]) -> Result<(), MidiOutputFailure> {
         match self {
-            Self::Unsupported { lifecycle } => {
+            Self::Unsupported { lifecycle, .. } => {
                 let _ = encoded;
                 *lifecycle = MidiOutputLifecycle::Failed;
                 Err(MidiOutputFailure::BackendUnavailable)
@@ -126,7 +160,7 @@ impl MidiOutputSession {
 
     pub(crate) fn stop(&mut self) -> Result<(), MidiOutputFailure> {
         match self {
-            Self::Unsupported { lifecycle } => {
+            Self::Unsupported { lifecycle, .. } => {
                 *lifecycle = MidiOutputLifecycle::StoppedClosed;
                 Ok(())
             }
@@ -137,6 +171,7 @@ impl MidiOutputSession {
                 lifecycle,
                 sent_messages,
                 all_notes_off_sent,
+                ..
             } => {
                 if *lifecycle == MidiOutputLifecycle::StoppedClosed {
                     return Ok(());
@@ -178,10 +213,14 @@ impl MidiOutputSession {
 
     pub(crate) fn report(&self) -> MidiOutputReport {
         match self {
-            Self::Unsupported { lifecycle } => MidiOutputReport {
+            Self::Unsupported {
+                lifecycle,
+                normalized_note_events,
+            } => MidiOutputReport {
                 lifecycle: *lifecycle,
                 sent_messages: 0,
                 all_notes_off_sent: false,
+                normalized_note_events: normalized_note_events.clone(),
                 #[cfg(test)]
                 encoded_messages: Vec::new(),
             },
@@ -191,11 +230,13 @@ impl MidiOutputSession {
                 lifecycle,
                 sent_messages,
                 all_notes_off_sent,
+                normalized_note_events,
                 ..
             } => MidiOutputReport {
                 lifecycle: *lifecycle,
                 sent_messages: *sent_messages,
                 all_notes_off_sent: *all_notes_off_sent,
+                normalized_note_events: normalized_note_events.clone(),
                 #[cfg(test)]
                 encoded_messages: Vec::new(),
             },
@@ -280,6 +321,7 @@ mod tests {
                 lifecycle: MidiOutputLifecycle::StoppedClosed,
                 sent_messages: 3,
                 all_notes_off_sent: true,
+                normalized_note_events: Vec::new(),
                 encoded_messages: Vec::new(),
             }
         );
