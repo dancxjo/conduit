@@ -1,6 +1,6 @@
 pub(crate) mod inventory;
 mod observation;
-mod profiles;
+pub(crate) mod profiles;
 mod recursive;
 mod sound;
 

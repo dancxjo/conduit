@@ -49,7 +49,7 @@ fn browser_advertisement() -> Result<HostAdvertisement, CatalogError> {
     Ok(browser)
 }
 
-fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogError> {
+pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogError> {
     let ids = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
