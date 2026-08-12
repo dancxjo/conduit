@@ -3,6 +3,7 @@ mod aarch64_a1;
 mod active_rescue_proof;
 mod architecture_matrix;
 mod build;
+mod demo;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -62,6 +63,8 @@ enum ConduitosCommand {
     Build(TargetArgs),
     /// Create the tiny pinned-Limine hybrid ISO image.
     Image(TargetArgs),
+    /// Open a visible interactive QEMU session without making proof claims.
+    Demo(TargetArgs),
     /// Boot one deterministic QEMU session and validate its boot Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
@@ -208,6 +211,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             target.arch.require_boot_backend()?;
             image::execute(target.arch, opts).map(|_| ())
         }
+        ConduitosCommand::Demo(target) => demo::execute(target.arch, opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             match target.arch {
@@ -268,6 +272,13 @@ mod tests {
                 .unwrap_or_else(|error| panic!("{name}: {error}"));
             assert!(matches!(parsed.command, Command::Conduitos(_)));
         }
+    }
+
+    #[test]
+    fn visible_demo_is_an_explicit_conduitos_entrance() {
+        let parsed =
+            Cli::try_parse_from(["xtask", "conduitos", "demo", "--arch", "x86-64"]).unwrap();
+        assert!(matches!(parsed.command, Command::Conduitos(_)));
     }
 
     #[test]
