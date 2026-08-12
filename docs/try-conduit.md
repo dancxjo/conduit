@@ -255,6 +255,21 @@ cargo xtask prove r1-hil --interactive \
   --credential-env CONDUIT_WIFI_PASSWORD
 ```
 
+To additionally bind the live Body membership receipt to that exact physical
+Body, Pico Boot, and Plan, use the final membership capstone entrance:
+
+```bash
+cargo xtask prove body-membership-hil --interactive \
+  --link-port /dev/serial/by-id/<pico-cdc-0> \
+  --sign-port /dev/serial/by-id/<pico-cdc-1> \
+  --ssid-env CONDUIT_WIFI_SSID \
+  --credential-env CONDUIT_WIFI_PASSWORD
+```
+
+This admits three independent browser Hosts and the already-provisioned Pico,
+retains the membership receipt, and then rejects the production R1 HIL unless
+the Body, physical Boot, and active Plan identities match exactly.
+
 The accepted success vector records matching stdout, DOM, and physical LED
 receipts across the R1 recovery lifecycle. See closed roadmap issue #361 and
 `STATUS.md` for the exact accepted Sign boundary rather than treating this
@@ -289,6 +304,8 @@ These commands intentionally represent different levels of Sign:
 - `conduit inspect runtime-report`: read-only inspection of a recorded runtime artifact;
 - `cargo xtask prove std-pico-usb`: attached-board physical transport proof;
 - `cargo xtask prove r1-hil --interactive`: attached-board final R1 proof.
+- `cargo xtask prove body-membership-hil --interactive`: attached-board Body
+  membership and R1 Play identity-link proof.
 
 Compilation is not execution. Simulation is not an actual browser. Firmware
 build is not board execution. A live Line is not automatically a general

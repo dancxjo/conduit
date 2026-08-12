@@ -350,6 +350,23 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "bounded conformance proves Body membership topology continuity and Pico simulation contracts plus one live Chromium admission over a loopback Line",
         ],
     },
+    ProofCommandContract {
+        id: "body.membership-physical-capstone",
+        command: "cargo xtask prove body-membership-hil --interactive --link-port <path> --sign-port <path> --ssid-env <name> --credential-env <name>",
+        proof_class: ProofClass::PhysicalCrossHost,
+        required_tools_or_targets: &[
+            "Pico W",
+            "USB CDC link port",
+            "USB CDC Sign port",
+            "ordinary Wi-Fi LAN",
+            "two physical Wi-Fi/network faults",
+            "pinned Chromium",
+        ],
+        named_artifacts: &["hosts/browser/conduit_browser_runtime.wasm"],
+        allowed_claims: &[
+            "one exact Body links local std, at least two browser Parts, and one explicitly admitted physical Pico to the same immutable R1 Plan and production Play evidence",
+        ],
+    },
 ];
 
 #[derive(Debug, Serialize)]
