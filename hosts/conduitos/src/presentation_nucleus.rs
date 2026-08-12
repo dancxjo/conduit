@@ -1,6 +1,10 @@
 //! Ordinary portable presentation execution on the ConduitOS display Base.
 
 mod bool_play;
+mod flow_state_plan;
+mod flow_state_play;
+#[cfg(test)]
+mod flow_state_tests;
 mod logic_multi_plan;
 mod logic_multi_play;
 #[cfg(test)]
@@ -18,6 +22,8 @@ pub use play::{PresentationProof, PresentationRunError, run};
 
 pub const TEXT_SOURCE_KIND: &str = "conduitos/fixture-text-source";
 pub use bool_play::{BoolPresentationError, BoolPresentationProof, prepare_bool, run_bool};
+pub use flow_state_plan::{PreparedFlowState, prepare_flow_state};
+pub use flow_state_play::{FlowStateError, FlowStateProof, run_flow_state};
 pub use logic_multi_plan::{PreparedLogicMulti, prepare_logic_multi};
 pub use logic_multi_play::{LogicMultiError, LogicMultiProof, run_logic_multi};
 pub use logic_not_play::{LogicNotError, LogicNotProof, prepare_not, run_not};
