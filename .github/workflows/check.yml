@@ -43,33 +43,47 @@ jobs:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
 
-  check:
+  workspace-check:
     needs: classify
-    if: always()
+    if: always() && needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [lint, test, portable, pico]
+    name: workspace-${{ matrix.shard }}
     steps:
-      - name: Accept validated documentation-only change set
-        if: needs.classify.result == 'success' && needs.classify.outputs.docs_only == 'true'
-        run: echo "Documentation-only fast path (${{ needs.classify.outputs.reason }})"
       - uses: actions/checkout@v4
-        if: needs.classify.outputs.docs_only != 'true'
       - uses: dtolnay/rust-toolchain@stable
-        if: needs.classify.outputs.docs_only != 'true'
         with:
           targets: wasm32-unknown-unknown,thumbv6m-none-eabi
       - uses: Swatinem/rust-cache@v2
-        if: needs.classify.outputs.docs_only != 'true'
         with:
           cache-on-failure: true
 
       - name: Emit machine-readable proof contract
-        if: needs.classify.outputs.docs_only != 'true'
+        if: matrix.shard == 'lint'
         run: cargo xtask --json proofs
 
-      - name: Run workspace check suite
-        if: needs.classify.outputs.docs_only != 'true'
-        run: cargo xtask check workspace --locked
+      - name: Run ${{ matrix.shard }} workspace check shard
+        run: cargo xtask check workspace-${{ matrix.shard }} --locked
+
+  check:
+    needs: [classify, workspace-check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preserve the stable required workspace gate
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
+          WORKSPACE_RESULT: ${{ needs.workspace-check.result }}
+        run: |
+          test "$CLASSIFY_RESULT" = success
+          if test "$DOCS_ONLY" != true; then
+            test "$WORKSPACE_RESULT" = success
+          fi
 
   browser-host:
     needs: classify
