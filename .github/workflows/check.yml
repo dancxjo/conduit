@@ -178,12 +178,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-unknown-none
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install deterministic x86 image and emulator tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
       - name: Run ${{ matrix.proof }} proof
         env:
           PROOF_COMMAND: ${{ matrix.command }}
@@ -207,32 +207,24 @@ jobs:
       matrix:
         include:
           - architecture: aarch64
-            targets: aarch64-unknown-none
-            packages: qemu-system-arm qemu-efi-aarch64
             command: cargo xtask conduitos prove --arch aarch64 --locked
           - architecture: ia32
-            targets: i686-unknown-uefi,i686-unknown-linux-gnu
-            packages: curl xorriso qemu-system-x86 ovmf-ia32
             command: cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos prove --arch ia32 --locked
           - architecture: riscv64
-            targets: riscv64gc-unknown-none-elf
-            packages: qemu-system-misc u-boot-qemu
             command: cargo xtask conduitos prove --arch riscv64 --locked
           - architecture: loongarch64
-            targets: loongarch64-unknown-none
-            packages: curl qemu-system-misc
             command: cargo xtask conduitos prove --arch loongarch64 --locked
     name: conduitos-architecture-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.targets }}
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
       - name: Install deterministic architecture tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential ${{ matrix.packages }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
       - name: Prove ${{ matrix.architecture }} ConduitOS architecture
         env:
           PROOF_COMMAND: ${{ matrix.command }}
