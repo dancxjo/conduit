@@ -127,6 +127,7 @@ fn recursive_host() -> HostAdvertisement {
             conduit_std_catalog::text_literal_offer(),
             conduit_std_catalog::text_presentation_offer(),
             conduit_std_catalog::layout_viewport_offer(),
+            conduit_std_catalog::layout_inset_offer(),
             conduit_std_catalog::layout_column_offer(),
             conduit_std_catalog::layout_align_offer(),
             conduit_std_catalog::layout_stack_offer(),

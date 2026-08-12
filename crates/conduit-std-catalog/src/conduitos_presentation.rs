@@ -5,8 +5,8 @@ use crate::{
     graphics_offer_for, graphics_presentation_offer, layout_offer_for,
     presentation_composition_offer_for, text_presentation_offer, GRAPHICS_ICON_KIND,
     GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, LAYOUT_ALIGN_KIND,
-    LAYOUT_COLUMN_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND,
-    PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND,
+    LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
+    LAYOUT_VIEWPORT_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND,
     TEXT_PRESENTATION_KIND,
 };
 
@@ -16,6 +16,7 @@ pub const CONDUITOS_PRESENTATION_ARTIFACT: &str = "conduitos/framebuffer-present
 pub fn conduitos_presentation_nucleus_offers() -> Vec<CapabilityOffer> {
     [
         LAYOUT_VIEWPORT_KIND,
+        LAYOUT_INSET_KIND,
         LAYOUT_ROW_KIND,
         LAYOUT_COLUMN_KIND,
         LAYOUT_STACK_KIND,

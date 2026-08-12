@@ -353,14 +353,14 @@ mod tests {
                 .iter()
                 .filter(|entry| matches!(entry.coverage, Coverage::Direct))
                 .count(),
-            17
+            18
         );
         let missing = os
             .entries
             .iter()
             .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
             .count();
-        assert_eq!(missing, os.catalog_entry_count - 18);
+        assert_eq!(missing, os.catalog_entry_count - 19);
         let gear_face = os
             .entries
             .iter()
@@ -368,7 +368,7 @@ mod tests {
             .unwrap();
         assert!(matches!(gear_face.coverage, Coverage::Recursive));
         assert!(gear_face.implementation.is_none());
-        assert_eq!(gear_face.recursive_implementations.len(), 9);
+        assert_eq!(gear_face.recursive_implementations.len(), 10);
     }
 
     #[test]
