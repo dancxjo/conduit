@@ -22,7 +22,15 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             run_suite(PICO_COMPOSITION_STEPS, &root, opts)
         }
         CheckSuite::WorkspaceLint => run_workspace_shard(WorkspaceShard::Lint, &root, opts),
-        CheckSuite::WorkspaceTest => run_workspace_shard(WorkspaceShard::Test, &root, opts),
+        CheckSuite::WorkspaceTestFoundation => {
+            run_workspace_shard(WorkspaceShard::TestFoundation, &root, opts)
+        }
+        CheckSuite::WorkspaceTestHosts => {
+            run_workspace_shard(WorkspaceShard::TestHosts, &root, opts)
+        }
+        CheckSuite::WorkspaceTestProducts => {
+            run_workspace_shard(WorkspaceShard::TestProducts, &root, opts)
+        }
         CheckSuite::WorkspacePortable => run_workspace_shard(WorkspaceShard::Portable, &root, opts),
         CheckSuite::WorkspacePico => run_workspace_shard(WorkspaceShard::Pico, &root, opts),
         CheckSuite::Browser | CheckSuite::BrowserHost => {
@@ -49,6 +57,9 @@ fn run_workspace_shard(
     root: &std::path::Path,
     opts: &GlobalOpts,
 ) -> Result<(), StepError> {
+    if let Some(step) = shard.package_test_step() {
+        run_step(step, root, opts)?;
+    }
     for step in WORKSPACE_STEPS
         .iter()
         .chain(NETWORK_CAPABILITY_STEPS)

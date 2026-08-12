@@ -96,7 +96,9 @@ pub struct CheckArgs {
 pub enum CheckSuite {
     Workspace,
     WorkspaceLint,
-    WorkspaceTest,
+    WorkspaceTestFoundation,
+    WorkspaceTestHosts,
+    WorkspaceTestProducts,
     WorkspacePortable,
     WorkspacePico,
     Browser,

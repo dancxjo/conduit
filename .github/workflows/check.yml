@@ -51,7 +51,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [lint, test, portable, pico]
+        shard:
+          [lint, test-foundation, test-hosts, test-products, portable, pico]
     name: workspace-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v4
@@ -61,6 +62,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+          shared-key: workspace-${{ matrix.shard }}
 
       - name: Emit machine-readable proof contract
         if: matrix.shard == 'lint'
@@ -196,6 +198,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+          shared-key: conduitos-x86-${{ matrix.proof }}
       - name: Install deterministic x86 image and emulator tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
       - name: Run ${{ matrix.proof }} proof
@@ -237,6 +240,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+          shared-key: conduitos-architecture-${{ matrix.architecture }}
       - name: Install deterministic architecture tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
       - name: Prove ${{ matrix.architecture }} ConduitOS architecture
