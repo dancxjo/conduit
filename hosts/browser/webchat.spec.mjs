@@ -86,11 +86,19 @@ test("two native browser clients exchange bounded chat through planned kernels",
     hostId: globalThis.__webchat.admissionCandidate.hostId,
     bootId: globalThis.__webchat.admissionCandidate.bootId,
     verifyingKey: Array.from(globalThis.__webchat.admissionCandidate.verifyingKey),
+    advertisement: globalThis.__webchat.admissionCandidate.advertisement,
   }))));
   expect(candidates[0].hostId).not.toBe(candidates[1].hostId);
   expect(candidates[0].bootId).not.toBe(candidates[1].bootId);
   expect(candidates[0].verifyingKey).toHaveLength(32);
   expect(candidates[0].verifyingKey).not.toEqual(candidates[1].verifyingKey);
+  for (const candidate of candidates) {
+    expect(candidate.advertisement.host_id).toBe(candidate.hostId);
+    expect(candidate.advertisement.boot_id).toBe(candidate.bootId);
+    expect(candidate.advertisement.offer_generation).toBe(1);
+    expect(candidate.advertisement.capabilities).toHaveLength(3);
+    expect(candidate.advertisement.resources).toHaveLength(2);
+  }
   const challengeFor = (candidate, suffix) => ({
     admission_id: `admission/browser-${suffix}`,
     body_id: "body/browser-live",
