@@ -14,6 +14,7 @@ use winit::window::{Window, WindowId};
 const HISTORY_CAPACITY: usize = 4;
 mod application_init;
 mod arguments;
+mod browser_ambient;
 mod browser_parts;
 mod build_birth;
 mod canvas;
@@ -364,7 +365,7 @@ impl ApplicationHandler for PatchbayApplication {
                 || self
                     .browser_parts
                     .as_ref()
-                    .is_some_and(browser_parts::BrowserPartsCoordinator::is_pending)
+                    .is_some_and(browser_parts::BrowserPartsCoordinator::is_running)
                 || self
                     .distributed_play
                     .as_ref()

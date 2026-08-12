@@ -179,6 +179,22 @@ impl PatchbayApplication {
         if arguments.body_parts_demo {
             application.birth_body()?;
             application.parts_open = true;
+            if let Some(coordinator) = &mut application.browser_parts {
+                let body_id = application
+                    .build_birth
+                    .body()
+                    .expect("Body membership demo completed Birth")
+                    .body_id
+                    .clone();
+                let target = coordinator.start_ambient(&body_id)?;
+                std::process::Command::new("xdg-open")
+                    .arg(target)
+                    .spawn()
+                    .map_err(|error| format!("cannot open ambient browser candidate: {error}"))?;
+                application.publish_completed(
+                    "Ambient browser opened as an inert candidate; inspect and Admit explicitly",
+                );
+            }
         }
         if arguments.native_copy_demo {
             application.file_task.run_choice_demo()?;

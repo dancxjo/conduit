@@ -106,6 +106,45 @@ impl PatchbayApplication {
                 self.selected_part = None;
                 self.pending_revoke = None;
             }
+            GuiAction::AdmitCandidate(candidate_id) => {
+                let view = self.parts_projection()?.ok_or("Parts view is not open")?;
+                let row = view
+                    .wants_to_join
+                    .iter()
+                    .find(|row| row.candidate_id == candidate_id)
+                    .ok_or("candidate is not awaiting a Body decision")?;
+                if !row.actions.contains(&patchbay_model::PartsAction::Admit) {
+                    return Err("candidate cannot be admitted in its current state".into());
+                }
+                let mut nonce = [0; 32];
+                std::fs::File::open("/dev/urandom")
+                    .and_then(|mut file| std::io::Read::read_exact(&mut file, &mut nonce))
+                    .map_err(|error| {
+                        format!("cannot obtain admission challenge entropy: {error}")
+                    })?;
+                let requested = self.lifecycle_sign("browser-candidate-requested");
+                let now = now_millis()?;
+                let (browser_parts, candidates) =
+                    (&mut self.browser_parts, &mut self.body_candidates);
+                browser_parts
+                    .as_mut()
+                    .and_then(super::browser_parts::BrowserPartsCoordinator::ambient_mut)
+                    .ok_or("ambient browser admission is not configured")?
+                    .admit(
+                        candidates
+                            .as_mut()
+                            .ok_or("Parts view requires candidate inventory truth")?,
+                        &candidate_id,
+                        nonce,
+                        now,
+                        requested,
+                    )?;
+                nonce.fill(0);
+                self.publish_completed(format!(
+                    "Admission proof requested from candidate {}",
+                    candidate_id.as_str()
+                ));
+            }
             GuiAction::RefuseCandidate(candidate_id) => {
                 let view = self.parts_projection()?.ok_or("Parts view is not open")?;
                 let row = view
@@ -115,6 +154,13 @@ impl PatchbayApplication {
                     .ok_or("candidate is not awaiting a Body decision")?;
                 if !row.actions.contains(&patchbay_model::PartsAction::Refuse) {
                     return Err("candidate cannot be refused in its current state".into());
+                }
+                if let Some(ambient) = self
+                    .browser_parts
+                    .as_mut()
+                    .and_then(super::browser_parts::BrowserPartsCoordinator::ambient_mut)
+                {
+                    ambient.refuse(&candidate_id);
                 }
                 self.lifecycle_sequence = self.lifecycle_sequence.saturating_add(1);
                 self.body_candidates
@@ -172,6 +218,63 @@ impl PatchbayApplication {
     }
 
     pub(super) fn poll_browser_parts(&mut self) -> Result<bool, String> {
+        let candidate = match (&mut self.browser_parts, &mut self.body_candidates) {
+            (Some(coordinator), Some(candidates)) => coordinator
+                .ambient_mut()
+                .map(|ambient| ambient.poll_candidate(candidates))
+                .transpose()?
+                .flatten(),
+            _ => None,
+        };
+        if let Some(candidate_id) = candidate {
+            self.publish_completed(format!(
+                "Browser candidate {} wants to join; inspect and Admit or Refuse",
+                candidate_id.as_str()
+            ));
+            return Ok(true);
+        }
+        let ambient_proof = self
+            .browser_parts
+            .as_mut()
+            .and_then(super::browser_parts::BrowserPartsCoordinator::ambient_mut)
+            .map(super::browser_ambient::AmbientBrowserCoordinator::take_proof)
+            .transpose()?
+            .flatten();
+        if let Some(arrival) = ambient_proof {
+            let signs = conduit_body::AdmissionSigns {
+                part_admitted: self.lifecycle_sign("browser-part-admitted"),
+                host_attached: self.lifecycle_sign("browser-host-attached"),
+                candidate_admitted: self.lifecycle_sign("browser-candidate-admitted"),
+            };
+            let now = now_millis()?;
+            let (browser_parts, candidates, build_birth) = (
+                &mut self.browser_parts,
+                &mut self.body_candidates,
+                &mut self.build_birth,
+            );
+            let credential = browser_parts
+                .as_mut()
+                .and_then(super::browser_parts::BrowserPartsCoordinator::ambient_mut)
+                .expect("ambient proof requires coordinator")
+                .complete(
+                    arrival,
+                    candidates
+                        .as_mut()
+                        .ok_or("ambient proof requires candidate inventory")?,
+                    build_birth
+                        .membership_mut()
+                        .ok_or("ambient proof arrived before Body membership existed")?,
+                    now,
+                    signs,
+                )?;
+            self.selected_candidate = None;
+            self.publish_completed(format!(
+                "Browser Part {} admitted for Host {}",
+                credential.part_id.as_str(),
+                credential.host_id.as_str()
+            ));
+            return Ok(true);
+        }
         let arrival = match &mut self.browser_parts {
             Some(coordinator) => coordinator.take_arrival()?,
             None => None,
@@ -202,6 +305,14 @@ impl PatchbayApplication {
         ));
         Ok(true)
     }
+}
+
+fn now_millis() -> Result<u64, String> {
+    let millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| format!("system clock before epoch: {error}"))?
+        .as_millis();
+    u64::try_from(millis).map_err(|_| "system clock exceeds Body admission range".into())
 }
 
 #[cfg(test)]
@@ -408,6 +519,13 @@ mod tests {
         assert!(targets.iter().any(
             |target| matches!(&target.action, GuiAction::RefuseCandidate(id) if id == &candidate)
         ));
+        assert!(targets.iter().any(
+            |target| matches!(&target.action, GuiAction::AdmitCandidate(id) if id == &candidate)
+        ));
+        assert_eq!(
+            application.handle_parts_action(GuiAction::AdmitCandidate(candidate.clone())),
+            Err("ambient browser admission is not configured".into())
+        );
         application
             .handle_parts_action(GuiAction::RefuseCandidate(candidate.clone()))
             .unwrap();

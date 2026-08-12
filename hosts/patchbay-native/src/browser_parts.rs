@@ -19,6 +19,7 @@ pub(super) struct BrowserPartsCoordinator {
     chat_url: String,
     manager: Option<AdmissionManager>,
     pending: Option<PendingSpawn>,
+    ambient: Option<super::browser_ambient::AmbientBrowserCoordinator>,
 }
 
 struct PendingSpawn {
@@ -39,7 +40,32 @@ impl BrowserPartsCoordinator {
             chat_url,
             manager: None,
             pending: None,
+            ambient: None,
         }
+    }
+
+    pub(super) fn start_ambient(&mut self, body_id: &BodyId) -> Result<String, String> {
+        if let Some(ambient) = &self.ambient {
+            if ambient.body_id() != body_id {
+                return Err("ambient browser coordinator belongs to a different Body".into());
+            }
+            return Err("ambient browser discovery is already running".into());
+        }
+        let (ambient, body_url) =
+            super::browser_ambient::AmbientBrowserCoordinator::start(body_id.clone())?;
+        self.ambient = Some(ambient);
+        Ok(format!(
+            "{}?ws={}&body={}",
+            self.page_url,
+            percent_encode(&self.chat_url),
+            percent_encode(&body_url)
+        ))
+    }
+
+    pub(super) fn ambient_mut(
+        &mut self,
+    ) -> Option<&mut super::browser_ambient::AmbientBrowserCoordinator> {
+        self.ambient.as_mut()
     }
 
     pub(super) fn begin(&mut self, body_id: &BodyId) -> Result<String, String> {
@@ -121,6 +147,14 @@ impl BrowserPartsCoordinator {
 
     pub(super) const fn is_pending(&self) -> bool {
         self.pending.is_some()
+    }
+
+    pub(super) fn is_running(&self) -> bool {
+        self.pending.is_some()
+            || self
+                .ambient
+                .as_ref()
+                .is_some_and(super::browser_ambient::AmbientBrowserCoordinator::is_running)
     }
 
     pub(super) fn cancel(&mut self) -> bool {
