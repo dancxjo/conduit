@@ -80,11 +80,8 @@ fn prepare_state_toggle(
         .ok_or_else(|| "state/toggle configuration 'initial' is missing or invalid".to_string())?;
     let mut admitted = Vec::with_capacity(conduit_std_catalog::MAX_TOGGLE_VALUES as usize);
     for index in 0..conduit_std_catalog::MAX_TOGGLE_VALUES {
-        let current = if index.is_multiple_of(2) {
-            initial
-        } else {
-            !initial
-        };
+        let current = conduit_std_catalog::bounded_toggle_value(initial, index)
+            .ok_or_else(|| "state/toggle exceeds its admitted value bound".to_string())?;
         admitted.push(
             values
                 .store(&InfoBool::new(current).encode())

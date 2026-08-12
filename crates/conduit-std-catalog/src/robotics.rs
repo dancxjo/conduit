@@ -4,12 +4,13 @@ use super::{
 use alloc::string::ToString;
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID, MAXIMUM_BATTERY_MILLIVOLTS,
-    MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM, PI_MICRORADIANS,
-    ROBOTICS_BATTERY_INFO_ID, ROBOTICS_ODOMETRY_INFO_ID, ROBOTICS_ORIENTATION_INFO_ID,
-    ROBOTICS_RANGE_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, ArtifactId, BatteryObservation, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ConfigurationEntry, ConfigurationValue, ExecutionProfileId, ImplementationId,
+    InfoBool, KindContractRevision, OdometryObservation, OrientationObservation, PortDescriptor,
+    PortDirection, PortTemporal, RangeObservation, Scalar, BOOL_INFO_ID,
+    MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM,
+    PI_MICRORADIANS, ROBOTICS_BATTERY_INFO_ID, ROBOTICS_ODOMETRY_INFO_ID,
+    ROBOTICS_ORIENTATION_INFO_ID, ROBOTICS_RANGE_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const ROBOTICS_OBSERVE_BUMP_KIND: &str = "robotics/observe-bump";
@@ -48,7 +49,88 @@ pub const ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION: &str =
     "std/kernel-robotics-prewake-velocity-intent@1";
 pub const ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION: &str =
     "std/kernel-robotics-prewake-drive-differential@1";
+pub const CONDUITOS_ROBOTICS_EXECUTION_PROFILE: &str = "conduitos/robotics-prewake-fixed@1";
+pub const CONDUITOS_ROBOTICS_ARTIFACT: &str = "conduitos/robotics-prewake@1";
 const MAXIMUM_VALUE_BYTES: u32 = 12;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RoboticsSimulationAvailability {
+    Fresh,
+    Missing,
+    Stale,
+}
+
+pub fn robotics_simulation_availability(
+    entries: &[ConfigurationEntry],
+) -> Result<RoboticsSimulationAvailability, &'static str> {
+    match text_or(
+        entries,
+        ROBOTICS_AVAILABILITY_KEY,
+        ROBOTICS_AVAILABILITY_FRESH,
+    )? {
+        ROBOTICS_AVAILABILITY_FRESH => Ok(RoboticsSimulationAvailability::Fresh),
+        ROBOTICS_AVAILABILITY_MISSING => Ok(RoboticsSimulationAvailability::Missing),
+        ROBOTICS_AVAILABILITY_STALE => Ok(RoboticsSimulationAvailability::Stale),
+        _ => Err("invalid simulated robotics availability"),
+    }
+}
+
+pub fn robotics_simulation_values(
+    kind: &str,
+    entries: &[ConfigurationEntry],
+) -> Result<[Option<Vec<u8>>; 2], &'static str> {
+    let one = |value: Vec<u8>| Ok([Some(value), None]);
+    match kind {
+        ROBOTICS_OBSERVE_BUMP_KIND => one(InfoBool::new(
+            text_or(entries, "state", "clear")? == "pressed",
+        )
+        .encode()
+        .to_vec()),
+        ROBOTICS_OBSERVE_IMU_KIND => one(OrientationObservation::new(
+            i32_value(entries, "roll-microradians", 0)?,
+            i32_value(entries, "pitch-microradians", 0)?,
+            i32_value(entries, "yaw-microradians", 0)?,
+        )
+        .map_err(|_| "invalid orientation observation")?
+        .encode()
+        .to_vec()),
+        ROBOTICS_OBSERVE_RANGE_KIND => one(RangeObservation::new(
+            u32_value(entries, "distance-mm", 1_000)?,
+            u32_value(entries, "age-ms", 0)?,
+        )
+        .map_err(|_| "invalid range observation")?
+        .encode()
+        .to_vec()),
+        ROBOTICS_OBSERVE_ODOMETRY_KIND => one(OdometryObservation::new(
+            i32_value(entries, "forward-mm", 0)?,
+            i32_value(entries, "lateral-mm", 0)?,
+            i32_value(entries, "yaw-microradians", 0)?,
+        )
+        .map_err(|_| "invalid odometry observation")?
+        .encode()
+        .to_vec()),
+        ROBOTICS_OBSERVE_BATTERY_KIND => one(BatteryObservation::new(
+            u16_value(entries, "charge-permille", 1_000)?,
+            u16_value(entries, "millivolts", 12_000)?,
+        )
+        .map_err(|_| "invalid battery observation")?
+        .encode()
+        .to_vec()),
+        ROBOTICS_VELOCITY_INTENT_KIND => Ok([
+            Some(
+                Scalar::from_raw_microunits(i64_value(entries, "linear-microunits", 0)?)
+                    .encode()
+                    .to_vec(),
+            ),
+            Some(
+                Scalar::from_raw_microunits(i64_value(entries, "angular-microunits", 0)?)
+                    .encode()
+                    .to_vec(),
+            ),
+        ]),
+        _ => Err("robotics source value is unsupported"),
+    }
+}
 
 pub fn robotics_observe_bump_contract() -> StandardKindContract {
     source_contract(
@@ -282,6 +364,34 @@ pub fn robotics_drive_differential_offer() -> CapabilityOffer {
     )
 }
 
+pub fn conduitos_robotics_offers() -> Vec<CapabilityOffer> {
+    [
+        robotics_observe_bump_offer(),
+        robotics_observe_imu_offer(),
+        robotics_observe_range_offer(),
+        robotics_observe_odometry_offer(),
+        robotics_observe_battery_offer(),
+        robotics_velocity_intent_offer(),
+        robotics_drive_differential_offer(),
+    ]
+    .into_iter()
+    .map(|mut offer| {
+        let slug = offer
+            .kind_id
+            .as_str()
+            .strip_prefix("robotics/")
+            .expect("canonical robotics Kind has prefix");
+        offer.capability_id = CapabilityId::from(format!("conduitos-robotics-{slug}@1"));
+        offer.implementation.execution_profile_id =
+            ExecutionProfileId::from(CONDUITOS_ROBOTICS_EXECUTION_PROFILE);
+        offer.implementation.implementation_id =
+            ImplementationId::from(format!("conduitos/kernel-robotics-prewake-{slug}@1"));
+        offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_ROBOTICS_ARTIFACT);
+        offer
+    })
+    .collect()
+}
+
 #[cfg(any(feature = "form-catalog", test))]
 pub(crate) fn robotics_contracts_with_revisions() -> [(StandardKindContract, &'static str); 7] {
     [
@@ -397,6 +507,55 @@ fn limits() -> CapabilityLimits {
         max_queue_items: 1,
         max_queue_bytes: MAXIMUM_VALUE_BYTES,
     }
+}
+
+fn text_or<'a>(
+    entries: &'a [ConfigurationEntry],
+    key: &str,
+    default: &'a str,
+) -> Result<&'a str, &'static str> {
+    Ok(entries
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::Text(value)) if found == key => Some(value.as_str()),
+            _ => None,
+        })
+        .unwrap_or(default))
+}
+
+fn i64_value(entries: &[ConfigurationEntry], key: &str, default: i64) -> Result<i64, &'static str> {
+    Ok(entries
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::I64(value)) if found == key => Some(*value),
+            _ => None,
+        })
+        .unwrap_or(default))
+}
+
+fn i32_value(entries: &[ConfigurationEntry], key: &str, default: i32) -> Result<i32, &'static str> {
+    i32::try_from(i64_value(entries, key, i64::from(default))?)
+        .map_err(|_| "robotics signed configuration exceeds i32")
+}
+
+fn u64_value(entries: &[ConfigurationEntry], key: &str, default: u64) -> Result<u64, &'static str> {
+    Ok(entries
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::U64(value)) if found == key => Some(*value),
+            _ => None,
+        })
+        .unwrap_or(default))
+}
+
+fn u32_value(entries: &[ConfigurationEntry], key: &str, default: u32) -> Result<u32, &'static str> {
+    u32::try_from(u64_value(entries, key, u64::from(default))?)
+        .map_err(|_| "robotics unsigned configuration exceeds u32")
+}
+
+fn u16_value(entries: &[ConfigurationEntry], key: &str, default: u16) -> Result<u16, &'static str> {
+    u16::try_from(u64_value(entries, key, u64::from(default))?)
+        .map_err(|_| "robotics unsigned configuration exceeds u16")
 }
 
 fn availability_field() -> StandardConfigurationField {

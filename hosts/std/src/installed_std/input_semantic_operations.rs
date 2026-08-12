@@ -47,7 +47,9 @@ impl KeyEventTeeOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if value.byte_len == KEY_EVENT_ENCODED_LEN as u32 && self.pending.is_none() => {
+            } if conduit_std_catalog::key_event_tee_accepts_encoded_len(value.byte_len)
+                && self.pending.is_none() =>
+            {
                 self.pending = Some(value);
                 self.phase = 1;
                 OperationAction::Emit {

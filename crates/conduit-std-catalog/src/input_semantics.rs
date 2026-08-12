@@ -23,6 +23,8 @@ pub const KEY_EVENT_TEE_PROFILE: &str = "conduit.input/key-tee-kernel@1";
 pub const KEY_EVENT_TEE_IMPLEMENTATION: &str = "std/kernel-key-event-tee@1";
 pub const KEY_EVENT_TEE_ARTIFACT: &str = "conduit-std-host/key-event-tee@1";
 pub const KEY_EVENT_TEE_CAPABILITY: &str = "key-event-tee-v1";
+pub const CONDUITOS_KEY_EVENT_TEE_CAPABILITY: &str = "conduitos-key-event-tee-v1";
+pub const CONDUITOS_KEY_EVENT_TEE_IMPLEMENTATION: &str = "conduitos/kernel-key-event-tee@1";
 
 pub const KEYMAP_KIND: &str = "input/keymap";
 pub const KEYMAP_REVISION: &str = "conduit.input/keymap@1";
@@ -43,6 +45,10 @@ pub const CHORDS_HOST_OPERATION: &str = "conduit.host/input-chords@1";
 pub const CHORDS_HOST_TARGET: &str = "input/chord-fragment";
 
 pub const INPUT_SEMANTIC_MAXIMUM_VALUES: u16 = 16;
+
+pub const fn key_event_tee_accepts_encoded_len(byte_len: u32) -> bool {
+    byte_len == KEY_EVENT_ENCODED_LEN as u32
+}
 
 pub fn key_event_tee_contract() -> StandardKindContract {
     StandardKindContract {
@@ -157,6 +163,18 @@ pub fn key_event_tee_offer() -> CapabilityOffer {
         KEY_EVENT_TEE_ARTIFACT,
         None,
     )
+}
+
+pub fn conduitos_key_event_tee_offer() -> CapabilityOffer {
+    let mut offer = key_event_tee_offer();
+    offer.capability_id = CapabilityId::from(CONDUITOS_KEY_EVENT_TEE_CAPABILITY);
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(super::CONDUITOS_PORTABLE_STATE_INPUT_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(CONDUITOS_KEY_EVENT_TEE_IMPLEMENTATION);
+    offer.implementation.artifact_id =
+        ArtifactId::from(super::CONDUITOS_PORTABLE_STATE_INPUT_ARTIFACT);
+    offer
 }
 
 pub fn keymap_offer() -> CapabilityOffer {
