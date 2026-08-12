@@ -165,7 +165,14 @@ impl PatchbayApplication {
         &mut self,
         edit: &PatchbayEdit,
     ) -> PatchbayInvocationOutcome {
+        if self.lifecycle_flow().state_code != "FORM_CHECKED" {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
+        }
         let basis = edit.basis();
+        let before = match self.semantic_checkpoint() {
+            Ok(checkpoint) => checkpoint,
+            Err(_) => return PatchbayInvocationOutcome::Failed,
+        };
         let Some(editor) = self.form_editor.as_mut() else {
             return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
         };
@@ -248,6 +255,16 @@ impl PatchbayApplication {
         }
         self.form_selection = 0;
         if self.refresh_graphical_form().is_err() {
+            return PatchbayInvocationOutcome::Failed;
+        }
+        let after = match self.semantic_checkpoint() {
+            Ok(checkpoint) => checkpoint,
+            Err(_) => return PatchbayInvocationOutcome::Failed,
+        };
+        let Some(history) = self.semantic_history.as_mut() else {
+            return PatchbayInvocationOutcome::Failed;
+        };
+        if history.record_accepted(&before, after).is_err() {
             return PatchbayInvocationOutcome::Failed;
         }
         let title = self.title();

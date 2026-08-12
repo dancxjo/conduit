@@ -3,6 +3,27 @@ use super::{
     render::draw_document, Arguments, PatchbayApplication, BACKGROUND,
 };
 
+fn assert_semantic_history_round_trip(
+    application: &mut PatchbayApplication,
+    before: &str,
+    after: &str,
+) {
+    application
+        .handle_gui_action(GuiAction::UndoSemanticEdit)
+        .unwrap();
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().source,
+        before
+    );
+    application
+        .handle_gui_action(GuiAction::RedoSemanticEdit)
+        .unwrap();
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().source,
+        after
+    );
+}
+
 #[test]
 fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
     let presentation = patchbay_model::portable_demonstration().unwrap();
@@ -683,6 +704,8 @@ fn slash_query_enter_places_uppercase_at_the_explicit_deterministic_target() {
             ..
         } if kind_id == "text/upper"
     ));
+    let placed = application.form_editor.as_ref().unwrap().view().source;
+    assert_semantic_history_round_trip(&mut application, "form making {\n}\n", &placed);
 
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
@@ -726,6 +749,59 @@ fn stale_palette_drop_is_refused_before_canonical_source_changes() {
         application.form_editor.as_ref().unwrap().view().source,
         "form making {\n}\n"
     );
+    assert_eq!(
+        application
+            .semantic_history
+            .as_ref()
+            .unwrap()
+            .transaction_count(),
+        0
+    );
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+fn semantic_history_refuses_after_birth_without_mutating_source_or_lifecycle() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-history-lifecycle-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("making.conduit");
+    std::fs::write(
+        &path,
+        "form making {\n    literal: text/literal(\"hello\")\n}\n",
+    )
+    .unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+    let graph = application.graphical_form.as_ref().unwrap();
+    let literal = graph.subject_ref("gear/making/literal").unwrap();
+    application
+        .handle_gui_action(GuiAction::DuplicateGear(literal))
+        .unwrap();
+    let edited = application.form_editor.as_ref().unwrap().view().source;
+    application.birth_body().unwrap();
+    let body = application.build_birth.body().unwrap().body_id.clone();
+
+    application
+        .handle_gui_action(GuiAction::UndoSemanticEdit)
+        .unwrap();
+
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().source,
+        edited
+    );
+    assert_eq!(application.build_birth.body().unwrap().body_id, body);
+    assert!(application
+        .interaction_status
+        .current()
+        .unwrap()
+        .text
+        .contains("cannot rewind lifecycle or external state"));
 
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
@@ -795,6 +871,33 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
     application
         .handle_gui_action(GuiAction::ConnectPorts { source, sink })
         .unwrap();
+    let connected = application.form_editor.as_ref().unwrap().view().source;
+    assert_semantic_history_round_trip(&mut application, &before_refusal, &connected);
+
+    let graph = application.graphical_form.as_ref().unwrap();
+    let cord = graph.subject_ref(&graph.cords[0].identity).unwrap();
+    let show_input = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "making/show")
+        .and_then(|gear| gear.inputs.first())
+        .and_then(|port| graph.subject_ref(&port.identity).ok())
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::RerouteCord {
+            cord,
+            endpoint: show_input,
+        })
+        .unwrap();
+    let rerouted = application.form_editor.as_ref().unwrap().view().source;
+    assert_semantic_history_round_trip(&mut application, &connected, &rerouted);
+    application
+        .handle_gui_action(GuiAction::UndoSemanticEdit)
+        .unwrap();
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().source,
+        connected
+    );
 
     let graph = application.graphical_form.as_ref().unwrap();
     let duplicate_source = graph
@@ -840,6 +943,8 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
         .unwrap()
         .cords
         .is_empty());
+    let removed_cord = application.form_editor.as_ref().unwrap().view().source;
+    assert_semantic_history_round_trip(&mut application, &connected, &removed_cord);
 
     let graph = application.graphical_form.as_ref().unwrap();
     let source = graph
@@ -865,11 +970,36 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
     application
         .handle_gui_action(GuiAction::DuplicateGear(literal))
         .unwrap();
+    let duplicated = application.form_editor.as_ref().unwrap().view().source;
+    let before_duplicate = application
+        .semantic_history
+        .as_ref()
+        .unwrap()
+        .prepare(
+            crate::semantic_history::SemanticHistoryDirection::Undo,
+            &application.semantic_checkpoint().unwrap(),
+        )
+        .unwrap()
+        .source;
+    assert_semantic_history_round_trip(&mut application, &before_duplicate, &duplicated);
     let graph = application.graphical_form.as_ref().unwrap();
     let upper = graph.subject_ref("gear/making/upper").unwrap();
     application
         .handle_gui_action(GuiAction::RemoveGear(upper))
         .unwrap();
+    let removed_gear = application.form_editor.as_ref().unwrap().view().source;
+    assert_semantic_history_round_trip(&mut application, &duplicated, &removed_gear);
+    let graph = application.graphical_form.as_ref().unwrap();
+    let literal = graph.subject_ref("gear/making/literal").unwrap();
+    application
+        .handle_gui_action(GuiAction::ConfigureGear {
+            subject: literal,
+            key: "value".into(),
+            value: conduit_core::ConfigurationValue::Text("Howdy".into()),
+        })
+        .unwrap();
+    let configured = application.form_editor.as_ref().unwrap().view().source;
+    assert_semantic_history_round_trip(&mut application, &removed_gear, &configured);
     let graph = application.graphical_form.as_ref().unwrap();
     let literal = graph.subject_ref("gear/making/literal").unwrap();
     let semantic_ids = (
@@ -894,9 +1024,22 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
         )
     );
     application.handle_gui_action(GuiAction::SaveForm).unwrap();
+    let saved = application.form_editor.as_ref().unwrap().view();
+    assert_eq!(saved.saved_revision, saved.revision);
+    application
+        .handle_gui_action(GuiAction::UndoSemanticEdit)
+        .unwrap();
+    let dirty = application.form_editor.as_ref().unwrap().view();
+    assert_ne!(dirty.saved_revision, dirty.revision);
+    application
+        .handle_gui_action(GuiAction::RedoSemanticEdit)
+        .unwrap();
+    let restored_saved = application.form_editor.as_ref().unwrap().view();
+    assert_eq!(restored_saved.saved_revision, restored_saved.revision);
 
     let view = application.form_editor.as_ref().unwrap().view();
     assert!(view.source.contains("literal-2: text/literal(\"hello\")"));
+    assert!(view.source.contains("literal: text/literal(\"Howdy\")"));
     assert!(!view.source.contains("upper:"));
     assert!(!view.source.contains("literal.text > upper.text"));
     let actions = application

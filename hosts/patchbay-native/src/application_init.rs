@@ -46,6 +46,17 @@ impl PatchbayApplication {
             arguments.environment_path,
             arguments.prewake,
         )?;
+        let semantic_history = workspace
+            .form_editor
+            .as_ref()
+            .zip(workspace.graphical_form.as_ref())
+            .map(|(editor, graph)| {
+                semantic_history::SemanticHistory::new(
+                    semantic_history::SemanticCheckpoint::from_editor(editor, graph)?,
+                )
+                .map_err(|error| format!("semantic history: {error:?}"))
+            })
+            .transpose()?;
         if arguments.prewake && (workspace.form_editor.is_none() || workspace.environment.is_none())
         {
             return Err("--prewake requires both --form and --environment".into());
@@ -109,6 +120,7 @@ impl PatchbayApplication {
             model,
             topology_lines,
             form_editor: workspace.form_editor,
+            semantic_history,
             environment: workspace.environment,
             environment_path: workspace.environment_path,
             selected_environment_part: None,

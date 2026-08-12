@@ -72,6 +72,7 @@ mod prewake_interaction;
 mod render;
 mod renderer_adapter;
 mod resource;
+mod semantic_history;
 mod viewport_input;
 #[cfg(test)]
 mod viewport_tests;
@@ -88,6 +89,7 @@ struct PatchbayApplication {
     model: PatchbayModel,
     topology_lines: Vec<String>,
     form_editor: Option<FormEditor>,
+    semantic_history: Option<semantic_history::SemanticHistory>,
     environment: Option<patchbay_model::AuthoredEnvironment>,
     environment_path: Option<std::path::PathBuf>,
     selected_environment_part: Option<String>,

@@ -17,12 +17,132 @@ pub(super) struct SemanticCheckpoint {
 }
 
 impl SemanticCheckpoint {
+    pub(super) fn from_editor(
+        editor: &patchbay_model::FormEditor,
+        graph: &patchbay_model::PatchbayGraph,
+    ) -> Result<Self, String> {
+        let view = editor.view();
+        let source_document_id = view
+            .checked
+            .source_document_id
+            .ok_or("checked canonical Form identity is absent")?;
+        let checked_form_id = view
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.name == view.open_form)
+            .map(|form| form.checked_form_id.clone())
+            .ok_or("open checked Form identity is absent")?;
+        Ok(Self {
+            source: view.source,
+            source_revision: view.revision,
+            saved_revision: view.saved_revision,
+            source_document_id: source_document_id.as_str().into(),
+            checked_form_id: checked_form_id.as_str().into(),
+            expanded_form_id: graph.expanded_form_id.as_str().into(),
+        })
+    }
+
     fn same_current_basis(&self, current: &Self) -> bool {
         self.source == current.source
             && self.source_revision == current.source_revision
             && self.source_document_id == current.source_document_id
             && self.checked_form_id == current.checked_form_id
             && self.expanded_form_id == current.expanded_form_id
+    }
+}
+
+impl super::PatchbayApplication {
+    pub(super) fn semantic_checkpoint(&self) -> Result<SemanticCheckpoint, String> {
+        SemanticCheckpoint::from_editor(
+            self.form_editor
+                .as_ref()
+                .ok_or("canonical Form editor is absent")?,
+            self.graphical_form
+                .as_ref()
+                .ok_or("graphical Form projection is absent")?,
+        )
+    }
+
+    pub(super) fn move_semantic_history(
+        &mut self,
+        direction: SemanticHistoryDirection,
+    ) -> Result<(), String> {
+        if self.lifecycle_flow().state_code != "FORM_CHECKED" {
+            self.publish_refusal(format!(
+                "{} unavailable while {}: semantic history cannot rewind lifecycle or external state",
+                direction.label(),
+                self.lifecycle_flow().state_code
+            ));
+            return Ok(());
+        }
+        let current = self.semantic_checkpoint()?;
+        let prepared = match self
+            .semantic_history
+            .as_ref()
+            .ok_or("semantic history is absent")?
+            .prepare(direction, &current)
+        {
+            Ok(prepared) => prepared,
+            Err(SemanticHistoryRefusal::Empty) => {
+                self.publish_refusal(format!("Nothing to {}", direction.label().to_lowercase()));
+                return Ok(());
+            }
+            Err(error) => {
+                self.publish_refusal(format!("{} refused: {error:?}", direction.label()));
+                return Ok(());
+            }
+        };
+        let source = prepared.source.clone();
+        let editor = self
+            .form_editor
+            .as_mut()
+            .ok_or("canonical Form editor is absent")?;
+        editor
+            .replace_source(source)
+            .map_err(|error| error.to_string())?;
+        editor.recheck().map_err(|error| error.to_string())?;
+        self.form_selection = 0;
+        self.refresh_graphical_form()?;
+        let mut restored = self.semantic_checkpoint()?;
+        let matches_saved = self
+            .semantic_history
+            .as_ref()
+            .expect("history presence checked")
+            .restored_matches_saved_source(&restored);
+        if matches_saved {
+            self.form_editor
+                .as_mut()
+                .expect("editor presence checked")
+                .mark_saved(restored.source_revision)
+                .map_err(|error| error.to_string())?;
+            restored = self.semantic_checkpoint()?;
+        }
+        self.semantic_history
+            .as_mut()
+            .expect("history presence checked")
+            .commit(prepared, restored)
+            .map_err(|error| format!("semantic history commit: {error:?}"))?;
+        self.publish_completed(format!("{} semantic edit", direction.label()));
+        Ok(())
+    }
+
+    pub(super) fn mark_semantic_history_saved(&mut self) -> Result<(), String> {
+        let current = self.semantic_checkpoint()?;
+        self.semantic_history
+            .as_mut()
+            .ok_or("semantic history is absent")?
+            .mark_saved(&current)
+            .map_err(|error| format!("semantic history save: {error:?}"))
+    }
+}
+
+impl SemanticHistoryDirection {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Undo => "Undo",
+            Self::Redo => "Redo",
+        }
     }
 }
 
@@ -64,8 +184,10 @@ impl SemanticHistory {
         ensure_bounded(&initial)?;
         let saved_source_document_id = (initial.saved_revision == initial.source_revision)
             .then(|| initial.source_document_id.clone());
+        let mut checkpoints = Vec::with_capacity(MAX_SEMANTIC_HISTORY_TRANSACTIONS + 1);
+        checkpoints.push(initial);
         Ok(Self {
-            checkpoints: vec![initial],
+            checkpoints,
             cursor: 0,
             generation: 0,
             evicted: 0,
@@ -149,18 +271,22 @@ impl SemanticHistory {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(super) fn can_undo(&self) -> bool {
         self.cursor > 0
     }
 
+    #[cfg(test)]
     pub(super) fn can_redo(&self) -> bool {
         self.cursor + 1 < self.checkpoints.len()
     }
 
+    #[cfg(test)]
     pub(super) fn transaction_count(&self) -> usize {
         self.checkpoints.len().saturating_sub(1)
     }
 
+    #[cfg(test)]
     pub(super) fn evicted(&self) -> u64 {
         self.evicted
     }
@@ -195,186 +321,5 @@ fn ensure_bounded(checkpoint: &SemanticCheckpoint) -> Result<(), SemanticHistory
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn checkpoint(sequence: u64, source: impl Into<String>) -> SemanticCheckpoint {
-        let source = source.into();
-        let semantic = source.replace(['\n', ' '], "_");
-        SemanticCheckpoint {
-            source,
-            source_revision: sequence,
-            saved_revision: 0,
-            source_document_id: format!("source-{semantic}"),
-            checked_form_id: format!("checked-{semantic}"),
-            expanded_form_id: format!("expanded-{semantic}"),
-        }
-    }
-
-    fn move_and_commit(
-        history: &mut SemanticHistory,
-        direction: SemanticHistoryDirection,
-        current: &SemanticCheckpoint,
-        restored_revision: u64,
-    ) -> SemanticCheckpoint {
-        let prepared = history.prepare(direction, current).unwrap();
-        let restored = checkpoint(restored_revision, prepared.source.clone());
-        history.commit(prepared, restored.clone()).unwrap();
-        restored
-    }
-
-    #[test]
-    fn exact_round_trip_updates_restored_basis_without_reusing_revision() {
-        let initial = checkpoint(0, "form initial {}\n");
-        let edited = checkpoint(1, "form edited {}\n");
-        let mut history = SemanticHistory::new(initial.clone()).unwrap();
-        history.record_accepted(&initial, edited.clone()).unwrap();
-
-        let restored_initial =
-            move_and_commit(&mut history, SemanticHistoryDirection::Undo, &edited, 2);
-        assert_eq!(restored_initial.source, initial.source);
-        assert_eq!(restored_initial.source_revision, 2);
-        let restored_edit = move_and_commit(
-            &mut history,
-            SemanticHistoryDirection::Redo,
-            &restored_initial,
-            3,
-        );
-        assert_eq!(restored_edit.source, edited.source);
-        assert_eq!(restored_edit.source_revision, 3);
-    }
-
-    #[test]
-    fn saved_baseline_tracks_source_identity_without_rewinding_filesystem_state() {
-        let initial = checkpoint(0, "a");
-        let edited = checkpoint(1, "b");
-        let mut history = SemanticHistory::new(initial.clone()).unwrap();
-        history.record_accepted(&initial, edited.clone()).unwrap();
-        assert!(!history.restored_matches_saved_source(&edited));
-
-        let restored_initial =
-            move_and_commit(&mut history, SemanticHistoryDirection::Undo, &edited, 2);
-        assert!(history.restored_matches_saved_source(&restored_initial));
-        let mut saved_initial = restored_initial.clone();
-        saved_initial.saved_revision = saved_initial.source_revision;
-        history.mark_saved(&saved_initial).unwrap();
-
-        let restored_edit = move_and_commit(
-            &mut history,
-            SemanticHistoryDirection::Redo,
-            &saved_initial,
-            3,
-        );
-        assert!(!history.restored_matches_saved_source(&restored_edit));
-        let mut saved_edit = restored_edit.clone();
-        saved_edit.saved_revision = saved_edit.source_revision;
-        history.mark_saved(&saved_edit).unwrap();
-        assert!(history.restored_matches_saved_source(&saved_edit));
-
-        let restored_again =
-            move_and_commit(&mut history, SemanticHistoryDirection::Undo, &saved_edit, 4);
-        assert!(!history.restored_matches_saved_source(&restored_again));
-    }
-
-    #[test]
-    fn refusal_and_failed_restore_cannot_move_the_cursor() {
-        let initial = checkpoint(0, "a");
-        let edited = checkpoint(1, "b");
-        let mut history = SemanticHistory::new(initial.clone()).unwrap();
-        assert_eq!(
-            history.record_accepted(&initial, initial.clone()),
-            Err(SemanticHistoryRefusal::Unchanged)
-        );
-        assert!(!history.can_undo());
-        history.record_accepted(&initial, edited.clone()).unwrap();
-        let prepared = history
-            .prepare(SemanticHistoryDirection::Undo, &edited)
-            .unwrap();
-        assert!(history.can_undo());
-        drop(prepared);
-        assert!(history.can_undo());
-        assert!(!history.can_redo());
-    }
-
-    #[test]
-    fn divergent_accepted_edit_clears_redo_deterministically() {
-        let initial = checkpoint(0, "a");
-        let first = checkpoint(1, "b");
-        let mut history = SemanticHistory::new(initial.clone()).unwrap();
-        history.record_accepted(&initial, first.clone()).unwrap();
-        let restored = move_and_commit(&mut history, SemanticHistoryDirection::Undo, &first, 2);
-        assert!(history.can_redo());
-        history
-            .record_accepted(&restored, checkpoint(3, "divergent"))
-            .unwrap();
-        assert!(!history.can_redo());
-        assert!(history.can_undo());
-    }
-
-    #[test]
-    fn capacity_evicts_oldest_transaction_and_reports_count() {
-        let mut current = checkpoint(0, "0");
-        let mut history = SemanticHistory::new(current.clone()).unwrap();
-        for sequence in 1..=MAX_SEMANTIC_HISTORY_TRANSACTIONS as u64 + 4 {
-            let next = checkpoint(sequence, sequence.to_string());
-            history.record_accepted(&current, next.clone()).unwrap();
-            current = next;
-        }
-        assert_eq!(
-            history.transaction_count(),
-            MAX_SEMANTIC_HISTORY_TRANSACTIONS
-        );
-        assert_eq!(history.evicted(), 4);
-        for revision in 100..100 + MAX_SEMANTIC_HISTORY_TRANSACTIONS as u64 {
-            current = move_and_commit(
-                &mut history,
-                SemanticHistoryDirection::Undo,
-                &current,
-                revision,
-            );
-        }
-        assert!(!history.can_undo());
-    }
-
-    #[test]
-    fn stale_current_stale_move_and_oversize_refuse_distinctly() {
-        let initial = checkpoint(0, "a");
-        let edited = checkpoint(1, "b");
-        let mut history = SemanticHistory::new(initial.clone()).unwrap();
-        history.record_accepted(&initial, edited.clone()).unwrap();
-        assert_eq!(
-            history.prepare(SemanticHistoryDirection::Undo, &checkpoint(9, "b")),
-            Err(SemanticHistoryRefusal::StaleCurrent)
-        );
-        let prepared = history
-            .prepare(SemanticHistoryDirection::Undo, &edited)
-            .unwrap();
-        history.generation += 1;
-        assert_eq!(
-            history.commit(prepared, checkpoint(2, "a")),
-            Err(SemanticHistoryRefusal::StaleMove)
-        );
-        let oversized = checkpoint(10, "x".repeat(MAX_SEMANTIC_HISTORY_SOURCE_BYTES + 1));
-        assert!(matches!(
-            SemanticHistory::new(oversized),
-            Err(SemanticHistoryRefusal::Oversize)
-        ));
-    }
-
-    #[test]
-    fn restart_creates_one_fresh_checkpoint_without_persisting_history() {
-        let initial = checkpoint(0, "a");
-        let edited = checkpoint(1, "b");
-        let mut old_process = SemanticHistory::new(initial.clone()).unwrap();
-        old_process
-            .record_accepted(&initial, edited.clone())
-            .unwrap();
-        assert!(old_process.can_undo());
-
-        let restarted = SemanticHistory::new(edited).unwrap();
-        assert_eq!(restarted.transaction_count(), 0);
-        assert!(!restarted.can_undo());
-        assert!(!restarted.can_redo());
-        assert_eq!(restarted.evicted(), 0);
-    }
-}
+#[path = "semantic_history_tests.rs"]
+mod tests;
