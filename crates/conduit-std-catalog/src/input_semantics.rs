@@ -43,6 +43,10 @@ pub const CHORDS_ARTIFACT: &str = "conduit-std-host/chords@1";
 pub const CHORDS_CAPABILITY: &str = "input-chords-v1";
 pub const CHORDS_HOST_OPERATION: &str = "conduit.host/input-chords@1";
 pub const CHORDS_HOST_TARGET: &str = "input/chord-fragment";
+pub const CONDUITOS_KEYMAP_CAPABILITY: &str = "conduitos-input-keymap-v1";
+pub const CONDUITOS_KEYMAP_IMPLEMENTATION: &str = "conduitos/kernel-input-keymap@1";
+pub const CONDUITOS_CHORDS_CAPABILITY: &str = "conduitos-input-chords-v1";
+pub const CONDUITOS_CHORDS_IMPLEMENTATION: &str = "conduitos/kernel-input-chords@1";
 
 pub const INPUT_SEMANTIC_MAXIMUM_VALUES: u16 = 16;
 
@@ -189,6 +193,14 @@ pub fn keymap_offer() -> CapabilityOffer {
     )
 }
 
+pub fn conduitos_keymap_offer() -> CapabilityOffer {
+    super::text_transform::conduitos_bounded_host_operation_offer(
+        keymap_offer(),
+        CONDUITOS_KEYMAP_CAPABILITY,
+        CONDUITOS_KEYMAP_IMPLEMENTATION,
+    )
+}
+
 pub fn chords_offer() -> CapabilityOffer {
     offer(
         chords_contract(),
@@ -202,6 +214,14 @@ pub fn chords_offer() -> CapabilityOffer {
             CHORDS_HOST_TARGET,
             CHORD_ENCODED_LEN as u32,
         )),
+    )
+}
+
+pub fn conduitos_chords_offer() -> CapabilityOffer {
+    super::text_transform::conduitos_bounded_host_operation_offer(
+        chords_offer(),
+        CONDUITOS_CHORDS_CAPABILITY,
+        CONDUITOS_CHORDS_IMPLEMENTATION,
     )
 }
 

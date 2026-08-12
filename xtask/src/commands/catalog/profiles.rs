@@ -135,5 +135,13 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement
         .capabilities
         .push(conduit_std_catalog::conduitos_key_event_tee_offer());
+    advertisement.capabilities.extend([
+        conduit_std_catalog::conduitos_text_join_offer(),
+        conduit_std_catalog::conduitos_flow_gate_scalar_offer(),
+        conduit_std_catalog::conduitos_math_scale_offer(),
+        conduit_std_catalog::conduitos_math_deadband_offer(),
+        conduit_std_catalog::conduitos_keymap_offer(),
+        conduit_std_catalog::conduitos_chords_offer(),
+    ]);
     Ok(advertisement)
 }

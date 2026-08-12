@@ -41,6 +41,8 @@ pub const FLOW_GATE_SCALAR_ARTIFACT: &str = "conduit-std-host/flow-gate-scalar@1
 pub const FLOW_GATE_SCALAR_CAPABILITY: &str = "flow-gate-scalar-v1";
 pub const FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT: &str = "conduit.host/decode-bool@1";
 pub const FLOW_GATE_BOOL_HOST_OPERATION_TARGET: &str = "value/decode-bool";
+pub const CONDUITOS_FLOW_GATE_SCALAR_CAPABILITY: &str = "conduitos-flow-gate-scalar-v1";
+pub const CONDUITOS_FLOW_GATE_SCALAR_IMPLEMENTATION: &str = "conduitos/kernel-flow-gate-scalar@1";
 
 pub const FLOW_STATE_MAXIMUM_VALUES: u16 = 16;
 
@@ -206,6 +208,14 @@ pub fn flow_gate_scalar_offer() -> CapabilityOffer {
         maximum_output_bytes: 1,
     });
     offer
+}
+
+pub fn conduitos_flow_gate_scalar_offer() -> CapabilityOffer {
+    super::text_transform::conduitos_bounded_host_operation_offer(
+        flow_gate_scalar_offer(),
+        CONDUITOS_FLOW_GATE_SCALAR_CAPABILITY,
+        CONDUITOS_FLOW_GATE_SCALAR_IMPLEMENTATION,
+    )
 }
 
 fn port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDescriptor {
