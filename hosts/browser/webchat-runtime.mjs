@@ -249,14 +249,14 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, lis
     bodySocket.binaryType = "arraybuffer";
     bodySocket.addEventListener("open", () => {
       bodyState = "wants-to-join";
-      bodySocket.send(JSON.stringify({
+      bodySocket.send(encoder.encode(JSON.stringify({
         kind: "advertise",
         protocol: 1,
         advertisement,
         friendly_label: "Browser",
         verifying_key: Array.from(verifyingKey),
         freshness_sequence: 1,
-      }));
+      })));
     });
     bodySocket.addEventListener("message", (event) => {
       const frame = JSON.parse(typeof event.data === "string"
@@ -265,7 +265,7 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, lis
       if (frame.kind === "challenge" && frame.protocol === 1) {
         const signature = proveAdmission(frame.challenge);
         bodyState = "proof-sent";
-        bodySocket.send(JSON.stringify({
+        bodySocket.send(encoder.encode(JSON.stringify({
           kind: "ambient-proof",
           protocol: 1,
           admission_id: frame.challenge.admission_id,
@@ -274,7 +274,7 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, lis
           boot_id: bootId,
           nonce: frame.challenge.nonce,
           signature: Array.from(signature),
-        }));
+        })));
       } else if (frame.kind === "admitted" && frame.protocol === 1) {
         bodyState = "admitted";
       } else if (frame.kind === "refused" && frame.protocol === 1) {

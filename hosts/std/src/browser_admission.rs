@@ -11,6 +11,8 @@ use conduit_body::{
 use conduit_core::{BootId, HostAdvertisement, HostId};
 use serde::{Deserialize, Serialize};
 
+use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
+
 pub const BROWSER_ADMISSION_PROTOCOL: u16 = 1;
 pub const MAX_BROWSER_ADMISSION_FRAME_BYTES: usize =
     MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 1_024;
@@ -73,6 +75,83 @@ pub enum BrowserAdmissionFrameError {
     InvalidNonce,
     InvalidSignature,
     OutputTooSmall,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BrowserAdmissionSocketError {
+    Transport(NativeWebSocketError),
+    Frame(BrowserAdmissionFrameError),
+}
+
+impl From<NativeWebSocketError> for BrowserAdmissionSocketError {
+    fn from(error: NativeWebSocketError) -> Self {
+        Self::Transport(error)
+    }
+}
+
+impl From<BrowserAdmissionFrameError> for BrowserAdmissionSocketError {
+    fn from(error: BrowserAdmissionFrameError) -> Self {
+        Self::Frame(error)
+    }
+}
+
+pub struct BrowserAdmissionListener {
+    inner: NativeWebSocketListener,
+}
+
+impl BrowserAdmissionListener {
+    pub fn bind_loopback() -> Result<Self, BrowserAdmissionSocketError> {
+        Ok(Self {
+            inner: NativeWebSocketListener::bind_loopback(
+                MAX_BROWSER_ADMISSION_FRAME_BYTES as u32,
+            )?,
+        })
+    }
+
+    pub fn url(&self) -> Result<String, BrowserAdmissionSocketError> {
+        Ok(self.inner.url()?)
+    }
+
+    pub fn accept(self) -> Result<BrowserAdmissionSocket, BrowserAdmissionSocketError> {
+        Ok(BrowserAdmissionSocket {
+            line: self.inner.accept()?,
+            input: [0; MAX_BROWSER_ADMISSION_FRAME_BYTES],
+            output: [0; MAX_BROWSER_ADMISSION_FRAME_BYTES],
+        })
+    }
+}
+
+pub struct BrowserAdmissionSocket {
+    line: NativeWebSocketLine,
+    input: [u8; MAX_BROWSER_ADMISSION_FRAME_BYTES],
+    output: [u8; MAX_BROWSER_ADMISSION_FRAME_BYTES],
+}
+
+impl BrowserAdmissionSocket {
+    pub fn receive(&mut self) -> Result<BrowserAdmissionIngress, BrowserAdmissionSocketError> {
+        self.receive_with_size().map(|(frame, _)| frame)
+    }
+
+    pub fn receive_with_size(
+        &mut self,
+    ) -> Result<(BrowserAdmissionIngress, u32), BrowserAdmissionSocketError> {
+        let length = self.line.receive_binary(&mut self.input)?;
+        let encoded_bytes =
+            u32::try_from(length).map_err(|_| BrowserAdmissionFrameError::Oversized)?;
+        Ok((
+            decode_browser_admission_frame(&self.input[..length])?,
+            encoded_bytes,
+        ))
+    }
+
+    pub fn send(
+        &mut self,
+        frame: &BrowserAdmissionEgress,
+    ) -> Result<(), BrowserAdmissionSocketError> {
+        let length = encode_browser_admission_frame(frame, &mut self.output)?;
+        self.line.send_binary(&self.output[..length])?;
+        Ok(())
+    }
 }
 
 pub fn decode_browser_admission_frame(
@@ -161,6 +240,7 @@ fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissio
 mod tests {
     use super::*;
     use conduit_core::{HostProfileId, OfferGeneration, PROTOCOL_VERSION};
+    use std::net::SocketAddr;
 
     fn advertisement() -> BrowserAdmissionIngress {
         BrowserAdmissionIngress::Advertise {
@@ -240,6 +320,49 @@ mod tests {
         assert_eq!(
             encode_browser_admission_frame(&frame, &mut [0; 1]),
             Err(BrowserAdmissionFrameError::OutputTooSmall)
+        );
+    }
+
+    #[test]
+    fn loopback_socket_carries_one_exact_inert_advertisement_and_refusal() {
+        let listener = BrowserAdmissionListener::bind_loopback().unwrap();
+        let url = listener.url().unwrap();
+        let address: SocketAddr = url
+            .strip_prefix("ws://")
+            .unwrap()
+            .strip_suffix("/conduit")
+            .unwrap()
+            .parse()
+            .unwrap();
+        let expected = advertisement();
+        let client_url = url.clone();
+        let client = std::thread::spawn(move || {
+            let mut line = NativeWebSocketLine::connect(
+                address,
+                &client_url,
+                MAX_BROWSER_ADMISSION_FRAME_BYTES as u32,
+            )
+            .unwrap();
+            line.send_binary(&serde_json::to_vec(&expected).unwrap())
+                .unwrap();
+            let mut response = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+            let length = line.receive_binary(&mut response).unwrap();
+            serde_json::from_slice::<BrowserAdmissionEgress>(&response[..length]).unwrap()
+        });
+        let mut socket = listener.accept().unwrap();
+        assert_eq!(socket.receive().unwrap(), advertisement());
+        socket
+            .send(&BrowserAdmissionEgress::Refused {
+                protocol: BROWSER_ADMISSION_PROTOCOL,
+                code: "explicit-operator-refusal".into(),
+            })
+            .unwrap();
+        assert_eq!(
+            client.join().unwrap(),
+            BrowserAdmissionEgress::Refused {
+                protocol: BROWSER_ADMISSION_PROTOCOL,
+                code: "explicit-operator-refusal".into(),
+            }
         );
     }
 }

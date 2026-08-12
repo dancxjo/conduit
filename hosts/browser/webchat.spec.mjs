@@ -34,13 +34,40 @@ test.afterAll(async () => {
 });
 
 test("two native browser clients exchange bounded chat through planned kernels", async ({ browser }) => {
+  const admissionServer = spawn("target/debug/browser-admission-probe", [], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let admissionOutput = "";
+  const admissionUrl = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("admission probe did not become ready")), 10_000);
+    const inspect = (chunk) => {
+      admissionOutput += chunk.toString();
+      const match = admissionOutput.match(/^(ws:\/\/[^\s]+)/);
+      if (match) {
+        clearTimeout(timeout);
+        resolve(match[1]);
+      }
+    };
+    admissionServer.stdout.on("data", inspect);
+    admissionServer.stderr.on("data", inspect);
+    admissionServer.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) reject(new Error(`admission probe exited before ready (${code})\n${admissionOutput}`));
+    });
+  });
   const context = await browser.newContext();
   const pageA = await context.newPage();
   const pageB = await context.newPage();
   const target = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(websocketUrl)}`;
+  const admittedTarget = `${target}&body=${encodeURIComponent(admissionUrl)}`;
 
-  await pageA.goto(target);
+  await pageA.goto(admittedTarget);
   await expect(pageA.getByRole("status")).toHaveText("connected");
+  await expect.poll(() => pageA.evaluate(() => globalThis.__webchat.bodyAdmission.state())).toBe("admitted");
+  await expect.poll(() => admissionServer.exitCode).toBe(0);
+  expect(admissionOutput).toContain("admitted body=");
+  expect(admissionOutput).toContain("candidates=1 members=1");
   await pageB.goto(target);
   await expect(pageB.getByRole("status")).toHaveText("connected");
 
