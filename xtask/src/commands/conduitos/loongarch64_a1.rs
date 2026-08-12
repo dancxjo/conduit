@@ -305,6 +305,12 @@ fn prepare_firmware(paths: &Paths) -> Result<PathBuf, ConduitosError> {
             &[
                 "--fail",
                 "--location",
+                "--remove-on-error",
+                "--retry",
+                "3",
+                "--retry-all-errors",
+                "--retry-delay",
+                "1",
                 "--output",
                 package.to_str().unwrap(),
                 FIRMWARE_URL,

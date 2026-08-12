@@ -416,7 +416,17 @@ pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
             continue;
         }
         let status = Command::new("curl")
-            .args(["-fL", "--retry", "3", "--retry-delay", "2", "-o"])
+            .args([
+                "--fail",
+                "--location",
+                "--remove-on-error",
+                "--retry",
+                "3",
+                "--retry-all-errors",
+                "--retry-delay",
+                "2",
+                "--output",
+            ])
             .arg(&destination)
             .arg(&url)
             .status()?;
