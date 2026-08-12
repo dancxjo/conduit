@@ -189,7 +189,7 @@ impl PatchbayApplication {
             .unwrap_or_else(|error| vec![format!("BUILD/BIRTH DOCUMENT INVALID: {error}")]);
         lines.extend([
             format!("SOURCE {} revision={}", view.path.display(), view.revision),
-            "  BUILD: edit/end Backspace/delete Ctrl-S/save Tab/open-back Up/Down/select | BODY: F4/Birth F5/Wake F6/Plan-a-Play F7/Play-the-Plan F8/Unsatisfied F9/Lull Esc/Stop-Play | File (Alt): F7/source F8/create Shift-F8/replace F9/Plan F10/Run F11/Stop".into(),
+            "  BUILD: edit/end Backspace/delete Ctrl-S/save Tab/open-back Up/Down/select | BODY: F4/Birth F5/Wake F6/Plan-a-Play F7/Play-the-Plan F8/Unsatisfied F9/Lull F12/Parts Esc/Stop-Play | File (Alt): F7/source F8/create Shift-F8/replace F9/Plan F10/Run F11/Stop".into(),
         ]);
         lines.extend(
             view.source

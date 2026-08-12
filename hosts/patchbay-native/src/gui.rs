@@ -15,6 +15,7 @@ use crate::{
     gui_primitives::{draw_regions, frame_rect, icon_label, line, text, PixelRect, RegionMetrics},
     icon::Icon,
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
+    parts_view::{draw_parts, PartsSelection},
 };
 use embedded_graphics::{
     draw_target::DrawTargetExt,
@@ -36,6 +37,9 @@ pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PALETTE_ENTRIES
     + patchbay_model::MAX_PATCHBAY_GEARS * patchbay_model::MAX_FACE_CONTROLS * 2
     + 9
+    + conduit_body::MAX_BODY_PARTS
+    + conduit_body::MAX_CANDIDATES
+    + 3
     + crate::forms_navigation::VISIBLE_FORM_ROWS
     + crate::lifecycle_flow::MAX_LIFECYCLE_ACTIONS;
 
@@ -55,6 +59,11 @@ pub struct LifecycleContext {
     pub plan_id: Option<String>,
     pub play_id: Option<String>,
     pub flow: LifecycleFlow,
+    pub parts: Option<patchbay_model::PartsView>,
+    pub selected_part: Option<conduit_body::PartId>,
+    pub selected_candidate: Option<conduit_body::CandidateId>,
+    pub pending_revoke: Option<conduit_body::PartId>,
+    pub browser_spawn_pending: bool,
 }
 
 pub struct PatchbayViewContext<'a> {
@@ -173,6 +182,8 @@ pub fn draw_patchbay(
             entries: forms,
             selection: form_selection,
             scroll: form_scroll,
+            body_born: lifecycle.body_id.is_some(),
+            parts_open: lifecycle.parts.is_some(),
         },
         theme,
         &mut targets,
@@ -184,43 +195,59 @@ pub fn draw_patchbay(
             Size::new(clip.width, clip.height),
         );
         let mut canvas = canvas.clipped(&clip);
-        draw_cords(
-            &mut canvas,
-            graph,
-            (&layouts, &compositions, &boundaries),
-            selected,
-            (presentation_layout, viewport),
-            theme,
-            &mut targets,
-        );
-        draw_boundaries(&mut canvas, graph, &boundaries, theme, &mut targets);
-        draw_compositions(&mut canvas, graph, &compositions, theme, &mut targets);
-        let gear_view = GearViewContext {
-            presentation_layout,
-            realization_plan,
-            realization_hosts,
-            face_control_focus,
-        };
-        for layout in &layouts {
-            draw_gear(
+        if let Some(parts) = &lifecycle.parts {
+            draw_parts(
                 &mut canvas,
-                graph,
-                layout,
-                selected,
-                &gear_view,
+                parts,
+                PartsSelection {
+                    part: lifecycle.selected_part.as_ref(),
+                    candidate: lifecycle.selected_candidate.as_ref(),
+                    pending_revoke: lifecycle.pending_revoke.as_ref(),
+                    browser_spawn_pending: lifecycle.browser_spawn_pending,
+                },
+                viewport.canvas(),
                 theme,
                 &mut targets,
             );
+        } else {
+            draw_cords(
+                &mut canvas,
+                graph,
+                (&layouts, &compositions, &boundaries),
+                selected,
+                (presentation_layout, viewport),
+                theme,
+                &mut targets,
+            );
+            draw_boundaries(&mut canvas, graph, &boundaries, theme, &mut targets);
+            draw_compositions(&mut canvas, graph, &compositions, theme, &mut targets);
+            let gear_view = GearViewContext {
+                presentation_layout,
+                realization_plan,
+                realization_hosts,
+                face_control_focus,
+            };
+            for layout in &layouts {
+                draw_gear(
+                    &mut canvas,
+                    graph,
+                    layout,
+                    selected,
+                    &gear_view,
+                    theme,
+                    &mut targets,
+                );
+            }
+            draw_gesture(
+                &mut canvas,
+                graph,
+                &layouts,
+                &compositions,
+                &boundaries,
+                &gesture,
+                theme,
+            );
         }
-        draw_gesture(
-            &mut canvas,
-            graph,
-            &layouts,
-            &compositions,
-            &boundaries,
-            &gesture,
-            theme,
-        );
     }
     draw_inspector(
         &mut canvas,

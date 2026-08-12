@@ -22,6 +22,9 @@ pub enum ViewportAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
+    TogglePartsView,
+    InspectPart(conduit_body::PartId),
+    InspectCandidate(conduit_body::CandidateId),
     Viewport(ViewportAction),
     Lifecycle(patchbay_model::PatchbayAction),
     EnvironmentAdd(MachineProfile),
