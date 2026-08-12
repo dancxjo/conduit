@@ -54,6 +54,7 @@ impl PatchbayApplication {
                 | GuiAction::ConnectPorts { .. }
                 | GuiAction::RerouteCord { .. }
                 | GuiAction::ConfigureGear { .. }
+                | GuiAction::BeginShortTextEdit { .. }
         );
         match action {
             GuiAction::TogglePartsView
@@ -143,6 +144,20 @@ impl PatchbayApplication {
                 key,
                 value,
             } => self.dispatch_gear_configuration(&subject, &key, value)?,
+            GuiAction::BeginShortTextEdit {
+                subject,
+                key,
+                value,
+                maximum_bytes,
+            } => {
+                self.face_text_edit = Some(crate::first_run_proof::ShortTextEdit {
+                    subject,
+                    key,
+                    value,
+                    maximum_bytes,
+                });
+                self.publish_completed("Editing bounded Face text; Enter applies, Escape cancels");
+            }
         }
         if semantic_edit {
             self.refresh_prewake()?;
@@ -415,6 +430,9 @@ impl PatchbayApplication {
     pub(super) fn handle_form_key(&mut self, key: &Key) -> Result<bool, String> {
         if self.form_editor.is_none() {
             return Ok(false);
+        }
+        if crate::first_run_proof::handle_short_text_key(self, key)? {
+            return Ok(true);
         }
         if self.handle_navigator_key(key)? {
             return Ok(true);

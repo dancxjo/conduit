@@ -16,14 +16,15 @@ impl FormEditor {
         value: ConfigurationValue,
     ) -> Result<(), FormEditorError> {
         self.require_revision(offered_revision)?;
-        let expanded = self.expand_form(&self.open_form)?;
-        let graph = PatchbayGraph::from_expanded(&expanded)
+        let authoring = self.expand_form_for_authoring(&self.open_form)?;
+        let graph = PatchbayGraph::from_authoring(&authoring)
             .map_err(|error| FormEditorError::Catalog(error.to_string()))?;
         if &graph.expanded_form_id != offered_expanded_form_id {
             return Err(FormEditorError::StaleGraphBasis);
         }
         let expanded_gear_id = format!("{}/{}", self.open_form, gear_name);
-        let gear = expanded
+        let gear = authoring
+            .expanded
             .gears
             .iter()
             .find(|gear| gear.gear_id.as_str() == expanded_gear_id)

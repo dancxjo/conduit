@@ -9,6 +9,7 @@ use std::collections::VecDeque;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 
 type RunResult = Result<(conduit_std_host::StdRunReport, Vec<u8>), String>;
+const MAX_RETAINED_PRESENTATION_BYTES: usize = 4_096;
 
 pub struct NativeControl {
     host_config: StdHostConfig,
@@ -18,6 +19,7 @@ pub struct NativeControl {
     plan_document: Option<PlanDocument>,
     play_document: Option<PlayDocument>,
     failure: Option<String>,
+    presentation: Option<Vec<u8>>,
     active: Option<(RunControl, Receiver<RunResult>)>,
     request_sequence: u64,
     actions: VecDeque<String>,
@@ -53,6 +55,7 @@ impl NativeControl {
             plan_document: None,
             play_document: None,
             failure: None,
+            presentation: None,
             active: None,
             request_sequence: 0,
             actions: VecDeque::with_capacity(32),
@@ -115,6 +118,7 @@ impl NativeControl {
         self.plan_document = Some(document);
         self.play_document = None;
         self.failure = None;
+        self.presentation = None;
         Ok(())
     }
 
@@ -211,7 +215,11 @@ impl NativeControl {
             return Ok(false);
         };
         match receiver.try_recv() {
-            Ok(Ok((report, _output))) => {
+            Ok(Ok((report, output))) => {
+                if output.len() > MAX_RETAINED_PRESENTATION_BYTES {
+                    self.active = None;
+                    return Err("Play presentation exceeded the retained native bound".into());
+                }
                 let plan = self
                     .plan
                     .as_ref()
@@ -234,6 +242,7 @@ impl NativeControl {
                     kernel.active_play_id.as_str(),
                     plan.plan_id.as_str()
                 ));
+                self.presentation = Some(output);
                 self.active = None;
                 Ok(true)
             }
@@ -280,6 +289,10 @@ impl NativeControl {
 
     pub fn play_failure(&self) -> Option<&str> {
         self.failure.as_deref()
+    }
+
+    pub fn presentation(&self) -> Option<&[u8]> {
+        self.presentation.as_deref()
     }
 
     #[cfg(test)]

@@ -215,7 +215,7 @@ pub enum DemoCommand {
     /// Run the three-sink Form entirely on the native Host.
     Triple,
     /// Build and launch the native Patchbay from this checkout.
-    Patchbay,
+    Patchbay(PatchbayDemoArgs),
     /// Birth one Body and open its canonical native Parts experience.
     BodyMembership,
     /// Open the authored physical-environment Patchbay demonstration.
@@ -232,6 +232,13 @@ pub enum DemoCommand {
     Tongues,
     /// Project the pinned Netherwick robot configuration with zero actuator authority.
     Netherwick,
+}
+
+#[derive(Args, Debug, Default)]
+pub struct PatchbayDemoArgs {
+    /// Run the finite first-run authoring-to-Play acceptance journey.
+    #[arg(long)]
+    pub first_run_proof: bool,
 }
 
 #[derive(Args, Debug)]

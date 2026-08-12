@@ -1,6 +1,6 @@
 //! Repository demonstration entrances that hide package and fixture details.
 
-use crate::cli::GlobalOpts;
+use crate::cli::{GlobalOpts, PatchbayDemoArgs};
 use crate::process::{run_step, Step};
 use crate::workspace::workspace_root;
 
@@ -52,20 +52,40 @@ fn run(
     Ok(())
 }
 
-pub fn run_patchbay(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run_patchbay(
+    args: &PatchbayDemoArgs,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    let step = Step::new(
-        "demo.patchbay",
-        "Build and launch the native Patchbay from this checkout",
-        "cargo",
+    let command = if args.first_run_proof {
         &[
             "run",
             "-p",
             "patchbay-native",
             "--",
             "--form",
-            "examples/hello.conduit",
-        ],
+            "examples/default-welcome.conduit",
+            "--first-run-proof",
+        ][..]
+    } else {
+        &[
+            "run",
+            "-p",
+            "patchbay-native",
+            "--",
+            "--form",
+            "examples/default-welcome.conduit",
+        ][..]
+    };
+    let step = Step::new(
+        "demo.patchbay",
+        if args.first_run_proof {
+            "Prove the bounded native Patchbay first-run journey"
+        } else {
+            "Build and launch the native Patchbay from this checkout"
+        },
+        "cargo",
+        command,
     );
     run_step(&step, &root, opts)?;
     Ok(())
