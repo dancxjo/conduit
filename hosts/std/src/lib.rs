@@ -38,6 +38,7 @@ pub use deadline_reactor::{
 pub mod external_websocket;
 pub mod hosted_audio;
 pub mod hosted_midi;
+pub mod hosted_synth;
 mod installed_std;
 #[cfg(test)]
 mod installed_std_tests;
