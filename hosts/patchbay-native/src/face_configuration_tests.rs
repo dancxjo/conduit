@@ -229,6 +229,7 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
             realization_hosts: &[],
             status: None,
             gesture: Default::default(),
+            viewport: &application.canvas_viewport,
         },
     );
     // The first control is inside the first Gear rectangle. Later control hit

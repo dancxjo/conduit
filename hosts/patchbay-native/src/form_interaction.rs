@@ -88,6 +88,7 @@ impl PatchbayApplication {
                 | GuiAction::ConfigureGear { .. }
         );
         match action {
+            GuiAction::Viewport(action) => self.perform_viewport_action(action),
             GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
             GuiAction::EnvironmentAdd(_)
             | GuiAction::EnvironmentSelect(_)

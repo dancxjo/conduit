@@ -2,6 +2,7 @@
 
 use crate::{
     canvas::SoftwareCanvas,
+    canvas_viewport::CanvasViewport,
     gui_composition::{
         composition_port_point, draw_compositions, layout_compositions, CompositionLayout,
     },
@@ -16,8 +17,10 @@ use crate::{
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
 };
 use embedded_graphics::{
+    draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
-    prelude::{DrawTarget, Point},
+    prelude::{DrawTarget, Point, Size},
+    primitives::Rectangle,
 };
 use patchbay_model::{PatchbayGear, PatchbayGraph, PatchbayTheme, PHOSPHOR_THEME};
 
@@ -32,15 +35,17 @@ pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_CORDS
     + patchbay_model::MAX_PALETTE_ENTRIES
     + patchbay_model::MAX_PATCHBAY_GEARS * patchbay_model::MAX_FACE_CONTROLS * 2
-    + 4
+    + 9
     + crate::lifecycle_flow::MAX_LIFECYCLE_ACTIONS;
 
-const HEADER_HEIGHT: i32 = 52;
-const FOOTER_HEIGHT: i32 = 42;
-const NAV_WIDTH: i32 = 176;
-const INSPECTOR_WIDTH: i32 = 284;
-const NODE_WIDTH: i32 = 190;
-const MINIMUM_NODE_HEIGHT: i32 = 92;
+pub(super) const HEADER_HEIGHT: i32 = 52;
+pub(super) const FOOTER_HEIGHT: i32 = 42;
+pub(super) const NAV_WIDTH: i32 = 176;
+pub(super) const INSPECTOR_WIDTH: i32 = 284;
+pub(super) const NODE_WIDTH: i32 = 190;
+pub(super) const MINIMUM_NODE_HEIGHT: i32 = 92;
+
+pub(super) use crate::gui_viewport::{canvas_rect, canvas_world_bounds, subject_world_center};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LifecycleContext {
@@ -63,6 +68,7 @@ pub struct PatchbayViewContext<'a> {
     pub realization_hosts: &'a [conduit_core::HostAdvertisement],
     pub status: Option<&'a crate::interaction_status::InteractionStatus>,
     pub gesture: GestureView<'a>,
+    pub viewport: &'a CanvasViewport,
 }
 
 #[derive(Clone)]
@@ -102,6 +108,7 @@ pub fn draw_patchbay(
         realization_hosts,
         status,
         gesture,
+        viewport,
     } = view;
     debug_assert!(Icon::ALL
         .iter()
@@ -127,13 +134,12 @@ pub fn draw_patchbay(
         &mut canvas,
         graph,
         breadcrumb,
-        lifecycle,
-        width,
+        (lifecycle, width, viewport),
         theme,
         &mut targets,
     );
-    let compositions = layout_compositions(graph, width);
-    let layouts = layout_gears(
+    let mut compositions = layout_compositions(graph, width);
+    let mut layouts = layout_gears(
         graph,
         width,
         presentation_layout,
@@ -145,7 +151,13 @@ pub fn draw_patchbay(
             minimum_node_height: MINIMUM_NODE_HEIGHT,
         },
     );
-    let boundaries = layout_boundaries(graph, width);
+    let mut boundaries = layout_boundaries(graph, width);
+    crate::gui_viewport::transform_canvas_layout(
+        viewport,
+        &mut layouts,
+        &mut compositions,
+        &mut boundaries,
+    );
     draw_navigator(
         &mut canvas,
         palette,
@@ -153,43 +165,51 @@ pub fn draw_patchbay(
         theme,
         &mut targets,
     );
-    draw_cords(
-        &mut canvas,
-        graph,
-        (&layouts, &compositions, &boundaries),
-        selected,
-        presentation_layout,
-        theme,
-        &mut targets,
-    );
-    draw_boundaries(&mut canvas, graph, &boundaries, theme, &mut targets);
-    draw_compositions(&mut canvas, graph, &compositions, theme, &mut targets);
-    let gear_view = GearViewContext {
-        presentation_layout,
-        realization_plan,
-        realization_hosts,
-        face_control_focus,
-    };
-    for layout in &layouts {
-        draw_gear(
+    {
+        let clip = viewport.canvas();
+        let clip = Rectangle::new(
+            Point::new(clip.x, clip.y),
+            Size::new(clip.width, clip.height),
+        );
+        let mut canvas = canvas.clipped(&clip);
+        draw_cords(
             &mut canvas,
             graph,
-            layout,
+            (&layouts, &compositions, &boundaries),
             selected,
-            &gear_view,
+            (presentation_layout, viewport),
             theme,
             &mut targets,
         );
+        draw_boundaries(&mut canvas, graph, &boundaries, theme, &mut targets);
+        draw_compositions(&mut canvas, graph, &compositions, theme, &mut targets);
+        let gear_view = GearViewContext {
+            presentation_layout,
+            realization_plan,
+            realization_hosts,
+            face_control_focus,
+        };
+        for layout in &layouts {
+            draw_gear(
+                &mut canvas,
+                graph,
+                layout,
+                selected,
+                &gear_view,
+                theme,
+                &mut targets,
+            );
+        }
+        draw_gesture(
+            &mut canvas,
+            graph,
+            &layouts,
+            &compositions,
+            &boundaries,
+            &gesture,
+            theme,
+        );
     }
-    draw_gesture(
-        &mut canvas,
-        graph,
-        &layouts,
-        &compositions,
-        &boundaries,
-        &gesture,
-        theme,
-    );
     draw_inspector(
         &mut canvas,
         graph,
@@ -214,11 +234,11 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
     breadcrumb: &str,
-    lifecycle: &LifecycleContext,
-    width: i32,
+    view: (&LifecycleContext, i32, &CanvasViewport),
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
+    let (lifecycle, width, viewport) = view;
     icon_label(
         target,
         Icon::Form,
@@ -234,6 +254,7 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
         theme.emphasis,
     );
     draw_lifecycle_flow(target, lifecycle, width, theme, targets);
+    crate::gui_viewport::draw_viewport_controls(target, viewport, theme, targets);
 }
 
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(
@@ -245,10 +266,11 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
         &[BoundaryLayout],
     ),
     selected: Option<&str>,
-    presentation_layout: &patchbay_model::PatchbayLayout,
+    presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
+    let (presentation_layout, viewport) = presentation;
     let (layouts, compositions, boundaries) = layout;
     for cord in &graph.cords {
         let Some(source) = find_port(layouts, compositions, boundaries, &cord.source_port) else {
@@ -260,6 +282,8 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
         let default_x = source.x + (sink.x - source.x) / 2;
         let (bend_x, bend_y) = presentation_layout
             .cord_route(&cord.source_port, &cord.sink_port)
+            .and_then(|(x, y)| viewport.world_to_screen(Point::new(x, y)).ok())
+            .map(|point| (point.x, point.y))
             .unwrap_or((default_x, source.y + (sink.y - source.y) / 2));
         let points = [
             source,
@@ -309,7 +333,7 @@ fn find_port(
         })
 }
 
-fn layout_boundaries(graph: &PatchbayGraph, width: i32) -> Vec<BoundaryLayout> {
+pub(super) fn layout_boundaries(graph: &PatchbayGraph, width: i32) -> Vec<BoundaryLayout> {
     let left = NAV_WIDTH + 8;
     let right = (width - INSPECTOR_WIDTH - 8).max(left + 80);
     graph
