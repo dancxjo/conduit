@@ -33,12 +33,7 @@ fn host() -> StdHost {
         config.offer_generation,
     )
     .unwrap()
-    .with_fake_input(vec![
-        0x90, 60, 100, // note on
-        0xb0, 64, 127, // sustain down
-        0x80, 60, 0,    // note off while sustained
-        0xf8, // bounded unsupported observation used as Stop boundary
-    ]);
+    .with_fake_input(vec![0x90, 60, 100]);
     let playback = HostedPlaybackSelection::deterministic_fake(
         AlsaPlaybackObservation {
             card_index: 0,
@@ -62,8 +57,15 @@ fn host() -> StdHost {
 }
 
 fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
+    plan_fragment(host, true).unwrap()
+}
+
+fn plan_fragment(
+    host: &StdHost,
+    observe_render_clock: bool,
+) -> Result<conduit_core::PlanFragment, conduit_planner::PlannerError> {
     let form = conduit_form::parse(
-        "form 0\n\ninstrument {\n input: music/input\n synth: music/synth\n output: audio/play\n input.a4-reference-millihertz = 442000\n input.transpose-semitones = 12\n synth.maximum-voices = 8\n synth.oscillator = \"saw\"\n input.notes -> synth.notes\n input.controls -> synth.controls\n synth.audio -> output.audio\n}\n",
+        "form 0\n\ninstrument {\n input: music/input\n render: audio/render-demand\n synth: music/synth\n output: audio/play\n input.a4-reference-millihertz = 442000\n input.transpose-semitones = 12\n synth.maximum-voices = 8\n synth.oscillator = \"saw\"\n input.notes -> synth.notes\n input.controls -> synth.controls\n render.demand -> synth.render\n synth.audio -> output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .unwrap();
@@ -75,7 +77,7 @@ fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
             .unwrap(),
         playback.realization_advertisement(host.advertisement().host_id.clone()),
     ];
-    let observations = [
+    let mut observations = vec![
         input.resource_observation(
             host.advertisement().host_id.clone(),
             conduit_core::SignId::from("sign/instrument-midi-ready"),
@@ -85,6 +87,21 @@ fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
             conduit_core::SignId::from("sign/instrument-playback-ready"),
         ),
     ];
+    if observe_render_clock {
+        observations.push(conduit_core::ResourceObservation {
+            host_id: host.advertisement().host_id.clone(),
+            boot_id: host.advertisement().boot_id.clone(),
+            offer_generation: host.advertisement().offer_generation,
+            pool_id: conduit_core::ResourcePoolId::from("std/monotonic-deadline"),
+            class_id: conduit_core::ResourceClassId::from(
+                conduit_core::MONOTONIC_MILLISECOND_TIMER_RESOURCE_CLASS,
+            ),
+            health: conduit_core::ResourceHealth::Ready,
+            unreserved_units: 16,
+            utilized_units: 0,
+            sign_id: conduit_core::SignId::from("sign/instrument-timer-ready"),
+        });
+    }
     let grants = [
         host.midi_input_authority_grant("grant/instrument-midi")
             .unwrap(),
@@ -106,28 +123,31 @@ fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
             authority_grants: &grants,
         },
     )
-    .unwrap()
-    .fragments
-    .remove(0)
+    .map(|mut plan| plan.fragments.remove(0))
 }
 
-struct StopAfterFourthObservation {
+struct StopAfterFourBlocks {
     control: RunControl,
-    readings: u8,
+    now_millis: u64,
     request_id: Option<RunControlRequestId>,
 }
 
-impl TimerAdapter for StopAfterFourthObservation {
-    fn wait(&mut self, _duration: Duration) {}
+impl TimerAdapter for StopAfterFourBlocks {
+    fn wait(&mut self, duration: Duration) {
+        self.now_millis = self.now_millis.saturating_add(duration.as_millis() as u64);
+    }
 
-    fn monotonic_now_micros(&mut self) -> Option<u64> {
-        self.readings += 1;
-        if self.readings == 4 {
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        if self.now_millis >= 25 && self.request_id.is_some() {
             self.control
                 .request_stop(self.request_id.take().unwrap())
                 .unwrap();
         }
-        Some(u64::from(self.readings) * 1_000)
+        Some(self.now_millis)
+    }
+
+    fn monotonic_now_micros(&mut self) -> Option<u64> {
+        Some(self.now_millis.saturating_mul(1_000))
     }
 }
 
@@ -135,8 +155,8 @@ impl TimerAdapter for StopAfterFourthObservation {
 fn ordinary_form_runs_midi_synth_and_playback_through_one_kernel() {
     let mut host = host();
     let fragment = fragment(&host);
-    assert_eq!(fragment.placements.len(), 3);
-    assert_eq!(fragment.connections.len(), 3);
+    assert_eq!(fragment.placements.len(), 4);
+    assert_eq!(fragment.connections.len(), 4);
     let synth = fragment
         .placements
         .iter()
@@ -161,9 +181,9 @@ fn ordinary_form_runs_midi_synth_and_playback_through_one_kernel() {
     }));
 
     let control = RunControl::default();
-    let mut timer = StopAfterFourthObservation {
+    let mut timer = StopAfterFourBlocks {
         control: control.clone(),
-        readings: 0,
+        now_millis: 0,
         request_id: Some(RunControlRequestId::new("stop-instrument-proof").unwrap()),
     };
     let report = host
@@ -192,10 +212,16 @@ fn ordinary_form_runs_midi_synth_and_playback_through_one_kernel() {
         kernel.playback[0].lifecycle,
         PlaybackLifecycle::StoppedClosed
     );
-    // The current reference operation renders the exact interval between
-    // admitted musical events. This proves the production seam without
-    // promoting it to the still-missing continuous musician audio clock.
-    assert_eq!(kernel.playback[0].metrics.blocks_committed, 1);
-    assert_eq!(kernel.playback[0].metrics.frames_committed, 48);
+    assert_eq!(kernel.playback[0].metrics.blocks_committed, 4);
+    assert_eq!(kernel.playback[0].metrics.frames_committed, 960);
     assert_eq!(kernel.playback[0].metrics.underruns, 0);
+}
+
+#[test]
+fn render_clock_requires_fresh_current_resource_truth() {
+    let host = host();
+    assert!(matches!(
+        plan_fragment(&host, false),
+        Err(conduit_planner::PlannerError::CurrentResourceObservationUnavailable(_))
+    ));
 }

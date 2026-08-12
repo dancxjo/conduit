@@ -15,6 +15,7 @@ use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
+use super::render_demand_operation::AudioRenderDemandOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::synth_operation::MusicSynthOperation;
@@ -83,6 +84,7 @@ pub(super) enum InstalledOperation {
     RoboticsSource(RoboticsSourceOperation),
     RoboticsDrive(RoboticsDriveOperation),
     MusicSynth(MusicSynthOperation),
+    AudioRenderDemand(AudioRenderDemandOperation),
     AudioPlay(AudioPlayOperation),
     MidiOutput(MidiOutputOperation),
     MidiInput(Box<MidiInputOperation>),
@@ -168,6 +170,7 @@ impl Operation for InstalledOperation {
             Self::RoboticsSource(operation) => operation.start(),
             Self::RoboticsDrive(operation) => operation.start(),
             Self::MusicSynth(operation) => operation.start(),
+            Self::AudioRenderDemand(operation) => operation.start(),
             Self::AudioPlay(operation) => operation.start(),
             Self::MidiOutput(operation) => operation.start(),
             Self::MidiInput(operation) => operation.start(),
@@ -242,6 +245,7 @@ impl Operation for InstalledOperation {
             (Self::RoboticsSource(operation), input) => operation.resume(input),
             (Self::RoboticsDrive(operation), input) => operation.resume(input),
             (Self::MusicSynth(operation), input) => operation.resume(input),
+            (Self::AudioRenderDemand(operation), input) => operation.resume(input),
             (Self::AudioPlay(operation), input) => operation.resume(input),
             (Self::MidiOutput(operation), input) => operation.resume(input),
             (Self::MidiInput(operation), _) => operation.resume(),
@@ -342,6 +346,7 @@ impl Operation for InstalledOperation {
             Self::RoboticsSource(operation) => operation.advance(),
             Self::RoboticsDrive(operation) => operation.advance(),
             Self::MusicSynth(operation) => operation.advance(),
+            Self::AudioRenderDemand(operation) => operation.advance(),
             Self::AudioPlay(_) => OperationAction::Await,
             Self::MidiOutput(_) => OperationAction::Await,
             Self::MidiInput(operation) => operation.advance(),
@@ -417,6 +422,7 @@ impl Operation for InstalledOperation {
             Self::RoboticsSource(operation) => operation.cancel(),
             Self::RoboticsDrive(operation) => operation.cancel(),
             Self::MusicSynth(operation) => operation.cancel(),
+            Self::AudioRenderDemand(operation) => operation.cancel(),
             Self::AudioPlay(operation) => operation.cancel(),
             Self::MidiOutput(operation) => operation.cancel(),
             Self::MidiInput(operation) => operation.cancel(),

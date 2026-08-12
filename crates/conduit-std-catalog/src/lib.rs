@@ -71,6 +71,8 @@ mod copy_file;
 pub use copy_file::*;
 mod sound;
 pub use sound::*;
+mod audio_render_demand;
+pub use audio_render_demand::*;
 mod music_input;
 pub use music_input::*;
 mod sound_compatibility;
@@ -91,6 +93,7 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
     vec![
         tick_contract(),
         time_every_contract(),
+        audio_render_demand_contract(),
         music_synth_contract(),
         time_debounce_contract(),
         time_timeout_contract(),
@@ -154,6 +157,7 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
     vec![
         tick_capability_offer(),
         time_every_offer(),
+        audio_render_demand_offer(),
         music_synth_reference_offer(),
         time_debounce_offer(),
         time_timeout_offer(),
@@ -431,7 +435,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 53);
+        assert_eq!(contracts.len(), 54);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts

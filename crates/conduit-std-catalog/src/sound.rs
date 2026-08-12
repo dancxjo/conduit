@@ -3,15 +3,19 @@
 use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
 };
-use crate::{music_input_contract, MUSIC_INPUT_KIND, MUSIC_INPUT_REVISION};
+use crate::{
+    audio_render_demand_contract, music_input_contract, AUDIO_RENDER_DEMAND_REVISION,
+    MUSIC_INPUT_KIND, MUSIC_INPUT_REVISION,
+};
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
     ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, AUDIO_PCM_INFO_ID, CONTROL_EVENT_ENCODED_LEN, MUSIC_CONTROL_INFO_ID,
-    MUSIC_NOTE_INFO_ID, NOTE_EVENT_ENCODED_LEN, PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
+    PortTemporal, AUDIO_PCM_INFO_ID, AUDIO_RENDER_DEMAND_INFO_ID, CONTROL_EVENT_ENCODED_LEN,
+    MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID, NOTE_EVENT_ENCODED_LEN,
+    PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
 };
 use serde::{Deserialize, Serialize};
 
@@ -196,7 +200,15 @@ pub fn music_synth_contract() -> StandardKindContract {
         plain_name: "Synthesize music".to_string(),
         summary: "Transform portable musical events into bounded timestamped PCM frames."
             .to_string(),
-        inputs: music_inputs(),
+        inputs: {
+            let mut inputs = music_inputs();
+            inputs.push(port(
+                "render",
+                AUDIO_RENDER_DEMAND_INFO_ID,
+                PortDirection::Input,
+            ));
+            inputs
+        },
         outputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Output)],
         configuration: music_synth_configuration(),
         limits: audio_limits(),
@@ -355,12 +367,13 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
     }
 }
 
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 5] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 6] {
     [
         (sound_tone_play_contract(), SOUND_TONE_PLAY_REVISION),
         (music_input_contract(), MUSIC_INPUT_REVISION),
         (music_play_contract(), MUSIC_PLAY_REVISION),
         (music_synth_contract(), MUSIC_SYNTH_REVISION),
+        (audio_render_demand_contract(), AUDIO_RENDER_DEMAND_REVISION),
         (audio_play_contract(), AUDIO_PLAY_REVISION),
     ]
 }
@@ -432,7 +445,7 @@ pub(crate) fn music_ports(direction: PortDirection) -> Vec<PortDescriptor> {
         port("controls", MUSIC_CONTROL_INFO_ID, direction),
     ]
 }
-fn port(name: &str, info: &str, direction: PortDirection) -> PortDescriptor {
+pub(super) fn port(name: &str, info: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(info),
