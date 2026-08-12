@@ -12,6 +12,8 @@ fn redraw(application: &mut PatchbayApplication) {
             breadcrumb: "",
             lifecycle: &Default::default(),
             palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &application.layout,
             realization_plan: None,
             realization_hosts: &[],
