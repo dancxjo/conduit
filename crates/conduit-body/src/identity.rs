@@ -31,6 +31,9 @@ identity!(MembershipChangeId);
 identity!(MembershipProofId);
 identity!(CandidateId);
 identity!(DiscoveryProofId);
+identity!(AdmissionId);
+identity!(MembershipCredentialId);
+identity!(SpawnInvitationId);
 
 impl SeedId {
     pub fn bind(source: &SourceDocumentId, checked: &CheckedFormId) -> Self {
