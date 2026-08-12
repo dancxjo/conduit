@@ -99,6 +99,18 @@ impl PatchbayApplication {
         }
     }
 
+    pub(super) fn move_canvas_pan_to(&mut self, position: (f64, f64)) {
+        let Some(previous) = self.canvas_pan_drag else {
+            return;
+        };
+        self.canvas_pan_drag = Some(position);
+        let delta = Point::new(
+            (position.0 - previous.0).clamp(f64::from(i32::MIN), f64::from(i32::MAX)) as i32,
+            (position.1 - previous.1).clamp(f64::from(i32::MIN), f64::from(i32::MAX)) as i32,
+        );
+        self.pan_viewport(delta);
+    }
+
     pub(super) fn scroll_viewport(&mut self, horizontal: f32, vertical: f32) {
         if !horizontal.is_finite() || !vertical.is_finite() {
             self.publish_refusal(ViewportError::CoordinateOutOfBounds.message());
