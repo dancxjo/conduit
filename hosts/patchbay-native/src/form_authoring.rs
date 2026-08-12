@@ -22,7 +22,19 @@ impl PatchbayApplication {
         })
     }
 
-    pub(super) fn dispatch_palette_placement(&mut self, kind: &str) -> Result<(), String> {
+    pub(super) fn dispatch_palette_placement(
+        &mut self,
+        kind: &str,
+        target: (i32, i32),
+    ) -> Result<(), String> {
+        let prior_gears = self
+            .graphical_form
+            .as_ref()
+            .ok_or("graphical Form projection is absent")?
+            .gears
+            .iter()
+            .map(|gear| gear.identity.clone())
+            .collect::<Vec<_>>();
         let expanded_form_id = self
             .graphical_form
             .as_ref()
@@ -33,7 +45,29 @@ impl PatchbayApplication {
         self.dispatch_authoring_edit(PatchbayEdit::PlaceGear {
             basis,
             kind_id: kind.into(),
-        })
+        })?;
+        let Some((graph, gear)) = self.graphical_form.as_ref().and_then(|graph| {
+            graph
+                .gears
+                .iter()
+                .find(|gear| !prior_gears.contains(&gear.identity))
+                .map(|gear| (graph, gear))
+        }) else {
+            return Ok(());
+        };
+        let subject = graph
+            .subject_ref(&gear.identity)
+            .map_err(|error| error.to_string())?;
+        self.layout
+            .move_gear(graph, &subject, target.0, target.1)
+            .map_err(|error| format!("palette placement target: {error:?}"))?;
+        self.publish_completed(format!(
+            "Added {} at canvas target {}, {}",
+            gear.gear_id.as_str(),
+            target.0,
+            target.1
+        ));
+        Ok(())
     }
 
     pub(super) fn dispatch_gear_edit(

@@ -1,9 +1,13 @@
 //! Describe-only projection of one pinned Netherwick robot configuration.
 
+mod create_speaker;
+mod create_speaker_play;
 mod planning;
 mod profile;
 mod projection;
 
+pub use create_speaker::*;
+pub use create_speaker_play::*;
 pub use planning::*;
 pub use profile::*;
 pub use projection::*;

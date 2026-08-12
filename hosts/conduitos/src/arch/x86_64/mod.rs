@@ -4,6 +4,7 @@ mod hid;
 mod idt;
 mod io;
 mod irq;
+mod opl2;
 mod pc_speaker;
 mod pic;
 mod pit;
@@ -19,6 +20,7 @@ pub use hid::{
     prepare_boot_keyboard, receive_boot_keyboard, receive_first_boot_keyboard_report,
     run_boot_keyboard,
 };
+pub use opl2::Opl2;
 pub use pc_speaker::PcSpeaker;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer, initialize_machine};
 

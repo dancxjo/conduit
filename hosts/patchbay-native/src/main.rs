@@ -7,7 +7,7 @@ use patchbay_model::{
 };
 use std::rc::Rc;
 use winit::application::ApplicationHandler;
-use winit::event::{ElementState, MouseButton, WindowEvent};
+use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
@@ -17,7 +17,12 @@ mod arguments;
 mod build_birth;
 mod canvas;
 mod canvas_input;
+mod canvas_viewport;
 mod control;
+mod details;
+mod details_input;
+#[cfg(test)]
+mod details_tests;
 mod distributed_play;
 mod environment_interaction;
 mod environment_resource;
@@ -37,7 +42,9 @@ mod gui_gear_layout;
 mod gui_gesture;
 mod gui_hit;
 mod gui_inspector;
+mod gui_navigator;
 mod gui_primitives;
+mod gui_viewport;
 mod icon;
 mod interaction_feedback;
 mod interaction_status;
@@ -46,6 +53,7 @@ mod lifecycle_flow;
 mod palette_icon;
 mod palette_icon_data;
 mod palette_input;
+mod palette_state;
 mod palette_view;
 mod portable_keyboard;
 #[cfg(test)]
@@ -55,6 +63,9 @@ mod prewake_interaction;
 mod render;
 mod renderer_adapter;
 mod resource;
+mod viewport_input;
+#[cfg(test)]
+mod viewport_tests;
 mod window_title;
 mod workspace_open;
 use arguments::{parse_arguments, Arguments, USAGE};
@@ -86,11 +97,14 @@ struct PatchbayApplication {
     interaction: Option<PatchbayInteraction>,
     hit_targets: Vec<gui::HitTarget>,
     cursor_position: (f64, f64),
+    canvas_viewport: canvas_viewport::CanvasViewport,
+    canvas_pan_drag: Option<(f64, f64)>,
     linear_view: bool,
+    details_lens: details::DetailsLens,
+    details_scroll: usize,
     modifiers: winit::keyboard::ModifiersState,
     native_keyboard: portable_keyboard::NativeKeyboardInput,
-    palette_query: String,
-    palette_search_active: bool,
+    palette: palette_state::PaletteChooser,
     exact_identity_open: bool,
     face_control_focus: usize,
     palette_drag: Option<String>,
@@ -179,6 +193,15 @@ impl ApplicationHandler for PatchbayApplication {
             }
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
             WindowEvent::CursorMoved { position, .. } => {
+                if let Some(previous) = self.canvas_pan_drag.replace((position.x, position.y)) {
+                    let delta = embedded_graphics::geometry::Point::new(
+                        (position.x - previous.0).clamp(f64::from(i32::MIN), f64::from(i32::MAX))
+                            as i32,
+                        (position.y - previous.1).clamp(f64::from(i32::MIN), f64::from(i32::MAX))
+                            as i32,
+                    );
+                    self.pan_viewport(delta);
+                }
                 self.cursor_position = (position.x, position.y);
                 if self.environment_drag.is_some()
                     || self.palette_drag.is_some()
@@ -200,6 +223,41 @@ impl ApplicationHandler for PatchbayApplication {
                     self.failure = Some(format!("native canvas press failed: {error}"));
                     event_loop.exit();
                 }
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Right,
+                ..
+            } if !self.linear_view
+                && self.graphical_form.is_some()
+                && !(self.environment.is_some()
+                    && (self.prewake.is_none() || self.prewake_environment_view)) =>
+            {
+                self.canvas_pan_drag = Some(self.cursor_position);
+                self.publish_completed("Canvas pointer pan started");
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Right,
+                ..
+            } => {
+                if self.canvas_pan_drag.take().is_some() {
+                    self.publish_completed("Canvas pointer pan completed");
+                }
+            }
+            WindowEvent::MouseWheel { delta, .. }
+                if !self.linear_view
+                    && self.graphical_form.is_some()
+                    && !(self.environment.is_some()
+                        && (self.prewake.is_none() || self.prewake_environment_view)) =>
+            {
+                let (horizontal, vertical) = match delta {
+                    MouseScrollDelta::LineDelta(x, y) => (x * 24.0, y * 24.0),
+                    MouseScrollDelta::PixelDelta(position) => {
+                        (position.x as f32, position.y as f32)
+                    }
+                };
+                self.scroll_viewport(horizontal, vertical);
             }
             WindowEvent::MouseInput {
                 state: ElementState::Released,

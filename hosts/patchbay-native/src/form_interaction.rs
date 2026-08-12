@@ -79,7 +79,7 @@ impl PatchbayApplication {
         }
         let semantic_edit = matches!(
             &action,
-            GuiAction::PlacePaletteKind(_)
+            GuiAction::PlacePaletteKind { .. }
                 | GuiAction::DuplicateGear(_)
                 | GuiAction::RemoveGear(_)
                 | GuiAction::RemoveCord(_)
@@ -88,6 +88,7 @@ impl PatchbayApplication {
                 | GuiAction::ConfigureGear { .. }
         );
         match action {
+            GuiAction::Viewport(action) => self.perform_viewport_action(action),
             GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
             GuiAction::EnvironmentAdd(_)
             | GuiAction::EnvironmentSelect(_)
@@ -119,7 +120,12 @@ impl PatchbayApplication {
             GuiAction::ToggleExactIdentity => {
                 self.exact_identity_open = !self.exact_identity_open;
             }
-            GuiAction::PlacePaletteKind(kind) => self.dispatch_palette_placement(&kind)?,
+            GuiAction::BeginPaletteDrag(_) => {
+                return Err("palette drag start is a pointer-only presentation action".into())
+            }
+            GuiAction::PlacePaletteKind { kind, target } => {
+                self.dispatch_palette_placement(&kind, target)?
+            }
             GuiAction::DuplicateGear(subject) => {
                 self.dispatch_gear_edit(PatchbayAction::DuplicateGear, &subject)?
             }
@@ -408,6 +414,7 @@ impl PatchbayApplication {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(super) fn edit_source(&mut self, update: impl FnOnce(&mut String)) -> Result<(), String> {
         let editor = self
             .form_editor
@@ -487,6 +494,9 @@ impl PatchbayApplication {
         if self.form_editor.is_none() {
             return Ok(false);
         }
+        if self.handle_details_key(key) {
+            return Ok(true);
+        }
         let selected = self.selected_graphical_identity().map(str::to_owned);
         let face_key = crate::face_control_keyboard::resolve_face_control_key(
             key,
@@ -564,10 +574,6 @@ impl PatchbayApplication {
                 self.dispatch_invocation(PatchbayAction::OpenBack)?;
                 synchronize_linear_selection = false;
             }
-            Key::Named(NamedKey::Backspace) => self.edit_source(|source| {
-                source.pop();
-            })?,
-            Key::Named(NamedKey::Enter) => self.edit_source(|source| source.push('\n'))?,
             Key::Named(NamedKey::Tab) => self.dispatch_invocation(PatchbayAction::OpenBack)?,
             Key::Named(NamedKey::ArrowDown) | Key::Named(NamedKey::ArrowRight)
                 if self.graphical_form.is_some() && !self.linear_view =>
@@ -637,11 +643,11 @@ impl PatchbayApplication {
             {
                 self.dispatch_invocation(PatchbayAction::Save)?;
             }
-            Key::Character(character)
-                if !self.modifiers.control_key() && !self.modifiers.super_key() =>
-            {
-                let characters = character.clone();
-                self.edit_source(|source| source.push_str(&characters))?;
+            Key::Character(_) | Key::Named(NamedKey::Backspace) => {
+                self.publish_refusal(
+                    "Source is read-only; use semantic controls to author the Form",
+                );
+                synchronize_linear_selection = false;
             }
             _ => return Ok(false),
         }

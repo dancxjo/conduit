@@ -86,7 +86,6 @@ impl DiscoveryProofId {
         )))
     }
 }
-
 pub(crate) fn validate_ids(values: &[&str]) -> Result<(), BodyLifecycleError> {
     for value in values {
         if value.is_empty() {
