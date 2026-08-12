@@ -328,5 +328,24 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
                 shape: HitShape::Rect(bounds),
             });
         }
+        if row.actions.contains(&PartsAction::Admit) {
+            let bounds = PixelRect {
+                x: left + 108,
+                y: details_y + 96,
+                width: 96,
+                height: 28,
+            };
+            frame_rect(target, bounds, theme.focus, 1);
+            text(
+                target,
+                Point::new(left + 126, details_y + 104),
+                "ADMIT",
+                theme.emphasis,
+            );
+            targets.push(HitTarget {
+                action: GuiAction::AdmitCandidate(row.candidate_id.clone()),
+                shape: HitShape::Rect(bounds),
+            });
+        }
     }
 }

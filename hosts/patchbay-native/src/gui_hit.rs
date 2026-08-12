@@ -27,6 +27,7 @@ pub enum GuiAction {
     CancelBrowserPartSpawn,
     InspectPart(conduit_body::PartId),
     InspectCandidate(conduit_body::CandidateId),
+    AdmitCandidate(conduit_body::CandidateId),
     RefuseCandidate(conduit_body::CandidateId),
     RequestRevokePart(conduit_body::PartId),
     ConfirmRevokePart(conduit_body::PartId),

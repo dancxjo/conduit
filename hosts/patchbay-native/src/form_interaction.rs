@@ -61,6 +61,7 @@ impl PatchbayApplication {
             | GuiAction::CancelBrowserPartSpawn
             | GuiAction::InspectPart(_)
             | GuiAction::InspectCandidate(_)
+            | GuiAction::AdmitCandidate(_)
             | GuiAction::RefuseCandidate(_)
             | GuiAction::RequestRevokePart(_)
             | GuiAction::ConfirmRevokePart(_) => return self.handle_parts_action(action),

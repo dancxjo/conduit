@@ -2044,6 +2044,7 @@ name = "patchbay-native"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-browser-runtime",
  "conduit-core",
  "conduit-form",
  "conduit-observatory",

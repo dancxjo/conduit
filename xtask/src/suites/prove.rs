@@ -72,6 +72,21 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
+        "prove.body-membership.native-ambient-admission",
+        "Prove native Patchbay keeps an ambient browser inert until explicit Admit and exact proof",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "patchbay-native",
+            "ambient_page_stays_candidate_until_explicit_admit_completes_exact_proof",
+        ],
+        None,
+        None,
+        Some(ProofClass::LiveTransport),
+        &[],
+    ),
+    Step::typed(
         "prove.body-membership.browser-wasm-build",
         "Build the browser Host and admission proof WASM artifact",
         "cargo",
