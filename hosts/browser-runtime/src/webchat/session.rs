@@ -1,5 +1,5 @@
 use super::BrowserChatOperation;
-use conduit_core::{bind_active_play, ConnectionBase};
+use conduit_core::{bind_active_play, BootId, ConnectionBase, HostId};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
@@ -76,8 +76,15 @@ pub(crate) struct BrowserChatSession {
 }
 
 impl BrowserChatSession {
-    pub(crate) fn prepare(url: &str) -> Result<Self, i32> {
+    pub(crate) fn prepare(url: &str, host_id: HostId, boot_id: BootId) -> Result<Self, i32> {
         if url.len() > 256 || !url.starts_with("ws://") {
+            return Err(-201);
+        }
+        if host_id.as_str().is_empty()
+            || boot_id.as_str().is_empty()
+            || host_id.as_str().len() > 128
+            || boot_id.as_str().len() > 128
+        {
             return Err(-201);
         }
         let source = SOURCE.replace("ws://127.0.0.1:4178", url);
@@ -91,7 +98,7 @@ impl BrowserChatSession {
             check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|_| -203)?;
         let expanded =
             expand_canonical_form(&checked, "webchat-browser-demo", &profile).map_err(|_| -204)?;
-        let advertisement = super::catalog::advertisement();
+        let advertisement = super::catalog::advertisement(host_id, boot_id);
         let hosts = [advertisement.clone()];
         let placements =
             conduit_planner::default_expanded_placements(&expanded, &hosts).map_err(|_| -205)?;

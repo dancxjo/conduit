@@ -31,16 +31,26 @@ pub extern "C" fn conduit_browser_webchat_input_capacity() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn conduit_browser_webchat_start(url_len: u32) -> i32 {
-    let url_len = url_len as usize;
-    if url_len == 0 || url_len > INPUT_CAPACITY {
+    let frame_len = url_len as usize;
+    if frame_len == 0 || frame_len > INPUT_CAPACITY {
         return ERROR_INPUT;
     }
     INPUT.with(|input| {
         let input = input.borrow();
-        let Ok(url) = std::str::from_utf8(&input[..url_len]) else {
+        let Ok(frame) = std::str::from_utf8(&input[..frame_len]) else {
             return ERROR_INPUT;
         };
-        match BrowserChatSession::prepare(url) {
+        let mut fields = frame.split('\n');
+        let (Some(url), Some(host_id), Some(boot_id), None) =
+            (fields.next(), fields.next(), fields.next(), fields.next())
+        else {
+            return ERROR_INPUT;
+        };
+        match BrowserChatSession::prepare(
+            url,
+            conduit_core::HostId::from(host_id),
+            conduit_core::BootId::from(boot_id),
+        ) {
             Ok(session) => {
                 SESSION.with(|slot| *slot.borrow_mut() = Some(session));
                 0
