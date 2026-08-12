@@ -352,14 +352,14 @@ mod tests {
                 .iter()
                 .filter(|entry| matches!(entry.coverage, Coverage::Direct))
                 .count(),
-            19
+            20
         );
         let missing = os
             .entries
             .iter()
             .filter(|entry| matches!(entry.coverage, Coverage::MissingImplementation))
             .count();
-        assert_eq!(missing, os.catalog_entry_count - 20);
+        assert_eq!(missing, os.catalog_entry_count - 21);
         let gear_face = os
             .entries
             .iter()

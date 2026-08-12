@@ -105,5 +105,8 @@ fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogError> {
             .any(|offer| offer.kind_id == capability.kind_id)
     });
     advertisement.capabilities.extend(presentation);
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_logic_not_offer());
     Ok(advertisement)
 }
