@@ -1,8 +1,11 @@
 //! Bounded WASM ABI for browser-owned Body admission proof material.
 
 use crate::membership::BrowserAdmissionIdentity;
-use conduit_body::{AdmissionChallenge, ADMISSION_SIGNATURE_BYTES};
-use conduit_core::{BootId, HostId};
+use conduit_body::{
+    AdmissionChallenge, SpawnInvitationClaim, SpawnInvitationSecret, ADMISSION_SIGNATURE_BYTES,
+};
+use conduit_core::{BootId, HostId, OfferGeneration};
+use serde::Deserialize;
 use std::cell::RefCell;
 
 const INPUT_CAPACITY: usize = 4_096;
@@ -14,6 +17,7 @@ const ERROR_INPUT: i32 = -260;
 const ERROR_NOT_INITIALIZED: i32 = -261;
 const ERROR_CHALLENGE: i32 = -262;
 const ERROR_ADVERTISEMENT: i32 = -263;
+const ERROR_SPAWN_SECRET: i32 = -264;
 
 thread_local! {
     static IDENTITY: RefCell<Option<BrowserAdmissionIdentity>> = const { RefCell::new(None) };
@@ -116,6 +120,53 @@ pub extern "C" fn conduit_browser_membership_prove(challenge_length: u32) -> i32
             };
             OUTPUT.with(|output| {
                 output.borrow_mut()[..ADMISSION_SIGNATURE_BYTES].copy_from_slice(&proof.signature)
+            });
+            OUTPUT_LEN.with(|length| *length.borrow_mut() = ADMISSION_SIGNATURE_BYTES);
+            STATUS_READY
+        })
+    })
+}
+
+/// Signs one Body-directed single-use invitation for this exact browser Host,
+/// Boot, and the exported offer generation.
+#[no_mangle]
+pub extern "C" fn conduit_browser_membership_prove_spawn(claim_length: u32) -> i32 {
+    clear_output();
+    let claim_length = claim_length as usize;
+    if claim_length == 0 || claim_length > INPUT_CAPACITY {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let input = input.borrow();
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct SpawnClaimEnvelope {
+            claim: SpawnInvitationClaim,
+            secret: Vec<u8>,
+        }
+        let envelope: SpawnClaimEnvelope = match serde_json::from_slice(&input[..claim_length]) {
+            Ok(claim) => claim,
+            Err(_) => return ERROR_CHALLENGE,
+        };
+        let Ok(secret_bytes) = <[u8; 32]>::try_from(envelope.secret.as_slice()) else {
+            return ERROR_SPAWN_SECRET;
+        };
+        let secret = match SpawnInvitationSecret::from_csprng_bytes(secret_bytes) {
+            Ok(secret) => secret,
+            Err(_) => return ERROR_SPAWN_SECRET,
+        };
+        IDENTITY.with(|slot| {
+            let slot = slot.borrow();
+            let Some(identity) = slot.as_ref() else {
+                return ERROR_NOT_INITIALIZED;
+            };
+            let signature = secret.sign(&envelope.claim.signing_transcript(
+                identity.host_id(),
+                identity.boot_id(),
+                OfferGeneration(1),
+            ));
+            OUTPUT.with(|output| {
+                output.borrow_mut()[..ADMISSION_SIGNATURE_BYTES].copy_from_slice(&signature)
             });
             OUTPUT_LEN.with(|length| *length.borrow_mut() = ADMISSION_SIGNATURE_BYTES);
             STATUS_READY
@@ -228,6 +279,40 @@ mod tests {
         assert_eq!(advertisement.boot_id, challenge.boot_id);
         assert_eq!(advertisement.capabilities.len(), 3);
         assert_eq!(advertisement.resources.len(), 2);
+    }
+
+    #[test]
+    fn abi_signs_one_exact_spawn_invitation_claim() {
+        let challenge = initialize();
+        let claim: SpawnInvitationClaim = serde_json::from_value(serde_json::json!({
+            "invitation_id": "spawn/live",
+            "body_id": "body/live",
+            "nonce": vec![5; 32],
+            "expires_at_millis": 2_000
+        }))
+        .unwrap();
+        let encoded = serde_json::to_vec(&serde_json::json!({
+            "claim": &claim,
+            "secret": vec![13; 32]
+        }))
+        .unwrap();
+        write(&encoded);
+        assert_eq!(
+            conduit_browser_membership_prove_spawn(encoded.len() as u32),
+            STATUS_READY
+        );
+        let signature = Signature::from_bytes(&output());
+        let invitation_key = ed25519_dalek::SigningKey::from_bytes(&[13; 32]).verifying_key();
+        invitation_key
+            .verify(
+                &claim.signing_transcript(
+                    &challenge.host_id,
+                    &challenge.boot_id,
+                    OfferGeneration(1),
+                ),
+                &signature,
+            )
+            .unwrap();
     }
 
     #[test]

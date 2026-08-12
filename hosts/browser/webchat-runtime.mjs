@@ -34,6 +34,7 @@ function requireApi(api) {
     "conduit_browser_membership_output_len",
     "conduit_browser_membership_initialize",
     "conduit_browser_membership_prove",
+    "conduit_browser_membership_prove_spawn",
     "conduit_browser_membership_advertisement",
   ];
   if (names.some((name) => !(name in api)) ||
@@ -65,7 +66,7 @@ function requireStatus(status, action) {
   if (status < 0) throw new Error(`CND-CHAT-004 ${action} failed ${status}`);
 }
 
-export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, list, input, button, status }) {
+export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spawn = null, list, input, button, status }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   requireApi(api);
@@ -244,6 +245,25 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, lis
     }
     return signature;
   }
+  function proveSpawn(invitation) {
+    const bytes = encoder.encode(JSON.stringify(invitation));
+    if (bytes.length === 0 || bytes.length > api.conduit_browser_membership_input_capacity()) {
+      throw new Error("CND-CHAT-013 invalid spawn invitation length");
+    }
+    new Uint8Array(
+      api.memory.buffer,
+      api.conduit_browser_membership_input_ptr(),
+      bytes.length,
+    ).set(bytes);
+    requireStatus(api.conduit_browser_membership_prove_spawn(bytes.length), "spawn proof");
+    const signature = readBytes(
+      api,
+      api.conduit_browser_membership_output_ptr(),
+      api.conduit_browser_membership_output_len(),
+    );
+    if (signature.length !== 64) throw new Error("CND-CHAT-014 invalid spawn signature");
+    return signature;
+  }
   if (bodyUrl) {
     bodySocket = new WebSocket(bodyUrl);
     bodySocket.binaryType = "arraybuffer";
@@ -257,6 +277,20 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, lis
         verifying_key: Array.from(verifyingKey),
         freshness_sequence: 1,
       })));
+      if (spawn) {
+        const signature = proveSpawn(spawn);
+        bodyState = "spawn-proof-sent";
+        bodySocket.send(encoder.encode(JSON.stringify({
+          kind: "spawn-proof",
+          protocol: 1,
+          invitation_id: spawn.claim.invitation_id,
+          body_id: spawn.claim.body_id,
+          host_id: hostId,
+          boot_id: bootId,
+          nonce: spawn.claim.nonce,
+          signature: Array.from(signature),
+        })));
+      }
     });
     bodySocket.addEventListener("message", (event) => {
       const frame = JSON.parse(typeof event.data === "string"
@@ -282,7 +316,9 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, lis
       }
     });
     bodySocket.addEventListener("close", () => {
-      if (bodyState !== "admitted") bodyState = "offline";
+      if (bodyState !== "admitted" && !bodyState.startsWith("refused:")) {
+        bodyState = "offline";
+      }
     });
   }
   return Object.freeze({

@@ -100,6 +100,8 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
             "webchat-server",
             "--bin",
             "browser-admission-probe",
+            "--bin",
+            "browser-spawn-probe",
         ],
         None,
         None,
@@ -107,6 +109,7 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
         &[
             "target/debug/webchat-server",
             "target/debug/browser-admission-probe",
+            "target/debug/browser-spawn-probe",
         ],
     ),
     Step::typed(
@@ -267,11 +270,16 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
             "conduit-std-host",
             "--bin",
             "browser-admission-probe",
+            "--bin",
+            "browser-spawn-probe",
         ],
         None,
         None,
         Some(ProofClass::ContractCompile),
-        &["target/debug/browser-admission-probe"],
+        &[
+            "target/debug/browser-admission-probe",
+            "target/debug/browser-spawn-probe",
+        ],
     ),
     Step::typed(
         "prove.browser-host.pool-webchat-server-build",

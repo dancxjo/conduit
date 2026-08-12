@@ -43,7 +43,15 @@ pub struct SpawnInvitation {
     pub secret: SpawnInvitationSecret,
 }
 
-impl SpawnInvitation {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SpawnInvitationClaim {
+    pub invitation_id: SpawnInvitationId,
+    pub body_id: BodyId,
+    pub nonce: [u8; 32],
+    pub expires_at_millis: u64,
+}
+
+impl SpawnInvitationClaim {
     pub fn signing_transcript(
         &self,
         host_id: &HostId,
@@ -60,6 +68,27 @@ impl SpawnInvitation {
             &self.nonce,
             self.expires_at_millis,
         )
+    }
+}
+
+impl SpawnInvitation {
+    pub fn claim(&self) -> SpawnInvitationClaim {
+        SpawnInvitationClaim {
+            invitation_id: self.invitation_id.clone(),
+            body_id: self.body_id.clone(),
+            nonce: self.nonce,
+            expires_at_millis: self.expires_at_millis,
+        }
+    }
+
+    pub fn signing_transcript(
+        &self,
+        host_id: &HostId,
+        boot_id: &BootId,
+        offer_generation: OfferGeneration,
+    ) -> [u8; 32] {
+        self.claim()
+            .signing_transcript(host_id, boot_id, offer_generation)
     }
 }
 
