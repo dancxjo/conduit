@@ -14,6 +14,36 @@ pub fn expand_canonical_form_with_backs(
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
 ) -> Result<ExpandedCanonicalForm, CanonicalExpansionDiagnostic> {
+    let authoring =
+        expand_canonical_form_for_authoring_with_backs(document, form_name, catalog, backs)?;
+    if !authoring.input_bindings.is_empty() || !authoring.output_bindings.is_empty() {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-033",
+            format!("root form '{form_name}' has unbound runtime face ports"),
+        ));
+    }
+    Ok(authoring.expanded)
+}
+
+pub fn expand_canonical_form_for_authoring(
+    document: &CheckedSyntaxDocument,
+    form_name: &str,
+    catalog: &ProfileCatalog,
+) -> Result<ExpandedAuthoringForm, CanonicalExpansionDiagnostic> {
+    expand_canonical_form_for_authoring_with_backs(
+        document,
+        form_name,
+        catalog,
+        &CanonicalBackCatalog::new(),
+    )
+}
+
+pub fn expand_canonical_form_for_authoring_with_backs(
+    document: &CheckedSyntaxDocument,
+    form_name: &str,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+) -> Result<ExpandedAuthoringForm, CanonicalExpansionDiagnostic> {
     let forms = document
         .forms
         .iter()
@@ -51,12 +81,27 @@ pub fn expand_canonical_form_with_backs(
         &mut realization_backs,
         0,
     )?;
-    if !fragment.inputs.is_empty() || !fragment.outputs.is_empty() {
-        return Err(CanonicalExpansionDiagnostic::new(
-            "CND-FRM-033",
-            format!("root form '{form_name}' has unbound runtime face ports"),
-        ));
-    }
+    let face = form.checked_face();
+    let input_bindings = fragment
+        .inputs
+        .iter()
+        .flat_map(|(face_port, endpoints)| {
+            endpoints.iter().map(|endpoint| AuthoringFaceBinding {
+                face_port_id: conduit_core::PortId::from(face_port.as_str()),
+                gear_id: endpoint.gear_id.clone(),
+                gear_port_id: endpoint.port.port_id.clone(),
+            })
+        })
+        .collect();
+    let output_bindings = fragment
+        .outputs
+        .iter()
+        .map(|(face_port, endpoint)| AuthoringFaceBinding {
+            face_port_id: conduit_core::PortId::from(face_port.as_str()),
+            gear_id: endpoint.gear_id.clone(),
+            gear_port_id: endpoint.port.port_id.clone(),
+        })
+        .collect();
     let mut gears = fragment.gears;
     let mut connections = fragment.connections;
     let mut shared_pools = fragment.shared_pools;
@@ -88,16 +133,21 @@ pub fn expand_canonical_form_with_backs(
         &realization_backs,
     );
     let provenance_digest = provenance_digest(&document.source_document_id, &provenance);
-    Ok(ExpandedCanonicalForm {
-        source_document_id: document.source_document_id.clone(),
-        checked_form_id: form.checked_form_id.clone(),
-        expanded_form_id,
-        name: form.name.clone(),
-        gears,
-        connections,
-        shared_pools,
-        provenance,
-        provenance_digest,
-        realization_backs,
+    Ok(ExpandedAuthoringForm {
+        expanded: ExpandedCanonicalForm {
+            source_document_id: document.source_document_id.clone(),
+            checked_form_id: form.checked_form_id.clone(),
+            expanded_form_id,
+            name: form.name.clone(),
+            gears,
+            connections,
+            shared_pools,
+            provenance,
+            provenance_digest,
+            realization_backs,
+        },
+        face,
+        input_bindings,
+        output_bindings,
     })
 }

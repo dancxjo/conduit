@@ -25,7 +25,7 @@ pub enum GuiAction {
     PrewakeNextImplementation(PatchbaySubjectRef),
     SelectSubject(PatchbaySubjectRef),
     FlipGear(PatchbaySubjectRef),
-    OpenNextForm,
+    OpenBack,
     SaveForm,
     ToggleLinearView,
     PlacePaletteKind(String),

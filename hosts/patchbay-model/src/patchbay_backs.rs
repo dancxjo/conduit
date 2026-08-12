@@ -315,6 +315,8 @@ mod tests {
             kind_contract_revision: conduit_core::KindContractRevision::from(
                 "conduit.std/presentation-text@1",
             ),
+            source_form: "demo".into(),
+            form_path: vec!["demo".into()],
             inputs: vec![input.clone()],
             outputs: vec![output.clone()],
             controls: vec![FaceControl {

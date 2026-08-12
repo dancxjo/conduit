@@ -214,6 +214,7 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
         graph,
         super::gui::PatchbayViewContext {
             selected: None,
+            breadcrumb: "",
             lifecycle: &Default::default(),
             palette_query: "",
             presentation_layout: &application.layout,

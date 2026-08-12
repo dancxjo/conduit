@@ -156,35 +156,49 @@ impl FormEditor {
         sink_port_identity: &str,
     ) -> Result<(), FormEditorError> {
         self.require_revision(offered_revision)?;
-        let expanded = self.expand_form(&self.open_form)?;
-        let graph = PatchbayGraph::from_expanded(&expanded)
+        let expanded = self.expand_form_for_authoring(&self.open_form)?;
+        let graph = PatchbayGraph::from_authoring(&expanded)
             .map_err(|error| FormEditorError::Catalog(error.to_string()))?;
         if &graph.expanded_form_id != offered_expanded_form_id {
             return Err(FormEditorError::StaleGraphBasis);
         }
-        let source = graph
+        let internal_source = graph
             .gears
             .iter()
             .flat_map(|gear| &gear.outputs)
-            .find(|port| port.identity == source_port_identity)
-            .ok_or_else(|| FormEditorError::UnknownPort(source_port_identity.into()))?;
-        let sink = graph
+            .find(|port| port.identity == source_port_identity);
+        let face_source = graph
+            .face_inputs
+            .iter()
+            .find(|port| port.identity == source_port_identity);
+        let internal_sink = graph
             .gears
             .iter()
             .flat_map(|gear| &gear.inputs)
-            .find(|port| port.identity == sink_port_identity)
+            .find(|port| port.identity == sink_port_identity);
+        let face_sink = graph
+            .face_outputs
+            .iter()
+            .find(|port| port.identity == sink_port_identity);
+        let source_descriptor = internal_source
+            .map(|port| &port.descriptor)
+            .or_else(|| face_source.map(|port| &port.descriptor))
+            .ok_or_else(|| FormEditorError::UnknownPort(source_port_identity.into()))?;
+        let sink_descriptor = internal_sink
+            .map(|port| &port.descriptor)
+            .or_else(|| face_sink.map(|port| &port.descriptor))
             .ok_or_else(|| FormEditorError::UnknownPort(sink_port_identity.into()))?;
-        if source.descriptor.value_kind != sink.descriptor.value_kind {
+        if source_descriptor.value_kind != sink_descriptor.value_kind {
             return Err(FormEditorError::IncompatiblePorts(format!(
                 "Info {} cannot feed {}",
-                source.descriptor.value_kind.as_str(),
-                sink.descriptor.value_kind.as_str()
+                source_descriptor.value_kind.as_str(),
+                sink_descriptor.value_kind.as_str()
             )));
         }
-        if source.descriptor.temporal != sink.descriptor.temporal {
+        if source_descriptor.temporal != sink_descriptor.temporal {
             return Err(FormEditorError::IncompatiblePorts(format!(
                 "temporal contract {:?} cannot feed {:?}",
-                source.descriptor.temporal, sink.descriptor.temporal
+                source_descriptor.temporal, sink_descriptor.temporal
             )));
         }
         if graph.cords.iter().any(|cord| {
@@ -192,15 +206,31 @@ impl FormEditor {
         }) {
             return Err(FormEditorError::DuplicateCord);
         }
-        let source_name = direct_gear_name(&self.open_form, source.gear_id.as_str())?;
-        let sink_name = direct_gear_name(&self.open_form, sink.gear_id.as_str())?;
+        let source_reference = if let Some(source) = internal_source {
+            let source_name = direct_gear_name(&self.open_form, source.gear_id.as_str())?;
+            format!("{source_name}.{}", source.descriptor.port_id.as_str())
+        } else {
+            face_source
+                .expect("source descriptor was resolved")
+                .descriptor
+                .port_id
+                .as_str()
+                .to_owned()
+        };
+        let sink_reference = if let Some(sink) = internal_sink {
+            let sink_name = direct_gear_name(&self.open_form, sink.gear_id.as_str())?;
+            format!("{sink_name}.{}", sink.descriptor.port_id.as_str())
+        } else {
+            face_sink
+                .expect("sink descriptor was resolved")
+                .descriptor
+                .port_id
+                .as_str()
+                .to_owned()
+        };
         let form = self.open_graph_form()?;
         let close = form_close(&self.source, form)?;
-        let statement = format!(
-            "    {source_name}.{} > {sink_name}.{}\n",
-            source.descriptor.port_id.as_str(),
-            sink.descriptor.port_id.as_str()
-        );
+        let statement = format!("    {source_reference} > {sink_reference}\n");
         let mut candidate = self.source.clone();
         candidate.insert_str(close, &statement);
         self.apply_candidate(candidate)

@@ -157,6 +157,25 @@ pub struct ExpandedCanonicalForm {
     pub realization_backs: Vec<conduit_core::RealizationBack>,
 }
 
+/// Canonical graph expansion for authoring an open Back.
+///
+/// Unlike [`ExpandedCanonicalForm`] admission through `expand_canonical_form`, this projection
+/// deliberately retains unbound runtime Face Ports. It is not a runnable-root claim.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpandedAuthoringForm {
+    pub expanded: ExpandedCanonicalForm,
+    pub face: CheckedFace,
+    pub input_bindings: Vec<AuthoringFaceBinding>,
+    pub output_bindings: Vec<AuthoringFaceBinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthoringFaceBinding {
+    pub face_port_id: conduit_core::PortId,
+    pub gear_id: conduit_core::GearId,
+    pub gear_port_id: conduit_core::PortId,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpandedSharedPool {
     pub pool_id: conduit_core::SharedPoolId,

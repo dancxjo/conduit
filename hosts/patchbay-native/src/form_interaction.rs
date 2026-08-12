@@ -12,6 +12,15 @@ use patchbay_model::{
 };
 use winit::keyboard::{Key, NamedKey};
 
+pub(super) const MAX_BACK_NAVIGATION_DEPTH: usize = 16;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct BackNavigationEntry {
+    pub parent_form: String,
+    pub gear_name: String,
+    pub child_form: String,
+}
+
 pub(super) fn graphical_form_for_editor(
     editor: &FormEditor,
 ) -> Result<Option<patchbay_model::PatchbayGraph>, String> {
@@ -25,19 +34,10 @@ pub(super) fn graphical_form_for_editor(
     {
         return Ok(None);
     }
-    let open_form = view
-        .checked
-        .forms
-        .iter()
-        .find(|form| form.name == view.open_form)
-        .expect("open Form presence was checked");
-    if !open_form.face.inputs().is_empty() || !open_form.face.outputs().is_empty() {
-        return Ok(None);
-    }
     let expanded = editor
-        .expand_form(&view.open_form)
+        .expand_form_for_authoring(&view.open_form)
         .map_err(|error| error.to_string())?;
-    patchbay_model::PatchbayGraph::from_expanded(&expanded)
+    patchbay_model::PatchbayGraph::from_authoring(&expanded)
         .map(Some)
         .map_err(|error| error.to_string())
 }
@@ -87,7 +87,7 @@ impl PatchbayApplication {
                     .flip_gear(graph, &subject)
                     .map_err(|error| format!("Gear flip: {error:?}"))?;
             }
-            GuiAction::OpenNextForm => self.dispatch_invocation(PatchbayAction::OpenBack)?,
+            GuiAction::OpenBack => self.dispatch_invocation(PatchbayAction::OpenBack)?,
             GuiAction::SaveForm => self.dispatch_invocation(PatchbayAction::Save)?,
             GuiAction::ToggleLinearView => {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
@@ -145,6 +145,9 @@ impl PatchbayApplication {
     }
 
     fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
+        if action == PatchbayAction::OpenBack {
+            self.pending_back_target = self.selected_back_target();
+        }
         let target = self
             .graphical_form
             .as_ref()
@@ -217,7 +220,7 @@ impl PatchbayApplication {
             return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
         }
         let result = match invocation.action {
-            PatchbayAction::OpenBack => self.open_next_form(),
+            PatchbayAction::OpenBack => self.open_selected_back(),
             PatchbayAction::Save => match self.form_editor.as_mut() {
                 Some(editor) => save_form_resource(editor)
                     .and_then(|()| save_layout_resource(editor, &self.layout)),
@@ -265,24 +268,63 @@ impl PatchbayApplication {
         }
     }
 
-    fn open_next_form(&mut self) -> Result<(), String> {
-        let editor = self
-            .form_editor
-            .as_mut()
-            .ok_or("canonical Form editor is absent")?;
-        let view = editor.view();
-        if !view.checked.forms.is_empty() {
-            let current = view
-                .checked
-                .forms
-                .iter()
-                .position(|form| form.name == view.open_form)
-                .unwrap_or(0);
-            let next = &view.checked.forms[(current + 1) % view.checked.forms.len()].name;
-            editor.open_back(next).map_err(|error| error.to_string())?;
-            self.form_selection = 0;
-            self.refresh_graphical_form()?;
+    pub(super) fn open_selected_back(&mut self) -> Result<(), String> {
+        let target = self
+            .pending_back_target
+            .take()
+            .or_else(|| self.selected_back_target());
+        self.apply_back_navigation(target)
+    }
+
+    fn selected_back_target(&self) -> Option<BackNavigationEntry> {
+        let current_form = self.form_editor.as_ref()?.view().open_form;
+        self.selected_graphical_subject().and_then(|subject| {
+            self.graphical_form.as_ref().and_then(|graph| {
+                graph
+                    .gears
+                    .iter()
+                    .find(|gear| gear.identity == subject.subject_identity)
+                    .filter(|gear| gear.source_form != current_form)
+                    .map(|gear| {
+                        let gear_name = gear
+                            .form_path
+                            .iter()
+                            .skip_while(|segment| *segment != &current_form)
+                            .nth(1)
+                            .cloned()
+                            .unwrap_or_else(|| gear.gear_id.as_str().to_owned());
+                        BackNavigationEntry {
+                            parent_form: current_form.clone(),
+                            gear_name,
+                            child_form: gear.source_form.clone(),
+                        }
+                    })
+            })
+        })
+    }
+
+    fn apply_back_navigation(&mut self, target: Option<BackNavigationEntry>) -> Result<(), String> {
+        if let Some(target) = target {
+            if self.back_navigation.len() == MAX_BACK_NAVIGATION_DEPTH {
+                return Err("Back navigation exceeds the finite Form nesting bound".into());
+            }
+            self.form_editor
+                .as_mut()
+                .expect("editor presence was checked")
+                .open_back(&target.child_form)
+                .map_err(|error| error.to_string())?;
+            self.back_navigation.push(target);
+        } else if let Some(target) = self.back_navigation.pop() {
+            self.form_editor
+                .as_mut()
+                .expect("editor presence was checked")
+                .open_back(&target.parent_form)
+                .map_err(|error| error.to_string())?;
+        } else {
+            return Err("select a composed Gear before opening its Back".into());
         }
+        self.form_selection = 0;
+        self.refresh_graphical_form()?;
         Ok(())
     }
 
@@ -414,6 +456,10 @@ impl PatchbayApplication {
                     _ => return Err("select a Gear or Cord before removing it".into()),
                 };
                 self.handle_gui_action(action)?;
+                synchronize_linear_selection = false;
+            }
+            Key::Named(NamedKey::Enter) if self.graphical_form.is_some() && !self.linear_view => {
+                self.dispatch_invocation(PatchbayAction::OpenBack)?;
                 synchronize_linear_selection = false;
             }
             Key::Named(NamedKey::Backspace) => self.edit_source(|source| {
