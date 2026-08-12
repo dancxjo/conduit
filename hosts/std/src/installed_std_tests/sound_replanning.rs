@@ -3,7 +3,9 @@ use crate::hosted_audio::{
     AlsaPlaybackObservation, FakePlaybackBehavior, HostedPlaybackSelection, PlaybackLifecycle,
 };
 use crate::{StdHost, StdHostComposition, StdHostConfig};
-use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration, SignId};
+use conduit_core::{
+    bind_active_play, BootId, ConnectionBase, HostId, NoteOccurrenceId, OfferGeneration, SignId,
+};
 use conduit_planner::{
     replan_selected_realizations_with_characteristics, PlanningOptions, RealizationReplanOutcome,
     SelectedRealizationPlanning,
@@ -86,6 +88,17 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
     );
     let plan_a = plan(&host_a, &checked_form);
     let immutable_plan_a = plan_a.clone();
+    let fragment_a = &plan_a.fragments[0];
+    let play_a = bind_active_play(&plan_a.plan_id, &fragment_a.host_id, &fragment_a.boot_id, 0);
+    let mut musical_state = crate::sound_recovery::ActiveSoundState::<8>::new(
+        plan_a.plan_id.clone(),
+        play_a.active_play_id.clone(),
+    );
+    musical_state.note_on(NoteOccurrenceId(41)).unwrap();
+    musical_state.note_on(NoteOccurrenceId(42)).unwrap();
+    musical_state.set_sustain(true).unwrap();
+    musical_state.set_pitch_bend(0, 9_000).unwrap();
+    musical_state.set_controller(0, 1, 64).unwrap();
 
     let loss = host_a
         .run_fragment_to(
@@ -95,6 +108,13 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
         )
         .expect_err("active provider loss remains terminal and machine-readable");
     assert!(loss.contains("OperationFailed(75)"), "{loss}");
+    let interrupted = musical_state.provider_lost().unwrap();
+    assert_eq!(interrupted.active_notes_interrupted, 2);
+    assert!(interrupted.sustain_was_down);
+    assert_eq!(interrupted.pitch_channels_reset, 1);
+    assert_eq!(interrupted.controller_values_reset, 1);
+    assert!(!interrupted.device_note_off_confirmed);
+    assert!(!interrupted.drain_confirmed);
 
     let mut host_b = host(
         "sound-boot-b",
@@ -161,6 +181,26 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
     assert_ne!(playback_a.resources, playback_b.resources);
     assert_ne!(playback_a.authority, playback_b.authority);
     assert!(!playback_b.resources[0].pool_id.as_str().contains("default"));
+    let fragment_b = &plan_b.fragments[0];
+    let play_b = bind_active_play(&plan_b.plan_id, &fragment_b.host_id, &fragment_b.boot_id, 1);
+    let mut replacement = crate::sound_recovery::ReplacementSoundState::<8>::start(
+        &interrupted,
+        plan_b.plan_id.clone(),
+        play_b.active_play_id.clone(),
+    )
+    .unwrap();
+    assert_eq!(replacement.state().active_note_count(), 0);
+    assert!(!replacement.state().sustain_down());
+    assert_eq!(replacement.state().changed_pitch_channel_count(), 0);
+    assert_eq!(replacement.state().controller_value_count(), 0);
+    replacement.expect_completion(17).unwrap();
+    assert_eq!(
+        replacement.accept_completion(&play_a.active_play_id, 17),
+        Err(crate::sound_recovery::SoundRecoveryError::StaleCompletion)
+    );
+    replacement
+        .accept_completion(&play_b.active_play_id, 17)
+        .unwrap();
 
     let stale = host_b
         .run_fragment_to(
