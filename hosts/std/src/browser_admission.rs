@@ -112,7 +112,7 @@ impl BrowserAdmissionListener {
         Ok(self.inner.url()?)
     }
 
-    pub fn accept(self) -> Result<BrowserAdmissionSocket, BrowserAdmissionSocketError> {
+    pub fn accept(&self) -> Result<BrowserAdmissionSocket, BrowserAdmissionSocketError> {
         Ok(BrowserAdmissionSocket {
             line: self.inner.accept()?,
             input: [0; MAX_BROWSER_ADMISSION_FRAME_BYTES],

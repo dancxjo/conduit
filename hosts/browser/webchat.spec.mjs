@@ -5,6 +5,32 @@ let server;
 let websocketUrl;
 let serverOutput = "";
 
+async function startWebchatServer() {
+  const process = spawn("target/debug/webchat-server", ["127.0.0.1:0"], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const url = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("webchat server did not become ready")), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const match = output.match(/external-websocket-ready address=([^\s]+)/);
+      if (match) {
+        clearTimeout(timeout);
+        resolve(`ws://${match[1]}`);
+      }
+    };
+    process.stdout.on("data", inspect);
+    process.stderr.on("data", inspect);
+    process.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) reject(new Error(`webchat server exited before ready (${code})\n${output}`));
+    });
+  });
+  return { process, url, output: () => output };
+}
+
 test.beforeAll(async () => {
   server = spawn("target/debug/webchat-server", ["127.0.0.1:0"], {
     cwd: new URL("../..", import.meta.url).pathname,
@@ -161,4 +187,45 @@ test("two native browser clients exchange bounded chat through planned kernels",
   expect(serverOutput).not.toContain("hello from");
   expect(serverOutput).not.toContain("remaining peer continues");
   await context.close();
+});
+
+test("Body-directed fragment admits exactly one browser and replay stays refused", async ({ browser }) => {
+  const spawnChat = await startWebchatServer();
+  const spawnServer = spawn("target/debug/browser-spawn-probe", [], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const invitation = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("spawn probe did not become ready")), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const body = output.match(/body_url=([^\s]+)/)?.[1];
+      const spawnHex = output.match(/spawn_hex=([^\s]+)/)?.[1];
+      if (body && spawnHex) {
+        clearTimeout(timeout);
+        resolve({ body, spawnHex });
+      }
+    };
+    spawnServer.stdout.on("data", inspect);
+    spawnServer.stderr.on("data", inspect);
+    spawnServer.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) reject(new Error(`spawn probe failed (${code})\n${output}`));
+    });
+  });
+  const context = await browser.newContext();
+  const fragment = `#body=${encodeURIComponent(invitation.body)}&spawn_hex=${invitation.spawnHex}`;
+  const target = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(spawnChat.url)}${fragment}`;
+  const admitted = await context.newPage();
+  await admitted.goto(target);
+  await expect(admitted.getByRole("status")).toHaveText("connected");
+  await expect.poll(() => admitted.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting")).toBe("admitted");
+  const replay = await context.newPage();
+  await replay.goto(target);
+  await expect.poll(() => replay.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting")).toBe("refused:replay");
+  await expect.poll(() => spawnServer.exitCode).toBe(0);
+  expect(output).toContain("spawn_admitted=1 replay_refused=true members=1");
+  expect(await admitted.evaluate(() => globalThis.__webchat.admissionCandidate.hostId))
+    .not.toBe(await replay.evaluate(() => globalThis.__webchat.admissionCandidate.hostId));
 });

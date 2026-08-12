@@ -56,7 +56,7 @@ impl NativeWebSocketListener {
         Ok(format!("ws://{address}/conduit"))
     }
 
-    pub fn accept(self) -> Result<NativeWebSocketLine, NativeWebSocketError> {
+    pub fn accept(&self) -> Result<NativeWebSocketLine, NativeWebSocketError> {
         let (stream, peer) = self
             .listener
             .accept()
