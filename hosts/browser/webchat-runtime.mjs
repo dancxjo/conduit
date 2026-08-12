@@ -27,9 +27,16 @@ function requireApi(api) {
     "conduit_browser_webchat_disconnected",
     "conduit_browser_webchat_capacity_stable",
     "conduit_browser_webchat_request_count",
+    "conduit_browser_membership_input_ptr",
+    "conduit_browser_membership_input_capacity",
+    "conduit_browser_membership_output_ptr",
+    "conduit_browser_membership_output_len",
+    "conduit_browser_membership_initialize",
+    "conduit_browser_membership_prove",
   ];
   if (names.some((name) => !(name in api)) ||
-      api.conduit_browser_webchat_input_capacity() !== INPUT_CAPACITY) {
+      api.conduit_browser_webchat_input_capacity() !== INPUT_CAPACITY ||
+      api.conduit_browser_membership_input_capacity() !== INPUT_CAPACITY) {
     throw new Error("CND-CHAT-001 incomplete browser webchat ABI");
   }
 }
@@ -64,6 +71,32 @@ export async function createWebchatRuntime({ wasmBytes, url, list, input, button
   const decoder = new TextDecoder("utf-8", { fatal: true });
   const hostId = `browser/${crypto.randomUUID()}`;
   const bootId = `browser-boot/${crypto.randomUUID()}`;
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  const hostBytes = encoder.encode(hostId);
+  const bootBytes = encoder.encode(bootId);
+  const membershipFrame = new Uint8Array(hostBytes.length + bootBytes.length + seed.length);
+  membershipFrame.set(hostBytes);
+  membershipFrame.set(bootBytes, hostBytes.length);
+  membershipFrame.set(seed, hostBytes.length + bootBytes.length);
+  new Uint8Array(
+    api.memory.buffer,
+    api.conduit_browser_membership_input_ptr(),
+    membershipFrame.length,
+  ).set(membershipFrame);
+  requireStatus(
+    api.conduit_browser_membership_initialize(hostBytes.length, bootBytes.length),
+    "membership initialization",
+  );
+  seed.fill(0);
+  membershipFrame.fill(0);
+  const verifyingKey = readBytes(
+    api,
+    api.conduit_browser_membership_output_ptr(),
+    api.conduit_browser_membership_output_len(),
+  );
+  if (verifyingKey.length !== 32) {
+    throw new Error("CND-CHAT-010 invalid membership verifying key");
+  }
   const startFrame = encoder.encode(`${url}\n${hostId}\n${bootId}`);
   writeInput(api, startFrame);
   requireStatus(api.conduit_browser_webchat_start(startFrame.length), "start");
@@ -177,9 +210,36 @@ export async function createWebchatRuntime({ wasmBytes, url, list, input, button
     api.conduit_browser_webchat_identity_ptr(),
     api.conduit_browser_webchat_identity_len(),
   ));
+  function proveAdmission(challenge) {
+    const bytes = encoder.encode(JSON.stringify(challenge));
+    if (bytes.length === 0 || bytes.length > api.conduit_browser_membership_input_capacity()) {
+      throw new Error("CND-CHAT-011 invalid admission challenge length");
+    }
+    new Uint8Array(
+      api.memory.buffer,
+      api.conduit_browser_membership_input_ptr(),
+      bytes.length,
+    ).set(bytes);
+    requireStatus(api.conduit_browser_membership_prove(bytes.length), "admission proof");
+    const signature = readBytes(
+      api,
+      api.conduit_browser_membership_output_ptr(),
+      api.conduit_browser_membership_output_len(),
+    );
+    if (signature.length !== 64) {
+      throw new Error("CND-CHAT-012 invalid admission signature");
+    }
+    return signature;
+  }
   return Object.freeze({
     submit: (text) => enqueue(async () => { input.value = text; await submit(); }),
     disconnect: () => enqueue(disconnect),
+    admissionCandidate: Object.freeze({
+      hostId,
+      bootId,
+      verifyingKey,
+      prove: proveAdmission,
+    }),
     proof: () => Object.freeze({
       identity,
       history: Object.freeze([...list.children].map((item) => item.textContent)),
