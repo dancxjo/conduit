@@ -120,7 +120,17 @@ pub(super) fn run(args: &PicoArgs) -> PicoResult<()> {
     let checked = conduit_form::parse(&source, &conduit_signal::signal_profile_catalog())?;
     let hosts = [advertisement.clone()];
     let placements = conduit_planner::default_placements(&checked, &hosts)?;
-    let plan = conduit_planner::plan(&checked, &hosts, &placements, &[ConnectionBase::Local])?;
+    // The provisioned Pico advertises the exact capacity-one kernel image. Seal
+    // that reviewed finite budget into the ordinary Plan instead of asking the
+    // planner's hosted convenience default for four queue items.
+    let plan = conduit_planner::plan_with_connection_limits(
+        &checked,
+        &hosts,
+        &placements,
+        &[ConnectionBase::Local],
+        1,
+        conduit_signal::SIGNAL_ENCODED_LEN as u32,
+    )?;
     let all_plan_fragments_on_admitted_pico = plan.fragments.iter().all(|fragment| {
         fragment.host_id == advertisement.host_id && fragment.boot_id == advertisement.boot_id
     });
