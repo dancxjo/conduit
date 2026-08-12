@@ -24,6 +24,7 @@ mod loongarch64_a2;
 #[allow(dead_code)]
 mod loongarch64_a3;
 mod loongarch64_a4;
+mod opl2_proof;
 mod pc_speaker_proof;
 mod profile;
 mod prove;
@@ -88,6 +89,8 @@ enum ConduitosCommand {
     HotplugProof,
     /// Prove one low-level local rescue request and real fresh boot.
     RescueProof,
+    /// Prove one exact native OPL2 musical realization on QEMU AdLib.
+    Opl2Proof,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -250,6 +253,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
         ConduitosCommand::RescueProof => rescue_proof::execute(opts),
+        ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
     }
 }
 

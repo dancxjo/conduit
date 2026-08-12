@@ -297,6 +297,33 @@ extern "C" fn conduitos_start() -> ! {
                 Ok(offer) => offer,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
+            let opl2_offer = conduitos::opl2_offer::Opl2Offer {
+                artifact_build: BUILD_ID,
+                realization: conduitos::opl2_offer::Opl2Realization {
+                    base_id: identity::derive_base(&identities.boot, "conduitos/opl2/0"),
+                    clock_hz: conduitos::opl2_offer::OPL2_CLOCK_HZ,
+                    channels: conduitos::opl2_offer::OPL2_CHANNELS,
+                    maximum_error_parts_per_million: 2_500,
+                    event_slots: 32,
+                    register_write_slots: 512,
+                    patch_profile: conduitos::opl2_offer::OPL2_PATCH_PROFILE,
+                },
+            };
+            let opl2_prepared =
+                match conduitos::opl2_plan::prepare(&identities, &offer, opl2_offer, BUILD_ID) {
+                    Ok(prepared) => prepared,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+            let mut opl2_execution = match conduitos::opl2_play::prepare_execution(
+                &opl2_prepared,
+                conduitos::opl2_play::reviewed_values(),
+            ) {
+                Ok(execution) => execution,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let opl2_host_id = identity::hex(&identities.host);
+            let opl2_boot_id = identity::hex(&identities.boot);
+            let opl2_base_id = identity::hex(&opl2_offer.realization.base_id);
             let keyboard_prepared =
                 match conduitos::keyboard_plan::prepare(&identities, &offer, BUILD_ID) {
                     Ok(prepared) => prepared,
@@ -540,6 +567,44 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(b"CONDUIT_BOOT_STAGE inspection\n");
             let allocation_before_play = BOOT_ARENA.seal();
             arch::initialize_machine();
+            let mut opl2 = arch::Opl2::new();
+            arch::early_write(b"CONDUIT_BOOT_STAGE opl2-play-started\n");
+            let opl2_report = match conduitos::opl2_play::run(&mut opl2_execution, &mut opl2) {
+                Ok(report) => report,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            arch::early_write(b"CONDUIT_BOOT_STAGE opl2-play-finished\n");
+            let mut opl2_sign = proof::FixedText::new();
+            if writeln!(
+                opl2_sign,
+                "CONDUIT_OPL2_SIGN {{\"schema\":\"conduit.conduitos.opl2-proof/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"base_id\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"patch_profile\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"placements\":{},\"cords\":{},\"events\":{},\"peak_voices\":{},\"voice_capacity\":9,\"reset_writes\":{},\"patch_writes\":{},\"event_writes\":{},\"quiesce_writes\":{},\"register_write_capacity\":512,\"kernel_decisions\":{},\"kernel_signs\":{},\"final_active_voices\":{},\"device\":\"qemu-adlib-ym3812\",\"iobase\":904,\"pcm_claimed\":false,\"subtractive_controls_claimed\":false,\"physical_hardware_claimed\":false,\"bounded\":true,\"completed\":{}}}",
+                opl2_host_id,
+                opl2_boot_id,
+                opl2_base_id,
+                conduitos::opl2_offer::OPL2_IMPLEMENTATION,
+                conduitos::opl2_offer::OPL2_EXECUTION_PROFILE,
+                conduitos::opl2_offer::OPL2_PATCH_PROFILE,
+                opl2_prepared.plan.plan_id.as_str(),
+                opl2_prepared.active_play.active_play_id.as_str(),
+                opl2_prepared.plan.fragments[0].placements.len(),
+                opl2_prepared.plan.fragments[0].connections.len(),
+                opl2_report.events,
+                opl2_report.peak_voices,
+                opl2_report.reset_writes,
+                opl2_report.patch_writes,
+                opl2_report.event_writes,
+                opl2_report.quiesce_writes,
+                opl2_report.kernel_decisions,
+                opl2_report.kernel_signs,
+                opl2_report.final_active_voices,
+                opl2_report.completed,
+            )
+            .is_err()
+            {
+                emit_machine_refusal("opl2-sign-storage-full");
+            }
+            arch::early_write(opl2_sign.as_bytes());
+            arch::early_write(b"CONDUIT_BOOT_STAGE opl2-completed\n");
             let mut clock = arch::Clock::new();
             let mut timer = arch::Timer::new();
             let mut serial = arch::Serial::new();
