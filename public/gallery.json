@@ -1,8 +1,9 @@
 {
   "schema": "conduit.visual-evidence-gallery/v1",
-  "current_commit": "ad692e2abf17c3e477daa9d59fce1364467a8989",
+  "current_commit": "6aac3621e26a16bfeee85dc80f4f6a4ee08b84e4",
   "retention_commits": 32,
   "commits": [
+    "6aac3621e26a16bfeee85dc80f4f6a4ee08b84e4",
     "ad692e2abf17c3e477daa9d59fce1364467a8989",
     "5e85583ae59e454ba126c658787b0206821cce3c",
     "2914ca492e558d851a9930ead6cb47e326ce24c7",
@@ -33,7 +34,6 @@
     "5d07d489059050c5fa295c61cd361341e8bfcda5",
     "ac730bf64a31e4a8245774ede300a170c3fe21d9",
     "70a5ad28de0bf123b6c3e3169667c734688e8e2a",
-    "60287d61d088e62830c57cb3d5a404f3654114b5",
-    "430eeaabe4b9ca2694d47dc0f7b9427bd9668642"
+    "60287d61d088e62830c57cb3d5a404f3654114b5"
   ]
 }
