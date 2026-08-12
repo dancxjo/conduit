@@ -95,6 +95,12 @@ pub struct CheckArgs {
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CheckSuite {
     Workspace,
+    WorkspaceLint,
+    WorkspaceTestFoundation,
+    WorkspaceTestHosts,
+    WorkspaceTestProducts,
+    WorkspacePortable,
+    WorkspacePico,
     Browser,
     BrowserHost,
     Sim,
