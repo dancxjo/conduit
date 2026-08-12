@@ -229,3 +229,67 @@ test("Body-directed fragment admits exactly one browser and replay stays refused
   expect(await admitted.evaluate(() => globalThis.__webchat.admissionCandidate.hostId))
     .not.toBe(await replay.evaluate(() => globalThis.__webchat.admissionCandidate.hostId));
 });
+
+test("one native Body presents three mixed browser Parts without mutating its Plan", async ({ browser }) => {
+  const ambientChat = await startWebchatServer();
+  const spawnedChat = await startWebchatServer();
+  const capstone = spawn("target/debug/browser-parts-capstone", [], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const invitation = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("Parts capstone did not become ready")), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const body = output.match(/body_url=([^\s]+)/)?.[1];
+      const spawnHex = output.match(/spawn_hex=([^\s]+)/)?.[1];
+      if (body && spawnHex) {
+        clearTimeout(timeout);
+        resolve({ body, spawnHex });
+      }
+    };
+    capstone.stdout.on("data", inspect);
+    capstone.stderr.on("data", inspect);
+    capstone.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) reject(new Error(`Parts capstone failed (${code})\n${output}`));
+    });
+  });
+  const context = await browser.newContext();
+  const ambientTarget = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(ambientChat.url)}&body=${encodeURIComponent(invitation.body)}`;
+  const first = await context.newPage();
+  await first.goto(ambientTarget);
+  await expect.poll(() => first.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting")).toBe("admitted");
+  const second = await context.newPage();
+  await second.goto(ambientTarget);
+  await expect.poll(() => second.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting")).toBe("admitted");
+
+  const fragment = `#body=${encodeURIComponent(invitation.body)}&spawn_hex=${invitation.spawnHex}`;
+  const spawnTarget = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(spawnedChat.url)}${fragment}`;
+  const third = await context.newPage();
+  await third.goto(spawnTarget);
+  await expect.poll(async () => {
+    if (capstone.exitCode !== null) throw new Error(`Parts capstone exited (${capstone.exitCode})\n${output}`);
+    return third.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting");
+  }).toBe("admitted");
+  const replay = await context.newPage();
+  await replay.goto(spawnTarget);
+  await expect.poll(() => replay.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting")).toBe("refused:replay");
+
+  await expect.poll(() => output).toContain("ready_for_offline");
+  expect(output.match(/wants_to_join=/g)).toHaveLength(2);
+  await first.close();
+  await expect.poll(() => capstone.exitCode).toBe(0);
+  expect(output).toContain("members=4 browser_parts=3 offline=1");
+  expect(output).toContain("replay_refused=true plan_unchanged=true cross_host_fragments=2");
+  const identities = await Promise.all([second, third].map((page) => page.evaluate(() => ({
+    host: globalThis.__webchat.admissionCandidate.hostId,
+    boot: globalThis.__webchat.admissionCandidate.bootId,
+  }))));
+  expect(identities[0].host).not.toBe(identities[1].host);
+  expect(identities[0].boot).not.toBe(identities[1].boot);
+  await context.close();
+  if (ambientChat.process.exitCode === null) ambientChat.process.kill("SIGTERM");
+  if (spawnedChat.process.exitCode === null) spawnedChat.process.kill("SIGTERM");
+});

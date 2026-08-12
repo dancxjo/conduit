@@ -2047,8 +2047,10 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-browser-runtime",
+ "conduit-chat",
  "conduit-core",
  "conduit-form",
+ "conduit-net",
  "conduit-observatory",
  "conduit-planner",
  "conduit-presentation",

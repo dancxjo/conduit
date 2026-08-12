@@ -3,11 +3,16 @@ name = "patchbay-native"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
+default-run = "patchbay-native"
 
 [dependencies]
 conduit-body = { path = "../../crates/conduit-body" }
+conduit-chat = { path = "../../crates/conduit-chat", features = ["form-catalog"] }
 conduit-core = { path = "../../crates/conduit-core" }
+conduit-form = { path = "../../crates/conduit-form" }
+conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog"] }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
+conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", features = ["form-catalog"] }
 conduit-std-host = { path = "../std" }
@@ -20,5 +25,3 @@ winit = { version = "0.30", default-features = false, features = ["rwh_06", "way
 [dev-dependencies]
 conduit-browser-runtime = { path = "../browser-runtime" }
 conduitos = { path = "../conduitos" }
-conduit-form = { path = "../../crates/conduit-form" }
-conduit-planner = { path = "../../crates/conduit-planner" }

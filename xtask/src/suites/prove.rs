@@ -156,6 +156,22 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
         ],
     ),
     Step::typed(
+        "prove.body-membership.browser-parts-capstone-build",
+        "Build the bounded native Body and browser Parts capstone",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "patchbay-native",
+            "--bin",
+            "browser-parts-capstone",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/browser-parts-capstone"],
+    ),
+    Step::typed(
         "prove.body-membership.live-browser-admission",
         "Prove exact browser advertisement challenge proof and membership in Chromium",
         "npx",
@@ -281,7 +297,10 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         None,
         None,
         Some(ProofClass::ContractCompile),
-        &["target/debug/patchbay-native"],
+        &[
+            "target/debug/patchbay-native",
+            "target/debug/browser-parts-capstone",
+        ],
     ),
     Step::typed(
         "prove.browser-host.patchbay-html-build",
