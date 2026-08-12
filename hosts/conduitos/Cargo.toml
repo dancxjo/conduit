@@ -48,7 +48,7 @@ required-features = ["ia32-a2"]
 
 [[bin]]
 name = "conduitos-ia32-a3"
-path = "src/bin/ia32_a2.rs"
+path = "src/bin/ia32_a3.rs"
 test = false
 bench = false
 required-features = ["ia32-a3"]
@@ -76,7 +76,7 @@ required-features = ["riscv64-a3"]
 
 [[bin]]
 name = "conduitos-riscv64-a4"
-path = "src/bin/riscv64_a3.rs"
+path = "src/bin/riscv64_a4.rs"
 test = false
 bench = false
 required-features = ["riscv64-a4"]
@@ -104,7 +104,7 @@ required-features = ["loongarch64-a3"]
 
 [[bin]]
 name = "conduitos-loongarch64-a4"
-path = "src/bin/loongarch64_a3.rs"
+path = "src/bin/loongarch64_a4.rs"
 test = false
 bench = false
 required-features = ["loongarch64-a4"]
