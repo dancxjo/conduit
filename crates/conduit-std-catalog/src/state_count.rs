@@ -19,6 +19,10 @@ pub const STATE_COUNT_EXECUTION_PROFILE: &str = "conduit.std/state-count-kernel-
 pub const STATE_COUNT_IMPLEMENTATION: &str = "std/kernel-state-count@1";
 pub const STATE_COUNT_ARTIFACT: &str = "conduit-std-host/state-count@1";
 pub const STATE_COUNT_CAPABILITY: &str = "state-count-v1";
+pub const CONDUITOS_STATE_COUNT_CAPABILITY: &str = "conduitos-state-count-v1";
+pub const CONDUITOS_STATE_COUNT_IMPLEMENTATION: &str = "conduitos/kernel-state-count@1";
+pub const CONDUITOS_PORTABLE_STATE_INPUT_PROFILE: &str = "conduitos/portable-state-input-fixed@1";
+pub const CONDUITOS_PORTABLE_STATE_INPUT_ARTIFACT: &str = "conduitos/portable-state-input@1";
 
 pub const COUNT_PRESENTATION_KIND: &str = "presentation/count";
 pub const COUNT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-count@1";
@@ -30,6 +34,14 @@ pub const COUNT_PRESENTATION_CAPABILITY: &str = "presentation-count-v1";
 pub const COUNT_PRESENTATION_TARGET: &str = "presentation/stdout-count";
 pub const COUNT_ENCODED_LEN: u32 = 8;
 pub const MAX_COUNT_VALUES: u64 = TIME_EVERY_COUNT + 1;
+
+pub const fn bounded_count_value(start: u64, index: u64) -> Option<u64> {
+    if index < MAX_COUNT_VALUES {
+        start.checked_add(index)
+    } else {
+        None
+    }
+}
 
 pub fn state_count_contract() -> StandardKindContract {
     StandardKindContract {
@@ -116,6 +128,17 @@ pub fn state_count_offer() -> CapabilityOffer {
         Vec::new(),
         Vec::new(),
     )
+}
+
+pub fn conduitos_state_count_offer() -> CapabilityOffer {
+    let mut offer = state_count_offer();
+    offer.capability_id = CapabilityId::from(CONDUITOS_STATE_COUNT_CAPABILITY);
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(CONDUITOS_PORTABLE_STATE_INPUT_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(CONDUITOS_STATE_COUNT_IMPLEMENTATION);
+    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_PORTABLE_STATE_INPUT_ARTIFACT);
+    offer
 }
 
 pub fn count_presentation_offer() -> CapabilityOffer {
