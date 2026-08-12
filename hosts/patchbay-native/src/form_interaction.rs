@@ -116,6 +116,9 @@ impl PatchbayApplication {
             GuiAction::ToggleLinearView => {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
             }
+            GuiAction::ToggleExactIdentity => {
+                self.exact_identity_open = !self.exact_identity_open;
+            }
             GuiAction::PlacePaletteKind(kind) => self.dispatch_palette_placement(&kind)?,
             GuiAction::DuplicateGear(subject) => {
                 self.dispatch_gear_edit(PatchbayAction::DuplicateGear, &subject)?
@@ -483,6 +486,28 @@ impl PatchbayApplication {
     pub(super) fn handle_form_key(&mut self, key: &Key) -> Result<bool, String> {
         if self.form_editor.is_none() {
             return Ok(false);
+        }
+        let selected = self.selected_graphical_identity().map(str::to_owned);
+        let face_key = crate::face_control_keyboard::resolve_face_control_key(
+            key,
+            self.modifiers,
+            self.graphical_form.as_ref(),
+            self.linear_view,
+            selected.as_deref(),
+            &mut self.face_control_focus,
+        )?;
+        match face_key {
+            crate::face_control_keyboard::FaceControlKey::Action(action) => {
+                self.handle_gui_action(action)?;
+                return Ok(true);
+            }
+            crate::face_control_keyboard::FaceControlKey::FocusChanged => {
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+                return Ok(true);
+            }
+            crate::face_control_keyboard::FaceControlKey::NotHandled => {}
         }
         let mut synchronize_linear_selection = true;
         match key {

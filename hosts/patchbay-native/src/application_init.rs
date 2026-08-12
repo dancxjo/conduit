@@ -131,6 +131,8 @@ impl PatchbayApplication {
             native_keyboard: portable_keyboard::NativeKeyboardInput::new(),
             palette_query: String::new(),
             palette_search_active: false,
+            exact_identity_open: false,
+            face_control_focus: 0,
             palette_drag: None,
             cord_drag: None,
             cord_route_drag: None,
