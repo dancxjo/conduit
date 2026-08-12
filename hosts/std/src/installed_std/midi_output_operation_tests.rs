@@ -202,6 +202,7 @@ fn provider_loss_remains_a_host_failure() {
         session.report().lifecycle,
         crate::hosted_midi::MidiOutputLifecycle::Failed
     );
+    assert!(session.report().normalized_note_events.is_empty());
 }
 
 #[test]

@@ -196,11 +196,19 @@ pub(super) fn execute(
     contract: &str,
     input: &[u8],
 ) -> conduit_kernel::HostOperationOutcome {
-    let encoded = if contract == conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION {
-        conduit_core::MusicalNoteEvent::decode(input)
-            .map_err(|_| ())
-            .and_then(|event| adapter.encode_note(event).map_err(|_| ()))
-    } else if contract == conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION {
+    if contract == conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION {
+        let Ok(event) = conduit_core::MusicalNoteEvent::decode(input) else {
+            return failed(conduit_kernel::FailureCode::InvalidInput, 84);
+        };
+        let Ok(encoded) = adapter.encode_note(event) else {
+            return failed(conduit_kernel::FailureCode::InvalidInput, 84);
+        };
+        return match session.send_note(event, encoded) {
+            Ok(()) => completed(),
+            Err(error) => output_failure(error),
+        };
+    }
+    let encoded = if contract == conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION {
         conduit_core::MusicalControlEvent::decode(input)
             .map_err(|_| ())
             .and_then(|event| adapter.encode_control(event).map_err(|_| ()))
