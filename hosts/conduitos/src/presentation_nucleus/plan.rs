@@ -233,8 +233,17 @@ mod tests {
             &CanonicalBackCatalog::new(),
         )
         .unwrap();
+        let mut host_without_patchbay_direct = advertisement("test-host", "test-boot");
+        host_without_patchbay_direct.capabilities.retain(|offer| {
+            !matches!(
+                offer.kind_id.as_str(),
+                conduit_std_catalog::PATCHBAY_PRESENTATION_KIND
+                    | conduit_std_catalog::PATCHBAY_PORT_KIND
+                    | conduit_std_catalog::PATCHBAY_CORD_KIND
+            )
+        });
         let missing_back =
-            default_expanded_placements(&unexpanded, &[advertisement("test-host", "test-boot")])
+            default_expanded_placements(&unexpanded, &[host_without_patchbay_direct.clone()])
                 .unwrap_err();
 
         let mut backs = CanonicalBackCatalog::new();
@@ -243,7 +252,7 @@ mod tests {
         let expanded =
             expand_canonical_form_with_backs(&checked, "conduitos-gear-face", &profile, &backs)
                 .unwrap();
-        let mut host = advertisement("test-host", "test-boot");
+        let mut host = host_without_patchbay_direct;
         host.capabilities.retain(|offer| {
             offer.kind_id.as_str() != conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
         });
