@@ -204,6 +204,22 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["target/debug/webchat-server"],
     ),
     Step::typed(
+        "prove.browser-host.admission-server-build",
+        "Build bounded browser Body admission proof server artifact",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "browser-admission-probe",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/browser-admission-probe"],
+    ),
+    Step::typed(
         "prove.browser-host.pool-webchat-server-build",
         "Build bounded shared-pool chat server artifact",
         "cargo",
