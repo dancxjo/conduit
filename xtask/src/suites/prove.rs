@@ -1,5 +1,66 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.body-membership.core",
+        "Run bounded Body membership, admission, topology, and continuity conformance",
+        "cargo",
+        &["test", "-p", "conduit-body"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
+        "prove.body-membership.browser-runtime",
+        "Prove browser-owned admission identity",
+        "cargo",
+        &["test", "-p", "conduit-browser-runtime", "membership::"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
+        "prove.body-membership.browser-parts",
+        "Prove three browser Parts and immutable replanning",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-browser-sim",
+            "--test",
+            "body_membership",
+            "--test",
+            "part_replan",
+        ],
+        None,
+        None,
+        Some(ProofClass::DeterministicSimulation),
+        &[],
+    ),
+    Step::typed(
+        "prove.body-membership.pico",
+        "Prove provisioned Pico candidacy, admission, and planning",
+        "cargo",
+        &["test", "-p", "conduit-pico-sim", "--test", "body_admission"],
+        None,
+        None,
+        Some(ProofClass::DeterministicSimulation),
+        &[],
+    ),
+    Step::typed(
+        "prove.body-membership.parts-view",
+        "Prove human-first Parts projection from canonical truth",
+        "cargo",
+        &["test", "-p", "patchbay-model", "parts_view"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+];
+
 pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
     Step::typed(
         "prove.std-browser-s4.wasm-build",
