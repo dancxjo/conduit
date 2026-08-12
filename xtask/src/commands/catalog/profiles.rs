@@ -117,5 +117,11 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement
         .capabilities
         .push(conduit_std_catalog::conduitos_math_clamp_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_state_latest_scalar_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_flow_tee_scalar_offer());
     Ok(advertisement)
 }
