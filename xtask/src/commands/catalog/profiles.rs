@@ -135,5 +135,23 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement
         .capabilities
         .push(conduit_std_catalog::conduitos_key_event_tee_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_time_every_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_audio_render_demand_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_time_debounce_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_time_timeout_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_time_delay_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_time_throttle_offer());
     Ok(advertisement)
 }

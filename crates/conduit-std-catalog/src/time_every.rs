@@ -17,6 +17,9 @@ pub const TIME_EVERY_IMPLEMENTATION: &str = "std/kernel-time-every@1";
 pub const TIME_EVERY_ARTIFACT: &str = "conduit-std-host/time-every@1";
 pub const TIME_EVERY_CAPABILITY: &str = "time-every-v1";
 pub const TIME_EVERY_COUNT: u64 = 4;
+pub const CONDUITOS_TIME_EVERY_PROFILE: &str = "conduitos/monotonic-timer-fixed@1";
+pub const CONDUITOS_TIME_EVERY_IMPLEMENTATION: &str = "conduitos/kernel-time-every@1";
+pub const CONDUITOS_TIME_EVERY_ARTIFACT: &str = "conduitos/time-every@1";
 
 pub fn time_every_contract() -> StandardKindContract {
     StandardKindContract {
@@ -72,6 +75,17 @@ pub fn time_every_offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: contract.limits,
     }
+}
+
+pub fn conduitos_time_every_offer() -> CapabilityOffer {
+    let mut offer = time_every_offer();
+    offer.capability_id = CapabilityId::from("conduitos-time-every-v1");
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(CONDUITOS_TIME_EVERY_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(CONDUITOS_TIME_EVERY_IMPLEMENTATION);
+    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_TIME_EVERY_ARTIFACT);
+    offer
 }
 
 #[cfg(feature = "form-catalog")]
@@ -137,5 +151,12 @@ mod tests {
             TerminalBehavior::CompletesAfterFixedCount { count: 4 }
         );
         assert!(!contract.browser_manifestation_honest && !contract.pico_manifestation_honest);
+        let conduitos = conduitos_time_every_offer();
+        assert_eq!(
+            conduitos.implementation.implementation_id.as_str(),
+            CONDUITOS_TIME_EVERY_IMPLEMENTATION
+        );
+        assert_eq!(conduitos.host_operations, offer.host_operations);
+        assert_eq!(conduitos.resource_requirements, offer.resource_requirements);
     }
 }
