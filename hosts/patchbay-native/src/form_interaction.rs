@@ -90,6 +90,7 @@ impl PatchbayApplication {
         match action {
             GuiAction::TogglePartsView
             | GuiAction::SpawnBrowserPart
+            | GuiAction::CancelBrowserPartSpawn
             | GuiAction::InspectPart(_)
             | GuiAction::InspectCandidate(_)
             | GuiAction::RefuseCandidate(_)

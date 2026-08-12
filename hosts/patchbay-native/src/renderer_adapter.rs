@@ -104,6 +104,10 @@ impl PatchbayApplication {
             selected_part: self.selected_part.clone(),
             selected_candidate: self.selected_candidate.clone(),
             pending_revoke: self.pending_revoke.clone(),
+            browser_spawn_pending: self
+                .browser_parts
+                .as_ref()
+                .is_some_and(super::browser_parts::BrowserPartsCoordinator::is_pending),
         };
         let realization_hosts = self
             .environment

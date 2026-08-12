@@ -62,6 +62,7 @@ pub struct LifecycleContext {
     pub selected_part: Option<conduit_body::PartId>,
     pub selected_candidate: Option<conduit_body::CandidateId>,
     pub pending_revoke: Option<conduit_body::PartId>,
+    pub browser_spawn_pending: bool,
 }
 
 pub struct PatchbayViewContext<'a> {
@@ -190,6 +191,7 @@ pub fn draw_patchbay(
                     part: lifecycle.selected_part.as_ref(),
                     candidate: lifecycle.selected_candidate.as_ref(),
                     pending_revoke: lifecycle.pending_revoke.as_ref(),
+                    browser_spawn_pending: lifecycle.browser_spawn_pending,
                 },
                 viewport.canvas(),
                 theme,

@@ -15,6 +15,7 @@ pub(super) struct PartsSelection<'a> {
     pub(super) part: Option<&'a PartId>,
     pub(super) candidate: Option<&'a CandidateId>,
     pub(super) pending_revoke: Option<&'a PartId>,
+    pub(super) browser_spawn_pending: bool,
 }
 
 pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
@@ -29,6 +30,7 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
         part: selected,
         candidate: selected_candidate,
         pending_revoke,
+        browser_spawn_pending,
     } = selection;
     let left = canvas.x + 28;
     let top = canvas.y + 24;
@@ -171,11 +173,19 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
         text(
             target,
             Point::new(left + 10, spawn_y + 9),
-            "+ BROWSER PART",
+            if browser_spawn_pending {
+                "CANCEL BROWSER SPAWN"
+            } else {
+                "+ BROWSER PART"
+            },
             theme.emphasis,
         );
         targets.push(HitTarget {
-            action: GuiAction::SpawnBrowserPart,
+            action: if browser_spawn_pending {
+                GuiAction::CancelBrowserPartSpawn
+            } else {
+                GuiAction::SpawnBrowserPart
+            },
             shape: HitShape::Rect(bounds),
         });
     }
