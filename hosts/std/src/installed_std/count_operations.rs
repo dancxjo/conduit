@@ -137,8 +137,7 @@ fn prepare_state_count(
     let start = count_configuration(placement, "start", u64::MAX)?;
     let mut prepared = Vec::with_capacity(conduit_std_catalog::MAX_COUNT_VALUES as usize);
     for offset in 0..conduit_std_catalog::MAX_COUNT_VALUES {
-        let count = start
-            .checked_add(offset)
+        let count = conduit_std_catalog::bounded_count_value(start, offset)
             .ok_or_else(|| "state/count exceeds the Count range".to_string())?;
         prepared.push(
             values

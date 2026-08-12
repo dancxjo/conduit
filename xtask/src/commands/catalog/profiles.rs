@@ -126,5 +126,14 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement
         .capabilities
         .extend(conduit_std_catalog::conduitos_robotics_offers());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_state_count_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_state_toggle_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_key_event_tee_offer());
     Ok(advertisement)
 }

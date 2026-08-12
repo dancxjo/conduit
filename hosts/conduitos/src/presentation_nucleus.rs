@@ -17,6 +17,11 @@ mod math_clamp_play_tests;
 mod operation;
 mod plan;
 mod play;
+mod portable_state_input_operation;
+mod portable_state_input_plan;
+mod portable_state_input_play;
+#[cfg(test)]
+mod portable_state_input_tests;
 mod robotics_operation;
 mod robotics_plan;
 mod robotics_play;
@@ -34,6 +39,10 @@ pub use logic_multi_plan::{PreparedLogicMulti, prepare_logic_multi};
 pub use logic_multi_play::{LogicMultiError, LogicMultiProof, run_logic_multi};
 pub use logic_not_play::{LogicNotError, LogicNotProof, prepare_not, run_not};
 pub use math_clamp_play::{MathClampError, MathClampProof, prepare_clamp, run_clamp};
+pub use portable_state_input_plan::{PreparedPortableStateInput, prepare_portable_state_input};
+pub use portable_state_input_play::{
+    PortableStateInputError, PortableStateInputProof, run_portable_state_input,
+};
 pub use robotics_operation::RoboticsDriveEffect;
 pub use robotics_plan::{PreparedRobotics, prepare_robotics};
 pub use robotics_play::{RoboticsError, RoboticsProof, run_robotics};
