@@ -2,6 +2,7 @@ pub(crate) mod inventory;
 mod observation;
 mod profiles;
 mod recursive;
+mod sound;
 
 use std::{error::Error, fmt, path::PathBuf};
 
@@ -33,6 +34,8 @@ pub enum CatalogCommand {
         #[arg(long)]
         observatory_snapshot: Option<PathBuf>,
     },
+    /// Emit sound requirements against every implemented realization seam.
+    Sound,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
@@ -134,6 +137,9 @@ pub fn run(args: CatalogArgs, opts: &GlobalOpts) -> Result<(), CatalogError> {
         println!("derive portable catalog and exact Host profile advertisements; emit static coverage without claiming a current Boot");
         return Ok(());
     }
+    if matches!(args.command, CatalogCommand::Sound) {
+        return sound::run(opts);
+    }
     let (hosts, snapshot_path): (&[CatalogHost], Option<&PathBuf>) = match &args.command {
         CatalogCommand::Matrix {
             observatory_snapshot,
@@ -142,6 +148,7 @@ pub fn run(args: CatalogArgs, opts: &GlobalOpts) -> Result<(), CatalogError> {
             host,
             observatory_snapshot,
         } => (std::slice::from_ref(host), observatory_snapshot.as_ref()),
+        CatalogCommand::Sound => unreachable!("sound returned above"),
     };
     let snapshot = snapshot_path
         .map(|path| observation::load(path))
