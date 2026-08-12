@@ -27,6 +27,7 @@ mod font;
 mod form_authoring;
 mod form_interaction;
 mod gui;
+mod gui_composition;
 mod gui_face_controls;
 mod gui_gear;
 mod gui_hit;

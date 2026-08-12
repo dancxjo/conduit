@@ -226,6 +226,8 @@ fn native_build_mode_drives_explicit_birth_wake_plan_play_and_lull() {
 
 #[test]
 fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection() {
+    use winit::keyboard::{Key, NamedKey};
+
     let directory =
         std::env::temp_dir().join(format!("patchbay-gui-actions-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
@@ -241,9 +243,9 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
         .graphical_form
         .as_ref()
         .unwrap()
-        .gears
+        .compositions
         .iter()
-        .find(|gear| gear.source_form == "greet")
+        .find(|gear| gear.back_name == "greet")
         .unwrap();
     let subject = application
         .graphical_form
@@ -254,7 +256,26 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
     application
         .handle_gui_action(GuiAction::SelectSubject(subject))
         .unwrap();
-    application.handle_gui_action(GuiAction::OpenBack).unwrap();
+    application.back_navigation = vec![
+        super::form_interaction::BackNavigationEntry {
+            parent_form: "bounded-parent".into(),
+            gear_name: "bounded-gear".into(),
+            child_form: "bounded-child".into(),
+        };
+        super::form_interaction::MAX_BACK_NAVIGATION_DEPTH
+    ];
+    assert_eq!(
+        application.handle_gui_action(GuiAction::OpenBack),
+        Err("interaction refused: NavigationDepthExceeded".into())
+    );
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().open_form,
+        "default-welcome"
+    );
+    application.back_navigation.clear();
+    assert!(application
+        .handle_form_key(&Key::Named(NamedKey::Enter))
+        .unwrap());
     assert_eq!(
         application.graphical_form.as_ref().unwrap().form_name,
         "greet"
@@ -278,12 +299,51 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
         1
     );
     assert_eq!(application.back_navigation[0].gear_name, "hello");
+    assert_eq!(
+        application.back_breadcrumb(),
+        "default-welcome > hello : greet"
+    );
     application.handle_gui_action(GuiAction::OpenBack).unwrap();
     assert_eq!(
         application.graphical_form.as_ref().unwrap().form_name,
         "default-welcome"
     );
     assert!(application.back_navigation.is_empty());
+    assert_eq!(application.back_breadcrumb(), "default-welcome");
+    let primitive = application
+        .graphical_form
+        .as_ref()
+        .unwrap()
+        .gears
+        .iter()
+        .find(|gear| gear.source_form == "default-welcome")
+        .unwrap();
+    let primitive = application
+        .graphical_form
+        .as_ref()
+        .unwrap()
+        .subject_ref(&primitive.identity)
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::SelectSubject(primitive))
+        .unwrap();
+    assert_eq!(
+        application.handle_gui_action(GuiAction::OpenBack),
+        Err("interaction refused: NavigationTargetUnavailable".into())
+    );
+    assert_eq!(
+        application
+            .interaction
+            .as_ref()
+            .unwrap()
+            .history()
+            .last()
+            .unwrap()
+            .disposition,
+        patchbay_model::InteractionDisposition::Refused(
+            patchbay_model::PatchbayRefusal::NavigationTargetUnavailable
+        )
+    );
     application
         .handle_gui_action(GuiAction::ToggleLinearView)
         .unwrap();
@@ -303,6 +363,8 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
     assert_eq!(
         actions,
         [
+            patchbay_model::PatchbayAction::OpenBack,
+            patchbay_model::PatchbayAction::OpenBack,
             patchbay_model::PatchbayAction::OpenBack,
             patchbay_model::PatchbayAction::OpenBack,
             patchbay_model::PatchbayAction::ToggleLinearView

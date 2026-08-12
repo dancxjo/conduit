@@ -46,6 +46,23 @@ impl PatchbayApplication {
                 ) => {
                     self.cord_drag = Some(subject.clone());
                 }
+                Some(patchbay_model::PatchbaySubjectKind::Composition) => {
+                    let now = std::time::Instant::now();
+                    let double_click =
+                        self.last_gear_click
+                            .as_ref()
+                            .is_some_and(|(prior, instant)| {
+                                prior == subject
+                                    && now.duration_since(*instant)
+                                        <= std::time::Duration::from_millis(500)
+                            });
+                    self.last_gear_click = Some((subject.clone(), now));
+                    if double_click {
+                        self.last_gear_click = None;
+                        self.handle_gui_action(action)?;
+                        return self.handle_gui_action(GuiAction::OpenBack);
+                    }
+                }
                 Some(patchbay_model::PatchbaySubjectKind::Gear) => {
                     let now = std::time::Instant::now();
                     let double_click =

@@ -52,6 +52,24 @@ fn greet_face_is_collapsed_then_its_checked_back_can_be_opened() {
         .items
         .iter()
         .any(|item| item.label == "hello: greet"));
+    let default_graph = editor
+        .patchbay_graph_for_authoring("default-welcome")
+        .unwrap();
+    assert_eq!(default_graph.compositions.len(), 1);
+    let hello = &default_graph.compositions[0];
+    assert_eq!(hello.identity, "composition/hello");
+    assert_eq!(hello.gear_name, "hello");
+    assert_eq!(hello.back_name, "greet");
+    assert_eq!(hello.inputs[0].identity, "composition/hello/input/name");
+    assert_eq!(hello.outputs[0].identity, "composition/hello/output/text");
+    assert_eq!(
+        hello.input_bindings[0].internal_port,
+        "port/default-welcome/hello/join/input/text"
+    );
+    assert_eq!(
+        hello.output_bindings[0].internal_port,
+        "port/default-welcome/hello/join/output/text"
+    );
 }
 
 #[test]

@@ -21,6 +21,12 @@ pub(super) struct BackNavigationEntry {
     pub child_form: String,
 }
 
+enum BackNavigationError {
+    TargetUnavailable,
+    DepthExceeded,
+    Projection,
+}
+
 pub(super) fn graphical_form_for_editor(
     editor: &FormEditor,
 ) -> Result<Option<patchbay_model::PatchbayGraph>, String> {
@@ -34,15 +40,31 @@ pub(super) fn graphical_form_for_editor(
     {
         return Ok(None);
     }
-    let expanded = editor
-        .expand_form_for_authoring(&view.open_form)
-        .map_err(|error| error.to_string())?;
-    patchbay_model::PatchbayGraph::from_authoring(&expanded)
+    editor
+        .patchbay_graph_for_authoring(&view.open_form)
         .map(Some)
         .map_err(|error| error.to_string())
 }
 
 impl PatchbayApplication {
+    pub(super) fn back_breadcrumb(&self) -> String {
+        let Some(editor) = &self.form_editor else {
+            return String::new();
+        };
+        let mut breadcrumb = self
+            .back_navigation
+            .first()
+            .map(|entry| entry.parent_form.clone())
+            .unwrap_or_else(|| editor.view().open_form);
+        for entry in &self.back_navigation {
+            breadcrumb.push_str(" > ");
+            breadcrumb.push_str(&entry.gear_name);
+            breadcrumb.push_str(" : ");
+            breadcrumb.push_str(&entry.child_form);
+        }
+        breadcrumb
+    }
+
     pub(super) fn handle_gui_action(&mut self, action: GuiAction) -> Result<(), String> {
         if matches!(
             &action,
@@ -220,7 +242,20 @@ impl PatchbayApplication {
             return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
         }
         let result = match invocation.action {
-            PatchbayAction::OpenBack => self.open_selected_back(),
+            PatchbayAction::OpenBack => {
+                return match self.open_selected_back() {
+                    Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                    Err(BackNavigationError::TargetUnavailable) => {
+                        PatchbayInvocationOutcome::Refused(
+                            PatchbayRefusal::NavigationTargetUnavailable,
+                        )
+                    }
+                    Err(BackNavigationError::DepthExceeded) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::NavigationDepthExceeded)
+                    }
+                    Err(BackNavigationError::Projection) => PatchbayInvocationOutcome::Failed,
+                };
+            }
             PatchbayAction::Save => match self.form_editor.as_mut() {
                 Some(editor) => save_form_resource(editor)
                     .and_then(|()| save_layout_resource(editor, &self.layout)),
@@ -268,7 +303,7 @@ impl PatchbayApplication {
         }
     }
 
-    pub(super) fn open_selected_back(&mut self) -> Result<(), String> {
+    fn open_selected_back(&mut self) -> Result<(), BackNavigationError> {
         let target = self
             .pending_back_target
             .take()
@@ -280,6 +315,17 @@ impl PatchbayApplication {
         let current_form = self.form_editor.as_ref()?.view().open_form;
         self.selected_graphical_subject().and_then(|subject| {
             self.graphical_form.as_ref().and_then(|graph| {
+                if let Some(composition) = graph
+                    .compositions
+                    .iter()
+                    .find(|composition| composition.identity == subject.subject_identity)
+                {
+                    return Some(BackNavigationEntry {
+                        parent_form: current_form.clone(),
+                        gear_name: composition.gear_name.clone(),
+                        child_form: composition.back_name.clone(),
+                    });
+                }
                 graph
                     .gears
                     .iter()
@@ -303,28 +349,32 @@ impl PatchbayApplication {
         })
     }
 
-    fn apply_back_navigation(&mut self, target: Option<BackNavigationEntry>) -> Result<(), String> {
+    fn apply_back_navigation(
+        &mut self,
+        target: Option<BackNavigationEntry>,
+    ) -> Result<(), BackNavigationError> {
         if let Some(target) = target {
             if self.back_navigation.len() == MAX_BACK_NAVIGATION_DEPTH {
-                return Err("Back navigation exceeds the finite Form nesting bound".into());
+                return Err(BackNavigationError::DepthExceeded);
             }
             self.form_editor
                 .as_mut()
                 .expect("editor presence was checked")
                 .open_back(&target.child_form)
-                .map_err(|error| error.to_string())?;
+                .map_err(|_| BackNavigationError::Projection)?;
             self.back_navigation.push(target);
         } else if let Some(target) = self.back_navigation.pop() {
             self.form_editor
                 .as_mut()
                 .expect("editor presence was checked")
                 .open_back(&target.parent_form)
-                .map_err(|error| error.to_string())?;
+                .map_err(|_| BackNavigationError::Projection)?;
         } else {
-            return Err("select a composed Gear before opening its Back".into());
+            return Err(BackNavigationError::TargetUnavailable);
         }
         self.form_selection = 0;
-        self.refresh_graphical_form()?;
+        self.refresh_graphical_form()
+            .map_err(|_| BackNavigationError::Projection)?;
         Ok(())
     }
 
