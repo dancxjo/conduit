@@ -72,23 +72,7 @@ pub fn run_patchbay(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
 }
 
 pub fn run_body_membership(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    let root = workspace_root()?;
-    let step = Step::new(
-        "demo.body-membership",
-        "Birth one Body and open its canonical native Parts experience",
-        "cargo",
-        &[
-            "run",
-            "-p",
-            "patchbay-native",
-            "--",
-            "--form",
-            "examples/hello.conduit",
-            "--body-parts-demo",
-        ],
-    );
-    run_step(&step, &root, opts)?;
-    Ok(())
+    super::body_membership_demo::run(opts)
 }
 
 pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
