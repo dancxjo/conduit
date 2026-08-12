@@ -24,6 +24,10 @@ pub const AUDIO_RENDER_BLOCK_FRAMES: u16 = 240;
 pub const AUDIO_RENDER_MAXIMUM_BLOCKS: u16 = 256;
 pub const AUDIO_RENDER_PERIOD_MILLIS: u64 = 5;
 pub const AUDIO_RENDER_CLOCK_ID: u64 = 1;
+pub const CONDUITOS_AUDIO_RENDER_DEMAND_PROFILE: &str = "conduitos/monotonic-audio-render-fixed@1";
+pub const CONDUITOS_AUDIO_RENDER_DEMAND_IMPLEMENTATION: &str =
+    "conduitos/kernel-audio-render-demand@1";
+pub const CONDUITOS_AUDIO_RENDER_DEMAND_ARTIFACT: &str = "conduitos/audio-render-demand@1";
 
 /// A finite software-cadenced render profile. It establishes an explicit
 /// ordinary timing seam for the reference path without claiming that the
@@ -76,6 +80,18 @@ pub fn audio_render_demand_offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: contract.limits,
     }
+}
+
+pub fn conduitos_audio_render_demand_offer() -> CapabilityOffer {
+    let mut offer = audio_render_demand_offer();
+    offer.capability_id = CapabilityId::from("conduitos-audio-render-demand-v1");
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(CONDUITOS_AUDIO_RENDER_DEMAND_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(CONDUITOS_AUDIO_RENDER_DEMAND_IMPLEMENTATION);
+    offer.implementation.artifact_id =
+        conduit_core::ArtifactId::from(CONDUITOS_AUDIO_RENDER_DEMAND_ARTIFACT);
+    offer
 }
 
 pub fn audio_render_demand_configuration() -> Vec<StandardConfigurationField> {
@@ -132,5 +148,12 @@ mod tests {
                 count: u64::from(AUDIO_RENDER_MAXIMUM_BLOCKS)
             }
         );
+        let conduitos = conduitos_audio_render_demand_offer();
+        assert_eq!(
+            conduitos.implementation.implementation_id.as_str(),
+            CONDUITOS_AUDIO_RENDER_DEMAND_IMPLEMENTATION
+        );
+        assert_eq!(conduitos.host_operations, offer.host_operations);
+        assert_eq!(conduitos.resource_requirements, offer.resource_requirements);
     }
 }
