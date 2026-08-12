@@ -4,6 +4,7 @@ use super::*;
 
 impl PatchbayApplication {
     pub(super) fn new(arguments: Arguments) -> Result<Self, String> {
+        let pico_admission_port = arguments.pico_admission_port.clone();
         let native_file_base = probe_native_file_base();
         let mut composition = StdHostComposition::minimal()
             .with_signal()
@@ -146,6 +147,7 @@ impl PatchbayApplication {
                 .browser_page_url
                 .zip(arguments.browser_chat_url)
                 .map(|(page, chat)| browser_parts::BrowserPartsCoordinator::new(page, chat)),
+            pico_parts: None,
             face_control_focus: 0,
             palette_drag: None,
             cord_drag: None,
@@ -179,6 +181,19 @@ impl PatchbayApplication {
         if arguments.body_parts_demo {
             application.birth_body()?;
             application.parts_open = true;
+            if let Some(path) = pico_admission_port {
+                let body_id = application
+                    .build_birth
+                    .body()
+                    .expect("Body membership demo completed Birth")
+                    .body_id
+                    .clone();
+                application.pico_parts =
+                    Some(pico_parts::PicoPartsCoordinator::start(body_id, path)?);
+                application.publish_completed(
+                    "Observing the configured Pico USB Line; membership remains unchanged",
+                );
+            }
             if let Some(coordinator) = &mut application.browser_parts {
                 let body_id = application
                     .build_birth

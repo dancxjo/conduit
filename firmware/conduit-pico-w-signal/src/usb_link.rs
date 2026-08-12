@@ -85,14 +85,14 @@ impl From<UsbSignError> for UsbLinkError {
 
 pub struct UsbLinkSession {
     class: CdcAcmClass<'static, usb::Driver<'static, USB>>,
-    decoder: StreamFrameDecoder<1024>,
+    decoder: StreamFrameDecoder<4096>,
 }
 
 impl UsbLinkSession {
     pub fn new(line: PicoUsbCdcLine) -> Result<Self, UsbLinkError> {
         Ok(Self {
             class: line.class,
-            decoder: StreamFrameDecoder::new(1024).map_err(UsbLinkError::Framing)?,
+            decoder: StreamFrameDecoder::new(4096).map_err(UsbLinkError::Framing)?,
         })
     }
 
@@ -188,8 +188,8 @@ impl UsbLinkSession {
 
     /// Send raw stream frame payload without SessionFrame encoding.
     pub async fn send_raw_stream_frame(&mut self, payload: &[u8]) -> Result<(), UsbLinkError> {
-        let mut framed_buf = [0u8; 1024];
-        let total_bytes = encode_stream_frame(payload, 1024, &mut framed_buf)?;
+        let mut framed_buf = [0u8; 4098];
+        let total_bytes = encode_stream_frame(payload, 4096, &mut framed_buf)?;
 
         let mut offset = 0;
         while offset < total_bytes {

@@ -48,6 +48,8 @@ compile_error!("select exactly one Pico firmware mode");
 
 #[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client")))]
 mod kernel;
+#[cfg(feature = "pico-local")]
+mod body_admission;
 #[cfg(feature = "appliance-hello")]
 mod appliance;
 #[cfg(feature = "appliance-hil-client")]
@@ -208,10 +210,13 @@ async fn main(spawner: Spawner) {
         .await;
         // While the local proof is idle waiting for its sign consumer,
         // CDC 0 remains an autonomous recovery path into BOOTSEL.
-        match select(cdc.wait_dtr(), bootsel::wait_for_request(&mut link_session)).await {
-            Either::First(()) => {}
-            Either::Second(Ok(())) => unreachable!(),
-            Either::Second(Err(_)) => core::future::pending::<()>().await,
+        let mut admission = body_admission::PicoBodyAdmission::new(&runtime);
+        loop {
+            match select(cdc.wait_dtr(), admission.serve_once(&mut link_session)).await {
+                Either::First(()) => break,
+                Either::Second(Ok(())) => {}
+                Either::Second(Err(_)) => core::future::pending::<()>().await,
+            }
         }
         kernel::run_signal_demo(&mut control, &mut cdc, &runtime).await;
         let _ = bootsel::wait_for_request(&mut link_session).await;

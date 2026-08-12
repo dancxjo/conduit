@@ -43,9 +43,9 @@ pub struct AdmissionChallenge {
 
 impl AdmissionChallenge {
     pub fn signing_transcript(&self) -> [u8; 32] {
-        admission_transcript(
+        ambient_admission_transcript(
             "ambient-admission-v1",
-            &self.body_id,
+            self.body_id.as_str(),
             self.admission_id.as_str(),
             self.host_id.as_str(),
             self.boot_id.as_str(),
@@ -468,6 +468,33 @@ fn verify_signature(
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Build the exact transcript signed by an ambient Host admission proof.
+///
+/// This string-slice entrance lets constrained Hosts sign the canonical
+/// challenge without allocating the Body-owned identity wrappers. It grants
+/// no admission authority and performs no state transition.
+pub fn ambient_admission_transcript(
+    domain: &str,
+    body_id: &str,
+    protocol_id: &str,
+    host_id: &str,
+    boot_id: &str,
+    offer_generation: OfferGeneration,
+    nonce: &[u8; 32],
+    expires_at_millis: u64,
+) -> [u8; 32] {
+    let mut digest = Sha256::new();
+    for value in [domain, body_id, protocol_id, host_id, boot_id] {
+        digest.update((value.len() as u32).to_le_bytes());
+        digest.update(value.as_bytes());
+    }
+    digest.update(offer_generation.0.to_le_bytes());
+    digest.update(nonce);
+    digest.update(expires_at_millis.to_le_bytes());
+    digest.finalize().into()
+}
+
+#[allow(clippy::too_many_arguments)]
 fn admission_transcript(
     domain: &str,
     body_id: &BodyId,
@@ -478,13 +505,14 @@ fn admission_transcript(
     nonce: &[u8; 32],
     expires_at_millis: u64,
 ) -> [u8; 32] {
-    let mut digest = Sha256::new();
-    for value in [domain, body_id.as_str(), protocol_id, host_id, boot_id] {
-        digest.update((value.len() as u32).to_le_bytes());
-        digest.update(value.as_bytes());
-    }
-    digest.update(offer_generation.0.to_le_bytes());
-    digest.update(nonce);
-    digest.update(expires_at_millis.to_le_bytes());
-    digest.finalize().into()
+    ambient_admission_transcript(
+        domain,
+        body_id.as_str(),
+        protocol_id,
+        host_id,
+        boot_id,
+        offer_generation,
+        nonce,
+        expires_at_millis,
+    )
 }

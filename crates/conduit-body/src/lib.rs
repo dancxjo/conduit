@@ -16,6 +16,8 @@ mod hold;
 mod identity;
 mod lifecycle;
 mod membership;
+#[cfg(feature = "authenticated-admission")]
+mod pico_admission;
 mod space;
 mod validation;
 
@@ -32,4 +34,6 @@ pub use identity::{
 };
 pub use lifecycle::*;
 pub use membership::*;
+#[cfg(feature = "authenticated-admission")]
+pub use pico_admission::*;
 pub use space::*;

@@ -223,7 +223,7 @@ impl Drop for OperatorTerminal {
 pub struct NativePathCdcLine {
     fd: FdGuard,
     maximum_frame_bytes: usize,
-    decoder: StreamFrameDecoder<2048>,
+    decoder: StreamFrameDecoder<4096>,
 }
 
 #[cfg(unix)]
@@ -232,7 +232,7 @@ impl NativePathCdcLine {
         path: P,
         maximum_frame_bytes: usize,
     ) -> Result<Self, NativeUsbCdcError> {
-        if maximum_frame_bytes == 0 || maximum_frame_bytes > 2048 {
+        if maximum_frame_bytes == 0 || maximum_frame_bytes > 4096 {
             return Err(NativeUsbCdcError::InvalidLimit);
         }
         use std::os::unix::ffi::OsStrExt;
@@ -285,6 +285,24 @@ impl NativePathCdcLine {
         )?;
 
         self.write_raw_bytes(&framed_buf[..total_bytes], timeout)
+    }
+
+    /// Report whether the exact opened USB path still has a live descriptor.
+    /// This does not imply Body membership, authority, or protocol readiness.
+    pub fn is_connected(&self) -> Result<bool, NativeUsbCdcError> {
+        let mut pfd = libc::pollfd {
+            fd: self.fd.0,
+            events: 0,
+            revents: 0,
+        };
+        let result = unsafe { libc::poll(&mut pfd, 1, 0) };
+        if result < 0 {
+            return Err(NativeUsbCdcError::Read(
+                std::io::Error::last_os_error().kind(),
+            ));
+        }
+        let disconnected = pfd.revents & (libc::POLLHUP | libc::POLLERR | libc::POLLNVAL) != 0;
+        Ok(!disconnected)
     }
 
     pub fn write_raw_bytes(
@@ -396,7 +414,7 @@ impl NativePathCdcLine {
         payload: &[u8],
         timeout: Duration,
     ) -> Result<(), NativeUsbCdcError> {
-        let mut framed_buf = [0u8; 1024];
+        let mut framed_buf = [0u8; 4098];
         let total_bytes = encode_stream_frame(payload, self.maximum_frame_bytes, &mut framed_buf)?;
         self.write_raw_bytes(&framed_buf[..total_bytes], timeout)
     }
