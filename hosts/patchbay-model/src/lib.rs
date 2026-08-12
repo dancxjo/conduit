@@ -29,6 +29,7 @@ mod interaction;
 mod layout;
 mod maker_environment;
 mod palette;
+mod parts_view;
 mod patchbay_backs;
 mod portable_composition;
 mod portable_demo;
@@ -96,6 +97,7 @@ pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
 };
+pub use parts_view::*;
 pub use patchbay_backs::*;
 pub use portable_composition::{
     constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
@@ -137,6 +139,8 @@ mod graphical_patchbay_tests;
 mod interaction_tests;
 #[cfg(test)]
 mod maker_environment_tests;
+#[cfg(test)]
+mod parts_view_tests;
 #[cfg(test)]
 mod portable_projection_tests;
 #[cfg(test)]
