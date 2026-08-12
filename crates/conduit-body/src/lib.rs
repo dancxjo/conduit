@@ -12,9 +12,13 @@ mod events;
 mod hold;
 mod identity;
 mod lifecycle;
+mod membership;
 mod validation;
 
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 pub use hold::*;
-pub use identity::{BodyId, SeedId, WakeId, MAX_LIFECYCLE_ID_BYTES};
+pub use identity::{
+    BodyId, MembershipChangeId, MembershipProofId, PartId, SeedId, WakeId, MAX_LIFECYCLE_ID_BYTES,
+};
 pub use lifecycle::*;
+pub use membership::*;

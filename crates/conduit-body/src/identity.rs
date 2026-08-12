@@ -26,6 +26,9 @@ macro_rules! identity {
 identity!(SeedId);
 identity!(BodyId);
 identity!(WakeId);
+identity!(PartId);
+identity!(MembershipChangeId);
+identity!(MembershipProofId);
 
 impl SeedId {
     pub fn bind(source: &SourceDocumentId, checked: &CheckedFormId) -> Self {
@@ -34,6 +37,33 @@ impl SeedId {
             &[source.as_str(), checked.as_str()],
             0,
         ))
+    }
+}
+
+impl PartId {
+    pub fn bind(
+        body_id: &BodyId,
+        durable_subject: &str,
+        sequence: u64,
+    ) -> Result<Self, BodyLifecycleError> {
+        validate_ids(&[body_id.as_str(), durable_subject])?;
+        Ok(Self::bound(bind_identity(
+            "part",
+            &[body_id.as_str(), durable_subject],
+            sequence,
+        )))
+    }
+}
+
+impl MembershipProofId {
+    /// Binds an opaque, non-secret reference to admission or future continuity proof.
+    pub fn bind(proof_reference: &str) -> Result<Self, BodyLifecycleError> {
+        validate_ids(&[proof_reference])?;
+        Ok(Self::bound(bind_identity(
+            "membership-proof",
+            &[proof_reference],
+            0,
+        )))
     }
 }
 
