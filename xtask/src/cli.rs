@@ -181,6 +181,7 @@ pub struct ProofsArgs {
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProveTarget {
+    BodyMembership,
     StdBrowserS4,
     StdBrowserToggle,
     BrowserHost,
