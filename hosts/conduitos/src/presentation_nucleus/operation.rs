@@ -351,6 +351,8 @@ impl Operation for PresentationOperation {
                 *pending = None;
                 *phase = 0;
             }
+            Self::RoboticsSource(operation) => operation.cancel(),
+            Self::RoboticsDrive(operation) => operation.cancel(),
             _ => {}
         }
     }
@@ -359,14 +361,6 @@ impl Operation for PresentationOperation {
         match self {
             Self::RoboticsDrive(operation) => operation.resume_value(port, value, canonical),
             _ => self.resume(OperationInput::Value { port, value }),
-        }
-    }
-
-    fn cancel(&mut self) {
-        match self {
-            Self::RoboticsSource(operation) => operation.cancel(),
-            Self::RoboticsDrive(operation) => operation.cancel(),
-            _ => {}
         }
     }
 }
