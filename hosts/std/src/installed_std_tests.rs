@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 mod audio_playback_conformance;
+mod bool_presentation_conformance;
 mod gate_conformance;
 mod graphics_conformance;
 mod input_semantics_conformance;

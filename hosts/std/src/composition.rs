@@ -162,6 +162,7 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::time_delay_offer(),
             conduit_std_catalog::time_throttle_offer(),
             conduit_std_catalog::tick_presentation_offer(),
+            conduit_std_catalog::bool_presentation_std_offer(),
         ]);
     }
     if composition.text {
@@ -519,7 +520,9 @@ mod tests {
             .iter()
             .filter(|offer| {
                 let revision = offer.kind_contract_revision.as_str();
-                revision.starts_with("conduit.std/") || revision.starts_with("conduit.input/")
+                revision.starts_with("conduit.std/")
+                    || revision.starts_with("conduit.input/")
+                    || offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND
             })
             .cloned()
             .collect::<Vec<_>>();
