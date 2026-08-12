@@ -204,8 +204,8 @@ mod tests {
     fn compatibility_report_uses_the_authoritative_profile_inventory() {
         let report = build_report().unwrap();
         assert_eq!(report.catalog_entry_count, 54);
-        assert_eq!(report.implemented_count, 24);
-        assert_eq!(report.missing_count, 30);
+        assert_eq!(report.implemented_count, 26);
+        assert_eq!(report.missing_count, 28);
         for kind in [
             "layout/inset",
             "presentation/bool",

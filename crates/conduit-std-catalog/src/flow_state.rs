@@ -26,6 +26,14 @@ pub const FLOW_TEE_SCALAR_IMPLEMENTATION: &str = "std/kernel-flow-tee-scalar@2";
 pub const FLOW_TEE_SCALAR_ARTIFACT: &str = "conduit-std-host/flow-tee-scalar@2";
 pub const FLOW_TEE_SCALAR_CAPABILITY: &str = "flow-tee-scalar-v2";
 
+pub const CONDUITOS_FLOW_STATE_EXECUTION_PROFILE: &str = "conduitos/flow-state-fixed@1";
+pub const CONDUITOS_FLOW_STATE_ARTIFACT: &str = "conduitos/flow-state@1";
+pub const CONDUITOS_STATE_LATEST_SCALAR_IMPLEMENTATION: &str =
+    "conduitos/kernel-state-latest-scalar@1";
+pub const CONDUITOS_STATE_LATEST_SCALAR_CAPABILITY: &str = "conduitos-state-latest-scalar-v1";
+pub const CONDUITOS_FLOW_TEE_SCALAR_IMPLEMENTATION: &str = "conduitos/kernel-flow-tee-scalar@1";
+pub const CONDUITOS_FLOW_TEE_SCALAR_CAPABILITY: &str = "conduitos-flow-tee-scalar-v1";
+
 pub const FLOW_GATE_SCALAR_CONTRACT_REVISION: &str = "conduit.std/flow-gate-scalar@1";
 pub const FLOW_GATE_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/flow-gate-scalar-kernel@1";
 pub const FLOW_GATE_SCALAR_IMPLEMENTATION: &str = "std/kernel-flow-gate-scalar@1";
@@ -134,6 +142,14 @@ pub fn state_latest_scalar_offer() -> CapabilityOffer {
     )
 }
 
+pub fn conduitos_state_latest_scalar_offer() -> CapabilityOffer {
+    conduitos_offer(
+        state_latest_scalar_offer(),
+        CONDUITOS_STATE_LATEST_SCALAR_CAPABILITY,
+        CONDUITOS_STATE_LATEST_SCALAR_IMPLEMENTATION,
+    )
+}
+
 pub fn flow_tee_scalar_offer() -> CapabilityOffer {
     offer(
         flow_tee_scalar_contract(),
@@ -143,6 +159,27 @@ pub fn flow_tee_scalar_offer() -> CapabilityOffer {
         FLOW_TEE_SCALAR_IMPLEMENTATION,
         FLOW_TEE_SCALAR_ARTIFACT,
     )
+}
+
+pub fn conduitos_flow_tee_scalar_offer() -> CapabilityOffer {
+    conduitos_offer(
+        flow_tee_scalar_offer(),
+        CONDUITOS_FLOW_TEE_SCALAR_CAPABILITY,
+        CONDUITOS_FLOW_TEE_SCALAR_IMPLEMENTATION,
+    )
+}
+
+fn conduitos_offer(
+    mut offer: CapabilityOffer,
+    capability: &str,
+    implementation: &str,
+) -> CapabilityOffer {
+    offer.capability_id = CapabilityId::from(capability);
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(CONDUITOS_FLOW_STATE_EXECUTION_PROFILE);
+    offer.implementation.implementation_id = ImplementationId::from(implementation);
+    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_FLOW_STATE_ARTIFACT);
+    offer
 }
 
 pub fn flow_gate_scalar_offer() -> CapabilityOffer {
