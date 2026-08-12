@@ -194,9 +194,10 @@ The retired realm table is not the intended durable model.
 The forward vocabulary is:
 
 ```text
-HOST  a running software environment
-PART  the presence a host contributes to a body
-CAPABILITY  truthful finite realization offer from a part
+HOST  a running or recoverable software environment
+BOOT  one exact current incarnation of a host
+PART  one durable membership relationship inside a body
+CAPABILITY  truthful finite current realization offer from a host boot
 ROLE  semantic requirement declared by a form
 CAST  exact binding of roles to capabilities
 LINK  communication path between parts
@@ -204,7 +205,9 @@ BODY  durable top-level realization of a form
 SOUL  durable continuity and recoverable identity of a body
 ```
 
-A Host produces a Part. A Part may pair with a Body and offer capabilities. A Form contains configured Gears and may require Roles. A Cast binds Roles to exact capabilities. A Plan binds each Gear to exact implementation, Part, Host, Base, authority, resource, route, and bound facts. A Play starts that Plan. A Soul preserves continuity across restarts without pretending a restarted Boot is the same execution session.
+A Body is not a Host, planner scope, transport, address, coordinator process, or UI document. A Part is not a Host or Boot: it records an explicitly admitted durable relationship. Current authenticated Host/Boot presence may attach to that relationship and later disappear without deleting membership or retaining a fake current Boot. Current offers remain Host-advertisement truth rather than durable Part properties. Admission and revocation carry exact bounded event and Sign provenance; membership alone grants no authority, placement, Line, or execution.
+
+A Form contains configured Gears and may require Roles. A Cast binds Roles to exact capabilities. A Plan binds each Gear to exact implementation, Part, Host, Boot, Base, authority, resource, route, and bound facts. A Play starts that Plan. A later Soul policy may prove continuity across restarts without pretending a restarted Boot is the same execution session or changing what Part membership means.
 
 Membership, reachability, authority, capability, placement, and link state remain separate.
 
