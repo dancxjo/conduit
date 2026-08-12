@@ -65,7 +65,7 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
         "prove.body-membership.native-parts",
         "Prove native Parts drawing, exact inspection, and pointer-keyboard parity",
         "cargo",
-        &["test", "-p", "patchbay-native", "parts_interaction"],
+        &["test", "-p", "patchbay-native", "parts"],
         None,
         None,
         Some(ProofClass::DeterministicUnit),
