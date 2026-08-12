@@ -29,6 +29,8 @@ identity!(WakeId);
 identity!(PartId);
 identity!(MembershipChangeId);
 identity!(MembershipProofId);
+identity!(CandidateId);
+identity!(DiscoveryProofId);
 
 impl SeedId {
     pub fn bind(source: &SourceDocumentId, checked: &CheckedFormId) -> Self {
@@ -61,6 +63,18 @@ impl MembershipProofId {
         validate_ids(&[proof_reference])?;
         Ok(Self::bound(bind_identity(
             "membership-proof",
+            &[proof_reference],
+            0,
+        )))
+    }
+}
+
+impl DiscoveryProofId {
+    /// Opaque reference to transport/discovery proof state, never a membership credential.
+    pub fn bind(proof_reference: &str) -> Result<Self, BodyLifecycleError> {
+        validate_ids(&[proof_reference])?;
+        Ok(Self::bound(bind_identity(
+            "discovery-proof",
             &[proof_reference],
             0,
         )))
