@@ -75,6 +75,35 @@ impl PatchbayApplication {
                 self.selected_candidate = Some(candidate_id);
                 self.selected_part = None;
             }
+            GuiAction::RefuseCandidate(candidate_id) => {
+                let view = self.parts_projection()?.ok_or("Parts view is not open")?;
+                let row = view
+                    .wants_to_join
+                    .iter()
+                    .find(|row| row.candidate_id == candidate_id)
+                    .ok_or("candidate is not awaiting a Body decision")?;
+                if !row.actions.contains(&patchbay_model::PartsAction::Refuse) {
+                    return Err("candidate cannot be refused in its current state".into());
+                }
+                self.lifecycle_sequence = self.lifecycle_sequence.saturating_add(1);
+                self.body_candidates
+                    .as_mut()
+                    .ok_or("Parts view requires candidate inventory truth")?
+                    .transition(
+                        &candidate_id,
+                        conduit_body::CandidateState::Refused,
+                        conduit_core::SignId::from(format!(
+                            "patchbay-native/candidate-refused/{}",
+                            self.lifecycle_sequence
+                        )),
+                    )
+                    .map_err(|refusal| format!("candidate refusal: {refusal:?}"))?;
+                self.selected_candidate = None;
+                self.publish_refusal(format!(
+                    "Candidate {} refused; Body membership is unchanged",
+                    candidate_id.as_str()
+                ));
+            }
             _ => return Err("action does not belong to Parts".into()),
         }
         if let Some(window) = &self.window {
@@ -88,6 +117,8 @@ impl PatchbayApplication {
 mod tests {
     use super::*;
     use crate::arguments::Arguments;
+    use conduit_body::{CandidateObservation, DiscoveryProofId};
+    use conduit_core::{LinkBindingId, SignId};
     use patchbay_model::PatchbayAction;
 
     #[test]
@@ -175,5 +206,102 @@ mod tests {
             application.handle_parts_key(&winit::keyboard::Key::Character("p".into())),
             Ok(false)
         );
+    }
+
+    #[test]
+    fn explicit_refuse_records_canonical_state_without_changing_membership() {
+        let directory = std::env::temp_dir().join(format!(
+            "patchbay-native-parts-refuse-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("clock.conduit");
+        std::fs::write(&path, include_str!("../../../examples/clock.conduit")).unwrap();
+        let mut application = PatchbayApplication::new(Arguments {
+            form_path: Some(path.clone()),
+            ..Arguments::default()
+        })
+        .unwrap();
+        application
+            .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Birth))
+            .unwrap();
+        application
+            .handle_parts_action(GuiAction::TogglePartsView)
+            .unwrap();
+        let membership_before = application.build_birth.membership().unwrap().clone();
+        let mut advertisement = application.model.advertisement().clone();
+        advertisement.host_id = conduit_core::HostId::from("browser/refused");
+        advertisement.boot_id = conduit_core::BootId::from("browser/refused-boot");
+        let candidate = application
+            .body_candidates
+            .as_mut()
+            .unwrap()
+            .observe(CandidateObservation {
+                advertisement,
+                friendly_label: "Browser refusal candidate".into(),
+                observed_binding_id: LinkBindingId::from("line/browser-refused"),
+                observation_sign_id: SignId::from("sign/browser-refused-observed"),
+                proof_id: DiscoveryProofId::bind("proof/browser-refused-discovery").unwrap(),
+                freshness_sequence: 1,
+                encoded_bytes: 512,
+            })
+            .unwrap();
+
+        application
+            .handle_parts_action(GuiAction::InspectCandidate(candidate.clone()))
+            .unwrap();
+        let view = application.parts_projection().unwrap().unwrap();
+        let mut pixels = vec![crate::BACKGROUND; 1_100 * 720];
+        let lifecycle = crate::gui::LifecycleContext {
+            body_id: Some(view.body_id.as_str().into()),
+            parts: Some(view),
+            selected_candidate: Some(candidate.clone()),
+            ..Default::default()
+        };
+        let targets = crate::gui::draw_patchbay(
+            &mut pixels,
+            1_100,
+            720,
+            application.graphical_form.as_ref().unwrap(),
+            crate::gui::PatchbayViewContext {
+                selected: None,
+                breadcrumb: "",
+                lifecycle: &lifecycle,
+                palette: &Default::default(),
+                exact_identity_open: false,
+                face_control_focus: 0,
+                presentation_layout: &application.layout,
+                realization_plan: None,
+                realization_hosts: &[],
+                status: None,
+                gesture: Default::default(),
+                viewport: &Default::default(),
+            },
+        );
+        assert!(targets.iter().any(
+            |target| matches!(&target.action, GuiAction::RefuseCandidate(id) if id == &candidate)
+        ));
+        application
+            .handle_parts_action(GuiAction::RefuseCandidate(candidate.clone()))
+            .unwrap();
+
+        assert_eq!(
+            application.build_birth.membership(),
+            Some(&membership_before)
+        );
+        assert_eq!(
+            application.body_candidates.as_ref().unwrap().candidates[0].state,
+            conduit_body::CandidateState::Refused
+        );
+        assert!(application
+            .parts_projection()
+            .unwrap()
+            .unwrap()
+            .wants_to_join
+            .is_empty());
+        assert!(application.selected_candidate.is_none());
+
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(directory).unwrap();
     }
 }

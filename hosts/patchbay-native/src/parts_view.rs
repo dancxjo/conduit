@@ -9,7 +9,7 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{PartPresentationState, PartsView, PatchbayTheme};
+use patchbay_model::{PartPresentationState, PartsAction, PartsView, PatchbayTheme};
 
 pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
@@ -241,5 +241,24 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
             &format!("OFFER  {}  NOT ADMITTED", row.offer_generation.0),
             theme.text_secondary,
         );
+        if row.actions.contains(&PartsAction::Refuse) {
+            let bounds = PixelRect {
+                x: left,
+                y: details_y + 96,
+                width: 96,
+                height: 28,
+            };
+            frame_rect(target, bounds, theme.focus, 1);
+            text(
+                target,
+                Point::new(left + 12, details_y + 104),
+                "REFUSE",
+                theme.emphasis,
+            );
+            targets.push(HitTarget {
+                action: GuiAction::RefuseCandidate(row.candidate_id.clone()),
+                shape: HitShape::Rect(bounds),
+            });
+        }
     }
 }
