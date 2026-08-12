@@ -174,6 +174,10 @@ fn busy_open_underrun_provider_loss_and_drain_remain_distinct() {
             FakePlaybackBehavior::ProviderLossOnFirstBlock,
             "OperationFailed(75)",
         ),
+        (
+            FakePlaybackBehavior::ProviderLossOnDrain,
+            "OperationFailed(75)",
+        ),
         (FakePlaybackBehavior::DrainFailure, "OperationFailed(77)"),
     ] {
         let mut host = host(behavior);

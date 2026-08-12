@@ -11,6 +11,7 @@ pub(crate) enum FakePlaybackBehavior {
     OpenFailure,
     UnderrunOnFirstBlock,
     ProviderLossOnFirstBlock,
+    ProviderLossOnDrain,
     DrainFailure,
     CloseFailure,
 }
@@ -99,6 +100,10 @@ impl FakePlaybackSession {
 
     pub(crate) fn drain(&mut self) -> Result<(), PlaybackFailure> {
         self.lifecycle = PlaybackLifecycle::DrainRequested;
+        if self.behavior == FakePlaybackBehavior::ProviderLossOnDrain {
+            self.lifecycle = PlaybackLifecycle::ProviderLost;
+            return Err(PlaybackFailure::ProviderLost);
+        }
         if self.behavior == FakePlaybackBehavior::DrainFailure {
             self.lifecycle = PlaybackLifecycle::Failed;
             return Err(PlaybackFailure::DrainFailed);

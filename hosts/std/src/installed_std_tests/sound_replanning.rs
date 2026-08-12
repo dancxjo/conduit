@@ -182,3 +182,79 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
     assert_eq!(playback.lifecycle, PlaybackLifecycle::StoppedClosed);
     assert_eq!(playback.metrics.blocks_committed, 96);
 }
+
+#[test]
+fn replacement_refuses_old_or_absent_authority_and_loss_during_drain() {
+    let checked_form = form();
+    let host_a = host(
+        "sound-authority-boot-a",
+        9,
+        "authority-path-a",
+        FakePlaybackBehavior::Success,
+    );
+    let plan_a = plan(&host_a, &checked_form);
+    let old_grant = host_a
+        .playback_authority_grant("grant/device-a-only")
+        .expect("device A authority");
+
+    let host_b = host(
+        "sound-authority-boot-b",
+        10,
+        "authority-path-b",
+        FakePlaybackBehavior::Success,
+    );
+    let hosts_b = [host_b.advertisement().clone()];
+    let selection_b = host_b.playback.as_ref().expect("replacement exists");
+    let advertisements_b = [selection_b.realization_advertisement(hosts_b[0].host_id.clone())];
+    let observations_b = [selection_b.resource_observation(
+        hosts_b[0].host_id.clone(),
+        SignId::from("sign/authority-device-b-ready"),
+    )];
+    let connection_bases = BTreeMap::new();
+    let line_candidates = BTreeMap::new();
+    for grants in [&[][..], std::slice::from_ref(&old_grant)] {
+        let error = replan_selected_realizations_with_characteristics(
+            &plan_a,
+            &checked_form,
+            &hosts_b,
+            &[ConnectionBase::Local],
+            &BTreeMap::new(),
+            &advertisements_b,
+            &observations_b,
+            &BTreeMap::new(),
+            PlanningOptions {
+                connection_bases: &connection_bases,
+                line_candidates: &line_candidates,
+                connection_item_capacity: 1,
+                connection_byte_capacity: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+                authority_grants: grants,
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+        )
+        .expect_err("replacement must carry its own exact authority");
+        assert!(
+            matches!(
+                error,
+                conduit_planner::PlannerError::AuthorityGrantMissing(_)
+            ),
+            "{error:?}"
+        );
+    }
+
+    let mut drain_loss = host(
+        "sound-drain-loss-boot",
+        11,
+        "drain-loss-path",
+        FakePlaybackBehavior::ProviderLossOnDrain,
+    );
+    let drain_plan = plan(&drain_loss, &checked_form);
+    let error = drain_loss
+        .run_fragment_to(
+            drain_plan.fragments[0].clone(),
+            &mut Vec::with_capacity(2_048),
+            &mut RecordingTimer { waits: Vec::new() },
+        )
+        .expect_err("provider disappearance during drain remains device loss");
+    assert!(error.contains("OperationFailed(75)"), "{error}");
+}
