@@ -33,6 +33,8 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
             "body_membership",
             "--test",
             "part_replan",
+            "--test",
+            "body_hostile",
         ],
         None,
         None,
