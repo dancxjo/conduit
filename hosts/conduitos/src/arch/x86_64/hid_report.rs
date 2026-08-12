@@ -92,6 +92,7 @@ fn push(
     Ok(())
 }
 
+#[cfg(test)]
 pub(super) fn retain_transition<const N: usize>(
     output: &mut [HidKeyTransition; N],
     count: &mut usize,

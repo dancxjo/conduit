@@ -16,7 +16,7 @@ use super::{
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<GuestRun, ConduitosError> {
     let paths = Paths::new(arch)?;
-    let _image = image::execute(arch, opts)?;
+    let _image = image::execute_proof(arch, opts)?;
     if opts.dry_run {
         println!("qemu-system-x86_64 {QEMU_PROFILE}");
         return Err(ConduitosError::refusal(

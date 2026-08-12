@@ -31,6 +31,14 @@ pub(super) fn execute_hotplug(
     assemble(arch, opts)
 }
 
+pub(super) fn execute_proof(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
+    let _build = build::execute_proof(arch, opts)?;
+    assemble(arch, opts)
+}
+
 pub(super) fn assemble(
     arch: ConduitosArch,
     opts: &GlobalOpts,

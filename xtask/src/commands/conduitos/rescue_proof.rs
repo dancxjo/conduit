@@ -72,7 +72,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    image::execute(ConduitosArch::X86_64, opts)?;
+    image::execute_proof(ConduitosArch::X86_64, opts)?;
     run_deterministic_negatives(&paths)?;
     let monitor_socket = paths.target.join("rescue-monitor.sock");
     let serial_path = paths.target.join("rescue-serial.log");
