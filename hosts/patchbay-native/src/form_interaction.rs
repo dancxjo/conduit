@@ -22,6 +22,7 @@ pub(super) struct BackNavigationEntry {
 }
 
 enum BackNavigationError {
+    TargetMissing,
     TargetUnavailable,
     DepthExceeded,
     Projection,
@@ -168,6 +169,7 @@ impl PatchbayApplication {
 
     fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
         if action == PatchbayAction::OpenBack {
+            self.pending_back_selection = self.selected_graphical_subject().is_some();
             self.pending_back_target = self.selected_back_target();
         }
         let target = self
@@ -193,6 +195,10 @@ impl PatchbayApplication {
                     self.apply_interaction_request(request)
                 })
             });
+        if action == PatchbayAction::OpenBack {
+            self.pending_back_target = None;
+            self.pending_back_selection = false;
+        }
         self.interaction = Some(interaction);
         self.finish_interaction(result)
     }
@@ -245,6 +251,9 @@ impl PatchbayApplication {
             PatchbayAction::OpenBack => {
                 return match self.open_selected_back() {
                     Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                    Err(BackNavigationError::TargetMissing) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::NavigationTargetMissing)
+                    }
                     Err(BackNavigationError::TargetUnavailable) => {
                         PatchbayInvocationOutcome::Refused(
                             PatchbayRefusal::NavigationTargetUnavailable,
@@ -304,11 +313,12 @@ impl PatchbayApplication {
     }
 
     fn open_selected_back(&mut self) -> Result<(), BackNavigationError> {
+        let selected = std::mem::take(&mut self.pending_back_selection);
         let target = self
             .pending_back_target
             .take()
             .or_else(|| self.selected_back_target());
-        self.apply_back_navigation(target)
+        self.apply_back_navigation(target, selected)
     }
 
     fn selected_back_target(&self) -> Option<BackNavigationEntry> {
@@ -352,6 +362,7 @@ impl PatchbayApplication {
     fn apply_back_navigation(
         &mut self,
         target: Option<BackNavigationEntry>,
+        selected: bool,
     ) -> Result<(), BackNavigationError> {
         if let Some(target) = target {
             if self.back_navigation.len() == MAX_BACK_NAVIGATION_DEPTH {
@@ -370,7 +381,11 @@ impl PatchbayApplication {
                 .open_back(&target.parent_form)
                 .map_err(|_| BackNavigationError::Projection)?;
         } else {
-            return Err(BackNavigationError::TargetUnavailable);
+            return Err(if selected {
+                BackNavigationError::TargetUnavailable
+            } else {
+                BackNavigationError::TargetMissing
+            });
         }
         self.form_selection = 0;
         self.refresh_graphical_form()

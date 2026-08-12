@@ -263,9 +263,6 @@ impl FormEditor {
             else {
                 continue;
             };
-            if graph.compositions.len() == crate::MAX_PATCHBAY_GEARS {
-                return Err(FormEditorError::GraphTooLarge);
-            }
             let gear_name = item
                 .identity
                 .rsplit('/')
@@ -312,36 +309,38 @@ impl FormEditor {
                     binding.gear_port_id.as_str()
                 )
             };
-            graph.compositions.push(crate::PatchbayComposition {
-                identity: format!("composition/{gear_name}"),
-                gear_name: gear_name.clone(),
-                back_name: back_name.into(),
-                checked_form_id: back.checked_form_id.clone(),
-                input_bindings: nested
-                    .input_bindings
-                    .iter()
-                    .map(|binding| crate::PatchbayCompositionBinding {
-                        face_port: format!(
-                            "composition/{gear_name}/input/{}",
-                            binding.face_port_id.as_str()
-                        ),
-                        internal_port: translated_port(binding, "input"),
-                    })
-                    .collect(),
-                output_bindings: nested
-                    .output_bindings
-                    .iter()
-                    .map(|binding| crate::PatchbayCompositionBinding {
-                        face_port: format!(
-                            "composition/{gear_name}/output/{}",
-                            binding.face_port_id.as_str()
-                        ),
-                        internal_port: translated_port(binding, "output"),
-                    })
-                    .collect(),
-                inputs,
-                outputs,
-            });
+            graph
+                .admit_composition(crate::PatchbayComposition {
+                    identity: format!("composition/{gear_name}"),
+                    gear_name: gear_name.clone(),
+                    back_name: back_name.into(),
+                    checked_form_id: back.checked_form_id.clone(),
+                    input_bindings: nested
+                        .input_bindings
+                        .iter()
+                        .map(|binding| crate::PatchbayCompositionBinding {
+                            face_port: format!(
+                                "composition/{gear_name}/input/{}",
+                                binding.face_port_id.as_str()
+                            ),
+                            internal_port: translated_port(binding, "input"),
+                        })
+                        .collect(),
+                    output_bindings: nested
+                        .output_bindings
+                        .iter()
+                        .map(|binding| crate::PatchbayCompositionBinding {
+                            face_port: format!(
+                                "composition/{gear_name}/output/{}",
+                                binding.face_port_id.as_str()
+                            ),
+                            internal_port: translated_port(binding, "output"),
+                        })
+                        .collect(),
+                    inputs,
+                    outputs,
+                })
+                .map_err(|_| FormEditorError::GraphTooLarge)?;
         }
         Ok(graph)
     }

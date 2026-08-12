@@ -1,4 +1,7 @@
-use crate::{FormEditor, PatchbayGraph, PatchbayGraphError, PatchbaySubjectKind};
+use crate::{
+    FormEditor, PatchbayGraph, PatchbayGraphError, PatchbaySubjectKind, MAX_PATCHBAY_GEARS,
+    MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
+};
 use std::path::PathBuf;
 
 fn count_graph() -> PatchbayGraph {
@@ -9,6 +12,61 @@ fn count_graph() -> PatchbayGraph {
     .expect("canonical example");
     let expanded = editor.expand_form("count-demo").expect("expanded example");
     PatchbayGraph::from_expanded(&expanded).expect("finite graph")
+}
+
+fn composition_graph() -> PatchbayGraph {
+    FormEditor::from_source(
+        PathBuf::from("greet.conduit"),
+        include_str!("../../../examples/greet.conduit").into(),
+    )
+    .unwrap()
+    .patchbay_graph_for_authoring("default-welcome")
+    .unwrap()
+}
+
+#[test]
+fn composition_admission_combines_gear_port_and_subject_bounds_atomically() {
+    let graph = composition_graph();
+    let port_count = graph.face_inputs.len()
+        + graph.face_outputs.len()
+        + graph
+            .gears
+            .iter()
+            .map(|gear| gear.inputs.len() + gear.outputs.len())
+            .sum::<usize>()
+        + graph
+            .compositions
+            .iter()
+            .map(|composition| composition.inputs.len() + composition.outputs.len())
+            .sum::<usize>();
+    assert!(graph.gears.len() + graph.compositions.len() <= MAX_PATCHBAY_GEARS);
+    assert!(port_count <= MAX_PATCHBAY_PORTS);
+    assert_eq!(graph.subject_count(), graph.subject_identities().count());
+    assert!(graph.subject_count() <= MAX_PATCHBAY_SUBJECTS);
+
+    let composition = graph.compositions[0].clone();
+    let mut gear_full = graph.clone();
+    let retained = gear_full.gears[0].clone();
+    while gear_full.gears.len() + gear_full.compositions.len() < MAX_PATCHBAY_GEARS {
+        gear_full.gears.push(retained.clone());
+    }
+    let before = gear_full.compositions.clone();
+    assert_eq!(
+        gear_full.admit_composition(composition.clone()),
+        Err(PatchbayGraphError::TooManyGears)
+    );
+    assert_eq!(gear_full.compositions, before);
+
+    let mut port_full = graph.clone();
+    let mut oversized = composition;
+    let port = oversized.inputs[0].clone();
+    oversized.inputs = vec![port; MAX_PATCHBAY_PORTS];
+    let before = port_full.compositions.clone();
+    assert_eq!(
+        port_full.admit_composition(oversized),
+        Err(PatchbayGraphError::TooManyPorts)
+    );
+    assert_eq!(port_full.compositions, before);
 }
 
 #[test]

@@ -72,6 +72,7 @@ struct PatchbayApplication {
     form_selection: usize,
     back_navigation: Vec<form_interaction::BackNavigationEntry>,
     pending_back_target: Option<form_interaction::BackNavigationEntry>,
+    pending_back_selection: bool,
     graphical_form: Option<patchbay_model::PatchbayGraph>,
     layout: patchbay_model::PatchbayLayout,
     interaction: Option<PatchbayInteraction>,

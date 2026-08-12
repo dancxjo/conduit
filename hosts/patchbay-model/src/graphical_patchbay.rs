@@ -9,12 +9,15 @@ use conduit_form::ExpandedCanonicalForm;
 pub const MAX_PATCHBAY_GEARS: usize = 128;
 pub const MAX_PATCHBAY_PORTS: usize = 512;
 pub const MAX_PATCHBAY_CORDS: usize = 512;
+pub const MAX_PATCHBAY_SUBJECTS: usize =
+    MAX_PATCHBAY_GEARS + MAX_PATCHBAY_PORTS + MAX_PATCHBAY_CORDS;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatchbayGraphError {
     TooManyGears,
     TooManyPorts,
     TooManyCords,
+    TooManySubjects,
     TooManyControls,
     InvalidConfigurationContract,
     MissingCordEndpoint,
@@ -29,6 +32,7 @@ impl std::fmt::Display for PatchbayGraphError {
             Self::TooManyGears => "Patchbay graph exceeds its finite Gear bound",
             Self::TooManyPorts => "Patchbay graph exceeds its finite Port bound",
             Self::TooManyCords => "Patchbay graph exceeds its finite Cord bound",
+            Self::TooManySubjects => "Patchbay graph exceeds its finite subject bound",
             Self::TooManyControls => "Patchbay Gear exceeds its finite Face-control bound",
             Self::InvalidConfigurationContract => {
                 "Patchbay Gear configuration differs from its authoritative Kind contract"
@@ -143,6 +147,64 @@ pub struct PatchbaySubjectRef {
 }
 
 impl PatchbayGraph {
+    pub fn subject_count(&self) -> usize {
+        self.gears.len()
+            + self.compositions.len()
+            + self.face_inputs.len()
+            + self.face_outputs.len()
+            + self
+                .gears
+                .iter()
+                .map(|gear| gear.inputs.len() + gear.outputs.len())
+                .sum::<usize>()
+            + self
+                .compositions
+                .iter()
+                .map(|composition| composition.inputs.len() + composition.outputs.len())
+                .sum::<usize>()
+            + self.cords.len()
+    }
+
+    pub fn admit_composition(
+        &mut self,
+        composition: PatchbayComposition,
+    ) -> Result<(), PatchbayGraphError> {
+        let gear_count = self
+            .gears
+            .len()
+            .checked_add(self.compositions.len())
+            .and_then(|count| count.checked_add(1));
+        if gear_count.is_none_or(|count| count > MAX_PATCHBAY_GEARS) {
+            return Err(PatchbayGraphError::TooManyGears);
+        }
+        let existing_ports = self.face_inputs.len()
+            + self.face_outputs.len()
+            + self
+                .gears
+                .iter()
+                .map(|gear| gear.inputs.len() + gear.outputs.len())
+                .sum::<usize>()
+            + self
+                .compositions
+                .iter()
+                .map(|candidate| candidate.inputs.len() + candidate.outputs.len())
+                .sum::<usize>();
+        let port_count = existing_ports
+            .checked_add(composition.inputs.len())
+            .and_then(|count| count.checked_add(composition.outputs.len()));
+        if port_count.is_none_or(|count| count > MAX_PATCHBAY_PORTS) {
+            return Err(PatchbayGraphError::TooManyPorts);
+        }
+        let subject_count = gear_count
+            .and_then(|gears| port_count.and_then(|ports| gears.checked_add(ports)))
+            .and_then(|count| count.checked_add(self.cords.len()));
+        if subject_count.is_none_or(|count| count > MAX_PATCHBAY_SUBJECTS) {
+            return Err(PatchbayGraphError::TooManySubjects);
+        }
+        self.compositions.push(composition);
+        Ok(())
+    }
+
     pub fn from_expanded(form: &ExpandedCanonicalForm) -> Result<Self, PatchbayGraphError> {
         if form.gears.len() > MAX_PATCHBAY_GEARS {
             return Err(PatchbayGraphError::TooManyGears);
