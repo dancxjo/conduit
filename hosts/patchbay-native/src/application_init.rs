@@ -171,6 +171,10 @@ impl PatchbayApplication {
                 application.control.stop()?;
             }
         }
+        if arguments.body_parts_demo {
+            application.birth_body()?;
+            application.parts_open = true;
+        }
         if arguments.native_copy_demo {
             application.file_task.run_choice_demo()?;
         }
