@@ -16,17 +16,24 @@ use super::wifi_secrets::SecretEnvValue;
 use super::{PicoArgs, PicoResult};
 use crate::cli::GlobalOpts;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum WifiProofMode {
     Bootstrap,
     WebSocketRoute,
-    R1NewPlanRecovery { interactive: bool },
-    R1PlanCContinuation { interactive: bool },
-    R1Full { interactive: bool },
+    R1NewPlanRecovery {
+        interactive: bool,
+    },
+    R1PlanCContinuation {
+        interactive: bool,
+    },
+    R1Full {
+        interactive: bool,
+        membership_receipt: Option<std::path::PathBuf>,
+    },
 }
 
 impl WifiProofMode {
-    fn firmware_mode(self) -> &'static str {
+    fn firmware_mode(&self) -> &'static str {
         match self {
             Self::R1NewPlanRecovery { .. }
             | Self::R1PlanCContinuation { .. }
@@ -295,8 +302,18 @@ fn run_unix(
                 None,
             )?;
         }
-        WifiProofMode::R1Full { interactive } => {
-            super::r1_full::run(&mut line, &mut sign, identity, &runtime, interactive)?;
+        WifiProofMode::R1Full {
+            interactive,
+            membership_receipt,
+        } => {
+            super::r1_full::run(
+                &mut line,
+                &mut sign,
+                identity,
+                &runtime,
+                interactive,
+                membership_receipt.as_deref(),
+            )?;
         }
     }
     Ok(())
