@@ -1,6 +1,7 @@
 //! Left-side navigation, actions, and finite authoritative Gear chooser.
 
 use crate::{
+    forms_navigation::{FormNavigatorEntry, VISIBLE_FORM_ROWS},
     gui::{GuiAction, HitTarget},
     gui_hit::HitShape,
     gui_primitives::{frame_rect, icon_label, text, PixelRect},
@@ -14,19 +15,67 @@ use embedded_graphics::{
 };
 use patchbay_model::PatchbayTheme;
 
+pub(super) struct FormsNavigatorView<'a> {
+    pub(super) entries: &'a [FormNavigatorEntry],
+    pub(super) selection: usize,
+    pub(super) scroll: usize,
+}
+
 pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     palette: &PaletteChooser,
     visible_subject_count: usize,
+    forms: FormsNavigatorView<'_>,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
-    text(target, Point::new(14, 66), "NAVIGATOR", theme.emphasis);
+    text(
+        target,
+        Point::new(14, 66),
+        "FORMS  ALT+UP/DOWN ENTER",
+        theme.emphasis,
+    );
+    for (visible, entry) in forms
+        .entries
+        .iter()
+        .skip(forms.scroll)
+        .take(VISIBLE_FORM_ROWS)
+        .enumerate()
+    {
+        let index = forms.scroll + visible;
+        let y = 88 + visible as i32 * 24;
+        let label = if index == forms.selection {
+            format!("> {}", entry.label)
+        } else {
+            format!("  {}", entry.label)
+        };
+        text(target, Point::new(14, y), &label, theme.text_primary);
+        if let Some(action) = &entry.action {
+            targets.push(HitTarget {
+                action: action.clone(),
+                shape: HitShape::Rect(PixelRect {
+                    x: 12,
+                    y: y - 3,
+                    width: 150,
+                    height: 20,
+                }),
+            });
+        }
+    }
+    let remaining = forms
+        .entries
+        .len()
+        .saturating_sub(forms.scroll + VISIBLE_FORM_ROWS);
+    text(
+        target,
+        Point::new(14, 162),
+        &format!("{} ABOVE  {} BELOW", forms.scroll, remaining),
+        theme.structure_secondary,
+    );
     for (index, (icon, label)) in [
-        (Icon::Form, "Forms"),
-        (Icon::Body, "Bodies"),
-        (Icon::Host, "Hosts"),
-        (Icon::Sign, "Signs"),
+        (Icon::Body, "BODIES [UNAVAILABLE]"),
+        (Icon::Host, "HOSTS [UNAVAILABLE]"),
+        (Icon::Sign, "SIGNS [UNAVAILABLE]"),
     ]
     .into_iter()
     .enumerate()
@@ -34,9 +83,9 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
         icon_label(
             target,
             icon,
-            Point::new(14, 92 + index as i32 * 30),
+            Point::new(14, 182 + index as i32 * 20),
             label,
-            theme.text_primary,
+            theme.structure_secondary,
         );
     }
     text(target, Point::new(14, 226), "ACTIONS", theme.emphasis);

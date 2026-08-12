@@ -140,6 +140,7 @@ impl PatchbayApplication {
                     .clamp(i32::MIN as f64, i32::MAX as f64) as i32,
             ),
         };
+        let forms = self.form_navigator_entries();
         let surface = self.surface.as_mut().ok_or("native surface is absent")?;
         surface
             .resize(width, height)
@@ -194,6 +195,9 @@ impl PatchbayApplication {
                         breadcrumb: &breadcrumb,
                         lifecycle: &lifecycle,
                         palette: &self.palette,
+                        forms: &forms,
+                        form_selection: self.navigator_selection.min(forms.len().saturating_sub(1)),
+                        form_scroll: self.navigator_scroll.min(forms.len().saturating_sub(1)),
                         exact_identity_open: self.exact_identity_open,
                         face_control_focus: self.face_control_focus,
                         presentation_layout: &self.layout,

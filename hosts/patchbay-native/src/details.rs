@@ -66,6 +66,7 @@ fn belongs(lens: DetailsLens, line: &str) -> bool {
         }
         DetailsLens::Checked => {
             line.starts_with("CHECKED")
+                || line.starts_with("FORM NAVIGATOR")
                 || line.starts_with("DIAGNOSTIC")
                 || line.starts_with("> ")
                 || line.starts_with("  face-")

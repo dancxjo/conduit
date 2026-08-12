@@ -34,6 +34,9 @@ mod file_task;
 mod font;
 mod form_authoring;
 mod form_interaction;
+mod forms_navigation;
+#[cfg(test)]
+mod forms_navigation_tests;
 mod gui;
 mod gui_composition;
 mod gui_face_controls;
@@ -89,8 +92,10 @@ struct PatchbayApplication {
     prewake: Option<patchbay_model::PrewakeController>,
     prewake_environment_view: bool,
     form_selection: usize,
-    back_navigation: Vec<form_interaction::BackNavigationEntry>,
-    pending_back_target: Option<form_interaction::BackNavigationEntry>,
+    navigator_selection: usize,
+    navigator_scroll: usize,
+    back_navigation: Vec<forms_navigation::BackNavigationEntry>,
+    pending_back_target: Option<forms_navigation::BackNavigationEntry>,
     pending_back_selection: bool,
     graphical_form: Option<patchbay_model::PatchbayGraph>,
     layout: patchbay_model::PatchbayLayout,
