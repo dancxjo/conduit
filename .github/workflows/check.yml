@@ -58,13 +58,24 @@ jobs:
           key: conduitos-limine-12.5.2-4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055
       - name: Acquire one immutable ConduitOS bootloader archive
         if: steps.limine-cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' xtask/src/commands/conduitos/profile.rs)" = 1
           mkdir -p target/conduitos/vendor
-          curl --fail --location --remove-on-error \
+          archive=target/conduitos/vendor/limine-binary-12.5.2.tar.gz
+          if ! curl --fail --location --remove-on-error \
             --retry 3 --retry-all-errors --retry-delay 1 \
-            --output target/conduitos/vendor/limine-binary-12.5.2.tar.gz \
-            https://github.com/limine-bootloader/limine/releases/download/v12.5.2/limine-binary.tar.gz
+            --output "$archive" \
+            https://github.com/limine-bootloader/limine/releases/download/v12.5.2/limine-binary.tar.gz; then
+            curl --fail --location --remove-on-error \
+              --retry 3 --retry-all-errors --retry-delay 1 \
+              --header 'Accept: application/octet-stream' \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              --output "$archive" \
+              https://api.github.com/repos/limine-bootloader/limine/releases/assets/486357228
+          fi
       - name: Verify the pinned bootloader archive
         run: |
           test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' xtask/src/commands/conduitos/profile.rs)" = 1
