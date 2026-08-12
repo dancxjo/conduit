@@ -31,6 +31,12 @@ identity!(MembershipChangeId);
 identity!(MembershipProofId);
 identity!(CandidateId);
 identity!(DiscoveryProofId);
+#[cfg(feature = "authenticated-admission")]
+identity!(AdmissionId);
+#[cfg(feature = "authenticated-admission")]
+identity!(MembershipCredentialId);
+#[cfg(feature = "authenticated-admission")]
+identity!(SpawnInvitationId);
 
 impl SeedId {
     pub fn bind(source: &SourceDocumentId, checked: &CheckedFormId) -> Self {
