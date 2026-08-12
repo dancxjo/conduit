@@ -115,6 +115,7 @@ impl PatchbayApplication {
             GuiAction::ToggleLinearView => {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
             }
+            GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
             GuiAction::PlacePaletteKind(kind) => self.dispatch_palette_placement(&kind)?,
             GuiAction::DuplicateGear(subject) => {
                 self.dispatch_gear_edit(PatchbayAction::DuplicateGear, &subject)?
@@ -167,7 +168,11 @@ impl PatchbayApplication {
         self.finish_interaction(result)
     }
 
-    fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
+    pub(super) fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
+        if let Some(reason) = self.lifecycle_action_unavailable(action) {
+            self.publish_refusal(reason);
+            return Ok(());
+        }
         if action == PatchbayAction::OpenBack {
             self.pending_back_selection = self.selected_graphical_subject().is_some();
             self.pending_back_target = self.selected_back_target();
@@ -223,6 +228,12 @@ impl PatchbayApplication {
         };
         if invocation.target_identity != current_target {
             return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
+        }
+        if self
+            .lifecycle_action_unavailable(invocation.action)
+            .is_some()
+        {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
         }
         let result = match invocation.action {
             PatchbayAction::OpenBack => {

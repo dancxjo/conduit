@@ -28,6 +28,7 @@ pub enum GuiAction {
     OpenBack,
     SaveForm,
     ToggleLinearView,
+    Lifecycle(patchbay_model::PatchbayAction),
     PlacePaletteKind(String),
     DuplicateGear(patchbay_model::PatchbaySubjectRef),
     RemoveGear(patchbay_model::PatchbaySubjectRef),

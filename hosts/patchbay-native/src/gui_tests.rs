@@ -94,6 +94,54 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
 }
 
 #[test]
+fn lifecycle_strip_exposes_only_enabled_contextual_actions_as_hit_targets() {
+    let graph = graph();
+    let mut pixels = vec![BACKGROUND; 1280 * 720];
+    let lifecycle = LifecycleContext {
+        actions: vec![
+            crate::lifecycle_actions::LifecycleActionView {
+                action: patchbay_model::PatchbayAction::Birth,
+                label: "BIRTH BODY",
+                accelerator: "F4",
+                enabled: true,
+                explanation: "available now".into(),
+            },
+            crate::lifecycle_actions::LifecycleActionView {
+                action: patchbay_model::PatchbayAction::Wake,
+                label: "WAKE BODY",
+                accelerator: "F5",
+                enabled: false,
+                explanation: "Birth the Body first".into(),
+            },
+        ],
+        ..LifecycleContext::default()
+    };
+    let targets = draw_patchbay(
+        &mut pixels,
+        1280,
+        720,
+        &graph,
+        PatchbayViewContext {
+            selected: None,
+            breadcrumb: "",
+            lifecycle: &lifecycle,
+            palette_query: "",
+            presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
+        },
+    );
+    assert!(targets.iter().any(|target| {
+        target.action == GuiAction::Lifecycle(patchbay_model::PatchbayAction::Birth)
+    }));
+    assert!(!targets.iter().any(|target| {
+        target.action == GuiAction::Lifecycle(patchbay_model::PatchbayAction::Wake)
+    }));
+}
+
+#[test]
 fn parent_canvas_draws_one_composed_gear_instead_of_its_expanded_child_gears() {
     let graph = composition_graph();
     assert_eq!(graph.compositions.len(), 1);
