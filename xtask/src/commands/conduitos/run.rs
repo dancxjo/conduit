@@ -10,7 +10,10 @@ use crate::cli::GlobalOpts;
 use super::{
     hid_qmp, hid_run, image, keyboard_run, keyboard_text_run,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
-    report::{GuestBootSign, GuestKernelSign, GuestPresentationSign, GuestRun, GuestXhciSign},
+    report::{
+        GuestBootSign, GuestKernelSign, GuestPcSpeakerSign, GuestPresentationSign, GuestRun,
+        GuestXhciSign,
+    },
     usb_run, ConduitosArch, ConduitosError,
 };
 
@@ -167,12 +170,25 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_PRESENTATION_SIGN "))
         .collect();
+    let pc_speaker_signs: Vec<_> = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix("CONDUIT_PC_SPEAKER_SIGN "))
+        .collect();
     if presentation_signs.len() != 1 {
         return Err(ConduitosError::refusal(
             "malformed-presentation-sign",
             format!(
                 "expected one structured presentation Sign, found {}",
                 presentation_signs.len()
+            ),
+        ));
+    }
+    if pc_speaker_signs.len() != 1 {
+        return Err(ConduitosError::refusal(
+            "malformed-pc-speaker-sign",
+            format!(
+                "expected one structured PC-speaker Sign, found {}",
+                pc_speaker_signs.len()
             ),
         ));
     }
@@ -238,6 +254,8 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         serde_json::from_str(presentation_signs[0]).map_err(|error| {
             ConduitosError::refusal("malformed-presentation-sign", error.to_string())
         })?;
+    let pc_speaker: GuestPcSpeakerSign = serde_json::from_str(pc_speaker_signs[0])
+        .map_err(|error| ConduitosError::refusal("malformed-pc-speaker-sign", error.to_string()))?;
     let observatory: conduit_observatory::ObservatorySnapshot =
         serde_json::from_str(observatory_snapshots[0]).map_err(|error| {
             ConduitosError::refusal("malformed-observatory-snapshot", error.to_string())
@@ -248,6 +266,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         })?;
     validate_boot(&boot)?;
     validate_presentation(&boot, &presentation)?;
+    validate_pc_speaker(&boot, &pc_speaker)?;
     validate_xhci(&boot, &xhci)?;
     usb_run::validate(&boot, &xhci, &usb)?;
     hid_run::validate(&boot, &xhci, &usb, &hid)?;
@@ -269,6 +288,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
     Ok(GuestRun {
         boot,
         presentation,
+        pc_speaker,
         xhci,
         usb,
         hid,
@@ -279,6 +299,44 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         observatory,
         serial,
     })
+}
+
+fn validate_pc_speaker(
+    boot: &GuestBootSign,
+    sign: &GuestPcSpeakerSign,
+) -> Result<(), ConduitosError> {
+    let exact_id =
+        |value: &str| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit());
+    if sign.schema != "conduit.conduitos.pc-speaker-tone/v1"
+        || sign.status != "completed"
+        || sign.proof_class != "freestanding-emulator"
+        || sign.host_id != boot.host_id
+        || sign.boot_id != boot.boot_id
+        || !exact_id(&sign.base_id)
+        || sign.kind != conduit_std_catalog::SOUND_TONE_PLAY_KIND
+        || sign.implementation != conduitos::pc_speaker_offer::PC_SPEAKER_IMPLEMENTATION
+        || sign.execution_profile != conduitos::pc_speaker_offer::PC_SPEAKER_EXECUTION_PROFILE
+        || !exact_id(&sign.plan_id)
+        || !exact_id(&sign.active_play_id)
+        || sign.node_count != 2
+        || sign.cord_count != 1
+        || sign.requested_millihertz != [440_000, 440_000, 660_000, 660_000]
+        || sign.realized_millihertz != [439_963, 0, 659_945, 0]
+        || sign.divisors != [2_712, 0, 1_808, 0]
+        || sign.gate_transitions != [true, false, true, false]
+        || sign.transition_count != 4
+        || sign.kernel_decisions == 0
+        || sign.kernel_signs == 0
+        || sign.final_gate_open
+        || !sign.bounded
+        || !sign.completed
+    {
+        return Err(ConduitosError::refusal(
+            "invalid-pc-speaker-sign",
+            format!("PC-speaker Sign failed exact validation: {sign:?}"),
+        ));
+    }
+    Ok(())
 }
 
 fn validate_presentation(

@@ -4,6 +4,7 @@ mod hid;
 mod idt;
 mod io;
 mod irq;
+mod pc_speaker;
 mod pic;
 mod pit;
 mod providers;
@@ -18,7 +19,12 @@ pub use hid::{
     prepare_boot_keyboard, receive_boot_keyboard, receive_first_boot_keyboard_report,
     run_boot_keyboard,
 };
+pub use pc_speaker::PcSpeaker;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer, initialize_machine};
+
+pub const fn pc_speaker_input_hz() -> u64 {
+    pc_speaker::PIT_INPUT_HZ
+}
 pub use reboot::{RebootBase, RebootError, local_reboot_base};
 pub use serial::early_write;
 pub use usb::{

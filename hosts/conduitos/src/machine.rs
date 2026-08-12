@@ -3,6 +3,7 @@
 //! These are mechanisms beneath Host offers. They carry no authored meaning,
 //! scheduling policy, ambient authority, or architecture-specific vocabulary.
 
+use conduit_core::ToneIntent;
 use conduit_kernel::{BoundedValueRef, NodeId, RequestId};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -40,6 +41,7 @@ pub enum BaseError {
     TimerCancelled,
     PayloadTooLarge,
     Unavailable,
+    UnsupportedValue,
 }
 
 impl BaseError {
@@ -53,8 +55,26 @@ impl BaseError {
             Self::TimerCancelled => "timer-cancelled",
             Self::PayloadTooLarge => "serial-payload-too-large",
             Self::Unavailable => "base-unavailable",
+            Self::UnsupportedValue => "base-value-unsupported",
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RealizedTone {
+    pub correlation: u64,
+    pub requested_millihertz: u64,
+    pub realized_millihertz: u64,
+    pub divisor: u16,
+    pub gate_open: bool,
+}
+
+/// Exact admitted machine effect beneath a portable tone realization.
+/// Scheduling and semantic lifecycle remain in the production kernel.
+pub trait ToneBase {
+    fn apply(&mut self, intent: ToneIntent) -> Result<RealizedTone, BaseError>;
+    fn silence(&mut self) -> Result<(), BaseError>;
+    fn transition_count(&self) -> u32;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

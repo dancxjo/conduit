@@ -24,6 +24,7 @@ mod loongarch64_a2;
 #[allow(dead_code)]
 mod loongarch64_a3;
 mod loongarch64_a4;
+mod pc_speaker_proof;
 mod profile;
 mod prove;
 mod report;
@@ -81,6 +82,8 @@ enum ConduitosCommand {
     HidProof,
     /// Prove the exact portable keyboard offer, Plan, Play, and event values.
     KeyboardProof,
+    /// Prove the exact PC-speaker offer, Plan, production-kernel Play, and Base effects.
+    PcSpeakerProof,
     /// Prove real USB keyboard detach/reattach across immutable and fresh Plans.
     HotplugProof,
     /// Prove one low-level local rescue request and real fresh boot.
@@ -244,6 +247,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::UsbProof => usb_proof::execute(opts),
         ConduitosCommand::HidProof => hid_proof::execute(opts),
         ConduitosCommand::KeyboardProof => keyboard_proof::execute(opts),
+        ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
         ConduitosCommand::RescueProof => rescue_proof::execute(opts),
     }
