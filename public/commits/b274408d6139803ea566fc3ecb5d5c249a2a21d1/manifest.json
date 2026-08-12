@@ -1,7 +1,7 @@
 {
   "schema": "conduit.evidence-manifest/v1",
   "result": "complete",
-  "git_commit": "6418441006873cffabd31534589b0113e29f2325",
+  "git_commit": "b274408d6139803ea566fc3ecb5d5c249a2a21d1",
   "proof_id": "browser-host",
   "suite_id": "prove.browser-host",
   "limits": {
@@ -255,8 +255,8 @@
       "path": "route-recovery.png",
       "media_type": "image/png",
       "required": true,
-      "bytes": 1538878,
-      "sha256": "a5ac9b98894d0b70cb00aecc488c3d03c47e0a840858d540c293ab05c2027192",
+      "bytes": 1538820,
+      "sha256": "4dc5d4603b1b5c0ac9d4ab37df108ed3e8537cf61c9fe73793c49427a05bad0c",
       "scenario_id": "patchbay-html.route-recovery@1",
       "step_id": "prove.browser-host.patchbay-html-matrix",
       "browser_engine": "chromium",
