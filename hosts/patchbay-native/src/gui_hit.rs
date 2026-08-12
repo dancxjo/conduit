@@ -13,6 +13,7 @@ pub struct HitTarget {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
+    Lifecycle(patchbay_model::PatchbayAction),
     EnvironmentAdd(MachineProfile),
     EnvironmentSelect(String),
     EnvironmentRemove(String),
@@ -28,7 +29,6 @@ pub enum GuiAction {
     OpenBack,
     SaveForm,
     ToggleLinearView,
-    Lifecycle(patchbay_model::PatchbayAction),
     PlacePaletteKind(String),
     DuplicateGear(patchbay_model::PatchbaySubjectRef),
     RemoveGear(patchbay_model::PatchbaySubjectRef),

@@ -94,54 +94,6 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
 }
 
 #[test]
-fn lifecycle_strip_exposes_only_enabled_contextual_actions_as_hit_targets() {
-    let graph = graph();
-    let mut pixels = vec![BACKGROUND; 1280 * 720];
-    let lifecycle = LifecycleContext {
-        actions: vec![
-            crate::lifecycle_actions::LifecycleActionView {
-                action: patchbay_model::PatchbayAction::Birth,
-                label: "BIRTH BODY",
-                accelerator: "F4",
-                enabled: true,
-                explanation: "available now".into(),
-            },
-            crate::lifecycle_actions::LifecycleActionView {
-                action: patchbay_model::PatchbayAction::Wake,
-                label: "WAKE BODY",
-                accelerator: "F5",
-                enabled: false,
-                explanation: "Birth the Body first".into(),
-            },
-        ],
-        ..LifecycleContext::default()
-    };
-    let targets = draw_patchbay(
-        &mut pixels,
-        1280,
-        720,
-        &graph,
-        PatchbayViewContext {
-            selected: None,
-            breadcrumb: "",
-            lifecycle: &lifecycle,
-            palette_query: "",
-            presentation_layout: &Default::default(),
-            realization_plan: None,
-            realization_hosts: &[],
-            status: None,
-            gesture: Default::default(),
-        },
-    );
-    assert!(targets.iter().any(|target| {
-        target.action == GuiAction::Lifecycle(patchbay_model::PatchbayAction::Birth)
-    }));
-    assert!(!targets.iter().any(|target| {
-        target.action == GuiAction::Lifecycle(patchbay_model::PatchbayAction::Wake)
-    }));
-}
-
-#[test]
 fn parent_canvas_draws_one_composed_gear_instead_of_its_expanded_child_gears() {
     let graph = composition_graph();
     assert_eq!(graph.compositions.len(), 1);
@@ -233,6 +185,70 @@ fn every_patchbay_drag_state_has_a_distinct_visible_manifestation() {
     for gesture in gestures {
         assert_ne!(render(gesture), baseline);
     }
+}
+
+#[test]
+fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
+    use crate::lifecycle_flow::{LifecycleFlow, LifecycleFlowAction};
+
+    let graph = graph();
+    let lifecycle = LifecycleContext {
+        body_id: Some("body/exact".into()),
+        wake_id: Some("wake/exact".into()),
+        plan_id: Some("plan/exact".into()),
+        play_id: None,
+        flow: LifecycleFlow {
+            state_code: "PLAN_READY",
+            state_text: "PLAN ready".into(),
+            detail: "Exact Plan admitted; no Play active".into(),
+            exact_basis: "body=body/exact wake=wake/exact plan=plan/exact play=none".into(),
+            actions: vec![
+                LifecycleFlowAction {
+                    action: patchbay_model::PatchbayAction::Play,
+                    label: "PLAY",
+                    accelerator: "F7",
+                },
+                LifecycleFlowAction {
+                    action: patchbay_model::PatchbayAction::Lull,
+                    label: "LULL",
+                    accelerator: "Shift+F6",
+                },
+            ],
+        },
+    };
+    let mut pixels = vec![BACKGROUND; 1100 * 720];
+    let targets = draw_patchbay(
+        &mut pixels,
+        1100,
+        720,
+        &graph,
+        PatchbayViewContext {
+            selected: None,
+            breadcrumb: "",
+            lifecycle: &lifecycle,
+            palette_query: "",
+            presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
+        },
+    );
+    let lifecycle_actions = targets
+        .iter()
+        .filter_map(|target| match &target.action {
+            GuiAction::Lifecycle(action) => Some(*action),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        lifecycle_actions,
+        [
+            patchbay_model::PatchbayAction::Play,
+            patchbay_model::PatchbayAction::Lull
+        ]
+    );
+    assert!(pixels.contains(&patchbay_model::PHOSPHOR_THEME.focus.packed_rgb()));
 }
 
 #[test]

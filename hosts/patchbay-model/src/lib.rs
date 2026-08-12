@@ -51,8 +51,9 @@ mod topology;
 
 pub use build_birth::{
     BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus, PatchbayMode,
-    WakeLifecycle, MAX_BUILD_DOCUMENT_LINES,
+    MAX_BUILD_DOCUMENT_LINES,
 };
+pub use conduit_body::WakeLifecycle;
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,

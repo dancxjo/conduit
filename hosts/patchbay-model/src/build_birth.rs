@@ -1,7 +1,6 @@
 //! Canonical Patchbay Build/Birth control over Form and Body lifecycle truth.
 
-pub use conduit_body::WakeLifecycle;
-use conduit_body::{Body, BodyLifecycleError, BodyState, Wake};
+use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
 use conduit_core::{ActivePlayIdentity, Plan, PlanId, SignId};
 
 use crate::FormEditor;

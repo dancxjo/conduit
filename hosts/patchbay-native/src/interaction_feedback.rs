@@ -82,6 +82,32 @@ impl PatchbayApplication {
                 );
                 Ok(())
             }
+            InteractionDisposition::Refused(PatchbayRefusal::OperationUnavailable) => {
+                let message = match &receipt.request {
+                    PatchbayInteractionRequest::Invoke { invocation, .. }
+                        if crate::lifecycle_flow::is_lifecycle_action(invocation.action) =>
+                    {
+                        self.lifecycle_unavailable_reason(invocation.action)
+                            .unwrap_or_else(|| match invocation.action {
+                                PatchbayAction::Plan => {
+                                    "Plan unavailable for the current exact Form and Host offers"
+                                        .into()
+                                }
+                                PatchbayAction::Play => {
+                                    "Play unavailable for the current exact Plan and Host offers"
+                                        .into()
+                                }
+                                PatchbayAction::Stop => {
+                                    "Stop request unavailable or already pending".into()
+                                }
+                                _ => "Lifecycle action is unavailable".into(),
+                            })
+                    }
+                    _ => "Action is unavailable for the current exact state".into(),
+                };
+                self.publish_refusal(message);
+                Ok(())
+            }
             InteractionDisposition::Refused(reason) => {
                 self.publish_refusal(format!("Interaction refused: {reason:?}"));
                 Ok(())

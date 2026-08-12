@@ -88,6 +88,7 @@ impl PatchbayApplication {
                 | GuiAction::ConfigureGear { .. }
         );
         match action {
+            GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
             GuiAction::EnvironmentAdd(_)
             | GuiAction::EnvironmentSelect(_)
             | GuiAction::EnvironmentRemove(_)
@@ -115,7 +116,6 @@ impl PatchbayApplication {
             GuiAction::ToggleLinearView => {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
             }
-            GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
             GuiAction::PlacePaletteKind(kind) => self.dispatch_palette_placement(&kind)?,
             GuiAction::DuplicateGear(subject) => {
                 self.dispatch_gear_edit(PatchbayAction::DuplicateGear, &subject)?
@@ -168,11 +168,7 @@ impl PatchbayApplication {
         self.finish_interaction(result)
     }
 
-    pub(super) fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
-        if let Some(reason) = self.lifecycle_action_unavailable(action) {
-            self.publish_refusal(reason);
-            return Ok(());
-        }
+    fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
         if action == PatchbayAction::OpenBack {
             self.pending_back_selection = self.selected_graphical_subject().is_some();
             self.pending_back_target = self.selected_back_target();
@@ -212,6 +208,13 @@ impl PatchbayApplication {
         &mut self,
         invocation: &PatchbayInvocation,
     ) -> PatchbayInvocationOutcome {
+        if crate::lifecycle_flow::is_lifecycle_action(invocation.action)
+            && self
+                .lifecycle_unavailable_reason(invocation.action)
+                .is_some()
+        {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
+        }
         let current_target = match self
             .graphical_form
             .as_ref()
@@ -228,12 +231,6 @@ impl PatchbayApplication {
         };
         if invocation.target_identity != current_target {
             return PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation);
-        }
-        if self
-            .lifecycle_action_unavailable(invocation.action)
-            .is_some()
-        {
-            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
         }
         let result = match invocation.action {
             PatchbayAction::OpenBack => {
@@ -265,9 +262,36 @@ impl PatchbayApplication {
             PatchbayAction::Birth => self.birth_body(),
             PatchbayAction::Wake => self.wake_body(),
             PatchbayAction::Lull => self.lull_body(),
-            PatchbayAction::Plan => self.plan_play(),
-            PatchbayAction::Play => self.play_plan(),
-            PatchbayAction::Stop => self.control.stop(),
+            PatchbayAction::Plan => {
+                return match self.plan_play_classified() {
+                    Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                    Err(crate::build_birth::LifecycleActionError::Unavailable) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                    }
+                    Err(crate::build_birth::LifecycleActionError::Failure(_)) => {
+                        PatchbayInvocationOutcome::Failed
+                    }
+                }
+            }
+            PatchbayAction::Play => {
+                return match self.play_plan_classified() {
+                    Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                    Err(crate::build_birth::LifecycleActionError::Unavailable) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                    }
+                    Err(crate::build_birth::LifecycleActionError::Failure(_)) => {
+                        PatchbayInvocationOutcome::Failed
+                    }
+                }
+            }
+            PatchbayAction::Stop => {
+                return match self.control.stop() {
+                    Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                    Err(_) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                    }
+                }
+            }
             PatchbayAction::Hold => self.mark_unsatisfied(),
             PatchbayAction::PlaceGear
             | PatchbayAction::DuplicateGear

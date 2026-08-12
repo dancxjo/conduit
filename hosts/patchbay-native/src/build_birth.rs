@@ -1,5 +1,10 @@
 use super::*;
 
+pub(super) enum LifecycleActionError {
+    Unavailable,
+    Failure(String),
+}
+
 impl PatchbayApplication {
     pub(super) fn lifecycle_sign(&mut self, label: &str) -> SignId {
         let sign = SignId::from(format!(
@@ -33,36 +38,54 @@ impl PatchbayApplication {
     }
 
     pub(super) fn plan_play(&mut self) -> Result<(), String> {
-        let editor = self
-            .form_editor
-            .as_ref()
-            .ok_or("planning requires BUILD mode with a Form")?;
-        self.control.request_plan(editor)?;
-        let plan = self
-            .control
-            .plan()
-            .cloned()
-            .ok_or("planner accepted no exact Plan")?;
+        self.plan_play_classified().map_err(|error| match error {
+            LifecycleActionError::Unavailable => {
+                "planning is unavailable for the current exact Form and Host offers".into()
+            }
+            LifecycleActionError::Failure(error) => error,
+        })
+    }
+
+    pub(super) fn plan_play_classified(&mut self) -> Result<(), LifecycleActionError> {
+        let editor = self.form_editor.as_ref().ok_or_else(|| {
+            LifecycleActionError::Failure("planning requires BUILD mode with a Form".into())
+        })?;
+        self.control
+            .request_plan(editor)
+            .map_err(|_| LifecycleActionError::Unavailable)?;
+        let plan = self.control.plan().cloned().ok_or_else(|| {
+            LifecycleActionError::Failure("planner accepted no exact Plan".into())
+        })?;
         let sign = self.lifecycle_sign("planned");
         self.build_birth
             .plan_ready(&plan, sign)
-            .map_err(|error| error.to_string())
+            .map_err(|error| LifecycleActionError::Failure(error.to_string()))
     }
 
     pub(super) fn play_plan(&mut self) -> Result<(), String> {
+        self.play_plan_classified().map_err(|error| match error {
+            LifecycleActionError::Unavailable => {
+                "Play is unavailable for the current exact Plan and Host offers".into()
+            }
+            LifecycleActionError::Failure(error) => error,
+        })
+    }
+
+    pub(super) fn play_plan_classified(&mut self) -> Result<(), LifecycleActionError> {
         let play = self
             .control
             .planned_play_identity()
-            .ok_or("Play requires a current exact Plan")?;
+            .ok_or(LifecycleActionError::Unavailable)?;
         let sign = self.lifecycle_sign("played");
         let mut next = self.build_birth.clone();
         next.play_started(&play, sign)
-            .map_err(|error| error.to_string())?;
-        self.control.run(
-            self.form_editor
-                .as_ref()
-                .ok_or("Play requires BUILD mode with a Form")?,
-        )?;
+            .map_err(|error| LifecycleActionError::Failure(error.to_string()))?;
+        let editor = self.form_editor.as_ref().ok_or_else(|| {
+            LifecycleActionError::Failure("Play requires BUILD mode with a Form".into())
+        })?;
+        self.control
+            .run(editor)
+            .map_err(|_| LifecycleActionError::Unavailable)?;
         self.build_birth = next;
         Ok(())
     }

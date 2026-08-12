@@ -272,6 +272,16 @@ impl NativeControl {
         self.active.is_some()
     }
 
+    pub fn play_terminal(&self) -> Option<conduit_core::TerminalDisposition> {
+        self.play_document
+            .as_ref()
+            .map(|document| document.terminal)
+    }
+
+    pub fn play_failure(&self) -> Option<&str> {
+        self.failure.as_deref()
+    }
+
     #[cfg(test)]
     pub fn host_identity(&self) -> (&HostId, &BootId) {
         (&self.host_config.host_id, &self.host_config.boot_id)
