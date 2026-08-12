@@ -1857,3 +1857,26 @@ slots and a 2 MiB boot arena before Play; the normal profile remains unchanged.
 This adds no general hotplug manager, same-Plan substitution, multi-keyboard
 policy, Wake controller, authority source, browser fallback, physical keyboard,
 or HIL claim.
+
+The native Patchbay usability epic from #982 is accepted through its final U8
+and U9 slices at exact main `e38ddb6ab7163aa8daeb2d03cad58be99b562c35`;
+push workflow `31614731317` passed the required `check` and `conduitos-boot`
+gates after PR #1065 passed its exact-head matrix in workflow `31614333260`.
+The supported `cargo xtask demo patchbay --first-run-proof` entrance opens the
+bounded `default-welcome` workspace, traverses `hello : greet` with exact Face
+Ports, edits canonical text through a visible bounded Face control, finds and
+adds `text/upper`, recovers from one nonfatal invalid connection, wires exact
+compatible Ports, traverses breadcrumbs, and performs coherent semantic
+undo/redo before visible Birth, Wake, Plan, and Play actions complete through
+the production kernel.
+
+The finite JSON result records one worker, zero retries, one wrong turn,
+refusal recovery, 24 interactions within the pre-stated 24-interaction bound,
+and elapsed time within 30 seconds. Acceptance observes actionable native
+renderer state rather than screenshot pixels, retains the actual bounded
+`HOWDY` presentation, and requires ordinary Play Signs and kernel Signs through
+their authoritative documents. Semantic history remains finite and does not
+rewind lifecycle, filesystem, Host, evidence, navigation, selection, or
+viewport state. This is hosted native software execution evidence; it adds no
+browser, firmware, physical, or HIL claim and no second runtime or semantic
+authority.
