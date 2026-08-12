@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
-conduit-body = { path = "../conduit-body", optional = true }
+conduit-body = { path = "../conduit-body", default-features = false, optional = true }
 conduit-form = { path = "../conduit-form", optional = true }
 conduit-net = { path = "../conduit-net", optional = true }
 conduit-observatory = { path = "../conduit-observatory" }
