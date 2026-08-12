@@ -33,3 +33,7 @@ serde_json = "1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[dev-dependencies]
+conduit-pico-sim = { path = "../../fixtures/pico-sim", features = ["compatibility-fixture"] }
+ed25519-dalek = "2.2"

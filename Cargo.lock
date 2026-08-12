@@ -666,6 +666,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",
+ "conduit-pico-sim",
  "conduit-planner",
  "conduit-presentation",
  "conduit-runtime",
@@ -674,6 +675,7 @@ dependencies = [
  "conduit-synth",
  "conduit-system-continuity",
  "conduit-wire",
+ "ed25519-dalek",
  "libc",
  "serde",
  "serde_json",
@@ -2384,6 +2386,15 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
+dependencies = [
+ "getrandom 0.2.17",
+]
+
+[[package]]
+name = "rand_core"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
@@ -2716,6 +2727,9 @@ name = "signature"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
+dependencies = [
+ "rand_core 0.6.4",
+]
 
 [[package]]
 name = "simd-adler32"

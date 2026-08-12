@@ -316,6 +316,22 @@ mod tests {
         let pico = Cli::try_parse_from(["xtask", "pico", "build"]).expect("pico command parses");
         assert!(matches!(pico.command, Command::Pico(_)));
 
+        let pico_body = Cli::try_parse_from([
+            "xtask",
+            "pico",
+            "prove-body-admission",
+            "--link-port",
+            "/dev/serial/by-id/pico",
+        ])
+        .expect("physical Pico Body admission proof parses");
+        assert!(matches!(
+            pico_body.command,
+            Command::Pico(PicoArgs {
+                subcommand: Some(crate::commands::pico::PicoSubcommand::ProveBodyAdmission),
+                ..
+            })
+        ));
+
         let pico_build_remote = Cli::try_parse_from(["xtask", "pico", "build", "--usb-remote"])
             .expect("pico build --usb-remote parses");
         if let Command::Pico(args) = pico_build_remote.command {

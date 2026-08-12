@@ -63,6 +63,7 @@ mod palette_view;
 mod parts_interaction;
 mod parts_keyboard;
 mod parts_view;
+mod pico_parts;
 mod portable_keyboard;
 #[cfg(test)]
 mod portable_keyboard_tests;
@@ -122,6 +123,7 @@ struct PatchbayApplication {
     pending_revoke: Option<conduit_body::PartId>,
     body_candidates: Option<conduit_body::CandidateInventory>,
     browser_parts: Option<browser_parts::BrowserPartsCoordinator>,
+    pico_parts: Option<pico_parts::PicoPartsCoordinator>,
     face_control_focus: usize,
     palette_drag: Option<String>,
     cord_drag: Option<patchbay_model::PatchbaySubjectRef>,
@@ -312,7 +314,7 @@ impl ApplicationHandler for PatchbayApplication {
                 return;
             }
         }
-        match self.poll_browser_parts() {
+        match self.poll_body_parts() {
             Ok(true) => self.rendered_once = false,
             Ok(false) => {}
             Err(error) => self.publish_refusal(error),
@@ -366,6 +368,10 @@ impl ApplicationHandler for PatchbayApplication {
                     .browser_parts
                     .as_ref()
                     .is_some_and(browser_parts::BrowserPartsCoordinator::is_running)
+                || self
+                    .pico_parts
+                    .as_ref()
+                    .is_some_and(pico_parts::PicoPartsCoordinator::is_running)
                 || self
                     .distributed_play
                     .as_ref()
