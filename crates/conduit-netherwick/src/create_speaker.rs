@@ -171,20 +171,27 @@ pub fn live_speaker_advertisement(
         return Err(SpeakerRefusal::UnsupportedMode);
     }
     let contract = conduit_std_catalog::music_play_contract();
+    let mut resources = vec![
+        resource_offer(&observation.speaker_resource_id, SPEAKER_RESOURCE, 1),
+        resource_offer(
+            &format!("{}/speaker-operation", observation.serial_base_id),
+            SERIAL_OPERATION_RESOURCE,
+            1,
+        ),
+    ];
+    resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    let mut requirements = vec![
+        resource_requirement(SPEAKER_RESOURCE, 1),
+        resource_requirement(SERIAL_OPERATION_RESOURCE, 1),
+    ];
+    requirements.sort_by(|left, right| left.class_id.cmp(&right.class_id));
     Ok(HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: observation.host_id.clone(),
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: conduit_core::HostProfileId::from(SPEAKER_PROFILE),
-        resources: vec![
-            resource_offer(&observation.speaker_resource_id, SPEAKER_RESOURCE, 1),
-            resource_offer(
-                &format!("{}/speaker-operation", observation.serial_base_id),
-                SERIAL_OPERATION_RESOURCE,
-                1,
-            ),
-        ],
+        resources,
         capabilities: vec![CapabilityOffer {
             startup_parameters: Vec::new(),
             shorthand: None,
@@ -207,10 +214,7 @@ pub fn live_speaker_advertisement(
                 maximum_input_bytes: MAXIMUM_ADMITTED_SERIAL_BYTES as u32,
                 maximum_output_bytes: 0,
             }],
-            resource_requirements: vec![
-                resource_requirement(SPEAKER_RESOURCE, 1),
-                resource_requirement(SERIAL_OPERATION_RESOURCE, 1),
-            ],
+            resource_requirements: requirements,
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(SPEAKER_AUTHORITY),
                 host_operation_contract_id: HostOperationContractId::from(SPEAKER_OPERATION),
