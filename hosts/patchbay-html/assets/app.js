@@ -106,13 +106,16 @@ function renderRouteRecovery(svg,routes,startY){
 function renderGraph(){
   const svg=document.querySelector("#graph");svg.replaceChildren(svg.querySelector("title"));
   let gears=subjects("Gear");if(state.reversed)gears=[...gears].reverse();const ports=subjects("Port"),cords=subjects("Cord").filter(item=>property(item.identity,"source-port")),routes=subjects("Route"),diagnostics=subjects("Diagnostic");
-  const positions=new Map();gears.forEach((gear,index)=>positions.set(gear.identity,{x:35+(index%3)*235,y:55+Math.floor(index/3)*190}));
+  const routingTop=55,gearTop=routingTop+cords.length*10+20;
+  const positions=new Map();gears.forEach((gear,index)=>positions.set(gear.identity,{x:35+(index%3)*235,y:gearTop+Math.floor(index/3)*190}));
   const semanticToSubject=new Map([...gears,...ports,...cords].map(item=>[propertyText(property(item.identity,"semantic-id")?.value??{}),item.identity]));const portPoints=new Map();
   for(const gear of gears){const position=positions.get(gear.identity),gearPorts=state.snapshot.presentation.relationships.filter(item=>item.source===gear.identity&&item.kind==="Contains").map(item=>state.snapshot.presentation.subjects.find(subject=>subject.identity===item.target)).filter(item=>item?.role==="Port"),receiving=gearPorts.filter(item=>propertyText(property(item.identity,"direction")?.value)==="receiving"),outgoing=gearPorts.filter(item=>propertyText(property(item.identity,"direction")?.value)==="outgoing");receiving.forEach((port,index)=>portPoints.set(port.identity,{x:position.x,y:position.y+70+index*24}));outgoing.forEach((port,index)=>portPoints.set(port.identity,{x:position.x+200,y:position.y+70+index*24}));}
   for(const cord of cords){
     const source=semanticToSubject.get(propertyText(property(cord.identity,"source-port")?.value??{})),sink=semanticToSubject.get(propertyText(property(cord.identity,"sink-port")?.value??{})),from=portPoints.get(source),to=portPoints.get(sink);if(!from||!to)continue;
-    const group=svgElement("g",{class:"cord",role:"button",tabindex:"0","aria-label":cord.accessibility_name});group.dataset.subject=cord.identity;group.append(svgElement("line",{x1:from.x,y1:from.y,x2:to.x,y2:to.y,class:"relationship cord-line"}));
-    const x=(from.x+to.x)/2,y=(from.y+to.y)/2-8,overlays=[
+    const laneY=routingTop+cords.indexOf(cord)*10,sourceOutside=from.x+12,sinkOutside=to.x-12;
+    const path=`M ${from.x} ${from.y} H ${sourceOutside} V ${laneY} H ${sinkOutside} V ${to.y} H ${to.x}`;
+    const group=svgElement("g",{class:"cord",role:"button",tabindex:"0","aria-label":cord.accessibility_name});group.dataset.subject=cord.identity;group.append(svgElement("path",{d:path,class:"relationship cord-line",fill:"none"}));
+    const x=(sourceOutside+sinkOutside)/2,y=laneY-5,overlays=[
       ["plan",propertyText(property(cord.identity,"line")?.value??property(cord.identity,"line-id")?.value??{})],
       ["play",propertyText(property(cord.identity,"play-state")?.value??{})],
       ["signs",`${properties(cord.identity).filter(item=>item.name.startsWith("sign-")).length} causal Signs`],

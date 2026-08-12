@@ -58,12 +58,13 @@ main { padding:.75rem 1rem 2rem; }
 .port-anchor { fill:var(--patchbay-background); stroke:var(--patchbay-structure-primary); stroke-width:3; }
 .port-label { fill:var(--patchbay-text-primary); font-size:11px; pointer-events:none; }
 .cord-line { stroke-width:4; }
+.cord path { stroke-linejoin:round; stroke-linecap:round; }
 .diagnostic-badge { fill:var(--patchbay-surface); stroke:var(--patchbay-warning); stroke-width:2; }
 .diagnostic-label { fill:var(--patchbay-warning); font-size:10px; pointer-events:none; }
 .lens-overlay { display:none; fill:var(--patchbay-text-secondary); font-size:9px; pointer-events:none; }
 body[data-lens="plan"] .plan-overlay,body[data-lens="play"] .play-overlay,body[data-lens="signs"] .signs-overlay { display:block; }
 g.selected .node { stroke:var(--patchbay-focus); stroke-width:4; }
-g.selected line,g.selected .port-anchor,g.selected .diagnostic-badge { stroke:var(--patchbay-focus); stroke-width:5; }
+g.selected line,g.selected path,g.selected .port-anchor,g.selected .diagnostic-badge { stroke:var(--patchbay-focus); stroke-width:5; }
 .route-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; }
 .route-card { border-left:5px solid var(--patchbay-structure-primary); padding:.8rem; background:var(--patchbay-surface); }
 .unavailable { text-decoration:line-through; color:var(--patchbay-muted); }
