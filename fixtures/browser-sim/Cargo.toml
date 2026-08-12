@@ -12,5 +12,7 @@ conduit-signal = { path = "../../crates/conduit-signal", features = ["legacy-fix
 conduit-wire = { path = "../../crates/conduit-wire" }
 
 [dev-dependencies]
+conduit-body = { path = "../../crates/conduit-body" }
 conduit-pico-sim = { path = "../pico-sim" }
 conduit-std-host = { path = "../../hosts/std", features = ["legacy-fixture-driver"] }
+ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }

@@ -454,6 +454,7 @@ dependencies = [
 name = "conduit-browser-sim"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-form",
  "conduit-pico-sim",
@@ -462,6 +463,7 @@ dependencies = [
  "conduit-signal",
  "conduit-std-host",
  "conduit-wire",
+ "ed25519-dalek",
 ]
 
 [[package]]
