@@ -7,6 +7,7 @@ publish = false
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
+conduit-kernel = { path = "../conduit-kernel" }
 conduit-observatory = { path = "../conduit-observatory" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-std-catalog = { path = "../conduit-std-catalog", features = ["form-catalog"] }
