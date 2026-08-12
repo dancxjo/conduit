@@ -222,6 +222,24 @@ impl PatchbayApplication {
             view.checked.forms.len(),
             view.open_form
         ));
+        lines.extend(
+            self.form_navigator_entries()
+                .iter()
+                .enumerate()
+                .map(|(index, entry)| {
+                    let state = if index == self.navigator_selection {
+                        "selected"
+                    } else {
+                        "not-selected"
+                    };
+                    let action = if entry.action.is_some() {
+                        "actionable"
+                    } else {
+                        "unavailable"
+                    };
+                    format!("FORM NAVIGATOR {state} {action} {}", entry.label)
+                }),
+        );
         if let Some(form) = view
             .checked
             .forms

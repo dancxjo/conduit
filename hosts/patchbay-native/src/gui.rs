@@ -11,7 +11,7 @@ use crate::{
     gui_gesture::{draw_gesture, GestureView},
     gui_hit::HitShape,
     gui_inspector::{draw_inspector, InspectorView},
-    gui_navigator::draw_navigator,
+    gui_navigator::{draw_navigator, FormsNavigatorView},
     gui_primitives::{draw_regions, frame_rect, icon_label, line, text, PixelRect, RegionMetrics},
     icon::Icon,
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
@@ -40,6 +40,7 @@ pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + conduit_body::MAX_BODY_PARTS
     + conduit_body::MAX_CANDIDATES
     + 1
+    + crate::forms_navigation::VISIBLE_FORM_ROWS
     + crate::lifecycle_flow::MAX_LIFECYCLE_ACTIONS;
 
 pub(super) const HEADER_HEIGHT: i32 = 52;
@@ -70,6 +71,9 @@ pub struct PatchbayViewContext<'a> {
     pub breadcrumb: &'a str,
     pub lifecycle: &'a LifecycleContext,
     pub palette: &'a crate::palette_state::PaletteChooser,
+    pub forms: &'a [crate::forms_navigation::FormNavigatorEntry],
+    pub form_selection: usize,
+    pub form_scroll: usize,
     pub exact_identity_open: bool,
     pub face_control_focus: usize,
     pub presentation_layout: &'a patchbay_model::PatchbayLayout,
@@ -110,6 +114,9 @@ pub fn draw_patchbay(
         breadcrumb,
         lifecycle,
         palette,
+        forms,
+        form_selection,
+        form_scroll,
         exact_identity_open,
         face_control_focus,
         presentation_layout,
@@ -171,8 +178,13 @@ pub fn draw_patchbay(
         &mut canvas,
         palette,
         graph.gears.len() + graph.compositions.len(),
-        lifecycle.body_id.is_some(),
-        lifecycle.parts.is_some(),
+        FormsNavigatorView {
+            entries: forms,
+            selection: form_selection,
+            scroll: form_scroll,
+            body_born: lifecycle.body_id.is_some(),
+            parts_open: lifecycle.parts.is_some(),
+        },
         theme,
         &mut targets,
     );

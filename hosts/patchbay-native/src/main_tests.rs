@@ -444,12 +444,12 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
         .handle_gui_action(GuiAction::SelectSubject(subject))
         .unwrap();
     application.back_navigation = vec![
-        super::form_interaction::BackNavigationEntry {
+        super::forms_navigation::BackNavigationEntry {
             parent_form: "bounded-parent".into(),
             gear_name: "bounded-gear".into(),
             child_form: "bounded-child".into(),
         };
-        super::form_interaction::MAX_BACK_NAVIGATION_DEPTH
+        super::forms_navigation::MAX_BACK_NAVIGATION_DEPTH
     ];
     assert_eq!(application.handle_gui_action(GuiAction::OpenBack), Ok(()));
     assert_eq!(

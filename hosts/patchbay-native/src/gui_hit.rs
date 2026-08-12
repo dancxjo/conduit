@@ -45,6 +45,13 @@ pub enum GuiAction {
     SelectSubject(PatchbaySubjectRef),
     FlipGear(PatchbaySubjectRef),
     OpenBack,
+    OpenNavigatorComposition(PatchbaySubjectRef),
+    OpenNavigatorAncestor {
+        source_document_id: String,
+        checked_form_id: String,
+        expanded_form_id: String,
+        back_count: usize,
+    },
     SaveForm,
     ToggleLinearView,
     ToggleExactIdentity,

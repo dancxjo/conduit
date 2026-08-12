@@ -12,21 +12,7 @@ use patchbay_model::{
 };
 use winit::keyboard::{Key, NamedKey};
 
-pub(super) const MAX_BACK_NAVIGATION_DEPTH: usize = 16;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct BackNavigationEntry {
-    pub parent_form: String,
-    pub gear_name: String,
-    pub child_form: String,
-}
-
-enum BackNavigationError {
-    TargetMissing,
-    TargetUnavailable,
-    DepthExceeded,
-    Projection,
-}
+use crate::forms_navigation::BackNavigationError;
 
 pub(super) fn graphical_form_for_editor(
     editor: &FormEditor,
@@ -48,24 +34,6 @@ pub(super) fn graphical_form_for_editor(
 }
 
 impl PatchbayApplication {
-    pub(super) fn back_breadcrumb(&self) -> String {
-        let Some(editor) = &self.form_editor else {
-            return String::new();
-        };
-        let mut breadcrumb = self
-            .back_navigation
-            .first()
-            .map(|entry| entry.parent_form.clone())
-            .unwrap_or_else(|| editor.view().open_form);
-        for entry in &self.back_navigation {
-            breadcrumb.push_str(" > ");
-            breadcrumb.push_str(&entry.gear_name);
-            breadcrumb.push_str(" : ");
-            breadcrumb.push_str(&entry.child_form);
-        }
-        breadcrumb
-    }
-
     pub(super) fn handle_gui_action(&mut self, action: GuiAction) -> Result<(), String> {
         if matches!(
             &action,
@@ -121,6 +89,20 @@ impl PatchbayApplication {
                     .map_err(|error| format!("Gear flip: {error:?}"))?;
             }
             GuiAction::OpenBack => self.dispatch_invocation(PatchbayAction::OpenBack)?,
+            GuiAction::OpenNavigatorComposition(subject) => {
+                self.open_navigator_composition(subject)?
+            }
+            GuiAction::OpenNavigatorAncestor {
+                source_document_id,
+                checked_form_id,
+                expanded_form_id,
+                back_count,
+            } => self.open_navigator_ancestor(
+                &source_document_id,
+                &checked_form_id,
+                &expanded_form_id,
+                back_count,
+            )?,
             GuiAction::SaveForm => self.dispatch_invocation(PatchbayAction::Save)?,
             GuiAction::ToggleLinearView => {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
@@ -164,7 +146,7 @@ impl PatchbayApplication {
         Ok(())
     }
 
-    fn dispatch_selection(
+    pub(super) fn dispatch_selection(
         &mut self,
         subject: patchbay_model::PatchbaySubjectRef,
     ) -> Result<(), String> {
@@ -185,7 +167,7 @@ impl PatchbayApplication {
         self.finish_interaction(result)
     }
 
-    fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
+    pub(super) fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
         if action == PatchbayAction::OpenBack {
             self.pending_back_selection = self.selected_graphical_subject().is_some();
             self.pending_back_target = self.selected_back_target();
@@ -341,87 +323,6 @@ impl PatchbayApplication {
         }
     }
 
-    fn open_selected_back(&mut self) -> Result<(), BackNavigationError> {
-        let selected = std::mem::take(&mut self.pending_back_selection);
-        let target = self
-            .pending_back_target
-            .take()
-            .or_else(|| self.selected_back_target());
-        self.apply_back_navigation(target, selected)
-    }
-
-    fn selected_back_target(&self) -> Option<BackNavigationEntry> {
-        let current_form = self.form_editor.as_ref()?.view().open_form;
-        self.selected_graphical_subject().and_then(|subject| {
-            self.graphical_form.as_ref().and_then(|graph| {
-                if let Some(composition) = graph
-                    .compositions
-                    .iter()
-                    .find(|composition| composition.identity == subject.subject_identity)
-                {
-                    return Some(BackNavigationEntry {
-                        parent_form: current_form.clone(),
-                        gear_name: composition.gear_name.clone(),
-                        child_form: composition.back_name.clone(),
-                    });
-                }
-                graph
-                    .gears
-                    .iter()
-                    .find(|gear| gear.identity == subject.subject_identity)
-                    .filter(|gear| gear.source_form != current_form)
-                    .map(|gear| {
-                        let gear_name = gear
-                            .form_path
-                            .iter()
-                            .skip_while(|segment| *segment != &current_form)
-                            .nth(1)
-                            .cloned()
-                            .unwrap_or_else(|| gear.gear_id.as_str().to_owned());
-                        BackNavigationEntry {
-                            parent_form: current_form.clone(),
-                            gear_name,
-                            child_form: gear.source_form.clone(),
-                        }
-                    })
-            })
-        })
-    }
-
-    fn apply_back_navigation(
-        &mut self,
-        target: Option<BackNavigationEntry>,
-        selected: bool,
-    ) -> Result<(), BackNavigationError> {
-        if let Some(target) = target {
-            if self.back_navigation.len() == MAX_BACK_NAVIGATION_DEPTH {
-                return Err(BackNavigationError::DepthExceeded);
-            }
-            self.form_editor
-                .as_mut()
-                .expect("editor presence was checked")
-                .open_back(&target.child_form)
-                .map_err(|_| BackNavigationError::Projection)?;
-            self.back_navigation.push(target);
-        } else if let Some(target) = self.back_navigation.pop() {
-            self.form_editor
-                .as_mut()
-                .expect("editor presence was checked")
-                .open_back(&target.parent_form)
-                .map_err(|_| BackNavigationError::Projection)?;
-        } else {
-            return Err(if selected {
-                BackNavigationError::TargetUnavailable
-            } else {
-                BackNavigationError::TargetMissing
-            });
-        }
-        self.form_selection = 0;
-        self.refresh_graphical_form()
-            .map_err(|_| BackNavigationError::Projection)?;
-        Ok(())
-    }
-
     #[cfg(test)]
     pub(super) fn edit_source(&mut self, update: impl FnOnce(&mut String)) -> Result<(), String> {
         let editor = self
@@ -464,7 +365,7 @@ impl PatchbayApplication {
         Some(&selected.subject_identity)
     }
 
-    fn selected_graphical_subject(&self) -> Option<patchbay_model::PatchbaySubjectRef> {
+    pub(super) fn selected_graphical_subject(&self) -> Option<patchbay_model::PatchbaySubjectRef> {
         let graph = self.graphical_form.as_ref()?;
         let selected = self.interaction.as_ref()?.selected()?;
         graph.resolve_subject_ref(selected).ok()?;
@@ -501,6 +402,9 @@ impl PatchbayApplication {
     pub(super) fn handle_form_key(&mut self, key: &Key) -> Result<bool, String> {
         if self.form_editor.is_none() {
             return Ok(false);
+        }
+        if self.handle_navigator_key(key)? {
+            return Ok(true);
         }
         if self.handle_details_key(key) {
             return Ok(true);
