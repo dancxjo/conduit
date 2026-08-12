@@ -138,94 +138,120 @@ jobs:
         if: steps.browser-proof.outcome == 'failure'
         run: exit 1
 
-  conduitos-boot:
+  conduitos-x86:
     needs: classify
     if: always() && needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - proof: kernel
+            command: cargo xtask conduitos prove --arch x86-64 --locked --evidence-root target/conduit-evidence/conduitos-x86_64 && cargo xtask evidence verify --locked --root target/conduit-evidence/conduitos-x86_64 --commit "$GITHUB_SHA" --result complete --proof conduitos-x86_64 --suite conduitos.prove.x86_64
+            artifact_name: conduit-conduitos-evidence
+            artifact_path: target/conduit-evidence/conduitos-x86_64
+          - proof: xhci
+            command: cargo xtask conduitos xhci-proof --locked
+            artifact_name: conduitos-xhci-proof
+            artifact_path: target/conduitos/x86_64/xhci-proof.json
+          - proof: usb
+            command: cargo xtask conduitos usb-proof --locked
+            artifact_name: conduitos-usb-proof
+            artifact_path: target/conduitos/x86_64/usb-proof.json
+          - proof: hid
+            command: cargo xtask conduitos hid-proof --locked
+            artifact_name: conduitos-hid-proof
+            artifact_path: target/conduitos/x86_64/hid-proof.json
+          - proof: keyboard
+            command: cargo xtask conduitos keyboard-proof --locked
+            artifact_name: conduitos-keyboard-proof
+            artifact_path: target/conduitos/x86_64/keyboard-proof.json
+          - proof: rescue
+            command: cargo xtask conduitos rescue-proof --locked
+            artifact_name: conduitos-rescue-proof
+            artifact_path: |
+              target/conduitos/x86_64/rescue-proof.json
+              target/conduitos/x86_64/rescue-serial.log
+    name: conduitos-x86-${{ matrix.proof }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+          targets: x86_64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-      - name: Install deterministic image and emulator tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
-      - name: Prove bounded ConduitOS kernel ownership
-        run: >-
-          cargo xtask conduitos prove --arch x86-64 --locked
-          --evidence-root target/conduit-evidence/conduitos-x86_64
-      - name: Verify bounded exact-head ConduitOS console evidence
-        run: >-
-          cargo xtask evidence verify --locked
-          --root target/conduit-evidence/conduitos-x86_64
-          --commit "${{ github.sha }}"
-          --result complete
-          --proof conduitos-x86_64
-          --suite conduitos.prove.x86_64
-      - name: Upload exact-head ConduitOS console evidence
+      - name: Install deterministic x86 image and emulator tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86
+      - name: Run ${{ matrix.proof }} proof
+        env:
+          PROOF_COMMAND: ${{ matrix.command }}
+        run: bash -euo pipefail -c "$PROOF_COMMAND"
+      - name: Retain ${{ matrix.proof }} proof
         uses: actions/upload-artifact@v4
         with:
-          name: conduit-conduitos-evidence-${{ github.sha }}
-          path: target/conduit-evidence/conduitos-x86_64
+          name: ${{ matrix.artifact_name }}-${{ github.sha }}
+          path: ${{ matrix.artifact_path }}
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
-      - name: Prove bounded ConduitOS xHCI Base ownership
-        run: cargo xtask conduitos xhci-proof --locked
-      - name: Retain bounded ConduitOS xHCI Base proof
-        uses: actions/upload-artifact@v4
+
+  conduitos-architecture:
+    needs: classify
+    if: always() && needs.classify.outputs.docs_only != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: aarch64
+            targets: aarch64-unknown-none
+            packages: qemu-system-arm qemu-efi-aarch64
+            command: cargo xtask conduitos prove --arch aarch64 --locked
+          - architecture: ia32
+            targets: i686-unknown-uefi,i686-unknown-linux-gnu
+            packages: curl xorriso qemu-system-x86 ovmf-ia32
+            command: cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos prove --arch ia32 --locked
+          - architecture: riscv64
+            targets: riscv64gc-unknown-none-elf
+            packages: qemu-system-misc u-boot-qemu
+            command: cargo xtask conduitos prove --arch riscv64 --locked
+          - architecture: loongarch64
+            targets: loongarch64-unknown-none
+            packages: curl qemu-system-misc
+            command: cargo xtask conduitos prove --arch loongarch64 --locked
+    name: conduitos-architecture-${{ matrix.architecture }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          name: conduitos-xhci-proof-${{ github.sha }}
-          path: target/conduitos/x86_64/xhci-proof.json
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 0
-      - name: Prove one bounded ConduitOS USB device
-        run: cargo xtask conduitos usb-proof --locked
-      - name: Retain bounded ConduitOS USB device proof
-        uses: actions/upload-artifact@v4
+          targets: ${{ matrix.targets }}
+      - uses: Swatinem/rust-cache@v2
         with:
-          name: conduitos-usb-proof-${{ github.sha }}
-          path: target/conduitos/x86_64/usb-proof.json
-          if-no-files-found: error
-      - name: Prove one bounded ConduitOS HID boot keyboard
-        run: cargo xtask conduitos hid-proof --locked
-      - name: Retain bounded ConduitOS HID boot-keyboard proof
-        uses: actions/upload-artifact@v4
-        with:
-          name: conduitos-hid-proof-${{ github.sha }}
-          path: target/conduitos/x86_64/hid-proof.json
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 0
-      - name: Prove the realized portable ConduitOS keyboard offer
-        run: cargo xtask conduitos keyboard-proof --locked
-      - name: Retain portable ConduitOS keyboard proof
-        uses: actions/upload-artifact@v4
-        with:
-          name: conduitos-keyboard-proof-${{ github.sha }}
-          path: target/conduitos/x86_64/keyboard-proof.json
-          if-no-files-found: error
-      - name: Prove bounded local ConduitOS rescue reboot
-        run: cargo xtask conduitos rescue-proof --locked
-      - name: Retain local ConduitOS rescue reboot proof
-        uses: actions/upload-artifact@v4
-        with:
-          name: conduitos-rescue-proof-${{ github.sha }}
-          path: |
-            target/conduitos/x86_64/rescue-proof.json
-            target/conduitos/x86_64/rescue-serial.log
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 0
-      - name: Prove bounded AArch64 ConduitOS machine wake
-        run: cargo xtask conduitos prove --arch aarch64 --locked
-      - name: Prove IA-32 ConduitOS machine wake
-        run: cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos prove --arch ia32 --locked
-      - name: Prove RISC-V64 ConduitOS entry
-        run: cargo xtask conduitos prove --arch riscv64 --locked
-      - name: Prove LoongArch64 ConduitOS architecture spine
-        run: cargo xtask conduitos prove --arch loongarch64 --locked
+          cache-on-failure: true
+      - name: Install deterministic architecture tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential ${{ matrix.packages }}
+      - name: Prove ${{ matrix.architecture }} ConduitOS architecture
+        env:
+          PROOF_COMMAND: ${{ matrix.command }}
+        run: bash -euo pipefail -c "$PROOF_COMMAND"
+
+  conduitos-boot:
+    needs: [classify, conduitos-x86, conduitos-architecture]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preserve the stable required ConduitOS gate
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
+          X86_RESULT: ${{ needs.conduitos-x86.result }}
+          ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
+        run: |
+          test "$CLASSIFY_RESULT" = success
+          if test "$DOCS_ONLY" != true; then
+            test "$X86_RESULT" = success
+            test "$ARCHITECTURE_RESULT" = success
+          fi
