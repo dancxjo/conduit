@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 mod audio_info;
+mod audio_render_demand;
 mod configuration;
 mod control_loop;
 mod deadline;
@@ -29,6 +30,7 @@ mod shared_pool;
 mod sound_info;
 
 pub use audio_info::*;
+pub use audio_render_demand::*;
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use control_loop::*;
 pub use deadline::*;

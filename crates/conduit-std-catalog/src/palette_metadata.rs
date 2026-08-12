@@ -7,13 +7,13 @@ use conduit_core::KindId;
 pub use conduit_presentation::PresentationIconKey as PaletteIconKey;
 
 use crate::{
-    BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND,
-    GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND,
-    KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND,
-    LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
-    LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
-    MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND, PATCHBAY_CORD_KIND,
-    PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND,
+    AUDIO_RENDER_DEMAND_KIND, BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND,
+    COUNT_PRESENTATION_KIND, GATE_KIND, GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND,
+    GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND,
+    LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND,
+    LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND,
+    MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND,
+    PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND,
     PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND,
     ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
     ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND,
@@ -75,6 +75,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::TimeAndFlow,
             &["timer", "interval", "repeat"],
             PaletteIconKey::Repeat2,
+        ),
+        AUDIO_RENDER_DEMAND_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["audio", "render", "interval", "clock"],
+            PaletteIconKey::Clock,
         ),
         MUSIC_SYNTH_KIND => metadata(
             PaletteCategory::Transform,
@@ -366,7 +371,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 54);
+        assert_eq!(contracts.len(), 55);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

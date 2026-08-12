@@ -1,7 +1,22 @@
 use conduit_core::{
-    Gate, ModulationDestination, MusicalControl, MusicalControlEvent, MusicalNoteEvent,
-    MusicalPitch, NoteOccurrenceId, SoundInfoError, ToneIntent,
+    AudioRenderDemand, Gate, ModulationDestination, MusicalControl, MusicalControlEvent,
+    MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, SoundInfoError, ToneIntent,
 };
+
+#[test]
+fn render_demand_round_trips_one_exact_nonempty_clock_interval() {
+    let demand = AudioRenderDemand::new(7, 480, 240, 2).unwrap();
+    assert_eq!(AudioRenderDemand::decode(&demand.encode()), Ok(demand));
+    assert_ne!(demand.semantic_digest(), [0; 32]);
+    assert_eq!(
+        AudioRenderDemand::new(0, 0, 240, 0),
+        Err(SoundInfoError::OutOfRange("render-clock-id"))
+    );
+    assert_eq!(
+        AudioRenderDemand::new(1, 0, 0, 0),
+        Err(SoundInfoError::OutOfRange("render-frame-count"))
+    );
+}
 
 #[test]
 fn overlapping_equal_pitches_retain_occurrence_identity() {

@@ -18,9 +18,11 @@ mod operation;
 mod operation_capacity;
 mod pacing_operations;
 mod presentation_composition;
+mod render_demand_operation;
 mod robotics_effect;
 mod robotics_operations;
 mod synth_operation;
+mod synth_render;
 mod test_audio_source;
 #[cfg(test)]
 mod test_gate;
@@ -89,6 +91,7 @@ const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 64;
 
 pub(super) use contract::text_offer;
+pub(super) use render_demand_operation::offer as render_demand_offer;
 pub(super) use synth_operation::offer as synth_offer;
 #[cfg(test)]
 pub(super) use test_support::{
@@ -475,6 +478,15 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    if synth_states.iter().any(Option::is_some) {
+        let clock_origin_micros = timer.monotonic_now_micros().ok_or_else(|| {
+            "installed music/synth requires the admitted Host/Boot monotonic-microsecond basis"
+                .to_string()
+        })?;
+        for state in synth_states.iter_mut().flatten() {
+            state.set_clock_origin(clock_origin_micros);
+        }
+    }
     let mut playback_sessions = fragment
         .placements
         .iter()
@@ -1190,10 +1202,13 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     midi_input_requests[node] = None;
                     completed_midi_input = true;
                 }
-                if completed_midi_input || pending_midi_input {
+                if completed_midi_input {
                     continue;
                 }
                 if deadlines.complete_next(&mut scheduler, timer)? {
+                    continue;
+                }
+                if pending_midi_input {
                     continue;
                 }
                 return Err(format!(
