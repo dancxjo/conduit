@@ -8,7 +8,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use conduit_body::{
     AdmissionManager, AdmissionSigns, Body, BodyMembership, CandidateInventory, DiscoveryProofId,
 };
-use conduit_core::{CheckedFormId, ConnectionBase, LinkBindingId, SignId, SourceDocumentId};
+use conduit_core::{
+    CheckedFormId, ConnectionBase, HostAdvertisement, LinkBindingId, Plan, SignId, SourceDocumentId,
+};
 use conduit_std_host::pico_admission::PicoAdmissionSocket;
 use serde::Serialize;
 
@@ -32,6 +34,7 @@ struct PhysicalAdmissionReceipt {
     capability_count: usize,
     plan_id: String,
     plan_fragment_count: usize,
+    pico_plan_fragment_count: usize,
     all_plan_fragments_on_admitted_pico: bool,
     membership_parts: usize,
 }
@@ -115,27 +118,23 @@ pub(super) fn run(args: &PicoArgs) -> PicoResult<()> {
         return Err("physical admission did not create exactly one Part".into());
     }
 
-    let root = workspace_root()?;
-    let source = std::fs::read_to_string(root.join("examples/signal-demo.form"))?;
-    let checked = conduit_form::parse(&source, &conduit_signal::signal_profile_catalog())?;
-    let hosts = [advertisement.clone()];
-    let placements = conduit_planner::default_placements(&checked, &hosts)?;
-    // The provisioned Pico advertises the exact capacity-one kernel image. Seal
-    // that reviewed finite budget into the ordinary Plan instead of asking the
-    // planner's hosted convenience default for four queue items.
-    let plan = conduit_planner::plan_with_connection_limits(
-        &checked,
-        &hosts,
-        &placements,
-        &[ConnectionBase::Local],
-        1,
-        conduit_signal::SIGNAL_ENCODED_LEN,
-    )?;
+    let plan = plan_from_advertisement(&advertisement)?;
+    let pico_plan_fragment_count = plan
+        .fragments
+        .iter()
+        .filter(|fragment| {
+            fragment.host_id == advertisement.host_id
+                && fragment.boot_id == advertisement.boot_id
+                && fragment.offer_generation == advertisement.offer_generation
+        })
+        .count();
     let all_plan_fragments_on_admitted_pico = plan.fragments.iter().all(|fragment| {
         fragment.host_id == advertisement.host_id && fragment.boot_id == advertisement.boot_id
     });
-    if plan.fragments.is_empty() || !all_plan_fragments_on_admitted_pico {
-        return Err("ordinary planner did not select the admitted current Pico offer".into());
+    if pico_plan_fragment_count != 1 {
+        return Err(
+            "ordinary planner did not select exactly one admitted current Pico fragment".into(),
+        );
     }
 
     let receipt = PhysicalAdmissionReceipt {
@@ -152,11 +151,51 @@ pub(super) fn run(args: &PicoArgs) -> PicoResult<()> {
         capability_count: advertisement.capabilities.len(),
         plan_id: plan.plan_id.as_str().into(),
         plan_fragment_count: plan.fragments.len(),
+        pico_plan_fragment_count,
         all_plan_fragments_on_admitted_pico,
         membership_parts: membership.parts.len(),
     };
     println!("{}", serde_json::to_string_pretty(&receipt)?);
     Ok(())
+}
+
+fn plan_from_advertisement(advertisement: &HostAdvertisement) -> PicoResult<Plan> {
+    if advertisement.profile.as_str() == "rp2040-r1-kernel" {
+        let expected =
+            conduit_system_continuity::r1_signal_pico_advertisement(advertisement.boot_id.clone());
+        if advertisement != &expected {
+            return Err("R1 Pico advertisement differs from the exact active profile".into());
+        }
+        return Ok(conduit_system_continuity::exact_r1_signal_plan(
+            advertisement.boot_id.clone(),
+            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+        )?
+        .plan);
+    }
+
+    if advertisement.profile.as_str() != "pico-w-signal-kernel" {
+        return Err(format!(
+            "unsupported physical Pico profile: {}",
+            advertisement.profile.as_str()
+        )
+        .into());
+    }
+    let root = workspace_root()?;
+    let source = std::fs::read_to_string(root.join("examples/signal-demo.form"))?;
+    let checked = conduit_form::parse(&source, &conduit_signal::signal_profile_catalog())?;
+    let hosts = [advertisement.clone()];
+    let placements = conduit_planner::default_placements(&checked, &hosts)?;
+    // The provisioned Pico advertises the exact capacity-one kernel image. Seal
+    // that reviewed finite budget into the ordinary Plan instead of asking the
+    // planner's hosted convenience default for four queue items.
+    Ok(conduit_planner::plan_with_connection_limits(
+        &checked,
+        &hosts,
+        &placements,
+        &[ConnectionBase::Local],
+        1,
+        conduit_signal::SIGNAL_ENCODED_LEN,
+    )?)
 }
 
 fn validate_physical_pico(path: &str) -> PicoResult<()> {
@@ -199,5 +238,30 @@ mod tests {
     #[test]
     fn non_pico_device_cannot_be_promoted_to_physical_evidence() {
         assert!(validate_physical_pico("/dev/null").is_err());
+    }
+
+    #[test]
+    fn exact_r1_advertisement_yields_std_to_admitted_pico_plan() {
+        let advertisement = conduit_system_continuity::r1_signal_pico_advertisement(
+            conduit_core::BootId::from("r1/test-boot"),
+        );
+        let plan = plan_from_advertisement(&advertisement).unwrap();
+        assert_eq!(plan.fragments.len(), 2);
+        assert_eq!(
+            plan.fragments
+                .iter()
+                .filter(|fragment| fragment.host_id == advertisement.host_id)
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn altered_r1_advertisement_cannot_select_the_canonical_plan() {
+        let mut advertisement = conduit_system_continuity::r1_signal_pico_advertisement(
+            conduit_core::BootId::from("r1/test-boot"),
+        );
+        advertisement.capabilities.clear();
+        assert!(plan_from_advertisement(&advertisement).is_err());
     }
 }
