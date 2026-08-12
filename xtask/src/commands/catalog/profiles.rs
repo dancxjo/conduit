@@ -110,6 +110,12 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
         .push(conduit_std_catalog::conduitos_logic_not_offer());
     advertisement
         .capabilities
+        .push(conduit_std_catalog::conduitos_logic_compare_scalar_offer());
+    advertisement
+        .capabilities
+        .push(conduit_std_catalog::conduitos_logic_select_scalar_offer());
+    advertisement
+        .capabilities
         .push(conduit_std_catalog::conduitos_math_clamp_offer());
     Ok(advertisement)
 }

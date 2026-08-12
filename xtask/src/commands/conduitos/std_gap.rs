@@ -204,12 +204,14 @@ mod tests {
     fn compatibility_report_uses_the_authoritative_profile_inventory() {
         let report = build_report().unwrap();
         assert_eq!(report.catalog_entry_count, 54);
-        assert_eq!(report.implemented_count, 22);
-        assert_eq!(report.missing_count, 32);
+        assert_eq!(report.implemented_count, 24);
+        assert_eq!(report.missing_count, 30);
         for kind in [
             "layout/inset",
             "presentation/bool",
             "logic/not",
+            "logic/compare",
+            "logic/select",
             "math/clamp",
         ] {
             assert!(report.entries.iter().any(|entry| {
@@ -223,10 +225,6 @@ mod tests {
                 && entry.classification == catalog::GapClassification::Implemented
                 && entry.realization_mode == "recursive"
                 && entry.host_capability.is_none()
-        }));
-        assert!(report.entries.iter().any(|entry| {
-            entry.kind_id == "logic/select"
-                && entry.classification == catalog::GapClassification::PortableImplementationMissing
         }));
     }
 }
