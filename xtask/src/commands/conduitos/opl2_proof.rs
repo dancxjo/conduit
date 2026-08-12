@@ -66,11 +66,12 @@ fn validate(sign: &Value) -> Result<(), ConduitosError> {
         ("voice_capacity", 9),
         ("reset_writes", 245),
         ("patch_writes", 99),
-        ("event_writes", 39),
+        ("event_writes", 36),
         ("quiesce_writes", 9),
         ("register_write_capacity", 512),
         ("final_active_voices", 0),
         ("iobase", 904),
+        ("normalized_events", 24),
     ];
     let strings_valid = exact_strings
         .iter()
@@ -90,7 +91,10 @@ fn validate(sign: &Value) -> Result<(), ConduitosError> {
             .as_u64()
             .is_some_and(|value| value > 0)
         && sign["kernel_signs"].as_u64().is_some_and(|value| value > 0);
-    if strings_valid && numbers_valid && identities_valid && truth_valid {
+    let oracle_valid = sign["normalized_terminal"] == "completed"
+        && sign["normalized_plan_id"] == sign["plan_id"]
+        && sign["normalized_implementation"] == sign["implementation"];
+    if strings_valid && numbers_valid && identities_valid && truth_valid && oracle_valid {
         Ok(())
     } else {
         Err(ConduitosError::refusal(

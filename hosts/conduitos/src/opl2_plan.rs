@@ -30,7 +30,7 @@ const EMPTY_CONTROL_SOURCE_KIND: &str = "conduitos-fixture/empty-control-source"
 const EMPTY_CONTROL_SOURCE_REVISION: &str = "conduitos.fixture/empty-control-source@1";
 pub const NOTE_SOURCE_HOST_OPERATION: &str = "conduitos.fixture/note-sequence-step@1";
 pub const OPL2_FORM_SOURCE: &str = "form 0\nconduitos-opl2-music {\n source: conduitos-fixture/note-source\n controls: conduitos-fixture/empty-control-source\n output: music/play\n source.notes -> output.notes\n controls.controls -> output.controls\n}\n";
-const FIXTURE_EVENT_COUNT: u16 = 24;
+pub const FIXTURE_EVENT_COUNT: u16 = 24;
 
 pub struct PreparedOpl2Play {
     pub advertisement: HostAdvertisement,

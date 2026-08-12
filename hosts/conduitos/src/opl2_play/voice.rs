@@ -9,7 +9,7 @@ pub(super) fn apply_event<B: Opl2Base>(
     execution: &mut PreparedOpl2Execution,
     base: &mut B,
     event: MusicalNoteEvent,
-) -> Result<(), PreparationError> {
+) -> Result<u64, PreparationError> {
     match event.gate {
         Gate::On => {
             if event.velocity != u16::MAX
@@ -36,6 +36,7 @@ pub(super) fn apply_event<B: Opl2Base>(
             execution.peak_voices = execution
                 .peak_voices
                 .max(execution.voices.iter().flatten().count() as u8);
+            Ok(pitch.realized_millihertz)
         }
         Gate::Off => {
             let channel = execution
@@ -43,10 +44,14 @@ pub(super) fn apply_event<B: Opl2Base>(
                 .iter()
                 .position(|voice| voice.is_some_and(|voice| voice.occurrence == event.occurrence))
                 .ok_or(PreparationError::KernelRejected)?;
+            let admitted_pitch_millihertz = execution.voices[channel]
+                .ok_or(PreparationError::KernelRejected)?
+                .pitch
+                .realized_millihertz;
             base.key_off(channel as u8)
                 .map_err(|_| PreparationError::KernelRejected)?;
             execution.voices[channel] = None;
+            Ok(admitted_pitch_millihertz)
         }
     }
-    Ok(())
 }
