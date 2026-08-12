@@ -44,7 +44,7 @@ fn main() {
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     let appliance_build_id = appliance_build_id();
     println!("cargo:rustc-env=CONDUIT_PICO_APPLIANCE_BUILD_ID={appliance_build_id}");
-    generate_body_advertisement(&out);
+    generate_body_advertisement(&out, firmware_mode());
 
     if firmware_mode() == "appliance-hello" {
         generate_pico_appliance_identity();
@@ -85,10 +85,20 @@ fn main() {
     println!("cargo:rerun-if-env-changed={APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR_ENV}");
 }
 
-fn generate_body_advertisement(out: &Path) {
-    let mut advertisement = pico_local_advertisement();
-    advertisement.boot_id = BootId::from(
+fn generate_body_advertisement(out: &Path, mode: &str) {
+    let boot_id = BootId::from(
         "conduit-pico-w-signal/runtime-boot:0000000000000000:00000000000000000000000000000000",
+    );
+    let advertisement = if mode == "r1-control" {
+        conduit_system_continuity::r1_signal_pico_advertisement(boot_id)
+    } else {
+        let mut advertisement = pico_local_advertisement();
+        advertisement.boot_id = boot_id;
+        advertisement
+    };
+    println!(
+        "cargo:rustc-env=CONDUIT_PICO_BODY_HOST_ID={}",
+        advertisement.host_id.as_str()
     );
     fs::write(
         out.join("pico_body_advertisement.json"),
