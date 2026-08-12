@@ -16,6 +16,7 @@ mod hold;
 mod identity;
 mod lifecycle;
 mod membership;
+mod space;
 mod validation;
 
 #[cfg(feature = "authenticated-admission")]
@@ -31,3 +32,4 @@ pub use identity::{
 };
 pub use lifecycle::*;
 pub use membership::*;
+pub use space::*;
