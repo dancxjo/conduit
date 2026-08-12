@@ -3,10 +3,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::robotics_effect::SimulatedDriveEffect;
 use conduit_core::{
-    BatteryObservation, ConfigurationEntry, ConfigurationValue, InfoBool, OdometryObservation,
-    OrientationObservation, PlannedGear, RangeObservation, Scalar, BOOL_ENCODED_LEN,
-    ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_ODOMETRY_ENCODED_LEN, ROBOTICS_ORIENTATION_ENCODED_LEN,
-    ROBOTICS_RANGE_ENCODED_LEN, SCALAR_ENCODED_LEN,
+    ConfigurationEntry, ConfigurationValue, InfoBool, PlannedGear, RangeObservation, Scalar,
+    BOOL_ENCODED_LEN, ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_ODOMETRY_ENCODED_LEN,
+    ROBOTICS_ORIENTATION_ENCODED_LEN, ROBOTICS_RANGE_ENCODED_LEN, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{
     Failure, FailureCode, HostedValueStore, OperationAction, OperationInput, PortId, ValueRef,
@@ -342,106 +341,25 @@ fn source_shape(placement: &PlannedGear) -> Result<(u16, u32, u32), String> {
 }
 
 fn source_values(placement: &PlannedGear) -> Result<[Option<Vec<u8>>; 2], String> {
-    let one = |value: Vec<u8>| Ok([Some(value), None]);
-    match placement.kind_id.as_str() {
-        conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_KIND => {
-            let pressed = text_or(&placement.configuration, "state", "clear")? == "pressed";
-            one(InfoBool::new(pressed).encode().to_vec())
-        }
-        conduit_std_catalog::ROBOTICS_OBSERVE_IMU_KIND => one(OrientationObservation::new(
-            i32_value(&placement.configuration, "roll-microradians", 0)?,
-            i32_value(&placement.configuration, "pitch-microradians", 0)?,
-            i32_value(&placement.configuration, "yaw-microradians", 0)?,
-        )
-        .map_err(|error| format!("invalid orientation observation: {error:?}"))?
-        .encode()
-        .to_vec()),
-        conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_KIND => one(RangeObservation::new(
-            u32_value(&placement.configuration, "distance-mm", 1_000)?,
-            u32_value(&placement.configuration, "age-ms", 0)?,
-        )
-        .map_err(|error| format!("invalid range observation: {error:?}"))?
-        .encode()
-        .to_vec()),
-        conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND => one(OdometryObservation::new(
-            i32_value(&placement.configuration, "forward-mm", 0)?,
-            i32_value(&placement.configuration, "lateral-mm", 0)?,
-            i32_value(&placement.configuration, "yaw-microradians", 0)?,
-        )
-        .map_err(|error| format!("invalid odometry observation: {error:?}"))?
-        .encode()
-        .to_vec()),
-        conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_KIND => one(BatteryObservation::new(
-            u16_value(&placement.configuration, "charge-permille", 1_000)?,
-            u16_value(&placement.configuration, "millivolts", 12_000)?,
-        )
-        .map_err(|error| format!("invalid battery observation: {error:?}"))?
-        .encode()
-        .to_vec()),
-        conduit_std_catalog::ROBOTICS_VELOCITY_INTENT_KIND => Ok([
-            Some(
-                Scalar::from_raw_microunits(i64_value(
-                    &placement.configuration,
-                    "linear-microunits",
-                    0,
-                )?)
-                .encode()
-                .to_vec(),
-            ),
-            Some(
-                Scalar::from_raw_microunits(i64_value(
-                    &placement.configuration,
-                    "angular-microunits",
-                    0,
-                )?)
-                .encode()
-                .to_vec(),
-            ),
-        ]),
-        _ => Err("robotics source value is unsupported".to_string()),
-    }
+    conduit_std_catalog::robotics_simulation_values(
+        placement.kind_id.as_str(),
+        &placement.configuration,
+    )
+    .map_err(str::to_string)
 }
 
 fn availability(entries: &[ConfigurationEntry]) -> Result<SimulatedAvailability, String> {
-    match text_or(
-        entries,
-        conduit_std_catalog::ROBOTICS_AVAILABILITY_KEY,
-        conduit_std_catalog::ROBOTICS_AVAILABILITY_FRESH,
-    )? {
-        conduit_std_catalog::ROBOTICS_AVAILABILITY_FRESH => Ok(SimulatedAvailability::Fresh),
-        conduit_std_catalog::ROBOTICS_AVAILABILITY_MISSING => Ok(SimulatedAvailability::Missing),
-        conduit_std_catalog::ROBOTICS_AVAILABILITY_STALE => Ok(SimulatedAvailability::Stale),
-        _ => Err("invalid simulated robotics availability".to_string()),
+    match conduit_std_catalog::robotics_simulation_availability(entries).map_err(str::to_string)? {
+        conduit_std_catalog::RoboticsSimulationAvailability::Fresh => {
+            Ok(SimulatedAvailability::Fresh)
+        }
+        conduit_std_catalog::RoboticsSimulationAvailability::Missing => {
+            Ok(SimulatedAvailability::Missing)
+        }
+        conduit_std_catalog::RoboticsSimulationAvailability::Stale => {
+            Ok(SimulatedAvailability::Stale)
+        }
     }
-}
-
-fn text_or<'a>(
-    entries: &'a [ConfigurationEntry],
-    key: &str,
-    default: &'a str,
-) -> Result<&'a str, String> {
-    Ok(entries
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::Text(value)) if found == key => Some(value.as_str()),
-            _ => None,
-        })
-        .unwrap_or(default))
-}
-
-fn i64_value(entries: &[ConfigurationEntry], key: &str, default: i64) -> Result<i64, String> {
-    Ok(entries
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::I64(value)) if found == key => Some(*value),
-            _ => None,
-        })
-        .unwrap_or(default))
-}
-
-fn i32_value(entries: &[ConfigurationEntry], key: &str, default: i64) -> Result<i32, String> {
-    i32::try_from(i64_value(entries, key, default)?)
-        .map_err(|_| format!("robotics configuration '{key}' does not fit i32"))
 }
 
 fn u64_value(entries: &[ConfigurationEntry], key: &str, default: u64) -> Result<u64, String> {
@@ -457,11 +375,6 @@ fn u64_value(entries: &[ConfigurationEntry], key: &str, default: u64) -> Result<
 fn u32_value(entries: &[ConfigurationEntry], key: &str, default: u64) -> Result<u32, String> {
     u32::try_from(u64_value(entries, key, default)?)
         .map_err(|_| format!("robotics configuration '{key}' does not fit u32"))
-}
-
-fn u16_value(entries: &[ConfigurationEntry], key: &str, default: u64) -> Result<u16, String> {
-    u16::try_from(u64_value(entries, key, default)?)
-        .map_err(|_| format!("robotics configuration '{key}' does not fit u16"))
 }
 
 fn fail(code: FailureCode, detail: u16) -> OperationAction {

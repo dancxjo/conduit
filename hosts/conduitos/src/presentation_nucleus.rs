@@ -16,6 +16,11 @@ mod math_clamp_play_tests;
 mod operation;
 mod plan;
 mod play;
+mod robotics_operation;
+mod robotics_plan;
+mod robotics_play;
+#[cfg(test)]
+mod robotics_tests;
 
 pub use plan::{FORM_SOURCE, PreparedPresentationPlay, prepare};
 pub use play::{PresentationProof, PresentationRunError, run};
@@ -28,3 +33,6 @@ pub use logic_multi_plan::{PreparedLogicMulti, prepare_logic_multi};
 pub use logic_multi_play::{LogicMultiError, LogicMultiProof, run_logic_multi};
 pub use logic_not_play::{LogicNotError, LogicNotProof, prepare_not, run_not};
 pub use math_clamp_play::{MathClampError, MathClampProof, prepare_clamp, run_clamp};
+pub use robotics_operation::RoboticsDriveEffect;
+pub use robotics_plan::{PreparedRobotics, prepare_robotics};
+pub use robotics_play::{RoboticsError, RoboticsProof, run_robotics};

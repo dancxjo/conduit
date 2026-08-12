@@ -3,6 +3,10 @@ use conduit_kernel::{
     OperationInput, PortId, RequestId, ValueRef,
 };
 
+use super::robotics_operation::{
+    RoboticsDiscardOperation, RoboticsDriveOperation, RoboticsSourceOperation,
+};
+
 pub(super) enum PresentationOperation {
     Source {
         value: ValueRef,
@@ -29,6 +33,9 @@ pub(super) enum PresentationOperation {
         pending: Option<ValueRef>,
         phase: u8,
     },
+    RoboticsSource(RoboticsSourceOperation),
+    RoboticsDrive(RoboticsDriveOperation),
+    RoboticsDiscard(RoboticsDiscardOperation),
     Sink {
         maximum_input_bytes: u32,
         pending: bool,
@@ -44,6 +51,9 @@ impl Operation for PresentationOperation {
                 value: *value,
             },
             Self::Source { .. } => OperationAction::Complete,
+            Self::RoboticsSource(operation) => operation.start(),
+            Self::RoboticsDrive(operation) => operation.start(),
+            Self::RoboticsDiscard(operation) => operation.start(),
             Self::LogicInputs { emitted: true, .. } => OperationAction::Complete,
             Self::Transform { .. }
             | Self::LogicInputs { .. }
@@ -55,6 +65,9 @@ impl Operation for PresentationOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match (self, input) {
+            (Self::RoboticsSource(operation), input) => operation.resume(input),
+            (Self::RoboticsDrive(operation), input) => operation.resume(input),
+            (Self::RoboticsDiscard(operation), input) => operation.resume(input),
             (
                 Self::Transform {
                     maximum_input_bytes,
@@ -295,6 +308,9 @@ impl Operation for PresentationOperation {
                 }
                 OperationAction::Await
             }
+            Self::RoboticsSource(operation) => operation.advance(),
+            Self::RoboticsDrive(_) => OperationAction::Await,
+            Self::RoboticsDiscard(_) => OperationAction::Await,
             Self::Transform { .. }
             | Self::LogicInputs { .. }
             | Self::Latest { .. }
@@ -336,6 +352,30 @@ impl Operation for PresentationOperation {
                 *phase = 0;
             }
             _ => {}
+        }
+    }
+
+    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
+        match self {
+            Self::RoboticsDrive(operation) => operation.resume_value(port, value, canonical),
+            _ => self.resume(OperationInput::Value { port, value }),
+        }
+    }
+
+    fn cancel(&mut self) {
+        match self {
+            Self::RoboticsSource(operation) => operation.cancel(),
+            Self::RoboticsDrive(operation) => operation.cancel(),
+            _ => {}
+        }
+    }
+}
+
+impl PresentationOperation {
+    pub(super) fn robotics_effect(&self) -> Option<super::robotics_operation::RoboticsDriveEffect> {
+        match self {
+            Self::RoboticsDrive(operation) => operation.effect(),
+            _ => None,
         }
     }
 }
