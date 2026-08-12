@@ -129,7 +129,7 @@ pub(super) fn run(args: &PicoArgs) -> PicoResult<()> {
         &placements,
         &[ConnectionBase::Local],
         1,
-        conduit_signal::SIGNAL_ENCODED_LEN as u32,
+        conduit_signal::SIGNAL_ENCODED_LEN,
     )?;
     let all_plan_fragments_on_admitted_pico = plan.fragments.iter().all(|fragment| {
         fragment.host_id == advertisement.host_id && fragment.boot_id == advertisement.boot_id
