@@ -193,6 +193,19 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
                 theme.text_secondary,
             );
         }
+        if !row.details.planned_placements.is_empty() {
+            text(
+                target,
+                Point::new(left, y + 120),
+                &format!(
+                    "PLAN  {} PLACEMENTS  {} AUTHORITY  {} EXPECTED SIGNS",
+                    row.details.planned_placements.len(),
+                    row.details.planned_authority_bindings,
+                    row.details.expected_signs
+                ),
+                theme.text_secondary,
+            );
+        }
     } else if let Some(row) = selected_candidate.and_then(|candidate| {
         view.wants_to_join
             .iter()
