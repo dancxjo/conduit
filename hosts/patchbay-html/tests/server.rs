@@ -42,6 +42,24 @@ fn post_interaction(snapshot: patchbay_html::RendererSnapshot, body: &[u8]) -> S
     response
 }
 
+fn post_parts_interaction(snapshot: patchbay_html::RendererSnapshot, body: &[u8]) -> String {
+    let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = std::thread::spawn(move || server.serve_count(1));
+    let mut stream = TcpStream::connect(address).unwrap();
+    write!(
+        stream,
+        "POST /api/parts-interaction HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
+        body.len()
+    )
+    .unwrap();
+    stream.write_all(body).unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    worker.join().unwrap().unwrap();
+    response
+}
+
 #[test]
 fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let index = request("/", "GET");
@@ -50,12 +68,18 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     assert!(index.contains("X-Content-Type-Options: nosniff"));
     assert!(index.contains("Content-Security-Policy: default-src 'self'"));
     assert!(index.contains("Semantic canvas"));
+    assert!(index.contains("Here and membership"));
+    assert!(index.contains("Wants to join"));
     assert!(index.contains("Exact truth and accessibility"));
 
     let response = request("/api/snapshot", "GET");
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     let decoded = patchbay_html::RendererSnapshot::decode(body.as_bytes(), 1).unwrap();
     assert_eq!(decoded.revision, 1);
+    let parts = decoded.parts.as_ref().unwrap();
+    assert_eq!(parts.parts.len(), 3);
+    assert_eq!(parts.wants_to_join.len(), 1);
+    assert!(parts.new_realization_possibilities);
     assert_eq!(
         decoded.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Available
@@ -68,6 +92,94 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
         request("/api/snapshot", "POST").lines().next(),
         Some("HTTP/1.1 405 Method Not Allowed")
     );
+}
+
+#[test]
+fn parts_inspection_is_non_mutating_and_ambient_admission_is_never_implicit() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let presentation_id = snapshot.presentation.identity.as_str().to_owned();
+    let parts = snapshot.parts.as_ref().unwrap();
+    let body_id = parts.body_id.as_str().to_owned();
+    let candidate = parts.wants_to_join[0].candidate_id.as_str().to_owned();
+    let form = snapshot.presentation.basis.checked_form_id.clone();
+    let plan = snapshot.presentation.basis.plan_id.clone();
+    let response = post_parts_interaction(
+        snapshot,
+        &serde_json::to_vec(&serde_json::json!({
+            "presentation_id": presentation_id,
+            "body_id": body_id,
+            "action": "Inspect",
+            "target": candidate,
+        }))
+        .unwrap(),
+    );
+    let decoded = patchbay_html::RendererSnapshot::decode(
+        response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
+        1,
+    )
+    .unwrap();
+    assert_eq!(
+        decoded.interaction.parts_disposition.as_deref(),
+        Some("Succeeded")
+    );
+    assert_eq!(
+        decoded.interaction.selected_candidate.as_deref(),
+        Some(candidate.as_str())
+    );
+    assert!(decoded.interaction.selected_part.is_none());
+    assert_eq!(decoded.presentation.basis.checked_form_id, form);
+    assert_eq!(decoded.presentation.basis.plan_id, plan);
+    assert_eq!(decoded.parts.unwrap().wants_to_join.len(), 1);
+}
+
+#[test]
+fn parts_mutation_without_a_coordinator_refuses_nonfatally_and_stale_basis_refuses_first() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let parts = snapshot.parts.as_ref().unwrap();
+    let body_id = parts.body_id.as_str().to_owned();
+    let candidate = parts.wants_to_join[0].candidate_id.as_str().to_owned();
+    let response = post_parts_interaction(
+        snapshot.clone(),
+        &serde_json::to_vec(&serde_json::json!({
+            "presentation_id": snapshot.presentation.identity,
+            "body_id": body_id,
+            "action": "Admit",
+            "target": candidate,
+        }))
+        .unwrap(),
+    );
+    let decoded = patchbay_html::RendererSnapshot::decode(
+        response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
+        1,
+    )
+    .unwrap();
+    assert_eq!(
+        decoded.interaction.parts_disposition.as_deref(),
+        Some("Refused")
+    );
+    assert!(decoded
+        .interaction
+        .parts_feedback
+        .as_deref()
+        .unwrap()
+        .contains("no attached Body coordinator"));
+    assert_eq!(decoded.parts.unwrap().wants_to_join.len(), 1);
+
+    let stale = post_parts_interaction(
+        snapshot,
+        br#"{"presentation_id":"stale","body_id":"stale","action":"Inspect","target":"stale"}"#,
+    );
+    let decoded = patchbay_html::RendererSnapshot::decode(
+        stale.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
+        1,
+    )
+    .unwrap();
+    assert!(decoded
+        .interaction
+        .parts_feedback
+        .as_deref()
+        .unwrap()
+        .contains("basis is stale"));
 }
 
 #[test]

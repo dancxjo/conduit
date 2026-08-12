@@ -4,12 +4,17 @@ use conduit_presentation::ManifestationFailure;
 use patchbay_model::{
     InteractionDisposition, PatchbayAction, PatchbayEdit, PatchbayEditBasis, PatchbayInteraction,
     PatchbayInteractionRequest, PatchbayInvocationOutcome, PatchbayRefusal, PatchbaySubjectRef,
-    PatchbayTheme, ThemeColor, PHOSPHOR_THEME,
+    PHOSPHOR_THEME,
 };
 use serde::Deserialize;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
+
+mod parts;
+mod theme;
+
+use theme::render_theme_css;
 
 pub const MAX_HTTP_REQUEST_BYTES: usize = 8 * 1024;
 pub const MAX_THEME_CSS_BYTES: usize = 2 * 1024;
@@ -182,6 +187,26 @@ impl PatchbayHtmlServer {
             Err(error) => return Err(error),
         };
         let first = request.head.split("\r\n").next().unwrap_or_default();
+        if first == "POST /api/parts-interaction HTTP/1.1" {
+            let body = match self.apply_parts_interaction(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid Parts interaction request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
         if first == "POST /api/interaction HTTP/1.1" {
             let body = match self.apply_interaction(&request.body) {
                 Ok(body) => body,
@@ -393,35 +418,6 @@ fn parse_html_action(value: &str) -> Result<PatchbayAction, ServerError> {
         "toggle-linear-view" => Ok(PatchbayAction::ToggleLinearView),
         _ => Err(ServerError::InvalidRequest),
     }
-}
-
-fn render_theme_css(theme: &PatchbayTheme) -> Vec<u8> {
-    format!(
-        ":root{{--patchbay-theme-identity:\"{}\";--patchbay-background:{};--patchbay-surface:{};--patchbay-structure-primary:{};--patchbay-structure-secondary:{};--patchbay-text-primary:{};--patchbay-text-secondary:{};--patchbay-emphasis:{};--patchbay-focus:{};--patchbay-warning:{};--patchbay-failure:{};--patchbay-success:{};--patchbay-muted:{};}}\n",
-        theme.identity,
-        css_color(theme.background),
-        css_color(theme.surface),
-        css_color(theme.structure_primary),
-        css_color(theme.structure_secondary),
-        css_color(theme.text_primary),
-        css_color(theme.text_secondary),
-        css_color(theme.emphasis),
-        css_color(theme.focus),
-        css_color(theme.warning),
-        css_color(theme.failure),
-        css_color(theme.success),
-        css_color(theme.muted),
-    )
-    .into_bytes()
-}
-
-fn css_color(color: ThemeColor) -> String {
-    format!(
-        "#{:02X}{:02X}{:02X}",
-        color.red(),
-        color.green(),
-        color.blue()
-    )
 }
 
 fn write_response(

@@ -4,12 +4,13 @@ const bases = new Map([
   ["FixtureFrame", "fixture frame"], ["FixtureDatagram", "fixture datagram"],
   ["WebSocket", "WebSocket"], ["UsbCdc", "USB CDC"],
 ]);
-const state = { snapshot:null, selected:null, lens:"form", zoom:1, panX:0, reversed:false, graphHeight:360 };
+const state = { snapshot:null, selected:null, selectedPart:null, selectedCandidate:null, lens:"form", zoom:1, panX:0, reversed:false, graphHeight:360 };
 
 function requireSnapshot(value) {
   const presentation=value?.presentation;
   if (!value || value.schema!==schema || !Number.isSafeInteger(value.revision) || value.revision!==presentation?.revision) throw new Error("unsupported snapshot schema");
   if (!presentation.basis || typeof presentation.identity!=="string" || !Array.isArray(presentation.subjects) || !Array.isArray(presentation.relationships) || !Array.isArray(presentation.properties) || !Array.isArray(presentation.text) || !value.renderer?.plan || !value.renderer?.manifestation) throw new Error("malformed portable renderer execution");
+  if(value.parts&&(!Array.isArray(value.parts.parts)||!Array.isArray(value.parts.wants_to_join)||!Array.isArray(value.parts.actions)||value.parts.body_id!==presentation.basis.body_id))throw new Error("malformed canonical Parts projection");
   for (const property of presentation.properties) {
     const base=property.value?.ConnectionBase;
     if (base!==undefined && !bases.has(base)) throw new Error("unsupported connection base");
@@ -52,6 +53,35 @@ async function dispatchInteraction(input){
   render(requireSnapshot(await response.json()));
 }
 function select(identity){return dispatchInteraction({kind:"select",subject:identity});}
+
+const partsActionLabels={Inspect:"Inspect",Admit:"Admit",Refuse:"Refuse",Revoke:"Revoke",SpawnBrowserPart:"+ Browser Part",Replan:"Plan again"};
+async function dispatchPartsAction(action,target){
+  const feedback=document.querySelector("#parts-feedback");feedback.textContent=`${partsActionLabels[action]??action} pending…`;feedback.dataset.disposition="pending";document.querySelector("#parts").setAttribute("aria-busy","true");
+  try{
+    const response=await fetch("/api/parts-interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,body_id:state.snapshot.parts.body_id,action,target})});
+    if(!response.ok)throw new Error(`Parts interaction delivery HTTP ${response.status}`);
+    render(requireSnapshot(await response.json()));
+  }catch(error){feedback.textContent=`Parts action failed without closing Patchbay: ${error.message}`;feedback.dataset.disposition="failed";}
+  finally{document.querySelector("#parts").removeAttribute("aria-busy");}
+}
+function partsButton(action,target){const button=document.createElement("button");button.type="button";button.textContent=partsActionLabels[action]??action;button.dataset.partsAction=action;button.onclick=()=>dispatchPartsAction(action,target);return button;}
+function renderParts(){
+  const section=document.querySelector("#parts"),view=state.snapshot.parts;
+  section.hidden=!view;if(!view)return;
+  document.querySelector("#parts-title").textContent=`Parts · ${shortId(view.body_id)}`;document.querySelector("#parts-lifecycle").textContent=view.awake?"AWAKE":"LULLED";
+  const notice=document.querySelector("#parts-possibilities");notice.hidden=!view.new_realization_possibilities;notice.textContent=view.new_realization_possibilities?"New realization possibilities are available. The current Plan remains unchanged until Plan again is explicitly requested.":"";
+  const parts=document.querySelector("#part-rows");parts.replaceChildren();
+  for(const row of view.parts){const li=document.createElement("li"),summary=document.createElement("div"),stateText=document.createElement("strong"),badges=document.createElement("div"),actions=document.createElement("div");li.className="parts-row";summary.textContent=row.label;stateText.className="parts-row-state";stateText.textContent=`${row.state.toUpperCase()} · ${row.available?"AVAILABLE":"OFFLINE"}`;badges.className="parts-badges";for(const label of [row.in_plan?"IN PLAN":null,row.playing?"PLAYING":null].filter(Boolean)){const badge=document.createElement("span");badge.className="parts-badge";badge.textContent=label;badges.append(badge);}summary.append(badges);actions.className="parts-row-actions";for(const action of row.actions)actions.append(partsButton(action,row.details.part_id));li.append(summary,stateText,actions);parts.append(li);}
+  const candidates=document.querySelector("#candidate-rows");candidates.replaceChildren();
+  if(!view.wants_to_join.length){const li=document.createElement("li");li.textContent="No candidates currently want to join.";candidates.append(li);}
+  for(const row of view.wants_to_join){const li=document.createElement("li"),summary=document.createElement("div"),stateText=document.createElement("strong"),actions=document.createElement("div");li.className="parts-row";summary.textContent=row.label;stateText.className="parts-row-state";stateText.textContent=`${row.state.replace(/([A-Z])/g," $1").trim().toUpperCase()} · AVAILABLE`;actions.className="parts-row-actions";for(const action of row.actions)actions.append(partsButton(action,row.candidate_id));li.append(summary,stateText,actions);candidates.append(li);}
+  const toolbar=document.querySelector("#parts-actions");toolbar.replaceChildren();for(const action of view.actions)toolbar.append(partsButton(action,view.body_id));
+  const details=document.querySelector("#parts-details dl");details.replaceChildren();const selectedPart=view.parts.find(row=>row.details.part_id===state.snapshot.interaction.selected_part),selectedCandidate=view.wants_to_join.find(row=>row.candidate_id===state.snapshot.interaction.selected_candidate);
+  if(selectedPart){const d=selectedPart.details;term(details,"Part",d.part_id);term(details,"Host",d.host_id);term(details,"Boot",d.boot_id);term(details,"Offer generation",d.offer_generation);term(details,"Admission proof",d.proof_reference);term(details,"Plan placements",d.planned_placements.join(", ")||"none");term(details,"Authority bindings",d.planned_authority_bindings);term(details,"Expected Signs",d.expected_signs);}
+  else if(selectedCandidate){term(details,"Candidate",selectedCandidate.candidate_id);term(details,"Host",selectedCandidate.host_id);term(details,"Boot",selectedCandidate.boot_id);term(details,"Offer generation",selectedCandidate.offer_generation);term(details,"Capabilities",selectedCandidate.capabilities);}
+  else term(details,"Selection","Inspect a Part or candidate to disclose exact facts.");
+  const feedback=document.querySelector("#parts-feedback");feedback.textContent=state.snapshot.interaction.parts_feedback??"No Parts action requested.";feedback.dataset.disposition=(state.snapshot.interaction.parts_disposition??"").toLowerCase();
+}
 
 function applyViewport(){const width=740/state.zoom,height=state.graphHeight/state.zoom;document.querySelector("#graph").setAttribute("viewBox",`${state.panX} 0 ${width} ${height}`);}
 function shortId(value){return value&&value!=="unsupported"?`${value.slice(0,10)}…`:"not present";}
@@ -107,7 +137,7 @@ function render(snapshot){
   document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · read-only`;
   document.querySelector("#run-summary").textContent=`${manifestation.lifecycle} · Plan ${b.plan_id} · Play ${b.active_play_id}`;
   const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Seed",b.seed_id);term(facts,"Body",b.body_id);term(facts,"Wake",b.wake_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
-  const list=document.querySelector("#subjects");list.replaceChildren();for(const subject of p.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderGraph();
+  const list=document.querySelector("#subjects");list.replaceChildren();for(const subject of p.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderParts();renderGraph();
   const placements=renderer.plan.fragments.flatMap(fragment=>fragment.placements);const placement=placements.find(item=>item.placement_id===manifestation.placement_id);const connections=[...new Map(renderer.plan.fragments.flatMap(fragment=>fragment.connections).map(connection=>[connection.connection_id,connection])).values()];
   const plan=document.querySelector("#plan dl");plan.replaceChildren();term(plan,"Expanded Form",b.expanded_form_id);term(plan,"Source Plan",b.plan_id);term(plan,"Renderer Face",placement?.kind_id);term(plan,"Renderer Plan",manifestation.plan_id);term(plan,"Renderer Play",manifestation.active_play_id);term(plan,"Manifestation",manifestation.manifestation_id);term(plan,"Lifecycle",manifestation.lifecycle);term(plan,"Placement",placement?.placement_id);term(plan,"Host",placement?.host_id);term(plan,"Boot",placement?.boot_id);term(plan,"Implementation",placement?.implementation_id);term(plan,"Artifact",placement?.artifact_id);term(plan,"Execution profile",placement?.execution_profile_id);term(plan,"Offer generation",placement?.offer_generation);term(plan,"Limits",placement?`active=${placement.limits.max_active_instances} queue-items=${placement.limits.max_queue_items} queue-bytes=${placement.limits.max_queue_bytes}`:undefined);fillLines("#realizations",[...placements.flatMap(item=>[`${item.gear_id} · host ${item.host_id} · boot ${item.boot_id} · implementation ${item.implementation_id} · artifact ${item.artifact_id}`,...item.inputs.concat(item.outputs).map(port=>`Port ${port.port_id} · ${port.direction} · Info ${port.value_kind} · ${port.temporal}`),...item.resources.map(resource=>`Resource ${resource.pool_id} · class ${resource.class_id} · units ${resource.units}`),...item.host_operations.map(operation=>`Base ${operation.contract_id} · target ${operation.target_kind??"not present"} · in-flight ${operation.maximum_in_flight} · input-bytes ${operation.maximum_input_bytes} · output-bytes ${operation.maximum_output_bytes}`)]),...connections.map(connection=>{const line=connection.selected_line,binding=line?.binding;return `Cord ${connection.connection_id} · ${connection.source_port_id} -> ${connection.sink_port_id} · Info ${connection.value_kind} · Line ${line?.line_id??"not present"} · base ${bases.get(binding?.base)??"not present"} · binding ${binding?.binding_id??"not present"} · base-instance ${binding?.base_instance_id??"not present"}`;})]);
   const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#sign",[...subjects("Sign").map(subject=>subject.label),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);

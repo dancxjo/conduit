@@ -1,16 +1,23 @@
 //! One living, bounded semantic input shared by renderer adapter proofs.
 
-use conduit_body::Body;
-use conduit_core::{bind_active_play, BootId, HostId, OfferGeneration, SignId};
+use conduit_body::{
+    AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory, CandidateObservation,
+    DiscoveryProofId, MembershipProofId, PartId,
+};
+use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use conduit_presentation::Presentation;
 use conduit_std_host::{StdHost, StdHostConfig, ThreadTimer};
 
 use crate::{
-    DistributedRouteDemo, FormEditor, PatchbayModel, PatchbayPresentation, PatchbayRequestId,
-    PatchbayTopology, PlanDocument, PlayDocument,
+    DistributedRouteDemo, FormEditor, PartsView, PatchbayModel, PatchbayPresentation,
+    PatchbayRequestId, PatchbayTopology, PlanDocument, PlayDocument,
 };
 
 pub fn portable_demonstration() -> Result<Presentation, String> {
+    portable_demonstration_with_parts().map(|(presentation, _)| presentation)
+}
+
+pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), String> {
     let editor = FormEditor::from_source(
         "examples/hello.conduit".into(),
         include_str!("../../../examples/hello.conduit").into(),
@@ -77,9 +84,97 @@ pub fn portable_demonstration() -> Result<Presentation, String> {
     let wake = wake
         .play_started(&active_play, SignId::from("patchbay/playing"))
         .map_err(|error| error.to_string())?;
-    projection
+    let mut membership =
+        BodyMembership::new(body.body_id.clone()).map_err(|error| format!("{error:?}"))?;
+    let here = admit_demo_part(
+        &mut membership,
+        &body,
+        "here",
+        Some((&host_id, &boot_id, OfferGeneration(1))),
+        0,
+    )?;
+    admit_demo_part(
+        &mut membership,
+        &body,
+        "browser-tab-2",
+        Some((
+            &HostId::from("browser/tab-2"),
+            &BootId::from("browser/tab-2/boot"),
+            OfferGeneration(1),
+        )),
+        1,
+    )?;
+    admit_demo_part(&mut membership, &body, "pico-w", None, 2)?;
+    let mut candidates =
+        CandidateInventory::new(body.body_id.clone()).map_err(|error| format!("{error:?}"))?;
+    let mut candidate = host.advertisement().clone();
+    candidate.host_id = HostId::from("browser/tab-3");
+    candidate.boot_id = BootId::from("browser/tab-3/boot");
+    candidates
+        .observe(CandidateObservation {
+            advertisement: candidate,
+            friendly_label: "Browser · tab 3".into(),
+            observed_binding_id: LinkBindingId::from("patchbay/browser-tab-3/observed"),
+            observation_sign_id: SignId::from("patchbay/browser-tab-3/observed"),
+            proof_id: DiscoveryProofId::bind("patchbay/browser-tab-3/discovery")
+                .map_err(|error| format!("{error:?}"))?,
+            freshness_sequence: 1,
+            encoded_bytes: 512,
+        })
+        .map_err(|error| format!("{error:?}"))?;
+    let parts = PartsView::project(
+        &body,
+        &membership,
+        &candidates,
+        &here,
+        Some(&plan),
+        Some(&active_play),
+        true,
+    )
+    .map_err(|error| format!("{error:?}"))?;
+    let presentation = projection
         .to_portable(&body, &wake)
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    Ok((presentation, parts))
+}
+
+fn admit_demo_part(
+    membership: &mut BodyMembership,
+    body: &Body,
+    subject: &str,
+    current: Option<(&HostId, &BootId, OfferGeneration)>,
+    index: u64,
+) -> Result<PartId, String> {
+    let part = PartId::bind(&body.body_id, subject, index).map_err(|error| format!("{error:?}"))?;
+    membership
+        .admit(
+            &body.body_id,
+            membership.revision,
+            part.clone(),
+            MembershipProofId::bind(&format!("patchbay/{subject}/admitted"))
+                .map_err(|error| format!("{error:?}"))?,
+            SignId::from(format!("patchbay/{subject}/admitted")),
+        )
+        .map_err(|error| format!("{error:?}"))?;
+    if let Some((host_id, boot_id, offer_generation)) = current {
+        membership
+            .observe_present(
+                &body.body_id,
+                membership.revision,
+                &part,
+                AuthenticatedHostObservation {
+                    host_id: host_id.clone(),
+                    boot_id: boot_id.clone(),
+                    offer_generation,
+                    proof_id: MembershipProofId::bind(&format!("patchbay/{subject}/current"))
+                        .map_err(|error| format!("{error:?}"))?,
+                    sequence: 1,
+                },
+                SignId::from(format!("patchbay/{subject}/present")),
+            )
+            .map_err(|error| format!("{error:?}"))?;
+    }
+    Ok(part)
 }
 
 #[cfg(test)]
