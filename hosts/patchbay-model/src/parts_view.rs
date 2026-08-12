@@ -4,7 +4,7 @@ use conduit_body::{
     Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, MembershipEventKind,
     MembershipState, PartId,
 };
-use conduit_core::{ActivePlayIdentity, BootId, HostId, OfferGeneration, Plan};
+use conduit_core::{ActivePlayIdentity, BootId, HostId, OfferGeneration, PlacementId, Plan};
 
 pub const MAX_PARTS_VIEW_ROWS: usize = conduit_body::MAX_BODY_PARTS;
 pub const MAX_WANTS_TO_JOIN_ROWS: usize = conduit_body::MAX_CANDIDATES;
@@ -33,6 +33,9 @@ pub struct PartDetails {
     pub boot_id: Option<BootId>,
     pub offer_generation: Option<OfferGeneration>,
     pub proof_reference: Option<String>,
+    pub planned_placements: Vec<PlacementId>,
+    pub planned_authority_bindings: usize,
+    pub expected_signs: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,15 +123,16 @@ impl PartsView {
             .iter()
             .filter(|part| part.state == MembershipState::Admitted)
         {
-            let in_plan = part.current.as_ref().is_some_and(|current| {
-                plan.is_some_and(|plan| {
-                    plan.fragments.iter().any(|fragment| {
+            let planned_fragment = part.current.as_ref().and_then(|current| {
+                plan.and_then(|plan| {
+                    plan.fragments.iter().find(|fragment| {
                         fragment.host_id == current.host_id
                             && fragment.boot_id == current.boot_id
                             && fragment.offer_generation == current.offer_generation
                     })
                 })
             });
+            let in_plan = planned_fragment.is_some();
             let playing = in_plan && play.is_some();
             let state = if &part.part_id == here {
                 PartPresentationState::Here
@@ -163,6 +167,27 @@ impl PartsView {
                         || admission_proof(membership, &part.part_id),
                         |current| Some(current.proof_id.as_str().into()),
                     ),
+                    planned_placements: planned_fragment
+                        .map(|fragment| {
+                            fragment
+                                .placements
+                                .iter()
+                                .map(|placement| placement.placement_id.clone())
+                                .collect()
+                        })
+                        .unwrap_or_default(),
+                    planned_authority_bindings: planned_fragment
+                        .map(|fragment| {
+                            fragment
+                                .placements
+                                .iter()
+                                .map(|placement| placement.authority.len())
+                                .sum()
+                        })
+                        .unwrap_or(0),
+                    expected_signs: planned_fragment
+                        .map(|fragment| fragment.expected_sign.len())
+                        .unwrap_or(0),
                 },
                 actions: vec![PartsAction::Inspect, PartsAction::Revoke],
             });

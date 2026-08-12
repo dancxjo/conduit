@@ -120,6 +120,8 @@ fn parts_view_derives_here_attached_offline_candidates_and_plan_truth() {
     assert_eq!(view.parts[0].state, PartPresentationState::Here);
     assert!(view.parts[0].in_plan);
     assert!(view.parts[0].playing);
+    assert!(!view.parts[0].details.planned_placements.is_empty());
+    assert!(view.parts[0].details.expected_signs > 0);
     assert_eq!(view.parts[1].state, PartPresentationState::Attached);
     assert!(!view.parts[1].in_plan);
     assert_eq!(view.parts[2].state, PartPresentationState::Offline);
