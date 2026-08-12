@@ -32,7 +32,7 @@ pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_CORDS
     + patchbay_model::MAX_PALETTE_ENTRIES
     + patchbay_model::MAX_PATCHBAY_GEARS * patchbay_model::MAX_FACE_CONTROLS * 2
-    + 3;
+    + 6;
 
 const HEADER_HEIGHT: i32 = 52;
 const FOOTER_HEIGHT: i32 = 42;
@@ -45,8 +45,11 @@ const MINIMUM_NODE_HEIGHT: i32 = 92;
 pub struct LifecycleContext {
     pub body_id: Option<String>,
     pub wake_id: Option<String>,
+    pub wake_state: Option<String>,
     pub plan_id: Option<String>,
     pub play_id: Option<String>,
+    pub play_state: Option<String>,
+    pub actions: Vec<crate::lifecycle_actions::LifecycleActionView>,
 }
 
 pub struct PatchbayViewContext<'a> {
@@ -139,6 +142,13 @@ pub fn draw_patchbay(
                     .sum::<usize>(),
         ),
     );
+    crate::lifecycle_view::draw_lifecycle_actions(
+        &mut canvas,
+        lifecycle,
+        width,
+        theme,
+        &mut targets,
+    );
     draw_navigator(&mut canvas, palette_query, theme, &mut targets);
     draw_cords(
         &mut canvas,
@@ -210,7 +220,11 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
         ),
         (
             Icon::Wake,
-            layer_label("WAKE", &lifecycle.wake_id, "LULLED", "AWAKE"),
+            lifecycle
+                .wake_state
+                .as_ref()
+                .map(|state| format!("WAKE {state}"))
+                .unwrap_or_else(|| "WAKE LULLED".into()),
         ),
         (
             Icon::Plan,
@@ -218,7 +232,11 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
         ),
         (
             Icon::Play,
-            layer_label("PLAY", &lifecycle.play_id, "NONE", "ACTIVE"),
+            lifecycle
+                .play_state
+                .as_ref()
+                .map(|state| format!("PLAY {state}"))
+                .unwrap_or_else(|| layer_label("PLAY", &lifecycle.play_id, "NONE", "ACTIVE")),
         ),
     ];
     for (index, (icon, label)) in layers.into_iter().enumerate() {

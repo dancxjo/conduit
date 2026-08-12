@@ -83,6 +83,10 @@ impl PatchbayApplication {
                 .build_birth
                 .wake_value()
                 .map(|wake| wake.wake_id.as_str().to_owned()),
+            wake_state: self
+                .build_birth
+                .wake_value()
+                .map(|wake| format!("{:?}", wake.lifecycle)),
             plan_id: self
                 .control
                 .plan()
@@ -94,6 +98,13 @@ impl PatchbayApplication {
                     .find_map(|plan| plan.active_play_id.as_ref())
                     .map(|play| play.as_str().to_owned())
             }),
+            play_state: self
+                .control
+                .lines()
+                .into_iter()
+                .rev()
+                .find(|line| line.starts_with("PLAY ")),
+            actions: self.lifecycle_actions(),
         };
         let realization_hosts = self
             .environment
