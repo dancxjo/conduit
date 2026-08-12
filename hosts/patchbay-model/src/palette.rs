@@ -1,7 +1,7 @@
 //! Authoritative, bounded discovery projection for reusable semantic Kinds.
 
-use conduit_core::{ConfigurationValue, KindId, PortDescriptor};
-pub use conduit_std_catalog::{PaletteCategory, PaletteIconKey};
+use conduit_core::{CapabilityLimits, ConfigurationValue, KindId, PortDescriptor};
+pub use conduit_std_catalog::{PaletteCategory, PaletteIconKey, StandardConfigurationRule};
 
 pub const MAX_PALETTE_ENTRIES: usize = 64;
 pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
@@ -10,6 +10,7 @@ pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
 pub struct PaletteConfigurationSummary {
     pub key: String,
     pub default_value: ConfigurationValue,
+    pub rule: StandardConfigurationRule,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,6 +21,7 @@ pub struct PaletteEntry {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<PaletteConfigurationSummary>,
+    pub limits: CapabilityLimits,
     pub category: PaletteCategory,
     pub tags: &'static [&'static str],
     pub icon: PaletteIconKey,
@@ -87,8 +89,10 @@ impl GearPalette {
                     .map(|field| PaletteConfigurationSummary {
                         key: field.key,
                         default_value: field.default_value,
+                        rule: field.rule,
                     })
                     .collect(),
+                limits: contract.limits,
                 category: metadata.category,
                 tags: metadata.tags,
                 icon: metadata.icon,
@@ -157,6 +161,15 @@ mod tests {
             palette.search(&"x".repeat(MAX_PALETTE_QUERY_BYTES + 1)),
             Err(PaletteError::QueryTooLarge)
         );
+        let join = palette.find(&KindId::from("text/join")).unwrap();
+        assert!(matches!(
+            join.configuration[0].rule,
+            StandardConfigurationRule::TextBytes { .. }
+        ));
+        assert_eq!(
+            join.limits,
+            conduit_std_catalog::text_join_contract().limits
+        );
     }
 
     #[test]
@@ -175,6 +188,7 @@ mod tests {
             decorated.inputs.clone(),
             decorated.outputs.clone(),
             decorated.configuration.clone(),
+            decorated.limits.clone(),
         );
         decorated.category = PaletteCategory::Files;
         decorated.icon = PaletteIconKey::GenericGear;
@@ -185,6 +199,7 @@ mod tests {
                 decorated.inputs,
                 decorated.outputs,
                 decorated.configuration,
+                decorated.limits,
             )
         );
     }
