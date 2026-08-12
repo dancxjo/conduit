@@ -6,6 +6,7 @@
 //! semantic authority.
 
 use crate::keyboard_offer::{KeyboardOffer, KeyboardOfferError, KeyboardRealization};
+#[cfg(target_arch = "x86_64")]
 use crate::pc_speaker_offer::{PcSpeakerOffer, PcSpeakerOfferError, PcSpeakerRealization};
 use crate::{identity::BootIdentities, machine::BaseKind};
 
@@ -88,6 +89,7 @@ pub struct HostOffer<'a> {
     pub sign_item_capacity: u16,
     pub interrupt_fact_capacity: u16,
     pub keyboard: Option<KeyboardOffer<'a>>,
+    #[cfg(target_arch = "x86_64")]
     pub pc_speaker: Option<PcSpeakerOffer<'a>>,
 }
 
@@ -226,6 +228,7 @@ impl<'a> HostOffer<'a> {
             sign_item_capacity: SIGN_ITEM_CAPACITY,
             interrupt_fact_capacity: INTERRUPT_FACT_CAPACITY,
             keyboard: None,
+            #[cfg(target_arch = "x86_64")]
             pc_speaker: None,
         }
     }
@@ -246,6 +249,7 @@ impl<'a> HostOffer<'a> {
         Ok(self)
     }
 
+    #[cfg(target_arch = "x86_64")]
     pub fn with_pc_speaker(
         mut self,
         realization: PcSpeakerRealization,
@@ -345,6 +349,7 @@ impl<'a> HostOffer<'a> {
                 .validate(self.capabilities[0].artifact_build)
                 .map_err(|_error: KeyboardOfferError| OfferError::InvalidDeviceOffer)?;
         }
+        #[cfg(target_arch = "x86_64")]
         if let Some(pc_speaker) = self.pc_speaker {
             pc_speaker
                 .validate(self.capabilities[0].artifact_build)

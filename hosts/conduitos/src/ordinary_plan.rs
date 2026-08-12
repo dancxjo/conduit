@@ -224,6 +224,7 @@ pub(crate) fn advertisement(
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
     }
+    #[cfg(target_arch = "x86_64")]
     if let Some(pc_speaker) = fixed.pc_speaker {
         crate::pc_speaker_offer::append_to_advertisement(&mut advertisement, pc_speaker, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
