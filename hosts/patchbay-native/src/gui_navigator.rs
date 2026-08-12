@@ -19,6 +19,8 @@ pub(super) struct FormsNavigatorView<'a> {
     pub(super) entries: &'a [FormNavigatorEntry],
     pub(super) selection: usize,
     pub(super) scroll: usize,
+    pub(super) body_born: bool,
+    pub(super) parts_open: bool,
 }
 
 pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
@@ -74,19 +76,46 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     );
     for (index, (icon, label)) in [
         (Icon::Body, "BODIES [UNAVAILABLE]"),
-        (Icon::Host, "HOSTS [UNAVAILABLE]"),
+        (
+            Icon::Host,
+            if forms.body_born {
+                "PARTS (F12)"
+            } else {
+                "PARTS [UNAVAILABLE]"
+            },
+        ),
         (Icon::Sign, "SIGNS [UNAVAILABLE]"),
     ]
     .into_iter()
     .enumerate()
     {
+        let y = 178 + index as i32 * 18;
         icon_label(
             target,
             icon,
-            Point::new(14, 182 + index as i32 * 20),
+            Point::new(14, y),
             label,
-            theme.structure_secondary,
+            if index == 1 && forms.body_born {
+                theme.text_primary
+            } else {
+                theme.structure_secondary
+            },
         );
+        if index == 1 && forms.body_born {
+            let bounds = PixelRect {
+                x: 10,
+                y: y - 4,
+                width: 154,
+                height: 25,
+            };
+            if forms.parts_open {
+                frame_rect(target, bounds, theme.focus, 2);
+            }
+            targets.push(HitTarget {
+                action: GuiAction::TogglePartsView,
+                shape: HitShape::Rect(bounds),
+            });
+        }
     }
     text(target, Point::new(14, 226), "ACTIONS", theme.emphasis);
     action_button(

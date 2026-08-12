@@ -17,7 +17,9 @@ mod invitation;
 use continuity::{ContinuityKeyRecord, PendingReturn};
 pub use continuity::{PartReturnChallenge, PartReturnProof};
 use invitation::InvitationRecord;
-pub use invitation::{SpawnAdmissionProof, SpawnInvitation, SpawnInvitationSecret};
+pub use invitation::{
+    SpawnAdmissionProof, SpawnInvitation, SpawnInvitationClaim, SpawnInvitationSecret,
+};
 
 pub const MAX_PENDING_ADMISSIONS: usize = 16;
 pub const MAX_ADMISSION_RECEIPTS: usize = 32;

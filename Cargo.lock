@@ -448,6 +448,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-wire",
  "ed25519-dalek",
+ "serde",
  "serde_json",
 ]
 
@@ -658,6 +659,7 @@ name = "conduit-std-host"
 version = "0.1.0"
 dependencies = [
  "conduit-ai",
+ "conduit-body",
  "conduit-chat",
  "conduit-core",
  "conduit-form",
@@ -673,6 +675,7 @@ dependencies = [
  "conduit-system-continuity",
  "conduit-wire",
  "libc",
+ "serde",
  "serde_json",
  "tungstenite",
 ]
@@ -2040,6 +2043,8 @@ dependencies = [
 name = "patchbay-native"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
+ "conduit-browser-runtime",
  "conduit-core",
  "conduit-form",
  "conduit-observatory",

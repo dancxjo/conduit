@@ -48,6 +48,7 @@ fn main() {
             DemoCommand::Std => commands::demo::run_std(&opts),
             DemoCommand::Triple => commands::demo::run_triple(&opts),
             DemoCommand::Patchbay => commands::demo::run_patchbay(&opts),
+            DemoCommand::BodyMembership => commands::demo::run_body_membership(&opts),
             DemoCommand::Environment => commands::demo::run_environment(&opts),
             DemoCommand::Prewake => commands::demo::run_prewake(&opts),
             DemoCommand::Browser => commands::toggle::run(),

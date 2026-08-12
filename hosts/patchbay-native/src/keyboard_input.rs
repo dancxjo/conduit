@@ -37,8 +37,16 @@ impl PatchbayApplication {
                 true
             }
         };
+        let parts_handled = match self.handle_parts_key(&event.logical_key) {
+            Ok(handled) => handled,
+            Err(error) => {
+                self.publish_refusal(error);
+                true
+            }
+        };
         if prewake_handled
             || environment_handled
+            || parts_handled
             || self.handle_viewport_key(&event.logical_key)
             || self.handle_palette_key(&event.logical_key)
         {

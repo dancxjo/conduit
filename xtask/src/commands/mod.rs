@@ -1,4 +1,5 @@
 pub mod audio;
+mod body_membership_demo;
 pub mod catalog;
 pub mod check;
 pub mod conduitos;

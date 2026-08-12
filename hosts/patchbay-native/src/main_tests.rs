@@ -82,6 +82,27 @@ fn arguments_are_explicit_and_fail_closed() {
             .exit_after_window
     );
     assert_eq!(
+        parse_arguments(
+            vec![
+                "--browser-page-url".into(),
+                "http://127.0.0.1:8080/".into(),
+                "--browser-chat-url".into(),
+                "ws://127.0.0.1:9000/chat".into(),
+            ]
+            .into_iter()
+        )
+        .unwrap()
+        .browser_chat_url
+        .as_deref(),
+        Some("ws://127.0.0.1:9000/chat")
+    );
+    assert_eq!(
+        parse_arguments(
+            vec!["--browser-page-url".into(), "http://127.0.0.1:8080/".into(),].into_iter()
+        ),
+        Err("browser page and chat URLs must be configured together".into())
+    );
+    assert_eq!(
         parse_arguments(vec!["--observatory-snapshot".into(), "report.json".into()].into_iter())
             .unwrap()
             .snapshot_path,

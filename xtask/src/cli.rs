@@ -216,6 +216,8 @@ pub enum DemoCommand {
     Triple,
     /// Build and launch the native Patchbay from this checkout.
     Patchbay,
+    /// Birth one Body and open its canonical native Parts experience.
+    BodyMembership,
     /// Open the authored physical-environment Patchbay demonstration.
     Environment,
     /// Rehearse a canonical Form against the authored environment before Wake.
@@ -347,7 +349,7 @@ mod tests {
             })
         ));
 
-        for command in ["std", "triple", "patchbay", "browser"] {
+        for command in ["std", "triple", "patchbay", "body-membership", "browser"] {
             Cli::try_parse_from(["xtask", "demo", command])
                 .unwrap_or_else(|error| panic!("demo {command} must parse: {error}"));
         }

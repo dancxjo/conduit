@@ -22,6 +22,15 @@ pub enum ViewportAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
+    TogglePartsView,
+    SpawnBrowserPart,
+    CancelBrowserPartSpawn,
+    InspectPart(conduit_body::PartId),
+    InspectCandidate(conduit_body::CandidateId),
+    AdmitCandidate(conduit_body::CandidateId),
+    RefuseCandidate(conduit_body::CandidateId),
+    RequestRevokePart(conduit_body::PartId),
+    ConfirmRevokePart(conduit_body::PartId),
     Viewport(ViewportAction),
     Lifecycle(patchbay_model::PatchbayAction),
     EnvironmentAdd(MachineProfile),

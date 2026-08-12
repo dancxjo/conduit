@@ -137,6 +137,15 @@ impl PatchbayApplication {
             native_keyboard: portable_keyboard::NativeKeyboardInput::new(),
             palette: Default::default(),
             exact_identity_open: false,
+            parts_open: false,
+            selected_part: None,
+            selected_candidate: None,
+            pending_revoke: None,
+            body_candidates: None,
+            browser_parts: arguments
+                .browser_page_url
+                .zip(arguments.browser_chat_url)
+                .map(|(page, chat)| browser_parts::BrowserPartsCoordinator::new(page, chat)),
             face_control_focus: 0,
             palette_drag: None,
             cord_drag: None,
@@ -165,6 +174,26 @@ impl PatchbayApplication {
             application.play_plan()?;
             if arguments.control_demo_stop {
                 application.control.stop()?;
+            }
+        }
+        if arguments.body_parts_demo {
+            application.birth_body()?;
+            application.parts_open = true;
+            if let Some(coordinator) = &mut application.browser_parts {
+                let body_id = application
+                    .build_birth
+                    .body()
+                    .expect("Body membership demo completed Birth")
+                    .body_id
+                    .clone();
+                let target = coordinator.start_ambient(&body_id)?;
+                std::process::Command::new("xdg-open")
+                    .arg(target)
+                    .spawn()
+                    .map_err(|error| format!("cannot open ambient browser candidate: {error}"))?;
+                application.publish_completed(
+                    "Ambient browser opened as an inert candidate; inspect and Admit explicitly",
+                );
             }
         }
         if arguments.native_copy_demo {

@@ -71,6 +71,10 @@ pub fn run_patchbay(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
+pub fn run_body_membership(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    super::body_membership_demo::run(opts)
+}
+
 pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let step = Step::new(

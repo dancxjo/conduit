@@ -14,6 +14,8 @@ use winit::window::{Window, WindowId};
 const HISTORY_CAPACITY: usize = 4;
 mod application_init;
 mod arguments;
+mod browser_ambient;
+mod browser_parts;
 mod build_birth;
 mod canvas;
 mod canvas_input;
@@ -58,6 +60,9 @@ mod palette_icon_data;
 mod palette_input;
 mod palette_state;
 mod palette_view;
+mod parts_interaction;
+mod parts_keyboard;
+mod parts_view;
 mod portable_keyboard;
 #[cfg(test)]
 mod portable_keyboard_tests;
@@ -111,6 +116,12 @@ struct PatchbayApplication {
     native_keyboard: portable_keyboard::NativeKeyboardInput,
     palette: palette_state::PaletteChooser,
     exact_identity_open: bool,
+    parts_open: bool,
+    selected_part: Option<conduit_body::PartId>,
+    selected_candidate: Option<conduit_body::CandidateId>,
+    pending_revoke: Option<conduit_body::PartId>,
+    body_candidates: Option<conduit_body::CandidateInventory>,
+    browser_parts: Option<browser_parts::BrowserPartsCoordinator>,
     face_control_focus: usize,
     palette_drag: Option<String>,
     cord_drag: Option<patchbay_model::PatchbaySubjectRef>,
@@ -301,6 +312,11 @@ impl ApplicationHandler for PatchbayApplication {
                 return;
             }
         }
+        match self.poll_browser_parts() {
+            Ok(true) => self.rendered_once = false,
+            Ok(false) => {}
+            Err(error) => self.publish_refusal(error),
+        }
         match self.control.poll() {
             Ok(true) => {
                 for line in self.control.lines().iter().filter(|line| {
@@ -346,6 +362,10 @@ impl ApplicationHandler for PatchbayApplication {
         event_loop.set_control_flow(
             if self.control.is_running()
                 || self.file_task.is_running()
+                || self
+                    .browser_parts
+                    .as_ref()
+                    .is_some_and(browser_parts::BrowserPartsCoordinator::is_running)
                 || self
                     .distributed_play
                     .as_ref()

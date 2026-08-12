@@ -32,7 +32,18 @@ impl PatchbayApplication {
                 sequence,
                 signs,
             )
-            .map_err(|error| error.to_string())
+            .map_err(|error| error.to_string())?;
+        self.body_candidates = Some(
+            conduit_body::CandidateInventory::new(
+                self.build_birth
+                    .body()
+                    .expect("Birth installed the Body")
+                    .body_id
+                    .clone(),
+            )
+            .map_err(|error| format!("candidate inventory: {error:?}"))?,
+        );
+        Ok(())
     }
 
     pub(super) fn wake_body(&mut self) -> Result<(), String> {

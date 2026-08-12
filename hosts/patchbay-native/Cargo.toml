@@ -5,6 +5,7 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
+conduit-body = { path = "../../crates/conduit-body" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }
@@ -17,6 +18,7 @@ softbuffer = { version = "0.4", default-features = false, features = ["wayland",
 winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }
 
 [dev-dependencies]
+conduit-browser-runtime = { path = "../browser-runtime" }
 conduitos = { path = "../conduitos" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-planner = { path = "../../crates/conduit-planner" }

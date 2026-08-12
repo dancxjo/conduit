@@ -13,6 +13,22 @@ import { createWebchatRuntime } from "./webchat-runtime.mjs";
 
 const url = new URLSearchParams(location.search).get("ws");
 if (!url) throw new Error("webchat requires ?ws=ws://127.0.0.1:port");
+const fragment = new URLSearchParams(location.hash.slice(1));
+const bodyUrl = new URLSearchParams(location.search).get("body") ?? fragment.get("body");
+const decodeFragmentJson = (name) => {
+  const encoded = fragment.get(name);
+  if (!encoded) return null;
+  const padded = encoded.replaceAll("-", "+").replaceAll("_", "/")
+    .padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+  return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(padded), (character) => character.charCodeAt(0))));
+};
+const spawnHex = fragment.get("spawn_hex");
+const spawn = spawnHex
+  ? JSON.parse(new TextDecoder().decode(Uint8Array.from(
+      spawnHex.match(/.{2}/g) ?? [],
+      (pair) => Number.parseInt(pair, 16),
+    )))
+  : decodeFragmentJson("spawn");
 const wasmBytes = await fetch(
   "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
 ).then((response) => {
@@ -22,6 +38,8 @@ const wasmBytes = await fetch(
 globalThis.__webchat = await createWebchatRuntime({
   wasmBytes,
   url,
+  bodyUrl,
+  spawn,
   list: document.querySelector("#history"),
   input: document.querySelector("#message"),
   button: document.querySelector("#send"),

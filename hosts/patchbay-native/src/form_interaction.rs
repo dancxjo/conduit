@@ -56,6 +56,15 @@ impl PatchbayApplication {
                 | GuiAction::ConfigureGear { .. }
         );
         match action {
+            GuiAction::TogglePartsView
+            | GuiAction::SpawnBrowserPart
+            | GuiAction::CancelBrowserPartSpawn
+            | GuiAction::InspectPart(_)
+            | GuiAction::InspectCandidate(_)
+            | GuiAction::AdmitCandidate(_)
+            | GuiAction::RefuseCandidate(_)
+            | GuiAction::RequestRevokePart(_)
+            | GuiAction::ConfirmRevokePart(_) => return self.handle_parts_action(action),
             GuiAction::Viewport(action) => self.perform_viewport_action(action),
             GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
             GuiAction::EnvironmentAdd(_)
