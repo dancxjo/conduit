@@ -191,7 +191,11 @@ pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String,
     let mut child = command
         .spawn()
         .map_err(|e| refusal("unavailable-riscv64-emulator", e.to_string()))?;
-    let deadline = Instant::now() + Duration::from_secs(60);
+    // Loaded hosted runners can take longer than one minute to reach U-Boot
+    // and the first guest Sign while the other architecture shards execute.
+    // The proof still waits for the exact terminal Sign and never retries or
+    // treats elapsed time as success.
+    let deadline = Instant::now() + Duration::from_secs(120);
     loop {
         if let Some(status) = child
             .try_wait()
