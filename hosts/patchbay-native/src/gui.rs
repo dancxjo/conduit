@@ -6,9 +6,10 @@ use crate::{
         composition_port_point, draw_compositions, layout_compositions, CompositionLayout,
     },
     gui_gear::{draw_gear, GearViewContext},
+    gui_gear_layout::{layout_gears, GearGeometry},
     gui_gesture::{draw_gesture, GestureView},
     gui_hit::HitShape,
-    gui_inspector::draw_inspector,
+    gui_inspector::{draw_inspector, InspectorView},
     gui_primitives::{draw_regions, frame_rect, icon_label, line, text, PixelRect, RegionMetrics},
     icon::Icon,
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
@@ -31,7 +32,7 @@ pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_CORDS
     + patchbay_model::MAX_PALETTE_ENTRIES
     + patchbay_model::MAX_PATCHBAY_GEARS * patchbay_model::MAX_FACE_CONTROLS * 2
-    + 3
+    + 4
     + crate::lifecycle_flow::MAX_LIFECYCLE_ACTIONS;
 
 const HEADER_HEIGHT: i32 = 52;
@@ -55,6 +56,8 @@ pub struct PatchbayViewContext<'a> {
     pub breadcrumb: &'a str,
     pub lifecycle: &'a LifecycleContext,
     pub palette_query: &'a str,
+    pub exact_identity_open: bool,
+    pub face_control_focus: usize,
     pub presentation_layout: &'a patchbay_model::PatchbayLayout,
     pub realization_plan: Option<&'a conduit_core::Plan>,
     pub realization_hosts: &'a [conduit_core::HostAdvertisement],
@@ -92,6 +95,8 @@ pub fn draw_patchbay(
         breadcrumb,
         lifecycle,
         palette_query,
+        exact_identity_open,
+        face_control_focus,
         presentation_layout,
         realization_plan,
         realization_hosts,
@@ -128,7 +133,18 @@ pub fn draw_patchbay(
         &mut targets,
     );
     let compositions = layout_compositions(graph, width);
-    let layouts = layout_gears(graph, width, presentation_layout);
+    let layouts = layout_gears(
+        graph,
+        width,
+        presentation_layout,
+        GearGeometry {
+            canvas_left: NAV_WIDTH + 28,
+            inspector_width: INSPECTOR_WIDTH,
+            header_height: HEADER_HEIGHT,
+            node_width: NODE_WIDTH,
+            minimum_node_height: MINIMUM_NODE_HEIGHT,
+        },
+    );
     let boundaries = layout_boundaries(graph, width);
     draw_navigator(&mut canvas, palette_query, theme, &mut targets);
     draw_cords(
@@ -146,6 +162,7 @@ pub fn draw_patchbay(
         presentation_layout,
         realization_plan,
         realization_hosts,
+        face_control_focus,
     };
     for layout in &layouts {
         draw_gear(
@@ -167,7 +184,20 @@ pub fn draw_patchbay(
         &gesture,
         theme,
     );
-    draw_inspector(&mut canvas, graph, selected, width, INSPECTOR_WIDTH, theme);
+    draw_inspector(
+        &mut canvas,
+        graph,
+        InspectorView {
+            selected,
+            lifecycle,
+            status,
+            exact_open: exact_identity_open,
+            width,
+            inspector_width: INSPECTOR_WIDTH,
+        },
+        theme,
+        &mut targets,
+    );
     draw_footer(&mut canvas, graph, selected, status, height, theme);
     targets.truncate(MAX_HIT_TARGETS);
     targets
@@ -287,78 +317,6 @@ fn action_button<D: DrawTarget<Color = Rgb888>>(
         action,
         shape: HitShape::Rect(bounds),
     });
-}
-
-fn layout_gears<'a>(
-    graph: &'a PatchbayGraph,
-    width: i32,
-    presentation_layout: &patchbay_model::PatchbayLayout,
-) -> Vec<GearLayout<'a>> {
-    let canvas_left = NAV_WIDTH + 28;
-    let canvas_right = (width - INSPECTOR_WIDTH - 28).max(canvas_left + NODE_WIDTH);
-    let columns = ((canvas_right - canvas_left) / (NODE_WIDTH + 64)).max(1) as usize;
-    graph
-        .gears
-        .iter()
-        .filter(|gear| graph.compositions.is_empty() || gear.source_form == graph.form_name)
-        .enumerate()
-        .map(|(index, gear)| {
-            let column = index % columns;
-            let row = index / columns;
-            let default_x = canvas_left + column as i32 * (NODE_WIDTH + 64);
-            let prior_height = graph
-                .gears
-                .chunks(columns)
-                .take(row)
-                .map(|gears| gears.iter().map(gear_height).max().unwrap_or(0) + 36)
-                .sum::<i32>();
-            let default_y = HEADER_HEIGHT
-                + 28
-                + prior_height
-                + if graph.compositions.is_empty() {
-                    0
-                } else {
-                    132
-                };
-            let (x, y) = presentation_layout
-                .position(&gear.identity)
-                .unwrap_or((default_x, default_y));
-            let node_height = gear_height(gear);
-            let bounds = PixelRect {
-                x,
-                y,
-                width: NODE_WIDTH as u32,
-                height: node_height as u32,
-            };
-            GearLayout {
-                gear,
-                bounds,
-                inputs: port_points(&gear.inputs, x, y),
-                outputs: port_points(&gear.outputs, x + NODE_WIDTH, y),
-                group: presentation_layout
-                    .gears
-                    .iter()
-                    .find(|placement| placement.gear_identity == gear.identity)
-                    .and_then(|placement| placement.group.clone()),
-            }
-        })
-        .collect()
-}
-
-fn gear_height(gear: &PatchbayGear) -> i32 {
-    let port_rows = gear.inputs.len().max(gear.outputs.len()) as i32;
-    MINIMUM_NODE_HEIGHT.max(58 + port_rows * 18 + gear.controls.len() as i32 * 22)
-}
-
-fn port_points(ports: &[patchbay_model::PatchbayPort], x: i32, y: i32) -> Vec<(String, Point)> {
-    ports
-        .iter()
-        .enumerate()
-        .map(|(index, port)| {
-            let offset = 48 + index as i32 * 18;
-            (port.identity.clone(), Point::new(x, y + offset))
-        })
-        .collect()
 }
 
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(

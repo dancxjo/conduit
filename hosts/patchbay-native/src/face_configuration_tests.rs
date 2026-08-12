@@ -222,6 +222,8 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
             breadcrumb: "",
             lifecycle: &Default::default(),
             palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &application.layout,
             realization_plan: None,
             realization_hosts: &[],
@@ -231,7 +233,7 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
     );
     // The first control is inside the first Gear rectangle. Later control hit
     // geometry must win over that containing selection target.
-    application.cursor_position = (220.0, 150.0);
+    application.cursor_position = (220.0, 170.0);
     application.handle_canvas_press().unwrap();
     assert_eq!(
         application.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
@@ -251,6 +253,28 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
                 }
             )
         }));
+    let subject = application
+        .graphical_form
+        .as_ref()
+        .unwrap()
+        .subject_ref("gear/controls/clock")
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::SelectSubject(subject))
+        .unwrap();
+    application.modifiers = winit::keyboard::ModifiersState::CONTROL;
+    application
+        .handle_form_key(&winit::keyboard::Key::Character("j".into()))
+        .unwrap();
+    application
+        .handle_form_key(&winit::keyboard::Key::Named(
+            winit::keyboard::NamedKey::Enter,
+        ))
+        .unwrap();
+    assert_eq!(
+        application.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
+        ConfigurationValue::U64(25)
+    );
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
 }

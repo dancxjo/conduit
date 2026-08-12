@@ -187,6 +187,8 @@ impl PatchbayApplication {
                         breadcrumb: &breadcrumb,
                         lifecycle: &lifecycle,
                         palette_query: &self.palette_query,
+                        exact_identity_open: self.exact_identity_open,
+                        face_control_focus: self.face_control_focus,
                         presentation_layout: &self.layout,
                         realization_plan,
                         realization_hosts: &realization_hosts,

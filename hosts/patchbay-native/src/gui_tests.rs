@@ -52,6 +52,8 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
@@ -109,6 +111,8 @@ fn parent_canvas_draws_one_composed_gear_instead_of_its_expanded_child_gears() {
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
@@ -149,6 +153,8 @@ fn every_patchbay_drag_state_has_a_distinct_visible_manifestation() {
                 breadcrumb: "",
                 lifecycle: &LifecycleContext::default(),
                 palette_query: "",
+                exact_identity_open: false,
+                face_control_focus: 0,
                 presentation_layout: &Default::default(),
                 realization_plan: None,
                 realization_hosts: &[],
@@ -227,6 +233,8 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
             breadcrumb: "",
             lifecycle: &lifecycle,
             palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
@@ -249,6 +257,62 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
         ]
     );
     assert!(pixels.contains(&patchbay_model::PHOSPHOR_THEME.focus.packed_rgb()));
+}
+
+#[test]
+fn selected_inspector_has_one_visible_pointer_and_keyboard_exact_disclosure() {
+    let graph = graph();
+    let selected = graph.gears[0].identity.as_str();
+    let mut pixels = vec![BACKGROUND; 1_100 * 720];
+    let targets = draw_patchbay(
+        &mut pixels,
+        1_100,
+        720,
+        &graph,
+        PatchbayViewContext {
+            selected: Some(selected),
+            breadcrumb: "",
+            lifecycle: &Default::default(),
+            palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
+            presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
+        },
+    );
+    let disclosure = targets
+        .iter()
+        .filter(|target| target.action == GuiAction::ToggleExactIdentity)
+        .collect::<Vec<_>>();
+    assert_eq!(disclosure.len(), 1);
+    assert!(disclosure[0].contains(840.0, 266.0));
+
+    let mut quiet_pixels = vec![BACKGROUND; 1_100 * 720];
+    let quiet = draw_patchbay(
+        &mut quiet_pixels,
+        1_100,
+        720,
+        &graph,
+        PatchbayViewContext {
+            selected: None,
+            breadcrumb: "",
+            lifecycle: &Default::default(),
+            palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
+            presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
+        },
+    );
+    assert!(!quiet
+        .iter()
+        .any(|target| target.action == GuiAction::ToggleExactIdentity));
 }
 
 #[test]
@@ -288,6 +352,8 @@ fn reverse_face_is_renderer_local_and_keeps_the_demo_graph_intact() {
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &layout,
             realization_plan: None,
             realization_hosts: &[],
@@ -323,6 +389,8 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
@@ -356,6 +424,8 @@ fn palette_query_visibly_filters_the_authoritative_entries() {
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "value/count",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
@@ -396,6 +466,8 @@ fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
             breadcrumb: "",
             lifecycle: &LifecycleContext::default(),
             palette_query: "",
+            exact_identity_open: false,
+            face_control_focus: 0,
             presentation_layout: &layout,
             realization_plan: None,
             realization_hosts: &[],
