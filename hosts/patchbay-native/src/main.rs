@@ -117,6 +117,7 @@ struct PatchbayApplication {
     parts_open: bool,
     selected_part: Option<conduit_body::PartId>,
     selected_candidate: Option<conduit_body::CandidateId>,
+    pending_revoke: Option<conduit_body::PartId>,
     body_candidates: Option<conduit_body::CandidateInventory>,
     face_control_focus: usize,
     palette_drag: Option<String>,

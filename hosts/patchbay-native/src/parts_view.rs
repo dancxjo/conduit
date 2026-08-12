@@ -11,15 +11,25 @@ use embedded_graphics::{
 };
 use patchbay_model::{PartPresentationState, PartsAction, PartsView, PatchbayTheme};
 
+pub(super) struct PartsSelection<'a> {
+    pub(super) part: Option<&'a PartId>,
+    pub(super) candidate: Option<&'a CandidateId>,
+    pub(super) pending_revoke: Option<&'a PartId>,
+}
+
 pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     view: &PartsView,
-    selected: Option<&PartId>,
-    selected_candidate: Option<&CandidateId>,
+    selection: PartsSelection<'_>,
     canvas: PixelRect,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
+    let PartsSelection {
+        part: selected,
+        candidate: selected_candidate,
+        pending_revoke,
+    } = selection;
     let left = canvas.x + 28;
     let top = canvas.y + 24;
     text(target, Point::new(left, top), "BODY", theme.emphasis);
@@ -205,6 +215,34 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
                 ),
                 theme.text_secondary,
             );
+        }
+        if row.state != PartPresentationState::Here {
+            let bounds = PixelRect {
+                x: left,
+                y: y + 140,
+                width: 184,
+                height: 28,
+            };
+            let confirming = pending_revoke == Some(&row.details.part_id);
+            frame_rect(target, bounds, theme.focus, if confirming { 2 } else { 1 });
+            text(
+                target,
+                Point::new(left + 12, y + 148),
+                if confirming {
+                    "CONFIRM REVOKE"
+                } else {
+                    "REVOKE PART"
+                },
+                theme.emphasis,
+            );
+            targets.push(HitTarget {
+                action: if confirming {
+                    GuiAction::ConfirmRevokePart(row.details.part_id.clone())
+                } else {
+                    GuiAction::RequestRevokePart(row.details.part_id.clone())
+                },
+                shape: HitShape::Rect(bounds),
+            });
         }
     } else if let Some(row) = selected_candidate.and_then(|candidate| {
         view.wants_to_join
