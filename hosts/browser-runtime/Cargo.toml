@@ -8,6 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 conduit-core = { path = "../../crates/conduit-core" }
+conduit-body = { path = "../../crates/conduit-body" }
 conduit-chat = { path = "../../crates/conduit-chat", features = ["form-catalog"] }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
@@ -18,3 +19,4 @@ conduit-runtime = { path = "../../crates/conduit-runtime", default-features = fa
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 conduit-wire = { path = "../../crates/conduit-wire" }
+ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }

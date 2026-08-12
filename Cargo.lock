@@ -435,6 +435,7 @@ dependencies = [
 name = "conduit-browser-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-chat",
  "conduit-core",
  "conduit-form",
@@ -446,6 +447,7 @@ dependencies = [
  "conduit-signal",
  "conduit-std-catalog",
  "conduit-wire",
+ "ed25519-dalek",
 ]
 
 [[package]]
