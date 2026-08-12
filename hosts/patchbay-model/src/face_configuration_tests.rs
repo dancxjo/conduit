@@ -85,6 +85,55 @@ fn input_semantic_controls_project_authoritative_finite_defaults() {
 }
 
 #[test]
+fn instrument_synth_exposes_every_control_and_an_edit_requires_a_new_plan() {
+    let mut editor = editor(
+        "form instrument {\n    synth: music/synth(maximum-voices = 8, oscillator = \"saw\")\n}\n",
+    );
+    let before = editor.expand_form("instrument").unwrap();
+    let graph = PatchbayGraph::from_expanded(&before).unwrap();
+    let synth = &graph.gears[0];
+    assert_eq!(synth.controls.len(), 14);
+    for required in [
+        conduit_std_catalog::SYNTH_MAXIMUM_VOICES_KEY,
+        conduit_std_catalog::SYNTH_OSCILLATOR_KEY,
+        conduit_std_catalog::SYNTH_ATTACK_KEY,
+        conduit_std_catalog::SYNTH_RELEASE_KEY,
+        conduit_std_catalog::SYNTH_FILTER_CUTOFF_KEY,
+        conduit_std_catalog::SYNTH_FILTER_RESONANCE_KEY,
+        conduit_std_catalog::SYNTH_FILTER_ENVELOPE_KEY,
+        conduit_std_catalog::SYNTH_LFO_RATE_KEY,
+        conduit_std_catalog::SYNTH_LFO_DEPTH_KEY,
+        conduit_std_catalog::SYNTH_MASTER_GAIN_KEY,
+    ] {
+        assert!(synth.controls.iter().any(|control| control.key == required));
+    }
+    let host = conduit_std_host::StdHost::new();
+    let plan_before = host.plan_expanded_local(&before).unwrap();
+    editor
+        .set_gear_configuration(
+            editor.view().revision,
+            &before.expanded_form_id,
+            "synth",
+            conduit_std_catalog::SYNTH_FILTER_CUTOFF_KEY,
+            ConfigurationValue::U64(18_001),
+        )
+        .unwrap();
+    let after = editor.expand_form("instrument").unwrap();
+    let plan_after = host.plan_expanded_local(&after).unwrap();
+    assert_ne!(before.checked_form_id, after.checked_form_id);
+    assert_ne!(before.expanded_form_id, after.expanded_form_id);
+    assert_ne!(plan_before.plan_id, plan_after.plan_id);
+    assert_eq!(
+        plan_before.fragments[0].placements[0].configuration[7].value,
+        ConfigurationValue::U64(18_000)
+    );
+    assert_eq!(
+        plan_after.fragments[0].placements[0].configuration[7].value,
+        ConfigurationValue::U64(18_001)
+    );
+}
+
+#[test]
 fn signed_scalar_control_is_visible_bounded_and_authored_exactly() {
     let mut editor =
         editor("form controls {\n    clamp: math/clamp(minimum = -7, maximum = 9)\n}\n");

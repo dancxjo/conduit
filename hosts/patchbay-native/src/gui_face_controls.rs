@@ -31,7 +31,7 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
             target,
             Point::new(gear_bounds.x + 10, y),
             &format!(
-                "{}={}  {}",
+                "{}={}  {} · REPLAN",
                 control.key,
                 displayed_value(&control.value),
                 displayed_contract(&control.kind)

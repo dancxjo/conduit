@@ -391,6 +391,8 @@ fn standard_catalogs() -> Result<(StartupCatalog, conduit_form::ProfileCatalog),
         .map_err(FormEditorError::Catalog)?;
     conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
+    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
     Ok((startup, profile))
 }
 

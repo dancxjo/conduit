@@ -6,7 +6,9 @@ use conduit_std_catalog::StandardConfigurationRule;
 
 use crate::PatchbayGraphError;
 
-pub const MAX_FACE_CONTROLS: usize = 8;
+/// Finite Gear-face control bound. Sixteen covers the reviewed 14-field
+/// Instrument 1 synth surface without making arbitrary catalog growth free.
+pub const MAX_FACE_CONTROLS: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FaceControlKind {
