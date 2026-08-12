@@ -215,15 +215,7 @@ impl ApplicationHandler for PatchbayApplication {
             }
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
             WindowEvent::CursorMoved { position, .. } => {
-                if let Some(previous) = self.canvas_pan_drag.replace((position.x, position.y)) {
-                    let delta = embedded_graphics::geometry::Point::new(
-                        (position.x - previous.0).clamp(f64::from(i32::MIN), f64::from(i32::MAX))
-                            as i32,
-                        (position.y - previous.1).clamp(f64::from(i32::MIN), f64::from(i32::MAX))
-                            as i32,
-                    );
-                    self.pan_viewport(delta);
-                }
+                self.move_canvas_pan_to((position.x, position.y));
                 self.cursor_position = (position.x, position.y);
                 if self.environment_drag.is_some()
                     || self.palette_drag.is_some()
