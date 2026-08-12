@@ -238,6 +238,16 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         allowed_claims: &["std and Pico kernels complete one exact physical cross-host USB session"],
     },
     ProofCommandContract {
+        id: "body.pico-admission-physical",
+        command: "cargo xtask pico prove-body-admission --link-port <path>",
+        proof_class: ProofClass::PhysicalCrossHost,
+        required_tools_or_targets: &["provisioned Pico W", "USB CDC link port", "udevadm"],
+        named_artifacts: &[],
+        allowed_claims: &[
+            "one physically identified provisioned Pico publishes an exact bounded advertisement, remains inert until explicit authenticated admission, becomes one Body Part, and is eligible for ordinary planning",
+        ],
+    },
+    ProofCommandContract {
         id: "pico.appliance-hello-physical",
         command: "cargo xtask prove pico-appliance --client-interface <name>",
         proof_class: ProofClass::PhysicalLocalHardware,

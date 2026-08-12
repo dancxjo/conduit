@@ -1,4 +1,5 @@
 mod appliance_identity;
+mod body_admission;
 mod bootsel;
 mod doctor;
 mod firmware;
@@ -114,6 +115,8 @@ pub enum PicoSubcommand {
     Verify,
     /// Ask the exact running firmware to reboot into BOOTSEL over CDC 0.
     Bootsel,
+    /// Prove explicit Body admission against an already-provisioned Pico.
+    ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
     Local,
 }
@@ -153,6 +156,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::Flash) => run_flash(&args),
         Some(PicoSubcommand::Verify) => run_verify(&args),
         Some(PicoSubcommand::Bootsel) => run_bootsel(&args),
+        Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }
 }
 
