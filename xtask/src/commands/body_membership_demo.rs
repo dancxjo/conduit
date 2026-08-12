@@ -94,18 +94,21 @@ pub(super) fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let page_url = format!("http://127.0.0.1:{static_port}{PAGE}");
     eprintln!("[body-membership] browser page: {page_url}");
     eprintln!("[body-membership] browser chat Line: {chat_url}");
-    let status = Command::new("target/debug/patchbay-native")
-        .args([
-            "--form",
-            "examples/hello.conduit",
-            "--body-parts-demo",
-            "--browser-page-url",
-            &page_url,
-            "--browser-chat-url",
-            &chat_url,
-        ])
-        .current_dir(&root)
-        .status()?;
+    let mut native = Command::new("target/debug/patchbay-native");
+    native.args([
+        "--form",
+        "examples/hello.conduit",
+        "--body-parts-demo",
+        "--browser-page-url",
+        &page_url,
+        "--browser-chat-url",
+        &chat_url,
+    ]);
+    if let Ok(path) = std::env::var("PICO_W_LINK_PORT") {
+        eprintln!("[body-membership] Pico admission Line: {path}");
+        native.args(["--pico-admission-port", &path]);
+    }
+    let status = native.current_dir(&root).status()?;
     drop(chat_server);
     let _ = forwarder.join();
     if !status.success() {

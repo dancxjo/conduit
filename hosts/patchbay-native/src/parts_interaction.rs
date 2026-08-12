@@ -122,23 +122,40 @@ impl PatchbayApplication {
                     .map_err(|error| {
                         format!("cannot obtain admission challenge entropy: {error}")
                     })?;
-                let requested = self.lifecycle_sign("browser-candidate-requested");
+                let requested = self.lifecycle_sign("candidate-admission-requested");
                 let now = now_millis()?;
-                let (browser_parts, candidates) =
-                    (&mut self.browser_parts, &mut self.body_candidates);
-                browser_parts
-                    .as_mut()
-                    .and_then(super::browser_parts::BrowserPartsCoordinator::ambient_mut)
-                    .ok_or("ambient browser admission is not configured")?
-                    .admit(
-                        candidates
-                            .as_mut()
-                            .ok_or("Parts view requires candidate inventory truth")?,
-                        &candidate_id,
-                        nonce,
-                        now,
-                        requested,
-                    )?;
+                let is_pico = self
+                    .pico_parts
+                    .as_ref()
+                    .is_some_and(|pico| pico.owns(&candidate_id));
+                if is_pico {
+                    self.pico_parts
+                        .as_mut()
+                        .expect("Pico candidate ownership checked")
+                        .admit(
+                            self.body_candidates
+                                .as_mut()
+                                .ok_or("Parts view requires candidate inventory truth")?,
+                            &candidate_id,
+                            nonce,
+                            now,
+                            requested,
+                        )?;
+                } else {
+                    self.browser_parts
+                        .as_mut()
+                        .and_then(super::browser_parts::BrowserPartsCoordinator::ambient_mut)
+                        .ok_or("candidate has no configured admission transport")?
+                        .admit(
+                            self.body_candidates
+                                .as_mut()
+                                .ok_or("Parts view requires candidate inventory truth")?,
+                            &candidate_id,
+                            nonce,
+                            now,
+                            requested,
+                        )?;
+                }
                 nonce.fill(0);
                 self.publish_completed(format!(
                     "Admission proof requested from candidate {}",
@@ -161,6 +178,9 @@ impl PatchbayApplication {
                     .and_then(super::browser_parts::BrowserPartsCoordinator::ambient_mut)
                 {
                     ambient.refuse(&candidate_id);
+                }
+                if let Some(pico) = &mut self.pico_parts {
+                    pico.refuse(&candidate_id);
                 }
                 self.lifecycle_sequence = self.lifecycle_sequence.saturating_add(1);
                 self.body_candidates
@@ -217,7 +237,87 @@ impl PatchbayApplication {
         Ok(())
     }
 
-    pub(super) fn poll_browser_parts(&mut self) -> Result<bool, String> {
+    pub(super) fn poll_body_parts(&mut self) -> Result<bool, String> {
+        let pico_disconnect = self
+            .pico_parts
+            .as_mut()
+            .map(super::pico_parts::PicoPartsCoordinator::take_disconnect)
+            .transpose()?
+            .flatten();
+        if let Some((part_id, boot_id)) = pico_disconnect {
+            let body_id = self
+                .build_birth
+                .body()
+                .ok_or("Pico disconnect requires a born Body")?
+                .body_id
+                .clone();
+            let offline_sign = self.lifecycle_sign("pico-host-offline");
+            let membership = self
+                .build_birth
+                .membership_mut()
+                .ok_or("Pico disconnect requires Body membership")?;
+            membership
+                .observe_offline(
+                    &body_id,
+                    membership.revision,
+                    &part_id,
+                    &boot_id,
+                    offline_sign,
+                )
+                .map_err(|error| format!("mark Pico offline: {error:?}"))?;
+            self.publish_completed(format!(
+                "Pico Part {} is offline; stale Boot {} cannot be silently rebound",
+                part_id.as_str(),
+                boot_id.as_str()
+            ));
+            return Ok(true);
+        }
+        let pico_candidate = match (&mut self.pico_parts, &mut self.body_candidates) {
+            (Some(coordinator), Some(candidates)) => coordinator.poll_candidate(candidates)?,
+            _ => None,
+        };
+        if let Some(candidate_id) = pico_candidate {
+            self.publish_completed(format!(
+                "Pico candidate {} wants to join; inspect and Admit or Refuse",
+                candidate_id.as_str()
+            ));
+            return Ok(true);
+        }
+        let pico_proof = self
+            .pico_parts
+            .as_mut()
+            .map(super::pico_parts::PicoPartsCoordinator::take_proof)
+            .transpose()?
+            .flatten();
+        if let Some(arrival) = pico_proof {
+            let signs = conduit_body::AdmissionSigns {
+                part_admitted: self.lifecycle_sign("pico-part-admitted"),
+                host_attached: self.lifecycle_sign("pico-host-attached"),
+                candidate_admitted: self.lifecycle_sign("pico-candidate-admitted"),
+            };
+            let credential = self
+                .pico_parts
+                .as_mut()
+                .expect("Pico proof requires coordinator")
+                .complete(
+                    arrival,
+                    self.body_candidates
+                        .as_mut()
+                        .ok_or("Pico proof requires candidate inventory")?,
+                    self.build_birth
+                        .membership_mut()
+                        .ok_or("Pico proof arrived before Body membership existed")?,
+                    now_millis()?,
+                    signs,
+                )?;
+            self.selected_candidate = None;
+            self.publish_completed(format!(
+                "Pico Part {} admitted for Host {}",
+                credential.part_id.as_str(),
+                credential.host_id.as_str()
+            ));
+            return Ok(true);
+        }
         let candidate = match (&mut self.browser_parts, &mut self.body_candidates) {
             (Some(coordinator), Some(candidates)) => coordinator
                 .ambient_mut()
@@ -524,7 +624,7 @@ mod tests {
         ));
         assert_eq!(
             application.handle_parts_action(GuiAction::AdmitCandidate(candidate.clone())),
-            Err("ambient browser admission is not configured".into())
+            Err("candidate has no configured admission transport".into())
         );
         application
             .handle_parts_action(GuiAction::RefuseCandidate(candidate.clone()))

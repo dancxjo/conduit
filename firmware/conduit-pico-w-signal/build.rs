@@ -44,6 +44,7 @@ fn main() {
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     let appliance_build_id = appliance_build_id();
     println!("cargo:rustc-env=CONDUIT_PICO_APPLIANCE_BUILD_ID={appliance_build_id}");
+    generate_body_advertisement(&out);
 
     if firmware_mode() == "appliance-hello" {
         generate_pico_appliance_identity();
@@ -82,6 +83,18 @@ fn main() {
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");
     println!("cargo:rerun-if-env-changed={APPLIANCE_IDENTITY_SIDECAR_ENV}");
     println!("cargo:rerun-if-env-changed={APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR_ENV}");
+}
+
+fn generate_body_advertisement(out: &Path) {
+    let mut advertisement = pico_local_advertisement();
+    advertisement.boot_id = BootId::from(
+        "conduit-pico-w-signal/runtime-boot:0000000000000000:00000000000000000000000000000000",
+    );
+    fs::write(
+        out.join("pico_body_advertisement.json"),
+        serde_json::to_vec(&advertisement).expect("Pico Body advertisement must serialize"),
+    )
+    .expect("generated Pico Body advertisement should be writable");
 }
 
 fn appliance_build_id() -> String {
