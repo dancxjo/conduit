@@ -12,7 +12,7 @@ use crate::{cli::GlobalOpts, commands::catalog};
 
 use super::ConduitosError;
 
-const SCHEMA: &str = "conduit.conduitos/std-gap@2";
+const SCHEMA: &str = "conduit.conduitos/std-gap@3";
 
 #[derive(Serialize)]
 struct HostCapability {
@@ -30,7 +30,14 @@ struct HostCapability {
 struct GapEntry {
     kind_id: String,
     contract_revision: String,
-    classification: &'static str,
+    classification: catalog::GapClassification,
+    realization_mode: &'static str,
+    reason_code: Option<&'static str>,
+    required_host_operations: Vec<String>,
+    required_resources: Vec<String>,
+    required_bases: Vec<String>,
+    unsatisfied_prerequisites: Vec<String>,
+    machine_specific: bool,
     host_capability: Option<HostCapability>,
 }
 
@@ -48,6 +55,7 @@ struct StdGapReport {
     artifact_build: String,
     comparison_key: &'static str,
     profile_basis: &'static str,
+    classification_vocabulary: [catalog::GapClassification; 7],
     implemented_count: usize,
     missing_count: usize,
     entries: Vec<GapEntry>,
@@ -74,6 +82,9 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
     })?;
     let host = catalog::profiles::conduitos_advertisement()
         .map_err(|error| ConduitosError::refusal("conduitos-profile-invalid", error.to_string()))?;
+    let recursive = catalog::recursive::derive().map_err(|error| {
+        ConduitosError::refusal("conduitos-recursive-profile-invalid", error.to_string())
+    })?;
     let entries = inventory
         .entries
         .iter()
@@ -82,14 +93,33 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
                 candidate.kind_id.as_str() == entry.kind_id
                     && candidate.kind_contract_revision.as_str() == entry.contract_revision
             });
+            let recursive_coverage = recursive.iter().any(|coverage| {
+                coverage.host_profile == host.profile.as_str()
+                    && coverage.kind_id == entry.kind_id
+                    && coverage.contract_revision == entry.contract_revision
+            });
+            let prerequisites = catalog::prerequisites::classify(
+                &host,
+                entry,
+                capability.is_some() || recursive_coverage,
+            );
             GapEntry {
                 kind_id: entry.kind_id.clone(),
                 contract_revision: entry.contract_revision.clone(),
-                classification: if capability.is_some() {
-                    "implemented"
+                classification: prerequisites.classification,
+                realization_mode: if capability.is_some() {
+                    "direct"
+                } else if recursive_coverage {
+                    "recursive"
                 } else {
-                    "missing"
+                    "none"
                 },
+                reason_code: prerequisites.reason_code,
+                required_host_operations: prerequisites.required_host_operations,
+                required_resources: prerequisites.required_resources,
+                required_bases: prerequisites.required_bases,
+                unsatisfied_prerequisites: prerequisites.unsatisfied,
+                machine_specific: prerequisites.machine_specific,
                 host_capability: capability.map(|capability| HostCapability {
                     capability_id: capability.capability_id.as_str().to_owned(),
                     kind_id: capability.kind_id.as_str().to_owned(),
@@ -121,7 +151,7 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
         .collect::<Vec<_>>();
     let implemented_count = entries
         .iter()
-        .filter(|entry| entry.classification == "implemented")
+        .filter(|entry| entry.classification == catalog::GapClassification::Implemented)
         .count();
     Ok(StdGapReport {
         schema: SCHEMA,
@@ -137,6 +167,15 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
         artifact_build: git_head()?,
         comparison_key: "exact-kind-id+kind-contract-revision",
         profile_basis: "xtask::commands::catalog::profiles::conduitos_advertisement",
+        classification_vocabulary: [
+            catalog::GapClassification::Implemented,
+            catalog::GapClassification::PortableImplementationMissing,
+            catalog::GapClassification::MissingHostOperation,
+            catalog::GapClassification::MissingResource,
+            catalog::GapClassification::MissingBase,
+            catalog::GapClassification::UnsupportedOnThisMachine,
+            catalog::GapClassification::DeliberatelyNotApplicable,
+        ],
         implemented_count,
         missing_count: entries.len() - implemented_count,
         entries,
@@ -165,8 +204,8 @@ mod tests {
     fn compatibility_report_uses_the_authoritative_profile_inventory() {
         let report = build_report().unwrap();
         assert_eq!(report.catalog_entry_count, 54);
-        assert_eq!(report.implemented_count, 21);
-        assert_eq!(report.missing_count, 33);
+        assert_eq!(report.implemented_count, 22);
+        assert_eq!(report.missing_count, 32);
         for kind in [
             "layout/inset",
             "presentation/bool",
@@ -175,13 +214,19 @@ mod tests {
         ] {
             assert!(report.entries.iter().any(|entry| {
                 entry.kind_id == kind
-                    && entry.classification == "implemented"
+                    && entry.classification == catalog::GapClassification::Implemented
                     && entry.host_capability.is_some()
             }));
         }
-        assert!(report
-            .entries
-            .iter()
-            .any(|entry| { entry.kind_id == "logic/select" && entry.classification == "missing" }));
+        assert!(report.entries.iter().any(|entry| {
+            entry.kind_id == "patchbay/gear-face"
+                && entry.classification == catalog::GapClassification::Implemented
+                && entry.realization_mode == "recursive"
+                && entry.host_capability.is_none()
+        }));
+        assert!(report.entries.iter().any(|entry| {
+            entry.kind_id == "logic/select"
+                && entry.classification == catalog::GapClassification::PortableImplementationMissing
+        }));
     }
 }

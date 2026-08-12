@@ -1,15 +1,15 @@
 use super::{CatalogError, InstalledImplementation};
 
 #[derive(Clone)]
-pub(super) struct Coverage {
-    pub(super) host_profile: String,
-    pub(super) kind_id: String,
-    pub(super) contract_revision: String,
+pub(crate) struct Coverage {
+    pub(crate) host_profile: String,
+    pub(crate) kind_id: String,
+    pub(crate) contract_revision: String,
     pub(super) realization_id: String,
     pub(super) leaves: Vec<InstalledImplementation>,
 }
 
-pub(super) fn derive() -> Result<Vec<Coverage>, CatalogError> {
+pub(crate) fn derive() -> Result<Vec<Coverage>, CatalogError> {
     let proof = patchbay_model::patchbay_presenter_plans()
         .map_err(|error| CatalogError::new("patchbay-recursive-profile-invalid", error))?;
     let conduitos = conduitos::presentation_nucleus::prepare(

@@ -1,7 +1,8 @@
 pub(crate) mod inventory;
 mod observation;
+pub(crate) mod prerequisites;
 pub(crate) mod profiles;
-mod recursive;
+pub(crate) mod recursive;
 mod sound;
 
 use std::{error::Error, fmt, path::PathBuf};
@@ -12,7 +13,7 @@ use serde::Serialize;
 
 use crate::cli::GlobalOpts;
 
-const MATRIX_SCHEMA: &str = "conduit.catalog/host-kind-matrix@1";
+const MATRIX_SCHEMA: &str = "conduit.catalog/host-kind-matrix@2";
 
 #[derive(Args, Debug)]
 pub struct CatalogArgs {
@@ -93,6 +94,18 @@ pub enum Coverage {
     Unsupported,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum GapClassification {
+    Implemented,
+    PortableImplementationMissing,
+    MissingHostOperation,
+    MissingResource,
+    MissingBase,
+    UnsupportedOnThisMachine,
+    DeliberatelyNotApplicable,
+}
+
 #[derive(Clone, Serialize)]
 pub(super) struct InstalledImplementation {
     pub(super) implementation_id: String,
@@ -108,7 +121,13 @@ struct MatrixEntry {
     kind_id: String,
     contract_revision: String,
     coverage: Coverage,
+    classification: GapClassification,
     reason_code: Option<&'static str>,
+    required_host_operations: Vec<String>,
+    required_resources: Vec<String>,
+    required_bases: Vec<String>,
+    unsatisfied_prerequisites: Vec<String>,
+    machine_specific: bool,
     realization_id: Option<String>,
     implementation: Option<InstalledImplementation>,
     recursive_implementations: Vec<InstalledImplementation>,
@@ -119,6 +138,7 @@ struct MatrixEntry {
 struct MatrixReport {
     schema: &'static str,
     coverage_vocabulary: [Coverage; 4],
+    classification_vocabulary: [GapClassification; 7],
     catalog_basis: &'static str,
     catalog_inventory_schema: &'static str,
     catalog_digest_algorithm: &'static str,
@@ -204,6 +224,15 @@ fn build_report(
             Coverage::MissingImplementation,
             Coverage::Unsupported,
         ],
+        classification_vocabulary: [
+            GapClassification::Implemented,
+            GapClassification::PortableImplementationMissing,
+            GapClassification::MissingHostOperation,
+            GapClassification::MissingResource,
+            GapClassification::MissingBase,
+            GapClassification::UnsupportedOnThisMachine,
+            GapClassification::DeliberatelyNotApplicable,
+        ],
         catalog_basis:
             "conduit_std_catalog::supported_nucleus_contracts()+supported_nucleus_offers()",
         catalog_inventory_schema: inventory::SCHEMA,
@@ -256,6 +285,8 @@ fn matrix_entry(
     recursive: Option<&recursive::Coverage>,
     snapshot: Option<&conduit_observatory::ObservatorySnapshot>,
 ) -> MatrixEntry {
+    let prerequisites =
+        prerequisites::classify(host, kind, capability.is_some() || recursive.is_some());
     let implementation = capability.map(|capability| InstalledImplementation {
         implementation_id: capability
             .implementation
@@ -290,8 +321,13 @@ fn matrix_entry(
         } else {
             Coverage::MissingImplementation
         },
-        reason_code: (capability.is_none() && recursive.is_none())
-            .then_some("no-exact-installed-offer"),
+        classification: prerequisites.classification,
+        reason_code: prerequisites.reason_code,
+        required_host_operations: prerequisites.required_host_operations,
+        required_resources: prerequisites.required_resources,
+        required_bases: prerequisites.required_bases,
+        unsatisfied_prerequisites: prerequisites.unsatisfied,
+        machine_specific: prerequisites.machine_specific,
         realization_id: capability
             .map(|offer| offer.capability_id.as_str().to_owned())
             .or_else(|| recursive.map(|back| back.realization_id.clone())),
@@ -392,7 +428,12 @@ mod tests {
             .unwrap();
         let entry = matrix_entry(&profile, kind, None, None, None);
         assert!(matches!(entry.coverage, Coverage::MissingImplementation));
-        assert_eq!(entry.reason_code, Some("no-exact-installed-offer"));
+        assert!(matches!(
+            entry.classification,
+            GapClassification::PortableImplementationMissing
+                | GapClassification::MissingHostOperation
+                | GapClassification::MissingResource
+        ));
     }
 
     #[test]
