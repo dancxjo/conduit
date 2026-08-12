@@ -79,7 +79,7 @@ impl PatchbayApplication {
         }
         let semantic_edit = matches!(
             &action,
-            GuiAction::PlacePaletteKind(_)
+            GuiAction::PlacePaletteKind { .. }
                 | GuiAction::DuplicateGear(_)
                 | GuiAction::RemoveGear(_)
                 | GuiAction::RemoveCord(_)
@@ -119,7 +119,12 @@ impl PatchbayApplication {
             GuiAction::ToggleExactIdentity => {
                 self.exact_identity_open = !self.exact_identity_open;
             }
-            GuiAction::PlacePaletteKind(kind) => self.dispatch_palette_placement(&kind)?,
+            GuiAction::BeginPaletteDrag(_) => {
+                return Err("palette drag start is a pointer-only presentation action".into())
+            }
+            GuiAction::PlacePaletteKind { kind, target } => {
+                self.dispatch_palette_placement(&kind, target)?
+            }
             GuiAction::DuplicateGear(subject) => {
                 self.dispatch_gear_edit(PatchbayAction::DuplicateGear, &subject)?
             }

@@ -10,10 +10,10 @@ use crate::{
     gui_gesture::{draw_gesture, GestureView},
     gui_hit::HitShape,
     gui_inspector::{draw_inspector, InspectorView},
+    gui_navigator::draw_navigator,
     gui_primitives::{draw_regions, frame_rect, icon_label, line, text, PixelRect, RegionMetrics},
     icon::Icon,
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
-    palette_view::draw_palette,
 };
 use embedded_graphics::{
     pixelcolor::Rgb888,
@@ -55,7 +55,7 @@ pub struct PatchbayViewContext<'a> {
     pub selected: Option<&'a str>,
     pub breadcrumb: &'a str,
     pub lifecycle: &'a LifecycleContext,
-    pub palette_query: &'a str,
+    pub palette: &'a crate::palette_state::PaletteChooser,
     pub exact_identity_open: bool,
     pub face_control_focus: usize,
     pub presentation_layout: &'a patchbay_model::PatchbayLayout,
@@ -94,7 +94,7 @@ pub fn draw_patchbay(
         selected,
         breadcrumb,
         lifecycle,
-        palette_query,
+        palette,
         exact_identity_open,
         face_control_focus,
         presentation_layout,
@@ -146,7 +146,13 @@ pub fn draw_patchbay(
         },
     );
     let boundaries = layout_boundaries(graph, width);
-    draw_navigator(&mut canvas, palette_query, theme, &mut targets);
+    draw_navigator(
+        &mut canvas,
+        palette,
+        graph.gears.len() + graph.compositions.len(),
+        theme,
+        &mut targets,
+    );
     draw_cords(
         &mut canvas,
         graph,
@@ -189,6 +195,7 @@ pub fn draw_patchbay(
         graph,
         InspectorView {
             selected,
+            palette,
             lifecycle,
             status,
             exact_open: exact_identity_open,
@@ -227,96 +234,6 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
         theme.emphasis,
     );
     draw_lifecycle_flow(target, lifecycle, width, theme, targets);
-}
-
-fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
-    target: &mut D,
-    palette_query: &str,
-    theme: &PatchbayTheme,
-    targets: &mut Vec<HitTarget>,
-) {
-    text(target, Point::new(14, 66), "NAVIGATOR", theme.emphasis);
-    for (index, (icon, label)) in [
-        (Icon::Form, "Forms"),
-        (Icon::Body, "Bodies"),
-        (Icon::Host, "Hosts"),
-        (Icon::Sign, "Signs"),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        icon_label(
-            target,
-            icon,
-            Point::new(14, 92 + index as i32 * 30),
-            label,
-            theme.text_primary,
-        );
-    }
-    text(target, Point::new(14, 226), "ACTIONS", theme.emphasis);
-    action_button(
-        target,
-        Icon::Open,
-        "Open Back",
-        246,
-        GuiAction::OpenBack,
-        theme,
-        targets,
-    );
-    action_button(
-        target,
-        Icon::Save,
-        "Save",
-        278,
-        GuiAction::SaveForm,
-        theme,
-        targets,
-    );
-    action_button(
-        target,
-        Icon::Inspect,
-        "Linear (F2)",
-        310,
-        GuiAction::ToggleLinearView,
-        theme,
-        targets,
-    );
-    text(
-        target,
-        Point::new(14, 354),
-        &format!("PALETTE /{}", palette_query),
-        theme.emphasis,
-    );
-    draw_palette(target, palette_query, 374, theme, targets);
-}
-
-fn action_button<D: DrawTarget<Color = Rgb888>>(
-    target: &mut D,
-    icon: Icon,
-    label: &str,
-    y: i32,
-    action: GuiAction,
-    theme: &PatchbayTheme,
-    targets: &mut Vec<HitTarget>,
-) {
-    let bounds = PixelRect {
-        x: 12,
-        y,
-        width: 150,
-        height: 26,
-    };
-    frame_rect(target, bounds, theme.structure_secondary, 1);
-    icon_label(
-        target,
-        icon,
-        Point::new(18, y + 5),
-        label,
-        theme.text_primary,
-    );
-    targets.push(HitTarget {
-        action,
-        shape: HitShape::Rect(bounds),
-    });
 }
 
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(

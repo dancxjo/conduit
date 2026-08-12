@@ -30,7 +30,11 @@ pub enum GuiAction {
     SaveForm,
     ToggleLinearView,
     ToggleExactIdentity,
-    PlacePaletteKind(String),
+    BeginPaletteDrag(String),
+    PlacePaletteKind {
+        kind: String,
+        target: (i32, i32),
+    },
     DuplicateGear(patchbay_model::PatchbaySubjectRef),
     RemoveGear(patchbay_model::PatchbaySubjectRef),
     RemoveCord(patchbay_model::PatchbaySubjectRef),

@@ -37,6 +37,7 @@ mod gui_gear_layout;
 mod gui_gesture;
 mod gui_hit;
 mod gui_inspector;
+mod gui_navigator;
 mod gui_primitives;
 mod icon;
 mod interaction_feedback;
@@ -46,6 +47,7 @@ mod lifecycle_flow;
 mod palette_icon;
 mod palette_icon_data;
 mod palette_input;
+mod palette_state;
 mod palette_view;
 mod portable_keyboard;
 #[cfg(test)]
@@ -89,8 +91,7 @@ struct PatchbayApplication {
     linear_view: bool,
     modifiers: winit::keyboard::ModifiersState,
     native_keyboard: portable_keyboard::NativeKeyboardInput,
-    palette_query: String,
-    palette_search_active: bool,
+    palette: palette_state::PaletteChooser,
     exact_identity_open: bool,
     face_control_focus: usize,
     palette_drag: Option<String>,

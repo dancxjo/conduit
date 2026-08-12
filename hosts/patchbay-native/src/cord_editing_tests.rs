@@ -11,7 +11,7 @@ fn redraw(application: &mut PatchbayApplication) {
             selected: application.selected_graphical_identity(),
             breadcrumb: "",
             lifecycle: &Default::default(),
-            palette_query: "",
+            palette: &Default::default(),
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &application.layout,

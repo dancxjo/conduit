@@ -221,7 +221,7 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
             selected: None,
             breadcrumb: "",
             lifecycle: &Default::default(),
-            palette_query: "",
+            palette: &Default::default(),
             exact_identity_open: false,
             face_control_focus: 0,
             presentation_layout: &application.layout,

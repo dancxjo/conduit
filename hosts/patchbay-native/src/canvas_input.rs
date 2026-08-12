@@ -34,7 +34,11 @@ impl PatchbayApplication {
             }
             return self.handle_environment_action(action);
         }
-        if let GuiAction::PlacePaletteKind(kind) = action {
+        if let GuiAction::BeginPaletteDrag(kind) = action {
+            if let Err(error) = self.palette.select_kind(&kind) {
+                self.publish_refusal(error.message());
+                return Ok(());
+            }
             self.publish_gesture(format!(
                 "Dragging Gear {kind}; release on the canvas to place it"
             ));
@@ -149,10 +153,14 @@ impl PatchbayApplication {
             return Ok(());
         }
         if let Some(kind) = self.palette_drag.take() {
-            if self.cursor_position.0 > 176.0 {
-                self.handle_gui_action(GuiAction::PlacePaletteKind(kind))?;
-            } else {
-                self.publish_cancelled("Gear placement cancelled outside the canvas");
+            match crate::palette_state::PaletteChooser::pointer_target(
+                self.cursor_position.0,
+                self.cursor_position.1,
+            ) {
+                Ok(target) => {
+                    self.handle_gui_action(GuiAction::PlacePaletteKind { kind, target })?
+                }
+                Err(error) => self.publish_refusal(error.message()),
             }
             return Ok(());
         }
@@ -283,7 +291,7 @@ impl PatchbayApplication {
         self.request_redraw();
     }
 
-    fn publish_completed(&mut self, message: impl Into<String>) {
+    pub(super) fn publish_completed(&mut self, message: impl Into<String>) {
         self.interaction_status.publish(
             InteractionStatusLevel::Success,
             InteractionStatusCode::Completed,
