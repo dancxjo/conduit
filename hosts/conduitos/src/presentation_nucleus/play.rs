@@ -16,8 +16,8 @@ use super::{PreparedPresentationPlay, TEXT_SOURCE_KIND, operation::PresentationO
 use crate::display::{DisplayReceipt, PixelTarget, render_scene};
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const NODES: usize = 10;
-const CORDS: usize = 7;
+const NODES: usize = 11;
+const CORDS: usize = 8;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
 const VALUES: usize = 32;
@@ -330,7 +330,8 @@ fn transform(
     input: &[u8],
 ) -> Result<Vec<u8>, PresentationRunError> {
     match placement.kind_id.as_str() {
-        conduit_std_catalog::LAYOUT_ROW_KIND
+        conduit_std_catalog::LAYOUT_INSET_KIND
+        | conduit_std_catalog::LAYOUT_ROW_KIND
         | conduit_std_catalog::LAYOUT_COLUMN_KIND
         | conduit_std_catalog::LAYOUT_STACK_KIND
         | conduit_std_catalog::LAYOUT_ALIGN_KIND => {

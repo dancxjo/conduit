@@ -372,8 +372,8 @@ fn validate_presentation(
         || !exact_id(&sign.expanded_form_id)
         || !exact_id(&sign.plan_id)
         || !exact_id(&sign.fragment_id)
-        || sign.node_count != 10
-        || sign.cord_count != 7
+        || sign.node_count != 11
+        || sign.cord_count != 8
         || sign.text != "Gear Face"
         || sign.layout_children != 3
         || sign.graphics_commands != 3

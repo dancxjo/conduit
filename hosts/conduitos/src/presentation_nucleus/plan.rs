@@ -200,8 +200,12 @@ mod tests {
             prepared.plan.expanded_form_id.as_str()
         );
         let fragment = &prepared.plan.fragments[0];
-        assert_eq!(fragment.placements.len(), 10);
-        assert_eq!(fragment.connections.len(), 7);
+        assert_eq!(fragment.placements.len(), 11);
+        assert_eq!(fragment.connections.len(), 8);
+        assert!(fragment.placements.iter().any(|placement| {
+            placement.kind_id.as_str() == conduit_std_catalog::LAYOUT_INSET_KIND
+                && placement.implementation_id.as_str() == "conduitos/layout/inset-implementation@1"
+        }));
         assert_eq!(fragment.realization_backs, prepared.plan.realization_backs);
         let manifestation = fragment
             .placements
