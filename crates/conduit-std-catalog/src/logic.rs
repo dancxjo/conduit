@@ -6,8 +6,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
+    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const LOGIC_COMPARE_KIND: &str = "logic/compare";
@@ -26,6 +27,11 @@ pub const LOGIC_NOT_EXECUTION_PROFILE: &str = "conduit.std/logic-not-kernel@1";
 pub const LOGIC_NOT_IMPLEMENTATION: &str = "std/kernel-logic-not@1";
 pub const LOGIC_NOT_ARTIFACT: &str = "conduit-std-host/logic-not@1";
 pub const LOGIC_NOT_CAPABILITY: &str = "logic-not-v1";
+pub const CONDUITOS_LOGIC_NOT_CAPABILITY: &str = "conduitos/logic-not@1";
+pub const CONDUITOS_LOGIC_NOT_EXECUTION_PROFILE: &str = "conduitos/functional-kernel@1";
+pub const CONDUITOS_LOGIC_NOT_IMPLEMENTATION: &str = "conduitos/kernel-logic-not@1";
+pub const CONDUITOS_LOGIC_NOT_ARTIFACT: &str = "conduitos/functional-kernel@1";
+pub const CONDUITOS_LOGIC_NOT_HOST_OPERATION: &str = "conduit.host/logic-not@1";
 
 pub const LOGIC_SELECT_SCALAR_CONTRACT_REVISION: &str = "conduit.std/logic-select-scalar@1";
 pub const LOGIC_SELECT_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/logic-select-scalar-kernel@1";
@@ -146,6 +152,24 @@ pub fn logic_not_offer() -> CapabilityOffer {
         LOGIC_NOT_IMPLEMENTATION,
         LOGIC_NOT_ARTIFACT,
     )
+}
+
+pub fn conduitos_logic_not_offer() -> CapabilityOffer {
+    let mut offer = logic_not_offer();
+    offer.capability_id = CapabilityId::from(CONDUITOS_LOGIC_NOT_CAPABILITY);
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(CONDUITOS_LOGIC_NOT_EXECUTION_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(CONDUITOS_LOGIC_NOT_IMPLEMENTATION);
+    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_LOGIC_NOT_ARTIFACT);
+    offer.host_operations = vec![HostOperationRequirement {
+        contract_id: HostOperationContractId::from(CONDUITOS_LOGIC_NOT_HOST_OPERATION),
+        target_kind: Some(kind_id(LOGIC_NOT_KIND)),
+        maximum_in_flight: 1,
+        maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
+        maximum_output_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
+    }];
+    offer
 }
 
 pub fn logic_select_scalar_offer() -> CapabilityOffer {
