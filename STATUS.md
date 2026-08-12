@@ -38,6 +38,7 @@ adapter or physical proof.
 | Retired membership prototype | historical only | deterministic table tests | no production Body model | no | no | no | no |
 | Observatory | versioned neutral host/capability/Base/link/plan/Play/pressure/current-and-historical-Sign/retention reports with exact identity and bound validation; sealed boot provenance remains distinct from live offers and Bases | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control; native Patchbay validates and linearly renders the same ordinary snapshot exported by ConduitOS | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store; the accepted ConduitOS export is freestanding-emulator proof | no new transport; observed links are report facts only | no new physical/HIL claim |
 | Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and Sign identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, bases, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
+| One durable multi-Host Body | one bounded canonical Body keeps explicit Part membership separate from current Host/Boot/offers, Lines, authority, immutable Plan selection, Play, and Signs; Birth explicitly admits Here, while ambient discovery remains inert and Body-directed invitations are finite, single-use, and authenticated | deterministic hostile, malformed, replay, bounds, disconnect, stale-Boot, offline, active-Plan join, and explicit-replan vectors fail closed without Form, membership, authority, active-Plan, or execution mutation | native Patchbay derives the human-first Parts view from canonical membership and executes the accepted R1 Plan through the existing planner, lowering, and production kernel | three independent Chromium Hosts prove ambient explicit admission, Body-directed admission, distinct Host/Boot identities, offline retention, immutable active-Plan join, and explicit replacement planning | the already-provisioned R1 Pico advertises and is explicitly admitted without this slice implementing provisioning or flashing | truthful WebSocket and USB CDC Lines carry the accepted Plans; real Wi-Fi loss changes Line availability rather than membership or Form meaning | exact-main physical proof retains one Body with local std, two attached browser Parts, and one Pico Part across WebSocket Plan A, explicit USB Plan B recovery, and same-Plan/same-Play Plan C USB continuation with verified physical LED receipts |
 | PREWAKE robotics semantics | seven exact portable Kinds cover bump, body-frame orientation, sensor-forward range, start-local odometry, battery, body velocity intent, and differential-drive projection; each Port retains a distinct bounded Info identity where shape, unit, frame, or validity differs | exact-main `607f602da25d23f9b74535e2272c6bd151f3604d`, workflow `31460348259`: deterministic codecs and an ordinary checked Form/Plan/lowered production-kernel Play prove clear-space projection plus independent pressed-bumper and insufficient-range suppression; invalid, missing, stale, pressure, cancellation, and unavailable-implementation outcomes remain distinct | the optional std robotics family advertises preallocated PREWAKE-only sources and a simulated differential-drive projection with no host operations, resources, authority requirements, live device Signs, or physical-effect completion; Netherwick bump/IMU describe-only offers reuse the same exact portable faces | no browser execution or manifestation claim | contracts compile for Thumb; no firmware implementation or execution claim | no transport | no physical actuator, device, HIL, or safety-certification claim |
 | `conduit.std` | twenty-eight exact typed contracts: time tick/every, Boolean debounce and tick inactivity timeout, typed tick/text/count presentation, text literal/upper/join, state/count, scalar latest/tee/gate, scalar compare/select, Boolean not, scalar clamp/scale/deadband, seven PREWAKE robotics observation/intent/drive contracts, and protected file/copy; legacy `value/any` rows remain unsupported fixtures | UI-independent contract/codec/limit/mutation vectors, canonical Programs 1–4, and deterministic flow/state/decision/math/temporal/robotics pressure, closure, cancellation, boundary, overflow, and mutation vectors | std reference host advertises selected families and resolves exact installed implementations before bounded execution through `conduit-kernel`; scalar flow/state, decision, math, timing, and PREWAKE bumper/range/velocity/differential-drive Forms execute through ordinary planning/lowering, while minimal/subset compositions advertise only selected offers | no manifestation claim for these twenty-eight revisions | no new firmware manifestation for the eighteen flow/state/decision/math/temporal/robotics revisions; the separate ConduitOS row owns its narrower five-contract proof | no new transport; Program 6 uses the separately owned Signal family | no new physical/HIL claim |
 | ConduitOS portable std gap | bounded inventory derives all exact supported-nucleus contracts/offers, revisions, faces, limits, and canonical SHA-256 content identity directly from catalog truth; legacy compatibility rows cannot enter | deterministic mutation and Host-build separation vectors plus exact 28-item classification | `cargo xtask conduitos std-gap` compares canonical kind/revision identity against the exact boot-scoped ConduitOS profile and reports 5 implemented, 23 missing without advertising any missing capability | no new browser claim | one x86_64 freestanding-emulator ConduitOS Host runs the unchanged bounded `text/literal -> text/upper -> presentation/text` Form through ordinary planning and the production kernel, then presents exactly `HELLO, CONDUITOS` through its admitted serial Base; all eighteen flow/state/decision/math/temporal/robotics revisions remain classified missing | no transport | no physical/HIL claim |
@@ -1880,3 +1881,53 @@ rewind lifecycle, filesystem, Host, evidence, navigation, selection, or
 viewport state. This is hosted native software execution evidence; it adds no
 browser, firmware, physical, or HIL claim and no second runtime or semantic
 authority.
+
+The Body-membership capstone from #1003 merged through PR #1092 as exact main
+`018167e257508091c5e29461ccc1552ae92e526e`. The PR passed its complete
+exact-head matrix in workflow `31635365460` on attempt 2 after one retained
+Limine-download failure, and the merge commit passed Pages workflow
+`31635911360`. Its push `check` `31635911335` retained Limine-download
+failures and was later cancelled rather than promoted to acceptance. Current
+exact main `e98a8114ea668bd51c3972cc9c82736c17a9669e`, which contains #1092 plus
+two unrelated ConduitOS/CI changes, passed `check` and `conduitos-boot` in
+workflow `31637201154` and Pages workflow `31637200988`.
+
+The supported `cargo xtask prove body-membership-hil --locked --interactive`
+entrance first runs the finite deterministic admission, replay, malformed,
+pressure, disconnect, authority, active-Plan-join, offline, fresh-Boot, and
+stale-Plan refusal suite. It then admits one local std Here Part, three
+independent Chromium Parts, and an already-provisioned physical `r1/pico-w`
+Part into one canonical Body. One browser becomes Offline without losing its
+Part; admitting another browser leaves Plan A byte-for-byte unchanged; and an
+explicit replacement Plan is distinct. The retained physical membership link
+requires exactly one local std Part, at least two attached browser Parts, one
+Pico Part, and matching Body, Pico Boot, and active Plan identities before the
+R1 HIL may count.
+
+The exact-main physical run retained Body
+`a8fcb18cd76ce0dae75b656ee60ac86a5960cc3a0a0a350f327208ee9d7cb5f1`
+and Pico Boot
+`conduit-pico-w-signal/runtime-boot:000000000000038f:8c0ee18c6664641c4993266c24244c66`.
+Production-kernel Plan A
+`f3a41d5410f9a0ab77e42ea0f724b76e0df4e1be0bc08285651b078d2d48ff81`
+delivered terminal plus two-Chromium inputs over WebSocket with verified
+physical LED receipts. Real loss of the isolated Wi-Fi interface produced
+explicit Plan B
+`c1fb594033afc46e9a79dbb4bef2979daac3ef1c0417a716c128313c935e3f6f`
+over USB CDC. After Wi-Fi restoration, Plan C
+`959e291dd338bb38b38ca769f8bc30ed04e78d74cf7bf73c5ad53776b7ad93b6`
+survived a second real link loss and continued the same Plan and Play over its
+already-admitted USB route without a planner request. Each branch reached
+reciprocal terminal state, Lull, and a later fresh Wake. The terminal
+`conduit.r1/complete-hil@1` receipt requires
+`combined_physical_acceptance=true`, `same_membership_body=true`, completed
+new-Plan recovery, completed same-Plan continuation, and the exact nested
+membership receipt.
+
+This closes the bounded one-Body destination without adding a second runtime,
+planner, scheduler, registry, authority system, or renderer-owned membership
+truth. It adds no multi-Body control center, public federation, package or
+firmware distribution, arbitrary remote execution, general PKI product, or
+SOUL-continuity claim. Firmware flashing remains a repository-development
+preparation step and is not part of Body membership or the demonstrated
+operator admission flow.
