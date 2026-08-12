@@ -333,11 +333,11 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     ProofCommandContract {
         id: "body.membership-capstone",
         command: "cargo xtask prove body-membership",
-        proof_class: ProofClass::DeterministicSimulation,
-        required_tools_or_targets: &["cargo"],
-        named_artifacts: &[],
+        proof_class: ProofClass::LiveBrowser,
+        required_tools_or_targets: &["cargo", "wasm32-unknown-unknown", "playwright", "chromium"],
+        named_artifacts: &["hosts/browser/conduit_browser_runtime.wasm"],
         allowed_claims: &[
-            "bounded deterministic conformance proves Body membership admission topology continuity browser and Pico simulation contracts",
+            "bounded conformance proves Body membership topology continuity and Pico simulation contracts plus one live Chromium admission over a loopback Line",
         ],
     },
 ];
