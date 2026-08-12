@@ -233,6 +233,7 @@ test("Body-directed fragment admits exactly one browser and replay stays refused
 test("one native Body presents three mixed browser Parts without mutating its Plan", async ({ browser }) => {
   const ambientChat = await startWebchatServer();
   const spawnedChat = await startWebchatServer();
+  const picoPort = process.env.CONDUIT_B9_PICO_LINK_PORT;
   const capstone = spawn("target/debug/browser-parts-capstone", [], {
     cwd: new URL("../..", import.meta.url).pathname,
     stdio: ["ignore", "pipe", "pipe"],
@@ -278,11 +279,24 @@ test("one native Body presents three mixed browser Parts without mutating its Pl
   await expect.poll(() => replay.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting")).toBe("refused:replay");
 
   await expect.poll(() => output).toContain("ready_for_offline");
-  expect(output.match(/wants_to_join=/g)).toHaveLength(2);
+  expect(output.match(/^wants_to_join=/gm)).toHaveLength(2);
   await first.close();
   await expect.poll(() => capstone.exitCode).toBe(0);
-  expect(output).toContain("members=4 browser_parts=3 offline=1");
-  expect(output).toContain("replay_refused=true plan_unchanged=true cross_host_fragments=2");
+  expect(output).toContain(`members=${picoPort ? 5 : 4} browser_parts=3 pico_parts=${picoPort ? 1 : 0} offline=1`);
+  expect(output).toContain("replay_refused=true plan_unchanged=true replan_distinct=true cross_host_fragments=2");
+  if (picoPort) {
+    expect(output).toContain("pico_wants_to_join=");
+    expect(output).toMatch(/pico_admitted part=[0-9a-f]+ host=r1\/pico-w boot=conduit-pico-w-signal\/runtime-boot:/);
+  }
+  const receipt = output.split("\n").filter((line) => line.startsWith("{")).map((line) => JSON.parse(line)).at(-1);
+  expect(receipt.schema).toBe("conduit.body/mixed-membership-capstone@1");
+  expect(receipt.parts).toHaveLength(picoPort ? 5 : 4);
+  expect(new Set(receipt.parts.map(({ part_id: id }) => id)).size).toBe(receipt.parts.length);
+  expect(new Set(receipt.parts.map(({ host_id: id }) => id)).size).toBe(receipt.parts.length);
+  expect(receipt.active_plan_unchanged_by_join).toBe(true);
+  expect(receipt.replacement_plan_distinct).toBe(true);
+  expect(receipt.physical_pico_admitted).toBe(Boolean(picoPort));
+  console.log(JSON.stringify(receipt));
   const identities = await Promise.all([second, third].map((page) => page.evaluate(() => ({
     host: globalThis.__webchat.admissionCandidate.hostId,
     boot: globalThis.__webchat.admissionCandidate.bootId,

@@ -25,6 +25,11 @@ use conduit_std_host::browser_admission::{
 use patchbay_model::{PartPresentationState, PartsView};
 use serde_json::json;
 
+#[path = "browser_parts_capstone/physical_pico.rs"]
+mod physical_pico;
+#[path = "browser_parts_capstone/receipt.rs"]
+mod receipt;
+
 const SOURCE: &str = include_str!("../../../../examples/webchat.conduit");
 
 struct AdmittedBrowser {
@@ -71,6 +76,12 @@ fn main() -> Result<(), String> {
     let mut candidates =
         CandidateInventory::new(body.body_id.clone()).map_err(debug("candidate inventory"))?;
     let mut manager = AdmissionManager::new(body.body_id.clone()).map_err(debug("manager"))?;
+    let pico = std::env::var("CONDUIT_B9_PICO_LINK_PORT")
+        .ok()
+        .map(|path| {
+            physical_pico::admit(&path, &body, &mut candidates, &mut membership, &mut manager)
+        })
+        .transpose()?;
     let secret_bytes = [37; 32];
     let invitation = manager
         .issue_spawn_invitation(
@@ -118,7 +129,17 @@ fn main() -> Result<(), String> {
     if plan.plan_id != stable_plan_id {
         return Err("joining a third Part mutated the active Plan".into());
     }
+    let replacement = cross_browser_plan(&second.advertisement, &third.advertisement)?;
+    if replacement.plan_id == stable_plan_id
+        || !replacement
+            .fragments
+            .iter()
+            .any(|fragment| fragment.host_id == third.advertisement.host_id)
+    {
+        return Err("explicit replan did not produce a distinct Plan using the new Part".into());
+    }
 
+    let expected_parts = 4 + usize::from(pico.is_some());
     let before_offline = PartsView::project(
         &body,
         &membership,
@@ -129,7 +150,7 @@ fn main() -> Result<(), String> {
         true,
     )
     .map_err(debug("Parts projection"))?;
-    if before_offline.parts.len() != 4
+    if before_offline.parts.len() != expected_parts
         || before_offline
             .parts
             .iter()
@@ -143,9 +164,12 @@ fn main() -> Result<(), String> {
         );
     }
     println!(
-        "ready_for_offline body={} plan={} parts=4 in_plan=2 future_possibilities=true",
+        "ready_for_offline body={} plan={} replacement_plan={} parts={} in_plan=2 future_possibilities=true pico_parts={}",
         body.body_id.as_str(),
-        plan.plan_id.as_str()
+        plan.plan_id.as_str(),
+        replacement.plan_id.as_str(),
+        expected_parts,
+        usize::from(pico.is_some())
     );
 
     let mut first = first;
@@ -177,14 +201,27 @@ fn main() -> Result<(), String> {
         .filter(|row| row.state == PartPresentationState::Offline)
         .count();
     println!(
-        "capstone_complete body={} plan={} members={} browser_parts=3 offline={} replay_refused=true plan_unchanged=true cross_host_fragments={}",
+        "capstone_complete body={} plan={} replacement_plan={} members={} browser_parts=3 pico_parts={} offline={} replay_refused=true plan_unchanged=true replan_distinct=true cross_host_fragments={}",
         body.body_id.as_str(),
         plan.plan_id.as_str(),
+        replacement.plan_id.as_str(),
         membership.parts.len(),
+        usize::from(pico.is_some()),
         offline,
         plan.fragments.len()
     );
-    drop((second, third));
+    println!(
+        "{}",
+        receipt::machine_receipt(
+            &body,
+            &membership,
+            &after_offline,
+            &plan,
+            &replacement,
+            pico.is_some(),
+        )?
+    );
+    drop((second, third, pico));
     Ok(())
 }
 
