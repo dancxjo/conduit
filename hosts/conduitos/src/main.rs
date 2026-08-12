@@ -8,7 +8,7 @@ extern crate alloc;
 compile_error!("#588 currently promotes only the executable x86_64 ConduitOS backend");
 
 #[cfg(target_os = "none")]
-use core::panic::PanicInfo;
+use core::{fmt::Write, panic::PanicInfo};
 
 #[cfg(target_os = "none")]
 use alloc::format;
@@ -16,7 +16,7 @@ use alloc::format;
 #[cfg(target_os = "none")]
 use conduitos::{
     allocation::BOOT_ARENA, arch, boot, display::PixelTarget, dual_region_plan, identity,
-    presentation_nucleus, proof,
+    pc_speaker_plan, pc_speaker_play, presentation_nucleus, proof,
 };
 
 #[cfg(target_os = "none")]
@@ -279,7 +279,21 @@ extern "C" fn conduitos_start() -> ! {
                     operation_slots: hid_ready.operation_slots,
                 },
                 BUILD_ID,
-            ) {
+            )
+            .and_then(|offer| {
+                offer.with_pc_speaker(
+                    conduitos::pc_speaker_offer::PcSpeakerRealization {
+                        base_id: identity::derive_base(&identities.boot, "conduitos/pc-speaker/0"),
+                        pit_input_hz: arch::pc_speaker_input_hz(),
+                        minimum_divisor: 19,
+                        maximum_divisor: u16::MAX,
+                        maximum_error_parts_per_million: 2_500,
+                        event_slots: 8,
+                        operation_slots: 1,
+                    },
+                    BUILD_ID,
+                )
+            }) {
                 Ok(offer) => offer,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
@@ -487,6 +501,19 @@ extern "C" fn conduitos_start() -> ! {
                 emit_machine_refusal(error.as_str());
             }
             arch::early_write(b"CONDUIT_BOOT_STAGE offer\n");
+            let pc_speaker_prepared = match pc_speaker_plan::prepare(&identities, &offer, BUILD_ID)
+            {
+                Ok(prepared) => prepared,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let mut pc_speaker_execution = match pc_speaker_play::prepare_execution(
+                &pc_speaker_prepared,
+                pc_speaker_play::reviewed_values(),
+            ) {
+                Ok(execution) => execution,
+                Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            arch::early_write(b"CONDUIT_BOOT_STAGE pc-speaker-plan\n");
             let mut prepared = match dual_region_plan::prepare(&identities, &offer, BUILD_ID) {
                 Ok(prepared) => prepared,
                 Err(error) => emit_machine_refusal(error.as_str()),
@@ -504,6 +531,12 @@ extern "C" fn conduitos_start() -> ! {
                 Ok(export) => export,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
+            let pc_speaker_base_id = identity::hex(&identity::derive_base(
+                &identities.boot,
+                "conduitos/pc-speaker/0",
+            ));
+            let pc_speaker_host_id = identity::hex(&identities.host);
+            let pc_speaker_boot_id = identity::hex(&identities.boot);
             arch::early_write(b"CONDUIT_BOOT_STAGE inspection\n");
             let allocation_before_play = BOOT_ARENA.seal();
             arch::initialize_machine();
@@ -512,6 +545,54 @@ extern "C" fn conduitos_start() -> ! {
             let mut serial = arch::Serial::new();
             let mut interrupts = arch::Interrupts::new();
             let mut idle = arch::Idle::new();
+            let mut pc_speaker = arch::PcSpeaker::new();
+            let pc_speaker_report =
+                match pc_speaker_play::run(&mut pc_speaker_execution, &mut pc_speaker) {
+                    Ok(report) => report,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+            let mut pc_speaker_sign = proof::FixedText::new();
+            if writeln!(
+                pc_speaker_sign,
+                "CONDUIT_PC_SPEAKER_SIGN {{\"schema\":\"conduit.conduitos.pc-speaker-tone/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"base_id\":\"{}\",\"kind\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"node_count\":{},\"cord_count\":{},\"requested_millihertz\":[{},{},{},{}],\"realized_millihertz\":[{},{},{},{}],\"divisors\":[{},{},{},{}],\"gate_transitions\":[{},{},{},{}],\"transition_count\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"final_gate_open\":{},\"bounded\":true,\"completed\":{}}}\n",
+                pc_speaker_host_id,
+                pc_speaker_boot_id,
+                pc_speaker_base_id,
+                conduit_std_catalog::SOUND_TONE_PLAY_KIND,
+                conduitos::pc_speaker_offer::PC_SPEAKER_IMPLEMENTATION,
+                conduitos::pc_speaker_offer::PC_SPEAKER_EXECUTION_PROFILE,
+                pc_speaker_prepared.plan.plan_id.as_str(),
+                pc_speaker_prepared.active_play.active_play_id.as_str(),
+                pc_speaker_prepared.plan.fragments[0].placements.len(),
+                pc_speaker_prepared.plan.fragments[0].connections.len(),
+                pc_speaker_report.realized[0].requested_millihertz,
+                pc_speaker_report.realized[1].requested_millihertz,
+                pc_speaker_report.realized[2].requested_millihertz,
+                pc_speaker_report.realized[3].requested_millihertz,
+                pc_speaker_report.realized[0].realized_millihertz,
+                pc_speaker_report.realized[1].realized_millihertz,
+                pc_speaker_report.realized[2].realized_millihertz,
+                pc_speaker_report.realized[3].realized_millihertz,
+                pc_speaker_report.realized[0].divisor,
+                pc_speaker_report.realized[1].divisor,
+                pc_speaker_report.realized[2].divisor,
+                pc_speaker_report.realized[3].divisor,
+                pc_speaker_report.realized[0].gate_open,
+                pc_speaker_report.realized[1].gate_open,
+                pc_speaker_report.realized[2].gate_open,
+                pc_speaker_report.realized[3].gate_open,
+                pc_speaker_report.transitions,
+                pc_speaker_report.kernel_decisions,
+                pc_speaker_report.kernel_signs,
+                pc_speaker_report.final_gate_open,
+                pc_speaker_report.completed,
+            )
+            .is_err()
+            {
+                emit_machine_refusal("pc-speaker-sign-storage-full");
+            }
+            arch::early_write(pc_speaker_sign.as_bytes());
+            arch::early_write(b"CONDUIT_BOOT_STAGE pc-speaker-completed\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE play\n");
             match conduitos::dual_region_composition::run(
                 &mut prepared.kernel,

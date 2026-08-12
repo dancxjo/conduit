@@ -140,6 +140,33 @@ pub struct GuestPresentationSign {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GuestPcSpeakerSign {
+    pub schema: String,
+    pub status: String,
+    pub proof_class: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub base_id: String,
+    pub kind: String,
+    pub implementation: String,
+    pub execution_profile: String,
+    pub plan_id: String,
+    pub active_play_id: String,
+    pub node_count: usize,
+    pub cord_count: usize,
+    pub requested_millihertz: Vec<u64>,
+    pub realized_millihertz: Vec<u64>,
+    pub divisors: Vec<u16>,
+    pub gate_transitions: Vec<bool>,
+    pub transition_count: u32,
+    pub kernel_decisions: u32,
+    pub kernel_signs: u16,
+    pub final_gate_open: bool,
+    pub bounded: bool,
+    pub completed: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GuestXhciSign {
     pub schema: String,
     pub status: String,
@@ -317,6 +344,7 @@ pub struct GuestKeyboardTextSign {
 pub struct GuestRun {
     pub boot: GuestBootSign,
     pub presentation: GuestPresentationSign,
+    pub pc_speaker: GuestPcSpeakerSign,
     pub xhci: GuestXhciSign,
     pub usb: GuestUsbSign,
     pub hid: GuestHidSign,

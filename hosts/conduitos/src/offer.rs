@@ -6,6 +6,7 @@
 //! semantic authority.
 
 use crate::keyboard_offer::{KeyboardOffer, KeyboardOfferError, KeyboardRealization};
+use crate::pc_speaker_offer::{PcSpeakerOffer, PcSpeakerOfferError, PcSpeakerRealization};
 use crate::{identity::BootIdentities, machine::BaseKind};
 
 pub const BASE_COUNT: usize = 7;
@@ -87,6 +88,7 @@ pub struct HostOffer<'a> {
     pub sign_item_capacity: u16,
     pub interrupt_fact_capacity: u16,
     pub keyboard: Option<KeyboardOffer<'a>>,
+    pub pc_speaker: Option<PcSpeakerOffer<'a>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -224,6 +226,7 @@ impl<'a> HostOffer<'a> {
             sign_item_capacity: SIGN_ITEM_CAPACITY,
             interrupt_fact_capacity: INTERRUPT_FACT_CAPACITY,
             keyboard: None,
+            pc_speaker: None,
         }
     }
 
@@ -240,6 +243,22 @@ impl<'a> HostOffer<'a> {
             .validate(self.capabilities[0].artifact_build)
             .map_err(|_| OfferError::InvalidDeviceOffer)?;
         self.keyboard = Some(keyboard);
+        Ok(self)
+    }
+
+    pub fn with_pc_speaker(
+        mut self,
+        realization: PcSpeakerRealization,
+        build_id: &'a str,
+    ) -> Result<Self, OfferError> {
+        let pc_speaker = PcSpeakerOffer {
+            artifact_build: build_id,
+            realization,
+        };
+        pc_speaker
+            .validate(self.capabilities[0].artifact_build)
+            .map_err(|_| OfferError::InvalidDeviceOffer)?;
+        self.pc_speaker = Some(pc_speaker);
         Ok(self)
     }
 
@@ -325,6 +344,11 @@ impl<'a> HostOffer<'a> {
             keyboard
                 .validate(self.capabilities[0].artifact_build)
                 .map_err(|_error: KeyboardOfferError| OfferError::InvalidDeviceOffer)?;
+        }
+        if let Some(pc_speaker) = self.pc_speaker {
+            pc_speaker
+                .validate(self.capabilities[0].artifact_build)
+                .map_err(|_error: PcSpeakerOfferError| OfferError::InvalidDeviceOffer)?;
         }
         Ok(())
     }
