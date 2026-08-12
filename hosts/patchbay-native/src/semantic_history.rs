@@ -56,16 +56,20 @@ pub(super) struct SemanticHistory {
     cursor: usize,
     generation: u64,
     evicted: u64,
+    saved_source_document_id: Option<String>,
 }
 
 impl SemanticHistory {
     pub(super) fn new(initial: SemanticCheckpoint) -> Result<Self, SemanticHistoryRefusal> {
         ensure_bounded(&initial)?;
+        let saved_source_document_id = (initial.saved_revision == initial.source_revision)
+            .then(|| initial.source_document_id.clone());
         Ok(Self {
             checkpoints: vec![initial],
             cursor: 0,
             generation: 0,
             evicted: 0,
+            saved_source_document_id,
         })
     }
 
@@ -160,6 +164,26 @@ impl SemanticHistory {
     pub(super) fn evicted(&self) -> u64 {
         self.evicted
     }
+
+    pub(super) fn mark_saved(
+        &mut self,
+        current: &SemanticCheckpoint,
+    ) -> Result<(), SemanticHistoryRefusal> {
+        let Some(checkpoint) = self.checkpoints.get(self.cursor) else {
+            return Err(SemanticHistoryRefusal::Empty);
+        };
+        if !checkpoint.same_current_basis(current) {
+            return Err(SemanticHistoryRefusal::StaleCurrent);
+        }
+        self.saved_source_document_id = Some(current.source_document_id.clone());
+        self.checkpoints[self.cursor] = current.clone();
+        self.generation = self.generation.saturating_add(1);
+        Ok(())
+    }
+
+    pub(super) fn restored_matches_saved_source(&self, restored: &SemanticCheckpoint) -> bool {
+        self.saved_source_document_id.as_deref() == Some(restored.source_document_id.as_str())
+    }
 }
 
 fn ensure_bounded(checkpoint: &SemanticCheckpoint) -> Result<(), SemanticHistoryRefusal> {
@@ -175,13 +199,15 @@ mod tests {
     use super::*;
 
     fn checkpoint(sequence: u64, source: impl Into<String>) -> SemanticCheckpoint {
+        let source = source.into();
+        let semantic = source.replace(['\n', ' '], "_");
         SemanticCheckpoint {
-            source: source.into(),
+            source,
             source_revision: sequence,
             saved_revision: 0,
-            source_document_id: format!("source-{sequence}"),
-            checked_form_id: format!("checked-{sequence}"),
-            expanded_form_id: format!("expanded-{sequence}"),
+            source_document_id: format!("source-{semantic}"),
+            checked_form_id: format!("checked-{semantic}"),
+            expanded_form_id: format!("expanded-{semantic}"),
         }
     }
 
@@ -216,6 +242,38 @@ mod tests {
         );
         assert_eq!(restored_edit.source, edited.source);
         assert_eq!(restored_edit.source_revision, 3);
+    }
+
+    #[test]
+    fn saved_baseline_tracks_source_identity_without_rewinding_filesystem_state() {
+        let initial = checkpoint(0, "a");
+        let edited = checkpoint(1, "b");
+        let mut history = SemanticHistory::new(initial.clone()).unwrap();
+        history.record_accepted(&initial, edited.clone()).unwrap();
+        assert!(!history.restored_matches_saved_source(&edited));
+
+        let restored_initial =
+            move_and_commit(&mut history, SemanticHistoryDirection::Undo, &edited, 2);
+        assert!(history.restored_matches_saved_source(&restored_initial));
+        let mut saved_initial = restored_initial.clone();
+        saved_initial.saved_revision = saved_initial.source_revision;
+        history.mark_saved(&saved_initial).unwrap();
+
+        let restored_edit = move_and_commit(
+            &mut history,
+            SemanticHistoryDirection::Redo,
+            &saved_initial,
+            3,
+        );
+        assert!(!history.restored_matches_saved_source(&restored_edit));
+        let mut saved_edit = restored_edit.clone();
+        saved_edit.saved_revision = saved_edit.source_revision;
+        history.mark_saved(&saved_edit).unwrap();
+        assert!(history.restored_matches_saved_source(&saved_edit));
+
+        let restored_again =
+            move_and_commit(&mut history, SemanticHistoryDirection::Undo, &saved_edit, 4);
+        assert!(!history.restored_matches_saved_source(&restored_again));
     }
 
     #[test]
