@@ -99,6 +99,7 @@ impl HidKeyboardSession {
             return Err(HidError::TransitionOverflow);
         }
         while self.transition_count < expected_transitions {
+            super::super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-awaiting-followup-report\n");
             let (transitions, count) = self.receive_followup(controller, device)?;
             for transition in transitions[..count].iter().copied() {
                 observe(transition);
