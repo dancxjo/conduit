@@ -42,6 +42,10 @@ pub const MATH_DEADBAND_IMPLEMENTATION: &str = "std/kernel-math-deadband-scalar@
 pub const MATH_DEADBAND_ARTIFACT: &str = "conduit-std-host/math-deadband-scalar@1";
 pub const MATH_DEADBAND_CAPABILITY: &str = "math-deadband-scalar-v1";
 pub const MATH_DEADBAND_HOST_OPERATION: &str = "conduit.host/math-deadband-scalar@1";
+pub const CONDUITOS_MATH_SCALE_CAPABILITY: &str = "conduitos-math-scale-scalar-v1";
+pub const CONDUITOS_MATH_SCALE_IMPLEMENTATION: &str = "conduitos/kernel-math-scale-scalar@1";
+pub const CONDUITOS_MATH_DEADBAND_CAPABILITY: &str = "conduitos-math-deadband-scalar-v1";
+pub const CONDUITOS_MATH_DEADBAND_IMPLEMENTATION: &str = "conduitos/kernel-math-deadband-scalar@1";
 
 pub const SCALAR_INPUT_PORT: &str = "in";
 pub const SCALAR_OUTPUT_PORT: &str = "out";
@@ -173,6 +177,14 @@ pub fn math_scale_offer() -> CapabilityOffer {
     )
 }
 
+pub fn conduitos_math_scale_offer() -> CapabilityOffer {
+    super::text_transform::conduitos_bounded_host_operation_offer(
+        math_scale_offer(),
+        CONDUITOS_MATH_SCALE_CAPABILITY,
+        CONDUITOS_MATH_SCALE_IMPLEMENTATION,
+    )
+}
+
 pub fn math_deadband_offer() -> CapabilityOffer {
     offer(
         math_deadband_contract(),
@@ -182,6 +194,14 @@ pub fn math_deadband_offer() -> CapabilityOffer {
         MATH_DEADBAND_IMPLEMENTATION,
         MATH_DEADBAND_ARTIFACT,
         MATH_DEADBAND_HOST_OPERATION,
+    )
+}
+
+pub fn conduitos_math_deadband_offer() -> CapabilityOffer {
+    super::text_transform::conduitos_bounded_host_operation_offer(
+        math_deadband_offer(),
+        CONDUITOS_MATH_DEADBAND_CAPABILITY,
+        CONDUITOS_MATH_DEADBAND_IMPLEMENTATION,
     )
 }
 

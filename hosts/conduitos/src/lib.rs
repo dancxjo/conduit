@@ -5,6 +5,8 @@ extern crate alloc;
 pub mod allocation;
 pub mod arch;
 pub mod boot;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod bounded_host_operations;
 pub mod composition;
 pub mod display;
 pub mod dual_region_composition;

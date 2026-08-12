@@ -199,8 +199,17 @@ mod tests {
             classify_kind("logic/select"),
             GapClassification::PortableImplementationMissing
         );
+        let mut without_text_join = host.clone();
+        without_text_join
+            .capabilities
+            .retain(|offer| offer.kind_id.as_str() != "text/join");
+        let text_join = inventory
+            .entries
+            .iter()
+            .find(|entry| entry.kind_id == "text/join")
+            .unwrap();
         assert_eq!(
-            classify_kind("text/join"),
+            classify(&without_text_join, text_join, false).classification,
             GapClassification::MissingHostOperation
         );
         assert_eq!(
