@@ -184,6 +184,7 @@ impl AdmissionManager {
         if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
             return Err(AdmissionRefusal::ReceiptCapacityExhausted);
         }
+        self.ensure_continuity_capacity()?;
         let admission_id = AdmissionId::bound(bind_identity(
             "spawn-admission",
             &[
@@ -203,6 +204,11 @@ impl AdmissionManager {
             &signs,
         )?;
         self.retain_receipt(admission_id, credential.clone())?;
+        self.retain_continuity_key(
+            credential.part_id.clone(),
+            credential.host_id.clone(),
+            invitation.verifying_key,
+        );
         self.invitations[index].used = true;
         *membership = next_membership;
         Ok(credential)
