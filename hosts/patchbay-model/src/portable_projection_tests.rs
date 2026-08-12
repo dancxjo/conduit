@@ -1,5 +1,9 @@
 use conduit_body::Body;
 use conduit_core::{bind_active_play, ConnectionBase, SignId};
+use conduit_observatory::{
+    SoundCandidateInspection, SoundCandidateStatus, SoundProofClass, SoundRealizationInspection,
+    SoundRealizationRoute, SOUND_INSPECTION_SCHEMA,
+};
 use conduit_presentation::{
     PresentationPropertyValue, PresentationRole, MAX_PRESENTATION_TOTAL_BYTES,
 };
@@ -249,4 +253,74 @@ fn portable_graph_must_share_the_open_form_identity_chain() {
         without_graph.with_graph(graph),
         Err(crate::RendererProjectionError::GraphBasisMismatch)
     );
+}
+
+#[test]
+fn sound_fit_refusal_selection_and_exact_play_reach_the_portable_patchbay() {
+    let (projection, body, wake, _) = living_portable();
+    let plan = projection.plan.as_ref().unwrap();
+    let play = projection.play.as_ref().unwrap();
+    let active_play_id = play.active_play_id.clone();
+    let placement = &plan.exact.fragments[0].placements[0];
+    let inspection = SoundRealizationInspection {
+        schema: SOUND_INSPECTION_SCHEMA.into(),
+        form: conduit_core::FormIdentity {
+            source_document_id: plan.source_document_id.clone(),
+            checked_form_id: plan.checked_form_id.clone(),
+            expanded_form_id: plan.expanded_form_id.clone(),
+        },
+        requirement_profile_id: "music/simple@1".into(),
+        candidates: vec![
+            SoundCandidateInspection {
+                capability_id: placement.capability_id.clone(),
+                implementation_id: placement.implementation_id.clone(),
+                execution_profile_id: placement.execution_profile_id.clone(),
+                proof_class: SoundProofClass::DeterministicReference,
+                status: SoundCandidateStatus::Compatible,
+                route: SoundRealizationRoute::Direct,
+                host_id: Some(placement.host_id.clone()),
+                boot_id: Some(placement.boot_id.clone()),
+                selected_plan_id: Some(plan.plan_id.clone()),
+            },
+            SoundCandidateInspection {
+                capability_id: "sound/incompatible".into(),
+                implementation_id: "sound/monophonic".into(),
+                execution_profile_id: "sound/monophonic@1".into(),
+                proof_class: SoundProofClass::FreestandingEmulator,
+                status: SoundCandidateStatus::Incompatible {
+                    reason: "polyphony-exceeds-offer".into(),
+                },
+                route: SoundRealizationRoute::Recursive {
+                    stages: vec!["music/synth".into(), "audio/play".into()],
+                },
+                host_id: None,
+                boot_id: None,
+                selected_plan_id: None,
+            },
+        ],
+        selected_capability_id: Some(placement.capability_id.clone()),
+        active_play_id: Some(active_play_id.clone()),
+    };
+    let mut stale = inspection.clone();
+    stale.form.expanded_form_id = "expanded/stale-sound".into();
+    assert_eq!(
+        projection.clone().with_sound_inspection(stale),
+        Err(crate::RendererProjectionError::InvalidSoundInspection)
+    );
+    let portable = projection
+        .with_sound_inspection(inspection)
+        .unwrap()
+        .to_portable(&body, &wake)
+        .unwrap();
+    let rendered = portable
+        .text
+        .iter()
+        .map(|line| line.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(rendered.contains("SOUND FORM"));
+    assert!(rendered.contains("status=compatible route=direct"));
+    assert!(rendered.contains("incompatible:polyphony-exceeds-offer"));
+    assert!(rendered.contains("route=music/synth -> audio/play"));
+    assert!(rendered.contains(&format!("SOUND PLAY {}", active_play_id.as_str())));
 }
