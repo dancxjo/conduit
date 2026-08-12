@@ -100,6 +100,12 @@ pub(super) fn prepare_limine(paths: &Paths) -> Result<(), ConduitosError> {
             &[
                 "--fail",
                 "--location",
+                "--remove-on-error",
+                "--retry",
+                "3",
+                "--retry-all-errors",
+                "--retry-delay",
+                "1",
                 "--output",
                 archive,
                 LIMINE_ARCHIVE_URL,
