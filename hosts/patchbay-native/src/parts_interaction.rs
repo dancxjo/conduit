@@ -53,6 +53,7 @@ impl PatchbayApplication {
                 if !self.parts_open {
                     self.selected_part = None;
                     self.selected_candidate = None;
+                    self.pending_revoke = None;
                 }
             }
             GuiAction::InspectPart(part_id) => {
@@ -62,6 +63,7 @@ impl PatchbayApplication {
                 }
                 self.selected_part = Some(part_id);
                 self.selected_candidate = None;
+                self.pending_revoke = None;
             }
             GuiAction::InspectCandidate(candidate_id) => {
                 let view = self.parts_projection()?.ok_or("Parts view is not open")?;
@@ -74,6 +76,7 @@ impl PatchbayApplication {
                 }
                 self.selected_candidate = Some(candidate_id);
                 self.selected_part = None;
+                self.pending_revoke = None;
             }
             GuiAction::RefuseCandidate(candidate_id) => {
                 let view = self.parts_projection()?.ok_or("Parts view is not open")?;
@@ -103,6 +106,34 @@ impl PatchbayApplication {
                     "Candidate {} refused; Body membership is unchanged",
                     candidate_id.as_str()
                 ));
+            }
+            GuiAction::RequestRevokePart(part_id) => {
+                let view = self.parts_projection()?.ok_or("Parts view is not open")?;
+                let row = view
+                    .parts
+                    .iter()
+                    .find(|row| row.details.part_id == part_id)
+                    .ok_or("Part is not in the current Body projection")?;
+                if row.state == patchbay_model::PartPresentationState::Here {
+                    return Err("the Here Part cannot revoke itself from this Patchbay".into());
+                }
+                self.pending_revoke = Some(part_id.clone());
+                self.selected_part = Some(part_id);
+                self.selected_candidate = None;
+            }
+            GuiAction::ConfirmRevokePart(part_id) => {
+                if self.pending_revoke.as_ref() != Some(&part_id) {
+                    return Err(
+                        "Part revocation requires an exact prior confirmation request".into(),
+                    );
+                }
+                let sign = self.lifecycle_sign("part-revoked");
+                self.build_birth
+                    .revoke_part(&part_id, sign)
+                    .map_err(|error| format!("Part revocation: {error}"))?;
+                self.pending_revoke = None;
+                self.selected_part = None;
+                self.publish_completed(format!("Revoked Part {}", part_id.as_str()));
             }
             _ => return Err("action does not belong to Parts".into()),
         }
@@ -300,6 +331,68 @@ mod tests {
             .wants_to_join
             .is_empty());
         assert!(application.selected_candidate.is_none());
+
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(directory).unwrap();
+    }
+
+    #[test]
+    fn revocation_requires_two_exact_actions_and_cannot_target_here() {
+        let directory = std::env::temp_dir().join(format!(
+            "patchbay-native-parts-revoke-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("clock.conduit");
+        std::fs::write(&path, include_str!("../../../examples/clock.conduit")).unwrap();
+        let mut application = PatchbayApplication::new(Arguments {
+            form_path: Some(path.clone()),
+            ..Arguments::default()
+        })
+        .unwrap();
+        application.birth_body().unwrap();
+        application.parts_open = true;
+        let body_id = application.build_birth.body().unwrap().body_id.clone();
+        let here = application.build_birth.membership().unwrap().parts[0]
+            .part_id
+            .clone();
+        assert!(application
+            .handle_parts_action(GuiAction::RequestRevokePart(here))
+            .is_err());
+        let remote = conduit_body::PartId::bind(&body_id, "browser/revoked", 2).unwrap();
+        let membership = application.build_birth.membership_mut().unwrap();
+        membership
+            .admit(
+                &body_id,
+                membership.revision,
+                remote.clone(),
+                conduit_body::MembershipProofId::bind("proof/browser/revoked").unwrap(),
+                SignId::from("sign/browser/revoked/admitted"),
+            )
+            .unwrap();
+        assert!(application
+            .handle_parts_action(GuiAction::ConfirmRevokePart(remote.clone()))
+            .is_err());
+        application
+            .handle_parts_action(GuiAction::RequestRevokePart(remote.clone()))
+            .unwrap();
+        assert_eq!(application.pending_revoke, Some(remote.clone()));
+        application
+            .handle_parts_action(GuiAction::ConfirmRevokePart(remote.clone()))
+            .unwrap();
+        assert_eq!(
+            application
+                .build_birth
+                .membership()
+                .unwrap()
+                .parts
+                .iter()
+                .find(|part| part.part_id == remote)
+                .unwrap()
+                .state,
+            conduit_body::MembershipState::Revoked
+        );
+        assert!(application.pending_revoke.is_none());
 
         std::fs::remove_file(path).unwrap();
         std::fs::remove_dir(directory).unwrap();

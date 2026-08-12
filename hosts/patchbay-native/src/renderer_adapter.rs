@@ -103,6 +103,7 @@ impl PatchbayApplication {
             parts,
             selected_part: self.selected_part.clone(),
             selected_candidate: self.selected_candidate.clone(),
+            pending_revoke: self.pending_revoke.clone(),
         };
         let realization_hosts = self
             .environment

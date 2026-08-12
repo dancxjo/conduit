@@ -15,7 +15,7 @@ use crate::{
     gui_primitives::{draw_regions, frame_rect, icon_label, line, text, PixelRect, RegionMetrics},
     icon::Icon,
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
-    parts_view::draw_parts,
+    parts_view::{draw_parts, PartsSelection},
 };
 use embedded_graphics::{
     draw_target::DrawTargetExt,
@@ -61,6 +61,7 @@ pub struct LifecycleContext {
     pub parts: Option<patchbay_model::PartsView>,
     pub selected_part: Option<conduit_body::PartId>,
     pub selected_candidate: Option<conduit_body::CandidateId>,
+    pub pending_revoke: Option<conduit_body::PartId>,
 }
 
 pub struct PatchbayViewContext<'a> {
@@ -185,8 +186,11 @@ pub fn draw_patchbay(
             draw_parts(
                 &mut canvas,
                 parts,
-                lifecycle.selected_part.as_ref(),
-                lifecycle.selected_candidate.as_ref(),
+                PartsSelection {
+                    part: lifecycle.selected_part.as_ref(),
+                    candidate: lifecycle.selected_candidate.as_ref(),
+                    pending_revoke: lifecycle.pending_revoke.as_ref(),
+                },
                 viewport.canvas(),
                 theme,
                 &mut targets,

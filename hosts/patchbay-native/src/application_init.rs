@@ -138,6 +138,7 @@ impl PatchbayApplication {
             parts_open: false,
             selected_part: None,
             selected_candidate: None,
+            pending_revoke: None,
             body_candidates: None,
             face_control_focus: 0,
             palette_drag: None,

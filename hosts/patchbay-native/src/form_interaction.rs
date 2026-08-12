@@ -91,7 +91,9 @@ impl PatchbayApplication {
             GuiAction::TogglePartsView
             | GuiAction::InspectPart(_)
             | GuiAction::InspectCandidate(_)
-            | GuiAction::RefuseCandidate(_) => return self.handle_parts_action(action),
+            | GuiAction::RefuseCandidate(_)
+            | GuiAction::RequestRevokePart(_)
+            | GuiAction::ConfirmRevokePart(_) => return self.handle_parts_action(action),
             GuiAction::Viewport(action) => self.perform_viewport_action(action),
             GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
             GuiAction::EnvironmentAdd(_)

@@ -103,6 +103,31 @@ impl BuildBirthController {
         self.membership.as_ref()
     }
 
+    /// Mutable canonical membership seam for authenticated admission and
+    /// deliberate membership actions owned by the application controller.
+    pub fn membership_mut(&mut self) -> Option<&mut BodyMembership> {
+        self.membership.as_mut()
+    }
+
+    pub fn revoke_part(
+        &mut self,
+        part_id: &PartId,
+        sign_id: SignId,
+    ) -> Result<(), BuildBirthError> {
+        let body_id = self
+            .body
+            .as_ref()
+            .ok_or(BuildBirthError::BodyNotBorn)?
+            .body_id
+            .clone();
+        let membership = self
+            .membership
+            .as_mut()
+            .ok_or(BuildBirthError::BodyNotBorn)?;
+        membership.revoke(&body_id, membership.revision, part_id, sign_id)?;
+        Ok(())
+    }
+
     pub fn origin_offline(
         &mut self,
         body_id: &conduit_body::BodyId,
