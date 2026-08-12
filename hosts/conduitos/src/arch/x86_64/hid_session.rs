@@ -1,9 +1,8 @@
-//! Bounded two-report session above validated HID boot reports.
+//! Reusable bounded-report session above validated HID boot reports.
 
 use super::{
     BootReport, HID_DMA, HidError, HidKeyTransition, HidKeyboardReady, HidProof,
     MAX_SESSION_TRANSITIONS, MAX_TRANSITIONS_PER_REPORT, derive_transitions, receive_report,
-    retain_transition,
 };
 use crate::arch::x86_64::{usb::UsbDevice, xhci::XhciReady};
 
@@ -11,14 +10,15 @@ use crate::arch::x86_64::{usb::UsbDevice, xhci::XhciReady};
 pub struct HidKeyboardSession {
     ready: HidKeyboardReady,
     previous: BootReport,
-    observed: [HidKeyTransition; MAX_SESSION_TRANSITIONS],
-    observed_count: usize,
+    initial: [HidKeyTransition; MAX_TRANSITIONS_PER_REPORT],
+    initial_count: usize,
+    transition_count: usize,
     next_report_index: usize,
 }
 
 impl HidKeyboardSession {
     pub fn transitions(&self) -> &[HidKeyTransition] {
-        &self.observed[..self.observed_count]
+        &self.initial[..self.initial_count]
     }
 }
 
@@ -37,13 +37,12 @@ pub fn receive_first_boot_keyboard_report(
     super::super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-press-report\n");
     let current = super::parse_report(unsafe { &HID_DMA.reports[0] })?;
     let (transitions, count) = derive_transitions(BootReport::default(), current)?;
-    let mut observed = [HidKeyTransition::default(); MAX_SESSION_TRANSITIONS];
-    observed[..count].copy_from_slice(&transitions[..count]);
     Ok(HidKeyboardSession {
         ready,
         previous: current,
-        observed,
-        observed_count: count,
+        initial: transitions,
+        initial_count: count,
+        transition_count: count,
         next_report_index: 1,
     })
 }
@@ -69,11 +68,12 @@ impl HidKeyboardSession {
         let current =
             super::parse_report(unsafe { &HID_DMA.reports[index % super::REPORT_BUFFERS] })?;
         let (transitions, count) = derive_transitions(self.previous, current)?;
-        for transition in transitions[..count].iter().copied() {
-            retain_transition(&mut self.observed, &mut self.observed_count, transition)?;
-        }
         self.previous = current;
         self.next_report_index += 1;
+        self.transition_count = self
+            .transition_count
+            .checked_add(count)
+            .ok_or(HidError::TransitionOverflow)?;
         Ok((transitions, count))
     }
 
@@ -94,30 +94,34 @@ impl HidKeyboardSession {
         mut observe: impl FnMut(HidKeyTransition),
     ) -> Result<(), HidError> {
         if expected_transitions > MAX_SESSION_TRANSITIONS
-            || expected_transitions < self.observed_count
+            || expected_transitions < self.transition_count
         {
             return Err(HidError::TransitionOverflow);
         }
-        while self.observed_count < expected_transitions {
+        while self.transition_count < expected_transitions {
             let (transitions, count) = self.receive_followup(controller, device)?;
             for transition in transitions[..count].iter().copied() {
                 observe(transition);
             }
         }
-        if self.observed_count != expected_transitions {
+        if self.transition_count != expected_transitions {
             return Err(HidError::TransitionOverflow);
         }
         Ok(())
     }
 
-    pub fn initial_proof(&self) -> Result<HidProof, HidError> {
-        if self.observed_count < 2
-            || self.observed[0].usage != 4
-            || !self.observed[0].pressed
-            || self.observed[1].usage != 4
-            || self.observed[1].pressed
+    pub fn scripted_initial_proof(
+        &self,
+        followup: &[HidKeyTransition],
+    ) -> Result<HidProof, HidError> {
+        if self.initial_count != 1
+            || followup.len() != 1
+            || self.initial[0].usage != 4
+            || !self.initial[0].pressed
+            || followup[0].usage != 4
+            || followup[0].pressed
         {
-            return Err(HidError::TransferError);
+            return Err(HidError::ProofSequenceMismatch);
         }
         Ok(HidProof {
             interface_number: self.ready.interface_number,
@@ -137,7 +141,7 @@ impl HidKeyboardSession {
             sign_slots: super::HID_SIGN_SLOTS,
             interrupt_poll_windows: super::INTERRUPT_POLL_WINDOWS,
             transition_count: 2,
-            transitions: [self.observed[0], self.observed[1]],
+            transitions: [self.initial[0], followup[0]],
         })
     }
 }
@@ -147,9 +151,6 @@ pub fn finish_boot_keyboard(
     device: &UsbDevice,
     mut session: HidKeyboardSession,
 ) -> Result<HidProof, HidError> {
-    session.receive_followup(controller, device)?;
-    if session.observed_count != 2 {
-        return Err(HidError::TransferError);
-    }
-    session.initial_proof()
+    let (followup, count) = session.receive_followup(controller, device)?;
+    session.scripted_initial_proof(&followup[..count])
 }

@@ -34,8 +34,8 @@ pub fn execute(
         ));
     }
     let paths = Paths::new(arch)?;
-    let image = image::execute(arch, opts)?;
-    let rebuilt_image = image::execute(arch, opts)?;
+    let image = image::execute_proof(arch, opts)?;
+    let rebuilt_image = image::execute_proof(arch, opts)?;
     let reproducible_image = image.iso_sha256 == rebuilt_image.iso_sha256;
     if !reproducible_image {
         return Err(ConduitosError::refusal(

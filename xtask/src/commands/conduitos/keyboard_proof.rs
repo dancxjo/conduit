@@ -61,7 +61,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    image::execute(ConduitosArch::X86_64, opts)?;
+    image::execute_proof(ConduitosArch::X86_64, opts)?;
     let positive_run = run::boot_once(&paths, opts)?;
     let absent = usb_run::prove_absent(&paths)?;
     let device_status = Command::new("cargo")

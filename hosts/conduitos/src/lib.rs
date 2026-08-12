@@ -17,6 +17,8 @@ pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
 pub mod keyboard_bridge;
+#[cfg(target_arch = "x86_64")]
+pub mod keyboard_input;
 pub mod keyboard_offer;
 pub mod keyboard_plan;
 pub mod keyboard_play;

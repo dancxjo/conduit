@@ -17,7 +17,14 @@ pub(super) fn execute_hotplug(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
-    execute_with_features(arch, opts, &["hotplug-proof"])
+    execute_with_features(arch, opts, &["hotplug-proof", "scripted-keyboard-proof"])
+}
+
+pub(super) fn execute_proof(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(arch, opts, &["scripted-keyboard-proof"])
 }
 
 fn execute_with_features(

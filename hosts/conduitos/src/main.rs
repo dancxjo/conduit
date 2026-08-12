@@ -291,13 +291,35 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-offer-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-plan-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-play-started\n");
-            if let Err(error) = hid_session.receive_followup(&mut xhci, &usb) {
-                emit_machine_refusal(error.as_str());
+            if !cfg!(feature = "scripted-keyboard-proof") {
+                if let Err(reason) = conduitos::keyboard_input::run_interactive(
+                    &mut hid_session,
+                    &mut xhci,
+                    &usb,
+                    &keyboard_prepared,
+                    |transition| {
+                        conduitos::rescue_guest::observe(
+                            &identities,
+                            &mut rescue_matcher,
+                            transition.into_local_rescue(),
+                            true,
+                        )
+                    },
+                ) {
+                    emit_machine_refusal(reason);
+                }
+                unreachable!("interactive HID loop only returns on refusal");
             }
-            let hid = match hid_session.initial_proof() {
-                Ok(proof) => proof,
-                Err(error) => emit_machine_refusal(error.as_str()),
-            };
+            let (proof_followup, proof_followup_count) =
+                match hid_session.receive_followup(&mut xhci, &usb) {
+                    Ok(batch) => batch,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+            let hid =
+                match hid_session.scripted_initial_proof(&proof_followup[..proof_followup_count]) {
+                    Ok(proof) => proof,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
             let portable_values = [
                 match conduitos::keyboard_bridge::portable_key_event(
                     hid.transitions[0].usage(),
@@ -396,11 +418,17 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(keyboard_sign.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-completed\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-text-play-started\n");
+            let mut proof_transitions = [arch::HidKeyTransition::default();
+                2 + conduitos::keyboard_text_guest::PHYSICAL_TRANSITIONS];
+            proof_transitions[..2].copy_from_slice(&hid.transitions);
+            let mut proof_transition_count = 2usize;
             if let Err(error) = hid_session.receive_until_observing(
                 &mut xhci,
                 &usb,
                 2 + conduitos::keyboard_text_guest::PHYSICAL_TRANSITIONS,
                 |transition| {
+                    proof_transitions[proof_transition_count] = transition;
+                    proof_transition_count += 1;
                     conduitos::rescue_guest::observe(
                         &identities,
                         &mut rescue_matcher,
@@ -414,7 +442,7 @@ extern "C" fn conduitos_start() -> ! {
             let keyboard_text_events: [conduit_core::KeyEvent;
                 conduitos::keyboard_text_guest::PHYSICAL_TRANSITIONS] =
                 core::array::from_fn(|index| {
-                    let transition = hid_session.transitions()[index + 2];
+                    let transition = proof_transitions[index + 2];
                     match conduitos::keyboard_bridge::portable_key_event(
                         transition.usage(),
                         transition.pressed(),
@@ -433,7 +461,8 @@ extern "C" fn conduitos_start() -> ! {
                 &keyboard_text_events,
                 Some(&framebuffer_basis),
             ) {
-                emit_machine_refusal(reason);
+                let _ = reason;
+                emit_machine_refusal("keyboard-proof-sequence-mismatch");
             }
             if cfg!(feature = "hotplug-proof") {
                 conduitos::hotplug_guest::run(conduitos::hotplug_guest::HotplugProofInputs {
