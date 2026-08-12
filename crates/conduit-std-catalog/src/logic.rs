@@ -33,11 +33,68 @@ pub const CONDUITOS_LOGIC_NOT_IMPLEMENTATION: &str = "conduitos/kernel-logic-not
 pub const CONDUITOS_LOGIC_NOT_ARTIFACT: &str = "conduitos/functional-kernel@1";
 pub const CONDUITOS_LOGIC_NOT_HOST_OPERATION: &str = "conduit.host/logic-not@1";
 
+pub const CONDUITOS_LOGIC_COMPARE_SCALAR_CAPABILITY: &str = "conduitos/logic-compare-scalar@1";
+pub const CONDUITOS_LOGIC_COMPARE_SCALAR_IMPLEMENTATION: &str =
+    "conduitos/kernel-logic-compare-scalar@1";
+pub const CONDUITOS_LOGIC_COMPARE_SCALAR_HOST_OPERATION: &str =
+    "conduit.host/logic-compare-scalar@1";
+
 pub const LOGIC_SELECT_SCALAR_CONTRACT_REVISION: &str = "conduit.std/logic-select-scalar@1";
 pub const LOGIC_SELECT_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/logic-select-scalar-kernel@1";
 pub const LOGIC_SELECT_SCALAR_IMPLEMENTATION: &str = "std/kernel-logic-select-scalar@1";
 pub const LOGIC_SELECT_SCALAR_ARTIFACT: &str = "conduit-std-host/logic-select-scalar@1";
 pub const LOGIC_SELECT_SCALAR_CAPABILITY: &str = "logic-select-scalar-v1";
+pub const CONDUITOS_LOGIC_SELECT_SCALAR_CAPABILITY: &str = "conduitos/logic-select-scalar@1";
+pub const CONDUITOS_LOGIC_SELECT_SCALAR_IMPLEMENTATION: &str =
+    "conduitos/kernel-logic-select-scalar@1";
+pub const CONDUITOS_LOGIC_SELECT_SCALAR_HOST_OPERATION: &str = "conduit.host/logic-select-scalar@1";
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ScalarComparison {
+    Less,
+    LessOrEqual,
+    Equal,
+    NotEqual,
+    GreaterOrEqual,
+    Greater,
+}
+
+impl ScalarComparison {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "lt" => Some(Self::Less),
+            "le" => Some(Self::LessOrEqual),
+            "eq" => Some(Self::Equal),
+            "ne" => Some(Self::NotEqual),
+            "ge" => Some(Self::GreaterOrEqual),
+            "gt" => Some(Self::Greater),
+            _ => None,
+        }
+    }
+
+    pub const fn evaluate(self, left: conduit_core::Scalar, right: conduit_core::Scalar) -> bool {
+        match self {
+            Self::Less => left.raw_microunits() < right.raw_microunits(),
+            Self::LessOrEqual => left.raw_microunits() <= right.raw_microunits(),
+            Self::Equal => left.raw_microunits() == right.raw_microunits(),
+            Self::NotEqual => left.raw_microunits() != right.raw_microunits(),
+            Self::GreaterOrEqual => left.raw_microunits() >= right.raw_microunits(),
+            Self::Greater => left.raw_microunits() > right.raw_microunits(),
+        }
+    }
+}
+
+pub const fn select_scalar(
+    selector: bool,
+    when_false: conduit_core::Scalar,
+    when_true: conduit_core::Scalar,
+) -> conduit_core::Scalar {
+    if selector {
+        when_true
+    } else {
+        when_false
+    }
+}
 
 pub const COMPARE_LEFT_PORT: &str = "left";
 pub const COMPARE_RIGHT_PORT: &str = "right";
@@ -143,6 +200,24 @@ pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     )
 }
 
+pub fn conduitos_logic_compare_scalar_offer() -> CapabilityOffer {
+    let mut offer = logic_compare_scalar_offer();
+    offer.capability_id = CapabilityId::from(CONDUITOS_LOGIC_COMPARE_SCALAR_CAPABILITY);
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(CONDUITOS_LOGIC_NOT_EXECUTION_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(CONDUITOS_LOGIC_COMPARE_SCALAR_IMPLEMENTATION);
+    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_LOGIC_NOT_ARTIFACT);
+    offer.host_operations = vec![HostOperationRequirement {
+        contract_id: HostOperationContractId::from(CONDUITOS_LOGIC_COMPARE_SCALAR_HOST_OPERATION),
+        target_kind: Some(kind_id(LOGIC_COMPARE_KIND)),
+        maximum_in_flight: 1,
+        maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+        maximum_output_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
+    }];
+    offer
+}
+
 pub fn logic_not_offer() -> CapabilityOffer {
     offer(
         logic_not_contract(),
@@ -181,6 +256,24 @@ pub fn logic_select_scalar_offer() -> CapabilityOffer {
         LOGIC_SELECT_SCALAR_IMPLEMENTATION,
         LOGIC_SELECT_SCALAR_ARTIFACT,
     )
+}
+
+pub fn conduitos_logic_select_scalar_offer() -> CapabilityOffer {
+    let mut offer = logic_select_scalar_offer();
+    offer.capability_id = CapabilityId::from(CONDUITOS_LOGIC_SELECT_SCALAR_CAPABILITY);
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(CONDUITOS_LOGIC_NOT_EXECUTION_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(CONDUITOS_LOGIC_SELECT_SCALAR_IMPLEMENTATION);
+    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_LOGIC_NOT_ARTIFACT);
+    offer.host_operations = vec![HostOperationRequirement {
+        contract_id: HostOperationContractId::from(CONDUITOS_LOGIC_SELECT_SCALAR_HOST_OPERATION),
+        target_kind: Some(kind_id(LOGIC_SELECT_KIND)),
+        maximum_in_flight: 1,
+        maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+        maximum_output_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+    }];
+    offer
 }
 
 fn offer(

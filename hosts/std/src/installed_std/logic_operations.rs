@@ -24,40 +24,7 @@ pub(super) static LOGIC_SELECT_SCALAR_FACTORY: InstalledFactory = InstalledFacto
     prepare: prepare_select,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum CompareOperator {
-    Lt,
-    Le,
-    Eq,
-    Ne,
-    Ge,
-    Gt,
-}
-
-impl CompareOperator {
-    fn parse(value: &str) -> Option<Self> {
-        match value {
-            "lt" => Some(Self::Lt),
-            "le" => Some(Self::Le),
-            "eq" => Some(Self::Eq),
-            "ne" => Some(Self::Ne),
-            "ge" => Some(Self::Ge),
-            "gt" => Some(Self::Gt),
-            _ => None,
-        }
-    }
-
-    fn evaluate(self, left: Scalar, right: Scalar) -> bool {
-        match self {
-            Self::Lt => left < right,
-            Self::Le => left <= right,
-            Self::Eq => left == right,
-            Self::Ne => left != right,
-            Self::Ge => left >= right,
-            Self::Gt => left > right,
-        }
-    }
-}
+use conduit_std_catalog::ScalarComparison as CompareOperator;
 
 struct DecisionValues {
     values: [Option<ValueRef>; 2],
