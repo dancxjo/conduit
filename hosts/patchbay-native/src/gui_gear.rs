@@ -8,9 +8,10 @@ use crate::{
     icon::{draw_icon, Icon},
 };
 use embedded_graphics::{
+    draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
-    prelude::{DrawTarget, Point, Primitive},
-    primitives::{Circle, PrimitiveStyle},
+    prelude::{DrawTarget, Point, Primitive, Size},
+    primitives::{Circle, PrimitiveStyle, Rectangle},
     Drawable,
 };
 use patchbay_model::{
@@ -45,14 +46,19 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
         },
         if is_selected { 2 } else { 1 },
     );
+    let clip = Rectangle::new(
+        Point::new(layout.bounds.x, layout.bounds.y),
+        Size::new(layout.bounds.width, layout.bounds.height),
+    );
+    let mut target = target.clipped(&clip);
     draw_icon(
-        target,
+        &mut target,
         Icon::Gear,
         Point::new(layout.bounds.x + 10, layout.bounds.y + 9),
         rgb(theme.emphasis),
     );
     text(
-        target,
+        &mut target,
         Point::new(layout.bounds.x + 34, layout.bounds.y + 10),
         &match &layout.group {
             Some(group) => format!("{} [{group}]", layout.gear.gear_id.as_str()),
@@ -63,7 +69,7 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
     let reversed = view.presentation_layout.is_reversed(&layout.gear.identity);
     if reversed {
         draw_realization(
-            target,
+            &mut target,
             graph,
             layout,
             view.realization_plan,
@@ -73,7 +79,7 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
         );
     } else {
         text(
-            target,
+            &mut target,
             Point::new(layout.bounds.x + 12, layout.bounds.y + 29),
             &format!("FORM  {}", layout.gear.kind_id.as_str()),
             theme.emphasis,
@@ -83,11 +89,11 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
         action: select_action(graph, &layout.gear.identity),
         shape: HitShape::Rect(layout.bounds),
     });
-    draw_flip_control(target, graph, layout, reversed, theme, targets);
+    draw_flip_control(&mut target, graph, layout, reversed, theme, targets);
     if !reversed {
-        draw_ports(target, graph, layout, selected, theme, targets);
+        draw_ports(&mut target, graph, layout, selected, theme, targets);
         draw_face_controls(
-            target,
+            &mut target,
             graph,
             layout.gear,
             layout.bounds,

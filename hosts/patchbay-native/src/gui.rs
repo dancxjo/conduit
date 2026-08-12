@@ -12,7 +12,9 @@ use crate::{
     gui_hit::HitShape,
     gui_inspector::{draw_inspector, InspectorView},
     gui_navigator::{draw_navigator, FormsNavigatorView},
-    gui_primitives::{draw_regions, frame_rect, icon_label, line, text, PixelRect, RegionMetrics},
+    gui_primitives::{
+        draw_regions, frame_rect, icon_label, line, positive, text, PixelRect, RegionMetrics,
+    },
     icon::Icon,
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
     parts_view::{draw_parts, PartsSelection},
@@ -146,14 +148,24 @@ pub fn draw_patchbay(
         },
         theme,
     );
-    draw_header(
-        &mut canvas,
-        graph,
-        breadcrumb,
-        (lifecycle, width, viewport),
-        theme,
-        &mut targets,
-    );
+    {
+        let clip = Rectangle::new(
+            Point::zero(),
+            Size::new(
+                u32::try_from(width).unwrap_or_default(),
+                HEADER_HEIGHT as u32,
+            ),
+        );
+        let mut header = canvas.clipped(&clip);
+        draw_header(
+            &mut header,
+            graph,
+            breadcrumb,
+            (lifecycle, width, viewport),
+            theme,
+            &mut targets,
+        );
+    }
     let mut compositions = layout_compositions(graph, width);
     let mut layouts = layout_gears(
         graph,
@@ -174,20 +186,30 @@ pub fn draw_patchbay(
         &mut compositions,
         &mut boundaries,
     );
-    draw_navigator(
-        &mut canvas,
-        palette,
-        graph.gears.len() + graph.compositions.len(),
-        FormsNavigatorView {
-            entries: forms,
-            selection: form_selection,
-            scroll: form_scroll,
-            body_born: lifecycle.body_id.is_some(),
-            parts_open: lifecycle.parts.is_some(),
-        },
-        theme,
-        &mut targets,
-    );
+    {
+        let clip = Rectangle::new(
+            Point::new(0, HEADER_HEIGHT),
+            Size::new(
+                NAV_WIDTH as u32,
+                positive(height - HEADER_HEIGHT - FOOTER_HEIGHT),
+            ),
+        );
+        let mut navigator = canvas.clipped(&clip);
+        draw_navigator(
+            &mut navigator,
+            palette,
+            graph.gears.len() + graph.compositions.len(),
+            FormsNavigatorView {
+                entries: forms,
+                selection: form_selection,
+                scroll: form_scroll,
+                body_born: lifecycle.body_id.is_some(),
+                parts_open: lifecycle.parts.is_some(),
+            },
+            theme,
+            &mut targets,
+        );
+    }
     {
         let clip = viewport.canvas();
         let clip = Rectangle::new(
@@ -249,21 +271,31 @@ pub fn draw_patchbay(
             );
         }
     }
-    draw_inspector(
-        &mut canvas,
-        graph,
-        InspectorView {
-            selected,
-            palette,
-            lifecycle,
-            status,
-            exact_open: exact_identity_open,
-            width,
-            inspector_width: INSPECTOR_WIDTH,
-        },
-        theme,
-        &mut targets,
-    );
+    {
+        let clip = Rectangle::new(
+            Point::new(width - INSPECTOR_WIDTH, HEADER_HEIGHT),
+            Size::new(
+                INSPECTOR_WIDTH as u32,
+                positive(height - HEADER_HEIGHT - FOOTER_HEIGHT),
+            ),
+        );
+        let mut inspector = canvas.clipped(&clip);
+        draw_inspector(
+            &mut inspector,
+            graph,
+            InspectorView {
+                selected,
+                palette,
+                lifecycle,
+                status,
+                exact_open: exact_identity_open,
+                width,
+                inspector_width: INSPECTOR_WIDTH,
+            },
+            theme,
+            &mut targets,
+        );
+    }
     draw_footer(&mut canvas, graph, selected, status, height, theme);
     targets.truncate(MAX_HIT_TARGETS);
     targets
