@@ -658,6 +658,7 @@ name = "conduit-std-host"
 version = "0.1.0"
 dependencies = [
  "conduit-ai",
+ "conduit-body",
  "conduit-chat",
  "conduit-core",
  "conduit-form",
@@ -673,6 +674,7 @@ dependencies = [
  "conduit-system-continuity",
  "conduit-wire",
  "libc",
+ "serde",
  "serde_json",
  "tungstenite",
 ]

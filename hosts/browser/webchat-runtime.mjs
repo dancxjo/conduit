@@ -7,6 +7,7 @@ const STATUS_COMPLETE = 1;
 const MAXIMUM_MESSAGE_BYTES = 256;
 const MAXIMUM_HISTORY_ITEMS = 16;
 const INPUT_CAPACITY = 4096;
+const MAXIMUM_MEMBERSHIP_OUTPUT_BYTES = 9216;
 
 function requireApi(api) {
   const names = [
@@ -33,6 +34,7 @@ function requireApi(api) {
     "conduit_browser_membership_output_len",
     "conduit_browser_membership_initialize",
     "conduit_browser_membership_prove",
+    "conduit_browser_membership_advertisement",
   ];
   if (names.some((name) => !(name in api)) ||
       api.conduit_browser_webchat_input_capacity() !== INPUT_CAPACITY ||
@@ -42,7 +44,7 @@ function requireApi(api) {
 }
 
 function readBytes(api, pointer, length) {
-  if (length < 0 || length > INPUT_CAPACITY) {
+  if (length < 0 || length > MAXIMUM_MEMBERSHIP_OUTPUT_BYTES) {
     throw new Error("CND-CHAT-002 invalid WASM frame length");
   }
   return new Uint8Array(api.memory.buffer, pointer, length).slice();
@@ -63,7 +65,7 @@ function requireStatus(status, action) {
   if (status < 0) throw new Error(`CND-CHAT-004 ${action} failed ${status}`);
 }
 
-export async function createWebchatRuntime({ wasmBytes, url, list, input, button, status }) {
+export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, list, input, button, status }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   requireApi(api);
@@ -97,11 +99,22 @@ export async function createWebchatRuntime({ wasmBytes, url, list, input, button
   if (verifyingKey.length !== 32) {
     throw new Error("CND-CHAT-010 invalid membership verifying key");
   }
+  requireStatus(
+    api.conduit_browser_membership_advertisement(),
+    "membership advertisement",
+  );
+  const advertisement = JSON.parse(decoder.decode(readBytes(
+    api,
+    api.conduit_browser_membership_output_ptr(),
+    api.conduit_browser_membership_output_len(),
+  )));
   const startFrame = encoder.encode(`${url}\n${hostId}\n${bootId}`);
   writeInput(api, startFrame);
   requireStatus(api.conduit_browser_webchat_start(startFrame.length), "start");
 
   let socket = null;
+  let bodySocket = null;
+  let bodyState = bodyUrl ? "connecting" : "not-configured";
   let closed = false;
   let chain = Promise.resolve();
   const enqueue = (action) => {
@@ -231,6 +244,47 @@ export async function createWebchatRuntime({ wasmBytes, url, list, input, button
     }
     return signature;
   }
+  if (bodyUrl) {
+    bodySocket = new WebSocket(bodyUrl);
+    bodySocket.binaryType = "arraybuffer";
+    bodySocket.addEventListener("open", () => {
+      bodyState = "wants-to-join";
+      bodySocket.send(JSON.stringify({
+        kind: "advertise",
+        protocol: 1,
+        advertisement,
+        friendly_label: "Browser",
+        verifying_key: Array.from(verifyingKey),
+        freshness_sequence: 1,
+      }));
+    });
+    bodySocket.addEventListener("message", (event) => {
+      const frame = JSON.parse(typeof event.data === "string"
+        ? event.data
+        : decoder.decode(new Uint8Array(event.data)));
+      if (frame.kind === "challenge" && frame.protocol === 1) {
+        const signature = proveAdmission(frame.challenge);
+        bodyState = "proof-sent";
+        bodySocket.send(JSON.stringify({
+          kind: "ambient-proof",
+          protocol: 1,
+          admission_id: frame.challenge.admission_id,
+          body_id: frame.challenge.body_id,
+          host_id: hostId,
+          boot_id: bootId,
+          nonce: frame.challenge.nonce,
+          signature: Array.from(signature),
+        }));
+      } else if (frame.kind === "admitted" && frame.protocol === 1) {
+        bodyState = "admitted";
+      } else if (frame.kind === "refused" && frame.protocol === 1) {
+        bodyState = `refused:${frame.code}`;
+      }
+    });
+    bodySocket.addEventListener("close", () => {
+      if (bodyState !== "admitted") bodyState = "offline";
+    });
+  }
   return Object.freeze({
     submit: (text) => enqueue(async () => { input.value = text; await submit(); }),
     disconnect: () => enqueue(disconnect),
@@ -238,7 +292,11 @@ export async function createWebchatRuntime({ wasmBytes, url, list, input, button
       hostId,
       bootId,
       verifyingKey,
+      advertisement: Object.freeze(advertisement),
       prove: proveAdmission,
+    }),
+    bodyAdmission: Object.freeze({
+      state: () => bodyState,
     }),
     proof: () => Object.freeze({
       identity,

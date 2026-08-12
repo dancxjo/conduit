@@ -19,6 +19,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 mod boot_identity;
+pub mod browser_admission;
 mod composition;
 #[cfg(test)]
 mod composition_test_offers;

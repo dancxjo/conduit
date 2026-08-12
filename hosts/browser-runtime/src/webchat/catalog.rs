@@ -4,7 +4,7 @@ use conduit_core::{
 };
 use conduit_planner::BROWSER_PLANNER_PROFILE;
 
-pub(super) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
+pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
     let socket = conduit_net::browser_external_websocket_family();
     let chat = conduit_chat::browser_chat_family();
     HostAdvertisement {

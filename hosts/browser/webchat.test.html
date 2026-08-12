@@ -13,6 +13,7 @@ import { createWebchatRuntime } from "./webchat-runtime.mjs";
 
 const url = new URLSearchParams(location.search).get("ws");
 if (!url) throw new Error("webchat requires ?ws=ws://127.0.0.1:port");
+const bodyUrl = new URLSearchParams(location.search).get("body");
 const wasmBytes = await fetch(
   "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
 ).then((response) => {
@@ -22,6 +23,7 @@ const wasmBytes = await fetch(
 globalThis.__webchat = await createWebchatRuntime({
   wasmBytes,
   url,
+  bodyUrl,
   list: document.querySelector("#history"),
   input: document.querySelector("#message"),
   button: document.querySelector("#send"),
