@@ -239,6 +239,16 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
     })
     .unwrap();
 
+    assert_eq!(
+        application.handle_gui_action(GuiAction::OpenBack),
+        Err("interaction refused: NavigationTargetMissing".into())
+    );
+    assert!(application.back_navigation.is_empty());
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().open_form,
+        "default-welcome"
+    );
+
     let composed = application
         .graphical_form
         .as_ref()
@@ -363,6 +373,7 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
     assert_eq!(
         actions,
         [
+            patchbay_model::PatchbayAction::OpenBack,
             patchbay_model::PatchbayAction::OpenBack,
             patchbay_model::PatchbayAction::OpenBack,
             patchbay_model::PatchbayAction::OpenBack,
@@ -796,12 +807,17 @@ fn native_invocation_adapter_distinguishes_stale_target_and_platform_failure() {
 
     assert_eq!(
         application.apply_invocation(&patchbay_model::PatchbayInvocation {
-            action: patchbay_model::PatchbayAction::Save,
+            action: patchbay_model::PatchbayAction::OpenBack,
             target_identity: "expanded/stale".into(),
         }),
         patchbay_model::PatchbayInvocationOutcome::Refused(
             patchbay_model::PatchbayRefusal::StalePresentation
         )
+    );
+    assert!(application.back_navigation.is_empty());
+    assert_eq!(
+        application.form_editor.as_ref().unwrap().view().open_form,
+        "hello"
     );
 
     std::fs::remove_file(&path).unwrap();

@@ -120,6 +120,7 @@ impl PatchbayApplication {
             form_selection: 0,
             back_navigation: Vec::with_capacity(form_interaction::MAX_BACK_NAVIGATION_DEPTH),
             pending_back_target: None,
+            pending_back_selection: false,
             graphical_form: workspace.graphical_form,
             layout: workspace.layout,
             interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),

@@ -103,6 +103,7 @@ pub enum PatchbayRefusal {
     UnknownSubject,
     OperationUnavailable,
     OperationRejected,
+    NavigationTargetMissing,
     NavigationTargetUnavailable,
     NavigationDepthExceeded,
     IncompatiblePorts,
