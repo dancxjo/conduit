@@ -1,4 +1,5 @@
 use super::audio_play_operation::AudioPlayOperation;
+use super::bool_presentation::BoolPresentationOperation;
 use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
@@ -57,6 +58,7 @@ pub(super) enum InstalledOperation {
     TimeDelay(DelayOperation),
     TimeThrottle(ThrottleOperation),
     TickPresentation(TickPresentationOperation),
+    BoolPresentation(BoolPresentationOperation),
     TextLiteral(TextLiteralOperation),
     TextUpper(TextTransformOperation),
     TextJoin(TextTransformOperation),
@@ -144,6 +146,7 @@ impl Operation for InstalledOperation {
             Self::TimeDelay(operation) => operation.start(),
             Self::TimeThrottle(operation) => operation.start(),
             Self::TickPresentation(operation) => operation.start(),
+            Self::BoolPresentation(operation) => operation.start(),
             Self::TextLiteral(operation) => operation.start(),
             Self::TextUpper(operation) => operation.start(),
             Self::TextJoin(operation) => operation.start(),
@@ -221,6 +224,7 @@ impl Operation for InstalledOperation {
             (Self::TextJoin(operation), input) => operation.resume(input),
             (Self::TextPresentation(operation), input) => operation.resume(input),
             (Self::TickPresentation(operation), input) => operation.resume(input),
+            (Self::BoolPresentation(operation), input) => operation.resume(input),
             (Self::StateCount(operation), input) => operation.resume(input),
             (Self::StateToggle(operation), input) => operation.resume(input),
             (Self::CountPresentation(operation), input) => operation.resume(input),
@@ -316,6 +320,7 @@ impl Operation for InstalledOperation {
         match self {
             Self::Tick(operation) => operation.advance(),
             Self::TickPresentation(_) => OperationAction::Await,
+            Self::BoolPresentation(_) => OperationAction::Await,
             Self::TimeDebounce(operation) => operation.advance(),
             Self::TimeTimeout(operation) => operation.advance(),
             Self::TimeDelay(operation) => operation.advance(),
@@ -392,6 +397,7 @@ impl Operation for InstalledOperation {
         match self {
             Self::Tick(operation) => operation.cancel(),
             Self::TickPresentation(operation) => operation.cancel(),
+            Self::BoolPresentation(operation) => operation.cancel(),
             Self::TimeDebounce(operation) => operation.cancel(),
             Self::TimeTimeout(operation) => operation.cancel(),
             Self::TimeDelay(operation) => operation.cancel(),

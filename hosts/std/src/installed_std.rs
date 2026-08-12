@@ -1,4 +1,5 @@
 mod audio_play_operation;
+mod bool_presentation;
 mod catalog;
 pub(super) mod contract;
 mod count_operations;
@@ -407,6 +408,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
     let tick_target_kind = kind_id(conduit_std_catalog::TICK_PRESENTATION_TARGET);
     let count_target_kind = kind_id(conduit_std_catalog::COUNT_PRESENTATION_TARGET);
+    let bool_target_kind = kind_id(conduit_std_catalog::BOOL_PRESENTATION_STD_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT,
     );
@@ -1098,6 +1100,11 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             } else if lowered_operation.target_kind.as_ref() == Some(&count_target_kind) {
                 let count = count_operations::decode_count(input)?;
                 writeln!(_output, "count value={count}").map_err(|error| error.to_string())?;
+            } else if lowered_operation.target_kind.as_ref() == Some(&bool_target_kind) {
+                let value = conduit_core::InfoBool::decode(input)
+                    .map_err(|error| format!("Boolean presentation input is invalid: {error:?}"))?;
+                writeln!(_output, "bool value={}", value.get())
+                    .map_err(|error| error.to_string())?;
             } else {
                 #[cfg(test)]
                 {

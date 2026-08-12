@@ -164,7 +164,7 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         time_delay_offer(),
         time_throttle_offer(),
         tick_presentation_offer(),
-        bool_presentation_browser_offer(),
+        bool_presentation_std_offer(),
         text_literal_offer(),
         text_upper_offer(),
         text_join_offer(),
