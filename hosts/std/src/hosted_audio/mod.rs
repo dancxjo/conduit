@@ -30,6 +30,34 @@ pub const PERIOD_FRAMES: u16 = conduit_std_catalog::AUDIO_PLAY_ALSA_PERIOD_FRAME
 pub const BUFFER_FRAMES: u16 = conduit_std_catalog::AUDIO_PLAY_ALSA_BUFFER_FRAMES;
 pub const SOURCE_CLOCK_ID: u64 = 1;
 
+/// Exact PCM profile of the reviewed direct ALSA hardware adapter. Device
+/// presence, identity, and authority remain fresh observation facts.
+pub fn compatibility_profile() -> conduit_std_catalog::SoundCompatibilityProfile {
+    use conduit_std_catalog::*;
+    SoundCompatibilityProfile {
+        profile_id: AUDIO_PLAY_ALSA_HW_PROFILE.into(),
+        seam: SoundSeam::PcmPlayback,
+        minimum_pitch_millihertz: 0,
+        maximum_pitch_millihertz: 0,
+        maximum_polyphony: 0,
+        maximum_events_per_second: 0,
+        preserves_velocity: false,
+        preserves_sustain: false,
+        preserves_pitch_bend: false,
+        maximum_pitch_bend_range_microcents: 0,
+        preserves_modulation: false,
+        accepts_microtonal_pitch: false,
+        supports_subtractive_filter: false,
+        pcm: Some(PcmCompatibilityProfile {
+            representation: conduit_core::PcmSampleRepresentation::Signed16LittleEndian,
+            sample_rate_hz: SAMPLE_RATE_HZ,
+            layout: conduit_core::PcmChannelLayout::StereoLeftRight,
+            maximum_frames_per_block: PERIOD_FRAMES,
+            maximum_frame_bytes: AUDIO_PLAY_ALSA_PERIOD_FRAMES as u32 * AUDIO_PLAY_ALSA_FRAME_BYTES,
+        }),
+    }
+}
+
 /// One user-selected discovery result. The constructor is deliberately fed by
 /// a current observation rather than an ambient default-device lookup.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,29 +116,7 @@ impl HostedPlaybackSelection {
 
     pub fn realization_advertisement(&self, host_id: HostId) -> RealizationAdvertisement {
         use conduit_std_catalog::*;
-        let profile = SoundCompatibilityProfile {
-            profile_id: AUDIO_PLAY_ALSA_HW_PROFILE.into(),
-            seam: SoundSeam::PcmPlayback,
-            minimum_pitch_millihertz: 0,
-            maximum_pitch_millihertz: 0,
-            maximum_polyphony: 0,
-            maximum_events_per_second: 0,
-            preserves_velocity: false,
-            preserves_sustain: false,
-            preserves_pitch_bend: false,
-            maximum_pitch_bend_range_microcents: 0,
-            preserves_modulation: false,
-            accepts_microtonal_pitch: false,
-            supports_subtractive_filter: false,
-            pcm: Some(PcmCompatibilityProfile {
-                representation: conduit_core::PcmSampleRepresentation::Signed16LittleEndian,
-                sample_rate_hz: SAMPLE_RATE_HZ,
-                layout: conduit_core::PcmChannelLayout::StereoLeftRight,
-                maximum_frames_per_block: PERIOD_FRAMES,
-                maximum_frame_bytes: AUDIO_PLAY_ALSA_PERIOD_FRAMES as u32
-                    * AUDIO_PLAY_ALSA_FRAME_BYTES,
-            }),
-        };
+        let profile = compatibility_profile();
         let mut characteristics = sound_profile_characteristics(&profile);
         characteristics.extend([
             count(AUDIO_PERIOD_FRAMES_CHARACTERISTIC, u64::from(PERIOD_FRAMES)),
@@ -237,5 +243,19 @@ impl PlaybackSession {
             #[cfg(test)]
             Self::Fake(session) => session.report(),
         }
+    }
+}
+
+#[cfg(test)]
+mod profile_tests {
+    use super::*;
+
+    #[test]
+    fn playback_profile_is_reusable_without_claiming_a_device() {
+        let profile = compatibility_profile();
+        assert_eq!(profile.seam, conduit_std_catalog::SoundSeam::PcmPlayback);
+        let pcm = profile.pcm.unwrap();
+        assert_eq!(pcm.sample_rate_hz, SAMPLE_RATE_HZ);
+        assert_eq!(pcm.maximum_frames_per_block, PERIOD_FRAMES);
     }
 }
