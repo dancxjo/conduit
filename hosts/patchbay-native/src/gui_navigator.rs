@@ -138,9 +138,27 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     );
     action_button(
         target,
+        Icon::Back,
+        "Undo (Ctrl+Z)",
+        310,
+        GuiAction::UndoSemanticEdit,
+        theme,
+        targets,
+    );
+    action_button(
+        target,
+        Icon::Open,
+        "Redo (Ctrl+Shift+Z)",
+        342,
+        GuiAction::RedoSemanticEdit,
+        theme,
+        targets,
+    );
+    action_button(
+        target,
         Icon::Inspect,
         "Details (F2)",
-        310,
+        374,
         GuiAction::ToggleLinearView,
         theme,
         targets,
@@ -150,12 +168,12 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     } else {
         "PALETTE  / TO SEARCH".into()
     };
-    text(target, Point::new(14, 354), &heading, theme.emphasis);
+    text(target, Point::new(14, 418), &heading, theme.emphasis);
     draw_palette(
         target,
         palette,
         PaletteChooser::keyboard_target(visible_subject_count),
-        374,
+        438,
         theme,
         targets,
     );

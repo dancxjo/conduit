@@ -95,7 +95,13 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
         .iter()
         .any(|target| target.action == GuiAction::SaveForm && target.contains(20.0, 282.0)));
     assert!(targets.iter().any(|target| {
-        target.action == GuiAction::ToggleLinearView && target.contains(20.0, 314.0)
+        target.action == GuiAction::UndoSemanticEdit && target.contains(20.0, 314.0)
+    }));
+    assert!(targets.iter().any(|target| {
+        target.action == GuiAction::RedoSemanticEdit && target.contains(20.0, 346.0)
+    }));
+    assert!(targets.iter().any(|target| {
+        target.action == GuiAction::ToggleLinearView && target.contains(20.0, 378.0)
     }));
     assert!(targets
         .iter()

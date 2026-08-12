@@ -105,6 +105,12 @@ impl PatchbayApplication {
                 back_count,
             )?,
             GuiAction::SaveForm => self.dispatch_invocation(PatchbayAction::Save)?,
+            GuiAction::UndoSemanticEdit => {
+                self.move_semantic_history(crate::semantic_history::SemanticHistoryDirection::Undo)?
+            }
+            GuiAction::RedoSemanticEdit => {
+                self.move_semantic_history(crate::semantic_history::SemanticHistoryDirection::Redo)?
+            }
             GuiAction::ToggleLinearView => {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
             }
@@ -250,11 +256,7 @@ impl PatchbayApplication {
                     Err(BackNavigationError::Projection) => PatchbayInvocationOutcome::Failed,
                 };
             }
-            PatchbayAction::Save => match self.form_editor.as_mut() {
-                Some(editor) => save_form_resource(editor)
-                    .and_then(|()| save_layout_resource(editor, &self.layout)),
-                None => Err("canonical Form editor is absent".into()),
-            },
+            PatchbayAction::Save => self.save_current_form(),
             PatchbayAction::ToggleLinearView => {
                 self.linear_view = !self.linear_view;
                 Ok(())
@@ -359,6 +361,16 @@ impl PatchbayApplication {
         Ok(())
     }
 
+    fn save_current_form(&mut self) -> Result<(), String> {
+        let editor = self
+            .form_editor
+            .as_mut()
+            .ok_or("canonical Form editor is absent")?;
+        save_form_resource(editor)?;
+        save_layout_resource(editor, &self.layout)?;
+        self.mark_semantic_history_saved()
+    }
+
     pub(super) fn selected_graphical_identity(&self) -> Option<&str> {
         let graph = self.graphical_form.as_ref()?;
         let selected = self.interaction.as_ref()?.selected()?;
@@ -434,6 +446,26 @@ impl PatchbayApplication {
         }
         let mut synchronize_linear_selection = true;
         match key {
+            Key::Character(character)
+                if self.modifiers.control_key()
+                    && self.modifiers.shift_key()
+                    && character.eq_ignore_ascii_case("z") =>
+            {
+                self.handle_gui_action(GuiAction::RedoSemanticEdit)?;
+                synchronize_linear_selection = false;
+            }
+            Key::Character(character)
+                if self.modifiers.control_key() && character.eq_ignore_ascii_case("z") =>
+            {
+                self.handle_gui_action(GuiAction::UndoSemanticEdit)?;
+                synchronize_linear_selection = false;
+            }
+            Key::Character(character)
+                if self.modifiers.control_key() && character.eq_ignore_ascii_case("y") =>
+            {
+                self.handle_gui_action(GuiAction::RedoSemanticEdit)?;
+                synchronize_linear_selection = false;
+            }
             Key::Character(character)
                 if self.modifiers.control_key()
                     && character.eq_ignore_ascii_case("d")

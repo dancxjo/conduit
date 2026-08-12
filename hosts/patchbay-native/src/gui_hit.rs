@@ -54,6 +54,8 @@ pub enum GuiAction {
         back_count: usize,
     },
     SaveForm,
+    UndoSemanticEdit,
+    RedoSemanticEdit,
     ToggleLinearView,
     ToggleExactIdentity,
     BeginPaletteDrag(String),
