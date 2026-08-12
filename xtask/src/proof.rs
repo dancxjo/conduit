@@ -330,6 +330,16 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         named_artifacts: &["firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
         allowed_claims: &["one born Body and one physical Pico boot execute live three-peer control, new-Plan recovery, same-Plan continuation, Lull, and a later Wake"],
     },
+    ProofCommandContract {
+        id: "body.membership-capstone",
+        command: "cargo xtask prove body-membership",
+        proof_class: ProofClass::DeterministicSimulation,
+        required_tools_or_targets: &["cargo"],
+        named_artifacts: &[],
+        allowed_claims: &[
+            "bounded deterministic conformance proves Body membership admission topology continuity browser and Pico simulation contracts",
+        ],
+    },
 ];
 
 #[derive(Debug, Serialize)]
