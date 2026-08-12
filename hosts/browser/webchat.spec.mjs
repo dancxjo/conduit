@@ -82,6 +82,41 @@ test("two native browser clients exchange bounded chat through planned kernels",
   expect(identityField(proofB, "host")).toBeTruthy();
   expect(identityField(proofA, "host")).not.toBe(identityField(proofB, "host"));
   expect(identityField(proofA, "boot")).not.toBe(identityField(proofB, "boot"));
+  const candidates = await Promise.all([pageA, pageB].map((page) => page.evaluate(() => ({
+    hostId: globalThis.__webchat.admissionCandidate.hostId,
+    bootId: globalThis.__webchat.admissionCandidate.bootId,
+    verifyingKey: Array.from(globalThis.__webchat.admissionCandidate.verifyingKey),
+  }))));
+  expect(candidates[0].hostId).not.toBe(candidates[1].hostId);
+  expect(candidates[0].bootId).not.toBe(candidates[1].bootId);
+  expect(candidates[0].verifyingKey).toHaveLength(32);
+  expect(candidates[0].verifyingKey).not.toEqual(candidates[1].verifyingKey);
+  const challengeFor = (candidate, suffix) => ({
+    admission_id: `admission/browser-${suffix}`,
+    body_id: "body/browser-live",
+    candidate_id: `candidate/browser-${suffix}`,
+    host_id: candidate.hostId,
+    boot_id: candidate.bootId,
+    offer_generation: 1,
+    nonce: Array(32).fill(suffix === "a" ? 17 : 23),
+    issued_at_millis: 1_000,
+    expires_at_millis: 2_000,
+  });
+  const signatures = await Promise.all([
+    pageA.evaluate((challenge) => Array.from(globalThis.__webchat.admissionCandidate.prove(challenge)), challengeFor(candidates[0], "a")),
+    pageB.evaluate((challenge) => Array.from(globalThis.__webchat.admissionCandidate.prove(challenge)), challengeFor(candidates[1], "b")),
+  ]);
+  expect(signatures[0]).toHaveLength(64);
+  expect(signatures[0]).not.toEqual(signatures[1]);
+  const staleProof = await pageA.evaluate((challenge) => {
+    try {
+      globalThis.__webchat.admissionCandidate.prove(challenge);
+      return "accepted";
+    } catch (error) {
+      return String(error);
+    }
+  }, { ...challengeFor(candidates[0], "stale"), boot_id: "browser-boot/stale" });
+  expect(staleProof).toContain("admission proof failed");
   expect(proofA.disconnected).toBe(true);
   expect(proofB.disconnected).toBe(false);
 
