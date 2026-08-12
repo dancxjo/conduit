@@ -138,6 +138,16 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#graph .gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
     await expect(page.locator("#graph .port")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Port").length);
     await expect(page.locator("#graph .cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
+    await expect(page.locator("#graph .cord path.cord-line")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
+    expect(await page.locator("#graph").evaluate(svg=>{
+      const gears=[...svg.querySelectorAll(".gear-face")].map(rect=>({left:+rect.getAttribute("x"),right:+rect.getAttribute("x") + +rect.getAttribute("width"),top:+rect.getAttribute("y"),bottom:+rect.getAttribute("y") + +rect.getAttribute("height")}));
+      const inside=(point,gear)=>point.x>gear.left&&point.x<gear.right&&point.y>gear.top&&point.y<gear.bottom;
+      return [...svg.querySelectorAll(".cord path.cord-line")].every(path=>{
+        const length=path.getTotalLength();
+        for(let offset=0;offset<=length;offset+=2){const point=path.getPointAtLength(offset);if(gears.some(gear=>inside(point,gear)))return false;}
+        return true;
+      });
+    })).toBe(true);
     await expect(page.locator("#graph .diagnostic-overlay")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Diagnostic").length);
     await expect(page.locator("#graph .route-recovery")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Route").length);
     await expect(page.locator("#graph .route-candidate.status-unavailable")).toHaveCount(2);
