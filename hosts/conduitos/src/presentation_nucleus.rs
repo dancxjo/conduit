@@ -2,6 +2,9 @@
 
 mod bool_play;
 mod logic_not_play;
+mod math_clamp_play;
+#[cfg(test)]
+mod math_clamp_play_tests;
 mod operation;
 mod plan;
 mod play;
@@ -12,3 +15,4 @@ pub use play::{PresentationProof, PresentationRunError, run};
 pub const TEXT_SOURCE_KIND: &str = "conduitos/fixture-text-source";
 pub use bool_play::{BoolPresentationError, BoolPresentationProof, prepare_bool, run_bool};
 pub use logic_not_play::{LogicNotError, LogicNotProof, prepare_not, run_not};
+pub use math_clamp_play::{MathClampError, MathClampProof, prepare_clamp, run_clamp};

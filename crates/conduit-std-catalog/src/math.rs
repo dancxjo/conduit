@@ -24,6 +24,10 @@ pub const MATH_CLAMP_IMPLEMENTATION: &str = "std/kernel-math-clamp-scalar@1";
 pub const MATH_CLAMP_ARTIFACT: &str = "conduit-std-host/math-clamp-scalar@1";
 pub const MATH_CLAMP_CAPABILITY: &str = "math-clamp-scalar-v1";
 pub const MATH_CLAMP_HOST_OPERATION: &str = "conduit.host/math-clamp-scalar@1";
+pub const CONDUITOS_MATH_CLAMP_CAPABILITY: &str = "conduitos/math-clamp-scalar@1";
+pub const CONDUITOS_MATH_CLAMP_EXECUTION_PROFILE: &str = "conduitos/functional-kernel@1";
+pub const CONDUITOS_MATH_CLAMP_IMPLEMENTATION: &str = "conduitos/kernel-math-clamp-scalar@1";
+pub const CONDUITOS_MATH_CLAMP_ARTIFACT: &str = "conduitos/functional-kernel@1";
 
 pub const MATH_SCALE_CONTRACT_REVISION: &str = "conduit.std/math-scale-scalar@1";
 pub const MATH_SCALE_EXECUTION_PROFILE: &str = "conduit.std/math-scale-scalar-kernel@1";
@@ -144,6 +148,17 @@ pub fn math_clamp_offer() -> CapabilityOffer {
         MATH_CLAMP_ARTIFACT,
         MATH_CLAMP_HOST_OPERATION,
     )
+}
+
+pub fn conduitos_math_clamp_offer() -> CapabilityOffer {
+    let mut offer = math_clamp_offer();
+    offer.capability_id = CapabilityId::from(CONDUITOS_MATH_CLAMP_CAPABILITY);
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(CONDUITOS_MATH_CLAMP_EXECUTION_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(CONDUITOS_MATH_CLAMP_IMPLEMENTATION);
+    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_MATH_CLAMP_ARTIFACT);
+    offer
 }
 
 pub fn math_scale_offer() -> CapabilityOffer {
