@@ -8,6 +8,7 @@ use crate::cli::GlobalOpts;
 
 use super::CatalogError;
 
+mod adapters;
 mod forms;
 mod plans;
 
@@ -80,6 +81,7 @@ struct Report {
     canonical_forms: Vec<forms::CanonicalForm>,
     cross_realization_plans: plans::PlanComparison,
     recursive_realization: RecursiveRealization,
+    lossy_adapter: adapters::LossyAdapterProof,
 }
 
 #[derive(Debug, Serialize)]
@@ -153,6 +155,7 @@ fn build() -> Result<Report, CatalogError> {
             proof_class: ProofClass::DeterministicReference,
             proof_command: "cargo test -p conduit-composite --test sound_realization",
         },
+        lossy_adapter: adapters::build()?,
     })
 }
 
