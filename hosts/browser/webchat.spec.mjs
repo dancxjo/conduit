@@ -77,6 +77,11 @@ test("two native browser clients exchange bounded chat through planned kernels",
     }
     expect(proof.identity).not.toContain("hello from");
   }
+  const identityField = (proof, name) => proof.identity.match(new RegExp(`${name}=([^ ]+)`))?.[1];
+  expect(identityField(proofA, "host")).toBeTruthy();
+  expect(identityField(proofB, "host")).toBeTruthy();
+  expect(identityField(proofA, "host")).not.toBe(identityField(proofB, "host"));
+  expect(identityField(proofA, "boot")).not.toBe(identityField(proofB, "boot"));
   expect(proofA.disconnected).toBe(true);
   expect(proofB.disconnected).toBe(false);
 
