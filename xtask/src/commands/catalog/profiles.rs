@@ -123,5 +123,8 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement
         .capabilities
         .push(conduit_std_catalog::conduitos_flow_tee_scalar_offer());
+    advertisement
+        .capabilities
+        .extend(conduit_std_catalog::conduitos_robotics_offers());
     Ok(advertisement)
 }
