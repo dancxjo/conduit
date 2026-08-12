@@ -581,6 +581,7 @@ dependencies = [
 name = "conduit-pico-sim"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-form",
  "conduit-planner",
@@ -588,6 +589,7 @@ dependencies = [
  "conduit-signal",
  "conduit-std-host",
  "conduit-wire",
+ "ed25519-dalek",
 ]
 
 [[package]]
