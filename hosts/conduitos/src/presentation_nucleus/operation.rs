@@ -20,15 +20,6 @@ pub(super) enum PresentationOperation {
         pending: bool,
         emitted: bool,
     },
-    Latest {
-        held: Option<ValueRef>,
-        released: Option<ValueRef>,
-        retain_resumed: bool,
-    },
-    Tee {
-        pending: Option<ValueRef>,
-        phase: u8,
-    },
     Sink {
         maximum_input_bytes: u32,
         pending: bool,
@@ -45,11 +36,9 @@ impl Operation for PresentationOperation {
             },
             Self::Source { .. } => OperationAction::Complete,
             Self::LogicInputs { emitted: true, .. } => OperationAction::Complete,
-            Self::Transform { .. }
-            | Self::LogicInputs { .. }
-            | Self::Latest { .. }
-            | Self::Tee { .. }
-            | Self::Sink { .. } => OperationAction::Await,
+            Self::Transform { .. } | Self::LogicInputs { .. } | Self::Sink { .. } => {
+                OperationAction::Await
+            }
         }
     }
 
@@ -103,38 +92,6 @@ impl Operation for PresentationOperation {
                     request,
                     operation: HostOperationId(0),
                     input,
-                }
-            }
-            (
-                Self::Latest {
-                    held,
-                    released,
-                    retain_resumed,
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 => {
-                *released = held.replace(value);
-                *retain_resumed = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            (
-                Self::Tee { pending, phase },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 && pending.is_none() => {
-                *pending = Some(value);
-                *phase = 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
                 }
             }
             (
@@ -223,23 +180,6 @@ impl Operation for PresentationOperation {
                 OperationAction::Complete
             }
             (
-                Self::Latest {
-                    held,
-                    released,
-                    retain_resumed,
-                },
-                OperationInput::Closed { port: PortId(0) },
-            ) => {
-                *retain_resumed = false;
-                *released = held.take();
-                OperationAction::Complete
-            }
-            (Self::Tee { pending, .. }, OperationInput::Closed { port: PortId(0) })
-                if pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
-            (
                 Self::LogicInputs {
                     input_count,
                     seen,
@@ -272,70 +212,9 @@ impl Operation for PresentationOperation {
                 OperationAction::Complete
             }
             Self::LogicInputs { emitted: true, .. } => OperationAction::Complete,
-            Self::Tee {
-                pending: Some(value),
-                phase: 1,
-            } => {
-                let value = *value;
-                if let Self::Tee { phase, .. } = self {
-                    *phase = 2;
-                }
-                OperationAction::Emit {
-                    port: PortId(1),
-                    value,
-                }
-            }
-            Self::Tee {
-                pending: Some(_),
-                phase: 2,
-            } => {
-                if let Self::Tee { pending, phase } = self {
-                    *pending = None;
-                    *phase = 0;
-                }
+            Self::Transform { .. } | Self::LogicInputs { .. } | Self::Sink { .. } => {
                 OperationAction::Await
             }
-            Self::Transform { .. }
-            | Self::LogicInputs { .. }
-            | Self::Latest { .. }
-            | Self::Tee { .. }
-            | Self::Sink { .. } => OperationAction::Await,
-        }
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        matches!(
-            self,
-            Self::Latest {
-                retain_resumed: true,
-                ..
-            }
-        )
-    }
-
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        match self {
-            Self::Latest { released, .. } => released.take(),
-            _ => None,
-        }
-    }
-
-    fn cancel(&mut self) {
-        match self {
-            Self::Latest {
-                held,
-                released,
-                retain_resumed,
-            } => {
-                *held = None;
-                *released = None;
-                *retain_resumed = false;
-            }
-            Self::Tee { pending, phase } => {
-                *pending = None;
-                *phase = 0;
-            }
-            _ => {}
         }
     }
 }
