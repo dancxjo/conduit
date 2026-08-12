@@ -360,4 +360,21 @@ mod tests {
             Err(SemanticHistoryRefusal::Oversize)
         ));
     }
+
+    #[test]
+    fn restart_creates_one_fresh_checkpoint_without_persisting_history() {
+        let initial = checkpoint(0, "a");
+        let edited = checkpoint(1, "b");
+        let mut old_process = SemanticHistory::new(initial.clone()).unwrap();
+        old_process
+            .record_accepted(&initial, edited.clone())
+            .unwrap();
+        assert!(old_process.can_undo());
+
+        let restarted = SemanticHistory::new(edited).unwrap();
+        assert_eq!(restarted.transaction_count(), 0);
+        assert!(!restarted.can_undo());
+        assert!(!restarted.can_redo());
+        assert_eq!(restarted.evicted(), 0);
+    }
 }
