@@ -43,6 +43,41 @@ jobs:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
 
+  conduitos-limine:
+    needs: classify
+    if: always() && needs.classify.outputs.docs_only != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore the pinned bootloader archive
+        id: limine-cache
+        uses: actions/cache@v4
+        with:
+          path: target/conduitos/vendor/limine-binary-12.5.2.tar.gz
+          key: conduitos-limine-12.5.2-4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055
+      - name: Acquire one immutable ConduitOS bootloader archive
+        if: steps.limine-cache.outputs.cache-hit != 'true'
+        run: |
+          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' xtask/src/commands/conduitos/profile.rs)" = 1
+          mkdir -p target/conduitos/vendor
+          curl --fail --location --remove-on-error \
+            --retry 3 --retry-all-errors --retry-delay 1 \
+            --output target/conduitos/vendor/limine-binary-12.5.2.tar.gz \
+            https://github.com/limine-bootloader/limine/releases/download/v12.5.2/limine-binary.tar.gz
+      - name: Verify the pinned bootloader archive
+        run: |
+          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' xtask/src/commands/conduitos/profile.rs)" = 1
+          echo '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055  target/conduitos/vendor/limine-binary-12.5.2.tar.gz' | sha256sum --check --strict
+      - name: Distribute the verified pinned archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduitos-limine-${{ github.sha }}
+          path: target/conduitos/vendor/limine-binary-12.5.2.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
   workspace-check:
     needs: classify
     if: always() && needs.classify.outputs.docs_only != 'true'
@@ -155,8 +190,8 @@ jobs:
         run: exit 1
 
   conduitos-x86:
-    needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true'
+    needs: [classify, conduitos-limine]
+    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     strategy:
@@ -199,6 +234,11 @@ jobs:
         with:
           cache-on-failure: true
           shared-key: conduitos-x86-${{ matrix.proof }}
+      - name: Receive the verified pinned bootloader archive
+        uses: actions/download-artifact@v4
+        with:
+          name: conduitos-limine-${{ github.sha }}
+          path: target/conduitos/vendor
       - name: Install deterministic x86 image and emulator tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
       - name: Run ${{ matrix.proof }} proof
@@ -215,8 +255,8 @@ jobs:
           compression-level: 0
 
   conduitos-architecture:
-    needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true'
+    needs: [classify, conduitos-limine]
+    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     strategy:
@@ -241,6 +281,17 @@ jobs:
         with:
           cache-on-failure: true
           shared-key: conduitos-architecture-${{ matrix.architecture }}
+      - name: Restore pinned LoongArch64 firmware package
+        if: matrix.architecture == 'loongarch64'
+        uses: actions/cache@v4
+        with:
+          path: target/conduitos/toolchain/qemu-efi-loongarch64.deb
+          key: conduitos-qemu-efi-loongarch64-2025.02-8-deb13u1-2a1bd3b00413af313d6105f38bda3f8156be514f5026f3ec29ba8e81b68f0633
+      - name: Receive the verified pinned bootloader archive
+        uses: actions/download-artifact@v4
+        with:
+          name: conduitos-limine-${{ github.sha }}
+          path: target/conduitos/vendor
       - name: Install deterministic architecture tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
       - name: Prove ${{ matrix.architecture }} ConduitOS architecture
@@ -249,7 +300,7 @@ jobs:
         run: bash -euo pipefail -c "$PROOF_COMMAND"
 
   conduitos-boot:
-    needs: [classify, conduitos-x86, conduitos-architecture]
+    needs: [classify, conduitos-limine, conduitos-x86, conduitos-architecture]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -257,11 +308,13 @@ jobs:
         env:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
+          LIMINE_RESULT: ${{ needs.conduitos-limine.result }}
           X86_RESULT: ${{ needs.conduitos-x86.result }}
           ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
         run: |
           test "$CLASSIFY_RESULT" = success
           if test "$DOCS_ONLY" != true; then
+            test "$LIMINE_RESULT" = success
             test "$X86_RESULT" = success
             test "$ARCHITECTURE_RESULT" = success
           fi
