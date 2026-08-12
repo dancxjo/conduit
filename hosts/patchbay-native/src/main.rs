@@ -19,6 +19,10 @@ mod canvas;
 mod canvas_input;
 mod canvas_viewport;
 mod control;
+mod details;
+mod details_input;
+#[cfg(test)]
+mod details_tests;
 mod distributed_play;
 mod environment_interaction;
 mod environment_resource;
@@ -96,6 +100,8 @@ struct PatchbayApplication {
     canvas_viewport: canvas_viewport::CanvasViewport,
     canvas_pan_drag: Option<(f64, f64)>,
     linear_view: bool,
+    details_lens: details::DetailsLens,
+    details_scroll: usize,
     modifiers: winit::keyboard::ModifiersState,
     native_keyboard: portable_keyboard::NativeKeyboardInput,
     palette: palette_state::PaletteChooser,

@@ -70,7 +70,11 @@ impl PatchbayApplication {
         let size = window.inner_size();
         let width = NonZeroU32::new(size.width).ok_or("native window width is zero")?;
         let height = NonZeroU32::new(size.height).ok_or("native window height is zero")?;
-        let lines = self.presentation_lines();
+        let lines = if self.linear_view {
+            self.details_lines()
+        } else {
+            self.presentation_lines()
+        };
         let selected = self.selected_graphical_identity().map(str::to_owned);
         let graph = self.graphical_form.as_ref();
         let linear_view = self.linear_view;

@@ -129,6 +129,8 @@ impl PatchbayApplication {
             canvas_viewport: Default::default(),
             canvas_pan_drag: None,
             linear_view: false,
+            details_lens: Default::default(),
+            details_scroll: 0,
             modifiers: winit::keyboard::ModifiersState::empty(),
             native_keyboard: portable_keyboard::NativeKeyboardInput::new(),
             palette: Default::default(),

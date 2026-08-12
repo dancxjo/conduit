@@ -61,7 +61,7 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     action_button(
         target,
         Icon::Inspect,
-        "Linear (F2)",
+        "Details (F2)",
         310,
         GuiAction::ToggleLinearView,
         theme,
