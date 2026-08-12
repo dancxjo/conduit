@@ -6,8 +6,10 @@ use crate::{
     gui_primitives::{frame_rect, text, PixelRect},
 };
 use embedded_graphics::{
+    draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
-    prelude::{DrawTarget, Point},
+    prelude::{DrawTarget, Point, Size},
+    primitives::Rectangle,
 };
 use patchbay_model::{PatchbayGraph, PatchbayTheme};
 
@@ -107,8 +109,13 @@ pub(super) fn draw_compositions<D: DrawTarget<Color = Rgb888>>(
 ) {
     for layout in layouts {
         frame_rect(target, layout.bounds, theme.emphasis, 2);
+        let clip = Rectangle::new(
+            Point::new(layout.bounds.x, layout.bounds.y),
+            Size::new(layout.bounds.width, layout.bounds.height),
+        );
+        let mut target = target.clipped(&clip);
         text(
-            target,
+            &mut target,
             Point::new(layout.bounds.x + 12, layout.bounds.y + 12),
             &format!(
                 "{} : {}",
@@ -117,14 +124,14 @@ pub(super) fn draw_compositions<D: DrawTarget<Color = Rgb888>>(
             theme.emphasis,
         );
         text(
-            target,
+            &mut target,
             Point::new(layout.bounds.x + 12, layout.bounds.y + 30),
             "DOUBLE-CLICK / ENTER TO OPEN",
             theme.text_secondary,
         );
         for (port, (_, point)) in layout.composition.inputs.iter().zip(&layout.inputs) {
             text(
-                target,
+                &mut target,
                 Point::new(point.x + 8, point.y - 3),
                 port.descriptor.port_id.as_str(),
                 theme.text_primary,
@@ -133,7 +140,7 @@ pub(super) fn draw_compositions<D: DrawTarget<Color = Rgb888>>(
         }
         for (port, (_, point)) in layout.composition.outputs.iter().zip(&layout.outputs) {
             text(
-                target,
+                &mut target,
                 Point::new(point.x - 70, point.y - 3),
                 port.descriptor.port_id.as_str(),
                 theme.text_primary,

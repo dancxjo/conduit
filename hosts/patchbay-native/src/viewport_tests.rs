@@ -23,6 +23,24 @@ fn initialize_viewport(application: &mut PatchbayApplication) {
         .unwrap();
 }
 
+#[test]
+fn pointer_motion_pans_only_during_an_active_canvas_pan() {
+    let (mut application, directory) = empty_form_application("pointer-pan-state");
+    initialize_viewport(&mut application);
+
+    application.move_canvas_pan_to((120.0, 80.0));
+    assert_eq!(application.canvas_pan_drag, None);
+    assert_eq!(application.canvas_viewport.offset(), Point::zero());
+
+    application.canvas_pan_drag = Some((120.0, 80.0));
+    application.move_canvas_pan_to((135.0, 74.0));
+    assert_eq!(application.canvas_pan_drag, Some((135.0, 74.0)));
+    assert_eq!(application.canvas_viewport.offset(), Point::new(15, -6));
+
+    std::fs::remove_file(directory.join("making.conduit")).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
 fn redraw(application: &mut PatchbayApplication) {
     let mut pixels = vec![BACKGROUND; 1_100 * 720];
     application.hit_targets = super::gui::draw_patchbay(
