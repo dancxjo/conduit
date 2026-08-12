@@ -35,8 +35,11 @@ pub mod machine;
 pub mod machine_a2_kernel;
 pub mod observatory;
 pub mod offer;
+#[cfg(target_arch = "x86_64")]
 pub mod opl2_offer;
+#[cfg(target_arch = "x86_64")]
 pub mod opl2_plan;
+#[cfg(target_arch = "x86_64")]
 pub mod opl2_play;
 mod ordinary_form;
 pub mod ordinary_plan;
