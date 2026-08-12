@@ -2056,6 +2056,7 @@ dependencies = [
  "conduit-presentation",
  "conduit-std-catalog",
  "conduit-std-host",
+ "conduit-system-continuity",
  "conduitos",
  "embedded-graphics",
  "patchbay-model",
