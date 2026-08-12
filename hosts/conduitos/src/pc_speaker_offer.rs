@@ -17,6 +17,37 @@ pub const PC_SPEAKER_STATE_BYTES: u32 = 512;
 pub const PC_SPEAKER_CAPABILITY: &str = "conduitos/sound-tone-pc-speaker@1";
 pub const PC_SPEAKER_PIT_INPUT_HZ: u64 = 1_193_182;
 
+pub fn compatibility_profile(
+    realization: PcSpeakerRealization,
+) -> Result<conduit_std_catalog::SoundCompatibilityProfile, PcSpeakerOfferError> {
+    realization.validate()?;
+    let clock_millihertz = realization
+        .pit_input_hz
+        .checked_mul(1_000)
+        .ok_or(PcSpeakerOfferError::InvalidClock)?;
+    let minimum_pitch_millihertz = clock_millihertz
+        .div_ceil(u64::from(realization.maximum_divisor))
+        .max(conduit_core::MINIMUM_PITCH_MILLIHERTZ);
+    let maximum_pitch_millihertz = (clock_millihertz / u64::from(realization.minimum_divisor))
+        .min(conduit_core::MAXIMUM_PITCH_MILLIHERTZ);
+    Ok(conduit_std_catalog::SoundCompatibilityProfile {
+        profile_id: PC_SPEAKER_EXECUTION_PROFILE.into(),
+        seam: conduit_std_catalog::SoundSeam::Tone,
+        minimum_pitch_millihertz,
+        maximum_pitch_millihertz,
+        maximum_polyphony: 1,
+        maximum_events_per_second: 0,
+        preserves_velocity: false,
+        preserves_sustain: false,
+        preserves_pitch_bend: false,
+        maximum_pitch_bend_range_microcents: 0,
+        preserves_modulation: false,
+        accepts_microtonal_pitch: false,
+        supports_subtractive_filter: false,
+        pcm: None,
+    })
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PcSpeakerRealization {
     pub base_id: [u8; 32],
@@ -179,5 +210,19 @@ mod tests {
             invalid.validate(),
             Err(PcSpeakerOfferError::InvalidCapacity)
         );
+    }
+
+    #[test]
+    fn tone_profile_is_derived_from_the_validated_exact_divisor_envelope() {
+        let profile = compatibility_profile(realization()).unwrap();
+        assert_eq!(profile.seam, conduit_std_catalog::SoundSeam::Tone);
+        assert_eq!(profile.minimum_pitch_millihertz, 18_207);
+        assert_eq!(
+            profile.maximum_pitch_millihertz,
+            conduit_core::MAXIMUM_PITCH_MILLIHERTZ
+        );
+        assert_eq!(profile.maximum_polyphony, 1);
+        assert!(!profile.preserves_velocity);
+        assert!(profile.pcm.is_none());
     }
 }
