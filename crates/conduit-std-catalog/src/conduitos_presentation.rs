@@ -58,7 +58,12 @@ pub fn conduitos_presentation_nucleus_offers() -> Vec<CapabilityOffer> {
         offer
     })
     .collect();
-    offers.extend(patchbay_presentation_offers().map(bind_conduitos_presentation));
+    offers.extend(
+        patchbay_presentation_offers()
+            .into_iter()
+            .filter(|offer| offer.kind_id.as_str() != crate::PATCHBAY_GEAR_FACE_KIND)
+            .map(bind_conduitos_presentation),
+    );
     offers
 }
 
@@ -84,7 +89,6 @@ mod tests {
         for kind in [
             COUNT_PRESENTATION_KIND,
             crate::PATCHBAY_PRESENTATION_KIND,
-            crate::PATCHBAY_GEAR_FACE_KIND,
             crate::PATCHBAY_PORT_KIND,
             crate::PATCHBAY_CORD_KIND,
         ] {
@@ -97,5 +101,8 @@ mod tests {
                 CONDUITOS_PRESENTATION_PROFILE
             );
         }
+        assert!(offers
+            .iter()
+            .all(|offer| offer.kind_id.as_str() != crate::PATCHBAY_GEAR_FACE_KIND));
     }
 }
