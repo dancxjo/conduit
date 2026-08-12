@@ -225,6 +225,161 @@ fn native_build_mode_drives_explicit_birth_wake_plan_play_and_lull() {
 }
 
 #[test]
+fn contextual_lifecycle_flow_exposes_only_exact_actions_and_refuses_invalid_accelerators() {
+    use patchbay_model::PatchbayAction;
+
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-lifecycle-flow-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("clock.conduit");
+    std::fs::write(&path, include_str!("../../../examples/clock.conduit")).unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    let assert_actions =
+        |application: &PatchbayApplication, code: &str, expected: &[PatchbayAction]| {
+            let flow = application.lifecycle_flow();
+            assert_eq!(flow.state_code, code);
+            assert_eq!(
+                flow.actions
+                    .iter()
+                    .map(|candidate| candidate.action)
+                    .collect::<Vec<_>>(),
+                expected
+            );
+            assert!(flow.actions.len() <= crate::lifecycle_flow::MAX_LIFECYCLE_ACTIONS);
+        };
+
+    assert_actions(&application, "FORM_CHECKED", &[PatchbayAction::Birth]);
+    application
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Birth))
+        .unwrap();
+    assert_actions(&application, "BODY_LULLED", &[PatchbayAction::Wake]);
+
+    // The invalid accelerator still executes one typed interaction and is a refusal, not exit.
+    application
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Birth))
+        .unwrap();
+    let refusal = application.interaction_status.current().unwrap();
+    assert_eq!(
+        refusal.code,
+        crate::interaction_status::InteractionStatusCode::Refused
+    );
+    assert!(refusal.text.contains("FORM_CHECKED") || refusal.text.contains("BODY_LULLED"));
+
+    application
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Wake))
+        .unwrap();
+    assert_actions(
+        &application,
+        "WAKE_AWAITING_PLAN",
+        &[PatchbayAction::Plan, PatchbayAction::Lull],
+    );
+    application
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Plan))
+        .unwrap();
+    assert_actions(
+        &application,
+        "PLAN_READY",
+        &[PatchbayAction::Play, PatchbayAction::Lull],
+    );
+    application
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Play))
+        .unwrap();
+    assert_actions(&application, "PLAY_ACTIVE", &[PatchbayAction::Stop]);
+    application
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Stop))
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Stop))
+        .unwrap();
+    assert_eq!(
+        application.interaction_status.current().unwrap().code,
+        crate::interaction_status::InteractionStatusCode::Refused
+    );
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while application.control.is_running() && std::time::Instant::now() < deadline {
+        application.control.poll().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    assert_actions(&application, "PLAY_CANCELLED", &[PatchbayAction::Lull]);
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+fn contextual_lifecycle_flow_keeps_unsatisfied_and_failed_states_machine_readable() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-lifecycle-states-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("hello.conduit");
+    std::fs::write(&path, include_str!("../../../examples/hello.conduit")).unwrap();
+    let application = || {
+        PatchbayApplication::new(Arguments {
+            form_path: Some(path.clone()),
+            ..Arguments::default()
+        })
+        .unwrap()
+    };
+
+    let mut unsatisfied = application();
+    unsatisfied.birth_body().unwrap();
+    unsatisfied.wake_body().unwrap();
+    unsatisfied.plan_play().unwrap();
+    unsatisfied.play_plan().unwrap();
+    unsatisfied.mark_unsatisfied().unwrap();
+    let active_unsatisfied = unsatisfied.lifecycle_flow();
+    assert_eq!(active_unsatisfied.state_code, "PLAY_UNSATISFIED");
+    assert_eq!(
+        active_unsatisfied.actions[0].action,
+        patchbay_model::PatchbayAction::Stop
+    );
+    assert!(active_unsatisfied.exact_basis.contains("plan="));
+    unsatisfied.control.stop().unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while unsatisfied.control.is_running() && std::time::Instant::now() < deadline {
+        unsatisfied.control.poll().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    let terminal_unsatisfied = unsatisfied.lifecycle_flow();
+    assert_eq!(terminal_unsatisfied.state_code, "PLAY_UNSATISFIED");
+    assert_eq!(
+        terminal_unsatisfied
+            .actions
+            .iter()
+            .map(|candidate| candidate.action)
+            .collect::<Vec<_>>(),
+        [
+            patchbay_model::PatchbayAction::Plan,
+            patchbay_model::PatchbayAction::Lull
+        ]
+    );
+
+    let mut failed = application();
+    failed.birth_body().unwrap();
+    failed.wake_body().unwrap();
+    let failed_sign = failed.lifecycle_sign("failed-test");
+    let retained_sign = failed.lifecycle_sign("failed-retained-test");
+    failed
+        .build_birth
+        .fail_wake(failed_sign, retained_sign)
+        .unwrap();
+    let failed_flow = failed.lifecycle_flow();
+    assert_eq!(failed_flow.state_code, "WAKE_FAILED");
+    assert_eq!(
+        failed_flow.actions[0].action,
+        patchbay_model::PatchbayAction::Wake
+    );
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
 fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection() {
     use winit::keyboard::{Key, NamedKey};
 

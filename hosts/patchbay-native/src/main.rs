@@ -40,6 +40,7 @@ mod icon;
 mod interaction_feedback;
 mod interaction_status;
 mod keyboard_input;
+mod lifecycle_flow;
 mod palette_icon;
 mod palette_icon_data;
 mod palette_input;

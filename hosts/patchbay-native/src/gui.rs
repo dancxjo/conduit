@@ -9,10 +9,9 @@ use crate::{
     gui_gesture::{draw_gesture, GestureView},
     gui_hit::HitShape,
     gui_inspector::draw_inspector,
-    gui_primitives::{
-        draw_regions, frame_rect, icon_label, layer_label, line, text, PixelRect, RegionMetrics,
-    },
+    gui_primitives::{draw_regions, frame_rect, icon_label, line, text, PixelRect, RegionMetrics},
     icon::Icon,
+    lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
     palette_view::draw_palette,
 };
 use embedded_graphics::{
@@ -32,7 +31,8 @@ pub const MAX_HIT_TARGETS: usize = patchbay_model::MAX_PATCHBAY_GEARS
     + patchbay_model::MAX_PATCHBAY_CORDS
     + patchbay_model::MAX_PALETTE_ENTRIES
     + patchbay_model::MAX_PATCHBAY_GEARS * patchbay_model::MAX_FACE_CONTROLS * 2
-    + 3;
+    + 3
+    + crate::lifecycle_flow::MAX_LIFECYCLE_ACTIONS;
 
 const HEADER_HEIGHT: i32 = 52;
 const FOOTER_HEIGHT: i32 = 42;
@@ -47,6 +47,7 @@ pub struct LifecycleContext {
     pub wake_id: Option<String>,
     pub plan_id: Option<String>,
     pub play_id: Option<String>,
+    pub flow: LifecycleFlow,
 }
 
 pub struct PatchbayViewContext<'a> {
@@ -104,6 +105,7 @@ pub fn draw_patchbay(
     let theme = &PHOSPHOR_THEME;
     let width = i32::try_from(width).unwrap_or(i32::MAX);
     let height = i32::try_from(height).unwrap_or(i32::MAX);
+    let mut targets = Vec::with_capacity(MAX_HIT_TARGETS);
     draw_regions(
         &mut canvas,
         width,
@@ -116,29 +118,18 @@ pub fn draw_patchbay(
         },
         theme,
     );
-    draw_header(&mut canvas, graph, breadcrumb, lifecycle, theme);
+    draw_header(
+        &mut canvas,
+        graph,
+        breadcrumb,
+        lifecycle,
+        width,
+        theme,
+        &mut targets,
+    );
     let compositions = layout_compositions(graph, width);
     let layouts = layout_gears(graph, width, presentation_layout);
     let boundaries = layout_boundaries(graph, width);
-    let mut targets = Vec::with_capacity(
-        MAX_HIT_TARGETS.min(
-            3 + graph.gears.len()
-                + graph.compositions.len()
-                + graph.cords.len()
-                + graph.face_inputs.len()
-                + graph.face_outputs.len()
-                + graph
-                    .compositions
-                    .iter()
-                    .map(|composition| composition.inputs.len() + composition.outputs.len())
-                    .sum::<usize>()
-                + graph
-                    .gears
-                    .iter()
-                    .map(|gear| gear.inputs.len() + gear.outputs.len())
-                    .sum::<usize>(),
-        ),
-    );
     draw_navigator(&mut canvas, palette_query, theme, &mut targets);
     draw_cords(
         &mut canvas,
@@ -187,7 +178,9 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
     graph: &PatchbayGraph,
     breadcrumb: &str,
     lifecycle: &LifecycleContext,
+    width: i32,
     theme: &PatchbayTheme,
+    targets: &mut Vec<HitTarget>,
 ) {
     icon_label(
         target,
@@ -203,33 +196,7 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
         ),
         theme.emphasis,
     );
-    let layers = [
-        (
-            Icon::Body,
-            layer_label("BODY", &lifecycle.body_id, "BUILD", "BORN"),
-        ),
-        (
-            Icon::Wake,
-            layer_label("WAKE", &lifecycle.wake_id, "LULLED", "AWAKE"),
-        ),
-        (
-            Icon::Plan,
-            layer_label("PLAN", &lifecycle.plan_id, "NONE", "READY"),
-        ),
-        (
-            Icon::Play,
-            layer_label("PLAY", &lifecycle.play_id, "NONE", "ACTIVE"),
-        ),
-    ];
-    for (index, (icon, label)) in layers.into_iter().enumerate() {
-        icon_label(
-            target,
-            icon,
-            Point::new(260 + index as i32 * 112, 10),
-            &label,
-            theme.text_secondary,
-        );
-    }
+    draw_lifecycle_flow(target, lifecycle, width, theme, targets);
 }
 
 fn draw_navigator<D: DrawTarget<Color = Rgb888>>(

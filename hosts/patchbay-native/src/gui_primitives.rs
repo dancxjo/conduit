@@ -195,15 +195,3 @@ pub(super) fn rgb(color: ThemeColor) -> Rgb888 {
 pub(super) fn positive(value: i32) -> u32 {
     u32::try_from(value.max(0)).unwrap_or(u32::MAX)
 }
-
-pub(super) fn layer_label(
-    label: &str,
-    identity: &Option<String>,
-    absent: &str,
-    present: &str,
-) -> String {
-    format!(
-        "{label} {}",
-        if identity.is_some() { present } else { absent }
-    )
-}

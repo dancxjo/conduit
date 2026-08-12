@@ -13,6 +13,7 @@ pub struct HitTarget {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
+    Lifecycle(patchbay_model::PatchbayAction),
     EnvironmentAdd(MachineProfile),
     EnvironmentSelect(String),
     EnvironmentRemove(String),

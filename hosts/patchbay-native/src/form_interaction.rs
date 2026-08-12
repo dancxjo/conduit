@@ -88,6 +88,7 @@ impl PatchbayApplication {
                 | GuiAction::ConfigureGear { .. }
         );
         match action {
+            GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
             GuiAction::EnvironmentAdd(_)
             | GuiAction::EnvironmentSelect(_)
             | GuiAction::EnvironmentRemove(_)
@@ -207,6 +208,13 @@ impl PatchbayApplication {
         &mut self,
         invocation: &PatchbayInvocation,
     ) -> PatchbayInvocationOutcome {
+        if crate::lifecycle_flow::is_lifecycle_action(invocation.action)
+            && self
+                .lifecycle_unavailable_reason(invocation.action)
+                .is_some()
+        {
+            return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable);
+        }
         let current_target = match self
             .graphical_form
             .as_ref()
@@ -254,9 +262,36 @@ impl PatchbayApplication {
             PatchbayAction::Birth => self.birth_body(),
             PatchbayAction::Wake => self.wake_body(),
             PatchbayAction::Lull => self.lull_body(),
-            PatchbayAction::Plan => self.plan_play(),
-            PatchbayAction::Play => self.play_plan(),
-            PatchbayAction::Stop => self.control.stop(),
+            PatchbayAction::Plan => {
+                return match self.plan_play_classified() {
+                    Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                    Err(crate::build_birth::LifecycleActionError::Unavailable) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                    }
+                    Err(crate::build_birth::LifecycleActionError::Failure(_)) => {
+                        PatchbayInvocationOutcome::Failed
+                    }
+                }
+            }
+            PatchbayAction::Play => {
+                return match self.play_plan_classified() {
+                    Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                    Err(crate::build_birth::LifecycleActionError::Unavailable) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                    }
+                    Err(crate::build_birth::LifecycleActionError::Failure(_)) => {
+                        PatchbayInvocationOutcome::Failed
+                    }
+                }
+            }
+            PatchbayAction::Stop => {
+                return match self.control.stop() {
+                    Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                    Err(_) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)
+                    }
+                }
+            }
             PatchbayAction::Hold => self.mark_unsatisfied(),
             PatchbayAction::PlaceGear
             | PatchbayAction::DuplicateGear

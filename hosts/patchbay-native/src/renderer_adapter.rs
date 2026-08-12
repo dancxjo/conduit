@@ -94,6 +94,7 @@ impl PatchbayApplication {
                     .find_map(|plan| plan.active_play_id.as_ref())
                     .map(|play| play.as_str().to_owned())
             }),
+            flow: self.lifecycle_flow(),
         };
         let realization_hosts = self
             .environment
