@@ -156,9 +156,7 @@ impl FormEditor {
         sink_port_identity: &str,
     ) -> Result<(), FormEditorError> {
         self.require_revision(offered_revision)?;
-        let expanded = self.expand_form_for_authoring(&self.open_form)?;
-        let graph = PatchbayGraph::from_authoring(&expanded)
-            .map_err(|error| FormEditorError::Catalog(error.to_string()))?;
+        let graph = self.patchbay_graph_for_authoring(&self.open_form)?;
         if &graph.expanded_form_id != offered_expanded_form_id {
             return Err(FormEditorError::StaleGraphBasis);
         }
@@ -194,33 +192,29 @@ impl FormEditor {
                 .find(|port| port.identity == sink_port_identity)
                 .map(|port| (composition, port))
         });
-        let source_descriptor = internal_source
-            .map(|port| &port.descriptor)
-            .or_else(|| face_source.map(|port| &port.descriptor))
-            .or_else(|| composition_source.map(|(_, port)| &port.descriptor))
-            .ok_or_else(|| FormEditorError::UnknownPort(source_port_identity.into()))?;
-        let sink_descriptor = internal_sink
-            .map(|port| &port.descriptor)
-            .or_else(|| face_sink.map(|port| &port.descriptor))
-            .or_else(|| composition_sink.map(|(_, port)| &port.descriptor))
-            .ok_or_else(|| FormEditorError::UnknownPort(sink_port_identity.into()))?;
-        if source_descriptor.value_kind != sink_descriptor.value_kind {
-            return Err(FormEditorError::IncompatiblePorts(format!(
-                "Info {} cannot feed {}",
-                source_descriptor.value_kind.as_str(),
-                sink_descriptor.value_kind.as_str()
-            )));
-        }
-        if source_descriptor.temporal != sink_descriptor.temporal {
-            return Err(FormEditorError::IncompatiblePorts(format!(
-                "temporal contract {:?} cannot feed {:?}",
-                source_descriptor.temporal, sink_descriptor.temporal
-            )));
-        }
-        if graph.cords.iter().any(|cord| {
-            cord.source_port == source_port_identity && cord.sink_port == sink_port_identity
-        }) {
-            return Err(FormEditorError::DuplicateCord);
+        match graph.connection_compatibility(source_port_identity, sink_port_identity) {
+            crate::PatchbayPortCompatibility::Compatible => {}
+            crate::PatchbayPortCompatibility::DuplicateCord => {
+                return Err(FormEditorError::DuplicateCord)
+            }
+            crate::PatchbayPortCompatibility::IncompatibleInfo { source, sink } => {
+                return Err(FormEditorError::IncompatiblePorts(format!(
+                    "Info {} cannot feed {}",
+                    source.as_str(),
+                    sink.as_str()
+                )))
+            }
+            crate::PatchbayPortCompatibility::IncompatibleTemporal { source, sink } => {
+                return Err(FormEditorError::IncompatiblePorts(format!(
+                    "temporal contract {source:?} cannot feed {sink:?}"
+                )))
+            }
+            crate::PatchbayPortCompatibility::UnknownPort
+            | crate::PatchbayPortCompatibility::InvalidDirection => {
+                return Err(FormEditorError::UnknownPort(format!(
+                    "{source_port_identity} -> {sink_port_identity}"
+                )))
+            }
         }
         let source_reference = if let Some(source) = internal_source {
             let source_name = direct_gear_name(&self.open_form, source.gear_id.as_str())?;
@@ -233,7 +227,7 @@ impl FormEditor {
             )
         } else {
             face_source
-                .expect("source descriptor was resolved")
+                .expect("source compatibility was resolved")
                 .descriptor
                 .port_id
                 .as_str()
@@ -250,7 +244,7 @@ impl FormEditor {
             )
         } else {
             face_sink
-                .expect("sink descriptor was resolved")
+                .expect("sink compatibility was resolved")
                 .descriptor
                 .port_id
                 .as_str()

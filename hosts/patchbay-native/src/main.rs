@@ -22,6 +22,8 @@ mod distributed_play;
 mod environment_interaction;
 mod environment_resource;
 mod environment_view;
+#[cfg(test)]
+mod environment_view_tests;
 mod file_task;
 mod font;
 mod form_authoring;
@@ -30,10 +32,13 @@ mod gui;
 mod gui_composition;
 mod gui_face_controls;
 mod gui_gear;
+mod gui_gesture;
 mod gui_hit;
 mod gui_inspector;
 mod gui_primitives;
 mod icon;
+mod interaction_feedback;
+mod interaction_status;
 mod keyboard_input;
 mod palette_icon;
 mod palette_icon_data;
@@ -88,6 +93,7 @@ struct PatchbayApplication {
     cord_route_drag: Option<patchbay_model::PatchbaySubjectRef>,
     gear_drag: Option<(patchbay_model::PatchbaySubjectRef, (f64, f64))>,
     last_gear_click: Option<(patchbay_model::PatchbaySubjectRef, std::time::Instant)>,
+    interaction_status: interaction_status::InteractionStatusChannel,
     control: NativeControl,
     build_birth: BuildBirthController,
     lifecycle_sequence: u64,
@@ -151,7 +157,10 @@ impl ApplicationHandler for PatchbayApplication {
                 self.native_keyboard.close();
                 event_loop.exit();
             }
-            WindowEvent::Focused(false) => self.native_keyboard.focus_lost(),
+            WindowEvent::Focused(false) => {
+                self.native_keyboard.focus_lost();
+                self.cancel_transient_gestures("window focus was lost");
+            }
             WindowEvent::Resized(_) => {
                 if let Some(window) = &self.window {
                     window.request_redraw();
@@ -166,6 +175,16 @@ impl ApplicationHandler for PatchbayApplication {
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor_position = (position.x, position.y);
+                if self.environment_drag.is_some()
+                    || self.palette_drag.is_some()
+                    || self.cord_drag.is_some()
+                    || self.cord_route_drag.is_some()
+                    || self.gear_drag.is_some()
+                {
+                    if let Some(window) = &self.window {
+                        window.request_redraw();
+                    }
+                }
             }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -184,6 +203,7 @@ impl ApplicationHandler for PatchbayApplication {
             } if !self.linear_view => {
                 if let Err(error) = self.handle_canvas_release() {
                     self.failure = Some(format!("native canvas release failed: {error}"));
+                    event_loop.exit();
                 }
             }
             WindowEvent::KeyboardInput { event, .. } => {
@@ -194,6 +214,11 @@ impl ApplicationHandler for PatchbayApplication {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if self.interaction_status.expire_due() {
+            if let Some(window) = &self.window {
+                window.request_redraw();
+            }
+        }
         match self.file_task.poll() {
             Ok(true) => {
                 if let Some(window) = &self.window {
@@ -259,6 +284,8 @@ impl ApplicationHandler for PatchbayApplication {
                     .is_some_and(NativeDistributedPlay::is_running)
             {
                 ControlFlow::Poll
+            } else if let Some(deadline) = self.interaction_status.deadline() {
+                ControlFlow::WaitUntil(deadline)
             } else {
                 ControlFlow::Wait
             },

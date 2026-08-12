@@ -136,14 +136,19 @@ fn native_face_control_refuses_invalid_value_without_changing_source() {
     let graph = application.graphical_form.as_ref().unwrap();
     let subject = graph.subject_ref("gear/controls/show").unwrap();
     let source = application.form_editor.as_ref().unwrap().view().source;
-    let error = application
+    application
         .handle_gui_action(GuiAction::ConfigureGear {
             subject,
             key: "maximum-values".into(),
             value: ConfigurationValue::U64(5),
         })
-        .unwrap_err();
-    assert!(error.contains("visible bounds"));
+        .unwrap();
+    assert!(application
+        .interaction_status
+        .current()
+        .unwrap()
+        .text
+        .contains("does not fit"));
     assert_eq!(
         application.form_editor.as_ref().unwrap().view().source,
         source
@@ -220,6 +225,8 @@ fn pointer_hit_prefers_face_control_over_containing_gear_rectangle() {
             presentation_layout: &application.layout,
             realization_plan: None,
             realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
         },
     );
     // The first control is inside the first Gear rectangle. Later control hit

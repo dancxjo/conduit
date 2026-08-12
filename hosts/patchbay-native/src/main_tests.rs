@@ -239,9 +239,10 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
     })
     .unwrap();
 
+    assert_eq!(application.handle_gui_action(GuiAction::OpenBack), Ok(()));
     assert_eq!(
-        application.handle_gui_action(GuiAction::OpenBack),
-        Err("interaction refused: NavigationTargetMissing".into())
+        application.interaction_status.current().unwrap().text,
+        "Interaction refused: NavigationTargetMissing"
     );
     assert!(application.back_navigation.is_empty());
     assert_eq!(
@@ -274,9 +275,10 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
         };
         super::form_interaction::MAX_BACK_NAVIGATION_DEPTH
     ];
+    assert_eq!(application.handle_gui_action(GuiAction::OpenBack), Ok(()));
     assert_eq!(
-        application.handle_gui_action(GuiAction::OpenBack),
-        Err("interaction refused: NavigationDepthExceeded".into())
+        application.interaction_status.current().unwrap().text,
+        "Interaction refused: NavigationDepthExceeded"
     );
     assert_eq!(
         application.form_editor.as_ref().unwrap().view().open_form,
@@ -337,9 +339,10 @@ fn graphical_actions_open_a_checked_back_and_toggle_the_same_linear_projection()
     application
         .handle_gui_action(GuiAction::SelectSubject(primitive))
         .unwrap();
+    assert_eq!(application.handle_gui_action(GuiAction::OpenBack), Ok(()));
     assert_eq!(
-        application.handle_gui_action(GuiAction::OpenBack),
-        Err("interaction refused: NavigationTargetUnavailable".into())
+        application.interaction_status.current().unwrap().text,
+        "Interaction refused: NavigationTargetUnavailable"
     );
     assert_eq!(
         application
@@ -535,13 +538,18 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
         .clone();
     let incompatible_source = graph.subject_ref(&count_output).unwrap();
     let before_refusal = application.form_editor.as_ref().unwrap().view().source;
-    assert!(application
+    application
         .handle_gui_action(GuiAction::ConnectPorts {
             source: incompatible_source,
             sink: sink.clone(),
         })
-        .unwrap_err()
-        .contains("Info or temporal contracts differ"));
+        .unwrap();
+    assert!(application
+        .interaction_status
+        .current()
+        .unwrap()
+        .text
+        .contains("incompatible exact Port"));
     assert_eq!(
         application.form_editor.as_ref().unwrap().view().source,
         before_refusal
@@ -549,6 +557,34 @@ fn typed_cord_duplicate_and_remove_use_ordinary_interactions_and_persist() {
     application
         .handle_gui_action(GuiAction::ConnectPorts { source, sink })
         .unwrap();
+
+    let graph = application.graphical_form.as_ref().unwrap();
+    let duplicate_source = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "making/literal")
+        .and_then(|gear| gear.outputs.first())
+        .and_then(|port| graph.subject_ref(&port.identity).ok())
+        .unwrap();
+    let duplicate_sink = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "making/upper")
+        .and_then(|gear| gear.inputs.first())
+        .and_then(|port| graph.subject_ref(&port.identity).ok())
+        .unwrap();
+    application
+        .handle_gui_action(GuiAction::ConnectPorts {
+            source: duplicate_source,
+            sink: duplicate_sink,
+        })
+        .unwrap();
+    assert!(application
+        .interaction_status
+        .current()
+        .unwrap()
+        .text
+        .contains("already have a Cord"));
 
     let graph = application.graphical_form.as_ref().unwrap();
     let cord = graph.subject_ref(&graph.cords[0].identity).unwrap();
@@ -717,6 +753,46 @@ fn pointer_and_keyboard_selection_share_the_typed_interaction_path() {
 }
 
 #[test]
+fn focus_cancellation_clears_every_transient_gesture_deterministically() {
+    let directory =
+        std::env::temp_dir().join(format!("patchbay-gesture-cancel-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("hello.conduit");
+    std::fs::write(&path, include_str!("../../../examples/hello.conduit")).unwrap();
+    let mut application = PatchbayApplication::new(Arguments {
+        form_path: Some(path.clone()),
+        ..Arguments::default()
+    })
+    .unwrap();
+    let graph = application.graphical_form.as_ref().unwrap();
+    let gear = graph.subject_ref(&graph.gears[0].identity).unwrap();
+    let source = graph
+        .subject_ref(&graph.gears[0].outputs[0].identity)
+        .unwrap();
+    let cord = graph.subject_ref(&graph.cords[0].identity).unwrap();
+    application.environment_drag = Some(("part-1".into(), (1.0, 2.0)));
+    application.palette_drag = Some("text/upper".into());
+    application.gear_drag = Some((gear, (1.0, 2.0)));
+    application.cord_drag = Some(source);
+    application.cord_route_drag = Some(cord);
+    application.cancel_transient_gestures("test cancellation");
+    assert!(application.environment_drag.is_none());
+    assert!(application.palette_drag.is_none());
+    assert!(application.gear_drag.is_none());
+    assert!(application.cord_drag.is_none());
+    assert!(application.cord_route_drag.is_none());
+    let status = application.interaction_status.current().unwrap();
+    assert_eq!(
+        status.code,
+        super::interaction_status::InteractionStatusCode::Cancelled
+    );
+    assert!(status.text.contains("test cancellation"));
+
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
 fn graphical_selection_rejects_stale_and_invented_hit_candidates() {
     let directory =
         std::env::temp_dir().join(format!("patchbay-gui-selection-{}", std::process::id()));
@@ -735,17 +811,27 @@ fn graphical_selection_rejects_stale_and_invented_hit_candidates() {
 
     let mut stale = candidate.clone();
     stale.expanded_form_id = conduit_core::ExpandedFormId::from("expanded/stale");
-    assert!(application
+    application
         .handle_gui_action(GuiAction::SelectSubject(stale))
-        .unwrap_err()
+        .unwrap();
+    assert!(application
+        .interaction_status
+        .current()
+        .unwrap()
+        .text
         .contains("StalePresentation"));
     assert!(application.selected_graphical_identity().is_none());
 
     let mut invented = candidate;
     invented.subject_identity = "renderer-invented/subject".into();
-    assert!(application
+    application
         .handle_gui_action(GuiAction::SelectSubject(invented))
-        .unwrap_err()
+        .unwrap();
+    assert!(application
+        .interaction_status
+        .current()
+        .unwrap()
+        .text
         .contains("UnknownSubject"));
     assert!(application.selected_graphical_identity().is_none());
 

@@ -55,6 +55,8 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
         },
     );
     assert!(!visible_gears.is_empty());
@@ -110,6 +112,8 @@ fn parent_canvas_draws_one_composed_gear_instead_of_its_expanded_child_gears() {
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
         },
     );
     assert!(targets.iter().any(|target| {
@@ -126,6 +130,61 @@ fn parent_canvas_draws_one_composed_gear_instead_of_its_expanded_child_gears() {
                 if subject.subject_identity == "gear/default-welcome/hello/join"
         )
     }));
+}
+
+#[test]
+fn every_patchbay_drag_state_has_a_distinct_visible_manifestation() {
+    use embedded_graphics::prelude::Point;
+
+    let graph = graph();
+    let render = |gesture| {
+        let mut pixels = vec![BACKGROUND; 1100 * 720];
+        draw_patchbay(
+            &mut pixels,
+            1100,
+            720,
+            &graph,
+            PatchbayViewContext {
+                selected: None,
+                breadcrumb: "",
+                lifecycle: &LifecycleContext::default(),
+                palette_query: "",
+                presentation_layout: &Default::default(),
+                realization_plan: None,
+                realization_hosts: &[],
+                status: None,
+                gesture,
+            },
+        );
+        pixels
+    };
+    let baseline = render(Default::default());
+    let cursor = Point::new(610, 420);
+    let gestures = [
+        crate::gui_gesture::GestureView {
+            palette_kind: Some("text/upper"),
+            cursor,
+            ..Default::default()
+        },
+        crate::gui_gesture::GestureView {
+            gear: Some(&graph.gears[0].identity),
+            cursor,
+            ..Default::default()
+        },
+        crate::gui_gesture::GestureView {
+            cord_source: Some(&graph.cords[0].source_port),
+            cursor,
+            ..Default::default()
+        },
+        crate::gui_gesture::GestureView {
+            cord_route: Some(&graph.cords[0].identity),
+            cursor,
+            ..Default::default()
+        },
+    ];
+    for gesture in gestures {
+        assert_ne!(render(gesture), baseline);
+    }
 }
 
 #[test]
@@ -168,6 +227,8 @@ fn reverse_face_is_renderer_local_and_keeps_the_demo_graph_intact() {
             presentation_layout: &layout,
             realization_plan: None,
             realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
         },
     );
     assert!(targets.iter().any(
@@ -201,6 +262,8 @@ fn resize_clipping_and_selection_cannot_touch_guard_pixels_or_graph_identity() {
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
         },
     );
     assert_eq!(storage[0], guard);
@@ -232,6 +295,8 @@ fn palette_query_visibly_filters_the_authoritative_entries() {
             presentation_layout: &Default::default(),
             realization_plan: None,
             realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
         },
     );
     let kinds = targets
@@ -270,6 +335,8 @@ fn presentation_layout_moves_a_gear_without_changing_graph_or_cord_identity() {
             presentation_layout: &layout,
             realization_plan: None,
             realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
         },
     );
     assert!(targets.iter().any(|target| {

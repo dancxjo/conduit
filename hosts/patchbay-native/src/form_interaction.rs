@@ -7,8 +7,8 @@ use super::{
     PatchbayApplication,
 };
 use patchbay_model::{
-    FormEditor, InteractionDisposition, PatchbayAction, PatchbayInteraction,
-    PatchbayInteractionRequest, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
+    FormEditor, PatchbayAction, PatchbayInteraction, PatchbayInteractionRequest,
+    PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
 };
 use winit::keyboard::{Key, NamedKey};
 
@@ -201,29 +201,6 @@ impl PatchbayApplication {
         }
         self.interaction = Some(interaction);
         self.finish_interaction(result)
-    }
-
-    pub(super) fn finish_interaction(
-        &self,
-        result: Result<patchbay_model::InteractionReceipt, patchbay_model::InteractionError>,
-    ) -> Result<(), String> {
-        let receipt = result.map_err(|error| format!("interaction execution: {error:?}"))?;
-        match receipt.disposition {
-            InteractionDisposition::Succeeded => Ok(()),
-            InteractionDisposition::Refused(PatchbayRefusal::IncompatiblePorts) => {
-                Err("Ports cannot connect because their Info or temporal contracts differ".into())
-            }
-            InteractionDisposition::Refused(PatchbayRefusal::DuplicateCord) => {
-                Err("those Ports already have a Cord".into())
-            }
-            InteractionDisposition::Refused(PatchbayRefusal::InvalidConfiguration) => {
-                Err("That value does not fit the type or visible bounds on this Gear Face".into())
-            }
-            InteractionDisposition::Refused(reason) => {
-                Err(format!("interaction refused: {reason:?}"))
-            }
-            InteractionDisposition::Failed => Err("interaction failed".into()),
-        }
     }
 
     pub(super) fn apply_invocation(

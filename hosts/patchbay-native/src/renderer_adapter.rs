@@ -108,6 +108,30 @@ impl PatchbayApplication {
                     PrewakeState::Off => None,
                 });
         let breadcrumb = self.back_breadcrumb();
+        let interaction_status = self.interaction_status.current().cloned();
+        let gesture = crate::gui_gesture::GestureView {
+            palette_kind: self.palette_drag.as_deref(),
+            cord_source: self
+                .cord_drag
+                .as_ref()
+                .map(|subject| subject.subject_identity.as_str()),
+            cord_route: self
+                .cord_route_drag
+                .as_ref()
+                .map(|subject| subject.subject_identity.as_str()),
+            gear: self
+                .gear_drag
+                .as_ref()
+                .map(|(subject, _)| subject.subject_identity.as_str()),
+            cursor: embedded_graphics::geometry::Point::new(
+                self.cursor_position
+                    .0
+                    .clamp(i32::MIN as f64, i32::MAX as f64) as i32,
+                self.cursor_position
+                    .1
+                    .clamp(i32::MIN as f64, i32::MAX as f64) as i32,
+            ),
+        };
         let surface = self.surface.as_mut().ok_or("native surface is absent")?;
         surface
             .resize(width, height)
@@ -132,6 +156,11 @@ impl PatchbayApplication {
                         pending_link: self.pending_environment_link.as_ref(),
                         observed: self.observed_environment_snapshot.as_ref(),
                         prewake: self.prewake.as_ref(),
+                        drag: self
+                            .environment_drag
+                            .as_ref()
+                            .map(|(part, position)| (part.as_str(), *position)),
+                        status: interaction_status.as_ref(),
                     },
                 )
             } else {
@@ -160,6 +189,8 @@ impl PatchbayApplication {
                         presentation_layout: &self.layout,
                         realization_plan,
                         realization_hosts: &realization_hosts,
+                        status: interaction_status.as_ref(),
+                        gesture,
                     },
                 )
             }

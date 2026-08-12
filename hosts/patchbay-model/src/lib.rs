@@ -69,10 +69,10 @@ pub use gear_realization::{
     GearRealizationInspection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
 };
 pub use graphical_patchbay::{
-    PatchbayComposition, PatchbayCompositionBinding, PatchbayCord, PatchbayFacePort, PatchbayGear,
-    PatchbayGraph, PatchbayGraphError, PatchbayInspection, PatchbayPort, PatchbaySubjectKind,
-    PatchbaySubjectRef, MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS,
-    MAX_PATCHBAY_SUBJECTS,
+    PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
+    PatchbayFacePort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
+    PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
+    MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
 };
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,

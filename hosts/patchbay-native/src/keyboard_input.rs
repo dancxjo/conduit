@@ -42,8 +42,40 @@ impl PatchbayApplication {
                 window.request_redraw();
             }
         } else if let Err(error) = self.handle_form_key(&event.logical_key) {
-            self.failure = Some(format!("canonical Form edit failed: {error}"));
-            event_loop.exit();
+            if is_ordinary_form_refusal(&error) {
+                self.publish_refusal(sentence_case(&error));
+            } else {
+                self.failure = Some(format!("canonical Form edit failed: {error}"));
+                event_loop.exit();
+            }
         }
+    }
+}
+
+fn is_ordinary_form_refusal(error: &str) -> bool {
+    error.starts_with("select a ")
+}
+
+fn sentence_case(message: &str) -> String {
+    let mut characters = message.chars();
+    match characters.next() {
+        Some(first) => first.to_uppercase().collect::<String>() + characters.as_str(),
+        None => String::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_ordinary_user_preconditions_are_nonterminal() {
+        assert!(is_ordinary_form_refusal(
+            "select a Gear before duplicating it"
+        ));
+        assert!(!is_ordinary_form_refusal("interaction failed"));
+        assert!(!is_ordinary_form_refusal(
+            "cannot save /missing/path: permission denied"
+        ));
     }
 }
