@@ -7,6 +7,9 @@ use conduit_host_fabrication::{
 
 use crate::cli::GlobalOpts;
 
+#[path = "host_capstone.rs"]
+mod host_capstone;
+
 #[derive(Args, Debug)]
 pub struct HostArgs {
     #[command(subcommand)]
@@ -23,6 +26,15 @@ enum HostCommand {
         #[arg(long)]
         source_identity: String,
         #[arg(long)]
+        toolchain_identity: String,
+    },
+    /// Prove one Body across native, browser, and headless PROFILE-built Hosts.
+    Capstone {
+        #[arg(long, default_value = "target/host-fabrication-capstone")]
+        output: PathBuf,
+        #[arg(long, default_value = "workspace-head")]
+        source_identity: String,
+        #[arg(long, default_value = "rustc:workspace")]
         toolchain_identity: String,
     },
 }
@@ -73,6 +85,11 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             }
             Ok(())
         }
+        HostCommand::Capstone {
+            output,
+            source_identity,
+            toolchain_identity,
+        } => host_capstone::run(&output, &source_identity, &toolchain_identity, opts),
     }
 }
 

@@ -90,6 +90,7 @@ impl FabricationCatalog {
                     PresenterMetadata {
                         targets: vec!["browser/wasm32/page".into()],
                         prerequisites: vec![
+                            PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
                             PrerequisiteNode::Resource("presentation/surface".into()),
                             PrerequisiteNode::Base("browser/dom".into()),
                         ],
