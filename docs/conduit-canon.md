@@ -3,7 +3,7 @@
 **Status:** durable project direction and architectural intent  
 **Audience:** maintainers, contributors, coding agents, reviewers, and future users  
 **Current executable truth:** [STATUS.md](../STATUS.md)  
-**Forward sequence:** [issue #361](https://github.com/dancxjo/conduit/issues/361)
+**Forward sequence:** [issue #1192](https://github.com/dancxjo/conduit/issues/1192)
 
 This document exists so that good ideas do not have to become immediate code merely to avoid being forgotten. It records the project Conduit is trying to become, the distinctions it must preserve, the concepts already earned by executable proof, and the larger ideas that remain valuable without yet being current obligations.
 
@@ -345,6 +345,38 @@ Conduit should become useful from the outside inward:
 - only then grow the freeform Workbench and larger domains.
 
 The user should not need to understand the machinery before receiving value. After the task works, Conduit should make every hidden choice inspectable: source, checked meaning, expansion, plan, placement, resources, authority, play, Sign, and presentation.
+
+The current product loop is:
+
+```text
+Enter -> See -> Make -> Rehearse -> Wake -> Observe -> Explain
+```
+
+This is one semantic loop across radically different Hosts and Presenters, not
+a request for identical pixels or mechanisms. Presentation states what exists,
+which ordinary semantic actions are available, why an action is unavailable,
+and which exact truth waits behind inspection. A Presenter binds local gestures
+such as keys, pointer activation, numbered serial choices, or touch to those
+actions; the gesture does not become the meaning or a second mutation path.
+
+The ordinary surface prioritizes the meaningful object, current state, current
+action, effect, and refusal. Exact source, Form, Body, Plan, placement, Host,
+implementation, Base, Play, and Sign truth remains reachable through explicit
+explanation rather than occupying the lobby. Geometry, focus, clipping,
+scrolling, and responsive layout remain Presenter-local.
+
+For product work, exact proof is necessary but not sufficient. A completed
+slice also demonstrates that a person can enter through a supported product or
+repository-development entrance, recognize the intended object, perform the
+intended ordinary action, see its correlated effect or refusal, and descend to
+the exact proof when curious.
+
+Product demonstrations are ordinary checked Seeds and Forms travelling through
+the real checker, planner, kernel, Presentation, and Presenter. A bespoke demo
+appliance may diagnose a lower boundary, but it does not define the product
+experience. Until the golden enactment loop is understandable, additional
+architecture productization and broad domain expansion are paused rather than
+replicating an unstable interface.
 
 ## Governance of this canon
 
