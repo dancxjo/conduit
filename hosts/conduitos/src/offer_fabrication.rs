@@ -108,7 +108,9 @@ impl<'a> ImageBoundHostOffer<'a> {
 mod tests {
     use super::*;
     use crate::fabrication::{
-        ALL_KNOWN_IMPLEMENTATIONS, FABRICATION_SCHEMA, FACILITY_NATIVE_COMPOSITOR,
+        ALL_KNOWN_IMPLEMENTATIONS, BASE_DISPLAY_SCANOUT, DRIVER_LINEAR_FRAMEBUFFER,
+        FABRICATION_SCHEMA, FACILITY_NATIVE_COMPOSITOR, PRESENTER_NATIVE_GRAPHICAL,
+        RESOURCE_PRESENTATION_SURFACE,
     };
 
     fn fabrication() -> FabricationRecord {
@@ -120,6 +122,11 @@ mod tests {
             target: "conduitos/x86_64/pc",
             implementations: ALL_KNOWN_IMPLEMENTATIONS,
             facilities: FACILITY_NATIVE_COMPOSITOR,
+            resources: RESOURCE_PRESENTATION_SURFACE,
+            bases: BASE_DISPLAY_SCANOUT,
+            drivers: DRIVER_LINEAR_FRAMEBUFFER,
+            presenters: PRESENTER_NATIVE_GRAPHICAL,
+            proof_instrumentation: 0,
             runtime_arena_ceiling: 262_144,
             operation_slot_ceiling: 64,
             timer_slot_ceiling: 32,

@@ -25,7 +25,7 @@ pub(super) fn execute_profile(
     let generated = paths.target.join("fabrication-record.rs");
     let lowering = target_lowering::lower(manifest)?;
     let source = format!(
-        "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
+        "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
         schema = conduitos::fabrication::FABRICATION_SCHEMA,
         profile = manifest.profile_id,
         build = manifest.build_id,
@@ -33,6 +33,11 @@ pub(super) fn execute_profile(
         target = manifest.target,
         implementations = lowering.implementations,
         facilities = lowering.facilities,
+        resources = lowering.resources,
+        bases = lowering.bases,
+        drivers = lowering.drivers,
+        presenters = lowering.presenters,
+        proof_instrumentation = lowering.proof_instrumentation,
         arena = manifest.bounds.static_memory_bytes,
         operations = manifest.bounds.operation_slots,
         timers = manifest.bounds.timer_slots,

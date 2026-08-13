@@ -13,6 +13,13 @@ pub const IMPL_OPL2: u16 = 1 << 7;
 pub const IMPL_NATIVE_PRESENTER: u16 = 1 << 8;
 pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 9) - 1;
 pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
+pub const RESOURCE_PRESENTATION_SURFACE: u16 = 1;
+pub const BASE_DISPLAY_SCANOUT: u16 = 1;
+pub const DRIVER_LINEAR_FRAMEBUFFER: u16 = 1;
+pub const PRESENTER_NATIVE_GRAPHICAL: u16 = 1;
+pub const PROOF_HOTPLUG: u16 = 1 << 0;
+pub const PROOF_SCRIPTED_KEYBOARD: u16 = 1 << 1;
+pub const ALL_KNOWN_PROOF_INSTRUMENTATION: u16 = PROOF_HOTPLUG | PROOF_SCRIPTED_KEYBOARD;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FabricationRecord {
@@ -25,6 +32,11 @@ pub struct FabricationRecord {
     pub target: &'static str,
     pub implementations: u16,
     pub facilities: u16,
+    pub resources: u16,
+    pub bases: u16,
+    pub drivers: u16,
+    pub presenters: u16,
+    pub proof_instrumentation: u16,
     pub runtime_arena_ceiling: u64,
     pub operation_slot_ceiling: u32,
     pub timer_slot_ceiling: u32,
@@ -64,6 +76,11 @@ impl FabricationRecord {
             target: "legacy-unbound",
             implementations: 0,
             facilities: 0,
+            resources: 0,
+            bases: 0,
+            drivers: 0,
+            presenters: 0,
+            proof_instrumentation: 0,
             runtime_arena_ceiling: 0,
             operation_slot_ceiling: 0,
             timer_slot_ceiling: 0,
@@ -84,6 +101,20 @@ impl FabricationRecord {
         if self.implementations == 0
             || self.implementations & !ALL_KNOWN_IMPLEMENTATIONS != 0
             || self.facilities & !FACILITY_NATIVE_COMPOSITOR != 0
+            || self.resources & !RESOURCE_PRESENTATION_SURFACE != 0
+            || self.bases & !BASE_DISPLAY_SCANOUT != 0
+            || self.drivers & !DRIVER_LINEAR_FRAMEBUFFER != 0
+            || self.presenters & !PRESENTER_NATIVE_GRAPHICAL != 0
+            || self.proof_instrumentation & !ALL_KNOWN_PROOF_INSTRUMENTATION != 0
+        {
+            return Err(FabricationError::UnknownInventory);
+        }
+        let native = self.includes(IMPL_NATIVE_PRESENTER);
+        if self.includes_facility(FACILITY_NATIVE_COMPOSITOR) != native
+            || (self.resources & RESOURCE_PRESENTATION_SURFACE != 0) != native
+            || (self.bases & BASE_DISPLAY_SCANOUT != 0) != native
+            || (self.drivers & DRIVER_LINEAR_FRAMEBUFFER != 0) != native
+            || (self.presenters & PRESENTER_NATIVE_GRAPHICAL != 0) != native
         {
             return Err(FabricationError::UnknownInventory);
         }
@@ -132,6 +163,11 @@ mod tests {
             target: "conduitos/x86_64/pc",
             implementations: ALL_KNOWN_IMPLEMENTATIONS,
             facilities: FACILITY_NATIVE_COMPOSITOR,
+            resources: RESOURCE_PRESENTATION_SURFACE,
+            bases: BASE_DISPLAY_SCANOUT,
+            drivers: DRIVER_LINEAR_FRAMEBUFFER,
+            presenters: PRESENTER_NATIVE_GRAPHICAL,
+            proof_instrumentation: 0,
             runtime_arena_ceiling: 8 * 1024 * 1024,
             operation_slot_ceiling: 64,
             timer_slot_ceiling: 32,

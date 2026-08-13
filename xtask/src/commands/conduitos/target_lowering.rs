@@ -104,10 +104,26 @@ pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condu
         } else {
             0
         },
-        resources: u16::from(native),
-        bases: u16::from(native),
-        drivers: u16::from(native),
-        presenters: u16::from(native),
+        resources: if native {
+            conduitos::fabrication::RESOURCE_PRESENTATION_SURFACE
+        } else {
+            0
+        },
+        bases: if native {
+            conduitos::fabrication::BASE_DISPLAY_SCANOUT
+        } else {
+            0
+        },
+        drivers: if native {
+            conduitos::fabrication::DRIVER_LINEAR_FRAMEBUFFER
+        } else {
+            0
+        },
+        presenters: if native {
+            conduitos::fabrication::PRESENTER_NATIVE_GRAPHICAL
+        } else {
+            0
+        },
         proof_instrumentation: 0,
     })
 }
