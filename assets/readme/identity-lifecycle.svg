@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">Conduit identity and lifecycle</title><desc id="desc">Authored Seed becomes one durable Body. The Body has Wake intervals. Each Wake can contain immutable Plans and active Plays, then Lull without deleting the Body.</desc>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" fill="#7dc4e4"/></marker><style>.bg{fill:#101827}.h{font:700 23px ui-sans-serif,system-ui;fill:#f4f7fb}.t{font:16px ui-sans-serif,system-ui;fill:#c7d2e3}.s{font:700 14px ui-sans-serif,system-ui;letter-spacing:1.4px;fill:#8bd5ca}.b{fill:#1e2d46;stroke:#57749d;stroke-width:2}.body{fill:#243956;stroke:#7dc4e4;stroke-width:2}.wake{fill:#28354f;stroke:#c6a0f6;stroke-width:2}.play{fill:#263d3d;stroke:#8bd5ca;stroke-width:2}.l{fill:none;stroke:#7dc4e4;stroke-width:3;marker-end:url(#a)}</style></defs>
+  <rect width="1200" height="420" rx="24" class="bg"/>
+  <rect x="45" y="145" width="150" height="100" rx="18" class="b"/><text x="70" y="182" class="s">SEED</text><text x="70" y="214" class="t">authored source</text>
+  <path d="M195 195h75" class="l"/><text x="232" y="178" text-anchor="middle" class="s">BIRTH</text>
+  <rect x="282" y="70" width="870" height="280" rx="22" class="body"/><text x="310" y="110" class="s">BODY B · DURABLE INTENT</text>
+  <rect x="310" y="135" width="540" height="180" rx="18" class="wake"/><text x="334" y="171" class="s">WAKE W1</text>
+  <rect x="334" y="192" width="210" height="90" rx="14" class="b"/><text x="356" y="226" class="s">PLAN P1</text><text x="356" y="254" class="t">Play X</text>
+  <path d="M544 237h60" class="l"/>
+  <rect x="616" y="192" width="210" height="90" rx="14" class="play"/><text x="638" y="226" class="s">PLAN P2</text><text x="638" y="254" class="t">Play Y</text>
+  <path d="M850 225h68" class="l"/><text x="884" y="207" text-anchor="middle" class="s">LULL</text>
+  <rect x="930" y="135" width="194" height="180" rx="18" class="wake"/><text x="954" y="171" class="s">WAKE W2</text><rect x="954" y="192" width="146" height="90" rx="14" class="b"/><text x="976" y="226" class="s">PLAN P3</text><text x="976" y="254" class="t">Play Z</text>
+  <text x="45" y="390" class="t">Lull ends maintenance; it does not delete the Body. A later Wake has a new identity.</text>
+</svg>
