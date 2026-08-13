@@ -35,6 +35,7 @@ pub enum RendererProjectionError {
     InvalidAttemptedEdit,
     GraphBasisMismatch,
     InvalidSoundInspection,
+    TooManyPolicyExplanations,
 }
 
 impl std::fmt::Display for RendererProjectionError {
@@ -76,6 +77,9 @@ impl std::fmt::Display for RendererProjectionError {
             Self::InvalidSoundInspection => {
                 formatter.write_str("renderer sound inspection is invalid or identity-stale")
             }
+            Self::TooManyPolicyExplanations => {
+                formatter.write_str("renderer policy explanations exceed their finite bound")
+            }
         }
     }
 }
@@ -109,6 +113,7 @@ pub struct PatchbayPresentation {
     pub graph: Option<PatchbayGraph>,
     pub attempted_edit: Option<AttemptedEditPresentation>,
     pub sound_inspection: Option<SoundRealizationInspection>,
+    pub policy_explanations: Vec<crate::PolicyChoiceExplanation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -235,6 +240,7 @@ impl PatchbayPresentation {
             graph: None,
             attempted_edit: None,
             sound_inspection: None,
+            policy_explanations: Vec::new(),
         })
     }
 
@@ -301,6 +307,21 @@ impl PatchbayPresentation {
             return Err(RendererProjectionError::InvalidAttemptedEdit);
         }
         self.attempted_edit = Some(attempted);
+        Ok(self)
+    }
+
+    pub fn with_policy_explanations(
+        mut self,
+        explanations: Vec<crate::PolicyChoiceExplanation>,
+    ) -> Result<Self, RendererProjectionError> {
+        if explanations.len() > crate::MAX_POLICY_EXPLANATIONS
+            || explanations.iter().any(|explanation| {
+                self.plan.as_ref().map(|plan| &plan.plan_id) != Some(&explanation.details().plan_id)
+            })
+        {
+            return Err(RendererProjectionError::TooManyPolicyExplanations);
+        }
+        self.policy_explanations = explanations;
         Ok(self)
     }
 

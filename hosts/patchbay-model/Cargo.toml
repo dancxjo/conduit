@@ -20,5 +20,6 @@ serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
 conduit-browser-runtime = { path = "../browser-runtime" }
+conduit-ai = { path = "../../crates/conduit-ai" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 serde_json = "1"

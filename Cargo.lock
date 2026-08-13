@@ -2041,6 +2041,7 @@ dependencies = [
 name = "patchbay-model"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-body",
  "conduit-browser-runtime",
  "conduit-core",
