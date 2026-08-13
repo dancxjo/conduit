@@ -99,6 +99,24 @@ fn validate_bases_and_provenance(
         {
             return Err("sealed boot provenance has an empty required fact".to_string());
         }
+        if let Some(trace) = &provenance.image_build_trace {
+            if trace.profile_id.is_empty()
+                || trace.profile_id.len() > 160
+                || trace.inclusions.len() > 256
+                || trace.inclusions.iter().any(|inclusion| {
+                    inclusion.request.is_empty()
+                        || inclusion.request.len() > 320
+                        || inclusion.path.is_empty()
+                        || inclusion.path.len() > 256
+                        || inclusion
+                            .path
+                            .iter()
+                            .any(|node| node.is_empty() || node.len() > 320)
+                })
+            {
+                return Err("IMAGE build trace is empty or exceeds its finite bounds".to_string());
+            }
+        }
         for framebuffer in &provenance.framebuffers {
             if !snapshot.bases.iter().any(|base| {
                 base.host_id == provenance.host_id

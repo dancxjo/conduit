@@ -526,6 +526,7 @@ dependencies = [
 name = "conduit-host-fabrication"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
  "conduit-std-catalog",
  "serde",
  "serde_json",
@@ -673,6 +674,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-form",
+ "conduit-host-fabrication",
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",

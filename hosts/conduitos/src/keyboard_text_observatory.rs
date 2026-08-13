@@ -172,6 +172,7 @@ pub fn completed_snapshot(
             adapter_revision: "3".into(),
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
+            image_build_trace: None,
             memory_map: MemoryMapSummary {
                 normalized_region_count: record.memory_region_count,
                 runtime_arena_bytes: record.runtime_arena.length,
