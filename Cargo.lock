@@ -523,6 +523,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-host-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-std-catalog",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
