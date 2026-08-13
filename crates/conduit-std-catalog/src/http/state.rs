@@ -38,6 +38,17 @@ impl HttpServerTransactions {
         if self.entries.iter().any(|entry| entry.id == id) {
             return Err(HttpServerResponseRefusal::StaleTransaction);
         }
+        if let Some(entry) = self
+            .entries
+            .iter_mut()
+            .find(|entry| entry.state != TransactionState::AwaitingResponse)
+        {
+            *entry = Transaction {
+                id,
+                state: TransactionState::AwaitingResponse,
+            };
+            return Ok(());
+        }
         if self.entries.len() == HTTP_MAXIMUM_IN_FLIGHT as usize {
             return Err(HttpServerResponseRefusal::Capacity);
         }
@@ -143,6 +154,27 @@ mod tests {
         assert_eq!(
             state.admit_request(HttpTransactionId(7)),
             Err(HttpServerResponseRefusal::StaleTransaction)
+        );
+    }
+
+    #[test]
+    fn terminal_slot_is_reused_without_growing_correlation_storage() {
+        let mut state = HttpServerTransactions::new();
+        for id in 0..HTTP_MAXIMUM_IN_FLIGHT {
+            state
+                .admit_request(HttpTransactionId(u64::from(id)))
+                .unwrap();
+        }
+        state.accept_response(HttpTransactionId(0)).unwrap();
+        state.admit_request(HttpTransactionId(10)).unwrap();
+        assert_eq!(state.entries.len(), HTTP_MAXIMUM_IN_FLIGHT as usize);
+        assert_eq!(
+            state.accept_response(HttpTransactionId(0)),
+            Err(HttpServerResponseRefusal::UnknownTransaction)
+        );
+        assert_eq!(
+            state.admit_request(HttpTransactionId(11)),
+            Err(HttpServerResponseRefusal::Capacity)
         );
     }
 }
