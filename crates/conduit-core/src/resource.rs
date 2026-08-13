@@ -44,6 +44,9 @@ pub struct ComputeTopologyGroup {
     pub numa_domain: Option<ComputeDomainId>,
     pub cache_domain: Option<ComputeDomainId>,
     pub performance_class: Option<ComputePerformanceClassId>,
+    /// Stable scheduler-visible nominal clock when the Base can truthfully
+    /// expose it. Current measured throughput and thermal state remain Signs.
+    pub nominal_clock_hz: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -114,6 +117,8 @@ pub struct ComputeReservation {
     pub architecture_base_id: ArchitectureBaseId,
     pub architecture_base_kind: ArchitectureBaseKind,
     pub topology_group_id: Option<ComputeTopologyGroupId>,
+    pub performance_class: Option<ComputePerformanceClassId>,
+    pub nominal_clock_hz: Option<u64>,
 }
 
 /// Transient base/runtime fact, deliberately absent from Plan identity.
@@ -166,6 +171,7 @@ impl ComputePoolContract {
                         .performance_class
                         .as_ref()
                         .is_none_or(|id| !id.as_str().is_empty())
+                    && group.nominal_clock_hz.is_none_or(|hz| hz > 0)
             })
             && self
                 .topology_groups
@@ -212,6 +218,8 @@ pub fn compute_reservation(
         architecture_base_id: contract.architecture_base_id.clone(),
         architecture_base_kind: contract.architecture_base_kind,
         topology_group_id: topology.map(|group| group.group_id.clone()),
+        performance_class: topology.and_then(|group| group.performance_class.clone()),
+        nominal_clock_hz: topology.and_then(|group| group.nominal_clock_hz),
     })
 }
 
@@ -244,6 +252,17 @@ pub fn resource_binding_satisfies(
                 && reservation.service_guarantee >= required.minimum_service_guarantee
                 && reservation.architecture_base_id == contract.architecture_base_id
                 && reservation.architecture_base_kind == contract.architecture_base_kind
+                && match &reservation.topology_group_id {
+                    Some(group_id) => contract.topology_groups.iter().any(|group| {
+                        &group.group_id == group_id
+                            && group.performance_class == reservation.performance_class
+                            && group.nominal_clock_hz == reservation.nominal_clock_hz
+                    }),
+                    None => {
+                        reservation.performance_class.is_none()
+                            && reservation.nominal_clock_hz.is_none()
+                    }
+                }
                 && match (&required.topology, &reservation.topology_group_id) {
                     (None, None) => true,
                     (Some(topology), Some(group_id)) => {

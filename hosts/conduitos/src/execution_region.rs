@@ -270,6 +270,8 @@ fn build_region(
                 architecture_base_id: ArchitectureBaseId::from(lane_base_identity.clone()),
                 architecture_base_kind: ArchitectureBaseKind::BareMetal,
                 topology_group_id: None,
+                performance_class: None,
+                nominal_clock_hz: None,
             }),
         },
         lane_base_id: HostBaseId::from(lane_base_identity),

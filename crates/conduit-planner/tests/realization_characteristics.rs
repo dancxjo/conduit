@@ -3,7 +3,10 @@ use conduit_ai::{
     install_generate_text_catalog, DATA_EGRESS_CHARACTERISTIC, MAXIMUM_CONTEXT_CHARACTERISTIC,
     METERED_COST_CHARACTERISTIC,
 };
-use conduit_core::{RealizationCharacteristicId, ResourceHealth, ResourceObservation, SignId};
+use conduit_core::{
+    CharacteristicId, CharacteristicQuantity, CharacteristicUnit, ResourceHealth,
+    ResourceObservation, SignId,
+};
 use conduit_planner::{
     plan_selected_realizations_with_characteristics,
     replan_selected_realizations_with_characteristics,
@@ -58,11 +61,14 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
     let gear = &form.gears[0];
     let requirements = HardRealizationRequirements {
         minimum_characteristic_counts: BTreeMap::from([(
-            RealizationCharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
-            24_000,
+            CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
+            CharacteristicQuantity {
+                value: 24_000,
+                unit: CharacteristicUnit::Tokens,
+            },
         )]),
         required_characteristic_flags: BTreeMap::from([(
-            RealizationCharacteristicId::from(DATA_EGRESS_CHARACTERISTIC),
+            CharacteristicId::from(DATA_EGRESS_CHARACTERISTIC),
             false,
         )]),
         ..HardRealizationRequirements::default()
@@ -86,7 +92,10 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
 
     let mut changed_advertisements = advertisements.clone();
     changed_advertisements[1].characteristics[0].value =
-        conduit_core::RealizationCharacteristicValue::Count(32_769);
+        conduit_core::CharacteristicValue::UnsignedQuantity {
+            value: 32_769,
+            unit: conduit_core::CharacteristicUnit::Tokens,
+        };
     let changed = plan_selected_realizations_with_characteristics(
         &form,
         &hosts,
@@ -98,6 +107,59 @@ fn context_and_privacy_hard_requirements_select_only_large_local() {
     )
     .expect("changed stable fact replans");
     assert_ne!(plan.plan_id, changed.plan_id);
+
+    let mut changed_definitions = advertisements.clone();
+    changed_definitions[1].characteristics[0]
+        .definition
+        .value_kind = conduit_core::CharacteristicValueKind::UnsignedQuantity {
+        unit: conduit_core::CharacteristicUnit::Tokens,
+        maximum: u64::MAX - 1,
+    };
+    let changed = plan_selected_realizations_with_characteristics(
+        &form,
+        &hosts,
+        &[],
+        &requirement_map,
+        &changed_definitions,
+        &observations(&hosts),
+        &BTreeMap::new(),
+    )
+    .expect("changed stable definition replans");
+    assert_ne!(plan.plan_id, changed.plan_id);
+}
+
+#[test]
+fn a_unit_mismatched_hard_quantity_cannot_be_interpreted_by_convention() {
+    let form = form();
+    let fixtures = generate_text_base_fixtures();
+    let hosts = fixtures
+        .iter()
+        .map(|fixture| fixture.advertisement.clone())
+        .collect::<Vec<_>>();
+    let advertisements = generate_text_realization_advertisements(&fixtures);
+    let requirements = HardRealizationRequirements {
+        minimum_characteristic_counts: BTreeMap::from([(
+            CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
+            CharacteristicQuantity {
+                value: 24_000,
+                unit: CharacteristicUnit::Bytes,
+            },
+        )]),
+        ..HardRealizationRequirements::default()
+    };
+    let error = select_realization_with_characteristics_and_signs(
+        &form.gears[0],
+        &hosts,
+        &advertisements,
+        &requirements,
+        &observations(&hosts),
+        &RealizationPolicy::default(),
+    )
+    .expect_err("bytes cannot be compared with a token ceiling");
+    assert!(matches!(
+        error,
+        conduit_planner::PlannerError::HardRealizationRequirementUnsatisfied(_)
+    ));
 }
 
 #[test]
@@ -111,11 +173,14 @@ fn bounded_decision_sign_explains_rejections_and_exact_selection() {
     let advertisements = generate_text_realization_advertisements(&fixtures);
     let requirements = HardRealizationRequirements {
         minimum_characteristic_counts: BTreeMap::from([(
-            RealizationCharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
-            24_000,
+            CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
+            CharacteristicQuantity {
+                value: 24_000,
+                unit: CharacteristicUnit::Tokens,
+            },
         )]),
         required_characteristic_flags: BTreeMap::from([(
-            RealizationCharacteristicId::from(DATA_EGRESS_CHARACTERISTIC),
+            CharacteristicId::from(DATA_EGRESS_CHARACTERISTIC),
             false,
         )]),
         ..HardRealizationRequirements::default()
@@ -140,7 +205,7 @@ fn bounded_decision_sign_explains_rejections_and_exact_selection() {
     assert_eq!(
         small.disposition,
         RealizationDecisionDisposition::Rejected(RealizationRejection::MinimumCharacteristicCount(
-            RealizationCharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC)
+            CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC)
         ))
     );
     let large = selection
@@ -169,7 +234,7 @@ fn bounded_decision_sign_explains_rejections_and_exact_selection() {
     assert_eq!(
         remote.disposition,
         RealizationDecisionDisposition::Rejected(RealizationRejection::RequiredCharacteristicFlag(
-            RealizationCharacteristicId::from(DATA_EGRESS_CHARACTERISTIC)
+            CharacteristicId::from(DATA_EGRESS_CHARACTERISTIC)
         ))
     );
 }
@@ -227,7 +292,7 @@ fn explicit_policy_can_prefer_remote_among_hard_admissible_candidates() {
         &observations(&hosts),
         &RealizationPolicy {
             preferences: vec![RealizationPreference::PreferCharacteristicFlag {
-                characteristic_id: RealizationCharacteristicId::from(METERED_COST_CHARACTERISTIC),
+                characteristic_id: CharacteristicId::from(METERED_COST_CHARACTERISTIC),
                 value: true,
             }],
         },
@@ -258,8 +323,11 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
         gear_id.clone(),
         HardRealizationRequirements {
             minimum_characteristic_counts: BTreeMap::from([(
-                RealizationCharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
-                24_000,
+                CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
+                CharacteristicQuantity {
+                    value: 24_000,
+                    unit: CharacteristicUnit::Tokens,
+                },
             )]),
             ..HardRealizationRequirements::default()
         },
@@ -268,7 +336,7 @@ fn refreshed_observations_produce_a_new_plan_without_mutating_the_old_plan() {
         gear_id,
         RealizationPolicy {
             preferences: vec![RealizationPreference::PreferCharacteristicFlag {
-                characteristic_id: RealizationCharacteristicId::from(METERED_COST_CHARACTERISTIC),
+                characteristic_id: CharacteristicId::from(METERED_COST_CHARACTERISTIC),
                 value: false,
             }],
         },

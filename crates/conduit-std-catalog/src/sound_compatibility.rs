@@ -4,8 +4,8 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    PcmChannelLayout, PcmSampleRepresentation, RealizationCharacteristic,
-    RealizationCharacteristicId, RealizationCharacteristicValue,
+    stable_realization_boolean, stable_realization_category, stable_realization_quantity,
+    CharacteristicUnit, PcmChannelLayout, PcmSampleRepresentation, RealizationCharacteristic,
 };
 use serde::{Deserialize, Serialize};
 
@@ -237,21 +237,46 @@ pub fn sound_profile_characteristics(
 }
 
 fn count(id: &str, value: u64) -> RealizationCharacteristic {
-    characteristic(id, RealizationCharacteristicValue::Count(value))
+    stable_realization_quantity(
+        id,
+        id,
+        "Stable reviewed sound realization quantity.",
+        sound_characteristic_unit(id),
+        u64::MAX,
+        value,
+    )
 }
 
 fn flag(id: &str, value: bool) -> RealizationCharacteristic {
-    characteristic(id, RealizationCharacteristicValue::Flag(value))
+    stable_realization_boolean(id, id, "Stable reviewed sound realization behavior.", value)
 }
 
 fn label(id: &str, value: &str) -> RealizationCharacteristic {
-    characteristic(id, RealizationCharacteristicValue::Label(value.into()))
+    stable_realization_category(
+        id,
+        id,
+        "Stable reviewed sound realization category.",
+        vec![value.into()],
+        false,
+        value,
+    )
 }
 
-fn characteristic(id: &str, value: RealizationCharacteristicValue) -> RealizationCharacteristic {
-    RealizationCharacteristic {
-        characteristic_id: RealizationCharacteristicId::from(id),
-        value,
+pub fn sound_characteristic_unit(id: &str) -> CharacteristicUnit {
+    match id {
+        SOUND_MINIMUM_PITCH_CHARACTERISTIC | SOUND_MAXIMUM_PITCH_CHARACTERISTIC => {
+            CharacteristicUnit::Millihertz
+        }
+        MUSIC_MAXIMUM_EVENT_RATE_CHARACTERISTIC => CharacteristicUnit::EventsPerSecond,
+        MUSIC_MAXIMUM_PITCH_BEND_RANGE_CHARACTERISTIC => CharacteristicUnit::Microcents,
+        AUDIO_SAMPLE_RATE_CHARACTERISTIC => CharacteristicUnit::Hertz,
+        AUDIO_MAXIMUM_FRAMES_CHARACTERISTIC
+        | AUDIO_PERIOD_FRAMES_CHARACTERISTIC
+        | AUDIO_BUFFER_FRAMES_CHARACTERISTIC => CharacteristicUnit::Frames,
+        AUDIO_MAXIMUM_FRAME_BYTES_CHARACTERISTIC
+        | AUDIO_CONTROLLED_STAGING_BYTES_CHARACTERISTIC => CharacteristicUnit::Bytes,
+        AUDIO_SOURCE_CLOCK_ID_CHARACTERISTIC => CharacteristicUnit::Identifier,
+        _ => CharacteristicUnit::Items,
     }
 }
 
@@ -383,8 +408,12 @@ mod tests {
 
         let facts = sound_profile_characteristics(&required);
         assert!(facts.iter().any(|fact| {
-            fact.characteristic_id.as_str() == AUDIO_SAMPLE_RATE_CHARACTERISTIC
-                && fact.value == RealizationCharacteristicValue::Count(48_000)
+            fact.definition.characteristic_id.as_str() == AUDIO_SAMPLE_RATE_CHARACTERISTIC
+                && fact.value
+                    == conduit_core::CharacteristicValue::UnsignedQuantity {
+                        value: 48_000,
+                        unit: CharacteristicUnit::Hertz,
+                    }
         }));
         assert!(facts.windows(2).all(|pair| pair[0] < pair[1]));
     }

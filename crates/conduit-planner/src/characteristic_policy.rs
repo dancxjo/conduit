@@ -1,7 +1,7 @@
 use crate::{RealizationPolicy, RealizationPreference};
 use conduit_core::{
-    CapabilityOffer, HostAdvertisement, RealizationAdvertisement, RealizationCharacteristicId,
-    RealizationCharacteristicValue,
+    CapabilityOffer, CharacteristicId, CharacteristicValue, HostAdvertisement,
+    RealizationAdvertisement,
 };
 use core::cmp::Ordering;
 
@@ -74,32 +74,29 @@ pub(crate) fn compare(
 
 fn value<'a>(
     advertisement: Option<&'a RealizationAdvertisement>,
-    id: &RealizationCharacteristicId,
-) -> Option<&'a RealizationCharacteristicValue> {
+    id: &CharacteristicId,
+) -> Option<&'a CharacteristicValue> {
     advertisement?
         .characteristics
         .iter()
-        .find(|item| &item.characteristic_id == id)
+        .find(|item| &item.definition.characteristic_id == id)
         .map(|item| &item.value)
 }
 
-fn count(
-    advertisement: Option<&RealizationAdvertisement>,
-    id: &RealizationCharacteristicId,
-) -> Option<u64> {
+fn count(advertisement: Option<&RealizationAdvertisement>, id: &CharacteristicId) -> Option<u64> {
     match value(advertisement, id) {
-        Some(RealizationCharacteristicValue::Count(value)) => Some(*value),
+        Some(CharacteristicValue::UnsignedQuantity { value, .. }) => Some(*value),
         _ => None,
     }
 }
 
 fn flag_distance(
     advertisement: Option<&RealizationAdvertisement>,
-    id: &RealizationCharacteristicId,
+    id: &CharacteristicId,
     preferred: bool,
 ) -> u8 {
     match value(advertisement, id) {
-        Some(RealizationCharacteristicValue::Flag(value)) if *value == preferred => 0,
+        Some(CharacteristicValue::Boolean(value)) if *value == preferred => 0,
         _ => 1,
     }
 }

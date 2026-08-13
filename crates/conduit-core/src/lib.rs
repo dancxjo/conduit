@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 
 mod audio_info;
 mod audio_render_demand;
+mod characteristic;
 mod configuration;
 mod control_loop;
 mod deadline;
@@ -31,6 +32,7 @@ mod sound_info;
 
 pub use audio_info::*;
 pub use audio_render_demand::*;
+pub use characteristic::*;
 pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use control_loop::*;
 pub use deadline::*;
@@ -38,7 +40,6 @@ pub use execution::*;
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
-    RealizationCharacteristicValue,
 };
 pub use info::*;
 pub use input_chord::*;
@@ -109,7 +110,7 @@ identity_type!(ExecutionProfileId);
 identity_type!(ExecutionRegionId);
 identity_type!(ImplementationId);
 identity_type!(ArtifactId);
-identity_type!(RealizationCharacteristicId);
+identity_type!(CharacteristicId);
 identity_type!(SourceDocumentId);
 identity_type!(CheckedFormId);
 identity_type!(ExpandedFormId);
@@ -941,21 +942,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             gear.realization_characteristics.len() as u32,
         );
         for characteristic in &gear.realization_characteristics {
-            push_string(&mut canonical, characteristic.characteristic_id.as_str());
-            match &characteristic.value {
-                RealizationCharacteristicValue::Count(value) => {
-                    canonical.push(0);
-                    push_u64(&mut canonical, *value);
-                }
-                RealizationCharacteristicValue::Flag(value) => {
-                    canonical.push(1);
-                    canonical.push(u8::from(*value));
-                }
-                RealizationCharacteristicValue::Label(value) => {
-                    canonical.push(2);
-                    push_string(&mut canonical, value);
-                }
-            }
+            characteristic::push_characteristic_canonical(&mut canonical, characteristic);
         }
         canonical.extend_from_slice(&gear.limits.max_active_instances.to_le_bytes());
         canonical.extend_from_slice(&gear.limits.max_queue_items.to_le_bytes());
@@ -1125,6 +1112,20 @@ fn push_resource_binding(canonical: &mut Vec<u8>, binding: &ResourceBinding) {
                 Some(group) => {
                     canonical.push(1);
                     push_string(canonical, group.as_str());
+                }
+                None => canonical.push(0),
+            }
+            match &compute.performance_class {
+                Some(class) => {
+                    canonical.push(1);
+                    push_string(canonical, class.as_str());
+                }
+                None => canonical.push(0),
+            }
+            match compute.nominal_clock_hz {
+                Some(hz) => {
+                    canonical.push(1);
+                    push_u64(canonical, hz);
                 }
                 None => canonical.push(0),
             }
