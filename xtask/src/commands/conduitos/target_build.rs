@@ -331,11 +331,7 @@ fn boot_aarch64_product(
     let deadline = Instant::now() + Duration::from_secs(45);
     loop {
         let transcript = fs::read_to_string(&serial_path).unwrap_or_default();
-        if let Some(json) = transcript.lines().find_map(|line| {
-            line.find("CONDUIT_AARCH64_PRODUCT ")
-                .map(|offset| &line[offset + "CONDUIT_AARCH64_PRODUCT ".len()..])
-                .filter(|json| json.ends_with('}'))
-        }) {
+        if let Some(json) = complete_aarch64_product_sign(&transcript) {
             let value: serde_json::Value = serde_json::from_str(json).map_err(|error| {
                 ConduitosError::refusal("malformed-aarch64-product-sign", error.to_string())
             })?;
@@ -396,6 +392,15 @@ fn boot_aarch64_product(
         }
         thread::sleep(Duration::from_millis(10));
     }
+}
+
+fn complete_aarch64_product_sign(transcript: &str) -> Option<&str> {
+    const PREFIX: &str = "CONDUIT_AARCH64_PRODUCT ";
+    transcript.lines().find_map(|line| {
+        line.find(PREFIX)
+            .map(|offset| &line[offset + PREFIX.len()..])
+            .filter(|json| json.ends_with('}'))
+    })
 }
 
 fn validate_aarch64_product_sign(
@@ -548,5 +553,21 @@ mod tests {
                 validate_aarch64_product_sign(&malformed, "profile", "build", "image").is_err()
             );
         }
+    }
+
+    #[test]
+    fn incomplete_aarch64_product_sign_is_not_promoted_or_rejected_early() {
+        assert_eq!(
+            complete_aarch64_product_sign(
+                "firmware\0CONDUIT_AARCH64_PRODUCT {\"schema\":\"partial"
+            ),
+            None
+        );
+        assert_eq!(
+            complete_aarch64_product_sign(
+                "firmware\0CONDUIT_AARCH64_PRODUCT {\"schema\":\"complete\"}\n"
+            ),
+            Some("{\"schema\":\"complete\"}")
+        );
     }
 }
