@@ -229,6 +229,12 @@ jobs:
             command: cargo xtask conduitos keyboard-proof --locked
             artifact_name: conduitos-keyboard-proof
             artifact_path: target/conduitos/x86_64/keyboard-proof.json
+          - proof: front-door
+            command: cargo xtask conduitos front-door-proof --locked
+            artifact_name: conduitos-front-door-proof
+            artifact_path: |
+              target/conduitos/x86_64/front-door-proof.json
+              target/conduitos/x86_64/front-door-serial.log
           - proof: rescue
             command: cargo xtask conduitos rescue-proof --locked
             artifact_name: conduitos-rescue-proof

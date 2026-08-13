@@ -82,6 +82,16 @@ pub trait PixelTarget {
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError>;
 }
 
+impl<T: PixelTarget + ?Sized> PixelTarget for &mut T {
+    fn format(&self) -> DisplayFormat {
+        (**self).format()
+    }
+
+    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
+        (**self).write_pixel(x, y, pixel)
+    }
+}
+
 pub struct RawDisplay {
     address: NonNull<u8>,
     byte_len: usize,

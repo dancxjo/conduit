@@ -22,6 +22,22 @@ impl HidKeyboardSession {
     }
 }
 
+/// Starts the ordinary reusable session without waiting for user input.
+///
+/// The first `receive_followup` call consumes report slot zero and derives
+/// transitions from the empty boot report. Deterministic proof profiles keep
+/// using `receive_first_boot_keyboard_report` so their transcript is unchanged.
+pub fn start_boot_keyboard_session(ready: HidKeyboardReady) -> HidKeyboardSession {
+    HidKeyboardSession {
+        ready,
+        previous: BootReport::default(),
+        initial: [HidKeyTransition::default(); MAX_TRANSITIONS_PER_REPORT],
+        initial_count: 0,
+        transition_count: 0,
+        next_report_index: 0,
+    }
+}
+
 pub fn receive_first_boot_keyboard_report(
     controller: &mut XhciReady,
     device: &UsbDevice,

@@ -17,7 +17,10 @@ use report::retain_transition;
 use report::{BootReport, derive_transitions, parse_report};
 #[path = "hid_session.rs"]
 mod session;
-pub use session::{HidKeyboardSession, finish_boot_keyboard, receive_first_boot_keyboard_report};
+pub use session::{
+    HidKeyboardSession, finish_boot_keyboard, receive_first_boot_keyboard_report,
+    start_boot_keyboard_session,
+};
 
 pub const BOOT_REPORT_BYTES: usize = 8;
 pub const MAX_TRANSITIONS_PER_REPORT: usize = 20;

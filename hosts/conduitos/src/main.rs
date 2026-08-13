@@ -83,67 +83,56 @@ extern "C" fn conduitos_start() -> ! {
                 pitch_bytes: display_format.pitch,
                 bits_per_pixel: display_format.bits_per_pixel,
             };
-            let prepared_presentation = match presentation_nucleus::prepare(
-                &identity::hex(&identities.host),
-                &identity::hex(&identities.boot),
-            ) {
-                Ok(prepared) => prepared,
-                Err(error) => emit_machine_refusal(error.as_str()),
-            };
-            let presentation = match presentation_nucleus::run(
-                &prepared_presentation,
-                &mut presentation_display,
-            ) {
-                Ok(proof) => proof,
-                Err(error) => emit_machine_refusal(error.as_str()),
-            };
-            let presentation_sign = format!(
-                "CONDUIT_PRESENTATION_SIGN {{\"schema\":\"conduit.conduitos.framebuffer-presentation/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"realization\":\"recursive\",\"back_kind\":\"{}\",\"back_contract_revision\":\"{}\",\"back_invocation_path\":\"{}\",\"back_source_document_id\":\"{}\",\"back_checked_form_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"display_base_id\":\"{}\",\"display_width\":{},\"display_height\":{},\"display_pitch\":{},\"display_bits_per_pixel\":{},\"execution_profile\":\"{}\",\"artifact\":\"{}\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"node_count\":{},\"cord_count\":{},\"text\":\"{}\",\"layout_children\":{},\"graphics_commands\":{},\"text_commands\":{},\"text_pixels_written\":{},\"graphics_pixels_written\":{},\"kernel_signs\":{},\"bounded\":true,\"completed\":true}}\n",
-                presentation.realization_back.kind_id.as_str(),
-                presentation
-                    .realization_back
-                    .kind_contract_revision
-                    .as_str(),
-                presentation.realization_back.invocation_path,
-                presentation.realization_back.source_document_id.as_str(),
-                presentation.realization_back.checked_form_id.as_str(),
-                identity::hex(&identities.host),
-                identity::hex(&identities.boot),
-                identity::hex(&display_base),
-                display_format.width,
-                display_format.height,
-                display_format.pitch,
-                display_format.bits_per_pixel,
-                conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE,
-                conduit_std_catalog::CONDUITOS_PRESENTATION_ARTIFACT,
-                prepared_presentation.plan.source_document_id.as_str(),
-                prepared_presentation.plan.checked_form_id.as_str(),
-                prepared_presentation.plan.expanded_form_id.as_str(),
-                presentation.plan_id.as_str(),
-                presentation.fragment_id.as_str(),
-                presentation.node_count,
-                presentation.cord_count,
-                presentation.text,
-                presentation.layout_children,
-                presentation.graphics_commands,
-                presentation.text_display.commands,
-                presentation.text_display.pixels_written,
-                presentation.display.pixels_written,
-                presentation.kernel_signs,
-            );
-            arch::early_write(presentation_sign.as_bytes());
-            if !cfg!(feature = "scripted-keyboard-proof") {
-                let entrance = conduitos::front_door::FrontDoor::new(
-                    conduit_core::HostId::from(identity::hex(&identities.host)),
-                    conduit_core::BootId::from(identity::hex(&identities.boot)),
-                    conduit_core::OfferGeneration(1),
-                    prepared_presentation.plan.source_document_id.clone(),
-                    prepared_presentation.plan.checked_form_id.clone(),
+            if cfg!(feature = "scripted-keyboard-proof") {
+                let prepared_presentation = match presentation_nucleus::prepare(
+                    &identity::hex(&identities.host),
+                    &identity::hex(&identities.boot),
+                ) {
+                    Ok(prepared) => prepared,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+                let presentation = match presentation_nucleus::run(
+                    &prepared_presentation,
+                    &mut presentation_display,
+                ) {
+                    Ok(proof) => proof,
+                    Err(error) => emit_machine_refusal(error.as_str()),
+                };
+                let presentation_sign = format!(
+                    "CONDUIT_PRESENTATION_SIGN {{\"schema\":\"conduit.conduitos.framebuffer-presentation/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"realization\":\"recursive\",\"back_kind\":\"{}\",\"back_contract_revision\":\"{}\",\"back_invocation_path\":\"{}\",\"back_source_document_id\":\"{}\",\"back_checked_form_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"display_base_id\":\"{}\",\"display_width\":{},\"display_height\":{},\"display_pitch\":{},\"display_bits_per_pixel\":{},\"execution_profile\":\"{}\",\"artifact\":\"{}\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"node_count\":{},\"cord_count\":{},\"text\":\"{}\",\"layout_children\":{},\"graphics_commands\":{},\"text_commands\":{},\"text_pixels_written\":{},\"graphics_pixels_written\":{},\"kernel_signs\":{},\"bounded\":true,\"completed\":true}}\n",
+                    presentation.realization_back.kind_id.as_str(),
+                    presentation
+                        .realization_back
+                        .kind_contract_revision
+                        .as_str(),
+                    presentation.realization_back.invocation_path,
+                    presentation.realization_back.source_document_id.as_str(),
+                    presentation.realization_back.checked_form_id.as_str(),
+                    identity::hex(&identities.host),
+                    identity::hex(&identities.boot),
+                    identity::hex(&display_base),
+                    display_format.width,
+                    display_format.height,
+                    display_format.pitch,
+                    display_format.bits_per_pixel,
+                    conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE,
+                    conduit_std_catalog::CONDUITOS_PRESENTATION_ARTIFACT,
+                    prepared_presentation.plan.source_document_id.as_str(),
+                    prepared_presentation.plan.checked_form_id.as_str(),
+                    prepared_presentation.plan.expanded_form_id.as_str(),
+                    presentation.plan_id.as_str(),
+                    presentation.fragment_id.as_str(),
+                    presentation.node_count,
+                    presentation.cord_count,
+                    presentation.text,
+                    presentation.layout_children,
+                    presentation.graphics_commands,
+                    presentation.text_display.commands,
+                    presentation.text_display.pixels_written,
+                    presentation.display.pixels_written,
+                    presentation.kernel_signs,
                 );
-                if let Err(error) = entrance.render(&mut presentation_display) {
-                    emit_machine_refusal(error.as_str());
-                }
-                arch::early_write(b"CONDUIT_BOOT_STAGE front-door-presented\n");
+                arch::early_write(presentation_sign.as_bytes());
             }
             let xhci_base =
                 identity::derive_base(&identities.boot, "conduitos/xhci/0000:00:01.0/1b36:000d");
@@ -288,11 +277,14 @@ extern "C" fn conduitos_start() -> ! {
                 }
                 Err(_) => emit_refusal("boot-sign-storage-full"),
             }
-            let mut hid_session =
+            let mut hid_session = if cfg!(feature = "scripted-keyboard-proof") {
                 match arch::receive_first_boot_keyboard_report(&mut xhci, &usb, hid_ready) {
                     Ok(session) => session,
                     Err(error) => emit_machine_refusal(error.as_str()),
-                };
+                }
+            } else {
+                arch::start_boot_keyboard_session(hid_ready)
+            };
             let mut rescue_matcher = conduitos::local_rescue::LocalRescueMatcher::new();
             let mut modifier_prefix = !hid_session.transitions().is_empty()
                 && hid_session
@@ -367,78 +359,17 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-plan-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-play-started\n");
             if !cfg!(feature = "scripted-keyboard-proof") {
-                let standard = match conduitos::ordinary_plan::prepare(
+                if let Err(reason) = conduitos::product_front_door::run(
                     &identities,
                     &offer,
-                    fabrication.build_id,
-                ) {
-                    Ok(prepared) => prepared,
-                    Err(error) => emit_machine_refusal(error.as_str()),
-                };
-                let mut front_door = conduitos::front_door::FrontDoor::new(
-                    conduit_core::HostId::from(identity::hex(&identities.host)),
-                    conduit_core::BootId::from(identity::hex(&identities.boot)),
-                    conduit_core::OfferGeneration(offer.generation),
-                    standard.plan.source_document_id.clone(),
-                    standard.plan.checked_form_id.clone(),
-                );
-                if let Err(error) = front_door.render(&mut presentation_display) {
-                    emit_machine_refusal(error.as_str());
-                }
-                arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
-                if let Err(reason) = conduitos::keyboard_input::run_interactive(
+                    fabrication,
+                    &framebuffer_basis,
+                    &mut presentation_display,
                     &mut hid_session,
                     &mut xhci,
                     &usb,
                     &keyboard_prepared,
-                    |transition| {
-                        conduitos::rescue_guest::observe(
-                            &identities,
-                            &mut rescue_matcher,
-                            transition.into_local_rescue(),
-                            true,
-                        )
-                    },
-                    |transition| {
-                        match front_door.accept(transition) {
-                            Ok(true) => match front_door.status() {
-                                conduitos::front_door::Status::JoinUnavailable => {
-                                    front_door
-                                        .render(&mut presentation_display)
-                                        .map_err(|error| error.as_str())?;
-                                    arch::early_write(
-                                            b"CONDUIT_FRONT_DOOR_SIGN {\"status\":\"refused\",\"reason\":\"no-admitted-body-candidate\"}\n",
-                                        );
-                                }
-                                conduitos::front_door::Status::BodyBorn => {
-                                    let born =
-                                        front_door.born().ok_or("front-door-body-missing")?;
-                                    let sign = format!(
-                                        "CONDUIT_FRONT_DOOR_SIGN {{\"status\":\"body-born\",\"body_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"membership_revision\":{}}}\n",
-                                        born.body.body_id.as_str(),
-                                        identity::hex(&identities.host),
-                                        identity::hex(&identities.boot),
-                                        born.membership.revision.0,
-                                    );
-                                    arch::early_write(sign.as_bytes());
-                                    conduitos::presentation_nucleus::run(
-                                        &prepared_presentation,
-                                        &mut presentation_display,
-                                    )
-                                    .map_err(|error| error.as_str())?;
-                                    arch::early_write(b"CONDUIT_BOOT_STAGE body-patchbay-open\n");
-                                }
-                                conduitos::front_door::Status::AwaitingChoice => {
-                                    front_door
-                                        .render(&mut presentation_display)
-                                        .map_err(|error| error.as_str())?;
-                                }
-                            },
-                            Ok(false) => {}
-                            Err(error) => return Err(error.as_str()),
-                        }
-                        Ok(())
-                    },
+                    &mut rescue_matcher,
                 ) {
                     emit_machine_refusal(reason);
                 }
