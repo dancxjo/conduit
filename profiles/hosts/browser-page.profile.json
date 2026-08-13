@@ -5,7 +5,7 @@
   "host_core": "host-core/std@1",
   "fragments": [],
   "capabilities": [],
-  "host_operations": [],
+  "host_operations": ["conduit.host/present@1"],
   "resources": [{ "id": "surface/dom", "class": "presentation/surface", "slots": 4, "bytes": 1048576 }],
   "bases": [{ "id": "browser/dom", "kind": "browser/dom", "driver": "browser/dom@1" }],
   "drivers": [{ "id": "driver/dom", "kind": "browser/dom@1" }],
