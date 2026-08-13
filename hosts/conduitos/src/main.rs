@@ -377,28 +377,39 @@ extern "C" fn conduitos_start() -> ! {
                     },
                     |transition| {
                         match front_door.accept(transition) {
-                            Ok(true) => {
-                                front_door
-                                    .render(&mut presentation_display)
-                                    .map_err(|error| error.as_str())?;
-                                match front_door.status() {
-                                    conduitos::front_door::Status::JoinUnavailable => arch::early_write(
-                                        b"CONDUIT_FRONT_DOOR_SIGN {\"status\":\"refused\",\"reason\":\"no-admitted-body-candidate\"}\n",
-                                    ),
-                                    conduitos::front_door::Status::BodyBorn => {
-                                        let born = front_door.born().ok_or("front-door-body-missing")?;
-                                        let sign = format!(
-                                            "CONDUIT_FRONT_DOOR_SIGN {{\"status\":\"body-born\",\"body_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"membership_revision\":{}}}\n",
-                                            born.body.body_id.as_str(),
-                                            identity::hex(&identities.host),
-                                            identity::hex(&identities.boot),
-                                            born.membership.revision.0,
+                            Ok(true) => match front_door.status() {
+                                conduitos::front_door::Status::JoinUnavailable => {
+                                    front_door
+                                        .render(&mut presentation_display)
+                                        .map_err(|error| error.as_str())?;
+                                    arch::early_write(
+                                            b"CONDUIT_FRONT_DOOR_SIGN {\"status\":\"refused\",\"reason\":\"no-admitted-body-candidate\"}\n",
                                         );
-                                        arch::early_write(sign.as_bytes());
-                                    }
-                                    conduitos::front_door::Status::AwaitingChoice => {}
                                 }
-                            }
+                                conduitos::front_door::Status::BodyBorn => {
+                                    let born =
+                                        front_door.born().ok_or("front-door-body-missing")?;
+                                    let sign = format!(
+                                        "CONDUIT_FRONT_DOOR_SIGN {{\"status\":\"body-born\",\"body_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"membership_revision\":{}}}\n",
+                                        born.body.body_id.as_str(),
+                                        identity::hex(&identities.host),
+                                        identity::hex(&identities.boot),
+                                        born.membership.revision.0,
+                                    );
+                                    arch::early_write(sign.as_bytes());
+                                    conduitos::presentation_nucleus::run(
+                                        &prepared_presentation,
+                                        &mut presentation_display,
+                                    )
+                                    .map_err(|error| error.as_str())?;
+                                    arch::early_write(b"CONDUIT_BOOT_STAGE body-patchbay-open\n");
+                                }
+                                conduitos::front_door::Status::AwaitingChoice => {
+                                    front_door
+                                        .render(&mut presentation_display)
+                                        .map_err(|error| error.as_str())?;
+                                }
+                            },
                             Ok(false) => {}
                             Err(error) => return Err(error.as_str()),
                         }
