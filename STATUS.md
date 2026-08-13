@@ -1960,3 +1960,39 @@ noninteractive ordinary Plan/Play cells. Product modules remain feature-fenced
 out of A0-A4 proof appliances. This adds no graphics, USB/xHCI, SMP, physical
 execution, HIL, or parity claim, and does not promote terminal parsing into
 Presentation truth.
+
+The portable Presentation semantic-action implementation from #1193 merged
+through PR #1199 as exact main
+`ef01019c09540230acf3524c0449ae132e6fc35e`. Its implementation head
+`7521af89b6b77829b72af1365e6ee5617bc1b7ed` passed every check in workflow
+`31730223340`, including browser-host, x86 front-door and product-journey, and
+the distinct AArch64 product double-boot lane. Exact-main push workflows
+`31730703199` and `31730703179` then passed the complete required check matrix
+and Pages evidence publication on that merge commit.
+
+One portable `Presentation` can now carry finite exact semantic action
+identity, ordinary Conduit intent, subject target, human label, disclosure
+level, and an available, unavailable, or refused state. Unavailable and
+refused states retain bounded machine-readable reason codes and explanations.
+The read-only exact-revision resolution check neither invokes an action nor
+grants authority. Action, availability, reason, and disclosure mutations enter
+the Presentation content identity; geometry, gesture, key, DOM, and renderer
+facts remain absent.
+
+The checked zero-Body Patchbay and ConduitOS front doors present OPEN and BE
+BORN as distinct actions over the same Seed. OPEN is available for inert
+inspection. BE BORN remains visible and unavailable with
+`authority/not-admitted` when the entrance has no admitted authority to create
+a Body. Native and browser Manifestations retain the exact semantic records;
+the deterministic linear Presenter emits those same records for the AArch64
+product. Duplicate action identity, unknown target, oversized reason, unknown
+disclosure subject, stale revision, unknown action, unavailable action, and
+refused action all fail closed without runtime mutation.
+
+This is deterministic and hosted/emulated software evidence. Human enactment
+for #1193 remains pending until a person records that the zero-Body entrance
+makes the Seed, distinct OPEN and BE BORN actions, unavailable reason, and
+inspection-only exact identities understandable. Automated browser evidence
+and coding-agent inspection do not satisfy that human claim. This slice adds
+no gesture binding, layout, action execution engine, authority source, Text
+Lab, physical execution, or HIL claim.
