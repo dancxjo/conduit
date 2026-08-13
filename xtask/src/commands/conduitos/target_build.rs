@@ -334,6 +334,7 @@ fn boot_aarch64_product(
         if let Some(json) = transcript.lines().find_map(|line| {
             line.find("CONDUIT_AARCH64_PRODUCT ")
                 .map(|offset| &line[offset + "CONDUIT_AARCH64_PRODUCT ".len()..])
+                .filter(|json| json.ends_with('}'))
         }) {
             let value: serde_json::Value = serde_json::from_str(json).map_err(|error| {
                 ConduitosError::refusal("malformed-aarch64-product-sign", error.to_string())
