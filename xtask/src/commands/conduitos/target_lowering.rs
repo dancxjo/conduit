@@ -10,6 +10,8 @@ const PRESENT_OPERATION: &str = "conduit.host/present@1";
 const SURFACE_CLASS: &str = "presentation/surface";
 const SCANOUT_BASE: &str = "display/scanout";
 const FRAMEBUFFER_DRIVER: &str = "display/linear-framebuffer@1";
+const SCRIPTED_KEYBOARD_PROOF: &str = "profile-fragment/conduitos-scripted-keyboard-proof@1";
+const HOTPLUG_PROOF: &str = "profile-fragment/conduitos-hotplug-proof@1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TargetBuildInputs {
@@ -21,6 +23,8 @@ pub(super) struct TargetBuildInputs {
     pub drivers: u16,
     pub presenters: u16,
     pub proof_instrumentation: u16,
+    pub presentation_surface_slots: u32,
+    pub presentation_surface_bytes: u64,
 }
 
 pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
@@ -35,6 +39,20 @@ pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condu
         .presenters
         .iter()
         .any(|item| item == NATIVE_PRESENTER);
+    let presentation_surfaces = manifest
+        .resource_budgets
+        .iter()
+        .filter(|item| item.class == SURFACE_CLASS)
+        .collect::<Vec<_>>();
+    if presentation_surfaces.len() > 1 {
+        return Err(refusal(
+            "profile-lowering-resource-ambiguous",
+            format!(
+                "expected at most one {SURFACE_CLASS} budget, found {}",
+                presentation_surfaces.len()
+            ),
+        ));
+    }
     let closure = [
         (
             PRESENT_OPERATION,
@@ -44,13 +62,7 @@ pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condu
             NATIVE_COMPOSITOR,
             manifest.facilities.contains(&NATIVE_COMPOSITOR.into()),
         ),
-        (
-            SURFACE_CLASS,
-            manifest
-                .resource_budgets
-                .iter()
-                .any(|item| item.class == SURFACE_CLASS),
-        ),
+        (SURFACE_CLASS, !presentation_surfaces.is_empty()),
         (
             SCANOUT_BASE,
             manifest
@@ -91,8 +103,35 @@ pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condu
         | conduitos::fabrication::IMPL_KEYBOARD
         | conduitos::fabrication::IMPL_PC_SPEAKER
         | conduitos::fabrication::IMPL_OPL2;
+    let (presentation_surface_slots, presentation_surface_bytes) = presentation_surfaces
+        .first()
+        .map_or((0, 0), |item| (item.slots, item.bytes));
+    let scripted_keyboard = manifest
+        .profile_fragments
+        .iter()
+        .any(|item| item == SCRIPTED_KEYBOARD_PROOF);
+    let hotplug = manifest
+        .profile_fragments
+        .iter()
+        .any(|item| item == HOTPLUG_PROOF);
+    if (scripted_keyboard || hotplug) && !native {
+        return Err(refusal(
+            "proof-profile-prerequisite-missing",
+            "ConduitOS graphical proof instrumentation requires the native product closure".into(),
+        ));
+    }
+    let mut cargo_features = native
+        .then_some("native-compositor")
+        .into_iter()
+        .collect::<Vec<_>>();
+    if hotplug {
+        cargo_features.push("hotplug-proof");
+    }
+    if scripted_keyboard || hotplug {
+        cargo_features.push("scripted-keyboard-proof");
+    }
     Ok(TargetBuildInputs {
-        cargo_features: native.then_some("native-compositor").into_iter().collect(),
+        cargo_features,
         implementations: backbone
             | if native {
                 conduitos::fabrication::IMPL_NATIVE_PRESENTER
@@ -124,7 +163,17 @@ pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condu
         } else {
             0
         },
-        proof_instrumentation: 0,
+        proof_instrumentation: (if hotplug {
+            conduitos::fabrication::PROOF_HOTPLUG
+        } else {
+            0
+        }) | (if scripted_keyboard || hotplug {
+            conduitos::fabrication::PROOF_SCRIPTED_KEYBOARD
+        } else {
+            0
+        }),
+        presentation_surface_slots,
+        presentation_surface_bytes,
     })
 }
 
@@ -181,6 +230,10 @@ mod tests {
         assert!(headless.cargo_features.is_empty());
         assert_ne!(native.implementations, headless.implementations);
         assert_eq!(headless.presenters, 0);
+        assert_eq!(headless.presentation_surface_slots, 0);
+        assert_eq!(headless.presentation_surface_bytes, 0);
+        assert_eq!(native.presentation_surface_slots, 2);
+        assert_eq!(native.presentation_surface_bytes, 4_194_304);
         assert_eq!(native.proof_instrumentation, 0);
     }
 
@@ -245,5 +298,70 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("unsupported-profile-target"));
+    }
+
+    #[test]
+    fn duplicate_graphical_resource_ceiling_fails_before_codegen() {
+        let mut native = manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-native.profile.json"
+        ));
+        native
+            .resource_budgets
+            .push(native.resource_budgets[0].clone());
+        assert!(lower(&native)
+            .unwrap_err()
+            .to_string()
+            .contains("profile-lowering-resource-ambiguous"));
+    }
+
+    #[test]
+    fn proof_profiles_are_checked_distinct_and_normal_products_stay_clean() {
+        let normal = lower(&manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-native.profile.json"
+        )))
+        .unwrap();
+        let proof = lower(&manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-proof.profile.json"
+        )))
+        .unwrap();
+        let hotplug = lower(&manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-hotplug-proof.profile.json"
+        )))
+        .unwrap();
+        assert_eq!(normal.proof_instrumentation, 0);
+        assert_eq!(
+            proof.cargo_features,
+            ["native-compositor", "scripted-keyboard-proof"]
+        );
+        assert_eq!(
+            proof.proof_instrumentation,
+            conduitos::fabrication::PROOF_SCRIPTED_KEYBOARD
+        );
+        assert_eq!(
+            hotplug.cargo_features,
+            [
+                "native-compositor",
+                "hotplug-proof",
+                "scripted-keyboard-proof"
+            ]
+        );
+        assert_eq!(
+            hotplug.proof_instrumentation,
+            conduitos::fabrication::ALL_KNOWN_PROOF_INSTRUMENTATION
+        );
+    }
+
+    #[test]
+    fn proof_instrumentation_without_native_closure_refuses() {
+        let mut headless = manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-headless.profile.json"
+        ));
+        headless
+            .profile_fragments
+            .push(SCRIPTED_KEYBOARD_PROOF.into());
+        assert!(lower(&headless)
+            .unwrap_err()
+            .to_string()
+            .contains("proof-profile-prerequisite-missing"));
     }
 }

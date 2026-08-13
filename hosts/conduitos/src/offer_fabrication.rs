@@ -127,6 +127,8 @@ mod tests {
             drivers: DRIVER_LINEAR_FRAMEBUFFER,
             presenters: PRESENTER_NATIVE_GRAPHICAL,
             proof_instrumentation: 0,
+            presentation_surface_slots: 2,
+            presentation_surface_bytes: 4 * 1024 * 1024,
             runtime_arena_ceiling: 262_144,
             operation_slot_ceiling: 64,
             timer_slot_ceiling: 32,

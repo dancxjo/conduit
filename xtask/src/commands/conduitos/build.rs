@@ -1,6 +1,8 @@
 use std::{fs, path::Path, process::Command};
 
-use conduit_host_fabrication::BuildManifest;
+use conduit_host_fabrication::{
+    build_host_image, BuildInputs, BuildManifest, FabricationCatalog, HostBounds, HostProfile,
+};
 
 use crate::cli::GlobalOpts;
 
@@ -12,7 +14,15 @@ use super::{
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
-    execute_with_features(arch, opts, &["native-compositor"], None)
+    if arch == ConduitosArch::X86_64 {
+        execute_embedded_profile(
+            arch,
+            include_str!("../../../../profiles/hosts/conduitos-native.profile.json"),
+            opts,
+        )
+    } else {
+        execute_with_features(arch, opts, &[], None)
+    }
 }
 
 pub(super) fn execute_profile(
@@ -25,7 +35,7 @@ pub(super) fn execute_profile(
     let generated = paths.target.join("fabrication-record.rs");
     let lowering = target_lowering::lower(manifest)?;
     let source = format!(
-        "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
+        "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: {surface_slots}, presentation_surface_bytes: {surface_bytes}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
         schema = conduitos::fabrication::FABRICATION_SCHEMA,
         profile = manifest.profile_id,
         build = manifest.build_id,
@@ -38,6 +48,8 @@ pub(super) fn execute_profile(
         drivers = lowering.drivers,
         presenters = lowering.presenters,
         proof_instrumentation = lowering.proof_instrumentation,
+        surface_slots = lowering.presentation_surface_slots,
+        surface_bytes = lowering.presentation_surface_bytes,
         arena = manifest.bounds.static_memory_bytes,
         operations = manifest.bounds.operation_slots,
         timers = manifest.bounds.timer_slots,
@@ -61,15 +73,10 @@ pub(super) fn execute_hotplug(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
-    execute_with_features(
+    execute_embedded_profile(
         arch,
+        include_str!("../../../../profiles/hosts/conduitos-hotplug-proof.profile.json"),
         opts,
-        &[
-            "native-compositor",
-            "hotplug-proof",
-            "scripted-keyboard-proof",
-        ],
-        None,
     )
 }
 
@@ -77,12 +84,61 @@ pub(super) fn execute_proof(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
-    execute_with_features(
+    execute_embedded_profile(
         arch,
+        include_str!("../../../../profiles/hosts/conduitos-proof.profile.json"),
         opts,
-        &["native-compositor", "scripted-keyboard-proof"],
-        None,
     )
+}
+
+fn execute_embedded_profile(
+    arch: ConduitosArch,
+    source: &str,
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    if arch != ConduitosArch::X86_64 {
+        return execute(arch, opts);
+    }
+    let paths = Paths::new(arch)?;
+    let profile: HostProfile = serde_json::from_str(source)
+        .map_err(|error| ConduitosError::refusal("proof-profile-invalid", error.to_string()))?;
+    let source_identity = git_head(&paths.root)?;
+    let toolchain = Command::new("rustc")
+        .arg("--version")
+        .output()
+        .map_err(|error| ConduitosError::refusal("toolchain-unavailable", error.to_string()))?;
+    if !toolchain.status.success() {
+        return Err(ConduitosError::refusal(
+            "toolchain-unavailable",
+            toolchain.status.to_string(),
+        ));
+    }
+    let toolchain_identity = String::from_utf8(toolchain.stdout)
+        .map_err(|error| ConduitosError::refusal("toolchain-unavailable", error.to_string()))?;
+    let (image, _) = build_host_image(
+        profile,
+        &FabricationCatalog::canonical(),
+        &BuildInputs {
+            source_identity,
+            toolchain_identity: toolchain_identity.trim().into(),
+            toolchain_available: true,
+            maxima: HostBounds {
+                static_memory_bytes: 512 * 1024 * 1024,
+                heap_arena_bytes: 512 * 1024 * 1024,
+                queue_items: 1_048_576,
+                buffered_bytes: 512 * 1024 * 1024,
+                active_instances: 65_536,
+                operation_slots: 65_536,
+                timer_slots: 65_536,
+                line_sessions: 65_536,
+                evidence_items: 1_048_576,
+            },
+        },
+    )
+    .map_err(|diagnostics| {
+        ConduitosError::refusal("proof-profile-refused", format!("{diagnostics:?}"))
+    })?;
+    execute_profile(&image.manifest, opts)
 }
 
 fn execute_with_features(

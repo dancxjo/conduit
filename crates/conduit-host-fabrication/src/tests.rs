@@ -141,6 +141,24 @@ fn presenter_without_compositor_display_or_driver_fails_closed() {
 }
 
 #[test]
+fn target_incompatible_base_and_driver_fail_before_target_lowering() {
+    let catalog = FabricationCatalog::canonical();
+    let mut profile = parse(CONDUITOS_NATIVE);
+    profile.target.family = "browser".into();
+    profile.target.architecture = "wasm32".into();
+    profile.target.machine = "page".into();
+    profile.presenters.clear();
+    let diagnostics = validate_profile(profile, &catalog).unwrap_err();
+    for incompatible in ["display/scanout", "display/linear-framebuffer@1"] {
+        assert!(diagnostics.iter().any(|item| matches!(
+            item,
+            ProfileDiagnostic::TargetIncompatible { item, target }
+                if item == incompatible && target == "browser/wasm32/page"
+        )));
+    }
+}
+
+#[test]
 fn circular_prerequisite_metadata_is_rejected() {
     let mut catalog = FabricationCatalog::canonical();
     let facility = PrerequisiteNode::Facility("compositor/native@1".into());

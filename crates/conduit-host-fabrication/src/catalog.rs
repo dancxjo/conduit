@@ -34,7 +34,9 @@ pub struct FabricationCatalog {
     pub targets: Vec<String>,
     pub host_cores: Vec<String>,
     pub base_kinds: Vec<String>,
+    pub base_targets: BTreeMap<String, Vec<String>>,
     pub driver_kinds: Vec<String>,
+    pub driver_targets: BTreeMap<String, Vec<String>>,
     pub line_facilities: Vec<String>,
     pub facilities: Vec<String>,
     pub policy_profiles: Vec<String>,
@@ -133,6 +135,23 @@ impl FabricationCatalog {
                 "storage/protected-file".into(),
                 "timer/monotonic".into(),
             ],
+            base_targets: BTreeMap::from([
+                ("browser/dom".into(), vec!["browser/wasm32/page".into()]),
+                ("clock/monotonic".into(), vec!["std/*/*".into()]),
+                (
+                    "display/scanout".into(),
+                    vec![
+                        "std/x86_64/workstation".into(),
+                        "conduitos/x86_64/pc".into(),
+                    ],
+                ),
+                (
+                    "serial/text".into(),
+                    vec!["std/*/*".into(), "conduitos/*/*".into()],
+                ),
+                ("storage/protected-file".into(), vec!["std/*/*".into()]),
+                ("timer/monotonic".into(), vec!["std/*/*".into()]),
+            ]),
             driver_kinds: vec![
                 "browser/dom@1".into(),
                 "display/linear-framebuffer@1".into(),
@@ -141,6 +160,23 @@ impl FabricationCatalog {
                 "hosted/serial@1".into(),
                 "pico/usb-cdc@1".into(),
             ],
+            driver_targets: BTreeMap::from([
+                ("browser/dom@1".into(), vec!["browser/wasm32/page".into()]),
+                (
+                    "display/linear-framebuffer@1".into(),
+                    vec![
+                        "std/x86_64/workstation".into(),
+                        "conduitos/x86_64/pc".into(),
+                    ],
+                ),
+                ("hosted/monotonic-clock@1".into(), vec!["std/*/*".into()]),
+                ("hosted/protected-file@1".into(), vec!["std/*/*".into()]),
+                ("hosted/serial@1".into(), vec!["std/*/*".into()]),
+                (
+                    "pico/usb-cdc@1".into(),
+                    vec!["conduitos/thumbv6m/pico-w".into()],
+                ),
+            ]),
             line_facilities: vec!["line/usb-cdc@1".into(), "line/websocket@1".into()],
             facilities: vec!["compositor/native@1".into()],
             policy_profiles: vec![
@@ -148,7 +184,11 @@ impl FabricationCatalog {
                 "trust/local-explicit@1".into(),
                 "update/rebuild@1".into(),
             ],
-            profile_fragments: vec!["profile-fragment/explicit-local-trust@1".into()],
+            profile_fragments: vec![
+                "profile-fragment/explicit-local-trust@1".into(),
+                "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
+                "profile-fragment/conduitos-hotplug-proof@1".into(),
+            ],
         }
     }
 }

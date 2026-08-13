@@ -37,6 +37,8 @@ pub struct FabricationRecord {
     pub drivers: u16,
     pub presenters: u16,
     pub proof_instrumentation: u16,
+    pub presentation_surface_slots: u32,
+    pub presentation_surface_bytes: u64,
     pub runtime_arena_ceiling: u64,
     pub operation_slot_ceiling: u32,
     pub timer_slot_ceiling: u32,
@@ -81,6 +83,8 @@ impl FabricationRecord {
             drivers: 0,
             presenters: 0,
             proof_instrumentation: 0,
+            presentation_surface_slots: 0,
+            presentation_surface_bytes: 0,
             runtime_arena_ceiling: 0,
             operation_slot_ceiling: 0,
             timer_slot_ceiling: 0,
@@ -115,6 +119,8 @@ impl FabricationRecord {
             || (self.bases & BASE_DISPLAY_SCANOUT != 0) != native
             || (self.drivers & DRIVER_LINEAR_FRAMEBUFFER != 0) != native
             || (self.presenters & PRESENTER_NATIVE_GRAPHICAL != 0) != native
+            || (self.presentation_surface_slots != 0) != native
+            || (self.presentation_surface_bytes != 0) != native
         {
             return Err(FabricationError::UnknownInventory);
         }
@@ -168,6 +174,8 @@ mod tests {
             drivers: DRIVER_LINEAR_FRAMEBUFFER,
             presenters: PRESENTER_NATIVE_GRAPHICAL,
             proof_instrumentation: 0,
+            presentation_surface_slots: 2,
+            presentation_surface_bytes: 4 * 1024 * 1024,
             runtime_arena_ceiling: 8 * 1024 * 1024,
             operation_slot_ceiling: 64,
             timer_slot_ceiling: 32,
@@ -245,6 +253,14 @@ mod tests {
             },
             FabricationRecord {
                 implementations: record.implementations & !IMPL_NATIVE_PRESENTER,
+                ..record
+            },
+            FabricationRecord {
+                presentation_surface_slots: 0,
+                ..record
+            },
+            FabricationRecord {
+                presentation_surface_bytes: 0,
                 ..record
             },
             FabricationRecord {
