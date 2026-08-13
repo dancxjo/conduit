@@ -1932,3 +1932,31 @@ firmware distribution, arbitrary remote execution, general PKI product, or
 SOUL-continuity claim. Firmware flashing remains a repository-development
 preparation step and is not part of Body membership or the demonstrated
 operator admission flow.
+
+The AArch64 Product Spine P5 slice from #1184 merged through PR #1190 as exact
+main `49f776634a380c0da01ea65e548fbcb00d5883cd`. Its implementation head
+`77e6a424b7922e63dbdda5224f5a7915f24e4c9a` passed 24 checks in workflow
+`31726402453`, including the distinct AArch64 product lane and the unchanged
+A0-A4 architecture lanes. Push workflows `31726808829` and `31726808857`
+then passed on that exact merge commit.
+
+The checked `conduitos/aarch64/virt` PROFILE lowers through the same Host BUILD
+contract into a distinct long-lived `conduitos-aarch64-product` artifact and
+final `BOOTAA64.EFI` image. Two independent QEMU `virt`/Cortex-A72 boots under
+`QEMU_EFI.fd` require exact ProfileId, BuildId, resolved Image binding, fresh
+HostId and BootId, and a process still alive after its ready Sign. The guest
+constructs its current HostOffer from embedded fabrication plus live AArch64
+machine truth, manifests the ordinary zero-Body front-door Presentation through
+the admitted `presenter/linear-serial@1` and PL011 Base, and executes the
+canonical portable tiny Seed through an ordinary production-kernel Plan/Play
+to `HELLO, CONDUITOS`.
+
+The separate `cargo xtask conduitos product-readiness-matrix` keeps AArch64
+local interaction and ordinary Body lifecycle explicitly false: there is no
+PL011 input Base and no proof-harness command channel promoted into product
+authority. It records only the earned PROFILE artifact, bootable image,
+IMAGE-bound offer, long-lived zero-Body Host, linear Presenter, and
+noninteractive ordinary Plan/Play cells. Product modules remain feature-fenced
+out of A0-A4 proof appliances. This adds no graphics, USB/xHCI, SMP, physical
+execution, HIL, or parity claim, and does not promote terminal parsing into
+Presentation truth.
