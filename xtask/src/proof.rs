@@ -206,6 +206,21 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         allowed_claims: &["actual browser host executes through the browser/WASM kernel"],
     },
     ProofCommandContract {
+        id: "patchbay.front-door",
+        command: "cargo xtask prove patchbay-front-door",
+        proof_class: ProofClass::LiveBrowser,
+        required_tools_or_targets: &["cargo", "wasm32-unknown-unknown", "playwright", "chromium"],
+        named_artifacts: &[
+            "target/debug/patchbay-native",
+            "target/debug/patchbay-html",
+            "hosts/browser/conduit_browser_runtime.wasm",
+            "target/conduit-evidence/patchbay-front-door/manifest.json",
+        ],
+        allowed_claims: &[
+            "one world-first Patchbay semantic entrance is equivalent across native and browser manifestations, executes Form to Plan to Play, and observes live browser membership change without mutating an existing Plan",
+        ],
+    },
+    ProofCommandContract {
         id: "browser.std-live-transport",
         command: "cargo xtask prove std-browser-s4",
         proof_class: ProofClass::LiveTransport,
@@ -451,10 +466,21 @@ mod tests {
         let value = serde_json::to_value(current_catalog()).unwrap();
         assert_eq!(value["schema_version"], PROOF_SCHEMA_VERSION);
         assert_eq!(value["vocabulary"].as_array().unwrap().len(), 11);
-        assert_eq!(value["commands"][0]["proof_class"], "freestanding-emulator");
-        assert_eq!(value["commands"][3]["proof_class"], "live-browser");
-        assert_eq!(value["commands"][5]["proof_class"], "firmware-build");
-        assert_eq!(value["commands"][7]["proof_class"], "physical-cross-host");
+        let commands = value["commands"].as_array().unwrap();
+        let proof_class = |id: &str| {
+            commands
+                .iter()
+                .find(|command| command["id"] == id)
+                .map(|command| command["proof_class"].clone())
+                .unwrap()
+        };
+        assert_eq!(
+            proof_class("conduitos.observatory"),
+            "freestanding-emulator"
+        );
+        assert_eq!(proof_class("browser.host"), "live-browser");
+        assert_eq!(proof_class("pico.firmware-build"), "firmware-build");
+        assert_eq!(proof_class("pico.cross-host-usb"), "physical-cross-host");
     }
 
     #[test]

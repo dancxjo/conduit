@@ -11,6 +11,30 @@ use conduit_std_host::{
 use std::io;
 use std::path::Path;
 
+fn enter_patchbay(host: cli::PatchbayHost) -> Result<(), String> {
+    let executable = match host {
+        cli::PatchbayHost::Native => "patchbay-native",
+        cli::PatchbayHost::Browser => "patchbay-html",
+    };
+    let mut command = std::process::Command::new(executable);
+    if host == cli::PatchbayHost::Native {
+        command.arg("--front-door");
+    }
+    let status = command.status().map_err(|error| {
+        format!(
+            "{executable} is unavailable ({error}); install the selected Patchbay renderer or use `cargo xtask demo patchbay --on {}` from a Conduit checkout",
+            match host {
+                cli::PatchbayHost::Native => "native",
+                cli::PatchbayHost::Browser => "browser",
+            }
+        )
+    })?;
+    status
+        .success()
+        .then_some(())
+        .ok_or_else(|| format!("{executable} exited with {status}"))
+}
+
 use crate::report_artifact::{read_report, snapshot_from_execution, write_report};
 
 fn run_with_placements(
@@ -52,6 +76,7 @@ fn render_runtime_report(path: &Path) -> Result<String, String> {
 fn main() {
     let command = cli::Cli::parse().command;
     let result = match command {
+        cli::Command::Patchbay { on } => enter_patchbay(on),
         cli::Command::Run {
             form,
             placements,

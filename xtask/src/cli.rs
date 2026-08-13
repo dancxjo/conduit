@@ -192,6 +192,7 @@ pub enum ProveTarget {
     StdBrowserS4,
     StdBrowserToggle,
     BrowserHost,
+    PatchbayFrontDoor,
     StdPicoUsb,
     PicoWifiBootstrap,
     PicoAppliance,
@@ -237,9 +238,19 @@ pub enum DemoCommand {
 
 #[derive(Args, Debug, Default)]
 pub struct PatchbayDemoArgs {
+    /// Select the Host realization used to manifest the shared entrance.
+    #[arg(long, value_enum, default_value_t = PatchbayHost::Native)]
+    pub on: PatchbayHost,
     /// Run the finite first-run authoring-to-Play acceptance journey.
     #[arg(long)]
     pub first_run_proof: bool,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PatchbayHost {
+    #[default]
+    Native,
+    Browser,
 }
 
 #[derive(Args, Debug)]

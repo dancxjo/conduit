@@ -16,6 +16,7 @@ pub(super) fn open_workspace(
     form_path: Option<PathBuf>,
     environment_path: Option<PathBuf>,
     allow_combined: bool,
+    front_door: bool,
 ) -> Result<OpenedWorkspace, String> {
     if form_path.is_some() && environment_path.is_some() && !allow_combined {
         return Err("--form and --environment are distinct workspaces".into());
@@ -24,7 +25,17 @@ pub(super) fn open_workspace(
         .as_ref()
         .map(environment_resource::open_environment_resource)
         .transpose()?;
-    let form_editor = form_path.map(resource::open_form_resource).transpose()?;
+    let form_editor = match form_path {
+        Some(path) => Some(resource::open_form_resource(path)?),
+        None if front_door => Some(
+            FormEditor::from_source(
+                "patchbay-front-door.conduit".into(),
+                include_str!("../../../examples/patchbay-front-door.conduit").into(),
+            )
+            .map_err(|error| error.to_string())?,
+        ),
+        None => None,
+    };
     let graphical_form = form_editor
         .as_ref()
         .map(form_interaction::graphical_form_for_editor)

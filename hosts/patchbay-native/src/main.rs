@@ -40,6 +40,9 @@ mod form_interaction;
 mod forms_navigation;
 #[cfg(test)]
 mod forms_navigation_tests;
+mod front_door;
+#[cfg(test)]
+mod front_door_tests;
 mod gui;
 mod gui_composition;
 mod gui_face_controls;
@@ -109,6 +112,8 @@ struct PatchbayApplication {
     graphical_form: Option<patchbay_model::PatchbayGraph>,
     layout: patchbay_model::PatchbayLayout,
     interaction: Option<PatchbayInteraction>,
+    entrance_state: Option<patchbay_model::PatchbayEntranceState>,
+    entrance_presentation: Option<conduit_presentation::Presentation>,
     hit_targets: Vec<gui::HitTarget>,
     cursor_position: (f64, f64),
     canvas_viewport: canvas_viewport::CanvasViewport,
@@ -311,12 +316,24 @@ impl ApplicationHandler for PatchbayApplication {
             }
         }
         match self.poll_body_parts() {
-            Ok(true) => self.rendered_once = false,
+            Ok(true) => {
+                if let Err(error) = self.refresh_front_door() {
+                    self.failure = Some(format!("front-door refresh failed: {error}"));
+                    event_loop.exit();
+                    return;
+                }
+                self.rendered_once = false;
+            }
             Ok(false) => {}
             Err(error) => self.publish_refusal(error),
         }
         match self.control.poll() {
             Ok(true) => {
+                if let Err(error) = self.refresh_front_door() {
+                    self.failure = Some(format!("front-door refresh failed: {error}"));
+                    event_loop.exit();
+                    return;
+                }
                 for line in self.control.lines().iter().filter(|line| {
                     line.starts_with("PLAN ")
                         || line.starts_with("PLAY ")

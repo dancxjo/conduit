@@ -319,7 +319,15 @@ impl PatchbayPresentation {
         let source_document_id = self.document.checked.source_document_id.clone();
         let plan_id = self.plan.as_ref().map(|plan| plan.plan_id.clone());
         let plan_checked_form_id = self.plan.as_ref().map(|plan| plan.checked_form_id.clone());
-        let expanded_form_id = self.plan.as_ref().map(|plan| plan.expanded_form_id.clone());
+        let expanded_form_id = self
+            .plan
+            .as_ref()
+            .map(|plan| plan.expanded_form_id.clone())
+            .or_else(|| {
+                self.graph
+                    .as_ref()
+                    .map(|graph| graph.expanded_form_id.clone())
+            });
         let active_play_id = self.play.as_ref().map(|play| play.active_play_id.clone());
         let mut sign_ids = self.play.as_ref().map_or_else(Vec::new, |play| {
             play.signs
@@ -329,6 +337,12 @@ impl PatchbayPresentation {
         });
         if let Some(report) = &self.topology {
             sign_ids.extend(report.signs.iter().map(|row| row.sign_id.clone()));
+            sign_ids.extend(
+                report
+                    .lines
+                    .iter()
+                    .map(|line| line.offer.availability.sign_id.clone()),
+            );
         }
         Self::deduplicate_sign(&mut sign_ids);
         RendererIdentityProjection {

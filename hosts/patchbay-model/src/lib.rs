@@ -23,6 +23,9 @@ mod face_controls;
 mod form_editor;
 mod form_editor_error;
 mod form_edits;
+mod front_door;
+mod front_door_session;
+mod front_door_topology;
 mod gear_realization;
 mod graphical_patchbay;
 mod interaction;
@@ -38,10 +41,12 @@ mod portable_graphics;
 mod portable_layout;
 mod portable_projection;
 mod portable_route_projection;
+mod portable_world_projection;
 mod presenter_capstone;
 #[cfg(test)]
 mod presenter_capstone_tests;
 mod prewake;
+mod renderer_conformance;
 mod renderer_execution;
 mod renderer_inspection;
 mod renderer_projection;
@@ -66,6 +71,12 @@ pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
+pub use front_door::{
+    EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
+    PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
+};
+pub use front_door_session::{LocalFrontDoor, LocalFrontDoorProjection};
+pub use front_door_topology::MAX_FRONT_DOOR_LINES;
 pub use gear_realization::{
     replan_with_implementation, GearRealizationAlternative, GearRealizationError,
     GearRealizationInspection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
@@ -108,6 +119,10 @@ pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;
 pub use presenter_capstone::*;
 pub use prewake::*;
+pub use renderer_conformance::{
+    compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
+    ENTRANCE_EQUIVALENCE_SCHEMA,
+};
 pub use renderer_execution::{
     RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
 };
@@ -131,6 +146,10 @@ pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES
 mod build_birth_tests;
 #[cfg(test)]
 mod face_configuration_tests;
+#[cfg(test)]
+mod front_door_session_tests;
+#[cfg(test)]
+mod front_door_tests;
 #[cfg(test)]
 mod gear_realization_tests;
 #[cfg(test)]
@@ -192,6 +211,7 @@ impl HostProjection {
     }
 }
 
+#[derive(Clone)]
 pub struct PatchbayModel {
     advertisement: HostAdvertisement,
     projection: HostProjection,

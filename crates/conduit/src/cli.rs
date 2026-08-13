@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 /// Product command-line entrance for installed Conduit workflows.
@@ -11,6 +11,12 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Enter the current Body through the shared Patchbay front door.
+    Patchbay {
+        /// Select the Host realization used to manifest Patchbay.
+        #[arg(long, value_enum, default_value_t = PatchbayHost::Native)]
+        on: PatchbayHost,
+    },
     /// Check, plan, admit, and execute a Form on available local Hosts.
     Run {
         /// Authored Form to execute.
@@ -53,6 +59,12 @@ pub(crate) enum Command {
     ObservatoryReport { report: PathBuf },
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub(crate) enum PatchbayHost {
+    Native,
+    Browser,
+}
+
 #[derive(Debug, Subcommand)]
 pub(crate) enum InspectCommand {
     /// Render a neutral runtime report.
@@ -65,6 +77,14 @@ mod tests {
 
     #[test]
     fn public_command_tree_parses() {
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])
+                .expect("Patchbay browser entrance parses")
+                .command,
+            Command::Patchbay {
+                on: PatchbayHost::Browser
+            }
+        ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "run", "hello.form"])
                 .expect("run command parses")

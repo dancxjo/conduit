@@ -307,3 +307,72 @@ test("one native Body presents three mixed browser Parts without mutating its Pl
   if (ambientChat.process.exitCode === null) ambientChat.process.kill("SIGTERM");
   if (spawnedChat.process.exitCode === null) spawnedChat.process.kill("SIGTERM");
 });
+
+test("Patchbay front door presents one live browser Part through restart and replan", async ({ browser }) => {
+  const chat = await startWebchatServer();
+  const capstone = spawn("target/debug/patchbay-front-door-capstone", [], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const bodyUrl = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("Patchbay capstone did not become ready")), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const body = output.match(/body_url=([^\s]+)/)?.[1];
+      if (body) {
+        clearTimeout(timeout);
+        resolve(body);
+      }
+    };
+    capstone.stdout.on("data", inspect);
+    capstone.stderr.on("data", inspect);
+    capstone.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) reject(new Error(`Patchbay capstone failed (${code})\n${output}`));
+    });
+  });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const target = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(chat.url)}&body=${encodeURIComponent(bodyUrl)}`;
+  await page.goto(target);
+  await expect.poll(async () => {
+    if (capstone.exitCode !== null) {
+      throw new Error(`Patchbay capstone exited (${capstone.exitCode})\n${output}`);
+    }
+    return page.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting");
+  })
+    .toBe("admitted");
+  await expect.poll(() => output).toContain("ready_for_offline");
+  await page.close();
+  await expect.poll(() => capstone.exitCode).not.toBeNull();
+  if (capstone.exitCode !== 0) {
+    throw new Error(`Patchbay capstone failed (${capstone.exitCode})\n${output}`);
+  }
+  const receipt = output
+    .split("\n")
+    .filter((line) => line.startsWith("{"))
+    .map((line) => JSON.parse(line))
+    .at(-1);
+  expect(receipt.schema).toBe("conduit.patchbay/live-front-door-topology@1");
+  expect(receipt.browser_host_id).toBeTruthy();
+  expect(receipt.plan_unchanged_by_join_offline_and_restart).toBe(true);
+  expect(receipt.replacement_plan_distinct).toBe(true);
+  expect(receipt.candidate_selection_became_stale).toBe(true);
+  expect(receipt.offline_part_selection_preserved).toBe(true);
+  expect(receipt.line_selection_preserved_on_loss).toBe(true);
+  expect(receipt.line_base).toBe("WebSocket");
+  expect(receipt.line_availability_transition).toEqual(["Ready", "Unavailable"]);
+  expect(receipt.renderer_semantics_equivalent).toBe(true);
+  expect(receipt.native_manifestation_id).not.toBe(receipt.browser_manifestation_id);
+  expect(receipt.final_subjects.some(({ role }) => role === "Part")).toBe(true);
+  expect(receipt.final_subjects.some(({ role }) => role === "Line")).toBe(true);
+  expect(receipt.final_subjects.some(({ role }) => role === "Plan")).toBe(true);
+  expect(receipt.final_subjects.some(({ role }) => role === "Play")).toBe(true);
+  expect(receipt.final_subjects.some(({ role }) => role === "Sign")).toBe(true);
+  expect(receipt.final_properties.some(({ name, value }) =>
+    name === "membership-state" && value.Text === "offline",
+  )).toBe(true);
+  await context.close();
+  if (chat.process.exitCode === null) chat.process.kill("SIGTERM");
+});

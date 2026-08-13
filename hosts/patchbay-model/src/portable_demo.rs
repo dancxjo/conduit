@@ -47,7 +47,7 @@ pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), 
         .map_err(|error| error.to_string())?;
     let play_document =
         PlayDocument::from_report(&plan, &report).map_err(|error| format!("{error:?}"))?;
-    let patchbay = PatchbayModel::with_identity("patchbay/host".into(), "patchbay/boot".into());
+    let patchbay = PatchbayModel::with_identity(host_id.clone(), boot_id.clone());
     let mut topology = PatchbayTopology::new(1).map_err(|error| error.to_string())?;
     topology
         .ingest(&patchbay.startup_snapshot())
@@ -133,7 +133,7 @@ pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), 
     )
     .map_err(|error| format!("{error:?}"))?;
     let presentation = projection
-        .to_portable(&body, &wake)
+        .to_portable_front_door(&body, &wake, &parts)
         .map_err(|error| error.to_string())?;
     Ok((presentation, parts))
 }
@@ -189,6 +189,19 @@ mod tests {
         assert_eq!(first.basis.plan_id, second.basis.plan_id);
         assert_eq!(first.basis.active_play_id, second.basis.active_play_id);
         assert_eq!(first.subjects, second.subjects);
+        assert!(first.subjects.iter().any(|subject| {
+            subject.role == conduit_presentation::PresentationRole::Body
+                && subject.identity == format!("body/{}", first.basis.body_id.as_str())
+        }));
+        assert!(first.subjects.iter().any(|subject| {
+            subject.role == conduit_presentation::PresentationRole::Part
+                && subject.identity.starts_with("part/")
+        }));
+        assert!(first.subjects.iter().any(|subject| {
+            subject.role == conduit_presentation::PresentationRole::Host
+                && subject.identity.starts_with("host/")
+                && subject.identity.contains("/boot/")
+        }));
     }
 
     #[test]

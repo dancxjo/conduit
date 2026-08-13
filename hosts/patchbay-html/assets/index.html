@@ -14,7 +14,7 @@
   </header>
   <nav aria-label="Patchbay workspace">
     <a href="#parts">Parts</a><a href="#form">Canvas</a><a href="#palette">Navigate</a><a href="#inspector">Inspector</a>
-    <span class="lens-controls" role="toolbar" aria-label="Patchbay lenses"><button type="button" data-lens="form" aria-pressed="true">Form</button><button type="button" data-lens="plan" aria-pressed="false">Plan</button><button type="button" data-lens="play" aria-pressed="false">Play</button><button type="button" data-lens="signs" aria-pressed="false">Signs</button></span><a href="#linear">Linear</a>
+    <span class="lens-controls" role="toolbar" aria-label="Patchbay lenses"><button type="button" data-lens="world" aria-pressed="true">World</button><button type="button" data-lens="form" aria-pressed="false">Intent</button><button type="button" data-lens="plan" aria-pressed="false">Realization</button><button type="button" data-lens="play" aria-pressed="false">Play</button><button type="button" data-lens="signs" aria-pressed="false">Signs</button></span><a href="#linear">Linear</a>
   </nav>
   <main>
     <div class="workspace">
@@ -26,7 +26,7 @@
       </aside>
       <section id="form" class="canvas-panel" aria-labelledby="canvas-title">
         <div class="canvas-heading">
-          <div><p id="lens-label" class="eyebrow">FORM LENS</p><h2 id="canvas-title">Semantic canvas</h2></div>
+          <div><p id="lens-label" class="eyebrow">WORLD LENS</p><h2 id="canvas-title">Live Body topology</h2></div>
           <div role="toolbar" aria-label="Renderer-local canvas controls">
             <button id="zoom-in" type="button">Zoom in</button><button id="zoom-out" type="button">Zoom out</button><button id="pan-right" type="button">Pan right</button><button id="arrange" type="button" aria-pressed="false">Reverse arrangement</button><button id="theme" type="button" aria-pressed="false">High contrast</button>
           </div>
@@ -53,6 +53,9 @@
     </section>
     <section class="status-strip" aria-label="Current run and diagnostic status">
       <strong>Current truth</strong><span id="run-summary">Loading…</span><span id="diagnostic-summary">Diagnostics loading…</span>
+    </section>
+    <section id="front-door-actions" class="status-strip" aria-label="Current Form realization">
+      <strong>Intent to realization</strong><button id="plan-form" type="button">Plan current Form</button><button id="play-plan" type="button" disabled>Play current Plan</button><span id="front-door-feedback" role="status" aria-live="polite">World truth is current; planning is explicit.</span>
     </section>
     <section id="deep-inspection" class="deep-inspection" aria-labelledby="deep-title">
       <h2 id="deep-title">Exact truth and accessibility</h2>

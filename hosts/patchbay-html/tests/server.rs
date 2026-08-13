@@ -67,7 +67,7 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     assert!(index.contains("Cache-Control: no-store"));
     assert!(index.contains("X-Content-Type-Options: nosniff"));
     assert!(index.contains("Content-Security-Policy: default-src 'self'"));
-    assert!(index.contains("Semantic canvas"));
+    assert!(index.contains("Live Body topology"));
     assert!(index.contains("Here and membership"));
     assert!(index.contains("Wants to join"));
     assert!(index.contains("Exact truth and accessibility"));

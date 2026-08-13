@@ -1,0 +1,6 @@
+form patchbay-front-door {
+    greeting: text/literal("Hello from this Body")
+    show: presentation/text
+
+    greeting.text > show.text
+}

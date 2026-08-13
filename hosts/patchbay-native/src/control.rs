@@ -84,6 +84,14 @@ impl NativeControl {
         self.plan.as_ref()
     }
 
+    pub fn plan_document(&self) -> Option<&PlanDocument> {
+        self.plan_document.as_ref()
+    }
+
+    pub fn play_document(&self) -> Option<&PlayDocument> {
+        self.play_document.as_ref()
+    }
+
     pub fn planned_play_identity(&self) -> Option<ActivePlayIdentity> {
         let plan = self.plan.as_ref()?;
         let fragment = plan

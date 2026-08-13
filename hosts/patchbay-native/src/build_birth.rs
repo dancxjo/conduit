@@ -76,7 +76,9 @@ impl PatchbayApplication {
         let sign = self.lifecycle_sign("planned");
         self.build_birth
             .plan_ready(&plan, sign)
-            .map_err(|error| LifecycleActionError::Failure(error.to_string()))
+            .map_err(|error| LifecycleActionError::Failure(error.to_string()))?;
+        self.refresh_front_door()
+            .map_err(LifecycleActionError::Failure)
     }
 
     pub(super) fn play_plan(&mut self) -> Result<(), String> {

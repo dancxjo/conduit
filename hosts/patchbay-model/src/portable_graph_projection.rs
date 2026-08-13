@@ -20,7 +20,8 @@ pub(super) fn append_exact_graph(
         let icon = conduit_std_catalog::palette_metadata(&gear.kind_id)
             .map(|metadata| metadata.icon)
             .unwrap_or(PresentationIconKey::GenericGear);
-        let subject = content.subject(
+        let subject = content.subject_with_identity(
+            format!("gear/{}", gear.identity),
             PresentationRole::Gear,
             gear.gear_id.as_str(),
             format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
@@ -46,7 +47,8 @@ pub(super) fn append_exact_graph(
         append_gear_plan(content, &subject, gear, plan, play);
         semantic_subjects.push((gear.identity.as_str(), subject.clone()));
         for port in gear.inputs.iter().chain(&gear.outputs) {
-            let port_subject = content.subject(
+            let port_subject = content.subject_with_identity(
+                format!("port/{}", port.identity),
                 PresentationRole::Port,
                 port.descriptor.port_id.as_str(),
                 format!(
@@ -83,7 +85,8 @@ pub(super) fn append_exact_graph(
         }
     }
     for cord in &graph.cords {
-        let subject = content.subject(
+        let subject = content.subject_with_identity(
+            format!("cord/{}", cord.identity),
             PresentationRole::Cord,
             "Cord",
             format!("Cord from {} to {}", cord.source_port, cord.sink_port),
