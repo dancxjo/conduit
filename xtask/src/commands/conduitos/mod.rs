@@ -40,6 +40,7 @@ mod riscv64_a3;
 mod riscv64_a4;
 mod run;
 mod std_gap;
+pub(crate) mod target_build;
 mod timing_profile;
 mod usb_proof;
 mod usb_run;
@@ -139,6 +140,8 @@ pub enum ConduitosArch {
     Riscv64,
     Loongarch64,
 }
+
+pub(crate) use target_build::{build_profile_image, ProfileBuiltImage};
 
 impl ConduitosArch {
     const ALL: [Self; 5] = [

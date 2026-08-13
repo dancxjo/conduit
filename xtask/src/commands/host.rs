@@ -9,6 +9,8 @@ use crate::cli::GlobalOpts;
 
 #[path = "host_capstone.rs"]
 mod host_capstone;
+#[path = "host_target.rs"]
+mod host_target;
 
 #[derive(Args, Debug)]
 pub struct HostArgs {
@@ -27,6 +29,13 @@ enum HostCommand {
         source_identity: String,
         #[arg(long)]
         toolchain_identity: String,
+    },
+    /// Verify one final target IMAGE and its exact BUILD closure.
+    Verify {
+        output: PathBuf,
+        /// Boot the verified IMAGE through the deterministic x86_64 QEMU appliance.
+        #[arg(long)]
+        boot: bool,
     },
     /// Prove one Body across native, browser, and headless PROFILE-built Hosts.
     Capstone {
@@ -61,27 +70,37 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     .map_err(|diagnostics| format!("Host BUILD refused: {diagnostics:?}"))?;
             if opts.dry_run {
                 println!(
-                    "would BUILD {} as {}",
+                    "would BUILD {} from resolved binding {}",
                     profile_path.display(),
                     image.manifest.image_id
                 );
-                return Ok(());
             }
-            fs::create_dir_all(&output)?;
-            fs::write(output.join("image.json"), &bytes)?;
-            fs::write(
-                output.join("build-manifest.json"),
-                serde_json::to_vec_pretty(&image.manifest)?,
-            )?;
-            if opts.json {
-                println!("{}", serde_json::to_string(&image.manifest)?);
-            } else if !opts.quiet {
-                println!(
-                    "BUILT {} ({:?})",
-                    image.manifest.image_id, image.manifest.image_use
-                );
-                println!("IMAGE: {}", output.join("image.json").display());
-                println!("manifest: {}", output.join("build-manifest.json").display());
+            if image.manifest.target == "conduitos/x86_64/pc" {
+                let target = host_target::build_target(&image, &bytes, &output, opts)?;
+                if opts.json {
+                    println!("{}", serde_json::to_string(&target)?);
+                } else if !opts.quiet {
+                    println!("BUILT {} ({:?})", target.image_id, image.manifest.image_use);
+                    println!("IMAGE: {}", output.join(&target.image.file).display());
+                    println!("manifest: {}", output.join("build-manifest.json").display());
+                }
+            } else if !opts.dry_run {
+                fs::create_dir_all(&output)?;
+                fs::write(output.join("image.json"), &bytes)?;
+                fs::write(
+                    output.join("build-manifest.json"),
+                    serde_json::to_vec_pretty(&image.manifest)?,
+                )?;
+                if opts.json {
+                    println!("{}", serde_json::to_string(&image.manifest)?);
+                } else if !opts.quiet {
+                    println!(
+                        "BUILT {} ({:?})",
+                        image.manifest.image_id, image.manifest.image_use
+                    );
+                    println!("IMAGE: {}", output.join("image.json").display());
+                    println!("manifest: {}", output.join("build-manifest.json").display());
+                }
             }
             Ok(())
         }
@@ -90,6 +109,18 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             source_identity,
             toolchain_identity,
         } => host_capstone::run(&output, &source_identity, &toolchain_identity, opts),
+        HostCommand::Verify { output, boot } => {
+            let manifest = host_target::verify_target(&output)?;
+            if boot {
+                host_target::boot_target(&output, &manifest, opts)?;
+            }
+            if opts.json {
+                println!("{}", serde_json::to_string(&manifest)?);
+            } else if !opts.quiet {
+                println!("VERIFIED {}", manifest.image_id);
+            }
+            Ok(())
+        }
     }
 }
 

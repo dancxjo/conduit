@@ -43,6 +43,14 @@ pub(super) fn assemble(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
+    assemble_with_description(arch, None, opts)
+}
+
+pub(super) fn assemble_with_description(
+    arch: ConduitosArch,
+    build_description: Option<&[u8]>,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
     let paths = Paths::new(arch)?;
     if opts.dry_run {
         println!("fetch and verify pinned Limine {LIMINE_VERSION}");
@@ -53,17 +61,22 @@ pub(super) fn assemble(
             limine_version: LIMINE_VERSION,
             limine_archive_sha256: LIMINE_ARCHIVE_SHA256,
             iso_sha256: "dry-run".into(),
-            file_count: EXPECTED_IMAGE_FILE_COUNT,
+            file_count: EXPECTED_IMAGE_FILE_COUNT + usize::from(build_description.is_some()),
         });
     }
     prepare_limine(&paths)?;
     stage_image(&paths, arch)?;
+    if let Some(description) = build_description {
+        fs::write(paths.iso_root.join("boot/conduit-build.json"), description)
+            .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
+    }
     create_iso(&paths)?;
     let file_count = count_files(&paths.iso_root)?;
-    if file_count != EXPECTED_IMAGE_FILE_COUNT {
+    let expected_file_count = EXPECTED_IMAGE_FILE_COUNT + usize::from(build_description.is_some());
+    if file_count != expected_file_count {
         return Err(ConduitosError::refusal(
             "unexpected-image-content",
-            format!("staged {file_count} files; expected exactly {EXPECTED_IMAGE_FILE_COUNT}"),
+            format!("staged {file_count} files; expected exactly {expected_file_count}"),
         ));
     }
     let record = ImageRecord {
