@@ -29,7 +29,17 @@ pub(super) fn execute_profile(
     manifest: &BuildManifest,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
-    let paths = Paths::new(ConduitosArch::X86_64)?;
+    let arch = match manifest.target.as_str() {
+        "conduitos/x86_64/pc" => ConduitosArch::X86_64,
+        "conduitos/aarch64/virt" => ConduitosArch::Aarch64,
+        target => {
+            return Err(ConduitosError::refusal(
+                "unsupported-profile-target",
+                target.to_owned(),
+            ));
+        }
+    };
+    let paths = Paths::new(arch)?;
     fs::create_dir_all(&paths.target)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     let generated = paths.target.join("fabrication-record.rs");
@@ -58,7 +68,7 @@ pub(super) fn execute_profile(
     fs::write(&generated, source)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     execute_with_features(
-        ConduitosArch::X86_64,
+        arch,
         opts,
         &lowering.cargo_features,
         Some(ProfileFabrication {
@@ -171,7 +181,7 @@ fn execute_with_features(
     if arch == ConduitosArch::Ia32 {
         return ia32_a2::execute(opts);
     }
-    if arch == ConduitosArch::Aarch64 {
+    if arch == ConduitosArch::Aarch64 && fabrication.is_none() {
         return aarch64_a0::execute(opts);
     }
     if arch == ConduitosArch::Riscv64 {
@@ -181,9 +191,14 @@ fn execute_with_features(
         return loongarch64_a0::execute(opts);
     }
     let paths = Paths::new(arch)?;
+    let (binary, target) = match arch {
+        ConduitosArch::X86_64 => ("conduitos", "x86_64-unknown-none"),
+        ConduitosArch::Aarch64 => ("conduitos-aarch64-product", "aarch64-unknown-none"),
+        _ => unreachable!("profile build architecture checked above"),
+    };
     if opts.dry_run {
         println!(
-            "cargo build -p conduitos --target x86_64-unknown-none --release --features {}",
+            "cargo build -p conduitos --bin {binary} --target {target} --release --features {}",
             features.join(",")
         );
         return dry_record(arch, &paths);
@@ -202,9 +217,9 @@ fn execute_with_features(
             "-p",
             "conduitos",
             "--bin",
-            "conduitos",
+            binary,
             "--target",
-            "x86_64-unknown-none",
+            target,
             "--release",
         ])
         .current_dir(&paths.root)
@@ -234,7 +249,10 @@ fn execute_with_features(
     }
     let built = paths
         .root
-        .join("target/x86_64-unknown-none/release/conduitos");
+        .join("target")
+        .join(target)
+        .join("release")
+        .join(binary);
     fs::copy(&built, &paths.kernel)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     assert_elf(&paths)?;
@@ -242,7 +260,7 @@ fn execute_with_features(
         schema: "conduit.conduitos.build/v1",
         base_commit,
         architecture: arch.as_str(),
-        rust_target: "x86_64-unknown-none",
+        rust_target: target,
         limine_crate: "0.5.0",
         elf_sha256: sha256_file(&paths.kernel)?,
     };
@@ -333,11 +351,21 @@ fn write_json(path: &std::path::Path, value: &BuildRecord) -> Result<(), Conduit
 }
 
 fn dry_record(arch: ConduitosArch, paths: &Paths) -> Result<BuildRecord, ConduitosError> {
+    let rust_target = match arch {
+        ConduitosArch::X86_64 => "x86_64-unknown-none",
+        ConduitosArch::Aarch64 => "aarch64-unknown-none",
+        _ => {
+            return Err(ConduitosError::refusal(
+                "unsupported-build-architecture",
+                arch.as_str(),
+            ));
+        }
+    };
     Ok(BuildRecord {
         schema: "conduit.conduitos.build/v1",
         base_commit: git_head(&paths.root)?,
         architecture: arch.as_str(),
-        rust_target: "x86_64-unknown-none",
+        rust_target,
         limine_crate: "0.5.0",
         elf_sha256: "dry-run".into(),
     })

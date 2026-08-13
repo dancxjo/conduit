@@ -10,6 +10,9 @@ const PRESENT_OPERATION: &str = "conduit.host/present@1";
 const SURFACE_CLASS: &str = "presentation/surface";
 const SCANOUT_BASE: &str = "display/scanout";
 const FRAMEBUFFER_DRIVER: &str = "display/linear-framebuffer@1";
+const LINEAR_SERIAL_PRESENTER: &str = "presenter/linear-serial@1";
+const SERIAL_TEXT_BASE: &str = "serial/text";
+const PL011_DRIVER: &str = "conduitos/pl011@1";
 const SCRIPTED_KEYBOARD_PROOF: &str = "profile-fragment/conduitos-scripted-keyboard-proof@1";
 const HOTPLUG_PROOF: &str = "profile-fragment/conduitos-hotplug-proof@1";
 
@@ -28,13 +31,17 @@ pub(super) struct TargetBuildInputs {
 }
 
 pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
-    if manifest.target != "conduitos/x86_64/pc" {
-        return Err(refusal(
+    match manifest.target.as_str() {
+        "conduitos/x86_64/pc" => lower_x86_64_pc(manifest),
+        "conduitos/aarch64/virt" => lower_aarch64_virt(manifest),
+        _ => Err(refusal(
             "unsupported-profile-target",
-            format!("expected conduitos/x86_64/pc, found {}", manifest.target),
-        ));
+            format!("no ConduitOS product lowerer for {}", manifest.target),
+        )),
     }
+}
 
+fn lower_x86_64_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
     let native = manifest
         .presenters
         .iter()
@@ -177,6 +184,77 @@ pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condu
     })
 }
 
+fn lower_aarch64_virt(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
+    if manifest.presenters.as_slice() != [LINEAR_SERIAL_PRESENTER] {
+        return Err(aarch64_closure_refusal(
+            "presenter",
+            LINEAR_SERIAL_PRESENTER,
+            &manifest.presenters,
+        ));
+    }
+    let bases = manifest
+        .base_selections
+        .iter()
+        .map(|item| item.kind.clone())
+        .collect::<Vec<_>>();
+    if bases.as_slice() != [SERIAL_TEXT_BASE] {
+        return Err(aarch64_closure_refusal("base", SERIAL_TEXT_BASE, &bases));
+    }
+    let drivers = manifest
+        .driver_selections
+        .iter()
+        .map(|item| item.kind.clone())
+        .collect::<Vec<_>>();
+    if drivers.as_slice() != [PL011_DRIVER] {
+        return Err(aarch64_closure_refusal("driver", PL011_DRIVER, &drivers));
+    }
+    if manifest.host_operations.as_slice() != [PRESENT_OPERATION]
+        || !manifest.facilities.is_empty()
+        || !manifest.resource_budgets.is_empty()
+        || !manifest.profile_fragments.is_empty()
+    {
+        return Err(refusal(
+            "aarch64-product-closure-mismatch",
+            "linear AArch64 product requires only present@1, with no facilities, resources, or proof instrumentation".into(),
+        ));
+    }
+    let base = &manifest.base_selections[0];
+    if base.driver != PL011_DRIVER {
+        return Err(refusal(
+            "aarch64-serial-driver-mismatch",
+            format!(
+                "base {} selects {}, expected {PL011_DRIVER}",
+                base.kind, base.driver
+            ),
+        ));
+    }
+
+    let portable_backbone = conduitos::fabrication::IMPL_TIME_TICK
+        | conduitos::fabrication::IMPL_TICK_PRESENTATION
+        | conduitos::fabrication::IMPL_TEXT_LITERAL
+        | conduitos::fabrication::IMPL_TEXT_UPPER
+        | conduitos::fabrication::IMPL_TEXT_PRESENTATION;
+    Ok(TargetBuildInputs {
+        cargo_features: vec!["aarch64-product"],
+        implementations: portable_backbone | conduitos::fabrication::IMPL_LINEAR_PRESENTER,
+        facilities: 0,
+        resources: 0,
+        bases: conduitos::fabrication::BASE_SERIAL_TEXT,
+        drivers: conduitos::fabrication::DRIVER_PL011_SERIAL,
+        presenters: conduitos::fabrication::PRESENTER_LINEAR_SERIAL,
+        proof_instrumentation: 0,
+        presentation_surface_slots: 0,
+        presentation_surface_bytes: 0,
+    })
+}
+
+fn aarch64_closure_refusal(class: &str, expected: &str, selected: &[String]) -> ConduitosError {
+    refusal(
+        "aarch64-product-closure-mismatch",
+        format!("expected exactly {class}:{expected}, found {selected:?}"),
+    )
+}
+
 fn refusal(code: &'static str, detail: String) -> ConduitosError {
     ConduitosError::refusal(code, detail)
 }
@@ -297,7 +375,7 @@ mod tests {
         assert!(lower(&headless)
             .unwrap_err()
             .to_string()
-            .contains("unsupported-profile-target"));
+            .contains("aarch64-product-closure-mismatch"));
     }
 
     #[test]
@@ -363,5 +441,65 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("proof-profile-prerequisite-missing"));
+    }
+
+    #[test]
+    fn aarch64_virt_lowers_to_a_distinct_linear_product_inventory() {
+        let manifest = manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-aarch64-headless.profile.json"
+        ));
+        let lowered = lower(&manifest).unwrap();
+        assert_eq!(lowered.cargo_features, ["aarch64-product"]);
+        assert_eq!(lowered.facilities, 0);
+        assert_eq!(lowered.resources, 0);
+        assert_ne!(lowered.bases, conduitos::fabrication::BASE_DISPLAY_SCANOUT);
+        assert_ne!(
+            lowered.drivers,
+            conduitos::fabrication::DRIVER_LINEAR_FRAMEBUFFER
+        );
+        assert_ne!(
+            lowered.presenters,
+            conduitos::fabrication::PRESENTER_NATIVE_GRAPHICAL
+        );
+        assert_eq!(lowered.proof_instrumentation, 0);
+        assert_eq!(lowered.presentation_surface_slots, 0);
+        assert_eq!(lowered.presentation_surface_bytes, 0);
+        assert_eq!(
+            lowered.implementations
+                & (conduitos::fabrication::IMPL_KEYBOARD
+                    | conduitos::fabrication::IMPL_PC_SPEAKER
+                    | conduitos::fabrication::IMPL_OPL2),
+            0
+        );
+    }
+
+    #[test]
+    fn aarch64_virt_rejects_x86_leaks_and_incomplete_serial_closure() {
+        let source =
+            include_str!("../../../../profiles/hosts/conduitos-aarch64-headless.profile.json");
+        let exact = manifest(source);
+
+        let mut x86_presenter = exact.clone();
+        x86_presenter.presenters[0] = NATIVE_PRESENTER.into();
+        assert!(lower(&x86_presenter)
+            .unwrap_err()
+            .to_string()
+            .contains("aarch64-product-closure-mismatch"));
+
+        let mut wrong_driver = exact.clone();
+        wrong_driver.base_selections[0].driver = FRAMEBUFFER_DRIVER.into();
+        assert!(lower(&wrong_driver)
+            .unwrap_err()
+            .to_string()
+            .contains("aarch64-serial-driver-mismatch"));
+
+        let mut proof_leak = exact;
+        proof_leak
+            .profile_fragments
+            .push(SCRIPTED_KEYBOARD_PROOF.into());
+        assert!(lower(&proof_leak)
+            .unwrap_err()
+            .to_string()
+            .contains("aarch64-product-closure-mismatch"));
     }
 }

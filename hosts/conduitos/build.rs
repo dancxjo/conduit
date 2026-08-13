@@ -5,6 +5,7 @@ fn main() {
     println!("cargo:rerun-if-changed=linker/aarch64_a0.ld");
     println!("cargo:rerun-if-changed=linker/aarch64_a2.ld");
     println!("cargo:rerun-if-changed=linker/aarch64_a3.ld");
+    println!("cargo:rerun-if-changed=linker/aarch64_product.ld");
     println!("cargo:rerun-if-env-changed=CONDUITOS_BUILD_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_FABRICATION_RECORD");
@@ -43,5 +44,8 @@ fn main() {
         println!("cargo:rustc-link-arg-bin=conduitos-aarch64-a0=-T{manifest}/linker/aarch64_a0.ld");
         println!("cargo:rustc-link-arg-bin=conduitos-aarch64-a2=-T{manifest}/linker/aarch64_a2.ld");
         println!("cargo:rustc-link-arg-bin=conduitos-aarch64-a3=-T{manifest}/linker/aarch64_a3.ld");
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-aarch64-product=-T{manifest}/linker/aarch64_product.ld"
+        );
     }
 }

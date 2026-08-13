@@ -322,8 +322,52 @@ jobs:
           PROOF_COMMAND: ${{ matrix.command }}
         run: bash -euo pipefail -c "$PROOF_COMMAND"
 
+  conduitos-aarch64-product:
+    needs: [classify, conduitos-limine]
+    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          shared-key: conduitos-aarch64-product
+      - name: Receive the verified pinned bootloader archive
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-limine-${{ github.sha }}
+          path: target/conduitos/vendor
+      - name: Install deterministic AArch64 image and emulator tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential xorriso qemu-system-arm qemu-efi-aarch64
+      - name: Build the checked AArch64 product PROFILE and prove two fresh boots
+        run: |
+          cargo xtask host build profiles/hosts/conduitos-aarch64-headless.profile.json \
+            --output target/conduitos/aarch64-product-host \
+            --source-identity "$GITHUB_SHA" \
+            --toolchain-identity "$(rustc --version)" \
+            --locked
+          cargo xtask host verify target/conduitos/aarch64-product-host --boot --locked
+          cargo xtask conduitos product-readiness-matrix --locked > target/conduitos/product-readiness-matrix.json
+      - name: Retain AArch64 product proof and final PROFILE artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduitos-aarch64-product-${{ github.sha }}
+          path: |
+            target/conduitos/aarch64/aarch64-product-proof.json
+            target/conduitos/product-readiness-matrix.json
+            target/conduitos/aarch64-product-host/build-manifest.json
+            target/conduitos/aarch64-product-host/resolved-image.json
+            target/conduitos/aarch64-product-host/conduitos-aarch64.iso
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
   conduitos-boot:
-    needs: [classify, conduitos-limine, conduitos-x86, conduitos-architecture]
+    needs: [classify, conduitos-limine, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -334,10 +378,12 @@ jobs:
           LIMINE_RESULT: ${{ needs.conduitos-limine.result }}
           X86_RESULT: ${{ needs.conduitos-x86.result }}
           ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
+          AARCH64_PRODUCT_RESULT: ${{ needs.conduitos-aarch64-product.result }}
         run: |
           test "$CLASSIFY_RESULT" = success
           if test "$DOCS_ONLY" != true; then
             test "$LIMINE_RESULT" = success
             test "$X86_RESULT" = success
             test "$ARCHITECTURE_RESULT" = success
+            test "$AARCH64_PRODUCT_RESULT" = success
           fi

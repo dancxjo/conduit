@@ -13,9 +13,9 @@ pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
-#[cfg(any(test, target_arch = "x86_64"))]
+#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod fabrication;
-#[cfg(any(test, target_arch = "x86_64"))]
+#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod front_door;
 #[cfg(target_arch = "x86_64")]
 pub mod hotplug_guest;
@@ -43,7 +43,7 @@ pub mod machine_a2_kernel;
 pub mod native_compositor;
 pub mod observatory;
 pub mod offer;
-#[cfg(any(test, target_arch = "x86_64"))]
+#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod offer_fabrication;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_offer;
@@ -60,14 +60,15 @@ pub mod pc_speaker_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod pc_speaker_play;
 pub mod planned_kernel;
-// The current manifestation Base and production entrance are x86_64-only.
-// Other architecture proof binaries must not link this unrelated product
-// surface merely because they share the `conduitos` library crate.
+// Product entrances remain out of A0-A4 proof appliances. AArch64 admits
+// these modules only through its distinct PROFILE-selected product feature.
+#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+pub mod linear_presenter;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod presentation_nucleus;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 pub mod product_front_door;
-#[cfg(any(test, target_arch = "x86_64"))]
+#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod product_journey;
 pub mod proof;
 #[cfg(target_arch = "x86_64")]

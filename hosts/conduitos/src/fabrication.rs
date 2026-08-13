@@ -11,12 +11,16 @@ pub const IMPL_KEYBOARD: u16 = 1 << 5;
 pub const IMPL_PC_SPEAKER: u16 = 1 << 6;
 pub const IMPL_OPL2: u16 = 1 << 7;
 pub const IMPL_NATIVE_PRESENTER: u16 = 1 << 8;
-pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 9) - 1;
+pub const IMPL_LINEAR_PRESENTER: u16 = 1 << 9;
+pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 10) - 1;
 pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
 pub const RESOURCE_PRESENTATION_SURFACE: u16 = 1;
 pub const BASE_DISPLAY_SCANOUT: u16 = 1;
 pub const DRIVER_LINEAR_FRAMEBUFFER: u16 = 1;
 pub const PRESENTER_NATIVE_GRAPHICAL: u16 = 1;
+pub const BASE_SERIAL_TEXT: u16 = 1 << 1;
+pub const DRIVER_PL011_SERIAL: u16 = 1 << 1;
+pub const PRESENTER_LINEAR_SERIAL: u16 = 1 << 1;
 pub const PROOF_HOTPLUG: u16 = 1 << 0;
 pub const PROOF_SCRIPTED_KEYBOARD: u16 = 1 << 1;
 pub const ALL_KNOWN_PROOF_INSTRUMENTATION: u16 = PROOF_HOTPLUG | PROOF_SCRIPTED_KEYBOARD;
@@ -99,21 +103,25 @@ impl FabricationRecord {
         if !valid_id(self.profile_id) || !valid_id(self.build_id) || !valid_id(self.image_binding) {
             return Err(FabricationError::MalformedIdentity);
         }
-        if self.target != "conduitos/x86_64/pc" {
+        if !matches!(
+            self.target,
+            "conduitos/x86_64/pc" | "conduitos/aarch64/virt"
+        ) {
             return Err(FabricationError::WrongTarget);
         }
         if self.implementations == 0
             || self.implementations & !ALL_KNOWN_IMPLEMENTATIONS != 0
             || self.facilities & !FACILITY_NATIVE_COMPOSITOR != 0
             || self.resources & !RESOURCE_PRESENTATION_SURFACE != 0
-            || self.bases & !BASE_DISPLAY_SCANOUT != 0
-            || self.drivers & !DRIVER_LINEAR_FRAMEBUFFER != 0
-            || self.presenters & !PRESENTER_NATIVE_GRAPHICAL != 0
+            || self.bases & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT) != 0
+            || self.drivers & !(DRIVER_LINEAR_FRAMEBUFFER | DRIVER_PL011_SERIAL) != 0
+            || self.presenters & !(PRESENTER_NATIVE_GRAPHICAL | PRESENTER_LINEAR_SERIAL) != 0
             || self.proof_instrumentation & !ALL_KNOWN_PROOF_INSTRUMENTATION != 0
         {
             return Err(FabricationError::UnknownInventory);
         }
         let native = self.includes(IMPL_NATIVE_PRESENTER);
+        let linear = self.includes(IMPL_LINEAR_PRESENTER);
         if self.includes_facility(FACILITY_NATIVE_COMPOSITOR) != native
             || (self.resources & RESOURCE_PRESENTATION_SURFACE != 0) != native
             || (self.bases & BASE_DISPLAY_SCANOUT != 0) != native
@@ -121,6 +129,14 @@ impl FabricationRecord {
             || (self.presenters & PRESENTER_NATIVE_GRAPHICAL != 0) != native
             || (self.presentation_surface_slots != 0) != native
             || (self.presentation_surface_bytes != 0) != native
+        {
+            return Err(FabricationError::UnknownInventory);
+        }
+        if (self.bases & BASE_SERIAL_TEXT != 0) != linear
+            || (self.drivers & DRIVER_PL011_SERIAL != 0) != linear
+            || (self.presenters & PRESENTER_LINEAR_SERIAL != 0) != linear
+            || (self.target == "conduitos/aarch64/virt" && (native || !linear))
+            || (self.target == "conduitos/x86_64/pc" && linear)
         {
             return Err(FabricationError::UnknownInventory);
         }
@@ -167,7 +183,7 @@ mod tests {
             build_id: "build:sha256:build",
             image_binding: "image:sha256:binding",
             target: "conduitos/x86_64/pc",
-            implementations: ALL_KNOWN_IMPLEMENTATIONS,
+            implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER,
             facilities: FACILITY_NATIVE_COMPOSITOR,
             resources: RESOURCE_PRESENTATION_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,
@@ -265,6 +281,49 @@ mod tests {
             },
             FabricationRecord {
                 proof_instrumentation: 1 << 15,
+                ..record
+            },
+        ] {
+            assert_eq!(
+                malformed.validate(1),
+                Err(FabricationError::UnknownInventory)
+            );
+        }
+    }
+
+    #[test]
+    fn aarch64_requires_only_the_linear_serial_closure() {
+        let x86 = record();
+        let record = FabricationRecord {
+            target: "conduitos/aarch64/virt",
+            implementations: (x86.implementations
+                & !(IMPL_NATIVE_PRESENTER | IMPL_KEYBOARD | IMPL_PC_SPEAKER | IMPL_OPL2))
+                | IMPL_LINEAR_PRESENTER,
+            facilities: 0,
+            resources: 0,
+            bases: BASE_SERIAL_TEXT,
+            drivers: DRIVER_PL011_SERIAL,
+            presenters: PRESENTER_LINEAR_SERIAL,
+            presentation_surface_slots: 0,
+            presentation_surface_bytes: 0,
+            ..x86
+        };
+        assert_eq!(record.validate(1), Ok(()));
+        for malformed in [
+            FabricationRecord {
+                target: "conduitos/x86_64/pc",
+                ..record
+            },
+            FabricationRecord {
+                bases: BASE_DISPLAY_SCANOUT,
+                ..record
+            },
+            FabricationRecord {
+                drivers: DRIVER_LINEAR_FRAMEBUFFER,
+                ..record
+            },
+            FabricationRecord {
+                presenters: PRESENTER_NATIVE_GRAPHICAL,
                 ..record
             },
         ] {
