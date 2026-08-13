@@ -9,6 +9,11 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::{
+    PresentationAction, PresentationActionAvailability, PresentationActionRefusal,
+    PresentationDisclosure,
+};
+
 pub const MAX_PRESENTATION_SUBJECTS: usize = 1_024;
 pub const MAX_PRESENTATION_RELATIONSHIPS: usize = 2_048;
 pub const MAX_PRESENTATION_TEXT_ITEMS: usize = 2_048;
@@ -121,6 +126,8 @@ pub struct Presentation {
     pub relationships: Vec<PresentationRelationship>,
     pub properties: Vec<PresentationProperty>,
     pub text: Vec<PresentationText>,
+    pub actions: Vec<PresentationAction>,
+    pub disclosures: Vec<PresentationDisclosure>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,6 +138,8 @@ pub enum PresentationError {
     TooManyTextItems,
     TooManyProperties,
     TooManySigns,
+    TooManyActions,
+    TooManyDisclosures,
     EmptyIdentity,
     IdentityTooLong,
     EmptyText,
@@ -140,6 +149,11 @@ pub enum PresentationError {
     UnknownTextSubject,
     UnknownPropertySubject,
     DuplicateSign,
+    DuplicateAction,
+    DuplicateDisclosure,
+    UnknownActionTarget,
+    UnknownDisclosureSubject,
+    ReasonTooLong,
     NonCanonicalSign,
     InvalidBasis,
     TooManyBytes,
@@ -155,11 +169,34 @@ impl core::fmt::Display for PresentationError {
 impl Presentation {
     pub fn new(
         revision: u64,
+        basis: PresentationBasis,
+        subjects: Vec<PresentationSubject>,
+        relationships: Vec<PresentationRelationship>,
+        properties: Vec<PresentationProperty>,
+        text: Vec<PresentationText>,
+    ) -> Result<Self, PresentationError> {
+        Self::new_with_semantics(
+            revision,
+            basis,
+            subjects,
+            relationships,
+            properties,
+            text,
+            Vec::new(),
+            Vec::new(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_semantics(
+        revision: u64,
         mut basis: PresentationBasis,
         subjects: Vec<PresentationSubject>,
         relationships: Vec<PresentationRelationship>,
         properties: Vec<PresentationProperty>,
         text: Vec<PresentationText>,
+        actions: Vec<PresentationAction>,
+        disclosures: Vec<PresentationDisclosure>,
     ) -> Result<Self, PresentationError> {
         basis.sign_ids.sort();
         if basis.sign_ids.windows(2).any(|pair| pair[0] == pair[1]) {
@@ -173,6 +210,8 @@ impl Presentation {
             relationships,
             properties,
             text,
+            actions,
+            disclosures,
         };
         value.validate_content()?;
         value.identity = PresentationContentId(value.content_digest());
@@ -185,6 +224,35 @@ impl Presentation {
             return Err(PresentationError::InvalidIdentity);
         }
         Ok(())
+    }
+
+    /// Resolve an action description at an exact revision without invoking it.
+    pub fn resolve_action(
+        &self,
+        revision: u64,
+        identity: &str,
+    ) -> Result<&PresentationAction, PresentationActionRefusal> {
+        if revision != self.revision {
+            return Err(PresentationActionRefusal::StaleRevision);
+        }
+        let action = self
+            .actions
+            .iter()
+            .find(|action| action.identity == identity)
+            .ok_or(PresentationActionRefusal::UnknownAction)?;
+        match &action.availability {
+            PresentationActionAvailability::Available => Ok(action),
+            PresentationActionAvailability::Unavailable { reason_code, .. } => {
+                Err(PresentationActionRefusal::Unavailable {
+                    reason_code: reason_code.clone(),
+                })
+            }
+            PresentationActionAvailability::Refused { reason_code, .. } => {
+                Err(PresentationActionRefusal::Refused {
+                    reason_code: reason_code.clone(),
+                })
+            }
+        }
     }
 
     fn validate_content(&self) -> Result<(), PresentationError> {
@@ -295,6 +363,7 @@ impl Presentation {
                 | PresentationPropertyValue::Flag(_) => {}
             }
         }
+        self.validate_semantics()?;
         let total_bytes = self
             .basis
             .seed_id
@@ -372,14 +441,15 @@ impl Presentation {
                     .iter()
                     .map(|item| item.subject.len() + item.text.len())
                     .sum::<usize>(),
-            );
+            )
+            .saturating_add(self.semantics_len());
         if total_bytes > MAX_PRESENTATION_TOTAL_BYTES {
             return Err(PresentationError::TooManyBytes);
         }
         Ok(())
     }
 
-    fn has_subject(&self, identity: &str) -> bool {
+    pub(crate) fn has_subject(&self, identity: &str) -> bool {
         self.subjects
             .iter()
             .any(|subject| subject.identity == identity)
@@ -472,12 +542,13 @@ impl Presentation {
             hash_string(&mut digest, &item.subject);
             hash_string(&mut digest, &item.text);
         }
+        self.hash_semantics(&mut digest);
         let bytes: [u8; 32] = digest.finalize().into();
         hex(&bytes)
     }
 }
 
-fn validate_id(value: &str) -> Result<(), PresentationError> {
+pub(crate) fn validate_id(value: &str) -> Result<(), PresentationError> {
     if value.is_empty() {
         Err(PresentationError::EmptyIdentity)
     } else if value.len() > MAX_PRESENTATION_ID_BYTES {
@@ -487,7 +558,7 @@ fn validate_id(value: &str) -> Result<(), PresentationError> {
     }
 }
 
-fn validate_text(value: &str) -> Result<(), PresentationError> {
+pub(crate) fn validate_text(value: &str) -> Result<(), PresentationError> {
     if value.is_empty() {
         Err(PresentationError::EmptyText)
     } else if value.len() > MAX_PRESENTATION_TEXT_BYTES {
@@ -497,7 +568,7 @@ fn validate_text(value: &str) -> Result<(), PresentationError> {
     }
 }
 
-fn hash_string(digest: &mut Sha256, value: &str) {
+pub(crate) fn hash_string(digest: &mut Sha256, value: &str) {
     digest.update((value.len() as u32).to_le_bytes());
     digest.update(value.as_bytes());
 }

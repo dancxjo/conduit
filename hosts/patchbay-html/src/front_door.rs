@@ -86,5 +86,7 @@ mod tests {
             .subjects
             .iter()
             .any(|subject| subject.role == PresentationRole::Body));
+        assert_eq!(snapshot.presentation.actions.len(), 2);
+        assert_eq!(snapshot.presentation.disclosures.len(), 2);
     }
 }

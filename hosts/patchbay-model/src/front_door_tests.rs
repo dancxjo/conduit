@@ -6,13 +6,15 @@ use crate::{
 };
 
 fn revised(presentation: &Presentation, revision: u64) -> Presentation {
-    Presentation::new(
+    Presentation::new_with_semantics(
         revision,
         presentation.basis.clone(),
         presentation.subjects.clone(),
         presentation.relationships.clone(),
         presentation.properties.clone(),
         presentation.text.clone(),
+        presentation.actions.clone(),
+        presentation.disclosures.clone(),
     )
     .unwrap()
 }
@@ -79,13 +81,19 @@ fn exact_revision_updates_preserve_or_explicitly_stale_selection() {
     properties.retain(|property| property.subject != host);
     let mut text = next.text.clone();
     text.retain(|text| text.subject != host);
-    let rebooted = Presentation::new(
+    let mut actions = next.actions.clone();
+    actions.retain(|action| action.target != host);
+    let mut disclosures = next.disclosures.clone();
+    disclosures.retain(|disclosure| disclosure.subject != host);
+    let rebooted = Presentation::new_with_semantics(
         next.revision + 1,
         next.basis.clone(),
         subjects,
         relationships,
         properties,
         text,
+        actions,
+        disclosures,
     )
     .unwrap();
     assert_eq!(

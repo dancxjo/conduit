@@ -1,14 +1,14 @@
 //! Renderer-neutral equivalence oracle for Patchbay entrance manifestations.
 
 use conduit_presentation::{
-    Presentation, PresentationProperty, PresentationRelationship, PresentationSubject,
-    PresentationText,
+    Presentation, PresentationAction, PresentationDisclosure, PresentationProperty,
+    PresentationRelationship, PresentationSubject, PresentationText,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{EntranceAction, EntranceLayer, EntranceRefusal, PatchbayEntranceState};
 
-pub const ENTRANCE_EQUIVALENCE_SCHEMA: &str = "conduit.patchbay.entrance-equivalence@1";
+pub const ENTRANCE_EQUIVALENCE_SCHEMA: &str = "conduit.patchbay.entrance-equivalence@2";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntranceEquivalenceReport {
@@ -19,6 +19,8 @@ pub struct EntranceEquivalenceReport {
     pub relationships: Vec<PresentationRelationship>,
     pub properties: Vec<PresentationProperty>,
     pub text: Vec<PresentationText>,
+    pub semantic_actions: Vec<PresentationAction>,
+    pub disclosures: Vec<PresentationDisclosure>,
     pub selected_subject: Option<String>,
     pub actions: Vec<EntranceAction>,
     pub layer: EntranceLayer,
@@ -72,6 +74,10 @@ pub fn compare_entrances(
     let mut content_text = presentation.text.clone();
     content_text
         .sort_by(|left, right| (&left.subject, &left.text).cmp(&(&right.subject, &right.text)));
+    let mut semantic_actions = presentation.actions.clone();
+    semantic_actions.sort_by(|left, right| left.identity.cmp(&right.identity));
+    let mut disclosures = presentation.disclosures.clone();
+    disclosures.sort_by(|left, right| left.subject.cmp(&right.subject));
     Ok(EntranceEquivalenceReport {
         schema: ENTRANCE_EQUIVALENCE_SCHEMA.into(),
         presentation_id: presentation.identity.as_str().into(),
@@ -80,6 +86,8 @@ pub fn compare_entrances(
         relationships,
         properties,
         text: content_text,
+        semantic_actions,
+        disclosures,
         selected_subject: native.selected_subject.clone(),
         actions: native.available_actions.clone(),
         layer: native.layer,

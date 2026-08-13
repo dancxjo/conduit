@@ -4,9 +4,10 @@ use alloc::{format, string::String, vec};
 use conduit_body::SeedId;
 use conduit_core::{BootId, CheckedFormId, HostId, KeyEvent, OfferGeneration, SourceDocumentId};
 use conduit_presentation::{
-    Presentation, PresentationBasis, PresentationProperty, PresentationPropertyValue,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText,
+    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
+    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
+    PresentationRole, PresentationSubject, PresentationText,
 };
 
 use crate::display::DisplayError;
@@ -354,7 +355,7 @@ impl FrontDoor {
                 }
             },
         );
-        Presentation::new(
+        Presentation::new_with_semantics(
             self.revision,
             basis,
             subjects,
@@ -362,12 +363,44 @@ impl FrontDoor {
             properties,
             vec![
                 PresentationText {
-                    subject: host,
+                    subject: host.clone(),
                     text: host_text,
                 },
                 PresentationText {
-                    subject: seed,
+                    subject: seed.clone(),
                     text: "IMAGE-embedded checked Seed; OPEN permits inspection only".into(),
+                },
+            ],
+            vec![
+                PresentationAction {
+                    identity: format!("action/open/{}", self.seed_id.as_str()),
+                    intent: "conduit.intent/open@1".into(),
+                    target: seed.clone(),
+                    label: "Open".into(),
+                    disclosure: PresentationDisclosureLevel::CurrentAction,
+                    availability: PresentationActionAvailability::Available,
+                },
+                PresentationAction {
+                    identity: format!("action/be-born/{}", self.seed_id.as_str()),
+                    intent: "conduit.intent/be-born@1".into(),
+                    target: seed.clone(),
+                    label: "Be born".into(),
+                    disclosure: PresentationDisclosureLevel::CurrentAction,
+                    availability: PresentationActionAvailability::Unavailable {
+                        reason_code: "authority/not-admitted".into(),
+                        explanation: "No admitted authority can create a Body from this entrance."
+                            .into(),
+                    },
+                },
+            ],
+            vec![
+                PresentationDisclosure {
+                    subject: seed,
+                    level: PresentationDisclosureLevel::Primary,
+                },
+                PresentationDisclosure {
+                    subject: host,
+                    level: PresentationDisclosureLevel::Context,
                 },
             ],
         )
@@ -442,6 +475,20 @@ mod tests {
         assert!(presentation.basis.body_id.is_none());
         assert!(presentation.basis.plan_id.is_none());
         assert_eq!(presentation.subjects[1].role, PresentationRole::Seed);
+        assert_eq!(presentation.actions.len(), 2);
+        assert!(
+            presentation
+                .actions
+                .iter()
+                .any(|action| action.intent == "conduit.intent/open@1")
+        );
+        assert!(presentation.actions.iter().any(|action| {
+            action.intent == "conduit.intent/be-born@1"
+                && matches!(
+                    action.availability,
+                    PresentationActionAvailability::Unavailable { .. }
+                )
+        }));
         let scene = door.scene(&Sink).unwrap();
         let receipt = crate::display::render_scene(&mut Sink, &scene).unwrap();
         assert_eq!(receipt.commands, 8);

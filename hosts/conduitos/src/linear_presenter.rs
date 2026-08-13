@@ -198,6 +198,21 @@ mod tests {
                 .iter()
                 .any(|line| line.contains("BODY NONE"))
         );
+        assert!(
+            receipt
+                .presentation
+                .lines
+                .iter()
+                .any(|line| line.contains("intent=\"conduit.intent/open@1\""))
+        );
+        assert!(
+            receipt
+                .presentation
+                .lines
+                .iter()
+                .any(|line| line.contains("intent=\"conduit.intent/be-born@1\"")
+                    && line.contains("unavailable"))
+        );
         assert!(matches!(
             presenter.present(&value),
             Err(LinearPresenterError::StaleRevision)
