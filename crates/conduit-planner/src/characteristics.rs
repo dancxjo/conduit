@@ -8,14 +8,14 @@ use crate::requirements::{
 use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    seal_plan, ArtifactId, BootId, CapabilityId, CapabilityOffer, CharacteristicId,
-    CharacteristicQuantity, CharacteristicValue, ConnectionBase, FormIdentity, GearId,
-    HostAdvertisement, HostId, ImplementationId, OfferGeneration, Plan, RealizationAdvertisement,
-    ResourceObservation,
+    ArtifactId, BootId, CapabilityId, CapabilityOffer, CharacteristicId, CharacteristicQuantity,
+    CharacteristicValue, ConnectionBase, GearId, HostAdvertisement, HostId, ImplementationId,
+    OfferGeneration, Plan, RealizationAdvertisement, ResourceObservation,
 };
 use conduit_form::{CheckedForm, CheckedGear};
 
 pub const MAXIMUM_REALIZATION_DECISION_RECORDS: usize = 256;
+pub const MAXIMUM_PLANNER_POLICY_CLAUSES: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RealizationRejection {
@@ -29,6 +29,10 @@ pub enum RealizationRejection {
     RequiredCharacteristicFlag(CharacteristicId),
     RequiredCharacteristicLabel(CharacteristicId),
     CurrentResourceObservation,
+    HardPredicate {
+        clause_index: u16,
+        fact: crate::PlannerFactRef,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,6 +53,9 @@ pub struct RealizationDecisionRecord {
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
     pub disposition: RealizationDecisionDisposition,
+    /// Zero-based first decisive soft clause for the selected candidate. Values
+    /// remain in typed planning inputs rather than being copied into evidence.
+    pub decisive_preference_clause: Option<u16>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,6 +95,7 @@ pub fn select_realization_with_characteristics_and_signs(
     validate_policy(policy)?;
     validate_resource_observations(hosts, observations)?;
     validate_advertisements(hosts, advertisements)?;
+    crate::generic_selection::validate_inputs(requirements, policy, advertisements)?;
 
     let face_candidates = hosts
         .iter()
@@ -114,6 +122,16 @@ pub fn select_realization_with_characteristics_and_signs(
         let rejection = hard_requirement_failure(offer, requirements)
             .map(base_rejection)
             .or_else(|| characteristic_rejection(facts, requirements));
+        let rejection = match rejection {
+            Some(rejection) => Some(rejection),
+            None => crate::generic_selection::predicate_rejection(
+                host,
+                offer,
+                facts,
+                observations,
+                &requirements.predicates,
+            )?,
+        };
         if rejection.is_none() {
             hard_admitted.push((host, offer));
         }
@@ -155,6 +173,12 @@ pub fn select_realization_with_characteristics_and_signs(
             ),
         ));
     }
+    crate::generic_selection::validate_preferences(
+        &observed_admitted,
+        advertisements,
+        observations,
+        policy,
+    )?;
     observed_admitted.sort_by(|(left_host, left_offer), (right_host, right_offer)| {
         crate::characteristic_policy::compare(
             left_host,
@@ -163,6 +187,7 @@ pub fn select_realization_with_characteristics_and_signs(
             right_host,
             right_offer,
             advertisement_for(right_host, right_offer, advertisements),
+            observations,
             policy,
         )
     });
@@ -170,9 +195,16 @@ pub fn select_realization_with_characteristics_and_signs(
         host_id: observed_admitted[0].0.host_id.clone(),
         capability_id: observed_admitted[0].1.capability_id.clone(),
     };
+    let decisive_preference_clause = crate::generic_selection::decisive_clause(
+        &observed_admitted,
+        advertisements,
+        observations,
+        policy,
+    );
     for record in &mut signs {
         if record.host_id == choice.host_id && record.capability_id == choice.capability_id {
             record.disposition = RealizationDecisionDisposition::Selected;
+            record.decisive_preference_clause = decisive_preference_clause;
         }
     }
     signs.sort_by(|left, right| {
@@ -198,6 +230,7 @@ fn decision_record(
         implementation_id: offer.implementation.implementation_id.clone(),
         artifact_id: offer.implementation.artifact_id.clone(),
         disposition,
+        decisive_preference_clause: None,
     }
 }
 
@@ -289,6 +322,7 @@ pub fn plan_selected_realizations_with_characteristics_and_authority(
     }
     let mut plain_requirements = requirements.clone();
     for requirement in plain_requirements.values_mut() {
+        requirement.predicates.clear();
         requirement.minimum_characteristic_counts.clear();
         requirement.maximum_characteristic_counts.clear();
         requirement.required_characteristic_flags.clear();
@@ -313,7 +347,7 @@ pub fn plan_selected_realizations_with_characteristics_and_authority(
             line_offers: &[],
         },
     )?;
-    seal_characteristics(plan, advertisements)
+    crate::characteristic_sealing::seal_characteristics(plan, advertisements)
 }
 
 fn validate_advertisements(
@@ -452,33 +486,6 @@ fn count(
         }
         _ => None,
     }
-}
-
-pub(crate) fn seal_characteristics(
-    mut plan: Plan,
-    advertisements: &[RealizationAdvertisement],
-) -> Result<Plan, PlannerError> {
-    for fragment in &mut plan.fragments {
-        for gear in &mut fragment.placements {
-            if let Some(advertisement) = advertisements.iter().find(|item| {
-                item.host_id == gear.host_id
-                    && item.boot_id == gear.boot_id
-                    && item.offer_generation == gear.offer_generation
-                    && item.capability_id == gear.capability_id
-            }) {
-                gear.realization_characteristics = advertisement.characteristics.clone();
-                gear.realization_characteristics.sort();
-            }
-        }
-    }
-    Ok(seal_plan(
-        FormIdentity {
-            source_document_id: plan.source_document_id,
-            checked_form_id: plan.checked_form_id,
-            expanded_form_id: plan.expanded_form_id,
-        },
-        plan.fragments,
-    ))
 }
 
 fn invalid<T>(detail: &str) -> Result<T, PlannerError> {

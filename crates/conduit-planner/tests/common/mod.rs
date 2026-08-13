@@ -3,6 +3,89 @@ use conduit_form::parse;
 use conduit_signal::{pico_local_advertisement, signal_profile_catalog, PULSE_KIND};
 
 #[allow(dead_code)]
+pub fn generate_text_form() -> conduit_form::CheckedForm {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)
+        .expect("catalog installs");
+    conduit_form::parse(
+        "form 0\n\nanswer {\n    generate: ai/generate-text\n}\n",
+        &profile,
+    )
+    .expect("form checks")
+}
+
+#[allow(dead_code)]
+pub fn generic_policy_facts() -> (
+    conduit_form::CheckedForm,
+    Vec<conduit_core::HostAdvertisement>,
+    Vec<conduit_core::RealizationAdvertisement>,
+) {
+    let form = generate_text_form();
+    let fixtures = conduit_ai::generate_text_base_fixtures();
+    let advertisements = conduit_ai::generate_text_realization_advertisements(&fixtures);
+    let mut hosts = fixtures
+        .iter()
+        .map(|fixture| fixture.advertisement.clone())
+        .collect::<Vec<_>>();
+    let large = hosts
+        .iter_mut()
+        .find(|host| host.host_id.as_str() == "ai-large-local")
+        .expect("large local host exists");
+    let cpu = large
+        .resources
+        .iter_mut()
+        .find(|pool| pool.class_id.as_str() == conduit_ai::CPU_EXECUTION_RESOURCE)
+        .expect("CPU pool exists");
+    let compute = cpu.compute.as_mut().expect("CPU pool is typed compute");
+    compute.service_guarantee = conduit_core::ComputeServiceGuarantee::Reserved;
+    compute.topology_groups = vec![conduit_core::ComputeTopologyGroup {
+        group_id: conduit_core::ComputeTopologyGroupId::from("cluster-performance"),
+        lane_capacity: 2,
+        numa_domain: Some(conduit_core::ComputeDomainId::from("numa-0")),
+        cache_domain: Some(conduit_core::ComputeDomainId::from("cache-0")),
+        performance_class: Some(conduit_core::ComputePerformanceClassId::from("performance")),
+        nominal_clock_hz: Some(1_800_000_000),
+    }];
+    (form, hosts, advertisements)
+}
+
+#[allow(dead_code)]
+pub fn resource_observations(
+    hosts: &[conduit_core::HostAdvertisement],
+) -> Vec<conduit_core::ResourceObservation> {
+    hosts
+        .iter()
+        .flat_map(|host| {
+            host.resources.iter().enumerate().map(move |(index, pool)| {
+                conduit_core::ResourceObservation {
+                    host_id: host.host_id.clone(),
+                    boot_id: host.boot_id.clone(),
+                    offer_generation: host.offer_generation,
+                    pool_id: pool.pool_id.clone(),
+                    class_id: pool.class_id.clone(),
+                    health: conduit_core::ResourceHealth::Ready,
+                    unreserved_units: pool.capacity_units,
+                    utilized_units: 0,
+                    sign_id: conduit_core::SignId::from(format!(
+                        "{}-observation-{index}",
+                        host.host_id.as_str()
+                    )),
+                }
+            })
+        })
+        .collect()
+}
+
+#[allow(dead_code)]
+pub fn quantity(
+    value: u64,
+    unit: conduit_core::CharacteristicUnit,
+) -> conduit_planner::PlannerFactValue {
+    conduit_planner::PlannerFactValue::Quantity { value, unit }
+}
+
+#[allow(dead_code)]
 pub fn pulse_gear() -> conduit_form::CheckedGear {
     parse(
         "form 0\n\nrealization {\n    pulse: flow/pulse\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n}\n",
@@ -13,6 +96,7 @@ pub fn pulse_gear() -> conduit_form::CheckedGear {
     .remove(0)
 }
 
+#[allow(dead_code)]
 pub fn competing_hosts() -> [conduit_core::HostAdvertisement; 2] {
     let source = pico_local_advertisement();
     let pulse = source

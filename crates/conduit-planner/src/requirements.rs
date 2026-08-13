@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{plan, PlacementChoices, PlannerError};
+use crate::{plan, PlacementChoices, PlannerError, PlannerPredicate};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     AuthorityContractId, CharacteristicId, CharacteristicQuantity, ConnectionBase, GearId,
@@ -13,6 +13,9 @@ use conduit_form::CheckedForm;
 /// not contain host-supplied desirability scores.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct HardRealizationRequirements {
+    /// Generic subject-owned hard predicates. Legacy fields below lower to the
+    /// same hard-before-policy selection phase during migration.
+    pub predicates: Vec<PlannerPredicate>,
     pub minimum_queue_items: u16,
     pub minimum_queue_bytes: u32,
     /// Maximum units the realization may require from each named class.
@@ -26,6 +29,54 @@ pub struct HardRealizationRequirements {
     pub maximum_characteristic_counts: BTreeMap<CharacteristicId, CharacteristicQuantity>,
     pub required_characteristic_flags: BTreeMap<CharacteristicId, bool>,
     pub required_characteristic_labels: BTreeMap<CharacteristicId, String>,
+}
+
+impl HardRealizationRequirements {
+    /// Lowers retained characteristic-specific R2 fields into the common typed
+    /// predicate vocabulary. Generic predicates already supplied by the caller
+    /// remain first and therefore retain their evidence clause identities.
+    pub fn lower_characteristic_predicates(&self) -> Vec<PlannerPredicate> {
+        let mut predicates = self.predicates.clone();
+        predicates.extend(
+            self.minimum_characteristic_counts
+                .iter()
+                .map(|(id, quantity)| PlannerPredicate::AtLeast {
+                    fact: crate::PlannerFactRef::RealizationCharacteristic(id.clone()),
+                    value: crate::PlannerFactValue::Quantity {
+                        value: quantity.value,
+                        unit: quantity.unit,
+                    },
+                }),
+        );
+        predicates.extend(
+            self.maximum_characteristic_counts
+                .iter()
+                .map(|(id, quantity)| PlannerPredicate::AtMost {
+                    fact: crate::PlannerFactRef::RealizationCharacteristic(id.clone()),
+                    value: crate::PlannerFactValue::Quantity {
+                        value: quantity.value,
+                        unit: quantity.unit,
+                    },
+                }),
+        );
+        predicates.extend(
+            self.required_characteristic_flags
+                .iter()
+                .map(|(id, value)| PlannerPredicate::Equal {
+                    fact: crate::PlannerFactRef::RealizationCharacteristic(id.clone()),
+                    value: crate::PlannerFactValue::Boolean(*value),
+                }),
+        );
+        predicates.extend(
+            self.required_characteristic_labels
+                .iter()
+                .map(|(id, value)| PlannerPredicate::Equal {
+                    fact: crate::PlannerFactRef::RealizationCharacteristic(id.clone()),
+                    value: crate::PlannerFactValue::Category(value.clone()),
+                }),
+        );
+        predicates
+    }
 }
 
 pub fn plan_with_hard_requirements(
@@ -45,9 +96,11 @@ pub(crate) fn validate_hard_requirements(
     placements: &PlacementChoices,
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
 ) -> Result<(), PlannerError> {
-    if requirements.values().any(has_characteristic_requirements) {
+    if requirements.values().any(|requirement| {
+        has_characteristic_requirements(requirement) || !requirement.predicates.is_empty()
+    }) {
         return Err(PlannerError::InvalidHardRealizationRequirement(
-            "characteristic requirements require exact realization advertisements".to_string(),
+            "generic or characteristic requirements require exact planner fact inputs".to_string(),
         ));
     }
     for gear_id in requirements.keys() {
@@ -92,7 +145,12 @@ pub(crate) fn validate_hard_requirements(
 }
 
 pub(crate) fn has_characteristic_requirements(requirement: &HardRealizationRequirements) -> bool {
-    !requirement.minimum_characteristic_counts.is_empty()
+    requirement.predicates.iter().any(|predicate| {
+        matches!(
+            predicate.fact(),
+            crate::PlannerFactRef::RealizationCharacteristic(_)
+        )
+    }) || !requirement.minimum_characteristic_counts.is_empty()
         || !requirement.maximum_characteristic_counts.is_empty()
         || !requirement.required_characteristic_flags.is_empty()
         || !requirement.required_characteristic_labels.is_empty()
@@ -101,6 +159,17 @@ pub(crate) fn has_characteristic_requirements(requirement: &HardRealizationRequi
 pub(crate) fn validate_requirement_identities(
     requirement: &HardRealizationRequirements,
 ) -> Result<(), PlannerError> {
+    if requirement.predicates.len() > crate::MAXIMUM_PLANNER_POLICY_CLAUSES {
+        return Err(PlannerError::PlannerLimitExceeded(format!(
+            "hard policy exceeds the {} clause bound",
+            crate::MAXIMUM_PLANNER_POLICY_CLAUSES
+        )));
+    }
+    crate::fact_policy::validate_predicates(&requirement.predicates).map_err(|error| {
+        PlannerError::InvalidHardRealizationRequirement(format!(
+            "invalid generic predicate: {error:?}"
+        ))
+    })?;
     let empty_resource = requirement
         .maximum_resource_units
         .keys()

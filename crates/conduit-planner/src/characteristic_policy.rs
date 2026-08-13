@@ -1,7 +1,7 @@
-use crate::{RealizationPolicy, RealizationPreference};
+use crate::fact_policy::{compare_preference, CandidateFacts};
+use crate::{PlannerError, RealizationPolicy};
 use conduit_core::{
-    CapabilityOffer, CharacteristicId, CharacteristicValue, HostAdvertisement,
-    RealizationAdvertisement,
+    CapabilityOffer, HostAdvertisement, RealizationAdvertisement, ResourceObservation,
 };
 use core::cmp::Ordering;
 
@@ -13,143 +13,86 @@ pub(crate) fn compare(
     right_host: &HostAdvertisement,
     right_offer: &CapabilityOffer,
     right: Option<&RealizationAdvertisement>,
+    observations: &[ResourceObservation],
     policy: &RealizationPolicy,
 ) -> Ordering {
-    for preference in &policy.preferences {
-        let ordering = match preference {
-            RealizationPreference::MinimizeResourceUnits(class) => {
-                resource_units(left_offer, class).cmp(&resource_units(right_offer, class))
-            }
-            RealizationPreference::MaximizeComputeServiceGuarantee(class) => {
-                compute_service(right_host, class).cmp(&compute_service(left_host, class))
-            }
-            RealizationPreference::PreferComputePerformanceClass {
-                resource_class_id,
-                performance_class_id,
-            } => compute_performance_distance(left_host, resource_class_id, performance_class_id)
-                .cmp(&compute_performance_distance(
-                    right_host,
-                    resource_class_id,
-                    performance_class_id,
-                )),
-            RealizationPreference::MaximizeQueueItems => right_offer
-                .limits
-                .max_queue_items
-                .cmp(&left_offer.limits.max_queue_items),
-            RealizationPreference::MaximizeQueueBytes => right_offer
-                .limits
-                .max_queue_bytes
-                .cmp(&left_offer.limits.max_queue_bytes),
-            RealizationPreference::PreferWithoutHostOperation(contract) => {
-                has_host_operation(left_offer, contract)
-                    .cmp(&has_host_operation(right_offer, contract))
-            }
-            RealizationPreference::PreferWithoutAuthority(contract) => {
-                has_authority(left_offer, contract).cmp(&has_authority(right_offer, contract))
-            }
-            RealizationPreference::MinimizeCharacteristicCount(id) => {
-                count(left, id).cmp(&count(right, id))
-            }
-            RealizationPreference::MaximizeCharacteristicCount(id) => {
-                count(right, id).cmp(&count(left, id))
-            }
-            RealizationPreference::PreferCharacteristicFlag {
-                characteristic_id,
-                value: preferred,
-            } => flag_distance(left, characteristic_id, *preferred).cmp(&flag_distance(
-                right,
-                characteristic_id,
-                *preferred,
-            )),
-        };
+    compare_with_clause(
+        left_host,
+        left_offer,
+        left,
+        right_host,
+        right_offer,
+        right,
+        observations,
+        policy,
+    )
+    .0
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn compare_with_clause(
+    left_host: &HostAdvertisement,
+    left_offer: &CapabilityOffer,
+    left: Option<&RealizationAdvertisement>,
+    right_host: &HostAdvertisement,
+    right_offer: &CapabilityOffer,
+    right: Option<&RealizationAdvertisement>,
+    observations: &[ResourceObservation],
+    policy: &RealizationPolicy,
+) -> (Ordering, Option<u16>) {
+    let left = CandidateFacts {
+        host: left_host,
+        offer: left_offer,
+        realization: left,
+        observations,
+    };
+    let right = CandidateFacts {
+        host: right_host,
+        offer: right_offer,
+        realization: right,
+        observations,
+    };
+    for (index, preference) in policy.preferences.iter().enumerate() {
+        let ordering = compare_preference(&left, &right, &preference.lower())
+            .expect("preferences are validated before sorting");
         if ordering != Ordering::Equal {
-            return ordering;
+            return (ordering, u16::try_from(index).ok());
         }
     }
-    left_host
-        .host_id
-        .cmp(&right_host.host_id)
-        .then_with(|| left_offer.capability_id.cmp(&right_offer.capability_id))
+    (
+        left_host
+            .host_id
+            .cmp(&right_host.host_id)
+            .then_with(|| left_offer.capability_id.cmp(&right_offer.capability_id)),
+        None,
+    )
 }
 
-fn value<'a>(
-    advertisement: Option<&'a RealizationAdvertisement>,
-    id: &CharacteristicId,
-) -> Option<&'a CharacteristicValue> {
-    advertisement?
-        .characteristics
-        .iter()
-        .find(|item| &item.definition.characteristic_id == id)
-        .map(|item| &item.value)
-}
-
-fn count(advertisement: Option<&RealizationAdvertisement>, id: &CharacteristicId) -> Option<u64> {
-    match value(advertisement, id) {
-        Some(CharacteristicValue::UnsignedQuantity { value, .. }) => Some(*value),
-        _ => None,
+pub(crate) fn validate_preferences(
+    candidates: &[(
+        &HostAdvertisement,
+        &CapabilityOffer,
+        Option<&RealizationAdvertisement>,
+    )],
+    observations: &[ResourceObservation],
+    policy: &RealizationPolicy,
+) -> Result<(), PlannerError> {
+    for preference in &policy.preferences {
+        let preference = preference.lower();
+        crate::fact_policy::validate_preference(&preference).map_err(invalid_policy)?;
+        for (host, offer, realization) in candidates {
+            let candidate = CandidateFacts {
+                host,
+                offer,
+                realization: *realization,
+                observations,
+            };
+            compare_preference(&candidate, &candidate, &preference).map_err(invalid_policy)?;
+        }
     }
+    Ok(())
 }
 
-fn flag_distance(
-    advertisement: Option<&RealizationAdvertisement>,
-    id: &CharacteristicId,
-    preferred: bool,
-) -> u8 {
-    match value(advertisement, id) {
-        Some(CharacteristicValue::Boolean(value)) if *value == preferred => 0,
-        _ => 1,
-    }
-}
-
-fn resource_units(offer: &CapabilityOffer, class: &conduit_core::ResourceClassId) -> u64 {
-    offer
-        .resource_requirements
-        .iter()
-        .filter(|item| &item.class_id == class)
-        .map(|item| u64::from(item.units))
-        .sum()
-}
-
-fn has_host_operation(
-    offer: &CapabilityOffer,
-    contract: &conduit_core::HostOperationContractId,
-) -> bool {
-    offer
-        .host_operations
-        .iter()
-        .any(|item| &item.contract_id == contract)
-}
-
-fn has_authority(offer: &CapabilityOffer, contract: &conduit_core::AuthorityContractId) -> bool {
-    offer
-        .authority_requirements
-        .iter()
-        .any(|item| &item.contract_id == contract)
-}
-
-fn compute_service(
-    host: &HostAdvertisement,
-    class: &conduit_core::ResourceClassId,
-) -> Option<conduit_core::ComputeServiceGuarantee> {
-    host.resources
-        .iter()
-        .find(|offer| &offer.class_id == class)
-        .and_then(|offer| offer.compute.as_ref())
-        .map(|compute| compute.service_guarantee)
-}
-
-fn compute_performance_distance(
-    host: &HostAdvertisement,
-    class: &conduit_core::ResourceClassId,
-    performance: &conduit_core::ComputePerformanceClassId,
-) -> u8 {
-    u8::from(!host.resources.iter().any(|offer| {
-        &offer.class_id == class
-            && offer.compute.as_ref().is_some_and(|compute| {
-                compute
-                    .topology_groups
-                    .iter()
-                    .any(|group| group.performance_class.as_ref() == Some(performance))
-            })
-    }))
+fn invalid_policy(error: crate::fact_policy::FactPolicyError) -> PlannerError {
+    PlannerError::InvalidRealizationPolicy(format!("invalid generic preference: {error:?}"))
 }

@@ -25,11 +25,14 @@ use sha2::{Digest, Sha256};
 
 mod canonical;
 mod characteristic_policy;
+mod characteristic_sealing;
 mod characteristics;
 mod compute_admission;
 mod contract;
 mod diagnostic;
+mod fact_policy;
 mod functional_compatibility;
+mod generic_selection;
 mod observations;
 mod policy;
 mod profile;
@@ -50,12 +53,14 @@ pub use characteristics::{
     plan_selected_realizations_with_characteristics_and_authority,
     select_realization_with_characteristics, select_realization_with_characteristics_and_signs,
     RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection,
-    RealizationSelection, SelectedRealizationPlanning, MAXIMUM_REALIZATION_DECISION_RECORDS,
+    RealizationSelection, SelectedRealizationPlanning, MAXIMUM_PLANNER_POLICY_CLAUSES,
+    MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
 };
 pub use diagnostic::structured_planner_diagnostic;
+pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use observations::select_realization_with_observations;
 pub use policy::{select_realization_with_policy, RealizationPolicy, RealizationPreference};
 pub use profile::{
