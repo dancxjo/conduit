@@ -10,13 +10,13 @@ use super::{
 };
 
 mod conduitos;
+mod retention;
 
 use conduitos::{write_conduitos_commit, write_conduitos_current};
+use retention::{trim_indexed_history_to_bounds, validate_existing_tree};
 
 const GALLERY_SCHEMA: &str = "conduit.visual-evidence-gallery/v1";
 const RETAINED_COMMITS: usize = 32;
-const MAX_GALLERY_FILES: usize = 1_024;
-const MAX_GALLERY_BYTES: u64 = 600 * 1024 * 1024;
 const SCENARIOS: &[(&str, &str)] = &[
     ("overview", "Overview"),
     ("selected-gear", "Selected Gear"),
@@ -38,7 +38,7 @@ pub struct GalleryRequest {
 
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct GalleryIndex {
+pub(super) struct GalleryIndex {
     schema: String,
     current_commit: String,
     retention_commits: usize,
@@ -109,10 +109,10 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
             })?;
         }
     }
-    write_root_index(&site_root, &index, conduitos.is_some())?;
-    write_json(&site_root.join("gallery.json"), &index)?;
     fs::write(site_root.join(".nojekyll"), b"")
         .map_err(|error| format!("cannot write gallery marker: {error}"))?;
+    write_gallery_index(&site_root, &index, conduitos.is_some())?;
+    trim_indexed_history_to_bounds(&site_root, &mut index, conduitos.is_some())?;
     println!(
         "published gallery source for {} with {} retained commits",
         evidence.commit,
@@ -159,86 +159,13 @@ fn load_index(root: &Path) -> Result<GalleryIndex, String> {
     Ok(index)
 }
 
-fn validate_existing_tree(root: &Path, index: &GalleryIndex) -> Result<(), String> {
-    for entry in
-        fs::read_dir(root).map_err(|error| format!("cannot inspect existing gallery: {error}"))?
-    {
-        let entry = entry.map_err(|error| format!("cannot inspect gallery entry: {error}"))?;
-        let name = entry.file_name();
-        if !matches!(
-            name.to_str(),
-            Some(".nojekyll" | "index.html" | "gallery.json" | "current" | "commits")
-        ) {
-            return Err(format!(
-                "existing gallery contains undeclared root entry {}",
-                entry.path().display()
-            ));
-        }
-    }
-    let commits_root = root.join("commits");
-    if commits_root.is_dir() {
-        for entry in fs::read_dir(&commits_root)
-            .map_err(|error| format!("cannot inspect gallery commits: {error}"))?
-        {
-            let entry = entry.map_err(|error| format!("cannot inspect gallery commit: {error}"))?;
-            let commit = entry
-                .file_name()
-                .into_string()
-                .map_err(|_| "gallery commit directory is not valid UTF-8")?;
-            if !index.commits.contains(&commit) {
-                return Err(format!("gallery contains unindexed commit '{commit}'"));
-            }
-        }
-    }
-    let mut files = 0_usize;
-    let mut bytes = 0_u64;
-    accumulate_tree_bounds(root, &mut files, &mut bytes)?;
-    if files > MAX_GALLERY_FILES || bytes > MAX_GALLERY_BYTES {
-        return Err("existing gallery exceeds its finite file or byte bound".into());
-    }
-    Ok(())
-}
-
-fn accumulate_tree_bounds(
-    directory: &Path,
-    files: &mut usize,
-    bytes: &mut u64,
+pub(super) fn write_gallery_index(
+    root: &Path,
+    index: &GalleryIndex,
+    has_conduitos: bool,
 ) -> Result<(), String> {
-    for entry in
-        fs::read_dir(directory).map_err(|error| format!("cannot inspect gallery tree: {error}"))?
-    {
-        let entry = entry.map_err(|error| format!("cannot inspect gallery tree entry: {error}"))?;
-        let file_type = entry
-            .file_type()
-            .map_err(|error| format!("cannot inspect gallery tree type: {error}"))?;
-        if file_type.is_symlink() {
-            return Err(format!(
-                "gallery contains symlink {}",
-                entry.path().display()
-            ));
-        }
-        if file_type.is_dir() {
-            accumulate_tree_bounds(&entry.path(), files, bytes)?;
-        } else if file_type.is_file() {
-            *files = files
-                .checked_add(1)
-                .ok_or_else(|| "gallery file count overflow".to_string())?;
-            *bytes = bytes
-                .checked_add(
-                    entry
-                        .metadata()
-                        .map_err(|error| format!("cannot inspect gallery file: {error}"))?
-                        .len(),
-                )
-                .ok_or_else(|| "gallery byte count overflow".to_string())?;
-        } else {
-            return Err(format!(
-                "gallery contains special entry {}",
-                entry.path().display()
-            ));
-        }
-    }
-    Ok(())
+    write_root_index(root, index, has_conduitos)?;
+    write_json(&root.join("gallery.json"), index)
 }
 
 fn write_commit_snapshot(
@@ -482,7 +409,7 @@ fn reject_symlink_root(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_commit(value: &str) -> Result<(), String> {
+pub(super) fn validate_commit(value: &str) -> Result<(), String> {
     if value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         Ok(())
     } else {
