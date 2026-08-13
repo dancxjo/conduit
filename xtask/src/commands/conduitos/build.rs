@@ -10,21 +10,33 @@ use super::{
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
-    execute_with_features(arch, opts, &[])
+    execute_with_features(arch, opts, &["native-compositor"])
 }
 
 pub(super) fn execute_hotplug(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
-    execute_with_features(arch, opts, &["hotplug-proof", "scripted-keyboard-proof"])
+    execute_with_features(
+        arch,
+        opts,
+        &[
+            "native-compositor",
+            "hotplug-proof",
+            "scripted-keyboard-proof",
+        ],
+    )
 }
 
 pub(super) fn execute_proof(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
-    execute_with_features(arch, opts, &["scripted-keyboard-proof"])
+    execute_with_features(
+        arch,
+        opts,
+        &["native-compositor", "scripted-keyboard-proof"],
+    )
 }
 
 fn execute_with_features(
@@ -46,7 +58,10 @@ fn execute_with_features(
     }
     let paths = Paths::new(arch)?;
     if opts.dry_run {
-        println!("cargo build -p conduitos --target x86_64-unknown-none --release");
+        println!(
+            "cargo build -p conduitos --target x86_64-unknown-none --release --features {}",
+            features.join(",")
+        );
         return dry_record(arch, &paths);
     }
     fs::create_dir_all(&paths.target)

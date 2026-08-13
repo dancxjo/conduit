@@ -113,6 +113,7 @@ required-features = ["loongarch64-a4"]
 default = []
 hotplug-proof = []
 scripted-keyboard-proof = []
+native-compositor = []
 aarch64-a0 = []
 aarch64-a2 = []
 aarch64-a3 = []
@@ -147,3 +148,8 @@ limine = "=0.5.0"
 
 [dev-dependencies]
 conduit-std-host = { path = "../std" }
+
+[[test]]
+name = "native_compositor"
+path = "tests/native_compositor.rs"
+required-features = ["native-compositor"]

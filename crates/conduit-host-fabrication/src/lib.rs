@@ -18,4 +18,6 @@ pub use runtime::*;
 pub use validation::{validate_profile, ProfileDiagnostic, ValidatedHostProfile};
 
 #[cfg(test)]
+mod native_presenter_tests;
+#[cfg(test)]
 mod tests;

@@ -78,6 +78,7 @@ impl FabricationCatalog {
                             "conduitos/x86_64/pc".into(),
                         ],
                         prerequisites: vec![
+                            PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
                             PrerequisiteNode::Facility("compositor/native@1".into()),
                             PrerequisiteNode::Resource("presentation/surface".into()),
                             PrerequisiteNode::Base("display/scanout".into()),

@@ -185,6 +185,10 @@ pub fn verify_runtime_advertisement(
             .implementations
             .iter()
             .any(|item| item == implementation)
+            && !manifest
+                .presenters
+                .iter()
+                .any(|item| item == implementation)
         {
             return Err(RuntimeBindingDiagnostic::UnexpectedImplementation {
                 implementation: implementation.into(),
@@ -264,10 +268,15 @@ fn capability_is_ready(
     facts: &RuntimeFacts,
 ) -> bool {
     let implementation = offer.implementation.implementation_id.as_str();
-    if !manifest
+    let built_implementation = manifest
         .implementations
         .iter()
-        .any(|item| item == implementation)
+        .any(|item| item == implementation);
+    let built_presenter = manifest
+        .presenters
+        .iter()
+        .any(|item| item == implementation);
+    if (!built_implementation && !built_presenter)
         || offer.host_operations.iter().any(|requirement| {
             !manifest
                 .host_operations
@@ -284,14 +293,21 @@ fn capability_is_ready(
     {
         return false;
     }
-    catalog
+    let prerequisites = catalog
         .implementations
         .get(implementation)
-        .is_some_and(|metadata| {
-            metadata.prerequisites.iter().all(|node| {
-                runtime_node_ready(manifest, catalog, node, facts, &mut BTreeSet::new())
-            })
-        })
+        .map(|metadata| &metadata.prerequisites)
+        .or_else(|| {
+            catalog
+                .presenters
+                .get(implementation)
+                .map(|metadata| &metadata.prerequisites)
+        });
+    prerequisites.is_some_and(|nodes| {
+        nodes
+            .iter()
+            .all(|node| runtime_node_ready(manifest, catalog, node, facts, &mut BTreeSet::new()))
+    })
 }
 
 fn runtime_node_ready(
@@ -308,9 +324,23 @@ fn runtime_node_ready(
         PrerequisiteNode::Implementation(value) => manifest.implementations.contains(value),
         PrerequisiteNode::HostOperation(value) => manifest.host_operations.contains(value),
         PrerequisiteNode::Resource(value) => facts.ready_resource_classes.contains(value),
-        PrerequisiteNode::Base(value) => facts.initialized_base_kinds.contains(value),
-        PrerequisiteNode::Driver(value) => facts.initialized_driver_kinds.contains(value),
-        PrerequisiteNode::Facility(value) => facts.available_facilities.contains(value),
+        PrerequisiteNode::Base(value) => {
+            manifest
+                .base_selections
+                .iter()
+                .any(|item| &item.kind == value)
+                && facts.initialized_base_kinds.contains(value)
+        }
+        PrerequisiteNode::Driver(value) => {
+            manifest
+                .driver_selections
+                .iter()
+                .any(|item| &item.kind == value)
+                && facts.initialized_driver_kinds.contains(value)
+        }
+        PrerequisiteNode::Facility(value) => {
+            manifest.facilities.contains(value) && facts.available_facilities.contains(value)
+        }
     } && catalog.dependencies.get(node).is_none_or(|dependencies| {
         dependencies
             .iter()

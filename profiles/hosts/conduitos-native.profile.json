@@ -5,7 +5,7 @@
   "host_core": "host-core/conduitos@1",
   "fragments": [],
   "capabilities": [],
-  "host_operations": [],
+  "host_operations": ["conduit.host/present@1"],
   "resources": [{ "id": "surface/main", "class": "presentation/surface", "slots": 2, "bytes": 4194304 }],
   "bases": [{ "id": "display/main", "kind": "display/scanout", "driver": "display/linear-framebuffer@1" }],
   "drivers": [{ "id": "driver/display", "kind": "display/linear-framebuffer@1" }],

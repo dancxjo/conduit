@@ -6,6 +6,7 @@ description = "Bounded PROFILE validation and identity for Conduit Host fabricat
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
+conduit-presentation = { path = "../conduit-presentation" }
 conduit-std-catalog = { path = "../conduit-std-catalog" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
