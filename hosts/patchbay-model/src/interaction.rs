@@ -11,6 +11,8 @@ use edit_form::{
 };
 
 use conduit_core::ConfigurationValue;
+pub use conduit_core::PatchbayAction;
+use conduit_core::PatchbayControlRequest;
 use conduit_core::{
     kind_id, port_id, ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FaceStartupParameter,
@@ -53,27 +55,6 @@ impl PatchbayInteractionRequestId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PatchbayAction {
-    OpenBack,
-    Save,
-    ToggleLinearView,
-    BeBorn,
-    Wake,
-    Lull,
-    Plan,
-    Play,
-    Stop,
-    Hold,
-    PlaceGear,
-    DuplicateGear,
-    RemoveGear,
-    RemoveCord,
-    ConnectPorts,
-    RerouteCord,
-    ConfigureGear,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayInvocation {
     pub action: PatchbayAction,
@@ -95,6 +76,31 @@ pub enum PatchbayInteractionRequest {
         request_id: PatchbayInteractionRequestId,
         edit: PatchbayEdit,
     },
+}
+
+impl PatchbayInteractionRequest {
+    /// Project a lifecycle invocation onto the same portable semantic-control
+    /// envelope used by allocator-aware and allocator-free Patchbay Hosts.
+    pub fn control_request(
+        &self,
+        presentation_revision: u64,
+    ) -> Result<Option<PatchbayControlRequest>, InteractionError> {
+        let Self::Invoke {
+            request_id,
+            invocation,
+        } = self
+        else {
+            return Ok(None);
+        };
+        PatchbayControlRequest::new(
+            request_id.as_str(),
+            presentation_revision,
+            invocation.action,
+            invocation.target_identity.clone(),
+        )
+        .map(Some)
+        .map_err(|_| InteractionError::InvalidIdentity)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -263,7 +269,8 @@ fn request_from_expanded(
         INVOKE_KIND => Ok(PatchbayInteractionRequest::Invoke {
             request_id,
             invocation: PatchbayInvocation {
-                action: PatchbayAction::parse(&text("action")?)?,
+                action: PatchbayAction::from_name(&text("action")?)
+                    .ok_or(InteractionError::MalformedValue)?,
                 target_identity: text("target")?,
             },
         }),

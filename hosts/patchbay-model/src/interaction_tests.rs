@@ -35,7 +35,6 @@ fn exact_selection_is_checked_planned_and_played_before_state_changes() {
             panic!("selection is not invocation")
         })
         .unwrap();
-
     assert_eq!(receipt.request, request);
     assert_eq!(receipt.disposition, InteractionDisposition::Succeeded);
     assert_eq!(interaction.selected(), Some(&subject));
@@ -126,6 +125,10 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
         "body/count-demo",
     )
     .unwrap();
+    let control = request.control_request(17).unwrap().unwrap();
+    assert_eq!(control.presentation_revision, 17);
+    assert_eq!(control.action, PatchbayAction::BeBorn);
+    assert_eq!(control.target_identity, "body/count-demo");
     let mut invoked = None;
     let receipt = interaction
         .execute(None, request, |request| {

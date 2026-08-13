@@ -4,16 +4,17 @@ use alloc::{format, string::String, vec};
 use conduit_body::SeedId;
 use conduit_core::{BootId, CheckedFormId, HostId, KeyEvent, OfferGeneration, SourceDocumentId};
 use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
     Presentation, PresentationBasis, PresentationProperty, PresentationPropertyValue,
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
     PresentationText,
 };
 
-use crate::display::{DisplayError, PixelTarget};
+use crate::display::DisplayError;
+use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
+mod scene;
 #[cfg(any(test, feature = "native-compositor"))]
 pub use presenter::{FrontDoorPresenter, PresenterError};
 
@@ -54,6 +55,7 @@ pub struct FrontDoor {
     revision: u64,
     offer_count: u64,
     details_page: u8,
+    journey: Option<JourneyProjection>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -104,6 +106,7 @@ impl FrontDoor {
             revision: 1,
             offer_count,
             details_page: 0,
+            journey: None,
         }
     }
 
@@ -117,6 +120,19 @@ impl FrontDoor {
 
     pub fn seed_id(&self) -> &SeedId {
         &self.seed_id
+    }
+
+    pub fn observe_journey(&mut self, projection: JourneyProjection) -> Result<(), Error> {
+        if projection.seed_id != self.seed_id {
+            return Err(Error::Presentation);
+        }
+        self.status = if projection.status == JourneyStatus::SeedOpened {
+            Status::SeedOpened
+        } else {
+            Status::World
+        };
+        self.journey = Some(projection);
+        self.advance()
     }
 
     pub fn accept(&mut self, event: KeyEvent, revision: u64) -> Result<bool, Error> {
@@ -139,7 +155,7 @@ impl FrontDoor {
             F2 => {
                 self.selection = Selection::Details;
                 if self.status == Status::DetailsOpened {
-                    self.details_page = (self.details_page + 1) % 6;
+                    self.details_page = (self.details_page + 1) % 16;
                 }
                 self.status = Status::DetailsOpened;
                 self.advance()?;
@@ -170,7 +186,7 @@ impl FrontDoor {
     pub fn presentation(&self) -> Result<Presentation, Error> {
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
         let seed = format!("seed/{}", self.seed_id.as_str());
-        let subjects = vec![
+        let mut subjects = vec![
             PresentationSubject {
                 identity: host.clone(),
                 role: PresentationRole::Host,
@@ -184,7 +200,7 @@ impl FrontDoor {
                 accessibility_name: "Openable checked IMAGE Seed; opening is inert".into(),
             },
         ];
-        let relationships = vec![PresentationRelationship {
+        let mut relationships = vec![PresentationRelationship {
             source: host.clone(),
             target: seed.clone(),
             kind: PresentationRelationshipKind::Observes,
@@ -231,9 +247,60 @@ impl FrontDoor {
                 property(&host, "image-id", identity(&self.image_id)),
             ]);
         }
-        Presentation::new(
-            self.revision,
-            PresentationBasis {
+        if let Some(journey) = &self.journey {
+            if let Some(body_id) = &journey.body_id {
+                let body = format!("body/{}", body_id.as_str());
+                subjects.push(PresentationSubject {
+                    identity: body.clone(),
+                    role: PresentationRole::Body,
+                    label: "Current Body".into(),
+                    accessibility_name: format!("Current Body; {:?}", journey.status),
+                });
+                relationships.push(PresentationRelationship {
+                    source: host.clone(),
+                    target: body.clone(),
+                    kind: PresentationRelationshipKind::Contains,
+                });
+                properties.push(property(&body, "body-id", identity(body_id.as_str())));
+                if let Some(born_sign_id) = &journey.born_sign_id {
+                    properties.push(property(
+                        &body,
+                        "born-sign-id",
+                        identity(born_sign_id.as_str()),
+                    ));
+                }
+                if let Some(part_id) = &journey.part_id {
+                    properties.push(property(&body, "part-id", identity(part_id.as_str())));
+                }
+            }
+            properties.push(property(
+                &seed,
+                "expanded-form-id",
+                identity(journey.expanded_form_id.as_str()),
+            ));
+            if let Some(wake_id) = &journey.wake_id {
+                properties.push(property(&host, "wake-id", identity(wake_id.as_str())));
+            }
+            if let Some(plan_id) = &journey.plan_id {
+                properties.push(property(&host, "plan-id", identity(plan_id.as_str())));
+            }
+            if let Some(play_id) = &journey.active_play_id {
+                properties.push(property(
+                    &host,
+                    "active-play-id",
+                    identity(play_id.as_str()),
+                ));
+            }
+            if let Some(result) = &journey.result {
+                properties.push(property(
+                    &host,
+                    "semantic-result",
+                    PresentationPropertyValue::Text(result.clone()),
+                ));
+            }
+        }
+        let basis = self.journey.as_ref().map_or_else(
+            || PresentationBasis {
                 seed_id: None,
                 body_id: None,
                 wake_id: None,
@@ -244,14 +311,59 @@ impl FrontDoor {
                 active_play_id: None,
                 sign_ids: vec![],
             },
+            |journey| {
+                if journey.body_id.is_some() && journey.wake_id.is_some() {
+                    PresentationBasis {
+                        seed_id: Some(journey.seed_id.clone()),
+                        body_id: journey.body_id.clone(),
+                        wake_id: journey.wake_id.clone(),
+                        source_document_id: Some(self.source_document_id.clone()),
+                        checked_form_id: Some(self.checked_form_id.clone()),
+                        expanded_form_id: Some(journey.expanded_form_id.clone()),
+                        plan_id: journey.plan_id.clone(),
+                        active_play_id: journey.active_play_id.clone(),
+                        sign_ids: journey
+                            .input_sign_id
+                            .iter()
+                            .chain(journey.result_sign_id.iter())
+                            .cloned()
+                            .collect(),
+                    }
+                } else {
+                    PresentationBasis {
+                        seed_id: None,
+                        body_id: None,
+                        wake_id: None,
+                        source_document_id: None,
+                        checked_form_id: None,
+                        expanded_form_id: None,
+                        plan_id: None,
+                        active_play_id: None,
+                        sign_ids: vec![],
+                    }
+                }
+            },
+        );
+        let host_text = self.journey.as_ref().map_or_else(
+            || "BODY NONE; entering Patchbay creates no Body, Wake, Plan, or Play".into(),
+            |journey| {
+                if journey.body_id.is_none() {
+                    "BODY NONE; OPEN is inspection only and has no effects".into()
+                } else {
+                    format!("CANONICAL BODY/WAKE/PLAN/PLAY STATE: {:?}", journey.status)
+                }
+            },
+        );
+        Presentation::new(
+            self.revision,
+            basis,
             subjects,
             relationships,
             properties,
             vec![
                 PresentationText {
                     subject: host,
-                    text: "BODY NONE; entering Patchbay creates no Body, Wake, Plan, or Play"
-                        .into(),
+                    text: host_text,
                 },
                 PresentationText {
                     subject: seed,
@@ -260,102 +372,6 @@ impl FrontDoor {
             ],
         )
         .map_err(|_| Error::Presentation)
-    }
-
-    pub fn scene(&self, display: &impl PixelTarget) -> Result<GraphicsScene, Error> {
-        self.presentation()?
-            .validate()
-            .map_err(|_| Error::Presentation)?;
-        let format = display.format().validate().map_err(Error::Display)?;
-        let screen = LayoutRect {
-            x: 0,
-            y: 0,
-            width: u16::try_from(format.width).map_err(|_| Error::Scene)?,
-            height: u16::try_from(format.height).map_err(|_| Error::Scene)?,
-        };
-        let mut scene = GraphicsScene::empty();
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    screen,
-                    screen,
-                    GraphicsPaintRole::Background,
-                    GraphicsShapeStyle::Fill,
-                )
-                .map_err(|_| Error::Scene)?,
-            )
-            .map_err(|_| Error::Scene)?;
-        text(&mut scene, 18, 18, "CONDUIT / PATCHBAY / WORLD")?;
-        match self.status {
-            Status::World => {
-                text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
-                text(&mut scene, 18, 70, "BODIES NEARBY    NONE OBSERVED")?;
-                text(&mut scene, 18, 96, "SEEDS")?;
-                text(
-                    &mut scene,
-                    26,
-                    118,
-                    if self.selection == Selection::Seed {
-                        "> CONDUITOS ENTRANCE SEED"
-                    } else {
-                        "  CONDUITOS ENTRANCE SEED"
-                    },
-                )?;
-                text(
-                    &mut scene,
-                    26,
-                    140,
-                    if self.selection == Selection::Details {
-                        "> DETAILS"
-                    } else {
-                        "  DETAILS"
-                    },
-                )?;
-                text(&mut scene, 18, 176, "ARROWS SELECT  ENTER OPEN  F2 DETAILS")?;
-            }
-            Status::SeedOpened => {
-                text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
-                text(&mut scene, 18, 76, "SEED OPEN / INSPECTION ONLY")?;
-                exact_text(&mut scene, 18, 100, self.seed_id.as_str())?;
-                text(
-                    &mut scene,
-                    18,
-                    150,
-                    "PROVENANCE: CHECKED DATA EMBEDDED IN THIS IMAGE",
-                )?;
-                text(
-                    &mut scene,
-                    18,
-                    176,
-                    "NO BODY / WAKE / PLAN / PLAY / EFFECT CREATED",
-                )?;
-            }
-            Status::DetailsOpened => {
-                let (label, value) = self.detail();
-                text(&mut scene, 18, 42, "EXACT HOST DETAILS")?;
-                text(&mut scene, 18, 76, label)?;
-                exact_text(&mut scene, 18, 100, &value)?;
-                text(&mut scene, 18, 160, "F2 NEXT DETAIL    ESC WORLD")?;
-            }
-        }
-        Ok(scene)
-    }
-
-    fn detail(&self) -> (&'static str, String) {
-        match self.details_page {
-            0 => ("PROFILE ID", self.profile_id.clone()),
-            1 => ("BUILD ID", self.build_id.clone()),
-            2 => ("IMAGE BINDING", self.image_id.clone()),
-            3 => ("HOST ID", self.host_id.as_str().into()),
-            4 => ("BOOT ID", self.boot_id.as_str().into()),
-            _ => (
-                "CURRENT OFFERS",
-                format!(
-                    "COUNT {} / GENERATION {}",
-                    self.offer_count, self.offer_generation.0
-                ),
-            ),
-        }
     }
 }
 
@@ -371,35 +387,10 @@ fn property(subject: &str, name: &str, value: PresentationPropertyValue) -> Pres
     }
 }
 
-fn text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Error> {
-    let bounds = LayoutRect {
-        x,
-        y,
-        width: 610,
-        height: 12,
-    };
-    scene
-        .push(
-            GraphicsCommand::text(bounds, bounds, GraphicsPaintRole::Foreground, value)
-                .map_err(|_| Error::Scene)?,
-        )
-        .map_err(|_| Error::Scene)
-}
-
-fn exact_text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Error> {
-    let split = value
-        .len()
-        .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
-    text(scene, x, y, &value[..split])?;
-    if split < value.len() {
-        text(scene, x, y + 22, &value[split..])?;
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::display::PixelTarget;
 
     fn door() -> FrontDoor {
         FrontDoor::new(

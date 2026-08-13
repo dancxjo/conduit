@@ -32,6 +32,24 @@ pub struct PreparedKeyboardTextPlay {
     pub active_play: ActivePlayIdentity,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct KeyboardTextSeedIdentity {
+    pub source_document_id: conduit_core::SourceDocumentId,
+    pub checked_form_id: conduit_core::CheckedFormId,
+    pub expanded_form_id: conduit_core::ExpandedFormId,
+}
+
+/// Check the IMAGE-embedded platform-neutral Seed without selecting a Host,
+/// producing a Plan, or admitting any runtime effect.
+pub fn checked_seed_identity() -> Result<KeyboardTextSeedIdentity, PreparationError> {
+    let form = checked_expanded_form()?;
+    Ok(KeyboardTextSeedIdentity {
+        source_document_id: form.source_document_id,
+        checked_form_id: form.checked_form_id,
+        expanded_form_id: form.expanded_form_id,
+    })
+}
+
 pub fn prepare(
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
