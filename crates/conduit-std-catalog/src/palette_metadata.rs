@@ -9,11 +9,12 @@ pub use conduit_presentation::PresentationIconKey as PaletteIconKey;
 use crate::{
     AUDIO_RENDER_DEMAND_KIND, BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND,
     COUNT_PRESENTATION_KIND, GATE_KIND, GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND,
-    GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND,
-    LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND,
-    LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND,
-    MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND,
-    PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND,
+    GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, HTTP_CLIENT_KIND, HTTP_SERVER_KIND, KEYBOARD_KIND,
+    KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND,
+    LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND,
+    LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND,
+    MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND, PATCHBAY_CORD_KIND,
+    PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND,
     PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND,
     ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
     ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND,
@@ -31,10 +32,11 @@ pub enum PaletteCategory {
     Files,
     Robotics,
     Input,
+    Protocol,
 }
 
 impl PaletteCategory {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::TimeAndFlow,
         Self::Transform,
         Self::State,
@@ -42,6 +44,7 @@ impl PaletteCategory {
         Self::Files,
         Self::Robotics,
         Self::Input,
+        Self::Protocol,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -53,6 +56,7 @@ impl PaletteCategory {
             Self::Files => "Files",
             Self::Robotics => "Robotics",
             Self::Input => "Input",
+            Self::Protocol => "Protocol",
         }
     }
 }
@@ -346,6 +350,16 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["copy", "filesystem", "resource"],
             PaletteIconKey::FileOutput,
         ),
+        HTTP_CLIENT_KIND => metadata(
+            PaletteCategory::Protocol,
+            &["http", "request", "client", "protocol"],
+            PaletteIconKey::Combine,
+        ),
+        HTTP_SERVER_KIND => metadata(
+            PaletteCategory::Protocol,
+            &["http", "response", "server", "protocol"],
+            PaletteIconKey::Combine,
+        ),
         _ => return None,
     };
     Some(metadata)
@@ -371,7 +385,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 55);
+        assert_eq!(contracts.len(), 57);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());
@@ -381,7 +395,7 @@ mod tests {
 
     #[test]
     fn categories_and_upstream_icon_keys_are_finite_and_unique() {
-        assert_eq!(PaletteCategory::ALL.len(), 7);
+        assert_eq!(PaletteCategory::ALL.len(), 8);
         let keys = PaletteIconKey::ALL_UPSTREAM
             .iter()
             .map(|key| key.as_str())

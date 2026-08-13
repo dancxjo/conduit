@@ -18,6 +18,8 @@ mod keyboard;
 pub use keyboard::*;
 mod input_semantics;
 pub use input_semantics::*;
+mod http;
+pub use http::*;
 mod palette_metadata;
 mod tick;
 use functional_face::startup_face;
@@ -262,6 +264,7 @@ pub enum TerminalBehavior {
 pub fn palette_contracts() -> Vec<StandardKindContract> {
     let mut contracts = supported_nucleus_contracts();
     contracts.push(keyboard_contract());
+    contracts.extend(http_contracts());
     contracts
 }
 
