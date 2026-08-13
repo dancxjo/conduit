@@ -66,7 +66,7 @@ enum ConduitosCommand {
     /// Create the tiny pinned-Limine hybrid ISO image.
     Image(TargetArgs),
     /// Open a visible interactive QEMU session without making proof claims.
-    Demo(TargetArgs),
+    Demo(DemoArgs),
     /// Boot one deterministic QEMU session and validate its boot Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
@@ -98,6 +98,26 @@ struct TargetArgs {
     /// Architecture backend selected explicitly from the pinned Limine matrix.
     #[arg(long, value_enum, default_value_t = ConduitosArch::X86_64)]
     arch: ConduitosArch,
+}
+
+#[derive(Args, Debug, Clone, Copy)]
+struct DemoArgs {
+    /// Architecture with an implemented visible display and input entrance.
+    #[arg(long, value_enum, default_value_t = ConduitosDemoArch::X86_64)]
+    arch: ConduitosDemoArch,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+enum ConduitosDemoArch {
+    X86_64,
+}
+
+impl From<ConduitosDemoArch> for ConduitosArch {
+    fn from(value: ConduitosDemoArch) -> Self {
+        match value {
+            ConduitosDemoArch::X86_64 => Self::X86_64,
+        }
+    }
 }
 
 #[derive(Args, Debug, Clone)]
@@ -217,7 +237,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             target.arch.require_boot_backend()?;
             image::execute(target.arch, opts).map(|_| ())
         }
-        ConduitosCommand::Demo(target) => demo::execute(target.arch, opts),
+        ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             match target.arch {
@@ -287,6 +307,9 @@ mod tests {
         let parsed =
             Cli::try_parse_from(["xtask", "conduitos", "demo", "--arch", "x86-64"]).unwrap();
         assert!(matches!(parsed.command, Command::Conduitos(_)));
+        let error =
+            Cli::try_parse_from(["xtask", "conduitos", "demo", "--arch", "aarch64"]).unwrap_err();
+        assert!(error.to_string().contains("x86-64"));
     }
 
     #[test]

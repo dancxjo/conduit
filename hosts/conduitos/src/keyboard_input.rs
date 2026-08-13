@@ -61,10 +61,12 @@ pub fn run_interactive(
     device: &UsbDevice,
     prepared: &PreparedKeyboardPlay,
     mut observe: impl FnMut(HidKeyTransition),
+    mut interact: impl FnMut(HidKeyTransition) -> Result<(), &'static str>,
 ) -> Result<(), &'static str> {
     let mut consumer = PortablePairConsumer::new();
     for transition in session.transitions().iter().copied() {
         consume(prepared, &mut consumer, transition, &mut observe)?;
+        interact(transition)?;
     }
     loop {
         let (transitions, count) = session
@@ -72,6 +74,7 @@ pub fn run_interactive(
             .map_err(|error| error.as_str())?;
         for transition in transitions[..count].iter().copied() {
             consume(prepared, &mut consumer, transition, &mut observe)?;
+            interact(transition)?;
         }
     }
 }
