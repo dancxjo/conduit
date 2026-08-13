@@ -22,8 +22,7 @@ fn main() {
         let image_binding =
             env::var("CONDUITOS_IMAGE_ID").unwrap_or_else(|_| "image:proof-appliance".into());
         let proof_instrumentation = u16::from(env::var_os("CARGO_FEATURE_HOTPLUG_PROOF").is_some())
-            * 1
-            | u16::from(env::var_os("CARGO_FEATURE_SCRIPTED_KEYBOARD_PROOF").is_some()) * 2;
+            | (u16::from(env::var_os("CARGO_FEATURE_SCRIPTED_KEYBOARD_PROOF").is_some()) << 1);
         fs::write(
             output,
             format!(
