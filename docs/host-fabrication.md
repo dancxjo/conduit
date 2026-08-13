@@ -64,6 +64,37 @@ Compiled capability is possibility, not current availability. A running Host
 may offer only the subset of its IMAGE whose exact runtime prerequisites are
 currently satisfied and authorized.
 
+## Bootable target identity
+
+For a target whose final load unit is a packaged artifact, the resolved
+`HostImage` JSON is a BUILD description, not a second final IMAGE. The checked
+PROFILE and its resolved dependency closure enter the target lowerer, which
+compiles the freestanding kernel and packages that description with the pinned
+boot assets. The resulting target receipt keeps these identities distinct:
+
+```text
+ProfileId
+  -> BuildId
+  -> resolved-description binding
+  -> kernel artifact digest
+  -> pinned boot-asset provenance
+  -> final ImageId = digest(final bootable bytes)
+```
+
+The final digest is recorded outside the bytes it hashes, so the relationship
+is non-circular. `resolved_description_binding` is deliberately not named an
+`ImageId`: it proves which finite resolved BUILD description entered the
+package. For ConduitOS x86_64, `cargo xtask host build` owns this full path and
+`cargo xtask host verify` recomputes both artifact digests and the description,
+PROFILE, BUILD, and target bindings. The lower-level `cargo xtask conduitos
+image` command remains target-development machinery and emits no competing
+canonical Host-fabrication identity.
+
+BUILD still creates no Host, Boot, offer, Body, Plan, or Play. Carrying the
+bounded description as a boot asset establishes artifact provenance only;
+validating it inside a fresh Boot and deriving current offers remain separate
+runtime obligations.
+
 ## Public schema vocabulary
 
 New Host-fabrication schemas and APIs spell the public concepts `PROFILE`,
