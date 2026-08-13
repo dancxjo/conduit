@@ -15,7 +15,7 @@ use crate::cli::GlobalOpts;
 use super::{
     build, image,
     profile::Paths,
-    report::{sha256_file, GuestPresentationSign},
+    report::{sha256_file, GuestBootSign, GuestPresentationSign},
     ConduitosArch, ConduitosError,
 };
 
@@ -63,7 +63,7 @@ pub(crate) fn build_profile_image(
     }
 
     let arch = ConduitosArch::X86_64;
-    let build_record = build::execute(arch, opts)?;
+    let build_record = build::execute_profile(manifest, opts)?;
     let image_record = image::assemble_with_description(arch, Some(build_description), opts)?;
     let paths = Paths::new(arch)?;
     Ok(ProfileBuiltImage {
@@ -92,6 +92,9 @@ pub(crate) fn verify_artifact_digest(
 
 pub(crate) fn boot_profile_image(
     image: &std::path::Path,
+    expected_profile_id: &str,
+    expected_build_id: &str,
+    expected_image_binding: &str,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
     if opts.dry_run {
@@ -144,7 +147,7 @@ pub(crate) fn boot_profile_image(
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
     let deadline = Instant::now() + Duration::from_secs(20);
-    let presentation_json = loop {
+    let (presentation_json, boot_json) = loop {
         if let Ok(serial) = fs::read_to_string(&serial_path) {
             let reached_front_door = serial
                 .lines()
@@ -154,17 +157,21 @@ pub(crate) fn boot_profile_image(
                 .lines()
                 .filter_map(|line| line.strip_prefix("CONDUIT_PRESENTATION_SIGN "))
                 .collect::<Vec<_>>();
-            if reached_front_door == 1 && signs.len() == 1 {
-                break signs[0].to_owned();
+            let boot_signs = serial
+                .lines()
+                .filter_map(|line| line.strip_prefix("CONDUIT_BOOT_SIGN "))
+                .collect::<Vec<_>>();
+            if reached_front_door == 1 && signs.len() == 1 && boot_signs.len() == 1 {
+                break (signs[0].to_owned(), boot_signs[0].to_owned());
             }
-            if reached_front_door > 1 || signs.len() > 1 {
+            if reached_front_door > 1 || signs.len() > 1 || boot_signs.len() > 1 {
                 let _ = child.kill();
                 let _ = child.wait();
                 return Err(ConduitosError::refusal(
                     "malformed-profile-built-boot-stage",
                     format!(
-                        "expected one front-door stage and presentation Sign, found {reached_front_door} and {}",
-                        signs.len()
+                        "expected one front-door stage, presentation Sign, and Boot Sign; found {reached_front_door}, {}, and {}",
+                        signs.len(), boot_signs.len()
                     ),
                 ));
             }
@@ -204,6 +211,9 @@ pub(crate) fn boot_profile_image(
                 error.to_string(),
             )
         })?;
+    let boot: GuestBootSign = serde_json::from_str(&boot_json).map_err(|error| {
+        ConduitosError::refusal("malformed-profile-built-boot-sign", error.to_string())
+    })?;
     if presentation.schema != "conduit.conduitos.framebuffer-presentation/v1"
         || presentation.status != "completed"
         || !presentation.completed
@@ -211,6 +221,19 @@ pub(crate) fn boot_profile_image(
         return Err(ConduitosError::refusal(
             "invalid-profile-built-presentation-sign",
             format!("unexpected Presentation Sign: {presentation:?}"),
+        ));
+    }
+    if boot.schema != "conduit.conduitos.boot-sign/v1"
+        || boot.status != "accepted"
+        || boot.arch != "x86_64"
+        || boot.profile_id != expected_profile_id
+        || boot.build_id != expected_build_id
+        || boot.image_binding != expected_image_binding
+        || boot.offer_generation != 1
+    {
+        return Err(ConduitosError::refusal(
+            "profile-built-fabrication-mismatch",
+            format!("unexpected artifact-bound Boot Sign: {boot:?}"),
         ));
     }
     if !opts.quiet && !opts.json {

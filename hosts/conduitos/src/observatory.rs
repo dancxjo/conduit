@@ -10,9 +10,9 @@ use conduit_core::{
 };
 use conduit_observatory::{
     BaseReport, BootProofClass, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
-    FramebufferBasis, HostReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
-    OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport,
-    PressureReport, RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport,
+    FramebufferBasis, HostReport, ImageBuildTraceReport, MemoryMapSummary, ObservatorySnapshot,
+    OfferFreshness, OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport,
+    PlayReport, PressureReport, RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport,
     validate_snapshot,
 };
 
@@ -65,6 +65,9 @@ pub fn prepare_export(
     image_id: &str,
     framebuffer: Option<&FramebufferBasis>,
 ) -> Result<PreparedObservatoryExport, ExportError> {
+    if build_id != offer.capabilities[0].artifact_build || image_id != offer.image_binding {
+        return Err(ExportError::InvalidSnapshot);
+    }
     if record.artifact_count != 0 {
         return Err(ExportError::UnsupportedBootArtifacts);
     }
@@ -179,7 +182,10 @@ pub fn prepare_export(
             adapter_revision: "3".into(),
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
-            image_build_trace: None,
+            image_build_trace: Some(ImageBuildTraceReport {
+                profile_id: offer.profile_id.into(),
+                inclusions: Vec::new(),
+            }),
             memory_map: MemoryMapSummary {
                 normalized_region_count: record.memory_region_count,
                 runtime_arena_bytes: record.runtime_arena.length,
@@ -448,7 +454,7 @@ mod tests {
             &offer,
             &prepared,
             "build",
-            "image",
+            "legacy-unbound",
             None,
         )
         .unwrap();
@@ -499,7 +505,7 @@ mod tests {
             &offer,
             &prepared,
             "build",
-            "image",
+            "legacy-unbound",
             None,
         )
         .unwrap();
@@ -538,7 +544,7 @@ mod tests {
                 &offer,
                 &prepared,
                 "build",
-                "image",
+                "legacy-unbound",
                 None
             )
             .err(),
@@ -553,7 +559,7 @@ mod tests {
                 &offer,
                 &prepared,
                 "build",
-                "image",
+                "legacy-unbound",
                 None
             )
             .err(),

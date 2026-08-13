@@ -1,0 +1,188 @@
+//! Bounded immutable fabrication truth linked into the freestanding artifact.
+
+pub const FABRICATION_SCHEMA: &str = "conduit.conduitos/fabrication-record@1";
+pub const MAX_ID_BYTES: usize = 160;
+pub const IMPL_TIME_TICK: u16 = 1 << 0;
+pub const IMPL_TICK_PRESENTATION: u16 = 1 << 1;
+pub const IMPL_TEXT_LITERAL: u16 = 1 << 2;
+pub const IMPL_TEXT_UPPER: u16 = 1 << 3;
+pub const IMPL_TEXT_PRESENTATION: u16 = 1 << 4;
+pub const IMPL_KEYBOARD: u16 = 1 << 5;
+pub const IMPL_PC_SPEAKER: u16 = 1 << 6;
+pub const IMPL_OPL2: u16 = 1 << 7;
+pub const IMPL_NATIVE_PRESENTER: u16 = 1 << 8;
+pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 9) - 1;
+pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct FabricationRecord {
+    pub schema: &'static str,
+    pub profile_id: &'static str,
+    pub build_id: &'static str,
+    /// Binding of the embedded resolved description. The whole-ISO ImageId is
+    /// external because embedding its own digest would be circular.
+    pub image_binding: &'static str,
+    pub target: &'static str,
+    pub implementations: u16,
+    pub facilities: u16,
+    pub runtime_arena_ceiling: u64,
+    pub operation_slot_ceiling: u32,
+    pub timer_slot_ceiling: u32,
+    pub evidence_item_ceiling: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FabricationError {
+    UnsupportedSchema,
+    MalformedIdentity,
+    WrongTarget,
+    UnknownInventory,
+    InvalidCeiling,
+    RuntimeArenaExceeded,
+}
+
+impl FabricationError {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::UnsupportedSchema => "fabrication-schema-unsupported",
+            Self::MalformedIdentity => "fabrication-identity-malformed",
+            Self::WrongTarget => "fabrication-target-mismatch",
+            Self::UnknownInventory => "fabrication-inventory-malformed",
+            Self::InvalidCeiling => "fabrication-ceiling-invalid",
+            Self::RuntimeArenaExceeded => "fabrication-runtime-arena-exceeded",
+        }
+    }
+}
+
+impl FabricationRecord {
+    pub const fn legacy() -> Self {
+        Self {
+            schema: "legacy-unbound",
+            profile_id: "legacy-unbound",
+            build_id: "legacy-unbound",
+            image_binding: "legacy-unbound",
+            target: "legacy-unbound",
+            implementations: 0,
+            facilities: 0,
+            runtime_arena_ceiling: 0,
+            operation_slot_ceiling: 0,
+            timer_slot_ceiling: 0,
+            evidence_item_ceiling: 0,
+        }
+    }
+
+    pub fn validate(&self, runtime_arena_bytes: u64) -> Result<(), FabricationError> {
+        if self.schema != FABRICATION_SCHEMA {
+            return Err(FabricationError::UnsupportedSchema);
+        }
+        if !valid_id(self.profile_id) || !valid_id(self.build_id) || !valid_id(self.image_binding) {
+            return Err(FabricationError::MalformedIdentity);
+        }
+        if self.target != "conduitos/x86_64/pc" {
+            return Err(FabricationError::WrongTarget);
+        }
+        if self.implementations == 0
+            || self.implementations & !ALL_KNOWN_IMPLEMENTATIONS != 0
+            || self.facilities & !FACILITY_NATIVE_COMPOSITOR != 0
+        {
+            return Err(FabricationError::UnknownInventory);
+        }
+        if self.runtime_arena_ceiling == 0
+            || self.operation_slot_ceiling == 0
+            || self.timer_slot_ceiling == 0
+            || self.evidence_item_ceiling == 0
+        {
+            return Err(FabricationError::InvalidCeiling);
+        }
+        if runtime_arena_bytes > self.runtime_arena_ceiling {
+            return Err(FabricationError::RuntimeArenaExceeded);
+        }
+        Ok(())
+    }
+
+    pub const fn includes(&self, implementation: u16) -> bool {
+        self.implementations & implementation == implementation
+    }
+
+    pub const fn includes_facility(&self, facility: u16) -> bool {
+        self.facilities & facility == facility
+    }
+}
+
+fn valid_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= MAX_ID_BYTES
+        && value.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b':' | b'-' | b'_' | b'/' | b'.')
+        })
+}
+
+include!(concat!(env!("OUT_DIR"), "/fabrication_record.rs"));
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn record() -> FabricationRecord {
+        FabricationRecord {
+            schema: FABRICATION_SCHEMA,
+            profile_id: "sha256:profile",
+            build_id: "build:sha256:build",
+            image_binding: "image:sha256:binding",
+            target: "conduitos/x86_64/pc",
+            implementations: ALL_KNOWN_IMPLEMENTATIONS,
+            facilities: FACILITY_NATIVE_COMPOSITOR,
+            runtime_arena_ceiling: 8 * 1024 * 1024,
+            operation_slot_ceiling: 64,
+            timer_slot_ceiling: 32,
+            evidence_item_ceiling: 1024,
+        }
+    }
+
+    #[test]
+    fn exact_record_is_bounded_and_inventory_specific() {
+        let record = record();
+        assert_eq!(record.validate(4 * 1024 * 1024), Ok(()));
+        assert!(record.includes(IMPL_KEYBOARD));
+        assert!(
+            !FabricationRecord {
+                implementations: IMPL_TIME_TICK,
+                ..record
+            }
+            .includes(IMPL_KEYBOARD)
+        );
+    }
+
+    #[test]
+    fn schema_identity_inventory_and_runtime_ceiling_fail_separately() {
+        let record = record();
+        assert_eq!(
+            FabricationRecord {
+                schema: "future",
+                ..record
+            }
+            .validate(1),
+            Err(FabricationError::UnsupportedSchema)
+        );
+        assert_eq!(
+            FabricationRecord {
+                profile_id: "bad value",
+                ..record
+            }
+            .validate(1),
+            Err(FabricationError::MalformedIdentity)
+        );
+        assert_eq!(
+            FabricationRecord {
+                implementations: 1 << 15,
+                ..record
+            }
+            .validate(1),
+            Err(FabricationError::UnknownInventory)
+        );
+        assert_eq!(
+            record.validate(record.runtime_arena_ceiling + 1),
+            Err(FabricationError::RuntimeArenaExceeded)
+        );
+    }
+}

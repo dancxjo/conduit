@@ -428,7 +428,7 @@ fn render_provenance(
         push_line(
             lines,
             format!(
-                "  SEALED host={} boot={} firmware={} adapter={} version={} revision={} image={} build={} memory-regions={} arena-bytes={} artifacts={} framebuffers={} proof={:?}",
+                "  SEALED host={} boot={} firmware={} adapter={} version={} revision={} image={} build={} profile={} memory-regions={} arena-bytes={} artifacts={} framebuffers={} proof={:?}",
                 provenance.host_id.as_str(),
                 provenance.boot_id.as_str(),
                 provenance.firmware_environment,
@@ -437,6 +437,10 @@ fn render_provenance(
                 provenance.adapter_revision,
                 provenance.image_id.as_str(),
                 provenance.build_id.as_str(),
+                provenance
+                    .image_build_trace
+                    .as_ref()
+                    .map_or("none", |trace| trace.profile_id.as_str()),
                 provenance.memory_map.normalized_region_count,
                 provenance.memory_map.runtime_arena_bytes,
                 provenance.boot_artifacts.len(),

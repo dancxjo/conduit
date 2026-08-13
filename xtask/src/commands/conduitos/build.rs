@@ -1,4 +1,6 @@
-use std::{fs, process::Command};
+use std::{fs, path::Path, process::Command};
+
+use conduit_host_fabrication::BuildManifest;
 
 use crate::cli::GlobalOpts;
 
@@ -10,7 +12,51 @@ use super::{
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
-    execute_with_features(arch, opts, &["native-compositor"])
+    execute_with_features(arch, opts, &["native-compositor"], None)
+}
+
+pub(super) fn execute_profile(
+    manifest: &BuildManifest,
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    let paths = Paths::new(ConduitosArch::X86_64)?;
+    fs::create_dir_all(&paths.target)
+        .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
+    let generated = paths.target.join("fabrication-record.rs");
+    let implementations = conduitos::fabrication::ALL_KNOWN_IMPLEMENTATIONS;
+    let facilities = if manifest
+        .facilities
+        .iter()
+        .any(|item| item == "compositor/native@1")
+    {
+        conduitos::fabrication::FACILITY_NATIVE_COMPOSITOR
+    } else {
+        0
+    };
+    let source = format!(
+        "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
+        schema = conduitos::fabrication::FABRICATION_SCHEMA,
+        profile = manifest.profile_id,
+        build = manifest.build_id,
+        binding = manifest.image_id,
+        target = manifest.target,
+        arena = manifest.bounds.static_memory_bytes,
+        operations = manifest.bounds.operation_slots,
+        timers = manifest.bounds.timer_slots,
+        evidence = manifest.bounds.evidence_items,
+    );
+    fs::write(&generated, source)
+        .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
+    execute_with_features(
+        ConduitosArch::X86_64,
+        opts,
+        &["native-compositor"],
+        Some(ProfileFabrication {
+            generated: &generated,
+            build_id: &manifest.build_id,
+            image_binding: &manifest.image_id,
+        }),
+    )
 }
 
 pub(super) fn execute_hotplug(
@@ -25,6 +71,7 @@ pub(super) fn execute_hotplug(
             "hotplug-proof",
             "scripted-keyboard-proof",
         ],
+        None,
     )
 }
 
@@ -36,6 +83,7 @@ pub(super) fn execute_proof(
         arch,
         opts,
         &["native-compositor", "scripted-keyboard-proof"],
+        None,
     )
 }
 
@@ -43,6 +91,7 @@ fn execute_with_features(
     arch: ConduitosArch,
     opts: &GlobalOpts,
     features: &[&str],
+    fabrication: Option<ProfileFabrication<'_>>,
 ) -> Result<BuildRecord, ConduitosError> {
     if arch == ConduitosArch::Ia32 {
         return ia32_a2::execute(opts);
@@ -68,7 +117,9 @@ fn execute_with_features(
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     check_common_backbone(&paths, opts)?;
     let base_commit = git_head(&paths.root)?;
-    let image_id = format!("conduitos-image/{base_commit}/{}/v1", arch.as_str());
+    let legacy_image_id = format!("conduitos-image/{base_commit}/{}/v1", arch.as_str());
+    let build_id = fabrication.map_or(base_commit.as_str(), |item| item.build_id);
+    let image_binding = fabrication.map_or(legacy_image_id.as_str(), |item| item.image_binding);
     let mut command = Command::new("cargo");
     command
         .args([
@@ -83,8 +134,11 @@ fn execute_with_features(
         ])
         .current_dir(&paths.root)
         .env("RUSTFLAGS", "-C relocation-model=static -C panic=abort")
-        .env("CONDUITOS_BUILD_ID", &base_commit)
-        .env("CONDUITOS_IMAGE_ID", image_id);
+        .env("CONDUITOS_BUILD_ID", build_id)
+        .env("CONDUITOS_IMAGE_ID", image_binding);
+    if let Some(fabrication) = fabrication {
+        command.env("CONDUITOS_FABRICATION_RECORD", fabrication.generated);
+    }
     if !features.is_empty() {
         command.arg("--features").arg(features.join(","));
     }
@@ -122,6 +176,13 @@ fn execute_with_features(
         println!("ConduitOS ELF: {}", paths.kernel.display());
     }
     Ok(record)
+}
+
+#[derive(Clone, Copy)]
+struct ProfileFabrication<'a> {
+    generated: &'a Path,
+    build_id: &'a str,
+    image_binding: &'a str,
 }
 
 fn check_common_backbone(paths: &Paths, opts: &GlobalOpts) -> Result<(), ConduitosError> {
