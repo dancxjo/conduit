@@ -74,11 +74,11 @@ impl PatchbayApplication {
             )
         } else {
             match document.mode {
-                PatchbayMode::Build => flow(
+                PatchbayMode::SeedOpened => flow(
                     "FORM_CHECKED",
                     "FORM checked",
                     "No Body exists",
-                    [action(PatchbayAction::Birth, "BIRTH BODY", "F4")],
+                    [action(PatchbayAction::BeBorn, "BE BORN", "F4")],
                 ),
                 PatchbayMode::BornLulled => flow(
                     "BODY_LULLED",
@@ -267,7 +267,7 @@ const fn action(
 pub(super) const fn is_lifecycle_action(action: PatchbayAction) -> bool {
     matches!(
         action,
-        PatchbayAction::Birth
+        PatchbayAction::BeBorn
             | PatchbayAction::Wake
             | PatchbayAction::Lull
             | PatchbayAction::Plan
@@ -279,7 +279,7 @@ pub(super) const fn is_lifecycle_action(action: PatchbayAction) -> bool {
 
 fn action_label(action: PatchbayAction) -> &'static str {
     match action {
-        PatchbayAction::Birth => "Birth",
+        PatchbayAction::BeBorn => "BE BORN",
         PatchbayAction::Wake => "Wake",
         PatchbayAction::Lull => "Lull",
         PatchbayAction::Plan => "Plan",

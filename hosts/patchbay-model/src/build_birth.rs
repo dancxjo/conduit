@@ -1,4 +1,4 @@
-//! Canonical Patchbay Build/Birth control over Form and Body lifecycle truth.
+//! Canonical Patchbay Form/Born control over Form and Body lifecycle truth.
 
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyLifecycleError, BodyMembership, BodyMembershipRevision,
@@ -25,10 +25,7 @@ pub enum BuildBirthError {
 
 impl core::fmt::Display for BuildBirthError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            formatter,
-            "Patchbay Build/Birth transition failed: {self:?}"
-        )
+        write!(formatter, "Patchbay Form/Born transition failed: {self:?}")
     }
 }
 
@@ -55,7 +52,7 @@ pub struct BirthSigns {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatchbayMode {
-    Build,
+    SeedOpened,
     BornLulled,
     Awake(WakeLifecycle),
 }
@@ -291,7 +288,7 @@ impl BuildBirthController {
             born_revision: self.born_revision,
         };
         let mode = match self.body.as_ref().map(|body| &body.state) {
-            None => PatchbayMode::Build,
+            None => PatchbayMode::SeedOpened,
             Some(BodyState::Lulled) => PatchbayMode::BornLulled,
             Some(BodyState::Awake { .. }) => PatchbayMode::Awake(
                 self.wake
@@ -301,7 +298,7 @@ impl BuildBirthController {
             ),
         };
         let mut lines = vec![format!(
-            "BUILD current={} saved={} checked={} last-born={}",
+            "SEED current={} saved={} checked={} last-born={}",
             revisions.current_revision,
             revisions.saved_revision,
             optional_revision(revisions.checked_revision),
@@ -350,7 +347,7 @@ fn append_form_lines(
     lines: &mut Vec<String>,
 ) -> Result<(), BuildBirthError> {
     let Ok(checked) = current_checked(view) else {
-        lines.push("FORM unchecked — Birth unavailable".into());
+        lines.push("FORM unchecked — BE BORN unavailable".into());
         return Ok(());
     };
     for form in &checked.forms {
@@ -422,7 +419,7 @@ fn append_lifecycle_lines(
     lines: &mut Vec<String>,
 ) {
     let Some(body) = body else {
-        lines.push("BODY not born — action: Birth Body".into());
+        lines.push("BODY not born — action: BE BORN".into());
         return;
     };
     lines.push(format!(
@@ -441,7 +438,7 @@ fn append_lifecycle_lines(
         for part in &membership.parts {
             let current = part.current.as_ref();
             lines.push(format!(
-                "PART {} This computer HERE {} attached at Birth host={} boot={} offer-generation={}",
+                "PART {} This computer HERE {} attached when BORN host={} boot={} offer-generation={}",
                 part.part_id.as_str(),
                 if part.is_present() { "AVAILABLE" } else { "OFFLINE" },
                 current.map_or("not-present", |value| value.host_id.as_str()),
