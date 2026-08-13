@@ -1,4 +1,9 @@
 use crate::{ThemeColor, PHOSPHOR_THEME};
+use conduit_core::CharacteristicId;
+use conduit_planner::{
+    dos_shell_style, PlannerFactRef, PlannerFactValue, PlannerPreference,
+    PRESENTATION_PALETTE_CLASS,
+};
 
 #[test]
 fn phosphor_theme_is_fixed_bounded_and_matches_the_shared_palette() {
@@ -27,6 +32,18 @@ fn deuteranopia_simulation_keeps_focus_and_emphasis_distinct_from_the_field() {
     assert!(contrast(focus, background) >= 7.0);
     assert!(contrast(emphasis, background) >= 4.5);
     assert!(color_distance(focus, background) >= 180);
+}
+
+#[test]
+fn phosphor_decoration_is_a_truthful_realization_of_the_dos_shell_palette_preference() {
+    let style = dos_shell_style();
+    assert_eq!(PHOSPHOR_THEME.identity, "conduit.patchbay/phosphor@1");
+    assert!(style.preferences.contains(&PlannerPreference::PreferEqual {
+        fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
+            PRESENTATION_PALETTE_CLASS,
+        )),
+        value: PlannerFactValue::Category("phosphor-cyan-amber".into()),
+    }));
 }
 
 fn contrast(left: ThemeColor, right: ThemeColor) -> f64 {

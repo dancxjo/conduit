@@ -125,6 +125,9 @@ fn known_characteristic_reference(
     let Some(id) = characteristic_id(reference) else {
         return true;
     };
+    if crate::style::reviewed_style_fact(&conduit_core::CharacteristicId::from(id)) {
+        return true;
+    }
     advertisements.iter().any(|advertisement| {
         advertisement
             .characteristics
