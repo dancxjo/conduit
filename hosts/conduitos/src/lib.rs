@@ -44,7 +44,7 @@ pub mod native_compositor;
 pub mod observatory;
 pub mod offer;
 #[cfg(any(test, target_arch = "x86_64"))]
-mod offer_fabrication;
+pub mod offer_fabrication;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_offer;
 #[cfg(target_arch = "x86_64")]

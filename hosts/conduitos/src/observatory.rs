@@ -10,9 +10,9 @@ use conduit_core::{
 };
 use conduit_observatory::{
     BaseReport, BootProofClass, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
-    FramebufferBasis, HostReport, ImageBuildTraceReport, MemoryMapSummary, ObservatorySnapshot,
-    OfferFreshness, OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport,
-    PlayReport, PressureReport, RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport,
+    FramebufferBasis, HostReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
+    OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport,
+    PressureReport, RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport,
     validate_snapshot,
 };
 
@@ -65,12 +65,6 @@ pub fn prepare_export(
     image_id: &str,
     framebuffer: Option<&FramebufferBasis>,
 ) -> Result<PreparedObservatoryExport, ExportError> {
-    let image_bound = offer.profile_id() != "legacy-unbound";
-    if image_bound
-        && (build_id != offer.capabilities[0].artifact_build || image_id != offer.image_binding())
-    {
-        return Err(ExportError::InvalidSnapshot);
-    }
     if record.artifact_count != 0 {
         return Err(ExportError::UnsupportedBootArtifacts);
     }
@@ -185,10 +179,7 @@ pub fn prepare_export(
             adapter_revision: "3".into(),
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
-            image_build_trace: image_bound.then(|| ImageBuildTraceReport {
-                profile_id: offer.profile_id().into(),
-                inclusions: Vec::new(),
-            }),
+            image_build_trace: None,
             memory_map: MemoryMapSummary {
                 normalized_region_count: record.memory_region_count,
                 runtime_arena_bytes: record.runtime_arena.length,
@@ -206,6 +197,48 @@ pub fn prepare_export(
         },
     };
     validate_snapshot(&snapshot).map_err(|_| ExportError::InvalidSnapshot)?;
+    let encoded = serde_json::to_string(&snapshot).map_err(|_| ExportError::EncodingFailed)?;
+    if encoded.len() > MAX_EXPORT_BYTES {
+        return Err(ExportError::ExportTooLarge);
+    }
+    Ok(PreparedObservatoryExport { encoded })
+}
+
+#[cfg(target_arch = "x86_64")]
+pub struct ImageBoundProvenance<'a> {
+    pub profile_id: &'a str,
+    pub build_id: &'a str,
+    pub image_binding: &'a str,
+}
+
+#[cfg(target_arch = "x86_64")]
+pub fn prepare_image_bound_export(
+    record: &BootRecord,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    prepared: &PreparedDualRegionPlay,
+    provenance: ImageBoundProvenance<'_>,
+    framebuffer: Option<&FramebufferBasis>,
+) -> Result<PreparedObservatoryExport, ExportError> {
+    if provenance.build_id != offer.capabilities[0].artifact_build {
+        return Err(ExportError::InvalidSnapshot);
+    }
+    let export = prepare_export(
+        record,
+        identities,
+        offer,
+        prepared,
+        provenance.build_id,
+        provenance.image_binding,
+        framebuffer,
+    )?;
+    let mut snapshot: ObservatorySnapshot =
+        serde_json::from_str(&export.encoded).map_err(|_| ExportError::EncodingFailed)?;
+    snapshot.sealed_boot_provenance[0].image_build_trace =
+        Some(conduit_observatory::ImageBuildTraceReport {
+            profile_id: provenance.profile_id.into(),
+            inclusions: Vec::new(),
+        });
     let encoded = serde_json::to_string(&snapshot).map_err(|_| ExportError::EncodingFailed)?;
     if encoded.len() > MAX_EXPORT_BYTES {
         return Err(ExportError::ExportTooLarge);
@@ -500,35 +533,46 @@ mod tests {
 
     #[test]
     fn image_bound_provenance_refuses_stale_build_and_image_truth() {
-        let (record, identities, mut offer) = fixture();
-        offer.profile_id = "profile:sha256:bound";
-        offer.image_binding = "image:sha256:bound";
+        let (record, identities, offer) = fixture();
         let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
         assert_eq!(
-            prepare_export(
+            prepare_image_bound_export(
                 &record,
                 &identities,
                 &offer,
                 &prepared,
-                "stale-build",
-                offer.image_binding,
+                ImageBoundProvenance {
+                    profile_id: "profile:sha256:bound",
+                    build_id: "stale-build",
+                    image_binding: "image:sha256:bound",
+                },
                 None,
             )
             .err(),
             Some(ExportError::InvalidSnapshot)
         );
+        let export = prepare_image_bound_export(
+            &record,
+            &identities,
+            &offer,
+            &prepared,
+            ImageBoundProvenance {
+                profile_id: "profile:sha256:bound",
+                build_id: "build",
+                image_binding: "image:sha256:bound",
+            },
+            None,
+        )
+        .unwrap();
+        let snapshot: ObservatorySnapshot = serde_json::from_slice(export.as_bytes()).unwrap();
         assert_eq!(
-            prepare_export(
-                &record,
-                &identities,
-                &offer,
-                &prepared,
-                "build",
-                "image:sha256:stale",
-                None,
-            )
-            .err(),
-            Some(ExportError::InvalidSnapshot)
+            snapshot.sealed_boot_provenance[0]
+                .image_build_trace
+                .as_ref()
+                .unwrap()
+                .profile_id
+                .as_str(),
+            "profile:sha256:bound"
         );
     }
 

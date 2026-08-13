@@ -80,10 +80,6 @@ pub struct HostOffer<'a> {
     pub host_id: [u8; 32],
     pub boot_id: [u8; 32],
     pub generation: u64,
-    #[cfg(any(test, target_arch = "x86_64"))]
-    pub profile_id: &'a str,
-    #[cfg(any(test, target_arch = "x86_64"))]
-    pub image_binding: &'a str,
     pub profile: &'static str,
     pub bases: [BaseOffer; BASE_COUNT],
     pub resources: [ResourceOffer; RESOURCE_COUNT],
@@ -107,8 +103,6 @@ pub enum OfferError {
     ArtifactRequirementMismatch,
     MissingIsaFeature,
     InvalidDeviceOffer,
-    FabricationInvalid,
-    ImplementationNotInImage,
 }
 
 impl OfferError {
@@ -122,8 +116,6 @@ impl OfferError {
             Self::ArtifactRequirementMismatch => "artifact-feature-mismatch",
             Self::MissingIsaFeature => "missing-isa-feature",
             Self::InvalidDeviceOffer => "invalid-device-offer",
-            Self::FabricationInvalid => "fabrication-record-invalid",
-            Self::ImplementationNotInImage => "implementation-not-in-image",
         }
     }
 }
@@ -159,10 +151,6 @@ impl<'a> HostOffer<'a> {
             host_id: ids.host,
             boot_id: ids.boot,
             generation: 1,
-            #[cfg(any(test, target_arch = "x86_64"))]
-            profile_id: "legacy-unbound",
-            #[cfg(any(test, target_arch = "x86_64"))]
-            image_binding: "legacy-unbound",
             profile: "conduitos/two-lane-cooperative@1",
             bases,
             resources: [
@@ -283,8 +271,6 @@ impl<'a> HostOffer<'a> {
             || self.boot_id == [0; 32]
             || self.generation == 0
             || self.profile.is_empty()
-            || self.profile_id().is_empty()
-            || self.image_binding().is_empty()
         {
             return Err(OfferError::EmptyIdentity);
         }
@@ -370,26 +356,6 @@ impl<'a> HostOffer<'a> {
                 .map_err(|_error: PcSpeakerOfferError| OfferError::InvalidDeviceOffer)?;
         }
         Ok(())
-    }
-
-    #[cfg(any(test, target_arch = "x86_64"))]
-    pub const fn profile_id(&self) -> &str {
-        self.profile_id
-    }
-
-    #[cfg(not(any(test, target_arch = "x86_64")))]
-    pub const fn profile_id(&self) -> &str {
-        "legacy-unbound"
-    }
-
-    #[cfg(any(test, target_arch = "x86_64"))]
-    pub const fn image_binding(&self) -> &str {
-        self.image_binding
-    }
-
-    #[cfg(not(any(test, target_arch = "x86_64")))]
-    pub const fn image_binding(&self) -> &str {
-        "legacy-unbound"
     }
 }
 

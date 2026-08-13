@@ -244,14 +244,14 @@ extern "C" fn conduitos_start() -> ! {
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
             arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-ready\n");
-            let offer = match conduitos::offer::HostOffer::new_image_bound(
+            let offer = match conduitos::offer_fabrication::ImageBoundHostOffer::new(
                 &identities,
                 fabrication,
                 arch::feature_basis(),
                 record.runtime_arena.length,
             )
             .and_then(|offer| {
-                offer.with_image_bound_keyboard(
+                offer.with_keyboard(
                     fabrication,
                     conduitos::keyboard_offer::KeyboardRealization {
                         controller_id: xhci_base,
@@ -265,7 +265,7 @@ extern "C" fn conduitos_start() -> ! {
                 )
             })
             .and_then(|offer| {
-                offer.with_image_bound_pc_speaker(
+                offer.with_pc_speaker(
                     fabrication,
                     conduitos::pc_speaker_offer::PcSpeakerRealization {
                         base_id: identity::derive_base(&identities.boot, "conduitos/pc-speaker/0"),
@@ -633,13 +633,16 @@ extern "C" fn conduitos_start() -> ! {
                     Err(error) => emit_machine_refusal(error.as_str()),
                 };
             arch::early_write(b"CONDUIT_BOOT_STAGE plan\n");
-            let observatory_export = match conduitos::observatory::prepare_export(
+            let observatory_export = match conduitos::observatory::prepare_image_bound_export(
                 &record,
                 &identities,
                 &offer,
                 &prepared,
-                fabrication.build_id,
-                fabrication.image_binding,
+                conduitos::observatory::ImageBoundProvenance {
+                    profile_id: fabrication.profile_id,
+                    build_id: fabrication.build_id,
+                    image_binding: fabrication.image_binding,
+                },
                 Some(&framebuffer_basis),
             ) {
                 Ok(export) => export,

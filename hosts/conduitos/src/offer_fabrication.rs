@@ -1,4 +1,6 @@
-//! Artifact-bound construction of the current boot-scoped Host offer.
+//! Artifact-bound construction of the current x86 boot-scoped Host offer.
+
+use core::ops::Deref;
 
 use crate::{
     fabrication::{
@@ -7,54 +9,94 @@ use crate::{
     },
     identity::BootIdentities,
     keyboard_offer::KeyboardRealization,
-    offer::{CpuFeatures, HostOffer, OfferError},
+    offer::{CpuFeatures, HostOffer},
 };
 
-impl<'a> HostOffer<'a> {
-    pub fn new_image_bound(
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ImageBoundOfferError {
+    FabricationInvalid,
+    ImplementationNotInImage,
+    InvalidDeviceOffer,
+}
+
+impl ImageBoundOfferError {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::FabricationInvalid => "fabrication-record-invalid",
+            Self::ImplementationNotInImage => "implementation-not-in-image",
+            Self::InvalidDeviceOffer => "invalid-device-offer",
+        }
+    }
+}
+
+pub struct ImageBoundHostOffer<'a> {
+    offer: HostOffer<'a>,
+    pub profile_id: &'a str,
+    pub image_binding: &'a str,
+}
+
+impl<'a> Deref for ImageBoundHostOffer<'a> {
+    type Target = HostOffer<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.offer
+    }
+}
+
+impl<'a> ImageBoundHostOffer<'a> {
+    pub fn new(
         ids: &BootIdentities,
         fabrication: &'a FabricationRecord,
         cpu_features: CpuFeatures,
         runtime_arena_bytes: u64,
-    ) -> Result<Self, OfferError> {
+    ) -> Result<Self, ImageBoundOfferError> {
         fabrication
             .validate(runtime_arena_bytes)
-            .map_err(|_| OfferError::FabricationInvalid)?;
+            .map_err(|_| ImageBoundOfferError::FabricationInvalid)?;
         let required = IMPL_TIME_TICK
             | IMPL_TICK_PRESENTATION
             | IMPL_TEXT_LITERAL
             | IMPL_TEXT_UPPER
             | IMPL_TEXT_PRESENTATION;
         if !fabrication.includes(required) {
-            return Err(OfferError::ImplementationNotInImage);
+            return Err(ImageBoundOfferError::ImplementationNotInImage);
         }
-        let mut offer = Self::new(ids, fabrication.build_id, cpu_features, runtime_arena_bytes);
-        offer.profile_id = fabrication.profile_id;
-        offer.image_binding = fabrication.image_binding;
-        Ok(offer)
+        Ok(Self {
+            offer: HostOffer::new(ids, fabrication.build_id, cpu_features, runtime_arena_bytes),
+            profile_id: fabrication.profile_id,
+            image_binding: fabrication.image_binding,
+        })
     }
 
-    pub fn with_image_bound_keyboard(
-        self,
+    pub fn with_keyboard(
+        mut self,
         fabrication: &FabricationRecord,
         realization: KeyboardRealization,
-    ) -> Result<Self, OfferError> {
+    ) -> Result<Self, ImageBoundOfferError> {
         if !fabrication.includes(IMPL_KEYBOARD) {
-            return Err(OfferError::ImplementationNotInImage);
+            return Err(ImageBoundOfferError::ImplementationNotInImage);
         }
-        self.with_keyboard(realization, fabrication.build_id)
+        self.offer = self
+            .offer
+            .with_keyboard(realization, fabrication.build_id)
+            .map_err(|_| ImageBoundOfferError::InvalidDeviceOffer)?;
+        Ok(self)
     }
 
     #[cfg(target_arch = "x86_64")]
-    pub fn with_image_bound_pc_speaker(
-        self,
+    pub fn with_pc_speaker(
+        mut self,
         fabrication: &FabricationRecord,
         realization: crate::pc_speaker_offer::PcSpeakerRealization,
-    ) -> Result<Self, OfferError> {
+    ) -> Result<Self, ImageBoundOfferError> {
         if !fabrication.includes(crate::fabrication::IMPL_PC_SPEAKER) {
-            return Err(OfferError::ImplementationNotInImage);
+            return Err(ImageBoundOfferError::ImplementationNotInImage);
         }
-        self.with_pc_speaker(realization, fabrication.build_id)
+        self.offer = self
+            .offer
+            .with_pc_speaker(realization, fabrication.build_id)
+            .map_err(|_| ImageBoundOfferError::InvalidDeviceOffer)?;
+        Ok(self)
     }
 }
 
@@ -88,7 +130,7 @@ mod tests {
             boot: [2; 32],
         };
         let record = fabrication();
-        let offer = HostOffer::new_image_bound(
+        let offer = ImageBoundHostOffer::new(
             &ids,
             &record,
             CpuFeatures {
@@ -107,9 +149,9 @@ mod tests {
             implementations: record.implementations & !IMPL_TEXT_UPPER,
             ..record
         };
-        assert_eq!(
-            HostOffer::new_image_bound(&ids, &missing, offer.cpu_features, 262_144),
-            Err(OfferError::ImplementationNotInImage)
-        );
+        assert!(matches!(
+            ImageBoundHostOffer::new(&ids, &missing, offer.cpu_features, 262_144),
+            Err(ImageBoundOfferError::ImplementationNotInImage)
+        ));
     }
 }
