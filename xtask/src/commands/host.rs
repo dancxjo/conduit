@@ -1,0 +1,120 @@
+use std::{fs, path::PathBuf};
+
+use clap::{Args, Subcommand};
+use conduit_host_fabrication::{
+    build_host_image, BuildInputs, FabricationCatalog, HostBounds, HostProfile,
+};
+
+use crate::cli::GlobalOpts;
+
+#[derive(Args, Debug)]
+pub struct HostArgs {
+    #[command(subcommand)]
+    command: HostCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum HostCommand {
+    /// Resolve one PROFILE and emit its exact IMAGE and build manifest.
+    Build {
+        profile: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+        #[arg(long)]
+        source_identity: String,
+        #[arg(long)]
+        toolchain_identity: String,
+    },
+}
+
+pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    match args.command {
+        HostCommand::Build {
+            profile: profile_path,
+            output,
+            source_identity,
+            toolchain_identity,
+        } => {
+            let source = fs::read(&profile_path)?;
+            let profile: HostProfile = serde_json::from_slice(&source)?;
+            let maxima = repository_target_maxima(&profile)?;
+            let inputs = BuildInputs {
+                source_identity,
+                toolchain_identity,
+                toolchain_available: true,
+                maxima,
+            };
+            let (image, bytes) =
+                build_host_image(profile, &FabricationCatalog::canonical(), &inputs)
+                    .map_err(|diagnostics| format!("Host BUILD refused: {diagnostics:?}"))?;
+            if opts.dry_run {
+                println!(
+                    "would BUILD {} as {}",
+                    profile_path.display(),
+                    image.manifest.image_id
+                );
+                return Ok(());
+            }
+            fs::create_dir_all(&output)?;
+            fs::write(output.join("image.json"), &bytes)?;
+            fs::write(
+                output.join("build-manifest.json"),
+                serde_json::to_vec_pretty(&image.manifest)?,
+            )?;
+            if opts.json {
+                println!("{}", serde_json::to_string(&image.manifest)?);
+            } else if !opts.quiet {
+                println!(
+                    "BUILT {} ({:?})",
+                    image.manifest.image_id, image.manifest.image_use
+                );
+                println!("IMAGE: {}", output.join("image.json").display());
+                println!("manifest: {}", output.join("build-manifest.json").display());
+            }
+            Ok(())
+        }
+    }
+}
+
+fn repository_target_maxima(
+    profile: &HostProfile,
+) -> Result<HostBounds, Box<dyn std::error::Error>> {
+    let limits = match (
+        profile.target.family.as_str(),
+        profile.target.machine.as_str(),
+    ) {
+        ("conduitos", "pico-w") => HostBounds {
+            static_memory_bytes: 2 * 1024 * 1024,
+            heap_arena_bytes: 256 * 1024,
+            queue_items: 512,
+            buffered_bytes: 512 * 1024,
+            active_instances: 64,
+            operation_slots: 64,
+            timer_slots: 32,
+            line_sessions: 8,
+            evidence_items: 512,
+        },
+        ("conduitos", "pc") => hosted_limits(512 * 1024 * 1024),
+        ("std", _) | ("browser", _) => hosted_limits(2 * 1024 * 1024 * 1024),
+        _ => {
+            return Err(
+                format!("no BUILD ceiling table for target {}", profile.target.key()).into(),
+            )
+        }
+    };
+    Ok(limits)
+}
+
+fn hosted_limits(memory: u64) -> HostBounds {
+    HostBounds {
+        static_memory_bytes: memory,
+        heap_arena_bytes: memory,
+        queue_items: 1_048_576,
+        buffered_bytes: memory,
+        active_instances: 65_536,
+        operation_slots: 65_536,
+        timer_slots: 65_536,
+        line_sessions: 65_536,
+        evidence_items: 1_048_576,
+    }
+}
