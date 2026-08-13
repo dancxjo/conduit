@@ -29,12 +29,14 @@ mod characteristic_sealing;
 mod characteristics;
 mod compute_admission;
 mod contract;
+mod decision_evidence;
 mod diagnostic;
 mod fact_policy;
 mod functional_compatibility;
 mod generic_selection;
 mod observations;
 mod policy;
+mod policy_composition;
 mod profile;
 mod protected_resources;
 mod realization;
@@ -52,17 +54,24 @@ pub use characteristics::{
     plan_selected_realizations_with_characteristics,
     plan_selected_realizations_with_characteristics_and_authority,
     select_realization_with_characteristics, select_realization_with_characteristics_and_signs,
-    RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection,
-    RealizationSelection, SelectedRealizationPlanning, MAXIMUM_PLANNER_POLICY_CLAUSES,
-    MAXIMUM_REALIZATION_DECISION_RECORDS,
+    SelectedRealizationPlanning, MAXIMUM_PLANNER_POLICY_CLAUSES,
 };
 pub use contract::{
     parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
+};
+pub use decision_evidence::{
+    RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection,
+    RealizationSelection, MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
 pub use diagnostic::structured_planner_diagnostic;
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use observations::select_realization_with_observations;
 pub use policy::{select_realization_with_policy, RealizationPolicy, RealizationPreference};
+pub use policy_composition::{
+    select_realization_with_scoped_policy, ObservationBasis, PlanningPolicyBasis, PolicyLayer,
+    PolicyScope, PolicySourceId, PolicySourceRevision, ReviewedObservation,
+    ScopedRealizationSelection, MAXIMUM_POLICY_SOURCES, MAXIMUM_RETAINED_POLICY_OBSERVATIONS,
+};
 pub use profile::{
     plan_with_advertised_profile, BROWSER_PLANNER_PROFILE, FULL_PLANNER_LIMITS,
     FULL_PLANNER_PROFILE,
