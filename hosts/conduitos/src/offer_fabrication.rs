@@ -44,6 +44,10 @@ impl<'a> Deref for ImageBoundHostOffer<'a> {
 }
 
 impl<'a> ImageBoundHostOffer<'a> {
+    pub fn into_inner(self) -> HostOffer<'a> {
+        self.offer
+    }
+
     pub fn new(
         ids: &BootIdentities,
         fabrication: &'a FabricationRecord,

@@ -605,7 +605,7 @@ extern "C" fn conduitos_start() -> ! {
                     controller: &mut xhci,
                     d1: usb,
                     d1_session: hid_session,
-                    d1_offer: offer,
+                    d1_offer: offer.into_inner(),
                     controller_id: xhci_base,
                     build_id: fabrication.build_id,
                 });
