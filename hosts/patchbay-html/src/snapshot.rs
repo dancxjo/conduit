@@ -70,7 +70,7 @@ impl RendererSnapshot {
     }
 
     pub fn attach_parts(&mut self, parts: patchbay_model::PartsView) -> Result<(), SnapshotError> {
-        if parts.body_id != self.presentation.basis.body_id {
+        if self.presentation.basis.body_id.as_ref() != Some(&parts.body_id) {
             return Err(SnapshotError::InvalidIdentity);
         }
         self.parts = Some(parts);
@@ -127,7 +127,7 @@ impl RendererSnapshot {
 
     fn validate(&self) -> Result<(), SnapshotError> {
         let invalid_parts = self.parts.as_ref().is_some_and(|parts| {
-            parts.body_id != self.presentation.basis.body_id
+            self.presentation.basis.body_id.as_ref() != Some(&parts.body_id)
                 || parts.parts.len() > patchbay_model::MAX_PARTS_VIEW_ROWS
                 || parts.wants_to_join.len() > patchbay_model::MAX_WANTS_TO_JOIN_ROWS
         });

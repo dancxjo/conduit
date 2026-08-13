@@ -49,11 +49,14 @@ just browser   # cargo xtask demo patchbay --on browser
 ```
 
 The native command opens a real window. The browser command prints the URL of
-the loopback HTML entrance. Both begin at the current Body and its canonical
-Parts, Hosts, truthful Lines, capabilities/offers, and Signs; they then expose the checked/expanded
-Form and, after explicit actions, its immutable Plan and active Play. Selection
-is semantic and persists across current presentation revisions. DOM nodes,
-window handles, layout, and pixels remain renderer-local.
+the loopback HTML entrance. Both begin with this Host and `BODY: NONE`, then
+show bounded Body candidates and openable Seeds without granting membership or
+birthing anything. `OPEN` is inspection-only; explicit `JOIN` or `BE BORN`
+establishes the current Body. The embodied view then exposes canonical Parts,
+truthful Lines, the checked/expanded Form, and—after explicit actions—its
+immutable Plan and active Play. Selection is semantic, can be cleared back to a
+quiet WORLD view, and persists across current presentation revisions. DOM
+nodes, window handles, layout, and pixels remain renderer-local.
 
 Run the bounded acceptance path without package-level commands:
 
@@ -61,10 +64,11 @@ Run the bounded acceptance path without package-level commands:
 cargo xtask prove patchbay-front-door
 ```
 
-That one proof runs the semantic equivalence oracle, the native manifestation,
-one pinned Chromium front door, and an authenticated live browser Part joining
-and going offline. It retains digest-bound JSON for exact Body, Wake, Form,
-Plan, Play, presentation, Part, Host/Boot, Sign, and Manifestation outcomes.
+That one proof runs the zero-Body semantic equivalence oracle, the native
+manifestation, explicit OPEN and BE BORN through one pinned Chromium front
+door, and the post-transition authenticated live browser Part regression. It
+retains digest-bound JSON for exact Body, Wake, Form, Plan, Play, presentation,
+Part, Host/Boot, Sign, and Manifestation outcomes.
 
 ## 1. Run one form on the native std host
 

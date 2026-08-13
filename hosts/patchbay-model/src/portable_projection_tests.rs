@@ -75,9 +75,9 @@ fn living_portable() -> (
 fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     let (projection, body, wake, portable) = living_portable();
     let identities = projection.identities();
-    assert_eq!(portable.basis.seed_id, body.seed_id);
-    assert_eq!(portable.basis.body_id, body.body_id);
-    assert_eq!(portable.basis.wake_id, wake.wake_id);
+    assert_eq!(portable.basis.seed_id.as_ref(), Some(&body.seed_id));
+    assert_eq!(portable.basis.body_id.as_ref(), Some(&body.body_id));
+    assert_eq!(portable.basis.wake_id.as_ref(), Some(&wake.wake_id));
     assert_eq!(portable.basis.plan_id, identities.plan_id);
     assert_eq!(portable.basis.active_play_id, identities.active_play_id);
     for sign in identities

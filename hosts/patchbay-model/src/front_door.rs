@@ -16,6 +16,9 @@ pub enum EntranceLayer {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntranceAction {
     Inspect,
+    Open,
+    Join,
+    BeBorn,
     OpenForms,
     Admit,
     Refuse,
@@ -40,11 +43,11 @@ pub enum EntranceRefusal {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchbayEntranceState {
-    pub body_id: BodyId,
+    pub body_id: Option<BodyId>,
     pub presentation_id: String,
     pub presentation_revision: u64,
     pub layer: EntranceLayer,
-    pub selected_subject: String,
+    pub selected_subject: Option<String>,
     pub available_actions: Vec<EntranceAction>,
     pub last_refusal: Option<EntranceRefusal>,
 }
@@ -54,20 +57,29 @@ impl PatchbayEntranceState {
         presentation
             .validate()
             .map_err(|_| EntranceRefusal::InvalidPresentation)?;
-        let body_subject = format!("body/{}", presentation.basis.body_id.as_str());
-        if !presentation.subjects.iter().any(|subject| {
-            subject.identity == body_subject && subject.role == PresentationRole::Body
+        let body_subject = presentation
+            .basis
+            .body_id
+            .as_ref()
+            .map(|body_id| format!("body/{}", body_id.as_str()));
+        if body_subject.as_ref().is_some_and(|identity| {
+            !presentation.subjects.iter().any(|subject| {
+                &subject.identity == identity && subject.role == PresentationRole::Body
+            })
         }) {
             return Err(EntranceRefusal::MissingBody);
         }
-        let selected_subject = here_part(presentation).unwrap_or(body_subject);
+        let selected_subject = here_part(presentation)
+            .or(body_subject)
+            .or_else(|| this_host(presentation))
+            .ok_or(EntranceRefusal::InvalidPresentation)?;
         Ok(Self {
             body_id: presentation.basis.body_id.clone(),
             presentation_id: presentation.identity.as_str().into(),
             presentation_revision: presentation.revision,
             layer: EntranceLayer::World,
-            available_actions: actions_for(presentation, &selected_subject),
-            selected_subject,
+            available_actions: actions_for(presentation, Some(&selected_subject)),
+            selected_subject: Some(selected_subject),
             last_refusal: None,
         })
     }
@@ -85,16 +97,28 @@ impl PatchbayEntranceState {
         if presentation.revision <= self.presentation_revision {
             return self.refuse(EntranceRefusal::StaleRevision);
         }
-        let disposition = if has_subject(presentation, &self.selected_subject) {
-            EntranceUpdateDisposition::SelectionPreserved
-        } else {
-            self.selected_subject = here_part(presentation)
-                .unwrap_or_else(|| format!("body/{}", self.body_id.as_str()));
-            EntranceUpdateDisposition::SelectionBecameStale
+        let disposition = match self.selected_subject.as_deref() {
+            None => EntranceUpdateDisposition::SelectionPreserved,
+            Some(subject) if has_subject(presentation, subject) => {
+                EntranceUpdateDisposition::SelectionPreserved
+            }
+            Some(_) => {
+                self.selected_subject = Some(
+                    here_part(presentation)
+                        .or_else(|| {
+                            self.body_id
+                                .as_ref()
+                                .map(|body_id| format!("body/{}", body_id.as_str()))
+                        })
+                        .or_else(|| this_host(presentation))
+                        .ok_or(EntranceRefusal::InvalidPresentation)?,
+                );
+                EntranceUpdateDisposition::SelectionBecameStale
+            }
         };
         self.presentation_id = presentation.identity.as_str().into();
         self.presentation_revision = presentation.revision;
-        self.available_actions = actions_for(presentation, &self.selected_subject);
+        self.available_actions = actions_for(presentation, self.selected_subject.as_deref());
         self.last_refusal = None;
         Ok(disposition)
     }
@@ -108,8 +132,17 @@ impl PatchbayEntranceState {
         if !has_subject(presentation, subject) {
             return self.refuse(EntranceRefusal::UnknownSubject);
         }
-        self.selected_subject = subject.into();
-        self.available_actions = actions_for(presentation, subject);
+        self.selected_subject = Some(subject.into());
+        self.available_actions = actions_for(presentation, Some(subject));
+        self.last_refusal = None;
+        Ok(())
+    }
+
+    pub fn clear_selection(&mut self, presentation: &Presentation) -> Result<(), EntranceRefusal> {
+        self.require_current(presentation)?;
+        self.selected_subject = None;
+        self.available_actions.clear();
+        self.layer = EntranceLayer::World;
         self.last_refusal = None;
         Ok(())
     }
@@ -165,6 +198,13 @@ fn here_part(presentation: &Presentation) -> Option<String> {
     })
 }
 
+fn this_host(presentation: &Presentation) -> Option<String> {
+    presentation.properties.iter().find_map(|property| {
+        (property.name == "this-host" && property.value == PresentationPropertyValue::Flag(true))
+            .then(|| property.subject.clone())
+    })
+}
+
 fn has_subject(presentation: &Presentation, identity: &str) -> bool {
     presentation
         .subjects
@@ -172,14 +212,33 @@ fn has_subject(presentation: &Presentation, identity: &str) -> bool {
         .any(|subject| subject.identity == identity)
 }
 
-fn actions_for(presentation: &Presentation, identity: &str) -> Vec<EntranceAction> {
-    let role = presentation
-        .subjects
-        .iter()
-        .find(|subject| subject.identity == identity)
-        .map(|subject| subject.role);
+fn actions_for(presentation: &Presentation, identity: Option<&str>) -> Vec<EntranceAction> {
+    let role = identity.and_then(|identity| {
+        presentation
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == identity)
+            .map(|subject| subject.role)
+    });
     let actions = match role {
-        Some(PresentationRole::Body) => &[EntranceAction::Inspect, EntranceAction::OpenForms][..],
+        Some(PresentationRole::Body)
+            if identity
+                .is_some_and(|identity| property_flag(presentation, identity, "current")) =>
+        {
+            &[EntranceAction::Inspect, EntranceAction::OpenForms][..]
+        }
+        Some(PresentationRole::Body)
+            if identity.is_some_and(|identity| property_flag(presentation, identity, "opened")) =>
+        {
+            &[EntranceAction::Inspect, EntranceAction::Join]
+        }
+        Some(PresentationRole::Body) => &[EntranceAction::Inspect, EntranceAction::Open],
+        Some(PresentationRole::Seed)
+            if identity.is_some_and(|identity| property_flag(presentation, identity, "opened")) =>
+        {
+            &[EntranceAction::Inspect, EntranceAction::BeBorn]
+        }
+        Some(PresentationRole::Seed) => &[EntranceAction::Inspect, EntranceAction::Open],
         Some(PresentationRole::Candidate) => &[
             EntranceAction::Inspect,
             EntranceAction::Admit,
@@ -191,4 +250,12 @@ fn actions_for(presentation: &Presentation, identity: &str) -> Vec<EntranceActio
     };
     debug_assert!(actions.len() <= MAX_ENTRANCE_ACTIONS);
     actions.to_vec()
+}
+
+fn property_flag(presentation: &Presentation, identity: &str, name: &str) -> bool {
+    presentation.properties.iter().any(|property| {
+        property.subject == identity
+            && property.name == name
+            && property.value == PresentationPropertyValue::Flag(true)
+    })
 }

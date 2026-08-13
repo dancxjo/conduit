@@ -1,19 +1,21 @@
-//! Native consumption of the shared world-first Patchbay entrance state.
+//! Native consumption of the shared truthful Patchbay entrance state.
 
 use super::PatchbayApplication;
 use conduit_core::SignId;
 use conduit_presentation::Presentation;
 use patchbay_model::{
-    PatchbayEntranceState, PatchbayGraph, PatchbayPresentation, RendererAdapterIdentity,
-    RendererAdapterKind, RendererExecution,
+    PatchbayEntranceState, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    ZeroBodyFrontDoor,
 };
 
 impl PatchbayApplication {
     pub(super) fn initialize_front_door(&mut self) -> Result<(), String> {
-        let presentation = self.project_front_door(1)?;
+        let session = ZeroBodyFrontDoor::from_model(self.model.clone())?;
+        let presentation = session.project()?.presentation;
         let state = PatchbayEntranceState::enter(&presentation)
             .map_err(|error| format!("front-door state: {error:?}"))?;
         let execution = self.prepare_front_door_renderer(presentation.clone())?;
+        self.zero_body_front_door = Some(session);
         self.entrance_presentation = Some(presentation);
         self.entrance_state = Some(state);
         self.renderer_execution = Some(execution);
@@ -21,14 +23,15 @@ impl PatchbayApplication {
     }
 
     pub(super) fn refresh_front_door(&mut self) -> Result<(), String> {
-        let Some(previous) = self.entrance_presentation.as_ref() else {
+        let Some(session) = self.zero_body_front_door.as_ref() else {
             return Ok(());
         };
-        let revision = previous
-            .revision
-            .checked_add(1)
-            .ok_or("native front-door presentation revision exhausted")?;
-        let presentation = self.project_front_door(revision)?;
+        let presentation = session.project()?.presentation;
+        if self.entrance_presentation.as_ref().is_some_and(|prior| {
+            prior.revision == presentation.revision && prior.identity == presentation.identity
+        }) {
+            return Ok(());
+        }
         let mut state = self
             .entrance_state
             .clone()
@@ -41,46 +44,6 @@ impl PatchbayApplication {
         self.entrance_state = Some(state);
         self.renderer_execution = Some(execution);
         Ok(())
-    }
-
-    fn project_front_door(&self, revision: u64) -> Result<Presentation, String> {
-        let editor = self
-            .form_editor
-            .as_ref()
-            .ok_or("Patchbay front door requires its canonical entrance Form")?;
-        let body = self
-            .build_birth
-            .body()
-            .ok_or("Patchbay front door requires a born Body")?;
-        let wake = self
-            .build_birth
-            .wake_value()
-            .ok_or("Patchbay front door requires an awake Body")?;
-        let parts = self
-            .parts_projection()?
-            .ok_or("Patchbay front door requires canonical Parts truth")?;
-        let topology = conduit_observatory::build_report(&self.model.startup_snapshot())?;
-        let projection = PatchbayPresentation::new(
-            revision,
-            editor.view(),
-            self.control.plan_document().cloned(),
-            self.control.play_document().cloned(),
-            Some(topology),
-            Vec::new(),
-        )
-        .map_err(|error| error.to_string())?
-        .with_graph(
-            PatchbayGraph::from_expanded(
-                &editor
-                    .expand_form(&editor.view().open_form)
-                    .map_err(|error| error.to_string())?,
-            )
-            .map_err(|error| error.to_string())?,
-        )
-        .map_err(|error| error.to_string())?;
-        projection
-            .to_portable_front_door(body, wake, &parts)
-            .map_err(|error| error.to_string())
     }
 
     fn prepare_front_door_renderer(

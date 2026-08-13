@@ -90,11 +90,11 @@ fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan) -> 
     Presentation::new(
         7,
         PresentationBasis {
-            seed_id: body.seed_id,
-            body_id: body.body_id,
-            wake_id: wake.wake_id,
-            source_document_id: form.source_document_id.clone(),
-            checked_form_id: form.checked_form_id.clone(),
+            seed_id: Some(body.seed_id),
+            body_id: Some(body.body_id),
+            wake_id: Some(wake.wake_id),
+            source_document_id: Some(form.source_document_id.clone()),
+            checked_form_id: Some(form.checked_form_id.clone()),
             expanded_form_id: Some(form.expanded_form_id.clone()),
             plan_id: Some(plan.plan_id.clone()),
             active_play_id: None,

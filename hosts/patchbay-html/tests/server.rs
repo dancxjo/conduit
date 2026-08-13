@@ -67,7 +67,7 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     assert!(index.contains("Cache-Control: no-store"));
     assert!(index.contains("X-Content-Type-Options: nosniff"));
     assert!(index.contains("Content-Security-Policy: default-src 'self'"));
-    assert!(index.contains("Live Body topology"));
+    assert!(index.contains("Host and Body possibilities"));
     assert!(index.contains("Here and membership"));
     assert!(index.contains("Wants to join"));
     assert!(index.contains("Exact truth and accessibility"));
@@ -234,7 +234,7 @@ fn structured_browser_edit_normalizes_without_dom_or_widget_identity() {
         "action": null,
         "target": null,
         "edit": {
-            "source_document_id": basis.source_document_id.as_str(),
+            "source_document_id": basis.source_document_id.as_ref().unwrap().as_str(),
             "source_revision": 7,
             "expanded_form_id": expanded,
             "operation": "configure-gear",

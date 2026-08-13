@@ -32,8 +32,8 @@ fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
     assert_eq!(lines, nonvisual.lines);
     let rendered = lines.join("\n");
     assert!(rendered.contains(presentation.identity.as_str()));
-    assert!(rendered.contains(presentation.basis.body_id.as_str()));
-    assert!(rendered.contains(presentation.basis.wake_id.as_str()));
+    assert!(rendered.contains(presentation.basis.body_id.as_ref().unwrap().as_str()));
+    assert!(rendered.contains(presentation.basis.wake_id.as_ref().unwrap().as_str()));
     assert!(rendered.contains("base=USB CDC"));
     assert!(rendered.contains("base=WebSocket"));
 }

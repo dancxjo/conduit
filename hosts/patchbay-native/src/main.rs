@@ -114,6 +114,7 @@ struct PatchbayApplication {
     interaction: Option<PatchbayInteraction>,
     entrance_state: Option<patchbay_model::PatchbayEntranceState>,
     entrance_presentation: Option<conduit_presentation::Presentation>,
+    zero_body_front_door: Option<patchbay_model::ZeroBodyFrontDoor>,
     hit_targets: Vec<gui::HitTarget>,
     cursor_position: (f64, f64),
     canvas_viewport: canvas_viewport::CanvasViewport,

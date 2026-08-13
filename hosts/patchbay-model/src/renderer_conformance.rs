@@ -19,7 +19,7 @@ pub struct EntranceEquivalenceReport {
     pub relationships: Vec<PresentationRelationship>,
     pub properties: Vec<PresentationProperty>,
     pub text: Vec<PresentationText>,
-    pub selected_subject: String,
+    pub selected_subject: Option<String>,
     pub actions: Vec<EntranceAction>,
     pub layer: EntranceLayer,
     pub refusal: Option<EntranceRefusal>,

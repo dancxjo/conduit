@@ -21,7 +21,7 @@ async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposit
       step_id:"prove.browser-host.patchbay-html-matrix",
       browser_engine:"chromium",
       browser_version:browser.version(),
-      viewport:"1440x1000",
+      viewport:"1366x768",
       device_scale_factor:"1",
       locale:"en-US",
       timezone:"UTC",

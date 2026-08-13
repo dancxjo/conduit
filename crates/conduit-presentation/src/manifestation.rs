@@ -51,9 +51,9 @@ pub struct ManifestationSign {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Manifestation {
     pub manifestation_id: ManifestationId,
-    pub seed_id: SeedId,
-    pub body_id: BodyId,
-    pub wake_id: WakeId,
+    pub seed_id: Option<SeedId>,
+    pub body_id: Option<BodyId>,
+    pub wake_id: Option<WakeId>,
     pub presentation_id: PresentationContentId,
     pub presentation_revision: u64,
     pub plan_id: PlanId,

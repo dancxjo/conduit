@@ -26,6 +26,7 @@ mod form_edits;
 mod front_door;
 mod front_door_session;
 mod front_door_topology;
+mod front_door_transition;
 mod gear_realization;
 mod graphical_patchbay;
 mod interaction;
@@ -54,6 +55,8 @@ mod route_demo;
 mod route_presentation;
 mod theme;
 mod topology;
+mod zero_body_front_door;
+mod zero_body_projection;
 
 pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
@@ -140,6 +143,11 @@ pub use route_presentation::{
 };
 pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
+pub use zero_body_front_door::{
+    BodyJoinCandidate, OpenedFrontDoorSubject, SeedCandidate, ZeroBodyFrontDoor,
+    ZeroBodyFrontDoorProjection, MAX_FRONT_DOOR_BODY_CANDIDATES, MAX_FRONT_DOOR_REFUSAL_SIGNS,
+    MAX_FRONT_DOOR_SEEDS,
+};
 pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES;
 
 #[cfg(test)]

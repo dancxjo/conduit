@@ -190,7 +190,7 @@ fn native_and_browser_share_selection_actions_and_layers_without_renderer_identi
 
     let report = compare_entrances(&presentation, &native, &browser).unwrap();
     assert!(report.equivalent);
-    assert_eq!(report.selected_subject, host);
+    assert_eq!(report.selected_subject.as_deref(), Some(host.as_str()));
     assert_eq!(report.refusal, Some(EntranceRefusal::UnknownSubject));
     assert!(report
         .subjects

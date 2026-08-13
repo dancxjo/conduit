@@ -172,8 +172,8 @@ fn both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects() {
     let base = portable_demonstration().unwrap();
     let presentation = |plan: &conduit_core::Plan| {
         let mut basis = base.basis.clone();
-        basis.source_document_id = plan.source_document_id.clone();
-        basis.checked_form_id = plan.checked_form_id.clone();
+        basis.source_document_id = Some(plan.source_document_id.clone());
+        basis.checked_form_id = Some(plan.checked_form_id.clone());
         basis.expanded_form_id = Some(plan.expanded_form_id.clone());
         basis.plan_id = Some(plan.plan_id.clone());
         basis.active_play_id = None;

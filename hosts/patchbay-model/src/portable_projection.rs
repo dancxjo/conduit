@@ -171,11 +171,11 @@ impl PatchbayPresentation {
         Presentation::new(
             self.revision,
             PresentationBasis {
-                seed_id: body.seed_id.clone(),
-                body_id: body.body_id.clone(),
-                wake_id: wake.wake_id.clone(),
-                source_document_id,
-                checked_form_id,
+                seed_id: Some(body.seed_id.clone()),
+                body_id: Some(body.body_id.clone()),
+                wake_id: Some(wake.wake_id.clone()),
+                source_document_id: Some(source_document_id),
+                checked_form_id: Some(checked_form_id),
                 expanded_form_id: identities.expanded_form_id,
                 plan_id: identities.plan_id,
                 active_play_id: identities.active_play_id,
