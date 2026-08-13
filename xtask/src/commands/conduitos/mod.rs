@@ -28,6 +28,7 @@ mod loongarch64_a3;
 mod loongarch64_a4;
 mod opl2_proof;
 mod pc_speaker_proof;
+mod product_readiness_matrix;
 mod profile;
 mod prove;
 mod report;
@@ -65,6 +66,8 @@ pub struct ConduitosArgs {
 enum ConduitosCommand {
     /// Verify and report the pinned Limine architecture/backend matrix.
     ArchitectureMatrix,
+    /// Report exact earned Product Spine cells independently of A0-A4.
+    ProductReadinessMatrix,
     /// Compile and mechanically inspect the freestanding executable.
     Build(TargetArgs),
     /// Create the tiny pinned-Limine hybrid ISO image.
@@ -239,6 +242,7 @@ impl std::error::Error for ConduitosError {}
 pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     match args.command {
         ConduitosCommand::ArchitectureMatrix => architecture_matrix::execute(opts),
+        ConduitosCommand::ProductReadinessMatrix => product_readiness_matrix::execute(opts),
         ConduitosCommand::Build(target) => {
             target.arch.require_compile_link_backend()?;
             build::execute(target.arch, opts).map(|_| ())

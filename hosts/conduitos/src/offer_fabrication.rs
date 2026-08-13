@@ -109,8 +109,8 @@ mod tests {
     use super::*;
     use crate::fabrication::{
         ALL_KNOWN_IMPLEMENTATIONS, BASE_DISPLAY_SCANOUT, DRIVER_LINEAR_FRAMEBUFFER,
-        FABRICATION_SCHEMA, FACILITY_NATIVE_COMPOSITOR, PRESENTER_NATIVE_GRAPHICAL,
-        RESOURCE_PRESENTATION_SURFACE,
+        FABRICATION_SCHEMA, FACILITY_NATIVE_COMPOSITOR, IMPL_LINEAR_PRESENTER,
+        PRESENTER_NATIVE_GRAPHICAL, RESOURCE_PRESENTATION_SURFACE,
     };
 
     fn fabrication() -> FabricationRecord {
@@ -120,7 +120,7 @@ mod tests {
             build_id: "build:sha256:test",
             image_binding: "image:sha256:test",
             target: "conduitos/x86_64/pc",
-            implementations: ALL_KNOWN_IMPLEMENTATIONS,
+            implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER,
             facilities: FACILITY_NATIVE_COMPOSITOR,
             resources: RESOURCE_PRESENTATION_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,

@@ -6,6 +6,8 @@ const CONDUITOS_NATIVE: &str =
 const BROWSER_PAGE: &str = include_str!("../../../profiles/hosts/browser-page.profile.json");
 const CONDUITOS_HEADLESS: &str =
     include_str!("../../../profiles/hosts/conduitos-headless.profile.json");
+const CONDUITOS_AARCH64_HEADLESS: &str =
+    include_str!("../../../profiles/hosts/conduitos-aarch64-headless.profile.json");
 
 fn parse(source: &str) -> HostProfile {
     serde_json::from_str(source).unwrap()
@@ -45,6 +47,43 @@ fn four_materially_different_checked_in_profiles_validate() {
             .len(),
         4
     );
+}
+
+#[test]
+fn aarch64_virt_profile_closes_the_exact_linear_serial_presenter() {
+    let catalog = FabricationCatalog::canonical();
+    let profile = parse(CONDUITOS_AARCH64_HEADLESS);
+    let validated = validate_profile(profile.clone(), &catalog).unwrap();
+    assert_eq!(validated.profile().target.key(), "conduitos/aarch64/virt");
+    for required in [
+        "host-operation:conduit.host/present@1",
+        "base:serial/text",
+        "driver:conduitos/pl011@1",
+    ] {
+        assert!(validated
+            .dependency_paths()
+            .keys()
+            .any(|path| path.contains(required)));
+    }
+
+    let mut missing_driver = profile.clone();
+    missing_driver.drivers.clear();
+    let diagnostics = validate_profile(missing_driver, &catalog).unwrap_err();
+    assert!(diagnostics.iter().any(|item| matches!(
+        item,
+        ProfileDiagnostic::UnsatisfiedPrerequisite { missing, .. }
+            if missing == "driver:conduitos/pl011@1"
+    )));
+
+    let mut wrong_target = profile;
+    wrong_target.target.architecture = "x86_64".into();
+    wrong_target.target.machine = "pc".into();
+    let diagnostics = validate_profile(wrong_target, &catalog).unwrap_err();
+    assert!(diagnostics.iter().any(|item| matches!(
+        item,
+        ProfileDiagnostic::TargetIncompatible { item, target }
+            if item == "presenter/linear-serial@1" && target == "conduitos/x86_64/pc"
+    )));
 }
 
 #[test]

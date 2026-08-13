@@ -29,7 +29,7 @@ pub(crate) struct ProfileBuiltImage {
     pub limine_archive_sha256: &'static str,
 }
 
-/// Lowers already checked fabrication truth into the existing pinned x86_64
+/// Lowers already checked fabrication truth into the pinned target-specific
 /// compile/link/package machinery. The resolved PROFILE and its checked
 /// prerequisite closure are the sole authority for optional product inputs.
 pub(crate) fn build_profile_image(
@@ -37,16 +37,7 @@ pub(crate) fn build_profile_image(
     build_description: &[u8],
     opts: &GlobalOpts,
 ) -> Result<ProfileBuiltImage, ConduitosError> {
-    if manifest.target != "conduitos/x86_64/pc" {
-        return Err(ConduitosError::refusal(
-            "unsupported-profile-target",
-            format!(
-                "P0 target lowering owns exactly conduitos/x86_64/pc, found {}",
-                manifest.target
-            ),
-        ));
-    }
-    let arch = ConduitosArch::X86_64;
+    let arch = arch_for_target(&manifest.target)?;
     let build_record = build::execute_profile(manifest, opts)?;
     let image_record = image::assemble_with_description(arch, Some(build_description), opts)?;
     let paths = Paths::new(arch)?;
@@ -76,6 +67,7 @@ pub(crate) fn verify_artifact_digest(
 
 pub(crate) fn boot_profile_image(
     image: &std::path::Path,
+    target: &str,
     expected_profile_id: &str,
     expected_build_id: &str,
     expected_image_binding: &str,
@@ -87,7 +79,50 @@ pub(crate) fn boot_profile_image(
             "a dry run cannot prove that the final PROFILE-built IMAGE boots",
         ));
     }
-    let paths = Paths::new(ConduitosArch::X86_64)?;
+    let arch = arch_for_target(target)?;
+    if arch == ConduitosArch::Aarch64 {
+        let first = boot_aarch64_product(
+            image,
+            expected_profile_id,
+            expected_build_id,
+            expected_image_binding,
+            opts,
+        )?;
+        let second = boot_aarch64_product(
+            image,
+            expected_profile_id,
+            expected_build_id,
+            expected_image_binding,
+            opts,
+        )?;
+        if first["boot_id"] == second["boot_id"] || first["host_id"] == second["host_id"] {
+            return Err(ConduitosError::refusal(
+                "stale-aarch64-product-identity",
+                "independent product boots reused HostId or BootId",
+            ));
+        }
+        let proof = serde_json::json!({
+            "schema": "conduit.conduitos/aarch64-product-proof@1",
+            "base_commit": super::report::git_head(&Paths::new(arch)?.root)?,
+            "image_sha256": sha256_file(image)?,
+            "first": first,
+            "second": second,
+            "fresh_host_id": true,
+            "fresh_boot_id": true,
+            "stopped_by_harness": true
+        });
+        fs::write(
+            Paths::new(arch)?.target.join("aarch64-product-proof.json"),
+            serde_json::to_vec_pretty(&proof).map_err(|error| {
+                ConduitosError::refusal("aarch64-product-proof-invalid", error.to_string())
+            })?,
+        )
+        .map_err(|error| {
+            ConduitosError::refusal("aarch64-product-proof-unavailable", error.to_string())
+        })?;
+        return Ok(());
+    }
+    let paths = Paths::new(arch)?;
     let serial_path = paths.target.join("profile-built-boot.log");
     let _ = fs::remove_file(&serial_path);
     let serial_target = format!("file:{}", serial_path.to_string_lossy());
@@ -230,6 +265,165 @@ pub(crate) fn boot_profile_image(
     Ok(())
 }
 
+fn arch_for_target(target: &str) -> Result<ConduitosArch, ConduitosError> {
+    match target {
+        "conduitos/x86_64/pc" => Ok(ConduitosArch::X86_64),
+        "conduitos/aarch64/virt" => Ok(ConduitosArch::Aarch64),
+        _ => Err(ConduitosError::refusal(
+            "unsupported-profile-target",
+            target.to_owned(),
+        )),
+    }
+}
+
+fn boot_aarch64_product(
+    image: &std::path::Path,
+    expected_profile_id: &str,
+    expected_build_id: &str,
+    expected_image_binding: &str,
+    opts: &GlobalOpts,
+) -> Result<serde_json::Value, ConduitosError> {
+    let paths = Paths::new(ConduitosArch::Aarch64)?;
+    let firmware = std::env::var_os("CONDUITOS_AARCH64_FIRMWARE")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from("/usr/share/qemu-efi-aarch64/QEMU_EFI.fd"));
+    if !firmware.is_file() {
+        return Err(ConduitosError::refusal(
+            "unavailable-aarch64-firmware",
+            firmware.display().to_string(),
+        ));
+    }
+    let image_path = image.to_str().ok_or_else(|| {
+        ConduitosError::refusal("profile-built-image-path-invalid", "non-UTF-8 path")
+    })?;
+    let serial_path = paths.target.join("aarch64-product-boot.log");
+    let _ = fs::remove_file(&serial_path);
+    let serial_target = format!("file:{}", serial_path.to_string_lossy());
+    let mut child = Command::new("qemu-system-aarch64")
+        .args([
+            "-M",
+            "virt",
+            "-cpu",
+            "cortex-a72",
+            "-m",
+            "256M",
+            "-smp",
+            "1",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-serial",
+            &serial_target,
+            "-net",
+            "none",
+            "-no-reboot",
+            "-bios",
+        ])
+        .arg(&firmware)
+        .args(["-cdrom", image_path, "-boot", "d"])
+        .current_dir(&paths.root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| ConduitosError::refusal("missing-aarch64-qemu", error.to_string()))?;
+    let deadline = Instant::now() + Duration::from_secs(45);
+    loop {
+        let transcript = fs::read_to_string(&serial_path).unwrap_or_default();
+        if let Some(json) = transcript.lines().find_map(|line| {
+            line.find("CONDUIT_AARCH64_PRODUCT ")
+                .map(|offset| &line[offset + "CONDUIT_AARCH64_PRODUCT ".len()..])
+        }) {
+            let value: serde_json::Value = serde_json::from_str(json).map_err(|error| {
+                ConduitosError::refusal("malformed-aarch64-product-sign", error.to_string())
+            })?;
+            if let Err(error) = validate_aarch64_product_sign(
+                &value,
+                expected_profile_id,
+                expected_build_id,
+                expected_image_binding,
+            ) {
+                let _ = child.kill();
+                return Err(error);
+            }
+            thread::sleep(Duration::from_millis(250));
+            if child
+                .try_wait()
+                .map_err(|error| {
+                    ConduitosError::refusal("aarch64-product-wait-failed", error.to_string())
+                })?
+                .is_some()
+            {
+                return Err(ConduitosError::refusal(
+                    "aarch64-product-not-long-lived",
+                    "product Host exited after ready Sign",
+                ));
+            }
+            child
+                .kill()
+                .and_then(|_| child.wait().map(|_| ()))
+                .map_err(|error| {
+                    ConduitosError::refusal("aarch64-product-stop-failed", error.to_string())
+                })?;
+            if !opts.quiet && !opts.json {
+                println!(
+                    "BOOTED {} to AArch64 linear product front door",
+                    image.display()
+                );
+            }
+            return Ok(value);
+        }
+        if child
+            .try_wait()
+            .map_err(|error| {
+                ConduitosError::refusal("aarch64-product-wait-failed", error.to_string())
+            })?
+            .is_some()
+        {
+            return Err(ConduitosError::refusal(
+                "aarch64-product-exited-early",
+                transcript,
+            ));
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            return Err(ConduitosError::refusal(
+                "aarch64-product-timeout",
+                transcript,
+            ));
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn validate_aarch64_product_sign(
+    value: &serde_json::Value,
+    expected_profile_id: &str,
+    expected_build_id: &str,
+    expected_image_binding: &str,
+) -> Result<(), ConduitosError> {
+    if value["schema"] != "conduit.conduitos/aarch64-product@1"
+        || value["status"] != "ready"
+        || value["profile_id"] != expected_profile_id
+        || value["build_id"] != expected_build_id
+        || value["image_id"] != expected_image_binding
+        || value["host_id"].as_str().is_none_or(str::is_empty)
+        || value["boot_id"].as_str().is_none_or(str::is_empty)
+        || value["body_id"] != serde_json::Value::Null
+        || value["interactive_local_control"] != false
+        || value["long_lived"] != true
+        || value["semantic_result"] != "HELLO, CONDUITOS"
+        || value["presenter_implementation_id"] != "presenter/linear-serial@1"
+    {
+        return Err(ConduitosError::refusal(
+            "profile-built-fabrication-mismatch",
+            value.to_string(),
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use conduit_host_fabrication::{
@@ -300,5 +494,58 @@ mod tests {
 
         assert_eq!(manifest.target, "conduitos/x86_64/pc");
         assert_eq!(built.image_sha256, "dry-run");
+    }
+
+    #[test]
+    fn checked_aarch64_profile_routes_to_the_distinct_product_artifact() {
+        let (manifest, bytes) = resolved(include_str!(
+            "../../../../profiles/hosts/conduitos-aarch64-headless.profile.json"
+        ));
+        let built = build_profile_image(
+            &manifest,
+            &bytes,
+            &GlobalOpts {
+                dry_run: true,
+                ..GlobalOpts::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(manifest.target, "conduitos/aarch64/virt");
+        assert_eq!(built.image_sha256, "dry-run");
+        assert!(arch_for_target("conduitos/aarch64/a3-proof").is_err());
+    }
+
+    #[test]
+    fn aarch64_product_sign_rejects_stale_bindings_and_false_capabilities() {
+        let exact = serde_json::json!({
+            "schema": "conduit.conduitos/aarch64-product@1",
+            "status": "ready",
+            "profile_id": "profile",
+            "build_id": "build",
+            "image_id": "image",
+            "host_id": "host",
+            "boot_id": "boot",
+            "body_id": null,
+            "interactive_local_control": false,
+            "long_lived": true,
+            "semantic_result": "HELLO, CONDUITOS",
+            "presenter_implementation_id": "presenter/linear-serial@1"
+        });
+        assert!(validate_aarch64_product_sign(&exact, "profile", "build", "image").is_ok());
+        for (field, stale) in [
+            ("profile_id", "stale-profile"),
+            ("build_id", "stale-build"),
+            ("image_id", "stale-image"),
+            (
+                "presenter_implementation_id",
+                "presenter/native-graphical@1",
+            ),
+        ] {
+            let mut malformed = exact.clone();
+            malformed[field] = stale.into();
+            assert!(
+                validate_aarch64_product_sign(&malformed, "profile", "build", "image").is_err()
+            );
+        }
     }
 }

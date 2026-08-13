@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.host/profile@1",
+  "name": "conduitos-aarch64-headless",
+  "target": { "family": "conduitos", "architecture": "aarch64", "machine": "virt", "build_profile": "release" },
+  "host_core": "host-core/conduitos@1",
+  "fragments": [],
+  "capabilities": [],
+  "host_operations": ["conduit.host/present@1"],
+  "resources": [],
+  "bases": [{ "id": "serial/main", "kind": "serial/text", "driver": "conduitos/pl011@1" }],
+  "drivers": [{ "id": "driver/serial", "kind": "conduitos/pl011@1" }],
+  "lines": [],
+  "presenters": [{ "id": "presenter/main", "implementation": "presenter/linear-serial@1", "interactive": false }],
+  "facilities": [],
+  "exclusions": ["presenter/native-graphical@1", "presenter/browser-dom-svg@1", "compositor/native@1"],
+  "policy": { "authority_profile": "authority/explicit@1", "trust_profile": "trust/local-explicit@1", "update_profile": "update/rebuild@1", "ambient_defaults": false },
+  "bounds": { "static_memory_bytes": 8388608, "heap_arena_bytes": 0, "queue_items": 64, "buffered_bytes": 16384, "active_instances": 16, "operation_slots": 8, "timer_slots": 4, "line_sessions": 1, "evidence_items": 64 }
+}

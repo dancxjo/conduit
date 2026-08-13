@@ -98,6 +98,16 @@ impl FabricationCatalog {
                         ],
                     },
                 ),
+                (
+                    "presenter/linear-serial@1".into(),
+                    PresenterMetadata {
+                        targets: vec!["conduitos/aarch64/virt".into()],
+                        prerequisites: vec![
+                            PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                            PrerequisiteNode::Base("serial/text".into()),
+                        ],
+                    },
+                ),
             ]),
             dependencies: BTreeMap::from([
                 (
@@ -118,12 +128,17 @@ impl FabricationCatalog {
                     PrerequisiteNode::Base("timer/monotonic".into()),
                     vec![PrerequisiteNode::Driver("hosted/monotonic-clock@1".into())],
                 ),
+                (
+                    PrerequisiteNode::Base("serial/text".into()),
+                    vec![PrerequisiteNode::Driver("conduitos/pl011@1".into())],
+                ),
             ]),
             targets: vec![
                 "std/x86_64/workstation".into(),
                 "std/x86_64/server".into(),
                 "browser/wasm32/page".into(),
                 "conduitos/x86_64/pc".into(),
+                "conduitos/aarch64/virt".into(),
                 "conduitos/thumbv6m/pico-w".into(),
             ],
             host_cores: vec!["host-core/std@1".into(), "host-core/conduitos@1".into()],
@@ -154,6 +169,7 @@ impl FabricationCatalog {
             ]),
             driver_kinds: vec![
                 "browser/dom@1".into(),
+                "conduitos/pl011@1".into(),
                 "display/linear-framebuffer@1".into(),
                 "hosted/monotonic-clock@1".into(),
                 "hosted/protected-file@1".into(),
@@ -162,6 +178,10 @@ impl FabricationCatalog {
             ],
             driver_targets: BTreeMap::from([
                 ("browser/dom@1".into(), vec!["browser/wasm32/page".into()]),
+                (
+                    "conduitos/pl011@1".into(),
+                    vec!["conduitos/aarch64/virt".into()],
+                ),
                 (
                     "display/linear-framebuffer@1".into(),
                     vec![

@@ -33,6 +33,13 @@ bench = false
 required-features = ["aarch64-a3"]
 
 [[bin]]
+name = "conduitos-aarch64-product"
+path = "src/bin/aarch64_product.rs"
+test = false
+bench = false
+required-features = ["aarch64-product"]
+
+[[bin]]
 name = "conduitos-ia32-a0"
 path = "src/bin/ia32_a0.rs"
 test = false
@@ -117,6 +124,7 @@ native-compositor = []
 aarch64-a0 = []
 aarch64-a2 = []
 aarch64-a3 = []
+aarch64-product = []
 ia32-a0 = []
 ia32-a2 = []
 ia32-a3 = []

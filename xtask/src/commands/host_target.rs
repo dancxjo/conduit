@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-pub const TARGET_BUILD_MANIFEST_SCHEMA: &str = "conduit.host/target-build-manifest@1";
+pub const TARGET_BUILD_MANIFEST_SCHEMA: &str = "conduit.host/target-build-manifest@2";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactReceipt {
@@ -27,6 +27,10 @@ pub struct BootAssetsReceipt {
     pub packager: String,
     pub limine_version: String,
     pub limine_archive_sha256: String,
+    pub architecture: String,
+    pub machine: String,
+    pub firmware: String,
+    pub boot_entry: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,7 +65,11 @@ pub fn build_target(
 
     fs::create_dir_all(output)?;
     let kernel_name = "conduitos-kernel.elf";
-    let image_name = "conduitos-x86_64.iso";
+    let image_name = match image.manifest.target.as_str() {
+        "conduitos/x86_64/pc" => "conduitos-x86_64.iso",
+        "conduitos/aarch64/virt" => "conduitos-aarch64.iso",
+        target => return Err(format!("unsupported target artifact {target}").into()),
+    };
     fs::copy(&built.kernel, output.join(kernel_name))?;
     fs::copy(&built.image, output.join(image_name))?;
     verify_artifact_digest(&output.join(kernel_name), &built.kernel_sha256)?;
@@ -107,6 +115,12 @@ pub fn verify_target(output: &Path) -> Result<TargetBuildManifest, Box<dyn std::
     {
         return Err("target BUILD manifest does not bind its resolved PROFILE closure".into());
     }
+    let expected_boot = boot_assets(&manifest.target, &manifest.boot_assets)?;
+    if manifest.boot_assets != expected_boot {
+        return Err(
+            "target BUILD manifest has the wrong architecture, machine, or EFI binding".into(),
+        );
+    }
     Ok(manifest)
 }
 
@@ -117,6 +131,7 @@ pub fn boot_target(
 ) -> Result<(), Box<dyn std::error::Error>> {
     boot_profile_image(
         &output.join(&manifest.image.file),
+        &manifest.target,
         &manifest.profile_id,
         &manifest.build_id,
         &manifest.resolved_description_binding,
@@ -152,14 +167,47 @@ fn receipt(image: &HostImage, built: &ProfileBuiltImage) -> TargetBuildManifest 
         },
         image: ArtifactReceipt {
             role: "final-bootable-image".into(),
-            file: "conduitos-x86_64.iso".into(),
+            file: match image.manifest.target.as_str() {
+                "conduitos/x86_64/pc" => "conduitos-x86_64.iso",
+                "conduitos/aarch64/virt" => "conduitos-aarch64.iso",
+                _ => "unsupported.iso",
+            }
+            .into(),
             sha256: built.image_sha256.clone(),
         },
-        boot_assets: BootAssetsReceipt {
-            packager: "pinned-limine-hybrid-iso".into(),
-            limine_version: built.limine_version.into(),
-            limine_archive_sha256: built.limine_archive_sha256.into(),
-        },
+        boot_assets: boot_assets(
+            &image.manifest.target,
+            &BootAssetsReceipt {
+                packager: "pinned-limine-hybrid-iso".into(),
+                limine_version: built.limine_version.into(),
+                limine_archive_sha256: built.limine_archive_sha256.into(),
+                architecture: String::new(),
+                machine: String::new(),
+                firmware: String::new(),
+                boot_entry: String::new(),
+            },
+        )
+        .expect("receipt target was checked before lowering"),
         resolved_build: image.manifest.clone(),
     }
+}
+
+fn boot_assets(
+    target: &str,
+    source: &BootAssetsReceipt,
+) -> Result<BootAssetsReceipt, Box<dyn std::error::Error>> {
+    let (architecture, machine, firmware, boot_entry) = match target {
+        "conduitos/x86_64/pc" => ("x86_64", "q35", "OVMF_CODE.fd", "BOOTX64.EFI"),
+        "conduitos/aarch64/virt" => ("aarch64", "virt", "QEMU_EFI.fd", "BOOTAA64.EFI"),
+        _ => return Err(format!("unsupported target boot assets {target}").into()),
+    };
+    Ok(BootAssetsReceipt {
+        packager: source.packager.clone(),
+        limine_version: source.limine_version.clone(),
+        limine_archive_sha256: source.limine_archive_sha256.clone(),
+        architecture: architecture.into(),
+        machine: machine.into(),
+        firmware: firmware.into(),
+        boot_entry: boot_entry.into(),
+    })
 }
