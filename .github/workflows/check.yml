@@ -235,6 +235,12 @@ jobs:
             artifact_path: |
               target/conduitos/x86_64/front-door-proof.json
               target/conduitos/x86_64/front-door-serial.log
+          - proof: product-journey
+            command: cargo xtask conduitos journey-proof --locked
+            artifact_name: conduitos-product-journey-proof
+            artifact_path: |
+              target/conduitos/x86_64/journey-proof.json
+              target/conduitos/x86_64/journey-serial.log
           - proof: rescue
             command: cargo xtask conduitos rescue-proof --locked
             artifact_name: conduitos-rescue-proof

@@ -316,6 +316,22 @@ extern "C" fn conduitos_start() -> ! {
                     .iter()
                     .all(|transition| (0xe0..=0xe7).contains(&transition.usage()));
             }
+            if !cfg!(feature = "scripted-keyboard-proof") {
+                if let Err(reason) = conduitos::product_front_door::run(
+                    &identities,
+                    &offer,
+                    fabrication,
+                    &framebuffer_basis,
+                    &mut presentation_display,
+                    &mut hid_session,
+                    &mut xhci,
+                    &usb,
+                    &mut rescue_matcher,
+                ) {
+                    emit_machine_refusal(reason);
+                }
+                unreachable!("interactive HID loop only returns on refusal");
+            }
             let opl2_offer = conduitos::opl2_offer::Opl2Offer {
                 artifact_build: fabrication.build_id,
                 realization: conduitos::opl2_offer::Opl2Realization {
@@ -358,23 +374,6 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-offer-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-plan-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-play-started\n");
-            if !cfg!(feature = "scripted-keyboard-proof") {
-                if let Err(reason) = conduitos::product_front_door::run(
-                    &identities,
-                    &offer,
-                    fabrication,
-                    &framebuffer_basis,
-                    &mut presentation_display,
-                    &mut hid_session,
-                    &mut xhci,
-                    &usb,
-                    &keyboard_prepared,
-                    &mut rescue_matcher,
-                ) {
-                    emit_machine_refusal(reason);
-                }
-                unreachable!("interactive HID loop only returns on refusal");
-            }
             let (proof_followup, proof_followup_count) =
                 match hid_session.receive_followup(&mut xhci, &usb) {
                     Ok(batch) => batch,

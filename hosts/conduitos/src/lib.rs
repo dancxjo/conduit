@@ -67,6 +67,8 @@ pub mod planned_kernel;
 pub mod presentation_nucleus;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 pub mod product_front_door;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod product_journey;
 pub mod proof;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;

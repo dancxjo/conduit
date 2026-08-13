@@ -2,53 +2,6 @@
 
 use super::*;
 
-impl PatchbayAction {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::OpenBack => "open-back",
-            Self::Save => "save",
-            Self::ToggleLinearView => "toggle-linear-view",
-            Self::BeBorn => "be-born",
-            Self::Wake => "wake",
-            Self::Lull => "lull",
-            Self::Plan => "plan",
-            Self::Play => "play",
-            Self::Stop => "stop",
-            Self::Hold => "hold",
-            Self::PlaceGear => "place-gear",
-            Self::DuplicateGear => "duplicate-gear",
-            Self::RemoveGear => "remove-gear",
-            Self::RemoveCord => "remove-cord",
-            Self::ConnectPorts => "connect-ports",
-            Self::RerouteCord => "reroute-cord",
-            Self::ConfigureGear => "configure-gear",
-        }
-    }
-
-    pub(super) fn parse(value: &str) -> Result<Self, InteractionError> {
-        match value {
-            "open-back" => Ok(Self::OpenBack),
-            "save" => Ok(Self::Save),
-            "toggle-linear-view" => Ok(Self::ToggleLinearView),
-            "be-born" => Ok(Self::BeBorn),
-            "wake" => Ok(Self::Wake),
-            "lull" => Ok(Self::Lull),
-            "plan" => Ok(Self::Plan),
-            "play" => Ok(Self::Play),
-            "stop" => Ok(Self::Stop),
-            "hold" => Ok(Self::Hold),
-            "place-gear" => Ok(Self::PlaceGear),
-            "duplicate-gear" => Ok(Self::DuplicateGear),
-            "remove-gear" => Ok(Self::RemoveGear),
-            "remove-cord" => Ok(Self::RemoveCord),
-            "connect-ports" => Ok(Self::ConnectPorts),
-            "reroute-cord" => Ok(Self::RerouteCord),
-            "configure-gear" => Ok(Self::ConfigureGear),
-            _ => Err(InteractionError::MalformedValue),
-        }
-    }
-}
-
 impl PatchbayInteractionRequest {
     pub fn select(
         request_id: PatchbayInteractionRequestId,
@@ -159,7 +112,8 @@ impl PatchbayInteractionRequest {
                 Ok(Self::Invoke {
                     request_id,
                     invocation: PatchbayInvocation {
-                        action: PatchbayAction::parse(&second)?,
+                        action: PatchbayAction::from_name(&second)
+                            .ok_or(InteractionError::MalformedValue)?,
                         target_identity: third,
                     },
                 })

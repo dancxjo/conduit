@@ -14,6 +14,7 @@ mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
 mod image;
+mod journey_proof;
 mod keyboard_proof;
 mod keyboard_run;
 mod keyboard_text_run;
@@ -72,6 +73,8 @@ enum ConduitosCommand {
     Demo(DemoArgs),
     /// Prove the normal IMAGE zero-Body front door and long-lived interaction.
     FrontDoorProof,
+    /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
+    JourneyProof,
     /// Boot one deterministic QEMU session and validate its boot Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
@@ -246,6 +249,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
+        ConduitosCommand::JourneyProof => journey_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             match target.arch {

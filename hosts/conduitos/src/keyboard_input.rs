@@ -79,6 +79,39 @@ pub fn run_interactive(
     }
 }
 
+/// Runs the ordinary physical input source for a long-lived product-owned
+/// Play. The product lifecycle admits and drives the exact semantic consumer;
+/// this function only transports validated HID transitions.
+pub fn run_product(
+    session: &mut HidKeyboardSession,
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    mut interact: impl FnMut(ProductInputEvent) -> Result<(), &'static str>,
+) -> Result<(), &'static str> {
+    for transition in session.transitions().iter().copied() {
+        interact(ProductInputEvent::Transition(transition))?;
+    }
+    loop {
+        let (transitions, count) = match session.receive_followup(controller, device) {
+            Ok(batch) => batch,
+            Err(error) => {
+                let reason = error.as_str();
+                interact(ProductInputEvent::Lost(reason))?;
+                return Err(reason);
+            }
+        };
+        for transition in transitions[..count].iter().copied() {
+            interact(ProductInputEvent::Transition(transition))?;
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProductInputEvent {
+    Transition(HidKeyTransition),
+    Lost(&'static str),
+}
+
 fn consume(
     prepared: &PreparedKeyboardPlay,
     consumer: &mut PortablePairConsumer,

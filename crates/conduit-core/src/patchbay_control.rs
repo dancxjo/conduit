@@ -1,0 +1,137 @@
+use alloc::string::String;
+use serde::{Deserialize, Serialize};
+
+pub const MAX_PATCHBAY_CONTROL_ID_BYTES: usize = 768;
+
+/// Portable semantic actions shared by every Patchbay renderer and Host.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PatchbayAction {
+    OpenBack,
+    Save,
+    ToggleLinearView,
+    BeBorn,
+    Wake,
+    Lull,
+    Plan,
+    Play,
+    Stop,
+    Hold,
+    PlaceGear,
+    DuplicateGear,
+    RemoveGear,
+    RemoveCord,
+    ConnectPorts,
+    RerouteCord,
+    ConfigureGear,
+}
+
+impl PatchbayAction {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::OpenBack => "open-back",
+            Self::Save => "save",
+            Self::ToggleLinearView => "toggle-linear-view",
+            Self::BeBorn => "be-born",
+            Self::Wake => "wake",
+            Self::Lull => "lull",
+            Self::Plan => "plan",
+            Self::Play => "play",
+            Self::Stop => "stop",
+            Self::Hold => "hold",
+            Self::PlaceGear => "place-gear",
+            Self::DuplicateGear => "duplicate-gear",
+            Self::RemoveGear => "remove-gear",
+            Self::RemoveCord => "remove-cord",
+            Self::ConnectPorts => "connect-ports",
+            Self::RerouteCord => "reroute-cord",
+            Self::ConfigureGear => "configure-gear",
+        }
+    }
+
+    pub fn from_name(value: &str) -> Option<Self> {
+        Some(match value {
+            "open-back" => Self::OpenBack,
+            "save" => Self::Save,
+            "toggle-linear-view" => Self::ToggleLinearView,
+            "be-born" => Self::BeBorn,
+            "wake" => Self::Wake,
+            "lull" => Self::Lull,
+            "plan" => Self::Plan,
+            "play" => Self::Play,
+            "stop" => Self::Stop,
+            "hold" => Self::Hold,
+            "place-gear" => Self::PlaceGear,
+            "duplicate-gear" => Self::DuplicateGear,
+            "remove-gear" => Self::RemoveGear,
+            "remove-cord" => Self::RemoveCord,
+            "connect-ports" => Self::ConnectPorts,
+            "reroute-cord" => Self::RerouteCord,
+            "configure-gear" => Self::ConfigureGear,
+            _ => return None,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PatchbayControlError {
+    EmptyIdentity,
+    IdentityTooLong,
+}
+
+/// Typed renderer-to-semantic-control request. Geometry and key codes never
+/// cross this seam.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PatchbayControlRequest {
+    pub request_id: String,
+    pub presentation_revision: u64,
+    pub action: PatchbayAction,
+    pub target_identity: String,
+}
+
+impl PatchbayControlRequest {
+    pub fn new(
+        request_id: impl Into<String>,
+        presentation_revision: u64,
+        action: PatchbayAction,
+        target_identity: impl Into<String>,
+    ) -> Result<Self, PatchbayControlError> {
+        let request_id = request_id.into();
+        let target_identity = target_identity.into();
+        for value in [&request_id, &target_identity] {
+            if value.is_empty() {
+                return Err(PatchbayControlError::EmptyIdentity);
+            }
+            if value.len() > MAX_PATCHBAY_CONTROL_ID_BYTES {
+                return Err(PatchbayControlError::IdentityTooLong);
+            }
+        }
+        Ok(Self {
+            request_id,
+            presentation_revision,
+            action,
+            target_identity,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn portable_request_is_bounded_and_round_trips_every_action_name() {
+        for action in [
+            PatchbayAction::OpenBack,
+            PatchbayAction::BeBorn,
+            PatchbayAction::Wake,
+            PatchbayAction::Plan,
+            PatchbayAction::Play,
+            PatchbayAction::Stop,
+            PatchbayAction::Lull,
+        ] {
+            assert_eq!(PatchbayAction::from_name(action.as_str()), Some(action));
+            assert!(PatchbayControlRequest::new("request", 7, action, "target").is_ok());
+        }
+        assert!(PatchbayControlRequest::new("", 0, PatchbayAction::Play, "target").is_err());
+    }
+}

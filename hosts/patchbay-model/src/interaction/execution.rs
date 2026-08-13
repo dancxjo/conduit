@@ -312,6 +312,11 @@ impl PatchbayInteraction {
                         }
                         PatchbayInteractionRequest::Invoke { .. }
                         | PatchbayInteractionRequest::Edit { .. } => {
+                            if matches!(&decoded, PatchbayInteractionRequest::Invoke { .. })
+                                && decoded.control_request(0)?.is_none()
+                            {
+                                return Err(InteractionError::InvalidIdentity);
+                            }
                             match invoke
                                 .take()
                                 .map_or(PatchbayInvocationOutcome::Failed, |invoke| {
