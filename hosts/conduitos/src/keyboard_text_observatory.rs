@@ -31,7 +31,10 @@ pub fn completed_snapshot(
     image_id: &str,
     framebuffer: Option<&FramebufferBasis>,
 ) -> Result<String, ExportError> {
-    if build_id != offer.capabilities[0].artifact_build || image_id != offer.image_binding {
+    let image_bound = offer.profile_id != "legacy-unbound";
+    if image_bound
+        && (build_id != offer.capabilities[0].artifact_build || image_id != offer.image_binding)
+    {
         return Err(ExportError::InvalidSnapshot);
     }
     if record.artifact_count != 0 {
@@ -175,7 +178,7 @@ pub fn completed_snapshot(
             adapter_revision: "3".into(),
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
-            image_build_trace: Some(ImageBuildTraceReport {
+            image_build_trace: image_bound.then(|| ImageBuildTraceReport {
                 profile_id: offer.profile_id.into(),
                 inclusions: Vec::new(),
             }),

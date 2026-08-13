@@ -65,7 +65,10 @@ pub fn prepare_export(
     image_id: &str,
     framebuffer: Option<&FramebufferBasis>,
 ) -> Result<PreparedObservatoryExport, ExportError> {
-    if build_id != offer.capabilities[0].artifact_build || image_id != offer.image_binding {
+    let image_bound = offer.profile_id != "legacy-unbound";
+    if image_bound
+        && (build_id != offer.capabilities[0].artifact_build || image_id != offer.image_binding)
+    {
         return Err(ExportError::InvalidSnapshot);
     }
     if record.artifact_count != 0 {
@@ -182,7 +185,7 @@ pub fn prepare_export(
             adapter_revision: "3".into(),
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
-            image_build_trace: Some(ImageBuildTraceReport {
+            image_build_trace: image_bound.then(|| ImageBuildTraceReport {
                 profile_id: offer.profile_id.into(),
                 inclusions: Vec::new(),
             }),
@@ -454,7 +457,7 @@ mod tests {
             &offer,
             &prepared,
             "build",
-            "legacy-unbound",
+            "image",
             None,
         )
         .unwrap();
@@ -496,6 +499,40 @@ mod tests {
     }
 
     #[test]
+    fn image_bound_provenance_refuses_stale_build_and_image_truth() {
+        let (record, identities, mut offer) = fixture();
+        offer.profile_id = "profile:sha256:bound";
+        offer.image_binding = "image:sha256:bound";
+        let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
+        assert_eq!(
+            prepare_export(
+                &record,
+                &identities,
+                &offer,
+                &prepared,
+                "stale-build",
+                offer.image_binding,
+                None,
+            )
+            .err(),
+            Some(ExportError::InvalidSnapshot)
+        );
+        assert_eq!(
+            prepare_export(
+                &record,
+                &identities,
+                &offer,
+                &prepared,
+                "build",
+                "image:sha256:stale",
+                None,
+            )
+            .err(),
+            Some(ExportError::InvalidSnapshot)
+        );
+    }
+
+    #[test]
     fn stale_provenance_duplicate_bases_and_signs_fail_closed_while_gaps_remain_visible() {
         let (record, identities, offer) = fixture();
         let prepared = dual_region_plan::prepare(&identities, &offer, "build").unwrap();
@@ -505,7 +542,7 @@ mod tests {
             &offer,
             &prepared,
             "build",
-            "legacy-unbound",
+            "image",
             None,
         )
         .unwrap();
@@ -544,7 +581,7 @@ mod tests {
                 &offer,
                 &prepared,
                 "build",
-                "legacy-unbound",
+                "image",
                 None
             )
             .err(),
@@ -559,7 +596,7 @@ mod tests {
                 &offer,
                 &prepared,
                 "build",
-                "legacy-unbound",
+                "image",
                 None
             )
             .err(),
