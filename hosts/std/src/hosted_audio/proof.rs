@@ -1,8 +1,6 @@
 use super::{HostedPlaybackSelection, PlaybackReport};
 use crate::{StdHost, StdHostConfig, ThreadTimer};
-use conduit_core::{
-    ActivePlayId, ConnectionBase, HostId, PlanId, RealizationCharacteristicId, SignId,
-};
+use conduit_core::{ActivePlayId, CharacteristicId, ConnectionBase, HostId, PlanId, SignId};
 use std::collections::BTreeMap;
 use std::io::Write;
 
@@ -98,11 +96,11 @@ pub fn run_playback_proof<W: Write>(
         conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CHARACTERISTIC,
         conduit_std_catalog::AUDIO_TIMING_CLASS_CHARACTERISTIC,
     ] {
-        let id = RealizationCharacteristicId::from(required);
+        let id = CharacteristicId::from(required);
         if !playback_placement
             .realization_characteristics
             .iter()
-            .any(|fact| fact.characteristic_id == id)
+            .any(|fact| fact.definition.characteristic_id == id)
         {
             return Err(format!(
                 "audio Plan omitted required exact fact '{required}'"

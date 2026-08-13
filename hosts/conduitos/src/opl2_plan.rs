@@ -3,9 +3,9 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConnectionBase, ExecutionProfileId, GearId, HostAdvertisement, ImplementationId,
-    KindContractRevision, Plan, PortDescriptor, PortDirection, RealizationAdvertisement,
-    RealizationCharacteristicId, bind_active_play, kind_id, port_id,
+    CharacteristicId, ConnectionBase, ExecutionProfileId, GearId, HostAdvertisement,
+    ImplementationId, KindContractRevision, Plan, PortDescriptor, PortDirection,
+    RealizationAdvertisement, bind_active_play, kind_id, port_id,
 };
 use conduit_planner::{
     HardRealizationRequirements, SelectedRealizationPlanning,
@@ -310,19 +310,18 @@ fn fixture_requirements() -> BTreeMap<GearId, HardRealizationRequirements> {
     let mut requirements = BTreeMap::new();
     let mut output = HardRealizationRequirements::default();
     output.required_characteristic_labels.insert(
-        RealizationCharacteristicId::from(conduit_std_catalog::SOUND_SEAM_CHARACTERISTIC),
+        CharacteristicId::from(conduit_std_catalog::SOUND_SEAM_CHARACTERISTIC),
         "musical-events".into(),
     );
     output.minimum_characteristic_counts.insert(
-        RealizationCharacteristicId::from(
-            conduit_std_catalog::MUSIC_MAXIMUM_POLYPHONY_CHARACTERISTIC,
-        ),
-        3,
+        CharacteristicId::from(conduit_std_catalog::MUSIC_MAXIMUM_POLYPHONY_CHARACTERISTIC),
+        conduit_core::CharacteristicQuantity {
+            value: 3,
+            unit: conduit_core::CharacteristicUnit::Items,
+        },
     );
     output.required_characteristic_flags.insert(
-        RealizationCharacteristicId::from(
-            conduit_std_catalog::MUSIC_SUBTRACTIVE_FILTER_CHARACTERISTIC,
-        ),
+        CharacteristicId::from(conduit_std_catalog::MUSIC_SUBTRACTIVE_FILTER_CHARACTERISTIC),
         false,
     );
     requirements.insert(GearId::from("output"), output);

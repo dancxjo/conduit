@@ -8,9 +8,9 @@ use crate::requirements::{
 use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    seal_plan, ArtifactId, BootId, CapabilityId, CapabilityOffer, ConnectionBase, FormIdentity,
-    GearId, HostAdvertisement, HostId, ImplementationId, OfferGeneration, Plan,
-    RealizationAdvertisement, RealizationCharacteristicId, RealizationCharacteristicValue,
+    seal_plan, ArtifactId, BootId, CapabilityId, CapabilityOffer, CharacteristicId,
+    CharacteristicQuantity, CharacteristicValue, ConnectionBase, FormIdentity, GearId,
+    HostAdvertisement, HostId, ImplementationId, OfferGeneration, Plan, RealizationAdvertisement,
     ResourceObservation,
 };
 use conduit_form::{CheckedForm, CheckedGear};
@@ -24,10 +24,10 @@ pub enum RealizationRejection {
     ResourceUnitCeiling,
     HostOperationAllowlist,
     AuthorityContractAllowlist,
-    MinimumCharacteristicCount(RealizationCharacteristicId),
-    MaximumCharacteristicCount(RealizationCharacteristicId),
-    RequiredCharacteristicFlag(RealizationCharacteristicId),
-    RequiredCharacteristicLabel(RealizationCharacteristicId),
+    MinimumCharacteristicCount(CharacteristicId),
+    MaximumCharacteristicCount(CharacteristicId),
+    RequiredCharacteristicFlag(CharacteristicId),
+    RequiredCharacteristicLabel(CharacteristicId),
     CurrentResourceObservation,
 }
 
@@ -345,13 +345,26 @@ fn validate_advertisements(
         }
         let mut ids = BTreeSet::new();
         for characteristic in &advertisement.characteristics {
-            if characteristic.characteristic_id.as_str().is_empty()
-                || !ids.insert(characteristic.characteristic_id.clone())
+            if characteristic
+                .definition
+                .characteristic_id
+                .as_str()
+                .is_empty()
+                || !ids.insert(characteristic.definition.characteristic_id.clone())
             {
                 return invalid(
                     "realization characteristic identities must be non-empty and unique",
                 );
             }
+            characteristic
+                .definition
+                .validate_realization_value(&characteristic.value)
+                .map_err(|error| {
+                    PlannerError::InvalidHardRealizationRequirement(format!(
+                        "invalid realization characteristic '{}': {error:?}",
+                        characteristic.definition.characteristic_id.as_str()
+                    ))
+                })?;
         }
     }
     Ok(())
@@ -361,17 +374,25 @@ fn characteristic_rejection(
     advertisement: Option<&RealizationAdvertisement>,
     requirements: &HardRealizationRequirements,
 ) -> Option<RealizationRejection> {
-    if let Some((id, _)) = requirements
-        .minimum_characteristic_counts
-        .iter()
-        .find(|(id, minimum)| count(advertisement, id).is_none_or(|value| value < **minimum))
+    if let Some((id, _)) =
+        requirements
+            .minimum_characteristic_counts
+            .iter()
+            .find(|(id, minimum)| {
+                count(advertisement, id)
+                    .is_none_or(|value| value.unit != minimum.unit || value.value < minimum.value)
+            })
     {
         return Some(RealizationRejection::MinimumCharacteristicCount(id.clone()));
     }
-    if let Some((id, _)) = requirements
-        .maximum_characteristic_counts
-        .iter()
-        .find(|(id, maximum)| count(advertisement, id).is_none_or(|value| value > **maximum))
+    if let Some((id, _)) =
+        requirements
+            .maximum_characteristic_counts
+            .iter()
+            .find(|(id, maximum)| {
+                count(advertisement, id)
+                    .is_none_or(|value| value.unit != maximum.unit || value.value > maximum.value)
+            })
     {
         return Some(RealizationRejection::MaximumCharacteristicCount(id.clone()));
     }
@@ -380,7 +401,7 @@ fn characteristic_rejection(
             .required_characteristic_flags
             .iter()
             .find(|(id, required)| {
-                value(advertisement, id) != Some(&RealizationCharacteristicValue::Flag(**required))
+                value(advertisement, id) != Some(&CharacteristicValue::Boolean(**required))
             })
     {
         return Some(RealizationRejection::RequiredCharacteristicFlag(id.clone()));
@@ -389,8 +410,7 @@ fn characteristic_rejection(
         .required_characteristic_labels
         .iter()
         .find(|(id, required)| {
-            value(advertisement, id)
-                != Some(&RealizationCharacteristicValue::Label((*required).clone()))
+            value(advertisement, id) != Some(&CharacteristicValue::Categorical((*required).clone()))
         })
         .map(|(id, _)| RealizationRejection::RequiredCharacteristicLabel(id.clone()))
 }
@@ -410,21 +430,26 @@ fn advertisement_for<'a>(
 
 fn value<'a>(
     advertisement: Option<&'a RealizationAdvertisement>,
-    id: &RealizationCharacteristicId,
-) -> Option<&'a RealizationCharacteristicValue> {
+    id: &CharacteristicId,
+) -> Option<&'a CharacteristicValue> {
     advertisement?
         .characteristics
         .iter()
-        .find(|item| &item.characteristic_id == id)
+        .find(|item| &item.definition.characteristic_id == id)
         .map(|item| &item.value)
 }
 
 fn count(
     advertisement: Option<&RealizationAdvertisement>,
-    id: &RealizationCharacteristicId,
-) -> Option<u64> {
+    id: &CharacteristicId,
+) -> Option<CharacteristicQuantity> {
     match value(advertisement, id) {
-        Some(RealizationCharacteristicValue::Count(value)) => Some(*value),
+        Some(CharacteristicValue::UnsignedQuantity { value, unit }) => {
+            Some(CharacteristicQuantity {
+                value: *value,
+                unit: *unit,
+            })
+        }
         _ => None,
     }
 }

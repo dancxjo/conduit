@@ -5,8 +5,8 @@ use crate::requirements::{
 };
 use crate::{PlacementChoice, PlannerError};
 use conduit_core::{
-    AuthorityContractId, CapabilityOffer, ComputePerformanceClassId, HostAdvertisement,
-    HostOperationContractId, RealizationCharacteristicId, ResourceClassId,
+    AuthorityContractId, CapabilityOffer, CharacteristicId, ComputePerformanceClassId,
+    HostAdvertisement, HostOperationContractId, ResourceClassId,
 };
 use conduit_form::CheckedGear;
 use core::cmp::Ordering;
@@ -27,10 +27,10 @@ pub enum RealizationPreference {
     MaximizeQueueBytes,
     PreferWithoutHostOperation(HostOperationContractId),
     PreferWithoutAuthority(AuthorityContractId),
-    MinimizeCharacteristicCount(RealizationCharacteristicId),
-    MaximizeCharacteristicCount(RealizationCharacteristicId),
+    MinimizeCharacteristicCount(CharacteristicId),
+    MaximizeCharacteristicCount(CharacteristicId),
     PreferCharacteristicFlag {
-        characteristic_id: RealizationCharacteristicId,
+        characteristic_id: CharacteristicId,
         value: bool,
     },
 }

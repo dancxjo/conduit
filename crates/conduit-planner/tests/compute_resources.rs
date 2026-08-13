@@ -170,6 +170,7 @@ fn topology_service_and_architecture_base_are_exact_plan_facts() {
         numa_domain: Some(ComputeDomainId::from("memory-0")),
         cache_domain: Some(ComputeDomainId::from("cache-0")),
         performance_class: Some(ComputePerformanceClassId::from("performance")),
+        nominal_clock_hz: Some(1_800_000_000),
     }];
     let hosts = vec![fixture.advertisement.clone()];
     let advertisements = generate_text_realization_advertisements(&[fixture]);
@@ -202,6 +203,11 @@ fn topology_service_and_architecture_base_are_exact_plan_facts() {
         reservation.topology_group_id.as_ref().map(|id| id.as_str()),
         Some("cluster-0")
     );
+    assert_eq!(reservation.nominal_clock_hz, Some(1_800_000_000));
+    assert_eq!(
+        reservation.performance_class.as_ref().map(|id| id.as_str()),
+        Some("performance")
+    );
 
     let mut changed_fragment = plan.fragments[0].clone();
     changed_fragment.placements[0]
@@ -210,6 +216,16 @@ fn topology_service_and_architecture_base_are_exact_plan_facts() {
         .find_map(|binding| binding.compute.as_mut())
         .expect("compute reservation exists")
         .architecture_base_id = ArchitectureBaseId::from("different-base@1");
+    let changed = seal_plan(checked.identity(), vec![changed_fragment]);
+    assert_ne!(plan.plan_id, changed.plan_id);
+
+    let mut changed_fragment = plan.fragments[0].clone();
+    changed_fragment.placements[0]
+        .resources
+        .iter_mut()
+        .find_map(|binding| binding.compute.as_mut())
+        .expect("compute reservation exists")
+        .nominal_clock_hz = Some(2_000_000_000);
     let changed = seal_plan(checked.identity(), vec![changed_fragment]);
     assert_ne!(plan.plan_id, changed.plan_id);
 

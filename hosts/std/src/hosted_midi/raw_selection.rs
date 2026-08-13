@@ -356,20 +356,21 @@ mod tests {
             .output_realization_advertisement(HostId::from("host-a"))
             .unwrap();
         assert!(advertisement.characteristics.iter().any(|characteristic| {
-            characteristic.characteristic_id.as_str() == MIDI_BACKEND_CHARACTERISTIC
+            characteristic.definition.characteristic_id.as_str() == MIDI_BACKEND_CHARACTERISTIC
                 && characteristic.value
-                    == conduit_core::RealizationCharacteristicValue::Label(
-                        "alsa-raw-midi1@1".into(),
-                    )
+                    == conduit_core::CharacteristicValue::Categorical("alsa-raw-midi1@1".into())
         }));
         for id in [
             MIDI_PENDING_MESSAGES_CHARACTERISTIC,
             MIDI_PENDING_BYTES_CHARACTERISTIC,
         ] {
             assert!(advertisement.characteristics.iter().any(|characteristic| {
-                characteristic.characteristic_id.as_str() == id
+                characteristic.definition.characteristic_id.as_str() == id
                     && characteristic.value
-                        == conduit_core::RealizationCharacteristicValue::Count(0)
+                        == conduit_core::CharacteristicValue::UnsignedQuantity {
+                            value: 0,
+                            unit: conduit_std_catalog::sound_characteristic_unit(id),
+                        }
             }));
         }
 
@@ -406,9 +407,10 @@ mod tests {
             .unwrap();
         assert_eq!(advertisement.capability_id.as_str(), "music-input-midi1");
         assert!(advertisement.characteristics.iter().any(|characteristic| {
-            characteristic.characteristic_id.as_str() == MIDI_TIMING_PROFILE_CHARACTERISTIC
+            characteristic.definition.characteristic_id.as_str()
+                == MIDI_TIMING_PROFILE_CHARACTERISTIC
                 && characteristic.value
-                    == conduit_core::RealizationCharacteristicValue::Label(
+                    == conduit_core::CharacteristicValue::Categorical(
                         "monotonic-read-completion-us@1".into(),
                     )
         }));

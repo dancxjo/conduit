@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ArtifactId, BootId, CapabilityId, ExecutionProfileId, HostId, ImplementationId,
-    OfferGeneration, RealizationCharacteristicId,
+    ArtifactId, BootId, CapabilityId, CharacteristicDefinition, CharacteristicValue,
+    ExecutionProfileId, HostId, ImplementationId, OfferGeneration,
 };
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// One exact executable realization offered beneath a semantic capability face.
@@ -19,16 +18,9 @@ pub struct ImplementationOffer {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum RealizationCharacteristicValue {
-    Count(u64),
-    Flag(bool),
-    Label(String),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct RealizationCharacteristic {
-    pub characteristic_id: RealizationCharacteristicId,
-    pub value: RealizationCharacteristicValue,
+    pub definition: CharacteristicDefinition,
+    pub value: CharacteristicValue,
 }
 
 /// Stable, exact facts advertised alongside one boot-scoped implementation offer.

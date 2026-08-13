@@ -3,13 +3,13 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     compute_resource_offer, compute_resource_requirement, kind_id, resource_offer,
-    resource_requirement, ArchitectureBaseId, ArchitectureBaseKind, ArtifactId,
-    AuthorityContractId, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
+    resource_requirement, stable_realization_boolean, stable_realization_quantity,
+    ArchitectureBaseId, ArchitectureBaseKind, ArtifactId, AuthorityContractId,
+    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    CharacteristicUnit, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
     FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
     OfferGeneration, RealizationAdvertisement, RealizationCharacteristic,
-    RealizationCharacteristicId, RealizationCharacteristicValue,
 };
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +31,6 @@ pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-co
 pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-tokens@1";
 pub const DATA_EGRESS_CHARACTERISTIC: &str = "conduit.realization/data-egress@1";
 pub const METERED_COST_CHARACTERISTIC: &str = "conduit.realization/metered-cost@1";
-pub const BENCHMARK_SIGN_CHARACTERISTIC: &str = "conduit.realization/benchmark-sign@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BaseProofClass {
@@ -99,14 +98,6 @@ pub fn generate_text_realization_advertisements(
                         METERED_COST_CHARACTERISTIC,
                         fixture.facts.metering == Metering::MeteredFixture,
                     ),
-                    RealizationCharacteristic {
-                        characteristic_id: RealizationCharacteristicId::from(
-                            BENCHMARK_SIGN_CHARACTERISTIC,
-                        ),
-                        value: RealizationCharacteristicValue::Label(
-                            fixture.facts.benchmark_sign.clone(),
-                        ),
-                    },
                 ],
             }
         })
@@ -114,17 +105,18 @@ pub fn generate_text_realization_advertisements(
 }
 
 fn count_characteristic(id: &str, value: u64) -> RealizationCharacteristic {
-    RealizationCharacteristic {
-        characteristic_id: RealizationCharacteristicId::from(id),
-        value: RealizationCharacteristicValue::Count(value),
-    }
+    stable_realization_quantity(
+        id,
+        id,
+        "Stable reviewed LLM realization ceiling in canonical tokens.",
+        CharacteristicUnit::Tokens,
+        u64::MAX,
+        value,
+    )
 }
 
 fn flag_characteristic(id: &str, value: bool) -> RealizationCharacteristic {
-    RealizationCharacteristic {
-        characteristic_id: RealizationCharacteristicId::from(id),
-        value: RealizationCharacteristicValue::Flag(value),
-    }
+    stable_realization_boolean(id, id, "Stable reviewed LLM realization behavior.", value)
 }
 
 fn small_local() -> GenerateTextBaseFixture {

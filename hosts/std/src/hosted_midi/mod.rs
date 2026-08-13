@@ -30,8 +30,7 @@ pub use raw_selection::HostedRawMidiSelection;
 
 use conduit_core::{
     BootId, CapabilityId, HostId, OfferGeneration, RealizationAdvertisement,
-    RealizationCharacteristic, RealizationCharacteristicId, RealizationCharacteristicValue,
-    ResourceHealth, ResourceObservation, ResourcePoolId, SignId,
+    RealizationCharacteristic, ResourceHealth, ResourceObservation, ResourcePoolId, SignId,
 };
 
 pub const OUTPUT_CHANNEL: u8 = 0;
@@ -234,18 +233,25 @@ impl HostedMidiSelection {
 }
 
 fn count(id: &str, value: u64) -> RealizationCharacteristic {
-    characteristic(id, RealizationCharacteristicValue::Count(value))
+    conduit_core::stable_realization_quantity(
+        id,
+        id,
+        "Stable reviewed MIDI realization quantity.",
+        conduit_std_catalog::sound_characteristic_unit(id),
+        u64::MAX,
+        value,
+    )
 }
 
 fn label(id: &str, value: &str) -> RealizationCharacteristic {
-    characteristic(id, RealizationCharacteristicValue::Label(value.into()))
-}
-
-fn characteristic(id: &str, value: RealizationCharacteristicValue) -> RealizationCharacteristic {
-    RealizationCharacteristic {
-        characteristic_id: RealizationCharacteristicId::from(id),
+    conduit_core::stable_realization_category(
+        id,
+        id,
+        "Stable reviewed MIDI realization category.",
+        vec![value.into()],
+        false,
         value,
-    }
+    )
 }
 
 #[cfg(test)]
@@ -318,9 +324,9 @@ mod tests {
         .unwrap();
         assert_eq!(advertisement.capability_id.as_str(), "music-play-midi1");
         assert!(advertisement.characteristics.iter().any(|fact| {
-            fact.characteristic_id.as_str() == MIDI_RESOURCE_CHARACTERISTIC
+            fact.definition.characteristic_id.as_str() == MIDI_RESOURCE_CHARACTERISTIC
                 && fact.value
-                    == RealizationCharacteristicValue::Label(
+                    == conduit_core::CharacteristicValue::Categorical(
                         "std/midi/alsa-seq/boot-a/4/writable-destination/client-20/port-1".into(),
                     )
         }));

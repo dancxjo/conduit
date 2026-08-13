@@ -20,8 +20,7 @@ pub use proof::{run_playback_proof, ExplicitPlaybackAuthorization, PlaybackProof
 
 use conduit_core::{
     BootId, CapabilityId, HostId, OfferGeneration, RealizationAdvertisement,
-    RealizationCharacteristic, RealizationCharacteristicId, RealizationCharacteristicValue,
-    ResourceHealth, ResourceObservation, ResourcePoolId, SignId,
+    RealizationCharacteristic, ResourceHealth, ResourceObservation, ResourcePoolId, SignId,
 };
 
 pub const SAMPLE_RATE_HZ: u32 = 48_000;
@@ -176,18 +175,25 @@ impl HostedPlaybackSelection {
 }
 
 fn count(id: &str, value: u64) -> RealizationCharacteristic {
-    characteristic(id, RealizationCharacteristicValue::Count(value))
+    conduit_core::stable_realization_quantity(
+        id,
+        id,
+        "Stable reviewed audio realization quantity.",
+        conduit_std_catalog::sound_characteristic_unit(id),
+        u64::MAX,
+        value,
+    )
 }
 
 fn label(id: &str, value: &str) -> RealizationCharacteristic {
-    characteristic(id, RealizationCharacteristicValue::Label(value.into()))
-}
-
-fn characteristic(id: &str, value: RealizationCharacteristicValue) -> RealizationCharacteristic {
-    RealizationCharacteristic {
-        characteristic_id: RealizationCharacteristicId::from(id),
+    conduit_core::stable_realization_category(
+        id,
+        id,
+        "Stable reviewed audio realization category.",
+        vec![value.into()],
+        false,
         value,
-    }
+    )
 }
 
 pub(crate) enum PlaybackSession {

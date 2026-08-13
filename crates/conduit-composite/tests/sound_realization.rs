@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 use conduit_composite::CompositeDefinition;
 use conduit_core::{
     kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConnectionBase, ExecutionProfileId, FailureReason, GearId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration,
-    PortDescriptor, PortDirection, PortTemporal, RealizationAdvertisement,
-    RealizationCharacteristicId, PROTOCOL_VERSION,
+    CharacteristicId, ConnectionBase, ExecutionProfileId, FailureReason, GearId, HostAdvertisement,
+    HostId, HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision,
+    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, RealizationAdvertisement,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_planner::{
@@ -190,12 +190,15 @@ fn unchanged_authored_music_plans_directly_or_through_recursive_standard_form() 
     let mut requirements = BTreeMap::new();
     let mut output_requirement = HardRealizationRequirements::default();
     output_requirement.required_characteristic_labels.insert(
-        RealizationCharacteristicId::from(SOUND_SEAM_CHARACTERISTIC),
+        CharacteristicId::from(SOUND_SEAM_CHARACTERISTIC),
         "musical-events".into(),
     );
     output_requirement.minimum_characteristic_counts.insert(
-        RealizationCharacteristicId::from(MUSIC_MAXIMUM_POLYPHONY_CHARACTERISTIC),
-        8,
+        CharacteristicId::from(MUSIC_MAXIMUM_POLYPHONY_CHARACTERISTIC),
+        conduit_core::CharacteristicQuantity {
+            value: 8,
+            unit: conduit_core::CharacteristicUnit::Items,
+        },
     );
     requirements.insert(GearId::from("output"), output_requirement);
     let characteristic_plan = plan_selected_realizations_with_characteristics(
