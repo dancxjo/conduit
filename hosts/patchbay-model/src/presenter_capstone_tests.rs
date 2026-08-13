@@ -178,13 +178,15 @@ fn both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects() {
         basis.plan_id = Some(plan.plan_id.clone());
         basis.active_play_id = None;
         basis.sign_ids.clear();
-        conduit_presentation::Presentation::new(
+        conduit_presentation::Presentation::new_with_semantics(
             base.revision,
             basis,
             base.subjects.clone(),
             base.relationships.clone(),
             base.properties.clone(),
             base.text.clone(),
+            base.actions.clone(),
+            base.disclosures.clone(),
         )
         .unwrap()
     };

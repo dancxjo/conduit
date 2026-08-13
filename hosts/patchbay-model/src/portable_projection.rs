@@ -218,13 +218,15 @@ impl PatchbayPresentation {
                 .iter()
                 .flat_map(|row| row.evidence_signs.iter().cloned()),
         );
-        presentation = Presentation::new(
+        presentation = Presentation::new_with_semantics(
             self.revision,
             presentation.basis,
             content.subjects,
             content.relationships,
             content.properties,
             content.text,
+            presentation.actions,
+            presentation.disclosures,
         )
         .map_err(PortableProjectionError::InvalidPresentation)?;
         Ok(presentation)

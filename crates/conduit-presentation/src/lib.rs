@@ -10,6 +10,7 @@ mod linear;
 mod manifestation;
 mod manifestation_set;
 mod presentation;
+mod semantics;
 
 pub use composition::*;
 pub use contract::*;
@@ -19,3 +20,4 @@ pub use linear::*;
 pub use manifestation::*;
 pub use manifestation_set::*;
 pub use presentation::*;
+pub use semantics::*;

@@ -95,6 +95,26 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
     assert!(native.body_id.is_none());
     let report = compare_entrances(&presentation, &native, &browser).unwrap();
     assert!(report.equivalent);
+    let mut actions = presentation.actions.clone();
+    actions.sort_by(|left, right| left.identity.cmp(&right.identity));
+    let mut disclosures = presentation.disclosures.clone();
+    disclosures.sort_by(|left, right| left.subject.cmp(&right.subject));
+    assert_eq!(report.semantic_actions, actions);
+    assert_eq!(report.disclosures, disclosures);
+    assert!(presentation.actions.iter().any(|action| {
+        action.intent == "conduit.intent/open@1"
+            && matches!(
+                action.availability,
+                conduit_presentation::PresentationActionAvailability::Available
+            )
+    }));
+    assert!(presentation.actions.iter().any(|action| {
+        action.intent == "conduit.intent/be-born@1"
+            && matches!(
+                action.availability,
+                conduit_presentation::PresentationActionAvailability::Unavailable { .. }
+            )
+    }));
     for (adapter, name) in [
         (RendererAdapterKind::NativeWayland, "native"),
         (RendererAdapterKind::HtmlDomSvg, "browser"),

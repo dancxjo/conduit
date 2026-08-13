@@ -151,13 +151,15 @@ fn revised_presentation(presentation: &Presentation) -> Presentation {
     basis.sign_ids = vec![SignId::from("patchbay/sign/revised-body-truth")];
     let mut text = presentation.text.clone();
     text[0].text = "Revised Body truth".into();
-    Presentation::new(
+    Presentation::new_with_semantics(
         presentation.revision + 1,
         basis,
         presentation.subjects.clone(),
         presentation.relationships.clone(),
         presentation.properties.clone(),
         text,
+        presentation.actions.clone(),
+        presentation.disclosures.clone(),
     )
     .unwrap()
 }

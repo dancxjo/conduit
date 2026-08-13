@@ -128,6 +128,8 @@ fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
         assert_eq!(realized.relationships, presentation.relationships);
         assert_eq!(realized.properties, presentation.properties);
         assert_eq!(realized.text, presentation.text);
+        assert_eq!(realized.actions, presentation.actions);
+        assert_eq!(realized.disclosures, presentation.disclosures);
     }
     assert_eq!(linear.presentation_id, presentation.identity);
     assert_eq!(linear.revision, presentation.revision);

@@ -119,6 +119,23 @@ pub fn render_linear_presentation(
             text.subject, text.text
         ))?;
     }
+    for action in &presentation.actions {
+        builder.push(format!(
+            "ACTION id={:?} intent={:?} target={:?} label={:?} disclosure={:?} availability={}",
+            action.identity,
+            action.intent,
+            action.target,
+            action.label,
+            action.disclosure,
+            display_availability(&action.availability)
+        ))?;
+    }
+    for disclosure in &presentation.disclosures {
+        builder.push(format!(
+            "DISCLOSURE subject={:?} level={:?}",
+            disclosure.subject, disclosure.level
+        ))?;
+    }
 
     Ok(LinearPresentation {
         presentation_id: presentation.identity.clone(),
@@ -172,6 +189,20 @@ fn display_property(value: &PresentationPropertyValue) -> String {
         PresentationPropertyValue::Text(value) => format!("text:{value:?}"),
         PresentationPropertyValue::Count(value) => format!("count:{value}"),
         PresentationPropertyValue::Flag(value) => format!("flag:{value}"),
+    }
+}
+
+fn display_availability(value: &crate::PresentationActionAvailability) -> String {
+    match value {
+        crate::PresentationActionAvailability::Available => "available".into(),
+        crate::PresentationActionAvailability::Unavailable {
+            reason_code,
+            explanation,
+        } => format!("unavailable code={reason_code:?} explanation={explanation:?}"),
+        crate::PresentationActionAvailability::Refused {
+            reason_code,
+            explanation,
+        } => format!("refused code={reason_code:?} explanation={explanation:?}"),
     }
 }
 

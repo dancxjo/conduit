@@ -1,9 +1,10 @@
 //! Portable WORLD projection for the bounded zero-Body entrance state.
 
 use conduit_presentation::{
-    Presentation, PresentationBasis, PresentationProperty, PresentationPropertyValue,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText,
+    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
+    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
+    PresentationRole, PresentationSubject, PresentationText,
 };
 
 use crate::{OpenedFrontDoorSubject, ZeroBodyFrontDoor, ZeroBodyFrontDoorProjection};
@@ -40,6 +41,11 @@ impl ZeroBodyFrontDoor {
         let mut text = vec![PresentationText {
             subject: host_subject.clone(),
             text: "HOST body=none; OPEN is inert; only JOIN or BE BORN can embody this Host".into(),
+        }];
+        let mut actions = Vec::new();
+        let mut disclosures = vec![PresentationDisclosure {
+            subject: host_subject.clone(),
+            level: PresentationDisclosureLevel::Context,
         }];
         for offer in &host.capabilities {
             let subject = format!(
@@ -126,11 +132,37 @@ impl ZeroBodyFrontDoor {
                 },
             ]);
             text.push(PresentationText {
-                subject,
+                subject: subject.clone(),
                 text: format!(
                     "SEED provenance={}; OPEN permits inspection and does not create a Body",
                     seed.provenance
                 ),
+            });
+            actions.extend([
+                PresentationAction {
+                    identity: format!("action/open/{}", seed.seed_id.as_str()),
+                    intent: "conduit.intent/open@1".into(),
+                    target: subject.clone(),
+                    label: "Open".into(),
+                    disclosure: PresentationDisclosureLevel::CurrentAction,
+                    availability: PresentationActionAvailability::Available,
+                },
+                PresentationAction {
+                    identity: format!("action/be-born/{}", seed.seed_id.as_str()),
+                    intent: "conduit.intent/be-born@1".into(),
+                    target: subject.clone(),
+                    label: "Be born".into(),
+                    disclosure: PresentationDisclosureLevel::CurrentAction,
+                    availability: PresentationActionAvailability::Unavailable {
+                        reason_code: "authority/not-admitted".into(),
+                        explanation: "No admitted authority can create a Body from this entrance."
+                            .into(),
+                    },
+                },
+            ]);
+            disclosures.push(PresentationDisclosure {
+                subject,
+                level: PresentationDisclosureLevel::Primary,
             });
         }
         if let Some(opened) = &self.opened {
@@ -181,7 +213,7 @@ impl ZeroBodyFrontDoor {
             .collect::<Vec<_>>();
         sign_ids.sort();
         sign_ids.dedup();
-        let presentation = Presentation::new(
+        let presentation = Presentation::new_with_semantics(
             self.revision,
             PresentationBasis {
                 seed_id: None,
@@ -198,6 +230,8 @@ impl ZeroBodyFrontDoor {
             relationships,
             properties,
             text,
+            actions,
+            disclosures,
         )
         .map_err(|error| error.to_string())?;
         Ok(ZeroBodyFrontDoorProjection { presentation })
