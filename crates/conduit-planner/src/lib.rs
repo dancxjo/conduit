@@ -23,6 +23,7 @@ use conduit_core::{
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
 
+mod body_envelope;
 mod canonical;
 mod characteristic_policy;
 mod characteristic_sealing;
@@ -47,6 +48,7 @@ mod style;
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
 
+pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
     plan_expanded_canonical_with_shared_pools, SharedPoolPlanningRequirement,

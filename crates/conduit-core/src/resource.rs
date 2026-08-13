@@ -1,7 +1,8 @@
 use crate::{
     ArchitectureBaseId, BaseExecutionLaneId, BootId, CapabilityId, ComputeDomainId,
     ComputePerformanceClassId, ComputeTopologyGroupId, GearId, HostId, OfferGeneration,
-    ResourceBindingRoleId, ResourceClassId, ResourceHandleId, ResourcePoolId, SignId,
+    ResourceAllowanceSourceId, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
+    ResourcePoolId, SignId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +23,24 @@ pub struct ResourceOffer {
     pub capacity_units: u32,
     #[serde(default)]
     pub compute: Option<ComputePoolContract>,
+}
+
+/// Body-neutral planning ceiling over one unchanged Host resource pool.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct ResourceAllowance {
+    pub pool_id: ResourcePoolId,
+    pub class_id: ResourceClassId,
+    pub maximum_units: u32,
+}
+
+/// Attributable, boot-exact resource constraints supplied to generic planning.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ResourceAllowanceSet {
+    pub source_id: ResourceAllowanceSourceId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub allowances: alloc::vec::Vec<ResourceAllowance>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
