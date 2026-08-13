@@ -100,13 +100,18 @@ impl RendererExecution {
             return Err(RendererExecutionError::AmbiguousPlacement);
         }
         let placement_id = placement.placement_id.clone();
-        let active_play_id =
-            bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0).active_play_id;
+        let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+        let active_play_id = active_play.active_play_id.clone();
         let manifestation = Manifestation::prepared(
             &presentation,
             &plan,
-            active_play_id.clone(),
+            active_play,
             placement_id.clone(),
+            presentation
+                .subjects
+                .first()
+                .map(|subject| subject.identity.clone())
+                .ok_or(RendererExecutionError::MissingPlacement)?,
             target_subject,
             sign_id,
         )

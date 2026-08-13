@@ -8,6 +8,7 @@ mod graphics;
 mod layout;
 mod linear;
 mod manifestation;
+mod manifestation_set;
 mod presentation;
 
 pub use composition::*;
@@ -16,4 +17,5 @@ pub use graphics::*;
 pub use layout::*;
 pub use linear::*;
 pub use manifestation::*;
+pub use manifestation_set::*;
 pub use presentation::*;
