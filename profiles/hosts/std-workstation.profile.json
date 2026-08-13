@@ -5,7 +5,7 @@
   "host_core": "host-core/std@1",
   "fragments": ["profile-fragment/explicit-local-trust@1"],
   "capabilities": [{ "kind": "time/tick", "contract_revision": "conduit.std/time-tick@2", "implementation": "std/kernel-time-tick@2" }],
-  "host_operations": ["conduit.host/wait@1"],
+  "host_operations": ["conduit.host/present@1", "conduit.host/wait@1"],
   "resources": [
     { "id": "surface/main", "class": "presentation/surface", "slots": 8, "bytes": 8388608 },
     { "id": "timer/main", "class": "conduit.resource/timer-slot@1", "slots": 128, "bytes": 8192 }

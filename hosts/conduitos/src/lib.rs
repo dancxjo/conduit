@@ -37,6 +37,8 @@ mod keyboard_text_play_tests;
 pub mod local_rescue;
 pub mod machine;
 pub mod machine_a2_kernel;
+#[cfg(any(test, feature = "native-compositor"))]
+pub mod native_compositor;
 pub mod observatory;
 pub mod offer;
 #[cfg(target_arch = "x86_64")]
