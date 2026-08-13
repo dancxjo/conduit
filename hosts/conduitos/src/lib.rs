@@ -13,6 +13,8 @@ pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod front_door;
 #[cfg(target_arch = "x86_64")]
 pub mod hotplug_guest;
 pub mod identity;

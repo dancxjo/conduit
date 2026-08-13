@@ -731,6 +731,7 @@ dependencies = [
 name = "conduitos"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-form",
  "conduit-kernel",

@@ -129,6 +129,7 @@ loongarch64-a3 = []
 loongarch64-a4 = []
 
 [dependencies]
+conduit-body = { path = "../../crates/conduit-body" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }

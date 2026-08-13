@@ -127,6 +127,19 @@ extern "C" fn conduitos_start() -> ! {
                 presentation.kernel_signs,
             );
             arch::early_write(presentation_sign.as_bytes());
+            if !cfg!(feature = "scripted-keyboard-proof") {
+                let entrance = conduitos::front_door::FrontDoor::new(
+                    conduit_core::HostId::from(identity::hex(&identities.host)),
+                    conduit_core::BootId::from(identity::hex(&identities.boot)),
+                    conduit_core::OfferGeneration(1),
+                    prepared_presentation.plan.source_document_id.clone(),
+                    prepared_presentation.plan.checked_form_id.clone(),
+                );
+                if let Err(error) = entrance.render(&mut presentation_display) {
+                    emit_machine_refusal(error.as_str());
+                }
+                arch::early_write(b"CONDUIT_BOOT_STAGE front-door-presented\n");
+            }
             let xhci_base =
                 identity::derive_base(&identities.boot, "conduitos/xhci/0000:00:01.0/1b36:000d");
             let xhci_base_id = identity::hex(&xhci_base);
@@ -333,6 +346,22 @@ extern "C" fn conduitos_start() -> ! {
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-plan-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE keyboard-play-started\n");
             if !cfg!(feature = "scripted-keyboard-proof") {
+                let standard =
+                    match conduitos::ordinary_plan::prepare(&identities, &offer, BUILD_ID) {
+                        Ok(prepared) => prepared,
+                        Err(error) => emit_machine_refusal(error.as_str()),
+                    };
+                let mut front_door = conduitos::front_door::FrontDoor::new(
+                    conduit_core::HostId::from(identity::hex(&identities.host)),
+                    conduit_core::BootId::from(identity::hex(&identities.boot)),
+                    conduit_core::OfferGeneration(offer.generation),
+                    standard.plan.source_document_id.clone(),
+                    standard.plan.checked_form_id.clone(),
+                );
+                if let Err(error) = front_door.render(&mut presentation_display) {
+                    emit_machine_refusal(error.as_str());
+                }
+                arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
                 if let Err(reason) = conduitos::keyboard_input::run_interactive(
                     &mut hid_session,
                     &mut xhci,
@@ -345,6 +374,35 @@ extern "C" fn conduitos_start() -> ! {
                             transition.into_local_rescue(),
                             true,
                         )
+                    },
+                    |transition| {
+                        match front_door.accept(transition) {
+                            Ok(true) => {
+                                front_door
+                                    .render(&mut presentation_display)
+                                    .map_err(|error| error.as_str())?;
+                                match front_door.status() {
+                                    conduitos::front_door::Status::JoinUnavailable => arch::early_write(
+                                        b"CONDUIT_FRONT_DOOR_SIGN {\"status\":\"refused\",\"reason\":\"no-admitted-body-candidate\"}\n",
+                                    ),
+                                    conduitos::front_door::Status::BodyBorn => {
+                                        let born = front_door.born().ok_or("front-door-body-missing")?;
+                                        let sign = format!(
+                                            "CONDUIT_FRONT_DOOR_SIGN {{\"status\":\"body-born\",\"body_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"membership_revision\":{}}}\n",
+                                            born.body.body_id.as_str(),
+                                            identity::hex(&identities.host),
+                                            identity::hex(&identities.boot),
+                                            born.membership.revision.0,
+                                        );
+                                        arch::early_write(sign.as_bytes());
+                                    }
+                                    conduitos::front_door::Status::AwaitingChoice => {}
+                                }
+                            }
+                            Ok(false) => {}
+                            Err(error) => return Err(error.as_str()),
+                        }
+                        Ok(())
                     },
                 ) {
                     emit_machine_refusal(reason);
