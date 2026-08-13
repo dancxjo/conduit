@@ -42,6 +42,7 @@ mod protected_resources;
 mod realization;
 mod replanning;
 mod requirements;
+mod style;
 
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
@@ -79,6 +80,12 @@ pub use profile::{
 pub use realization::plan_selected_realizations;
 pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
+pub use style::{
+    dos_shell_style, presentation_style_characteristics, select_realization_with_style, NamedStyle,
+    PresentationStyleFacts, StyleId, StylePreferenceEvidence, StylePreferenceOutcome,
+    StyleSelection, DOS_SHELL_STYLE_ID, PRESENTATION_DENSITY, PRESENTATION_FRAMING,
+    PRESENTATION_KEYBOARD_VISIBLE, PRESENTATION_PALETTE_CLASS, PRESENTATION_TEXT_LAYOUT,
+};
 
 pub fn default_placements(
     form: &CheckedForm,
