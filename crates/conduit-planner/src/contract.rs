@@ -52,6 +52,7 @@ pub enum PlannerError {
     InvalidResourceContract(String),
     UnavailableResource(String),
     ResourceCapacityExceeded(String),
+    ResourceAllowanceUnsatisfied(String),
     InvalidProtectedResourceGrant(String),
     ProtectedResourceGrantMissing(String),
     ProtectedResourceGrantAmbiguous(String),
@@ -122,6 +123,9 @@ impl core::fmt::Display for PlannerError {
             Self::UnavailableResource(value) => write!(f, "unavailable resource: {value}"),
             Self::ResourceCapacityExceeded(value) => {
                 write!(f, "resource capacity exceeded: {value}")
+            }
+            Self::ResourceAllowanceUnsatisfied(value) => {
+                write!(f, "Body resource envelope unsatisfied: {value}")
             }
             Self::InvalidProtectedResourceGrant(value) => {
                 write!(f, "invalid protected-resource grant: {value}")

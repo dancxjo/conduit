@@ -142,6 +142,7 @@ identity_type!(HostOperationContractId);
 identity_type!(ResourceClassId);
 // Boot-scoped identity of one concrete host resource pool.
 identity_type!(ResourcePoolId);
+identity_type!(ResourceAllowanceSourceId);
 // Semantic identity of one protected resource role within an gear.
 identity_type!(ResourceBindingRoleId);
 // Boot-scoped identity and stable kind identity for one concrete Host Base.

@@ -611,6 +611,7 @@ name = "conduit-planner"
 version = "0.1.0"
 dependencies = [
  "conduit-ai",
+ "conduit-body",
  "conduit-core",
  "conduit-form",
  "conduit-runtime",
