@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.host/profile@1",
+  "name": "conduitos-proof",
+  "target": { "family": "conduitos", "architecture": "x86_64", "machine": "pc", "build_profile": "release" },
+  "host_core": "host-core/conduitos@1",
+  "fragments": ["profile-fragment/conduitos-scripted-keyboard-proof@1"],
+  "capabilities": [],
+  "host_operations": ["conduit.host/present@1"],
+  "resources": [{ "id": "surface/main", "class": "presentation/surface", "slots": 2, "bytes": 4194304 }],
+  "bases": [{ "id": "display/main", "kind": "display/scanout", "driver": "display/linear-framebuffer@1" }],
+  "drivers": [{ "id": "driver/display", "kind": "display/linear-framebuffer@1" }],
+  "lines": ["line/usb-cdc@1"],
+  "presenters": [{ "id": "presenter/main", "implementation": "presenter/native-graphical@1", "interactive": true }],
+  "facilities": ["compositor/native@1"],
+  "exclusions": ["presenter/browser-dom-svg@1"],
+  "policy": { "authority_profile": "authority/explicit@1", "trust_profile": "trust/local-explicit@1", "update_profile": "update/rebuild@1", "ambient_defaults": false },
+  "bounds": { "static_memory_bytes": 8388608, "heap_arena_bytes": 16777216, "queue_items": 1024, "buffered_bytes": 4194304, "active_instances": 128, "operation_slots": 64, "timer_slots": 32, "line_sessions": 8, "evidence_items": 1024 }
+}

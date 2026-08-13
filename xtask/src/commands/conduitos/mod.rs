@@ -41,6 +41,7 @@ mod riscv64_a4;
 mod run;
 mod std_gap;
 pub(crate) mod target_build;
+mod target_lowering;
 mod timing_profile;
 mod usb_proof;
 mod usb_run;

@@ -146,6 +146,14 @@ fn validate_shape(
             &base.driver,
             diagnostics,
         );
+        if let Some(targets) = catalog.base_targets.get(&base.kind) {
+            if !target_matches(targets, &target) {
+                diagnostics.push(ProfileDiagnostic::TargetIncompatible {
+                    item: base.kind.clone(),
+                    target: target.clone(),
+                });
+            }
+        }
         if !profile
             .drivers
             .iter()
@@ -164,6 +172,14 @@ fn validate_shape(
             &driver.kind,
             diagnostics,
         );
+        if let Some(targets) = catalog.driver_targets.get(&driver.kind) {
+            if !target_matches(targets, &target) {
+                diagnostics.push(ProfileDiagnostic::TargetIncompatible {
+                    item: driver.kind.clone(),
+                    target: target.clone(),
+                });
+            }
+        }
     }
     for line in &profile.lines {
         known(&catalog.line_facilities, "line", line, diagnostics);
