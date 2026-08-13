@@ -15,8 +15,8 @@ fn html_can_emit_the_shared_semantic_contract_without_dom_identity() {
     )
     .unwrap();
     let invocation = PatchbayInteractionRequest::invoke(
-        PatchbayInteractionRequestId::new("html/birth/2").unwrap(),
-        PatchbayAction::Birth,
+        PatchbayInteractionRequestId::new("html/be-born/2").unwrap(),
+        PatchbayAction::BeBorn,
         "body/example",
     )
     .unwrap();
@@ -33,7 +33,7 @@ fn html_can_emit_the_shared_semantic_contract_without_dom_identity() {
     assert!(matches!(
         invocation,
         PatchbayInteractionRequest::Invoke { invocation, .. }
-            if invocation.action == PatchbayAction::Birth
+            if invocation.action == PatchbayAction::BeBorn
                 && invocation.target_identity == "body/example"
     ));
 }

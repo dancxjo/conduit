@@ -281,7 +281,7 @@ fn execute(mut application: PatchbayApplication, started: Instant) -> Result<(),
     steps.push("undid-and-redid-semantic-edit");
 
     for lifecycle in [
-        patchbay_model::PatchbayAction::Birth,
+        patchbay_model::PatchbayAction::BeBorn,
         patchbay_model::PatchbayAction::Wake,
         patchbay_model::PatchbayAction::Plan,
         patchbay_model::PatchbayAction::Play,

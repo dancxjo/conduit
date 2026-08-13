@@ -218,7 +218,7 @@ pub enum DemoCommand {
     Triple,
     /// Build and launch the native Patchbay from this checkout.
     Patchbay(PatchbayDemoArgs),
-    /// Birth one Body and open its canonical native Parts experience.
+    /// Let one Body BE BORN and open its canonical native Parts experience.
     BodyMembership,
     /// Open the authored physical-environment Patchbay demonstration.
     Environment,

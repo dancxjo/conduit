@@ -58,7 +58,7 @@ pub enum PatchbayAction {
     OpenBack,
     Save,
     ToggleLinearView,
-    Birth,
+    BeBorn,
     Wake,
     Lull,
     Plan,

@@ -121,8 +121,8 @@ fn stale_and_unknown_selection_refuse_without_replacing_canonical_selection() {
 fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     let mut interaction = interaction();
     let request = PatchbayInteractionRequest::invoke(
-        interaction.next_request_id("birth").unwrap(),
-        PatchbayAction::Birth,
+        interaction.next_request_id("be-born").unwrap(),
+        PatchbayAction::BeBorn,
         "body/count-demo",
     )
     .unwrap();
@@ -137,12 +137,12 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     assert!(matches!(
         invoked.unwrap(),
         PatchbayInteractionRequest::Invoke { invocation, .. }
-            if invocation.action == PatchbayAction::Birth
+            if invocation.action == PatchbayAction::BeBorn
     ));
 
     let request = PatchbayInteractionRequest::invoke(
-        interaction.next_request_id("birth").unwrap(),
-        PatchbayAction::Birth,
+        interaction.next_request_id("be-born").unwrap(),
+        PatchbayAction::BeBorn,
         "body/count-demo",
     )
     .unwrap();
@@ -157,8 +157,8 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     );
 
     let request = PatchbayInteractionRequest::invoke(
-        interaction.next_request_id("birth").unwrap(),
-        PatchbayAction::Birth,
+        interaction.next_request_id("be-born").unwrap(),
+        PatchbayAction::BeBorn,
         "body/count-demo",
     )
     .unwrap();
