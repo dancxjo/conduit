@@ -2,11 +2,11 @@
 
 use core::fmt::{self, Write};
 
+#[cfg(any(test, target_arch = "x86_64"))]
+use crate::{boot::BootRecord, fabrication::FabricationRecord};
 use crate::{
-    boot::BootRecord,
     composition::MachineProof,
     dual_region_plan::PreparedDualRegionPlay,
-    fabrication::FabricationRecord,
     identity::BootIdentities,
     offer::{HostOffer, SERIAL_MAXIMUM_BYTES},
 };
@@ -57,6 +57,7 @@ impl Write for FixedText {
     }
 }
 
+#[cfg(any(test, target_arch = "x86_64"))]
 pub fn accepted(
     record: &BootRecord,
     identities: &BootIdentities,
