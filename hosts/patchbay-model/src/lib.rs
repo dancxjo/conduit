@@ -35,6 +35,7 @@ mod maker_environment;
 mod palette;
 mod parts_view;
 mod patchbay_backs;
+mod policy_explanation;
 mod portable_composition;
 mod portable_demo;
 mod portable_graph_projection;
@@ -113,6 +114,11 @@ pub use palette::{
 };
 pub use parts_view::*;
 pub use patchbay_backs::*;
+pub use policy_explanation::{
+    PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
+    PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
+    MAX_STYLE_EXPLANATION_CLAUSES,
+};
 pub use portable_composition::{
     constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
 };
@@ -168,6 +174,8 @@ mod interaction_tests;
 mod maker_environment_tests;
 #[cfg(test)]
 mod parts_view_tests;
+#[cfg(test)]
+mod policy_explanation_tests;
 #[cfg(test)]
 mod portable_projection_tests;
 #[cfg(test)]
