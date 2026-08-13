@@ -2,7 +2,11 @@
 
 use alloc::string::String;
 use conduit_body::{BodyId, SeedId, WakeId};
-use conduit_core::{verify_plan, ActivePlayId, PlacementId, Plan, PlanId, PlannedGear, SignId};
+use conduit_core::{
+    bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, ArtifactId, BootId,
+    CapabilityId, HostId, ImplementationId, OfferGeneration, PlacementId, Plan, PlanId,
+    PlannedGear, SignId,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -43,7 +47,12 @@ pub struct ManifestationSign {
     pub presentation_id: PresentationContentId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
+    pub play_sequence: u64,
     pub placement_id: PlacementId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub presenter_implementation_id: ImplementationId,
     pub lifecycle: ManifestationLifecycle,
     pub failure: Option<ManifestationFailure>,
 }
@@ -58,7 +67,15 @@ pub struct Manifestation {
     pub presentation_revision: u64,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
+    pub play_sequence: u64,
     pub placement_id: PlacementId,
+    pub face_subject: String,
+    pub presenter_capability_id: CapabilityId,
+    pub presenter_implementation_id: ImplementationId,
+    pub presenter_artifact_id: ArtifactId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
     pub target_subject: String,
     pub lifecycle: ManifestationLifecycle,
     pub failure: Option<ManifestationFailure>,
@@ -71,7 +88,11 @@ pub enum ManifestationError {
     InvalidPlan,
     MissingRendererPlacement,
     WrongRendererContract,
+    UnknownFaceSubject,
     InvalidTarget,
+    TooManyManifestations,
+    DuplicateManifestation,
+    UnadmittedManifestation,
     InvalidTransition,
     StaleIdentity,
 }
@@ -86,8 +107,9 @@ impl Manifestation {
     pub fn prepared(
         presentation: &Presentation,
         plan: &Plan,
-        active_play_id: ActivePlayId,
+        active_play: ActivePlayIdentity,
         placement_id: PlacementId,
+        face_subject: String,
         target_subject: String,
         sign_id: SignId,
     ) -> Result<Self, ManifestationError> {
@@ -95,12 +117,28 @@ impl Manifestation {
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
         let placement = renderer_placement(plan, &placement_id)?;
+        if active_play.plan_id != plan.plan_id
+            || active_play.host_id != placement.host_id
+            || active_play.boot_id != placement.boot_id
+            || active_play
+                != bind_active_play(
+                    &plan.plan_id,
+                    &placement.host_id,
+                    &placement.boot_id,
+                    active_play.play_sequence,
+                )
+        {
+            return Err(ManifestationError::StaleIdentity);
+        }
+        validate_target(&face_subject)?;
+        validate_face_subject(presentation, &face_subject)?;
         validate_target(&target_subject)?;
         let manifestation_id = bind_manifestation(
             &presentation.identity,
             &plan.plan_id,
-            &active_play_id,
-            &placement.placement_id,
+            &active_play.active_play_id,
+            placement,
+            &face_subject,
             &target_subject,
         );
         let mut manifestation = Self {
@@ -111,8 +149,16 @@ impl Manifestation {
             presentation_id: presentation.identity.clone(),
             presentation_revision: presentation.revision,
             plan_id: plan.plan_id.clone(),
-            active_play_id,
+            active_play_id: active_play.active_play_id,
+            play_sequence: active_play.play_sequence,
             placement_id: placement.placement_id.clone(),
+            face_subject,
+            presenter_capability_id: placement.capability_id.clone(),
+            presenter_implementation_id: placement.implementation_id.clone(),
+            presenter_artifact_id: placement.artifact_id.clone(),
+            host_id: placement.host_id.clone(),
+            boot_id: placement.boot_id.clone(),
+            offer_generation: placement.offer_generation,
             target_subject,
             lifecycle: ManifestationLifecycle::Prepared,
             failure: None,
@@ -188,17 +234,34 @@ impl Manifestation {
             || self.presentation_id != presentation.identity
             || self.presentation_revision != presentation.revision
             || self.plan_id != plan.plan_id
+            || self.presenter_capability_id != placement.capability_id
+            || self.presenter_implementation_id != placement.implementation_id
+            || self.presenter_artifact_id != placement.artifact_id
+            || self.host_id != placement.host_id
+            || self.boot_id != placement.boot_id
+            || self.offer_generation != placement.offer_generation
+            || self.active_play_id
+                != bind_active_play(
+                    &plan.plan_id,
+                    &placement.host_id,
+                    &placement.boot_id,
+                    self.play_sequence,
+                )
+                .active_play_id
             || self.manifestation_id
                 != bind_manifestation(
                     &presentation.identity,
                     &plan.plan_id,
                     &self.active_play_id,
-                    &self.placement_id,
+                    placement,
+                    &self.face_subject,
                     &self.target_subject,
                 )
         {
             return Err(ManifestationError::StaleIdentity);
         }
+        validate_target(&self.face_subject)?;
+        validate_face_subject(presentation, &self.face_subject)?;
         validate_target(&self.target_subject)?;
         if (self.lifecycle == ManifestationLifecycle::Failed) != self.failure.is_some()
             || !self.valid_signs()
@@ -215,7 +278,12 @@ impl Manifestation {
             presentation_id: self.presentation_id.clone(),
             plan_id: self.plan_id.clone(),
             active_play_id: self.active_play_id.clone(),
+            play_sequence: self.play_sequence,
             placement_id: self.placement_id.clone(),
+            host_id: self.host_id.clone(),
+            boot_id: self.boot_id.clone(),
+            offer_generation: self.offer_generation,
+            presenter_implementation_id: self.presenter_implementation_id.clone(),
             lifecycle: self.lifecycle,
             failure: self.failure,
         });
@@ -236,7 +304,12 @@ impl Manifestation {
                 || sign.presentation_id != self.presentation_id
                 || sign.plan_id != self.plan_id
                 || sign.active_play_id != self.active_play_id
+                || sign.play_sequence != self.play_sequence
                 || sign.placement_id != self.placement_id
+                || sign.host_id != self.host_id
+                || sign.boot_id != self.boot_id
+                || sign.offer_generation != self.offer_generation
+                || sign.presenter_implementation_id != self.presenter_implementation_id
                 || (sign.lifecycle == ManifestationLifecycle::Failed) != sign.failure.is_some()
                 || !valid_lifecycle_step(prior, sign.lifecycle)
             {
@@ -270,7 +343,7 @@ fn valid_lifecycle_step(
     )
 }
 
-fn renderer_placement<'a>(
+pub(crate) fn renderer_placement<'a>(
     plan: &'a Plan,
     placement_id: &PlacementId,
 ) -> Result<&'a PlannedGear, ManifestationError> {
@@ -300,11 +373,27 @@ fn validate_target(value: &str) -> Result<(), ManifestationError> {
     }
 }
 
+fn validate_face_subject(
+    presentation: &Presentation,
+    face_subject: &str,
+) -> Result<(), ManifestationError> {
+    if presentation
+        .subjects
+        .iter()
+        .any(|subject| subject.identity == face_subject)
+    {
+        Ok(())
+    } else {
+        Err(ManifestationError::UnknownFaceSubject)
+    }
+}
+
 fn bind_manifestation(
     presentation: &PresentationContentId,
     plan: &PlanId,
     active_play: &ActivePlayId,
-    placement: &PlacementId,
+    placement: &PlannedGear,
+    face_subject: &str,
     target_subject: &str,
 ) -> ManifestationId {
     let mut digest = Sha256::new();
@@ -313,12 +402,19 @@ fn bind_manifestation(
         presentation.as_str(),
         plan.as_str(),
         active_play.as_str(),
-        placement.as_str(),
+        placement.placement_id.as_str(),
+        placement.host_id.as_str(),
+        placement.boot_id.as_str(),
+        placement.capability_id.as_str(),
+        placement.implementation_id.as_str(),
+        placement.artifact_id.as_str(),
+        face_subject,
         target_subject,
     ] {
         digest.update((value.len() as u32).to_le_bytes());
         digest.update(value.as_bytes());
     }
+    digest.update(placement.offer_generation.0.to_le_bytes());
     let bytes: [u8; 32] = digest.finalize().into();
     let mut output = String::with_capacity(64);
     for byte in bytes {
