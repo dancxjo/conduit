@@ -1,7 +1,10 @@
 //! Native Patchbay document composition, kept separate from event-loop policy.
 
 use super::PatchbayApplication;
-use conduit_presentation::{render_linear_presentation, Presentation};
+use conduit_presentation::{
+    render_linear_presentation, Presentation, PresentationActionAvailability,
+    PresentationDisclosureLevel,
+};
 use patchbay_model::{GraphItemKind, RendererSelfInspection};
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
@@ -13,6 +16,47 @@ pub(super) fn portable_presentation_lines(
     render_linear_presentation(presentation)
         .map(|projection| projection.lines)
         .map_err(|error| error.to_string())
+}
+
+/// Ordinary zero-Body view. Exact identities remain in the deliberate details
+/// view backed by `portable_presentation_lines`.
+pub(super) fn ordinary_front_door_lines(
+    presentation: &Presentation,
+) -> Result<Vec<String>, String> {
+    presentation.validate().map_err(|error| error.to_string())?;
+    let mut lines = vec!["THIS COMPUTER  ·  BODY NONE".into()];
+    for disclosure in &presentation.disclosures {
+        if disclosure.level != PresentationDisclosureLevel::Primary {
+            continue;
+        }
+        let subject = presentation
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == disclosure.subject)
+            .ok_or_else(|| "primary disclosure target is absent".to_string())?;
+        lines.push(format!("{:?}  {}", subject.role, subject.label));
+        for action in presentation
+            .actions
+            .iter()
+            .filter(|action| action.target == subject.identity)
+        {
+            let availability = match &action.availability {
+                PresentationActionAvailability::Available => "AVAILABLE".into(),
+                PresentationActionAvailability::Unavailable { explanation, .. } => {
+                    format!("UNAVAILABLE — {explanation}")
+                }
+                PresentationActionAvailability::Refused { explanation, .. } => {
+                    format!("REFUSED — {explanation}")
+                }
+            };
+            lines.push(format!(
+                "  {}  ·  {availability}",
+                action.label.to_uppercase()
+            ));
+        }
+    }
+    lines.push("F2 DETAILS  ·  exact identity and provenance".into());
+    Ok(lines)
 }
 
 fn renderer_self_inspection_lines(
@@ -154,6 +198,11 @@ impl PatchbayApplication {
 
     pub(super) fn presentation_lines(&self) -> Vec<String> {
         if let Some(execution) = &self.renderer_execution {
+            if self.zero_body_front_door.is_some() && !self.linear_view {
+                return ordinary_front_door_lines(&execution.presentation).unwrap_or_else(
+                    |error| vec![format!("PORTABLE PRESENTATION INVALID: {error}")],
+                );
+            }
             let mut lines = portable_presentation_lines(&execution.presentation)
                 .unwrap_or_else(|error| vec![format!("PORTABLE PRESENTATION INVALID: {error}")]);
             let inspection = match execution.self_inspection() {

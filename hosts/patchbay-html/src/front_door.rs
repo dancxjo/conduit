@@ -88,5 +88,20 @@ mod tests {
             .any(|subject| subject.role == PresentationRole::Body));
         assert_eq!(snapshot.presentation.actions.len(), 2);
         assert_eq!(snapshot.presentation.disclosures.len(), 2);
+        let seed = snapshot
+            .presentation
+            .subjects
+            .iter()
+            .find(|subject| subject.role == PresentationRole::Seed)
+            .unwrap();
+        let actions = snapshot
+            .presentation
+            .actions
+            .iter()
+            .filter(|action| action.target == seed.identity)
+            .collect::<Vec<_>>();
+        assert_eq!(actions.len(), 2);
+        assert_eq!(actions[0].label, "Open");
+        assert_eq!(actions[1].label, "Be born");
     }
 }

@@ -11,7 +11,8 @@ const state = { snapshot:null, selected:null, selectedPart:null, selectedCandida
 function requireSnapshot(value) {
   const presentation=value?.presentation;
   if (!value || value.schema!==schema || !Number.isSafeInteger(value.revision) || value.revision!==presentation?.revision) throw new Error("unsupported snapshot schema");
-  if (!presentation.basis || typeof presentation.identity!=="string" || !Array.isArray(presentation.subjects) || !Array.isArray(presentation.relationships) || !Array.isArray(presentation.properties) || !Array.isArray(presentation.text) || !value.renderer?.plan || !value.renderer?.manifestation || value.entrance?.body_id!==presentation.basis.body_id || value.entrance?.presentation_id!==presentation.identity) throw new Error("malformed portable renderer execution");
+  if (!presentation.basis || typeof presentation.identity!=="string" || !Array.isArray(presentation.subjects) || !Array.isArray(presentation.relationships) || !Array.isArray(presentation.properties) || !Array.isArray(presentation.text) || !Array.isArray(presentation.actions) || !Array.isArray(presentation.disclosures) || !value.renderer?.plan || !value.renderer?.manifestation || value.entrance?.body_id!==presentation.basis.body_id || value.entrance?.presentation_id!==presentation.identity) throw new Error("malformed portable renderer execution");
+  for(const action of presentation.actions){if(typeof action.identity!=="string"||typeof action.target!=="string"||typeof action.label!=="string"||!(action.availability==="Available"||action.availability?.Unavailable||action.availability?.Refused))throw new Error("malformed semantic action");}
   if(value.parts&&(!Array.isArray(value.parts.parts)||!Array.isArray(value.parts.wants_to_join)||!Array.isArray(value.parts.actions)||value.parts.body_id!==presentation.basis.body_id))throw new Error("malformed canonical Parts projection");
   for (const property of presentation.properties) {
     const base=property.value?.ConnectionBase;
@@ -25,6 +26,13 @@ function subjects(role){return state.snapshot.presentation.subjects.filter(subje
 function texts(identity){return state.snapshot.presentation.text.filter(item=>item.subject===identity).map(item=>item.text);}
 function properties(identity){return state.snapshot.presentation.properties.filter(item=>item.subject===identity);}
 function property(identity,name){return properties(identity).find(item=>item.name===name);}
+function semanticActions(identity){return state.snapshot.presentation.actions.filter(action=>action.target===identity);}
+function actionAvailability(action){
+  if(action.availability==="Available")return {available:true,state:"Available",explanation:null};
+  if(action.availability?.Unavailable)return {available:false,state:"Unavailable",explanation:action.availability.Unavailable.explanation};
+  if(action.availability?.Refused)return {available:false,state:"Refused",explanation:action.availability.Refused.explanation};
+  throw new Error("unsupported semantic action availability");
+}
 function propertyText(value){
   if(value.Identity!==undefined)return value.Identity;
   if(value.Text!==undefined)return value.Text;
@@ -48,7 +56,13 @@ function displaySelection(identity){
   if(!visible.length&&state.lens!=="form"&&state.lens!=="signs")term(summary,"Layer",`No ${state.lens} facts for this subject; semantic selection retained`);
   term(exactFacts,"Presentation subject",identity);for(const item of selectedProperties.filter(item=>item.name==="semantic-id"||item.name.endsWith("-id")||item.name.startsWith("sign-")))term(exactFacts,item.name,propertyText(item.value));
   const manifestation=state.snapshot.renderer.manifestation;term(exactFacts,"Body",state.snapshot.presentation.basis.body_id);term(exactFacts,"Wake",state.snapshot.presentation.basis.wake_id);term(exactFacts,"Source Plan",state.snapshot.presentation.basis.plan_id);term(exactFacts,"Source Play",state.snapshot.presentation.basis.active_play_id);term(exactFacts,"Renderer Plan",manifestation.plan_id);term(exactFacts,"Renderer Play",manifestation.active_play_id);term(exactFacts,"Manifestation",manifestation.manifestation_id);term(exactFacts,"Manifestation lifecycle",manifestation.lifecycle);
-  if(identity===state.snapshot.entrance.selected_subject){for(const action of state.snapshot.entrance.available_actions.filter(action=>["Open","Join","BeBorn"].includes(action))){const button=document.createElement("button");button.type="button";button.textContent=action==="BeBorn"?"BE BORN":action.toUpperCase();button.onclick=()=>dispatchEntranceTransition(action,identity);actions.append(button);}}
+  for(const action of semanticActions(identity)){
+    const availability=actionAvailability(action),button=document.createElement("button");button.type="button";button.textContent=action.label.toUpperCase();button.disabled=!availability.available;button.setAttribute("aria-describedby",`${action.identity}-availability`);
+    // Semantic availability is presentation truth. Existing entrance transitions
+    // remain a separate, legacy invocation seam until #1194.
+    const status=document.createElement("span");status.id=`${action.identity}-availability`;status.className="semantic-action-availability";status.textContent=availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state;
+    actions.append(button,status);
+  }
 }
 function lensProperty(lens,name){if(lens==="world")return ["seed-id","body-id","part-id","candidate-id","membership-state","membership-proof","current","current-body","this-host","opened","freshness-sequence","source-document-id","checked-form-id","offer-generation","profile-id","capability-count","resource-count","planner-capability-count","capability-id","kind-id","operational-state","availability","freshness","line-id","binding-id","source-host-id","source-boot-id","sink-host-id","sink-boot-id","base","in-plan","playing"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="form")return !["plan-id","plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","admitted-capacity","active-play-id","play-state","pressure","line-id","line","base","base-instance-id"].includes(name)&&!name.startsWith("resource-")&&!name.startsWith("sign-");if(lens==="plan")return ["plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","admitted-capacity","line-id","line","base","base-instance-id"].includes(name)||name.startsWith("resource-");if(lens==="play")return ["active-play-id","play-state","pressure"].includes(name);return false;}
 
