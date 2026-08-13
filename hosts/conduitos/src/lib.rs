@@ -14,6 +14,8 @@ pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
 #[cfg(any(test, target_arch = "x86_64"))]
+pub mod fabrication;
+#[cfg(any(test, target_arch = "x86_64"))]
 pub mod front_door;
 #[cfg(target_arch = "x86_64")]
 pub mod hotplug_guest;
@@ -41,6 +43,8 @@ pub mod machine_a2_kernel;
 pub mod native_compositor;
 pub mod observatory;
 pub mod offer;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod offer_fabrication;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_offer;
 #[cfg(target_arch = "x86_64")]

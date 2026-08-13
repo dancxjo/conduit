@@ -475,6 +475,10 @@ fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {
     if sign.schema != "conduit.conduitos.boot-sign/v1"
         || sign.status != "accepted"
         || sign.arch != "x86_64"
+        || sign.profile_id.is_empty()
+        || sign.build_id.is_empty()
+        || sign.image_binding.is_empty()
+        || sign.offer_generation == 0
         || sign.limine != LIMINE_VERSION
         || sign.qemu_profile != QEMU_PROFILE
         || sign.host_id.len() != 64
@@ -848,7 +852,7 @@ fn validate_observatory(
                 || provenance.adapter_name != "Limine"
                 || provenance.adapter_version != boot.limine
                 || provenance.adapter_revision != "3"
-                || provenance.image_id.as_str() != boot.image_id
+                || provenance.image_id.as_str() != boot.image_binding
                 || provenance.build_id.as_str() != boot.build_id
                 || provenance.memory_map.normalized_region_count != boot.memory_regions
                 || provenance.memory_map.runtime_arena_bytes != boot.runtime_arena_bytes

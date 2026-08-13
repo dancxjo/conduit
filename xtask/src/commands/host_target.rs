@@ -115,7 +115,13 @@ pub fn boot_target(
     manifest: &TargetBuildManifest,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    boot_profile_image(&output.join(&manifest.image.file), opts)?;
+    boot_profile_image(
+        &output.join(&manifest.image.file),
+        &manifest.profile_id,
+        &manifest.build_id,
+        &manifest.resolved_description_binding,
+        opts,
+    )?;
     Ok(())
 }
 

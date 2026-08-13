@@ -2,8 +2,9 @@
 
 use core::fmt::{self, Write};
 
+#[cfg(any(test, target_arch = "x86_64"))]
+use crate::{boot::BootRecord, fabrication::FabricationRecord};
 use crate::{
-    boot::BootRecord,
     composition::MachineProof,
     dual_region_plan::PreparedDualRegionPlay,
     identity::BootIdentities,
@@ -56,20 +57,23 @@ impl Write for FixedText {
     }
 }
 
+#[cfg(any(test, target_arch = "x86_64"))]
 pub fn accepted(
     record: &BootRecord,
     identities: &BootIdentities,
-    build_id: &str,
-    image_id: &str,
+    fabrication: &FabricationRecord,
+    offer_generation: u64,
 ) -> Result<FixedText, fmt::Error> {
     let mut output = FixedText::new();
     write!(
         output,
-        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd-adlib\",\"host_id\":\"",
+        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd-adlib\",\"host_id\":\"",
         crate::arch::ARCHITECTURE,
         record.firmware.as_str(),
-        build_id,
-        image_id,
+        fabrication.profile_id,
+        fabrication.build_id,
+        fabrication.image_binding,
+        offer_generation,
     )?;
     write_hex(&mut output, &identities.host)?;
     output.write_str("\",\"boot_id\":\"")?;
@@ -213,14 +217,27 @@ mod tests {
                 length: 262_144,
             },
         };
+        let fabrication = FabricationRecord {
+            schema: crate::fabrication::FABRICATION_SCHEMA,
+            profile_id: "sha256:profile",
+            build_id: "build:sha256:build",
+            image_binding: "image:sha256:binding",
+            target: "conduitos/x86_64/pc",
+            implementations: crate::fabrication::ALL_KNOWN_IMPLEMENTATIONS,
+            facilities: crate::fabrication::FACILITY_NATIVE_COMPOSITOR,
+            runtime_arena_ceiling: 262_144,
+            operation_slot_ceiling: 64,
+            timer_slot_ceiling: 32,
+            evidence_item_ceiling: 64,
+        };
         let output = accepted(
             &record,
             &BootIdentities {
                 host: [0xaa; 32],
                 boot: [0xbb; 32],
             },
-            "build",
-            "image",
+            &fabrication,
+            1,
         )
         .unwrap();
         let text = core::str::from_utf8(output.as_bytes()).unwrap();
