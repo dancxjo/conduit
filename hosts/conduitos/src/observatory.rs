@@ -65,9 +65,9 @@ pub fn prepare_export(
     image_id: &str,
     framebuffer: Option<&FramebufferBasis>,
 ) -> Result<PreparedObservatoryExport, ExportError> {
-    let image_bound = offer.profile_id != "legacy-unbound";
+    let image_bound = offer.profile_id() != "legacy-unbound";
     if image_bound
-        && (build_id != offer.capabilities[0].artifact_build || image_id != offer.image_binding)
+        && (build_id != offer.capabilities[0].artifact_build || image_id != offer.image_binding())
     {
         return Err(ExportError::InvalidSnapshot);
     }
@@ -186,7 +186,7 @@ pub fn prepare_export(
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
             image_build_trace: image_bound.then(|| ImageBuildTraceReport {
-                profile_id: offer.profile_id.into(),
+                profile_id: offer.profile_id().into(),
                 inclusions: Vec::new(),
             }),
             memory_map: MemoryMapSummary {
