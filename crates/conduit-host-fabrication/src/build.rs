@@ -3,7 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{validate_profile, FabricationCatalog, HostBounds, HostProfile, ProfileDiagnostic};
+use crate::{
+    validate_profile, BaseSelection, DriverSelection, FabricationCatalog, HostBounds, HostProfile,
+    ProfileDiagnostic, ResourceBudget,
+};
 
 pub const BUILD_MANIFEST_SCHEMA: &str = "conduit.host/build-manifest@1";
 pub const IMAGE_SCHEMA: &str = "conduit.host/image@1";
@@ -71,8 +74,11 @@ pub struct BuildManifest {
     pub implementations: Vec<String>,
     pub host_operations: Vec<String>,
     pub resources: Vec<String>,
+    pub resource_budgets: Vec<ResourceBudget>,
     pub bases: Vec<String>,
+    pub base_selections: Vec<BaseSelection>,
     pub drivers: Vec<String>,
+    pub driver_selections: Vec<DriverSelection>,
     pub lines: Vec<String>,
     pub presenters: Vec<String>,
     pub facilities: Vec<String>,
@@ -89,8 +95,11 @@ pub struct ImagePayload {
     pub implementations: Vec<String>,
     pub host_operations: Vec<String>,
     pub resources: Vec<String>,
+    pub resource_budgets: Vec<ResourceBudget>,
     pub bases: Vec<String>,
+    pub base_selections: Vec<BaseSelection>,
     pub drivers: Vec<String>,
+    pub driver_selections: Vec<DriverSelection>,
     pub lines: Vec<String>,
     pub presenters: Vec<String>,
     pub facilities: Vec<String>,
@@ -203,8 +212,11 @@ pub fn build_host_image(
                 .map(|item| item.id.clone())
                 .collect(),
         ),
+        resource_budgets: sorted_resources(profile.resources.clone()),
         bases: sorted(profile.bases.iter().map(|item| item.id.clone()).collect()),
+        base_selections: sorted_bases(profile.bases.clone()),
         drivers: sorted(profile.drivers.iter().map(|item| item.id.clone()).collect()),
+        driver_selections: sorted_drivers(profile.drivers.clone()),
         lines: sorted(profile.lines.clone()),
         presenters: presenters.clone(),
         facilities: sorted(profile.facilities.clone()),
@@ -229,8 +241,11 @@ pub fn build_host_image(
         implementations,
         host_operations: payload.host_operations.clone(),
         resources: payload.resources.clone(),
+        resource_budgets: payload.resource_budgets.clone(),
         bases: payload.bases.clone(),
+        base_selections: payload.base_selections.clone(),
         drivers: payload.drivers.clone(),
+        driver_selections: payload.driver_selections.clone(),
         lines: payload.lines.clone(),
         presenters,
         facilities: payload.facilities.clone(),
@@ -294,6 +309,18 @@ fn validate_bounds(
 
 fn sorted(mut values: Vec<String>) -> Vec<String> {
     values.sort();
+    values
+}
+fn sorted_resources(mut values: Vec<ResourceBudget>) -> Vec<ResourceBudget> {
+    values.sort_by(|left, right| left.id.cmp(&right.id));
+    values
+}
+fn sorted_bases(mut values: Vec<BaseSelection>) -> Vec<BaseSelection> {
+    values.sort_by(|left, right| left.id.cmp(&right.id));
+    values
+}
+fn sorted_drivers(mut values: Vec<DriverSelection>) -> Vec<DriverSelection> {
+    values.sort_by(|left, right| left.id.cmp(&right.id));
     values
 }
 fn digest(prefix: &str, bytes: &[u8]) -> String {

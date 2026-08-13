@@ -115,6 +115,20 @@ pub struct FramebufferBasis {
     pub bits_per_pixel: u8,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BuildInclusionPathReport {
+    pub request: String,
+    pub path: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImageBuildTraceReport {
+    pub profile_id: String,
+    pub inclusions: Vec<BuildInclusionPathReport>,
+}
+
 /// Immutable historical boot facts. This is never a live offer, Base, or
 /// authority source.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -128,6 +142,7 @@ pub struct SealedBootProvenanceReport {
     pub adapter_revision: String,
     pub image_id: ArtifactId,
     pub build_id: ArtifactId,
+    pub image_build_trace: Option<ImageBuildTraceReport>,
     pub memory_map: MemoryMapSummary,
     pub boot_artifacts: Vec<ArtifactId>,
     pub initial_plan_artifact_id: Option<ArtifactId>,

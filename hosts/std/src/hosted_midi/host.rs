@@ -37,6 +37,7 @@ impl StdHost {
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
+            image_identity: None,
             playback: Some(playback),
             midi_input: Some(midi_input),
             midi_output: None,
@@ -76,6 +77,7 @@ impl StdHost {
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
+            image_identity: None,
             playback: None,
             midi_input: Some(midi_input),
             midi_output: Some(midi_output),
@@ -118,6 +120,7 @@ impl StdHost {
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
+            image_identity: None,
             playback: None,
             midi_input: Some(midi_input),
             midi_output: Some(midi_output),
@@ -154,6 +157,7 @@ impl StdHost {
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
+            image_identity: None,
             playback: None,
             midi_input: Some(midi_input),
             midi_output: None,
@@ -238,6 +242,7 @@ impl StdHost {
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
+            image_identity: None,
             playback: None,
             midi_input: None,
             midi_output: Some(midi_output),

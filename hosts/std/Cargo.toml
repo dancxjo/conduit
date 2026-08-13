@@ -16,6 +16,7 @@ conduit-body = { path = "../../crates/conduit-body" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-chat = { path = "../../crates/conduit-chat", features = ["form-catalog"] }
 conduit-form = { path = "../../crates/conduit-form" }
+conduit-host-fabrication = { path = "../../crates/conduit-host-fabrication" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-midi = { path = "../../crates/conduit-midi" }
 conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog", "r1-planning"] }

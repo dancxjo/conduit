@@ -250,7 +250,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for provenance in &report.sealed_boot_provenance {
         let _ = writeln!(
             output,
-            "sealed boot host={} boot={} firmware={} adapter={} version={} revision={} image={} build={} memory_regions={} runtime_arena_bytes={} boot_artifacts={} initial_plan_artifact={} recovery_plan_artifact={} framebuffers={} proof_class={:?}",
+            "sealed boot host={} boot={} firmware={} adapter={} version={} revision={} image={} build={} profile={} inclusion_paths={} memory_regions={} runtime_arena_bytes={} boot_artifacts={} initial_plan_artifact={} recovery_plan_artifact={} framebuffers={} proof_class={:?}",
             provenance.host_id.as_str(),
             provenance.boot_id.as_str(),
             provenance.firmware_environment,
@@ -259,6 +259,14 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             provenance.adapter_revision,
             provenance.image_id.as_str(),
             provenance.build_id.as_str(),
+            provenance
+                .image_build_trace
+                .as_ref()
+                .map_or("none", |trace| trace.profile_id.as_str()),
+            provenance
+                .image_build_trace
+                .as_ref()
+                .map_or(0, |trace| trace.inclusions.len()),
             provenance.memory_map.normalized_region_count,
             provenance.memory_map.runtime_arena_bytes,
             provenance.boot_artifacts.len(),

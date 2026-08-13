@@ -2,15 +2,16 @@ use alloc::collections::BTreeMap;
 use alloc::vec;
 
 use super::{
-    build_report, render_text_report, unsupported_state, CapabilityAvailability,
-    CapabilityStatusReport, CapabilitySupport, HostReport, LineReport, ObservatorySnapshot,
-    OfferFreshness, OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport,
-    PlayReport, PressureReport, RetentionReport, SNAPSHOT_SCHEMA,
+    build_report, render_text_report, unsupported_state, BuildInclusionPathReport,
+    CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport,
+    ImageBuildTraceReport, LineReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
+    OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport,
+    PressureReport, RetentionReport, SealedBootProvenanceReport, SNAPSHOT_SCHEMA,
 };
 use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
 use conduit_core::{
-    authority_grant, present_authority_requirement, process_owned_line_offer, BootId, CapabilityId,
-    ConnectionBase, GearId, HostCommand, HostId, ObservationKind, OfferGeneration,
+    authority_grant, present_authority_requirement, process_owned_line_offer, ArtifactId, BootId,
+    CapabilityId, ConnectionBase, GearId, HostCommand, HostId, ObservationKind, OfferGeneration,
     TerminalDisposition,
 };
 use conduit_form::parse;
@@ -443,4 +444,86 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
     assert!(rendered.contains("profile=rust-std-kernel"));
     assert!(rendered.contains("profile=rp2040-kernel"));
     assert!(rendered.contains("plays 0"));
+}
+
+#[test]
+fn traces_profile_build_image_host_boot_and_inclusion_without_owning_truth() {
+    let advertisement = pico_advertisement(PicoSimConfig {
+        host_id: HostId::from("trace/host"),
+        boot_id: BootId::from("trace/boot"),
+        offer_generation: OfferGeneration(1),
+    });
+    let snapshot = ObservatorySnapshot {
+        schema: SNAPSHOT_SCHEMA.into(),
+        hosts: vec![HostReport {
+            advertisement: advertisement.clone(),
+            state: OperationalState::Available,
+            capabilities: advertisement
+                .capabilities
+                .iter()
+                .map(|capability| CapabilityStatusReport {
+                    capability_id: capability.capability_id.clone(),
+                    freshness: OfferFreshness::Fresh,
+                    support: CapabilitySupport::Supported,
+                    availability: CapabilityAvailability::Available,
+                })
+                .collect(),
+        }],
+        bases: vec![],
+        lines: vec![],
+        plans: vec![],
+        plays: vec![],
+        observations: vec![],
+        historical_observations: vec![],
+        sealed_boot_provenance: vec![SealedBootProvenanceReport {
+            host_id: advertisement.host_id,
+            boot_id: advertisement.boot_id,
+            firmware_environment: "fixture".into(),
+            adapter_name: "fixture-adapter".into(),
+            adapter_version: "1".into(),
+            adapter_revision: "1".into(),
+            image_id: ArtifactId::from("image:sha256:exact"),
+            build_id: ArtifactId::from("build:sha256:exact"),
+            image_build_trace: Some(ImageBuildTraceReport {
+                profile_id: "sha256:profile".into(),
+                inclusions: vec![BuildInclusionPathReport {
+                    request: "capability:time/tick".into(),
+                    path: vec![
+                        "host-operation:conduit.host/wait@1".into(),
+                        "resource:conduit.resource/timer-slot@1".into(),
+                    ],
+                }],
+            }),
+            memory_map: MemoryMapSummary {
+                normalized_region_count: 1,
+                runtime_arena_bytes: 1024,
+            },
+            boot_artifacts: vec![],
+            initial_plan_artifact_id: None,
+            recovery_plan_artifact_id: None,
+            framebuffers: vec![],
+            proof_class: super::BootProofClass::Unknown,
+        }],
+        retention: RetentionReport {
+            item_capacity: 1,
+            retained_items: 0,
+            dropped_items: 0,
+        },
+    };
+    let report = build_report(&snapshot).unwrap();
+    let rendered = render_text_report(&report);
+    assert!(rendered.contains("image=image:sha256:exact"));
+    assert!(rendered.contains("build=build:sha256:exact"));
+    assert!(rendered.contains("profile=sha256:profile"));
+    assert!(rendered.contains("inclusion_paths=1"));
+
+    let mut malformed = snapshot;
+    malformed.sealed_boot_provenance[0]
+        .image_build_trace
+        .as_mut()
+        .unwrap()
+        .inclusions[0]
+        .path
+        .clear();
+    assert!(super::validate_snapshot(&malformed).is_err());
 }

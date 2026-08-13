@@ -40,6 +40,8 @@ pub mod external_websocket;
 pub mod hosted_audio;
 pub mod hosted_midi;
 pub mod hosted_synth;
+#[cfg(test)]
+mod image_binding_tests;
 mod installed_std;
 #[cfg(test)]
 mod installed_std_tests;
@@ -296,6 +298,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 
 pub struct StdHost {
     advertisement: HostAdvertisement,
+    image_identity: Option<conduit_host_fabrication::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
@@ -330,6 +333,7 @@ impl StdHost {
             .expect("std kernel resource offers are exact and bounded");
         Self {
             advertisement,
+            image_identity: None,
             playback: None,
             midi_input: None,
             midi_output: None,
@@ -362,6 +366,7 @@ impl StdHost {
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
+            image_identity: None,
             playback: Some(playback),
             midi_input: None,
             midi_output: None,
@@ -397,6 +402,7 @@ impl StdHost {
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
+            image_identity: None,
             playback: None,
             midi_input: None,
             midi_output: Some(midi_output),
@@ -408,6 +414,27 @@ impl StdHost {
 
     pub fn advertisement(&self) -> &HostAdvertisement {
         &self.advertisement
+    }
+
+    pub fn image_identity(&self) -> Option<&conduit_host_fabrication::ImageBootIdentity> {
+        self.image_identity.as_ref()
+    }
+
+    pub fn from_image_binding(
+        binding: conduit_host_fabrication::BoundHostAdvertisement,
+    ) -> Result<Self, String> {
+        let (image_identity, advertisement) = binding.into_parts();
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: Some(image_identity),
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
     }
 
     pub fn midi_output_selection(&self) -> Option<&hosted_midi::HostedMidiSelection> {
@@ -438,6 +465,7 @@ impl StdHost {
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         Ok(Self {
             advertisement,
+            image_identity: None,
             playback: Some(playback),
             midi_input: None,
             midi_output: None,

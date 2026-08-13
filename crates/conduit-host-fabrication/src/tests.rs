@@ -296,3 +296,124 @@ fn build_output_contains_no_runtime_truth() {
         assert!(!encoded.contains(forbidden));
     }
 }
+
+fn tick_runtime_facts(timer_ready: bool) -> RuntimeFacts {
+    RuntimeFacts {
+        ready_resource_classes: timer_ready
+            .then(|| "conduit.resource/timer-slot@1".to_owned())
+            .into_iter()
+            .collect(),
+        initialized_base_kinds: timer_ready
+            .then(|| "timer/monotonic".to_owned())
+            .into_iter()
+            .collect(),
+        initialized_driver_kinds: timer_ready
+            .then(|| "hosted/monotonic-clock@1".to_owned())
+            .into_iter()
+            .collect(),
+        available_facilities: Default::default(),
+        authority_ready: false,
+    }
+}
+
+fn bind_tick_runtime(
+    image: &HostImage,
+    bytes: &[u8],
+    boot: &str,
+    generation: u64,
+    timer_ready: bool,
+) -> BoundHostAdvertisement {
+    bind_runtime_offer(
+        &image.manifest,
+        image,
+        bytes,
+        &FabricationCatalog::canonical(),
+        RuntimeOfferInputs {
+            host_id: conduit_core::HostId::from("host/durable"),
+            boot_id: conduit_core::BootId::from(boot),
+            offer_generation: conduit_core::OfferGeneration(generation),
+            offer_sign_id: conduit_core::SignId::from(format!("{boot}/offer/{generation}")),
+            host_profile: conduit_core::HostProfileId::from("std/runtime-bound@1"),
+            candidate_resources: conduit_std_catalog::standard_resource_offers(16),
+            candidate_capabilities: vec![conduit_std_catalog::tick_capability_offer()],
+            planner_capabilities: Vec::new(),
+            facts: tick_runtime_facts(timer_ready),
+        },
+    )
+    .unwrap()
+}
+
+#[test]
+fn compiled_capability_is_absent_until_runtime_prerequisites_are_ready() {
+    let (image, bytes) = build_host_image(
+        parse(STD_WORKSTATION),
+        &FabricationCatalog::canonical(),
+        &build_inputs(),
+    )
+    .unwrap();
+    let unavailable = bind_tick_runtime(&image, &bytes, "boot/a", 1, false);
+    assert!(unavailable.advertisement().capabilities.is_empty());
+    assert!(unavailable.advertisement().resources.is_empty());
+    assert_eq!(
+        unavailable.identity().offer_sign_id.as_str(),
+        "boot/a/offer/1"
+    );
+
+    let available = bind_tick_runtime(&image, &bytes, "boot/a", 2, true);
+    assert_eq!(available.advertisement().capabilities.len(), 1);
+    assert_eq!(available.advertisement().offer_generation.0, 2);
+    assert_eq!(
+        available.identity().offer_sign_id.as_str(),
+        "boot/a/offer/2"
+    );
+    assert_eq!(available.identity().image_id, image.manifest.image_id);
+}
+
+#[test]
+fn runtime_cannot_advertise_unbuilt_implementation_or_stale_boot() {
+    let (image, bytes) = build_host_image(
+        parse(STD_WORKSTATION),
+        &FabricationCatalog::canonical(),
+        &build_inputs(),
+    )
+    .unwrap();
+    let bound = bind_tick_runtime(&image, &bytes, "boot/current", 1, true);
+    let (identity, mut advertisement) = bound.into_parts();
+    advertisement.capabilities[0]
+        .implementation
+        .implementation_id = conduit_core::ImplementationId::from("runtime/invented@1");
+    assert!(matches!(
+        verify_runtime_advertisement(&identity, &advertisement, &image.manifest, &image, &bytes),
+        Err(RuntimeBindingDiagnostic::UnexpectedImplementation { .. })
+    ));
+
+    advertisement.capabilities[0] = conduit_std_catalog::tick_capability_offer();
+    advertisement.boot_id = conduit_core::BootId::from("boot/stale");
+    assert_eq!(
+        verify_runtime_advertisement(&identity, &advertisement, &image.manifest, &image, &bytes),
+        Err(RuntimeBindingDiagnostic::IdentityMismatch { field: "boot_id" })
+    );
+}
+
+#[test]
+fn rebuild_reseals_image_while_old_boot_truth_remains_old() {
+    let catalog = FabricationCatalog::canonical();
+    let profile = parse(STD_WORKSTATION);
+    let (old_image, old_bytes) =
+        build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
+    let old = bind_tick_runtime(&old_image, &old_bytes, "boot/old", 1, true);
+
+    let mut changed = profile;
+    changed.bounds.timer_slots += 1;
+    let (new_image, new_bytes) = build_host_image(changed, &catalog, &build_inputs()).unwrap();
+    let new = bind_tick_runtime(&new_image, &new_bytes, "boot/new", 1, true);
+    assert_ne!(old.identity().profile_id, new.identity().profile_id);
+    assert_ne!(old.identity().build_id, new.identity().build_id);
+    assert_ne!(old.identity().image_id, new.identity().image_id);
+    assert_ne!(old.identity().boot_id, new.identity().boot_id);
+    assert_eq!(old.advertisement().boot_id.as_str(), "boot/old");
+    assert!(matches!(
+        verify_bound_advertisement(&old, &new_image.manifest, &new_image, &new_bytes),
+        Err(RuntimeBindingDiagnostic::IdentityMismatch { .. })
+    ));
+}
