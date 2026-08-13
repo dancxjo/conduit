@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="330" viewBox="0 0 1200 330" role="img" aria-labelledby="title desc">
+  <title id="title">Conduit proof classes are separate</title><desc id="desc">Seven steps from contract and compilation through deterministic simulation, hosted execution, platform execution, live transport, firmware execution, and physical hardware-in-the-loop evidence. Each class proves only itself.</desc>
+  <style>.bg{fill:#101827}.h{font:700 23px ui-sans-serif,system-ui;fill:#f4f7fb}.t{font:14px ui-sans-serif,system-ui;fill:#d6deeb}.n{font:700 18px ui-sans-serif,system-ui;fill:#101827}.b1{fill:#91d7e3}.b2{fill:#8bd5ca}.b3{fill:#a6da95}.b4{fill:#eed49f}.b5{fill:#f5bde6}.b6{fill:#c6a0f6}.b7{fill:#ed8796}</style>
+  <rect width="1200" height="330" rx="24" class="bg"/><text x="45" y="52" class="h">Proof classes do not promote one another</text>
+  <g transform="translate(45 92)"><rect width="140" height="150" rx="16" class="b1"/><text x="20" y="35" class="n">1</text><text x="20" y="70" class="n">Contract</text><text x="20" y="96" class="n">or compile</text></g>
+  <g transform="translate(205 92)"><rect width="140" height="150" rx="16" class="b2"/><text x="20" y="35" class="n">2</text><text x="20" y="70" class="n">Deterministic</text><text x="20" y="96" class="n">simulation</text></g>
+  <g transform="translate(365 92)"><rect width="140" height="150" rx="16" class="b3"/><text x="20" y="35" class="n">3</text><text x="20" y="70" class="n">Hosted</text><text x="20" y="96" class="n">execution</text></g>
+  <g transform="translate(525 92)"><rect width="140" height="150" rx="16" class="b4"/><text x="20" y="35" class="n">4</text><text x="20" y="70" class="n">Platform</text><text x="20" y="96" class="n">runtime</text></g>
+  <g transform="translate(685 92)"><rect width="140" height="150" rx="16" class="b5"/><text x="20" y="35" class="n">5</text><text x="20" y="70" class="n">Live</text><text x="20" y="96" class="n">transport</text></g>
+  <g transform="translate(845 92)"><rect width="140" height="150" rx="16" class="b6"/><text x="20" y="35" class="n">6</text><text x="20" y="70" class="n">Firmware</text><text x="20" y="96" class="n">execution</text></g>
+  <g transform="translate(1005 92)"><rect width="150" height="150" rx="16" class="b7"/><text x="20" y="35" class="n">7</text><text x="20" y="70" class="n">Physical /</text><text x="20" y="96" class="n">HIL Sign</text></g>
+  <text x="45" y="286" class="t">A WASM build is not browser execution. A firmware build is not a board run. An observed effect is not evidence until its exact identity and outcome are retained.</text>
+</svg>

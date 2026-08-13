@@ -2,669 +2,326 @@
 
 **Wire meaning together. Let Conduit work out how that meaning can exist here, now.**
 
-Conduit is an experimental programming system for building programs as graphs and realizing those graphs across very different machines.
+Conduit is an experimental programming system for finite, typed flows of work. A program is authored as a semantic graph—a **Form**—without embedding the operating system, browser, microcontroller, process, device, or transport that must eventually realize it. **Hosts** truthfully offer implementations and resources. An immutable **Plan** makes one realization exact. A **Play** executes that Plan through one bounded kernel.
 
-You choose reusable **Kinds** and configure them as **Gears** in a **Form**. Gears expose typed **Ports**, **Cords** connect compatible Ports, and **Info** flows through those Cords. Info is shaped, typed data—not an untyped bucket. The same meaning can live inside one process, cross into a browser, reach a microcontroller, or span several machines without baking those machines into the authored program.
+The same meaning can therefore run locally, in a real browser, on constrained firmware, across live Lines, or under ConduitOS without pretending those environments are identical.
 
-```text
-Kind catalog
-    │
-    │ configured as
-    ▼
- [Gear] ──Cord──> [Gear] ──Cord──> [Gear]
-    │
-    └──────────── Form = meaning
-```
+![A Conduit Form becomes an exact Plan and active Play by combining authored meaning with Host offers, Signs, and policy](assets/readme/meaning-to-play.svg)
 
-Conduit then asks a different question:
+> **Forms describe meaning. Hosts offer implementations. Plans make realization exact.**
 
-> Given what is actually true right now, how can this Form be realized?
+Conduit is not merely a visual node editor, workflow service, message broker, browser application, robotics stack, or RTOS. It may present surfaces resembling all of them, but they remain profiles of the same substrate. None gets a second semantic graph, scheduler, authority model, or source of runtime truth.
 
-That is where Hosts, Bases, Signs, Plans, and Plays enter.
+## Start here
 
-## Enter Patchbay
-
-An installed Conduit exposes one product entrance with two Host realizations:
+For an installed Conduit, Patchbay is the shared product front door:
 
 ```sh
 conduit patchbay --on native
 conduit patchbay --on browser
 ```
 
-From a checkout, the friendly repository entrances delegate directly to
-`cargo xtask demo patchbay --on native|browser`:
+From a source checkout, repository demonstrations and proofs enter through `cargo xtask`. These friendly recipes delegate directly to it:
 
 ```sh
-just patchbay
-just browser
+just patchbay  # cargo xtask demo patchbay --on native
+just browser   # cargo xtask demo patchbay --on browser
 ```
 
-Both begin from the same world-first truth: this Host is present and its
-current Body may be `NONE`. Open a discovered Body or repository Seed for
-inspection; only explicit `JOIN` or `BE BORN` establishes a Body. After that
-transition, move through WORLD, INTENT, and REALIZATION before Plan and Play.
-The native window and HTML/SVG document are distinct planned Manifestations;
-they do not own a second topology or execution runtime. The
-`examples/patchbay-front-door.conduit` Form remains an openable example Seed,
-not a bootstrap Body required to enter Patchbay.
+Both Patchbay realizations begin from the same world-first truth: this Host is present and its current Body may be `NONE`. Opening a discovered Body or repository Seed is inspection-only. Explicit `JOIN` or `BE BORN` establishes membership or births a Body. From there, Patchbay exposes the checked meaning, Parts, truthful Lines, immutable Plan, active Play, and bounded Signs.
 
-The complete deterministic, native, real-Chromium, live-membership, and
-machine-evidence capstone has one repository proof entrance:
+The native window and browser document are different planned **Manifestations** of the same structural subjects. Their pixels, DOM nodes, window handles, and layout are presentation details—not another topology or runtime.
+
+The deterministic front-door acceptance suite has one repository entrance:
 
 ```sh
 cargo xtask prove patchbay-front-door
 ```
 
-The Patchbay view below is generated only after the exact accepted `main`
-commit passes the semantic browser proof. It shows one manifestation of the
-current Form and its structural subjects; the Form, Plan, Play, and Signs—not
-the pixels—remain authoritative. Follow the image to inspect its exact commit,
-browser, viewport, digest, and semantic provenance.
-
 [![Current accepted Conduit Patchbay overview showing the Form graph and structural view](https://dancxjo.github.io/conduit/current/patchbay/overview.png)](https://dancxjo.github.io/conduit/current/patchbay/overview/)
 
-## See ConduitOS in QEMU
+The linked evidence page records the accepted commit, browser, viewport, digest, and semantic provenance. The Form, Plan, Play, and Signs remain authoritative; the screenshot does not.
 
-Build the current x86-64 ConduitOS image and open a visible, interactive QEMU
-window with its framebuffer and USB keyboard:
+## A small Form
+
+Canonical source describes graph meaning:
+
+```conduit
+form signal-demo {
+    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
+    show: presentation/show
+    pulse > show
+}
+```
+
+`flow/pulse` and `presentation/show` are reusable semantic **Kinds**. `pulse` and `show` are configured occurrences of those Kinds: **Gears**. Their exact typed **Ports** are joined by a **Cord**, and shaped, typed **Info** flows through it.
+
+The Form does not say that `show` means stdout, that both Gears share a process, or that a cross-machine Cord uses WebSocket, USB CDC, or anything else. Those are realization facts selected only after Conduit knows what the available Hosts can truthfully offer.
+
+Run the retained compatibility fixture for this example on the native std Host:
+
+```sh
+cargo xtask demo std
+```
+
+That command parses and checks the Form, observes the real std Host, creates an exact Plan, lowers its admitted fragment, and executes sixteen values through `conduit-kernel` to the selected presentation implementation.
+
+## The semantic graph
+
+Most authored meaning is built from five concepts:
+
+| Concept | Meaning | It is not |
+|---|---|---|
+| **Kind** | Reusable semantic behavior and its contract | A Rust function, process, thread, or machine implementation |
+| **Gear** | One configured occurrence of a Kind in a Form | The Kind itself or a runtime task identity |
+| **Port** | An exact typed, directional point with a temporal contract | A queue slot, socket, Base handle, or drawn jack |
+| **Cord** | A typed semantic connection between compatible Ports | A WebSocket, USB connection, or other Line |
+| **Info** | Shaped, typed data carried through a Cord | An untyped byte bucket or automatically a Signal |
+
+A Kind can also separate its visible contract from a graph-level implementation:
+
+- A **Face** is the stable semantic contract presented to the surrounding graph, including its typed Ports.
+- A **Back** is another Form that implements that Face using Conduit meaning.
+
+Because a Back is a Form, composition can recurse. This is different from Host realization: a Back answers “how can this meaning be expressed as more Conduit meaning?” A Host answers “what can actually be realized here?”
+
+## From source to a living Body
+
+![A Seed births a durable Body that can retain its identity across multiple Wake, Plan, Play, and Lull transitions](assets/readme/identity-lifecycle.svg)
+
+These identities are deliberately distinct:
+
+| Identity | What it means |
+|---|---|
+| **Seed** | Authored workspace material: Forms, Body definitions, assets, and policy source |
+| **Body** | A durable intended world born from checked meaning; it owns durable obligations |
+| **Wake** | One interval in which Conduit actively maintains a Body's obligations |
+| **Lull** | The end of that interval without deleting the Body |
+| **Plan** | One exact immutable realization admitted against a specific basis of truth |
+| **Play** | Active execution of one exact Plan |
+
+A Plan answers which implementation realizes every Gear, which exact Host and Boot perform the work, how each Cord is realized, which resources and limits are admitted, which authority is required, and which Bases and routes are involved.
+
+A changed world never edits a Plan after creation. Conduit may continue using an alternative already sealed into that Plan, or ordinary planning may create a new Plan and then a new Play. The Body and Wake need not change merely because a route did.
+
+## Hosts, Bases, Lines, and Signs
+
+Authored meaning is only half the system. Real machines are finite and inconvenient, and Conduit treats that as useful truth.
+
+| Concept | Responsibility |
+|---|---|
+| **Host** | Offers truthful, finite implementations, capabilities, resources, and limits for one exact running environment |
+| **Boot** | Identifies one exact current incarnation of a Host |
+| **Base** | Provides a platform mechanism beneath a Host offer, such as a timer, framebuffer, DOM adapter, USB controller, or socket facility |
+| **Line** | Provides one exact finite connectivity realization used by a Plan and Play |
+| **Sign** | Records bounded, machine-readable truth about what is true or what happened |
+
+A Base does not become a Kind or Gear. A Line does not become a Cord. Hardware existence does not automatically become a Host offer. Availability does not grant authority; reachability does not grant membership; membership does not grant trust.
+
+Signs can report that a Host/Boot is available, a Line became unavailable, a resource has finite capacity, a request was cancelled, a Play terminated, or a physical effect was observed. Signs are evidence and current truth—not intent, permission, or mutable Plan fields.
+
+## What has been proven
+
+Conduit is still experimental, but the repository now proves much more than an architecture sketch. The authoritative, itemized claim boundary is **[STATUS.md](STATUS.md)**; this summary is intentionally less granular.
+
+Current accepted surfaces include:
+
+- lossless authored Forms, checked and expanded identity, named Faces and recursive Backs;
+- exact planning over implementations, resources, authority, policy, placement, and observed links;
+- one finite, port-aware execution kernel used by std, browser, Pico W, Patchbay, and ConduitOS paths;
+- explicit typed fan-out, pressure, cancellation, closure, stale identity, and terminal outcomes;
+- hosted native execution, real Rust/WASM browser execution, and bounded live WebSocket sessions;
+- generated finite Pico W kernel images, USB CDC and WebSocket Lines, board execution, and retained physical LED receipts;
+- one Body with native, multiple browser, and physical Pico Parts, including explicit membership admission and offline behavior;
+- a physical recovery capstone in which one Pico is simultaneously reachable over WebSocket and USB CDC, three peers control the same LED capability, real Wi-Fi loss causes either exact replanning or same-Plan continuation, and the Body survives Lull into a later Wake;
+- ConduitOS boots and bounded execution in pinned QEMU profiles, including framebuffer presentation, xHCI, USB enumeration, HID keyboard input, hotplug, rescue, and multiple architecture profiles; and
+- Patchbay native and browser Manifestations driven from authoritative semantic and runtime documents rather than renderer-owned state.
+
+The physical recovery result completed [roadmap issue #361](https://github.com/dancxjo/conduit/issues/361). It proves a narrow, exact destination—not general distributed computing. It does **not** claim public-Internet federation, mesh discovery, TLS/PKI productization, arbitrary remote execution, general package distribution, physical timing guarantees, or that every accepted semantic Kind runs on every Host.
+
+![With a WebSocket-only Plan, Line loss requires a new USB Plan and Play; with a dual-Line Plan, USB continuation preserves Plan and Play identity](assets/readme/line-recovery.svg)
+
+In both recovery paths, the Body, Wake, Form, Gears, Ports, Cord, and Pico Host/Boot identities remain stable. What differs is what the immutable Plan had already admitted.
+
+## Proof means exactly what ran
+
+![Seven separate Conduit proof classes, from contracts through physical hardware-in-the-loop evidence](assets/readme/proof-classes.svg)
+
+Conduit deliberately separates compilation, deterministic simulation, hosted execution, actual browser or firmware execution, live transport, and physical observation. A green check proves only its named command and environment. A generated Pico image is not a board transcript; a browser build is not a browser run; a visible effect without correlated retained evidence is not a machine-readable proof.
+
+`STATUS.md` records the highest established class for each surface and its stop line.
+
+## Try Conduit
+
+You need a recent Rust toolchain. Platform demonstrations may need the tools reported by:
+
+```sh
+cargo xtask doctor
+```
+
+### Run locally
+
+```sh
+cargo xtask demo std
+cargo xtask demo triple
+```
+
+The first runs the Signal example through the std Host. The second runs a larger local fan-out. Both use the ordinary checker, planner, lowering path, and production kernel.
+
+### Run in a real browser
+
+```sh
+cargo xtask doctor browser
+cargo xtask demo browser
+```
+
+The browser demo builds the Rust/WASM runtime, starts the native side of a bounded loopback WebSocket Line, and prints a local URL. Open it in a normal browser and follow the terminal prompt. The browser executes its admitted fragment through the same kernel before a thin DOM presentation adapter renders receipts.
+
+For non-interactive accepted browser proofs:
+
+```sh
+cargo xtask prove std-browser-s4
+cargo xtask prove std-browser-toggle
+```
+
+### Inspect one exact realization
+
+Installed product workflows enter through `conduit`:
+
+```sh
+conduit run examples/signal-demo.form \
+  --placements examples/std-local.placements \
+  --report /tmp/conduit-run.json
+
+conduit inspect runtime-report /tmp/conduit-run.json
+```
+
+The neutral report keeps semantic identity and realization identity separate. It exposes Host and Boot identity, capability offers, selected implementations, exact Plan and fragment, placements, resources, Cord realization, active Play, terminal state, and bounded Signs. Inspection reads that artifact; it does not control the runtime.
+
+### See ConduitOS in QEMU
 
 ```sh
 cargo xtask conduitos demo --arch x86-64
 ```
 
-The command reports the exact image and emulator profile, leaves serial/debug
-output in the invoking terminal, and runs until you close QEMU or interrupt it.
-It requires `xorriso`, `qemu-system-x86_64` with GTK display support, and access
-to a graphical display.
+This builds the current x86-64 image and opens a visible interactive QEMU window with framebuffer and USB keyboard. It reports the exact image and emulator profile, keeps serial/debug output in the invoking terminal, and runs until QEMU closes or is interrupted. It requires `xorriso`, a GTK-enabled `qemu-system-x86_64`, and a graphical display.
 
-Use the separate machine-verification entrances when you want reproducible
-evidence rather than an interactive window:
+Machine-verification entrances are separate from the visible demo:
 
 ```sh
 cargo xtask conduitos run --arch x86-64
 cargo xtask conduitos prove --arch x86-64
 ```
 
-`run` and `prove` inject and validate deterministic proof inputs and terminate
-after collecting their exact evidence. The visible `demo` makes no proof claim.
+`run` and `prove` inject deterministic proof inputs, validate their exact evidence, and terminate. The visible `demo` makes no proof claim.
 
----
+### Work with a physical Pico W
 
-## A tiny example
+Physical workflows are hardware-gated. Check the exact local prerequisites first:
 
-```conduit
-form signal-demo {
-    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
-    show: presentation/show
-
-    pulse > show
-}
+```sh
+cargo xtask doctor pico
 ```
 
-`flow/pulse` and `presentation/show` identify reusable semantic **Kinds**. `pulse` and `show` are configured occurrences of those Kinds in this Form: **Gears**.
+The complete accepted Body-membership and R1 recovery capstone uses:
 
-```text
-┌────────────┐             ┌────────────┐
-│ Gear pulse │ ──────────> │ Gear show  │
-└────────────┘    Cord     └────────────┘
-      │                          │
-      ▼                          ▼
- flow/pulse              presentation/show
-    Kind                       Kind
+```sh
+cargo xtask prove body-membership-hil --locked --interactive \
+  --link-port /dev/serial/by-id/<pico-cdc-0> \
+  --sign-port /dev/serial/by-id/<pico-cdc-1> \
+  --ssid-env CONDUIT_WIFI_SSID \
+  --credential-env CONDUIT_WIFI_PASSWORD
 ```
 
-The Form does **not** say that `show` means stdout. It does not say both Gears must run in the same process. It does not say whether a cross-machine Cord is realized by WebSocket, USB CDC, shared memory, or some future Line.
+It requires the provisioned physical Pico W, isolated network interface, browser tooling, credentials, and operator actions described by the command. The proof runs deterministic admission/refusal coverage before accepting physical evidence. Firmware flashing remains a repository-development preparation step, not Body membership or operator admission.
 
-Those are realization questions.
+For a smaller USB CDC board proof, the repository also provides:
 
-The Form says what the program means.
-
----
-
-## Kinds, Gears, Ports, Cords, and Info
-
-These five ideas describe most of the semantic graph.
-
-### Kinds
-
-A **Kind** is reusable semantic behavior: a contract for what a Gear of that Kind means.
-
-Examples might include:
-
-```text
-text input
-uppercase
-timer
-filter
-JSON decode
-presentation
-GPIO state
-```
-
-A Kind is not necessarily a Rust function, executable artifact, task, thread, process, or machine-specific implementation. It is the reusable semantic species from which Gears are configured.
-
-### Gears
-
-A **Gear** is one configured use of a Kind inside a Form.
-
-If the same Kind is used twice with different names or configuration, those are two Gears:
-
-```text
-Kind: text/uppercase@1
-
-      ┌── Gear: normalize-title
-      │
-      └── Gear: normalize-command
-```
-
-Gear identity belongs to the meaning of the Form. The planner may later place a Gear on different Hosts, select different implementations for it, or fuse/lower it differently without turning it into a different semantic Gear.
-
-The word is intentionally local. Conduit is not pretending the whole system is a literal gearbox. **Cords remain Cords.** They connect semantic work; they are not shafts or belts.
-
-### Ports
-
-A **Port** is a typed directional point on a Gear or Face through which Info enters or leaves. Its exact semantic contract includes identity, direction, Info shape/type, and temporal behavior such as one Value, a Flow, or Current state.
-
-A Port is not a drawn jack, queue slot, network socket, Line endpoint, or Base handle. Renderers and realizations may create those local objects, but they do not replace Port identity.
-
-### Cords
-
-A **Cord** is a typed semantic connection between compatible Ports on Gears.
-
-```text
-[key state] ──> [interpret] ──> [LED state]
-```
-
-When two Gears are realized on different Hosts, Conduit may need a network or physical mechanism to carry that connection. The program still sees a Cord.
-
-A Line is not a Cord.
-
-### Info
-
-**Info is shaped, typed data that flows through Cords.**
-
-Info may include typed text, numbers, events, state, samples, records, frames, booleans, or other shaped values. A **Signal** is one particular Info semantic or mechanism where a Kind explicitly defines it; Info in general is not automatically Signal. At lower layers Info may be encoded into frames, packets, messages, or bytes. Those are realization details.
-
-At the semantic level:
-
-> Kinds define behavior. Gears put that behavior to work. Ports expose typed entry and exit points. Cords connect them. Info flows.
-
----
-
-## Forms, Faces, and Backs
-
-A **Form** is meaning expressed as a graph of configured Gears and Cords.
-
-Conduit can also separate a Kind's visible contract from graph-level ways of implementing it. We call those its **Face** and **Back**.
-
-```text
-                  FACE
-          ┌────────────────┐
-input ──> │      Kind      │ ──> output
-          └────────────────┘
-                  │
-                  │ may be implemented by
-                  ▼
-          ┌────────────────┐
-          │      BACK      │
-          │                │
-          │ Gear ──> Gear  │
-          │          │     │
-          │          ▼     │
-          │         Gear   │
-          └────────────────┘
-```
-
-The **Face** is the stable semantic contract presented to the surrounding graph, including its typed Ports.
-
-A **Back** is a Form that implements that contract in Conduit terms.
-
-Because a Back is itself a Form, its Gears can use Kinds that themselves admit alternative Backs. Composition is recursive.
-
-This is different from machine realization. A Back answers:
-
-> How can this meaning be expressed as more Conduit meaning?
-
-A Host answers:
-
-> What can actually be realized here?
-
----
-
-# From meaning to a running world
-
-Conduit's current lifecycle is:
-
-```text
-SEED → BODY → WAKE → PLAN → PLAY
-              │
-              └──────────→ LULL
-```
-
-The words name different things on purpose.
-
-### Seed
-
-A **Seed** is authored workspace/source material: Forms, Body definitions, assets, and policy source.
-
-### Body
-
-A **Body** is the durable intended world born from Seed material. It owns durable obligations.
-
-A Body is not a Host, process, device, realization, or current execution. It can persist while the machines and realizations beneath it change.
-
-### Wake and Lull
-
-A **Wake** says that a Body is currently maintaining its obligations.
-
-A **Lull** ends that maintenance interval without deleting the Body.
-
-One Body may therefore live through several realizations:
-
-```text
-Body B
-  Wake W1
-    Plan P1 → Play X
-    Plan P2 → Play Y
-  Lull
-  Wake W2
-    Plan P3 → Play Z
-```
-
-A changed machine or failed route does not automatically mean a new Body or a new Wake.
-
-### Plan
-
-A **Plan** is the exact immutable realization of meaning for an admitted basis of current truth.
-
-It answers questions such as:
-
-- Which Back satisfies a Face?
-- Which implementation realizes each Gear?
-- Which Host and exact Boot will perform that work?
-- How is each Cord realized?
-- Which resources and limits are admitted?
-- Which authority is required?
-- Which Bases and routes are involved?
-- Is this realization actually possible now?
-
-A Plan does not become mutable merely because the world changes. If its assumptions cease to hold, Conduit either continues using alternatives already sealed into that Plan or produces another Plan.
-
-### Play
-
-A **Play** is active execution of one exact Plan.
-
-Planning is not execution. A Plan may exist without being played, and a new Plan/Play can appear beneath the same awake Body when circumstances require replanning.
-
----
-
-## Signs, Hosts, and Bases
-
-The authored Form is only half the story. Real machines are finite and inconvenient, which is useful information rather than something Conduit tries to erase.
-
-### Signs
-
-**Signs** are bounded machine-readable truth about what is currently true and what happened.
-
-Examples include:
-
-```text
-Host H / Boot B is available
-USB link L is ready
-USB link L became unavailable
-this implementation is installed
-this resource has capacity N
-this Play reached a terminal outcome
-this physical effect was observed
-```
-
-Signs are not intent, authority, or Plans. They are the basis from which Conduit can reason honestly about realization and history.
-
-### Hosts
-
-A **Host** makes truthful, finite realization offers for one exact running environment.
-
-A Host may offer implementations, resources, links, capabilities, and limits. A browser, Linux machine, Pico W, or bare-metal ConduitOS machine can all be Hosts without pretending they are interchangeable.
-
-### Bases
-
-A **Base** is a platform or machine mechanism beneath a Host offer.
-
-Examples can include USB CDC machinery, WebSocket machinery, timers, framebuffer access, interrupt mechanisms, DOM or Wayland presentation machinery, and other platform-specific substrate.
-
-```text
-FORM
-  Gear : Kind
-    ↓
-PLAN
-  exact implementation
-  exact Host / Boot
-    ↓
-HOST OFFER
-    ↓
-BASE
-    ↓
-machine / platform
-```
-
-A Base is not a Kind or Gear. Hardware existence does not automatically become a Host offer, and a Host offer does not automatically imply authority to use it.
-
----
-
-## Why the distinctions matter
-
-Consider one Body maintaining this meaning:
-
-```text
-[browser key] ──> [interpret] ──> [Pico LED]
-```
-
-The Pico might initially be reached over USB CDC while WebSocket is also available over Wi-Fi.
-
-If USB is unplugged, several identities may remain perfectly intact:
-
-```text
-same Body
-same Wake
-same Form
-same Gears
-same Pico Host / Boot
-```
-
-What changed is a **Sign** about one possible realization.
-
-If the current Plan already admitted WebSocket as an alternative route, the Play may continue under the same Plan by selecting that route.
-
-If the current Plan admitted only USB, it remains immutable. The awake Body can require replanning, producing a new Plan and normally a new Play over WebSocket.
-
-That distinction is central to Conduit:
-
-> preserve meaning and durable intent while being exact about what changed in the realized world.
-
----
-
-## The vocabulary at a glance
-
-```text
-SEED    authored workspace/source material
-BODY    durable intended world and obligations
-WAKE    one active maintenance interval for a Body
-LULL    end that interval without deleting the Body
-
-FORM    meaning expressed as a semantic graph
-KIND    reusable semantic behavior/contract
-GEAR    configured occurrence of a Kind in a Form
-CORD    typed semantic connection between compatible Ports on Gears
-PORT    typed directional point carrying an Info shape/type and temporal contract
-INFO    shaped, typed data carried through a Cord
-FACE    stable visible semantic contract, including Ports
-BACK    Form implementing a Face
-
-SIGN    bounded truth about what is true or what happened
-HOST    truthful finite realization offers for an exact running environment
-BASE    platform/machine mechanism beneath a Host offer
-PLAN    exact immutable realization for an admitted basis of Signs
-PLAY    active execution of one exact Plan
-```
-
-A useful compression is:
-
-> **Form is meaning. Body is durable intent. Signs describe the observed world. Hosts offer finite possibilities. Bases are machine mechanisms. Plan makes realization exact. Play makes that Plan active.**
-
----
-
-## Portability without pretending machines are identical
-
-Conduit aims to let the same authored meaning be realized:
-
-- in a native Rust process;
-- in a real browser through Rust/WASM;
-- on a constrained microcontroller;
-- across multiple connected Hosts;
-- on a bare-metal machine running ConduitOS;
-- or inside a larger machine whose parts can take on different work.
-
-A browser is not a Pico W. A Pico W is not Linux. USB is not WebSocket. Memory, clocks, devices, links, permissions, physical effects, failures, and resource limits remain visible.
-
-Portability comes from **planning around those differences**, not denying them.
-
----
-
-## Bounded execution
-
-Conduit is designed with constrained systems in mind.
-
-Before a Play begins, its exact realization admits finite execution needs: Gears, ports, Cords, queue items, bytes, resources, Host-side mechanisms, Bases, and required Sign storage.
-
-A hosted implementation may perform richer preparation while planning. Once admitted execution begins, however, the runtime should not quietly acquire unbounded needs.
-
-Pressure, exhaustion, cancellation, disconnects, and failure remain explicit runtime truth.
-
-This is what allows the same fundamental model to make sense on ordinary computers and small embedded systems.
-
----
-
-## What works today
-
-Conduit is under active development, but it is not only an architecture sketch. The repository already contains substantial native, browser/WASM, and physical Pico work, including a bounded execution kernel, checked Forms, exact planning machinery, live WebSocket and USB CDC paths, and physical proof tooling.
-
-The architecture and vocabulary are moving quickly. **[STATUS.md](STATUS.md)** is the authority for exactly what the current code and checks have proven. Compilation, simulation, browser execution, live transport, firmware execution, and observed physical effects are deliberately different proof classes.
-
----
-
-# Try it
-
-From a source checkout, you will need a recent Rust toolchain. Repository
-development, demonstrations, and proofs enter through `cargo xtask`; installed
-product workflows enter through `conduit`.
-
-## Run a graph on the native Host
-
-```bash
-cargo xtask demo std
-```
-
-This parses a Form, asks the actual std Host what it can truthfully offer, plans an exact realization, and executes it through `conduit-kernel`.
-
-## See a real browser Host
-
-```bash
-cargo xtask doctor browser
-cargo xtask demo browser
-```
-
-`cargo xtask demo browser` builds the Rust/WASM browser runtime, starts the native side of a bounded WebSocket session, and prints a URL. Open it in an ordinary browser and use the terminal as instructed.
-
-This is an actual browser-hosted Conduit realization, not a browser simulation.
-
-## Inspect a realization
-
-Runtime/Observatory tooling is evolving with the ontology. See **[Try Conduit](docs/try-conduit.md)** and **[STATUS.md](STATUS.md)** for the current commands and exact fields they expose.
-
-The intended inspection boundary keeps semantic identity and realization identity separate:
-
-```text
-MEANING
-  Form
-  Gear → Kind
-  Cords
-
-REALIZATION
-  Plan
-  Gear → implementation
-  Host / Boot
-  Bases / resources / routes
-
-PLAY
-  active runtime state
-
-SIGNS
-  current truth + bounded history
-```
-
-## Talk to a real Pico W
-
-With supported Pico W firmware attached, the physical proof tooling includes:
-
-```bash
+```sh
 cargo xtask prove std-pico-usb --interactive
 ```
 
-The Pico uses bounded USB CDC machinery for the Conduit path and separate physical proof/Sign reporting where the current proof profile requires it.
+See **[Try Conduit](docs/try-conduit.md)** for the guided tour and **[STATUS.md](STATUS.md)** for exact prerequisites, proof scope, and retained evidence.
 
-Because physical proofs require attached hardware, they are intentionally hardware-gated rather than being presented as ordinary CI.
+## Form syntax
 
-Check prerequisites with:
-
-```bash
-cargo xtask doctor
-```
-
----
-
-# Form syntax
-
-Canonical Form source uses the graph itself, not statement order, to determine connectivity. A declaration such as:
+Canonical Form source uses the graph itself—not statement order—to establish connectivity.
 
 ```conduit
-pulse: flow/pulse(count = 16)
+form hello {
+    upper: text/upper
+    show: presentation/text
+
+    "Hello, world." > upper > show
+}
 ```
 
-creates the Gear named `pulse` from the Kind `flow/pulse` with the supplied configuration.
+The principal surface marks a Face with `(...)`, a Back with `{...}`, declarative immutable value relationships with `=`, and runtime Cords with `>`.
 
-Current examples also use:
+The `.form` files in `examples/` are retained compatibility fixtures for accepted kernel, browser, firmware, Line, composite, and Sign identities. Canonical examples use `.conduit`; the old fixtures are not silently reinterpreted as the current language.
 
-```text
-(...)     Face
-{...}     Back
-=         declarative immutable value relationship
->         runtime Cord
-```
-
-See:
+Learn more from:
 
 - [canonical examples](examples/README.md)
 - [runnable Form examples](docs/try-forms.md)
 - [the Conduit canon](docs/conduit-canon.md)
 
----
+## Bounded execution
 
-# Repository map
+Before Play starts, an exact realization admits finite needs: Gears, Ports, Cords, queue items, bytes, values, operation slots, routes, resources, Bases, Signs, and mandatory work. A hosted profile may allocate during preparation, but Play start may not hide unbounded growth.
 
-```text
-crates/       portable contracts, parser, planner, kernel, runtime, catalog, CLI
-hosts/        actual platform Hosts and adapters
-firmware/     constrained firmware targets
-fixtures/     deterministic conformance fixtures
-examples/     Forms and realization examples
-xtask/        typed repository workflows
-docs/         architecture, design records, proofs, and guides
-```
+Port emission is exact and port-specific. Fan-out is explicit and atomic under pressure. Pressure, exhaustion, cancellation, disconnection, stale identity, unsupported behavior, and failure remain distinct machine-readable outcomes rather than being converted into success or generic retries.
 
-If you are new to the project, a good path is:
+Platform effects cross a generic admitted host-operation boundary. Platform adapters provide mechanisms; they do not become schedulers, planners, policy engines, or runtime truth authorities.
+
+## Repository map
+
+| Path | Responsibility |
+|---|---|
+| `crates/` | Portable contracts, Form tooling, planner, kernel, runtime, catalog, and product CLI |
+| `hosts/` | Actual platform Hosts, adapters, and Patchbay Manifestations |
+| `firmware/` | Constrained firmware targets and generated-image consumers |
+| `fixtures/` | Deterministic conformance fixtures, fenced from production runtime paths |
+| `examples/` | Canonical Forms and retained realization fixtures |
+| `xtask/` | Typed repository development, demonstration, and proof workflows |
+| `docs/` | Canon, architecture, guides, proof records, and design history |
+
+If you are new to the project:
 
 1. Run `cargo xtask demo std`.
-2. Read [Try Conduit](docs/try-conduit.md).
-3. Open [the Conduit canon](docs/conduit-canon.md).
-4. Check [STATUS.md](STATUS.md) to see what is proven today.
-5. Browse [roadmap issue #361](https://github.com/dancxjo/conduit/issues/361).
-6. Read [AGENTS.md](AGENTS.md) before making substantial changes.
+2. Enter `just patchbay` or `just browser`.
+3. Follow [Try Conduit](docs/try-conduit.md).
+4. Read [the Conduit canon](docs/conduit-canon.md) for durable intent.
+5. Check [STATUS.md](STATUS.md) for current executable truth and stop lines.
+6. Read [AGENTS.md](AGENTS.md) before changing code or architecture.
 
----
+## Design rules worth remembering
 
-# Design principles
+- **Programs are graphs, not scripts.** Statement order does not secretly become execution order.
+- **Kinds are not Gears.** Reusable behavior, configured use, implementation, and runtime identity stay distinct.
+- **Meaning is not placement.** Authored Forms do not contain machine or transport facts.
+- **Faces are not implementations.** Backs express alternative semantic composition; Hosts offer concrete realization.
+- **A Line is not a Cord.** Connectivity can change without changing semantic graph identity.
+- **Availability is not authority.** Reachability, membership, trust, and permission remain separate.
+- **Planning is not execution.** An exact Plan may exist without an active Play.
+- **Signs are not Plans.** New truth can invalidate a Plan basis but never mutates the Plan.
+- **There is one execution kernel.** Fixtures and renderers do not acquire a parallel runtime.
+- **Proof classes do not collapse.** Compile, simulation, platform, transport, firmware, and physical evidence say different things.
 
-### Programs are graphs, not scripts
+## Contributing
 
-Statement order does not secretly become execution order. Meaning lives in Forms, Gears, relationships, and Cords.
+Read **[AGENTS.md](AGENTS.md)** before substantial work. It defines scope, architecture, proof, concurrency, module boundaries, and the PR contract.
 
-### Kinds are not Gears
+The primary repository gate is:
 
-A Kind is reusable semantic behavior. A Gear is one configured use of it. Do not collapse Kind identity, Gear identity, implementation identity, or runtime scheduling identity into one object.
-
-### Meaning is not placement
-
-A Form should not need to name a machine merely because some realization eventually must.
-
-### Interfaces are not implementations
-
-Faces remain semantic contracts while Backs can express alternative graph-level implementations.
-
-### Graph implementation is not Host implementation
-
-Backs implement Faces using Conduit meaning. Hosts offer concrete ways to realize the Gears that remain after graph-level decomposition.
-
-### A Line is not a Cord
-
-WebSocket, USB CDC, shared memory, and future transports are possible realizations of connectivity. They should not become the meaning of the connection itself.
-
-### Availability is not authority
-
-A Host possessing a capability does not automatically imply that a Body or Play may use it.
-
-### Planning is not execution
-
-Selecting an exact realization does not mean that realization is currently active.
-
-### Signs are not plans
-
-A changed fact about the world may invalidate or pressure a realization, but it does not mutate an immutable Plan into a different Plan.
-
-### Simulation is not physical proof
-
-Tests, fixtures, native simulation, browser execution, firmware execution, live transport, and observed physical effects are different claims. Conduit tries to say exactly which one has been established.
-
----
-
-# Contributing
-
-Conduit is experimental and changing quickly.
-
-Narrow changes are easier to reason about than giant ones. Keep architectural claims tied to executable proof, and do not promote compilation or simulation into proof of a platform or physical effect.
-
-The primary local gate is:
-
-```bash
+```sh
 cargo xtask check
 ```
 
-Additional platform-specific checks are exposed by `cargo xtask --help` and documented in [STATUS.md](STATUS.md) and the relevant roadmap issues. The `justfile` is an optional shell façade over the same canonical entrances.
+Public executable workflows must enter through `conduit`; repository development, demonstrations, hardware work, and proof must enter through `cargo xtask`. `just` is an optional thin façade over those entrances and owns no independent behavior.
 
-If you prefer `just`, the repository provides a thin optional façade over the
-same two entrances:
+Every change should name its exact base commit, owning issue and acceptance slice, non-goals, files and contracts owned, touched invariants, positive and negative demonstrations, validation, and what remains open. Claims become accepted only when their required evidence exists at exact `main`.
 
-```bash
-just run examples/signal-demo.form --placements examples/std-local.placements
-just form-check examples/signal-demo.form
-just demo browser
-just check
-just prove std-browser-s4
-```
+## In one sentence
 
-These recipes contain no independent workflow logic; `just conduit ...` and
-`just xtask ...` are also available as complete pass-throughs.
-
----
-
-## The short version
-
-```text
-Kind catalog
-    │
-    ▼
- [Gear] ──Cord──> [Gear] ──Cord──> [Gear]
-            Ports carry Info
-
-        Form = meaning
-              │
-              ▼
-Seed → Body → Wake
-              │
-              ▼
-             Plan
-              │
-              ▼
-             Play
-```
-
-**Kinds describe reusable semantic behavior. Gears are configured uses of those Kinds. Cords connect the Gears. Forms capture the meaning. Bodies make durable obligations from authored Seeds. Signs say what is true. Hosts offer finite possibilities through machine Bases. Plans choose an exact realization. Plays run it.**
+**Conduit preserves authored meaning and durable intent while making every finite implementation, placement, resource, authority, connection, execution, failure, and observed result exact and inspectable.**

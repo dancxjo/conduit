@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="590" viewBox="0 0 1200 590" role="img" aria-labelledby="title desc">
+  <title id="title">Two exact recovery behaviors after a Line becomes unavailable</title><desc id="desc">With a WebSocket-only Plan, loss requires a new USB Plan and Play. With a dual-Line Plan, already-admitted USB can be selected while preserving Plan and Play identity.</desc>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" fill="#8bd5ca"/></marker><style>.bg{fill:#101827}.h{font:700 23px ui-sans-serif,system-ui;fill:#f4f7fb}.t{font:16px ui-sans-serif,system-ui;fill:#c7d2e3}.s{font:700 14px ui-sans-serif,system-ui;letter-spacing:1.3px;fill:#8bd5ca}.x{font:700 16px ui-sans-serif,system-ui;fill:#ed8796}.b{fill:#1e2d46;stroke:#57749d;stroke-width:2}.p{fill:#28354f;stroke:#c6a0f6;stroke-width:2}.ok{fill:#263d3d;stroke:#8bd5ca;stroke-width:2}.bad{fill:#3d2b38;stroke:#ed8796;stroke-width:2}.l{fill:none;stroke:#8bd5ca;stroke-width:3;marker-end:url(#a)}</style></defs>
+  <rect width="1200" height="590" rx="24" class="bg"/>
+  <text x="45" y="50" class="h">One fault, two honest outcomes determined by the immutable Plan</text>
+  <text x="45" y="94" class="s">A · REPLAN</text><text x="640" y="94" class="s">B · CONTINUE INSIDE THE PLAN</text>
+  <rect x="45" y="120" width="230" height="94" rx="16" class="p"/><text x="68" y="154" class="s">PLAN A · PLAY A</text><text x="68" y="184" class="t">WebSocket only</text>
+  <path d="M275 167h62" class="l"/><rect x="349" y="120" width="230" height="94" rx="16" class="bad"/><text x="372" y="154" class="x">WebSocket unavailable</text><text x="372" y="184" class="t">Plan A stays unchanged</text>
+  <path d="M464 214v53" class="l"/><rect x="349" y="279" width="230" height="94" rx="16" class="ok"/><text x="372" y="313" class="s">PLAN B · PLAY B</text><text x="372" y="343" class="t">USB CDC selected</text>
+  <rect x="640" y="120" width="240" height="94" rx="16" class="p"/><text x="663" y="154" class="s">PLAN C · PLAY C</text><text x="663" y="184" class="t">WebSocket + USB admitted</text>
+  <path d="M880 167h62" class="l"/><rect x="954" y="120" width="201" height="94" rx="16" class="bad"/><text x="975" y="154" class="x">WebSocket unavailable</text><text x="975" y="184" class="t">USB was admitted</text>
+  <path d="M1054 214v53" class="l"/><rect x="954" y="279" width="201" height="94" rx="16" class="ok"/><text x="975" y="313" class="s">PLAN C · PLAY C</text><text x="975" y="343" class="t">USB CDC selected</text>
+  <rect x="45" y="423" width="1110" height="112" rx="18" class="b"/><text x="72" y="460" class="s">PRESERVED IN BOTH CASES</text><text x="72" y="494" class="t">Body · Wake · Form · Gear · Port · Cord · Pico Host and Boot identities</text><text x="72" y="520" class="t">Signs record the fault, planner decision, selected Line, reconciliation, and terminal result.</text>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">How Conduit turns authored meaning into an exact running realization</title>
+  <desc id="desc">A Form containing three connected Gears flows through checking and expansion. Host offers and Signs join it at planning. An immutable Plan is then admitted and executed as a Play.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#101827"/><stop offset="1" stop-color="#17243a"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" fill="#8bd5ca"/></marker>
+    <style>
+      .h{font:700 25px ui-sans-serif,system-ui,sans-serif;fill:#f4f7fb}.t{font:16px ui-sans-serif,system-ui,sans-serif;fill:#c7d2e3}.s{font:700 14px ui-sans-serif,system-ui,sans-serif;letter-spacing:1.5px;fill:#8bd5ca}.box{fill:#1e2d46;stroke:#57749d;stroke-width:2}.semantic{fill:#243956;stroke:#7dc4e4;stroke-width:2}.exact{fill:#28354f;stroke:#c6a0f6;stroke-width:2}.run{fill:#263d3d;stroke:#8bd5ca;stroke-width:2}.line{fill:none;stroke:#8bd5ca;stroke-width:3;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="500" rx="24" fill="url(#bg)"/>
+  <text x="54" y="54" class="s">AUTHOR</text><text x="54" y="85" class="h">Meaning</text>
+  <rect x="54" y="112" width="300" height="260" rx="18" class="semantic"/>
+  <text x="80" y="150" class="s">FORM</text>
+  <rect x="82" y="184" width="76" height="68" rx="12" class="box"/><text x="120" y="212" text-anchor="middle" class="t">Gear</text><text x="120" y="235" text-anchor="middle" class="t">A</text>
+  <rect x="198" y="184" width="76" height="68" rx="12" class="box"/><text x="236" y="212" text-anchor="middle" class="t">Gear</text><text x="236" y="235" text-anchor="middle" class="t">B</text>
+  <rect x="198" y="282" width="76" height="68" rx="12" class="box"/><text x="236" y="310" text-anchor="middle" class="t">Gear</text><text x="236" y="333" text-anchor="middle" class="t">C</text>
+  <path d="M158 218h40M236 252v30" class="line"/><text x="173" y="207" class="t">Cord</text>
+  <text x="80" y="400" class="t">Kinds · typed Ports · Info</text>
+  <path d="M376 242h112" class="line"/><text x="432" y="224" text-anchor="middle" class="s">CHECK + EXPAND</text>
+  <text x="500" y="54" class="s">OBSERVE</text><text x="500" y="85" class="h">What is true here, now?</text>
+  <rect x="500" y="112" width="282" height="116" rx="18" class="box"/><text x="526" y="150" class="s">HOST OFFERS</text><text x="526" y="182" class="t">implementations · Bases</text><text x="526" y="207" class="t">resources · finite limits</text>
+  <rect x="500" y="256" width="282" height="116" rx="18" class="box"/><text x="526" y="294" class="s">SIGNS + POLICY</text><text x="526" y="326" class="t">availability · authority</text><text x="526" y="351" class="t">membership · observed Lines</text>
+  <path d="M804 242h92" class="line"/><text x="850" y="224" text-anchor="middle" class="s">PLAN</text>
+  <rect x="908" y="112" width="238" height="116" rx="18" class="exact"/><text x="934" y="150" class="s">IMMUTABLE PLAN</text><text x="934" y="182" class="t">exact placement, routes,</text><text x="934" y="207" class="t">identity, bounds, authority</text>
+  <path d="M1027 228v40" class="line"/>
+  <rect x="908" y="280" width="238" height="92" rx="18" class="run"/><text x="934" y="318" class="s">PLAY</text><text x="934" y="350" class="t">one active execution</text>
+  <text x="54" y="458" class="t">Forms describe meaning.</text><text x="500" y="458" class="t">Hosts offer implementations.</text><text x="908" y="458" class="t">Plans make realization exact.</text>
+</svg>
