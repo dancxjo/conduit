@@ -221,4 +221,41 @@ mod tests {
             Err(FabricationError::RuntimeArenaExceeded)
         );
     }
+
+    #[test]
+    fn linked_inventory_rejects_claimed_or_compiled_graphics_mismatches() {
+        let record = record();
+        for malformed in [
+            FabricationRecord {
+                presenters: 0,
+                ..record
+            },
+            FabricationRecord {
+                drivers: 0,
+                ..record
+            },
+            FabricationRecord { bases: 0, ..record },
+            FabricationRecord {
+                resources: 0,
+                ..record
+            },
+            FabricationRecord {
+                facilities: 0,
+                ..record
+            },
+            FabricationRecord {
+                implementations: record.implementations & !IMPL_NATIVE_PRESENTER,
+                ..record
+            },
+            FabricationRecord {
+                proof_instrumentation: 1 << 15,
+                ..record
+            },
+        ] {
+            assert_eq!(
+                malformed.validate(1),
+                Err(FabricationError::UnknownInventory)
+            );
+        }
+    }
 }

@@ -186,22 +186,64 @@ mod tests {
 
     #[test]
     fn lowering_rejects_missing_and_leaked_graphical_closure() {
-        let mut native = manifest(include_str!(
+        let native = manifest(include_str!(
             "../../../../profiles/hosts/conduitos-native.profile.json"
         ));
-        native.driver_selections.clear();
-        assert!(lower(&native)
-            .unwrap_err()
-            .to_string()
-            .contains("profile-lowering-prerequisite-missing"));
+        for remove in 0..5 {
+            let mut incomplete = native.clone();
+            match remove {
+                0 => incomplete.host_operations.clear(),
+                1 => incomplete.facilities.clear(),
+                2 => incomplete.resource_budgets.clear(),
+                3 => incomplete.base_selections.clear(),
+                4 => incomplete.driver_selections.clear(),
+                _ => unreachable!(),
+            }
+            assert!(lower(&incomplete)
+                .unwrap_err()
+                .to_string()
+                .contains("profile-lowering-prerequisite-missing"));
+        }
 
+        let headless = manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-headless.profile.json"
+        ));
+        for leak in 0..5 {
+            let mut leaked = headless.clone();
+            match leak {
+                0 => leaked.host_operations.push(PRESENT_OPERATION.into()),
+                1 => leaked.facilities.push(NATIVE_COMPOSITOR.into()),
+                2 => leaked
+                    .resource_budgets
+                    .push(native.resource_budgets[0].clone()),
+                3 => leaked
+                    .base_selections
+                    .push(native.base_selections[0].clone()),
+                4 => leaked
+                    .driver_selections
+                    .push(native.driver_selections[0].clone()),
+                _ => unreachable!(),
+            }
+            assert!(lower(&leaked)
+                .unwrap_err()
+                .to_string()
+                .contains("headless-graphical-machinery-leaked"));
+        }
+    }
+
+    #[test]
+    fn unrelated_bounds_do_not_select_graphics_and_wrong_targets_fail_before_cargo() {
         let mut headless = manifest(include_str!(
             "../../../../profiles/hosts/conduitos-headless.profile.json"
         ));
-        headless.facilities.push(NATIVE_COMPOSITOR.into());
+        let original = lower(&headless).unwrap();
+        headless.bounds.queue_items += 1;
+        assert_eq!(lower(&headless).unwrap(), original);
+
+        headless.target = "conduitos/aarch64/virt".into();
         assert!(lower(&headless)
             .unwrap_err()
             .to_string()
-            .contains("headless-graphical-machinery-leaked"));
+            .contains("unsupported-profile-target"));
     }
 }
