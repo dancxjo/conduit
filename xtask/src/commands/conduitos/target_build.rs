@@ -30,9 +30,8 @@ pub(crate) struct ProfileBuiltImage {
 }
 
 /// Lowers already checked fabrication truth into the existing pinned x86_64
-/// compile/link/package machinery. The resolved PROFILE is the authority for
-/// entering this path; Cargo features remain an implementation detail until P2
-/// makes the full optional-composition mapping exact.
+/// compile/link/package machinery. The resolved PROFILE and its checked
+/// prerequisite closure are the sole authority for optional product inputs.
 pub(crate) fn build_profile_image(
     manifest: &BuildManifest,
     build_description: &[u8],
@@ -47,21 +46,6 @@ pub(crate) fn build_profile_image(
             ),
         ));
     }
-    if !manifest
-        .presenters
-        .iter()
-        .any(|item| item == "presenter/native-graphical@1")
-        || !manifest
-            .facilities
-            .iter()
-            .any(|item| item == "compositor/native@1")
-    {
-        return Err(ConduitosError::refusal(
-            "unsupported-profile-composition",
-            "the first bootable target requires the resolved native Presenter and compositor closure",
-        ));
-    }
-
     let arch = ConduitosArch::X86_64;
     let build_record = build::execute_profile(manifest, opts)?;
     let image_record = image::assemble_with_description(arch, Some(build_description), opts)?;
@@ -300,11 +284,11 @@ mod tests {
     }
 
     #[test]
-    fn another_target_cannot_fall_into_the_x86_64_product_builder() {
+    fn checked_headless_profile_enters_the_same_authoritative_target_lowering() {
         let (manifest, bytes) = resolved(include_str!(
             "../../../../profiles/hosts/conduitos-headless.profile.json"
         ));
-        let error = build_profile_image(
+        let built = build_profile_image(
             &manifest,
             &bytes,
             &GlobalOpts {
@@ -312,8 +296,9 @@ mod tests {
                 ..GlobalOpts::default()
             },
         )
-        .unwrap_err();
+        .unwrap();
 
-        assert!(error.to_string().contains("unsupported-profile-target"));
+        assert_eq!(manifest.target, "conduitos/x86_64/pc");
+        assert_eq!(built.image_sha256, "dry-run");
     }
 }

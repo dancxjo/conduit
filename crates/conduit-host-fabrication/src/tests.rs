@@ -212,7 +212,7 @@ fn three_profiles_build_through_one_deterministic_pipeline() {
         .collect::<Vec<_>>();
     assert_eq!(images[0].manifest.image_use, ImageUse::Launch);
     assert_eq!(images[1].manifest.image_use, ImageUse::Load);
-    assert_eq!(images[2].manifest.image_use, ImageUse::Flash);
+    assert_eq!(images[2].manifest.image_use, ImageUse::Boot);
 }
 
 #[test]

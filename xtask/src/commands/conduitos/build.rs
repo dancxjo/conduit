@@ -8,7 +8,7 @@ use super::{
     aarch64_a0, ia32_a2, loongarch64_a0,
     profile::{Paths, COMMON_BACKBONE_TARGETS},
     report::{git_head, sha256_file, BuildRecord},
-    riscv64_a0, ConduitosArch, ConduitosError,
+    riscv64_a0, target_lowering, ConduitosArch, ConduitosError,
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
@@ -23,16 +23,7 @@ pub(super) fn execute_profile(
     fs::create_dir_all(&paths.target)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     let generated = paths.target.join("fabrication-record.rs");
-    let implementations = conduitos::fabrication::ALL_KNOWN_IMPLEMENTATIONS;
-    let facilities = if manifest
-        .facilities
-        .iter()
-        .any(|item| item == "compositor/native@1")
-    {
-        conduitos::fabrication::FACILITY_NATIVE_COMPOSITOR
-    } else {
-        0
-    };
+    let lowering = target_lowering::lower(manifest)?;
     let source = format!(
         "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
         schema = conduitos::fabrication::FABRICATION_SCHEMA,
@@ -40,6 +31,8 @@ pub(super) fn execute_profile(
         build = manifest.build_id,
         binding = manifest.image_id,
         target = manifest.target,
+        implementations = lowering.implementations,
+        facilities = lowering.facilities,
         arena = manifest.bounds.static_memory_bytes,
         operations = manifest.bounds.operation_slots,
         timers = manifest.bounds.timer_slots,
@@ -50,7 +43,7 @@ pub(super) fn execute_profile(
     execute_with_features(
         ConduitosArch::X86_64,
         opts,
-        &["native-compositor"],
+        &lowering.cargo_features,
         Some(ProfileFabrication {
             generated: &generated,
             build_id: &manifest.build_id,
