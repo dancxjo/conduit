@@ -3,7 +3,7 @@ use crate::requirements::{
     hard_requirement_failure, has_characteristic_requirements, validate_requirement_identities,
     HardRealizationRequirements,
 };
-use crate::{PlacementChoice, PlannerError};
+use crate::{PlacementChoice, PlannerError, PlannerPreference};
 use conduit_core::{
     AuthorityContractId, CapabilityOffer, CharacteristicId, ComputePerformanceClassId,
     HostAdvertisement, HostOperationContractId, ResourceClassId,
@@ -17,6 +17,7 @@ use core::cmp::Ordering;
 /// universal host-provided score.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RealizationPreference {
+    Fact(PlannerPreference),
     MinimizeResourceUnits(ResourceClassId),
     MaximizeComputeServiceGuarantee(ResourceClassId),
     PreferComputePerformanceClass {
@@ -41,6 +42,59 @@ pub struct RealizationPolicy {
     pub preferences: Vec<RealizationPreference>,
 }
 
+impl RealizationPreference {
+    /// Lowers every retained R2 spelling into the common typed fact language.
+    /// Public migration paths remain available without a second ranking model.
+    pub fn lower(&self) -> PlannerPreference {
+        match self {
+            Self::Fact(preference) => preference.clone(),
+            Self::MinimizeResourceUnits(class) => PlannerPreference::Minimize {
+                fact: crate::PlannerFactRef::ResourceUnits(class.clone()),
+            },
+            Self::MaximizeComputeServiceGuarantee(class) => PlannerPreference::Maximize {
+                fact: crate::PlannerFactRef::ComputeServiceGuarantee(class.clone()),
+            },
+            Self::PreferComputePerformanceClass {
+                resource_class_id,
+                performance_class_id,
+            } => PlannerPreference::PreferEqual {
+                fact: crate::PlannerFactRef::ComputeHasPerformanceClass {
+                    resource_class_id: resource_class_id.clone(),
+                    performance_class_id: performance_class_id.clone(),
+                },
+                value: crate::PlannerFactValue::Boolean(true),
+            },
+            Self::MaximizeQueueItems => PlannerPreference::Maximize {
+                fact: crate::PlannerFactRef::OfferQueueItems,
+            },
+            Self::MaximizeQueueBytes => PlannerPreference::Maximize {
+                fact: crate::PlannerFactRef::OfferQueueBytes,
+            },
+            Self::PreferWithoutHostOperation(contract) => PlannerPreference::PreferEqual {
+                fact: crate::PlannerFactRef::RequiresHostOperation(contract.clone()),
+                value: crate::PlannerFactValue::Boolean(false),
+            },
+            Self::PreferWithoutAuthority(contract) => PlannerPreference::PreferEqual {
+                fact: crate::PlannerFactRef::RequiresAuthority(contract.clone()),
+                value: crate::PlannerFactValue::Boolean(false),
+            },
+            Self::MinimizeCharacteristicCount(id) => PlannerPreference::Minimize {
+                fact: crate::PlannerFactRef::RealizationCharacteristic(id.clone()),
+            },
+            Self::MaximizeCharacteristicCount(id) => PlannerPreference::Maximize {
+                fact: crate::PlannerFactRef::RealizationCharacteristic(id.clone()),
+            },
+            Self::PreferCharacteristicFlag {
+                characteristic_id,
+                value,
+            } => PlannerPreference::PreferEqual {
+                fact: crate::PlannerFactRef::RealizationCharacteristic(characteristic_id.clone()),
+                value: crate::PlannerFactValue::Boolean(*value),
+            },
+        }
+    }
+}
+
 pub fn select_realization_with_policy(
     gear: &CheckedGear,
     hosts: &[HostAdvertisement],
@@ -60,9 +114,9 @@ pub(crate) fn select_realization_matching(
 ) -> Result<PlacementChoice, PlannerError> {
     validate_requirement_identities(requirements)?;
     validate_policy(policy)?;
-    if has_characteristic_requirements(requirements) {
+    if has_characteristic_requirements(requirements) || !requirements.predicates.is_empty() {
         return Err(PlannerError::InvalidHardRealizationRequirement(
-            "characteristic requirements require exact realization advertisements".to_string(),
+            "generic or characteristic requirements require exact planner fact inputs".to_string(),
         ));
     }
     if policy.preferences.iter().any(|preference| {
@@ -71,10 +125,11 @@ pub(crate) fn select_realization_matching(
             RealizationPreference::MinimizeCharacteristicCount(_)
                 | RealizationPreference::MaximizeCharacteristicCount(_)
                 | RealizationPreference::PreferCharacteristicFlag { .. }
+                | RealizationPreference::Fact(_)
         )
     }) {
         return Err(PlannerError::InvalidRealizationPolicy(
-            "characteristic policy requires exact realization advertisements".to_string(),
+            "generic or characteristic policy requires exact planner fact inputs".to_string(),
         ));
     }
 
@@ -168,7 +223,8 @@ fn compare_candidates(
             }
             RealizationPreference::MinimizeCharacteristicCount(_)
             | RealizationPreference::MaximizeCharacteristicCount(_)
-            | RealizationPreference::PreferCharacteristicFlag { .. } => Ordering::Equal,
+            | RealizationPreference::PreferCharacteristicFlag { .. }
+            | RealizationPreference::Fact(_) => Ordering::Equal,
         };
         if ordering != Ordering::Equal {
             return ordering;
@@ -231,10 +287,19 @@ fn compute_performance_distance(
 }
 
 pub(crate) fn validate_policy(policy: &RealizationPolicy) -> Result<(), PlannerError> {
+    if policy.preferences.len() > crate::MAXIMUM_PLANNER_POLICY_CLAUSES {
+        return Err(PlannerError::PlannerLimitExceeded(format!(
+            "soft policy exceeds the {} clause bound",
+            crate::MAXIMUM_PLANNER_POLICY_CLAUSES
+        )));
+    }
     let has_empty_identity = policy
         .preferences
         .iter()
         .any(|preference| match preference {
+            RealizationPreference::Fact(preference) => {
+                crate::fact_policy::validate_preference(preference).is_err()
+            }
             RealizationPreference::MinimizeResourceUnits(identity) => identity.as_str().is_empty(),
             RealizationPreference::MaximizeComputeServiceGuarantee(identity) => {
                 identity.as_str().is_empty()

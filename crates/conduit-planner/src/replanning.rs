@@ -1,4 +1,5 @@
-use crate::characteristics::{seal_characteristics, select_realization_with_characteristics};
+use crate::characteristic_sealing::seal_characteristics;
+use crate::characteristics::select_realization_with_characteristics;
 use crate::observations::validate_resource_observations;
 use crate::prelude::*;
 use crate::realization::{consume_selected_capacity, reject_unknown_operation_inputs};
