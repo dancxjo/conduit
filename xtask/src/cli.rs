@@ -3,6 +3,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use crate::commands::catalog::CatalogArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::evidence::EvidenceArgs;
+use crate::commands::host::HostArgs;
 use crate::commands::pico::PicoArgs;
 
 /// Repository orchestration task runner for Conduit.
@@ -51,6 +52,8 @@ pub enum Command {
     Doctor(DoctorArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
     Pico(PicoArgs),
+    /// Resolve and BUILD an exact Host IMAGE from a checked PROFILE.
+    Host(HostArgs),
     /// Run the complete Pico W local workflow.
     PicoLocal(PicoArgs),
     /// Build and prove the freestanding ConduitOS reference Host.
@@ -334,6 +337,21 @@ mod tests {
 
         let pico = Cli::try_parse_from(["xtask", "pico", "build"]).expect("pico command parses");
         assert!(matches!(pico.command, Command::Pico(_)));
+
+        let host = Cli::try_parse_from([
+            "xtask",
+            "host",
+            "build",
+            "profile.json",
+            "--output",
+            "target/host-image",
+            "--source-identity",
+            "git:abc",
+            "--toolchain-identity",
+            "rustc:1",
+        ])
+        .expect("host BUILD command parses");
+        assert!(matches!(host.command, Command::Host(_)));
 
         let pico_body = Cli::try_parse_from([
             "xtask",

@@ -172,3 +172,127 @@ fn profile_validation_is_inert_machinery_description() {
         assert!(!debug.contains(runtime_truth));
     }
 }
+
+fn build_inputs() -> BuildInputs {
+    BuildInputs {
+        source_identity: "git:a467ae61".into(),
+        toolchain_identity: "rustc:fixture@1".into(),
+        toolchain_available: true,
+        maxima: HostBounds {
+            static_memory_bytes: 64 * 1024 * 1024,
+            heap_arena_bytes: 64 * 1024 * 1024,
+            queue_items: 4096,
+            buffered_bytes: 64 * 1024 * 1024,
+            active_instances: 4096,
+            operation_slots: 4096,
+            timer_slots: 4096,
+            line_sessions: 4096,
+            evidence_items: 4096,
+        },
+    }
+}
+
+#[test]
+fn three_profiles_build_through_one_deterministic_pipeline() {
+    let catalog = FabricationCatalog::canonical();
+    let profiles = [
+        parse(STD_WORKSTATION),
+        parse(BROWSER_PAGE),
+        parse(CONDUITOS_HEADLESS),
+    ];
+    let images = profiles
+        .into_iter()
+        .map(|profile| {
+            let first = build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
+            let second = build_host_image(profile, &catalog, &build_inputs()).unwrap();
+            assert_eq!(first, second);
+            verify_image_binding(&first.0, &first.1).unwrap();
+            first.0
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(images[0].manifest.image_use, ImageUse::Launch);
+    assert_eq!(images[1].manifest.image_use, ImageUse::Load);
+    assert_eq!(images[2].manifest.image_use, ImageUse::Flash);
+}
+
+#[test]
+fn build_identity_uses_canonical_profile_meaning_not_declaration_order() {
+    let catalog = FabricationCatalog::canonical();
+    let profile = parse(STD_WORKSTATION);
+    let expected = build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
+    let mut reordered = profile;
+    reordered.host_operations.reverse();
+    reordered.resources.reverse();
+    reordered.presenters.reverse();
+    let actual = build_host_image(reordered, &catalog, &build_inputs()).unwrap();
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn profile_controls_graphical_inclusion_and_headless_omission() {
+    let catalog = FabricationCatalog::canonical();
+    let graphical = build_host_image(parse(CONDUITOS_NATIVE), &catalog, &build_inputs())
+        .unwrap()
+        .0;
+    assert!(graphical
+        .manifest
+        .presenters
+        .contains(&"presenter/native-graphical@1".into()));
+    assert!(graphical
+        .manifest
+        .facilities
+        .contains(&"compositor/native@1".into()));
+    assert!(graphical
+        .manifest
+        .inclusion_paths
+        .keys()
+        .any(|path| path.contains("presenter:presenter/main")));
+
+    let headless = build_host_image(parse(CONDUITOS_HEADLESS), &catalog, &build_inputs())
+        .unwrap()
+        .0;
+    assert!(headless.manifest.presenters.is_empty());
+    assert!(headless.manifest.facilities.is_empty());
+}
+
+#[test]
+fn build_refuses_budget_toolchain_and_artifact_binding_failures() {
+    let catalog = FabricationCatalog::canonical();
+    let profile = parse(STD_WORKSTATION);
+    let mut inputs = build_inputs();
+    inputs.toolchain_available = false;
+    inputs.maxima.queue_items = 1;
+    let diagnostics = build_host_image(profile.clone(), &catalog, &inputs).unwrap_err();
+    assert!(diagnostics
+        .iter()
+        .any(|item| matches!(item, BuildDiagnostic::ToolchainUnavailable { .. })));
+    assert!(diagnostics.iter().any(|item| matches!(
+        item,
+        BuildDiagnostic::ResourceBudgetOverflow {
+            field: "queue_items",
+            ..
+        }
+    )));
+
+    let (image, mut bytes) = build_host_image(profile, &catalog, &build_inputs()).unwrap();
+    bytes[0] = b'[';
+    assert!(matches!(
+        verify_image_binding(&image, &bytes),
+        Err(BuildDiagnostic::Encoding { .. })
+            | Err(BuildDiagnostic::ArtifactBindingMismatch { .. })
+    ));
+}
+
+#[test]
+fn build_output_contains_no_runtime_truth() {
+    let (image, _) = build_host_image(
+        parse(STD_WORKSTATION),
+        &FabricationCatalog::canonical(),
+        &build_inputs(),
+    )
+    .unwrap();
+    let encoded = serde_json::to_string(&image).unwrap();
+    for forbidden in ["BodyId", "PlanId", "PlayId", "HostOffer", "BootId"] {
+        assert!(!encoded.contains(forbidden));
+    }
+}

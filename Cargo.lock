@@ -3728,6 +3728,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-form",
+ "conduit-host-fabrication",
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",

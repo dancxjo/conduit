@@ -3,11 +3,13 @@
 //! Validation describes machinery that BUILD may fabricate. It deliberately
 //! cannot create a runtime Host, Boot, offer, Body, Plan, or Play.
 
+mod build;
 mod canonical;
 mod catalog;
 mod model;
 mod validation;
 
+pub use build::*;
 pub use canonical::{canonical_profile_json, ProfileId};
 pub use catalog::{FabricationCatalog, PrerequisiteNode};
 pub use model::*;
