@@ -1,3 +1,7 @@
+use crate::decision_evidence::{
+    RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection,
+    RealizationSelection, MAXIMUM_REALIZATION_DECISION_RECORDS,
+};
 use crate::observations::{observations_admit, validate_resource_observations};
 use crate::policy::validate_policy;
 use crate::prelude::*;
@@ -8,61 +12,12 @@ use crate::requirements::{
 use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityOffer, CharacteristicId, CharacteristicQuantity,
-    CharacteristicValue, ConnectionBase, GearId, HostAdvertisement, HostId, ImplementationId,
-    OfferGeneration, Plan, RealizationAdvertisement, ResourceObservation,
+    CapabilityOffer, CharacteristicId, CharacteristicQuantity, CharacteristicValue, ConnectionBase,
+    GearId, HostAdvertisement, Plan, RealizationAdvertisement, ResourceObservation,
 };
 use conduit_form::{CheckedForm, CheckedGear};
 
-pub const MAXIMUM_REALIZATION_DECISION_RECORDS: usize = 256;
 pub const MAXIMUM_PLANNER_POLICY_CLAUSES: usize = 64;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RealizationRejection {
-    QueueItemBound,
-    QueueByteBound,
-    ResourceUnitCeiling,
-    HostOperationAllowlist,
-    AuthorityContractAllowlist,
-    MinimumCharacteristicCount(CharacteristicId),
-    MaximumCharacteristicCount(CharacteristicId),
-    RequiredCharacteristicFlag(CharacteristicId),
-    RequiredCharacteristicLabel(CharacteristicId),
-    CurrentResourceObservation,
-    HardPredicate {
-        clause_index: u16,
-        fact: crate::PlannerFactRef,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RealizationDecisionDisposition {
-    Rejected(RealizationRejection),
-    Admitted,
-    Selected,
-}
-
-/// Bounded, prompt-free planning signs for one equal-face candidate.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RealizationDecisionRecord {
-    pub gear_id: GearId,
-    pub host_id: HostId,
-    pub boot_id: BootId,
-    pub offer_generation: OfferGeneration,
-    pub capability_id: CapabilityId,
-    pub implementation_id: ImplementationId,
-    pub artifact_id: ArtifactId,
-    pub disposition: RealizationDecisionDisposition,
-    /// Zero-based first decisive soft clause for the selected candidate. Values
-    /// remain in typed planning inputs rather than being copied into evidence.
-    pub decisive_preference_clause: Option<u16>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RealizationSelection {
-    pub choice: PlacementChoice,
-    pub signs: Vec<RealizationDecisionRecord>,
-}
 
 pub fn select_realization_with_characteristics(
     gear: &CheckedGear,
@@ -231,6 +186,8 @@ fn decision_record(
         artifact_id: offer.implementation.artifact_id.clone(),
         disposition,
         decisive_preference_clause: None,
+        clause_source: None,
+        decisive_preference_source: None,
     }
 }
 
