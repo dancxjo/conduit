@@ -276,7 +276,7 @@ impl PatchbayApplication {
                 self.linear_view = !self.linear_view;
                 Ok(())
             }
-            PatchbayAction::Birth => self.birth_body(),
+            PatchbayAction::BeBorn => self.birth_body(),
             PatchbayAction::Wake => self.wake_body(),
             PatchbayAction::Lull => self.lull_body(),
             PatchbayAction::Plan => {
@@ -574,7 +574,7 @@ impl PatchbayApplication {
             Key::Named(NamedKey::F2) => {
                 self.dispatch_invocation(PatchbayAction::ToggleLinearView)?
             }
-            Key::Named(NamedKey::F4) => self.dispatch_invocation(PatchbayAction::Birth)?,
+            Key::Named(NamedKey::F4) => self.dispatch_invocation(PatchbayAction::BeBorn)?,
             Key::Named(NamedKey::F5) => self.dispatch_invocation(PatchbayAction::Wake)?,
             Key::Named(NamedKey::F6) => self.dispatch_invocation(PatchbayAction::Plan)?,
             Key::Named(NamedKey::F7) if !self.modifiers.alt_key() => {

@@ -39,7 +39,7 @@ fn build_birth_wake_replan_play_and_lull_use_exact_canonical_values() {
     let mut editor = editor(include_str!("../../../examples/hello.conduit"));
     let mut lifecycle = BuildBirthController::new();
     let build = lifecycle.document(&editor).unwrap();
-    assert_eq!(build.mode, PatchbayMode::Build);
+    assert_eq!(build.mode, PatchbayMode::SeedOpened);
     assert_eq!(build.revisions.saved_revision, 0);
     assert_eq!(build.revisions.checked_revision, Some(0));
 
@@ -230,7 +230,7 @@ fn birth_explicitly_admits_and_attaches_exactly_one_here_part() {
 
     let document = lifecycle.document(&editor).unwrap().lines.join("\n");
     assert!(document.contains("PARTS 1"));
-    assert!(document.contains("This computer HERE AVAILABLE attached at Birth"));
+    assert!(document.contains("This computer HERE AVAILABLE attached when BORN"));
     assert!(document.contains(origin.host_id.as_str()));
     assert!(document.contains(origin.boot_id.as_str()));
 }
