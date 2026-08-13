@@ -191,7 +191,8 @@ mod tests {
         assert_eq!(first.subjects, second.subjects);
         assert!(first.subjects.iter().any(|subject| {
             subject.role == conduit_presentation::PresentationRole::Body
-                && subject.identity == format!("body/{}", first.basis.body_id.as_str())
+                && subject.identity
+                    == format!("body/{}", first.basis.body_id.as_ref().unwrap().as_str())
         }));
         assert!(first.subjects.iter().any(|subject| {
             subject.role == conduit_presentation::PresentationRole::Part

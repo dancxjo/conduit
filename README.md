@@ -39,11 +39,14 @@ just patchbay
 just browser
 ```
 
-Both begin at the same live, world-first Body presentation. Select semantic
-subjects, move from Body/Parts into the Intent and Realization lenses, then
-Plan and Play the ordinary `examples/patchbay-front-door.conduit` Form. The
-native window and HTML/SVG document are distinct planned Manifestations; they
-do not own a second topology or execution runtime.
+Both begin from the same world-first truth: this Host is present and its
+current Body may be `NONE`. Open a discovered Body or repository Seed for
+inspection; only explicit `JOIN` or `BE BORN` establishes a Body. After that
+transition, move through WORLD, INTENT, and REALIZATION before Plan and Play.
+The native window and HTML/SVG document are distinct planned Manifestations;
+they do not own a second topology or execution runtime. The
+`examples/patchbay-front-door.conduit` Form remains an openable example Seed,
+not a bootstrap Body required to enter Patchbay.
 
 The complete deterministic, native, real-Chromium, live-membership, and
 machine-evidence capstone has one repository proof entrance:

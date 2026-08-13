@@ -1,23 +1,30 @@
 use super::*;
 
 #[test]
-fn native_front_door_begins_on_canonical_awake_body_world_truth() {
+fn native_front_door_begins_on_truthful_zero_body_world_state() {
     let application = PatchbayApplication::new(Arguments {
         front_door: true,
         ..Arguments::default()
     })
     .unwrap();
-    let body = application.build_birth.body().unwrap();
-    let wake = application.build_birth.wake_value().unwrap();
     let state = application.entrance_state.as_ref().unwrap();
     let presentation = application.entrance_presentation.as_ref().unwrap();
-    assert!(application.parts_open);
-    assert!(application.form_editor.is_some() && application.graphical_form.is_some());
+    assert!(!application.parts_open);
+    assert!(application.form_editor.is_none());
+    assert!(application.build_birth.body().is_none());
     assert_eq!(state.layer, patchbay_model::EntranceLayer::World);
-    assert_eq!(state.body_id, body.body_id);
-    assert_eq!(presentation.basis.body_id, body.body_id);
-    assert_eq!(presentation.basis.wake_id, wake.wake_id);
-    assert!(state.selected_subject.starts_with("part/"));
+    assert!(state.body_id.is_none());
+    assert!(presentation.basis.body_id.is_none());
+    assert!(presentation.basis.wake_id.is_none());
+    assert!(presentation.basis.seed_id.is_none());
+    assert!(state
+        .selected_subject
+        .as_deref()
+        .is_some_and(|subject| subject.starts_with("host/")));
+    assert!(presentation
+        .subjects
+        .iter()
+        .any(|subject| subject.role == conduit_presentation::PresentationRole::Seed));
     let renderer = application.renderer_execution.as_ref().unwrap();
     assert_eq!(renderer.presentation.identity, presentation.identity);
     assert!(renderer.plan.fragments.iter().any(|fragment| {
@@ -28,7 +35,7 @@ fn native_front_door_begins_on_canonical_awake_body_world_truth() {
 }
 
 #[test]
-fn native_front_door_revises_the_same_semantic_entrance_through_plan_and_play() {
+fn native_open_seed_revision_remains_unbodied_and_preserves_selection() {
     let mut application = PatchbayApplication::new(Arguments {
         front_door: true,
         ..Arguments::default()
@@ -40,32 +47,14 @@ fn native_front_door_revises_the_same_semantic_entrance_through_plan_and_play() 
         .unwrap()
         .selected_subject
         .clone();
-    application.plan_play().unwrap();
-    let planned = application.entrance_presentation.as_ref().unwrap();
-    assert_eq!(planned.revision, 2);
-    assert!(planned.basis.plan_id.is_some());
-    assert!(planned.basis.active_play_id.is_none());
-    assert_eq!(
-        application
-            .entrance_state
-            .as_ref()
-            .unwrap()
-            .selected_subject,
-        selected
-    );
-
-    application.play_plan().unwrap();
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
-    let mut completed = false;
-    while application.control.is_running() && std::time::Instant::now() < deadline {
-        completed |= application.control.poll().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(1));
-    }
-    assert!(completed);
+    let session = application.zero_body_front_door.as_mut().unwrap();
+    let seed_id = session.seed_ids().into_iter().next().unwrap();
+    session.open_seed(&seed_id, session.revision()).unwrap();
     application.refresh_front_door().unwrap();
-    let playing = application.entrance_presentation.as_ref().unwrap();
-    assert_eq!(playing.revision, 3);
-    assert!(playing.basis.active_play_id.is_some());
+    let opened = application.entrance_presentation.as_ref().unwrap();
+    assert_eq!(opened.revision, 2);
+    assert!(opened.basis.body_id.is_none());
+    assert!(opened.basis.seed_id.is_none());
     assert_eq!(
         application
             .entrance_state
@@ -74,4 +63,8 @@ fn native_front_door_revises_the_same_semantic_entrance_through_plan_and_play() 
             .selected_subject,
         selected
     );
+    assert!(opened.properties.iter().any(|property| {
+        property.name == "opened"
+            && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
+    }));
 }

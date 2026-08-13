@@ -54,14 +54,24 @@ pub fn render_linear_presentation(
     ))?;
     builder.push(format!(
         "SEED {} body={} wake={}",
-        basis.seed_id.as_str(),
-        basis.body_id.as_str(),
-        basis.wake_id.as_str()
+        optional_identity(basis.seed_id.as_ref().map(|identity| identity.as_str())),
+        optional_identity(basis.body_id.as_ref().map(|identity| identity.as_str())),
+        optional_identity(basis.wake_id.as_ref().map(|identity| identity.as_str()))
     ))?;
     builder.push(format!(
         "FORM source={} checked={} expanded={}",
-        basis.source_document_id.as_str(),
-        basis.checked_form_id.as_str(),
+        optional_identity(
+            basis
+                .source_document_id
+                .as_ref()
+                .map(|identity| identity.as_str())
+        ),
+        optional_identity(
+            basis
+                .checked_form_id
+                .as_ref()
+                .map(|identity| identity.as_str())
+        ),
         optional_identity(
             basis
                 .expanded_form_id
@@ -205,11 +215,11 @@ mod tests {
         Presentation::new(
             7,
             PresentationBasis {
-                seed_id: body.seed_id,
-                body_id: body.body_id,
-                wake_id: wake.wake_id,
-                source_document_id,
-                checked_form_id,
+                seed_id: Some(body.seed_id),
+                body_id: Some(body.body_id),
+                wake_id: Some(wake.wake_id),
+                source_document_id: Some(source_document_id),
+                checked_form_id: Some(checked_form_id),
                 expanded_form_id: Some(ExpandedFormId::from("expanded/interface-parity")),
                 plan_id: Some(PlanId::from("plan/interface-parity")),
                 active_play_id: Some(ActivePlayId::from("play/interface-parity")),
@@ -257,11 +267,21 @@ mod tests {
         assert_eq!(linear.revision, presentation.revision);
         for identity in [
             presentation.identity.as_str(),
-            presentation.basis.seed_id.as_str(),
-            presentation.basis.body_id.as_str(),
-            presentation.basis.wake_id.as_str(),
-            presentation.basis.source_document_id.as_str(),
-            presentation.basis.checked_form_id.as_str(),
+            presentation.basis.seed_id.as_ref().unwrap().as_str(),
+            presentation.basis.body_id.as_ref().unwrap().as_str(),
+            presentation.basis.wake_id.as_ref().unwrap().as_str(),
+            presentation
+                .basis
+                .source_document_id
+                .as_ref()
+                .unwrap()
+                .as_str(),
+            presentation
+                .basis
+                .checked_form_id
+                .as_ref()
+                .unwrap()
+                .as_str(),
             presentation
                 .basis
                 .expanded_form_id

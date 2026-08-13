@@ -469,7 +469,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
 pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     Step::typed(
         "prove.patchbay-front-door.semantic",
-        "Prove canonical topology, selection, refusal, Plan, Play, restart, and replan truth",
+        "Prove zero-Body entry, inert OPEN, explicit JOIN/BE BORN, refusal Signs, and post-transition Plan/Play truth",
         "cargo",
         &["test", "-p", "patchbay-model", "front_door"],
         None,
@@ -479,7 +479,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.equivalence",
-        "Prove native and browser semantic equivalence with deliberate drift refusal",
+        "Prove native and browser zero-Body semantic equivalence with deliberate drift refusal",
         "cargo",
         &["test", "-p", "patchbay-model", "renderer_execution_tests"],
         None,
@@ -489,7 +489,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.native",
-        "Prove the native manifestation follows the shared revisioned entrance",
+        "Prove the native manifestation enters the shared revisioned WORLD without a synthetic Body",
         "cargo",
         &["test", "-p", "patchbay-native", "native_front_door"],
         None,
@@ -550,7 +550,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.browser",
-        "Run the public front door through one pinned Chromium manifestation",
+        "Run zero-Body OPEN, stale refusal, explicit BE BORN, Plan, and Play through one pinned Chromium manifestation",
         "npx",
         &[
             "playwright",

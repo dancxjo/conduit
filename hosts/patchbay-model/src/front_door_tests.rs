@@ -22,7 +22,10 @@ fn front_door_begins_in_world_on_here_and_progressively_exposes_other_layers() {
     let presentation = portable_demonstration().unwrap();
     let mut state = PatchbayEntranceState::enter(&presentation).unwrap();
     assert_eq!(state.layer, EntranceLayer::World);
-    assert!(state.selected_subject.starts_with("part/"));
+    assert!(state
+        .selected_subject
+        .as_deref()
+        .is_some_and(|subject| subject.starts_with("part/")));
     assert!(state.available_actions.contains(&EntranceAction::Inspect));
 
     state
@@ -89,7 +92,10 @@ fn exact_revision_updates_preserve_or_explicitly_stale_selection() {
         state.update(&rebooted),
         Ok(EntranceUpdateDisposition::SelectionBecameStale)
     );
-    assert!(state.selected_subject.starts_with("part/"));
+    assert!(state
+        .selected_subject
+        .as_deref()
+        .is_some_and(|subject| subject.starts_with("part/")));
     assert_eq!(state.body_id, rebooted.basis.body_id);
 }
 
@@ -107,4 +113,25 @@ fn stale_and_unknown_inputs_refuse_without_shadow_state() {
         state.update(&presentation),
         Err(EntranceRefusal::StaleRevision)
     );
+}
+
+#[test]
+fn clearing_selection_returns_to_quiet_world_across_revisions() {
+    let presentation = portable_demonstration().unwrap();
+    let mut state = PatchbayEntranceState::enter(&presentation).unwrap();
+    state
+        .show_layer(&presentation, EntranceLayer::Intent)
+        .unwrap();
+    state.clear_selection(&presentation).unwrap();
+    assert_eq!(state.layer, EntranceLayer::World);
+    assert!(state.selected_subject.is_none());
+    assert!(state.available_actions.is_empty());
+
+    let next = revised(&presentation, presentation.revision + 1);
+    assert_eq!(
+        state.update(&next),
+        Ok(EntranceUpdateDisposition::SelectionPreserved)
+    );
+    assert!(state.selected_subject.is_none());
+    assert!(state.available_actions.is_empty());
 }

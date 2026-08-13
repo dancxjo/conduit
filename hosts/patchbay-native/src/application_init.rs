@@ -45,7 +45,6 @@ impl PatchbayApplication {
             arguments.form_path,
             arguments.environment_path,
             arguments.prewake,
-            arguments.front_door,
         )?;
         let semantic_history = workspace
             .form_editor
@@ -142,6 +141,7 @@ impl PatchbayApplication {
             interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
             entrance_state: None,
             entrance_presentation: None,
+            zero_body_front_door: None,
             hit_targets: Vec::new(),
             cursor_position: (0.0, 0.0),
             canvas_viewport: Default::default(),
@@ -194,11 +194,8 @@ impl PatchbayApplication {
                 application.control.stop()?;
             }
         }
-        if arguments.body_parts_demo || arguments.front_door {
+        if arguments.body_parts_demo {
             application.birth_body()?;
-            if arguments.front_door {
-                application.wake_body()?;
-            }
             application.parts_open = true;
             if let Some(path) = pico_admission_port {
                 let body_id = application

@@ -14,7 +14,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         browserName: "chromium",
-        viewport: { width: 1440, height: 1000 },
+        viewport: { width: 1366, height: 768 },
         deviceScaleFactor: 1,
         locale: "en-US",
         timezoneId: "UTC",

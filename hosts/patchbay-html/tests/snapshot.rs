@@ -22,8 +22,8 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
     let basis = &decoded.presentation.basis;
     assert!(basis.plan_id.is_some() && basis.active_play_id.is_some());
     assert!(!basis.sign_ids.is_empty());
-    assert!(!basis.body_id.as_str().is_empty());
-    assert!(!basis.wake_id.as_str().is_empty());
+    assert!(!basis.body_id.as_ref().unwrap().as_str().is_empty());
+    assert!(!basis.wake_id.as_ref().unwrap().as_str().is_empty());
     assert_eq!(
         decoded.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Prepared

@@ -29,11 +29,11 @@ impl PresentationContentId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationBasis {
-    pub seed_id: SeedId,
-    pub body_id: BodyId,
-    pub wake_id: WakeId,
-    pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
+    pub seed_id: Option<SeedId>,
+    pub body_id: Option<BodyId>,
+    pub wake_id: Option<WakeId>,
+    pub source_document_id: Option<SourceDocumentId>,
+    pub checked_form_id: Option<CheckedFormId>,
     pub expanded_form_id: Option<ExpandedFormId>,
     pub plan_id: Option<PlanId>,
     pub active_play_id: Option<ActivePlayId>,
@@ -59,6 +59,7 @@ pub enum PresentationRole {
     Route,
     Diagnostic,
     Sign,
+    Seed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -214,15 +215,17 @@ impl Presentation {
             return Err(PresentationError::NonCanonicalSign);
         }
         for identity in [
-            self.basis.seed_id.as_str(),
-            self.basis.body_id.as_str(),
-            self.basis.wake_id.as_str(),
-            self.basis.source_document_id.as_str(),
-            self.basis.checked_form_id.as_str(),
-        ] {
-            validate_id(identity)?;
-        }
-        for identity in [
+            self.basis.seed_id.as_ref().map(|value| value.as_str()),
+            self.basis.body_id.as_ref().map(|value| value.as_str()),
+            self.basis.wake_id.as_ref().map(|value| value.as_str()),
+            self.basis
+                .source_document_id
+                .as_ref()
+                .map(|value| value.as_str()),
+            self.basis
+                .checked_form_id
+                .as_ref()
+                .map(|value| value.as_str()),
             self.basis
                 .expanded_form_id
                 .as_ref()
@@ -238,8 +241,17 @@ impl Presentation {
         {
             validate_id(identity)?;
         }
-        if (self.basis.plan_id.is_some() && self.basis.expanded_form_id.is_none())
+        let embodied = self.basis.body_id.is_some();
+        if self.basis.seed_id.is_some() != embodied
+            || self.basis.wake_id.is_some() != embodied
+            || self.basis.source_document_id.is_some() != embodied
+            || self.basis.checked_form_id.is_some() != embodied
+            || (self.basis.plan_id.is_some() && self.basis.expanded_form_id.is_none())
             || (self.basis.active_play_id.is_some() && self.basis.plan_id.is_none())
+            || (!embodied
+                && (self.basis.expanded_form_id.is_some()
+                    || self.basis.plan_id.is_some()
+                    || self.basis.active_play_id.is_some()))
         {
             return Err(PresentationError::InvalidBasis);
         }
@@ -286,12 +298,32 @@ impl Presentation {
         let total_bytes = self
             .basis
             .seed_id
-            .as_str()
-            .len()
-            .saturating_add(self.basis.body_id.as_str().len())
-            .saturating_add(self.basis.wake_id.as_str().len())
-            .saturating_add(self.basis.source_document_id.as_str().len())
-            .saturating_add(self.basis.checked_form_id.as_str().len())
+            .as_ref()
+            .map_or(0, |id| id.as_str().len())
+            .saturating_add(
+                self.basis
+                    .body_id
+                    .as_ref()
+                    .map_or(0, |id| id.as_str().len()),
+            )
+            .saturating_add(
+                self.basis
+                    .wake_id
+                    .as_ref()
+                    .map_or(0, |id| id.as_str().len()),
+            )
+            .saturating_add(
+                self.basis
+                    .source_document_id
+                    .as_ref()
+                    .map_or(0, |id| id.as_str().len()),
+            )
+            .saturating_add(
+                self.basis
+                    .checked_form_id
+                    .as_ref()
+                    .map_or(0, |id| id.as_str().len()),
+            )
             .saturating_add(optional_len(
                 self.basis.expanded_form_id.as_ref().map(|id| id.as_str()),
             ))
@@ -357,11 +389,35 @@ impl Presentation {
         let mut digest = Sha256::new();
         hash_string(&mut digest, "conduit.presentation/presentation@1");
         digest.update(self.revision.to_le_bytes());
-        hash_string(&mut digest, self.basis.seed_id.as_str());
-        hash_string(&mut digest, self.basis.body_id.as_str());
-        hash_string(&mut digest, self.basis.wake_id.as_str());
-        hash_string(&mut digest, self.basis.source_document_id.as_str());
-        hash_string(&mut digest, self.basis.checked_form_id.as_str());
+        // Preserve established embodied Presentation identities: Some
+        // values hash exactly as the formerly required fields did. None
+        // uses the otherwise-invalid empty identity as the zero-Body marker.
+        hash_string(
+            &mut digest,
+            self.basis.seed_id.as_ref().map_or("", |id| id.as_str()),
+        );
+        hash_string(
+            &mut digest,
+            self.basis.body_id.as_ref().map_or("", |id| id.as_str()),
+        );
+        hash_string(
+            &mut digest,
+            self.basis.wake_id.as_ref().map_or("", |id| id.as_str()),
+        );
+        hash_string(
+            &mut digest,
+            self.basis
+                .source_document_id
+                .as_ref()
+                .map_or("", |id| id.as_str()),
+        );
+        hash_string(
+            &mut digest,
+            self.basis
+                .checked_form_id
+                .as_ref()
+                .map_or("", |id| id.as_str()),
+        );
         hash_optional(
             &mut digest,
             self.basis.expanded_form_id.as_ref().map(|id| id.as_str()),

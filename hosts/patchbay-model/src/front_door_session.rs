@@ -26,20 +26,20 @@ pub struct LocalFrontDoorProjection {
 
 #[derive(Clone)]
 pub struct LocalFrontDoor {
-    model: PatchbayModel,
-    editor: FormEditor,
-    body: Body,
-    wake: Wake,
-    membership: BodyMembership,
-    candidates: CandidateInventory,
-    admissions: AdmissionManager,
-    here: PartId,
-    composition: StdHostComposition,
-    plan: Option<PlanDocument>,
-    play: Option<PlayDocument>,
-    active_play: Option<ActivePlayIdentity>,
-    topology: FrontDoorTopology,
-    revision: u64,
+    pub(super) model: PatchbayModel,
+    pub(super) editor: FormEditor,
+    pub(super) body: Body,
+    pub(super) wake: Wake,
+    pub(super) membership: BodyMembership,
+    pub(super) candidates: CandidateInventory,
+    pub(super) admissions: AdmissionManager,
+    pub(super) here: PartId,
+    pub(super) composition: StdHostComposition,
+    pub(super) plan: Option<PlanDocument>,
+    pub(super) play: Option<PlayDocument>,
+    pub(super) active_play: Option<ActivePlayIdentity>,
+    pub(super) topology: FrontDoorTopology,
+    pub(super) revision: u64,
 }
 
 impl LocalFrontDoor {

@@ -13,6 +13,57 @@ impl PatchbayHtmlServer {
             serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
         let stale_presentation =
             input.presentation_id != self.snapshot.presentation.identity.as_str();
+        if input.kind == "clear" {
+            self.snapshot.interaction.revision =
+                self.snapshot.interaction.revision.saturating_add(1);
+            if stale_presentation {
+                self.snapshot.interaction.last_disposition =
+                    Some("Refused(StalePresentation)".into());
+            } else {
+                match self
+                    .snapshot
+                    .entrance
+                    .clear_selection(&self.snapshot.presentation)
+                {
+                    Ok(()) => {
+                        self.snapshot.interaction.selected_subject = None;
+                        self.snapshot.interaction.last_disposition = Some("Succeeded".into());
+                    }
+                    Err(error) => {
+                        self.snapshot.interaction.last_disposition =
+                            Some(format!("Refused({error:?})"));
+                    }
+                }
+            }
+            self.encoded_snapshot = self.snapshot.encode()?;
+            return Ok(self.encoded_snapshot.clone());
+        }
+        if self.snapshot.presentation.basis.expanded_form_id.is_none() && input.kind == "select" {
+            self.snapshot.interaction.revision =
+                self.snapshot.interaction.revision.saturating_add(1);
+            if stale_presentation {
+                self.snapshot.interaction.last_disposition =
+                    Some("Refused(StalePresentation)".into());
+            } else {
+                let subject = input.subject.ok_or(ServerError::InvalidRequest)?;
+                match self
+                    .snapshot
+                    .entrance
+                    .select(&self.snapshot.presentation, &subject)
+                {
+                    Ok(()) => {
+                        self.snapshot.interaction.selected_subject = Some(subject);
+                        self.snapshot.interaction.last_disposition = Some("Succeeded".into());
+                    }
+                    Err(error) => {
+                        self.snapshot.interaction.last_disposition =
+                            Some(format!("Refused({error:?})"));
+                    }
+                }
+            }
+            self.encoded_snapshot = self.snapshot.encode()?;
+            return Ok(self.encoded_snapshot.clone());
+        }
         let request_id = self
             .interaction
             .next_request_id(&input.kind)

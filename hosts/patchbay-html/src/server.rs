@@ -11,6 +11,7 @@ mod front_door;
 mod interaction;
 mod parts;
 mod theme;
+mod transition;
 
 use theme::render_theme_css;
 
@@ -84,6 +85,8 @@ pub struct PatchbayHtmlServer {
     theme_css: Vec<u8>,
     interaction: PatchbayInteraction,
     front_door: Option<std::sync::Arc<std::sync::Mutex<patchbay_model::LocalFrontDoor>>>,
+    zero_body_front_door:
+        Option<std::sync::Arc<std::sync::Mutex<patchbay_model::ZeroBodyFrontDoor>>>,
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
 }
@@ -111,6 +114,7 @@ impl PatchbayHtmlServer {
                 conduit_core::BootId::from("patchbay-html/interaction-boot"),
             ),
             front_door: None,
+            zero_body_front_door: None,
             body_admission: None,
             browser_wasm: None,
         })
@@ -213,6 +217,15 @@ impl PatchbayHtmlServer {
                 &body,
             );
         }
+        if first == "POST /api/front-door-transition HTTP/1.1" {
+            let body = self.apply_front_door_transition(&request.body)?;
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
         if first == "POST /api/interaction HTTP/1.1" {
             let body = match self.apply_interaction(&request.body) {
                 Ok(body) => body,
@@ -233,7 +246,9 @@ impl PatchbayHtmlServer {
                 &body,
             );
         }
-        if first == "GET /api/snapshot HTTP/1.1" && self.front_door.is_some() {
+        if first == "GET /api/snapshot HTTP/1.1"
+            && (self.front_door.is_some() || self.zero_body_front_door.is_some())
+        {
             self.refresh_front_door()?;
         }
         let (status, content_type, body): (&str, &str, &[u8]) = match first {

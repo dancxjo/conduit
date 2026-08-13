@@ -242,7 +242,10 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
         entrance.update(&offline.presentation).unwrap(),
         EntranceUpdateDisposition::SelectionPreserved
     );
-    assert_eq!(entrance.selected_subject, part_subject);
+    assert_eq!(
+        entrance.selected_subject.as_deref(),
+        Some(part_subject.as_str())
+    );
     let durable = offline
         .parts
         .parts
