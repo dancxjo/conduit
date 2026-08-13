@@ -65,6 +65,8 @@ pub mod planned_kernel;
 // surface merely because they share the `conduitos` library crate.
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod presentation_nucleus;
+#[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
+pub mod product_front_door;
 pub mod proof;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;

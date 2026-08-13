@@ -1,21 +1,26 @@
-//! Bounded no-Body entrance for an ordinary ConduitOS boot.
+//! Bounded zero-Body Patchbay state for an ordinary ConduitOS boot.
 
-use conduit_body::{
-    AuthenticatedHostObservation, Body, BodyMembership, BodyMembershipRevision, MembershipProofId,
-    PartId,
-};
-use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SignId, SourceDocumentId};
+use alloc::{format, string::String, vec};
+use conduit_body::SeedId;
+use conduit_core::{BootId, CheckedFormId, HostId, KeyEvent, OfferGeneration, SourceDocumentId};
 use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    Presentation, PresentationBasis, PresentationProperty, PresentationPropertyValue,
+    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
+    PresentationText,
 };
 
-use crate::{
-    arch::HidKeyTransition,
-    display::{DisplayError, DisplayReceipt, PixelTarget, render_scene},
-};
+use crate::display::{DisplayError, PixelTarget};
+
+#[cfg(any(test, feature = "native-compositor"))]
+mod presenter;
+#[cfg(any(test, feature = "native-compositor"))]
+pub use presenter::{FrontDoorPresenter, PresenterError};
 
 const ENTER: u8 = 40;
+const ESCAPE: u8 = 41;
 const TAB: u8 = 43;
+const F2: u8 = 59;
 const RIGHT: u8 = 79;
 const LEFT: u8 = 80;
 const DOWN: u8 = 81;
@@ -23,36 +28,38 @@ const UP: u8 = 82;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Selection {
-    Birth,
-    Join,
+    Seed,
+    Details,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Status {
-    AwaitingChoice,
-    JoinUnavailable,
-    BodyBorn,
-}
-
-pub struct BornBody {
-    pub body: Body,
-    pub membership: BodyMembership,
+    World,
+    SeedOpened,
+    DetailsOpened,
 }
 
 pub struct FrontDoor {
     host_id: HostId,
     boot_id: BootId,
     offer_generation: OfferGeneration,
+    profile_id: String,
+    build_id: String,
+    image_id: String,
     source_document_id: SourceDocumentId,
     checked_form_id: CheckedFormId,
+    seed_id: SeedId,
     selection: Selection,
     status: Status,
-    born: Option<BornBody>,
+    revision: u64,
+    offer_count: u64,
+    details_page: u8,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Error {
-    Lifecycle,
+    StaleInput,
+    Presentation,
     Display(DisplayError),
     Scene,
 }
@@ -60,114 +67,205 @@ pub enum Error {
 impl Error {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Lifecycle => "front-door-lifecycle-refused",
+            Self::StaleInput => "front-door-input-stale",
+            Self::Presentation => "front-door-presentation-refused",
             Self::Display(error) => error.as_str(),
-            Self::Scene => "front-door-presentation-refused",
+            Self::Scene => "front-door-scene-refused",
         }
     }
 }
 
 impl FrontDoor {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         host_id: HostId,
         boot_id: BootId,
         offer_generation: OfferGeneration,
+        profile_id: impl Into<String>,
+        build_id: impl Into<String>,
+        image_id: impl Into<String>,
         source_document_id: SourceDocumentId,
         checked_form_id: CheckedFormId,
+        offer_count: u64,
     ) -> Self {
+        let seed_id = SeedId::bind(&source_document_id, &checked_form_id);
         Self {
             host_id,
             boot_id,
             offer_generation,
+            profile_id: profile_id.into(),
+            build_id: build_id.into(),
+            image_id: image_id.into(),
             source_document_id,
             checked_form_id,
-            selection: Selection::Birth,
-            status: Status::AwaitingChoice,
-            born: None,
+            seed_id,
+            selection: Selection::Seed,
+            status: Status::World,
+            revision: 1,
+            offer_count,
+            details_page: 0,
         }
     }
 
-    pub const fn selection(&self) -> Selection {
-        self.selection
-    }
     pub const fn status(&self) -> Status {
         self.status
     }
-    pub fn born(&self) -> Option<&BornBody> {
-        self.born.as_ref()
+
+    pub const fn revision(&self) -> u64 {
+        self.revision
     }
 
-    pub fn accept(&mut self, transition: HidKeyTransition) -> Result<bool, Error> {
-        if !transition.pressed() || self.born.is_some() {
+    pub fn seed_id(&self) -> &SeedId {
+        &self.seed_id
+    }
+
+    pub fn accept(&mut self, event: KeyEvent, revision: u64) -> Result<bool, Error> {
+        if revision != self.revision {
+            return Err(Error::StaleInput);
+        }
+        if event.transition() != conduit_core::KeyTransition::Pressed {
             return Ok(false);
         }
-        match transition.usage() {
+        match event.usage() {
             TAB | RIGHT | LEFT | DOWN | UP => {
                 self.selection = match self.selection {
-                    Selection::Birth => Selection::Join,
-                    Selection::Join => Selection::Birth,
+                    Selection::Seed => Selection::Details,
+                    Selection::Details => Selection::Seed,
                 };
-                self.status = Status::AwaitingChoice;
+                self.status = Status::World;
+                self.advance()?;
                 Ok(true)
             }
-            ENTER if self.selection == Selection::Join => {
-                self.status = Status::JoinUnavailable;
+            F2 => {
+                self.selection = Selection::Details;
+                if self.status == Status::DetailsOpened {
+                    self.details_page = (self.details_page + 1) % 6;
+                }
+                self.status = Status::DetailsOpened;
+                self.advance()?;
                 Ok(true)
             }
             ENTER => {
-                self.birth()?;
+                self.status = match self.selection {
+                    Selection::Seed => Status::SeedOpened,
+                    Selection::Details => Status::DetailsOpened,
+                };
+                self.advance()?;
+                Ok(true)
+            }
+            ESCAPE => {
+                self.status = Status::World;
+                self.advance()?;
                 Ok(true)
             }
             _ => Ok(false),
         }
     }
 
-    fn birth(&mut self) -> Result<(), Error> {
-        let body = Body::born(
-            self.source_document_id.clone(),
-            self.checked_form_id.clone(),
-            1,
-            SignId::from("conduitos/front-door/body-born/1"),
-        )
-        .map_err(|_| Error::Lifecycle)?;
-        let part_id =
-            PartId::bind(&body.body_id, self.host_id.as_str(), 1).map_err(|_| Error::Lifecycle)?;
-        let proof_id = MembershipProofId::bind("explicit-conduitos-local-birth")
-            .map_err(|_| Error::Lifecycle)?;
-        let mut membership =
-            BodyMembership::new(body.body_id.clone()).map_err(|_| Error::Lifecycle)?;
-        membership
-            .admit(
-                &body.body_id,
-                BodyMembershipRevision(0),
-                part_id.clone(),
-                proof_id.clone(),
-                SignId::from("conduitos/front-door/part-admitted/1"),
-            )
-            .map_err(|_| Error::Lifecycle)?;
-        membership
-            .observe_present(
-                &body.body_id,
-                BodyMembershipRevision(1),
-                &part_id,
-                AuthenticatedHostObservation {
-                    host_id: self.host_id.clone(),
-                    boot_id: self.boot_id.clone(),
-                    offer_generation: self.offer_generation,
-                    proof_id,
-                    sequence: 1,
-                },
-                SignId::from("conduitos/front-door/host-attached/1"),
-            )
-            .map_err(|_| Error::Lifecycle)?;
-        body.validate().map_err(|_| Error::Lifecycle)?;
-        membership.validate().map_err(|_| Error::Lifecycle)?;
-        self.born = Some(BornBody { body, membership });
-        self.status = Status::BodyBorn;
+    fn advance(&mut self) -> Result<(), Error> {
+        self.revision = self.revision.checked_add(1).ok_or(Error::Presentation)?;
         Ok(())
     }
 
-    pub fn render(&self, display: &mut impl PixelTarget) -> Result<DisplayReceipt, Error> {
+    pub fn presentation(&self) -> Result<Presentation, Error> {
+        let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
+        let seed = format!("seed/{}", self.seed_id.as_str());
+        let subjects = vec![
+            PresentationSubject {
+                identity: host.clone(),
+                role: PresentationRole::Host,
+                label: "This Host".into(),
+                accessibility_name: "This Host; current Body none".into(),
+            },
+            PresentationSubject {
+                identity: seed.clone(),
+                role: PresentationRole::Seed,
+                label: "ConduitOS entrance Seed".into(),
+                accessibility_name: "Openable checked IMAGE Seed; opening is inert".into(),
+            },
+        ];
+        let relationships = vec![PresentationRelationship {
+            source: host.clone(),
+            target: seed.clone(),
+            kind: PresentationRelationshipKind::Observes,
+        }];
+        let mut properties = vec![
+            property(
+                &host,
+                "current-body",
+                PresentationPropertyValue::Text("none".into()),
+            ),
+            property(&host, "host-id", identity(self.host_id.as_str())),
+            property(&host, "boot-id", identity(self.boot_id.as_str())),
+            property(
+                &host,
+                "offer-generation",
+                PresentationPropertyValue::Count(self.offer_generation.0),
+            ),
+            property(
+                &host,
+                "offer-count",
+                PresentationPropertyValue::Count(self.offer_count),
+            ),
+            property(&seed, "seed-id", identity(self.seed_id.as_str())),
+            property(
+                &seed,
+                "source-document-id",
+                identity(self.source_document_id.as_str()),
+            ),
+            property(
+                &seed,
+                "checked-form-id",
+                identity(self.checked_form_id.as_str()),
+            ),
+            property(
+                &seed,
+                "opened",
+                PresentationPropertyValue::Flag(self.status == Status::SeedOpened),
+            ),
+        ];
+        if self.status == Status::DetailsOpened {
+            properties.extend([
+                property(&host, "profile-id", identity(&self.profile_id)),
+                property(&host, "build-id", identity(&self.build_id)),
+                property(&host, "image-id", identity(&self.image_id)),
+            ]);
+        }
+        Presentation::new(
+            self.revision,
+            PresentationBasis {
+                seed_id: None,
+                body_id: None,
+                wake_id: None,
+                source_document_id: None,
+                checked_form_id: None,
+                expanded_form_id: None,
+                plan_id: None,
+                active_play_id: None,
+                sign_ids: vec![],
+            },
+            subjects,
+            relationships,
+            properties,
+            vec![
+                PresentationText {
+                    subject: host,
+                    text: "BODY NONE; entering Patchbay creates no Body, Wake, Plan, or Play"
+                        .into(),
+                },
+                PresentationText {
+                    subject: seed,
+                    text: "IMAGE-embedded checked Seed; OPEN permits inspection only".into(),
+                },
+            ],
+        )
+        .map_err(|_| Error::Presentation)
+    }
+
+    pub fn scene(&self, display: &impl PixelTarget) -> Result<GraphicsScene, Error> {
+        self.presentation()?
+            .validate()
+            .map_err(|_| Error::Presentation)?;
         let format = display.format().validate().map_err(Error::Display)?;
         let screen = LayoutRect {
             x: 0,
@@ -187,40 +285,89 @@ impl FrontDoor {
                 .map_err(|_| Error::Scene)?,
             )
             .map_err(|_| Error::Scene)?;
-        text(&mut scene, 18, 18, "CONDUIT / PATCHBAY")?;
-        text(&mut scene, 18, 42, "THIS HOST DOES NOT BELONG TO A BODY")?;
-        text(
-            &mut scene,
-            26,
-            82,
-            if self.selection == Selection::Birth {
-                "> CREATE A NEW BODY"
-            } else {
-                "  CREATE A NEW BODY"
-            },
-        )?;
-        text(
-            &mut scene,
-            26,
-            104,
-            if self.selection == Selection::Join {
-                "> JOIN AN EXISTING BODY"
-            } else {
-                "  JOIN AN EXISTING BODY"
-            },
-        )?;
-        text(&mut scene, 18, 146, "ARROWS/TAB SELECT  ENTER CONFIRM")?;
-        text(
-            &mut scene,
-            18,
-            174,
-            match self.status {
-                Status::AwaitingChoice => "READY",
-                Status::JoinUnavailable => "JOIN UNAVAILABLE: NO ADMITTED BODY CANDIDATE",
-                Status::BodyBorn => "BODY BORN; THIS HOST IS ATTACHED",
-            },
-        )?;
-        render_scene(display, &scene).map_err(Error::Display)
+        text(&mut scene, 18, 18, "CONDUIT / PATCHBAY / WORLD")?;
+        match self.status {
+            Status::World => {
+                text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
+                text(&mut scene, 18, 70, "BODIES NEARBY    NONE OBSERVED")?;
+                text(&mut scene, 18, 96, "SEEDS")?;
+                text(
+                    &mut scene,
+                    26,
+                    118,
+                    if self.selection == Selection::Seed {
+                        "> CONDUITOS ENTRANCE SEED"
+                    } else {
+                        "  CONDUITOS ENTRANCE SEED"
+                    },
+                )?;
+                text(
+                    &mut scene,
+                    26,
+                    140,
+                    if self.selection == Selection::Details {
+                        "> DETAILS"
+                    } else {
+                        "  DETAILS"
+                    },
+                )?;
+                text(&mut scene, 18, 176, "ARROWS SELECT  ENTER OPEN  F2 DETAILS")?;
+            }
+            Status::SeedOpened => {
+                text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
+                text(&mut scene, 18, 76, "SEED OPEN / INSPECTION ONLY")?;
+                exact_text(&mut scene, 18, 100, self.seed_id.as_str())?;
+                text(
+                    &mut scene,
+                    18,
+                    150,
+                    "PROVENANCE: CHECKED DATA EMBEDDED IN THIS IMAGE",
+                )?;
+                text(
+                    &mut scene,
+                    18,
+                    176,
+                    "NO BODY / WAKE / PLAN / PLAY / EFFECT CREATED",
+                )?;
+            }
+            Status::DetailsOpened => {
+                let (label, value) = self.detail();
+                text(&mut scene, 18, 42, "EXACT HOST DETAILS")?;
+                text(&mut scene, 18, 76, label)?;
+                exact_text(&mut scene, 18, 100, &value)?;
+                text(&mut scene, 18, 160, "F2 NEXT DETAIL    ESC WORLD")?;
+            }
+        }
+        Ok(scene)
+    }
+
+    fn detail(&self) -> (&'static str, String) {
+        match self.details_page {
+            0 => ("PROFILE ID", self.profile_id.clone()),
+            1 => ("BUILD ID", self.build_id.clone()),
+            2 => ("IMAGE BINDING", self.image_id.clone()),
+            3 => ("HOST ID", self.host_id.as_str().into()),
+            4 => ("BOOT ID", self.boot_id.as_str().into()),
+            _ => (
+                "CURRENT OFFERS",
+                format!(
+                    "COUNT {} / GENERATION {}",
+                    self.offer_count, self.offer_generation.0
+                ),
+            ),
+        }
+    }
+}
+
+fn identity(value: &str) -> PresentationPropertyValue {
+    PresentationPropertyValue::Identity(value.into())
+}
+
+fn property(subject: &str, name: &str, value: PresentationPropertyValue) -> PresentationProperty {
+    PresentationProperty {
+        subject: subject.into(),
+        name: name.into(),
+        value,
     }
 }
 
@@ -228,7 +375,7 @@ fn text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Er
     let bounds = LayoutRect {
         x,
         y,
-        width: 290,
+        width: 610,
         height: 12,
     };
     scene
@@ -239,20 +386,42 @@ fn text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Er
         .map_err(|_| Error::Scene)
 }
 
+fn exact_text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Error> {
+    let split = value
+        .len()
+        .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
+    text(scene, x, y, &value[..split])?;
+    if split < value.len() {
+        text(scene, x, y + 22, &value[split..])?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
     fn door() -> FrontDoor {
         FrontDoor::new(
             HostId::from("host"),
             BootId::from("boot"),
             OfferGeneration(3),
+            "profile:one",
+            "build:one",
+            "image:one",
             SourceDocumentId::from("source"),
             CheckedFormId::from("checked"),
+            7,
         )
     }
-    fn key(usage: u8) -> HidKeyTransition {
-        HidKeyTransition::new(usage, true, 0)
+
+    fn key(usage: u8) -> KeyEvent {
+        KeyEvent::new(
+            usage,
+            conduit_core::KeyTransition::Pressed,
+            conduit_core::KeyModifiers::from_bits(0),
+        )
+        .unwrap()
     }
 
     struct Sink;
@@ -276,37 +445,56 @@ mod tests {
     }
 
     #[test]
-    fn entrance_renders_as_a_finite_scene() {
-        let receipt = door().render(&mut Sink).unwrap();
-        assert_eq!(receipt.commands, 7);
+    fn entrance_is_a_zero_body_portable_presentation_and_finite_scene() {
+        let door = door();
+        let presentation = door.presentation().unwrap();
+        assert!(presentation.basis.body_id.is_none());
+        assert!(presentation.basis.plan_id.is_none());
+        assert_eq!(presentation.subjects[1].role, PresentationRole::Seed);
+        let scene = door.scene(&Sink).unwrap();
+        let receipt = crate::display::render_scene(&mut Sink, &scene).unwrap();
+        assert_eq!(receipt.commands, 8);
         assert!(receipt.pixels_written > 0);
     }
 
     #[test]
-    fn birth_attaches_the_exact_current_host_and_boot() {
+    fn open_is_inert_and_details_are_progressive() {
         let mut door = door();
-        assert!(door.accept(key(ENTER)).unwrap());
-        let born = door.born().unwrap();
-        assert_eq!(door.status(), Status::BodyBorn);
-        let observation = born.membership.parts[0].current.as_ref().unwrap();
-        assert_eq!(observation.host_id.as_str(), "host");
-        assert_eq!(observation.boot_id.as_str(), "boot");
-        assert_eq!(observation.offer_generation, OfferGeneration(3));
+        assert!(door.accept(key(ENTER), 1).unwrap());
+        assert_eq!(door.status(), Status::SeedOpened);
+        assert_eq!(door.revision(), 2);
+        assert!(door.presentation().unwrap().basis.body_id.is_none());
+        assert!(door.accept(key(F2), 2).unwrap());
+        let details = door.presentation().unwrap();
+        assert_eq!(door.status(), Status::DetailsOpened);
+        assert!(
+            details
+                .properties
+                .iter()
+                .any(|property| property.name == "profile-id")
+        );
+        assert!(details.basis.body_id.is_none());
     }
 
     #[test]
-    fn unavailable_join_refuses_without_birthing() {
+    fn stale_input_and_capacity_are_explicit_without_body_transition() {
         let mut door = door();
-        assert!(door.accept(key(TAB)).unwrap());
-        assert!(door.accept(key(ENTER)).unwrap());
-        assert_eq!(door.status(), Status::JoinUnavailable);
-        assert!(door.born().is_none());
+        assert_eq!(door.accept(key(ENTER), 0), Err(Error::StaleInput));
+        door.revision = u64::MAX;
+        assert_eq!(door.accept(key(ENTER), u64::MAX), Err(Error::Presentation));
+        assert!(door.presentation().unwrap().basis.body_id.is_none());
     }
 
     #[test]
     fn releases_and_unrelated_keys_do_not_act() {
         let mut door = door();
-        assert!(!door.accept(HidKeyTransition::new(ENTER, false, 0)).unwrap());
-        assert!(!door.accept(key(4)).unwrap());
+        let release = KeyEvent::new(
+            ENTER,
+            conduit_core::KeyTransition::Released,
+            conduit_core::KeyModifiers::from_bits(0),
+        )
+        .unwrap();
+        assert!(!door.accept(release, 1).unwrap());
+        assert!(!door.accept(key(4), 1).unwrap());
     }
 }

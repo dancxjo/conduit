@@ -14,7 +14,7 @@ pub use x86_64::{
     finish_boot_keyboard, initialize_machine, initialize_xhci, local_reboot_base,
     pc_speaker_input_hz, prepare_boot_keyboard, receive_boot_keyboard,
     receive_first_boot_keyboard_report, retire_removed_device, run_boot_keyboard,
-    wait_for_attachment_state,
+    start_boot_keyboard_session, wait_for_attachment_state,
 };
 
 #[cfg(target_arch = "x86_64")]

@@ -4,6 +4,7 @@ mod active_rescue_proof;
 mod architecture_matrix;
 mod build;
 mod demo;
+mod front_door_proof;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -69,6 +70,8 @@ enum ConduitosCommand {
     Image(TargetArgs),
     /// Open a visible interactive QEMU session without making proof claims.
     Demo(DemoArgs),
+    /// Prove the normal IMAGE zero-Body front door and long-lived interaction.
+    FrontDoorProof,
     /// Boot one deterministic QEMU session and validate its boot Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
@@ -242,6 +245,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             image::execute(target.arch, opts).map(|_| ())
         }
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
+        ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             match target.arch {

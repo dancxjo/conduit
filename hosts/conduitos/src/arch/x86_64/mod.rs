@@ -18,7 +18,7 @@ pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
 pub use hid::{
     HidError, HidKeyTransition, HidKeyboardSession, HidProof, finish_boot_keyboard,
     prepare_boot_keyboard, receive_boot_keyboard, receive_first_boot_keyboard_report,
-    run_boot_keyboard,
+    run_boot_keyboard, start_boot_keyboard_session,
 };
 pub use opl2::Opl2;
 pub use pc_speaker::PcSpeaker;
