@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.host/profile@1",
+  "name": "browser-page",
+  "target": { "family": "browser", "architecture": "wasm32", "machine": "page", "build_profile": "release" },
+  "host_core": "host-core/std@1",
+  "fragments": [],
+  "capabilities": [],
+  "host_operations": [],
+  "resources": [{ "id": "surface/dom", "class": "presentation/surface", "slots": 4, "bytes": 1048576 }],
+  "bases": [{ "id": "browser/dom", "kind": "browser/dom", "driver": "browser/dom@1" }],
+  "drivers": [{ "id": "driver/dom", "kind": "browser/dom@1" }],
+  "lines": ["line/websocket@1"],
+  "presenters": [{ "id": "presenter/main", "implementation": "presenter/browser-dom-svg@1", "interactive": true }],
+  "facilities": [],
+  "exclusions": ["presenter/native-graphical@1", "compositor/native@1"],
+  "policy": { "authority_profile": "authority/explicit@1", "trust_profile": "trust/local-explicit@1", "update_profile": "update/rebuild@1", "ambient_defaults": false },
+  "bounds": { "static_memory_bytes": 1048576, "heap_arena_bytes": 8388608, "queue_items": 512, "buffered_bytes": 1048576, "active_instances": 64, "operation_slots": 32, "timer_slots": 16, "line_sessions": 4, "evidence_items": 512 }
+}

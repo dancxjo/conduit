@@ -6,6 +6,7 @@ members = [
 	"crates/conduit-wire",
 	"crates/conduit-signal",
 	"crates/conduit-form",
+	"crates/conduit-host-fabrication",
 	"crates/conduit-planner",
 	"crates/conduit-presentation",
 	"crates/conduit-body",

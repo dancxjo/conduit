@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.host/profile@1",
+  "name": "conduitos-headless",
+  "target": { "family": "conduitos", "architecture": "thumbv6m", "machine": "pico-w", "build_profile": "release" },
+  "host_core": "host-core/conduitos@1",
+  "fragments": [],
+  "capabilities": [],
+  "host_operations": [],
+  "resources": [],
+  "bases": [],
+  "drivers": [],
+  "lines": ["line/usb-cdc@1"],
+  "presenters": [],
+  "facilities": [],
+  "exclusions": ["presenter/native-graphical@1", "presenter/browser-dom-svg@1", "compositor/native@1"],
+  "policy": { "authority_profile": "authority/explicit@1", "trust_profile": "trust/local-explicit@1", "update_profile": "update/rebuild@1", "ambient_defaults": false },
+  "bounds": { "static_memory_bytes": 131072, "heap_arena_bytes": 0, "queue_items": 64, "buffered_bytes": 16384, "active_instances": 16, "operation_slots": 8, "timer_slots": 4, "line_sessions": 1, "evidence_items": 64 }
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.host/profile@1",
+  "name": "std-workstation",
+  "target": { "family": "std", "architecture": "x86_64", "machine": "workstation", "build_profile": "release" },
+  "host_core": "host-core/std@1",
+  "fragments": ["profile-fragment/explicit-local-trust@1"],
+  "capabilities": [{ "kind": "time/tick", "contract_revision": "conduit.std/time-tick@2", "implementation": "std/kernel-time-tick@2" }],
+  "host_operations": ["conduit.host/wait@1"],
+  "resources": [
+    { "id": "surface/main", "class": "presentation/surface", "slots": 8, "bytes": 8388608 },
+    { "id": "timer/main", "class": "conduit.resource/timer-slot@1", "slots": 128, "bytes": 8192 }
+  ],
+  "bases": [
+    { "id": "display/main", "kind": "display/scanout", "driver": "display/linear-framebuffer@1" },
+    { "id": "timer/main", "kind": "timer/monotonic", "driver": "hosted/monotonic-clock@1" }
+  ],
+  "drivers": [
+    { "id": "driver/display", "kind": "display/linear-framebuffer@1" },
+    { "id": "driver/timer", "kind": "hosted/monotonic-clock@1" }
+  ],
+  "lines": ["line/websocket@1"],
+  "presenters": [{ "id": "presenter/main", "implementation": "presenter/native-graphical@1", "interactive": true }],
+  "facilities": ["compositor/native@1"],
+  "exclusions": [],
+  "policy": { "authority_profile": "authority/explicit@1", "trust_profile": "trust/local-explicit@1", "update_profile": "update/rebuild@1", "ambient_defaults": false },
+  "bounds": { "static_memory_bytes": 16777216, "heap_arena_bytes": 67108864, "queue_items": 4096, "buffered_bytes": 16777216, "active_instances": 512, "operation_slots": 256, "timer_slots": 128, "line_sessions": 64, "evidence_items": 4096 }
+}
