@@ -62,8 +62,16 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     const seedButton = page.locator(`#subjects button[data-subject="${seed.identity}"]`);
     await seedButton.click();
     await expect(seedButton).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("#inspector .exact-selection")).toContainText(seed.identity);
-    await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeVisible();
+    const exact = page.locator("#inspector .exact-selection");
+    await expect(exact).not.toHaveAttribute("open", "");
+    await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "BE BORN" })).toBeDisabled();
+    await expect(page.locator("#semantic-actions")).toContainText(
+      "Unavailable: No admitted authority can create a Body from this entrance.",
+    );
+    await exact.locator("summary").click();
+    await expect(exact).toHaveAttribute("open", "");
+    await expect(exact).toContainText(seed.identity);
     await page.getByRole("button", { name: "Clear selection" }).click();
     await expect(page.locator("#inspector .exact-selection")).toBeHidden();
     await expect(page.locator("#inspector .inspector-hint")).toContainText("Select a Host");
@@ -72,8 +80,15 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     expect(cleared.entrance.layer).toBe("World");
     await seedButton.click();
 
-    await page.getByRole("button", { name: "OPEN", exact: true }).click();
-    await expect(page.getByRole("button", { name: "BE BORN" })).toBeVisible();
+    const openedTransition = await page.evaluate(async ({ presentationId, revision, subject }) =>
+      (await fetch("/api/front-door-transition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presentation_id: presentationId, revision, action: "open", subject }),
+      })).json(),
+    { presentationId: initial.presentation.identity, revision: initial.revision, subject: seed.identity });
+    expect(openedTransition.interaction.last_disposition).toBe("Succeeded");
+    await page.evaluate(() => window.patchbayReload());
     const opened = await (await fetch(`${url}/api/snapshot`)).json();
     expect(opened.revision).toBe(initial.revision + 1);
     expect(opened.presentation.basis.body_id).toBeNull();
@@ -100,8 +115,15 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       expect.objectContaining({ role: "Sign", label: "Refused StalePresentation" }),
     );
 
+    const bornTransition = await page.evaluate(async ({ presentationId, revision, subject }) =>
+      (await fetch("/api/front-door-transition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presentation_id: presentationId, revision, action: "be-born", subject }),
+      })).json(),
+    { presentationId: stale.presentation.identity, revision: stale.revision, subject: seed.identity });
+    expect(bornTransition.interaction.last_disposition).toBe("Succeeded");
     await page.evaluate(() => window.patchbayReload());
-    await page.getByRole("button", { name: "BE BORN" }).click();
     await expect(page.getByRole("heading", { name: "Live Body topology" })).toBeVisible();
     const born = await (await fetch(`${url}/api/snapshot`)).json();
     expect(born.presentation.basis.body_id).toBeTruthy();
