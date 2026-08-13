@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    image,
+    build, image,
     profile::{Paths, LIMINE_ARCHIVE_SHA256, LIMINE_VERSION, QEMU_PROFILE},
     report::{git_head, ProofRecord},
     run, ConduitosArch, ConduitosError,
@@ -76,16 +76,32 @@ pub fn execute(
         ));
     }
     let base_commit = git_head(&paths.root)?;
-    let expected_image_id = format!("conduitos-image/{base_commit}/{}/v1", arch.as_str());
-    if first.boot.build_id != base_commit
-        || second.boot.build_id != base_commit
-        || first.boot.image_binding != expected_image_id
-        || second.boot.image_binding != expected_image_id
-    {
-        return Err(ConduitosError::refusal(
-            "stale-build-identity",
-            "guest build/image identity did not match the exact checkout",
-        ));
+    if arch == ConduitosArch::X86_64 {
+        let expected = build::proof_manifest(arch)?;
+        if first.boot.profile_id != expected.profile_id
+            || second.boot.profile_id != expected.profile_id
+            || first.boot.build_id != expected.build_id
+            || second.boot.build_id != expected.build_id
+            || first.boot.image_binding != expected.image_id
+            || second.boot.image_binding != expected.image_id
+        {
+            return Err(ConduitosError::refusal(
+                "stale-build-identity",
+                "guest fabrication identity did not match the checked proof PROFILE",
+            ));
+        }
+    } else {
+        let expected_image_id = format!("conduitos-image/{base_commit}/{}/v1", arch.as_str());
+        if first.boot.build_id != base_commit
+            || second.boot.build_id != base_commit
+            || first.boot.image_binding != expected_image_id
+            || second.boot.image_binding != expected_image_id
+        {
+            return Err(ConduitosError::refusal(
+                "stale-build-identity",
+                "guest build/image identity did not match the exact checkout",
+            ));
+        }
     }
     let qemu_version = qemu_version(&paths)?;
     let first_serial = first.serial;

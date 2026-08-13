@@ -99,6 +99,27 @@ fn execute_embedded_profile(
     if arch != ConduitosArch::X86_64 {
         return execute(arch, opts);
     }
+    let manifest = resolve_embedded_profile(arch, source)?;
+    execute_profile(&manifest, opts)
+}
+
+pub(super) fn proof_manifest(arch: ConduitosArch) -> Result<BuildManifest, ConduitosError> {
+    resolve_embedded_profile(
+        arch,
+        include_str!("../../../../profiles/hosts/conduitos-proof.profile.json"),
+    )
+}
+
+fn resolve_embedded_profile(
+    arch: ConduitosArch,
+    source: &str,
+) -> Result<BuildManifest, ConduitosError> {
+    if arch != ConduitosArch::X86_64 {
+        return Err(ConduitosError::refusal(
+            "unsupported-profile-target",
+            "checked product PROFILE lowering currently owns x86_64 only",
+        ));
+    }
     let paths = Paths::new(arch)?;
     let profile: HostProfile = serde_json::from_str(source)
         .map_err(|error| ConduitosError::refusal("proof-profile-invalid", error.to_string()))?;
@@ -138,7 +159,7 @@ fn execute_embedded_profile(
     .map_err(|diagnostics| {
         ConduitosError::refusal("proof-profile-refused", format!("{diagnostics:?}"))
     })?;
-    execute_profile(&image.manifest, opts)
+    Ok(image.manifest)
 }
 
 fn execute_with_features(
