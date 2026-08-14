@@ -156,12 +156,14 @@ body[data-lens="signs"] .flow-faceplate { border-style:double; }
   nav { inset:165px .75rem auto; width:auto; max-width:none; max-height:180px; overflow:auto; justify-content:flex-start; }
   .shell-launchers,.lens-controls { display:flex; max-width:100%; overflow-x:auto; flex-wrap:nowrap; }
   nav button,nav a { flex:0 0 auto; white-space:nowrap; }
-  .canvas-heading { inset:355px .75rem auto; max-width:none; max-height:180px; overflow:auto; flex-direction:column; }
+  .canvas-heading { inset:355px .75rem auto; max-width:none; max-height:220px; overflow:auto; flex-direction:column; }
   .canvas-heading [role="toolbar"] { max-width:100%; justify-content:flex-start; flex-wrap:nowrap; overflow-x:auto; }
-  #flow-root { top:min(535px,60vh); height:auto; }
+  .canvas-heading [role="toolbar"] button { flex:0 0 auto; white-space:nowrap; }
+  #flow-root { top:min(575px,64vh); height:auto; }
   .side-panel,.parts-panel,.deep-inspection { top:355px; width:calc(100% - 1.5rem); overflow:auto; }
   #parts,#deep-inspection { width:calc(100% - 1.5rem); }
   .status-strip { display:none; }
   #structured-canvas { max-width:calc(100% - 1.5rem); }
+  #structured-canvas:not([open])>summary { padding:.25rem .4rem; font-size:.7rem; }
 }
 @media (max-width:720px) { .react-flow__node-faceplate,.flow-faceplate { width:13rem; min-width:13rem; max-width:13rem; } }

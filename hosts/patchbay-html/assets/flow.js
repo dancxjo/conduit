@@ -163,6 +163,18 @@ export function fitFlow() {
   return instance?.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 });
 }
 
+export function focusFlow(subjectIdentity) {
+  const node = instance?.getNode(subjectIdentity);
+  if (!node) return false;
+  const position = node.positionAbsolute || node.position;
+  instance.setCenter(
+    position.x + (node.width || 240) / 2,
+    position.y + (node.height || 96) / 2,
+    { duration: 0, zoom: 0.85 },
+  );
+  return true;
+}
+
 export function arrangeFlow() {
   arrangeCurrent?.();
 }

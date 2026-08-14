@@ -228,8 +228,11 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const selectedFaceplate=page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`);
     await expect(selectedFaceplate).toBeVisible();
     await expect(selectedFaceplate).toHaveClass(/semantic-selected/);
-    const selectedBox=await selectedFaceplate.boundingBox(),inspectorBox=await page.locator("#inspector").boundingBox();
+    await page.locator("#center-flow").click();
+    const selectedBox=await selectedFaceplate.boundingBox(),inspectorBox=await page.locator("#inspector").boundingBox(),headingBox=await page.locator(".canvas-heading").boundingBox();
     expect(selectedBox.x+selectedBox.width).toBeLessThan(inspectorBox.x);
+    expect(selectedBox.y).toBeGreaterThan(headingBox.y+headingBox.height);
+    expect(selectedBox.width).toBeGreaterThan(150);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"selected-gear",selectedSnapshot,"selection-succeeded-and-inspector-correlated");
     const stableLensIdentity={presentation:selectedSnapshot.presentation.identity,plan:selectedSnapshot.presentation.basis.plan_id,play:selectedSnapshot.presentation.basis.active_play_id,selection:selectedSnapshot.interaction.selected_subject,interactionRevision:selectedSnapshot.interaction.revision};
     await page.locator('[data-lens="plan"]').click();await expect(page.locator("body")).toHaveAttribute("data-lens","plan");await expect(page.locator("#lens-label")).toHaveText("PLAN LENS");await expect(page.locator("#inspector .selected-summary")).toContainText("host-id");await expect(selectedFaceplate.locator(".faceplate-clue")).not.toHaveText(/semantic Gear|current world subject/);await expectFlowDominant(page,{inspector:true});
@@ -361,7 +364,9 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
     const presentationOnly=await (await fetch(`${url}/api/snapshot`)).json();
     expect(presentationOnly.interaction.revision).toBe(before.interaction.revision);
-    const firstFace=nodes.first().getByRole("button");
+    const clickableIndex=await nodes.evaluateAll(items=>items.findIndex(item=>{const box=item.getBoundingClientRect(),hit=document.elementFromPoint(box.x+box.width/2,box.y+box.height/2);return hit?.closest(".react-flow__node")===item;}));
+    expect(clickableIndex).toBeGreaterThanOrEqual(0);
+    const firstFace=nodes.nth(clickableIndex).getByRole("button");
     await firstFace.click();
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open","true");
     const pointerSelection=await (await fetch(`${url}/api/snapshot`)).json();
