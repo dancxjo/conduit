@@ -58,6 +58,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     )).toBe(true);
     const workspaceBox = await page.locator(".workspace").boundingBox();
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
+    await page.getByRole("button", { name: "Navigate", exact: true }).click();
     const seed = initial.presentation.subjects.find(({ role }) => role === "Seed");
     const seedButton = page.locator(`#subjects button[data-subject="${seed.identity}"]`);
     const reselectionResponse = page.waitForResponse(

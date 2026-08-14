@@ -5,15 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Conduit Patchbay</title>
   <link rel="stylesheet" href="/assets/theme.css">
+  <link rel="stylesheet" href="/assets/react-flow.css">
   <link rel="stylesheet" href="/assets/app.css">
+  <script src="/assets/react.min.js"></script>
+  <script src="/assets/react-dom.min.js"></script>
+  <script src="/assets/react-flow.min.js"></script>
 </head>
 <body>
+<div id="patchbay-root">
   <header class="topbar">
     <div><p class="eyebrow">CONDUIT</p><h1>Patchbay</h1></div>
     <p id="status" role="status" aria-live="polite">Loading bounded snapshot…</p>
   </header>
   <nav aria-label="Patchbay workspace">
-    <a href="#parts">Parts</a><a href="#form">Canvas</a><a href="#palette">Navigate</a><a href="#inspector">Inspector</a>
+    <span class="shell-launchers" role="toolbar" aria-label="Patchbay drawers"><button id="toggle-palette" type="button" aria-expanded="false" aria-controls="palette">Navigate</button><button id="toggle-parts" type="button" aria-expanded="false" aria-controls="parts">Parts</button><button id="toggle-inspector" type="button" aria-expanded="false" aria-controls="inspector">Inspector</button><button id="toggle-truth" type="button" aria-expanded="false" aria-controls="deep-inspection">Exact truth</button></span>
     <span class="lens-controls" role="toolbar" aria-label="Patchbay lenses"><button type="button" data-lens="world" aria-pressed="true">World</button><button type="button" data-lens="form" aria-pressed="false">Intent</button><button type="button" data-lens="plan" aria-pressed="false">Realization</button><button type="button" data-lens="play" aria-pressed="false">Play</button><button type="button" data-lens="signs" aria-pressed="false">Signs</button></span><a href="#linear">Linear</a>
   </nav>
   <main>
@@ -28,10 +33,11 @@
         <div class="canvas-heading">
           <div><p id="lens-label" class="eyebrow">WORLD LENS</p><h2 id="canvas-title">Host and Body possibilities</h2></div>
           <div role="toolbar" aria-label="Renderer-local canvas controls">
-            <button id="zoom-in" type="button">Zoom in</button><button id="zoom-out" type="button">Zoom out</button><button id="pan-right" type="button">Pan right</button><button id="arrange" type="button" aria-pressed="false">Reverse arrangement</button><button id="theme" type="button" aria-pressed="false">High contrast</button>
+            <button id="fit-flow" type="button">Fit</button><button id="zoom-in" type="button">Zoom in</button><button id="zoom-out" type="button">Zoom out</button><button id="pan-right" type="button">Pan right</button><button id="arrange" type="button" aria-pressed="false">Reverse arrangement</button><button id="theme" type="button" aria-pressed="false">High contrast</button>
           </div>
         </div>
-        <svg id="graph" role="img" aria-labelledby="graph-title"><title id="graph-title">Canonical Form graph</title></svg>
+        <div id="flow-root" aria-label="Patchbay spatial workspace"></div>
+        <details id="structured-canvas"><summary>Structured spatial equivalent</summary><svg id="graph" role="img" aria-labelledby="graph-title"><title id="graph-title">Canonical Form graph</title></svg></details>
       </section>
       <aside id="inspector" class="side-panel inspector" aria-live="polite" data-region="inspector" data-priority="selected-detail" data-overflow="disclose">
         <h2>Inspector</h2><button id="clear-selection" type="button" hidden>Clear selection</button><p class="inspector-hint">Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.</p><dl class="selected-summary"></dl><div id="semantic-actions" role="toolbar" aria-label="Selected subject actions"></div><details class="exact-selection"><summary>Exact identity and provenance</summary><dl></dl></details>
@@ -72,5 +78,6 @@
   </main>
   <noscript>This renderer requires JavaScript to decode the typed snapshot. The server provides no semantic fallback.</noscript>
   <script type="module" src="/assets/app.js"></script>
+</div>
 </body>
 </html>

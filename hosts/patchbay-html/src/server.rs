@@ -19,8 +19,13 @@ pub const MAX_HTTP_REQUEST_BYTES: usize = 8 * 1024;
 pub const MAX_THEME_CSS_BYTES: usize = 2 * 1024;
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const SCRIPT: &[u8] = include_bytes!("../assets/app.js");
+const FLOW_SCRIPT: &[u8] = include_bytes!("../assets/flow.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
 const STYLE: &[u8] = include_bytes!("../assets/app.css");
+const REACT: &[u8] = include_bytes!("../assets/react.min.js");
+const REACT_DOM: &[u8] = include_bytes!("../assets/react-dom.min.js");
+const REACT_FLOW: &[u8] = include_bytes!("../assets/react-flow.min.js");
+const REACT_FLOW_STYLE: &[u8] = include_bytes!("../assets/react-flow.css");
 const MAX_BROWSER_WASM_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Debug)]
@@ -254,6 +259,18 @@ impl PatchbayHtmlServer {
         let (status, content_type, body): (&str, &str, &[u8]) = match first {
             "GET / HTTP/1.1" => ("200 OK", "text/html; charset=utf-8", INDEX),
             "GET /assets/app.js HTTP/1.1" => ("200 OK", "text/javascript; charset=utf-8", SCRIPT),
+            "GET /assets/flow.js HTTP/1.1" => {
+                ("200 OK", "text/javascript; charset=utf-8", FLOW_SCRIPT)
+            }
+            "GET /assets/react.min.js HTTP/1.1" => {
+                ("200 OK", "text/javascript; charset=utf-8", REACT)
+            }
+            "GET /assets/react-dom.min.js HTTP/1.1" => {
+                ("200 OK", "text/javascript; charset=utf-8", REACT_DOM)
+            }
+            "GET /assets/react-flow.min.js HTTP/1.1" => {
+                ("200 OK", "text/javascript; charset=utf-8", REACT_FLOW)
+            }
             "GET /assets/browser-membership.js HTTP/1.1" => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
@@ -278,6 +295,9 @@ impl PatchbayHtmlServer {
                 |body| ("200 OK", "application/json; charset=utf-8", body),
             ),
             "GET /assets/app.css HTTP/1.1" => ("200 OK", "text/css; charset=utf-8", STYLE),
+            "GET /assets/react-flow.css HTTP/1.1" => {
+                ("200 OK", "text/css; charset=utf-8", REACT_FLOW_STYLE)
+            }
             "GET /assets/theme.css HTTP/1.1" => (
                 "200 OK",
                 "text/css; charset=utf-8",
