@@ -7,6 +7,45 @@ use conduit_core::{BootId, ConfigurationValue, ExpandedFormId, HostId};
 use conduit_kernel::KernelEventKind;
 use std::path::PathBuf;
 
+fn invocation_presentation(
+    action: PatchbayAction,
+    target: &str,
+) -> conduit_presentation::Presentation {
+    conduit_presentation::Presentation::new_with_semantics(
+        17,
+        conduit_presentation::PresentationBasis {
+            seed_id: None,
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_form_id: None,
+            expanded_form_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![conduit_presentation::PresentationSubject {
+            identity: target.into(),
+            role: conduit_presentation::PresentationRole::Form,
+            label: "Target".into(),
+            accessibility_name: "Invocation target".into(),
+        }],
+        vec![],
+        vec![],
+        vec![],
+        vec![conduit_presentation::PresentationAction {
+            identity: format!("action/{}/current", action.as_str()),
+            intent: action.presentation_intent().into(),
+            target: target.into(),
+            label: action.as_str().into(),
+            disclosure: conduit_presentation::PresentationDisclosureLevel::CurrentAction,
+            availability: conduit_presentation::PresentationActionAvailability::Available,
+        }],
+        vec![],
+    )
+    .unwrap()
+}
+
 fn count_graph() -> PatchbayGraph {
     let editor = FormEditor::from_source(
         PathBuf::from("count.conduit"),
@@ -119,19 +158,23 @@ fn stale_and_unknown_selection_refuse_without_replacing_canonical_selection() {
 #[test]
 fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     let mut interaction = interaction();
+    let presentation = invocation_presentation(PatchbayAction::BeBorn, "body/count-demo");
+    let action_id = presentation.actions[0].identity.clone();
     let request = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("be-born").unwrap(),
-        PatchbayAction::BeBorn,
-        "body/count-demo",
+        &presentation,
+        &action_id,
     )
     .unwrap();
-    let control = request.control_request(17).unwrap().unwrap();
+    let control = request.control_request().unwrap().unwrap();
+    assert_eq!(control.presentation_id, presentation.identity.as_str());
     assert_eq!(control.presentation_revision, 17);
+    assert_eq!(control.action_id, action_id);
     assert_eq!(control.action, PatchbayAction::BeBorn);
     assert_eq!(control.target_identity, "body/count-demo");
     let mut invoked = None;
     let receipt = interaction
-        .execute(None, request, |request| {
+        .execute_presentation(&presentation, request, |request| {
             invoked = Some(request.clone());
             PatchbayInvocationOutcome::Succeeded
         })
@@ -145,12 +188,12 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
 
     let request = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("be-born").unwrap(),
-        PatchbayAction::BeBorn,
-        "body/count-demo",
+        &presentation,
+        &action_id,
     )
     .unwrap();
     let receipt = interaction
-        .execute(None, request, |_| {
+        .execute_presentation(&presentation, request, |_| {
             PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
         })
         .unwrap();
@@ -161,12 +204,14 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
 
     let request = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("be-born").unwrap(),
-        PatchbayAction::BeBorn,
-        "body/count-demo",
+        &presentation,
+        &action_id,
     )
     .unwrap();
     let receipt = interaction
-        .execute(None, request, |_| PatchbayInvocationOutcome::Failed)
+        .execute_presentation(&presentation, request, |_| {
+            PatchbayInvocationOutcome::Failed
+        })
         .unwrap();
     assert_eq!(receipt.disposition, InteractionDisposition::Failed);
     assert!(receipt
@@ -176,11 +221,136 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
 }
 
 #[test]
+fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_operation() {
+    let mut interaction = interaction();
+    let presentation = invocation_presentation(PatchbayAction::OpenBack, "seed/example");
+    let action_id = presentation.actions[0].identity.clone();
+
+    let unknown = PatchbayInteractionRequest::invoke(
+        interaction.next_request_id("open").unwrap(),
+        &presentation,
+        "action/unknown",
+    );
+    assert!(matches!(
+        unknown,
+        Err(crate::InteractionError::Action(
+            conduit_presentation::PresentationActionRefusal::UnknownAction
+        ))
+    ));
+
+    let mut unavailable_presentation = presentation.clone();
+    unavailable_presentation.actions[0].availability =
+        conduit_presentation::PresentationActionAvailability::Unavailable {
+            reason_code: "front-door/not-current".into(),
+            explanation: "The action is not current.".into(),
+        };
+    let unavailable = PatchbayInteractionRequest::invoke(
+        interaction.next_request_id("open").unwrap(),
+        &unavailable_presentation,
+        &action_id,
+    )
+    .unwrap();
+    let mut invoked = false;
+    let receipt = interaction
+        .execute_presentation(&unavailable_presentation, unavailable, |_| {
+            invoked = true;
+            PatchbayInvocationOutcome::Succeeded
+        })
+        .unwrap();
+    assert_eq!(
+        receipt.disposition,
+        InteractionDisposition::Refused(PatchbayRefusal::ActionUnavailable)
+    );
+    assert!(!invoked);
+
+    for mutation in [
+        "presentation-id",
+        "presentation-revision",
+        "action-id",
+        "target",
+    ] {
+        let mut request = PatchbayInteractionRequest::invoke(
+            interaction.next_request_id("open").unwrap(),
+            &presentation,
+            &action_id,
+        )
+        .unwrap();
+        let PatchbayInteractionRequest::Invoke { invocation, .. } = &mut request else {
+            unreachable!()
+        };
+        let expected = match mutation {
+            "presentation-id" => {
+                invocation.presentation_id = "presentation/stale".into();
+                PatchbayRefusal::StalePresentation
+            }
+            "presentation-revision" => {
+                invocation.presentation_revision += 1;
+                PatchbayRefusal::StalePresentation
+            }
+            "action-id" => {
+                invocation.action_id = "action/unknown".into();
+                PatchbayRefusal::UnknownAction
+            }
+            "target" => {
+                invocation.target_identity = "seed/other".into();
+                PatchbayRefusal::WrongTarget
+            }
+            _ => unreachable!(),
+        };
+        let mut invoked = false;
+        let receipt = interaction
+            .execute_presentation(&presentation, request, |_| {
+                invoked = true;
+                PatchbayInvocationOutcome::Succeeded
+            })
+            .unwrap();
+        assert_eq!(
+            receipt.disposition,
+            InteractionDisposition::Refused(expected),
+            "mutation {mutation}"
+        );
+        assert!(!invoked, "mutation {mutation} reached the host operation");
+    }
+}
+
+#[test]
+fn duplicate_semantic_delivery_is_refused_before_a_second_host_operation() {
+    let mut interaction = interaction();
+    let presentation = invocation_presentation(PatchbayAction::OpenBack, "seed/example");
+    let request = PatchbayInteractionRequest::invoke(
+        interaction.next_request_id("open").unwrap(),
+        &presentation,
+        &presentation.actions[0].identity,
+    )
+    .unwrap();
+    let duplicate = request.clone();
+    let mut calls = 0;
+    interaction
+        .execute_presentation(&presentation, request, |_| {
+            calls += 1;
+            PatchbayInvocationOutcome::Succeeded
+        })
+        .unwrap();
+    let receipt = interaction
+        .execute_presentation(&presentation, duplicate, |_| {
+            calls += 1;
+            PatchbayInvocationOutcome::Succeeded
+        })
+        .unwrap();
+    assert_eq!(calls, 1);
+    assert_eq!(
+        receipt.disposition,
+        InteractionDisposition::Refused(PatchbayRefusal::DuplicateDelivery)
+    );
+}
+
+#[test]
 fn interaction_values_are_platform_neutral_and_bounded() {
+    let presentation = invocation_presentation(PatchbayAction::ToggleLinearView, "form/count-demo");
     let request = PatchbayInteractionRequest::invoke(
         crate::PatchbayInteractionRequestId::new("request/1").unwrap(),
-        PatchbayAction::ToggleLinearView,
-        "form/count-demo",
+        &presentation,
+        &presentation.actions[0].identity,
     )
     .unwrap();
     let debug = format!("{request:?}").to_ascii_lowercase();
@@ -189,8 +359,9 @@ fn interaction_values_are_platform_neutral_and_bounded() {
     }
     assert!(PatchbayInteractionRequest::invoke(
         crate::PatchbayInteractionRequestId::new("request/2").unwrap(),
-        PatchbayAction::Save,
-        "x".repeat(crate::interaction::MAX_INTERACTION_ID_BYTES + 1),
+        &presentation,
+        "x".repeat(crate::interaction::MAX_INTERACTION_ID_BYTES + 1)
+            .as_str(),
     )
     .is_err());
 }

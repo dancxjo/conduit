@@ -3,6 +3,29 @@
 use super::*;
 
 impl PatchbayInteractionRequest {
+    /// Project an invocation onto the portable semantic-control envelope.
+    pub fn control_request(
+        &self,
+    ) -> Result<Option<conduit_core::PatchbayControlRequest>, InteractionError> {
+        let Self::Invoke {
+            request_id,
+            invocation,
+        } = self
+        else {
+            return Ok(None);
+        };
+        conduit_core::PatchbayControlRequest::new(
+            request_id.as_str(),
+            invocation.presentation_id.clone(),
+            invocation.presentation_revision,
+            invocation.action_id.clone(),
+            invocation.action,
+            invocation.target_identity.clone(),
+        )
+        .map(Some)
+        .map_err(|_| InteractionError::InvalidIdentity)
+    }
+
     pub fn select(
         request_id: PatchbayInteractionRequestId,
         subject: &crate::PatchbaySubjectRef,
@@ -17,16 +40,29 @@ impl PatchbayInteractionRequest {
 
     pub fn invoke(
         request_id: PatchbayInteractionRequestId,
-        action: PatchbayAction,
-        target_identity: impl Into<String>,
+        presentation: &conduit_presentation::Presentation,
+        action_id: &str,
     ) -> Result<Self, InteractionError> {
-        let target_identity = target_identity.into();
-        validate_field(&target_identity)?;
+        validate_field(action_id)?;
+        let semantic = presentation
+            .actions
+            .iter()
+            .find(|candidate| candidate.identity == action_id)
+            .ok_or(InteractionError::Action(
+                conduit_presentation::PresentationActionRefusal::UnknownAction,
+            ))?;
+        let action =
+            action_from_intent(&semantic.intent).ok_or(InteractionError::InvalidIdentity)?;
+        validate_field(presentation.identity.as_str())?;
+        validate_field(&semantic.target)?;
         Ok(Self::Invoke {
             request_id,
             invocation: PatchbayInvocation {
+                presentation_id: presentation.identity.as_str().into(),
+                presentation_revision: presentation.revision,
+                action_id: semantic.identity.clone(),
                 action,
-                target_identity,
+                target_identity: semantic.target.clone(),
             },
         })
     }
@@ -49,7 +85,7 @@ impl PatchbayInteractionRequest {
 
     pub(super) fn encode(&self) -> Result<Vec<u8>, InteractionError> {
         let mut encoded = Vec::with_capacity(MAX_INTERACTION_VALUE_BYTES as usize);
-        encoded.push(1);
+        encoded.push(2);
         match self {
             Self::Select {
                 request_id,
@@ -67,6 +103,9 @@ impl PatchbayInteractionRequest {
             } => {
                 encoded.push(2);
                 push_field(&mut encoded, request_id.as_str())?;
+                push_field(&mut encoded, &invocation.presentation_id)?;
+                encoded.extend_from_slice(&invocation.presentation_revision.to_le_bytes());
+                push_field(&mut encoded, &invocation.action_id)?;
                 push_field(&mut encoded, invocation.action.as_str())?;
                 push_field(&mut encoded, &invocation.target_identity)?;
             }
@@ -85,7 +124,7 @@ impl PatchbayInteractionRequest {
     pub(super) fn decode(encoded: &[u8]) -> Result<Self, InteractionError> {
         if encoded.len() > MAX_INTERACTION_VALUE_BYTES as usize
             || encoded.len() < 2
-            || encoded[0] != 1
+            || encoded[0] != 2
         {
             return Err(InteractionError::MalformedValue);
         }
@@ -106,15 +145,21 @@ impl PatchbayInteractionRequest {
             2 => {
                 let request_id =
                     PatchbayInteractionRequestId::new(read_field(encoded, &mut cursor)?)?;
-                let second = read_field(encoded, &mut cursor)?;
-                let third = read_field(encoded, &mut cursor)?;
+                let presentation_id = read_field(encoded, &mut cursor)?;
+                let presentation_revision = read_u64(encoded, &mut cursor)?;
+                let action_id = read_field(encoded, &mut cursor)?;
+                let action = read_field(encoded, &mut cursor)?;
+                let target_identity = read_field(encoded, &mut cursor)?;
                 require_end(encoded, cursor)?;
                 Ok(Self::Invoke {
                     request_id,
                     invocation: PatchbayInvocation {
-                        action: PatchbayAction::from_name(&second)
+                        presentation_id,
+                        presentation_revision,
+                        action_id,
+                        action: PatchbayAction::from_name(&action)
                             .ok_or(InteractionError::MalformedValue)?,
-                        target_identity: third,
+                        target_identity,
                     },
                 })
             }
@@ -128,6 +173,22 @@ impl PatchbayInteractionRequest {
             _ => Err(InteractionError::MalformedValue),
         }
     }
+}
+
+fn action_from_intent(intent: &str) -> Option<PatchbayAction> {
+    Some(match intent {
+        "conduit.intent/open@1" => PatchbayAction::OpenBack,
+        "conduit.intent/save@1" => PatchbayAction::Save,
+        "conduit.intent/toggle-linear-view@1" => PatchbayAction::ToggleLinearView,
+        "conduit.intent/be-born@1" => PatchbayAction::BeBorn,
+        "conduit.intent/wake@1" => PatchbayAction::Wake,
+        "conduit.intent/lull@1" => PatchbayAction::Lull,
+        "conduit.intent/plan@1" => PatchbayAction::Plan,
+        "conduit.intent/play@1" => PatchbayAction::Play,
+        "conduit.intent/stop@1" => PatchbayAction::Stop,
+        "conduit.intent/hold@1" => PatchbayAction::Hold,
+        _ => return None,
+    })
 }
 
 fn encode_edit(output: &mut Vec<u8>, edit: &PatchbayEdit) -> Result<(), InteractionError> {

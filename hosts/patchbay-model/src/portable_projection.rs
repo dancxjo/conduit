@@ -3,7 +3,8 @@
 use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
 use conduit_core::SignId;
 use conduit_presentation::{
-    Presentation, PresentationBasis, PresentationError, PresentationProperty,
+    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationError, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole, PresentationSubject, PresentationText,
 };
@@ -168,7 +169,21 @@ impl PatchbayPresentation {
         append_sound(self, &document, &mut content);
         crate::portable_route_projection::append_routes(self, &document, &mut content);
 
-        Presentation::new(
+        let target = identities
+            .expanded_form_id
+            .as_ref()
+            .map_or_else(|| document.clone(), |identity| identity.as_str().to_owned());
+        if target != document {
+            let action_target = content.subject_with_identity(
+                target.clone(),
+                PresentationRole::Form,
+                "Current Form",
+                "Current checked and expanded Form",
+            );
+            content.contains(&document, &action_target);
+        }
+        let actions = lifecycle_actions(wake.lifecycle, &target);
+        Presentation::new_with_semantics(
             self.revision,
             PresentationBasis {
                 seed_id: Some(body.seed_id.clone()),
@@ -185,6 +200,11 @@ impl PatchbayPresentation {
             content.relationships,
             content.properties,
             content.text,
+            actions,
+            vec![PresentationDisclosure {
+                subject: document,
+                level: PresentationDisclosureLevel::Primary,
+            }],
         )
         .map_err(PortableProjectionError::InvalidPresentation)
     }
@@ -231,6 +251,53 @@ impl PatchbayPresentation {
         .map_err(PortableProjectionError::InvalidPresentation)?;
         Ok(presentation)
     }
+}
+
+fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<PresentationAction> {
+    let current: &[&str] = match lifecycle {
+        WakeLifecycle::AwaitingPlan
+        | WakeLifecycle::Unsatisfied
+        | WakeLifecycle::AwaitingReplacement => &["plan", "lull"],
+        WakeLifecycle::AwaitingPlay => &["play", "lull"],
+        WakeLifecycle::Playing => &["stop", "hold"],
+        WakeLifecycle::Held | WakeLifecycle::Failed => &["lull"],
+        WakeLifecycle::Lulled => &["wake"],
+    };
+    [
+        ("open-back", "Open", "conduit.intent/open@1"),
+        ("save", "Save", "conduit.intent/save@1"),
+        (
+            "toggle-linear-view",
+            "Toggle linear view",
+            "conduit.intent/toggle-linear-view@1",
+        ),
+        ("be-born", "Be born", "conduit.intent/be-born@1"),
+        ("wake", "Wake", "conduit.intent/wake@1"),
+        ("plan", "Plan", "conduit.intent/plan@1"),
+        ("play", "Play", "conduit.intent/play@1"),
+        ("hold", "Hold", "conduit.intent/hold@1"),
+        ("stop", "Stop", "conduit.intent/stop@1"),
+        ("lull", "Lull", "conduit.intent/lull@1"),
+    ]
+    .iter()
+    .map(|(name, label, intent)| PresentationAction {
+        identity: format!("action/{name}/{target}"),
+        intent: (*intent).into(),
+        target: target.into(),
+        label: (*label).into(),
+        disclosure: PresentationDisclosureLevel::CurrentAction,
+        availability: if matches!(*name, "open-back" | "save" | "toggle-linear-view")
+            || current.contains(name)
+        {
+            PresentationActionAvailability::Available
+        } else {
+            PresentationActionAvailability::Unavailable {
+                reason_code: "lifecycle/not-current".into(),
+                explanation: format!("{label} is not available in {lifecycle:?}."),
+            }
+        },
+    })
+    .collect()
 }
 
 fn append_sound(presentation: &PatchbayPresentation, document: &str, content: &mut ContentBuilder) {

@@ -43,6 +43,7 @@ function propertyText(value){
 }
 
 function displaySelection(identity){
+  const focusedAction=document.activeElement?.dataset?.semanticAction;
   state.selected=identity;
   document.querySelectorAll("[data-subject]").forEach(item=>{const selected=item.dataset.subject===identity;item.classList.toggle("selected",selected);if(item.tagName==="BUTTON")item.setAttribute("aria-pressed",String(selected));});
   const subject=state.snapshot.presentation.subjects.find(item=>item.identity===identity);
@@ -58,20 +59,21 @@ function displaySelection(identity){
   const manifestation=state.snapshot.renderer.manifestation;term(exactFacts,"Body",state.snapshot.presentation.basis.body_id);term(exactFacts,"Wake",state.snapshot.presentation.basis.wake_id);term(exactFacts,"Source Plan",state.snapshot.presentation.basis.plan_id);term(exactFacts,"Source Play",state.snapshot.presentation.basis.active_play_id);term(exactFacts,"Renderer Plan",manifestation.plan_id);term(exactFacts,"Renderer Play",manifestation.active_play_id);term(exactFacts,"Manifestation",manifestation.manifestation_id);term(exactFacts,"Manifestation lifecycle",manifestation.lifecycle);
   for(const action of semanticActions(identity)){
     const availability=actionAvailability(action),button=document.createElement("button");button.type="button";button.textContent=action.label.toUpperCase();button.disabled=!availability.available;button.setAttribute("aria-describedby",`${action.identity}-availability`);
-    // Semantic availability is presentation truth. Existing entrance transitions
-    // remain a separate, legacy invocation seam until #1194.
+    button.dataset.semanticAction=action.identity;button.onclick=()=>dispatchSemanticAction(action);
     const status=document.createElement("span");status.id=`${action.identity}-availability`;status.className="semantic-action-availability";status.textContent=availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state;
     actions.append(button,status);
   }
+  if(focusedAction)actions.querySelector(`[data-semantic-action="${CSS.escape(focusedAction)}"]`)?.focus();
 }
 function lensProperty(lens,name){if(lens==="world")return ["seed-id","body-id","part-id","candidate-id","membership-state","membership-proof","current","current-body","this-host","opened","freshness-sequence","source-document-id","checked-form-id","offer-generation","profile-id","capability-count","resource-count","planner-capability-count","capability-id","kind-id","operational-state","availability","freshness","line-id","binding-id","source-host-id","source-boot-id","sink-host-id","sink-boot-id","base","in-plan","playing"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="form")return !["plan-id","plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","admitted-capacity","active-play-id","play-state","pressure","line-id","line","base","base-instance-id"].includes(name)&&!name.startsWith("resource-")&&!name.startsWith("sign-");if(lens==="plan")return ["plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","admitted-capacity","line-id","line","base","base-instance-id"].includes(name)||name.startsWith("resource-");if(lens==="play")return ["active-play-id","play-state","pressure"].includes(name);return false;}
 
 async function dispatchInteraction(input){
-  const response=await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,...input})});
+  const response=await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,...input})});
   if(!response.ok)throw new Error(`interaction delivery HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
 }
 function select(identity){return dispatchInteraction({kind:"select",subject:identity});}
+function dispatchSemanticAction(action){return dispatchInteraction({kind:"invoke",action_id:action.identity});}
 
 async function dispatchEntranceTransition(action,subject){
   const response=await fetch("/api/front-door-transition",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,revision:state.snapshot.revision,action:action==="BeBorn"?"be-born":action.toLowerCase(),subject})});
@@ -81,7 +83,7 @@ async function dispatchEntranceTransition(action,subject){
 
 async function dispatchFrontDoorAction(action){
   const feedback=document.querySelector("#front-door-feedback"),controls=document.querySelector("#front-door-actions");feedback.textContent=`${action} pending…`;controls.setAttribute("aria-busy","true");
-  try{const next=await dispatchInteraction({kind:"invoke",action:action.toLowerCase(),target:state.snapshot.presentation.basis.expanded_form_id});feedback.textContent=`${action} ${next.interaction.last_disposition}`;}
+  try{const intent=`conduit.intent/${action.toLowerCase()}@1`,semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent===intent);if(!semantic)throw new Error(`current Presentation does not expose ${action}`);const next=await dispatchSemanticAction(semantic);feedback.textContent=`${action} ${next.interaction.last_disposition}`;}
   catch(error){feedback.textContent=`${action} failed without closing Patchbay: ${error.message}`;}
   finally{controls.removeAttribute("aria-busy");}
 }
@@ -96,10 +98,11 @@ async function dispatchPartsAction(action,target){
   }catch(error){feedback.textContent=`Parts action failed without closing Patchbay: ${error.message}`;feedback.dataset.disposition="failed";}
   finally{document.querySelector("#parts").removeAttribute("aria-busy");}
 }
-function partsButton(action,target){const button=document.createElement("button");button.type="button";button.textContent=partsActionLabels[action]??action;button.dataset.partsAction=action;button.onclick=()=>dispatchPartsAction(action,target);return button;}
+function partsButton(action,target){const button=document.createElement("button");button.type="button";button.textContent=partsActionLabels[action]??action;button.dataset.partsAction=action;button.dataset.partsTarget=target;button.onclick=()=>dispatchPartsAction(action,target);return button;}
 function renderParts(){
   const section=document.querySelector("#parts"),view=state.snapshot.parts;
   section.hidden=!view;if(!view)return;
+  const focused=document.activeElement?.dataset?.partsAction?{action:document.activeElement.dataset.partsAction,target:document.activeElement.dataset.partsTarget}:null;
   document.querySelector("#parts-title").textContent=`Parts · ${shortId(view.body_id)}`;document.querySelector("#parts-lifecycle").textContent=view.awake?"AWAKE":"LULLED";
   const notice=document.querySelector("#parts-possibilities");notice.hidden=!view.new_realization_possibilities;notice.textContent=view.new_realization_possibilities?"New realization possibilities are available. The current Plan remains unchanged until Plan again is explicitly requested.":"";
   const parts=document.querySelector("#part-rows");parts.replaceChildren();
@@ -113,6 +116,7 @@ function renderParts(){
   else if(selectedCandidate){term(details,"Candidate",selectedCandidate.candidate_id);term(details,"Host",selectedCandidate.host_id);term(details,"Boot",selectedCandidate.boot_id);term(details,"Offer generation",selectedCandidate.offer_generation);term(details,"Capabilities",selectedCandidate.capability_offers.map(item=>`${item.kind_id} (${item.capability_id})`).join(", ")||"none");}
   else term(details,"Selection","Inspect a Part or candidate to disclose exact facts.");
   const feedback=document.querySelector("#parts-feedback");feedback.textContent=state.snapshot.interaction.parts_feedback??"No Parts action requested.";feedback.dataset.disposition=(state.snapshot.interaction.parts_disposition??"").toLowerCase();
+  if(focused)document.querySelector(`[data-parts-action="${CSS.escape(focused.action)}"][data-parts-target="${CSS.escape(focused.target)}"]`)?.focus();
 }
 
 function applyViewport(){const width=740/state.zoom,height=state.graphHeight/state.zoom;document.querySelector("#graph").setAttribute("viewBox",`${state.panX} 0 ${width} ${height}`);}
@@ -194,6 +198,6 @@ async function joinCurrentBody(){
   window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:await wasm.arrayBuffer(),onState:()=>load()});
 }
 document.body.dataset.lens=state.lens;document.querySelectorAll("[data-lens]").forEach(button=>button.onclick=()=>selectLens(button.dataset.lens));load().then(()=>joinCurrentBody()).catch(error=>{document.querySelector("#status").textContent=`Browser Host admission unavailable: ${error.message}`;});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
-document.querySelector("#zoom-in").onclick=()=>{state.zoom=Math.min(2,state.zoom+.2);applyViewport();};document.querySelector("#zoom-out").onclick=()=>{state.zoom=Math.max(.5,state.zoom-.2);applyViewport();};document.querySelector("#pan-right").onclick=()=>{state.panX=Math.min(300,state.panX+40);applyViewport();};document.querySelector("#arrange").onclick=event=>{state.reversed=!state.reversed;event.currentTarget.setAttribute("aria-pressed",String(state.reversed));renderGraph();displaySelection(state.selected);};document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>dispatchInteraction({kind:"invoke",action:"toggle-linear-view",target:state.snapshot.presentation.basis.expanded_form_id});
+document.querySelector("#zoom-in").onclick=()=>{state.zoom=Math.min(2,state.zoom+.2);applyViewport();};document.querySelector("#zoom-out").onclick=()=>{state.zoom=Math.max(.5,state.zoom-.2);applyViewport();};document.querySelector("#pan-right").onclick=()=>{state.panX=Math.min(300,state.panX+40);applyViewport();};document.querySelector("#arrange").onclick=event=>{state.reversed=!state.reversed;event.currentTarget.setAttribute("aria-pressed",String(state.reversed));renderGraph();displaySelection(state.selected);};document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#plan-form").onclick=()=>dispatchFrontDoorAction("Plan");document.querySelector("#play-plan").onclick=()=>dispatchFrontDoorAction("Play");
 document.querySelector("#clear-selection").onclick=()=>dispatchInteraction({kind:"clear"});

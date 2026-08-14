@@ -82,7 +82,9 @@ impl PatchbayApplication {
                 );
                 Ok(())
             }
-            InteractionDisposition::Refused(PatchbayRefusal::OperationUnavailable) => {
+            InteractionDisposition::Refused(
+                PatchbayRefusal::OperationUnavailable | PatchbayRefusal::ActionUnavailable,
+            ) => {
                 let message = match &receipt.request {
                     PatchbayInteractionRequest::Invoke { invocation, .. }
                         if crate::lifecycle_flow::is_lifecycle_action(invocation.action) =>

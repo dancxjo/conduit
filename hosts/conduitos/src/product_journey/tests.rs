@@ -196,7 +196,9 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
     let (identities, offer, mut journey) = fixture();
     let stale = JourneyRequest {
         request_id: "request/stale".into(),
+        presentation_id: "presentation/current".into(),
         presentation_revision: 0,
+        action_id: "action/open/current".into(),
         action: JourneyAction::OpenBack,
         target_identity: journey.projection().seed_id.as_str().into(),
     };
@@ -206,7 +208,9 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
     );
     let wrong = JourneyRequest {
         request_id: "request/wrong".into(),
+        presentation_id: "presentation/current".into(),
         presentation_revision: 1,
+        action_id: "action/open/current".into(),
         action: JourneyAction::OpenBack,
         target_identity: "seed/wrong".into(),
     };
@@ -217,7 +221,9 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
     let seed = journey.projection().seed_id.as_str().to_owned();
     let born_without_open = JourneyRequest {
         request_id: "request/born".into(),
+        presentation_id: "presentation/current".into(),
         presentation_revision: 1,
+        action_id: "action/be-born/current".into(),
         action: JourneyAction::BeBorn,
         target_identity: seed,
     };
@@ -229,7 +235,9 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
 
     let wake_without_body = JourneyRequest {
         request_id: "request/wake".into(),
+        presentation_id: "presentation/current".into(),
         presentation_revision: 1,
+        action_id: "action/wake/current".into(),
         action: JourneyAction::Wake,
         target_identity: "body/absent".into(),
     };

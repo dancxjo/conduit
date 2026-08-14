@@ -70,6 +70,28 @@ impl PatchbayAction {
             _ => return None,
         })
     }
+
+    pub const fn presentation_intent(self) -> &'static str {
+        match self {
+            Self::OpenBack => "conduit.intent/open@1",
+            Self::Save => "conduit.intent/save@1",
+            Self::ToggleLinearView => "conduit.intent/toggle-linear-view@1",
+            Self::BeBorn => "conduit.intent/be-born@1",
+            Self::Wake => "conduit.intent/wake@1",
+            Self::Lull => "conduit.intent/lull@1",
+            Self::Plan => "conduit.intent/plan@1",
+            Self::Play => "conduit.intent/play@1",
+            Self::Stop => "conduit.intent/stop@1",
+            Self::Hold => "conduit.intent/hold@1",
+            Self::PlaceGear => "conduit.intent/place-gear@1",
+            Self::DuplicateGear => "conduit.intent/duplicate-gear@1",
+            Self::RemoveGear => "conduit.intent/remove-gear@1",
+            Self::RemoveCord => "conduit.intent/remove-cord@1",
+            Self::ConnectPorts => "conduit.intent/connect-ports@1",
+            Self::RerouteCord => "conduit.intent/reroute-cord@1",
+            Self::ConfigureGear => "conduit.intent/configure-gear@1",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -83,7 +105,9 @@ pub enum PatchbayControlError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchbayControlRequest {
     pub request_id: String,
+    pub presentation_id: String,
     pub presentation_revision: u64,
+    pub action_id: String,
     pub action: PatchbayAction,
     pub target_identity: String,
 }
@@ -91,13 +115,17 @@ pub struct PatchbayControlRequest {
 impl PatchbayControlRequest {
     pub fn new(
         request_id: impl Into<String>,
+        presentation_id: impl Into<String>,
         presentation_revision: u64,
+        action_id: impl Into<String>,
         action: PatchbayAction,
         target_identity: impl Into<String>,
     ) -> Result<Self, PatchbayControlError> {
         let request_id = request_id.into();
+        let presentation_id = presentation_id.into();
+        let action_id = action_id.into();
         let target_identity = target_identity.into();
-        for value in [&request_id, &target_identity] {
+        for value in [&request_id, &presentation_id, &action_id, &target_identity] {
             if value.is_empty() {
                 return Err(PatchbayControlError::EmptyIdentity);
             }
@@ -107,7 +135,9 @@ impl PatchbayControlRequest {
         }
         Ok(Self {
             request_id,
+            presentation_id,
             presentation_revision,
+            action_id,
             action,
             target_identity,
         })
@@ -130,8 +160,24 @@ mod tests {
             PatchbayAction::Lull,
         ] {
             assert_eq!(PatchbayAction::from_name(action.as_str()), Some(action));
-            assert!(PatchbayControlRequest::new("request", 7, action, "target").is_ok());
+            assert!(PatchbayControlRequest::new(
+                "request",
+                "presentation",
+                7,
+                "action/current",
+                action,
+                "target"
+            )
+            .is_ok());
         }
-        assert!(PatchbayControlRequest::new("", 0, PatchbayAction::Play, "target").is_err());
+        assert!(PatchbayControlRequest::new(
+            "",
+            "presentation",
+            0,
+            "action/current",
+            PatchbayAction::Play,
+            "target"
+        )
+        .is_err());
     }
 }
