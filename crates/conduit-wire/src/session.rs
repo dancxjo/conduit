@@ -378,6 +378,8 @@ pub struct SessionFrame<'a> {
 
 mod machine;
 pub use machine::*;
+mod validation;
+use validation::{validate_hello, validate_identity};
 mod reconciliation;
 pub use reconciliation::*;
 mod checkpoint_wire;
@@ -550,20 +552,6 @@ pub fn decode_session_frame(
         return Err(WireError::TrailingGarbage);
     }
     Ok(SessionFrame { identity, message })
-}
-
-fn identity_matches(binding: &SessionBinding, identity: SessionIdentity<'_>) -> bool {
-    binding.identity() == identity
-}
-
-fn hello_matches(binding: &SessionBinding, hello: SessionHello<'_>) -> bool {
-    hello.line_id == binding.attachment.line_id.as_str()
-        && hello.link_binding_id == binding.attachment.link_binding_id.as_str()
-        && hello.base == binding.attachment.base
-        && hello.base_instance_id == binding.attachment.base_instance_id.as_str()
-        && hello.source_endpoint_id == binding.attachment.source_endpoint_id.as_str()
-        && hello.sink_endpoint_id == binding.attachment.sink_endpoint_id.as_str()
-        && hello.limits == binding.attachment.limits
 }
 
 fn message_kind(message: SessionMessage<'_>) -> u8 {

@@ -85,7 +85,7 @@ fn observed_boot_rebinding_rejects_stale_boot_and_base_instance() {
 
     assert_eq!(
         source.admit_inbound(planned.hello_frame()),
-        Err(format!("{:?}", WireError::InvalidSession))
+        Err(format!("{:?}", WireError::BootMismatch))
     );
 
     let binding = source.binding().clone();
@@ -98,7 +98,7 @@ fn observed_boot_rebinding_rejects_stale_boot_and_base_instance() {
             identity: binding.identity(),
             message,
         }),
-        Err(format!("{:?}", WireError::InvalidSession))
+        Err(format!("{:?}", WireError::SessionEpochMismatch))
     );
 }
 

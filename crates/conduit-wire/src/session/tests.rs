@@ -306,7 +306,7 @@ fn wrong_identity_hello_and_limits_fail_closed() {
             identity: wrong_identity,
             message: binding.hello_frame().message,
         }),
-        Err(WireError::InvalidSession)
+        Err(WireError::PlanMismatch)
     );
 
     let mut wrong_hello = match binding.hello_frame().message {
@@ -316,7 +316,7 @@ fn wrong_identity_hello_and_limits_fail_closed() {
     wrong_hello.limits.maximum_payload_bytes += 1;
     assert_eq!(
         machine.admit_inbound(binding.frame(SessionMessage::Hello(wrong_hello))),
-        Err(WireError::InvalidSession)
+        Err(WireError::InvalidLimits)
     );
 
     let mut invalid = binding;
@@ -349,8 +349,16 @@ fn every_logical_identity_mutation_fails_closed() {
             13 => frame.identity.limits.maximum_buffered_bytes += 1,
             _ => unreachable!(),
         }
+        let expected = match field {
+            0 => WireError::PlanMismatch,
+            7 | 9 => WireError::BootMismatch,
+            3 => WireError::ConnectionMismatch,
+            10 => WireError::ValueContractMismatch,
+            11..=13 => WireError::InvalidLimits,
+            _ => WireError::InvalidSession,
+        };
         let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
-        assert_eq!(machine.admit_inbound(frame), Err(WireError::InvalidSession));
+        assert_eq!(machine.admit_inbound(frame), Err(expected));
     }
     let mut hello = match binding.hello_frame().message {
         SessionMessage::Hello(hello) => hello,
@@ -360,7 +368,7 @@ fn every_logical_identity_mutation_fails_closed() {
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
     assert_eq!(
         machine.admit_inbound(binding.frame(SessionMessage::Hello(hello))),
-        Err(WireError::InvalidSession)
+        Err(WireError::SessionEpochMismatch)
     );
 }
 
@@ -381,10 +389,15 @@ fn every_route_attachment_wire_fact_is_checked_separately() {
             5 => hello.limits.maximum_frame_bytes += 1,
             _ => unreachable!(),
         }
+        let expected = match field {
+            0 | 2 => WireError::SessionEpochMismatch,
+            5 => WireError::InvalidLimits,
+            _ => WireError::InvalidSession,
+        };
         let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
         assert_eq!(
             machine.admit_inbound(binding.frame(SessionMessage::Hello(hello))),
-            Err(WireError::InvalidSession)
+            Err(expected)
         );
     }
 }
@@ -562,7 +575,10 @@ fn mutated_base_instance_in_route_attachment_remains_rejected() {
     if let SessionMessage::Hello(ref mut hello) = frame.message {
         hello.base_instance_id = "test/different-base-instance";
     }
-    assert_eq!(machine.admit_inbound(frame), Err(WireError::InvalidSession));
+    assert_eq!(
+        machine.admit_inbound(frame),
+        Err(WireError::SessionEpochMismatch)
+    );
 }
 
 #[test]

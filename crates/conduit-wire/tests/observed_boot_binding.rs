@@ -122,6 +122,6 @@ fn stale_planned_boot_frame_is_rejected_by_runtime_session() {
     let mut machine = SessionMachine::new(observed, SessionRole::Sink).expect("session");
     assert_eq!(
         machine.admit_inbound(planned.hello_frame()),
-        Err(WireError::InvalidSession)
+        Err(WireError::BootMismatch)
     );
 }
