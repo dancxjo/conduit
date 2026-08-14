@@ -52,6 +52,7 @@ fn main() {
             DemoCommand::BodyMembership => commands::demo::run_body_membership(&opts),
             DemoCommand::Environment => commands::demo::run_environment(&opts),
             DemoCommand::Prewake => commands::demo::run_prewake(&opts),
+            DemoCommand::TextLab => commands::demo::run_text_lab(&opts),
             DemoCommand::Browser => commands::toggle::run(),
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::Site => commands::toggle::run_site(),

@@ -151,3 +151,26 @@ pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> 
     run_step(&step, &root, opts)?;
     Ok(())
 }
+
+pub fn run_text_lab(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let step = Step::new(
+        "demo.text-lab",
+        "Open the ordinary native Text Lab through effect-free PREWAKE",
+        "cargo",
+        &[
+            "run",
+            "-p",
+            "patchbay-native",
+            "--",
+            "--prewake",
+            "--prewake-hold",
+            "--form",
+            "examples/text-lab.conduit",
+            "--environment",
+            "examples/maker-workbench.json",
+        ],
+    );
+    run_step(&step, &root, opts)?;
+    Ok(())
+}

@@ -7,6 +7,7 @@ use super::generate_text::GenerateTextOperation;
 use super::http::{HttpClientOperation, HttpServerOperation};
 use super::input_semantic_operations::{InputSemanticOperation, KeyEventTeeOperation};
 use super::json_operations::JsonOperation;
+use super::keyboard_input_operation::KeyboardInputOperation;
 use super::layout_operations::LayoutOperation;
 use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
@@ -56,6 +57,7 @@ pub(super) struct InstalledFactory {
 }
 
 pub(super) enum InstalledOperation {
+    KeyboardInput(KeyboardInputOperation),
     Tick(TickOperation),
     TimeDebounce(DebounceOperation),
     TimeTimeout(TimeoutOperation),
@@ -152,6 +154,7 @@ impl InstalledOperation {
 impl Operation for InstalledOperation {
     fn start(&mut self) -> OperationAction {
         match self {
+            Self::KeyboardInput(operation) => operation.start(),
             Self::Tick(operation) => operation.start(),
             Self::TimeDebounce(operation) => operation.start(),
             Self::TimeTimeout(operation) => operation.start(),
@@ -233,6 +236,7 @@ impl Operation for InstalledOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match (self, input) {
+            (Self::KeyboardInput(_), _) => Self::fail(109),
             (Self::Tick(operation), input) => operation.resume(input),
             (Self::TextLiteral(operation), input) => operation.resume(input),
             (Self::TimeDebounce(operation), input) => operation.resume(input),
@@ -337,6 +341,9 @@ impl Operation for InstalledOperation {
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         match self {
+            Self::KeyboardInput(operation) => {
+                operation.resume_host_operation(request, outcome, canonical)
+            }
             Self::MidiInput(operation) => {
                 operation.resume_host_operation(request, outcome, canonical)
             }
@@ -346,6 +353,7 @@ impl Operation for InstalledOperation {
 
     fn advance(&mut self) -> OperationAction {
         match self {
+            Self::KeyboardInput(operation) => operation.advance(),
             Self::Tick(operation) => operation.advance(),
             Self::TickPresentation(_) => OperationAction::Await,
             Self::BoolPresentation(_) => OperationAction::Await,
@@ -430,6 +438,7 @@ impl Operation for InstalledOperation {
 
     fn cancel(&mut self) {
         match self {
+            Self::KeyboardInput(operation) => operation.cancel(),
             Self::Tick(operation) => operation.cancel(),
             Self::TickPresentation(operation) => operation.cancel(),
             Self::BoolPresentation(operation) => operation.cancel(),

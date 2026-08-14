@@ -13,6 +13,8 @@ mod http;
 mod http_host;
 mod input_semantic_operations;
 mod json_operations;
+mod keyboard_input_host;
+mod keyboard_input_operation;
 mod layout_operations;
 mod logic_operations;
 mod math_operations;
@@ -198,7 +200,7 @@ const HOST_OPERATIONS_PER_NODE: u16 = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
 
-type InstalledScheduler = FixedScheduler<
+pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
     OperationDriver<InstalledOperation, PORTS>,
     HostedValueStore,
     HostedSignLog,
@@ -215,15 +217,16 @@ type InstalledScheduler = FixedScheduler<
 pub(super) use contract::every_offer;
 pub(super) use contract::tick_offer;
 
-pub(super) struct InstalledRunHost<'a> {
+pub(super) struct InstalledRunHost<'a, 'keyboard> {
     pub advertisement: &'a HostAdvertisement,
     pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
     pub midi_input: Option<&'a crate::hosted_midi::HostedRawMidiSelection>,
     pub midi_output: Option<&'a crate::hosted_midi::MidiOutputSelection>,
+    pub keyboard: Option<&'keyboard mut dyn crate::hosted_keyboard::HostedKeyboardAdapter>,
 }
 
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
-    host: InstalledRunHost<'_>,
+    host: InstalledRunHost<'_, '_>,
     fragment: &PlanFragment,
     play_sequence: u64,
     next_sign_sequence: &mut u64,
@@ -236,6 +239,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         playback,
         midi_input,
         midi_output,
+        keyboard,
     } = host;
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     let active_nodes = lowered.nodes.len();
@@ -426,6 +430,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let midi_input_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_catalog::MUSIC_INPUT_MIDI_OPERATION,
     );
+    let keyboard_contract_id = conduit_core::HostOperationContractId::from(
+        conduit_std_catalog::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT,
+    );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
     let text_target_kind = kind_id("presentation/stdout-text");
     let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
@@ -542,6 +549,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         })
         .collect::<Result<Vec<_>, String>>()?;
     let mut midi_input_requests = vec![None; active_nodes];
+    let mut keyboard_host = keyboard_input_host::KeyboardInputHost::new(keyboard);
     let mut midi_output_sessions = fragment
         .placements
         .iter()
@@ -635,6 +643,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     .ok_or_else(|| "cancelled MIDI input has no admitted session".to_string())?;
                 session.cancel();
                 midi_input_requests[node] = None;
+            } else if cancelled_operation.contract_id == keyboard_contract_id {
+                keyboard_host.cancel();
             } else {
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
@@ -753,6 +763,10 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 if midi_input_requests[node].replace(request).is_some() {
                     return Err("MIDI input node has two pending host requests".into());
                 }
+                requests.push(request);
+                continue;
+            } else if contract == &keyboard_contract_id {
+                keyboard_host.accept(request, input)?;
                 requests.push(request);
                 continue;
             } else if contract.as_str() == synth_operation::SYNTH_HOST_OPERATION {
@@ -1220,6 +1234,12 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
                 let text = std::str::from_utf8(input)
                     .map_err(|_| "text presentation input is not valid UTF-8".to_string())?;
+                write!(_output, "PRESENTATION-TEXT bytes={} hex=", input.len())
+                    .map_err(|error| error.to_string())?;
+                for byte in input {
+                    write!(_output, "{byte:02x}").map_err(|error| error.to_string())?;
+                }
+                writeln!(_output).map_err(|error| error.to_string())?;
                 writeln!(_output, "{text}").map_err(|error| error.to_string())?;
             } else if lowered_operation.target_kind.as_ref() == Some(&tick_target_kind) {
                 let tick = decode_tick(input).map_err(|error| error.to_string())?;
@@ -1268,6 +1288,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => break TerminalDisposition::Completed,
             SchedulerStatus::Idle => {
+                if keyboard_host.poll(&mut scheduler)? {
+                    continue;
+                }
                 let mut completed_midi_input = false;
                 let mut pending_midi_input = false;
                 for node in 0..midi_input_requests.len() {
@@ -1342,7 +1365,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 if deadlines.complete_next(&mut scheduler, timer)? {
                     continue;
                 }
-                if pending_midi_input {
+                if pending_midi_input || keyboard_host.is_pending() {
+                    std::thread::park_timeout(Duration::from_millis(1));
                     continue;
                 }
                 return Err(format!(

@@ -65,6 +65,7 @@ impl PatchbayApplication {
             .prewake
             .then(patchbay_model::PrewakeController::default);
         if let Some(controller) = &mut prewake {
+            controller.set_hold(arguments.prewake_hold);
             controller
                 .enter(
                     workspace
@@ -80,8 +81,11 @@ impl PatchbayApplication {
         }
         let source_host_id = model.projection().host_id().clone();
         let source_boot_id = model.projection().boot_id().clone();
-        let control =
-            NativeControl::for_host(source_host_id.clone(), source_boot_id.clone(), composition);
+        let native_keyboard = portable_keyboard::NativeKeyboardInput::new();
+        let control = NativeControl::for_advertisement(
+            model.advertisement().clone(),
+            native_keyboard.reader(),
+        )?;
         let file_task = NativeFileTask::for_host(
             native_file_base,
             source_host_id.clone(),
@@ -150,7 +154,7 @@ impl PatchbayApplication {
             details_lens: Default::default(),
             details_scroll: 0,
             modifiers: winit::keyboard::ModifiersState::empty(),
-            native_keyboard: portable_keyboard::NativeKeyboardInput::new(),
+            native_keyboard,
             palette: Default::default(),
             exact_identity_open: false,
             parts_open: false,

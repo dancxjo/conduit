@@ -4,7 +4,10 @@ use crate::{AuthoredEnvironment, FormEditor, MachineProfile};
 use conduit_core::{
     ActivePlayId, BootId, ConnectionBase, HostAdvertisement, HostId, OfferGeneration, Plan, PlanId,
 };
-use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
+use conduit_planner::{
+    default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
+    PlanningOptions,
+};
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 use std::collections::{BTreeMap, VecDeque};
 
@@ -309,12 +312,34 @@ impl PrewakeController {
                 },
             );
         }
-        let plan = plan_expanded_canonical(
-            &expanded,
-            &advertisements,
-            &placements,
-            &[ConnectionBase::Local],
-        )
+        let plan = if expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == conduit_std_catalog::KEYBOARD_KIND)
+        {
+            plan_expanded_canonical_with_options(
+                &expanded,
+                &advertisements,
+                &placements,
+                &[ConnectionBase::Local],
+                PlanningOptions {
+                    connection_bases: &BTreeMap::new(),
+                    line_candidates: &BTreeMap::new(),
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: conduit_std_catalog::KEYBOARD_MAX_QUEUE_BYTES,
+                    authority_grants: &[],
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+            )
+        } else {
+            plan_expanded_canonical(
+                &expanded,
+                &advertisements,
+                &placements,
+                &[ConnectionBase::Local],
+            )
+        }
         .map_err(|error| PrewakeError::Planning(error.to_string()))?;
         let source_document_id = view
             .checked
@@ -368,14 +393,38 @@ fn simulated_hosts(environment: &AuthoredEnvironment) -> Vec<StdHost> {
                     StdHostComposition::reference()
                 }
             };
-            StdHost::new_with_composition(
+            let host = StdHost::new_with_composition(
                 StdHostConfig {
                     host_id: HostId::from(candidate.host_id),
                     boot_id: BootId::from(candidate.boot_id),
                     offer_generation: OfferGeneration(environment.revision),
                 },
                 composition,
-            )
+            );
+            if candidate.profile == MachineProfile::LaptopLinux {
+                let mut advertisement = host.advertisement().clone();
+                advertisement.resources.push(conduit_core::resource_offer(
+                    &format!("prewake/{}/input", advertisement.boot_id.as_str()),
+                    conduit_core::INPUT_RESOURCE_CLASS,
+                    1,
+                ));
+                advertisement
+                    .resources
+                    .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+                advertisement
+                    .capabilities
+                    .push(conduit_std_catalog::hosted_keyboard_offer(
+                        "prewake/simulated-keyboard@1",
+                        "prewake/simulated-keyboard-model@1",
+                    ));
+                advertisement
+                    .capabilities
+                    .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+                StdHost::from_advertisement(advertisement)
+                    .expect("validated simulated keyboard offer fits reference resources")
+            } else {
+                host
+            }
         })
         .collect::<Vec<_>>();
     hosts.sort_by_key(|host| {

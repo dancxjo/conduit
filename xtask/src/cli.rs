@@ -227,6 +227,8 @@ pub enum DemoCommand {
     Environment,
     /// Rehearse a canonical Form against the authored environment before Wake.
     Prewake,
+    /// Open the golden native Text Lab in effect-free PREWAKE, ready for the ordinary lifecycle.
+    TextLab,
     /// Alias for the actual-browser distributed toggle demonstration.
     Browser,
     /// Run the S4 distributed toggle proof interactively.

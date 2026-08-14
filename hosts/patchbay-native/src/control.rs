@@ -1,26 +1,59 @@
 //! Native asynchronous adapter over ordinary planner and std-host control APIs.
 
-use conduit_core::{bind_active_play, ActivePlayIdentity, BootId, HostId, OfferGeneration, Plan};
-use conduit_std_host::{
-    RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHostConfig, ThreadTimer,
-};
+use conduit_core::{bind_active_play, ActivePlayIdentity, HostAdvertisement, Plan};
+#[cfg(test)]
+use conduit_core::{BootId, HostId, OfferGeneration};
+#[cfg(test)]
+use conduit_std_host::StdHostComposition;
+use conduit_std_host::{RunControl, RunControlRequestId, StdHost, StdHostConfig, ThreadTimer};
 use patchbay_model::{admit_run, FormEditor, PatchbayRequestId, PlanDocument, PlayDocument};
+use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
+use std::sync::{Arc, Mutex};
 
-type RunResult = Result<(conduit_std_host::StdRunReport, Vec<u8>), String>;
-const MAX_RETAINED_PRESENTATION_BYTES: usize = 4_096;
+type RunResult = Result<conduit_std_host::StdRunReport, String>;
+const MAX_RETAINED_PRESENTATION_BYTES: usize = 16_384;
+
+struct ActiveRun {
+    control: RunControl,
+    terminal: Receiver<RunResult>,
+    output: Arc<Mutex<Vec<u8>>>,
+}
+
+struct LiveOutput(Arc<Mutex<Vec<u8>>>);
+
+impl std::io::Write for LiveOutput {
+    fn write(&mut self, buffer: &[u8]) -> std::io::Result<usize> {
+        let mut bytes = self
+            .0
+            .lock()
+            .map_err(|_| std::io::Error::other("native presentation state is poisoned"))?;
+        if bytes.len().saturating_add(buffer.len()) > MAX_RETAINED_PRESENTATION_BYTES {
+            return Err(std::io::Error::other(
+                "Play presentation exceeded the retained native bound",
+            ));
+        }
+        bytes.extend_from_slice(buffer);
+        Ok(buffer.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 pub struct NativeControl {
     host_config: StdHostConfig,
-    composition: StdHostComposition,
+    advertisement: HostAdvertisement,
+    keyboard: Option<crate::portable_keyboard::NativeKeyboardReader>,
     host: StdHost,
     plan: Option<Plan>,
     plan_document: Option<PlanDocument>,
     play_document: Option<PlayDocument>,
     failure: Option<String>,
     presentation: Option<Vec<u8>>,
-    active: Option<(RunControl, Receiver<RunResult>)>,
+    active: Option<ActiveRun>,
     request_sequence: u64,
     actions: VecDeque<String>,
 }
@@ -40,6 +73,7 @@ impl NativeControl {
         )
     }
 
+    #[cfg(test)]
     pub fn for_host(host_id: HostId, boot_id: BootId, composition: StdHostComposition) -> Self {
         let host_config = StdHostConfig {
             host_id,
@@ -47,9 +81,38 @@ impl NativeControl {
             offer_generation: OfferGeneration(1),
         };
         let host = StdHost::new_with_composition(host_config.clone(), composition);
+        let advertisement = host.advertisement().clone();
+        Self::from_parts(host_config, advertisement, host, None)
+    }
+
+    pub fn for_advertisement(
+        advertisement: HostAdvertisement,
+        keyboard: crate::portable_keyboard::NativeKeyboardReader,
+    ) -> Result<Self, String> {
+        let host_config = StdHostConfig {
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            offer_generation: advertisement.offer_generation,
+        };
+        let host = StdHost::from_advertisement(advertisement.clone())?;
+        Ok(Self::from_parts(
+            host_config,
+            advertisement,
+            host,
+            Some(keyboard),
+        ))
+    }
+
+    fn from_parts(
+        host_config: StdHostConfig,
+        advertisement: HostAdvertisement,
+        host: StdHost,
+        keyboard: Option<crate::portable_keyboard::NativeKeyboardReader>,
+    ) -> Self {
         Self {
             host_config,
-            composition,
+            advertisement,
+            keyboard,
             host,
             plan: None,
             plan_document: None,
@@ -106,10 +169,35 @@ impl NativeControl {
         let expanded = editor
             .expand_form(&form_name)
             .map_err(|error| error.to_string())?;
-        let plan = self
-            .host
-            .plan_expanded_local(&expanded)
-            .map_err(|error| error.to_string())?;
+        let plan = if expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == conduit_std_catalog::KEYBOARD_KIND)
+        {
+            let hosts = [self.advertisement.clone()];
+            let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
+                .map_err(|error| error.to_string())?;
+            conduit_planner::plan_expanded_canonical_with_options(
+                &expanded,
+                &hosts,
+                &placements,
+                &[conduit_core::ConnectionBase::Local],
+                conduit_planner::PlanningOptions {
+                    connection_bases: &BTreeMap::new(),
+                    line_candidates: &BTreeMap::new(),
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: conduit_std_catalog::KEYBOARD_MAX_QUEUE_BYTES,
+                    authority_grants: &[],
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+            )
+            .map_err(|error| error.to_string())?
+        } else {
+            self.host
+                .plan_expanded_local(&expanded)
+                .map_err(|error| error.to_string())?
+        };
         let request = PatchbayRequestId::new(identity)
             .map_err(|error| format!("Plan request identity: {error:?}"))?;
         let document = PlanDocument::from_plan(request, &plan)
@@ -166,23 +254,39 @@ impl NativeControl {
             .ok_or("Plan has no local fragment")?;
         let control = RunControl::default();
         let worker_control = control.clone();
-        let config = self.host_config.clone();
-        let composition = self.composition;
-        let (sender, receiver) = mpsc::sync_channel(1);
+        let advertisement = self.advertisement.clone();
+        let mut keyboard = self.keyboard.clone();
+        let (sender, terminal) = mpsc::sync_channel(1);
+        let output = Arc::new(Mutex::new(Vec::with_capacity(
+            MAX_RETAINED_PRESENTATION_BYTES,
+        )));
+        let worker_output = Arc::clone(&output);
         std::thread::spawn(move || {
-            let mut host = StdHost::new_with_composition(config, composition);
-            let mut output = Vec::with_capacity(4096);
-            let result = host
-                .run_fragment_controlled_to(
-                    fragment,
-                    &mut output,
-                    &mut ThreadTimer,
-                    &worker_control,
-                )
-                .map(|report| (report, output));
+            let mut host = match StdHost::from_advertisement(advertisement) {
+                Ok(host) => host,
+                Err(error) => {
+                    let _ = sender.send(Err(error));
+                    return;
+                }
+            };
+            let mut output = LiveOutput(worker_output);
+            let result = host.run_fragment_controlled_with_keyboard_to(
+                fragment,
+                &mut output,
+                &mut ThreadTimer,
+                &worker_control,
+                keyboard.as_mut().map(|reader| {
+                    reader as &mut dyn conduit_std_host::hosted_keyboard::HostedKeyboardAdapter
+                }),
+            );
             let _ = sender.send(result);
         });
-        self.active = Some((control, receiver));
+        self.presentation = Some(Vec::with_capacity(MAX_RETAINED_PRESENTATION_BYTES));
+        self.active = Some(ActiveRun {
+            control,
+            terminal,
+            output,
+        });
         Ok(())
     }
 
@@ -190,8 +294,8 @@ impl NativeControl {
         let identity = self.next_request("stop");
         let result = (|| {
             let request = RunControlRequestId::new(identity.clone())?;
-            let (control, _) = self.active.as_ref().ok_or("Stop requires an active Play")?;
-            control.request_stop(request).map_err(|rejected| {
+            let active = self.active.as_ref().ok_or("Stop requires an active Play")?;
+            active.control.request_stop(request).map_err(|rejected| {
                 format!(
                     "Stop request {} rejected: {:?}",
                     rejected.request_id.as_str(),
@@ -211,15 +315,25 @@ impl NativeControl {
     }
 
     pub fn poll(&mut self) -> Result<bool, String> {
-        let Some((_, receiver)) = self.active.as_ref() else {
+        let Some(active) = self.active.as_ref() else {
             return Ok(false);
         };
-        match receiver.try_recv() {
-            Ok(Ok((report, output))) => {
-                if output.len() > MAX_RETAINED_PRESENTATION_BYTES {
-                    self.active = None;
-                    return Err("Play presentation exceeded the retained native bound".into());
-                }
+        let live_output = active
+            .output
+            .lock()
+            .map_err(|_| "native presentation state is poisoned")?;
+        let presentation = self
+            .presentation
+            .as_mut()
+            .expect("an active Play has retained presentation storage");
+        let changed = presentation.as_slice() != live_output.as_slice();
+        if changed {
+            presentation.clear();
+            presentation.extend_from_slice(&live_output);
+        }
+        drop(live_output);
+        match active.terminal.try_recv() {
+            Ok(Ok(report)) => {
                 let plan = self
                     .plan
                     .as_ref()
@@ -242,7 +356,6 @@ impl NativeControl {
                     kernel.active_play_id.as_str(),
                     plan.plan_id.as_str()
                 ));
-                self.presentation = Some(output);
                 self.active = None;
                 Ok(true)
             }
@@ -251,7 +364,7 @@ impl NativeControl {
                 self.active = None;
                 Ok(true)
             }
-            Err(TryRecvError::Empty) => Ok(false),
+            Err(TryRecvError::Empty) => Ok(changed),
             Err(TryRecvError::Disconnected) => {
                 self.active = None;
                 Err("Play worker ended without a terminal report".into())
@@ -261,6 +374,9 @@ impl NativeControl {
 
     pub fn lines(&self) -> Vec<String> {
         let mut lines = Vec::new();
+        if let Some(text) = self.presented_text() {
+            lines.push(format!("PRESENTED TEXT {text}"));
+        }
         if let Some(document) = &self.plan_document {
             lines.extend(document.lines.clone());
         }
@@ -295,6 +411,35 @@ impl NativeControl {
         self.presentation.as_deref()
     }
 
+    pub fn presented_text(&self) -> Option<String> {
+        let output = std::str::from_utf8(self.presentation.as_deref()?).ok()?;
+        let mut presented = String::with_capacity(
+            conduit_std_catalog::MAX_TEXT_VALUES as usize
+                * conduit_std_catalog::MAX_TEXT_BYTES as usize,
+        );
+        let mut decoded = Vec::with_capacity(conduit_std_catalog::MAX_TEXT_BYTES as usize);
+        let mut found = false;
+        for line in output.lines() {
+            let Some(receipt) = line.strip_prefix("PRESENTATION-TEXT bytes=") else {
+                continue;
+            };
+            let (length, encoded) = receipt.split_once(" hex=")?;
+            let length = length.parse::<usize>().ok()?;
+            if encoded.len() != length.checked_mul(2)? {
+                return None;
+            }
+            decoded.clear();
+            for pair in encoded.as_bytes().chunks_exact(2) {
+                let high = hex_value(pair[0])?;
+                let low = hex_value(pair[1])?;
+                decoded.push((high << 4) | low);
+            }
+            presented.push_str(std::str::from_utf8(&decoded).ok()?);
+            found = true;
+        }
+        found.then_some(presented)
+    }
+
     #[cfg(test)]
     pub fn host_identity(&self) -> (&HostId, &BootId) {
         (&self.host_config.host_id, &self.host_config.boot_id)
@@ -311,6 +456,14 @@ impl NativeControl {
             self.actions.pop_front();
         }
         self.actions.push_back(line);
+    }
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        _ => None,
     }
 }
 

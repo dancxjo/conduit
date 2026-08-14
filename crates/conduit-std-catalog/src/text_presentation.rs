@@ -19,7 +19,10 @@ pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-text
 pub const TEXT_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-text@1";
 pub const TEXT_PRESENTATION_CAPABILITY: &str = "presentation-text-v1";
 pub const MAX_TEXT_BYTES: u32 = 256;
-pub const MAX_TEXT_VALUES: u64 = 4;
+/// Finite per-Play text occurrence budget. Eight admits the golden `hello`
+/// interaction plus a small edit/refusal margin without making the live source
+/// or Presenter unbounded.
+pub const MAX_TEXT_VALUES: u64 = 8;
 
 pub fn text_presentation_contract() -> StandardKindContract {
     StandardKindContract {
