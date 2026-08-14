@@ -1,0 +1,10 @@
+form text-lab {
+    keyboard: input/keyboard
+    keymap: input/keymap
+    uppercase: text/upper
+    presentation: presentation/text
+
+    keyboard.key > keymap.key
+    keymap.text > uppercase.text
+    uppercase.text > presentation.text
+}

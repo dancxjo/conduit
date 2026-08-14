@@ -107,6 +107,15 @@ fn arguments_are_explicit_and_fail_closed() {
             .unwrap()
             .exit_after_window
     );
+    assert!(
+        parse_arguments(vec!["--prewake".into(), "--prewake-hold".into()].into_iter())
+            .unwrap()
+            .prewake_hold
+    );
+    assert_eq!(
+        parse_arguments(vec!["--prewake-hold".into()].into_iter()),
+        Err("--prewake-hold requires --prewake".into())
+    );
     assert_eq!(
         parse_arguments(
             vec![

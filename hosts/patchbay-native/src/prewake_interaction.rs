@@ -6,7 +6,11 @@ use winit::keyboard::{Key, NamedKey};
 
 impl PatchbayApplication {
     pub(super) fn handle_prewake_key(&mut self, key: &Key) -> Result<bool, String> {
-        if self.prewake.is_none() {
+        if self
+            .prewake
+            .as_ref()
+            .is_none_or(|controller| matches!(controller.state(), PrewakeState::Off))
+        {
             return Ok(false);
         }
         let action = match key {
@@ -49,7 +53,10 @@ impl PatchbayApplication {
                     .expect("PREWAKE present")
                     .release(editor, environment);
             }
-            GuiAction::PrewakeExit => self.prewake.as_mut().expect("PREWAKE present").exit(),
+            GuiAction::PrewakeExit => {
+                self.prewake.as_mut().expect("PREWAKE present").exit();
+                self.prewake_environment_view = false;
+            }
             GuiAction::PrewakeNextImplementation(subject) => {
                 let editor = self.form_editor.as_ref().ok_or("PREWAKE Form is absent")?;
                 let environment = self
@@ -158,5 +165,98 @@ mod tests {
             application.prewake.as_ref().unwrap().state(),
             PrewakeState::Off
         ));
+    }
+
+    #[test]
+    fn text_lab_held_rehearsal_exits_into_the_same_live_native_product_loop() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap();
+        let mut application = PatchbayApplication::new(Arguments {
+            prewake: true,
+            prewake_hold: true,
+            form_path: Some(root.join("examples/text-lab.conduit")),
+            environment_path: Some(root.join("examples/maker-workbench.json")),
+            ..Default::default()
+        })
+        .unwrap();
+
+        let simulated_plan = match application.prewake.as_ref().unwrap().state() {
+            PrewakeState::Held { plan, .. } => plan,
+            state => panic!("Text Lab did not enter held PREWAKE: {state:?}"),
+        };
+        assert_eq!(simulated_plan.fragments[0].placements.len(), 4);
+        assert!(simulated_plan.fragments[0]
+            .placements
+            .iter()
+            .any(|placement| { placement.kind_id.as_str() == conduit_std_catalog::KEYBOARD_KIND }));
+        assert!(
+            !application
+                .prewake
+                .as_ref()
+                .unwrap()
+                .provenance()
+                .physical_effect_authority
+        );
+
+        application
+            .handle_prewake_action(GuiAction::PrewakeExit)
+            .unwrap();
+        assert_eq!(application.lifecycle_flow().state_code, "FORM_CHECKED");
+        application.birth_body().unwrap();
+        application.wake_body().unwrap();
+        application.plan_play().unwrap();
+        application.play_plan().unwrap();
+
+        for (code, expected) in [
+            (winit::keyboard::KeyCode::KeyH, "H"),
+            (winit::keyboard::KeyCode::KeyE, "HE"),
+            (winit::keyboard::KeyCode::KeyL, "HEL"),
+            (winit::keyboard::KeyCode::KeyL, "HELL"),
+            (winit::keyboard::KeyCode::KeyO, "HELLO"),
+        ] {
+            application
+                .native_keyboard
+                .observe(
+                    winit::keyboard::PhysicalKey::Code(code),
+                    winit::event::ElementState::Pressed,
+                    false,
+                )
+                .unwrap();
+            application
+                .native_keyboard
+                .observe(
+                    winit::keyboard::PhysicalKey::Code(code),
+                    winit::event::ElementState::Released,
+                    false,
+                )
+                .unwrap();
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+            while application.control.presented_text().as_deref() != Some(expected)
+                && std::time::Instant::now() < deadline
+            {
+                application.control.poll().unwrap();
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+            assert_eq!(
+                application.control.presented_text().as_deref(),
+                Some(expected)
+            );
+        }
+        assert!(application.control.is_running());
+        application.control.stop().unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        while application.control.is_running() && std::time::Instant::now() < deadline {
+            application.control.poll().unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        assert_eq!(
+            application.control.play_terminal(),
+            Some(conduit_core::TerminalDisposition::Cancelled {
+                reason: conduit_core::CancellationReason::OperatorRequested,
+            })
+        );
     }
 }
