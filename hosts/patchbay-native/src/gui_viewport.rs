@@ -17,7 +17,29 @@ use embedded_graphics::{
 };
 use patchbay_model::{PatchbayGraph, PatchbayTheme};
 
+#[cfg(test)]
 pub(super) fn canvas_rect(width: u32, height: u32) -> PixelRect {
+    canvas_rect_for(width, height, true)
+}
+
+pub(super) fn canvas_rect_for(width: u32, height: u32, inspector_requested: bool) -> PixelRect {
+    if let (Ok(width16), Ok(height16)) = (u16::try_from(width), u16::try_from(height)) {
+        if let Ok(layout) = patchbay_model::ResponsivePatchbayLayout::allocate(
+            width16,
+            height16,
+            100,
+            inspector_requested,
+        ) {
+            if let Some(region) = layout.region(patchbay_model::PresentationRegionId::Canvas) {
+                return PixelRect {
+                    x: i32::from(region.bounds.x),
+                    y: i32::from(region.bounds.y),
+                    width: u32::from(region.bounds.width),
+                    height: u32::from(region.bounds.height),
+                };
+            }
+        }
+    }
     let width = i32::try_from(width).unwrap_or(i32::MAX);
     let height = i32::try_from(height).unwrap_or(i32::MAX);
     let right = (width - INSPECTOR_WIDTH).max(NAV_WIDTH + 1);
@@ -148,12 +170,13 @@ pub(super) fn transform_canvas_layout(
 pub(super) fn draw_viewport_controls<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     viewport: &CanvasViewport,
+    origin: Point,
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     text(
         target,
-        Point::new(300, 8),
+        origin,
         &format!(
             "VIEW {}%  PAN {},{}",
             viewport.zoom_per_mille() / 10,
@@ -163,16 +186,16 @@ pub(super) fn draw_viewport_controls<D: DrawTarget<Color = Rgb888>>(
         theme.text_secondary,
     );
     let controls = [
-        ("-", ViewportAction::ZoomOut, 300, 28),
-        ("+", ViewportAction::ZoomIn, 334, 28),
-        ("FIT", ViewportAction::Fit, 368, 40),
-        ("CENTER", ViewportAction::CenterSelection, 412, 66),
-        ("RESET", ViewportAction::Reset, 482, 58),
+        ("-", ViewportAction::ZoomOut, 0, 28),
+        ("+", ViewportAction::ZoomIn, 34, 28),
+        ("FIT", ViewportAction::Fit, 68, 40),
+        ("CENTER", ViewportAction::CenterSelection, 112, 66),
+        ("RESET", ViewportAction::Reset, 182, 58),
     ];
     for (label, action, x, width) in controls {
         let bounds = PixelRect {
-            x,
-            y: 26,
+            x: origin.x + x,
+            y: origin.y + 16,
             width,
             height: 20,
         };
