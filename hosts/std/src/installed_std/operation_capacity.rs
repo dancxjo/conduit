@@ -5,6 +5,7 @@ use super::operation::InstalledOperation;
 impl InstalledOperation {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
+            Self::KeyboardInput(_) => 0,
             Self::Tick(operation) => operation.allocation_capacity(),
             Self::TimeDebounce(operation) => operation.allocation_capacity(),
             Self::TimeTimeout(operation) => operation.allocation_capacity(),

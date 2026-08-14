@@ -5,11 +5,13 @@ use conduit_core::{
     ExecutionProfileId, HostAdvertisement, ImplementationId, KeyEvent, KeyModifiers, KeyTransition,
     ResourceOffer, INPUT_RESOURCE_CLASS,
 };
+use std::sync::{Arc, Mutex};
 use winit::event::ElementState;
 use winit::keyboard::{KeyCode, PhysicalKey};
 
-pub const NATIVE_KEYBOARD_IMPLEMENTATION: &str = "patchbay-native/winit-keyboard@1";
-pub const NATIVE_KEYBOARD_PROFILE: &str = "patchbay-native/window-input-cooperative@1";
+pub const NATIVE_KEYBOARD_IMPLEMENTATION: &str =
+    conduit_std_catalog::HOSTED_KEYBOARD_IMPLEMENTATION;
+pub const NATIVE_KEYBOARD_PROFILE: &str = conduit_std_catalog::HOSTED_KEYBOARD_EXECUTION_PROFILE;
 pub const NATIVE_KEYBOARD_ARTIFACT: &str = "patchbay-native/winit-physical-key-adapter@1";
 pub const WINDOW_INPUT_RESOURCE: &str = "patchbay-native.resource/window-input-base@1";
 pub const EVENT_QUEUE_RESOURCE: &str = "patchbay-native.resource/key-event-slot@1";
@@ -41,13 +43,22 @@ enum Lifecycle {
 
 /// Fixed native input state. `PhysicalKey::Code` supplies physical identity;
 /// localized `Key`, text, window handles, and timestamps never enter values.
-pub struct NativeKeyboardInput {
+struct NativeKeyboardState {
     values: [Option<KeyEvent>; EVENT_CAPACITY],
     read: usize,
     len: usize,
     held: [Option<u8>; HELD_CAPACITY],
     modifiers: u8,
     lifecycle: Lifecycle,
+}
+
+pub struct NativeKeyboardInput {
+    state: Arc<Mutex<NativeKeyboardState>>,
+}
+
+#[derive(Clone)]
+pub struct NativeKeyboardReader {
+    state: Arc<Mutex<NativeKeyboardState>>,
 }
 
 impl Default for NativeKeyboardInput {
@@ -57,14 +68,22 @@ impl Default for NativeKeyboardInput {
 }
 
 impl NativeKeyboardInput {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            values: [None; EVENT_CAPACITY],
-            read: 0,
-            len: 0,
-            held: [None; HELD_CAPACITY],
-            modifiers: 0,
-            lifecycle: Lifecycle::Available,
+            state: Arc::new(Mutex::new(NativeKeyboardState {
+                values: [None; EVENT_CAPACITY],
+                read: 0,
+                len: 0,
+                held: [None; HELD_CAPACITY],
+                modifiers: 0,
+                lifecycle: Lifecycle::Available,
+            })),
+        }
+    }
+
+    pub fn reader(&self) -> NativeKeyboardReader {
+        NativeKeyboardReader {
+            state: Arc::clone(&self.state),
         }
     }
 
@@ -74,7 +93,11 @@ impl NativeKeyboardInput {
         state: ElementState,
         repeat: bool,
     ) -> Result<KeyEvent, NativeKeyboardFailure> {
-        self.require_available()?;
+        let mut keyboard = self
+            .state
+            .lock()
+            .expect("native keyboard state is not poisoned");
+        require_available(keyboard.lifecycle)?;
         if repeat {
             return Err(NativeKeyboardFailure::RepeatedPlatformEvent);
         }
@@ -84,24 +107,24 @@ impl NativeKeyboardInput {
         let Some(usage) = usage_for(code) else {
             return Err(NativeKeyboardFailure::UnsupportedPhysicalKey);
         };
-        if self.len == EVENT_CAPACITY {
-            self.lifecycle = Lifecycle::Failed(NativeKeyboardFailure::QueuePressure);
+        if keyboard.len == EVENT_CAPACITY {
+            keyboard.lifecycle = Lifecycle::Failed(NativeKeyboardFailure::QueuePressure);
             return Err(NativeKeyboardFailure::QueuePressure);
         }
         let transition = match state {
             ElementState::Pressed => {
-                if self.held.contains(&Some(usage)) {
+                if keyboard.held.contains(&Some(usage)) {
                     return Err(NativeKeyboardFailure::DuplicatePress);
                 }
-                let Some(slot) = self.held.iter_mut().find(|slot| slot.is_none()) else {
-                    self.lifecycle = Lifecycle::Failed(NativeKeyboardFailure::QueuePressure);
+                let Some(slot) = keyboard.held.iter_mut().find(|slot| slot.is_none()) else {
+                    keyboard.lifecycle = Lifecycle::Failed(NativeKeyboardFailure::QueuePressure);
                     return Err(NativeKeyboardFailure::QueuePressure);
                 };
                 *slot = Some(usage);
                 KeyTransition::Pressed
             }
             ElementState::Released => {
-                let Some(slot) = self.held.iter_mut().find(|slot| **slot == Some(usage)) else {
+                let Some(slot) = keyboard.held.iter_mut().find(|slot| **slot == Some(usage)) else {
                     return Err(NativeKeyboardFailure::ReleaseWithoutPress);
                 };
                 *slot = None;
@@ -110,53 +133,90 @@ impl NativeKeyboardInput {
         };
         if let Some(bit) = modifier_bit(usage) {
             match transition {
-                KeyTransition::Pressed => self.modifiers |= bit,
-                KeyTransition::Released => self.modifiers &= !bit,
+                KeyTransition::Pressed => keyboard.modifiers |= bit,
+                KeyTransition::Released => keyboard.modifiers &= !bit,
             }
         }
-        let value = KeyEvent::new(usage, transition, KeyModifiers::from_bits(self.modifiers))
-            .expect("native usage and after-transition modifier state are canonical");
-        let write = (self.read + self.len) % EVENT_CAPACITY;
-        self.values[write] = Some(value);
-        self.len += 1;
+        let value = KeyEvent::new(
+            usage,
+            transition,
+            KeyModifiers::from_bits(keyboard.modifiers),
+        )
+        .expect("native usage and after-transition modifier state are canonical");
+        let write = (keyboard.read + keyboard.len) % EVENT_CAPACITY;
+        keyboard.values[write] = Some(value);
+        keyboard.len += 1;
         Ok(value)
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
     pub fn next(&mut self) -> Result<Option<KeyEvent>, NativeKeyboardFailure> {
-        self.require_available()?;
-        if self.len == 0 {
-            return Ok(None);
-        }
-        let value = self.values[self.read].take();
-        self.read = (self.read + 1) % EVENT_CAPACITY;
-        self.len -= 1;
-        Ok(value)
+        next_from(&self.state)
     }
 
     pub fn focus_lost(&mut self) {
-        if matches!(self.lifecycle, Lifecycle::Available) {
-            self.lifecycle = Lifecycle::Failed(NativeKeyboardFailure::FocusLost);
+        let mut state = self
+            .state
+            .lock()
+            .expect("native keyboard state is not poisoned");
+        if matches!(state.lifecycle, Lifecycle::Available) {
+            state.lifecycle = Lifecycle::Failed(NativeKeyboardFailure::FocusLost);
         }
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
     pub fn cancel(&mut self) {
-        self.values = [None; EVENT_CAPACITY];
-        self.len = 0;
-        self.lifecycle = Lifecycle::Cancelled;
+        let mut state = self
+            .state
+            .lock()
+            .expect("native keyboard state is not poisoned");
+        state.values = [None; EVENT_CAPACITY];
+        state.len = 0;
+        state.lifecycle = Lifecycle::Cancelled;
     }
 
     pub fn close(&mut self) {
-        self.lifecycle = Lifecycle::Closed;
+        self.state
+            .lock()
+            .expect("native keyboard state is not poisoned")
+            .lifecycle = Lifecycle::Closed;
     }
+}
 
-    fn require_available(&self) -> Result<(), NativeKeyboardFailure> {
-        match self.lifecycle {
-            Lifecycle::Available => Ok(()),
-            Lifecycle::Failed(failure) => Err(failure),
-            Lifecycle::Cancelled => Err(NativeKeyboardFailure::Cancelled),
-            Lifecycle::Closed => Err(NativeKeyboardFailure::Closed),
+fn require_available(lifecycle: Lifecycle) -> Result<(), NativeKeyboardFailure> {
+    match lifecycle {
+        Lifecycle::Available => Ok(()),
+        Lifecycle::Failed(failure) => Err(failure),
+        Lifecycle::Cancelled => Err(NativeKeyboardFailure::Cancelled),
+        Lifecycle::Closed => Err(NativeKeyboardFailure::Closed),
+    }
+}
+
+fn next_from(
+    state: &Arc<Mutex<NativeKeyboardState>>,
+) -> Result<Option<KeyEvent>, NativeKeyboardFailure> {
+    let mut state = state.lock().expect("native keyboard state is not poisoned");
+    require_available(state.lifecycle)?;
+    if state.len == 0 {
+        return Ok(None);
+    }
+    let read = state.read;
+    let value = state.values[read].take();
+    state.read = (read + 1) % EVENT_CAPACITY;
+    state.len -= 1;
+    Ok(value)
+}
+
+impl conduit_std_host::hosted_keyboard::HostedKeyboardAdapter for NativeKeyboardReader {
+    fn poll_next(&mut self) -> conduit_std_host::hosted_keyboard::HostedKeyboardPoll {
+        use conduit_std_host::hosted_keyboard::HostedKeyboardPoll;
+        match next_from(&self.state) {
+            Ok(Some(event)) => HostedKeyboardPoll::Event(event),
+            Ok(None) => HostedKeyboardPoll::Pending,
+            Err(NativeKeyboardFailure::Cancelled | NativeKeyboardFailure::Closed) => {
+                HostedKeyboardPoll::Cancelled
+            }
+            Err(failure) => HostedKeyboardPoll::Failed(failure as u16),
         }
     }
 }

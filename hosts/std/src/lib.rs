@@ -39,6 +39,7 @@ pub use deadline_reactor::{
 pub mod external_websocket;
 pub mod hosted_audio;
 pub mod hosted_http;
+pub mod hosted_keyboard;
 pub mod hosted_midi;
 pub mod hosted_synth;
 #[cfg(test)]
@@ -344,6 +345,23 @@ impl StdHost {
         }
     }
 
+    /// Executes against one platform-extended advertisement that was already
+    /// published for this exact Host/Boot. Rebuilding from only the generic
+    /// composition here would discard admitted platform implementations.
+    pub fn from_advertisement(advertisement: HostAdvertisement) -> Result<Self, String> {
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
     pub fn new_with_playback(
         config: StdHostConfig,
         composition: StdHostComposition,
@@ -622,6 +640,17 @@ impl StdHost {
         timer: &mut T,
         control: &RunControl,
     ) -> Result<StdRunReport, String> {
+        self.run_fragment_controlled_with_keyboard_to(fragment, output, timer, control, None)
+    }
+
+    pub fn run_fragment_controlled_with_keyboard_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+        keyboard: Option<&mut dyn hosted_keyboard::HostedKeyboardAdapter>,
+    ) -> Result<StdRunReport, String> {
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
         let installed_standard = installed_std::supports(&fragment);
@@ -645,6 +674,7 @@ impl StdHost {
                         playback: self.playback.as_ref(),
                         midi_input: self.midi_input.as_ref(),
                         midi_output: self.midi_output.as_ref(),
+                        keyboard,
                     },
                     &fragment,
                     play_sequence,
