@@ -20,6 +20,7 @@ pub const MAX_THEME_CSS_BYTES: usize = 2 * 1024;
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const SCRIPT: &[u8] = include_bytes!("../assets/app.js");
 const FLOW_SCRIPT: &[u8] = include_bytes!("../assets/flow.js");
+const FLOW_SCENE_SCRIPT: &[u8] = include_bytes!("../assets/flow-scene.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
 const STYLE: &[u8] = include_bytes!("../assets/app.css");
 const REACT: &[u8] = include_bytes!("../assets/react.min.js");
@@ -262,6 +263,11 @@ impl PatchbayHtmlServer {
             "GET /assets/flow.js HTTP/1.1" => {
                 ("200 OK", "text/javascript; charset=utf-8", FLOW_SCRIPT)
             }
+            "GET /assets/flow-scene.js HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                FLOW_SCENE_SCRIPT,
+            ),
             "GET /assets/react.min.js HTTP/1.1" => {
                 ("200 OK", "text/javascript; charset=utf-8", REACT)
             }
