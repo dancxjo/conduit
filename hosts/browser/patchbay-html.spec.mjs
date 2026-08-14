@@ -141,10 +141,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
     const semanticSubjects=snapshot.presentation.subjects.filter(item=>item.role==="Gear"||item.role==="Port"||item.role==="Route"||item.role==="Diagnostic"||(item.role==="Cord"&&snapshot.presentation.properties.some(property=>property.subject===item.identity&&(property.name==="source-port"||property.name==="route-status")))).map(item=>item.identity).sort();
     await page.getByRole("button",{name:"Navigate",exact:true}).click();
-    await page.locator("#structured-canvas summary").click();
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
+    await page.getByRole("button",{name:"Navigate",exact:true}).click();
+    await page.locator("#structured-canvas summary").click();
     const canvasSubjects=await page.locator("#graph [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     expect(listSubjects).toEqual(expectedSubjects); expect(canvasSubjects).toEqual(semanticSubjects);
+    await page.getByRole("button",{name:"Navigate",exact:true}).click();
     await expect(page.locator("#inspector .exact-selection")).toBeVisible();
     await expect(page.locator("#inspector .exact-selection")).toContainText(inspectedParts.entrance.selected_subject);
     await expect(page.locator("#graph .gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
