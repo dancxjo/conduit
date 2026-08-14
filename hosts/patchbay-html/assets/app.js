@@ -78,6 +78,7 @@ async function dispatchInteraction(input,presentationBasis=currentPresentationBa
   const next=requireSnapshot(await response.json());render(next);return next;
 }
 function closeSubordinateSurfaces(except){
+  if(!matchMedia("(max-width: 720px)").matches)return;
   for(const name of ["palette","parts","truth"]){if(name===except)continue;document.body.dataset[`${name}Open`]="false";document.querySelector(`#toggle-${name}`).setAttribute("aria-expanded","false");}
   if(except!=="inspector"){state.inspectorOpen=false;document.querySelector("#toggle-inspector").setAttribute("aria-expanded","false");}
 }
