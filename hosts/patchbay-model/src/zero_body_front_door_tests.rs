@@ -155,6 +155,27 @@ fn opening_seed_is_inert_and_only_explicit_be_born_embodies_host() {
             && property.name == "opened"
             && property.value == PresentationPropertyValue::Flag(true)
     }));
+    for role in [
+        PresentationRole::Form,
+        PresentationRole::Gear,
+        PresentationRole::Port,
+        PresentationRole::Cord,
+    ] {
+        assert!(opened.subjects.iter().any(|subject| subject.role == role));
+    }
+    assert!(opened.actions.iter().any(|action| {
+        action.target == seed
+            && action.intent == "conduit.intent/be-born@1"
+            && matches!(
+                action.availability,
+                conduit_presentation::PresentationActionAvailability::Available
+            )
+    }));
+    assert!(opened.basis.source_document_id.is_none());
+    assert!(opened.basis.checked_form_id.is_none());
+    assert!(opened.basis.expanded_form_id.is_none());
+    assert!(opened.basis.plan_id.is_none());
+    assert!(opened.basis.active_play_id.is_none());
     assert!(session.clone().be_born(initial.revision).is_err());
     let embodied = session.be_born(opened.revision).unwrap();
     let projection = embodied.project().unwrap();

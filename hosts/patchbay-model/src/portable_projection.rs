@@ -50,6 +50,20 @@ impl ContentBuilder {
         }
     }
 
+    pub(super) fn from_parts(
+        subjects: Vec<PresentationSubject>,
+        relationships: Vec<PresentationRelationship>,
+        properties: Vec<PresentationProperty>,
+        text: Vec<PresentationText>,
+    ) -> Self {
+        Self {
+            subjects,
+            relationships,
+            properties,
+            text,
+        }
+    }
+
     pub(super) fn subject(
         &mut self,
         role: PresentationRole,

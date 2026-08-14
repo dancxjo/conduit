@@ -7,6 +7,7 @@ use conduit_presentation::{
     PresentationRole, PresentationSubject, PresentationText,
 };
 
+use crate::portable_projection::ContentBuilder;
 use crate::{OpenedFrontDoorSubject, ZeroBodyFrontDoor, ZeroBodyFrontDoorProjection};
 
 impl ZeroBodyFrontDoor {
@@ -106,6 +107,10 @@ impl ZeroBodyFrontDoor {
         }
         for seed in &self.seeds {
             let subject = format!("seed/{}", seed.seed_id.as_str());
+            let is_opened = matches!(
+                &self.opened,
+                Some(OpenedFrontDoorSubject::Seed { seed_id, .. }) if seed_id == &seed.seed_id
+            );
             subjects.push(PresentationSubject {
                 identity: subject.clone(),
                 role: PresentationRole::Seed,
@@ -153,10 +158,15 @@ impl ZeroBodyFrontDoor {
                     target: subject.clone(),
                     label: "Be born".into(),
                     disclosure: PresentationDisclosureLevel::CurrentAction,
-                    availability: PresentationActionAvailability::Unavailable {
-                        reason_code: "authority/not-admitted".into(),
-                        explanation: "No admitted authority can create a Body from this entrance."
-                            .into(),
+                    availability: if is_opened {
+                        PresentationActionAvailability::Available
+                    } else {
+                        PresentationActionAvailability::Unavailable {
+                            reason_code: "authority/not-admitted".into(),
+                            explanation:
+                                "No admitted authority can create a Body from this entrance."
+                                    .into(),
+                        }
                     },
                 },
             ]);
@@ -175,10 +185,60 @@ impl ZeroBodyFrontDoor {
                 }
             };
             properties.push(PresentationProperty {
-                subject,
+                subject: subject.clone(),
                 name: "opened".into(),
                 value: PresentationPropertyValue::Flag(true),
             });
+            if let OpenedFrontDoorSubject::Seed { seed_id, .. } = opened {
+                let seed = self
+                    .seeds
+                    .iter()
+                    .find(|candidate| &candidate.seed_id == seed_id)
+                    .ok_or_else(|| "opened Seed is absent from the bounded entrance".to_owned())?;
+                let editor = seed.editor()?;
+                let open_form = editor.view().open_form.clone();
+                let graph = editor
+                    .patchbay_graph_for_authoring(&open_form)
+                    .map_err(|error| error.to_string())?;
+                let form_subject = format!("form/{}", seed.checked_form_id.as_str());
+                let mut content =
+                    ContentBuilder::from_parts(subjects, relationships, properties, text);
+                content.subject_with_identity(
+                    &form_subject,
+                    PresentationRole::Form,
+                    &open_form,
+                    format!("Checked Form {} opened from Seed {}", open_form, seed.label),
+                );
+                content.contains(&subject, &form_subject);
+                content.property(
+                    &form_subject,
+                    "source-document-id",
+                    PresentationPropertyValue::Identity(seed.source_document_id.as_str().into()),
+                );
+                content.property(
+                    &form_subject,
+                    "checked-form-id",
+                    PresentationPropertyValue::Identity(seed.checked_form_id.as_str().into()),
+                );
+                content.line(
+                    &form_subject,
+                    format!(
+                        "Checked Form {}; OPEN is inert and no Body, Plan, or Play exists",
+                        open_form
+                    ),
+                );
+                crate::portable_graph_projection::append_exact_graph(
+                    &form_subject,
+                    &graph,
+                    None,
+                    None,
+                    &mut content,
+                );
+                subjects = content.subjects;
+                relationships = content.relationships;
+                properties = content.properties;
+                text = content.text;
+            }
         }
         for refusal in &self.refusals {
             let subject = format!("sign/{}", refusal.sign_id.as_str());

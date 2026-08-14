@@ -89,7 +89,27 @@ pub fn run_patchbay(
     } else if args.on == PatchbayHost::Native {
         &["run", "-p", "patchbay-native", "--", "--front-door"][..]
     } else {
-        &["run", "-p", "patchbay-html"][..]
+        &[
+            "run",
+            "-p",
+            "patchbay-html",
+            "--",
+            "--seed",
+            "Text Lab",
+            "examples/text-lab.conduit",
+            "--seed",
+            "Hello",
+            "examples/hello.conduit",
+            "--seed",
+            "Greet",
+            "examples/greet.conduit",
+            "--seed",
+            "Clock",
+            "examples/clock.conduit",
+            "--seed",
+            "Count",
+            "examples/count.conduit",
+        ][..]
     };
     let step = Step::new(
         "demo.patchbay",
