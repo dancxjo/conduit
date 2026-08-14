@@ -95,7 +95,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#flow-root")).toHaveAttribute("data-renderer","react-flow");
     await expect(page.locator("#flow-root .react-flow")).toBeVisible();
     expect(await page.evaluate(()=>({innerHeight,innerWidth,scrollHeight:document.documentElement.scrollHeight,scrollWidth:document.documentElement.scrollWidth}))).toEqual({innerHeight:768,innerWidth:1366,scrollHeight:768,scrollWidth:1366});
-    await page.getByRole("button",{name:"Parts",exact:true}).click();
+    await page.locator("#toggle-parts").click();
     await expect(page.getByRole("heading",{name:/Parts/})).toBeVisible();
     await expect(page.getByRole("list",{name:"Body Parts"}).getByRole("listitem")).toHaveCount(3);
     await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("HERE · AVAILABLE");
@@ -124,8 +124,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.getByRole("heading",{name:"Live Body topology"})).toBeVisible();
     expect(snapshot.entrance.layer).toBe("World");
     expect(snapshot.entrance.selected_subject).toMatch(/^part\//);
-    await page.getByRole("button",{name:"Parts",exact:true}).click();
-    await page.getByRole("button",{name:"Exact truth",exact:true}).click();
+    await page.locator("#toggle-parts").click();
+    await page.locator("#toggle-truth").click();
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
     await expect(page.locator("#route-cards h3").first()).toContainText("Route");
@@ -151,7 +151,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#route-cards li").filter({hasText:"WebSocket"}).first()).toBeVisible();
     const workspace=await page.locator(".workspace").boundingBox();
     const canvas=await page.locator("#form").boundingBox();
-    await page.getByRole("button",{name:"Inspector",exact:true}).click();
+    await page.locator("#toggle-inspector").click();
     const inspector=await page.locator("#inspector").boundingBox();
     expect(workspace).not.toBeNull();expect(canvas).not.toBeNull();expect(inspector).not.toBeNull();
     expect(canvas.width).toBeGreaterThan(workspace.width/2);
@@ -178,13 +178,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
 
     const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
     const semanticSubjects=snapshot.presentation.subjects.filter(item=>item.role==="Gear"||item.role==="Port"||item.role==="Route"||item.role==="Diagnostic"||(item.role==="Cord"&&snapshot.presentation.properties.some(property=>property.subject===item.identity&&(property.name==="source-port"||property.name==="route-status")))).map(item=>item.identity).sort();
-    await page.getByRole("button",{name:"Navigate",exact:true}).click();
+    await page.locator("#toggle-palette").click();
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
-    await page.getByRole("button",{name:"Navigate",exact:true}).click();
+    await page.locator("#toggle-palette").click();
     await page.locator("#structured-canvas summary").click();
     const canvasSubjects=await page.locator("#graph [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     expect(listSubjects).toEqual(expectedSubjects); expect(canvasSubjects).toEqual(semanticSubjects);
-    await page.getByRole("button",{name:"Navigate",exact:true}).click();
+    await page.locator("#toggle-palette").click();
     await expect(page.locator("#graph .gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
     await expect(page.locator("#graph .port")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Port").length);
     await expect(page.locator("#graph .cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
@@ -249,19 +249,19 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#deep-inspection")).toBeHidden();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"route-recovery",routeSnapshot,"exact-line-loss-new-plan-and-same-plan-recovery-spatially-correlated");
     await page.locator('[data-lens="form"]').click();
-    await page.getByRole("button",{name:"Navigate",exact:true}).click();
+    await page.locator("#toggle-palette").click();
     const second=page.locator('#subjects button[data-role="Port"]').first();await second.click();
     await expect(second).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .selected-summary")).toContainText(/receiving|outgoing/);
     expect(await page.locator("#graph .port.selected").getAttribute("data-subject")).toBe(await second.getAttribute("data-subject"));
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/2");
-    await page.getByRole("button",{name:"Navigate",exact:true}).click();
+    await page.locator("#toggle-palette").click();
     const third=page.locator('#subjects button[data-role="Cord"]').filter({hasText:"Cord from"}).first();await third.click();
     await expect(third).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .selected-summary")).toContainText("source-port");
     expect(await page.locator("#graph .cord.selected").getAttribute("data-subject")).toBe(await third.getAttribute("data-subject"));
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/3");
-    await page.getByRole("button",{name:"Exact truth",exact:true}).click();
+    await page.locator("#toggle-truth").click();
     await page.locator("#toggle-linear").click();
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/invoke/4");
     await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
@@ -287,9 +287,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
 
     expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
     const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};
-    await page.getByRole("button",{name:"Exact truth",exact:true}).click();
-    await page.getByRole("button",{name:"Inspector",exact:true}).click();
-    await page.getByRole("button",{name:"Navigate",exact:true}).click();
+    await page.locator("#toggle-truth").click();
+    await page.locator("#toggle-inspector").click();
+    await page.locator("#toggle-palette").click();
     await page.locator("#zoom-in").click();await page.locator("#pan-right").click();await page.locator("#arrange").click();await page.locator("#theme").click();
     await expect(page.locator("#arrange")).toHaveAttribute("aria-pressed","true");await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("body")).toHaveClass(/high-contrast/);
@@ -432,7 +432,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
       expect(box.x+box.width).toBeLessThanOrEqual(navBox.x+navBox.width);
     }
 
-    const navigate=page.getByRole("button",{name:"Navigate",exact:true});
+    const navigate=page.locator("#toggle-palette");
     await navigate.click();
     await expect(page.locator("#palette")).toBeVisible();
     expect(await page.evaluate(()=>document.activeElement.closest("#palette")!==null)).toBe(true);
@@ -441,7 +441,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     expect(paletteBox.x+paletteBox.width).toBeLessThanOrEqual(700);
     expect(await page.locator("#palette").evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
 
-    const inspectorLauncher=page.getByRole("button",{name:"Inspector",exact:true});
+    const inspectorLauncher=page.locator("#toggle-inspector");
     await inspectorLauncher.click();
     await expect(page.locator("#palette")).toBeHidden();
     await expect(page.locator("#inspector")).toBeVisible();
