@@ -173,7 +173,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expectFlowDominant(page);
     const structuredSummary=await page.locator("#structured-canvas").boundingBox();
     const realizationActions=await page.locator("#front-door-actions").boundingBox();
+    const currentStatus=await page.locator(".status-strip:not(#front-door-actions)").boundingBox();
     expect(rectanglesOverlap(structuredSummary,realizationActions)).toBe(false);
+    expect(rectanglesOverlap(currentStatus,realizationActions)).toBe(false);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"overview",snapshot,"full-window-flow-after-semantic-assertions");
 
     const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
