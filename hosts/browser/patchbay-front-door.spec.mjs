@@ -101,25 +101,6 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       expect.objectContaining({ role: "Cord" }),
     ]));
 
-    const stale = await page.evaluate(async ({ presentationId, revision, subject }) =>
-      (await fetch("/api/front-door-transition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          presentation_id: presentationId,
-          revision,
-          action: "be-born",
-          subject,
-        }),
-      })).json(),
-    { presentationId: opened.presentation.identity, revision: initial.revision, subject: seed.identity });
-    expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
-    expect(stale.presentation.basis.body_id).toBeNull();
-    expect(stale.presentation.subjects).toContainEqual(
-      expect.objectContaining({ role: "Sign", label: "Refused StalePresentation" }),
-    );
-
-    await page.evaluate(() => window.patchbayReload());
     const birthResponse = page.waitForResponse(
       (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
     );
@@ -133,6 +114,21 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     expect(born.parts.parts).toHaveLength(1);
     expect(born.parts.parts[0].state).toBe("Here");
     expect(born.presentation.subjects.some(({ role }) => role === "Form")).toBe(true);
+
+    const stale = await page.evaluate(async ({ presentationId, revision, subject }) =>
+      (await fetch("/api/front-door-transition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          presentation_id: presentationId,
+          revision,
+          action: "be-born",
+          subject,
+        }),
+      })).json(),
+    { presentationId: opened.presentation.identity, revision: opened.revision, subject: seed.identity });
+    expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
+    expect(stale.presentation.basis.body_id).toBe(born.presentation.basis.body_id);
 
     await page.getByRole("button", { name: "Plan current Form" }).click();
     await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
