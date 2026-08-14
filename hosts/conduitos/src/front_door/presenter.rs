@@ -1,5 +1,7 @@
 //! Exact planned native Presenter realization for zero-Body WORLD revisions.
 
+#[cfg(test)]
+use alloc::format;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
@@ -257,6 +259,7 @@ mod tests {
             SourceDocumentId::from("source"),
             CheckedFormId::from("checked"),
             6,
+            false,
         )
     }
 
@@ -292,6 +295,32 @@ mod tests {
             presenter.present(&door, &mut display),
             Err(PresenterError::StaleRevision)
         );
+    }
+
+    #[test]
+    fn graphical_and_linear_presenters_consume_the_same_portable_action_truth() {
+        let door = door();
+        let portable = door.presentation().unwrap();
+        let mut display = MemoryDisplay::available();
+        let graphical = presenter().present(&door, &mut display).unwrap();
+        let linear = crate::linear_presenter::LinearPresenter::prepare(
+            HostId::from("host"),
+            BootId::from("boot"),
+            OfferGeneration(4),
+            "profile:one",
+            "image:one",
+        )
+        .unwrap()
+        .present(&portable)
+        .unwrap();
+        assert_eq!(graphical.presentation_id, portable.identity);
+        assert_eq!(linear.presentation.presentation_id, portable.identity);
+        for action in &portable.actions {
+            assert!(linear.presentation.lines.iter().any(|line| {
+                line.contains(&format!("id={:?}", action.identity))
+                    && line.contains(&format!("intent={:?}", action.intent))
+            }));
+        }
     }
 
     #[test]

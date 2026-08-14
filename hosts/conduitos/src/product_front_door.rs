@@ -7,7 +7,7 @@ use conduit_core::KeyTransition;
 use crate::{
     arch::{self, HidKeyTransition, HidKeyboardSession, UsbDevice, XhciReady},
     fabrication::FabricationRecord,
-    front_door::{FrontDoor, FrontDoorPresenter, Status},
+    front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
     keyboard_input::{self, ProductInputEvent},
     local_rescue::LocalRescueMatcher,
@@ -55,6 +55,7 @@ pub fn run(
         u64::try_from(CAPABILITY_COUNT).unwrap_or(u64::MAX)
             + u64::from(offer.keyboard.is_some())
             + u64::from(offer.pc_speaker.is_some()),
+        true,
     );
     let mut presenter = FrontDoorPresenter::prepare(
         host_id,
@@ -110,10 +111,11 @@ pub fn run(
         if event.transition() == KeyTransition::Pressed
             && let Some(action) = action_for(transition.usage(), &front_door, &journey)
         {
-            let projection = journey.projection();
-            let target = target_for(action, &projection)?;
+            let semantic_action = front_door
+                .resolve_action(action, front_door.revision())
+                .map_err(|error| error.as_str())?;
             let request = journey
-                .next_request(action, target, front_door.revision())
+                .next_request(action, semantic_action.target, front_door.revision())
                 .map_err(|error| error.as_str())?;
             journey
                 .apply(
@@ -136,7 +138,7 @@ pub fn run(
             presenter
                 .present(&front_door, display)
                 .map_err(|error| error.as_str())?;
-            if front_door.status() == Status::DetailsOpened {
+            if front_door.exact_details_open() {
                 let (label, value) = front_door.current_detail();
                 arch::early_write(
                     format!(
@@ -156,7 +158,7 @@ fn action_for(
     journey: &ProductJourney,
 ) -> Option<JourneyAction> {
     match usage {
-        ENTER if front_door.status() != Status::DetailsOpened => Some(JourneyAction::OpenBack),
+        ENTER if !front_door.exact_details_open() => Some(JourneyAction::OpenBack),
         F3 => Some(JourneyAction::BeBorn),
         F4 => Some(JourneyAction::Wake),
         F5 => Some(JourneyAction::Plan),
@@ -170,25 +172,6 @@ fn action_for(
             Some(JourneyAction::Stop)
         }
         _ => None,
-    }
-}
-
-fn target_for(action: JourneyAction, projection: &JourneyProjection) -> Result<&str, &'static str> {
-    match action {
-        JourneyAction::OpenBack | JourneyAction::BeBorn => Ok(projection.seed_id.as_str()),
-        JourneyAction::Wake => projection
-            .body_id
-            .as_ref()
-            .map(conduit_body::BodyId::as_str)
-            .ok_or("product-body-absent"),
-        JourneyAction::Plan | JourneyAction::Play | JourneyAction::Stop | JourneyAction::Lull => {
-            projection
-                .wake_id
-                .as_ref()
-                .map(conduit_body::WakeId::as_str)
-                .ok_or("product-wake-absent")
-        }
-        _ => Err("product-action-unsupported"),
     }
 }
 

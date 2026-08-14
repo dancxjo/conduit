@@ -4,7 +4,7 @@ use alloc::{format, string::String, vec};
 use conduit_body::SeedId;
 use conduit_core::{BootId, CheckedFormId, HostId, KeyEvent, OfferGeneration, SourceDocumentId};
 use conduit_presentation::{
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
+    Presentation, PresentationAction, PresentationActionRefusal, PresentationBasis,
     PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole, PresentationSubject, PresentationText,
@@ -16,8 +16,10 @@ use crate::product_journey::{JourneyProjection, JourneyStatus};
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
 mod scene;
+mod semantics;
 #[cfg(any(test, feature = "native-compositor"))]
 pub use presenter::{FrontDoorPresenter, PresenterError};
+use semantics::lifecycle_summary;
 
 const ENTER: u8 = 40;
 const ESCAPE: u8 = 41;
@@ -27,19 +29,6 @@ const RIGHT: u8 = 79;
 const LEFT: u8 = 80;
 const DOWN: u8 = 81;
 const UP: u8 = 82;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Selection {
-    Seed,
-    Details,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Status {
-    World,
-    SeedOpened,
-    DetailsOpened,
-}
 
 pub struct FrontDoor {
     host_id: HostId,
@@ -51,10 +40,12 @@ pub struct FrontDoor {
     source_document_id: SourceDocumentId,
     checked_form_id: CheckedFormId,
     seed_id: SeedId,
-    selection: Selection,
-    status: Status,
+    selected_subject: String,
+    exact_details_open: bool,
+    seed_open: bool,
     revision: u64,
     offer_count: u64,
+    lifecycle_authority_admitted: bool,
     details_page: u8,
     journey: Option<JourneyProjection>,
 }
@@ -62,6 +53,10 @@ pub struct FrontDoor {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Error {
     StaleInput,
+    StaleAction,
+    UnknownAction,
+    ActionUnavailable,
+    ActionRefused,
     Presentation,
     Display(DisplayError),
     Scene,
@@ -71,6 +66,10 @@ impl Error {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::StaleInput => "front-door-input-stale",
+            Self::StaleAction => "front-door-action-stale",
+            Self::UnknownAction => "front-door-action-unknown",
+            Self::ActionUnavailable => "front-door-action-unavailable",
+            Self::ActionRefused => "front-door-action-refused",
             Self::Presentation => "front-door-presentation-refused",
             Self::Display(error) => error.as_str(),
             Self::Scene => "front-door-scene-refused",
@@ -90,8 +89,10 @@ impl FrontDoor {
         source_document_id: SourceDocumentId,
         checked_form_id: CheckedFormId,
         offer_count: u64,
+        lifecycle_authority_admitted: bool,
     ) -> Self {
         let seed_id = SeedId::bind(&source_document_id, &checked_form_id);
+        let selected_subject = format!("seed/{}", seed_id.as_str());
         Self {
             host_id,
             boot_id,
@@ -102,17 +103,19 @@ impl FrontDoor {
             source_document_id,
             checked_form_id,
             seed_id,
-            selection: Selection::Seed,
-            status: Status::World,
+            selected_subject,
+            exact_details_open: false,
+            seed_open: false,
             revision: 1,
             offer_count,
+            lifecycle_authority_admitted,
             details_page: 0,
             journey: None,
         }
     }
 
-    pub const fn status(&self) -> Status {
-        self.status
+    pub const fn exact_details_open(&self) -> bool {
+        self.exact_details_open
     }
 
     pub const fn revision(&self) -> u64 {
@@ -127,11 +130,7 @@ impl FrontDoor {
         if projection.seed_id != self.seed_id {
             return Err(Error::Presentation);
         }
-        self.status = if projection.status == JourneyStatus::SeedOpened {
-            Status::SeedOpened
-        } else {
-            Status::World
-        };
+        self.seed_open = projection.status == JourneyStatus::SeedOpened;
         self.journey = Some(projection);
         self.advance()
     }
@@ -145,33 +144,33 @@ impl FrontDoor {
         }
         match event.usage() {
             TAB | RIGHT | LEFT | DOWN | UP => {
-                self.selection = match self.selection {
-                    Selection::Seed => Selection::Details,
-                    Selection::Details => Selection::Seed,
+                let seed = format!("seed/{}", self.seed_id.as_str());
+                let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
+                self.selected_subject = if self.selected_subject == seed {
+                    host
+                } else {
+                    seed
                 };
-                self.status = Status::World;
+                self.exact_details_open = false;
                 self.advance()?;
                 Ok(true)
             }
             F2 => {
-                self.selection = Selection::Details;
-                if self.status == Status::DetailsOpened {
+                if self.exact_details_open {
                     self.details_page = (self.details_page + 1) % 16;
                 }
-                self.status = Status::DetailsOpened;
+                self.exact_details_open = true;
                 self.advance()?;
                 Ok(true)
             }
             ENTER => {
-                self.status = match self.selection {
-                    Selection::Seed => Status::SeedOpened,
-                    Selection::Details => Status::DetailsOpened,
-                };
+                self.seed_open = self.selected_subject.starts_with("seed/");
+                self.exact_details_open = !self.seed_open;
                 self.advance()?;
                 Ok(true)
             }
             ESCAPE => {
-                self.status = Status::World;
+                self.exact_details_open = false;
                 self.advance()?;
                 Ok(true)
             }
@@ -238,10 +237,10 @@ impl FrontDoor {
             property(
                 &seed,
                 "opened",
-                PresentationPropertyValue::Flag(self.status == Status::SeedOpened),
+                PresentationPropertyValue::Flag(self.seed_open),
             ),
         ];
-        if self.status == Status::DetailsOpened {
+        if self.exact_details_open {
             properties.extend([
                 property(&host, "profile-id", identity(&self.profile_id)),
                 property(&host, "build-id", identity(&self.build_id)),
@@ -347,13 +346,7 @@ impl FrontDoor {
         );
         let host_text = self.journey.as_ref().map_or_else(
             || "BODY NONE; entering Patchbay creates no Body, Wake, Plan, or Play".into(),
-            |journey| {
-                if journey.body_id.is_none() {
-                    "BODY NONE; OPEN is inspection only and has no effects".into()
-                } else {
-                    format!("CANONICAL BODY/WAKE/PLAN/PLAY STATE: {:?}", journey.status)
-                }
-            },
+            |journey| lifecycle_summary(journey).into(),
         );
         Presentation::new_with_semantics(
             self.revision,
@@ -371,28 +364,7 @@ impl FrontDoor {
                     text: "IMAGE-embedded checked Seed; OPEN permits inspection only".into(),
                 },
             ],
-            vec![
-                PresentationAction {
-                    identity: format!("action/open/{}", self.seed_id.as_str()),
-                    intent: "conduit.intent/open@1".into(),
-                    target: seed.clone(),
-                    label: "Open".into(),
-                    disclosure: PresentationDisclosureLevel::CurrentAction,
-                    availability: PresentationActionAvailability::Available,
-                },
-                PresentationAction {
-                    identity: format!("action/be-born/{}", self.seed_id.as_str()),
-                    intent: "conduit.intent/be-born@1".into(),
-                    target: seed.clone(),
-                    label: "Be born".into(),
-                    disclosure: PresentationDisclosureLevel::CurrentAction,
-                    availability: PresentationActionAvailability::Unavailable {
-                        reason_code: "authority/not-admitted".into(),
-                        explanation: "No admitted authority can create a Body from this entrance."
-                            .into(),
-                    },
-                },
-            ],
+            self.semantic_actions(&seed),
             vec![
                 PresentationDisclosure {
                     subject: seed,
@@ -405,6 +377,28 @@ impl FrontDoor {
             ],
         )
         .map_err(|_| Error::Presentation)
+    }
+
+    pub fn resolve_action(
+        &self,
+        action: conduit_core::PatchbayAction,
+        presentation_revision: u64,
+    ) -> Result<PresentationAction, Error> {
+        let presentation = self.presentation()?;
+        let semantic = presentation
+            .actions
+            .iter()
+            .find(|candidate| candidate.intent == action.presentation_intent())
+            .ok_or(Error::Presentation)?;
+        presentation
+            .resolve_action(presentation_revision, &semantic.identity)
+            .cloned()
+            .map_err(|error| match error {
+                PresentationActionRefusal::StaleRevision => Error::StaleAction,
+                PresentationActionRefusal::UnknownAction => Error::UnknownAction,
+                PresentationActionRefusal::Unavailable { .. } => Error::ActionUnavailable,
+                PresentationActionRefusal::Refused { .. } => Error::ActionRefused,
+            })
     }
 }
 
@@ -436,6 +430,7 @@ mod tests {
             SourceDocumentId::from("source"),
             CheckedFormId::from("checked"),
             7,
+            false,
         )
     }
 
@@ -486,7 +481,7 @@ mod tests {
             action.intent == "conduit.intent/be-born@1"
                 && matches!(
                     action.availability,
-                    PresentationActionAvailability::Unavailable { .. }
+                    conduit_presentation::PresentationActionAvailability::Unavailable { .. }
                 )
         }));
         let scene = door.scene(&Sink).unwrap();
@@ -499,12 +494,12 @@ mod tests {
     fn open_is_inert_and_details_are_progressive() {
         let mut door = door();
         assert!(door.accept(key(ENTER), 1).unwrap());
-        assert_eq!(door.status(), Status::SeedOpened);
+        assert!(door.seed_open);
         assert_eq!(door.revision(), 2);
         assert!(door.presentation().unwrap().basis.body_id.is_none());
         assert!(door.accept(key(F2), 2).unwrap());
         let details = door.presentation().unwrap();
-        assert_eq!(door.status(), Status::DetailsOpened);
+        assert!(door.exact_details_open());
         assert!(
             details
                 .properties
@@ -518,6 +513,14 @@ mod tests {
     fn stale_input_and_capacity_are_explicit_without_body_transition() {
         let mut door = door();
         assert_eq!(door.accept(key(ENTER), 0), Err(Error::StaleInput));
+        assert_eq!(
+            door.resolve_action(conduit_core::PatchbayAction::OpenBack, 0),
+            Err(Error::StaleAction)
+        );
+        assert_eq!(
+            door.resolve_action(conduit_core::PatchbayAction::BeBorn, door.revision()),
+            Err(Error::ActionUnavailable)
+        );
         door.revision = u64::MAX;
         assert_eq!(door.accept(key(ENTER), u64::MAX), Err(Error::Presentation));
         assert!(door.presentation().unwrap().basis.body_id.is_none());
