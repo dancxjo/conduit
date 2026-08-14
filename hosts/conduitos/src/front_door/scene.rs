@@ -4,12 +4,9 @@ use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
 };
 
-use crate::{
-    display::PixelTarget,
-    product_journey::{JourneyProjection, JourneyStatus},
-};
+use crate::{display::PixelTarget, product_journey::JourneyProjection};
 
-use super::{Error, FrontDoor, Selection, Status};
+use super::{Error, FrontDoor};
 
 impl FrontDoor {
     pub fn scene(&self, display: &impl PixelTarget) -> Result<GraphicsScene, Error> {
@@ -36,86 +33,82 @@ impl FrontDoor {
             )
             .map_err(|_| Error::Scene)?;
         text(&mut scene, 18, 18, "CONDUIT / PATCHBAY / WORLD")?;
-        if let Some(journey) = &self.journey
-            && !matches!(
-                journey.status,
-                JourneyStatus::World | JourneyStatus::SeedOpened
-            )
-            && self.status != Status::DetailsOpened
+        let presentation = self.presentation()?;
+        if self
+            .journey
+            .as_ref()
+            .is_some_and(|journey| journey.body_id.is_some())
+            && !self.exact_details_open
         {
-            text(
-                &mut scene,
-                18,
-                42,
-                &format!("PRODUCT JOURNEY    {:?}", journey.status),
-            )?;
+            let journey = self.journey.as_ref().ok_or(Error::Scene)?;
+            text(&mut scene, 18, 42, "CURRENT BODY")?;
             if let Some(body_id) = &journey.body_id {
                 exact_text(&mut scene, 18, 66, body_id.as_str())?;
             }
-            let (action, result) = match journey.status {
-                JourneyStatus::BornLulled => ("F4 WAKE", "BODY BORN / LULLED"),
-                JourneyStatus::Awake => ("F5 PLAN", "WAKE AWAITS EXACT PLAN"),
-                JourneyStatus::Planned => ("F6 PLAY", "PLAN READY FOR INSPECTION"),
-                JourneyStatus::Playing => ("TYPE A KEY", "PRODUCTION KERNEL AWAITS INPUT"),
-                JourneyStatus::ResultVisible => (
-                    "F7 LULL",
-                    journey.result.as_deref().unwrap_or("RESULT VISIBLE"),
-                ),
-                JourneyStatus::Stopped => ("F7 LULL", "PLAY STOPPED / NO LATE VALUE"),
-                JourneyStatus::Lulled => ("F2 DETAILS", "BODY RETAINED / WAKE ENDED"),
-                JourneyStatus::World | JourneyStatus::SeedOpened => unreachable!(),
-            };
-            text(&mut scene, 18, 132, result)?;
-            text(&mut scene, 18, 160, action)?;
-            text(&mut scene, 18, 184, "F8 STOP    F2 EXACT DETAILS")?;
+            let summary = presentation
+                .text
+                .first()
+                .map_or("CURRENT PORTABLE PRESENTATION", |line| line.text.as_str());
+            text(&mut scene, 18, 132, summary)?;
+            if let Some(action) = presentation.actions.iter().find(|action| {
+                matches!(
+                    action.availability,
+                    conduit_presentation::PresentationActionAvailability::Available
+                ) && !matches!(action.intent.as_str(), "conduit.intent/open@1")
+            }) {
+                text(&mut scene, 18, 160, &local_action_label(action))?;
+            }
+            text(&mut scene, 18, 184, "F2 EXACT DETAILS")?;
             return Ok(scene);
         }
-        match self.status {
-            Status::World => {
-                text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
-                text(&mut scene, 18, 70, "BODIES NEARBY    NONE OBSERVED")?;
-                text(&mut scene, 18, 96, "SEEDS")?;
-                text(
-                    &mut scene,
-                    26,
-                    118,
-                    if self.selection == Selection::Seed {
-                        "> CONDUITOS ENTRANCE SEED"
-                    } else {
-                        "  CONDUITOS ENTRANCE SEED"
-                    },
-                )?;
-                text(
-                    &mut scene,
-                    26,
-                    140,
-                    if self.selection == Selection::Details {
-                        "> DETAILS"
-                    } else {
-                        "  DETAILS"
-                    },
-                )?;
-                text(&mut scene, 18, 176, "ARROWS SELECT  ENTER OPEN  F2 DETAILS")?;
+        if self.exact_details_open {
+            let (label, value) = self.current_detail();
+            text(&mut scene, 18, 42, "EXACT HOST DETAILS")?;
+            text(&mut scene, 18, 76, label)?;
+            exact_text(&mut scene, 18, 100, &value)?;
+            text(&mut scene, 18, 160, "F2 NEXT DETAIL    ESC WORLD")?;
+        } else if self.seed_open {
+            text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
+            text(&mut scene, 18, 76, "SEED OPEN / INSPECTION ONLY")?;
+            exact_text(&mut scene, 18, 100, self.seed_id.as_str())?;
+            text(
+                &mut scene,
+                18,
+                150,
+                "PROVENANCE: CHECKED DATA EMBEDDED IN THIS IMAGE",
+            )?;
+            if let Some(action) = presentation
+                .actions
+                .iter()
+                .find(|action| action.intent == "conduit.intent/be-born@1")
+            {
+                text(&mut scene, 18, 176, &local_action_label(action))?;
             }
-            Status::SeedOpened => {
-                text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
-                text(&mut scene, 18, 76, "SEED OPEN / INSPECTION ONLY")?;
-                exact_text(&mut scene, 18, 100, self.seed_id.as_str())?;
-                text(
-                    &mut scene,
-                    18,
-                    150,
-                    "PROVENANCE: CHECKED DATA EMBEDDED IN THIS IMAGE",
-                )?;
-                text(&mut scene, 18, 176, "NO EFFECT CREATED    F3 BE BORN")?;
-            }
-            Status::DetailsOpened => {
-                let (label, value) = self.current_detail();
-                text(&mut scene, 18, 42, "EXACT HOST DETAILS")?;
-                text(&mut scene, 18, 76, label)?;
-                exact_text(&mut scene, 18, 100, &value)?;
-                text(&mut scene, 18, 160, "F2 NEXT DETAIL    ESC WORLD")?;
-            }
+        } else {
+            text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
+            text(&mut scene, 18, 70, "BODIES NEARBY    NONE OBSERVED")?;
+            text(&mut scene, 18, 96, "SEEDS")?;
+            text(
+                &mut scene,
+                26,
+                118,
+                if self.selected_subject.starts_with("seed/") {
+                    "> CONDUITOS ENTRANCE SEED"
+                } else {
+                    "  CONDUITOS ENTRANCE SEED"
+                },
+            )?;
+            text(
+                &mut scene,
+                26,
+                140,
+                if !self.selected_subject.starts_with("seed/") {
+                    "> DETAILS"
+                } else {
+                    "  DETAILS"
+                },
+            )?;
+            text(&mut scene, 18, 176, "ARROWS SELECT  ENTER OPEN  F2 DETAILS")?;
         }
         Ok(scene)
     }
@@ -179,6 +172,31 @@ impl FrontDoor {
             ),
         }
     }
+}
+
+fn local_action_label(action: &conduit_presentation::PresentationAction) -> String {
+    let binding = match action.intent.as_str() {
+        "conduit.intent/be-born@1" => "F3",
+        "conduit.intent/wake@1" => "F4",
+        "conduit.intent/plan@1" => "F5",
+        "conduit.intent/play@1" => "F6",
+        "conduit.intent/lull@1" => "F7",
+        "conduit.intent/stop@1" => "F8",
+        _ => "ENTER",
+    };
+    let availability = match &action.availability {
+        conduit_presentation::PresentationActionAvailability::Available => String::new(),
+        conduit_presentation::PresentationActionAvailability::Unavailable {
+            explanation, ..
+        }
+        | conduit_presentation::PresentationActionAvailability::Refused { explanation, .. } => {
+            format!(" / UNAVAILABLE: {explanation}")
+        }
+    };
+    format!(
+        "{binding} {}{availability}",
+        action.label.to_ascii_uppercase()
+    )
 }
 
 fn lifecycle_detail<'a>(
