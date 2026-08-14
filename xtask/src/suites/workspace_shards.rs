@@ -2,6 +2,7 @@ use crate::process::Step;
 
 #[cfg(test)]
 const FOUNDATION_TEST_PACKAGES: &[&str] = &[
+    "conduit-bluetooth",
     "conduit-core",
     "conduit-embedded-build",
     "conduit-kernel",
@@ -50,6 +51,8 @@ const FOUNDATION_TEST_STEP: Step = Step::new(
     "cargo",
     &[
         "test",
+        "-p",
+        "conduit-bluetooth",
         "-p",
         "conduit-core",
         "-p",

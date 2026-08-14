@@ -158,6 +158,14 @@ impl ProofRecord {
 
 pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     ProofCommandContract {
+        id: "bluetooth.ble-gatt-physical",
+        command: "cargo xtask prove bluetooth-line --evidence-root <directory> --bluetooth-role <source|sink> --bluetooth-adapter <hci-name> --bluetooth-peer-address <address>",
+        proof_class: ProofClass::PhysicalCrossHost,
+        required_tools_or_targets: &["cargo", "BlueZ", "two paired BLE controllers", "physical BLE radio path"],
+        named_artifacts: &["bluetooth-line-source.json", "bluetooth-line-sink.json"],
+        allowed_claims: &["two paired BlueZ probe sides exchange one bounded shared SessionMachine conversation over the first physical BLE GATT profile; this does not claim production-kernel or Host/Body admission"],
+    },
+    ProofCommandContract {
         id: "conduitos.observatory",
         command: "cargo xtask conduitos prove --arch x86-64",
         proof_class: ProofClass::FreestandingEmulator,
@@ -550,7 +558,7 @@ mod tests {
                 .iter()
                 .map(ToString::to_string)
                 .collect(),
-            host_or_board_identity: None,
+            host_or_board_identity: Some("failed physical hosts".into()),
             success: false,
             timestamp: "supporting-only".into(),
             claims: contract

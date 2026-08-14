@@ -18,6 +18,8 @@ use std::io::Write;
 use std::thread;
 use std::time::{Duration, Instant};
 
+#[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
+pub mod bluetooth_gatt;
 mod boot_identity;
 pub mod browser_admission;
 mod composition;

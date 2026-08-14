@@ -214,6 +214,7 @@ fn display_base(base: conduit_core::ConnectionBase) -> &'static str {
         conduit_core::ConnectionBase::FixtureDatagram => "fixture datagram",
         conduit_core::ConnectionBase::WebSocket => "WebSocket",
         conduit_core::ConnectionBase::UsbCdc => "USB CDC",
+        conduit_core::ConnectionBase::BluetoothLeGatt => "Bluetooth LE GATT",
     }
 }
 

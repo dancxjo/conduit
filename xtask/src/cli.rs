@@ -163,6 +163,24 @@ pub struct ProveArgs {
     /// Exact post-flash CDC 1 port for the second Pico appliance HIL client.
     #[arg(long)]
     pub client_sign_port: Option<String>,
+
+    /// Side of the exact two-Host Bluetooth proof.
+    #[arg(long, value_enum)]
+    pub bluetooth_role: Option<BluetoothProofRole>,
+
+    /// Exact local BlueZ controller name, such as hci0.
+    #[arg(long)]
+    pub bluetooth_adapter: Option<String>,
+
+    /// Exact paired peer Bluetooth address for this proof run.
+    #[arg(long)]
+    pub bluetooth_peer_address: Option<String>,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BluetoothProofRole {
+    Source,
+    Sink,
 }
 
 #[derive(Args, Debug)]
@@ -190,6 +208,7 @@ pub struct ProofsArgs {
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProveTarget {
+    BluetoothLine,
     BodyMembership,
     BodyMembershipHil,
     StdBrowserS4,
