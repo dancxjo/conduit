@@ -145,7 +145,7 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
         .run_copy_fragment(
             CopyRequestId::new("request/create").unwrap(),
             copy.fragment,
-            &copy.registry,
+            &mut copy.registry,
             &CopyStopToken::default(),
         )
         .expect("copy run is structurally valid");
@@ -176,7 +176,7 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
         .run_copy_fragment(
             CopyRequestId::new("request/replace").unwrap(),
             replace.fragment,
-            &replace.registry,
+            &mut replace.registry,
             &CopyStopToken::default(),
         )
         .unwrap();
@@ -245,6 +245,89 @@ fn stale_denied_oversized_and_destination_exists_remain_distinct() {
         CopyResult::DestinationExists
     );
     assert_eq!(std::fs::read(&destination).unwrap(), b"keep");
+}
+
+#[test]
+fn grant_change_after_prepare_refuses_at_use_without_mutating_the_plan() {
+    let directory = TestDirectory::new();
+    let source = directory.path("source.bin");
+    let destination = directory.path("destination.bin");
+    std::fs::write(&source, b"protected").unwrap();
+    let mut copy = planned_copy(
+        &source,
+        &destination,
+        9,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Available,
+    );
+    let immutable_fragment = copy.fragment.clone();
+    let destination_handle = copy.destination_handle.clone();
+    let receipt = copy
+        .host
+        .run_copy_fragment_with_use_hook(
+            CopyRequestId::new("request/revoke-at-use").unwrap(),
+            copy.fragment.clone(),
+            &mut copy.registry,
+            &CopyStopToken::default(),
+            ExecutionFaults::default(),
+            |registry| {
+                registry
+                    .set_availability(&destination_handle, ProtectedFileAvailability::Denied)
+                    .unwrap();
+            },
+        )
+        .unwrap();
+    assert_eq!(receipt.result, CopyResult::Denied);
+    assert_eq!(copy.fragment, immutable_fragment);
+    assert!(!destination.exists());
+
+    copy.registry
+        .set_availability(
+            &copy.destination_handle,
+            ProtectedFileAvailability::Available,
+        )
+        .unwrap();
+    assert_eq!(
+        run(&mut copy, ExecutionFaults::default()),
+        CopyResult::Success { bytes_copied: 9 }
+    );
+}
+
+#[test]
+fn revoked_handle_identity_cannot_be_reissued_to_revive_an_old_plan() {
+    let directory = TestDirectory::new();
+    let source = directory.path("source.bin");
+    let destination = directory.path("destination.bin");
+    std::fs::write(&source, b"protected").unwrap();
+    let mut copy = planned_copy(
+        &source,
+        &destination,
+        9,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Available,
+    );
+    copy.registry.revoke(&copy.source_handle);
+    let placement = &copy.fragment.placements[0];
+    let reissue = copy.registry.register(
+        copy.source_handle.clone(),
+        &source,
+        placement.gear_id.clone(),
+        ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
+        placement.host_id.clone(),
+        placement.boot_id.clone(),
+        placement.capability_id.clone(),
+        ProtectedResourceAccess::ReadExisting,
+        9,
+        ProtectedResourceCommitPolicy::NotApplicable,
+        ProtectedFileAvailability::Available,
+    );
+    assert!(reissue.is_err());
+    assert_eq!(
+        run(&mut copy, ExecutionFaults::default()),
+        CopyResult::StaleHandle
+    );
 }
 
 #[test]
@@ -322,7 +405,7 @@ fn public_stop_token_cancels_the_kernel_before_any_chunk_is_copied() {
         .run_copy_fragment(
             CopyRequestId::new("request/stop").unwrap(),
             copy.fragment,
-            &copy.registry,
+            &mut copy.registry,
             &stop,
         )
         .unwrap();
@@ -336,7 +419,7 @@ fn run(copy: &mut PlannedCopy, faults: ExecutionFaults) -> CopyResult {
         .run_copy_fragment_with_faults(
             CopyRequestId::new("request/negative").unwrap(),
             copy.fragment.clone(),
-            &copy.registry,
+            &mut copy.registry,
             &CopyStopToken::default(),
             faults,
         )

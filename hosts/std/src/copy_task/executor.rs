@@ -39,7 +39,7 @@ impl StdHost {
         &mut self,
         request_id: CopyRequestId,
         fragment: PlanFragment,
-        registry: &ProtectedFileRegistry,
+        registry: &mut ProtectedFileRegistry,
         stop: &CopyStopToken,
     ) -> Result<CopyRunReceipt, String> {
         self.run_copy_fragment_with_faults(
@@ -55,9 +55,21 @@ impl StdHost {
         &mut self,
         request_id: CopyRequestId,
         fragment: PlanFragment,
-        registry: &ProtectedFileRegistry,
+        registry: &mut ProtectedFileRegistry,
         stop: &CopyStopToken,
         faults: ExecutionFaults,
+    ) -> Result<CopyRunReceipt, String> {
+        self.run_copy_fragment_with_use_hook(request_id, fragment, registry, stop, faults, |_| {})
+    }
+
+    pub(super) fn run_copy_fragment_with_use_hook(
+        &mut self,
+        request_id: CopyRequestId,
+        fragment: PlanFragment,
+        registry: &mut ProtectedFileRegistry,
+        stop: &CopyStopToken,
+        faults: ExecutionFaults,
+        before_use: impl FnOnce(&mut ProtectedFileRegistry),
     ) -> Result<CopyRunReceipt, String> {
         let placement = exact_copy_placement(&fragment)?;
         let source_binding = protected_binding(placement, conduit_std_catalog::COPY_SOURCE_ROLE)?;
@@ -86,53 +98,23 @@ impl StdHost {
             kernel_events,
         };
 
-        let source = match resolve_entry(registry, placement, source_binding) {
-            Ok(entry) => entry,
-            Err(result) => return Ok(make_receipt(result, 0)),
-        };
-        let destination = match resolve_entry(registry, placement, destination_binding) {
-            Ok(entry) => entry,
-            Err(result) => return Ok(make_receipt(result, 0)),
-        };
-        if source.path == destination.path {
-            return Ok(make_receipt(CopyResult::Denied, 0));
-        }
-        let source_bytes = match source.path.metadata() {
-            Ok(metadata) => metadata.len(),
-            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
-                return Ok(make_receipt(CopyResult::Denied, 0));
+        for binding in [source_binding, destination_binding] {
+            if let Err(result) = resolve_entry(registry, placement, binding) {
+                return Ok(make_receipt(result, 0));
             }
-            Err(_) => return Ok(make_receipt(CopyResult::StaleHandle, 0)),
-        };
-        let maximum_bytes = source_binding
-            .maximum_bytes
-            .min(destination_binding.maximum_bytes)
-            .min(MAX_COPY_BYTES);
-        if source_bytes > maximum_bytes {
-            return Ok(make_receipt(
-                CopyResult::Oversized {
-                    source_bytes,
-                    maximum_bytes,
-                },
-                0,
-            ));
-        }
-        if destination_binding.commit_policy == ProtectedResourceCommitPolicy::CreateOnly
-            && destination.path.exists()
-        {
-            return Ok(make_receipt(CopyResult::DestinationExists, 0));
         }
 
         let advertisement = self.advertisement.clone();
         let reservation = self
             .kernel_resources
             .prepare_and_reserve(&advertisement, &fragment)?;
-        let execution = execute_copy(
+        before_use(registry);
+        let execution = use_protected_copy_resources(
             &fragment,
-            source,
-            destination,
-            destination_binding.commit_policy,
-            maximum_bytes,
+            registry,
+            placement,
+            source_binding,
+            destination_binding,
             stop,
             faults,
         );
@@ -141,6 +123,62 @@ impl StdHost {
         release?;
         Ok(make_receipt(result, kernel_events))
     }
+}
+
+fn use_protected_copy_resources(
+    fragment: &PlanFragment,
+    registry: &ProtectedFileRegistry,
+    placement: &conduit_core::PlannedGear,
+    source_binding: &ProtectedResourceBinding,
+    destination_binding: &ProtectedResourceBinding,
+    stop: &CopyStopToken,
+    faults: ExecutionFaults,
+) -> Result<(CopyResult, usize), String> {
+    let source = match resolve_entry(registry, placement, source_binding) {
+        Ok(entry) => entry,
+        Err(result) => return Ok((result, 0)),
+    };
+    let destination = match resolve_entry(registry, placement, destination_binding) {
+        Ok(entry) => entry,
+        Err(result) => return Ok((result, 0)),
+    };
+    if source.path == destination.path {
+        return Ok((CopyResult::Denied, 0));
+    }
+    let source_bytes = match source.path.metadata() {
+        Ok(metadata) => metadata.len(),
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+            return Ok((CopyResult::Denied, 0));
+        }
+        Err(_) => return Ok((CopyResult::StaleHandle, 0)),
+    };
+    let maximum_bytes = source_binding
+        .maximum_bytes
+        .min(destination_binding.maximum_bytes)
+        .min(MAX_COPY_BYTES);
+    if source_bytes > maximum_bytes {
+        return Ok((
+            CopyResult::Oversized {
+                source_bytes,
+                maximum_bytes,
+            },
+            0,
+        ));
+    }
+    if destination_binding.commit_policy == ProtectedResourceCommitPolicy::CreateOnly
+        && destination.path.exists()
+    {
+        return Ok((CopyResult::DestinationExists, 0));
+    }
+    execute_copy(
+        fragment,
+        source,
+        destination,
+        destination_binding.commit_policy,
+        maximum_bytes,
+        stop,
+        faults,
+    )
 }
 
 fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::PlannedGear, String> {

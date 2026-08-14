@@ -280,7 +280,7 @@ impl NativeFileTask {
             .ok_or("copy requires an exact Plan")?;
         let fragment = prepared.fragment.clone();
         let plan_id = prepared.plan.plan_id.clone();
-        let registry = std::mem::take(&mut self.registry);
+        let mut registry = std::mem::take(&mut self.registry);
         let stop = CopyStopToken::default();
         let worker_stop = stop.clone();
         let config = self.config.clone();
@@ -291,7 +291,7 @@ impl NativeFileTask {
         std::thread::spawn(move || {
             let mut host =
                 StdHost::new_with_composition(config, StdHostComposition::minimal().with_files());
-            let result = host.run_copy_fragment(request, fragment, &registry, &worker_stop);
+            let result = host.run_copy_fragment(request, fragment, &mut registry, &worker_stop);
             let _ = sender.send(result);
         });
         self.record(format!(
