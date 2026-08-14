@@ -103,7 +103,10 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       expect.objectContaining({ role: "Cord" }),
     ]));
 
-    await page.getByRole("button", { name: "BE BORN" }).press("Enter");
+    const beBornButton = page.getByRole("button", { name: "BE BORN" });
+    await beBornButton.focus();
+    await expect(beBornButton).toBeFocused();
+    await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: "Live Body topology" })).toBeVisible();
     const born = await (await fetch(`${url}/api/snapshot`)).json();
     expect(born.interaction.last_request_id).toMatch(/^patchbay\/interaction\/invoke\//);
