@@ -104,6 +104,7 @@ main { position:absolute; inset:0; width:100%; height:100%; max-width:none; padd
 .canvas-heading { position:absolute; z-index:5; inset:5.1rem .75rem auto auto; max-width:min(48rem,calc(100% - 1.5rem)); padding:.35rem .45rem; border:1px solid var(--patchbay-structure-secondary); border-radius:.45rem; background:color-mix(in srgb,var(--patchbay-background) 90%,transparent); pointer-events:auto; }
 #flow-root { position:absolute; inset:0; width:100%; height:100%; }
 #structured-canvas { position:absolute; z-index:8; left:.75rem; bottom:.75rem; width:min(52rem,calc(100% - 1.5rem)); max-height:70vh; overflow:auto; background:var(--patchbay-surface); border:1px solid var(--patchbay-structure-secondary); border-radius:.55rem; }
+#structured-canvas:not([open]) { width:auto; max-width:calc(100% - 1.5rem); overflow:hidden; }
 #structured-canvas:not([open])>#graph { display:none; }
 #structured-canvas>summary { display:inline-block; }
 #graph { width:100%; min-height:34rem; }
@@ -113,8 +114,8 @@ main { position:absolute; inset:0; width:100%; height:100%; max-width:none; padd
 #parts { left:.75rem; width:min(42rem,calc(100% - 1.5rem)); }
 #deep-inspection { right:.75rem; width:min(62rem,calc(100% - 1.5rem)); margin:0; }
 body:not([data-palette-open="true"]) #palette,body:not([data-parts-open="true"]) #parts,body:not([data-truth-open="true"]) #deep-inspection,body[data-inspector-open="false"] #inspector { display:none; }
-.status-strip { position:fixed; z-index:6; left:50%; bottom:.75rem; transform:translateX(-50%); margin:0; max-width:min(48rem,calc(100% - 19rem)); background:color-mix(in srgb,var(--patchbay-background) 92%,transparent); }
-#front-door-actions { bottom:4.25rem; }
+.status-strip { position:fixed; z-index:6; right:.75rem; bottom:6.5rem; margin:0; max-width:min(48rem,calc(100% - 20rem)); background:color-mix(in srgb,var(--patchbay-background) 92%,transparent); }
+#front-door-actions { bottom:.75rem; }
 .react-flow__node { min-width:11rem; padding:.8rem 1rem; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); font-weight:700; }
 .react-flow__node-faceplate { width:15rem; min-width:15rem; padding:0; border:0; background:transparent; font-weight:400; }
 .flow-faceplate { width:15rem; max-width:15rem; overflow:hidden; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); }
@@ -137,18 +138,32 @@ body[data-lens="form"] .flow-faceplate { border-color:var(--patchbay-emphasis); 
 body[data-lens="plan"] .react-flow__edge-path { stroke:var(--patchbay-emphasis); }
 body[data-lens="play"] .flow-faceplate { box-shadow:inset 0 0 0 1px var(--patchbay-success); }
 body[data-lens="signs"] .flow-faceplate { border-style:double; }
+.flow-faceplate.semantic-selected { outline:3px solid var(--patchbay-focus); outline-offset:2px; }
 .react-flow__node.selected { outline:3px solid var(--patchbay-focus); }
 .react-flow__edge-path { stroke:var(--patchbay-structure-primary); stroke-width:3; }
 .react-flow__controls { box-shadow:none; border:1px solid var(--patchbay-structure-secondary); }
 .react-flow__controls-button { border-radius:0; padding:0; }
 
+@media (min-width:1001px) {
+  body[data-inspector-open="true"] #flow-root { right:26.5rem; width:auto; }
+  body[data-inspector-open="true"] .canvas-heading { right:26.5rem; }
+  body[data-inspector-open="true"] .status-strip { right:26.5rem; max-width:min(39rem,calc(100% - 47rem)); }
+}
+
 @media (max-width:720px) {
-  .topbar { right:auto; max-width:12rem; }
-  nav { max-width:calc(100% - 13.5rem); }
-  .lens-controls { overflow-x:auto; flex-wrap:nowrap; }
-  .canvas-heading { top:7.4rem; }
-  .side-panel,.parts-panel,.deep-inspection { top:8.5rem; width:calc(100% - 1.5rem); }
+  .topbar { inset:.5rem .75rem auto; width:auto; max-width:none; max-height:140px; overflow:auto; }
+  .topbar #status { max-width:none; white-space:normal; }
+  nav { inset:165px .75rem auto; width:auto; max-width:none; max-height:180px; overflow:auto; justify-content:flex-start; }
+  .shell-launchers,.lens-controls { display:flex; max-width:100%; overflow-x:auto; flex-wrap:nowrap; }
+  nav button,nav a { flex:0 0 auto; white-space:nowrap; }
+  .canvas-heading { inset:355px .75rem auto; max-width:none; max-height:220px; overflow:auto; flex-direction:column; }
+  .canvas-heading [role="toolbar"] { max-width:100%; justify-content:flex-start; flex-wrap:nowrap; overflow-x:auto; }
+  .canvas-heading [role="toolbar"] button { flex:0 0 auto; white-space:nowrap; }
+  #flow-root { top:min(575px,64vh); height:auto; }
+  .side-panel,.parts-panel,.deep-inspection { top:355px; width:calc(100% - 1.5rem); overflow:auto; }
   #parts,#deep-inspection { width:calc(100% - 1.5rem); }
   .status-strip { display:none; }
+  #structured-canvas { max-width:calc(100% - 1.5rem); }
+  #structured-canvas:not([open])>summary { padding:.25rem .4rem; font-size:.7rem; }
 }
 @media (max-width:720px) { .react-flow__node-faceplate,.flow-faceplate { width:13rem; min-width:13rem; max-width:13rem; } }

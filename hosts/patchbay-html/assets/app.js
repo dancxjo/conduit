@@ -1,5 +1,5 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
-import { arrangeFlow, fitFlow, flowViewport, renderFlow } from "/assets/flow.js";
+import { arrangeFlow, fitFlow, flowViewport, focusFlow, renderFlow } from "/assets/flow.js";
 
 const schema = "conduit.patchbay.portable-presentation";
 const bases = new Map([
@@ -22,7 +22,8 @@ function requireSnapshot(value) {
   return value;
 }
 
-function term(dl,name,value){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=value??"not present";dl.append(dt,dd);}
+function term(dl,name,value,fullValue){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=value??"not present";if(fullValue&&fullValue!==value)dd.title=fullValue;dl.append(dt,dd);}
+function summaryText(value){const full=propertyText(value);return value.Identity!==undefined&&full.length>38?`${full.slice(0,24)}…${full.slice(-8)}`:full;}
 function subjects(role){return state.snapshot.presentation.subjects.filter(subject=>!role||subject.role===role);}
 function texts(identity){return state.snapshot.presentation.text.filter(item=>item.subject===identity).map(item=>item.text);}
 function properties(identity){return state.snapshot.presentation.properties.filter(item=>item.subject===identity);}
@@ -54,9 +55,10 @@ function displaySelection(identity){
   const summary=document.querySelector("#inspector .selected-summary"),exact=document.querySelector("#inspector .exact-selection"),exactFacts=exact.querySelector("dl");summary.replaceChildren();exactFacts.replaceChildren();
   const actions=document.querySelector("#semantic-actions");actions.replaceChildren();
   document.querySelector("#clear-selection").hidden=!subject;
+  document.querySelector("#center-flow").disabled=!subject;
   if(!subject){exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
   exact.hidden=false;document.querySelector("#inspector .inspector-hint").textContent=subject.accessibility_name;term(summary,"Meaning",subject.label);term(summary,"Subject",subject.role);
-  const selectedProperties=properties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name));for(const item of visible){const name=item.name.startsWith("authored-control-")?"Authored configuration":item.name;term(summary,name,propertyText(item.value));}
+  const selectedProperties=properties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name));for(const item of visible){const name=item.name.startsWith("authored-control-")?"Authored configuration":item.name,full=propertyText(item.value);term(summary,name,summaryText(item.value),full);}
   if(state.lens==="signs"){const signs=selectedProperties.filter(item=>item.name.startsWith("sign-"));term(summary,"Evidence",signs.length?`${signs.length} subject-specific causal Sign${signs.length===1?"":"s"}`:"No subject-specific Signs; Plan-level evidence remains below");}
   if(!visible.length&&state.lens!=="form"&&state.lens!=="signs")term(summary,"Layer",`No ${state.lens} facts for this subject; semantic selection retained`);
   term(exactFacts,"Presentation subject",identity);for(const item of selectedProperties.filter(item=>item.name==="semantic-id"||item.name.endsWith("-id")||item.name.startsWith("sign-")))term(exactFacts,item.name,propertyText(item.value));
@@ -78,7 +80,6 @@ async function dispatchInteraction(input,presentationBasis=currentPresentationBa
   const next=requireSnapshot(await response.json());render(next);return next;
 }
 function closeSubordinateSurfaces(except){
-  if(!matchMedia("(max-width: 720px)").matches)return;
   for(const name of ["palette","parts","truth"]){if(name===except)continue;document.body.dataset[`${name}Open`]="false";document.querySelector(`#toggle-${name}`).setAttribute("aria-expanded","false");}
   if(except!=="inspector"){state.inspectorOpen=false;document.querySelector("#toggle-inspector").setAttribute("aria-expanded","false");}
 }
@@ -176,7 +177,7 @@ function renderGraph(){
 function svgElement(name,attributes){const element=document.createElementNS("http://www.w3.org/2000/svg",name);for(const [key,value] of Object.entries(attributes))element.setAttribute(key,String(value));return element;}
 function activate(element,identity){element.onclick=event=>{event.stopPropagation();select(identity);};element.onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select(identity);}};}
 function iconGlyph(token){return ({"case-upper":"Aa","presentation":"▣","type":"T","clock":"◷","repeat-2":"↻","combine":"⋈","keyboard":"⌨","file-output":"⇲","conduit-generic-gear":"⚙"})[token]??"◆";}
-function selectLens(lens){state.lens=lens;document.body.dataset.lens=lens;document.querySelector("#lens-label").textContent=`${lens.toUpperCase()} LENS`;document.querySelectorAll("[data-lens]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.lens===lens)));renderFlow(state.snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens});renderGraph();displaySelection(state.selected);}
+function selectLens(lens){closeSubordinateSurfaces("inspector");state.lens=lens;document.body.dataset.lens=lens;document.querySelector("#lens-label").textContent=`${lens.toUpperCase()} LENS`;document.querySelectorAll("[data-lens]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.lens===lens)));renderFlow(state.snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens});renderGraph();displaySelection(state.selected);}
 
 function fillLines(selector,items){const list=document.querySelector(selector);list.replaceChildren();for(const value of items){const li=document.createElement("li");li.textContent=value;list.append(li);}}
 function renderCards(){const cards=document.querySelector("#route-cards");cards.replaceChildren();for(const route of subjects("Route")){const article=document.createElement("article"),heading=document.createElement("h3");article.className="route-card";heading.textContent=`Route ${route.label}`;article.append(heading);for(const line of texts(route.identity)){const p=document.createElement("p");p.textContent=line;article.append(p);}const children=state.snapshot.presentation.relationships.filter(item=>item.source===route.identity&&item.kind==="Contains").map(item=>item.target);const ul=document.createElement("ul");for(const identity of children){const candidate=state.snapshot.presentation.subjects.find(item=>item.identity===identity);if(!candidate)continue;const li=document.createElement("li");li.textContent=[candidate.label,...properties(identity).map(item=>`${item.name}=${propertyText(item.value)}`)].join(" · ");ul.append(li);}article.append(ul);cards.append(article);}}
@@ -185,7 +186,7 @@ function render(snapshot){
   const entering=state.snapshot===null;if(entering)state.lens=({World:"world",Intent:"form",Realization:"plan"})[snapshot.entrance.layer]??state.lens;state.snapshot=snapshot;const p=snapshot.presentation,b=p.basis,renderer=snapshot.renderer,manifestation=renderer.manifestation;
   document.body.dataset.embodied=String(b.body_id!==null);
   document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · read-only`;
-  document.querySelector("#run-summary").textContent=`${manifestation.lifecycle} · Plan ${b.plan_id} · Play ${b.active_play_id}`;
+  document.querySelector("#run-summary").textContent=`Manifestation ${manifestation.lifecycle} · ${b.plan_id===null?"not planned":"Plan ready"} · ${b.active_play_id===null?"not playing":"Play active"}`;
   document.querySelector("#canvas-title").textContent=b.body_id===null?"Host and Body possibilities":"Live Body topology";document.querySelector("#plan-form").disabled=b.body_id===null||b.plan_id!==null;document.querySelector("#play-plan").disabled=b.body_id===null||b.plan_id===null||b.active_play_id!==null;
   const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Seed",b.seed_id);term(facts,"Body",b.body_id);term(facts,"Wake",b.wake_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
   const list=document.querySelector("#subjects"),navigationSubjects=b.body_id===null?p.subjects.filter(subject=>["Host","Body","Seed"].includes(subject.role)):p.subjects;list.replaceChildren();for(const subject of navigationSubjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderParts();renderFlow(snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens:state.lens});renderGraph();
@@ -194,7 +195,7 @@ function render(snapshot){
   const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#sign",[...subjects("Sign").map(subject=>subject.label),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);
   const interaction=document.querySelector("#interaction-proof");interaction.replaceChildren();term(interaction,"Interaction revision",snapshot.interaction.revision);term(interaction,"Request",snapshot.interaction.last_request_id);term(interaction,"Disposition",snapshot.interaction.last_disposition);term(interaction,"Interaction Plan",snapshot.interaction.interaction_plan_id);term(interaction,"Interaction Play",snapshot.interaction.interaction_play_id);
   const diagnosticLines=subjects("Diagnostic").flatMap(subject=>texts(subject.identity));
-  fillLines("#diagnostics ol",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();fillLines("#topology ul",subjects().filter(subject=>["Seed","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.accessibility_name}`,...texts(subject.identity)]));fillLines("#linear ol",p.text.map(item=>item.text));displaySelection(snapshot.entrance.selected_subject);
+  fillLines("#diagnostics ol",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();fillLines("#topology ul",subjects().filter(subject=>["Seed","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.accessibility_name}`,...texts(subject.identity)]));fillLines("#linear ol",p.text.map(item=>item.text));displaySelection(snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);
 }
 
 async function load(){try{const response=await fetch("/api/snapshot",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){document.querySelector("#status").textContent=state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`;}}
@@ -210,10 +211,12 @@ async function joinCurrentBody(){
 document.body.dataset.lens=state.lens;document.querySelectorAll("[data-lens]").forEach(button=>button.onclick=()=>selectLens(button.dataset.lens));load().then(()=>joinCurrentBody()).catch(error=>{document.querySelector("#status").textContent=`Browser Host admission unavailable: ${error.message}`;});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>{state.zoom=Math.min(2,state.zoom+.2);applyViewport();};document.querySelector("#zoom-out").onclick=()=>{state.zoom=Math.max(.5,state.zoom-.2);applyViewport();};document.querySelector("#pan-right").onclick=()=>{state.panX=Math.min(300,state.panX+40);applyViewport();};document.querySelector("#arrange").onclick=event=>{arrangeFlow();state.reversed=!state.reversed;event.currentTarget.setAttribute("aria-pressed",String(state.reversed));renderGraph();displaySelection(state.selected);};document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;
+document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);
 document.querySelector("#plan-form").onclick=()=>dispatchFrontDoorAction("Plan");document.querySelector("#play-plan").onclick=()=>dispatchFrontDoorAction("Play");
 document.querySelector("#clear-selection").onclick=()=>dispatchInteraction({kind:"clear"});
 function focusSurface(name){const surface=document.querySelector(name==="truth"?"#deep-inspection":`#${name}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
 function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next)focusSurface(name);else launcher.focus();}
-for(const name of ["palette","parts","truth"])document.querySelector(`#toggle-${name}`).onclick=()=>toggleDrawer(name);
-document.querySelector("#toggle-inspector").onclick=event=>{state.inspectorOpen=!state.inspectorOpen;if(state.inspectorOpen)closeSubordinateSurfaces("inspector");displaySelection(state.selected);if(state.inspectorOpen)focusSurface("inspector");else event.currentTarget.focus();};
+for(const name of ["palette","parts","truth"])document.querySelector(`#toggle-${name}`).onclick=event=>{event.stopPropagation();toggleDrawer(name);};
+document.querySelector("#toggle-inspector").onclick=event=>{event.stopPropagation();state.inspectorOpen=!state.inspectorOpen;if(state.inspectorOpen)closeSubordinateSurfaces("inspector");displaySelection(state.selected);if(state.inspectorOpen)focusSurface("inspector");else event.currentTarget.focus();};
+for(const selector of ["#palette","#parts","#inspector","#deep-inspection","#structured-canvas"]){document.querySelector(selector).addEventListener("click",event=>event.stopPropagation());}
 document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;const open=["truth","parts","palette"].find(name=>document.body.dataset[`${name}Open`]==="true");if(open){event.preventDefault();toggleDrawer(open);return;}if(state.inspectorOpen){event.preventDefault();state.inspectorOpen=false;displaySelection(state.selected);document.querySelector("#toggle-inspector").focus();}});

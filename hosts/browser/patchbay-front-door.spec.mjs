@@ -86,6 +86,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     const secondSelectionResponse = page.waitForResponse(
       (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
     );
+    await page.locator("#toggle-palette").click();
     await seedButton.click();
     expect((await secondSelectionResponse).ok()).toBe(true);
 
