@@ -417,6 +417,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-planner",
+ "conduit-signal",
+ "conduit-std-catalog",
  "serde",
  "serde_json",
 ]
