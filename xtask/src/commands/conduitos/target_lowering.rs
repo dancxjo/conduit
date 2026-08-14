@@ -4,6 +4,8 @@ use conduit_host_fabrication::BuildManifest;
 
 use super::ConduitosError;
 
+mod http;
+
 const NATIVE_PRESENTER: &str = "presenter/native-graphical@1";
 const NATIVE_COMPOSITOR: &str = "compositor/native@1";
 const PRESENT_OPERATION: &str = "conduit.host/present@1";
@@ -121,6 +123,7 @@ fn lower_x86_64_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condui
         .profile_fragments
         .iter()
         .any(|item| item == HOTPLUG_PROOF);
+    let http = http::lower(manifest)?;
     if (scripted_keyboard || hotplug) && !native {
         return Err(refusal(
             "proof-profile-prerequisite-missing",
@@ -137,6 +140,9 @@ fn lower_x86_64_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condui
     if scripted_keyboard || hotplug {
         cargo_features.push("scripted-keyboard-proof");
     }
+    if http.selected {
+        cargo_features.push("native-http-client");
+    }
     Ok(TargetBuildInputs {
         cargo_features,
         implementations: backbone
@@ -144,27 +150,28 @@ fn lower_x86_64_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condui
                 conduitos::fabrication::IMPL_NATIVE_PRESENTER
             } else {
                 0
-            },
-        facilities: if native {
+            }
+            | http.implementation,
+        facilities: (if native {
             conduitos::fabrication::FACILITY_NATIVE_COMPOSITOR
         } else {
             0
-        },
-        resources: if native {
+        }) | http.facility,
+        resources: (if native {
             conduitos::fabrication::RESOURCE_PRESENTATION_SURFACE
         } else {
             0
-        },
-        bases: if native {
+        }) | http.resource,
+        bases: (if native {
             conduitos::fabrication::BASE_DISPLAY_SCANOUT
         } else {
             0
-        },
-        drivers: if native {
+        }) | http.base,
+        drivers: (if native {
             conduitos::fabrication::DRIVER_LINEAR_FRAMEBUFFER
         } else {
             0
-        },
+        }) | http.driver,
         presenters: if native {
             conduitos::fabrication::PRESENTER_NATIVE_GRAPHICAL
         } else {
@@ -313,6 +320,79 @@ mod tests {
         assert_eq!(native.presentation_surface_slots, 2);
         assert_eq!(native.presentation_surface_bytes, 4_194_304);
         assert_eq!(native.proof_instrumentation, 0);
+    }
+
+    #[test]
+    fn http_profile_selects_exact_native_closure_and_headless_omits_it() {
+        let http = manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-http-client.profile.json"
+        ));
+        let lowered = lower(&http).unwrap();
+        assert_eq!(lowered.cargo_features, ["native-http-client"]);
+        assert_ne!(
+            lowered.implementations & conduitos::fabrication::IMPL_HTTP_CLIENT,
+            0
+        );
+        assert_eq!(
+            lowered.facilities,
+            conduitos::fabrication::FACILITY_HTTP_CLIENT
+        );
+        assert_eq!(
+            lowered.resources,
+            conduitos::fabrication::RESOURCE_HTTP_CLIENT
+        );
+        assert_eq!(lowered.bases, conduitos::fabrication::BASE_HTTP_NETWORK);
+        assert_eq!(lowered.drivers, conduitos::fabrication::DRIVER_HTTP_NETWORK);
+        assert_eq!(http.resource_budgets.len(), 4);
+        assert_eq!(http.bounds.heap_arena_bytes, 0);
+
+        let headless = lower(&manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-headless.profile.json"
+        )))
+        .unwrap();
+        assert_eq!(
+            headless.implementations & conduitos::fabrication::IMPL_HTTP_CLIENT,
+            0
+        );
+        assert_eq!(
+            headless.facilities & conduitos::fabrication::FACILITY_HTTP_CLIENT,
+            0
+        );
+        assert!(!headless.cargo_features.contains(&"native-http-client"));
+    }
+
+    #[test]
+    fn http_lowering_rejects_each_missing_prerequisite_and_every_leak() {
+        let http = manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-http-client.profile.json"
+        ));
+        for missing in 0..8 {
+            let mut incomplete = http.clone();
+            match missing {
+                0 => incomplete.host_operations.clear(),
+                1..=4 => {
+                    incomplete.resource_budgets.remove(missing - 1);
+                }
+                5 => incomplete.facilities.clear(),
+                6 => incomplete.base_selections.clear(),
+                7 => incomplete.driver_selections.clear(),
+                _ => unreachable!(),
+            }
+            assert!(lower(&incomplete)
+                .unwrap_err()
+                .to_string()
+                .contains("http-profile-prerequisite-missing"));
+        }
+
+        let headless = manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-headless.profile.json"
+        ));
+        let mut leaked = headless.clone();
+        leaked.host_operations.push(http.host_operations[0].clone());
+        assert!(lower(&leaked)
+            .unwrap_err()
+            .to_string()
+            .contains("http-machinery-leaked"));
     }
 
     #[test]

@@ -12,11 +12,16 @@ pub const IMPL_PC_SPEAKER: u16 = 1 << 6;
 pub const IMPL_OPL2: u16 = 1 << 7;
 pub const IMPL_NATIVE_PRESENTER: u16 = 1 << 8;
 pub const IMPL_LINEAR_PRESENTER: u16 = 1 << 9;
-pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 10) - 1;
+pub const IMPL_HTTP_CLIENT: u16 = 1 << 10;
+pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 11) - 1;
 pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
+pub const FACILITY_HTTP_CLIENT: u16 = 1 << 1;
 pub const RESOURCE_PRESENTATION_SURFACE: u16 = 1;
+pub const RESOURCE_HTTP_CLIENT: u16 = 1 << 1;
 pub const BASE_DISPLAY_SCANOUT: u16 = 1;
+pub const BASE_HTTP_NETWORK: u16 = 1 << 2;
 pub const DRIVER_LINEAR_FRAMEBUFFER: u16 = 1;
+pub const DRIVER_HTTP_NETWORK: u16 = 1 << 2;
 pub const PRESENTER_NATIVE_GRAPHICAL: u16 = 1;
 pub const BASE_SERIAL_TEXT: u16 = 1 << 1;
 pub const DRIVER_PL011_SERIAL: u16 = 1 << 1;
@@ -111,10 +116,12 @@ impl FabricationRecord {
         }
         if self.implementations == 0
             || self.implementations & !ALL_KNOWN_IMPLEMENTATIONS != 0
-            || self.facilities & !FACILITY_NATIVE_COMPOSITOR != 0
-            || self.resources & !RESOURCE_PRESENTATION_SURFACE != 0
-            || self.bases & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT) != 0
-            || self.drivers & !(DRIVER_LINEAR_FRAMEBUFFER | DRIVER_PL011_SERIAL) != 0
+            || self.facilities & !(FACILITY_NATIVE_COMPOSITOR | FACILITY_HTTP_CLIENT) != 0
+            || self.resources & !(RESOURCE_PRESENTATION_SURFACE | RESOURCE_HTTP_CLIENT) != 0
+            || self.bases & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_HTTP_NETWORK) != 0
+            || self.drivers
+                & !(DRIVER_LINEAR_FRAMEBUFFER | DRIVER_PL011_SERIAL | DRIVER_HTTP_NETWORK)
+                != 0
             || self.presenters & !(PRESENTER_NATIVE_GRAPHICAL | PRESENTER_LINEAR_SERIAL) != 0
             || self.proof_instrumentation & !ALL_KNOWN_PROOF_INSTRUMENTATION != 0
         {
@@ -137,6 +144,14 @@ impl FabricationRecord {
             || (self.presenters & PRESENTER_LINEAR_SERIAL != 0) != linear
             || (self.target == "conduitos/aarch64/virt" && (native || !linear))
             || (self.target == "conduitos/x86_64/pc" && linear)
+        {
+            return Err(FabricationError::UnknownInventory);
+        }
+        let http = self.includes(IMPL_HTTP_CLIENT);
+        if self.includes_facility(FACILITY_HTTP_CLIENT) != http
+            || (self.resources & RESOURCE_HTTP_CLIENT != 0) != http
+            || (self.bases & BASE_HTTP_NETWORK != 0) != http
+            || (self.drivers & DRIVER_HTTP_NETWORK != 0) != http
         {
             return Err(FabricationError::UnknownInventory);
         }
@@ -183,7 +198,7 @@ mod tests {
             build_id: "build:sha256:build",
             image_binding: "image:sha256:binding",
             target: "conduitos/x86_64/pc",
-            implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER,
+            implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT,
             facilities: FACILITY_NATIVE_COMPOSITOR,
             resources: RESOURCE_PRESENTATION_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,

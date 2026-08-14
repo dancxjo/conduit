@@ -19,6 +19,8 @@ pub mod fabrication;
 pub mod front_door;
 #[cfg(target_arch = "x86_64")]
 pub mod hotplug_guest;
+#[cfg(any(test, feature = "native-http-client"))]
+pub mod http;
 pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;

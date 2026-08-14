@@ -69,6 +69,19 @@ impl FabricationCatalog {
                     prerequisites,
                 });
         }
+        implementations.insert(
+            conduitos_http_implementation().into(),
+            ImplementationMetadata {
+                kind: conduit_std_catalog::HTTP_CLIENT_KIND.into(),
+                contract_revision: conduit_std_catalog::HTTP_CLIENT_REVISION.into(),
+                targets: vec!["conduitos/x86_64/pc".into()],
+                prerequisites: vec![
+                    PrerequisiteNode::HostOperation("conduit.host/http-client-exchange@1".into()),
+                    PrerequisiteNode::Resource("conduit.resource/network/http-client@1".into()),
+                    PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+                ],
+            },
+        );
         Self {
             implementations,
             presenters: BTreeMap::from([
@@ -132,6 +145,21 @@ impl FabricationCatalog {
                     PrerequisiteNode::Base("serial/text".into()),
                     vec![PrerequisiteNode::Driver("conduitos/pl011@1".into())],
                 ),
+                (
+                    PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+                    vec![
+                        PrerequisiteNode::Resource("network/packet-buffer@1".into()),
+                        PrerequisiteNode::Resource("network/tcp-socket@1".into()),
+                        PrerequisiteNode::Resource("network/timer@1".into()),
+                        PrerequisiteNode::Base("network/ipv4-tcp".into()),
+                    ],
+                ),
+                (
+                    PrerequisiteNode::Base("network/ipv4-tcp".into()),
+                    vec![PrerequisiteNode::Driver(
+                        "conduitos/deterministic-ipv4-tcp@1".into(),
+                    )],
+                ),
             ]),
             targets: vec![
                 "std/x86_64/workstation".into(),
@@ -146,6 +174,7 @@ impl FabricationCatalog {
                 "browser/dom".into(),
                 "clock/monotonic".into(),
                 "display/scanout".into(),
+                "network/ipv4-tcp".into(),
                 "serial/text".into(),
                 "storage/protected-file".into(),
                 "timer/monotonic".into(),
@@ -164,6 +193,10 @@ impl FabricationCatalog {
                     "serial/text".into(),
                     vec!["std/*/*".into(), "conduitos/*/*".into()],
                 ),
+                (
+                    "network/ipv4-tcp".into(),
+                    vec!["conduitos/x86_64/pc".into()],
+                ),
                 ("storage/protected-file".into(), vec!["std/*/*".into()]),
                 ("timer/monotonic".into(), vec!["std/*/*".into()]),
             ]),
@@ -171,6 +204,7 @@ impl FabricationCatalog {
                 "browser/dom@1".into(),
                 "conduitos/pl011@1".into(),
                 "display/linear-framebuffer@1".into(),
+                "conduitos/deterministic-ipv4-tcp@1".into(),
                 "hosted/monotonic-clock@1".into(),
                 "hosted/protected-file@1".into(),
                 "hosted/serial@1".into(),
@@ -189,6 +223,10 @@ impl FabricationCatalog {
                         "conduitos/x86_64/pc".into(),
                     ],
                 ),
+                (
+                    "conduitos/deterministic-ipv4-tcp@1".into(),
+                    vec!["conduitos/x86_64/pc".into()],
+                ),
                 ("hosted/monotonic-clock@1".into(), vec!["std/*/*".into()]),
                 ("hosted/protected-file@1".into(), vec!["std/*/*".into()]),
                 ("hosted/serial@1".into(), vec!["std/*/*".into()]),
@@ -198,7 +236,10 @@ impl FabricationCatalog {
                 ),
             ]),
             line_facilities: vec!["line/usb-cdc@1".into(), "line/websocket@1".into()],
-            facilities: vec!["compositor/native@1".into()],
+            facilities: vec![
+                "compositor/native@1".into(),
+                "network/http1-literal-client@1".into(),
+            ],
             policy_profiles: vec![
                 "authority/explicit@1".into(),
                 "trust/local-explicit@1".into(),
@@ -211,4 +252,8 @@ impl FabricationCatalog {
             ],
         }
     }
+}
+
+const fn conduitos_http_implementation() -> &'static str {
+    "conduitos/kernel-http-client-http1-literal@1"
 }
