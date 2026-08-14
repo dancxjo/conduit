@@ -405,6 +405,10 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
         if(action.availability==="Available")await expect(control).toBeEnabled();else await expect(control).toBeDisabled();
       }
       await expect(page.locator("#inspector .exact-selection")).toContainText(target);
+      const selected=await (await fetch(`${url}/api/snapshot`)).json();
+      expect(selected.interaction.selected_subject).toBe(target);
+      const spatial=page.locator(`#flow-root .react-flow__node[data-id="${target.replaceAll('"','\\"')}"]`);
+      if(await spatial.count())await expect(spatial).toHaveClass(/selected/);
     }
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"responsive",snapshot,"narrow-enlarged-content-accessibility-after-semantic-assertions");
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
