@@ -66,7 +66,7 @@ function displaySelection(identity){
   const presentationBasis=currentPresentationBasis();
   for(const action of semanticActions(identity)){
     const availability=actionAvailability(action),button=document.createElement("button");button.type="button";button.textContent=action.label.toUpperCase();button.disabled=!availability.available;button.setAttribute("aria-describedby",`${action.identity}-availability`);
-    button.dataset.semanticAction=action.identity;button.onclick=()=>dispatchSemanticAction(action,presentationBasis);
+    button.dataset.semanticAction=action.identity;button.onclick=()=>dispatchSemanticAction(action,presentationBasis);button.onkeydown=event=>{if(event.key!=="Enter")return;event.preventDefault();dispatchSemanticAction(action,presentationBasis);};
     const status=document.createElement("span");status.id=`${action.identity}-availability`;status.className="semantic-action-availability";status.textContent=availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state;
     actions.append(button,status);
   }
