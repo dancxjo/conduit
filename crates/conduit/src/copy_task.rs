@@ -300,7 +300,7 @@ fn execute(mut task: PreparedTask) -> Result<CopyRunReceipt, String> {
     task.host.run_copy_fragment(
         CopyRequestId::new("copy/request-1")?,
         task.fragment,
-        &task.registry,
+        &mut task.registry,
         &task.stop,
     )
 }

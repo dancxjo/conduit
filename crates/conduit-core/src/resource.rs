@@ -319,6 +319,8 @@ pub enum ProtectedResourceCommitPolicy {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ProtectedResourceGrant {
     pub role_id: ResourceBindingRoleId,
+    /// Opaque, single-issuance identity. A Host must never reissue a revoked
+    /// handle to make an older Plan current again.
     pub handle_id: ResourceHandleId,
     pub gear_id: GearId,
     pub host_id: HostId,

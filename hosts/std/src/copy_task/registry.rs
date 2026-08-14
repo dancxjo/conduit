@@ -2,7 +2,7 @@ use conduit_core::{
     BootId, CapabilityId, GearId, HostId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,6 +21,7 @@ pub(crate) struct ProtectedFileEntry {
 #[derive(Debug, Default)]
 pub struct ProtectedFileRegistry {
     entries: BTreeMap<ResourceHandleId, ProtectedFileEntry>,
+    retired_handles: BTreeSet<ResourceHandleId>,
 }
 
 impl ProtectedFileRegistry {
@@ -39,7 +40,10 @@ impl ProtectedFileRegistry {
         commit_policy: ProtectedResourceCommitPolicy,
         availability: ProtectedFileAvailability,
     ) -> Result<ProtectedResourceGrant, String> {
-        if maximum_bytes == 0 || self.entries.contains_key(&handle_id) {
+        if maximum_bytes == 0
+            || self.entries.contains_key(&handle_id)
+            || self.retired_handles.contains(&handle_id)
+        {
             return Err(
                 "protected file registration must have a unique handle and positive bound"
                     .to_string(),
@@ -69,7 +73,22 @@ impl ProtectedFileRegistry {
     }
 
     pub fn revoke(&mut self, handle_id: &ResourceHandleId) {
-        self.entries.remove(handle_id);
+        if self.entries.remove(handle_id).is_some() {
+            self.retired_handles.insert(handle_id.clone());
+        }
+    }
+
+    pub fn set_availability(
+        &mut self,
+        handle_id: &ResourceHandleId,
+        availability: ProtectedFileAvailability,
+    ) -> Result<(), String> {
+        let entry = self
+            .entries
+            .get_mut(handle_id)
+            .ok_or_else(|| "protected file handle is not current".to_string())?;
+        entry.availability = availability;
+        Ok(())
     }
 
     pub(crate) fn get(&self, handle_id: &ResourceHandleId) -> Option<&ProtectedFileEntry> {
