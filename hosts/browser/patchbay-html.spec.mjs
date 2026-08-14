@@ -323,6 +323,11 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     expect(keyboardSelection.interaction.revision).toBe(pointerSelection.interaction.revision+1);
     expect(keyboardSelection.interaction.last_request_id).toContain("/select/");
     expect(keyboardSelection.interaction.selected_subject).toBe(pointerSelection.interaction.selected_subject);
+    await firstFace.press("Space");
+    const spaceSelection=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(spaceSelection.interaction.revision).toBe(keyboardSelection.interaction.revision+1);
+    expect(spaceSelection.interaction.last_request_id).toContain("/select/");
+    expect(spaceSelection.interaction.selected_subject).toBe(pointerSelection.interaction.selected_subject);
     const lensAnchor=await nodes.first().boundingBox();
     await page.getByRole("button",{name:"Intent",exact:true}).click();
     await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","form");
@@ -332,7 +337,7 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","plan");
 
     const after=await (await fetch(`${url}/api/snapshot`)).json();
-    expect(after.interaction.revision).toBe(keyboardSelection.interaction.revision);
+    expect(after.interaction.revision).toBe(spaceSelection.interaction.revision);
     expect(after.interaction.selected_subject).toBeTruthy();
     expect({
       presentation:after.presentation.identity,
