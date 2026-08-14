@@ -323,11 +323,12 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     }).toEqual(identities);
     await page.reload();
     await expect(page.locator("#flow-root")).toHaveAttribute("data-presentation-id",identities.presentation);
-    const restoredViewport=await page.evaluate(()=>window.patchbayFlowViewport());
-    expect(restoredViewport).toEqual(viewportAfter);
+    await expect.poll(()=>page.evaluate(()=>window.patchbayFlowViewport())).toEqual(viewportAfter);
     for(const [index,after] of moved.entries()){
-      const restored=await page.locator("#flow-root .react-flow__node").nth(index).boundingBox();
-      expect(Math.abs(restored.x-after.x)+Math.abs(restored.y-after.y)).toBeLessThan(3);
+      await expect.poll(async()=>{
+        const restored=await page.locator("#flow-root .react-flow__node").nth(index).boundingBox();
+        return Math.abs(restored.x-after.x)+Math.abs(restored.y-after.y);
+      }).toBeLessThan(3);
     }
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
 });
