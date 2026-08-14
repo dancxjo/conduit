@@ -124,7 +124,13 @@ impl PatchbayApplication {
         let breadcrumb = self.back_breadcrumb();
         let interaction_status = self.interaction_status.current().cloned();
         self.canvas_viewport
-            .resize(crate::gui::canvas_rect(size.width, size.height))
+            .resize(crate::gui_viewport::canvas_rect_for(
+                size.width,
+                size.height,
+                self.selected_graphical_identity().is_some()
+                    || self.palette.search_active()
+                    || self.exact_identity_open,
+            ))
             .map_err(|error| error.message().to_owned())?;
         let gesture = crate::gui_gesture::GestureView {
             palette_kind: self.palette_drag.as_deref(),

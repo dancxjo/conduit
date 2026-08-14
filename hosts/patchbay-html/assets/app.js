@@ -47,6 +47,7 @@ function displaySelection(identity){
   state.selected=identity;
   document.querySelectorAll("[data-subject]").forEach(item=>{const selected=item.dataset.subject===identity;item.classList.toggle("selected",selected);if(item.tagName==="BUTTON")item.setAttribute("aria-pressed",String(selected));});
   const subject=state.snapshot.presentation.subjects.find(item=>item.identity===identity);
+  document.body.dataset.inspectorOpen=String(Boolean(subject));
   const summary=document.querySelector("#inspector .selected-summary"),exact=document.querySelector("#inspector .exact-selection"),exactFacts=exact.querySelector("dl");summary.replaceChildren();exactFacts.replaceChildren();
   const actions=document.querySelector("#semantic-actions");actions.replaceChildren();
   document.querySelector("#clear-selection").hidden=!subject;

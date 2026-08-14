@@ -52,7 +52,9 @@ pub(super) const INSPECTOR_WIDTH: i32 = 284;
 pub(super) const NODE_WIDTH: i32 = 190;
 pub(super) const MINIMUM_NODE_HEIGHT: i32 = 92;
 
-pub(super) use crate::gui_viewport::{canvas_rect, canvas_world_bounds, subject_world_center};
+#[cfg(test)]
+pub(super) use crate::gui_viewport::canvas_rect;
+pub(super) use crate::gui_viewport::{canvas_world_bounds, subject_world_center};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LifecycleContext {
@@ -135,16 +137,38 @@ pub fn draw_patchbay(
     let theme = &PHOSPHOR_THEME;
     let width = i32::try_from(width).unwrap_or(i32::MAX);
     let height = i32::try_from(height).unwrap_or(i32::MAX);
+    let inspector_requested = selected.is_some() || palette.search_active() || exact_identity_open;
+    let shell = u16::try_from(width)
+        .ok()
+        .zip(u16::try_from(height).ok())
+        .and_then(|(width, height)| {
+            patchbay_model::ResponsivePatchbayLayout::allocate(
+                width,
+                height,
+                100,
+                inspector_requested,
+            )
+            .ok()
+        });
+    let shell_region = |id| shell.as_ref().and_then(|layout| layout.region(id));
+    let header_height = shell_region(patchbay_model::PresentationRegionId::HeaderMeaning)
+        .map_or(HEADER_HEIGHT, |region| i32::from(region.bounds.height));
+    let footer_height = shell_region(patchbay_model::PresentationRegionId::FooterMeaning)
+        .map_or(FOOTER_HEIGHT, |region| i32::from(region.bounds.height));
+    let nav_width = shell_region(patchbay_model::PresentationRegionId::Navigator)
+        .map_or(NAV_WIDTH, |region| i32::from(region.bounds.width));
+    let inspector_width = shell_region(patchbay_model::PresentationRegionId::Inspector)
+        .map_or(0, |region| i32::from(region.bounds.width));
     let mut targets = Vec::with_capacity(MAX_HIT_TARGETS);
     draw_regions(
         &mut canvas,
         width,
         height,
         RegionMetrics {
-            header_height: HEADER_HEIGHT,
-            footer_height: FOOTER_HEIGHT,
-            nav_width: NAV_WIDTH,
-            inspector_width: INSPECTOR_WIDTH,
+            header_height,
+            footer_height,
+            nav_width,
+            inspector_width,
         },
         theme,
     );
@@ -153,7 +177,7 @@ pub fn draw_patchbay(
             Point::zero(),
             Size::new(
                 u32::try_from(width).unwrap_or_default(),
-                HEADER_HEIGHT as u32,
+                positive(header_height),
             ),
         );
         let mut header = canvas.clipped(&clip);
@@ -172,9 +196,9 @@ pub fn draw_patchbay(
         width,
         presentation_layout,
         GearGeometry {
-            canvas_left: NAV_WIDTH + 28,
-            inspector_width: INSPECTOR_WIDTH,
-            header_height: HEADER_HEIGHT,
+            canvas_left: nav_width + 28,
+            inspector_width,
+            header_height,
             node_width: NODE_WIDTH,
             minimum_node_height: MINIMUM_NODE_HEIGHT,
         },
@@ -188,10 +212,10 @@ pub fn draw_patchbay(
     );
     {
         let clip = Rectangle::new(
-            Point::new(0, HEADER_HEIGHT),
+            Point::new(0, header_height),
             Size::new(
-                NAV_WIDTH as u32,
-                positive(height - HEADER_HEIGHT - FOOTER_HEIGHT),
+                positive(nav_width),
+                positive(height - header_height - footer_height),
             ),
         );
         let mut navigator = canvas.clipped(&clip);
@@ -271,12 +295,12 @@ pub fn draw_patchbay(
             );
         }
     }
-    {
+    if inspector_width > 0 {
         let clip = Rectangle::new(
-            Point::new(width - INSPECTOR_WIDTH, HEADER_HEIGHT),
+            Point::new(width - inspector_width, header_height),
             Size::new(
-                INSPECTOR_WIDTH as u32,
-                positive(height - HEADER_HEIGHT - FOOTER_HEIGHT),
+                positive(inspector_width),
+                positive(height - header_height - footer_height),
             ),
         );
         let mut inspector = canvas.clipped(&clip);
@@ -290,13 +314,26 @@ pub fn draw_patchbay(
                 status,
                 exact_open: exact_identity_open,
                 width,
-                inspector_width: INSPECTOR_WIDTH,
+                inspector_width,
             },
             theme,
             &mut targets,
         );
     }
-    draw_footer(&mut canvas, graph, selected, status, height, theme);
+    draw_footer(
+        &mut canvas,
+        graph,
+        FooterView {
+            selected,
+            status,
+            viewport,
+            width,
+            height,
+            footer_height,
+        },
+        theme,
+        &mut targets,
+    );
     targets.truncate(MAX_HIT_TARGETS);
     targets
 }
@@ -310,22 +347,26 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
     targets: &mut Vec<HitTarget>,
 ) {
     let (lifecycle, width, viewport) = view;
-    icon_label(
-        target,
-        Icon::Form,
-        Point::new(14, 10),
-        &format!(
-            "FORM  {}",
-            if breadcrumb.is_empty() {
-                graph.form_name.as_str()
-            } else {
-                breadcrumb
-            }
-        ),
-        theme.emphasis,
-    );
+    {
+        let clip = Rectangle::new(Point::zero(), Size::new(232, HEADER_HEIGHT as u32));
+        let mut meaning = target.clipped(&clip);
+        icon_label(
+            &mut meaning,
+            Icon::Form,
+            Point::new(14, 10),
+            &format!(
+                "FORM  {}",
+                if breadcrumb.is_empty() {
+                    graph.form_name.as_str()
+                } else {
+                    breadcrumb
+                }
+            ),
+            theme.emphasis,
+        );
+    }
     draw_lifecycle_flow(target, lifecycle, width, theme, targets);
-    crate::gui_viewport::draw_viewport_controls(target, viewport, theme, targets);
+    let _ = viewport;
 }
 
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(
@@ -466,15 +507,31 @@ fn draw_boundaries<D: DrawTarget<Color = Rgb888>>(
     }
 }
 
+struct FooterView<'a> {
+    selected: Option<&'a str>,
+    status: Option<&'a crate::interaction_status::InteractionStatus>,
+    viewport: &'a CanvasViewport,
+    width: i32,
+    height: i32,
+    footer_height: i32,
+}
+
 fn draw_footer<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
-    selected: Option<&str>,
-    status: Option<&crate::interaction_status::InteractionStatus>,
-    height: i32,
+    view: FooterView<'_>,
     theme: &PatchbayTheme,
+    targets: &mut Vec<HitTarget>,
 ) {
-    let y = height - FOOTER_HEIGHT + 12;
+    let FooterView {
+        selected,
+        status,
+        viewport,
+        width,
+        height,
+        footer_height,
+    } = view;
+    let y = height - footer_height + 12;
     icon_label(
         target,
         Icon::Success,
@@ -513,6 +570,14 @@ fn draw_footer<D: DrawTarget<Color = Rgb888>>(
             Point::new(430, y),
             "selection is presentation-only",
             theme.text_secondary,
+        );
+    } else if width >= 720 {
+        crate::gui_viewport::draw_viewport_controls(
+            target,
+            viewport,
+            Point::new(width.saturating_sub(252), height - footer_height + 4),
+            theme,
+            targets,
         );
     }
 }

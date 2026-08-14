@@ -44,6 +44,7 @@ mod portable_layout;
 mod portable_projection;
 mod portable_route_projection;
 mod portable_world_projection;
+mod presentation_layout;
 mod presenter_capstone;
 #[cfg(test)]
 mod presenter_capstone_tests;
@@ -126,6 +127,11 @@ pub use portable_demo::{portable_demonstration, portable_demonstration_with_part
 pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_projection::PortableProjectionError;
+pub use presentation_layout::{
+    fit_measured_text, LayoutCollision, MeasuredTextFit, PresentationLayoutError,
+    PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
+    PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
+};
 pub use presenter_capstone::*;
 pub use prewake::*;
 pub use renderer_conformance::{

@@ -213,8 +213,9 @@ fn visible_pointer_controls_expose_zoom_fit_center_and_reset() {
         ViewportAction::CenterSelection,
         ViewportAction::Reset,
     ] {
-        let point = (26..46)
-            .flat_map(|y| (300..540).map(move |x| (x, y)))
+        let point = (0..720)
+            .rev()
+            .flat_map(|y| (0..1_300).map(move |x| (x, y)))
             .find(|(x, y)| {
                 application.hit_targets.iter().rev().any(|target| {
                     target.contains(f64::from(*x), f64::from(*y))

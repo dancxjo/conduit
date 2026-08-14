@@ -17,14 +17,14 @@
     <span class="lens-controls" role="toolbar" aria-label="Patchbay lenses"><button type="button" data-lens="world" aria-pressed="true">World</button><button type="button" data-lens="form" aria-pressed="false">Intent</button><button type="button" data-lens="plan" aria-pressed="false">Realization</button><button type="button" data-lens="play" aria-pressed="false">Play</button><button type="button" data-lens="signs" aria-pressed="false">Signs</button></span><a href="#linear">Linear</a>
   </nav>
   <main>
-    <div class="workspace">
-      <aside id="palette" class="side-panel" aria-labelledby="palette-title">
+    <div class="workspace" data-layout-regions="finite" data-overflow="scroll-regions">
+      <aside id="palette" class="side-panel" aria-labelledby="palette-title" data-region="navigator" data-priority="secondary-context">
         <h2 id="palette-title">Navigate</h2>
         <details><summary>Exact Form identity</summary><dl id="form-facts"></dl></details>
         <h3>Program structure</h3>
         <ul id="subjects" aria-label="Form graph subjects"></ul>
       </aside>
-      <section id="form" class="canvas-panel" aria-labelledby="canvas-title">
+      <section id="form" class="canvas-panel" aria-labelledby="canvas-title" data-region="canvas" data-priority="primary-meaning">
         <div class="canvas-heading">
           <div><p id="lens-label" class="eyebrow">WORLD LENS</p><h2 id="canvas-title">Host and Body possibilities</h2></div>
           <div role="toolbar" aria-label="Renderer-local canvas controls">
@@ -33,7 +33,7 @@
         </div>
         <svg id="graph" role="img" aria-labelledby="graph-title"><title id="graph-title">Canonical Form graph</title></svg>
       </section>
-      <aside id="inspector" class="side-panel inspector" aria-live="polite">
+      <aside id="inspector" class="side-panel inspector" aria-live="polite" data-region="inspector" data-priority="selected-detail" data-overflow="disclose">
         <h2>Inspector</h2><button id="clear-selection" type="button" hidden>Clear selection</button><p class="inspector-hint">Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.</p><dl class="selected-summary"></dl><div id="semantic-actions" role="toolbar" aria-label="Selected subject actions"></div><details class="exact-selection"><summary>Exact identity and provenance</summary><dl></dl></details>
       </aside>
     </div>
