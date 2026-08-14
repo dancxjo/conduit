@@ -164,5 +164,9 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement
         .capabilities
         .push(conduit_std_catalog::conduitos_music_synth_offer());
+    advertisement.capabilities.extend([
+        conduit_std_catalog::json_encode_conduitos_offer(),
+        conduit_std_catalog::json_decode_conduitos_offer(),
+    ]);
     Ok(advertisement)
 }

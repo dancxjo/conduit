@@ -21,6 +21,7 @@ mod implementation;
 mod info;
 mod input_chord;
 mod input_keymap;
+mod json_info;
 mod key_event;
 mod patchbay_control;
 mod plan_realization;
@@ -46,6 +47,7 @@ pub use implementation::{
 pub use info::*;
 pub use input_chord::*;
 pub use input_keymap::*;
+pub use json_info::*;
 pub use key_event::*;
 pub use patchbay_control::*;
 pub use plan_realization::RealizationBack;

@@ -4,7 +4,8 @@ use conduit_core::{
     ChordInfo, ConduitIntlKeymap, InfoBool, KeyEvent, KeymapDisposition, KeymapRefusal, Scalar,
 };
 
-const OUTPUT_BYTES: usize = conduit_std_catalog::MAX_TEXT_BYTES as usize;
+const OUTPUT_BYTES: usize = conduit_core::JSON_MAXIMUM_ENCODED_BYTES;
+const TEXT_OUTPUT_BYTES: usize = conduit_std_catalog::MAX_TEXT_BYTES as usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoundedHostOperationError {
@@ -12,6 +13,7 @@ pub enum BoundedHostOperationError {
     InvalidConfiguration,
     Overflow,
     Unsupported,
+    Json(conduit_core::JsonRefusal),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -66,7 +68,7 @@ impl BoundedHostOperations {
             .len()
             .checked_add(text.len())
             .ok_or(BoundedHostOperationError::Overflow)?;
-        if total > OUTPUT_BYTES {
+        if total > TEXT_OUTPUT_BYTES {
             return Err(BoundedHostOperationError::Overflow);
         }
         let mut output = BoundedOutput {
@@ -82,6 +84,20 @@ impl BoundedHostOperations {
         InfoBool::decode(input)
             .map(InfoBool::get)
             .map_err(|_| BoundedHostOperationError::InvalidInput)
+    }
+
+    pub fn json_encode(&self, input: &[u8]) -> Result<BoundedOutput, BoundedHostOperationError> {
+        let output = conduit_core::JsonValue::decode_info(input)
+            .and_then(|value| value.encode_text())
+            .map_err(BoundedHostOperationError::Json)?;
+        BoundedOutput::from_slice(&output)
+    }
+
+    pub fn json_decode(&self, input: &[u8]) -> Result<BoundedOutput, BoundedHostOperationError> {
+        let output = conduit_core::JsonValue::decode_text(input)
+            .and_then(|value| value.encode_info())
+            .map_err(BoundedHostOperationError::Json)?;
+        BoundedOutput::from_slice(&output)
     }
 
     pub fn math_scale(
@@ -184,7 +200,7 @@ mod tests {
             Scalar::ZERO
         );
         assert_eq!(
-            host.text_join(&"x".repeat(OUTPUT_BYTES), b"y"),
+            host.text_join(&"x".repeat(TEXT_OUTPUT_BYTES), b"y"),
             Err(BoundedHostOperationError::Overflow)
         );
     }
@@ -206,6 +222,22 @@ mod tests {
         assert_eq!(
             host.keymap(&[0xff]),
             Err(BoundedHostOperationError::InvalidInput)
+        );
+    }
+
+    #[test]
+    fn json_operations_match_the_shared_no_std_semantics() {
+        let host = BoundedHostOperations::default();
+        let info = host
+            .json_decode("{\"z\":1,\"a\":\"世界\"}".as_bytes())
+            .unwrap();
+        let text = host.json_encode(info.as_bytes()).unwrap();
+        assert_eq!(text.as_bytes(), "{\"a\":\"世界\",\"z\":1}".as_bytes());
+        assert_eq!(
+            host.json_decode(b"{\"a\":1,\"a\":2}"),
+            Err(BoundedHostOperationError::Json(
+                conduit_core::JsonRefusal::DuplicateKey
+            ))
         );
     }
 }

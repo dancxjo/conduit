@@ -13,6 +13,7 @@ mod gate_conformance;
 mod graphics_conformance;
 mod input_semantics_conformance;
 mod instrument_conformance;
+mod json_conformance;
 mod layout_conformance;
 mod logic_conformance;
 mod math_conformance;

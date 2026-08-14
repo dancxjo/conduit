@@ -6,6 +6,7 @@ use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOper
 use super::generate_text::GenerateTextOperation;
 use super::http::{HttpClientOperation, HttpServerOperation};
 use super::input_semantic_operations::{InputSemanticOperation, KeyEventTeeOperation};
+use super::json_operations::JsonOperation;
 use super::layout_operations::LayoutOperation;
 use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
@@ -21,6 +22,8 @@ use super::render_demand_operation::AudioRenderDemandOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::synth_operation::MusicSynthOperation;
+#[cfg(test)]
+use super::test_json_codec::{TestJsonSinkOperation, TestJsonSourceOperation};
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
@@ -95,11 +98,17 @@ pub(super) enum InstalledOperation {
     GenerateText(GenerateTextOperation),
     HttpClient(HttpClientOperation),
     HttpServer(HttpServerOperation),
+    JsonEncode(JsonOperation),
+    JsonDecode(JsonOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
     #[cfg(test)]
     TestMidiSource(super::test_midi_source::TestMidiSourceOperation),
     TestPcmSource(Box<super::test_audio_source::TestPcmSourceOperation>),
+    #[cfg(test)]
+    TestJsonSource(TestJsonSourceOperation),
+    #[cfg(test)]
+    TestJsonSink(TestJsonSinkOperation),
     #[cfg(test)]
     TestKeyEventSource(super::test_input_semantics::TestKeyEventSourceOperation),
     #[cfg(test)]
@@ -184,11 +193,16 @@ impl Operation for InstalledOperation {
             Self::GenerateText(operation) => operation.start(),
             Self::HttpClient(operation) => operation.start(),
             Self::HttpServer(operation) => operation.start(),
+            Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
             Self::TestMidiSource(operation) => operation.emit_or_complete(),
             Self::TestPcmSource(operation) => operation.emit_or_complete(),
+            #[cfg(test)]
+            Self::TestJsonSource(operation) => operation.emit_or_complete(),
+            #[cfg(test)]
+            Self::TestJsonSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.start(),
             #[cfg(test)]
@@ -262,11 +276,18 @@ impl Operation for InstalledOperation {
             (Self::GenerateText(operation), input) => operation.resume(input),
             (Self::HttpClient(operation), input) => operation.resume(input),
             (Self::HttpServer(operation), input) => operation.resume(input),
+            (Self::JsonEncode(operation), input) | (Self::JsonDecode(operation), input) => {
+                operation.resume(input)
+            }
             #[cfg(test)]
             (Self::TestTextSource(_), _) => Self::fail(6),
             #[cfg(test)]
             (Self::TestMidiSource(operation), input) => operation.resume(input),
             (Self::TestPcmSource(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestJsonSource(_), _) => Self::fail(104),
+            #[cfg(test)]
+            (Self::TestJsonSink(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestKeyEventSource(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -336,6 +357,7 @@ impl Operation for InstalledOperation {
             Self::TextUpper(_) => OperationAction::Await,
             Self::TextJoin(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
+            Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.advance(),
             Self::StateCount(operation) => operation.advance(),
             Self::StateToggle(operation) => operation.advance(),
             Self::CountPresentation(_) => OperationAction::Await,
@@ -388,6 +410,10 @@ impl Operation for InstalledOperation {
             Self::TestGateScript(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestLogicScript(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestJsonSource(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestJsonSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestLogicSink(_) => OperationAction::Await,
             #[cfg(test)]
@@ -445,11 +471,16 @@ impl Operation for InstalledOperation {
             Self::GenerateText(operation) => operation.cancel(),
             Self::HttpClient(operation) => operation.cancel(),
             Self::HttpServer(operation) => operation.cancel(),
+            Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]
             Self::TestMidiSource(operation) => operation.cancel(),
             Self::TestPcmSource(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestJsonSource(_) => {}
+            #[cfg(test)]
+            Self::TestJsonSink(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.cancel(),
             #[cfg(test)]
