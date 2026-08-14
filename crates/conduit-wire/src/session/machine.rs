@@ -161,9 +161,7 @@ impl SessionMachine {
         direction: FrameDirection,
         frame: SessionFrame<'_>,
     ) -> Result<(), WireError> {
-        if !identity_matches(&self.binding, frame.identity) {
-            return Err(WireError::InvalidSession);
-        }
+        validate_identity(&self.binding, frame.identity)?;
         if terminal_for(self, direction).is_some() {
             return Err(WireError::LateFrame);
         }
@@ -270,9 +268,7 @@ impl SessionMachine {
                 return Err(WireError::DuplicateFrame);
             }
         }
-        if !hello_matches(&self.binding, hello) {
-            return Err(WireError::InvalidSession);
-        }
+        validate_hello(&self.binding, hello)?;
         match direction {
             FrameDirection::Outbound => self.local_hello = true,
             FrameDirection::Inbound => self.peer_hello = true,

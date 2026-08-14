@@ -108,7 +108,7 @@ fn stale_pico_boot_and_base_instance_fail_before_play_start() {
         .unwrap();
     assert_eq!(
         source.admit_inbound(RemoteKind::Pico, planned.hello_frame()),
-        Err(format!("{:?}", WireError::InvalidSession))
+        Err(format!("{:?}", WireError::BootMismatch))
     );
 
     let binding = source.binding(RemoteKind::Pico).clone();
@@ -125,7 +125,7 @@ fn stale_pico_boot_and_base_instance_fail_before_play_start() {
                 message,
             },
         ),
-        Err(format!("{:?}", WireError::InvalidSession))
+        Err(format!("{:?}", WireError::SessionEpochMismatch))
     );
 }
 

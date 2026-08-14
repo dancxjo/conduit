@@ -246,9 +246,14 @@ fn identity_and_sequence_mutation_corpus_drives_session_denial() {
         }
         let mut machine = SessionMachine::new(baseline.clone(), SessionRole::Source).unwrap();
         trigger(&mut machine);
+        let expected = if field == 0 {
+            WireError::PlanMismatch
+        } else {
+            WireError::ConnectionMismatch
+        };
         assert_eq!(
             machine.admit_outbound(frame),
-            Err(WireError::InvalidSession),
+            Err(expected),
             "{name} must fail at the stateful live session boundary"
         );
     }
@@ -262,7 +267,7 @@ fn identity_and_sequence_mutation_corpus_drives_session_denial() {
             identity,
             message: baseline.hello_frame().message,
         }),
-        Err(WireError::InvalidSession)
+        Err(WireError::ValueContractMismatch)
     );
 
     let wrong_sequence = envelope(corpus!("wrong_sequence.bin"), "wrong_sequence.bin");
