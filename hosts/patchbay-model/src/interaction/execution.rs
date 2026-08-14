@@ -1,5 +1,6 @@
 //! Exact one-Play execution for one admitted semantic Patchbay action.
 
+use super::presentation_validation::validate_presentation_invocation;
 use super::*;
 use conduit_core::{bind_active_play, ConnectionBase};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerError, SchedulerStatus};
@@ -155,17 +156,26 @@ impl PatchbayInteraction {
     where
         F: FnOnce(&PatchbayInteractionRequest) -> PatchbayInvocationOutcome,
     {
-        self.execute_with_subject_resolver(request, invoke, |candidate| {
-            if presentation.basis.expanded_form_id.as_ref() != Some(&candidate.expanded_form_id) {
-                return Err(PatchbayRefusal::StalePresentation);
-            }
-            presentation
-                .subjects
-                .iter()
-                .any(|subject| subject.identity == candidate.subject_identity)
-                .then_some(())
-                .ok_or(PatchbayRefusal::UnknownSubject)
-        })
+        let invocation_refusal = validate_presentation_invocation(presentation, &request).err();
+        self.execute_with_subject_resolver(
+            request,
+            move |request| {
+                invocation_refusal
+                    .map_or_else(|| invoke(request), PatchbayInvocationOutcome::Refused)
+            },
+            |candidate| {
+                if presentation.basis.expanded_form_id.as_ref() != Some(&candidate.expanded_form_id)
+                {
+                    return Err(PatchbayRefusal::StalePresentation);
+                }
+                presentation
+                    .subjects
+                    .iter()
+                    .any(|subject| subject.identity == candidate.subject_identity)
+                    .then_some(())
+                    .ok_or(PatchbayRefusal::UnknownSubject)
+            },
+        )
     }
 
     fn execute_with_subject_resolver<F, R>(
@@ -178,6 +188,10 @@ impl PatchbayInteraction {
         F: FnOnce(&PatchbayInteractionRequest) -> PatchbayInvocationOutcome,
         R: Fn(&crate::PatchbaySubjectRef) -> Result<(), PatchbayRefusal>,
     {
+        let duplicate_delivery = self
+            .history
+            .iter()
+            .any(|receipt| receipt.request.request_id() == request.request_id());
         let expanded = expanded_request(&request)?;
         let planned_request = request_from_expanded(&expanded)?;
         if planned_request != request {
@@ -313,15 +327,21 @@ impl PatchbayInteraction {
                         PatchbayInteractionRequest::Invoke { .. }
                         | PatchbayInteractionRequest::Edit { .. } => {
                             if matches!(&decoded, PatchbayInteractionRequest::Invoke { .. })
-                                && decoded.control_request(0)?.is_none()
+                                && decoded.control_request()?.is_none()
                             {
                                 return Err(InteractionError::InvalidIdentity);
                             }
-                            match invoke
-                                .take()
-                                .map_or(PatchbayInvocationOutcome::Failed, |invoke| {
-                                    invoke(&decoded)
-                                }) {
+                            match if duplicate_delivery {
+                                PatchbayInvocationOutcome::Refused(
+                                    PatchbayRefusal::DuplicateDelivery,
+                                )
+                            } else {
+                                invoke
+                                    .take()
+                                    .map_or(PatchbayInvocationOutcome::Failed, |invoke| {
+                                        invoke(&decoded)
+                                    })
+                            } {
                                 PatchbayInvocationOutcome::Succeeded => {
                                     disposition = Some(InteractionDisposition::Succeeded);
                                     completed_outcome()

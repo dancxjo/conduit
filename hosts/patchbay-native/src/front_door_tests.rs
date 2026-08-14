@@ -1,4 +1,5 @@
 use super::*;
+use crate::gui_hit::GuiAction;
 
 #[test]
 fn native_front_door_begins_on_truthful_zero_body_world_state() {
@@ -69,16 +70,20 @@ fn native_open_seed_revision_remains_unbodied_and_preserves_selection() {
         ..Arguments::default()
     })
     .unwrap();
-    let selected = application
-        .entrance_state
+    let seed_id = application
+        .zero_body_front_door
         .as_ref()
         .unwrap()
-        .selected_subject
-        .clone();
-    let session = application.zero_body_front_door.as_mut().unwrap();
-    let seed_id = session.seed_ids().into_iter().next().unwrap();
-    session.open_seed(&seed_id, session.revision()).unwrap();
-    application.refresh_front_door().unwrap();
+        .seed_ids()
+        .into_iter()
+        .next()
+        .unwrap();
+    let seed_subject = format!("seed/{}", seed_id.as_str());
+    application
+        .select_front_door_subject(&seed_subject)
+        .unwrap();
+    let selected = Some(seed_subject);
+    application.handle_gui_action(GuiAction::OpenBack).unwrap();
     let opened = application.entrance_presentation.as_ref().unwrap();
     assert_eq!(opened.revision, 2);
     assert!(opened.basis.body_id.is_none());

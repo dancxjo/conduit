@@ -1279,6 +1279,9 @@ fn native_invocation_adapter_distinguishes_stale_target_and_platform_failure() {
 
     assert_eq!(
         application.apply_invocation(&patchbay_model::PatchbayInvocation {
+            presentation_id: "presentation/test".into(),
+            presentation_revision: 1,
+            action_id: "action/open/test".into(),
             action: patchbay_model::PatchbayAction::OpenBack,
             target_identity: "expanded/stale".into(),
         }),
@@ -1296,6 +1299,9 @@ fn native_invocation_adapter_distinguishes_stale_target_and_platform_failure() {
     std::fs::remove_dir(&directory).unwrap();
     assert_eq!(
         application.apply_invocation(&patchbay_model::PatchbayInvocation {
+            presentation_id: "presentation/test".into(),
+            presentation_revision: 1,
+            action_id: "action/save/test".into(),
             action: patchbay_model::PatchbayAction::Save,
             target_identity: target,
         }),

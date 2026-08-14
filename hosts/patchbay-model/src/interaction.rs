@@ -4,6 +4,7 @@ mod codec;
 mod edit;
 mod edit_form;
 mod execution;
+mod presentation_validation;
 
 pub use edit::{PatchbayEdit, PatchbayEditBasis};
 use edit_form::{
@@ -12,7 +13,6 @@ use edit_form::{
 
 use conduit_core::ConfigurationValue;
 pub use conduit_core::PatchbayAction;
-use conduit_core::PatchbayControlRequest;
 use conduit_core::{
     kind_id, port_id, ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FaceStartupParameter,
@@ -57,6 +57,9 @@ impl PatchbayInteractionRequestId {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayInvocation {
+    pub presentation_id: String,
+    pub presentation_revision: u64,
+    pub action_id: String,
     pub action: PatchbayAction,
     pub target_identity: String,
 }
@@ -78,34 +81,14 @@ pub enum PatchbayInteractionRequest {
     },
 }
 
-impl PatchbayInteractionRequest {
-    /// Project a lifecycle invocation onto the same portable semantic-control
-    /// envelope used by allocator-aware and allocator-free Patchbay Hosts.
-    pub fn control_request(
-        &self,
-        presentation_revision: u64,
-    ) -> Result<Option<PatchbayControlRequest>, InteractionError> {
-        let Self::Invoke {
-            request_id,
-            invocation,
-        } = self
-        else {
-            return Ok(None);
-        };
-        PatchbayControlRequest::new(
-            request_id.as_str(),
-            presentation_revision,
-            invocation.action,
-            invocation.target_identity.clone(),
-        )
-        .map(Some)
-        .map_err(|_| InteractionError::InvalidIdentity)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PatchbayRefusal {
     StalePresentation,
+    UnknownAction,
+    ActionUnavailable,
+    ActionRefused,
+    WrongTarget,
+    DuplicateDelivery,
     UnknownSubject,
     OperationUnavailable,
     OperationRejected,
@@ -149,6 +132,7 @@ pub enum InteractionError {
     InvalidIdentity,
     ValueTooLarge,
     MalformedValue,
+    Action(conduit_presentation::PresentationActionRefusal),
     Form(String),
     Planning(String),
     Execution(String),
@@ -269,6 +253,11 @@ fn request_from_expanded(
         INVOKE_KIND => Ok(PatchbayInteractionRequest::Invoke {
             request_id,
             invocation: PatchbayInvocation {
+                presentation_id: text("presentation")?,
+                presentation_revision: text("revision")?
+                    .parse()
+                    .map_err(|_| InteractionError::MalformedValue)?,
+                action_id: text("action-id")?,
                 action: PatchbayAction::from_name(&text("action")?)
                     .ok_or(InteractionError::MalformedValue)?,
                 target_identity: text("target")?,
@@ -300,7 +289,17 @@ fn interaction_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Interactio
         .insert(signature(SELECT_KIND, &["request", "basis", "subject"]))
         .map_err(|error| InteractionError::Form(error.to_string()))?;
     startup
-        .insert(signature(INVOKE_KIND, &["request", "action", "target"]))
+        .insert(signature(
+            INVOKE_KIND,
+            &[
+                "request",
+                "presentation",
+                "revision",
+                "action-id",
+                "action",
+                "target",
+            ],
+        ))
         .map_err(|error| InteractionError::Form(error.to_string()))?;
     startup
         .insert(edit_signature())
@@ -337,33 +336,33 @@ fn signature(kind: &str, fields: &[&str]) -> KindSignature {
 }
 
 fn source_definition(kind: &str) -> KindDefinition {
+    let fields: &[&str] = if kind == SELECT_KIND {
+        &["request", "basis", "subject"]
+    } else {
+        &[
+            "request",
+            "presentation",
+            "revision",
+            "action-id",
+            "action",
+            "target",
+        ]
+    };
     KindDefinition {
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
         inputs: vec![],
         outputs: vec![request_port(PortDirection::Output)],
-        configuration: [
-            "request",
-            if kind == SELECT_KIND {
-                "basis"
-            } else {
-                "action"
-            },
-            if kind == SELECT_KIND {
-                "subject"
-            } else {
-                "target"
-            },
-        ]
-        .into_iter()
-        .map(|key| ConfigurationField {
-            key: key.into(),
-            default_value: ConfigurationValue::Text(String::new()),
-            validation: ConfigurationRule::TextBytes {
-                maximum: MAX_INTERACTION_ID_BYTES as u32,
-            },
-        })
-        .collect(),
+        configuration: fields
+            .iter()
+            .map(|key| ConfigurationField {
+                key: (*key).into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                validation: ConfigurationRule::TextBytes {
+                    maximum: MAX_INTERACTION_ID_BYTES as u32,
+                },
+            })
+            .collect(),
     }
 }
 
@@ -400,7 +399,14 @@ fn invoke_offer() -> CapabilityOffer {
         INVOKE_KIND,
         "patchbay-invoke",
         "patchbay/invoke@1",
-        &["request", "action", "target"],
+        &[
+            "request",
+            "presentation",
+            "revision",
+            "action-id",
+            "action",
+            "target",
+        ],
     )
 }
 

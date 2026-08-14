@@ -194,26 +194,24 @@ impl PatchbayApplication {
             self.pending_back_selection = self.selected_graphical_subject().is_some();
             self.pending_back_target = self.selected_back_target();
         }
-        let target = self
-            .graphical_form
-            .as_ref()
-            .map(|graph| graph.expanded_form_id.as_str().to_owned())
-            .or_else(|| {
-                self.form_editor
-                    .as_ref()
-                    .map(|editor| editor.view().open_form)
-            })
-            .ok_or("canonical Form target is absent")?;
+        let presentation = self.semantic_invocation_presentation()?;
+        let action_id = presentation
+            .actions
+            .iter()
+            .find(|candidate| candidate.intent == action.presentation_intent())
+            .map(|candidate| candidate.identity.clone())
+            .ok_or("current Presentation does not expose the requested action")?;
         let mut interaction = self
             .interaction
             .take()
             .expect("interaction state is installed");
-        let graph = self.graphical_form.clone();
         let result = interaction
             .next_request_id(action.as_str())
-            .and_then(|request_id| PatchbayInteractionRequest::invoke(request_id, action, target))
+            .and_then(|request_id| {
+                PatchbayInteractionRequest::invoke(request_id, &presentation, &action_id)
+            })
             .and_then(|request| {
-                interaction.execute(graph.as_ref(), request, |request| {
+                interaction.execute_presentation(&presentation, request, |request| {
                     self.apply_interaction_request(request)
                 })
             });
@@ -229,6 +227,22 @@ impl PatchbayApplication {
         &mut self,
         invocation: &PatchbayInvocation,
     ) -> PatchbayInvocationOutcome {
+        if invocation.action == PatchbayAction::OpenBack {
+            if let Some(session) = self.zero_body_front_door.as_mut() {
+                return match session.open_subject(
+                    &invocation.target_identity,
+                    invocation.presentation_revision,
+                ) {
+                    Ok(()) => match self.refresh_front_door() {
+                        Ok(()) => PatchbayInvocationOutcome::Succeeded,
+                        Err(_) => PatchbayInvocationOutcome::Failed,
+                    },
+                    Err(_) => {
+                        PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
+                    }
+                };
+            }
+        }
         if crate::lifecycle_flow::is_lifecycle_action(invocation.action)
             && self
                 .lifecycle_unavailable_reason(invocation.action)

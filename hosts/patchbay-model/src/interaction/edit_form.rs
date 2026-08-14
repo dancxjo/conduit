@@ -149,9 +149,9 @@ pub(super) fn request_source(request: &PatchbayInteractionRequest) -> String {
         } => (
             SELECT_KIND,
             vec![
-                request_id.as_str(),
-                expanded_form_id.as_str(),
-                subject_identity.as_str(),
+                request_id.as_str().to_owned(),
+                expanded_form_id.as_str().to_owned(),
+                subject_identity.to_owned(),
             ],
         ),
         PatchbayInteractionRequest::Invoke {
@@ -160,9 +160,12 @@ pub(super) fn request_source(request: &PatchbayInteractionRequest) -> String {
         } => (
             INVOKE_KIND,
             vec![
-                request_id.as_str(),
-                invocation.action.as_str(),
-                invocation.target_identity.as_str(),
+                request_id.as_str().to_owned(),
+                invocation.presentation_id.clone(),
+                invocation.presentation_revision.to_string(),
+                invocation.action_id.clone(),
+                invocation.action.as_str().to_owned(),
+                invocation.target_identity.clone(),
             ],
         ),
         PatchbayInteractionRequest::Edit { request_id, edit } => {
@@ -171,7 +174,7 @@ pub(super) fn request_source(request: &PatchbayInteractionRequest) -> String {
     };
     let arguments = fields
         .into_iter()
-        .map(|field| format!("\"{}\"", escape_form_text(field)))
+        .map(|field| format!("\"{}\"", escape_form_text(&field)))
         .collect::<Vec<_>>()
         .join(", ");
     format!(

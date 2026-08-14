@@ -209,13 +209,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(interactionSnapshot.interaction.interaction_play_id).toBeTruthy();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"interaction",interactionSnapshot,"control-invocation-plan-play-succeeded");
     const selectedBeforeStale=await page.locator("#subjects [aria-pressed=true]").getAttribute("data-subject");
-    const stale=await page.evaluate(async()=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:"presentation/stale",kind:"select",subject:"dom-node-should-not-apply"})})).json());
+    const stale=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:"presentation/stale",presentation_revision:stateForTest.presentation.revision,kind:"select",subject:"dom-node-should-not-apply"})})).json(), snapshot);
     expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
     expect(stale.interaction.selected_subject).toBe(selectedBeforeStale);
-    const unknown=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,kind:"select",subject:"subject/unknown"})})).json(), snapshot);
+    const unknown=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,presentation_revision:stateForTest.presentation.revision,kind:"select",subject:"subject/unknown"})})).json(), snapshot);
     expect(unknown.interaction.last_disposition).toBe("Refused(UnknownSubject)");
     expect(unknown.interaction.selected_subject).toBe(selectedBeforeStale);
-    const staleAction=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,kind:"invoke",action:"toggle-linear-view",target:"expanded/stale"})})).json(), snapshot);
+    const staleAction=await page.evaluate(async stateForTest=>{const action=stateForTest.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");return await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,presentation_revision:stateForTest.presentation.revision-1,kind:"invoke",action_id:action.identity})})).json();}, snapshot);
     expect(staleAction.interaction.last_disposition).toBe("Refused(StalePresentation)");
     expect(staleAction.interaction.selected_subject).toBe(selectedBeforeStale);
     await page.evaluate(()=>window.patchbayReload());

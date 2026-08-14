@@ -229,10 +229,10 @@ fn structured_browser_edit_normalizes_without_dom_or_widget_identity() {
     let expanded = basis.expanded_form_id.as_ref().unwrap().as_str();
     let body = serde_json::to_vec(&serde_json::json!({
         "presentation_id": presentation_id,
+        "presentation_revision": snapshot.presentation.revision,
         "kind": "edit",
         "subject": null,
-        "action": null,
-        "target": null,
+        "action_id": null,
         "edit": {
             "source_document_id": basis.source_document_id.as_ref().unwrap().as_str(),
             "source_revision": 7,

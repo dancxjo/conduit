@@ -60,7 +60,11 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
     const seed = initial.presentation.subjects.find(({ role }) => role === "Seed");
     const seedButton = page.locator(`#subjects button[data-subject="${seed.identity}"]`);
+    const reselectionResponse = page.waitForResponse(
+      (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
+    );
     await seedButton.click();
+    expect((await reselectionResponse).ok()).toBe(true);
     await expect(seedButton).toHaveAttribute("aria-pressed", "true");
     const exact = page.locator("#inspector .exact-selection");
     await expect(exact).not.toHaveAttribute("open", "");
@@ -78,18 +82,30 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     const cleared = await (await fetch(`${url}/api/snapshot`)).json();
     expect(cleared.entrance.selected_subject).toBeNull();
     expect(cleared.entrance.layer).toBe("World");
+    const secondSelectionResponse = page.waitForResponse(
+      (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
+    );
     await seedButton.click();
+    expect((await secondSelectionResponse).ok()).toBe(true);
 
-    const openedTransition = await page.evaluate(async ({ presentationId, revision, subject }) =>
-      (await fetch("/api/front-door-transition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ presentation_id: presentationId, revision, action: "open", subject }),
-      })).json(),
-    { presentationId: initial.presentation.identity, revision: initial.revision, subject: seed.identity });
-    expect(openedTransition.interaction.last_disposition).toBe("Succeeded");
-    await page.evaluate(() => window.patchbayReload());
+    const openAction = initial.presentation.actions.find(
+      ({ intent, target }) => intent === "conduit.intent/open@1" && target === seed.identity,
+    );
+    const openButton = page.getByRole("button", { name: "OPEN", exact: true });
+    const invocationResponse = page.waitForResponse(
+      (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
+    );
+    await openButton.press("Enter");
+    const invocation = await invocationResponse;
+    expect(invocation.ok()).toBe(true);
+    const invokedSnapshot = await invocation.json();
+    expect(invokedSnapshot.interaction.last_disposition).toBe("Succeeded");
+    expect(invokedSnapshot.revision).toBe(initial.revision + 1);
+    await expect(page.locator("#status")).toContainText("Presentation revision 2");
     const opened = await (await fetch(`${url}/api/snapshot`)).json();
+    expect(opened.interaction.last_request_id).toMatch(/^patchbay\/interaction\/invoke\//);
+    expect(opened.interaction.last_disposition).toBe("Succeeded");
+    expect(openAction.identity).toMatch(/^action\/open\//);
     expect(opened.revision).toBe(initial.revision + 1);
     expect(opened.presentation.basis.body_id).toBeNull();
     expect(opened.parts).toBeUndefined();

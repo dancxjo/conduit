@@ -197,7 +197,9 @@ impl ProductJourney {
                 "conduitos/product-interaction/{}/{sequence}",
                 action.as_str()
             ),
+            format!("conduitos/product-presentation/{presentation_revision}"),
             presentation_revision,
+            format!("action/{}/{presentation_revision}", action.as_str()),
             action,
             target_identity,
         )
