@@ -52,6 +52,14 @@ function persist(scene, viewport = instance?.getViewport() || scene.viewport) {
   sessionStorage.setItem(storageKey(scene.workspaceIdentity), encodeFlowPresentation(currentScene));
 }
 
+function presentEdges(edges) {
+  return edges.map((edge) => ({
+    ...edge,
+    className: "flow-cord",
+    markerEnd: { type: Flow.MarkerType.ArrowClosed },
+  }));
+}
+
 function Workspace({ snapshot, onSelect, onClear }) {
   const projected = projectFlowScene(snapshot);
   const initial = React.useMemo(() => {
@@ -59,9 +67,14 @@ function Workspace({ snapshot, onSelect, onClear }) {
     return reconcileFlowScene(projected, restored);
   }, [projected.workspaceIdentity]);
   const [nodes, setNodes] = React.useState(initial.nodes);
-  const [edges, setEdges] = React.useState(initial.edges);
+  const [edges, setEdges] = React.useState(presentEdges(initial.edges));
   const workspace = React.useRef(projected.workspaceIdentity);
+  const mounted = React.useRef(false);
   React.useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     setNodes((current) => {
       const sameWorkspace = workspace.current === projected.workspaceIdentity;
       const prior = sameWorkspace
@@ -73,11 +86,7 @@ function Workspace({ snapshot, onSelect, onClear }) {
       persist(next);
       return next.nodes;
     });
-    setEdges(projected.edges.map((edge) => ({
-      ...edge,
-      className: "flow-cord",
-      markerEnd: { type: Flow.MarkerType.ArrowClosed },
-    })));
+    setEdges(presentEdges(projected.edges));
   }, [projected.workspaceIdentity, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision]);
   return e(
     ReactFlow,
