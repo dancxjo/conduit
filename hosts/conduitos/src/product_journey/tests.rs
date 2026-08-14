@@ -5,6 +5,7 @@ use crate::{
 };
 use conduit_body::WakeLifecycle;
 use conduit_core::{KeyEvent, KeyModifiers, KeyTransition};
+use conduit_presentation::PresentationActionAvailability;
 
 fn fixture() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
     let identities = BootIdentities {
@@ -54,17 +55,21 @@ fn front_door(journey: &ProductJourney) -> crate::front_door::FrontDoor {
         journey.seed.source_document_id.clone(),
         journey.seed.checked_form_id.clone(),
         7,
+        true,
     )
 }
 
 fn target(journey: &ProductJourney, action: JourneyAction) -> String {
     let projection = journey.projection();
     match action {
-        JourneyAction::OpenBack | JourneyAction::BeBorn => projection.seed_id.as_str().into(),
-        JourneyAction::Wake => projection.body_id.unwrap().as_str().into(),
-        JourneyAction::Plan | JourneyAction::Play | JourneyAction::Stop | JourneyAction::Lull => {
-            projection.wake_id.unwrap().as_str().into()
+        JourneyAction::OpenBack | JourneyAction::BeBorn => {
+            format!("seed/{}", projection.seed_id.as_str())
         }
+        JourneyAction::Wake
+        | JourneyAction::Plan
+        | JourneyAction::Play
+        | JourneyAction::Stop
+        | JourneyAction::Lull => format!("body/{}", projection.body_id.unwrap().as_str()),
         _ => panic!("unsupported journey test action"),
     }
 }
@@ -82,6 +87,17 @@ fn invoke(
 
 fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
     KeyEvent::new(usage, transition, KeyModifiers::from_bits(0)).unwrap()
+}
+
+fn assert_current_action(front_door: &crate::front_door::FrontDoor, action: JourneyAction) {
+    let semantic = front_door
+        .resolve_action(action, front_door.revision())
+        .unwrap();
+    assert_eq!(semantic.intent, action.presentation_intent());
+    assert!(matches!(
+        semantic.availability,
+        PresentationActionAvailability::Available
+    ));
 }
 
 fn reach_playing(journey: &mut ProductJourney, identities: &BootIdentities, offer: &HostOffer<'_>) {
@@ -109,6 +125,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert_eq!(opened.seed_id, initial.seed_id);
     front_door.observe_journey(opened.clone()).unwrap();
     assert!(front_door.presentation().unwrap().basis.body_id.is_none());
+    assert_current_action(&front_door, JourneyAction::BeBorn);
 
     invoke(&mut journey, JourneyAction::BeBorn, &identities, &offer).unwrap();
     let born = journey.projection();
@@ -119,6 +136,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     front_door.observe_journey(born.clone()).unwrap();
     let born_presentation = front_door.presentation().unwrap();
     assert!(born_presentation.basis.body_id.is_none());
+    assert_current_action(&front_door, JourneyAction::Wake);
     assert!(
         born_presentation
             .subjects
@@ -138,6 +156,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
         front_door.presentation().unwrap().basis.body_id,
         awake.body_id
     );
+    assert_current_action(&front_door, JourneyAction::Plan);
     assert_eq!(
         invoke(&mut journey, JourneyAction::Play, &identities, &offer),
         Err(JourneyError::InvalidTransition)
@@ -149,6 +168,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     let planned_presentation = front_door.presentation().unwrap();
     assert_eq!(planned_presentation.basis.plan_id, planned.plan_id);
     assert!(planned_presentation.basis.active_play_id.is_none());
+    assert_current_action(&front_door, JourneyAction::Play);
     invoke(&mut journey, JourneyAction::Play, &identities, &offer).unwrap();
     let playing = journey.projection();
     assert!(playing.active_play_id.is_some());
@@ -161,6 +181,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
         front_door.presentation().unwrap().basis.active_play_id,
         playing.active_play_id
     );
+    assert_current_action(&front_door, JourneyAction::Stop);
     journey
         .accept_play_input(key(4, KeyTransition::Pressed))
         .unwrap();
@@ -218,7 +239,7 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
         journey.apply(wrong, &identities, &offer, "build", 1),
         Err(JourneyError::WrongTarget)
     );
-    let seed = journey.projection().seed_id.as_str().to_owned();
+    let seed = format!("seed/{}", journey.projection().seed_id.as_str());
     let born_without_open = JourneyRequest {
         request_id: "request/born".into(),
         presentation_id: "presentation/current".into(),

@@ -293,22 +293,20 @@ impl ProductJourney {
     fn validate_target(&self, request: &JourneyRequest) -> Result<(), JourneyError> {
         let expected = match request.action {
             JourneyAction::OpenBack | JourneyAction::BeBorn => {
-                SeedId::bind(&self.seed.source_document_id, &self.seed.checked_form_id)
-                    .as_str()
-                    .to_owned()
+                format!(
+                    "seed/{}",
+                    SeedId::bind(&self.seed.source_document_id, &self.seed.checked_form_id)
+                        .as_str()
+                )
             }
-            JourneyAction::Wake => self
-                .body
-                .as_ref()
-                .map(|body| body.body_id.as_str().to_owned())
-                .ok_or(JourneyError::BodyAbsent)?,
-            JourneyAction::Plan
+            JourneyAction::Wake
+            | JourneyAction::Plan
             | JourneyAction::Play
             | JourneyAction::Stop
             | JourneyAction::Lull => self
-                .wake
+                .body
                 .as_ref()
-                .map(|wake| wake.wake_id.as_str().to_owned())
+                .map(|body| format!("body/{}", body.body_id.as_str()))
                 .ok_or(JourneyError::BodyAbsent)?,
             _ => return Err(JourneyError::WrongTarget),
         };
