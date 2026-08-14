@@ -78,7 +78,6 @@ async function dispatchInteraction(input,presentationBasis=currentPresentationBa
   const next=requireSnapshot(await response.json());render(next);return next;
 }
 function closeSubordinateSurfaces(except){
-  if(!matchMedia("(max-width: 720px)").matches)return;
   for(const name of ["palette","parts","truth"]){if(name===except)continue;document.body.dataset[`${name}Open`]="false";document.querySelector(`#toggle-${name}`).setAttribute("aria-expanded","false");}
   if(except!=="inspector"){state.inspectorOpen=false;document.querySelector("#toggle-inspector").setAttribute("aria-expanded","false");}
 }
@@ -176,7 +175,7 @@ function renderGraph(){
 function svgElement(name,attributes){const element=document.createElementNS("http://www.w3.org/2000/svg",name);for(const [key,value] of Object.entries(attributes))element.setAttribute(key,String(value));return element;}
 function activate(element,identity){element.onclick=event=>{event.stopPropagation();select(identity);};element.onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select(identity);}};}
 function iconGlyph(token){return ({"case-upper":"Aa","presentation":"▣","type":"T","clock":"◷","repeat-2":"↻","combine":"⋈","keyboard":"⌨","file-output":"⇲","conduit-generic-gear":"⚙"})[token]??"◆";}
-function selectLens(lens){state.lens=lens;document.body.dataset.lens=lens;document.querySelector("#lens-label").textContent=`${lens.toUpperCase()} LENS`;document.querySelectorAll("[data-lens]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.lens===lens)));renderFlow(state.snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens});renderGraph();displaySelection(state.selected);}
+function selectLens(lens){closeSubordinateSurfaces("inspector");state.lens=lens;document.body.dataset.lens=lens;document.querySelector("#lens-label").textContent=`${lens.toUpperCase()} LENS`;document.querySelectorAll("[data-lens]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.lens===lens)));renderFlow(state.snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens});renderGraph();displaySelection(state.selected);}
 
 function fillLines(selector,items){const list=document.querySelector(selector);list.replaceChildren();for(const value of items){const li=document.createElement("li");li.textContent=value;list.append(li);}}
 function renderCards(){const cards=document.querySelector("#route-cards");cards.replaceChildren();for(const route of subjects("Route")){const article=document.createElement("article"),heading=document.createElement("h3");article.className="route-card";heading.textContent=`Route ${route.label}`;article.append(heading);for(const line of texts(route.identity)){const p=document.createElement("p");p.textContent=line;article.append(p);}const children=state.snapshot.presentation.relationships.filter(item=>item.source===route.identity&&item.kind==="Contains").map(item=>item.target);const ul=document.createElement("ul");for(const identity of children){const candidate=state.snapshot.presentation.subjects.find(item=>item.identity===identity);if(!candidate)continue;const li=document.createElement("li");li.textContent=[candidate.label,...properties(identity).map(item=>`${item.name}=${propertyText(item.value)}`)].join(" · ");ul.append(li);}article.append(ul);cards.append(article);}}

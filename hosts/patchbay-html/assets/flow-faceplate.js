@@ -24,10 +24,12 @@ function PortRow({ port }) {
 
 export function FaceplateNode({ data }) {
   return e("article", {
-    className: `flow-faceplate role-${data.role.toLowerCase()}`,
+    className: `flow-faceplate role-${data.role.toLowerCase()}${data.semanticSelected ? " semantic-selected" : ""}`,
+    "data-subject": data.subjectIdentity,
     "data-subject-id": data.subjectIdentity,
     "data-lens": data.lens,
     "aria-label": data.accessibilityName,
+    "aria-pressed": String(data.semanticSelected),
     role: "button",
     tabIndex: 0,
     onClick: (event) => {
