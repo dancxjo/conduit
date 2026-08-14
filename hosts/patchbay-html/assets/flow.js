@@ -97,10 +97,14 @@ function Workspace({ snapshot, onSelect, onClear, lens }) {
     persist(next);
     requestAnimationFrame(() => instance?.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 }));
   };
+  const presentedNodes = nodes.map((node) => ({
+    ...node,
+    data: { ...node.data, onActivate: onSelect },
+  }));
   return e(
     ReactFlow,
     {
-      nodes,
+      nodes: presentedNodes,
       edges,
       nodeTypes,
       onNodesChange: (changes) => setNodes((current) => {
@@ -113,7 +117,6 @@ function Workspace({ snapshot, onSelect, onClear, lens }) {
         });
         return nextNodes;
       }),
-      onNodeClick: (_event, node) => onSelect(node.id),
       onPaneClick: onClear,
       onNodeDragStop: (_event, node) => {
         const next = { ...projected, nodes: nodes.map((current) => current.id === node.id ? { ...current, position: { ...node.position } } : current), edges, viewport: instance?.getViewport() || initial.viewport };
