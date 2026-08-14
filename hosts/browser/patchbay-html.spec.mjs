@@ -59,6 +59,10 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.goto(url);
     await expect(page.locator("#status")).toContainText("Presentation revision 1");
     await expect(page.locator("#status")).toContainText("Manifestation Available");
+    await expect(page.locator("#flow-root")).toHaveAttribute("data-renderer","react-flow");
+    await expect(page.locator("#flow-root .react-flow")).toBeVisible();
+    expect(await page.evaluate(()=>({innerHeight,innerWidth,scrollHeight:document.documentElement.scrollHeight,scrollWidth:document.documentElement.scrollWidth}))).toEqual({innerHeight:768,innerWidth:1366,scrollHeight:768,scrollWidth:1366});
+    await page.getByRole("button",{name:"Parts",exact:true}).click();
     await expect(page.getByRole("heading",{name:/Parts/})).toBeVisible();
     await expect(page.getByRole("list",{name:"Body Parts"}).getByRole("listitem")).toHaveCount(3);
     await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("HERE · AVAILABLE");
@@ -87,6 +91,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.getByRole("heading",{name:"Live Body topology"})).toBeVisible();
     expect(snapshot.entrance.layer).toBe("World");
     expect(snapshot.entrance.selected_subject).toMatch(/^part\//);
+    await page.getByRole("button",{name:"Parts",exact:true}).click();
+    await page.getByRole("button",{name:"Exact truth",exact:true}).click();
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
     await expect(page.locator("#route-cards h3").first()).toContainText("Route");
@@ -112,6 +118,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#route-cards li").filter({hasText:"WebSocket"}).first()).toBeVisible();
     const workspace=await page.locator(".workspace").boundingBox();
     const canvas=await page.locator("#form").boundingBox();
+    await page.getByRole("button",{name:"Inspector",exact:true}).click();
     const inspector=await page.locator("#inspector").boundingBox();
     expect(workspace).not.toBeNull();expect(canvas).not.toBeNull();expect(inspector).not.toBeNull();
     expect(canvas.width).toBeGreaterThan(workspace.width/2);
@@ -133,6 +140,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
 
     const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
     const semanticSubjects=snapshot.presentation.subjects.filter(item=>item.role==="Gear"||item.role==="Port"||item.role==="Route"||item.role==="Diagnostic"||(item.role==="Cord"&&snapshot.presentation.properties.some(property=>property.subject===item.identity&&(property.name==="source-port"||property.name==="route-status")))).map(item=>item.identity).sort();
+    await page.getByRole("button",{name:"Navigate",exact:true}).click();
+    await page.locator("#structured-canvas summary").click();
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     const canvasSubjects=await page.locator("#graph [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     expect(listSubjects).toEqual(expectedSubjects); expect(canvasSubjects).toEqual(semanticSubjects);
@@ -242,5 +251,56 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#status")).toContainText("Renderer disconnected; retained revision 1");
     await expect(page.locator("#plan")).toContainText(snapshot.presentation.basis.plan_id);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"disconnected",contrastSnapshot,"delivery-unavailable-revision-and-plan-retained");
+  } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
+});
+
+test("full-window Flow mechanics remain presentation-only", async ({page}) => {
+  const server=startServer();
+  try {
+    const url=await server.url;
+    await page.goto(url);
+    await expect(page.locator("#flow-root")).toHaveAttribute("data-renderer","react-flow");
+    const before=await (await fetch(`${url}/api/snapshot`)).json();
+    const identities={
+      presentation:before.presentation.identity,
+      plan:before.presentation.basis.plan_id,
+      play:before.presentation.basis.active_play_id,
+      manifestation:before.renderer.manifestation.manifestation_id,
+      subjects:before.presentation.subjects.map(subject=>subject.identity).sort(),
+    };
+    const root=await page.locator("#patchbay-root").boundingBox();
+    const flow=await page.locator("#flow-root").boundingBox();
+    expect(root).toEqual({x:0,y:0,width:1366,height:768});
+    expect(flow).toEqual(root);
+    expect(await page.evaluate(()=>document.scrollingElement.scrollHeight)).toBe(768);
+
+    const viewport=page.locator("#flow-root .react-flow__viewport");
+    const transformBefore=await viewport.getAttribute("style");
+    const pane=page.locator("#flow-root .react-flow__pane");
+    const paneBox=await pane.boundingBox();
+    await page.mouse.move(paneBox.x+paneBox.width/2,paneBox.y+paneBox.height/2);
+    await page.mouse.wheel(0,-500);
+    await expect.poll(()=>viewport.getAttribute("style")).not.toBe(transformBefore);
+    await page.getByRole("button",{name:"Fit",exact:true}).click();
+
+    const node=page.locator("#flow-root .react-flow__node").first();
+    const nodeBefore=await node.boundingBox();
+    await page.mouse.move(nodeBefore.x+nodeBefore.width/2,nodeBefore.y+nodeBefore.height/2);
+    await page.mouse.down();
+    await page.mouse.move(nodeBefore.x+nodeBefore.width/2+80,nodeBefore.y+nodeBefore.height/2+35,{steps:5});
+    await page.mouse.up();
+    const nodeAfter=await node.boundingBox();
+    expect(Math.abs(nodeAfter.x-nodeBefore.x)+Math.abs(nodeAfter.y-nodeBefore.y)).toBeGreaterThan(40);
+
+    const after=await (await fetch(`${url}/api/snapshot`)).json();
+    expect({
+      presentation:after.presentation.identity,
+      plan:after.presentation.basis.plan_id,
+      play:after.presentation.basis.active_play_id,
+      manifestation:after.renderer.manifestation.manifestation_id,
+      subjects:after.presentation.subjects.map(subject=>subject.identity).sort(),
+    }).toEqual(identities);
+    await page.reload();
+    await expect(page.locator("#flow-root")).toHaveAttribute("data-presentation-id",identities.presentation);
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
 });

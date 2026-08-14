@@ -90,3 +90,44 @@ dd { overflow-wrap:anywhere; margin-bottom:.5rem; }
 @media (max-width:720px) { .topbar { align-items:flex-start; flex-direction:column; gap:.25rem; } #status { text-align:left; } .workspace { display:flex; flex-direction:column; } .canvas-panel { order:-1; min-height:70vh; } #graph { min-height:28rem; } .truth-grid { grid-template-columns:1fr; } }
 @media (max-width:720px) { .parts-row { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }
+
+/* B0 full-window shell: the canvas is the application, reports are drawers. */
+html,body,#patchbay-root { width:100%; height:100%; overflow:hidden; }
+#patchbay-root { position:relative; isolation:isolate; }
+.topbar { position:absolute; z-index:6; inset:.65rem auto auto .75rem; width:min(21rem,calc(100% - 1.5rem)); min-height:3.25rem; padding:.45rem .7rem; border:1px solid var(--patchbay-structure-secondary); border-radius:.55rem; background:color-mix(in srgb,var(--patchbay-background) 92%,transparent); pointer-events:auto; }
+.topbar h1 { font-size:1rem; }
+.topbar #status { max-width:12rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+nav { position:absolute; z-index:7; inset:.65rem .75rem auto auto; width:auto; max-width:calc(100% - 23rem); border:0; border-radius:.55rem; justify-content:flex-end; padding:.35rem; }
+main { position:absolute; inset:0; width:100%; height:100%; max-width:none; padding:0; overflow:hidden; }
+.workspace { display:block; width:100%; height:100%; min-height:0; }
+.canvas-panel { position:absolute; inset:0; padding:0; border:0; border-radius:0; background:var(--patchbay-background); }
+.canvas-heading { position:absolute; z-index:5; inset:5.1rem .75rem auto auto; max-width:min(48rem,calc(100% - 1.5rem)); padding:.35rem .45rem; border:1px solid var(--patchbay-structure-secondary); border-radius:.45rem; background:color-mix(in srgb,var(--patchbay-background) 90%,transparent); pointer-events:auto; }
+.canvas-heading>div:first-child { display:none; }
+#flow-root { position:absolute; inset:0; width:100%; height:100%; }
+#structured-canvas { position:absolute; z-index:8; left:.75rem; bottom:.75rem; width:min(52rem,calc(100% - 1.5rem)); max-height:70vh; overflow:auto; background:var(--patchbay-surface); border:1px solid var(--patchbay-structure-secondary); border-radius:.55rem; }
+#structured-canvas:not([open])>#graph { display:none; }
+#structured-canvas>summary { display:inline-block; }
+#graph { width:100%; min-height:34rem; }
+.side-panel,.parts-panel,.deep-inspection { position:fixed; z-index:9; top:5rem; bottom:.75rem; width:min(25rem,calc(100% - 1.5rem)); max-height:none; overflow:auto; box-shadow:0 0 0 1px var(--patchbay-structure-primary),0 1rem 4rem #000a; }
+#palette { left:.75rem; }
+#inspector { right:.75rem; }
+#parts { left:.75rem; width:min(42rem,calc(100% - 1.5rem)); }
+#deep-inspection { right:.75rem; width:min(62rem,calc(100% - 1.5rem)); margin:0; }
+body:not([data-palette-open="true"]) #palette,body:not([data-parts-open="true"]) #parts,body:not([data-truth-open="true"]) #deep-inspection,body[data-inspector-open="false"] #inspector { display:none; }
+.status-strip { position:fixed; z-index:6; left:50%; bottom:.75rem; transform:translateX(-50%); margin:0; max-width:min(48rem,calc(100% - 19rem)); background:color-mix(in srgb,var(--patchbay-background) 92%,transparent); }
+#front-door-actions { bottom:4.25rem; }
+.react-flow__node { min-width:11rem; padding:.8rem 1rem; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); font-weight:700; }
+.react-flow__node.selected { outline:3px solid var(--patchbay-focus); }
+.react-flow__edge-path { stroke:var(--patchbay-structure-primary); stroke-width:3; }
+.react-flow__controls { box-shadow:none; border:1px solid var(--patchbay-structure-secondary); }
+.react-flow__controls-button { border-radius:0; padding:0; }
+
+@media (max-width:720px) {
+  .topbar { right:auto; max-width:12rem; }
+  nav { max-width:calc(100% - 13.5rem); }
+  .lens-controls { overflow-x:auto; flex-wrap:nowrap; }
+  .canvas-heading { top:7.4rem; }
+  .side-panel,.parts-panel,.deep-inspection { top:8.5rem; width:calc(100% - 1.5rem); }
+  #parts,#deep-inspection { width:calc(100% - 1.5rem); }
+  .status-strip { display:none; }
+}
