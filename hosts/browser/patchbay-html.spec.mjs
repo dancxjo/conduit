@@ -309,8 +309,20 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
       moved.push(after);
     }
     const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
-    await nodes.first().click();
+    const presentationOnly=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(presentationOnly.interaction.revision).toBe(before.interaction.revision);
+    const firstFace=nodes.first().getByRole("button");
+    await firstFace.click();
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open","true");
+    const pointerSelection=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(pointerSelection.interaction.revision).toBe(before.interaction.revision+1);
+    expect(pointerSelection.interaction.last_request_id).toContain("/select/");
+    await firstFace.focus();
+    await firstFace.press("Enter");
+    const keyboardSelection=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(keyboardSelection.interaction.revision).toBe(pointerSelection.interaction.revision+1);
+    expect(keyboardSelection.interaction.last_request_id).toContain("/select/");
+    expect(keyboardSelection.interaction.selected_subject).toBe(pointerSelection.interaction.selected_subject);
     const lensAnchor=await nodes.first().boundingBox();
     await page.getByRole("button",{name:"Intent",exact:true}).click();
     await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","form");
@@ -320,7 +332,7 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","plan");
 
     const after=await (await fetch(`${url}/api/snapshot`)).json();
-    expect(after.interaction.revision).toBeGreaterThan(before.interaction.revision);
+    expect(after.interaction.revision).toBe(keyboardSelection.interaction.revision);
     expect(after.interaction.selected_subject).toBeTruthy();
     expect({
       presentation:after.presentation.identity,

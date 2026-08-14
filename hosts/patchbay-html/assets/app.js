@@ -28,6 +28,7 @@ function texts(identity){return state.snapshot.presentation.text.filter(item=>it
 function properties(identity){return state.snapshot.presentation.properties.filter(item=>item.subject===identity);}
 function property(identity,name){return properties(identity).find(item=>item.name===name);}
 function semanticActions(identity){return state.snapshot.presentation.actions.filter(action=>action.target===identity);}
+function currentPresentationBasis(){return {presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision};}
 function actionAvailability(action){
   if(action.availability==="Available")return {available:true,state:"Available",explanation:null};
   if(action.availability?.Unavailable)return {available:false,state:"Unavailable",explanation:action.availability.Unavailable.explanation};
@@ -60,9 +61,10 @@ function displaySelection(identity){
   if(!visible.length&&state.lens!=="form"&&state.lens!=="signs")term(summary,"Layer",`No ${state.lens} facts for this subject; semantic selection retained`);
   term(exactFacts,"Presentation subject",identity);for(const item of selectedProperties.filter(item=>item.name==="semantic-id"||item.name.endsWith("-id")||item.name.startsWith("sign-")))term(exactFacts,item.name,propertyText(item.value));
   const manifestation=state.snapshot.renderer.manifestation;term(exactFacts,"Body",state.snapshot.presentation.basis.body_id);term(exactFacts,"Wake",state.snapshot.presentation.basis.wake_id);term(exactFacts,"Source Plan",state.snapshot.presentation.basis.plan_id);term(exactFacts,"Source Play",state.snapshot.presentation.basis.active_play_id);term(exactFacts,"Renderer Plan",manifestation.plan_id);term(exactFacts,"Renderer Play",manifestation.active_play_id);term(exactFacts,"Manifestation",manifestation.manifestation_id);term(exactFacts,"Manifestation lifecycle",manifestation.lifecycle);
+  const presentationBasis=currentPresentationBasis();
   for(const action of semanticActions(identity)){
     const availability=actionAvailability(action),button=document.createElement("button");button.type="button";button.textContent=action.label.toUpperCase();button.disabled=!availability.available;button.setAttribute("aria-describedby",`${action.identity}-availability`);
-    button.dataset.semanticAction=action.identity;button.onclick=()=>dispatchSemanticAction(action);
+    button.dataset.semanticAction=action.identity;button.onclick=()=>dispatchSemanticAction(action,presentationBasis);
     const status=document.createElement("span");status.id=`${action.identity}-availability`;status.className="semantic-action-availability";status.textContent=availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state;
     actions.append(button,status);
   }
@@ -70,13 +72,13 @@ function displaySelection(identity){
 }
 function lensProperty(lens,name){if(lens==="world")return ["seed-id","body-id","part-id","candidate-id","membership-state","membership-proof","current","current-body","this-host","opened","freshness-sequence","source-document-id","checked-form-id","offer-generation","profile-id","capability-count","resource-count","planner-capability-count","capability-id","kind-id","operational-state","availability","freshness","line-id","binding-id","source-host-id","source-boot-id","sink-host-id","sink-boot-id","base","in-plan","playing"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="form")return !["plan-id","plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","admitted-capacity","active-play-id","play-state","pressure","line-id","line","base","base-instance-id"].includes(name)&&!name.startsWith("resource-")&&!name.startsWith("sign-");if(lens==="plan")return ["plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","admitted-capacity","line-id","line","base","base-instance-id"].includes(name)||name.startsWith("resource-");if(lens==="play")return ["active-play-id","play-state","pressure"].includes(name);return false;}
 
-async function dispatchInteraction(input){
-  const response=await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,...input})});
+async function dispatchInteraction(input,presentationBasis=currentPresentationBasis()){
+  const response=await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...presentationBasis,...input})});
   if(!response.ok)throw new Error(`interaction delivery HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
 }
 function select(identity){state.inspectorOpen=true;return dispatchInteraction({kind:"select",subject:identity});}
-function dispatchSemanticAction(action){return dispatchInteraction({kind:"invoke",action_id:action.identity});}
+function dispatchSemanticAction(action,presentationBasis=currentPresentationBasis()){return dispatchInteraction({kind:"invoke",action_id:action.identity},presentationBasis);}
 
 async function dispatchEntranceTransition(action,subject){
   const response=await fetch("/api/front-door-transition",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,revision:state.snapshot.revision,action:action==="BeBorn"?"be-born":action.toLowerCase(),subject})});

@@ -28,6 +28,18 @@ export function FaceplateNode({ data }) {
     "data-subject-id": data.subjectIdentity,
     "data-lens": data.lens,
     "aria-label": data.accessibilityName,
+    role: "button",
+    tabIndex: 0,
+    onClick: (event) => {
+      event.stopPropagation();
+      data.onActivate(data.subjectIdentity);
+    },
+    onKeyDown: (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      event.stopPropagation();
+      data.onActivate(data.subjectIdentity);
+    },
   },
   e("header", null,
     e("span", { className: "faceplate-icon", title: data.iconName, "aria-hidden": "true" }, data.icon),
