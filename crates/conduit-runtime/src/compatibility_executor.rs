@@ -2407,7 +2407,8 @@ impl HostRuntime {
             });
             return output;
         };
-        if plan.state != PlanState::Completed
+        if plan.state != PlanState::Prepared
+            && plan.state != PlanState::Completed
             && plan.state != PlanState::Failed
             && plan.state != PlanState::Cancelled
         {

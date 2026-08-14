@@ -1362,7 +1362,7 @@ fn runtime_rejects_a_host_operation_input_above_its_planned_bound() {
 }
 
 #[test]
-fn preparation_reserves_resource_pool_capacity_until_release() {
+fn prepared_fragment_reserves_resource_pool_capacity_until_rollback_release() {
     let mut advertised = advertisement();
     for resource in &mut advertised.resources {
         resource.capacity_units = 1;
@@ -1384,12 +1384,6 @@ fn preparation_reserves_resource_pool_capacity_until_release() {
         Some(FailureReason::ResourceCapacityExceeded)
     );
 
-    let _ = runtime.handle(HostCommand::StartPlay(first_plan_id.clone()));
-    assert!(runtime
-        .handle(HostCommand::Cancel(first_plan_id.clone()))
-        .events
-        .iter()
-        .any(|event| matches!(event, HostEvent::Cancelled { .. })));
     assert!(runtime
         .handle(HostCommand::Release(first_plan_id))
         .events
