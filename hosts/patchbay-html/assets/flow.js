@@ -110,7 +110,11 @@ function Workspace({ snapshot, onSelect, onClear }) {
         persist(next);
       },
       onMoveEnd: (_event, viewport) => persist({ ...projected, nodes, edges, viewport }, viewport),
-      onInit: (next) => { instance = next; currentScene = { ...projected, nodes, edges, viewport: initial.viewport }; },
+      onInit: (next) => {
+        instance = next;
+        next.setViewport(initial.viewport, { duration: 0 });
+        currentScene = { ...projected, nodes, edges, viewport: initial.viewport };
+      },
       nodesDraggable: true,
       nodesConnectable: false,
       elementsSelectable: true,
