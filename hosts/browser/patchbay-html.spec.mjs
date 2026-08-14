@@ -136,7 +136,11 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
       expect((await page.evaluate(()=>getComputedStyle(document.documentElement).fontFamily)).replaceAll('"',"")).toBe("DejaVu Sans, sans-serif");
     }
 
-    if(canonical)await captureCanonical(page,browser,evidenceRoot,"overview",snapshot,"available-after-form-plan-play-and-signs-asserted");
+    await page.getByRole("button",{name:"Exact truth",exact:true}).click();
+    await page.getByRole("button",{name:"Inspector",exact:true}).click();
+    if(canonical)await captureCanonical(page,browser,evidenceRoot,"overview",snapshot,"full-window-flow-after-semantic-assertions");
+    await page.getByRole("button",{name:"Exact truth",exact:true}).click();
+    await page.getByRole("button",{name:"Inspector",exact:true}).click();
 
     const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
     const semanticSubjects=snapshot.presentation.subjects.filter(item=>item.role==="Gear"||item.role==="Port"||item.role==="Route"||item.role==="Diagnostic"||(item.role==="Cord"&&snapshot.presentation.properties.some(property=>property.subject===item.identity&&(property.name==="source-port"||property.name==="route-status")))).map(item=>item.identity).sort();
