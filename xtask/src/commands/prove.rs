@@ -370,6 +370,7 @@ const PATCHBAY_CAPTURE_IDS: &[&str] = &[
     "patchbay.interaction",
     "patchbay.high-contrast",
     "patchbay.disconnected",
+    "patchbay.responsive",
 ];
 
 fn import_patchbay_captures(

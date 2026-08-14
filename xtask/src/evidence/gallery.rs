@@ -27,6 +27,7 @@ const SCENARIOS: &[(&str, &str)] = &[
     ("interaction", "Interaction"),
     ("high-contrast", "High contrast"),
     ("disconnected", "Disconnected and retained"),
+    ("responsive", "Responsive enlarged content"),
 ];
 
 pub struct GalleryRequest {
