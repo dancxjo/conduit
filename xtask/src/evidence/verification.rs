@@ -24,6 +24,7 @@ const REQUIRED_BROWSER_OUTPUTS: &[&str] = &[
     "patchbay.interaction",
     "patchbay.high-contrast",
     "patchbay.disconnected",
+    "patchbay.responsive",
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -188,7 +189,7 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
             .filter(|output| output.kind == EvidenceKind::Screenshot)
             .collect();
         if screenshots.len() != REQUIRED_BROWSER_OUTPUTS.len() - 1 {
-            return Err("complete browser evidence must contain exactly nine screenshots".into());
+            return Err("complete browser evidence must contain exactly ten screenshots".into());
         }
         for screenshot in screenshots {
             if screenshot.media_type != "image/png"

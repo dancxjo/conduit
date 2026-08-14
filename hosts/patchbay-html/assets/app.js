@@ -77,7 +77,12 @@ async function dispatchInteraction(input,presentationBasis=currentPresentationBa
   if(!response.ok)throw new Error(`interaction delivery HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
 }
-function select(identity){state.inspectorOpen=true;return dispatchInteraction({kind:"select",subject:identity});}
+function closeSubordinateSurfaces(except){
+  if(!matchMedia("(max-width: 720px)").matches)return;
+  for(const name of ["palette","parts","truth"]){if(name===except)continue;document.body.dataset[`${name}Open`]="false";document.querySelector(`#toggle-${name}`).setAttribute("aria-expanded","false");}
+  if(except!=="inspector"){state.inspectorOpen=false;document.querySelector("#toggle-inspector").setAttribute("aria-expanded","false");}
+}
+function select(identity){closeSubordinateSurfaces("inspector");state.inspectorOpen=true;return dispatchInteraction({kind:"select",subject:identity});}
 function dispatchSemanticAction(action,presentationBasis=currentPresentationBasis()){return dispatchInteraction({kind:"invoke",action_id:action.identity},presentationBasis);}
 
 async function dispatchEntranceTransition(action,subject){
@@ -207,6 +212,8 @@ document.querySelector("#zoom-in").onclick=()=>{state.zoom=Math.min(2,state.zoom
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;
 document.querySelector("#plan-form").onclick=()=>dispatchFrontDoorAction("Plan");document.querySelector("#play-plan").onclick=()=>dispatchFrontDoorAction("Play");
 document.querySelector("#clear-selection").onclick=()=>dispatchInteraction({kind:"clear"});
-function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";document.body.dataset[key]=String(next);document.querySelector(`#toggle-${name}`).setAttribute("aria-expanded",String(next));}
+function focusSurface(name){const surface=document.querySelector(name==="truth"?"#deep-inspection":`#${name}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
+function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next)focusSurface(name);else launcher.focus();}
 for(const name of ["palette","parts","truth"])document.querySelector(`#toggle-${name}`).onclick=()=>toggleDrawer(name);
-document.querySelector("#toggle-inspector").onclick=()=>{state.inspectorOpen=!state.inspectorOpen;displaySelection(state.selected);};
+document.querySelector("#toggle-inspector").onclick=event=>{state.inspectorOpen=!state.inspectorOpen;if(state.inspectorOpen)closeSubordinateSurfaces("inspector");displaySelection(state.selected);if(state.inspectorOpen)focusSurface("inspector");else event.currentTarget.focus();};
+document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;const open=["truth","parts","palette"].find(name=>document.body.dataset[`${name}Open`]==="true");if(open){event.preventDefault();toggleDrawer(open);return;}if(state.inspectorOpen){event.preventDefault();state.inspectorOpen=false;displaySelection(state.selected);document.querySelector("#toggle-inspector").focus();}});

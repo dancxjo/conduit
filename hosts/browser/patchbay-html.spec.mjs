@@ -8,6 +8,7 @@ const captureDeclarations=[];
 
 async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposition) {
   await page.evaluate(()=>scrollTo(0,0));
+  const viewport=page.viewportSize();
   const relativePath=`${name}.png`;
   await page.screenshot({path:path.join(evidenceRoot,relativePath),fullPage:true,animations:"disabled",caret:"hide",scale:"css"});
   captureDeclarations.push({
@@ -21,7 +22,7 @@ async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposit
       step_id:"prove.browser-host.patchbay-html-matrix",
       browser_engine:"chromium",
       browser_version:browser.version(),
-      viewport:"1366x768",
+      viewport:`${viewport.width}x${viewport.height}`,
       device_scale_factor:"1",
       locale:"en-US",
       timezone:"UTC",
@@ -355,6 +356,57 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
         return Math.abs(restored.x-after.x)+Math.abs(restored.y-after.y);
       }).toBeLessThan(3);
     }
+  } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
+});
+
+test("narrow enlarged-content workspace has exclusive drawers and restored focus", async ({page,browser},testInfo) => {
+  const evidenceRoot=process.env.CONDUIT_EVIDENCE_ROOT;
+  const canonical=testInfo.project.name==="chromium"&&Boolean(evidenceRoot);
+  if(canonical)await mkdir(evidenceRoot,{recursive:true});
+  const server=startServer();
+  try {
+    const url=await server.url;
+    await page.setViewportSize({width:700,height:900});
+    await page.emulateMedia({reducedMotion:"reduce"});
+    await page.goto(url);
+    await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
+    expect(await page.locator("#flow-root .flow-faceplate").first().evaluate(element=>({animation:getComputedStyle(element).animationName,transition:getComputedStyle(element).transitionDuration}))).toEqual({animation:"none",transition:"0s"});
+    await page.evaluate(()=>document.documentElement.style.fontSize="200%");
+    expect(await page.evaluate(()=>({height:document.scrollingElement.scrollHeight,width:document.scrollingElement.scrollWidth}))).toEqual({height:900,width:700});
+
+    const navigate=page.getByRole("button",{name:"Navigate",exact:true});
+    await navigate.click();
+    await expect(page.locator("#palette")).toBeVisible();
+    expect(await page.evaluate(()=>document.activeElement.closest("#palette")!==null)).toBe(true);
+    const paletteBox=await page.locator("#palette").boundingBox();
+    expect(paletteBox.x).toBeGreaterThanOrEqual(0);
+    expect(paletteBox.x+paletteBox.width).toBeLessThanOrEqual(700);
+
+    const inspectorLauncher=page.getByRole("button",{name:"Inspector",exact:true});
+    await inspectorLauncher.click();
+    await expect(page.locator("#palette")).toBeHidden();
+    await expect(page.locator("#inspector")).toBeVisible();
+    expect(await page.evaluate(()=>document.activeElement.closest("#inspector")!==null)).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#inspector")).toBeHidden();
+    await expect(inspectorLauncher).toBeFocused();
+
+    await navigate.click();
+    const snapshot=await (await fetch(`${url}/api/snapshot`)).json();
+    const target=snapshot.presentation.actions[0]?.target;
+    if(target){
+      const structured=page.locator(`#subjects [data-subject="${target.replaceAll('"','\\"')}"]`);
+      await structured.click();
+      const actions=snapshot.presentation.actions.filter(action=>action.target===target);
+      await expect(page.locator("#semantic-actions button")).toHaveCount(actions.length);
+      for(const action of actions){
+        const control=page.locator(`[data-semantic-action="${action.identity.replaceAll('"','\\"')}"]`);
+        await expect(control).toHaveText(action.label.toUpperCase());
+        if(action.availability==="Available")await expect(control).toBeEnabled();else await expect(control).toBeDisabled();
+      }
+      await expect(page.locator("#inspector .exact-selection")).toContainText(target);
+    }
+    if(canonical)await captureCanonical(page,browser,evidenceRoot,"responsive",snapshot,"narrow-enlarged-content-accessibility-after-semantic-assertions");
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
 });
 

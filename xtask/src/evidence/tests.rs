@@ -203,6 +203,7 @@ fn complete_browser_evidence(root: &Path) -> String {
         "patchbay.interaction",
         "patchbay.high-contrast",
         "patchbay.disconnected",
+        "patchbay.responsive",
     ]
     .into_iter()
     .enumerate()
