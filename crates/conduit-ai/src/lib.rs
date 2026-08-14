@@ -4,6 +4,10 @@ extern crate alloc;
 
 mod bases;
 pub use bases::*;
+#[cfg(feature = "form-catalog")]
+mod provider;
+#[cfg(feature = "form-catalog")]
+pub use provider::*;
 
 use alloc::vec;
 use alloc::vec::Vec;
