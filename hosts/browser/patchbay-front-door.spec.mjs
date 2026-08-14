@@ -70,20 +70,22 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     await page.getByRole("searchbox", { name: "Find a Seed" }).press("ArrowDown");
     await expect(seedButton).toBeFocused();
     const openResponses = [];
+    let resolveOpenSequence;
+    const openSequence = new Promise((resolve) => { resolveOpenSequence = resolve; });
     page.on("response", (response) => {
-      if(response.url().endsWith("/api/interaction") && response.request().method() === "POST") openResponses.push(response);
+      if(response.url().endsWith("/api/interaction") && response.request().method() === "POST") {
+        openResponses.push(response);
+        if(openResponses.length === 2) resolveOpenSequence();
+      }
     });
-    await seedButton.press("Enter");
-    await expect(page.getByRole("button", { name: "BE BORN" })).toBeEnabled();
+    await Promise.all([openSequence, seedButton.press("Enter")]);
+    expect(openResponses).toHaveLength(2);
+    await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "true");
+    const beBornButton = page.getByRole("button", { name: "BE BORN" });
+    await expect(beBornButton).toBeVisible();
+    await expect(beBornButton).toBeEnabled();
     expect(openResponses.every((response) => response.ok())).toBe(true);
-    const exact = page.locator("#inspector .exact-selection");
-    await expect(exact).not.toHaveAttribute("open", "");
     await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeEnabled();
-    await exact.locator("summary").click();
-    await expect(exact).toHaveAttribute("open", "");
-    await expect(exact).toContainText(seed.identity);
-    await exact.locator("summary").click();
-    await expect(exact).not.toHaveAttribute("open", "");
     const openAction = initial.presentation.actions.find(
       ({ intent, target }) => intent === "conduit.intent/open@1" && target === seed.identity,
     );
@@ -103,7 +105,6 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       expect.objectContaining({ role: "Cord" }),
     ]));
 
-    const beBornButton = page.getByRole("button", { name: "BE BORN" });
     const [birthResponse] = await Promise.all([
       page.waitForResponse(
         (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
@@ -121,6 +122,14 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     expect(born.parts.parts).toHaveLength(1);
     expect(born.parts.parts[0].state).toBe("Here");
     expect(born.presentation.subjects.some(({ role }) => role === "Form")).toBe(true);
+
+    const exact = page.locator("#inspector .exact-selection");
+    await expect(exact).not.toHaveAttribute("open", "");
+    await exact.locator("summary").click();
+    await expect(exact).toHaveAttribute("open", "");
+    await expect(exact).toContainText(seed.identity);
+    await exact.locator("summary").click();
+    await expect(exact).not.toHaveAttribute("open", "");
 
     const stale = await page.evaluate(async ({ presentationId, revision, subject }) =>
       (await fetch("/api/front-door-transition", {
