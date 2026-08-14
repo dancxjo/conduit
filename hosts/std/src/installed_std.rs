@@ -9,6 +9,8 @@ mod external_websocket_host;
 mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
+mod http;
+mod http_host;
 mod input_semantic_operations;
 mod layout_operations;
 mod logic_operations;
@@ -92,6 +94,13 @@ const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 64;
 
 pub(super) use contract::text_offer;
+pub(crate) use http::{client_offer as http_client_offer, server_offer as http_server_offer};
+pub(crate) fn http_client_resource_class() -> &'static str {
+    http::CLIENT_RESOURCE
+}
+pub(crate) fn http_server_resource_class() -> &'static str {
+    http::SERVER_RESOURCE
+}
 pub(super) use render_demand_operation::offer as render_demand_offer;
 pub(super) use synth_operation::offer as synth_offer;
 #[cfg(test)]
@@ -362,6 +371,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let sign = HostedSignLog::new(sign_items, sign_bytes)
         .map_err(|error| format!("installed sign store: {error:?}"))?;
     let mut external_listener = external_websocket_host::prepare(fragment)?;
+    let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
     if let Some(listener) = &external_listener {
         writeln!(
             _output,
@@ -371,6 +381,11 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 .map_err(|error| format!("read external WebSocket address: {error:?}"))?
         )
         .map_err(|error| error.to_string())?;
+        _output.flush().map_err(|error| error.to_string())?;
+    }
+    if let Some(address) = http_host.listener_address()? {
+        writeln!(_output, "http-server-ready address={address}")
+            .map_err(|error| error.to_string())?;
         _output.flush().map_err(|error| error.to_string())?;
     }
     let mut scheduler = InstalledScheduler::new_with_active_counts_and_host_operations(
@@ -464,6 +479,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut input_keymaps = [conduit_core::ConduitIntlKeymap::new(); MAX_NODES];
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
+    let mut http_output =
+        Vec::with_capacity(conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
     let mut generate_text_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
     let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
@@ -584,6 +601,13 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("stop cancelled audio/play: {error:?}"))?;
             } else if matches!(
                 cancelled_operation.contract_id.as_str(),
+                http::CLIENT_OPERATION
+                    | http::SERVER_ACCEPT_OPERATION
+                    | http::SERVER_RESPOND_OPERATION
+            ) {
+                http_host.cancel();
+            } else if matches!(
+                cancelled_operation.contract_id.as_str(),
                 conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION
                     | conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION
             ) {
@@ -618,6 +642,54 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
+            if matches!(
+                contract.as_str(),
+                http::CLIENT_OPERATION
+                    | http::SERVER_ACCEPT_OPERATION
+                    | http::SERVER_RESPOND_OPERATION
+            ) {
+                let completion = http_host.execute(contract.as_str(), input, &mut http_output);
+                let (disposition, output, failure) = match completion {
+                    Ok(()) => {
+                        let output = if http_output.is_empty() {
+                            None
+                        } else {
+                            let value = scheduler
+                                .store_host_value(&http_output)
+                                .map_err(|error| format!("store hosted HTTP output: {error:?}"))?;
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound hosted HTTP output: {error:?}"))?,
+                            )
+                        };
+                        (HostOperationDisposition::Completed, output, None)
+                    }
+                    Err(error) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: error.detail(),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete hosted HTTP operation: {error:?}"))?;
+                continue;
+            }
             if contract == &midi_input_contract_id {
                 if !input.is_empty() {
                     return Err("MIDI input request carries unexpected bytes".into());
