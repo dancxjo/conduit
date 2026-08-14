@@ -3,13 +3,23 @@
 use super::{PatchbayHtmlServer, ServerError};
 use crate::front_door::{snapshot_for_front_door, snapshot_for_zero_body_front_door};
 use conduit_core::SignId;
-use patchbay_model::ZeroBodyFrontDoor;
+use patchbay_model::{SeedCandidate, ZeroBodyFrontDoor};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::{Arc, Mutex};
 
 impl PatchbayHtmlServer {
     pub fn bind_front_door(address: SocketAddr) -> Result<Self, ServerError> {
-        let session = ZeroBodyFrontDoor::fresh().map_err(ServerError::Interaction)?;
+        Self::bind_front_door_with_seeds(address, Vec::new())
+    }
+
+    pub fn bind_front_door_with_seeds(
+        address: SocketAddr,
+        seeds: Vec<SeedCandidate>,
+    ) -> Result<Self, ServerError> {
+        let mut session = ZeroBodyFrontDoor::fresh().map_err(ServerError::Interaction)?;
+        for seed in seeds {
+            session.add_seed(seed).map_err(ServerError::Interaction)?;
+        }
         let snapshot =
             snapshot_for_zero_body_front_door(&session).map_err(ServerError::Interaction)?;
         let mut server = Self::bind(address, &snapshot)?;
@@ -19,6 +29,12 @@ impl PatchbayHtmlServer {
 
     pub fn bind_front_door_ephemeral() -> Result<Self, ServerError> {
         Self::bind_front_door(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0).into())
+    }
+
+    pub fn bind_front_door_with_seeds_ephemeral(
+        seeds: Vec<SeedCandidate>,
+    ) -> Result<Self, ServerError> {
+        Self::bind_front_door_with_seeds(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0).into(), seeds)
     }
 
     pub(super) fn refresh_front_door(&mut self) -> Result<(), ServerError> {

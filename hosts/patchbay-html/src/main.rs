@@ -1,20 +1,48 @@
-use patchbay_html::{cross_host_demonstration_snapshot, PatchbayHtmlServer};
+use patchbay_html::{
+    cross_host_demonstration_snapshot, load_seed_sources, PatchbayHtmlServer, SeedSource,
+};
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Arguments {
+    documentary_fixture: bool,
+    seeds: Vec<SeedSource>,
+}
+
+fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments, String> {
+    let mut arguments = arguments.peekable();
+    let mut parsed = Arguments::default();
+    while let Some(argument) = arguments.next() {
+        match argument.as_str() {
+            "--documentary-fixture" if !parsed.documentary_fixture && parsed.seeds.is_empty() => {
+                parsed.documentary_fixture = true;
+            }
+            "--seed" if !parsed.documentary_fixture => {
+                let label = arguments
+                    .next()
+                    .ok_or("--seed requires a label and canonical .conduit path")?;
+                let path = arguments
+                    .next()
+                    .ok_or("--seed requires a label and canonical .conduit path")?;
+                parsed.seeds.push(SeedSource::new(label, path));
+            }
+            _ => {
+                return Err(format!(
+                    "unknown or incompatible Patchbay HTML argument {argument}; expected repeated --seed <LABEL> <PATH>"
+                ));
+            }
+        }
+    }
+    Ok(parsed)
+}
 
 fn main() -> Result<(), String> {
-    let documentary_fixture = match std::env::args().nth(1).as_deref() {
-        None => false,
-        Some("--documentary-fixture") if std::env::args().len() == 2 => true,
-        Some(argument) => {
-            return Err(format!(
-                "unknown Patchbay HTML argument {argument}; the public entrance takes no arguments"
-            ))
-        }
-    };
-    let server = if documentary_fixture {
+    let arguments = parse_arguments(std::env::args().skip(1))?;
+    let server = if arguments.documentary_fixture {
         let snapshot = cross_host_demonstration_snapshot().map_err(|error| error.to_string())?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else {
-        PatchbayHtmlServer::bind_browser_front_door_ephemeral()
+        let seeds = load_seed_sources(&arguments.seeds).map_err(|error| error.to_string())?;
+        PatchbayHtmlServer::bind_browser_front_door_with_seeds_ephemeral(seeds)
             .map_err(|error| error.to_string())?
     };
     println!(
@@ -23,4 +51,47 @@ fn main() -> Result<(), String> {
     );
     server.serve().map_err(|error| error.to_string())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn arguments_admit_only_explicit_ordered_canonical_seed_bindings() {
+        let parsed = parse_arguments(
+            [
+                "--seed",
+                "Text Lab",
+                "examples/text-lab.conduit",
+                "--seed",
+                "Hello",
+                "examples/hello.conduit",
+            ]
+            .into_iter()
+            .map(str::to_owned),
+        )
+        .unwrap();
+        assert_eq!(parsed.seeds.len(), 2);
+        assert_eq!(parsed.seeds[0].label, "Text Lab");
+        assert_eq!(
+            parsed.seeds[1].path,
+            std::path::Path::new("examples/hello.conduit")
+        );
+        assert_eq!(
+            parse_arguments(["--seed", "Text Lab"].into_iter().map(str::to_owned)),
+            Err("--seed requires a label and canonical .conduit path".into())
+        );
+        assert!(parse_arguments(
+            [
+                "--documentary-fixture",
+                "--seed",
+                "Hello",
+                "examples/hello.conduit"
+            ]
+            .into_iter()
+            .map(str::to_owned)
+        )
+        .is_err());
+    }
 }

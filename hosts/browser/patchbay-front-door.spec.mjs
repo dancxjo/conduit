@@ -5,7 +5,10 @@ import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
 function startPublicEntrance() {
-  const child = spawn("target/debug/patchbay-html", [], {
+  const child = spawn("target/debug/patchbay-html", [
+    "--seed", "Text Lab", "examples/text-lab.conduit",
+    "--seed", "Hello", "examples/hello.conduit",
+  ], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const errors = [];
@@ -54,56 +57,34 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     await expect(page.locator("#status")).toContainText("Manifestation Available");
     expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
     expect(await page.locator("#subjects button").evaluateAll((buttons) =>
-      buttons.every((button) => ["Host", "Body", "Seed"].includes(button.dataset.role)),
+      buttons.every((button) => ["Host", "Body"].includes(button.dataset.role)),
     )).toBe(true);
     const workspaceBox = await page.locator(".workspace").boundingBox();
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
-    await page.getByRole("button", { name: "Navigate", exact: true }).click();
-    const seed = initial.presentation.subjects.find(({ role }) => role === "Seed");
-    const seedButton = page.locator(`#subjects button[data-subject="${seed.identity}"]`);
-    const reselectionResponse = page.waitForResponse(
-      (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
-    );
-    await seedButton.click();
-    expect((await reselectionResponse).ok()).toBe(true);
-    await expect(seedButton).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "Seeds", exact: true }).click();
+    await expect(page.getByRole("list", { name: "Available Seeds" }).getByRole("button")).toHaveCount(3);
+    await page.getByRole("searchbox", { name: "Find a Seed" }).fill("tExT lAb");
+    await expect(page.locator("#seed-results-status")).toHaveText("1 of 3 Seeds available");
+    const seed = initial.presentation.subjects.find(({ role, label }) => role === "Seed" && label === "Text Lab");
+    const seedButton = page.getByRole("button", { name: "Open Seed Text Lab" });
+    await page.getByRole("searchbox", { name: "Find a Seed" }).press("ArrowDown");
+    await expect(seedButton).toBeFocused();
+    const openResponses = [];
+    page.on("response", (response) => {
+      if(response.url().endsWith("/api/interaction") && response.request().method() === "POST") openResponses.push(response);
+    });
+    await seedButton.press("Enter");
+    await expect(page.getByRole("button", { name: "BE BORN" })).toBeEnabled();
+    expect(openResponses.every((response) => response.ok())).toBe(true);
     const exact = page.locator("#inspector .exact-selection");
     await expect(exact).not.toHaveAttribute("open", "");
     await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeEnabled();
-    await expect(page.getByRole("button", { name: "BE BORN" })).toBeDisabled();
-    await expect(page.locator("#semantic-actions")).toContainText(
-      "Unavailable: No admitted authority can create a Body from this entrance.",
-    );
     await exact.locator("summary").click();
     await expect(exact).toHaveAttribute("open", "");
     await expect(exact).toContainText(seed.identity);
-    await page.getByRole("button", { name: "Clear selection" }).click();
-    await expect(page.locator("#inspector .exact-selection")).toBeHidden();
-    await expect(page.locator("#inspector .inspector-hint")).toContainText("Select a Host");
-    const cleared = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(cleared.entrance.selected_subject).toBeNull();
-    expect(cleared.entrance.layer).toBe("World");
-    const secondSelectionResponse = page.waitForResponse(
-      (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
-    );
-    await page.locator("#toggle-palette").click();
-    await seedButton.click();
-    expect((await secondSelectionResponse).ok()).toBe(true);
-
     const openAction = initial.presentation.actions.find(
       ({ intent, target }) => intent === "conduit.intent/open@1" && target === seed.identity,
     );
-    const openButton = page.getByRole("button", { name: "OPEN", exact: true });
-    const invocationResponse = page.waitForResponse(
-      (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
-    );
-    await openButton.press("Enter");
-    const invocation = await invocationResponse;
-    expect(invocation.ok()).toBe(true);
-    const invokedSnapshot = await invocation.json();
-    expect(invokedSnapshot.interaction.last_disposition).toBe("Succeeded");
-    expect(invokedSnapshot.revision).toBe(initial.revision + 1);
-    await expect(page.locator("#status")).toContainText("Presentation revision 2");
     const opened = await (await fetch(`${url}/api/snapshot`)).json();
     expect(opened.interaction.last_request_id).toMatch(/^patchbay\/interaction\/invoke\//);
     expect(opened.interaction.last_disposition).toBe("Succeeded");
@@ -114,6 +95,11 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     expect(opened.presentation.properties).toContainEqual(
       expect.objectContaining({ subject: seed.identity, name: "opened", value: { Flag: true } }),
     );
+    expect(opened.presentation.subjects).toEqual(expect.arrayContaining([
+      expect.objectContaining({ role: "Form" }),
+      expect.objectContaining({ role: "Gear", label: "uppercase" }),
+      expect.objectContaining({ role: "Cord" }),
+    ]));
 
     const stale = await page.evaluate(async ({ presentationId, revision, subject }) =>
       (await fetch("/api/front-door-transition", {
@@ -133,15 +119,12 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       expect.objectContaining({ role: "Sign", label: "Refused StalePresentation" }),
     );
 
-    const bornTransition = await page.evaluate(async ({ presentationId, revision, subject }) =>
-      (await fetch("/api/front-door-transition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ presentation_id: presentationId, revision, action: "be-born", subject }),
-      })).json(),
-    { presentationId: stale.presentation.identity, revision: stale.revision, subject: seed.identity });
-    expect(bornTransition.interaction.last_disposition).toBe("Succeeded");
     await page.evaluate(() => window.patchbayReload());
+    const birthResponse = page.waitForResponse(
+      (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "BE BORN" }).click();
+    expect((await birthResponse).ok()).toBe(true);
     await expect(page.getByRole("heading", { name: "Live Body topology" })).toBeVisible();
     const born = await (await fetch(`${url}/api/snapshot`)).json();
     expect(born.presentation.basis.body_id).toBeTruthy();

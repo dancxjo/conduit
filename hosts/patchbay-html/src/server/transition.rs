@@ -140,9 +140,28 @@ mod tests {
             subject.role == PresentationRole::Sign && subject.label == "Refused StalePresentation"
         }));
 
-        let born = request(&server, "be-born", Some(&seed));
+        let be_born = server
+            .snapshot
+            .presentation
+            .actions
+            .iter()
+            .find(|action| action.target == seed && action.intent == "conduit.intent/be-born@1")
+            .unwrap();
+        assert_eq!(
+            be_born.availability,
+            conduit_presentation::PresentationActionAvailability::Available
+        );
+        let born = serde_json::to_vec(&serde_json::json!({
+            "presentation_id": server.snapshot.presentation.identity.as_str(),
+            "presentation_revision": server.snapshot.presentation.revision,
+            "kind": "invoke",
+            "subject": null,
+            "action_id": be_born.identity,
+            "edit": null,
+        }))
+        .unwrap();
         let born: crate::RendererSnapshot =
-            serde_json::from_slice(&server.apply_front_door_transition(&born).unwrap()).unwrap();
+            serde_json::from_slice(&server.apply_interaction(&born).unwrap()).unwrap();
         assert!(born.presentation.basis.body_id.is_some());
         assert_eq!(born.parts.as_ref().unwrap().parts.len(), 1);
         assert_eq!(

@@ -47,6 +47,10 @@ body[data-embodied="false"] .canvas-heading [role="toolbar"] { display:none; }
 #graph { flex:1; width:100%; min-height:34rem; background:var(--patchbay-background); border:1px solid var(--patchbay-structure-secondary); border-radius:.45rem; }
 #subjects { list-style:none; padding:0; }
 #subjects button { width:100%; text-align:left; margin:.15rem 0; overflow-wrap:anywhere; }
+#seed-query { width:100%; margin:.25rem 0; }
+#seed-results { list-style:none; padding:0; }
+#seed-results button { display:grid; gap:.2rem; width:100%; margin:.35rem 0; padding:.55rem; text-align:left; }
+#seed-results button span { overflow:hidden; color:var(--patchbay-text-secondary); font-size:.72rem; text-overflow:ellipsis; white-space:nowrap; }
 .inspector-hint { color:var(--patchbay-text-secondary); font-size:.85rem; }
 .exact-selection[hidden] { display:none; }
 .status-strip { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; min-height:2.75rem; margin:.75rem 0; padding:.55rem .8rem; border:1px solid var(--patchbay-structure-secondary); border-left:5px solid var(--patchbay-success); background:var(--patchbay-surface); }

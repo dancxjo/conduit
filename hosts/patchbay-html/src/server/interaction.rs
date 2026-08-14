@@ -152,7 +152,7 @@ impl PatchbayHtmlServer {
                     },
                 )
             }
-            Some(PatchbayAction::OpenBack) if !stale_presentation => {
+            Some(PatchbayAction::OpenBack | PatchbayAction::BeBorn) if !stale_presentation => {
                 self.zero_body_front_door.as_ref().map_or(
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
                     |session| {
@@ -161,18 +161,27 @@ impl PatchbayHtmlServer {
                         };
                         let mut candidate = session.clone();
                         match &request {
-                            PatchbayInteractionRequest::Invoke { invocation, .. } => candidate
-                                .open_subject(
-                                    &invocation.target_identity,
-                                    invocation.presentation_revision,
-                                )
-                                .map(|_| {
-                                    prepared_zero_body = Some(candidate);
-                                    PatchbayInvocationOutcome::Succeeded
-                                })
-                                .unwrap_or(PatchbayInvocationOutcome::Refused(
-                                    PatchbayRefusal::OperationRejected,
-                                )),
+                            PatchbayInteractionRequest::Invoke { invocation, .. } => {
+                                let result = if invocation.action == PatchbayAction::BeBorn {
+                                    candidate.be_born(invocation.presentation_revision).map(
+                                        |born| {
+                                            prepared_front_door = Some(born);
+                                        },
+                                    )
+                                } else {
+                                    candidate
+                                        .open_subject(
+                                            &invocation.target_identity,
+                                            invocation.presentation_revision,
+                                        )
+                                        .map(|_| prepared_zero_body = Some(candidate))
+                                };
+                                result
+                                    .map(|_| PatchbayInvocationOutcome::Succeeded)
+                                    .unwrap_or(PatchbayInvocationOutcome::Refused(
+                                        PatchbayRefusal::OperationRejected,
+                                    ))
+                            }
                             _ => PatchbayInvocationOutcome::Refused(
                                 PatchbayRefusal::OperationUnavailable,
                             ),
@@ -197,7 +206,10 @@ impl PatchbayHtmlServer {
                 PatchbayInteractionRequest::Invoke { invocation, .. }
                     if matches!(
                         invocation.action,
-                        PatchbayAction::OpenBack | PatchbayAction::Plan | PatchbayAction::Play
+                        PatchbayAction::OpenBack
+                            | PatchbayAction::BeBorn
+                            | PatchbayAction::Plan
+                            | PatchbayAction::Play
                     ) =>
                 {
                     prepared_outcome
@@ -227,12 +239,14 @@ impl PatchbayHtmlServer {
         }
         if receipt.disposition == InteractionDisposition::Succeeded {
             if let Some(session) = prepared_front_door {
-                let current = self.front_door.as_ref().ok_or_else(|| {
-                    ServerError::Interaction("front-door session is absent".into())
-                })?;
-                *current.lock().map_err(|_| {
-                    ServerError::Interaction("front-door session lock failed".into())
-                })? = session;
+                if let Some(current) = &self.front_door {
+                    *current.lock().map_err(|_| {
+                        ServerError::Interaction("front-door session lock failed".into())
+                    })? = session;
+                } else {
+                    self.front_door = Some(std::sync::Arc::new(std::sync::Mutex::new(session)));
+                    self.zero_body_front_door = None;
+                }
                 self.refresh_front_door()?;
             }
             if let Some(session) = prepared_zero_body {

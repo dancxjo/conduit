@@ -1,11 +1,18 @@
 //! Browser renderer delivery for the truthful zero-Body public entrance.
 
 use super::{PatchbayHtmlServer, ServerError, MAX_BROWSER_WASM_BYTES};
+use patchbay_model::SeedCandidate;
 use std::path::PathBuf;
 
 impl PatchbayHtmlServer {
     pub fn bind_browser_front_door_ephemeral() -> Result<Self, ServerError> {
-        let mut server = Self::bind_front_door_ephemeral()?;
+        Self::bind_browser_front_door_with_seeds_ephemeral(Vec::new())
+    }
+
+    pub fn bind_browser_front_door_with_seeds_ephemeral(
+        seeds: Vec<SeedCandidate>,
+    ) -> Result<Self, ServerError> {
+        let mut server = Self::bind_front_door_with_seeds_ephemeral(seeds)?;
         let wasm_path = std::env::var_os("CONDUIT_BROWSER_RUNTIME_WASM")
             .map(PathBuf::from)
             .unwrap_or_else(|| {

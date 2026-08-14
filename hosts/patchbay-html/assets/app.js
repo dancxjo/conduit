@@ -7,7 +7,7 @@ const bases = new Map([
   ["FixtureFrame", "fixture frame"], ["FixtureDatagram", "fixture datagram"],
   ["WebSocket", "WebSocket"], ["UsbCdc", "USB CDC"],
 ]);
-const state = { snapshot:null, selected:null, selectedPart:null, selectedCandidate:null, lens:"world", zoom:1, panX:0, reversed:false, graphHeight:360, inspectorOpen:false };
+const state = { snapshot:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", lens:"world", zoom:1, panX:0, reversed:false, graphHeight:360, inspectorOpen:false };
 
 function requireSnapshot(value) {
   const presentation=value?.presentation;
@@ -85,6 +85,32 @@ function closeSubordinateSurfaces(except){
 }
 function select(identity){closeSubordinateSurfaces("inspector");state.inspectorOpen=true;return dispatchInteraction({kind:"select",subject:identity});}
 function dispatchSemanticAction(action,presentationBasis=currentPresentationBasis()){return dispatchInteraction({kind:"invoke",action_id:action.identity},presentationBasis);}
+
+async function openSeed(identity){
+  const action=semanticActions(identity).find(candidate=>candidate.intent==="conduit.intent/open@1");
+  if(!action||!actionAvailability(action).available)throw new Error("Seed OPEN is unavailable");
+  await dispatchSemanticAction(action);
+  document.body.dataset.paletteOpen="false";document.querySelector("#toggle-palette").setAttribute("aria-expanded","false");
+  await select(identity);
+}
+
+function renderSeedPalette(){
+  const list=document.querySelector("#seed-results"),query=state.seedQuery.trim().toLocaleLowerCase(),all=subjects("Seed");
+  const visible=all.filter(subject=>[subject.label,subject.accessibility_name,...texts(subject.identity)].join(" ").toLocaleLowerCase().includes(query));
+  list.replaceChildren();
+  for(const subject of visible){
+    const li=document.createElement("li"),button=document.createElement("button"),name=document.createElement("strong"),summary=document.createElement("span");
+    button.type="button";button.dataset.seed=subject.identity;button.dataset.subject=subject.identity;button.setAttribute("aria-label",`Open Seed ${subject.label}`);
+    name.textContent=subject.label;summary.textContent=texts(subject.identity)[0]??subject.accessibility_name;button.append(name,summary);button.onclick=()=>openSeed(subject.identity);li.append(button);list.append(li);
+  }
+  document.querySelector("#seed-results-status").textContent=`${visible.length} of ${all.length} Seeds available`;
+}
+
+function moveSeedFocus(event){
+  if(!["ArrowDown","ArrowUp","Home","End"].includes(event.key))return;
+  const buttons=[...document.querySelectorAll("#seed-results button")];if(!buttons.length)return;
+  event.preventDefault();const current=buttons.indexOf(document.activeElement),index=event.key==="Home"?0:event.key==="End"?buttons.length-1:event.key==="ArrowDown"?Math.min(buttons.length-1,current+1):Math.max(0,current<0?buttons.length-1:current-1);buttons[index].focus();
+}
 
 async function dispatchEntranceTransition(action,subject){
   const response=await fetch("/api/front-door-transition",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,revision:state.snapshot.revision,action:action==="BeBorn"?"be-born":action.toLowerCase(),subject})});
@@ -185,11 +211,12 @@ function renderCards(){const cards=document.querySelector("#route-cards");cards.
 function render(snapshot){
   const entering=state.snapshot===null;if(entering)state.lens=({World:"world",Intent:"form",Realization:"plan"})[snapshot.entrance.layer]??state.lens;state.snapshot=snapshot;const p=snapshot.presentation,b=p.basis,renderer=snapshot.renderer,manifestation=renderer.manifestation;
   document.body.dataset.embodied=String(b.body_id!==null);
+  const unbodied=b.body_id===null;document.querySelector("#toggle-palette").textContent=unbodied?"Seeds":"Navigate";document.querySelector("#palette-title").textContent=unbodied?"Seeds":"Navigate";document.querySelector("#seed-palette").hidden=!unbodied;document.querySelector("#structure-title").textContent=unbodied?"World context":"Program structure";
   document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · read-only`;
   document.querySelector("#run-summary").textContent=`Manifestation ${manifestation.lifecycle} · ${b.plan_id===null?"not planned":"Plan ready"} · ${b.active_play_id===null?"not playing":"Play active"}`;
   document.querySelector("#canvas-title").textContent=b.body_id===null?"Host and Body possibilities":"Live Body topology";document.querySelector("#plan-form").disabled=b.body_id===null||b.plan_id!==null;document.querySelector("#play-plan").disabled=b.body_id===null||b.plan_id===null||b.active_play_id!==null;
   const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Seed",b.seed_id);term(facts,"Body",b.body_id);term(facts,"Wake",b.wake_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
-  const list=document.querySelector("#subjects"),navigationSubjects=b.body_id===null?p.subjects.filter(subject=>["Host","Body","Seed"].includes(subject.role)):p.subjects;list.replaceChildren();for(const subject of navigationSubjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderParts();renderFlow(snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens:state.lens});renderGraph();
+  const list=document.querySelector("#subjects"),navigationSubjects=unbodied?p.subjects.filter(subject=>["Host","Body"].includes(subject.role)):p.subjects;list.replaceChildren();for(const subject of navigationSubjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderSeedPalette();renderParts();renderFlow(snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens:state.lens});renderGraph();
   const placements=renderer.plan.fragments.flatMap(fragment=>fragment.placements);const placement=placements.find(item=>item.placement_id===manifestation.placement_id);const connections=[...new Map(renderer.plan.fragments.flatMap(fragment=>fragment.connections).map(connection=>[connection.connection_id,connection])).values()];
   const plan=document.querySelector("#plan dl");plan.replaceChildren();term(plan,"Expanded Form",b.expanded_form_id);term(plan,"Source Plan",b.plan_id);term(plan,"Renderer Face",placement?.kind_id);term(plan,"Renderer Plan",manifestation.plan_id);term(plan,"Renderer Play",manifestation.active_play_id);term(plan,"Manifestation",manifestation.manifestation_id);term(plan,"Lifecycle",manifestation.lifecycle);term(plan,"Placement",placement?.placement_id);term(plan,"Host",placement?.host_id);term(plan,"Boot",placement?.boot_id);term(plan,"Implementation",placement?.implementation_id);term(plan,"Artifact",placement?.artifact_id);term(plan,"Execution profile",placement?.execution_profile_id);term(plan,"Offer generation",placement?.offer_generation);term(plan,"Limits",placement?`active=${placement.limits.max_active_instances} queue-items=${placement.limits.max_queue_items} queue-bytes=${placement.limits.max_queue_bytes}`:undefined);fillLines("#realizations",[...placements.flatMap(item=>[`${item.gear_id} · host ${item.host_id} · boot ${item.boot_id} · implementation ${item.implementation_id} · artifact ${item.artifact_id}`,...item.inputs.concat(item.outputs).map(port=>`Port ${port.port_id} · ${port.direction} · Info ${port.value_kind} · ${port.temporal}`),...item.resources.map(resource=>`Resource ${resource.pool_id} · class ${resource.class_id} · units ${resource.units}`),...item.host_operations.map(operation=>`Base ${operation.contract_id} · target ${operation.target_kind??"not present"} · in-flight ${operation.maximum_in_flight} · input-bytes ${operation.maximum_input_bytes} · output-bytes ${operation.maximum_output_bytes}`)]),...connections.map(connection=>{const line=connection.selected_line,binding=line?.binding;return `Cord ${connection.connection_id} · ${connection.source_port_id} -> ${connection.sink_port_id} · Info ${connection.value_kind} · Line ${line?.line_id??"not present"} · base ${bases.get(binding?.base)??"not present"} · binding ${binding?.binding_id??"not present"} · base-instance ${binding?.base_instance_id??"not present"}`;})]);
   const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#sign",[...subjects("Sign").map(subject=>subject.label),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);
@@ -214,6 +241,7 @@ document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowVie
 document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);
 document.querySelector("#plan-form").onclick=()=>dispatchFrontDoorAction("Plan");document.querySelector("#play-plan").onclick=()=>dispatchFrontDoorAction("Play");
 document.querySelector("#clear-selection").onclick=()=>dispatchInteraction({kind:"clear"});
+document.querySelector("#seed-query").oninput=event=>{state.seedQuery=event.currentTarget.value;renderSeedPalette();};document.querySelector("#seed-query").addEventListener("keydown",moveSeedFocus);document.querySelector("#seed-results").addEventListener("keydown",moveSeedFocus);
 function focusSurface(name){const surface=document.querySelector(name==="truth"?"#deep-inspection":`#${name}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
 function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next)focusSurface(name);else launcher.focus();}
 for(const name of ["palette","parts","truth"])document.querySelector(`#toggle-${name}`).onclick=event=>{event.stopPropagation();toggleDrawer(name);};
