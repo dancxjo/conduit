@@ -229,9 +229,10 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(selectedFaceplate).toBeVisible();
     await expect(selectedFaceplate).toHaveClass(/semantic-selected/);
     await page.locator("#center-flow").click();
-    const selectedBox=await selectedFaceplate.boundingBox(),inspectorBox=await page.locator("#inspector").boundingBox(),headingBox=await page.locator(".canvas-heading").boundingBox();
+    const headingBox=await page.locator(".canvas-heading").boundingBox();
+    await expect.poll(async()=>((await selectedFaceplate.boundingBox())?.y??0)).toBeGreaterThan(headingBox.y+headingBox.height);
+    const selectedBox=await selectedFaceplate.boundingBox(),inspectorBox=await page.locator("#inspector").boundingBox();
     expect(selectedBox.x+selectedBox.width).toBeLessThan(inspectorBox.x);
-    expect(selectedBox.y).toBeGreaterThan(headingBox.y+headingBox.height);
     expect(selectedBox.width).toBeGreaterThan(150);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"selected-gear",selectedSnapshot,"selection-succeeded-and-inspector-correlated");
     const stableLensIdentity={presentation:selectedSnapshot.presentation.identity,plan:selectedSnapshot.presentation.basis.plan_id,play:selectedSnapshot.presentation.basis.active_play_id,selection:selectedSnapshot.interaction.selected_subject,interactionRevision:selectedSnapshot.interaction.revision};
