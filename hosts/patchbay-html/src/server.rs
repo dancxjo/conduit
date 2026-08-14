@@ -21,6 +21,8 @@ const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const SCRIPT: &[u8] = include_bytes!("../assets/app.js");
 const FLOW_SCRIPT: &[u8] = include_bytes!("../assets/flow.js");
 const FLOW_SCENE_SCRIPT: &[u8] = include_bytes!("../assets/flow-scene.js");
+const FLOW_LAYOUT_SCRIPT: &[u8] = include_bytes!("../assets/flow-layout.js");
+const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
 const STYLE: &[u8] = include_bytes!("../assets/app.css");
 const REACT: &[u8] = include_bytes!("../assets/react.min.js");
@@ -267,6 +269,16 @@ impl PatchbayHtmlServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 FLOW_SCENE_SCRIPT,
+            ),
+            "GET /assets/flow-layout.js HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                FLOW_LAYOUT_SCRIPT,
+            ),
+            "GET /assets/flow-faceplate.js HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                FLOW_FACEPLATE_SCRIPT,
             ),
             "GET /assets/react.min.js HTTP/1.1" => {
                 ("200 OK", "text/javascript; charset=utf-8", REACT)
