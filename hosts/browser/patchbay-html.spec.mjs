@@ -370,6 +370,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     await page.emulateMedia({reducedMotion:"reduce"});
     await page.goto(url);
     await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
+    expect(await page.locator("#flow-root .flow-faceplate").first().evaluate(element=>({animation:getComputedStyle(element).animationName,transition:getComputedStyle(element).transitionDuration}))).toEqual({animation:"none",transition:"0s"});
     await page.evaluate(()=>document.documentElement.style.fontSize="200%");
     expect(await page.evaluate(()=>({height:document.scrollingElement.scrollHeight,width:document.scrollingElement.scrollWidth}))).toEqual({height:900,width:700});
 
