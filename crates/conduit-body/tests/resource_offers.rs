@@ -244,6 +244,60 @@ fn envelope_is_finite_and_cannot_enlarge_host_offer() {
     );
 }
 
+#[test]
+fn omitted_pool_and_stale_offer_generation_refuse_even_when_host_has_capacity() {
+    let (body_id, part_id) = body_and_part();
+    let advertisement = host(
+        "workstation",
+        vec![
+            resource_offer("execution", "test/execution", 8),
+            resource_offer("memory", "test/memory", 32),
+        ],
+    );
+    let envelope =
+        BodyResourceEnvelope::new(body_id, part_id, &advertisement, vec![allowance(4)]).unwrap();
+    let omitted_requirement = resource_requirement("test/memory", 1);
+    let omitted_binding = ResourceBinding {
+        pool_id: "memory".into(),
+        class_id: "test/memory".into(),
+        units: 1,
+        protected: None,
+        compute: None,
+    };
+    let mut memory_observation = observation(&advertisement, 32, 0);
+    memory_observation.pool_id = "memory".into();
+    memory_observation.class_id = "test/memory".into();
+    assert_eq!(
+        envelope.validates_reservation(
+            &omitted_requirement,
+            &omitted_binding,
+            &advertisement,
+            &memory_observation,
+        ),
+        Err(BodyResourceEnvelopeError::InvalidReservation)
+    );
+
+    let requirement = resource_requirement("test/execution", 2);
+    let binding = ResourceBinding {
+        pool_id: "execution".into(),
+        class_id: "test/execution".into(),
+        units: 2,
+        protected: None,
+        compute: None,
+    };
+    let mut changed_offer = advertisement.clone();
+    changed_offer.offer_generation = OfferGeneration(advertisement.offer_generation.0 + 1);
+    assert_eq!(
+        envelope.validates_reservation(
+            &requirement,
+            &binding,
+            &changed_offer,
+            &observation(&changed_offer, 8, 0),
+        ),
+        Err(BodyResourceEnvelopeError::StaleObservation)
+    );
+}
+
 fn observation(
     host: &HostAdvertisement,
     unreserved_units: u32,
