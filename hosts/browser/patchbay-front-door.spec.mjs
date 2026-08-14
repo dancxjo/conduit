@@ -104,6 +104,10 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       expect.objectContaining({ role: "Gear", label: "text-lab/uppercase" }),
       expect.objectContaining({ role: "Cord" }),
     ]));
+    const beBornAction = opened.presentation.actions.find(
+      ({ intent, target }) => intent === "conduit.intent/be-born@1" && target === seed.identity,
+    );
+    expect(beBornAction.identity).toMatch(/^action\/be-born\//);
 
     const [birthResponse] = await Promise.all([
       page.waitForResponse(
@@ -112,6 +116,10 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       beBornButton.click(),
     ]);
     expect(birthResponse.ok()).toBe(true);
+    expect(birthResponse.request().postDataJSON()).toMatchObject({
+      kind: "invoke",
+      action_id: beBornAction.identity,
+    });
     await expect(page.getByRole("heading", { name: "Live Body topology" })).toBeVisible();
     const born = await (await fetch(`${url}/api/snapshot`)).json();
     expect(born.interaction.last_request_id).toMatch(/^patchbay\/interaction\/invoke\//);
