@@ -241,6 +241,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
 
     expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
     const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};
+    await page.getByRole("button",{name:"Exact truth",exact:true}).click();
+    await page.getByRole("button",{name:"Inspector",exact:true}).click();
+    await page.getByRole("button",{name:"Navigate",exact:true}).click();
     await page.locator("#zoom-in").click();await page.locator("#pan-right").click();await page.locator("#arrange").click();await page.locator("#theme").click();
     await expect(page.locator("#arrange")).toHaveAttribute("aria-pressed","true");await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("body")).toHaveClass(/high-contrast/);
