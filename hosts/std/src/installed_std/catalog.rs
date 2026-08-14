@@ -11,6 +11,7 @@ use super::generate_text::{
 };
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
 use super::input_semantic_operations::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
+use super::json_operations::{JSON_DECODE_FACTORY, JSON_ENCODE_FACTORY};
 #[cfg(test)]
 use super::layout_operations::TEST_LAYOUT_SINK_FACTORY;
 use super::layout_operations::{
@@ -44,6 +45,8 @@ use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
 #[cfg(test)]
 use super::test_input_semantics::{TEST_CHORD_SINK_FACTORY, TEST_KEY_EVENT_SOURCE_FACTORY};
+#[cfg(test)]
+use super::test_json_codec::{TEST_JSON_SINK_FACTORY, TEST_JSON_SOURCE_FACTORY};
 #[cfg(test)]
 use super::test_logic::{TEST_LOGIC_SCRIPT_FACTORY, TEST_LOGIC_SINK_FACTORY};
 #[cfg(test)]
@@ -132,6 +135,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &GENERATE_TEXT_REMOTE_FACTORY,
     &HTTP_CLIENT_FACTORY,
     &HTTP_SERVER_FACTORY,
+    &JSON_ENCODE_FACTORY,
+    &JSON_DECODE_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
@@ -159,6 +164,10 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEST_TIMING_SINK_FACTORY,
     #[cfg(test)]
     &TEST_TIMING_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_JSON_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_JSON_SINK_FACTORY,
     #[cfg(test)]
     &TEST_OBSERVER_FACTORY,
 ];

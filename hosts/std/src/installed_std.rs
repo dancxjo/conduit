@@ -12,6 +12,7 @@ mod generate_text;
 mod http;
 mod http_host;
 mod input_semantic_operations;
+mod json_operations;
 mod layout_operations;
 mod logic_operations;
 mod math_operations;
@@ -31,6 +32,8 @@ mod test_audio_source;
 mod test_gate;
 #[cfg(test)]
 mod test_input_semantics;
+#[cfg(test)]
+mod test_json_codec;
 #[cfg(test)]
 mod test_logic;
 #[cfg(test)]
@@ -117,6 +120,11 @@ pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
 pub(super) fn test_pcm_source_offer() -> conduit_core::CapabilityOffer {
     test_audio_source::offer()
 }
+
+#[cfg(test)]
+pub(crate) use test_json_codec::{
+    sink_offer as test_json_sink_offer, source_offer as test_json_source_offer,
+};
 
 #[cfg(test)]
 pub(super) fn test_midi_source_offer() -> conduit_core::CapabilityOffer {
@@ -481,6 +489,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     let mut http_output =
         Vec::with_capacity(conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
+    let mut json_host = json_operations::JsonHost::prepare();
     let mut generate_text_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
     let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
@@ -642,6 +651,52 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
+            if matches!(
+                contract.as_str(),
+                conduit_std_catalog::JSON_ENCODE_HOST_OPERATION
+                    | conduit_std_catalog::JSON_DECODE_HOST_OPERATION
+            ) {
+                let completion = json_host.execute(contract.as_str(), input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store bounded JSON output: {error:?}"))?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound JSON output: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: refusal as u16,
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete bounded JSON operation: {error:?}"))?;
+                continue;
+            }
             if matches!(
                 contract.as_str(),
                 http::CLIENT_OPERATION

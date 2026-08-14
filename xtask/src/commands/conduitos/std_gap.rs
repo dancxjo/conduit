@@ -203,12 +203,12 @@ mod tests {
     #[test]
     fn compatibility_report_uses_the_authoritative_profile_inventory() {
         let report = build_report().unwrap();
-        assert_eq!(report.catalog_entry_count, 54);
+        assert_eq!(report.catalog_entry_count, 56);
         assert_eq!(
             report.implemented_count + report.missing_count,
             report.catalog_entry_count
         );
-        assert_eq!(report.implemented_count, 53);
+        assert_eq!(report.implemented_count, 55);
         assert_eq!(report.missing_count, 1);
         let unavailable = report
             .entries

@@ -20,6 +20,8 @@ mod input_semantics;
 pub use input_semantics::*;
 mod http;
 pub use http::*;
+mod json;
+pub use json::*;
 mod palette_metadata;
 mod tick;
 use functional_face::startup_face;
@@ -147,6 +149,8 @@ pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
         robotics_velocity_intent_contract(),
         robotics_drive_differential_contract(),
         copy_file_contract(),
+        json_encode_contract(),
+        json_decode_contract(),
     ]
 }
 
@@ -211,6 +215,8 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         robotics_velocity_intent_offer(),
         robotics_drive_differential_offer(),
         copy_file_offer(),
+        json_encode_std_offer(),
+        json_decode_std_offer(),
     ]
 }
 
@@ -438,7 +444,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 54);
+        assert_eq!(contracts.len(), 56);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts

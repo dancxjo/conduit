@@ -6,11 +6,10 @@
 use crate::installed_std;
 use crate::StdHostConfig;
 use conduit_core::{
-    resource_offer, HostAdvertisement, HostProfileId, PlannerCapabilityOffer, PlannerProfileId,
-    PROTOCOL_VERSION,
+    HostAdvertisement, HostProfileId, PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
 };
-use conduit_signal::signal_resource_offers;
 
+mod resources;
 mod signal;
 
 /// Compile/composition-time selection of implementation families included in a std host image.
@@ -29,6 +28,7 @@ pub struct StdHostComposition {
     pub files: bool,
     pub external_websocket: bool,
     pub http: bool,
+    pub json: bool,
 }
 
 impl StdHostComposition {
@@ -48,6 +48,7 @@ impl StdHostComposition {
             files: true,
             external_websocket: false,
             http: true,
+            json: true,
         }
     }
 
@@ -68,6 +69,7 @@ impl StdHostComposition {
             files: false,
             external_websocket: false,
             http: false,
+            json: false,
         }
     }
 
@@ -133,6 +135,11 @@ impl StdHostComposition {
 
     pub const fn with_http(mut self) -> Self {
         self.http = true;
+        self
+    }
+
+    pub const fn with_json(mut self) -> Self {
+        self.json = true;
         self
     }
 }
@@ -252,6 +259,12 @@ pub(super) fn build_advertisement(
             installed_std::http_server_offer(),
         ]);
     }
+    if composition.json {
+        capabilities.extend([
+            conduit_std_catalog::json_encode_std_offer(),
+            conduit_std_catalog::json_decode_std_offer(),
+        ]);
+    }
     if playback.is_some() {
         capabilities.push(conduit_std_catalog::audio_play_alsa_hw_offer());
     }
@@ -266,78 +279,7 @@ pub(super) fn build_advertisement(
     }
     #[cfg(test)]
     crate::composition_test_offers::extend(&mut capabilities);
-    let mut resources = signal_resource_offers("std/timer", "std/presentation", 16);
-    resources.retain(|offer| match offer.pool_id.as_str() {
-        "std/timer" => composition.signal || composition.time,
-        "std/presentation" => {
-            composition.signal
-                || composition.time
-                || composition.text
-                || composition.state
-                || composition.logic
-                || composition.math
-        }
-        _ => false,
-    });
-    if composition.time {
-        resources.push(resource_offer(
-            "std/monotonic-deadline",
-            conduit_core::MONOTONIC_MILLISECOND_TIMER_RESOURCE_CLASS,
-            16,
-        ));
-        resources.sort();
-    }
-    if composition.files {
-        resources.push(resource_offer(
-            "std/protected-file",
-            conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS,
-            2,
-        ));
-        resources.sort();
-    }
-    if composition.external_websocket {
-        resources.push(conduit_net::std_external_websocket_family().resource);
-        resources.sort();
-    }
-    if composition.http {
-        resources.extend([
-            resource_offer(
-                "std/http-client",
-                installed_std::http_client_resource_class(),
-                u32::from(conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT),
-            ),
-            resource_offer(
-                "std/http-listener",
-                installed_std::http_server_resource_class(),
-                1,
-            ),
-        ]);
-        resources.sort();
-    }
-    if let Some(playback) = playback {
-        resources.push(resource_offer(
-            playback.pool_id().as_str(),
-            conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CLASS,
-            1,
-        ));
-        resources.sort();
-    }
-    if let Some(midi_input) = midi_input {
-        resources.push(resource_offer(
-            midi_input.resource_pool_id().as_str(),
-            conduit_std_catalog::MIDI_INPUT_RESOURCE_CLASS,
-            1,
-        ));
-        resources.sort();
-    }
-    if let Some(midi_output) = midi_output {
-        resources.push(resource_offer(
-            midi_output.resource_pool_id().as_str(),
-            conduit_std_catalog::MIDI_OUTPUT_RESOURCE_CLASS,
-            1,
-        ));
-        resources.sort();
-    }
+    let resources = resources::offers(composition, playback, midi_input, midi_output);
 
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
