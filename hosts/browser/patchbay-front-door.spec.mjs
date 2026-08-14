@@ -82,6 +82,8 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     await exact.locator("summary").click();
     await expect(exact).toHaveAttribute("open", "");
     await expect(exact).toContainText(seed.identity);
+    await exact.locator("summary").click();
+    await expect(exact).not.toHaveAttribute("open", "");
     const openAction = initial.presentation.actions.find(
       ({ intent, target }) => intent === "conduit.intent/open@1" && target === seed.identity,
     );
