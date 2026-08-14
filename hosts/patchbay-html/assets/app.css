@@ -102,7 +102,6 @@ main { position:absolute; inset:0; width:100%; height:100%; max-width:none; padd
 .workspace { display:block; width:100%; height:100%; min-height:0; }
 .canvas-panel { position:absolute; inset:0; padding:0; border:0; border-radius:0; background:var(--patchbay-background); }
 .canvas-heading { position:absolute; z-index:5; inset:5.1rem .75rem auto auto; max-width:min(48rem,calc(100% - 1.5rem)); padding:.35rem .45rem; border:1px solid var(--patchbay-structure-secondary); border-radius:.45rem; background:color-mix(in srgb,var(--patchbay-background) 90%,transparent); pointer-events:auto; }
-.canvas-heading>div:first-child { display:none; }
 #flow-root { position:absolute; inset:0; width:100%; height:100%; }
 #structured-canvas { position:absolute; z-index:8; left:.75rem; bottom:.75rem; width:min(52rem,calc(100% - 1.5rem)); max-height:70vh; overflow:auto; background:var(--patchbay-surface); border:1px solid var(--patchbay-structure-secondary); border-radius:.55rem; }
 #structured-canvas:not([open])>#graph { display:none; }
