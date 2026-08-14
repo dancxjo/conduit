@@ -1,3 +1,11 @@
+import {
+  decodeFlowPresentation,
+  encodeFlowPresentation,
+  MAX_FLOW_WORKSPACES,
+  projectFlowScene,
+  reconcileFlowScene,
+} from "/assets/flow-scene.js";
+
 const React = window.React;
 const ReactDOM = window.ReactDOM;
 const Flow = window.ReactFlow;
@@ -8,84 +16,92 @@ if (!React || !ReactDOM || !Flow) {
 
 const e = React.createElement;
 const ReactFlow = Flow.default || Flow.ReactFlow || Flow;
-const positions = new Map();
 let instance = null;
 let root = null;
+let currentScene = null;
+const workspaceIndexKey = "conduit.patchbay.flow/workspaces";
 
-function value(property) {
-  const item = property?.value || {};
-  return item.Identity ?? item.Text ?? item.Count ?? item.Flag ?? null;
+function storageKey(workspaceIdentity) {
+  return `conduit.patchbay.flow/${encodeURIComponent(workspaceIdentity)}`;
 }
 
-function initialPosition(identity, index) {
-  return positions.get(identity) || {
-    x: 80 + (index % 4) * 260,
-    y: 100 + Math.floor(index / 4) * 180,
-  };
+function restore(projection) {
+  const document = sessionStorage.getItem(storageKey(projection.workspaceIdentity));
+  return decodeFlowPresentation(document, projection);
 }
 
-function scene(snapshot) {
-  const presentation = snapshot.presentation;
-  const spatial = presentation.subjects.filter((subject) =>
-    ["Seed", "Body", "Host", "Part", "Gear"].includes(subject.role));
-  const nodes = spatial.map((subject, index) => ({
-    id: subject.identity,
-    position: initialPosition(subject.identity, index),
-    data: { label: `${subject.role} · ${subject.label}` },
-    className: `flow-subject flow-${subject.role.toLowerCase()}`,
-    ariaLabel: subject.accessibility_name,
-  }));
-  const nodeIds = new Set(nodes.map((node) => node.id));
-  const semanticSubjects = new Map();
-  for (const property of presentation.properties) {
-    if (property.name === "semantic-id") semanticSubjects.set(value(property), property.subject);
-  }
-  const owner = new Map();
-  for (const relation of presentation.relationships) {
-    if (relation.kind === "Contains" && nodeIds.has(relation.source)) owner.set(relation.target, relation.source);
-  }
-  const edges = [];
-  for (const cord of presentation.subjects.filter((subject) => subject.role === "Cord")) {
-    const properties = presentation.properties.filter((property) => property.subject === cord.identity);
-    const sourcePort = semanticSubjects.get(value(properties.find((property) => property.name === "source-port")));
-    const sinkPort = semanticSubjects.get(value(properties.find((property) => property.name === "sink-port")));
-    const source = owner.get(sourcePort);
-    const target = owner.get(sinkPort);
-    if (!source || !target) continue;
-    edges.push({
-      id: cord.identity,
-      source,
-      target,
-      type: "smoothstep",
-      className: "flow-cord",
-      markerEnd: { type: Flow.MarkerType.ArrowClosed },
-      ariaLabel: cord.accessibility_name,
-    });
-  }
-  return { nodes, edges };
+function retainWorkspace(workspaceIdentity) {
+  let identities = [];
+  try {
+    const document = sessionStorage.getItem(workspaceIndexKey) || "[]";
+    const parsed = document.length <= 64 * 1024 ? JSON.parse(document) : [];
+    if (Array.isArray(parsed)) {
+      identities = parsed
+        .filter((identity) => typeof identity === "string")
+        .slice(0, MAX_FLOW_WORKSPACES);
+    }
+  } catch { identities = []; }
+  identities = [workspaceIdentity, ...identities.filter((identity) => identity !== workspaceIdentity)];
+  for (const evicted of identities.slice(MAX_FLOW_WORKSPACES)) sessionStorage.removeItem(storageKey(evicted));
+  sessionStorage.setItem(workspaceIndexKey, JSON.stringify(identities.slice(0, MAX_FLOW_WORKSPACES)));
+}
+
+function persist(scene, viewport = instance?.getViewport() || scene.viewport) {
+  currentScene = { ...scene, viewport };
+  retainWorkspace(scene.workspaceIdentity);
+  sessionStorage.setItem(storageKey(scene.workspaceIdentity), encodeFlowPresentation(currentScene));
 }
 
 function Workspace({ snapshot, onSelect, onClear }) {
-  const projected = scene(snapshot);
-  const [nodes, setNodes] = React.useState(projected.nodes);
-  const [edges, setEdges] = React.useState(projected.edges);
+  const projected = projectFlowScene(snapshot);
+  const initial = React.useMemo(() => {
+    const restored = restore(projected);
+    return reconcileFlowScene(projected, restored);
+  }, [projected.workspaceIdentity]);
+  const [nodes, setNodes] = React.useState(initial.nodes);
+  const [edges, setEdges] = React.useState(initial.edges);
+  const workspace = React.useRef(projected.workspaceIdentity);
   React.useEffect(() => {
-    setNodes(projected.nodes.map((node, index) => ({
-      ...node,
-      position: initialPosition(node.id, index),
+    setNodes((current) => {
+      const sameWorkspace = workspace.current === projected.workspaceIdentity;
+      const prior = sameWorkspace
+        ? { nodes: current, viewport: instance?.getViewport() || initial.viewport }
+        : restore(projected);
+      const next = reconcileFlowScene(projected, prior);
+      if (!sameWorkspace) instance?.setViewport(next.viewport, { duration: 0 });
+      workspace.current = projected.workspaceIdentity;
+      persist(next);
+      return next.nodes;
+    });
+    setEdges(projected.edges.map((edge) => ({
+      ...edge,
+      className: "flow-cord",
+      markerEnd: { type: Flow.MarkerType.ArrowClosed },
     })));
-    setEdges(projected.edges);
-  }, [snapshot.presentation.identity, snapshot.presentation.revision]);
+  }, [projected.workspaceIdentity, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision]);
   return e(
     ReactFlow,
     {
       nodes,
       edges,
-      onNodesChange: (changes) => setNodes((current) => Flow.applyNodeChanges(changes, current)),
+      onNodesChange: (changes) => setNodes((current) => {
+        const nextNodes = Flow.applyNodeChanges(changes, current);
+        persist({
+          ...projected,
+          nodes: nextNodes,
+          edges,
+          viewport: instance?.getViewport() || initial.viewport,
+        });
+        return nextNodes;
+      }),
       onNodeClick: (_event, node) => onSelect(node.id),
       onPaneClick: onClear,
-      onNodeDragStop: (_event, node) => positions.set(node.id, { ...node.position }),
-      onInit: (next) => { instance = next; },
+      onNodeDragStop: (_event, node) => {
+        const next = { ...projected, nodes: nodes.map((current) => current.id === node.id ? { ...current, position: { ...node.position } } : current), edges, viewport: instance?.getViewport() || initial.viewport };
+        persist(next);
+      },
+      onMoveEnd: (_event, viewport) => persist({ ...projected, nodes, edges, viewport }, viewport),
+      onInit: (next) => { instance = next; currentScene = { ...projected, nodes, edges, viewport: initial.viewport }; },
       nodesDraggable: true,
       nodesConnectable: false,
       elementsSelectable: true,
@@ -94,7 +110,8 @@ function Workspace({ snapshot, onSelect, onClear }) {
       zoomOnPinch: true,
       minZoom: 0.2,
       maxZoom: 3,
-      fitView: true,
+      defaultViewport: initial.viewport,
+      fitView: restore(projected) === null,
       fitViewOptions: { maxZoom: 1.1, padding: 0.18 },
       proOptions: { hideAttribution: false },
     },
@@ -122,4 +139,8 @@ export function fitFlow() {
 
 export function flowViewport() {
   return instance?.getViewport() || null;
+}
+
+export function flowSceneSnapshot() {
+  return currentScene;
 }

@@ -294,16 +294,26 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     await expect.poll(()=>viewport.getAttribute("style")).not.toBe(transformBefore);
     await page.getByRole("button",{name:"Fit",exact:true}).click();
 
-    const node=page.locator("#flow-root .react-flow__node").first();
-    const nodeBefore=await node.boundingBox();
-    await page.mouse.move(nodeBefore.x+nodeBefore.width/2,nodeBefore.y+nodeBefore.height/2);
-    await page.mouse.down();
-    await page.mouse.move(nodeBefore.x+nodeBefore.width/2+80,nodeBefore.y+nodeBefore.height/2+35,{steps:5});
-    await page.mouse.up();
-    const nodeAfter=await node.boundingBox();
-    expect(Math.abs(nodeAfter.x-nodeBefore.x)+Math.abs(nodeAfter.y-nodeBefore.y)).toBeGreaterThan(40);
+    const nodes=page.locator("#flow-root .react-flow__node");
+    expect(await nodes.count()).toBeGreaterThanOrEqual(2);
+    const moved=[];
+    for(const [index,offset] of [[0,{x:80,y:35}],[1,{x:-65,y:50}]]){
+      const node=nodes.nth(index),before=await node.boundingBox();
+      await page.mouse.move(before.x+before.width/2,before.y+before.height/2);
+      await page.mouse.down();
+      await page.mouse.move(before.x+before.width/2+offset.x,before.y+before.height/2+offset.y,{steps:5});
+      await page.mouse.up();
+      const after=await node.boundingBox();
+      expect(Math.abs(after.x-before.x)+Math.abs(after.y-before.y)).toBeGreaterThan(40);
+      moved.push(after);
+    }
+    const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
+    await nodes.first().click();
+    await expect(page.locator("body")).toHaveAttribute("data-inspector-open","true");
 
     const after=await (await fetch(`${url}/api/snapshot`)).json();
+    expect(after.interaction.revision).toBeGreaterThan(before.interaction.revision);
+    expect(after.interaction.selected_subject).toBeTruthy();
     expect({
       presentation:after.presentation.identity,
       plan:after.presentation.basis.plan_id,
@@ -313,5 +323,61 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     }).toEqual(identities);
     await page.reload();
     await expect(page.locator("#flow-root")).toHaveAttribute("data-presentation-id",identities.presentation);
+    const restoredViewport=await page.evaluate(()=>window.patchbayFlowViewport());
+    expect(restoredViewport).toEqual(viewportAfter);
+    for(const [index,after] of moved.entries()){
+      const restored=await page.locator("#flow-root .react-flow__node").nth(index).boundingBox();
+      expect(Math.abs(restored.x-after.x)+Math.abs(restored.y-after.y)).toBeLessThan(3);
+    }
+  } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
+});
+
+test("Flow scene reconciliation is finite and identity-exact", async ({page}) => {
+  const server=startServer();
+  try {
+    const url=await server.url;
+    const snapshot=await (await fetch(`${url}/api/snapshot`)).json();
+    await page.goto(url);
+    const result=await page.evaluate(async snapshot=>{
+      const scene=await import("/assets/flow-scene.js");
+      const projected=scene.projectFlowScene(snapshot);
+      const first=scene.reconcileFlowScene(projected);
+      first.nodes[0].position={x:913,y:417};
+      first.nodes[0].selected=true;
+      first.viewport={x:31,y:-27,zoom:1.4};
+      const duplicate=scene.reconcileFlowScene(scene.projectFlowScene(snapshot),first);
+      const added=structuredClone(snapshot);
+      added.presentation.subjects.push({identity:"subject/new",role:"Gear",label:"New",accessibility_name:"New Gear"});
+      const withNew=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
+      const withNewAgain=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
+      const removed=structuredClone(added);
+      removed.presentation.subjects=removed.presentation.subjects.filter(subject=>subject.identity!==first.nodes[0].id);
+      const withoutRemoved=scene.reconcileFlowScene(scene.projectFlowScene(removed),withNew);
+      const encoded=scene.encodeFlowPresentation(withoutRemoved);
+      const decoded=scene.decodeFlowPresentation(encoded,scene.projectFlowScene(removed));
+      return {
+        anchor:duplicate.nodes.find(node=>node.id===first.nodes[0].id).position,
+        localFocus:duplicate.nodes.find(node=>node.id===first.nodes[0].id).selected,
+        semanticSelection:projected.nodes.find(node=>node.id===first.nodes[0].id).data.semanticSelected,
+        viewport:duplicate.viewport,
+        newPosition:withNew.nodes.find(node=>node.id==="subject/new").position,
+        repeatedNewPosition:withNewAgain.nodes.find(node=>node.id==="subject/new").position,
+        removedSurvived:withoutRemoved.nodes.some(node=>node.id===first.nodes[0].id),
+        encodedBytes:encoded.length,
+        decodedIds:decoded.nodes.map(node=>node.id).sort(),
+        currentIds:withoutRemoved.nodes.map(node=>node.id).sort(),
+        oversized:scene.decodeFlowPresentation("x".repeat(scene.MAX_FLOW_STATE_BYTES+1),projected),
+      };
+    },snapshot);
+    expect(result.anchor).toEqual({x:913,y:417});
+    expect(result.localFocus).toBe(true);
+    expect(typeof result.semanticSelection).toBe("boolean");
+    expect(result.viewport).toEqual({x:31,y:-27,zoom:1.4});
+    expect(result.newPosition).toBeTruthy();
+    expect(result.repeatedNewPosition).toEqual(result.newPosition);
+    expect(result.removedSurvived).toBe(false);
+    expect(result.encodedBytes).toBeLessThanOrEqual(64*1024);
+    expect(result.decodedIds).toEqual(result.currentIds);
+    expect(result.oversized).toBeNull();
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
 });
