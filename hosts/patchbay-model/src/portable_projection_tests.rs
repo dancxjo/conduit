@@ -127,6 +127,14 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
         property.name == "icon-token"
             && property.value == PresentationPropertyValue::Text("case-upper".into())
     }));
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "source-form"
+            && property.value == PresentationPropertyValue::Identity("hello".into())
+    }));
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "form-path"
+            && property.value == PresentationPropertyValue::Text("hello".into())
+    }));
     assert!(portable.relationships.iter().any(|relationship| {
         relationship.kind == conduit_presentation::PresentationRelationshipKind::Connects
     }));

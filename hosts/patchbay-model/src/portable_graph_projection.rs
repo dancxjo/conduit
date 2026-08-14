@@ -29,6 +29,8 @@ pub(super) fn append_exact_graph(
         content.contains(form, &subject);
         identity(content, &subject, "semantic-id", &gear.identity);
         identity(content, &subject, "kind-id", gear.kind_id.as_str());
+        identity(content, &subject, "source-form", &gear.source_form);
+        text(content, &subject, "form-path", &gear.form_path.join(" / "));
         text(content, &subject, "icon-token", icon.as_str());
         text(content, &subject, "icon-name", icon.accessibility_name());
         for (index, control) in gear.controls.iter().enumerate() {
