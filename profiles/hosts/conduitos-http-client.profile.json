@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.host/profile@1",
+  "name": "conduitos-http-client",
+  "target": { "family": "conduitos", "architecture": "x86_64", "machine": "pc", "build_profile": "release" },
+  "host_core": "host-core/conduitos@1",
+  "fragments": [],
+  "capabilities": [{ "kind": "http/client", "contract_revision": "conduit.http/client@1", "implementation": "conduitos/kernel-http-client-http1-literal@1" }],
+  "host_operations": ["conduit.host/http-client-exchange@1"],
+  "resources": [
+    { "id": "http/client-0", "class": "conduit.resource/network/http-client@1", "slots": 1, "bytes": 107000 },
+    { "id": "network/packets", "class": "network/packet-buffer@1", "slots": 4, "bytes": 6144 },
+    { "id": "network/socket-0", "class": "network/tcp-socket@1", "slots": 1, "bytes": 32768 },
+    { "id": "network/timers", "class": "network/timer@1", "slots": 2, "bytes": 64 }
+  ],
+  "bases": [{ "id": "network/lan-0", "kind": "network/ipv4-tcp", "driver": "conduitos/deterministic-ipv4-tcp@1" }],
+  "drivers": [{ "id": "driver/network", "kind": "conduitos/deterministic-ipv4-tcp@1" }],
+  "lines": [],
+  "presenters": [],
+  "facilities": ["network/http1-literal-client@1"],
+  "exclusions": [],
+  "policy": { "authority_profile": "authority/explicit@1", "trust_profile": "trust/local-explicit@1", "update_profile": "update/rebuild@1", "ambient_defaults": false },
+  "bounds": { "static_memory_bytes": 262144, "heap_arena_bytes": 0, "queue_items": 4, "buffered_bytes": 145976, "active_instances": 1, "operation_slots": 1, "timer_slots": 2, "line_sessions": 1, "evidence_items": 32 }
+}

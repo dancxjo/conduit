@@ -223,7 +223,9 @@ mod tests {
             build_id: "build:sha256:build",
             image_binding: "image:sha256:binding",
             target: "conduitos/x86_64/pc",
-            implementations: crate::fabrication::ALL_KNOWN_IMPLEMENTATIONS,
+            implementations: crate::fabrication::ALL_KNOWN_IMPLEMENTATIONS
+                & !crate::fabrication::IMPL_LINEAR_PRESENTER
+                & !crate::fabrication::IMPL_HTTP_CLIENT,
             facilities: crate::fabrication::FACILITY_NATIVE_COMPOSITOR,
             resources: crate::fabrication::RESOURCE_PRESENTATION_SURFACE,
             bases: crate::fabrication::BASE_DISPLAY_SCANOUT,
