@@ -201,10 +201,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"signs-lens",selectedSnapshot,"same-graph-selected-subject-causal-evidence");
     await page.locator('[data-lens="form"]').click();await expect(page.locator("#graph .gear.selected .plan-overlay")).toBeHidden();await expect(page.locator("#inspector .selected-summary")).toContainText("kind-id");
     const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({presentation:afterLenses.presentation.identity,plan:afterLenses.presentation.basis.plan_id,play:afterLenses.presentation.basis.active_play_id,selection:afterLenses.interaction.selected_subject,interactionRevision:afterLenses.interaction.revision}).toEqual(stableLensIdentity);
+    await page.getByRole("button",{name:"Navigate",exact:true}).click();
     await page.locator('[data-lens="signs"]').click();const route=page.locator('#graph .route-recovery').first();await route.click();await expect(route).toHaveClass(/selected/);await expect(page.locator("#inspector .selected-summary")).toContainText("subject-specific causal Sign");await expect(page.locator("#inspector .exact-selection")).toContainText("sign-new-plan-unsatisfied");
     const routeSnapshot=await (await fetch(`${url}/api/snapshot`)).json();expect(routeSnapshot.interaction.selected_subject).toBe(await route.getAttribute("data-subject"));
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"route-recovery",routeSnapshot,"exact-line-loss-new-plan-and-same-plan-recovery-spatially-correlated");
     await page.locator('[data-lens="form"]').click();
+    await page.getByRole("button",{name:"Navigate",exact:true}).click();
     const second=page.locator('#subjects button[data-role="Port"]').first();await second.click();
     await expect(second).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .selected-summary")).toContainText(/receiving|outgoing/);
