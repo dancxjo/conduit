@@ -43,6 +43,9 @@ mod protected_resources;
 mod realization;
 mod replanning;
 mod requirements;
+mod startup;
+#[cfg(test)]
+use startup::startup_order;
 mod style;
 
 use functional_compatibility::default_placements_unvalidated;
@@ -545,7 +548,7 @@ pub(crate) fn plan_validated_form(
         });
     }
 
-    let global_startup_order = startup_order(&planned_gears, &planned_connections)
+    let global_startup_order = startup::startup_order(&planned_gears, &planned_connections)
         .ok_or_else(|| PlannerError::CyclicStartupDependencies(form.name.clone()))?;
 
     let fragments = hosts
@@ -646,32 +649,6 @@ pub(crate) fn plan_validated_form(
         .collect::<Vec<_>>();
 
     Ok(seal_plan(form.identity(), fragments))
-}
-
-fn startup_order(
-    placements: &[PlannedGear],
-    connections: &[PlannedConnection],
-) -> Option<Vec<PlacementId>> {
-    let mut remaining = placements
-        .iter()
-        .map(|placement| placement.placement_id.clone())
-        .collect::<BTreeSet<_>>();
-    let mut ordered = Vec::with_capacity(remaining.len());
-    while !remaining.is_empty() {
-        let next = remaining
-            .iter()
-            .find(|candidate| {
-                connections.iter().all(|connection| {
-                    connection.source_placement_id == connection.sink_placement_id
-                        || &connection.source_placement_id != *candidate
-                        || !remaining.contains(&connection.sink_placement_id)
-                })
-            })
-            .cloned()?;
-        remaining.remove(&next);
-        ordered.push(next);
-    }
-    Some(ordered)
 }
 
 fn validate_operation_capability(

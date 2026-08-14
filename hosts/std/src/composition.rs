@@ -6,16 +6,12 @@
 use crate::installed_std;
 use crate::StdHostConfig;
 use conduit_core::{
-    kind_id, resource_offer, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    HostAdvertisement, HostProfileId, ImplementationId, PlannerCapabilityOffer, PlannerProfileId,
+    resource_offer, HostAdvertisement, HostProfileId, PlannerCapabilityOffer, PlannerProfileId,
     PROTOCOL_VERSION,
 };
-use conduit_signal::{
-    pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-    pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_operation_requirements, show_inputs, show_resource_requirements,
-    signal_resource_offers, PULSE_KIND, SHOW_KIND,
-};
+use conduit_signal::signal_resource_offers;
+
+mod signal;
 
 /// Compile/composition-time selection of implementation families included in a std host image.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,6 +28,7 @@ pub struct StdHostComposition {
     pub robotics: bool,
     pub files: bool,
     pub external_websocket: bool,
+    pub http: bool,
 }
 
 impl StdHostComposition {
@@ -50,6 +47,7 @@ impl StdHostComposition {
             robotics: true,
             files: true,
             external_websocket: false,
+            http: true,
         }
     }
 
@@ -69,6 +67,7 @@ impl StdHostComposition {
             robotics: false,
             files: false,
             external_websocket: false,
+            http: false,
         }
     }
 
@@ -131,6 +130,11 @@ impl StdHostComposition {
         self.external_websocket = true;
         self
     }
+
+    pub const fn with_http(mut self) -> Self {
+        self.http = true;
+        self
+    }
 }
 
 impl Default for StdHostComposition {
@@ -149,7 +153,7 @@ pub(super) fn build_advertisement(
 ) -> HostAdvertisement {
     let mut capabilities = Vec::new();
     if composition.signal {
-        capabilities.extend(signal_offers());
+        capabilities.extend(signal::offers());
     }
     if composition.time {
         capabilities.extend([
@@ -242,6 +246,12 @@ pub(super) fn build_advertisement(
     if composition.external_websocket {
         capabilities.push(conduit_net::std_external_websocket_family().capability);
     }
+    if composition.http {
+        capabilities.extend([
+            installed_std::http_client_offer(),
+            installed_std::http_server_offer(),
+        ]);
+    }
     if playback.is_some() {
         capabilities.push(conduit_std_catalog::audio_play_alsa_hw_offer());
     }
@@ -289,6 +299,21 @@ pub(super) fn build_advertisement(
         resources.push(conduit_net::std_external_websocket_family().resource);
         resources.sort();
     }
+    if composition.http {
+        resources.extend([
+            resource_offer(
+                "std/http-client",
+                installed_std::http_client_resource_class(),
+                u32::from(conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT),
+            ),
+            resource_offer(
+                "std/http-listener",
+                installed_std::http_server_resource_class(),
+                1,
+            ),
+        ]);
+        resources.sort();
+    }
     if let Some(playback) = playback {
         resources.push(resource_offer(
             playback.pool_id().as_str(),
@@ -327,55 +352,6 @@ pub(super) fn build_advertisement(
         }],
         capabilities,
     }
-}
-
-fn signal_offers() -> [CapabilityOffer; 2] {
-    [
-        CapabilityOffer {
-            startup_parameters: conduit_signal::pulse_face_startup_parameters(),
-            shorthand: None,
-            capability_id: CapabilityId::from("pulse-1"),
-            kind_id: kind_id(PULSE_KIND),
-            kind_contract_revision: pulse_contract_revision(),
-            implementation: conduit_core::ImplementationOffer {
-                execution_profile_id: pulse_execution_profile(),
-                implementation_id: ImplementationId::from("std/pulse-v1"),
-                artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
-            },
-            inputs: vec![],
-            outputs: pulse_outputs(),
-            host_operations: pulse_host_operation_requirements(),
-            resource_requirements: pulse_resource_requirements(),
-            authority_requirements: vec![],
-            limits: CapabilityLimits {
-                max_active_instances: 16,
-                max_queue_items: 4,
-                max_queue_bytes: 64,
-            },
-        },
-        CapabilityOffer {
-            startup_parameters: vec![],
-            shorthand: None,
-            capability_id: CapabilityId::from("stdout-show-1"),
-            kind_id: kind_id(SHOW_KIND),
-            kind_contract_revision: show_contract_revision(),
-            implementation: conduit_core::ImplementationOffer {
-                execution_profile_id: show_execution_profile(),
-                implementation_id: ImplementationId::from("std/stdout-show-signal-v1"),
-                artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
-            },
-            inputs: show_inputs(),
-            outputs: vec![],
-            host_operations: show_host_operation_requirements(),
-            resource_requirements: show_resource_requirements(),
-            authority_requirements: vec![],
-            limits: CapabilityLimits {
-                max_active_instances: 16,
-                max_queue_items: 4,
-                max_queue_bytes: 64,
-            },
-        },
-    ]
 }
 
 #[cfg(test)]
@@ -442,6 +418,32 @@ mod tests {
     }
 
     #[test]
+    fn hosted_http_is_opt_in_and_seals_resources_operations_and_authority() {
+        let omitted = host(StdHostComposition::minimal());
+        assert!(!offered(&omitted, conduit_std_catalog::HTTP_CLIENT_KIND));
+        assert!(!offered(&omitted, conduit_std_catalog::HTTP_SERVER_KIND));
+
+        let selected = host(StdHostComposition::minimal().with_http());
+        let client = selected
+            .advertisement()
+            .capabilities
+            .iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::HTTP_CLIENT_KIND)
+            .unwrap();
+        let server = selected
+            .advertisement()
+            .capabilities
+            .iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::HTTP_SERVER_KIND)
+            .unwrap();
+        assert_eq!(client.host_operations.len(), 1);
+        assert_eq!(client.authority_requirements.len(), 1);
+        assert_eq!(server.host_operations.len(), 2);
+        assert_eq!(server.authority_requirements.len(), 2);
+        assert_eq!(selected.advertisement().resources.len(), 2);
+    }
+
+    #[test]
     fn compiled_families_are_not_ambient_runtime_promises() {
         let minimal = host(StdHostComposition::minimal());
         let reference = host(StdHostComposition::reference());
@@ -473,6 +475,8 @@ mod tests {
             "robotics/velocity-intent",
             "robotics/drive-differential",
             "file/copy",
+            conduit_std_catalog::HTTP_CLIENT_KIND,
+            conduit_std_catalog::HTTP_SERVER_KIND,
         ] {
             assert!(!offered(&minimal, kind), "minimal host offered {kind}");
             assert!(offered(&reference, kind), "reference host omitted {kind}");

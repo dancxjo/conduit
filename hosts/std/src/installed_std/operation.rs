@@ -4,6 +4,7 @@ use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
+use super::http::{HttpClientOperation, HttpServerOperation};
 use super::input_semantic_operations::{InputSemanticOperation, KeyEventTeeOperation};
 use super::layout_operations::LayoutOperation;
 use super::logic_operations::{
@@ -92,6 +93,8 @@ pub(super) enum InstalledOperation {
     MidiInput(Box<MidiInputOperation>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
+    HttpClient(HttpClientOperation),
+    HttpServer(HttpServerOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
     #[cfg(test)]
@@ -179,6 +182,8 @@ impl Operation for InstalledOperation {
             Self::MidiInput(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
+            Self::HttpClient(operation) => operation.start(),
+            Self::HttpServer(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
@@ -255,6 +260,8 @@ impl Operation for InstalledOperation {
             (Self::MidiInput(operation), _) => operation.resume(),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
+            (Self::HttpClient(operation), input) => operation.resume(input),
+            (Self::HttpServer(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestTextSource(_), _) => Self::fail(6),
             #[cfg(test)]
@@ -357,6 +364,8 @@ impl Operation for InstalledOperation {
             Self::MidiInput(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
+            Self::HttpClient(operation) => operation.advance(),
+            Self::HttpServer(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;
@@ -434,6 +443,8 @@ impl Operation for InstalledOperation {
             Self::MidiInput(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
+            Self::HttpClient(operation) => operation.cancel(),
+            Self::HttpServer(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]
@@ -489,6 +500,7 @@ impl Operation for InstalledOperation {
             Self::TimeDelay(operation) => operation.take_released_value(),
             Self::TimeThrottle(operation) => operation.take_released_value(),
             Self::MusicSynth(operation) => operation.take_released_value(),
+            Self::HttpServer(operation) => operation.take_released_value(),
             _ => None,
         }
     }

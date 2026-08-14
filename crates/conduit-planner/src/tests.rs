@@ -386,6 +386,41 @@ fn planning_rejects_cyclic_startup_dependencies() {
 }
 
 #[test]
+fn admitted_host_input_source_breaks_only_its_runtime_response_cycle() {
+    let form = form();
+    let host = host();
+    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let plan = plan(
+        &form,
+        std::slice::from_ref(&host),
+        &placements,
+        &[ConnectionBase::Local],
+    )
+    .unwrap();
+    let fragment = &plan.fragments[0];
+    let mut cyclic_placements = fragment.placements.clone();
+    let source = cyclic_placements
+        .iter_mut()
+        .find(|placement| placement.gear_id.as_str() == "pulse")
+        .unwrap();
+    source.host_operations[0].maximum_input_bytes = 0;
+    source.host_operations[0].maximum_output_bytes = SIGNAL_ENCODED_LEN;
+    source.host_operations[0].target_kind = Some(source.outputs[0].value_kind.clone());
+    let source_placement_id = source.placement_id.clone();
+    let mut connections = fragment.connections.clone();
+    let mut reverse = connections[0].clone();
+    core::mem::swap(
+        &mut reverse.source_placement_id,
+        &mut reverse.sink_placement_id,
+    );
+    connections.push(reverse);
+
+    let order = startup_order(&cyclic_placements, &connections)
+        .expect("an exact admitted host-input source can start the response loop");
+    assert_eq!(order[0], source_placement_id);
+}
+
+#[test]
 fn a_self_cord_is_runtime_routing_not_a_startup_cycle() {
     let form = form();
     let host = host();
