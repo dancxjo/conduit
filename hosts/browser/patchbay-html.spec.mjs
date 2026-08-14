@@ -271,6 +271,7 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     const url=await server.url;
     await page.goto(url);
     await expect(page.locator("#flow-root")).toHaveAttribute("data-renderer","react-flow");
+    await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
     const before=await (await fetch(`${url}/api/snapshot`)).json();
     const identities={
       presentation:before.presentation.identity,
@@ -310,6 +311,13 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
     await nodes.first().click();
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open","true");
+    const lensAnchor=await nodes.first().boundingBox();
+    await page.getByRole("button",{name:"Intent",exact:true}).click();
+    await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","form");
+    const intentAnchor=await nodes.first().boundingBox();
+    expect(Math.abs(intentAnchor.x-lensAnchor.x)+Math.abs(intentAnchor.y-lensAnchor.y)).toBeLessThan(3);
+    await page.getByRole("button",{name:"Realization",exact:true}).click();
+    await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","plan");
 
     const after=await (await fetch(`${url}/api/snapshot`)).json();
     expect(after.interaction.revision).toBeGreaterThan(before.interaction.revision);
@@ -341,6 +349,7 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
     await page.goto(url);
     const result=await page.evaluate(async snapshot=>{
       const scene=await import("/assets/flow-scene.js");
+      const layout=await import("/assets/flow-layout.js");
       const projected=scene.projectFlowScene(snapshot);
       const first=scene.reconcileFlowScene(projected);
       first.nodes[0].position={x:913,y:417};
@@ -356,6 +365,17 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
       const withoutRemoved=scene.reconcileFlowScene(scene.projectFlowScene(removed),withNew);
       const encoded=scene.encodeFlowPresentation(withoutRemoved);
       const decoded=scene.decodeFlowPresentation(encoded,scene.projectFlowScene(removed));
+      const acyclic=layout.layoutFlowScene(
+        [{id:"a"},{id:"b"},{id:"c"}],
+        [{source:"a",target:"b"},{source:"b",target:"c"}],
+      );
+      const cycleNodes=[{id:"z"},{id:"a"},{id:"m"}],cycleEdges=[{source:"z",target:"a"},{source:"a",target:"z"},{source:"z",target:"m"}];
+      const cycle=layout.layoutFlowScene(cycleNodes,cycleEdges);
+      const cycleAgain=layout.layoutFlowScene([...cycleNodes].reverse(),[...cycleEdges].reverse());
+      const tall=layout.layoutFlowScene([
+        {id:"long/a",data:{ports:Array.from({length:12},(_item,index)=>({id:`port/${index}`}))}},
+        {id:"long/b",data:{ports:[]}},
+      ],[]);
       return {
         anchor:duplicate.nodes.find(node=>node.id===first.nodes[0].id).position,
         localFocus:duplicate.nodes.find(node=>node.id===first.nodes[0].id).selected,
@@ -368,6 +388,13 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
         decodedIds:decoded.nodes.map(node=>node.id).sort(),
         currentIds:withoutRemoved.nodes.map(node=>node.id).sort(),
         oversized:scene.decodeFlowPresentation("x".repeat(scene.MAX_FLOW_STATE_BYTES+1),projected),
+        portIds:projected.nodes.flatMap(node=>node.data.ports.map(port=>port.id)),
+        handles:projected.edges.map(edge=>[edge.sourceHandle,edge.targetHandle]),
+        cordLine:projected.edges.map(edge=>({cord:edge.data.semanticIdentity,line:edge.data.lineIdentity})),
+        acyclic:[acyclic.get("a"),acyclic.get("b"),acyclic.get("c")],
+        cycle:[...cycle.entries()],
+        cycleAgain:[...cycleAgain.entries()],
+        tallGap:tall.get("long/b").y-tall.get("long/a").y,
       };
     },snapshot);
     expect(result.anchor).toEqual({x:913,y:417});
@@ -380,5 +407,13 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
     expect(result.encodedBytes).toBeLessThanOrEqual(64*1024);
     expect(result.decodedIds).toEqual(result.currentIds);
     expect(result.oversized).toBeNull();
+    expect(result.portIds.length).toBeGreaterThan(0);
+    expect(result.handles.length).toBeGreaterThan(0);
+    expect(result.handles.flat().every(identity=>result.portIds.includes(identity))).toBe(true);
+    expect(result.cordLine.every(item=>typeof item.cord==="string"&&(item.line===null||typeof item.line==="string"))).toBe(true);
+    expect(result.acyclic[0].x).toBeLessThan(result.acyclic[1].x);
+    expect(result.acyclic[1].x).toBeLessThan(result.acyclic[2].x);
+    expect(result.cycleAgain).toEqual(result.cycle);
+    expect(result.tallGap).toBeGreaterThan(500);
   } finally { server.lines.close(); if(server.process.exitCode===null)server.process.kill("SIGTERM"); }
 });

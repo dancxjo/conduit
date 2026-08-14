@@ -116,6 +116,27 @@ body:not([data-palette-open="true"]) #palette,body:not([data-parts-open="true"])
 .status-strip { position:fixed; z-index:6; left:50%; bottom:.75rem; transform:translateX(-50%); margin:0; max-width:min(48rem,calc(100% - 19rem)); background:color-mix(in srgb,var(--patchbay-background) 92%,transparent); }
 #front-door-actions { bottom:4.25rem; }
 .react-flow__node { min-width:11rem; padding:.8rem 1rem; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); font-weight:700; }
+.react-flow__node-faceplate { width:15rem; min-width:15rem; padding:0; border:0; background:transparent; font-weight:400; }
+.flow-faceplate { width:15rem; max-width:15rem; overflow:hidden; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); }
+.flow-faceplate header { display:grid; grid-template-columns:1.6rem minmax(0,1fr) auto; gap:.35rem; align-items:center; min-height:2.4rem; padding:.45rem .55rem; border-bottom:1px solid var(--patchbay-structure-secondary); }
+.faceplate-icon { color:var(--patchbay-emphasis); font-weight:800; }
+.faceplate-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:750; }
+.faceplate-role { color:var(--patchbay-text-secondary); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; }
+.faceplate-clue { min-height:1.75rem; margin:0; padding:.35rem .55rem; overflow:hidden; color:var(--patchbay-text-secondary); font-size:.72rem; text-overflow:ellipsis; white-space:nowrap; }
+.faceplate-ports { border-top:1px solid var(--patchbay-structure-secondary); }
+.faceplate-port { position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:.35rem; align-items:center; min-height:1.75rem; padding:.25rem .55rem; font-size:.7rem; }
+.faceplate-port+.faceplate-port { border-top:1px solid color-mix(in srgb,var(--patchbay-structure-secondary) 55%,transparent); }
+.faceplate-port-name,.faceplate-port code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.faceplate-port.outgoing { text-align:right; }
+.faceplate-port code { color:var(--patchbay-text-secondary); font-size:.62rem; }
+.faceplate-handle { width:.72rem; height:.72rem; border:2px solid var(--patchbay-structure-primary); background:var(--patchbay-background); }
+.react-flow__edge[data-line-id] .react-flow__edge-path { stroke-dasharray:0; }
+.react-flow__edge-text { fill:var(--patchbay-text-primary); font-size:.66rem; }
+.react-flow__edge-textbg { fill:var(--patchbay-surface); }
+body[data-lens="form"] .flow-faceplate { border-color:var(--patchbay-emphasis); }
+body[data-lens="plan"] .react-flow__edge-path { stroke:var(--patchbay-emphasis); }
+body[data-lens="play"] .flow-faceplate { box-shadow:inset 0 0 0 1px var(--patchbay-success); }
+body[data-lens="signs"] .flow-faceplate { border-style:double; }
 .react-flow__node.selected { outline:3px solid var(--patchbay-focus); }
 .react-flow__edge-path { stroke:var(--patchbay-structure-primary); stroke-width:3; }
 .react-flow__controls { box-shadow:none; border:1px solid var(--patchbay-structure-secondary); }
@@ -130,3 +151,4 @@ body:not([data-palette-open="true"]) #palette,body:not([data-parts-open="true"])
   #parts,#deep-inspection { width:calc(100% - 1.5rem); }
   .status-strip { display:none; }
 }
+@media (max-width:720px) { .react-flow__node-faceplate,.flow-faceplate { width:13rem; min-width:13rem; max-width:13rem; } }

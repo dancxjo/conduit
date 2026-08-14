@@ -5,6 +5,7 @@ import {
   projectFlowScene,
   reconcileFlowScene,
 } from "/assets/flow-scene.js";
+import { FaceplateNode } from "/assets/flow-faceplate.js";
 
 const React = window.React;
 const ReactDOM = window.ReactDOM;
@@ -19,7 +20,9 @@ const ReactFlow = Flow.default || Flow.ReactFlow || Flow;
 let instance = null;
 let root = null;
 let currentScene = null;
+let arrangeCurrent = null;
 const workspaceIndexKey = "conduit.patchbay.flow/workspaces";
+const nodeTypes = { faceplate: FaceplateNode };
 
 function storageKey(workspaceIdentity) {
   return `conduit.patchbay.flow/${encodeURIComponent(workspaceIdentity)}`;
@@ -60,8 +63,8 @@ function presentEdges(edges) {
   }));
 }
 
-function Workspace({ snapshot, onSelect, onClear }) {
-  const projected = projectFlowScene(snapshot);
+function Workspace({ snapshot, onSelect, onClear, lens }) {
+  const projected = projectFlowScene(snapshot, lens);
   const initial = React.useMemo(() => {
     const restored = restore(projected);
     return reconcileFlowScene(projected, restored);
@@ -87,12 +90,19 @@ function Workspace({ snapshot, onSelect, onClear }) {
       return next.nodes;
     });
     setEdges(presentEdges(projected.edges));
-  }, [projected.workspaceIdentity, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision]);
+  }, [projected.workspaceIdentity, projected.lens, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision]);
+  arrangeCurrent = () => {
+    const next = reconcileFlowScene(projected);
+    setNodes(next.nodes);
+    persist(next);
+    requestAnimationFrame(() => instance?.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 }));
+  };
   return e(
     ReactFlow,
     {
       nodes,
       edges,
+      nodeTypes,
       onNodesChange: (changes) => setNodes((current) => {
         const nextNodes = Flow.applyNodeChanges(changes, current);
         persist({
@@ -148,6 +158,10 @@ export function renderFlow(snapshot, handlers) {
 
 export function fitFlow() {
   return instance?.fitView({ duration: 0, maxZoom: 1.1, padding: 0.18 });
+}
+
+export function arrangeFlow() {
+  arrangeCurrent?.();
 }
 
 export function flowViewport() {
