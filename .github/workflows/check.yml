@@ -117,8 +117,20 @@ jobs:
             exit 1
           fi
           grep -Fx 'conduitos-tool-bundle-refused: runner image version mismatch' refusal.log
+      - name: Capture the exact runner cache identity
+        id: runner-image
+        run: printf 'key=%s-%s\n' "$ImageOS" "$ImageVersion" >> "$GITHUB_OUTPUT"
+      - name: Restore the exact ConduitOS tool bundle
+        id: tool-cache
+        uses: actions/cache@v6
+        with:
+          path: target/conduitos/tool-bundle
+          key: conduitos-tools-v1-${{ steps.runner-image.outputs.key }}-${{ hashFiles('scripts/ci/conduitos-tools.sh') }}
       - name: Prepare one exact ConduitOS tool bundle
+        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: scripts/ci/conduitos-tools.sh prepare target/conduitos/tool-bundle
+      - name: Verify the restored or prepared tool bundle
+        run: scripts/ci/conduitos-tools.sh verify target/conduitos/tool-bundle
       - name: Distribute the exact ConduitOS tool bundle
         uses: actions/upload-artifact@v7
         with:
