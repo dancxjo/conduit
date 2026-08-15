@@ -109,6 +109,14 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     );
     expect(beBornAction.identity).toMatch(/^action\/be-born\//);
 
+    const exact = page.locator("#inspector .exact-selection");
+    await expect(exact).not.toHaveAttribute("open", "");
+    await exact.locator("summary").click();
+    await expect(exact).toHaveAttribute("open", "");
+    await expect(exact).toContainText(seed.identity);
+    await exact.locator("summary").click();
+    await expect(exact).not.toHaveAttribute("open", "");
+
     const [birthRequest] = await Promise.all([
       page.waitForRequest(
         (request) => request.url().endsWith("/api/interaction") && request.method() === "POST",
@@ -133,14 +141,6 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     expect(born.parts.parts).toHaveLength(1);
     expect(born.parts.parts[0].state).toBe("Here");
     expect(born.presentation.subjects.some(({ role }) => role === "Form")).toBe(true);
-
-    const exact = page.locator("#inspector .exact-selection");
-    await expect(exact).not.toHaveAttribute("open", "");
-    await exact.locator("summary").click();
-    await expect(exact).toHaveAttribute("open", "");
-    await expect(exact).toContainText(seed.identity);
-    await exact.locator("summary").click();
-    await expect(exact).not.toHaveAttribute("open", "");
 
     const stale = await page.evaluate(async ({ presentationId, revision, subject }) =>
       (await fetch("/api/front-door-transition", {
