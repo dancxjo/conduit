@@ -26,6 +26,7 @@ const _: () = assert!(generated::GENERATED_HOST_OPERATIONS.len() == 2);
 const _: () = assert!(generated::GENERATED_RESOURCES.len() == 2);
 const _: () = assert!(generated::CORD_VALUE_SLOTS == 1);
 const _: () = assert!(generated::CORD_VALUE_BYTES == 9);
+const _: () = assert!(!generated::GENERATED_FABRICATION_DESCRIPTOR_BINDING.is_empty());
 
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
@@ -41,8 +42,9 @@ fn main() -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let _peripherals = esp_hal::init(config);
 
-    // Keep the generated image resident. This build-only checkpoint does not
-    // emit a BOOT or HOST receipt and therefore cannot be mistaken for one.
+    // Keep the descriptor-bound generated image resident. Its planner input
+    // used explicitly synthetic fixture identities. This build-only checkpoint
+    // emits no BOOT or HOST receipt and therefore cannot be mistaken for one.
     let _exact_kernel_node_specs: &[conduit_kernel::scheduler::NodeSpec<
         { generated::GENERATED_PORTS_PER_NODE },
     >] = &generated::GENERATED_NODES;
