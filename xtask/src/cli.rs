@@ -147,6 +147,11 @@ pub struct ProveArgs {
     #[arg(long)]
     pub induce_capture_restart_failure: bool,
 
+    /// Fail browser-host proof before canonical capture begins and retain a
+    /// verifier-ready diagnostic manifest with no invented capture outputs.
+    #[arg(long)]
+    pub induce_pre_capture_failure: bool,
+
     /// Environment variable containing the Wi-Fi SSID. The variable value is
     /// never printed.
     #[arg(long)]
@@ -475,6 +480,21 @@ mod tests {
             capture_restart.command,
             Command::Prove(ProveArgs {
                 induce_capture_restart_failure: true,
+                ..
+            })
+        ));
+
+        let pre_capture = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "browser-host",
+            "--induce-pre-capture-failure",
+        ])
+        .expect("browser pre-capture failure proof parses");
+        assert!(matches!(
+            pre_capture.command,
+            Command::Prove(ProveArgs {
+                induce_pre_capture_failure: true,
                 ..
             })
         ));

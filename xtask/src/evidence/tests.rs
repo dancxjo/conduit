@@ -132,6 +132,30 @@ fn diagnostic_artifacts_cannot_look_complete() {
 }
 
 #[test]
+fn pre_capture_diagnostic_verifies_without_invented_outputs() {
+    let root = temporary_root("pre-capture-diagnostic");
+    let mut evidence = manifest(&root);
+    evidence
+        .finish(EvidenceResult::DiagnosticIncomplete)
+        .unwrap();
+    let document: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join(MANIFEST_FILE)).unwrap()).unwrap();
+    assert_eq!(document["result"], "diagnostic-incomplete");
+    assert_eq!(document["outputs"].as_array().unwrap().len(), 0);
+    let request = VerificationRequest {
+        root: root.clone(),
+        commit: document["git_commit"].as_str().unwrap().to_owned(),
+        result: ExpectedEvidenceResult::DiagnosticIncomplete,
+        proof_id: "proof".into(),
+        suite_id: "suite".into(),
+    };
+    verify(&request).unwrap();
+    fs::write(root.join("undeclared.png"), b"not admitted").unwrap();
+    assert!(verify(&request).unwrap_err().contains("undeclared"));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn actions_checkout_sha_is_validated_without_invoking_git() {
     let sha = "ABCDEF0123456789ABCDEF0123456789ABCDEF01";
     assert_eq!(
