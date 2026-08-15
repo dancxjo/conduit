@@ -1,8 +1,8 @@
 //! Human-first projection of canonical Body membership and admission candidates.
 
 use conduit_body::{
-    Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, MembershipEventKind,
-    MembershipState, PartId,
+    Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, HostPresenceState,
+    HostPresenceTable, MembershipEventKind, MembershipState, PartId,
 };
 use conduit_core::{
     ActivePlayIdentity, BootId, CapabilityId, HostId, KindId, OfferGeneration, PlacementId, Plan,
@@ -37,6 +37,10 @@ pub struct PartDetails {
     pub boot_id: Option<BootId>,
     pub offer_generation: Option<OfferGeneration>,
     pub proof_reference: Option<String>,
+    pub presence_sequence: Option<u64>,
+    pub presence_session_binding: Option<String>,
+    pub presence_observed_at_millis: Option<u64>,
+    pub presence_expires_at_millis: Option<u64>,
     pub evidence_signs: Vec<SignId>,
     pub capabilities: Vec<PartCapability>,
     pub planned_placements: Vec<PlacementId>,
@@ -91,6 +95,7 @@ pub enum PartsViewError {
     UnknownHerePart,
     InvalidPlan,
     InvalidPlay,
+    InvalidPresence,
     CapacityExceeded,
 }
 
@@ -105,8 +110,27 @@ impl PartsView {
         play: Option<&ActivePlayIdentity>,
         awake: bool,
     ) -> Result<Self, PartsViewError> {
+        Self::project_with_presence(body, membership, candidates, here, plan, play, awake, None)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn project_with_presence(
+        body: &Body,
+        membership: &BodyMembership,
+        candidates: &CandidateInventory,
+        here: &PartId,
+        plan: Option<&Plan>,
+        play: Option<&ActivePlayIdentity>,
+        awake: bool,
+        presence: Option<&HostPresenceTable>,
+    ) -> Result<Self, PartsViewError> {
         if membership.body_id != body.body_id || candidates.body_id != body.body_id {
             return Err(PartsViewError::WrongBody);
+        }
+        if let Some(presence) = presence {
+            if presence.body_id != body.body_id || presence.validate().is_err() {
+                return Err(PartsViewError::InvalidPresence);
+            }
         }
         membership
             .parts
@@ -137,20 +161,56 @@ impl PartsView {
             .iter()
             .filter(|part| part.state == MembershipState::Admitted)
         {
-            let planned_fragment = part.current.as_ref().and_then(|current| {
-                plan.and_then(|plan| {
-                    plan.fragments.iter().find(|fragment| {
-                        fragment.host_id == current.host_id
-                            && fragment.boot_id == current.boot_id
-                            && fragment.offer_generation == current.offer_generation
+            let presence_lease = presence.and_then(|presence| {
+                presence
+                    .leases
+                    .iter()
+                    .find(|lease| lease.part_id == part.part_id)
+            });
+            let available = presence_lease.map_or_else(
+                || part.current.is_some(),
+                |lease| lease.state == HostPresenceState::Available,
+            );
+            let host_id = presence_lease
+                .map(|lease| &lease.host_id)
+                .or_else(|| part.current.as_ref().map(|current| &current.host_id));
+            let boot_id = presence_lease
+                .map(|lease| &lease.boot_id)
+                .or_else(|| part.current.as_ref().map(|current| &current.boot_id));
+            let offer_generation =
+                presence_lease
+                    .map(|lease| lease.offer_generation)
+                    .or_else(|| {
+                        part.current
+                            .as_ref()
+                            .map(|current| current.offer_generation)
+                    });
+            let planned_fragment = part
+                .current
+                .as_ref()
+                .and_then(|current| {
+                    plan.and_then(|plan| {
+                        plan.fragments.iter().find(|fragment| {
+                            fragment.host_id == current.host_id
+                                && fragment.boot_id == current.boot_id
+                                && fragment.offer_generation == current.offer_generation
+                        })
                     })
                 })
-            });
+                .or_else(|| {
+                    plan.and_then(|plan| {
+                        plan.fragments.iter().find(|fragment| {
+                            host_id == Some(&fragment.host_id)
+                                && boot_id == Some(&fragment.boot_id)
+                                && offer_generation == Some(fragment.offer_generation)
+                        })
+                    })
+                });
             let in_plan = planned_fragment.is_some();
             let playing = in_plan && play.is_some();
             let state = if &part.part_id == here {
                 PartPresentationState::Here
-            } else if part.current.is_some() {
+            } else if available {
                 PartPresentationState::Attached
             } else {
                 PartPresentationState::Offline
@@ -158,43 +218,59 @@ impl PartsView {
             let label = if state == PartPresentationState::Here {
                 "This computer".into()
             } else {
-                part.current
-                    .as_ref()
-                    .map(|current| friendly_host_label(&current.host_id))
+                host_id
+                    .map(friendly_host_label)
                     .unwrap_or_else(|| "Offline Part".into())
             };
             rows.push(PartRow {
                 label,
                 state,
-                available: part.current.is_some(),
+                available,
                 in_plan,
                 playing,
                 details: PartDetails {
                     part_id: part.part_id.clone(),
-                    host_id: part.current.as_ref().map(|current| current.host_id.clone()),
-                    boot_id: part.current.as_ref().map(|current| current.boot_id.clone()),
-                    offer_generation: part
-                        .current
-                        .as_ref()
-                        .map(|current| current.offer_generation),
-                    proof_reference: part.current.as_ref().map_or_else(
-                        || admission_proof(membership, &part.part_id),
-                        |current| Some(current.proof_id.as_str().into()),
+                    host_id: host_id.cloned(),
+                    boot_id: boot_id.cloned(),
+                    offer_generation,
+                    proof_reference: presence_lease.map_or_else(
+                        || {
+                            part.current.as_ref().map_or_else(
+                                || admission_proof(membership, &part.part_id),
+                                |current| Some(current.proof_id.as_str().into()),
+                            )
+                        },
+                        |lease| Some(lease.membership_proof_id.as_str().into()),
                     ),
+                    presence_sequence: presence_lease.map(|lease| lease.sequence),
+                    presence_session_binding: presence_lease
+                        .map(|lease| lease.session_binding_id.as_str().into()),
+                    presence_observed_at_millis: presence_lease
+                        .map(|lease| lease.observed_at_millis),
+                    presence_expires_at_millis: presence_lease.map(|lease| lease.expires_at_millis),
                     evidence_signs: membership
                         .events
                         .iter()
                         .filter(|event| event.part_id == part.part_id)
                         .map(|event| event.sign_id.clone())
+                        .chain(
+                            presence
+                                .into_iter()
+                                .flat_map(|presence| {
+                                    presence
+                                        .events
+                                        .iter()
+                                        .filter(|event| event.part_id == part.part_id)
+                                })
+                                .map(|event| event.sign_id.clone()),
+                        )
                         .collect(),
-                    capabilities: part
-                        .current
-                        .as_ref()
-                        .and_then(|current| {
+                    capabilities: host_id
+                        .zip(boot_id)
+                        .and_then(|(host_id, boot_id)| {
                             candidates.candidates.iter().find(|candidate| {
-                                candidate.observation.advertisement.host_id == current.host_id
-                                    && candidate.observation.advertisement.boot_id
-                                        == current.boot_id
+                                candidate.observation.advertisement.host_id == *host_id
+                                    && candidate.observation.advertisement.boot_id == *boot_id
                             })
                         })
                         .map(|candidate| {
