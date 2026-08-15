@@ -29,7 +29,7 @@ fn fixture() -> Esp32BoardDescriptor {
         flash: Esp32FlashFacts {
             bytes: 4096,
             mode: "fixture".into(),
-            frequency_hz: 1,
+            maximum_frequency_hz: 1,
         },
         boot: Esp32BootFacts {
             image_format: "fixture".into(),
