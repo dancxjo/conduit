@@ -96,16 +96,19 @@ impl PatchbayApplication {
             .plan()
             .cloned()
             .ok_or(LifecycleActionError::Unavailable)?;
-        if let Some(browser_parts) = &mut self.browser_parts {
+        if let Some(browser_parts) = &self.browser_parts {
             browser_parts
-                .replace_webrtc_grants(&plan)
+                .preflight_webrtc_grants(&plan)
                 .map_err(LifecycleActionError::Failure)?;
         }
-        let result = self.start_planned_play();
-        if result.is_err() {
-            self.deactivate_webrtc_grants();
+        self.start_planned_play()?;
+        if let Some(browser_parts) = &mut self.browser_parts {
+            if let Err(error) = browser_parts.replace_webrtc_grants(&plan) {
+                let _ = self.control.stop();
+                return Err(LifecycleActionError::Failure(error));
+            }
         }
-        result
+        Ok(())
     }
 
     fn start_planned_play(&mut self) -> Result<(), LifecycleActionError> {

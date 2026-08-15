@@ -346,7 +346,18 @@ mod tests {
         let presence = presence(&source, &sink);
         let mut rendezvous = BrowserWebRtcRendezvous::default();
         let granted = binding(&source, &sink);
-        let hello = rendezvous.grant(&granted).unwrap();
+        let hello = rendezvous.preflight_grants([&granted]).unwrap().remove(0);
+        assert_eq!(
+            rendezvous.prepare(
+                &presence,
+                &source,
+                sink.host_id.clone(),
+                sink.boot_id.clone(),
+                signal(BrowserWebRtcDescription::Offer, hello.clone()),
+            ),
+            Err(BrowserWebRtcRendezvousRefusal::UngrantedSession)
+        );
+        assert_eq!(rendezvous.replace_grants([&granted]).unwrap()[0], hello);
         assert_eq!(
             rendezvous.grant(&granted),
             Err(BrowserWebRtcRendezvousRefusal::DuplicateGrant)

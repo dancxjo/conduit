@@ -82,6 +82,16 @@ impl BrowserPresenceCoordinator {
             .map_err(|refusal| format!("replace browser WebRTC grants: {refusal:?}"))
     }
 
+    pub(super) fn preflight_webrtc_grants(
+        &self,
+        bindings: &[conduit_wire::SessionBinding],
+    ) -> Result<(), String> {
+        self.rendezvous
+            .preflight_grants(bindings)
+            .map(|_| ())
+            .map_err(|refusal| format!("preflight browser WebRTC grants: {refusal:?}"))
+    }
+
     pub(super) fn deactivate_webrtc_grants(&mut self) {
         let _invalidated = self.rendezvous.deactivate_grants();
     }

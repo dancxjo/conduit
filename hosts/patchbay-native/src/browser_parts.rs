@@ -37,6 +37,15 @@ pub(super) struct SpawnArrival {
 }
 
 impl BrowserPartsCoordinator {
+    pub(super) fn preflight_webrtc_grants(&self, plan: &conduit_core::Plan) -> Result<(), String> {
+        let bindings = planned_webrtc_bindings(plan)?;
+        match self.presence.as_ref() {
+            Some(presence) => presence.preflight_webrtc_grants(&bindings),
+            None if bindings.is_empty() => Ok(()),
+            None => Err("planned browser WebRTC grants require browser presence".into()),
+        }
+    }
+
     pub(super) fn replace_webrtc_grants(
         &mut self,
         plan: &conduit_core::Plan,

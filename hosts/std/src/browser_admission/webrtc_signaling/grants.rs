@@ -32,6 +32,14 @@ impl BrowserWebRtcRendezvous {
         Ok(hellos)
     }
 
+    pub fn preflight_grants<'a>(
+        &self,
+        bindings: impl IntoIterator<Item = &'a SessionBinding>,
+    ) -> Result<Vec<Vec<u8>>, BrowserWebRtcRendezvousRefusal> {
+        let mut candidate = self.clone();
+        candidate.replace_grants(bindings)
+    }
+
     pub fn grant(
         &mut self,
         binding: &SessionBinding,
