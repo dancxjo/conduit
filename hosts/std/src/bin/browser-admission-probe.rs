@@ -1,12 +1,14 @@
 //! One bounded live browser admission proof server for conformance tests.
 
+#[path = "browser-admission-probe/return_admission.rs"]
+mod return_admission;
 #[path = "browser-admission-probe/return_session.rs"]
 mod return_session;
 
 use conduit_body::{
     AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyMembership,
     CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceRefusal,
-    HostPresenceTable, PartReturnProof,
+    HostPresenceTable,
 };
 use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
@@ -17,7 +19,7 @@ use conduit_std_host::websocket::{NativeWebSocketError, NativeWebSocketError::Tr
 use std::io::ErrorKind;
 use std::time::{Duration, Instant};
 
-use return_session::wait_for_return_close;
+use return_admission::accept_return;
 
 const PRESENCE_LEASE_MILLIS: u64 = 2_000;
 const PRESENCE_RENEW_AFTER_MILLIS: u64 = 500;
@@ -304,107 +306,12 @@ fn main() -> Result<(), String> {
             Err(error) => return Err(format!("receive presence renewal: {error:?}")),
         }
     }
-    let mut socket = listener
-        .accept()
-        .map_err(|error| format!("accept returning browser: {error:?}"))?;
-    let (return_credential, advertisement) = match socket
-        .receive()
-        .map_err(|error| format!("receive return advertisement: {error:?}"))?
-    {
-        BrowserAdmissionIngress::ReturnAdvertise {
-            credential: returned,
-            advertisement,
-            ..
-        } if returned == credential => (returned, advertisement),
-        BrowserAdmissionIngress::ReturnAdvertise { .. } => {
-            return Err("return used a stale membership credential".into());
-        }
-        _ => return Err("returning browser did not advertise continuity".into()),
-    };
-    let return_challenge = admission
-        .begin_return(
-            &membership,
-            &return_credential.part_id,
-            &advertisement,
-            [7; 32],
-            monotonic_millis(clock)?,
-            monotonic_millis(clock)? + 1_000,
-        )
-        .map_err(|error| format!("begin browser return: {error:?}"))?;
-    socket
-        .send(&BrowserAdmissionEgress::ReturnChallenge {
-            protocol: BROWSER_ADMISSION_PROTOCOL,
-            challenge: return_challenge,
-        })
-        .map_err(|error| format!("send return challenge: {error:?}"))?;
-    let proof = match socket
-        .receive()
-        .map_err(|error| format!("receive return proof: {error:?}"))?
-    {
-        BrowserAdmissionIngress::ReturnProof {
-            admission_id,
-            body_id,
-            part_id,
-            host_id,
-            boot_id,
-            nonce,
-            signature,
-            ..
-        } => PartReturnProof {
-            admission_id,
-            body_id,
-            part_id,
-            host_id,
-            boot_id,
-            nonce: nonce.try_into().map_err(|_| "invalid return nonce")?,
-            signature: signature
-                .try_into()
-                .map_err(|_| "invalid return signature")?,
-        },
-        _ => return Err("returning browser did not prove continuity".into()),
-    };
-    admission
-        .complete_return(
-            &mut membership,
-            &advertisement,
-            &proof,
-            monotonic_millis(clock)?,
-            SignId::from("sign/browser-admission-probe/returned"),
-        )
-        .map_err(|error| format!("complete browser return: {error:?}"))?;
-    let return_session = LinkBindingId::from("line/browser-admission-probe/session-2");
-    let return_sequence = presence.leases[0]
-        .sequence
-        .checked_add(1)
-        .ok_or("return presence sequence overflow")?;
-    presence
-        .start(
-            &membership,
-            &credential.part_id,
-            return_session.clone(),
-            return_sequence,
-            monotonic_millis(clock)?,
-            PRESENCE_LEASE_MILLIS,
-            SignId::from("sign/browser-admission-probe/return-presence"),
-        )
-        .map_err(|error| format!("start returned presence: {error:?}"))?;
-    send_presence_accepted(
-        &mut socket,
-        return_sequence,
-        presence.leases[0].expires_at_millis,
-    )?;
-    println!(
-        "returned part={} host={} boot={} sequence={return_sequence}",
-        credential.part_id.as_str(),
-        credential.host_id.as_str(),
-        credential.boot_id.as_str()
-    );
-    wait_for_return_close(
-        &mut socket,
+    accept_return(
+        &listener,
+        &mut admission,
         &mut presence,
         &mut membership,
         &credential,
-        &return_session,
         clock,
         PRESENCE_LEASE_MILLIS,
         PRESENCE_RENEW_AFTER_MILLIS,
