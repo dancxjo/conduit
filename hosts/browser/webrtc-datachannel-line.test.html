@@ -4,6 +4,7 @@
 <p id="state">idle</p>
 <script type="module">
   import { BrowserWebRtcDataChannelLine } from "/hosts/browser/webrtc-datachannel-line.mjs";
+  import { BodyWebRtcSession } from "/hosts/browser/body-webrtc-session.mjs";
   import {
     closeWebRtcSessionInput,
     finishWebRtcSession,
@@ -23,6 +24,8 @@
   let line;
   let lineArrival = Promise.resolve();
   let session;
+  let bodySession;
+  const bodySignals = [];
 
   function gathered(connection) {
     if (connection.iceGatheringState === "complete") return Promise.resolve();
@@ -120,4 +123,33 @@
   window.conduitSessionDeliver = () => deliverWebRtcSessionValue(session);
   window.conduitSessionValue = () => [...webRtcSessionValue(session)];
   window.conduitSessionNextSequence = () => webRtcSessionNextSequence(session);
+  window.conduitBodySessionCreate = async (grant) => {
+    const wasmBytes = await fetch(
+      "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+    ).then((response) => {
+      if (!response.ok) throw new Error("browser WASM artifact missing");
+      return response.arrayBuffer();
+    });
+    bodySession = await BodyWebRtcSession.create({
+      wasmBytes,
+      grant,
+      sendSignal: (signal) => bodySignals.push(signal),
+    });
+    return bodySession.state();
+  };
+  window.conduitBodySessionCreateWithThrowingSignal = async (grant) => {
+    const wasmBytes = await fetch(
+      "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+    ).then((response) => response.arrayBuffer());
+    return BodyWebRtcSession.create({
+      wasmBytes,
+      grant,
+      sendSignal: () => { throw new Error("signal relay failed"); },
+    });
+  };
+  window.conduitBodySessionSignals = () => bodySignals.splice(0);
+  window.conduitBodySessionAccept = (frame) => bodySession.acceptSignal(frame);
+  window.conduitBodySessionReady = () => bodySession.ready();
+  window.conduitBodySessionState = () => bodySession.state();
+  window.conduitBodySessionClose = () => bodySession.close();
 </script>

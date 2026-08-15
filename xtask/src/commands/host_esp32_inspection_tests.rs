@@ -1,0 +1,90 @@
+use std::path::Path;
+
+use super::host_esp32_inspection::{parse_flash_facts, parse_rom_facts, run};
+use crate::cli::GlobalOpts;
+
+const CHIP: &str = r#"
+Connected to ESP32:
+Chip type:          ESP32-D0WD-V3 (revision v3.1)
+Features:           Wi-Fi, BT, Dual Core + LP Core, 240MHz, Vref calibration in eFuse, Coding Scheme None
+Crystal frequency:  40MHz
+MAC:                24:dc:c3:9a:0a:44
+"#;
+
+const FLASH: &str = r#"
+Flash Memory Information:
+Manufacturer: 5e
+Device: 4016
+Detected flash size: 4MB
+Flash voltage set by a strapping pin: 3.3V
+"#;
+
+#[test]
+fn exact_classic_rom_and_flash_transcripts_parse() {
+    let rom = parse_rom_facts(CHIP).unwrap();
+    assert_eq!(rom.chip, "ESP32-D0WD-V3");
+    assert_eq!(rom.revision, "v3.1");
+    assert_eq!(rom.crystal_mhz, 40);
+    assert_eq!(rom.mac, "24:dc:c3:9a:0a:44");
+    let flash = parse_flash_facts(FLASH).unwrap();
+    assert_eq!(flash.manufacturer_id, "0x5e");
+    assert_eq!(flash.device_id, "0x4016");
+    assert_eq!(flash.detected_bytes, 4 * 1024 * 1024);
+    assert_eq!(flash.voltage, "3.3V");
+}
+
+#[test]
+fn malformed_or_different_hardware_refuses_before_evidence() {
+    for hostile in [
+        CHIP.replace("ESP32-D0WD-V3", "ESP32-C3"),
+        CHIP.replace("Dual Core + LP Core", "Single Core"),
+        CHIP.replace("24:dc:c3:9a:0a:44", "not-a-mac"),
+        CHIP.replace("40MHz", "unknown"),
+    ] {
+        assert!(parse_rom_facts(&hostile).is_err());
+    }
+    for hostile in [
+        FLASH.replace("4MB", "4GB"),
+        FLASH.replace("Manufacturer: 5e", "Manufacturer: nope"),
+        FLASH.replace("Device: 4016", "Device:"),
+    ] {
+        assert!(parse_flash_facts(&hostile).is_err());
+    }
+}
+
+#[test]
+fn dry_run_performs_no_device_probe_and_live_mode_refuses_absence() {
+    let missing = Path::new("/conduit-test-device-that-does-not-exist");
+    let output = Path::new("/conduit-test-output-that-must-not-exist");
+    let dry = GlobalOpts {
+        dry_run: true,
+        quiet: true,
+        json: false,
+        locked: false,
+    };
+    run(
+        missing,
+        "fixture-board",
+        "fixture-module",
+        "unmarked",
+        output,
+        &dry,
+    )
+    .unwrap();
+    assert!(!output.exists());
+
+    let live = GlobalOpts::default();
+    let error = run(
+        missing,
+        "fixture-board",
+        "fixture-module",
+        "unmarked",
+        output,
+        &live,
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(error.contains("serial path does not exist"));
+
+    assert!(run(missing, "", "fixture", "unmarked", output, &dry).is_err());
+}

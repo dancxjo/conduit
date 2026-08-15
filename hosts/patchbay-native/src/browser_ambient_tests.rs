@@ -217,7 +217,8 @@ fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
     assert_eq!(membership.parts[0].part_id, admitted.credential.part_id);
     let part_id = admitted.credential.part_id.clone();
     let mut presence =
-        super::super::browser_presence::BrowserPresenceCoordinator::new(membership.body_id.clone());
+        super::super::browser_presence::BrowserPresenceCoordinator::new(membership.body_id.clone())
+            .unwrap();
     presence
         .register(admitted.socket, admitted.credential, &mut membership)
         .unwrap();

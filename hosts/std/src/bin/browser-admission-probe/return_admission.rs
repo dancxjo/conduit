@@ -202,8 +202,8 @@ fn monotonic_millis(clock: Instant) -> Result<u64, String> {
 mod tests {
     use super::*;
     use conduit_body::{
-        AuthenticatedHostObservation, Body, BodyMembershipRevision, HostPresenceState,
-        MembershipProofId, PartId,
+        AuthenticatedHostObservation, Body, BodyMembershipRevision, HostPresenceClock,
+        HostPresenceClockScale, HostPresenceState, MembershipProofId, PartId,
     };
     use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SourceDocumentId};
 
@@ -218,7 +218,7 @@ mod tests {
         (
             AdmissionManager::new(body.body_id.clone()).expect("admission"),
             BodyMembership::new(body.body_id.clone()).expect("membership"),
-            HostPresenceTable::new(body.body_id, 2_000).expect("presence"),
+            HostPresenceTable::new(body.body_id, clock("empty"), 2_000).expect("presence"),
         )
     }
 
@@ -269,7 +269,8 @@ mod tests {
                 SignId::from("sign/atomic-current/attached"),
             )
             .expect("attach");
-        let mut presence = HostPresenceTable::new(body_id.clone(), 2_000).expect("presence");
+        let mut presence =
+            HostPresenceTable::new(body_id.clone(), clock("current"), 2_000).expect("presence");
         presence
             .start(
                 &membership,
@@ -296,6 +297,16 @@ mod tests {
             presence,
             credential,
         )
+    }
+
+    fn clock(label: &str) -> HostPresenceClock {
+        HostPresenceClock::new(
+            format!("clock/return-admission/{label}"),
+            HostPresenceClockScale::Milliseconds,
+            1,
+            0,
+        )
+        .unwrap()
     }
 
     fn assert_failed_transaction_is_unchanged(

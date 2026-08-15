@@ -9,6 +9,11 @@ use crate::cli::GlobalOpts;
 
 #[path = "host_capstone.rs"]
 mod host_capstone;
+#[path = "host_esp32_inspection.rs"]
+mod host_esp32_inspection;
+#[cfg(test)]
+#[path = "host_esp32_inspection_tests.rs"]
+mod host_esp32_inspection_tests;
 #[path = "host_target.rs"]
 mod host_target;
 
@@ -45,6 +50,23 @@ enum HostCommand {
         source_identity: String,
         #[arg(long, default_value = "rustc:workspace")]
         toolchain_identity: String,
+    },
+    /// Inspect one attached ESP32 without writing its flash.
+    InspectEsp32 {
+        /// Stable serial device path, preferably beneath /dev/serial/by-id.
+        #[arg(long)]
+        port: PathBuf,
+        /// Literal text observed on the development-board PCB.
+        #[arg(long)]
+        board_marking: String,
+        /// Literal text observed on the module's RF shield.
+        #[arg(long)]
+        module_marking: String,
+        /// Literal board revision, or `unmarked` when inspection finds none.
+        #[arg(long)]
+        board_revision: String,
+        #[arg(long, default_value = "target/esp32-inspection/inspection.json")]
+        output: PathBuf,
     },
 }
 
@@ -112,6 +134,20 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             source_identity,
             toolchain_identity,
         } => host_capstone::run(&output, &source_identity, &toolchain_identity, opts),
+        HostCommand::InspectEsp32 {
+            port,
+            board_marking,
+            module_marking,
+            board_revision,
+            output,
+        } => host_esp32_inspection::run(
+            &port,
+            &board_marking,
+            &module_marking,
+            &board_revision,
+            &output,
+            opts,
+        ),
         HostCommand::Verify { output, boot } => {
             let manifest = host_target::verify_target(&output)?;
             if boot {

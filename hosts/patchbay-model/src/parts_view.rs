@@ -1,8 +1,8 @@
 //! Human-first projection of canonical Body membership and admission candidates.
 
 use conduit_body::{
-    Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, HostPresenceState,
-    HostPresenceTable, MembershipEventKind, MembershipState, PartId,
+    Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, HostPresenceClock,
+    HostPresenceState, HostPresenceTable, MembershipEventKind, MembershipState, PartId,
 };
 use conduit_core::{
     ActivePlayIdentity, BootId, CapabilityId, HostId, KindId, OfferGeneration, PlacementId, Plan,
@@ -39,6 +39,8 @@ pub struct PartDetails {
     pub proof_reference: Option<String>,
     pub presence_sequence: Option<u64>,
     pub presence_session_binding: Option<String>,
+    pub presence_sign_id: Option<SignId>,
+    pub presence_clock: Option<HostPresenceClock>,
     pub presence_observed_at_millis: Option<u64>,
     pub presence_expires_at_millis: Option<u64>,
     pub evidence_signs: Vec<SignId>,
@@ -167,6 +169,13 @@ impl PartsView {
                     .iter()
                     .find(|lease| lease.part_id == part.part_id)
             });
+            let presence_event = presence.and_then(|presence| {
+                presence
+                    .events
+                    .iter()
+                    .rev()
+                    .find(|event| event.part_id == part.part_id)
+            });
             let available = presence_lease.map_or_else(
                 || part.current.is_some(),
                 |lease| lease.state == HostPresenceState::Available,
@@ -245,8 +254,11 @@ impl PartsView {
                     presence_sequence: presence_lease.map(|lease| lease.sequence),
                     presence_session_binding: presence_lease
                         .map(|lease| lease.session_binding_id.as_str().into()),
-                    presence_observed_at_millis: presence_lease
-                        .map(|lease| lease.observed_at_millis),
+                    presence_sign_id: presence_event.map(|event| event.sign_id.clone()),
+                    presence_clock: presence_lease
+                        .and_then(|_| presence.map(|presence| presence.clock.clone())),
+                    presence_observed_at_millis: presence_event
+                        .map(|event| event.observed_at_millis),
                     presence_expires_at_millis: presence_lease.map(|lease| lease.expires_at_millis),
                     evidence_signs: membership
                         .events
@@ -264,7 +276,12 @@ impl PartsView {
                                 })
                                 .map(|event| event.sign_id.clone()),
                         )
-                        .collect(),
+                        .fold(Vec::new(), |mut signs, sign| {
+                            if !signs.contains(&sign) {
+                                signs.push(sign);
+                            }
+                            signs
+                        }),
                     capabilities: host_id
                         .zip(boot_id)
                         .and_then(|(host_id, boot_id)| {

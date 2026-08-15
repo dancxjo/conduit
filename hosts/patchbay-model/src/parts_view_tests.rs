@@ -1,7 +1,8 @@
 use crate::{PartPresentationState, PartsAction, PartsView};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory, CandidateObservation,
-    DiscoveryProofId, HostPresenceState, HostPresenceTable, MembershipProofId, PartId,
+    DiscoveryProofId, HostPresenceClock, HostPresenceClockScale, HostPresenceState,
+    HostPresenceTable, MembershipProofId, PartId,
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use conduit_std_host::{StdHost, StdHostConfig};
@@ -250,7 +251,14 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     );
     let candidates = CandidateInventory::new(body.body_id.clone()).unwrap();
     let session = LinkBindingId::from("binding/browser/tab-2");
-    let mut presence = HostPresenceTable::new(body.body_id.clone(), 30_000).unwrap();
+    let clock = HostPresenceClock::new(
+        "clock/process-restart/parts-view-conformance".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        2,
+    )
+    .unwrap();
+    let mut presence = HostPresenceTable::new(body.body_id.clone(), clock, 30_000).unwrap();
     presence
         .start(
             &membership,
@@ -293,12 +301,89 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     assert_eq!(browser_row.state, PartPresentationState::Attached);
     assert_eq!(browser_row.details.presence_sequence, Some(2));
     assert_eq!(
+        browser_row.details.presence_sign_id,
+        Some(SignId::from("sign/presence-projection/renewed"))
+    );
+    assert_eq!(
         browser_row.details.offer_generation,
         Some(OfferGeneration(7))
     );
     assert_eq!(
         browser_row.details.presence_session_binding.as_deref(),
         Some(session.as_str())
+    );
+    assert_eq!(
+        browser_row
+            .details
+            .presence_clock
+            .as_ref()
+            .map(|clock| clock.basis_id.as_str()),
+        Some("clock/process-restart/parts-view-conformance")
+    );
+    assert_eq!(
+        browser_row
+            .details
+            .presence_clock
+            .as_ref()
+            .map(|clock| clock.uncertainty_ticks),
+        Some(2)
+    );
+
+    let epoch_clock = HostPresenceClock::new(
+        "clock/unix-epoch/parts-view-conformance".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        5,
+    )
+    .unwrap();
+    let mut epoch_presence =
+        HostPresenceTable::new(body.body_id.clone(), epoch_clock, 30_000).unwrap();
+    let epoch_session = LinkBindingId::from("binding/browser/tab-2-epoch-vector");
+    epoch_presence
+        .start(
+            &membership,
+            &browser,
+            epoch_session.clone(),
+            1,
+            1_000,
+            10_000,
+            SignId::from("sign/presence-projection/epoch-started"),
+        )
+        .unwrap();
+    epoch_presence
+        .renew(
+            &membership,
+            &browser,
+            &epoch_session,
+            2,
+            2_000,
+            10_000,
+            SignId::from("sign/presence-projection/epoch-renewed"),
+        )
+        .unwrap();
+    let epoch_projection = PartsView::project_with_presence(
+        &body,
+        &membership,
+        &candidates,
+        &here,
+        Some(&plan),
+        None,
+        true,
+        Some(&epoch_presence),
+    )
+    .unwrap();
+    let epoch_browser_row = epoch_projection
+        .parts
+        .iter()
+        .find(|row| row.details.part_id == browser)
+        .unwrap();
+    assert_eq!(
+        browser_row.details.presence_observed_at_millis,
+        epoch_browser_row.details.presence_observed_at_millis
+    );
+    assert_ne!(
+        browser_row.details.presence_clock,
+        epoch_browser_row.details.presence_clock
     );
 
     presence
@@ -337,6 +422,14 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
         Some(BootId::from("browser-boot/tab-2"))
     );
     assert_eq!(browser_row.details.presence_sequence, Some(2));
+    assert_eq!(
+        browser_row.details.presence_sign_id,
+        Some(SignId::from("sign/presence-projection/expired"))
+    );
+    assert_eq!(
+        browser_row.details.presence_observed_at_millis,
+        Some(12_000)
+    );
     assert_eq!(plan, retained_plan);
     let shared_projection = serde_json::to_value(&offline).unwrap();
     let shared_browser_row = shared_projection["parts"]
@@ -350,5 +443,13 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     assert_eq!(
         shared_browser_row["details"]["presence_session_binding"],
         session.as_str()
+    );
+    assert_eq!(
+        shared_browser_row["details"]["presence_clock"]["basis_id"],
+        "clock/process-restart/parts-view-conformance"
+    );
+    assert_eq!(
+        shared_browser_row["details"]["presence_clock"]["scale"],
+        "Milliseconds"
     );
 }

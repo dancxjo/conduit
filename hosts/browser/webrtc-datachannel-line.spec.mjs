@@ -262,6 +262,112 @@ test("Body-granted canonical Hello initializes the exact browser session", async
   )).rejects.toThrow("invalid Body grant");
 });
 
+test("Body grants compose one real peer with the exact shared session", async ({ context }) => {
+  const left = await context.newPage();
+  const right = await context.newPage();
+  await Promise.all([
+    left.goto("/hosts/browser/webrtc-datachannel-line.test.html"),
+    right.goto("/hosts/browser/webrtc-datachannel-line.test.html"),
+  ]);
+  await left.evaluate(() => window.conduitSessionStart(0));
+  const hello = await left.evaluate(() => window.conduitSessionOutput());
+  const negotiationId = "browser-webrtc/binding/1";
+  await expect(right.evaluate(() => window.conduitBodySessionCreate({
+    negotiation_id: "browser-webrtc/binding/1",
+    role: "sink",
+    peer_host_id: "browser-webrtc/source",
+    peer_boot_id: "browser-webrtc/source-boot/1",
+    session_hello: [],
+  }))).rejects.toThrow("invalid session Hello");
+  await right.evaluate(({ negotiationId, hello }) => window.conduitBodySessionCreate({
+    negotiation_id: negotiationId,
+    role: "sink",
+    peer_host_id: "browser-webrtc/source",
+    peer_boot_id: "browser-webrtc/source-boot/1",
+    session_hello: hello,
+  }), { negotiationId, hello });
+  await expect(right.evaluate(({ negotiationId, hello }) => (
+    window.conduitBodySessionCreateWithThrowingSignal({
+      negotiation_id: negotiationId,
+      role: "source",
+      peer_host_id: "browser-webrtc/sink",
+      peer_boot_id: "browser-webrtc/sink-boot/1",
+      session_hello: hello,
+    })
+  ), { negotiationId, hello })).rejects.toThrow("signal relay failed");
+  await left.evaluate(({ negotiationId, hello }) => window.conduitBodySessionCreate({
+    negotiation_id: negotiationId,
+    role: "source",
+    peer_host_id: "browser-webrtc/sink",
+    peer_boot_id: "browser-webrtc/sink-boot/1",
+    session_hello: hello,
+  }), { negotiationId, hello });
+
+  const [offer] = await left.evaluate(() => window.conduitBodySessionSignals());
+  expect(offer.signal).toMatchObject({ negotiation_id: negotiationId, description: "offer" });
+  await expect(right.evaluate(
+    (signal) => window.conduitBodySessionAccept({
+      source_host_id: "browser-webrtc/source",
+      source_boot_id: "browser-webrtc/source-boot/1",
+      signal: { ...signal.signal, sdp: "x".repeat(4097) },
+    }),
+    offer,
+  )).rejects.toThrow("invalid remote SDP");
+  await expect(right.evaluate(
+    (signal) => window.conduitBodySessionAccept({
+      source_host_id: "browser-webrtc/wrong-source",
+      source_boot_id: "browser-webrtc/source-boot/1",
+      signal: signal.signal,
+    }),
+    offer,
+  )).rejects.toThrow("signal identity refused");
+  await right.evaluate(
+    (signal) => window.conduitBodySessionAccept({
+      source_host_id: "browser-webrtc/source",
+      source_boot_id: "browser-webrtc/source-boot/1",
+      signal: signal.signal,
+    }),
+    offer,
+  );
+  const [answer] = await right.evaluate(() => window.conduitBodySessionSignals());
+  expect(answer.signal).toMatchObject({ negotiation_id: negotiationId, description: "answer" });
+  await left.evaluate(
+    (signal) => window.conduitBodySessionAccept({
+      source_host_id: "browser-webrtc/sink",
+      source_boot_id: "browser-webrtc/sink-boot/1",
+      signal: signal.signal,
+    }),
+    answer,
+  );
+  const [leftReady, rightReady] = await Promise.all([
+    left.evaluate(() => window.conduitBodySessionReady()),
+    right.evaluate(() => window.conduitBodySessionReady()),
+  ]);
+  expect(leftReady).toMatchObject({
+    negotiationId,
+    role: "source",
+    peerHostId: "browser-webrtc/sink",
+    peerBootId: "browser-webrtc/sink-boot/1",
+    sessionReady: true,
+    terminalReason: null,
+  });
+  expect(rightReady).toMatchObject({
+    negotiationId,
+    role: "sink",
+    peerHostId: "browser-webrtc/source",
+    peerBootId: "browser-webrtc/source-boot/1",
+    sessionReady: true,
+    terminalReason: null,
+  });
+  await left.evaluate(() => window.conduitBodySessionClose());
+  await expect.poll(() => right.evaluate(() => window.conduitBodySessionState()))
+    .toMatchObject({
+      peerState: "closed",
+      sessionReady: false,
+      terminalReason: "line-closed",
+    });
+});
+
 test("shared session machine refuses mismatched planned and finite wire facts", async ({
   context,
 }) => {
