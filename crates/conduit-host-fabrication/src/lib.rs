@@ -6,6 +6,7 @@
 mod build;
 mod canonical;
 mod catalog;
+mod esp32;
 mod model;
 mod runtime;
 mod validation;
@@ -13,10 +14,13 @@ mod validation;
 pub use build::*;
 pub use canonical::{canonical_profile_json, ProfileId};
 pub use catalog::{FabricationCatalog, PrerequisiteNode};
+pub use esp32::*;
 pub use model::*;
 pub use runtime::*;
 pub use validation::{validate_profile, ProfileDiagnostic, ValidatedHostProfile};
 
+#[cfg(test)]
+mod esp32_tests;
 #[cfg(test)]
 mod native_presenter_tests;
 #[cfg(test)]

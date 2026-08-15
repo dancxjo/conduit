@@ -69,6 +69,8 @@ pub struct BuildManifest {
     pub source_identity: String,
     pub toolchain_identity: String,
     pub target: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fabrication_descriptor: Option<String>,
     pub profile_fragments: Vec<String>,
     pub image_use: ImageUse,
     pub reproducibility: Reproducibility,
@@ -93,6 +95,8 @@ pub struct ImagePayload {
     pub build_id: String,
     pub profile_id: String,
     pub target: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fabrication_descriptor: Option<String>,
     pub profile_fragments: Vec<String>,
     pub implementations: Vec<String>,
     pub host_operations: Vec<String>,
@@ -162,6 +166,7 @@ pub fn build_host_image(
     let image_use = match profile.target.family.as_str() {
         "std" => ImageUse::Launch,
         "browser" => ImageUse::Load,
+        "esp32" => ImageUse::Flash,
         "conduitos" if profile.target.machine == "pico-w" => ImageUse::Flash,
         "conduitos" => ImageUse::Boot,
         _ => ImageUse::Load,
@@ -205,6 +210,7 @@ pub fn build_host_image(
         build_id: build_id.clone(),
         profile_id: validated.profile_id().as_str().into(),
         target: target.clone(),
+        fabrication_descriptor: profile.target.fabrication_descriptor.clone(),
         profile_fragments: sorted(profile.fragments.clone()),
         implementations: implementations.clone(),
         host_operations: sorted(profile.host_operations.clone()),
@@ -239,6 +245,7 @@ pub fn build_host_image(
         source_identity: inputs.source_identity.clone(),
         toolchain_identity: inputs.toolchain_identity.clone(),
         target,
+        fabrication_descriptor: payload.fabrication_descriptor.clone(),
         profile_fragments: payload.profile_fragments.clone(),
         image_use,
         reproducibility,
