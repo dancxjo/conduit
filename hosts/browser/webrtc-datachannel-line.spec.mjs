@@ -295,6 +295,12 @@ test("ordinary bounded Cord value crosses canonical pressure and delivery states
   )).toBe(-215);
 
   const accepted = await right.evaluate(() => window.conduitSessionOutput());
+  expect(await right.evaluate(
+    (bytes) => window.conduitSessionIngest(bytes),
+    offered,
+  )).toBe(-218);
+  expect(await right.evaluate(() => window.conduitSessionValue())).toEqual(value);
+  expect(await right.evaluate(() => window.conduitSessionNextSequence())).toBe(0);
   expect(await transfer(right, left, accepted)).toBe(1);
   expect(await left.evaluate(() => window.conduitSessionNextSequence())).toBe(0);
   expect(await right.evaluate(() => window.conduitSessionDeliver())).toBe(1);

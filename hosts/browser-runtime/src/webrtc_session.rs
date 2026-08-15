@@ -107,9 +107,7 @@ impl BrowserWebRtcSession {
         if !supported {
             return Ok(ERROR_STAGE);
         }
-        if matches!(message, SessionMessage::Offered { .. })
-            && (self.role != SessionRole::Sink || self.received_sequence.is_some())
-        {
+        if matches!(message, SessionMessage::Offered { .. }) && self.role != SessionRole::Sink {
             return Ok(ERROR_STAGE);
         }
         self.machine.admit_inbound(frame)?;
@@ -493,6 +491,15 @@ mod tests {
         )
         .unwrap();
         assert_eq!(endpoint.ingest(&bytes[..expected_len]), Ok(STATUS_ACTIVE));
+        assert_eq!(endpoint.received_sequence, Some(0));
+        assert_eq!(&endpoint.received[..endpoint.received_len], &[7]);
+
+        endpoint.output_len = 0;
+        assert_eq!(
+            endpoint.ingest(&bytes[..expected_len]),
+            Err(WireError::ReorderedFrame)
+        );
+        assert_eq!(endpoint.machine.next_sequence(), 0);
         assert_eq!(endpoint.received_sequence, Some(0));
         assert_eq!(&endpoint.received[..endpoint.received_len], &[7]);
     }
