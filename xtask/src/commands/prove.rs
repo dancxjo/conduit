@@ -17,6 +17,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
 
     match args.proof {
         ProveTarget::BluetoothLine => crate::commands::bluetooth::run(&args, &root, opts),
+        ProveTarget::BluetoothPico => crate::commands::bluetooth::run_pico(&args, &root, opts),
         ProveTarget::BodyMembership => run_suite(PROVE_BODY_MEMBERSHIP_STEPS, &root, opts),
         ProveTarget::BodyMembershipHil => run_body_membership_hil(&args, &root, opts),
         ProveTarget::StdBrowserS4 => run_suite(PROVE_STD_BROWSER_S4_STEPS, &root, opts),

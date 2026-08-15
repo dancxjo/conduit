@@ -35,6 +35,49 @@ bind_interrupts!(struct RadioIrqs {
 
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
 
+#[cfg(feature = "bluetooth-line")]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the Pico W Bluetooth boundary names each fixed peripheral and firmware asset"
+)]
+pub async fn init_cyw43_bluetooth(
+    spawner: &Spawner,
+    pio0: Peri<'static, PIO0>,
+    dma_ch0: Peri<'static, DMA_CH0>,
+    pin23: Peri<'static, PIN_23>,
+    pin24: Peri<'static, PIN_24>,
+    pin25: Peri<'static, PIN_25>,
+    pin29: Peri<'static, PIN_29>,
+    fw: &'static aligned::Aligned<aligned::A4, [u8]>,
+    btfw: &'static aligned::Aligned<aligned::A4, [u8]>,
+    nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
+    clm: &'static [u8],
+) -> (cyw43::bluetooth::BtDriver<'static>, Control<'static>) {
+    let pwr = Output::new(pin23, Level::Low);
+    let cs = Output::new(pin25, Level::High);
+    let mut pio = Pio::new(pio0, RadioIrqs);
+    let dma = dma::Channel::new(dma_ch0, RadioIrqs);
+    let spi = PioSpi::new(
+        &mut pio.common,
+        pio.sm0,
+        DEFAULT_CLOCK_DIVIDER,
+        pio.irq0,
+        cs,
+        pin24,
+        pin29,
+        dma,
+    );
+    let state = STATE.init(cyw43::State::new());
+    let (_net_device, bt_driver, mut control, runner) =
+        cyw43::new_with_bluetooth(state, pwr, spi, fw, btfw, nvram).await;
+    spawner.spawn(cyw43_task(runner).unwrap());
+    control.init(clm).await;
+    control
+        .set_power_management(cyw43::PowerManagementMode::None)
+        .await;
+    (bt_driver, control)
+}
+
 #[cfg(any(
     feature = "wifi-bootstrap",
     feature = "appliance-hello",
@@ -82,6 +125,7 @@ async fn cyw43_task(
     feature = "appliance-hello",
     feature = "appliance-hil-client"
 )))]
+#[cfg(not(feature = "bluetooth-line"))]
 pub async fn init_cyw43(
     spawner: &Spawner,
     pio0: Peri<'static, PIO0>,

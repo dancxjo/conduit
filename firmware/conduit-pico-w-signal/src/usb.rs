@@ -101,8 +101,13 @@ pub fn init_sign_usb(
 
     let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
     config.manufacturer = Some("Conduit");
-    config.product = Some("Pico W Signal Minimal");
-    config.serial_number = Some("conduit-pico-w-signal-minimal");
+    if cfg!(feature = "bluetooth-line") {
+        config.product = Some("Pico W Bluetooth Line");
+        config.serial_number = Some("conduit-pico-w-bluetooth-line");
+    } else {
+        config.product = Some("Pico W Signal Minimal");
+        config.serial_number = Some("conduit-pico-w-signal-minimal");
+    }
     config.max_power = 100;
     config.max_packet_size_0 = MAX_PACKET_SIZE;
 

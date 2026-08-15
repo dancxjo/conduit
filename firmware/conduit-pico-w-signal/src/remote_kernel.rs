@@ -20,7 +20,7 @@ use crate::signal_image::{
     remote_signal_layout, CORDS, HOST_BINDING_SLOTS, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS,
     ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES, RUNTIME_SIGN_EVENTS,
 };
-use crate::usb_link::{UsbLinkError, UsbLinkResult};
+use crate::remote_error::{RemoteError as UsbLinkError, RemoteResult as UsbLinkResult};
 
 type SinkScheduler = FixedScheduler<
     OperationDriver<ShowOperation, PORTS>,
@@ -251,6 +251,7 @@ impl RemoteSignalKernel {
         Ok(())
     }
 
+    #[cfg(not(feature = "bluetooth-line"))]
     pub fn cancel(&mut self) -> UsbLinkResult<()> {
         self.scheduler.cancel().map_err(UsbLinkError::Kernel)
     }

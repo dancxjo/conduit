@@ -3,6 +3,8 @@
 pub(super) fn firmware_mode() -> &'static str {
     if std::env::var_os("CARGO_FEATURE_APPLIANCE_HELLO").is_some() {
         "appliance-hello"
+    } else if std::env::var_os("CARGO_FEATURE_BLUETOOTH_LINE").is_some() {
+        "bluetooth-line"
     } else if std::env::var_os("CARGO_FEATURE_APPLIANCE_HIL_CLIENT").is_some() {
         "appliance-hil-client"
     } else if std::env::var_os("CARGO_FEATURE_R1_CONTROL").is_some() {

@@ -7,6 +7,144 @@ pub struct RuntimeTranscriptIdentity {
     pub active_play_id: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct BluetoothTranscriptSummary {
+    pub runtime_boot_id: String,
+    pub runtime_active_play_id: String,
+    pub paired_marker_seen: bool,
+}
+
+pub fn verify_bluetooth_transcript(
+    lines: &[String],
+    identity: &FirmwareIdentity,
+) -> PicoResult<BluetoothTranscriptSummary> {
+    if identity.firmware_mode != "bluetooth-line" {
+        return Err(format!(
+            "Bluetooth transcript requires a bluetooth-line image, found {}",
+            identity.firmware_mode
+        )
+        .into());
+    }
+    let mut boot = None;
+    let mut receipts = 0_usize;
+    let mut terminal_seen = false;
+    let mut controller_seen = false;
+    let mut connected_seen = false;
+    let mut complete_seen = false;
+    let mut paired_marker_seen = false;
+    for line in lines {
+        match line.as_str() {
+            "CONDUIT_BLE_CONTROLLER_READY" => controller_seen = true,
+            "CONDUIT_BLE_LINE_CONNECTED" => connected_seen = true,
+            "CONDUIT_BLE_PEER_PAIRED" => paired_marker_seen = true,
+            "CONDUIT_BLE_LINE_COMPLETE" => complete_seen = true,
+            "CONDUIT_BLE_LINE_LOST" => {
+                return Err("Pico reported BLE Line loss during successful proof".into())
+            }
+            _ if line.contains("\"schema\":\"conduit-pico-w-signal/boot@1\"") => {
+                if boot.is_some() {
+                    return Err("duplicate Bluetooth runtime boot receipt".into());
+                }
+                boot = Some(verify_boot(line, identity)?);
+            }
+            _ if line.contains("\"schema\":\"conduit-pico-w-signal/receipt@1\"") => {
+                verify_receipt(
+                    line,
+                    receipts,
+                    conduit_signal::signal_level_for_sequence(receipts as u64, true),
+                    identity,
+                    boot.as_ref()
+                        .ok_or("Bluetooth receipt arrived before boot")?,
+                )?;
+                receipts += 1;
+            }
+            _ if line.contains("\"schema\":\"conduit-pico-w-signal/terminal@1\"") => {
+                verify_terminal(
+                    line,
+                    identity,
+                    boot.as_ref()
+                        .ok_or("Bluetooth terminal arrived before boot")?,
+                )?;
+                terminal_seen = true;
+            }
+            _ => {}
+        }
+    }
+    let expected_receipts = identity.generated_image.presentation_ids.len();
+    if !controller_seen
+        || !connected_seen
+        || receipts != expected_receipts
+        || !terminal_seen
+        || !complete_seen
+    {
+        return Err(format!(
+            "incomplete Bluetooth transcript: controller={controller_seen}, connected={connected_seen}, receipts={receipts}/{expected_receipts}, terminal={terminal_seen}, complete={complete_seen}"
+        )
+        .into());
+    }
+    let runtime = boot.ok_or("Bluetooth transcript has no runtime boot receipt")?;
+    Ok(BluetoothTranscriptSummary {
+        runtime_boot_id: runtime.boot_id,
+        runtime_active_play_id: runtime.active_play_id,
+        paired_marker_seen,
+    })
+}
+
+pub fn verify_bluetooth_loss_transcript(
+    lines: &[String],
+    identity: &FirmwareIdentity,
+) -> PicoResult<BluetoothTranscriptSummary> {
+    if identity.firmware_mode != "bluetooth-line" {
+        return Err(format!(
+            "Bluetooth loss transcript requires a bluetooth-line image, found {}",
+            identity.firmware_mode
+        )
+        .into());
+    }
+    let mut boot = None;
+    let mut controller_seen = false;
+    let mut connected_seen = false;
+    let mut loss_seen = false;
+    let mut paired_marker_seen = false;
+    for line in lines {
+        match line.as_str() {
+            "CONDUIT_BLE_CONTROLLER_READY" => controller_seen = true,
+            "CONDUIT_BLE_LINE_CONNECTED" => connected_seen = true,
+            "CONDUIT_BLE_PEER_PAIRED" => paired_marker_seen = true,
+            "CONDUIT_BLE_LINE_LOST" => loss_seen = true,
+            "CONDUIT_BLE_LINE_COMPLETE" => {
+                return Err(
+                    "Pico reported successful completion during transport-loss proof".into(),
+                )
+            }
+            _ if line.contains("\"schema\":\"conduit-pico-w-signal/boot@1\"") => {
+                if boot.is_some() {
+                    return Err("duplicate Bluetooth runtime boot receipt".into());
+                }
+                boot = Some(verify_boot(line, identity)?);
+            }
+            _ if line.contains("\"schema\":\"conduit-pico-w-signal/receipt@1\"")
+                || line.contains("\"schema\":\"conduit-pico-w-signal/terminal@1\"") =>
+            {
+                return Err("Bluetooth loss proof observed success receipt state".into())
+            }
+            _ => {}
+        }
+    }
+    if !controller_seen || !connected_seen || !loss_seen {
+        return Err(format!(
+            "incomplete Bluetooth loss transcript: controller={controller_seen}, connected={connected_seen}, loss={loss_seen}"
+        )
+        .into());
+    }
+    let runtime = boot.ok_or("Bluetooth loss transcript has no runtime boot receipt")?;
+    Ok(BluetoothTranscriptSummary {
+        runtime_boot_id: runtime.boot_id,
+        runtime_active_play_id: runtime.active_play_id,
+        paired_marker_seen,
+    })
+}
+
 pub fn verify_boot(
     line: &str,
     identity: &FirmwareIdentity,

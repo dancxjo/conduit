@@ -1,6 +1,6 @@
 //! Plan-specific identity carried through the shared Signal kernel shape.
 
-use crate::receipts::{PresentationReceiptIdentity, TerminalIdentity};
+use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentity};
 
 #[derive(Clone, Copy)]
 pub struct SignalExecutionIdentity {
@@ -33,6 +33,20 @@ impl SignalExecutionIdentity {
             terminal_sign_id: crate::signal_image::TERMINAL_SIGN_ID,
             presentation_ids: crate::signal_image::presentation_ids(),
             presentation_sign_ids: crate::signal_image::presentation_sign_ids(),
+        }
+    }
+
+    pub fn boot(self) -> BootIdentity {
+        BootIdentity {
+            firmware_build_id: self.firmware_build_id,
+            source_document_id: self.source_document_id,
+            checked_form_id: self.checked_form_id,
+            expanded_form_id: self.expanded_form_id,
+            plan_id: self.plan_id,
+            fragment_id: self.fragment_id,
+            host_id: self.host_id,
+            boot_id: self.boot_id,
+            boot_sign_id: crate::signal_image::BOOT_SIGN_ID,
         }
     }
 

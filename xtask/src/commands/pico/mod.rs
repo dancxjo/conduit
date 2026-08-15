@@ -35,6 +35,7 @@ pub type PicoResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 pub use bootsel::run_bootsel;
 pub use doctor::run_doctor;
+pub use firmware::read_identity_manifest;
 pub use firmware::run_build;
 pub use flash::run_flash;
 pub use prove_appliance::run_prove_pico_appliance;
@@ -43,6 +44,7 @@ pub use prove_usb::run_prove_std_pico_usb;
 pub use prove_wifi::run_prove_pico_wifi_bootstrap;
 pub use prove_wifi::WifiProofMode;
 pub use serial::run_verify;
+pub use transcript::{verify_bluetooth_loss_transcript, verify_bluetooth_transcript};
 
 /// Arguments shared across all Pico subcommands and the top-level `pico-local` alias.
 #[derive(Args, Clone, Debug, Default)]
@@ -98,6 +100,10 @@ pub struct PicoArgs {
     #[arg(long, global = true)]
     pub appliance_hil_client: bool,
 
+    /// Build or flash the finite Pico W BLE GATT Line image.
+    #[arg(long, global = true)]
+    pub bluetooth_line: bool,
+
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long, global = true)]
     pub refresh_radio_assets: bool,
@@ -141,6 +147,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         + usize::from(args.r1_control)
         + usize::from(args.appliance_hello)
         + usize::from(args.appliance_hil_client)
+        + usize::from(args.bluetooth_line)
         > 1
     {
         return Err("select only one remote Pico firmware mode".into());
@@ -167,6 +174,7 @@ pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
         || args.wifi_bootstrap
         || args.r1_control
         || args.appliance_hello
+        || args.bluetooth_line
     {
         return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
     }

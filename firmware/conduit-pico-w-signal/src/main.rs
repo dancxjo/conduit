@@ -21,18 +21,25 @@
     all(feature = "wifi-bootstrap", feature = "pico-local"),
     all(feature = "wifi-bootstrap", feature = "pico-local-minimal"),
     all(feature = "wifi-bootstrap", feature = "usb-remote"),
-    all(feature = "wifi-bootstrap", feature = "triple-remote")
-    ,all(feature = "appliance-hello", feature = "pico-local")
-    ,all(feature = "appliance-hello", feature = "pico-local-minimal")
-    ,all(feature = "appliance-hello", feature = "usb-remote")
-    ,all(feature = "appliance-hello", feature = "triple-remote")
-    ,all(feature = "appliance-hello", feature = "wifi-bootstrap")
-    ,all(feature = "appliance-hil-client", feature = "pico-local")
-    ,all(feature = "appliance-hil-client", feature = "pico-local-minimal")
-    ,all(feature = "appliance-hil-client", feature = "usb-remote")
-    ,all(feature = "appliance-hil-client", feature = "triple-remote")
-    ,all(feature = "appliance-hil-client", feature = "wifi-bootstrap")
-    ,all(feature = "appliance-hil-client", feature = "appliance-hello")
+    all(feature = "wifi-bootstrap", feature = "triple-remote"),
+    all(feature = "appliance-hello", feature = "pico-local"),
+    all(feature = "appliance-hello", feature = "pico-local-minimal"),
+    all(feature = "appliance-hello", feature = "usb-remote"),
+    all(feature = "appliance-hello", feature = "triple-remote"),
+    all(feature = "appliance-hello", feature = "wifi-bootstrap"),
+    all(feature = "appliance-hil-client", feature = "pico-local"),
+    all(feature = "appliance-hil-client", feature = "pico-local-minimal"),
+    all(feature = "appliance-hil-client", feature = "usb-remote"),
+    all(feature = "appliance-hil-client", feature = "triple-remote"),
+    all(feature = "appliance-hil-client", feature = "wifi-bootstrap"),
+    all(feature = "appliance-hil-client", feature = "appliance-hello"),
+    all(feature = "bluetooth-line", feature = "pico-local"),
+    all(feature = "bluetooth-line", feature = "pico-local-minimal"),
+    all(feature = "bluetooth-line", feature = "usb-remote"),
+    all(feature = "bluetooth-line", feature = "triple-remote"),
+    all(feature = "bluetooth-line", feature = "wifi-bootstrap"),
+    all(feature = "bluetooth-line", feature = "appliance-hello"),
+    all(feature = "bluetooth-line", feature = "appliance-hil-client")
 ))]
 compile_error!("select exactly one Pico firmware mode");
 #[cfg(not(any(
@@ -42,11 +49,16 @@ compile_error!("select exactly one Pico firmware mode");
     feature = "triple-remote",
     feature = "wifi-bootstrap",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "bluetooth-line"
 )))]
 compile_error!("select exactly one Pico firmware mode");
 
-#[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client")))]
+#[cfg(not(any(
+    feature = "appliance-hello",
+    feature = "appliance-hil-client",
+    feature = "bluetooth-line"
+)))]
 mod kernel;
 #[cfg(any(feature = "pico-local", feature = "wifi-bootstrap"))]
 mod body_admission;
@@ -54,6 +66,8 @@ mod body_admission;
 mod appliance;
 #[cfg(feature = "appliance-hil-client")]
 mod appliance_hil_client;
+#[cfg(feature = "bluetooth-line")]
+mod bluetooth_line;
 #[cfg(feature = "session-control")]
 mod bootsel;
 #[cfg(feature = "wifi-bootstrap")]
@@ -68,13 +82,30 @@ mod websocket_signal;
 mod websocket_transport;
 mod radio;
 mod receipts;
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
+mod remote_error;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod remote_signal;
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
 mod remote_kernel;
 #[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client")))]
 mod signal_image;
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
 mod signal_execution_identity;
 #[cfg(feature = "wifi-bootstrap")]
 mod plan_b_signal_image;
@@ -121,7 +152,8 @@ static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "bluetooth-line"
 ))]
 struct NoAllocator;
 
@@ -129,7 +161,8 @@ struct NoAllocator;
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "bluetooth-line"
 ))]
 unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
@@ -143,7 +176,8 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "bluetooth-line"
 ))]
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;
@@ -155,10 +189,15 @@ static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
 static CYW43_NVRAM: Aligned<A4, [u8; 742]> = Aligned(*include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
 ));
+#[cfg(feature = "bluetooth-line")]
+static CYW43_BTFW: Aligned<A4, [u8; 6164]> = Aligned(*include_bytes!(
+    "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_btfw.bin"
+));
 #[cfg(any(
     feature = "wifi-bootstrap",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "bluetooth-line"
 ))]
 static CYW43_CLM: &[u8; 984] = include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_clm.bin"
@@ -361,5 +400,26 @@ async fn main(spawner: Spawner) {
             Either::First(value) => value,
             Either::Second(value) => value,
         }
+    }
+
+    #[cfg(feature = "bluetooth-line")]
+    {
+        cdc.wait_dtr().await;
+        bluetooth_line::run(
+            &spawner,
+            &mut cdc,
+            p.PIO0,
+            p.DMA_CH0,
+            p.PIN_23,
+            p.PIN_24,
+            p.PIN_25,
+            p.PIN_29,
+            &CYW43_FW,
+            &CYW43_BTFW,
+            &CYW43_NVRAM,
+            CYW43_CLM,
+            &runtime,
+        )
+        .await;
     }
 }
