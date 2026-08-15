@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["patchbay-html.spec.mjs", "patchbay-front-door.spec.mjs", "patchbay-cord-routing.spec.mjs"],
+  testMatch: ["patchbay-html.spec.mjs", "patchbay-front-door.spec.mjs", "patchbay-cord-routing.spec.mjs", "patchbay-panel-furniture.spec.mjs"],
   fullyParallel: false,
   workers: 1,
   retries: 0,
