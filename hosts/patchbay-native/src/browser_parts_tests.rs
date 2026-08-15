@@ -41,6 +41,63 @@ fn cancellation_is_explicit_and_idempotently_fail_closed() {
 
 #[test]
 fn body_spawn_listener_accepts_one_exact_return_on_the_original_url() {
+    run_body_spawn_return(None);
+}
+
+#[test]
+fn exhausted_return_sequence_refuses_before_any_canonical_or_presence_mutation() {
+    run_body_spawn_return(Some(ReturnPreflightFault::SequenceOverflow));
+}
+
+#[test]
+fn available_return_lease_refuses_before_any_canonical_or_presence_mutation() {
+    run_body_spawn_return(Some(ReturnPreflightFault::AvailableLease));
+}
+
+#[test]
+fn drifted_return_lease_refuses_before_any_canonical_or_presence_mutation() {
+    run_body_spawn_return(Some(ReturnPreflightFault::DriftedLease));
+}
+
+#[test]
+fn exhausted_return_worker_capacity_refuses_before_any_mutation() {
+    run_body_spawn_return(Some(ReturnPreflightFault::WorkerCapacity));
+}
+
+#[test]
+fn exhausted_return_session_sequence_refuses_before_any_mutation() {
+    run_body_spawn_return(Some(ReturnPreflightFault::SessionOverflow));
+}
+
+#[test]
+fn exhausted_return_sign_sequence_refuses_before_any_mutation() {
+    run_body_spawn_return(Some(ReturnPreflightFault::SignOverflow));
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum ReturnPreflightFault {
+    SequenceOverflow,
+    AvailableLease,
+    DriftedLease,
+    WorkerCapacity,
+    SessionOverflow,
+    SignOverflow,
+}
+
+impl ReturnPreflightFault {
+    fn expected_error(self) -> &'static str {
+        match self {
+            Self::SequenceOverflow => "sequence exhausted",
+            Self::AvailableLease => "still available",
+            Self::DriftedLease => "identity drifted",
+            Self::WorkerCapacity => "worker capacity exhausted",
+            Self::SessionOverflow => "session sequence exhausted",
+            Self::SignOverflow => "Sign sequence exhausted",
+        }
+    }
+}
+
+fn run_body_spawn_return(fault: Option<ReturnPreflightFault>) {
     let body = Body::born(
         SourceDocumentId::from("source/native-spawn-return"),
         CheckedFormId::from("checked/native-spawn-return"),
@@ -203,6 +260,25 @@ fn body_spawn_listener_accepts_one_exact_return_on_the_original_url() {
         || coordinator.poll_return(&mut membership),
         "return challenge",
     );
+    if let Some(fault) = fault {
+        coordinator.inject_return_preflight_fault_for_test(&credential.part_id, &credential, fault);
+        let membership_before = membership.clone();
+        let state_before = coordinator.atomic_return_state_for_test();
+        let error = wait_for_error(
+            &deadline,
+            || coordinator.poll_return(&mut membership),
+            "return preflight refusal",
+        );
+        assert!(error.contains(fault.expected_error()), "{error}");
+        assert_eq!(membership, membership_before);
+        assert_eq!(coordinator.atomic_return_state_for_test(), state_before);
+        assert!(matches!(
+            client.join().unwrap(),
+            BrowserAdmissionEgress::Refused { code, .. }
+                if code == "return-presence-not-admissible"
+        ));
+        return;
+    }
     let returned = wait_for(
         &deadline,
         || coordinator.poll_return(&mut membership),
@@ -215,6 +291,20 @@ fn body_spawn_listener_accepts_one_exact_return_on_the_original_url() {
         client.join().unwrap(),
         BrowserAdmissionEgress::PresenceAccepted { sequence: 2, .. }
     ));
+}
+
+fn wait_for_error(
+    deadline: &Instant,
+    mut poll: impl FnMut() -> Result<Option<String>, String>,
+    context: &str,
+) -> String {
+    loop {
+        if let Err(error) = poll() {
+            return error;
+        }
+        assert!(Instant::now() < *deadline, "{context} was not observed");
+        std::thread::yield_now();
+    }
 }
 
 fn wait_for(

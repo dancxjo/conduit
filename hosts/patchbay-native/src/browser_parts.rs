@@ -270,6 +270,57 @@ impl BrowserPartsCoordinator {
         }
         Ok(())
     }
+
+    #[cfg(test)]
+    fn inject_return_preflight_fault_for_test(
+        &mut self,
+        part_id: &conduit_body::PartId,
+        credential: &conduit_body::MembershipCredential,
+        fault: tests::ReturnPreflightFault,
+    ) {
+        let presence = self
+            .presence
+            .as_mut()
+            .expect("test browser presence exists");
+        match fault {
+            tests::ReturnPreflightFault::SequenceOverflow => {
+                presence.set_return_sequence_for_test(part_id, u64::MAX);
+            }
+            tests::ReturnPreflightFault::AvailableLease => {
+                presence.make_return_lease_available_for_test(part_id);
+            }
+            tests::ReturnPreflightFault::DriftedLease => {
+                presence.drift_return_lease_for_test(part_id);
+            }
+            tests::ReturnPreflightFault::WorkerCapacity => {
+                presence.exhaust_return_workers_for_test(credential);
+            }
+            tests::ReturnPreflightFault::SessionOverflow => {
+                presence.exhaust_return_session_for_test();
+            }
+            tests::ReturnPreflightFault::SignOverflow => {
+                presence.exhaust_return_sign_for_test();
+            }
+        }
+    }
+
+    #[cfg(test)]
+    fn atomic_return_state_for_test(
+        &self,
+    ) -> (
+        conduit_body::AdmissionManager,
+        (conduit_body::HostPresenceTable, usize, u64, u64),
+        (usize, u64),
+    ) {
+        (
+            self.manager.clone().expect("test spawn manager exists"),
+            self.presence
+                .as_ref()
+                .expect("test browser presence exists")
+                .atomic_state_for_test(),
+            self.returns.atomic_state_for_test(),
+        )
+    }
 }
 
 fn receive_spawn(listener: BrowserAdmissionListener) -> Result<SpawnArrival, String> {

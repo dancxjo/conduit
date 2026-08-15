@@ -277,19 +277,19 @@ fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
         assert!(Instant::now() < deadline, "return proof did not arrive");
         std::thread::yield_now();
     };
-    let returned = super::super::browser_return::complete(
-        coordinator.manager_mut(),
-        &mut membership,
-        proof,
-        1_003,
-        SignId::from("sign/native-ambient/returned"),
-    )
-    .unwrap();
-    assert_eq!(returned.credential, expected);
-    assert_eq!(membership.parts.len(), 1);
-    let returned_sequence = presence
-        .register_return(returned.socket, returned.credential, &mut membership)
+    let mut return_sign_sequence = 0;
+    let (returned_part_id, returned_sequence) =
+        super::super::browser_return::complete_with_presence(
+            coordinator.manager_mut(),
+            &mut membership,
+            &mut presence,
+            proof,
+            1_003,
+            &mut return_sign_sequence,
+        )
         .unwrap();
+    assert_eq!(returned_part_id, expected.part_id);
+    assert_eq!(membership.parts.len(), 1);
     assert_eq!(returned_sequence, 3);
     loop {
         if presence.poll(&mut membership).unwrap().is_some() {

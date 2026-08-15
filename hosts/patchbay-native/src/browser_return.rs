@@ -160,25 +160,17 @@ impl ReturnCoordinator {
             };
             let route = self.proofs.swap_remove(index).route;
             let proof = result?;
-            self.sign_sequence = self
-                .sign_sequence
-                .checked_add(1)
-                .ok_or("browser return Sign sequence exhausted")?;
-            let returned = complete(
+            let presence = presence
+                .as_mut()
+                .ok_or("browser presence coordinator is absent")?;
+            let (part_id, sequence) = complete_with_presence(
                 manager_mut(route, ambient, spawn_manager)?,
                 membership,
+                presence,
                 proof,
                 now_millis()?,
-                SignId::from(format!(
-                    "patchbay/browser-return/attached/{}",
-                    self.sign_sequence
-                )),
+                &mut self.sign_sequence,
             )?;
-            let part_id = returned.credential.part_id.clone();
-            let sequence = presence
-                .as_mut()
-                .ok_or("browser presence coordinator is absent")?
-                .register_return(returned.socket, returned.credential, membership)?;
             return Ok(Some(format!(
                 "Browser Part {} returned with fresh presence sequence {}",
                 part_id.as_str(),
@@ -203,6 +195,11 @@ impl ReturnCoordinator {
             }
         }
         Ok(None)
+    }
+
+    #[cfg(test)]
+    pub(super) fn atomic_state_for_test(&self) -> (usize, u64) {
+        (self.attempted_parts.len(), self.sign_sequence)
     }
 }
 
@@ -273,15 +270,24 @@ pub(super) fn begin(
     Ok(receiver)
 }
 
-pub(super) fn complete(
+pub(super) fn complete_with_presence(
     manager: &mut AdmissionManager,
     membership: &mut BodyMembership,
+    presence: &mut super::browser_presence::BrowserPresenceCoordinator,
     mut arrival: ReturnProofArrival,
     now_millis: u64,
-    attached_sign: SignId,
-) -> Result<ReturnArrival, String> {
-    if let Err(error) = manager.complete_return(
-        membership,
+    sign_sequence: &mut u64,
+) -> Result<(conduit_body::PartId, u64), String> {
+    let next_sign_sequence = sign_sequence
+        .checked_add(1)
+        .ok_or("browser return Sign sequence exhausted")?;
+    let attached_sign = SignId::from(format!(
+        "patchbay/browser-return/attached/{next_sign_sequence}"
+    ));
+    let mut next_manager = manager.clone();
+    let mut next_membership = membership.clone();
+    if let Err(error) = next_manager.complete_return(
+        &mut next_membership,
         &arrival.advertisement,
         &arrival.proof,
         now_millis,
@@ -290,11 +296,24 @@ pub(super) fn complete(
         let _ = refuse(&mut arrival.socket, "return-proof-refused");
         return Err(format!("complete browser return: {error:?}"));
     }
-    Ok(ReturnArrival {
-        socket: arrival.socket,
-        credential: arrival.credential,
-        advertisement: arrival.advertisement,
-    })
+    let prepared = match presence.prepare_return(&arrival.credential, &next_membership) {
+        Ok(prepared) => prepared,
+        Err(error) => {
+            let _ = refuse(&mut arrival.socket, "return-presence-not-admissible");
+            return Err(error);
+        }
+    };
+    if let Err(error) = presence.prepare_return_socket(&arrival.socket) {
+        let _ = refuse(&mut arrival.socket, "return-session-not-admissible");
+        return Err(error);
+    }
+    let part_id = arrival.credential.part_id.clone();
+    *sign_sequence = next_sign_sequence;
+    *manager = next_manager;
+    *membership = next_membership;
+    let sequence =
+        presence.commit_return(arrival.socket, arrival.credential, membership, prepared)?;
+    Ok((part_id, sequence))
 }
 
 fn receive_proof(mut arrival: ReturnArrival) -> Result<ReturnProofArrival, String> {

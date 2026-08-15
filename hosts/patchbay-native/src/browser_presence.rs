@@ -13,6 +13,9 @@ use std::time::{Duration, Instant};
 const LEASE_MILLIS: u64 = 120_000;
 const RENEW_AFTER_MILLIS: u64 = 30_000;
 
+#[path = "browser_presence_return.rs"]
+mod return_session;
+
 pub(super) struct BrowserPresenceCoordinator {
     clock: Instant,
     table: HostPresenceTable,
@@ -99,25 +102,6 @@ impl BrowserPresenceCoordinator {
             .iter()
             .find(|lease| lease.part_id == retained.part_id)?;
         Some((retained, lease.offer_generation))
-    }
-
-    pub(super) fn register_return(
-        &mut self,
-        socket: BrowserAdmissionSocket,
-        credential: MembershipCredential,
-        membership: &mut BodyMembership,
-    ) -> Result<u64, String> {
-        let sequence = self
-            .table
-            .leases
-            .iter()
-            .find(|lease| lease.part_id == credential.part_id)
-            .ok_or("returned browser Part has no retained presence lease")?
-            .sequence
-            .checked_add(1)
-            .ok_or("returned browser presence sequence exhausted")?;
-        self.register_at_sequence(socket, credential, membership, sequence)?;
-        Ok(sequence)
     }
 
     fn register_at_sequence(
@@ -331,11 +315,12 @@ impl BrowserPresenceCoordinator {
             .sign_sequence
             .checked_add(1)
             .ok_or("browser presence Sign sequence exhausted")?;
-        Ok(SignId::from(format!(
-            "patchbay/browser-presence/{label}/{}",
-            self.sign_sequence
-        )))
+        Ok(presence_sign(label, self.sign_sequence))
     }
+}
+
+fn presence_sign(label: &str, sequence: u64) -> SignId {
+    SignId::from(format!("patchbay/browser-presence/{label}/{sequence}"))
 }
 
 fn spawn_worker(mut socket: BrowserAdmissionSocket) -> Receiver<WorkerEvent> {
