@@ -1,8 +1,8 @@
 //! Human-first projection of canonical Body membership and admission candidates.
 
 use conduit_body::{
-    Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, HostPresenceState,
-    HostPresenceTable, MembershipEventKind, MembershipState, PartId,
+    Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, HostPresenceClock,
+    HostPresenceState, HostPresenceTable, MembershipEventKind, MembershipState, PartId,
 };
 use conduit_core::{
     ActivePlayIdentity, BootId, CapabilityId, HostId, KindId, OfferGeneration, PlacementId, Plan,
@@ -39,6 +39,7 @@ pub struct PartDetails {
     pub proof_reference: Option<String>,
     pub presence_sequence: Option<u64>,
     pub presence_session_binding: Option<String>,
+    pub presence_clock: Option<HostPresenceClock>,
     pub presence_observed_at_millis: Option<u64>,
     pub presence_expires_at_millis: Option<u64>,
     pub evidence_signs: Vec<SignId>,
@@ -245,6 +246,8 @@ impl PartsView {
                     presence_sequence: presence_lease.map(|lease| lease.sequence),
                     presence_session_binding: presence_lease
                         .map(|lease| lease.session_binding_id.as_str().into()),
+                    presence_clock: presence_lease
+                        .and_then(|_| presence.map(|presence| presence.clock.clone())),
                     presence_observed_at_millis: presence_lease
                         .map(|lease| lease.observed_at_millis),
                     presence_expires_at_millis: presence_lease.map(|lease| lease.expires_at_millis),

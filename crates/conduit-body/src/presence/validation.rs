@@ -8,6 +8,10 @@ use super::{
 impl HostPresenceTable {
     pub fn validate(&self) -> Result<(), HostPresenceRefusal> {
         validate_identity(self.body_id.as_str())?;
+        validate_identity(&self.clock.basis_id)?;
+        if self.clock.resolution_ticks == 0 {
+            return Err(HostPresenceRefusal::InvalidClock);
+        }
         if self.maximum_lease_millis == 0
             || self.maximum_lease_millis > MAX_PRESENCE_LEASE_MILLIS
             || self.leases.len() > MAX_BODY_PARTS

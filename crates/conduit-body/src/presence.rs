@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use conduit_core::{BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +11,40 @@ mod validation;
 
 pub const MAX_PRESENCE_EVENTS: usize = 64;
 pub const MAX_PRESENCE_LEASE_MILLIS: u64 = 5 * 60 * 1_000;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HostPresenceClockScale {
+    Milliseconds,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HostPresenceClock {
+    pub basis_id: String,
+    pub scale: HostPresenceClockScale,
+    pub resolution_ticks: u64,
+    pub uncertainty_ticks: u64,
+}
+
+impl HostPresenceClock {
+    pub fn new(
+        basis_id: String,
+        scale: HostPresenceClockScale,
+        resolution_ticks: u64,
+        uncertainty_ticks: u64,
+    ) -> Result<Self, HostPresenceRefusal> {
+        validate_identity(&basis_id)?;
+        if resolution_ticks == 0 {
+            return Err(HostPresenceRefusal::InvalidClock);
+        }
+        Ok(Self {
+            basis_id,
+            scale,
+            resolution_ticks,
+            uncertainty_ticks,
+        })
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HostPresenceState {
@@ -59,6 +93,7 @@ pub struct HostPresenceEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HostPresenceTable {
     pub body_id: BodyId,
+    pub clock: HostPresenceClock,
     pub maximum_lease_millis: u64,
     pub revision: u64,
     pub dropped_event_count: u64,
@@ -81,6 +116,7 @@ pub enum HostPresenceRefusal {
     WrongSession,
     StaleSequence,
     ClockRegressed,
+    InvalidClock,
     LeaseDurationZero,
     LeaseDurationTooLong,
     LeaseDeadlineOverflow,
@@ -92,8 +128,16 @@ pub enum HostPresenceRefusal {
 }
 
 impl HostPresenceTable {
-    pub fn new(body_id: BodyId, maximum_lease_millis: u64) -> Result<Self, HostPresenceRefusal> {
+    pub fn new(
+        body_id: BodyId,
+        clock: HostPresenceClock,
+        maximum_lease_millis: u64,
+    ) -> Result<Self, HostPresenceRefusal> {
         validate_identity(body_id.as_str())?;
+        validate_identity(&clock.basis_id)?;
+        if clock.resolution_ticks == 0 {
+            return Err(HostPresenceRefusal::InvalidClock);
+        }
         if maximum_lease_millis == 0 {
             return Err(HostPresenceRefusal::LeaseDurationZero);
         }
@@ -102,6 +146,7 @@ impl HostPresenceTable {
         }
         Ok(Self {
             body_id,
+            clock,
             maximum_lease_millis,
             revision: 0,
             dropped_event_count: 0,

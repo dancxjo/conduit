@@ -293,7 +293,7 @@ impl BrowserPartsCoordinator {
         } else {
             self.presence = Some(super::browser_presence::BrowserPresenceCoordinator::new(
                 body_id.clone(),
-            ));
+            )?);
         }
         Ok(())
     }

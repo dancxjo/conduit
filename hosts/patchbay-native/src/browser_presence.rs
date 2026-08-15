@@ -9,18 +9,20 @@ use conduit_std_host::browser_admission::{
 use conduit_std_host::websocket::NativeWebSocketError;
 use std::io::ErrorKind;
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const LEASE_MILLIS: u64 = 120_000;
 const RENEW_AFTER_MILLIS: u64 = 30_000;
 
+#[path = "browser_presence/clock.rs"]
+mod clock;
 #[path = "browser_presence_return.rs"]
 mod return_session;
 #[path = "browser_presence/signaling.rs"]
 mod signaling;
 
 pub(super) struct BrowserPresenceCoordinator {
-    clock: Instant,
+    clock: clock::BrowserPresenceClock,
     table: HostPresenceTable,
     workers: Vec<PresenceWorker>,
     credentials: Vec<MembershipCredential>,
@@ -60,17 +62,18 @@ enum WorkerResponse {
 }
 
 impl BrowserPresenceCoordinator {
-    pub(super) fn new(body_id: conduit_body::BodyId) -> Self {
-        Self {
-            clock: Instant::now(),
-            table: HostPresenceTable::new(body_id, LEASE_MILLIS)
+    pub(super) fn new(body_id: conduit_body::BodyId) -> Result<Self, String> {
+        let clock = clock::BrowserPresenceClock::new()?;
+        Ok(Self {
+            table: HostPresenceTable::new(body_id, clock.descriptor().clone(), LEASE_MILLIS)
                 .expect("fixed browser presence lease is valid"),
+            clock,
             workers: Vec::with_capacity(conduit_body::MAX_BODY_PARTS),
             credentials: Vec::with_capacity(conduit_body::MAX_BODY_PARTS),
             rendezvous: BrowserWebRtcRendezvous::default(),
             session_sequence: 0,
             sign_sequence: 0,
-        }
+        })
     }
 
     pub(super) fn table(&self) -> &HostPresenceTable {
@@ -365,8 +368,7 @@ impl BrowserPresenceCoordinator {
     }
 
     fn now_millis(&self) -> Result<u64, String> {
-        u64::try_from(self.clock.elapsed().as_millis())
-            .map_err(|_| "browser presence clock overflowed".into())
+        self.clock.now_millis()
     }
 
     fn next_sign(&mut self, label: &str) -> Result<SignId, String> {

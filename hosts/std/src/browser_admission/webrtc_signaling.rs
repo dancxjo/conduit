@@ -233,6 +233,7 @@ impl BrowserWebRtcRendezvous {
 mod tests {
     use super::*;
     use conduit_body::HostPresenceLease;
+    use conduit_body::{HostPresenceClock, HostPresenceClockScale};
     use conduit_core::{
         bind_active_play, ConnectionBaseInstanceId, ConnectionId, FragmentId, KindId, LineId,
         LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
@@ -257,6 +258,13 @@ mod tests {
     fn presence(source: &MembershipCredential, sink: &MembershipCredential) -> HostPresenceTable {
         HostPresenceTable {
             body_id: source.body_id.clone(),
+            clock: HostPresenceClock::new(
+                "clock/rendezvous/conformance".into(),
+                HostPresenceClockScale::Milliseconds,
+                1,
+                0,
+            )
+            .unwrap(),
             maximum_lease_millis: 1_000,
             revision: 2,
             dropped_event_count: 0,
