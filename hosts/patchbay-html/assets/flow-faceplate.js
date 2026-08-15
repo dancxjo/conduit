@@ -46,7 +46,7 @@ export function FaceplateNode({ data }) {
   e("header", null,
     e("span", { className: "faceplate-icon", title: data.iconName, "aria-hidden": "true" }, data.icon),
     e("span", { className: "faceplate-title", title: data.label }, data.label),
-    e("span", { className: "faceplate-role" }, data.role),
+    e("span", { className: "faceplate-role", title: data.role }, data.role),
   ),
   data.clue && e("p", { className: "faceplate-clue", title: data.clue }, data.clue),
   data.ports.length > 0 && e("div", { className: "faceplate-ports", "aria-label": "Exact typed Ports" },

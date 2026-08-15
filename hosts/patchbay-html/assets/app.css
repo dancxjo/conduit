@@ -123,15 +123,15 @@ body:not([data-palette-open="true"]) #palette,body:not([data-parts-open="true"])
 .react-flow__node { min-width:11rem; padding:.8rem 1rem; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); font-weight:700; }
 .react-flow__node-faceplate { width:15rem; min-width:15rem; padding:0; border:0; background:transparent; font-weight:400; }
 .flow-faceplate { width:15rem; max-width:15rem; overflow:hidden; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); }
-.flow-faceplate header { display:grid; grid-template-columns:1.6rem minmax(0,1fr) auto; gap:.35rem; align-items:center; min-height:2.4rem; padding:.45rem .55rem; border-bottom:1px solid var(--patchbay-structure-secondary); }
+.flow-faceplate header { display:grid; grid-template-columns:minmax(0,1.6rem) minmax(0,1fr) minmax(0,4.75rem); gap:.35rem; align-items:center; min-height:2.4rem; padding:.45rem .55rem; overflow:hidden; border-bottom:1px solid var(--patchbay-structure-secondary); }
+.faceplate-icon,.faceplate-title,.faceplate-role,.faceplate-clue,.faceplate-port-name,.faceplate-port code { display:block; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .faceplate-icon { color:var(--patchbay-emphasis); font-weight:800; }
-.faceplate-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:750; }
+.faceplate-title { font-weight:750; }
 .faceplate-role { color:var(--patchbay-text-secondary); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; }
-.faceplate-clue { min-height:1.75rem; margin:0; padding:.35rem .55rem; overflow:hidden; color:var(--patchbay-text-secondary); font-size:.72rem; text-overflow:ellipsis; white-space:nowrap; }
+.faceplate-clue { min-height:1.75rem; margin:0; padding:.35rem .55rem; color:var(--patchbay-text-secondary); font-size:.72rem; }
 .faceplate-ports { border-top:1px solid var(--patchbay-structure-secondary); }
-.faceplate-port { position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:.35rem; align-items:center; min-height:1.75rem; padding:.25rem .55rem; font-size:.7rem; }
+.faceplate-port { position:relative; display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:.35rem; align-items:center; min-height:1.75rem; padding:.25rem .75rem; overflow:hidden; font-size:.7rem; }
 .faceplate-port+.faceplate-port { border-top:1px solid color-mix(in srgb,var(--patchbay-structure-secondary) 55%,transparent); }
-.faceplate-port-name,.faceplate-port code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .faceplate-port.outgoing { text-align:right; }
 .faceplate-port code { color:var(--patchbay-text-secondary); font-size:.62rem; }
 .faceplate-handle { width:.72rem; height:.72rem; border:2px solid var(--patchbay-structure-primary); background:var(--patchbay-background); }
