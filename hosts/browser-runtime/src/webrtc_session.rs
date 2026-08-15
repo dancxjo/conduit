@@ -266,6 +266,26 @@ pub extern "C" fn conduit_browser_webrtc_session_input_capacity() -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_maximum_frame_bytes() -> u32 {
+    ENDPOINT.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|endpoint| endpoint.binding.attachment.limits.maximum_frame_bytes)
+            .unwrap_or(0)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_maximum_in_flight_items() -> u32 {
+    ENDPOINT.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|endpoint| u32::from(endpoint.binding.limits.maximum_in_flight_items))
+            .unwrap_or(0)
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_webrtc_session_output_ptr() -> *const u8 {
     ENDPOINT.with(|slot| {
         slot.borrow()

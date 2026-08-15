@@ -86,6 +86,11 @@ fn granted_start_reconstructs_exact_binding_and_refuses_non_hello() {
         conduit_browser_webrtc_session_start_granted(0, length as u32),
         STATUS_HANDSHAKE
     );
+    assert_eq!(
+        conduit_browser_webrtc_session_maximum_frame_bytes(),
+        FRAME_CAPACITY as u32
+    );
+    assert_eq!(conduit_browser_webrtc_session_maximum_in_flight_items(), 1);
     ENDPOINT.with(|slot| {
         assert_eq!(slot.borrow().as_ref().unwrap().binding, binding);
     });
@@ -100,6 +105,8 @@ fn granted_start_reconstructs_exact_binding_and_refuses_non_hello() {
     INPUT.with(|input| input.borrow_mut()[..ready_length].copy_from_slice(&bytes[..ready_length]));
     assert!(conduit_browser_webrtc_session_start_granted(0, ready_length as u32) < 0);
     ENDPOINT.with(|slot| assert!(slot.borrow().is_none()));
+    assert_eq!(conduit_browser_webrtc_session_maximum_frame_bytes(), 0);
+    assert_eq!(conduit_browser_webrtc_session_maximum_in_flight_items(), 0);
 }
 
 #[test]
