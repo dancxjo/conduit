@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use conduit_std_catalog::supported_nucleus_offers;
 
+use crate::Esp32BoardDescriptor;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PrerequisiteNode {
     Implementation(String),
@@ -41,6 +43,7 @@ pub struct FabricationCatalog {
     pub facilities: Vec<String>,
     pub policy_profiles: Vec<String>,
     pub profile_fragments: Vec<String>,
+    pub esp32_descriptors: BTreeMap<String, Esp32BoardDescriptor>,
 }
 
 impl FabricationCatalog {
@@ -250,6 +253,7 @@ impl FabricationCatalog {
                 "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
                 "profile-fragment/conduitos-hotplug-proof@1".into(),
             ],
+            esp32_descriptors: BTreeMap::new(),
         }
     }
 }
