@@ -77,18 +77,26 @@ export class BodyWebRtcSessions {
     }
     const generation = this.#generation;
     this.#inFlightGrantIndex = index;
+    const record = { session: null };
+    this.#creating.set(negotiationId, record);
     let creation;
     try {
       creation = this.#createSession({
         wasmBytes: this.#wasmBytes,
         grant,
         sendSignal: (signal) => this.#sendSignal(signal),
+        onSession: (session) => {
+          if (typeof session?.close !== "function") throw new Error("invalid WebRTC session ownership");
+          if (record.session !== null) throw new Error("duplicate WebRTC session ownership");
+          record.session = session;
+          if (generation !== this.#generation || this.#terminal !== null) session.close();
+        },
       });
     } catch (error) {
+      if (this.#creating.get(negotiationId) === record) this.#creating.delete(negotiationId);
       this.#inFlightGrantIndex = null;
       throw error;
     }
-    this.#creating.set(negotiationId, creation);
     let session;
     try {
       session = await creation;
@@ -98,7 +106,7 @@ export class BodyWebRtcSessions {
       }
       throw error;
     } finally {
-      if (this.#creating.get(negotiationId) === creation) {
+      if (this.#creating.get(negotiationId) === record) {
         this.#creating.delete(negotiationId);
       }
     }
@@ -145,6 +153,7 @@ export class BodyWebRtcSessions {
     if (!this.#begun && this.#terminal !== null) return;
     this.#generation += 1;
     for (const session of this.#sessions.values()) session.close();
+    for (const record of this.#creating.values()) record.session?.close();
     this.#sessions.clear();
     this.#creating.clear();
     this.#pendingSignals.clear();

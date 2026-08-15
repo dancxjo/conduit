@@ -134,6 +134,14 @@ test("admitted browser renews exact current presence and close makes it unavaila
       creatingSessions: 0,
     },
     staleRefusal: "stale WebRTC session creation",
+    ownershipCloses: 2,
+    closesAfterReset: 1,
+    resetState: {
+      inFlightGrantIndex: null,
+      activeSessions: 0,
+      creatingSessions: 0,
+      terminalReason: "test reset",
+    },
     stateAfterStale: {
       nextGrantIndex: 0,
       inFlightGrantIndex: 0,

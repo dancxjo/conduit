@@ -48,8 +48,11 @@ export class BodyWebRtcSession {
   #terminal = null;
   #terminalDetail = null;
 
-  static async create({ wasmBytes, grant, sendSignal }) {
+  static async create({ wasmBytes, grant, sendSignal, onSession }) {
     if (typeof sendSignal !== "function") throw new Error("sendSignal callback is required");
+    if (onSession !== undefined && typeof onSession !== "function") {
+      throw new Error("onSession callback must be a function");
+    }
     const role = grant?.role;
     if (role !== "source" && role !== "sink") throw new Error("invalid Body grant role");
     const exactGrant = Object.freeze({
@@ -61,6 +64,7 @@ export class BodyWebRtcSession {
     });
     const runtime = await instantiateGrantedWebRtcSession(wasmBytes, exactGrant);
     const session = new BodyWebRtcSession(exactGrant, sendSignal, runtime);
+    onSession?.(session);
     if (role === "source") {
       try {
         await session.#offer();
