@@ -6,6 +6,8 @@ mod model;
 #[cfg(feature = "r1-recovery")]
 mod r1_control_planning;
 #[cfg(feature = "r1-recovery")]
+mod r1_host_loss;
+#[cfg(feature = "r1-recovery")]
 mod r1_planning;
 #[cfg(feature = "r1-recovery")]
 mod r1_recovery;
