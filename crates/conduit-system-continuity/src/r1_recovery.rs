@@ -2,7 +2,7 @@
 
 use alloc::vec::Vec;
 
-use conduit_body::{Body, BodyId, BodyLifecycleError, Wake, WakeId};
+use conduit_body::{Body, BodyId, BodyLifecycleError, HostPresenceRefusal, Wake, WakeId};
 use conduit_core::{
     bind_active_play, ActivePlayId, ActivePlayIdentity, BootId, ControlLoopEvent, GearId, HostId,
     LineAvailability, LineAvailabilitySign, Plan, PlanId, PlanningRequestAuthority,
@@ -56,20 +56,21 @@ pub struct R1ReplacementSigns {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct R1NewPlanRecovery {
-    body: Body,
-    wake: Wake,
+    pub(super) body: Body,
+    pub(super) wake: Wake,
     obligation_gear_id: GearId,
-    plan_a: Plan,
+    pub(super) plan_a: Plan,
     play_a: ActivePlayIdentity,
-    plan_b: Option<Plan>,
+    pub(super) plan_b: Option<Plan>,
     play_b: Option<ActivePlayIdentity>,
-    events: Vec<ControlLoopEvent>,
+    pub(super) events: Vec<ControlLoopEvent>,
     led_results: Vec<R1LedResultSign>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum R1RecoveryError {
     Lifecycle(BodyLifecycleError),
+    Presence(HostPresenceRefusal),
     Line(LineError),
     Wire(WireError),
     InvalidPlan,
@@ -83,6 +84,12 @@ pub enum R1RecoveryError {
 impl From<BodyLifecycleError> for R1RecoveryError {
     fn from(value: BodyLifecycleError) -> Self {
         Self::Lifecycle(value)
+    }
+}
+
+impl From<HostPresenceRefusal> for R1RecoveryError {
+    fn from(value: HostPresenceRefusal) -> Self {
+        Self::Presence(value)
     }
 }
 
@@ -382,7 +389,7 @@ impl R1NewPlanRecovery {
         &self.led_results
     }
 
-    fn push_event(&mut self, event: ControlLoopEvent) -> Result<(), R1RecoveryError> {
+    pub(super) fn push_event(&mut self, event: ControlLoopEvent) -> Result<(), R1RecoveryError> {
         if self.events.len() >= MAX_R1_RECOVERY_EVENTS {
             return Err(R1RecoveryError::CapacityExhausted);
         }
@@ -390,7 +397,7 @@ impl R1NewPlanRecovery {
         Ok(())
     }
 
-    fn reserve_event_slots(&self, count: usize) -> Result<(), R1RecoveryError> {
+    pub(super) fn reserve_event_slots(&self, count: usize) -> Result<(), R1RecoveryError> {
         if self.events.len().saturating_add(count) > MAX_R1_RECOVERY_EVENTS {
             Err(R1RecoveryError::CapacityExhausted)
         } else {

@@ -1,6 +1,10 @@
+use conduit_body::{
+    AuthenticatedHostObservation, BodyMembership, HostPresenceTable, MembershipProofId, PartId,
+    WakeLifecycle,
+};
 use conduit_core::{
     BootId, ControlLoopEvent, GearId, HostId, LineAvailability, LineAvailabilitySign,
-    PlanningRefusalReason, SignId,
+    LinkBindingId, OfferGeneration, PlanningRefusalReason, PlayUnsatisfiedReason, SignId,
 };
 use conduit_system_continuity::{
     exact_r1_signal_plan, R1LedResultObservation, R1NewPlanRecovery, R1RecoveryError,
@@ -48,6 +52,224 @@ fn lose_websocket(recovery: &mut R1NewPlanRecovery) {
             SignId::from("r1/play-a-unsatisfied"),
         )
         .unwrap();
+}
+
+fn presence_for(
+    recovery: &R1NewPlanRecovery,
+    host_id: HostId,
+    boot_id: BootId,
+    offer_generation: OfferGeneration,
+    lose_session: bool,
+) -> (HostPresenceTable, PartId) {
+    let body_id = recovery.body().body_id.clone();
+    let part_id = PartId::bind(&body_id, host_id.as_str(), 1).unwrap();
+    let mut membership = BodyMembership::new(body_id.clone()).unwrap();
+    let proof_id = MembershipProofId::bind("r1/host-presence-proof").unwrap();
+    membership
+        .admit(
+            &body_id,
+            membership.revision,
+            part_id.clone(),
+            proof_id.clone(),
+            SignId::from("r1/host-part-admitted"),
+        )
+        .unwrap();
+    membership
+        .observe_present(
+            &body_id,
+            membership.revision,
+            &part_id,
+            AuthenticatedHostObservation {
+                host_id,
+                boot_id,
+                offer_generation,
+                proof_id,
+                sequence: 1,
+            },
+            SignId::from("r1/host-attached"),
+        )
+        .unwrap();
+    let session = LinkBindingId::from("r1/host-presence-session");
+    let mut presence = HostPresenceTable::new(body_id, 30_000).unwrap();
+    presence
+        .start(
+            &membership,
+            &part_id,
+            session.clone(),
+            1,
+            1_000,
+            20_000,
+            SignId::from("r1/host-presence-started"),
+        )
+        .unwrap();
+    if lose_session {
+        presence
+            .lose_session(
+                &mut membership,
+                &part_id,
+                &session,
+                2_000,
+                SignId::from("r1/host-session-lost"),
+            )
+            .unwrap();
+    }
+    (presence, part_id)
+}
+
+#[test]
+fn exact_selected_host_loss_makes_play_unsatisfied_without_mutating_plan() {
+    let (mut recovery, plan_a, _) = start();
+    let selected = plan_a
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .unwrap();
+    let (presence, part_id) = presence_for(
+        &recovery,
+        selected.host_id.clone(),
+        selected.boot_id.clone(),
+        selected.offer_generation,
+        true,
+    );
+    let body_id = recovery.body().body_id.clone();
+    let wake_id = recovery.wake().wake_id.clone();
+
+    recovery
+        .observe_required_host_unavailable(
+            &presence,
+            &part_id,
+            SignId::from("r1/required-host-unsatisfied"),
+        )
+        .unwrap();
+
+    assert_eq!(recovery.body().body_id, body_id);
+    assert_eq!(recovery.wake().wake_id, wake_id);
+    assert_eq!(recovery.wake().lifecycle, WakeLifecycle::Unsatisfied);
+    assert_eq!(recovery.plan_a(), &plan_a);
+    assert!(recovery.plan_b().is_none());
+    assert!(matches!(
+        &recovery.events()[0],
+        ControlLoopEvent::HostBecameUnavailable {
+            plan_id,
+            host_id,
+            boot_id,
+            offer_generation,
+            observation_sign_id,
+        } if plan_id == &plan_a.plan_id
+            && host_id == &selected.host_id
+            && boot_id == &selected.boot_id
+            && offer_generation == &selected.offer_generation
+            && observation_sign_id.as_str() == "r1/host-session-lost"
+    ));
+    assert!(matches!(
+        &recovery.events()[1],
+        ControlLoopEvent::PlayBecameUnsatisfied {
+            plan_id,
+            reason: PlayUnsatisfiedReason::RequiredHostUnavailable,
+            sign_id,
+        } if plan_id == &plan_a.plan_id && sign_id.as_str() == "r1/required-host-unsatisfied"
+    ));
+}
+
+#[test]
+fn non_loss_and_non_selected_host_observations_refuse_without_mutation() {
+    let (recovery, plan_a, _) = start();
+    let selected = plan_a
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .unwrap();
+    let (available, selected_part) = presence_for(
+        &recovery,
+        selected.host_id.clone(),
+        selected.boot_id.clone(),
+        selected.offer_generation,
+        false,
+    );
+    let mut available_recovery = recovery.clone();
+    assert_eq!(
+        available_recovery.observe_required_host_unavailable(
+            &available,
+            &selected_part,
+            SignId::from("r1/must-not-be-unsatisfied"),
+        ),
+        Err(R1RecoveryError::InvalidObservation)
+    );
+    assert_eq!(available_recovery, recovery);
+
+    let (stale, stale_part) = presence_for(
+        &recovery,
+        selected.host_id.clone(),
+        BootId::from("r1/stale-pico-boot"),
+        selected.offer_generation,
+        true,
+    );
+    let mut stale_recovery = recovery.clone();
+    assert_eq!(
+        stale_recovery.observe_required_host_unavailable(
+            &stale,
+            &stale_part,
+            SignId::from("r1/stale-must-not-be-unsatisfied"),
+        ),
+        Err(R1RecoveryError::WrongRealizationSubject)
+    );
+    assert_eq!(stale_recovery, recovery);
+
+    let (stale_offer, stale_offer_part) = presence_for(
+        &recovery,
+        selected.host_id.clone(),
+        selected.boot_id.clone(),
+        OfferGeneration(selected.offer_generation.0 + 1),
+        true,
+    );
+    let mut stale_offer_recovery = recovery.clone();
+    assert_eq!(
+        stale_offer_recovery.observe_required_host_unavailable(
+            &stale_offer,
+            &stale_offer_part,
+            SignId::from("r1/stale-offer-must-not-be-unsatisfied"),
+        ),
+        Err(R1RecoveryError::WrongRealizationSubject)
+    );
+    assert_eq!(stale_offer_recovery, recovery);
+
+    let (unselected, unselected_part) = presence_for(
+        &recovery,
+        HostId::from("r1/unselected-host"),
+        BootId::from("r1/unselected-boot"),
+        OfferGeneration(1),
+        true,
+    );
+    let mut unselected_recovery = recovery.clone();
+    assert_eq!(
+        unselected_recovery.observe_required_host_unavailable(
+            &unselected,
+            &unselected_part,
+            SignId::from("r1/unselected-must-not-be-unsatisfied"),
+        ),
+        Err(R1RecoveryError::WrongRealizationSubject)
+    );
+    assert_eq!(unselected_recovery, recovery);
+
+    let mut wrong_body = stale.clone();
+    wrong_body.body_id = conduit_body::Body::born(
+        conduit_core::SourceDocumentId::from("r1/other-source"),
+        conduit_core::CheckedFormId::from("r1/other-checked"),
+        99,
+        SignId::from("r1/other-body-born"),
+    )
+    .unwrap()
+    .body_id;
+    let mut wrong_body_recovery = recovery.clone();
+    assert_eq!(
+        wrong_body_recovery.observe_required_host_unavailable(
+            &wrong_body,
+            &stale_part,
+            SignId::from("r1/wrong-body-must-not-be-unsatisfied"),
+        ),
+        Err(R1RecoveryError::InvalidObservation)
+    );
+    assert_eq!(wrong_body_recovery, recovery);
 }
 
 #[test]

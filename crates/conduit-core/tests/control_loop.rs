@@ -178,6 +178,76 @@ fn a_non_change_and_empty_sign_fail_closed() {
 }
 
 #[test]
+fn unavailable_host_must_be_exactly_sealed_by_the_same_plan() {
+    let plan = conduit_core::seal_plan(
+        conduit_core::FormIdentity {
+            source_document_id: conduit_core::SourceDocumentId::from("source"),
+            checked_form_id: conduit_core::CheckedFormId::from("checked"),
+            expanded_form_id: conduit_core::ExpandedFormId::from("expanded"),
+        },
+        vec![conduit_core::PlanFragment {
+            plan_id: PlanId::from(""),
+            fragment_id: conduit_core::FragmentId::from(""),
+            source_document_id: conduit_core::SourceDocumentId::from("source"),
+            checked_form_id: conduit_core::CheckedFormId::from("checked"),
+            expanded_form_id: conduit_core::ExpandedFormId::from("expanded"),
+            realization_backs: vec![],
+            host_id: HostId::from("host-a"),
+            boot_id: conduit_core::BootId::from("boot-a"),
+            offer_generation: conduit_core::OfferGeneration(4),
+            placements: vec![],
+            execution_regions: vec![],
+            connections: vec![],
+            shared_pools: vec![],
+            startup_dependencies: vec![],
+            startup_order: vec![],
+            cancellation_policy: conduit_core::CancellationPolicy::CancelAllAndRejectLateCompletion,
+            terminal_policy: conduit_core::TerminalPolicy::RequireAllPlacementsAndConnections,
+            expected_terminals: vec![],
+            expected_sign: vec![],
+            sign_storage_budget: conduit_core::SignStorageBudget {
+                item_capacity: 0,
+                byte_capacity: 0,
+            },
+            plan_fragments: vec![],
+        }],
+    );
+    let exact = ControlLoopEvent::HostBecameUnavailable {
+        plan_id: plan.plan_id.clone(),
+        host_id: HostId::from("host-a"),
+        boot_id: conduit_core::BootId::from("boot-a"),
+        offer_generation: conduit_core::OfferGeneration(4),
+        observation_sign_id: SignId::from("host-a-lost"),
+    };
+    assert_eq!(exact.validate_host_event(&plan), Ok(()));
+
+    let mut malformed_plan = plan.clone();
+    malformed_plan.plan_id = PlanId::from("tampered");
+    assert_eq!(
+        exact.validate_host_event(&malformed_plan),
+        Err(ControlLoopEventError::InvalidPlan)
+    );
+
+    let mut stale_boot = exact.clone();
+    if let ControlLoopEvent::HostBecameUnavailable { boot_id, .. } = &mut stale_boot {
+        *boot_id = conduit_core::BootId::from("boot-stale");
+    }
+    assert_eq!(
+        stale_boot.validate_host_event(&plan),
+        Err(ControlLoopEventError::HostOutsideSealedPlan)
+    );
+
+    let mut wrong_plan = exact;
+    if let ControlLoopEvent::HostBecameUnavailable { plan_id, .. } = &mut wrong_plan {
+        *plan_id = PlanId::from("other-plan");
+    }
+    assert_eq!(
+        wrong_plan.validate_host_event(&plan),
+        Err(ControlLoopEventError::HostEventPlanMismatch)
+    );
+}
+
+#[test]
 fn architecture_contract_keeps_replan_and_route_change_language_distinct() {
     let document =
         include_str!("../../../docs/architecture/topology-planning-play-control-loop.md");

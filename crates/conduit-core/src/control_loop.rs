@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AdmittedLine, AuthorityGrantId, BootId, ConnectionId, HostId, LineId, LinkBindingId, PlanId,
-    PlannedConnection, SignId,
+    AdmittedLine, AuthorityGrantId, BootId, ConnectionId, HostId, LineId, LinkBindingId,
+    OfferGeneration, Plan, PlanId, PlannedConnection, SignId,
 };
 
 /// Why the current deployed realization cannot continue. Queue pressure is
@@ -36,6 +36,13 @@ pub enum PlanningRequestAuthority {
 /// retries, invoke a planner, install a fragment, or issue authority.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ControlLoopEvent {
+    HostBecameUnavailable {
+        plan_id: PlanId,
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        observation_sign_id: SignId,
+    },
     LineBecameUnavailable {
         plan_id: PlanId,
         connection_id: ConnectionId,
@@ -94,11 +101,26 @@ pub enum ControlLoopEventError {
     RouteEventPlanMismatch,
     RouteEventConnectionMismatch,
     RouteOutsideSealedCandidates,
+    HostEventPlanMismatch,
+    HostOutsideSealedPlan,
+    InvalidPlan,
 }
 
 impl ControlLoopEvent {
     pub fn validate(&self) -> Result<(), ControlLoopEventError> {
         let identities_are_nonempty = match self {
+            Self::HostBecameUnavailable {
+                plan_id,
+                host_id,
+                boot_id,
+                observation_sign_id,
+                ..
+            } => {
+                nonempty(plan_id.as_str())
+                    && nonempty(host_id.as_str())
+                    && nonempty(boot_id.as_str())
+                    && nonempty(observation_sign_id.as_str())
+            }
             Self::LineBecameUnavailable {
                 plan_id,
                 connection_id,
@@ -254,6 +276,37 @@ impl ControlLoopEvent {
         });
         if !admitted {
             return Err(ControlLoopEventError::RouteOutsideSealedCandidates);
+        }
+        Ok(())
+    }
+
+    /// Checks an unavailable Host observation against one exact immutable
+    /// Plan realization. Host, Boot, and offer generation must all be the
+    /// identities sealed by that same Plan.
+    pub fn validate_host_event(&self, active_plan: &Plan) -> Result<(), ControlLoopEventError> {
+        self.validate()?;
+        if !crate::verify_plan(active_plan) {
+            return Err(ControlLoopEventError::InvalidPlan);
+        }
+        let Self::HostBecameUnavailable {
+            plan_id,
+            host_id,
+            boot_id,
+            offer_generation,
+            ..
+        } = self
+        else {
+            return Ok(());
+        };
+        if plan_id != &active_plan.plan_id {
+            return Err(ControlLoopEventError::HostEventPlanMismatch);
+        }
+        if !active_plan.fragments.iter().any(|fragment| {
+            &fragment.host_id == host_id
+                && &fragment.boot_id == boot_id
+                && fragment.offer_generation == *offer_generation
+        }) {
+            return Err(ControlLoopEventError::HostOutsideSealedPlan);
         }
         Ok(())
     }
