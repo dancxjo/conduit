@@ -243,6 +243,7 @@ fn display_base(base: ConnectionBase) -> &'static str {
         ConnectionBase::WebSocket => "WebSocket",
         ConnectionBase::UsbCdc => "USB CDC",
         ConnectionBase::BluetoothLeGatt => "Bluetooth LE GATT",
+        ConnectionBase::WebRtcDataChannel => "WebRTC DataChannel",
     }
 }
 

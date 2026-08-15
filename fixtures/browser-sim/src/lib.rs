@@ -1439,7 +1439,8 @@ mod tests {
                     | ConnectionBase::InMemory
                     | ConnectionBase::WebSocket
                     | ConnectionBase::UsbCdc
-                    | ConnectionBase::BluetoothLeGatt => {
+                    | ConnectionBase::BluetoothLeGatt
+                    | ConnectionBase::WebRtcDataChannel => {
                         panic!("triple remote transmit used unsupported base")
                     }
                 }

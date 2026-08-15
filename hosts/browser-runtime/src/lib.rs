@@ -37,6 +37,7 @@ pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
 mod webchat;
+mod webrtc_session;
 
 const FRAME_CAPACITY: usize = 4_096;
 const MAXIMUM_RECEIPTS: usize = 16;

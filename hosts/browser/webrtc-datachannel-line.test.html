@@ -4,11 +4,19 @@
 <p id="state">idle</p>
 <script type="module">
   import { BrowserWebRtcDataChannelLine } from "/hosts/browser/webrtc-datachannel-line.mjs";
+  import {
+    closeWebRtcSessionInput,
+    finishWebRtcSession,
+    ingestWebRtcSession,
+    instantiateWebRtcSession,
+    takeWebRtcSessionOutput,
+  } from "/hosts/browser/webrtc-session-runtime.mjs";
 
   let peer;
   let channel;
   let line;
   let lineArrival = Promise.resolve();
+  let session;
 
   function gathered(connection) {
     if (connection.iceGatheringState === "complete") return Promise.resolve();
@@ -61,4 +69,25 @@
   window.conduitClose = () => line.close();
   window.conduitClosed = () => line.closed();
   window.conduitState = () => ({ channel: line.state(), peer: peer.connectionState });
+
+  window.conduitSessionStart = async (role, variant = 0) => {
+    const wasmBytes = await fetch(
+      "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+    ).then((response) => {
+      if (!response.ok) throw new Error("browser WASM artifact missing");
+      return response.arrayBuffer();
+    });
+    session = await instantiateWebRtcSession(wasmBytes, role, variant);
+    return session.status;
+  };
+  window.conduitSessionOutput = () => {
+    const bytes = takeWebRtcSessionOutput(session);
+    return bytes === null ? null : [...bytes];
+  };
+  window.conduitSessionIngest = (bytes) => ingestWebRtcSession(
+    session,
+    Uint8Array.from(bytes),
+  );
+  window.conduitSessionFinish = () => finishWebRtcSession(session);
+  window.conduitSessionCloseInput = () => closeWebRtcSessionInput(session);
 </script>
