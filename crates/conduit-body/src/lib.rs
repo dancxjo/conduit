@@ -19,6 +19,7 @@ mod membership;
 mod offers;
 #[cfg(feature = "authenticated-admission")]
 mod pico_admission;
+mod presence;
 mod provenance;
 mod reservations;
 mod space;
@@ -40,6 +41,7 @@ pub use membership::*;
 pub use offers::*;
 #[cfg(feature = "authenticated-admission")]
 pub use pico_admission::*;
+pub use presence::*;
 pub use provenance::*;
 pub use reservations::*;
 pub use space::*;
