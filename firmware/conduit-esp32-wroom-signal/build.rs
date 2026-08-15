@@ -1,10 +1,13 @@
 use std::{env, fs, path::PathBuf};
 
 use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
+use conduit_host_fabrication::{
+    esp32_descriptor_binding, hw463_esp_wroom_32_sample, validate_esp32_descriptor,
+};
 use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_signal::{
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_WROOM_LOCAL_HOST_ID, SIGNAL_ENCODED_LEN,
-    esp32_wroom_local_advertisement, signal_profile_catalog,
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_WROOM_BUILD_FIXTURE_HOST_ID, SIGNAL_ENCODED_LEN,
+    esp32_wroom_build_fixture_advertisement, signal_profile_catalog,
 };
 
 const SIGNAL_FORM: &str = include_str!("../../examples/signal-demo.form");
@@ -16,7 +19,12 @@ fn main() {
 
     let form = conduit_form::parse(SIGNAL_FORM, &signal_profile_catalog())
         .expect("portable Signal form must check");
-    let advertisement = esp32_wroom_local_advertisement();
+    let descriptor = hw463_esp_wroom_32_sample();
+    validate_esp32_descriptor(&descriptor)
+        .expect("inspected WROOM fabrication descriptor must remain valid");
+    let descriptor_binding = esp32_descriptor_binding(&descriptor)
+        .expect("inspected WROOM fabrication descriptor must have an exact binding");
+    let advertisement = esp32_wroom_build_fixture_advertisement();
     let placements =
         conduit_planner::default_placements(&form, std::slice::from_ref(&advertisement))
             .expect("WROOM offer must cover the Signal form");
@@ -32,17 +40,18 @@ fn main() {
     let fragment = plan
         .fragments
         .iter()
-        .find(|candidate| candidate.host_id.as_str() == ESP32_WROOM_LOCAL_HOST_ID)
+        .find(|candidate| candidate.host_id.as_str() == ESP32_WROOM_BUILD_FIXTURE_HOST_ID)
         .expect("WROOM plan must contain its exact fragment");
     let lowered = lower_plan_fragment(fragment).expect("WROOM fragment must lower");
     let generated = generate_embedded_plan(fragment, &lowered, image_bounds())
         .expect("WROOM fragment must fit reviewed image bounds");
 
     let out = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"));
-    fs::write(
-        out.join("signal_image.rs"),
-        generated.render_no_alloc_firmware_module(),
-    )
+    let mut module = generated.render_no_alloc_firmware_module();
+    module.push_str(&format!(
+        "\npub const GENERATED_FABRICATION_DESCRIPTOR_BINDING: &str = {descriptor_binding:?};\n"
+    ));
+    fs::write(out.join("signal_image.rs"), module)
     .expect("generated WROOM image must be writable");
 }
 

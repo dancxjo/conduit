@@ -198,10 +198,77 @@ jobs:
             test "$WORKSPACE_RESULT" = success
           fi
 
-  browser-host:
+  browser-tools:
     needs: classify
     if: always() && needs.classify.outputs.docs_only != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prove mismatched browser-tool identity refuses
+        run: |
+          bundle=$(mktemp -d)
+          trap 'rm -rf "$bundle" "${bundle}.rejected"' EXIT
+          mkdir "$bundle/debs"
+          printf 'not a package\n' > "$bundle/debs/example.deb"
+          printf '%s\n' \
+            'schema=conduit.ci.browser-tool-bundle/v1' \
+            'container=deliberately-wrong' \
+            "os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
+            "dpkg_status_sha256=$(sha256sum /var/lib/dpkg/status | cut -d' ' -f1)" \
+            > "$bundle/identity.env"
+          cp scripts/ci/browser-tools-packages.txt "$bundle/packages.txt"
+          (cd "$bundle" && sha256sum debs/example.deb > SHA256SUMS)
+          if scripts/ci/browser-tools.sh verify "$bundle" 2>refusal.log; then
+            echo 'mismatched browser-tool bundle was accepted' >&2
+            exit 1
+          fi
+          grep -Fx 'browser-tool-bundle-refused: container identity mismatch' refusal.log
+          test "$(scripts/ci/browser-tools.sh cache-status "$bundle")" = rejected
+          test ! -e "$bundle"
+          test -e "${bundle}.rejected"
+      - name: Capture the exact container package baseline
+        id: container-image
+        run: printf 'key=%s\n' "$(sha256sum /var/lib/dpkg/status | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Restore the exact browser-tool bundle
+        id: tool-cache
+        uses: actions/cache@v6
+        with:
+          path: target/browser-tools/tool-bundle
+          key: browser-tools-v1-playwright-1.62.0-noble-${{ steps.container-image.outputs.key }}-${{ hashFiles('scripts/ci/browser-tools.sh', 'scripts/ci/browser-tools-packages.txt') }}
+          restore-keys: |
+            browser-tools-v1-playwright-1.62.0-noble-${{ steps.container-image.outputs.key }}-
+      - name: Verify any restored browser-tool bundle
+        id: restored-bundle
+        run: |
+          state=$(scripts/ci/browser-tools.sh cache-status target/browser-tools/tool-bundle)
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          if test "$state" = present; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Prepare one exact browser-tool bundle
+        if: steps.restored-bundle.outputs.present != 'true'
+        run: scripts/ci/browser-tools.sh prepare target/browser-tools/tool-bundle
+      - name: Verify the restored or prepared browser-tool bundle
+        run: scripts/ci/browser-tools.sh verify target/browser-tools/tool-bundle
+      - name: Distribute the exact browser-tool bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-tools-${{ github.run_id }}
+          path: target/browser-tools/tool-bundle
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: true
+
+  browser-host:
+    needs: [classify, browser-tools]
+    if: always() && needs.classify.outputs.docs_only != 'true'
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     container:
       image: mcr.microsoft.com/playwright:v1.62.0-noble
@@ -210,9 +277,21 @@ jobs:
       NPM_CONFIG_AUDIT: "false"
       NPM_CONFIG_FUND: "false"
     steps:
+      - name: Preserve the browser-tool preparation gate
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          TOOLS_RESULT: ${{ needs.browser-tools.result }}
+        run: |
+          test "$CLASSIFY_RESULT" = success
+          test "$TOOLS_RESULT" = success
       - uses: actions/checkout@v7
-      - name: Install Rust build-script linker
-        run: apt-get update && apt-get install -y --no-install-recommends build-essential
+      - name: Receive the exact browser-tool bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: browser-tools-${{ github.run_id }}
+          path: target/browser-tools/tool-bundle
+      - name: Install the exact browser-tool bundle without mirror access
+        run: scripts/ci/browser-tools.sh install target/browser-tools/tool-bundle
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
