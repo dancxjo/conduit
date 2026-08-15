@@ -89,6 +89,45 @@ jobs:
           retention-days: 1
           compression-level: 0
 
+  conduitos-tools:
+    needs: classify
+    if: always() && needs.classify.outputs.docs_only != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prove mismatched tool identity refuses
+        run: |
+          bundle=$(mktemp -d)
+          trap 'rm -rf "$bundle"' EXIT
+          mkdir "$bundle/debs"
+          printf 'not a package\n' > "$bundle/debs/example.deb"
+          printf '%s\n' \
+            'schema=conduit.ci.conduitos-tool-bundle/v1' \
+            "image_os=$ImageOS" \
+            'image_version=deliberately-wrong' \
+            "os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
+            > "$bundle/identity.env"
+          printf '%s\n' build-essential curl ovmf-ia32 qemu-efi-aarch64 \
+            qemu-system-arm qemu-system-misc qemu-system-x86 u-boot-qemu xorriso \
+            > "$bundle/packages.txt"
+          (cd "$bundle" && sha256sum debs/example.deb > SHA256SUMS)
+          if scripts/ci/conduitos-tools.sh verify "$bundle" 2>refusal.log; then
+            echo 'mismatched bundle identity was accepted' >&2
+            exit 1
+          fi
+          grep -Fx 'conduitos-tool-bundle-refused: runner image version mismatch' refusal.log
+      - name: Prepare one exact ConduitOS tool bundle
+        run: scripts/ci/conduitos-tools.sh prepare target/conduitos/tool-bundle
+      - name: Distribute the exact ConduitOS tool bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduitos-tools-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/conduitos/tool-bundle
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
   workspace-check:
     needs: classify
     if: always() && needs.classify.outputs.docs_only != 'true'
@@ -201,9 +240,9 @@ jobs:
         run: exit 1
 
   conduitos-x86:
-    needs: [classify, conduitos-limine]
-    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success'
-    runs-on: ubuntu-latest
+    needs: [classify, conduitos-limine, conduitos-tools]
+    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
       fail-fast: false
@@ -262,8 +301,13 @@ jobs:
         with:
           name: conduitos-limine-${{ github.sha }}
           path: target/conduitos/vendor
-      - name: Install deterministic x86 image and emulator tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
+      - name: Receive the exact ConduitOS tool bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-tools-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/conduitos/tool-bundle
+      - name: Install the exact ConduitOS tool bundle without mirror access
+        run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Run ${{ matrix.proof }} proof
         env:
           PROOF_COMMAND: ${{ matrix.command }}
@@ -278,9 +322,9 @@ jobs:
           compression-level: 0
 
   conduitos-architecture:
-    needs: [classify, conduitos-limine]
-    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success'
-    runs-on: ubuntu-latest
+    needs: [classify, conduitos-limine, conduitos-tools]
+    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
       fail-fast: false
@@ -315,17 +359,22 @@ jobs:
         with:
           name: conduitos-limine-${{ github.sha }}
           path: target/conduitos/vendor
-      - name: Install deterministic architecture tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential curl xorriso qemu-system-x86 qemu-system-arm qemu-system-misc qemu-efi-aarch64 ovmf-ia32 u-boot-qemu
+      - name: Receive the exact ConduitOS tool bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-tools-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/conduitos/tool-bundle
+      - name: Install the exact ConduitOS tool bundle without mirror access
+        run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Prove ${{ matrix.architecture }} ConduitOS architecture
         env:
           PROOF_COMMAND: ${{ matrix.command }}
         run: bash -euo pipefail -c "$PROOF_COMMAND"
 
   conduitos-aarch64-product:
-    needs: [classify, conduitos-limine]
-    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success'
-    runs-on: ubuntu-latest
+    needs: [classify, conduitos-limine, conduitos-tools]
+    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
@@ -341,8 +390,13 @@ jobs:
         with:
           name: conduitos-limine-${{ github.sha }}
           path: target/conduitos/vendor
-      - name: Install deterministic AArch64 image and emulator tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential xorriso qemu-system-arm qemu-efi-aarch64
+      - name: Receive the exact ConduitOS tool bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-tools-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/conduitos/tool-bundle
+      - name: Install the exact ConduitOS tool bundle without mirror access
+        run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Build the checked AArch64 product PROFILE and prove two fresh boots
         run: |
           cargo xtask host build profiles/hosts/conduitos-aarch64-headless.profile.json \
@@ -367,7 +421,7 @@ jobs:
           compression-level: 0
 
   conduitos-boot:
-    needs: [classify, conduitos-limine, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
+    needs: [classify, conduitos-limine, conduitos-tools, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -376,6 +430,7 @@ jobs:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
           LIMINE_RESULT: ${{ needs.conduitos-limine.result }}
+          TOOLS_RESULT: ${{ needs.conduitos-tools.result }}
           X86_RESULT: ${{ needs.conduitos-x86.result }}
           ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
           AARCH64_PRODUCT_RESULT: ${{ needs.conduitos-aarch64-product.result }}
@@ -383,6 +438,7 @@ jobs:
           test "$CLASSIFY_RESULT" = success
           if test "$DOCS_ONLY" != true; then
             test "$LIMINE_RESULT" = success
+            test "$TOOLS_RESULT" = success
             test "$X86_RESULT" = success
             test "$ARCHITECTURE_RESULT" = success
             test "$AARCH64_PRODUCT_RESULT" = success
