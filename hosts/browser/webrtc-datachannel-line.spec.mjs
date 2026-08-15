@@ -286,6 +286,15 @@ test("Body grants compose one real peer with the exact shared session", async ({
     peer_boot_id: "browser-webrtc/source-boot/1",
     session_hello: hello,
   }), { negotiationId, hello });
+  await expect(right.evaluate(({ negotiationId, hello }) => (
+    window.conduitBodySessionCreateWithThrowingSignal({
+      negotiation_id: negotiationId,
+      role: "source",
+      peer_host_id: "browser-webrtc/sink",
+      peer_boot_id: "browser-webrtc/sink-boot/1",
+      session_hello: hello,
+    })
+  ), { negotiationId, hello })).rejects.toThrow("signal relay failed");
   await left.evaluate(({ negotiationId, hello }) => window.conduitBodySessionCreate({
     negotiation_id: negotiationId,
     role: "source",
@@ -352,7 +361,11 @@ test("Body grants compose one real peer with the exact shared session", async ({
   });
   await left.evaluate(() => window.conduitBodySessionClose());
   await expect.poll(() => right.evaluate(() => window.conduitBodySessionState()))
-    .toMatchObject({ sessionReady: false, terminalReason: "line-closed" });
+    .toMatchObject({
+      peerState: "closed",
+      sessionReady: false,
+      terminalReason: "line-closed",
+    });
 });
 
 test("shared session machine refuses mismatched planned and finite wire facts", async ({

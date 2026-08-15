@@ -137,6 +137,16 @@
     });
     return bodySession.state();
   };
+  window.conduitBodySessionCreateWithThrowingSignal = async (grant) => {
+    const wasmBytes = await fetch(
+      "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+    ).then((response) => response.arrayBuffer());
+    return BodyWebRtcSession.create({
+      wasmBytes,
+      grant,
+      sendSignal: () => { throw new Error("signal relay failed"); },
+    });
+  };
   window.conduitBodySessionSignals = () => bodySignals.splice(0);
   window.conduitBodySessionAccept = (frame) => bodySession.acceptSignal(frame);
   window.conduitBodySessionReady = () => bodySession.ready();

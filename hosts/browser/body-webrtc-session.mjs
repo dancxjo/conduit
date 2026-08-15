@@ -60,7 +60,14 @@ export class BodyWebRtcSession {
     });
     const runtime = await instantiateGrantedWebRtcSession(wasmBytes, exactGrant);
     const session = new BodyWebRtcSession(exactGrant, sendSignal, runtime);
-    if (role === "source") await session.#offer();
+    if (role === "source") {
+      try {
+        await session.#offer();
+      } catch (error) {
+        session.#fail("offer-refused", error);
+        throw error;
+      }
+    }
     return session;
   }
 
@@ -77,6 +84,7 @@ export class BodyWebRtcSession {
       this.#resolveReady = resolve;
       this.#rejectReady = reject;
     });
+    void this.#ready.catch(() => {});
     this.#peer.addEventListener("connectionstatechange", () => {
       if (["failed", "closed", "disconnected"].includes(this.#peer.connectionState)) {
         this.#fail(`peer-${this.#peer.connectionState}`);
@@ -193,19 +201,22 @@ export class BodyWebRtcSession {
 
   close() {
     if (this.#line === undefined) {
-      this.#peer.close();
       this.#fail("closed-before-line");
       return;
     }
     this.#line.close();
-    void this.#line.closed().then(() => this.#peer.close());
   }
 
   #fail(reason, cause) {
     if (this.#terminal !== null) return;
     this.#terminal = reason;
     this.#sessionReady = false;
-    this.#line?.close();
+    if (this.#line === undefined || this.#line.state().readyState === "closed") {
+      this.#peer.close();
+    } else {
+      this.#line.close();
+      void this.#line.closed().then(() => this.#peer.close());
+    }
     this.#rejectReady(cause ?? new Error(reason));
   }
 }
