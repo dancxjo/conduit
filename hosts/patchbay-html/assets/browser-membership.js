@@ -74,6 +74,31 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, renewPresen
   let deliberateClose = false;
   let reconnectAttempts = 0;
   let presenceEstablished = false;
+  let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
+  let freshnessProfile = Object.freeze({
+    scheduling: "best-effort-browser-event-loop",
+    availabilityAuthority: "server-session-or-lease",
+    backgroundRealtimeGuarantee: false,
+    maximumReconnectAttempts: 1,
+    sequence: 0,
+    renewAfterMillis: null,
+    serverExpiresAtMillis: null,
+  });
+  document.addEventListener("visibilitychange", (event) => {
+    if (event.isTrusted) pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
+  });
+  window.addEventListener("pagehide", (event) => {
+    if (event.isTrusted) pageLifecycle = "page-hidden";
+  });
+  window.addEventListener("pageshow", (event) => {
+    if (event.isTrusted) pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
+  });
+  document.addEventListener("freeze", (event) => {
+    if (event.isTrusted) pageLifecycle = "frozen";
+  });
+  document.addEventListener("resume", (event) => {
+    if (event.isTrusted) pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
+  });
   const setState = (next) => {
     state = next;
     onState?.(next);
@@ -151,6 +176,12 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, renewPresen
         throw new Error("presence acceptance did not match the current credential sequence");
       }
       renewalSequence = frame.sequence;
+      freshnessProfile = Object.freeze({
+        ...freshnessProfile,
+        sequence: frame.sequence,
+        renewAfterMillis: frame.renew_after_millis,
+        serverExpiresAtMillis: frame.expires_at_millis,
+      });
       presenceState = "available";
       presenceEstablished = true;
       if (returning) setState("admitted");
@@ -195,6 +226,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, renewPresen
     bootId,
     state: () => state,
     presenceState: () => presenceState,
+    pageLifecycle: () => pageLifecycle,
+    freshnessProfile: () => freshnessProfile,
     close: () => {
       deliberateClose = true;
       socket.close(1000, "Patchbay browser Host leaving");
