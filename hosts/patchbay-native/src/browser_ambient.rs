@@ -43,6 +43,11 @@ pub(super) struct AmbientProofArrival {
     proof: AmbientAdmissionProof,
 }
 
+pub(super) struct AdmittedAmbientBrowser {
+    pub(super) socket: BrowserAdmissionSocket,
+    pub(super) credential: conduit_body::MembershipCredential,
+}
+
 impl AmbientBrowserCoordinator {
     pub(super) fn start(body_id: BodyId) -> Result<(Self, String), String> {
         let manager = AdmissionManager::new(body_id.clone()).map_err(debug("manager"))?;
@@ -156,7 +161,7 @@ impl AmbientBrowserCoordinator {
         membership: &mut BodyMembership,
         now_millis: u64,
         signs: AdmissionSigns,
-    ) -> Result<conduit_body::MembershipCredential, String> {
+    ) -> Result<AdmittedAmbientBrowser, String> {
         let mut socket = arrival.socket;
         match self.manager.complete_ambient(
             inventory,
@@ -172,7 +177,7 @@ impl AmbientBrowserCoordinator {
                         credential: credential.clone(),
                     })
                     .map_err(debug("send admission"))?;
-                Ok(credential)
+                Ok(AdmittedAmbientBrowser { socket, credential })
             }
             Err(refusal) => {
                 let _ = socket.send(&BrowserAdmissionEgress::Refused {
@@ -308,7 +313,7 @@ mod tests {
     use std::time::{Duration, Instant};
 
     #[test]
-    fn ambient_page_stays_candidate_until_explicit_admit_completes_exact_proof() {
+    fn ambient_page_admits_then_live_owner_projects_session_loss_offline() {
         let body_id = conduit_body::Body::born(
             SourceDocumentId::from("source/native-ambient-test"),
             CheckedFormId::from("checked/native-ambient-test"),
@@ -377,7 +382,29 @@ mod tests {
             let bytes = serde_json::to_vec(&proof).unwrap();
             line.send_binary(&bytes).unwrap();
             let length = line.receive_binary(&mut encoded).unwrap();
-            serde_json::from_slice::<BrowserAdmissionEgress>(&encoded[..length]).unwrap()
+            let admitted =
+                serde_json::from_slice::<BrowserAdmissionEgress>(&encoded[..length]).unwrap();
+            let length = line.receive_binary(&mut encoded).unwrap();
+            let initial_presence =
+                serde_json::from_slice::<BrowserAdmissionEgress>(&encoded[..length]).unwrap();
+            let BrowserAdmissionEgress::Admitted { credential, .. } = &admitted else {
+                panic!("admission credential was not returned");
+            };
+            let renewal = BrowserAdmissionIngress::PresenceRenewal {
+                protocol: BROWSER_ADMISSION_PROTOCOL,
+                credential_id: credential.credential_id.clone(),
+                body_id: credential.body_id.clone(),
+                part_id: credential.part_id.clone(),
+                host_id: credential.host_id.clone(),
+                boot_id: credential.boot_id.clone(),
+                sequence: 2,
+            };
+            line.send_binary(&serde_json::to_vec(&renewal).unwrap())
+                .unwrap();
+            let length = line.receive_binary(&mut encoded).unwrap();
+            let renewed_presence =
+                serde_json::from_slice::<BrowserAdmissionEgress>(&encoded[..length]).unwrap();
+            (admitted, initial_presence, renewed_presence)
         });
 
         let mut inventory = CandidateInventory::new(body_id.clone()).unwrap();
@@ -412,7 +439,7 @@ mod tests {
             assert!(Instant::now() < deadline, "proof did not arrive");
             std::thread::yield_now();
         };
-        let credential = coordinator
+        let admitted = coordinator
             .complete(
                 arrival,
                 &mut inventory,
@@ -426,10 +453,56 @@ mod tests {
             )
             .unwrap();
         assert_eq!(membership.parts.len(), 1);
-        assert_eq!(membership.parts[0].part_id, credential.part_id);
+        assert_eq!(membership.parts[0].part_id, admitted.credential.part_id);
+        let part_id = admitted.credential.part_id.clone();
+        let mut presence = super::super::browser_presence::BrowserPresenceCoordinator::new(
+            membership.body_id.clone(),
+        );
+        presence
+            .register(admitted.socket, admitted.credential, &mut membership)
+            .unwrap();
+        let admitted_revision = membership.revision;
+        loop {
+            if presence.poll(&mut membership).unwrap().is_some() {
+                break;
+            }
+            assert!(Instant::now() < deadline, "renewal was not observed");
+            std::thread::yield_now();
+        }
+        assert_eq!(membership.revision, admitted_revision);
+        assert_eq!(presence.table().leases[0].sequence, 2);
+        let (admitted_frame, presence_frame, renewed_frame) = client.join().unwrap();
         assert!(matches!(
-            client.join().unwrap(),
+            admitted_frame,
             BrowserAdmissionEgress::Admitted { .. }
+        ));
+        assert!(matches!(
+            presence_frame,
+            BrowserAdmissionEgress::PresenceAccepted { sequence: 1, .. }
+        ));
+        assert!(matches!(
+            renewed_frame,
+            BrowserAdmissionEgress::PresenceAccepted { sequence: 2, .. }
+        ));
+        let offline = loop {
+            if let Some(message) = presence.poll(&mut membership).unwrap() {
+                break message;
+            }
+            assert!(Instant::now() < deadline, "session loss was not observed");
+            std::thread::yield_now();
+        };
+        assert!(offline.contains("durable membership remains"));
+        assert!(membership.parts[0].current.is_none());
+        let lease = presence
+            .table()
+            .leases
+            .iter()
+            .find(|lease| lease.part_id == part_id)
+            .unwrap();
+        assert_eq!(lease.state, conduit_body::HostPresenceState::Unavailable);
+        assert!(matches!(
+            presence.table().events.last().unwrap().kind,
+            conduit_body::HostPresenceEventKind::SessionLost
         ));
     }
 }

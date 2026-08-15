@@ -16,6 +16,7 @@ mod application_init;
 mod arguments;
 mod browser_ambient;
 mod browser_parts;
+mod browser_presence;
 mod build_birth;
 mod canvas;
 mod canvas_input;
