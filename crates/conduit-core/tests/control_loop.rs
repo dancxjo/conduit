@@ -197,6 +197,7 @@ fn unavailable_host_must_be_exactly_sealed_by_the_same_plan() {
             offer_generation: conduit_core::OfferGeneration(4),
             placements: vec![],
             execution_regions: vec![],
+            execution_fusions: vec![],
             connections: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![],
