@@ -108,9 +108,7 @@ jobs:
             'image_version=deliberately-wrong' \
             "os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
             > "$bundle/identity.env"
-          printf '%s\n' build-essential curl ovmf-ia32 qemu-efi-aarch64 \
-            qemu-system-arm qemu-system-misc qemu-system-x86 u-boot-qemu xorriso \
-            > "$bundle/packages.txt"
+          cp scripts/ci/conduitos-tools-packages.txt "$bundle/packages.txt"
           (cd "$bundle" && sha256sum debs/example.deb > SHA256SUMS)
           if scripts/ci/conduitos-tools.sh verify "$bundle" 2>refusal.log; then
             echo 'mismatched bundle identity was accepted' >&2
@@ -125,9 +123,20 @@ jobs:
         uses: actions/cache@v6
         with:
           path: target/conduitos/tool-bundle
-          key: conduitos-tools-v1-${{ steps.runner-image.outputs.key }}-${{ hashFiles('scripts/ci/conduitos-tools.sh') }}
+          key: conduitos-tools-v1-${{ steps.runner-image.outputs.key }}-${{ hashFiles('scripts/ci/conduitos-tools-packages.txt') }}
+          restore-keys: |
+            conduitos-tools-v1-${{ steps.runner-image.outputs.key }}-
+      - name: Verify any restored ConduitOS tool bundle
+        id: restored-bundle
+        run: |
+          if test -e target/conduitos/tool-bundle; then
+            scripts/ci/conduitos-tools.sh verify target/conduitos/tool-bundle
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+          fi
       - name: Prepare one exact ConduitOS tool bundle
-        if: steps.tool-cache.outputs.cache-hit != 'true'
+        if: steps.restored-bundle.outputs.present != 'true'
         run: scripts/ci/conduitos-tools.sh prepare target/conduitos/tool-bundle
       - name: Verify the restored or prepared tool bundle
         run: scripts/ci/conduitos-tools.sh verify target/conduitos/tool-bundle

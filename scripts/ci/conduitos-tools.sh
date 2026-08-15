@@ -2,17 +2,14 @@
 set -euo pipefail
 
 readonly schema='conduit.ci.conduitos-tool-bundle/v1'
-readonly packages=(
-  build-essential
-  curl
-  ovmf-ia32
-  qemu-efi-aarch64
-  qemu-system-arm
-  qemu-system-misc
-  qemu-system-x86
-  u-boot-qemu
-  xorriso
-)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+readonly script_dir
+readonly package_manifest="$script_dir/conduitos-tools-packages.txt"
+mapfile -t packages < "$package_manifest"
+test "${#packages[@]}" -gt 0 || {
+  printf 'conduitos-tool-bundle-refused: package manifest is empty\n' >&2
+  exit 1
+}
 
 refuse() {
   printf 'conduitos-tool-bundle-refused: %s\n' "$1" >&2
@@ -99,7 +96,8 @@ install_bundle() {
   verify_bundle "$bundle"
   if ! (
     cd "$bundle/debs"
-    sudo apt-get install -y --no-download --no-install-recommends ./*.deb
+    sudo dpkg --install ./*.deb
+    sudo dpkg --audit
   ); then
     refuse 'offline package installation failed'
   fi
