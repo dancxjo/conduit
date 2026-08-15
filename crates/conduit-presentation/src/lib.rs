@@ -12,6 +12,7 @@ mod manifestation;
 mod manifestation_set;
 mod presentation;
 mod semantics;
+mod temporal;
 
 pub use composition::*;
 pub use contract::*;
@@ -22,3 +23,4 @@ pub use manifestation::*;
 pub use manifestation_set::*;
 pub use presentation::*;
 pub use semantics::*;
+pub use temporal::*;

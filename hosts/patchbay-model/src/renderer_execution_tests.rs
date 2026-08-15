@@ -1,6 +1,8 @@
 use conduit_core::{verify_plan, BootId, ConnectionBase, HostId, SignId};
 use conduit_presentation::{
     render_linear_presentation, ManifestationError, ManifestationFailure, ManifestationLifecycle,
+    Presentation, PresentationTemporalFact, PresentationTemporalRole, TemporalInstant,
+    TemporalReference, TemporalScale,
 };
 
 use crate::{
@@ -104,7 +106,70 @@ fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
     )
     .unwrap();
     session.plan_and_play().unwrap();
-    let presentation = session.project().unwrap().presentation;
+    let projected = session.project().unwrap().presentation;
+    let reference = TemporalReference {
+        identity: "reference/conformance-now".into(),
+        instant: TemporalInstant {
+            ticks: 100,
+            scale: TemporalScale::Milliseconds,
+            clock_basis: "clock/conformance".into(),
+            resolution_ticks: 1,
+            uncertainty_ticks: 1,
+        },
+    };
+    let temporal_fact = PresentationTemporalFact::new(
+        projected.subjects[0].identity.clone(),
+        PresentationTemporalRole::Observation,
+        None,
+        TemporalInstant {
+            ticks: 80,
+            scale: TemporalScale::Milliseconds,
+            clock_basis: "clock/conformance".into(),
+            resolution_ticks: 1,
+            uncertainty_ticks: 2,
+        },
+        &reference,
+    )
+    .unwrap();
+    let presentation = Presentation::new_with_semantics_and_temporal(
+        projected.revision,
+        projected.basis,
+        projected.subjects,
+        projected.relationships,
+        projected.properties,
+        projected.text,
+        projected.actions,
+        projected.disclosures,
+        vec![reference.clone()],
+        vec![temporal_fact.clone()],
+    )
+    .unwrap();
+    let mut legacy = serde_json::to_value(
+        Presentation::new_with_semantics(
+            presentation.revision,
+            presentation.basis.clone(),
+            presentation.subjects.clone(),
+            presentation.relationships.clone(),
+            presentation.properties.clone(),
+            presentation.text.clone(),
+            presentation.actions.clone(),
+            presentation.disclosures.clone(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let legacy_object = legacy.as_object_mut().unwrap();
+    legacy_object.remove("temporal_references");
+    legacy_object.remove("temporal_facts");
+    let legacy: Presentation = serde_json::from_value(legacy).unwrap();
+    legacy.validate().unwrap();
+    assert!(legacy.temporal_references.is_empty() && legacy.temporal_facts.is_empty());
+    let native_entrance = PatchbayEntranceState::enter(&presentation).unwrap();
+    let browser_entrance = PatchbayEntranceState::enter(&presentation).unwrap();
+    let equivalence =
+        compare_entrances(&presentation, &native_entrance, &browser_entrance).unwrap();
+    assert_eq!(equivalence.temporal_references, vec![reference.clone()]);
+    assert_eq!(equivalence.temporal_facts, vec![temporal_fact.clone()]);
     let native = RendererExecution::prepare(
         presentation.clone(),
         RendererAdapterKind::NativeWayland,
@@ -130,9 +195,16 @@ fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
         assert_eq!(realized.text, presentation.text);
         assert_eq!(realized.actions, presentation.actions);
         assert_eq!(realized.disclosures, presentation.disclosures);
+        assert_eq!(
+            realized.temporal_references,
+            presentation.temporal_references
+        );
+        assert_eq!(realized.temporal_facts, presentation.temporal_facts);
     }
     assert_eq!(linear.presentation_id, presentation.identity);
     assert_eq!(linear.revision, presentation.revision);
+    assert_eq!(presentation.temporal_references, vec![reference]);
+    assert_eq!(presentation.temporal_facts, vec![temporal_fact]);
 
     let records = linear.lines.join("\n");
     for subject in &presentation.subjects {
@@ -198,6 +270,8 @@ fn native_and_browser_share_selection_actions_and_layers_without_renderer_identi
         .subjects
         .iter()
         .any(|subject| subject.role == conduit_presentation::PresentationRole::Play));
+    assert!(report.temporal_references.is_empty());
+    assert!(report.temporal_facts.is_empty());
     let encoded = serde_json::to_string(&report).unwrap();
     assert!(!encoded.contains("dom") && !encoded.contains("window") && !encoded.contains("pixel"));
 
