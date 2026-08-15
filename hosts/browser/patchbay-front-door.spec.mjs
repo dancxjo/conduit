@@ -21,7 +21,7 @@ function startPublicEntrance() {
       reject(new Error(`public Patchbay entrance exited ${code}: ${errors.join("")}`));
     });
   });
-  return { child, lines, url };
+  return { child, errors, lines, url };
 }
 
 test("public browser entrance stays unbodied until OPEN then explicit BE BORN", async ({ browser, page }) => {
@@ -120,6 +120,8 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       action_id: beBornAction.identity,
     });
     const birthResponse = await birthRequest.response();
+    expect(birthRequest.failure(), server.errors.join("")).toBeNull();
+    expect(birthResponse, server.errors.join("")).not.toBeNull();
     expect(birthResponse.ok()).toBe(true);
     await expect(page.getByRole("heading", { name: "Live Body topology" })).toBeVisible();
     const born = await (await fetch(`${url}/api/snapshot`)).json();
