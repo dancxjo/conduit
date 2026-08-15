@@ -114,7 +114,7 @@ function moveSeedFocus(event){
 }
 
 async function dispatchEntranceTransition(action,subject){
-  const response=await fetch("/api/front-door-transition",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,revision:state.snapshot.revision,action:action==="BeBorn"?"be-born":action.toLowerCase(),subject})});
+  const response=await fetch("/api/front-door-transition",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,revision:state.snapshot.revision,action:action==="Birth"?"birth":action.toLowerCase(),subject})});
   if(!response.ok)throw new Error(`front-door transition HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
 }

@@ -233,7 +233,7 @@ fn native_build_mode_drives_explicit_birth_wake_plan_play_and_lull() {
 
     let build = application.presentation_lines().join("\n");
     assert!(build.contains("SEED current=0 saved=0 checked=0 last-born=not-present"));
-    assert!(build.contains("BODY not born — action: BE BORN"));
+    assert!(build.contains("BODY not born — action: BIRTH"));
     assert!(build.contains("kind=text/upper"));
     assert!(build.contains("info=value/text@1"));
 
@@ -309,15 +309,15 @@ fn contextual_lifecycle_flow_exposes_only_exact_actions_and_refuses_invalid_acce
             assert!(flow.actions.len() <= crate::lifecycle_flow::MAX_LIFECYCLE_ACTIONS);
         };
 
-    assert_actions(&application, "FORM_CHECKED", &[PatchbayAction::BeBorn]);
+    assert_actions(&application, "FORM_CHECKED", &[PatchbayAction::Birth]);
     application
-        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::BeBorn))
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Birth))
         .unwrap();
     assert_actions(&application, "BODY_LULLED", &[PatchbayAction::Wake]);
 
     // The invalid accelerator still executes one typed interaction and is a refusal, not exit.
     application
-        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::BeBorn))
+        .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Birth))
         .unwrap();
     let refusal = application.interaction_status.current().unwrap();
     assert_eq!(

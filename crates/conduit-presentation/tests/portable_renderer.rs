@@ -267,6 +267,40 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
     )
     .is_ok());
 
+    let mut birthed_lulled = valid.basis.clone();
+    birthed_lulled.wake_id = None;
+    birthed_lulled.plan_id = None;
+    birthed_lulled.active_play_id = None;
+    assert!(Presentation::new(
+        valid.revision,
+        birthed_lulled,
+        valid.subjects.clone(),
+        valid.relationships.clone(),
+        valid.properties.clone(),
+        valid.text.clone(),
+    )
+    .is_ok());
+
+    let mut disembodied_wake = valid.basis.clone();
+    disembodied_wake.seed_id = None;
+    disembodied_wake.body_id = None;
+    disembodied_wake.source_document_id = None;
+    disembodied_wake.checked_form_id = None;
+    disembodied_wake.expanded_form_id = None;
+    disembodied_wake.plan_id = None;
+    disembodied_wake.active_play_id = None;
+    assert_eq!(
+        Presentation::new(
+            valid.revision,
+            disembodied_wake,
+            valid.subjects.clone(),
+            valid.relationships.clone(),
+            valid.properties.clone(),
+            valid.text.clone(),
+        ),
+        Err(PresentationError::InvalidBasis)
+    );
+
     let oversized_text = (0..513)
         .map(|_| PresentationText {
             subject: "patchbay/form".into(),

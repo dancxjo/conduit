@@ -119,7 +119,7 @@ impl PatchbayHtmlServer {
         let mut prepared_front_door = None;
         let mut prepared_zero_body = None;
         let prepared_outcome = match requested_action {
-            Some(PatchbayAction::Plan | PatchbayAction::Play)
+            Some(PatchbayAction::Wake | PatchbayAction::Plan | PatchbayAction::Play)
                 if !stale_presentation
                     && matches!(
                         &request,
@@ -135,10 +135,11 @@ impl PatchbayHtmlServer {
                             return PatchbayInvocationOutcome::Failed;
                         };
                         let mut candidate = session.clone();
-                        let result = if requested_action == Some(PatchbayAction::Plan) {
-                            candidate.plan_form().map(|_| ())
-                        } else {
-                            candidate.play_plan().map(|_| ())
+                        let result = match requested_action {
+                            Some(PatchbayAction::Wake) => candidate.wake_body().map(|_| ()),
+                            Some(PatchbayAction::Plan) => candidate.plan_form().map(|_| ()),
+                            Some(PatchbayAction::Play) => candidate.play_plan().map(|_| ()),
+                            _ => unreachable!("guard restricts lifecycle action"),
                         };
                         match result {
                             Ok(()) => {
@@ -152,7 +153,7 @@ impl PatchbayHtmlServer {
                     },
                 )
             }
-            Some(PatchbayAction::OpenBack | PatchbayAction::BeBorn) if !stale_presentation => {
+            Some(PatchbayAction::OpenBack | PatchbayAction::Birth) if !stale_presentation => {
                 self.zero_body_front_door.as_ref().map_or(
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
                     |session| {
@@ -162,12 +163,12 @@ impl PatchbayHtmlServer {
                         let mut candidate = session.clone();
                         match &request {
                             PatchbayInteractionRequest::Invoke { invocation, .. } => {
-                                let result = if invocation.action == PatchbayAction::BeBorn {
-                                    candidate.be_born(invocation.presentation_revision).map(
-                                        |born| {
+                                let result = if invocation.action == PatchbayAction::Birth {
+                                    candidate
+                                        .birth(invocation.presentation_revision)
+                                        .map(|born| {
                                             prepared_front_door = Some(born);
-                                        },
-                                    )
+                                        })
                                 } else {
                                     candidate
                                         .open_subject(
@@ -195,7 +196,7 @@ impl PatchbayHtmlServer {
         let receipt = self
             .interaction
             .execute_presentation(&presentation, request, |request| match request {
-                PatchbayInteractionRequest::Invoke { invocation, .. } if stale_presentation => {
+                PatchbayInteractionRequest::Invoke { .. } if stale_presentation => {
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
                 }
                 PatchbayInteractionRequest::Invoke { invocation, .. }
@@ -207,7 +208,8 @@ impl PatchbayHtmlServer {
                     if matches!(
                         invocation.action,
                         PatchbayAction::OpenBack
-                            | PatchbayAction::BeBorn
+                            | PatchbayAction::Birth
+                            | PatchbayAction::Wake
                             | PatchbayAction::Plan
                             | PatchbayAction::Play
                     ) =>

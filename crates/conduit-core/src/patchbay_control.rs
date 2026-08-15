@@ -9,7 +9,7 @@ pub enum PatchbayAction {
     OpenBack,
     Save,
     ToggleLinearView,
-    BeBorn,
+    Birth,
     Wake,
     Lull,
     Plan,
@@ -31,7 +31,7 @@ impl PatchbayAction {
             Self::OpenBack => "open-back",
             Self::Save => "save",
             Self::ToggleLinearView => "toggle-linear-view",
-            Self::BeBorn => "be-born",
+            Self::Birth => "birth",
             Self::Wake => "wake",
             Self::Lull => "lull",
             Self::Plan => "plan",
@@ -53,7 +53,7 @@ impl PatchbayAction {
             "open-back" => Self::OpenBack,
             "save" => Self::Save,
             "toggle-linear-view" => Self::ToggleLinearView,
-            "be-born" => Self::BeBorn,
+            "birth" => Self::Birth,
             "wake" => Self::Wake,
             "lull" => Self::Lull,
             "plan" => Self::Plan,
@@ -76,7 +76,7 @@ impl PatchbayAction {
             Self::OpenBack => "conduit.intent/open@1",
             Self::Save => "conduit.intent/save@1",
             Self::ToggleLinearView => "conduit.intent/toggle-linear-view@1",
-            Self::BeBorn => "conduit.intent/be-born@1",
+            Self::Birth => "conduit.intent/birth@1",
             Self::Wake => "conduit.intent/wake@1",
             Self::Lull => "conduit.intent/lull@1",
             Self::Plan => "conduit.intent/plan@1",
@@ -152,7 +152,7 @@ mod tests {
     fn portable_request_is_bounded_and_round_trips_every_action_name() {
         for action in [
             PatchbayAction::OpenBack,
-            PatchbayAction::BeBorn,
+            PatchbayAction::Birth,
             PatchbayAction::Wake,
             PatchbayAction::Plan,
             PatchbayAction::Play,
@@ -170,6 +170,8 @@ mod tests {
             )
             .is_ok());
         }
+        assert_eq!(PatchbayAction::from_name("be-born"), None);
+        assert_eq!(PatchbayAction::from_name("be_born"), None);
         assert!(PatchbayControlRequest::new(
             "",
             "presentation",

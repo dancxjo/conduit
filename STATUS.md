@@ -1979,9 +1979,9 @@ grants authority. Action, availability, reason, and disclosure mutations enter
 the Presentation content identity; geometry, gesture, key, DOM, and renderer
 facts remain absent.
 
-The checked zero-Body Patchbay and ConduitOS front doors present OPEN and BE
-BORN as distinct actions over the same Seed. OPEN is available for inert
-inspection. BE BORN remains visible and unavailable with
+The checked zero-Body Patchbay and ConduitOS front doors present OPEN and
+BIRTH as distinct actions over the same Seed. OPEN is available for inert
+inspection. BIRTH remains visible and unavailable with
 `authority/not-admitted` when the entrance has no admitted authority to create
 a Body. Native and browser Manifestations retain the exact semantic records;
 the deterministic linear Presenter emits those same records for the AArch64
@@ -1991,7 +1991,7 @@ refused action all fail closed without runtime mutation.
 
 This is deterministic and hosted/emulated software evidence. Human enactment
 for #1193 remains pending until a person records that the zero-Body entrance
-makes the Seed, distinct OPEN and BE BORN actions, unavailable reason, and
+makes the Seed, distinct OPEN and BIRTH actions, unavailable reason, and
 inspection-only exact identities understandable. Automated browser evidence
 and coding-agent inspection do not satisfy that human claim. This slice adds
 no gesture binding, layout, action execution engine, authority source, Text

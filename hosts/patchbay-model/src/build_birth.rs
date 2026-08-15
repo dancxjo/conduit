@@ -347,7 +347,7 @@ fn append_form_lines(
     lines: &mut Vec<String>,
 ) -> Result<(), BuildBirthError> {
     let Ok(checked) = current_checked(view) else {
-        lines.push("FORM unchecked — BE BORN unavailable".into());
+        lines.push("FORM unchecked — BIRTH unavailable".into());
         return Ok(());
     };
     for form in &checked.forms {
@@ -419,7 +419,7 @@ fn append_lifecycle_lines(
     lines: &mut Vec<String>,
 ) {
     let Some(body) = body else {
-        lines.push("BODY not born — action: BE BORN".into());
+        lines.push("BODY not born — action: BIRTH".into());
         return;
     };
     lines.push(format!(

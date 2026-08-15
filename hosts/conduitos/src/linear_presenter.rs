@@ -211,7 +211,7 @@ mod tests {
                 .presentation
                 .lines
                 .iter()
-                .any(|line| line.contains("intent=\"conduit.intent/be-born@1\"")
+                .any(|line| line.contains("intent=\"conduit.intent/birth@1\"")
                     && line.contains("unavailable"))
         );
         assert!(matches!(

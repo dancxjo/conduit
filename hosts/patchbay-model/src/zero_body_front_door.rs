@@ -187,7 +187,7 @@ impl ZeroBodyFrontDoor {
             "Patchbay entrance specimen",
             "patchbay-front-door.conduit",
             include_str!("../../../examples/patchbay-front-door.conduit"),
-            "repository example; opening is inert and BE BORN remains explicit",
+            "repository example; opening is inert and BIRTH remains explicit",
             SignId::from("patchbay/front-door/seed-available"),
             1,
         )?;
@@ -334,17 +334,14 @@ impl ZeroBodyFrontDoor {
         LocalFrontDoor::join_existing(self.model, candidate, self.revision)
     }
 
-    pub fn be_born(self, revision: u64) -> Result<LocalFrontDoor, String> {
+    pub fn birth(self, revision: u64) -> Result<LocalFrontDoor, String> {
         self.require_revision(revision)?;
         let OpenedFrontDoorSubject::Seed {
             seed_id,
             observed_at,
-        } = self
-            .opened
-            .clone()
-            .ok_or("BE BORN requires an opened Seed")?
+        } = self.opened.clone().ok_or("BIRTH requires an opened Seed")?
         else {
-            return Err("BE BORN requires an opened Seed".into());
+            return Err("BIRTH requires an opened Seed".into());
         };
         let seed = self
             .seeds

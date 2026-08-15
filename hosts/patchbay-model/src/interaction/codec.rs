@@ -180,7 +180,7 @@ fn action_from_intent(intent: &str) -> Option<PatchbayAction> {
         "conduit.intent/open@1" => PatchbayAction::OpenBack,
         "conduit.intent/save@1" => PatchbayAction::Save,
         "conduit.intent/toggle-linear-view@1" => PatchbayAction::ToggleLinearView,
-        "conduit.intent/be-born@1" => PatchbayAction::BeBorn,
+        "conduit.intent/birth@1" => PatchbayAction::Birth,
         "conduit.intent/wake@1" => PatchbayAction::Wake,
         "conduit.intent/lull@1" => PatchbayAction::Lull,
         "conduit.intent/plan@1" => PatchbayAction::Plan,

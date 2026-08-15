@@ -1,4 +1,4 @@
-//! Explicit zero-Body OPEN, JOIN, and BE BORN delivery actions.
+//! Explicit zero-Body OPEN, JOIN, and BIRTH delivery actions.
 
 use super::{PatchbayHtmlServer, ServerError};
 use serde::Deserialize;
@@ -55,7 +55,7 @@ impl PatchbayHtmlServer {
                 result.map(|_| None)
             }
             "join" => candidate.join_open_body(input.revision).map(Some),
-            "be-born" => candidate.be_born(input.revision).map(Some),
+            "birth" => candidate.birth(input.revision).map(Some),
             _ => return Err(ServerError::InvalidRequest),
         };
         match result {
@@ -97,7 +97,7 @@ mod tests {
     }
 
     #[test]
-    fn html_open_seed_is_inert_then_explicit_be_born_establishes_body() {
+    fn html_open_seed_is_inert_then_explicit_birth_establishes_body() {
         let explicit = patchbay_model::SeedCandidate::from_source(
             "Text Lab",
             "text-lab.conduit",
@@ -135,7 +135,7 @@ mod tests {
         let stale = serde_json::to_vec(&serde_json::json!({
             "presentation_id": opened.presentation.identity.as_str(),
             "revision": opened.revision - 1,
-            "action": "be-born",
+            "action": "birth",
             "subject": seed,
         }))
         .unwrap();
@@ -150,15 +150,15 @@ mod tests {
             subject.role == PresentationRole::Sign && subject.label == "Refused StalePresentation"
         }));
 
-        let be_born = server
+        let birth = server
             .snapshot
             .presentation
             .actions
             .iter()
-            .find(|action| action.target == seed && action.intent == "conduit.intent/be-born@1")
+            .find(|action| action.target == seed && action.intent == "conduit.intent/birth@1")
             .unwrap();
         assert_eq!(
-            be_born.availability,
+            birth.availability,
             conduit_presentation::PresentationActionAvailability::Available
         );
         let born = serde_json::to_vec(&serde_json::json!({
@@ -166,7 +166,7 @@ mod tests {
             "presentation_revision": server.snapshot.presentation.revision,
             "kind": "invoke",
             "subject": null,
-            "action_id": be_born.identity,
+            "action_id": birth.identity,
             "edit": null,
         }))
         .unwrap();

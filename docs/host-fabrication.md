@@ -6,7 +6,7 @@
 Conduit has two orthogonal construction paths:
 
 ```text
-SEED ── BORN ──> BODY
+SEED ── BIRTH ──> BODY
 PROFILE ── BUILD ──> IMAGE
 ```
 
@@ -15,16 +15,19 @@ The words name different kinds of truth. They are not parallel aliases.
 ## Meaning becomes living
 
 - **SEED** is dormant semantic material that can be opened and inspected.
-- **BORN** is the explicit Body transition and its bounded Sign.
+- **BIRTH** is the explicit human-authorized action that creates a Body.
+- the **birth Sign/event** is the bounded evidence that the action succeeded.
 - **BODY** is the resulting living semantic identity, potentially realized by
   several Parts and Hosts.
 
 `OPEN SEED` is inert. It does not admit membership, issue authority, start a
-Play, or cause platform effects. `BE BORN` is the explicit transition. Public
-Conduit UI, command, schema, and evidence labels use **BORN**, not `birth`, for
-that transition. Conventional internal Rust method and field names may use
-`born` or `birth_sequence` where grammar requires them; they do not define a
-competing public noun.
+Play, or cause platform effects. `BIRTH` is explicit, attributable operator
+authority; it consumes the exact opened checked Seed, creates a durable Body
+identity and originating Part, and leaves the Body LULLED. BIRTH does not
+implicitly Wake, Plan, or Play. Public Conduit UI, command, schema, and action
+labels use **BIRTH**. Conventional past-tense prose and internal event fields
+may use `born`, `birthed`, or `birth_sequence`; those name resulting state or
+evidence, not a competing action.
 
 ## Machinery becomes concrete
 
@@ -49,7 +52,7 @@ The following identities never substitute for one another:
 SeedId                 ProfileId
 source / Form identity BuildId
 BodyId                 ImageId / ArtifactId
-Born Sign              build receipt
+birth Sign             build receipt
                        HostId
                        BootId
                        OfferGeneration

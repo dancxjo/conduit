@@ -478,7 +478,7 @@ mod tests {
                 .any(|action| action.intent == "conduit.intent/open@1")
         );
         assert!(presentation.actions.iter().any(|action| {
-            action.intent == "conduit.intent/be-born@1"
+            action.intent == "conduit.intent/birth@1"
                 && matches!(
                     action.availability,
                     conduit_presentation::PresentationActionAvailability::Unavailable { .. }
@@ -518,7 +518,7 @@ mod tests {
             Err(Error::StaleAction)
         );
         assert_eq!(
-            door.resolve_action(conduit_core::PatchbayAction::BeBorn, door.revision()),
+            door.resolve_action(conduit_core::PatchbayAction::Birth, door.revision()),
             Err(Error::ActionUnavailable)
         );
         door.revision = u64::MAX;

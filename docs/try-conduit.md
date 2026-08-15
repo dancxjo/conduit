@@ -51,7 +51,7 @@ just browser   # cargo xtask demo patchbay --on browser
 The native command opens a real window. The browser command prints the URL of
 the loopback HTML entrance. Both begin with this Host and `BODY: NONE`, then
 show bounded Body candidates and openable Seeds without granting membership or
-birthing anything. `OPEN` is inspection-only; explicit `JOIN` or `BE BORN`
+birthing anything. `OPEN` is inspection-only; explicit `JOIN` or `BIRTH`
 establishes the current Body. The embodied view then exposes canonical Parts,
 truthful Lines, the checked/expanded Form, and—after explicit actions—its
 immutable Plan and active Play. Selection is semantic, can be cleared back to a
@@ -65,7 +65,7 @@ cargo xtask prove patchbay-front-door
 ```
 
 That one proof runs the zero-Body semantic equivalence oracle, the native
-manifestation, explicit OPEN and BE BORN through one pinned Chromium front
+manifestation, explicit OPEN and BIRTH through one pinned Chromium front
 door, and the post-transition authenticated live browser Part regression. It
 retains digest-bound JSON for exact Body, Wake, Form, Plan, Play, presentation,
 Part, Host/Boot, Sign, and Manifestation outcomes.

@@ -18,7 +18,7 @@ pub enum EntranceAction {
     Inspect,
     Open,
     Join,
-    BeBorn,
+    Birth,
     OpenForms,
     Admit,
     Refuse,
@@ -236,7 +236,7 @@ fn actions_for(presentation: &Presentation, identity: Option<&str>) -> Vec<Entra
         Some(PresentationRole::Seed)
             if identity.is_some_and(|identity| property_flag(presentation, identity, "opened")) =>
         {
-            &[EntranceAction::Inspect, EntranceAction::BeBorn]
+            &[EntranceAction::Inspect, EntranceAction::Birth]
         }
         Some(PresentationRole::Seed) => &[EntranceAction::Inspect, EntranceAction::Open],
         Some(PresentationRole::Candidate) => &[

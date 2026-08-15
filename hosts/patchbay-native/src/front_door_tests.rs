@@ -36,7 +36,7 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
     let ordinary = application.presentation_lines().join("\n");
     assert!(ordinary.contains("Seed  Patchbay entrance specimen"));
     assert!(ordinary.contains("OPEN  ·  AVAILABLE"));
-    assert!(ordinary.contains("BE BORN  ·  UNAVAILABLE — No admitted authority"));
+    assert!(ordinary.contains("BIRTH  ·  UNAVAILABLE — No admitted authority"));
     assert!(!ordinary.contains(presentation.identity.as_str()));
     assert!(!ordinary.contains("source-document-id"));
 }

@@ -62,7 +62,7 @@ fn front_door(journey: &ProductJourney) -> crate::front_door::FrontDoor {
 fn target(journey: &ProductJourney, action: JourneyAction) -> String {
     let projection = journey.projection();
     match action {
-        JourneyAction::OpenBack | JourneyAction::BeBorn => {
+        JourneyAction::OpenBack | JourneyAction::Birth => {
             format!("seed/{}", projection.seed_id.as_str())
         }
         JourneyAction::Wake
@@ -103,7 +103,7 @@ fn assert_current_action(front_door: &crate::front_door::FrontDoor, action: Jour
 fn reach_playing(journey: &mut ProductJourney, identities: &BootIdentities, offer: &HostOffer<'_>) {
     for action in [
         JourneyAction::OpenBack,
-        JourneyAction::BeBorn,
+        JourneyAction::Birth,
         JourneyAction::Wake,
         JourneyAction::Plan,
         JourneyAction::Play,
@@ -125,9 +125,9 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert_eq!(opened.seed_id, initial.seed_id);
     front_door.observe_journey(opened.clone()).unwrap();
     assert!(front_door.presentation().unwrap().basis.body_id.is_none());
-    assert_current_action(&front_door, JourneyAction::BeBorn);
+    assert_current_action(&front_door, JourneyAction::Birth);
 
-    invoke(&mut journey, JourneyAction::BeBorn, &identities, &offer).unwrap();
+    invoke(&mut journey, JourneyAction::Birth, &identities, &offer).unwrap();
     let born = journey.projection();
     assert_eq!(born.status, JourneyStatus::BornLulled);
     assert!(born.body_id.is_some() && born.part_id.is_some());
@@ -144,7 +144,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
             .any(|subject| subject.role == conduit_presentation::PresentationRole::Body)
     );
     assert_eq!(
-        invoke(&mut journey, JourneyAction::BeBorn, &identities, &offer),
+        invoke(&mut journey, JourneyAction::Birth, &identities, &offer),
         Err(JourneyError::AlreadyBorn)
     );
 
@@ -244,8 +244,8 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
         request_id: "request/born".into(),
         presentation_id: "presentation/current".into(),
         presentation_revision: 1,
-        action_id: "action/be-born/current".into(),
-        action: JourneyAction::BeBorn,
+        action_id: "action/birth/current".into(),
+        action: JourneyAction::Birth,
         target_identity: seed,
     };
     assert_eq!(
@@ -273,7 +273,7 @@ fn missing_current_keyboard_offer_refuses_plan_before_kernel_admission() {
     let (identities, offer, mut journey) = fixture();
     for action in [
         JourneyAction::OpenBack,
-        JourneyAction::BeBorn,
+        JourneyAction::Birth,
         JourneyAction::Wake,
     ] {
         invoke(&mut journey, action, &identities, &offer).unwrap();
@@ -296,7 +296,7 @@ fn device_loss_and_stop_remove_the_consumer_and_reject_late_values() {
     let (identities, offer, mut journey) = fixture();
     for action in [
         JourneyAction::OpenBack,
-        JourneyAction::BeBorn,
+        JourneyAction::Birth,
         JourneyAction::Wake,
         JourneyAction::Plan,
     ] {

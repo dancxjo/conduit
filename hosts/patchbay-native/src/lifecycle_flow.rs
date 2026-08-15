@@ -78,7 +78,7 @@ impl PatchbayApplication {
                     "FORM_CHECKED",
                     "FORM checked",
                     "No Body exists",
-                    [action(PatchbayAction::BeBorn, "BE BORN", "F4")],
+                    [action(PatchbayAction::Birth, "BIRTH", "F4")],
                 ),
                 PatchbayMode::BornLulled => flow(
                     "BODY_LULLED",
@@ -267,7 +267,7 @@ const fn action(
 pub(super) const fn is_lifecycle_action(action: PatchbayAction) -> bool {
     matches!(
         action,
-        PatchbayAction::BeBorn
+        PatchbayAction::Birth
             | PatchbayAction::Wake
             | PatchbayAction::Lull
             | PatchbayAction::Plan
@@ -279,7 +279,7 @@ pub(super) const fn is_lifecycle_action(action: PatchbayAction) -> bool {
 
 fn action_label(action: PatchbayAction) -> &'static str {
     match action {
-        PatchbayAction::BeBorn => "BE BORN",
+        PatchbayAction::Birth => "BIRTH",
         PatchbayAction::Wake => "Wake",
         PatchbayAction::Lull => "Lull",
         PatchbayAction::Plan => "Plan",

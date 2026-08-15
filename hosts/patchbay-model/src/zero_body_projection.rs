@@ -41,7 +41,7 @@ impl ZeroBodyFrontDoor {
         ];
         let mut text = vec![PresentationText {
             subject: host_subject.clone(),
-            text: "HOST body=none; OPEN is inert; only JOIN or BE BORN can embody this Host".into(),
+            text: "HOST body=none; OPEN is inert; only JOIN or BIRTH can embody this Host".into(),
         }];
         let mut actions = Vec::new();
         let mut disclosures = vec![PresentationDisclosure {
@@ -153,10 +153,10 @@ impl ZeroBodyFrontDoor {
                     availability: PresentationActionAvailability::Available,
                 },
                 PresentationAction {
-                    identity: format!("action/be-born/{}", seed.seed_id.as_str()),
-                    intent: "conduit.intent/be-born@1".into(),
+                    identity: format!("action/birth/{}", seed.seed_id.as_str()),
+                    intent: "conduit.intent/birth@1".into(),
                     target: subject.clone(),
-                    label: "Be born".into(),
+                    label: "Birth".into(),
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: if is_opened {
                         PresentationActionAvailability::Available

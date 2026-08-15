@@ -235,7 +235,11 @@ fn main() -> Result<(), String> {
         "schema": "conduit.patchbay/live-front-door-topology@1",
         "proof_class": "live-browser",
         "body_id": session.body().body_id.as_str(),
-        "wake_id": session.wake().wake_id.as_str(),
+        "wake_id": session
+            .wake()
+            .ok_or("front-door capstone requires a current Wake")?
+            .wake_id
+            .as_str(),
         "original_selection": original_selection,
         "selected_part": native_state.selected_subject,
         "candidate_id": candidate_id.as_str(),

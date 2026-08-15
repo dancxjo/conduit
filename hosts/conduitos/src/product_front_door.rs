@@ -159,7 +159,7 @@ fn action_for(
 ) -> Option<JourneyAction> {
     match usage {
         ENTER if !front_door.exact_details_open() => Some(JourneyAction::OpenBack),
-        F3 => Some(JourneyAction::BeBorn),
+        F3 => Some(JourneyAction::Birth),
         F4 => Some(JourneyAction::Wake),
         F5 => Some(JourneyAction::Plan),
         F6 => Some(JourneyAction::Play),

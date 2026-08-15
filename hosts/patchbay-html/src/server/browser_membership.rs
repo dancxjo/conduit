@@ -33,7 +33,7 @@ impl PatchbayHtmlServer {
             ServerError::Interaction(format!("cannot read browser Host runtime: {error}"))
         })?);
         // A browser renderer is not silently admitted into a Body. The
-        // admission endpoint remains absent until an explicit JOIN or BE BORN
+        // admission endpoint remains absent until an explicit JOIN or BIRTH
         // transition establishes one exact current Body.
         server.body_admission = None;
         Ok(server)

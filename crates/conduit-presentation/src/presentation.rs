@@ -311,7 +311,7 @@ impl Presentation {
         }
         let embodied = self.basis.body_id.is_some();
         if self.basis.seed_id.is_some() != embodied
-            || self.basis.wake_id.is_some() != embodied
+            || (self.basis.wake_id.is_some() && !embodied)
             || self.basis.source_document_id.is_some() != embodied
             || self.basis.checked_form_id.is_some() != embodied
             || (self.basis.plan_id.is_some() && self.basis.expanded_form_id.is_none())

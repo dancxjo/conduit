@@ -469,7 +469,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
 pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     Step::typed(
         "prove.patchbay-front-door.semantic",
-        "Prove zero-Body entry, inert OPEN, explicit JOIN/BE BORN, refusal Signs, and post-transition Plan/Play truth",
+        "Prove zero-Body entry, inert OPEN, explicit JOIN/BIRTH, refusal Signs, and post-transition Plan/Play truth",
         "cargo",
         &["test", "-p", "patchbay-model", "front_door"],
         None,
@@ -550,7 +550,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.browser",
-        "Run zero-Body OPEN, stale refusal, explicit BE BORN, Plan, and Play through one pinned Chromium manifestation",
+        "Run zero-Body OPEN, stale refusal, explicit BIRTH, Plan, and Play through one pinned Chromium manifestation",
         "npx",
         &[
             "playwright",

@@ -443,7 +443,7 @@ mod tests {
             .handle_parts_action(GuiAction::TogglePartsView)
             .is_err());
         application
-            .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::BeBorn))
+            .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Birth))
             .unwrap();
         let before = application.build_birth.membership().unwrap().clone();
         application
@@ -560,7 +560,7 @@ mod tests {
         })
         .unwrap();
         application
-            .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::BeBorn))
+            .handle_gui_action(GuiAction::Lifecycle(PatchbayAction::Birth))
             .unwrap();
         application
             .handle_parts_action(GuiAction::TogglePartsView)
