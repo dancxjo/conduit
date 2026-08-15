@@ -49,6 +49,12 @@ impl BrowserPartsCoordinator {
         }
     }
 
+    pub(super) fn deactivate_webrtc_grants(&mut self) {
+        if let Some(presence) = &mut self.presence {
+            presence.deactivate_webrtc_grants();
+        }
+    }
+
     pub(super) fn new(page_url: String, chat_url: String) -> Self {
         Self {
             page_url,

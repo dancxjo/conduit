@@ -316,7 +316,7 @@ impl PatchbayApplication {
                 }
             }
             PatchbayAction::Stop => {
-                return match self.control.stop() {
+                return match self.stop_play() {
                     Ok(()) => PatchbayInvocationOutcome::Succeeded,
                     Err(_) => {
                         PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable)

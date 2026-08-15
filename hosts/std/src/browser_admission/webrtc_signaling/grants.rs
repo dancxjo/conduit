@@ -8,6 +8,14 @@ use super::{
 };
 
 impl BrowserWebRtcRendezvous {
+    pub fn deactivate_grants(&mut self) -> Vec<conduit_core::LinkBindingId> {
+        self.grants.clear();
+        self.negotiations
+            .drain(..)
+            .map(|negotiation| negotiation.negotiation_id)
+            .collect()
+    }
+
     pub fn replace_grants<'a>(
         &mut self,
         bindings: impl IntoIterator<Item = &'a SessionBinding>,

@@ -101,6 +101,14 @@ impl PatchbayApplication {
                 .replace_webrtc_grants(&plan)
                 .map_err(LifecycleActionError::Failure)?;
         }
+        let result = self.start_planned_play();
+        if result.is_err() {
+            self.deactivate_webrtc_grants();
+        }
+        result
+    }
+
+    fn start_planned_play(&mut self) -> Result<(), LifecycleActionError> {
         let play = self
             .control
             .planned_play_identity()
@@ -117,6 +125,18 @@ impl PatchbayApplication {
             .map_err(|_| LifecycleActionError::Unavailable)?;
         self.build_birth = next;
         Ok(())
+    }
+
+    pub(super) fn stop_play(&mut self) -> Result<(), String> {
+        self.control.stop()?;
+        self.deactivate_webrtc_grants();
+        Ok(())
+    }
+
+    fn deactivate_webrtc_grants(&mut self) {
+        if let Some(browser_parts) = &mut self.browser_parts {
+            browser_parts.deactivate_webrtc_grants();
+        }
     }
 
     pub(super) fn mark_unsatisfied(&mut self) -> Result<(), String> {

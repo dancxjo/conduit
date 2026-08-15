@@ -376,6 +376,31 @@ mod tests {
             rendezvous.replace_grants(core::iter::empty()),
             Err(BrowserWebRtcRendezvousRefusal::InvalidStage)
         );
+        assert_eq!(
+            rendezvous.deactivate_grants(),
+            vec![LinkBindingId::from("binding/rendezvous")]
+        );
+        assert_eq!(
+            rendezvous.prepare(
+                &presence,
+                &source,
+                sink.host_id.clone(),
+                sink.boot_id.clone(),
+                signal(BrowserWebRtcDescription::Offer, hello.clone()),
+            ),
+            Err(BrowserWebRtcRendezvousRefusal::UngrantedSession)
+        );
+        let hello = rendezvous.grant(&granted).unwrap();
+        let offered = rendezvous
+            .prepare(
+                &presence,
+                &source,
+                sink.host_id.clone(),
+                sink.boot_id.clone(),
+                signal(BrowserWebRtcDescription::Offer, hello.clone()),
+            )
+            .unwrap();
+        rendezvous.commit(&offered).unwrap();
         assert_eq!(offered.target_host_id, sink.host_id);
         let answered = rendezvous
             .prepare(

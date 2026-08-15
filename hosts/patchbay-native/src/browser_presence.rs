@@ -82,6 +82,10 @@ impl BrowserPresenceCoordinator {
             .map_err(|refusal| format!("replace browser WebRTC grants: {refusal:?}"))
     }
 
+    pub(super) fn deactivate_webrtc_grants(&mut self) {
+        let _invalidated = self.rendezvous.deactivate_grants();
+    }
+
     pub(super) fn is_running(&self) -> bool {
         !self.workers.is_empty()
     }
