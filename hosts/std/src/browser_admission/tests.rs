@@ -4,7 +4,10 @@ use conduit_core::{
     HostProfileId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, OfferGeneration,
     PlanId, PROTOCOL_VERSION,
 };
-use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
+use conduit_wire::{
+    decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
+    SessionEndpointIdentity, SessionFrame, SessionLimits, SessionMessage,
+};
 use std::net::SocketAddr;
 
 fn advertisement() -> BrowserAdmissionIngress {
@@ -27,6 +30,10 @@ fn advertisement() -> BrowserAdmissionIngress {
 }
 
 fn canonical_grant() -> BrowserWebRtcGrant {
+    canonical_grant_for(BrowserWebRtcRole::Source, ConnectionBase::WebRtcDataChannel)
+}
+
+fn canonical_grant_for(role: BrowserWebRtcRole, base: ConnectionBase) -> BrowserWebRtcGrant {
     let plan_id = PlanId::from("plan/grant-frame");
     let source_host_id = HostId::from("host/browser");
     let source_boot_id = BootId::from("boot/browser");
@@ -59,7 +66,7 @@ fn canonical_grant() -> BrowserWebRtcGrant {
         attachment: LineAttachment {
             line_id: LineId::from("line/grant-frame"),
             link_binding_id: LinkBindingId::from("binding/grant-frame"),
-            base: ConnectionBase::WebRtcDataChannel,
+            base,
             base_instance_id: ConnectionBaseInstanceId::from("base/grant-frame"),
             source_host_id,
             source_boot_id,
@@ -79,9 +86,17 @@ fn canonical_grant() -> BrowserWebRtcGrant {
     let session_hello = rendezvous.grant(&binding).unwrap();
     BrowserWebRtcGrant {
         negotiation_id: LinkBindingId::from("binding/grant-frame"),
-        role: BrowserWebRtcRole::Source,
-        peer_host_id: sink_host_id,
-        peer_boot_id: sink_boot_id,
+        role,
+        peer_host_id: if role == BrowserWebRtcRole::Source {
+            sink_host_id
+        } else {
+            HostId::from("host/browser")
+        },
+        peer_boot_id: if role == BrowserWebRtcRole::Source {
+            sink_boot_id
+        } else {
+            BootId::from("boot/browser")
+        },
         session_hello,
     }
 }
@@ -170,11 +185,45 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
         reply
     );
+    assert!(encode_browser_admission_frame(
+        &BrowserAdmissionEgress::WebRtcGrant {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            index: 0,
+            total: 1,
+            grant: Some(canonical_grant_for(
+                BrowserWebRtcRole::Sink,
+                ConnectionBase::WebRtcDataChannel,
+            )),
+        },
+        &mut output,
+    )
+    .is_ok());
 
     let mut malformed = canonical_grant();
     malformed.session_hello = vec![1, 2, 3];
+    let mut non_hello = canonical_grant();
+    let decoded = decode_session_frame(
+        &non_hello.session_hello,
+        MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
+        MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
+    )
+    .unwrap();
+    let mut encoded = [0; MAX_WEBRTC_SESSION_HELLO_BYTES];
+    let length = encode_session_frame_into(
+        SessionFrame {
+            identity: decoded.identity,
+            message: SessionMessage::Ready,
+        },
+        &mut encoded,
+        decoded.identity.limits.maximum_payload_bytes,
+        MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
+    )
+    .unwrap();
+    non_hello.session_hello = encoded[..length].to_vec();
     for grant in [
         malformed,
+        non_hello,
+        canonical_grant_for(BrowserWebRtcRole::Source, ConnectionBase::WebSocket),
         BrowserWebRtcGrant {
             negotiation_id: LinkBindingId::from("binding/wrong"),
             ..canonical_grant()
