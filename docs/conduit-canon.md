@@ -380,6 +380,34 @@ implementation, Base, Play, and Sign truth remains reachable through explicit
 explanation rather than occupying the lobby. Geometry, focus, clipping,
 scrolling, and responsive layout remain Presenter-local.
 
+Temporal context follows the same boundary. A Presentation may state how an
+exact event, observation, or ingestion instant relates to an exact reference
+instant for that Presentation turn, but relative age is derived Presentation
+truth rather than event, Sign, or evidence identity. Portable temporal facts
+therefore retain the exact source instant, its finite clock-basis identity and
+resolution, its admitted uncertainty, and its semantic time role. They refer to
+one member of a bounded collection of exact, identified reference instants;
+there is no ambient or unqualified `now`.
+
+The first portable temporal contract compares only instants in the same clock
+basis. Different bases remain machine-readably incomparable unless a separate
+reviewed contract admits an exact correlation; reachability or convenient host
+clock access does not establish one. Resolution states what a representation
+can express, while uncertainty states what is known, and the two remain
+distinct. Checked arithmetic yields past, exact/equivalent present, future, or
+an explicit indeterminate relation when admitted uncertainty overlaps the
+reference. Clock-basis mismatch, absent references, incompatible scales, and
+overflow remain typed refusals rather than approximate prose.
+
+Temporal facts name an existing Presentation subject. When they claim Sign
+provenance, that Sign is already present in the Presentation basis. A new
+reference instant may change Presentation content identity, revision, and the
+derived temporal relation without changing the referenced subject, event,
+observation, exact instant, or Sign identity. Relative wording, locale,
+periodic refresh, clock acquisition, and domain-specific freshness thresholds
+remain Presenter or separately reviewed policy concerns; relative strings are
+never stored as canonical evidence.
+
 For product work, exact proof is necessary but not sufficient. A completed
 slice also demonstrates that a person can enter through a supported product or
 repository-development entrance, recognize the intended object, perform the
