@@ -22,7 +22,7 @@ impl LocalFrontDoor {
             model,
             candidate.editor,
             candidate.body,
-            candidate.wake,
+            Some(candidate.wake),
             candidate.membership,
             candidate.proof_id,
             revision,
@@ -43,18 +43,12 @@ impl LocalFrontDoor {
             SignId::from(format!("patchbay/front-door/born/{revision}")),
         )
         .map_err(|error| error.to_string())?;
-        let (body, wake) = body
-            .wake(
-                revision,
-                SignId::from(format!("patchbay/front-door/woke/{revision}")),
-            )
-            .map_err(|error| error.to_string())?;
         let membership =
             BodyMembership::new(body.body_id.clone()).map_err(|error| format!("{error:?}"))?;
-        let proof = MembershipProofId::bind(&format!("explicit-be-born/{}", seed.seed_id.as_str()))
+        let proof = MembershipProofId::bind(&format!("explicit-birth/{}", seed.seed_id.as_str()))
             .map_err(|error| error.to_string())?;
         Self::from_existing(
-            model, editor, body, wake, membership, proof, revision, "born",
+            model, editor, body, None, membership, proof, revision, "born",
         )
     }
 
@@ -63,7 +57,7 @@ impl LocalFrontDoor {
         model: PatchbayModel,
         editor: FormEditor,
         body: Body,
-        wake: Wake,
+        wake: Option<Wake>,
         mut membership: BodyMembership,
         proof: MembershipProofId,
         revision: u64,

@@ -24,7 +24,7 @@ function startPublicEntrance() {
   return { child, errors, lines, url };
 }
 
-test("public browser entrance stays unbodied until OPEN then explicit BE BORN", async ({ browser, page }) => {
+test("public browser entrance stays unbodied until OPEN then explicit BIRTH", async ({ browser, page }) => {
   const server = startPublicEntrance();
   try {
     const url = await server.url;
@@ -82,9 +82,9 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     await Promise.all([openSequence, seedButton.press("Enter")]);
     expect(openResponses).toHaveLength(2);
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "true");
-    const beBornButton = page.getByRole("button", { name: "BE BORN" });
-    await expect(beBornButton).toBeVisible();
-    await expect(beBornButton).toBeEnabled();
+    const birthButton = page.getByRole("button", { name: "BIRTH" });
+    await expect(birthButton).toBeVisible();
+    await expect(birthButton).toBeEnabled();
     expect(openResponses.every((response) => response.ok())).toBe(true);
     await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeEnabled();
     const openAction = initial.presentation.actions.find(
@@ -105,10 +105,10 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       expect.objectContaining({ role: "Gear", label: "hello/upper" }),
       expect.objectContaining({ role: "Cord" }),
     ]));
-    const beBornAction = opened.presentation.actions.find(
-      ({ intent, target }) => intent === "conduit.intent/be-born@1" && target === seed.identity,
+    const birthAction = opened.presentation.actions.find(
+      ({ intent, target }) => intent === "conduit.intent/birth@1" && target === seed.identity,
     );
-    expect(beBornAction.identity).toMatch(/^action\/be-born\//);
+    expect(birthAction.identity).toMatch(/^action\/birth\//);
 
     const exact = page.locator("#inspector .exact-selection");
     await expect(exact).not.toHaveAttribute("open", "");
@@ -122,11 +122,11 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
       page.waitForRequest(
         (request) => request.url().endsWith("/api/interaction") && request.method() === "POST",
       ),
-      beBornButton.click(),
+      birthButton.click(),
     ]);
     expect(birthRequest.postDataJSON()).toMatchObject({
       kind: "invoke",
-      action_id: beBornAction.identity,
+      action_id: birthAction.identity,
     });
     const birthResponse = await birthRequest.response();
     expect(birthRequest.failure(), server.errors.join("")).toBeNull();
@@ -138,7 +138,9 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     expect(born.interaction.last_disposition).toBe("Succeeded");
     expect(born.presentation.basis.body_id).toBeTruthy();
     expect(born.presentation.basis.seed_id).toBeTruthy();
-    expect(born.presentation.basis.wake_id).toBeTruthy();
+    expect(born.presentation.basis.wake_id).toBeNull();
+    expect(born.presentation.basis.plan_id).toBeNull();
+    expect(born.presentation.basis.active_play_id).toBeNull();
     expect(born.parts.parts).toHaveLength(1);
     expect(born.parts.parts[0].state).toBe("Here");
     expect(born.presentation.subjects.some(({ role }) => role === "Form")).toBe(true);
@@ -150,13 +152,31 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
         body: JSON.stringify({
           presentation_id: presentationId,
           revision,
-          action: "be-born",
+          action: "birth",
           subject,
         }),
       })).json(),
     { presentationId: opened.presentation.identity, revision: opened.revision, subject: seed.identity });
     expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
     expect(stale.presentation.basis.body_id).toBe(born.presentation.basis.body_id);
+
+    const wakeAction = born.presentation.actions.find(
+      ({ intent }) => intent === "conduit.intent/wake@1",
+    );
+    expect(wakeAction.availability).toBe("Available");
+    await page.getByRole("button", { name: "Navigate", exact: true }).click();
+    await page.locator(`#subjects button[data-subject="${wakeAction.target}"]`).click();
+    await Promise.all([
+      page.waitForResponse(
+        (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
+      ),
+      page.getByRole("button", { name: "WAKE", exact: true }).click(),
+    ]);
+    const awakened = await (await fetch(`${url}/api/snapshot`)).json();
+    expect(awakened.interaction.last_disposition).toBe("Succeeded");
+    expect(awakened.presentation.basis.body_id).toBe(born.presentation.basis.body_id);
+    expect(awakened.presentation.basis.wake_id).toBeTruthy();
+    expect(awakened.presentation.basis.plan_id).toBeNull();
 
     await page.getByRole("button", { name: "Plan current Form" }).click();
     await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
@@ -181,11 +201,12 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
         opened_seed_id: seed.identity,
         born_body_id: playing.presentation.basis.body_id,
         wake_id: playing.presentation.basis.wake_id,
-        revisions: [initial.revision, opened.revision, born.revision, planned.revision, playing.revision],
+        revisions: [initial.revision, opened.revision, born.revision, awakened.revision, planned.revision, playing.revision],
         presentation_ids: [
           initial.presentation.identity,
           opened.presentation.identity,
           born.presentation.identity,
+          awakened.presentation.identity,
           planned.presentation.identity,
           playing.presentation.identity,
         ],
@@ -196,7 +217,8 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
           no_body_on_entry: true,
           open_is_inert: opened.presentation.basis.body_id === null,
           stale_transition_refused: true,
-          explicit_be_born_only: true,
+          explicit_birth_only: true,
+          birth_does_not_imply_wake_plan_or_play: true,
           intent_plan_play_preserved_after_birth: true,
           renderer_local_state_excluded_from_semantic_subjects: playing.presentation.subjects.every(
             ({ identity }) => !identity.startsWith("dom/") && !identity.startsWith("window/"),

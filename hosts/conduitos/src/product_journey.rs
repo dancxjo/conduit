@@ -220,7 +220,7 @@ impl ProductJourney {
         self.validate_target(&request)?;
         match request.action {
             JourneyAction::OpenBack => self.open_seed()?,
-            JourneyAction::BeBorn => self.be_born()?,
+            JourneyAction::Birth => self.birth()?,
             JourneyAction::Wake => self.wake()?,
             JourneyAction::Plan => self.plan(identities, offer, build_id)?,
             JourneyAction::Play => self.play()?,
@@ -292,7 +292,7 @@ impl ProductJourney {
 
     fn validate_target(&self, request: &JourneyRequest) -> Result<(), JourneyError> {
         let expected = match request.action {
-            JourneyAction::OpenBack | JourneyAction::BeBorn => {
+            JourneyAction::OpenBack | JourneyAction::Birth => {
                 format!(
                     "seed/{}",
                     SeedId::bind(&self.seed.source_document_id, &self.seed.checked_form_id)
@@ -324,7 +324,7 @@ impl ProductJourney {
         Ok(())
     }
 
-    fn be_born(&mut self) -> Result<(), JourneyError> {
+    fn birth(&mut self) -> Result<(), JourneyError> {
         if self.body.is_some() {
             return Err(JourneyError::AlreadyBorn);
         }

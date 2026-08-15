@@ -11,7 +11,7 @@ const ACTIONS: [PatchbayAction; 10] = [
     PatchbayAction::OpenBack,
     PatchbayAction::Save,
     PatchbayAction::ToggleLinearView,
-    PatchbayAction::BeBorn,
+    PatchbayAction::Birth,
     PatchbayAction::Wake,
     PatchbayAction::Plan,
     PatchbayAction::Play,

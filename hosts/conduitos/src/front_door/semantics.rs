@@ -23,7 +23,7 @@ impl FrontDoor {
                 || seed_subject.to_owned(),
                 |body| format!("body/{}", body.as_str()),
             );
-        let be_born = if !self.lifecycle_authority_admitted {
+        let birth = if !self.lifecycle_authority_admitted {
             unavailable(
                 "authority/not-admitted",
                 "No admitted authority can create a Body from this entrance.",
@@ -31,7 +31,7 @@ impl FrontDoor {
         } else if status == JourneyStatus::SeedOpened {
             PresentationActionAvailability::Available
         } else {
-            lifecycle_unavailable("Be born", status)
+            lifecycle_unavailable("Birth", status)
         };
         let mut rows = vec![
             action(
@@ -44,7 +44,7 @@ impl FrontDoor {
                     status,
                 ),
             ),
-            action("be-born", "Be born", seed_subject, be_born),
+            action("birth", "Birth", seed_subject, birth),
         ];
         if self
             .journey

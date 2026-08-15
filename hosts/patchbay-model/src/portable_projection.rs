@@ -142,11 +142,23 @@ impl PatchbayPresentation {
         body: &Body,
         wake: &Wake,
     ) -> Result<Presentation, PortableProjectionError> {
+        self.to_portable_with_wake(body, Some(wake))
+    }
+
+    fn to_portable_with_wake(
+        &self,
+        body: &Body,
+        wake: Option<&Wake>,
+    ) -> Result<Presentation, PortableProjectionError> {
         body.validate()
             .map_err(PortableProjectionError::InvalidBody)?;
-        wake.validate()
-            .map_err(PortableProjectionError::InvalidWake)?;
-        validate_lifecycle(self, body, wake)?;
+        if let Some(wake) = wake {
+            wake.validate()
+                .map_err(PortableProjectionError::InvalidWake)?;
+            validate_lifecycle(self, body, wake)?;
+        } else if body.state != BodyState::Lulled || self.plan.is_some() || self.play.is_some() {
+            return Err(PortableProjectionError::LifecycleMismatch);
+        }
 
         let identities = self.identities();
         let source_document_id = identities
@@ -157,7 +169,9 @@ impl PatchbayPresentation {
             .ok_or(PortableProjectionError::MissingCheckedForm)?;
         let mut sign_ids = identities.sign_ids;
         sign_ids.extend(body.sign_ids.iter().cloned());
-        sign_ids.extend(wake.sign_ids.iter().cloned());
+        if let Some(wake) = wake {
+            sign_ids.extend(wake.sign_ids.iter().cloned());
+        }
         sign_ids.sort();
         sign_ids.dedup();
 
@@ -196,13 +210,16 @@ impl PatchbayPresentation {
             );
             content.contains(&document, &action_target);
         }
-        let actions = lifecycle_actions(wake.lifecycle, &target);
+        let actions = wake.map_or_else(
+            || lifecycle_actions(WakeLifecycle::Lulled, &target),
+            |wake| lifecycle_actions(wake.lifecycle, &target),
+        );
         Presentation::new_with_semantics(
             self.revision,
             PresentationBasis {
                 seed_id: Some(body.seed_id.clone()),
                 body_id: Some(body.body_id.clone()),
-                wake_id: Some(wake.wake_id.clone()),
+                wake_id: wake.map(|wake| wake.wake_id.clone()),
                 source_document_id: Some(source_document_id),
                 checked_form_id: Some(checked_form_id),
                 expanded_form_id: identities.expanded_form_id,
@@ -265,6 +282,56 @@ impl PatchbayPresentation {
         .map_err(PortableProjectionError::InvalidPresentation)?;
         Ok(presentation)
     }
+
+    pub fn to_portable_lulled_front_door(
+        &self,
+        body: &Body,
+        parts: &PartsView,
+    ) -> Result<Presentation, PortableProjectionError> {
+        if parts.body_id != body.body_id {
+            return Err(PortableProjectionError::LifecycleMismatch);
+        }
+        let presentation = self.to_portable_with_wake(body, None)?;
+        append_parts_to_presentation(self.revision, presentation, body, parts)
+    }
+}
+
+fn append_parts_to_presentation(
+    revision: u64,
+    mut presentation: Presentation,
+    body: &Body,
+    parts: &PartsView,
+) -> Result<Presentation, PortableProjectionError> {
+    let mut content = ContentBuilder {
+        subjects: presentation.subjects,
+        relationships: presentation.relationships,
+        properties: presentation.properties,
+        text: presentation.text,
+    };
+    crate::portable_world_projection::append_body_parts(body, parts, &mut content);
+    presentation.basis.sign_ids.extend(
+        parts
+            .parts
+            .iter()
+            .flat_map(|row| row.details.evidence_signs.iter().cloned()),
+    );
+    presentation.basis.sign_ids.extend(
+        parts
+            .wants_to_join
+            .iter()
+            .flat_map(|row| row.evidence_signs.iter().cloned()),
+    );
+    Presentation::new_with_semantics(
+        revision,
+        presentation.basis,
+        content.subjects,
+        content.relationships,
+        content.properties,
+        content.text,
+        presentation.actions,
+        presentation.disclosures,
+    )
+    .map_err(PortableProjectionError::InvalidPresentation)
 }
 
 fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<PresentationAction> {
@@ -285,7 +352,7 @@ fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<Presentation
             "Toggle linear view",
             "conduit.intent/toggle-linear-view@1",
         ),
-        ("be-born", "Be born", "conduit.intent/be-born@1"),
+        ("birth", "Birth", "conduit.intent/birth@1"),
         ("wake", "Wake", "conduit.intent/wake@1"),
         ("plan", "Plan", "conduit.intent/plan@1"),
         ("play", "Play", "conduit.intent/play@1"),

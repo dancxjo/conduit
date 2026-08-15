@@ -28,7 +28,7 @@ just patchbay  # cargo xtask demo patchbay --on native
 just browser   # cargo xtask demo patchbay --on browser
 ```
 
-Both Patchbay realizations begin from the same world-first truth: this Host is present and its current Body may be `NONE`. Opening a discovered Body or repository Seed is inspection-only. Explicit `JOIN` or `BE BORN` establishes membership or births a Body. From there, Patchbay exposes the checked meaning, Parts, truthful Lines, immutable Plan, active Play, and bounded Signs.
+Both Patchbay realizations begin from the same world-first truth: this Host is present and its current Body may be `NONE`. Opening a discovered Body or repository Seed is inspection-only. Explicit `JOIN` or `BIRTH` establishes membership or births a Body. From there, Patchbay exposes the checked meaning, Parts, truthful Lines, immutable Plan, active Play, and bounded Signs.
 
 The native window and browser document are different planned **Manifestations** of the same structural subjects. Their pixels, DOM nodes, window handles, and layout are presentation details—not another topology or runtime.
 
@@ -94,7 +94,7 @@ These identities are deliberately distinct:
 | Identity | What it means |
 |---|---|
 | **Seed** | Authored workspace material: Forms, Body definitions, assets, and policy source |
-| **Body** | A durable intended world born from checked meaning; it owns durable obligations |
+| **Body** | A continuant explicitly birthed from checked meaning; it retains identity across changing realization and owns durable obligations |
 | **Wake** | One interval in which Conduit actively maintains a Body's obligations |
 | **Lull** | The end of that interval without deleting the Body |
 | **Plan** | One exact immutable realization admitted against a specific basis of truth |

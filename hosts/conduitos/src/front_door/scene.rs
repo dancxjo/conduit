@@ -80,7 +80,7 @@ impl FrontDoor {
             if let Some(action) = presentation
                 .actions
                 .iter()
-                .find(|action| action.intent == "conduit.intent/be-born@1")
+                .find(|action| action.intent == "conduit.intent/birth@1")
             {
                 text(&mut scene, 18, 176, &local_action_label(action))?;
             }
@@ -176,7 +176,7 @@ impl FrontDoor {
 
 fn local_action_label(action: &conduit_presentation::PresentationAction) -> String {
     let binding = match action.intent.as_str() {
-        "conduit.intent/be-born@1" => "F3",
+        "conduit.intent/birth@1" => "F3",
         "conduit.intent/wake@1" => "F4",
         "conduit.intent/plan@1" => "F5",
         "conduit.intent/play@1" => "F6",

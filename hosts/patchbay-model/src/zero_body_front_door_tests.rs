@@ -109,7 +109,7 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
             )
     }));
     assert!(presentation.actions.iter().any(|action| {
-        action.intent == "conduit.intent/be-born@1"
+        action.intent == "conduit.intent/birth@1"
             && matches!(
                 action.availability,
                 conduit_presentation::PresentationActionAvailability::Unavailable { .. }
@@ -134,7 +134,7 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
 }
 
 #[test]
-fn opening_seed_is_inert_and_only_explicit_be_born_embodies_host() {
+fn opening_seed_is_inert_and_only_explicit_birth_embodies_host() {
     let mut session =
         ZeroBodyFrontDoor::with_identity(HostId::from("birth/host"), BootId::from("birth/boot"))
             .unwrap();
@@ -165,7 +165,7 @@ fn opening_seed_is_inert_and_only_explicit_be_born_embodies_host() {
     }
     assert!(opened.actions.iter().any(|action| {
         action.target == seed
-            && action.intent == "conduit.intent/be-born@1"
+            && action.intent == "conduit.intent/birth@1"
             && matches!(
                 action.availability,
                 conduit_presentation::PresentationActionAvailability::Available
@@ -176,10 +176,20 @@ fn opening_seed_is_inert_and_only_explicit_be_born_embodies_host() {
     assert!(opened.basis.expanded_form_id.is_none());
     assert!(opened.basis.plan_id.is_none());
     assert!(opened.basis.active_play_id.is_none());
-    assert!(session.clone().be_born(initial.revision).is_err());
-    let embodied = session.be_born(opened.revision).unwrap();
+    assert!(session.clone().birth(initial.revision).is_err());
+    let embodied = session.birth(opened.revision).unwrap();
     let projection = embodied.project().unwrap();
     assert!(projection.presentation.basis.body_id.is_some());
+    assert!(projection.presentation.basis.wake_id.is_none());
+    assert!(projection.presentation.basis.plan_id.is_none());
+    assert!(projection.presentation.basis.active_play_id.is_none());
+    assert!(projection.presentation.actions.iter().any(|action| {
+        action.intent == "conduit.intent/wake@1"
+            && matches!(
+                action.availability,
+                conduit_presentation::PresentationActionAvailability::Available
+            )
+    }));
     assert_eq!(projection.parts.parts.len(), 1);
 }
 

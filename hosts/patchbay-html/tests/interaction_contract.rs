@@ -27,10 +27,10 @@ fn presentation() -> conduit_presentation::Presentation {
         vec![],
         vec![],
         vec![conduit_presentation::PresentationAction {
-            identity: "action/be-born/example".into(),
-            intent: PatchbayAction::BeBorn.presentation_intent().into(),
+            identity: "action/birth/example".into(),
+            intent: PatchbayAction::Birth.presentation_intent().into(),
             target: "body/example".into(),
-            label: "Be born".into(),
+            label: "Birth".into(),
             disclosure: conduit_presentation::PresentationDisclosureLevel::CurrentAction,
             availability: conduit_presentation::PresentationActionAvailability::Available,
         }],
@@ -52,9 +52,9 @@ fn html_can_emit_the_shared_semantic_contract_without_dom_identity() {
     .unwrap();
     let presentation = presentation();
     let invocation = PatchbayInteractionRequest::invoke(
-        PatchbayInteractionRequestId::new("html/be-born/2").unwrap(),
+        PatchbayInteractionRequestId::new("html/birth/2").unwrap(),
         &presentation,
-        "action/be-born/example",
+        "action/birth/example",
     )
     .unwrap();
 
@@ -70,7 +70,7 @@ fn html_can_emit_the_shared_semantic_contract_without_dom_identity() {
     assert!(matches!(
         invocation,
         PatchbayInteractionRequest::Invoke { invocation, .. }
-            if invocation.action == PatchbayAction::BeBorn
+            if invocation.action == PatchbayAction::Birth
                 && invocation.target_identity == "body/example"
     ));
 }

@@ -158,10 +158,10 @@ fn stale_and_unknown_selection_refuse_without_replacing_canonical_selection() {
 #[test]
 fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     let mut interaction = interaction();
-    let presentation = invocation_presentation(PatchbayAction::BeBorn, "body/count-demo");
+    let presentation = invocation_presentation(PatchbayAction::Birth, "body/count-demo");
     let action_id = presentation.actions[0].identity.clone();
     let request = PatchbayInteractionRequest::invoke(
-        interaction.next_request_id("be-born").unwrap(),
+        interaction.next_request_id("birth").unwrap(),
         &presentation,
         &action_id,
     )
@@ -170,7 +170,7 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     assert_eq!(control.presentation_id, presentation.identity.as_str());
     assert_eq!(control.presentation_revision, 17);
     assert_eq!(control.action_id, action_id);
-    assert_eq!(control.action, PatchbayAction::BeBorn);
+    assert_eq!(control.action, PatchbayAction::Birth);
     assert_eq!(control.target_identity, "body/count-demo");
     let mut invoked = None;
     let receipt = interaction
@@ -183,11 +183,11 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     assert!(matches!(
         invoked.unwrap(),
         PatchbayInteractionRequest::Invoke { invocation, .. }
-            if invocation.action == PatchbayAction::BeBorn
+            if invocation.action == PatchbayAction::Birth
     ));
 
     let request = PatchbayInteractionRequest::invoke(
-        interaction.next_request_id("be-born").unwrap(),
+        interaction.next_request_id("birth").unwrap(),
         &presentation,
         &action_id,
     )
@@ -203,7 +203,7 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     );
 
     let request = PatchbayInteractionRequest::invoke(
-        interaction.next_request_id("be-born").unwrap(),
+        interaction.next_request_id("birth").unwrap(),
         &presentation,
         &action_id,
     )

@@ -30,7 +30,7 @@ pub struct LocalFrontDoor {
     pub(super) editor: FormEditor,
     pub(super) form_name: String,
     pub(super) body: Body,
-    pub(super) wake: Wake,
+    pub(super) wake: Option<Wake>,
     pub(super) membership: BodyMembership,
     pub(super) candidates: CandidateInventory,
     pub(super) admissions: AdmissionManager,
@@ -124,7 +124,7 @@ impl LocalFrontDoor {
             editor,
             form_name: "patchbay-front-door".into(),
             body,
-            wake,
+            wake: Some(wake),
             membership,
             candidates,
             admissions,
@@ -142,8 +142,8 @@ impl LocalFrontDoor {
         &self.body
     }
 
-    pub fn wake(&self) -> &Wake {
-        &self.wake
+    pub fn wake(&self) -> Option<&Wake> {
+        self.wake.as_ref()
     }
 
     pub fn advertisement(&self) -> &conduit_core::HostAdvertisement {
@@ -331,6 +331,10 @@ impl LocalFrontDoor {
     /// Plan the ordinary entrance Form. Replanning is explicit and only
     /// follows canonical unsatisfied truth; it never mutates an active Plan.
     pub fn plan_form(&mut self) -> Result<PlanId, String> {
+        let wake = self
+            .wake
+            .as_ref()
+            .ok_or("planning requires an explicit Wake after Birth")?;
         let advertisement = self.model.advertisement().clone();
         let config = StdHostConfig {
             host_id: advertisement.host_id.clone(),
@@ -345,18 +349,17 @@ impl LocalFrontDoor {
         let plan = host
             .plan_expanded_local(&expanded)
             .map_err(|error| error.to_string())?;
-        let awaiting = match self.wake.lifecycle {
-            WakeLifecycle::AwaitingPlan => self.wake.clone(),
+        let awaiting = match wake.lifecycle {
+            WakeLifecycle::AwaitingPlan => wake.clone(),
             WakeLifecycle::Playing => {
                 let prior = self
                     .current_plan_id()
                     .ok_or("playing Wake has no retained Plan")?;
-                self.wake
-                    .became_unsatisfied(
-                        prior,
-                        SignId::from(format!("patchbay/front-door/unsatisfied/{}", self.revision)),
-                    )
-                    .map_err(|error| error.to_string())?
+                wake.became_unsatisfied(
+                    prior,
+                    SignId::from(format!("patchbay/front-door/unsatisfied/{}", self.revision)),
+                )
+                .map_err(|error| error.to_string())?
             }
             lifecycle => {
                 return Err(format!(
@@ -376,7 +379,7 @@ impl LocalFrontDoor {
             &plan,
         )
         .map_err(|error| format!("plan document: {error:?}"))?;
-        self.wake = planned;
+        self.wake = Some(planned);
         self.plan = Some(plan_document);
         self.play = None;
         self.active_play = None;
@@ -386,10 +389,14 @@ impl LocalFrontDoor {
 
     /// Execute the current exact Plan through the installed std Host.
     pub fn play_plan(&mut self) -> Result<ActivePlayId, String> {
-        if self.wake.lifecycle != WakeLifecycle::AwaitingPlay {
+        let wake = self
+            .wake
+            .as_ref()
+            .ok_or("Play requires an explicit Wake after Birth")?;
+        if wake.lifecycle != WakeLifecycle::AwaitingPlay {
             return Err(format!(
                 "Play is unavailable while Wake is {:?}",
-                self.wake.lifecycle
+                wake.lifecycle
             ));
         }
         let advertisement = self.model.advertisement().clone();
@@ -412,6 +419,8 @@ impl LocalFrontDoor {
         );
         let playing = self
             .wake
+            .as_ref()
+            .expect("explicit Wake checked above")
             .play_started(
                 &play_identity,
                 SignId::from(format!("patchbay/front-door/playing/{}", self.revision)),
@@ -425,7 +434,7 @@ impl LocalFrontDoor {
         let report = host.run_fragment_to(fragment, &mut Vec::new(), &mut ThreadTimer)?;
         let play_document = PlayDocument::from_report(&plan, &report)
             .map_err(|error| format!("play document: {error:?}"))?;
-        self.wake = playing;
+        self.wake = Some(playing);
         self.play = Some(play_document);
         self.active_play = Some(play_identity.clone());
         self.advance()?;
@@ -438,6 +447,24 @@ impl LocalFrontDoor {
         Ok((plan_id, play_id))
     }
 
+    pub fn wake_body(&mut self) -> Result<conduit_body::WakeId, String> {
+        if self.wake.is_some() {
+            return Err("Body already has a current Wake".into());
+        }
+        let (body, wake) = self
+            .body
+            .wake(
+                self.revision,
+                SignId::from(format!("patchbay/front-door/woke/{}", self.revision)),
+            )
+            .map_err(|error| error.to_string())?;
+        let wake_id = wake.wake_id.clone();
+        self.body = body;
+        self.wake = Some(wake);
+        self.advance()?;
+        Ok(wake_id)
+    }
+
     pub fn project(&self) -> Result<LocalFrontDoorProjection, String> {
         let parts = PartsView::project(
             &self.body,
@@ -446,7 +473,7 @@ impl LocalFrontDoor {
             &self.here,
             self.plan.as_ref().map(|document| &document.exact),
             self.active_play.as_ref(),
-            true,
+            self.wake.is_some(),
         )
         .map_err(|error| format!("{error:?}"))?;
         let snapshot = self.topology.snapshot(
@@ -473,9 +500,14 @@ impl LocalFrontDoor {
         .map_err(display_projection)?
         .with_graph(graph)
         .map_err(display_projection)?;
-        let presentation = projection
-            .to_portable_front_door(&self.body, &self.wake, &parts)
-            .map_err(display_portable)?;
+        let presentation = match &self.wake {
+            Some(wake) => projection
+                .to_portable_front_door(&self.body, wake, &parts)
+                .map_err(display_portable)?,
+            None => projection
+                .to_portable_lulled_front_door(&self.body, &parts)
+                .map_err(display_portable)?,
+        };
         Ok(LocalFrontDoorProjection {
             presentation,
             parts,

@@ -212,7 +212,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     {
         return Err(ConduitosError::refusal(
             "product-journey-open-had-effects",
-            "OPEN created lifecycle truth before explicit BE BORN",
+            "OPEN created lifecycle truth before explicit BIRTH",
         ));
     }
     let born = by_status["born-lulled"];

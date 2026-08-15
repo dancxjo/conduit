@@ -207,6 +207,21 @@ SOUL  durable continuity and recoverable identity of a body
 
 A Body is not a Host, planner scope, transport, address, coordinator process, or UI document. A Part is not a Host or Boot: it records an explicitly admitted durable relationship. Current authenticated Host/Boot presence may attach to that relationship and later disappear without deleting membership or retaining a fake current Boot. Current offers remain Host-advertisement truth rather than durable Part properties. Admission and revocation carry exact bounded event and Sign provenance; membership alone grants no authority, placement, Line, or execution.
 
+A Body is a **continuant**. An explicit attributable human/operator action
+**BIRTHs** it from one exact opened checked Seed and records distinct birth
+event/Sign evidence. The newborn Body is LULLED; BIRTH creates no implicit
+Wake, Plan, or Play. Thereafter changes in Parts, Hosts and Boots, Lines,
+Wake/Lull episodes, Plans, Plays, and manifestations are events in the history
+of the same Body rather than replacement Body identities.
+
+Absence is not death. Offline Parts, unreachable Hosts, lost Boots or Lines,
+Lull, stale or missing Plans, terminated Plays, and even loss of all current
+realization do not by themselves erase Body continuity. Routine cleanup,
+shutdown, garbage collection, or disappearance of current offers must retain
+the durable Body and membership evidence. Any future irreversible destruction
+protocol requires its own explicit authority and semantics; it is not an
+ordinary `delete Body` operation.
+
 A Form contains configured Gears and may require Roles. A Cast binds Roles to exact capabilities. A Plan binds each Gear to exact implementation, Part, Host, Boot, Base, authority, resource, route, and bound facts. A Play starts that Plan. A later Soul policy may prove continuity across restarts without pretending a restarted Boot is the same execution session or changing what Part membership means.
 
 Membership, reachability, authority, capability, placement, and link state remain separate.

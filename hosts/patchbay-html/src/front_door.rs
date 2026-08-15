@@ -102,6 +102,6 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(actions.len(), 2);
         assert_eq!(actions[0].label, "Open");
-        assert_eq!(actions[1].label, "Be born");
+        assert_eq!(actions[1].label, "Birth");
     }
 }
