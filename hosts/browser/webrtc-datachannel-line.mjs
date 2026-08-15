@@ -65,6 +65,9 @@ export class BrowserWebRtcDataChannelLine {
   }
 
   async open() {
+    if (this.#terminal !== null) {
+      throw new Error(`datachannel-terminal:${this.#terminal.reason}`);
+    }
     if (this.#channel.readyState === "open") return this;
     if (this.#channel.readyState !== "connecting") {
       throw new Error(`datachannel-open-refused:${this.#channel.readyState}`);
@@ -91,6 +94,13 @@ export class BrowserWebRtcDataChannelLine {
   }
 
   send(value) {
+    if (this.#terminal !== null) {
+      return {
+        accepted: false,
+        reason: "line-terminal",
+        terminalReason: this.#terminal.reason,
+      };
+    }
     const bytes = bytesFromMessage(value);
     if (bytes === null) return { accepted: false, reason: "non-binary-message" };
     if (bytes.byteLength > this.#maximumMessageBytes) {
@@ -112,12 +122,12 @@ export class BrowserWebRtcDataChannelLine {
   }
 
   receive() {
+    if (this.#terminal !== null) return Promise.resolve(this.#terminal);
     if (this.#received.length > 0) {
       const bytes = this.#received.shift();
       this.#receivedBytes -= bytes.byteLength;
       return Promise.resolve({ ok: true, bytes });
     }
-    if (this.#terminal !== null) return Promise.resolve(this.#terminal);
     if (this.#receiver !== null) {
       return Promise.reject(new Error("receive-already-pending"));
     }
@@ -140,6 +150,7 @@ export class BrowserWebRtcDataChannelLine {
       bufferedBytes: this.#channel.bufferedAmount,
       retainedMessages: this.#received.length,
       retainedBytes: this.#receivedBytes,
+      terminalReason: this.#terminal?.reason ?? null,
     };
   }
 
@@ -180,6 +191,8 @@ export class BrowserWebRtcDataChannelLine {
   #finish(reason) {
     if (this.#terminal !== null) return;
     this.#terminal = { ok: false, reason };
+    this.#received = [];
+    this.#receivedBytes = 0;
     if (this.#receiver !== null) {
       const receiver = this.#receiver;
       this.#receiver = null;
