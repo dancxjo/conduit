@@ -106,7 +106,7 @@ export function projectFlowScene(snapshot, lens = "world") {
       target,
       sourceHandle: sourcePort,
       targetHandle: sinkPort,
-      type: "smoothstep",
+      type: "simplebezier",
       label: lens === "plan" ? `Cord · ${subjectProperties.get(cord.identity)?.get("line-id") ? `Line ${subjectProperties.get(cord.identity).get("line-id")}` : "local; no Line"}` : lens === "play" ? `Cord · ${subjectProperties.get(cord.identity)?.get("play-state") || "not playing"}` : "Cord",
       data: {
         semanticIdentity: cord.identity,
