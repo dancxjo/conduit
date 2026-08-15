@@ -73,6 +73,39 @@ function rectanglesOverlap(left,right) {
   return left.x<right.x+right.width&&left.x+left.width>right.x&&left.y<right.y+right.height&&left.y+left.height>right.y;
 }
 
+async function expectFaceplateTextContained(page) {
+  const result=await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>faceplates.map(faceplate=>{
+    const bounds=element=>{
+      const box=element.getBoundingClientRect();
+      return {left:box.left,right:box.right,top:box.top,bottom:box.bottom};
+    };
+    const inside=(inner,outer)=>inner.left>=outer.left-.5&&inner.right<=outer.right+.5&&inner.top>=outer.top-.5&&inner.bottom<=outer.bottom+.5;
+    const regions=[...faceplate.querySelectorAll("header,.faceplate-clue,.faceplate-port")];
+    const fields=[...faceplate.querySelectorAll(".faceplate-icon,.faceplate-title,.faceplate-role,.faceplate-clue,.faceplate-port-name,.faceplate-port code")];
+    return {
+      subject:faceplate.dataset.subject,
+      fields:fields.map(field=>{
+        const owner=field.matches(".faceplate-clue")?field:field.closest("header,.faceplate-port");
+        const style=getComputedStyle(field);
+        return {className:field.className,inside:inside(bounds(field),bounds(owner)),overflow:style.overflow,textOverflow:style.textOverflow,whiteSpace:style.whiteSpace,title:field.title,text:field.textContent};
+      }),
+      regions:regions.map(region=>({inside:inside(bounds(region),bounds(faceplate))})),
+    };
+  }));
+  for(const faceplate of result){
+    expect(faceplate.subject).toBeTruthy();
+    for(const field of faceplate.fields){
+      expect(field.inside,`${faceplate.subject} ${field.className} escaped its owned region`).toBe(true);
+      expect({overflow:field.overflow,textOverflow:field.textOverflow,whiteSpace:field.whiteSpace}).toEqual({overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"});
+      expect(field.title).toBeTruthy();
+      expect(field.text).toBeTruthy();
+    }
+    for(const region of faceplate.regions){
+      expect(region.inside,`${faceplate.subject} region escaped its faceplate`).toBe(true);
+    }
+  }
+}
+
 function startServer() {
   const process = spawn("target/debug/patchbay-html", ["--documentary-fixture"], { stdio:["ignore","pipe","pipe"] });
   const errors=[]; process.stderr.setEncoding("utf8"); process.stderr.on("data",chunk=>errors.push(chunk));
@@ -230,6 +263,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const selectedFaceplate=page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`);
     await expect(selectedFaceplate).toBeVisible();
     await expect(selectedFaceplate).toHaveClass(/semantic-selected/);
+    await expectFaceplateTextContained(page);
     await page.locator("#center-flow").click();
     const headingBox=await page.locator(".canvas-heading").boundingBox();
     await expect.poll(async()=>((await selectedFaceplate.boundingBox())?.y??0)).toBeGreaterThan(headingBox.y+headingBox.height);
@@ -427,8 +461,32 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     await page.emulateMedia({reducedMotion:"reduce"});
     await page.goto(url);
     await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
+    await expectFaceplateTextContained(page);
     expect(await page.locator("#flow-root .flow-faceplate").first().evaluate(element=>({animation:getComputedStyle(element).animationName,transition:getComputedStyle(element).transitionDuration}))).toEqual({animation:"none",transition:"0s"});
+    const exactFaceplateTruth=await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>faceplates.map(faceplate=>({subject:faceplate.dataset.subject,accessibilityName:faceplate.getAttribute("aria-label")})));
+    await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>{
+      const maximal="A human-readable faceplate label that is deliberately much longer than its compact finite visual region · exact/generated/subject/identity/with/no/short/break/opportunity";
+      for(const faceplate of faceplates){
+        for(const field of faceplate.querySelectorAll(".faceplate-title,.faceplate-clue,.faceplate-port-name,.faceplate-port code")){
+          field.dataset.originalText=field.textContent;
+          field.dataset.originalTitle=field.title;
+          field.textContent=maximal;
+          field.title=maximal;
+        }
+      }
+    });
     await page.evaluate(()=>document.documentElement.style.fontSize="200%");
+    await expectFaceplateTextContained(page);
+    await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>{
+      for(const field of faceplates.flatMap(faceplate=>[...faceplate.querySelectorAll("[data-original-text]")])){
+        field.textContent=field.dataset.originalText;
+        field.title=field.dataset.originalTitle;
+        delete field.dataset.originalText;
+        delete field.dataset.originalTitle;
+      }
+    });
+    await expectFaceplateTextContained(page);
+    expect(await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>faceplates.map(faceplate=>({subject:faceplate.dataset.subject,accessibilityName:faceplate.getAttribute("aria-label")})))).toEqual(exactFaceplateTruth);
     expect(await page.evaluate(()=>({height:document.scrollingElement.scrollHeight,width:document.scrollingElement.scrollWidth}))).toEqual({height:900,width:700});
     const topbarBox=await page.locator(".topbar").boundingBox(),navBox=await page.getByRole("navigation",{name:"Patchbay workspace"}).boundingBox();
     expect(topbarBox.y+topbarBox.height).toBeLessThanOrEqual(navBox.y);
