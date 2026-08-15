@@ -4,18 +4,16 @@
 //! shared, plan-bound `conduit-wire` admission state; every page instantiates a
 //! separate WASM module and therefore a separate endpoint.
 
-use conduit_core::{
-    AdmittedLine, BootId, BoundLink, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
-    FragmentId, HostId, KindId, LineContinuation, LineContract, LineDuplex, LineId, LineOrdering,
-    LineReliability, LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference,
-    LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, PlacementId,
-    PlannedConnection, PortId, PortTemporal,
-};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition, WireError,
 };
 use std::cell::RefCell;
+
+#[path = "webrtc_session/plan.rs"]
+mod plan;
+
+use plan::exact_binding;
 
 const FRAME_CAPACITY: usize = 1_024;
 const PAYLOAD_CAPACITY: u32 = 16;
@@ -45,8 +43,12 @@ enum Stage {
 struct BrowserWebRtcSession {
     binding: SessionBinding,
     machine: SessionMachine,
+    role: SessionRole,
     output: [u8; FRAME_CAPACITY],
     output_len: usize,
+    received: [u8; PAYLOAD_CAPACITY as usize],
+    received_len: usize,
+    received_sequence: Option<u64>,
     stage: Stage,
 }
 
@@ -57,8 +59,12 @@ impl BrowserWebRtcSession {
         let mut session = Self {
             binding,
             machine,
+            role,
             output: [0; FRAME_CAPACITY],
             output_len: 0,
+            received: [0; PAYLOAD_CAPACITY as usize],
+            received_len: 0,
+            received_sequence: None,
             stage: Stage::PeerHello,
         };
         let binding = session.binding.clone();
@@ -89,12 +95,19 @@ impl BrowserWebRtcSession {
             (Stage::PeerHello, SessionMessage::Hello(_))
                 | (Stage::PeerReady, SessionMessage::Ready)
                 | (Stage::Active, SessionMessage::InputClosed { .. })
+                | (Stage::Active, SessionMessage::Offered { .. })
+                | (Stage::Active, SessionMessage::Pressure { .. })
+                | (Stage::Active, SessionMessage::Accepted { .. })
+                | (Stage::Active, SessionMessage::Delivered { .. })
                 | (Stage::Active, SessionMessage::Terminal { .. })
                 | (Stage::LocalTerminal, SessionMessage::Terminal { .. })
                 | (Stage::PeerTerminal, _)
                 | (Stage::Terminal, _)
         );
         if !supported {
+            return Ok(ERROR_STAGE);
+        }
+        if matches!(message, SessionMessage::Offered { .. }) && self.role != SessionRole::Sink {
             return Ok(ERROR_STAGE);
         }
         self.machine.admit_inbound(frame)?;
@@ -112,6 +125,19 @@ impl BrowserWebRtcSession {
                 Ok(STATUS_ACTIVE)
             }
             (Stage::Active, SessionMessage::InputClosed { .. }) => Ok(STATUS_ACTIVE),
+            (Stage::Active, SessionMessage::Offered { sequence, payload }) => {
+                self.received[..payload.len()].copy_from_slice(payload);
+                self.received_len = payload.len();
+                self.received_sequence = Some(sequence);
+                let binding = self.binding.clone();
+                let accepted = binding.frame(SessionMessage::Accepted { sequence });
+                self.machine.admit_outbound(accepted)?;
+                self.write(accepted)?;
+                Ok(STATUS_ACTIVE)
+            }
+            (Stage::Active, SessionMessage::Pressure { .. })
+            | (Stage::Active, SessionMessage::Accepted { .. })
+            | (Stage::Active, SessionMessage::Delivered { .. }) => Ok(STATUS_ACTIVE),
             (Stage::Active, SessionMessage::Terminal { .. }) => {
                 self.stage = Stage::PeerTerminal;
                 Ok(STATUS_TERMINATING)
@@ -137,6 +163,53 @@ impl BrowserWebRtcSession {
         Ok(STATUS_ACTIVE)
     }
 
+    fn offer(&mut self, payload: &[u8]) -> Result<i32, WireError> {
+        if self.output_len != 0 || self.stage != Stage::Active || self.role != SessionRole::Source {
+            return Ok(ERROR_STAGE);
+        }
+        let binding = self.binding.clone();
+        let offered = binding.frame(SessionMessage::Offered {
+            sequence: self.machine.next_sequence(),
+            payload,
+        });
+        self.machine.admit_outbound(offered)?;
+        self.write(offered)?;
+        Ok(STATUS_ACTIVE)
+    }
+
+    fn deliver(&mut self) -> Result<i32, WireError> {
+        if self.output_len != 0 || self.stage != Stage::Active || self.role != SessionRole::Sink {
+            return Ok(ERROR_STAGE);
+        }
+        let Some(sequence) = self.received_sequence else {
+            return Ok(ERROR_STAGE);
+        };
+        let binding = self.binding.clone();
+        let delivered = binding.frame(SessionMessage::Delivered { sequence });
+        self.machine.admit_outbound(delivered)?;
+        self.write(delivered)?;
+        self.received.fill(0);
+        self.received_len = 0;
+        self.received_sequence = None;
+        Ok(STATUS_ACTIVE)
+    }
+
+    fn pressure(&mut self, bytes: &[u8]) -> Result<i32, WireError> {
+        if self.output_len != 0 || self.stage != Stage::Active || self.role != SessionRole::Sink {
+            return Ok(ERROR_STAGE);
+        }
+        let frame = decode_session_frame(bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)?;
+        let SessionMessage::Offered { sequence, .. } = frame.message else {
+            return Ok(ERROR_STAGE);
+        };
+        self.machine.admit_inbound(frame)?;
+        let binding = self.binding.clone();
+        let pressure = binding.frame(SessionMessage::Pressure { sequence });
+        self.machine.admit_outbound(pressure)?;
+        self.write(pressure)?;
+        Ok(STATUS_ACTIVE)
+    }
+
     fn finish(&mut self) -> Result<i32, WireError> {
         if self.output_len != 0 || !matches!(self.stage, Stage::Active | Stage::PeerTerminal) {
             return Ok(ERROR_STAGE);
@@ -158,85 +231,6 @@ impl BrowserWebRtcSession {
     }
 }
 
-fn exact_binding(variant: u32) -> Result<SessionBinding, WireError> {
-    let mut plan_id = conduit_core::PlanId::from("browser-webrtc/plan/1");
-    let source = LinkEndpoint {
-        host_id: HostId::from("browser-webrtc/source"),
-        boot_id: BootId::from("browser-webrtc/source-boot/1"),
-        endpoint_id: LinkEndpointId::from("browser-webrtc/source-egress"),
-    };
-    let sink = LinkEndpoint {
-        host_id: HostId::from("browser-webrtc/sink"),
-        boot_id: BootId::from("browser-webrtc/sink-boot/1"),
-        endpoint_id: LinkEndpointId::from("browser-webrtc/sink-ingress"),
-    };
-    let limits = LinkLimits {
-        maximum_in_flight_items: 1,
-        maximum_payload_bytes: PAYLOAD_CAPACITY,
-        maximum_buffered_bytes: PAYLOAD_CAPACITY,
-        maximum_frame_bytes: FRAME_CAPACITY as u32,
-    };
-    let line = AdmittedLine {
-        line_id: LineId::from("browser-webrtc/line/1"),
-        binding: BoundLink {
-            binding_id: LinkBindingId::from("browser-webrtc/binding/1"),
-            source: source.clone(),
-            sink: sink.clone(),
-            base: ConnectionBase::WebRtcDataChannel,
-            base_instance_id: ConnectionBaseInstanceId::from("browser-webrtc/base-instance/1"),
-            credential: LinkCredentialReference::None,
-            authority: LinkAuthorityReference::ProcessOwned,
-            limits,
-        },
-        contract: LineContract {
-            scope: LineScope::PointToPoint,
-            traffic_shape: LineTrafficShape::Message,
-            duplex: LineDuplex::FullDuplex,
-            ordering: LineOrdering::Ordered,
-            reliability: LineReliability::Reliable,
-            continuation: LineContinuation::None,
-            security: LineSecurity::AuthenticatedEncrypted,
-        },
-    };
-    let mut connection = PlannedConnection {
-        connection_id: ConnectionId::from("browser-webrtc/connection/1"),
-        source_placement_id: PlacementId::from("browser-webrtc/source-placement"),
-        source_port_id: PortId::from("out"),
-        sink_placement_id: PlacementId::from("browser-webrtc/sink-placement"),
-        sink_port_id: PortId::from("in"),
-        value_kind: KindId::from("conduit.test/bounded-bytes@1"),
-        temporal: PortTemporal::Value,
-        selected_line: Some(line.clone()),
-        admitted_lines: vec![line],
-        item_capacity: 1,
-        byte_capacity: PAYLOAD_CAPACITY,
-    };
-    match variant {
-        0 => {}
-        1 => connection.connection_id = ConnectionId::from("browser-webrtc/wrong-connection"),
-        2 => connection.value_kind = KindId::from("conduit.test/wrong-value@1"),
-        3 => {
-            let line = connection.selected_line.as_mut().expect("selected Line");
-            line.binding.source.boot_id = BootId::from("browser-webrtc/stale-source-boot");
-            connection.admitted_lines[0] = line.clone();
-        }
-        4 => {
-            let line = connection.selected_line.as_mut().expect("selected Line");
-            line.binding.base_instance_id =
-                ConnectionBaseInstanceId::from("browser-webrtc/wrong-base-instance");
-            connection.admitted_lines[0] = line.clone();
-        }
-        5 => plan_id = conduit_core::PlanId::from("browser-webrtc/wrong-plan"),
-        _ => return Err(WireError::InvalidSession),
-    }
-    SessionBinding::from_planned_connection(
-        plan_id,
-        FragmentId::from("browser-webrtc/source-fragment"),
-        FragmentId::from("browser-webrtc/sink-fragment"),
-        &connection,
-    )
-}
-
 fn with_endpoint(action: impl FnOnce(&mut BrowserWebRtcSession) -> i32) -> i32 {
     ENDPOINT.with(|slot| {
         let mut slot = slot.borrow_mut();
@@ -253,6 +247,9 @@ fn wire_error(error: WireError) -> i32 {
         WireError::SessionEpochMismatch => -214,
         WireError::OversizedFrame | WireError::OversizedPayload => -215,
         WireError::LateFrame => -216,
+        WireError::DuplicateFrame => -217,
+        WireError::ReorderedFrame => -218,
+        WireError::InvalidState => -220,
         _ => -219,
     }
 }
@@ -334,6 +331,69 @@ pub extern "C" fn conduit_browser_webrtc_session_finish() -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_offer(length: u32) -> i32 {
+    let length = length as usize;
+    if length > PAYLOAD_CAPACITY as usize {
+        return wire_error(WireError::OversizedPayload);
+    }
+    INPUT.with(|input| {
+        let input = input.borrow();
+        with_endpoint(|endpoint| endpoint.offer(&input[..length]).unwrap_or_else(wire_error))
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_pressure(length: u32) -> i32 {
+    let length = length as usize;
+    if length > FRAME_CAPACITY {
+        return wire_error(WireError::OversizedFrame);
+    }
+    INPUT.with(|input| {
+        let input = input.borrow();
+        with_endpoint(|endpoint| {
+            endpoint
+                .pressure(&input[..length])
+                .unwrap_or_else(wire_error)
+        })
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_deliver() -> i32 {
+    with_endpoint(|endpoint| endpoint.deliver().unwrap_or_else(wire_error))
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_value_ptr() -> *const u8 {
+    ENDPOINT.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|endpoint| endpoint.received.as_ptr())
+            .unwrap_or(core::ptr::null())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_value_len() -> u32 {
+    ENDPOINT.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|endpoint| endpoint.received_len as u32)
+            .unwrap_or(0)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_next_sequence() -> u64 {
+    ENDPOINT.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|endpoint| endpoint.machine.next_sequence())
+            .unwrap_or(0)
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_webrtc_session_close_input() -> i32 {
     with_endpoint(|endpoint| endpoint.close_input().unwrap_or_else(wire_error))
 }
@@ -345,7 +405,10 @@ mod tests {
     #[test]
     fn exact_webrtc_binding_is_planned_and_session_eligible() {
         let binding = exact_binding(0).unwrap();
-        assert_eq!(binding.attachment.base, ConnectionBase::WebRtcDataChannel);
+        assert_eq!(
+            binding.attachment.base,
+            conduit_core::ConnectionBase::WebRtcDataChannel
+        );
         assert_eq!(binding.attachment.base.canonical_code(), 7);
         assert!(binding.attachment.base.supports_remote_session());
         assert!(SessionMachine::new(binding, SessionRole::Source).is_ok());
@@ -377,5 +440,67 @@ mod tests {
                 .unwrap();
         assert_eq!(endpoint.ingest(&bytes[..ready_len]), Ok(STATUS_ACTIVE));
         assert!(endpoint.machine.is_active());
+    }
+
+    #[test]
+    fn reordered_offer_refuses_without_consuming_the_expected_sequence() {
+        let binding = exact_binding(0).unwrap();
+        let mut endpoint = BrowserWebRtcSession::new(SessionRole::Sink, 0).unwrap();
+        endpoint.output_len = 0;
+
+        let mut bytes = [0; FRAME_CAPACITY];
+        let hello = binding.hello_frame();
+        let hello_len =
+            encode_session_frame_into(hello, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
+                .unwrap();
+        assert_eq!(endpoint.ingest(&bytes[..hello_len]), Ok(STATUS_HANDSHAKE));
+        endpoint.output_len = 0;
+        let ready = binding.frame(SessionMessage::Ready);
+        let ready_len =
+            encode_session_frame_into(ready, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
+                .unwrap();
+        assert_eq!(endpoint.ingest(&bytes[..ready_len]), Ok(STATUS_ACTIVE));
+
+        let reordered = binding.frame(SessionMessage::Offered {
+            sequence: 1,
+            payload: &[7],
+        });
+        let reordered_len = encode_session_frame_into(
+            reordered,
+            &mut bytes,
+            PAYLOAD_CAPACITY,
+            FRAME_CAPACITY as u32,
+        )
+        .unwrap();
+        assert_eq!(
+            endpoint.ingest(&bytes[..reordered_len]),
+            Err(WireError::ReorderedFrame)
+        );
+        assert_eq!(endpoint.machine.next_sequence(), 0);
+        assert_eq!(endpoint.received_sequence, None);
+
+        let expected = binding.frame(SessionMessage::Offered {
+            sequence: 0,
+            payload: &[7],
+        });
+        let expected_len = encode_session_frame_into(
+            expected,
+            &mut bytes,
+            PAYLOAD_CAPACITY,
+            FRAME_CAPACITY as u32,
+        )
+        .unwrap();
+        assert_eq!(endpoint.ingest(&bytes[..expected_len]), Ok(STATUS_ACTIVE));
+        assert_eq!(endpoint.received_sequence, Some(0));
+        assert_eq!(&endpoint.received[..endpoint.received_len], &[7]);
+
+        endpoint.output_len = 0;
+        assert_eq!(
+            endpoint.ingest(&bytes[..expected_len]),
+            Err(WireError::ReorderedFrame)
+        );
+        assert_eq!(endpoint.machine.next_sequence(), 0);
+        assert_eq!(endpoint.received_sequence, Some(0));
+        assert_eq!(&endpoint.received[..endpoint.received_len], &[7]);
     }
 }

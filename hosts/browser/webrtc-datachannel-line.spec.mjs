@@ -42,6 +42,18 @@ async function transfer(sender, receiver, bytes) {
   return receiver.evaluate((value) => window.conduitSessionIngest(value), received.bytes);
 }
 
+async function transferWithPressure(sender, receiver, bytes) {
+  expect(await sender.evaluate((value) => window.conduitSend([value]), bytes)).toEqual([
+    { accepted: true },
+  ]);
+  const received = await receiver.evaluate(() => window.conduitReceive());
+  expect(received).toEqual({ ok: true, bytes });
+  return receiver.evaluate(
+    (value) => window.conduitSessionPressure(value),
+    received.bytes,
+  );
+}
+
 async function activeSession(context) {
   const { left, right } = await connect(context, sessionLimits, sessionLimits);
   expect(await left.evaluate(() => window.conduitSessionStart(0))).toBe(0);
@@ -256,4 +268,72 @@ test("shared session machine refuses mismatched planned and finite wire facts", 
   expect(await malformed.right.evaluate(
     () => window.conduitSessionIngest(new Array(1025).fill(0)),
   )).toBe(-215);
+});
+
+test("ordinary bounded Cord value crosses canonical pressure and delivery states", async ({
+  context,
+}) => {
+  const { left, right } = await activeSession(context);
+  const value = [11, 22, 33, 44];
+
+  expect(await left.evaluate((bytes) => window.conduitSessionOffer(bytes), value)).toBe(1);
+  const pressuredOffer = await left.evaluate(() => window.conduitSessionOutput());
+  expect(await transferWithPressure(left, right, pressuredOffer)).toBe(1);
+  const pressure = await right.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(right, left, pressure)).toBe(1);
+  expect(await left.evaluate(() => window.conduitSessionNextSequence())).toBe(0);
+  expect(await right.evaluate(() => window.conduitSessionNextSequence())).toBe(0);
+
+  expect(await left.evaluate((bytes) => window.conduitSessionOffer(bytes), value)).toBe(1);
+  const offered = await left.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(left, right, offered)).toBe(1);
+  expect(await right.evaluate(() => window.conduitSessionValue())).toEqual(value);
+  expect(await left.evaluate((bytes) => window.conduitSessionOffer(bytes), [55])).toBe(-217);
+  expect(await left.evaluate(
+    (bytes) => window.conduitSessionOffer(bytes),
+    new Array(17).fill(1),
+  )).toBe(-215);
+
+  const accepted = await right.evaluate(() => window.conduitSessionOutput());
+  expect(await right.evaluate(
+    (bytes) => window.conduitSessionIngest(bytes),
+    offered,
+  )).toBe(-218);
+  expect(await right.evaluate(() => window.conduitSessionValue())).toEqual(value);
+  expect(await right.evaluate(() => window.conduitSessionNextSequence())).toBe(0);
+  expect(await transfer(right, left, accepted)).toBe(1);
+  expect(await left.evaluate(() => window.conduitSessionNextSequence())).toBe(0);
+  expect(await right.evaluate(() => window.conduitSessionDeliver())).toBe(1);
+  expect(await right.evaluate(() => window.conduitSessionValue())).toEqual([]);
+  const delivered = await right.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(right, left, delivered)).toBe(1);
+  expect(await left.evaluate(() => window.conduitSessionNextSequence())).toBe(1);
+  expect(await right.evaluate(() => window.conduitSessionNextSequence())).toBe(1);
+  expect(await left.evaluate(
+    (bytes) => window.conduitSessionIngest(bytes),
+    delivered,
+  )).toBe(-217);
+
+  expect(await left.evaluate(() => window.conduitSessionCloseInput())).toBe(1);
+  expect(await transfer(
+    left,
+    right,
+    await left.evaluate(() => window.conduitSessionOutput()),
+  )).toBe(1);
+  expect(await right.evaluate(() => window.conduitSessionFinish())).toBe(3);
+  expect(await transfer(
+    right,
+    left,
+    await right.evaluate(() => window.conduitSessionOutput()),
+  )).toBe(3);
+  expect(await left.evaluate(() => window.conduitSessionFinish())).toBe(2);
+  expect(await transfer(
+    left,
+    right,
+    await left.evaluate(() => window.conduitSessionOutput()),
+  )).toBe(2);
+  expect(await left.evaluate(
+    (bytes) => window.conduitSessionIngest(bytes),
+    delivered,
+  )).toBe(-216);
 });

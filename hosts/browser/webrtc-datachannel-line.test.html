@@ -9,7 +9,12 @@
     finishWebRtcSession,
     ingestWebRtcSession,
     instantiateWebRtcSession,
+    offerWebRtcSessionValue,
+    pressureWebRtcSessionOffer,
     takeWebRtcSessionOutput,
+    deliverWebRtcSessionValue,
+    webRtcSessionNextSequence,
+    webRtcSessionValue,
   } from "/hosts/browser/webrtc-session-runtime.mjs";
 
   let peer;
@@ -90,4 +95,15 @@
   );
   window.conduitSessionFinish = () => finishWebRtcSession(session);
   window.conduitSessionCloseInput = () => closeWebRtcSessionInput(session);
+  window.conduitSessionOffer = (bytes) => offerWebRtcSessionValue(
+    session,
+    Uint8Array.from(bytes),
+  );
+  window.conduitSessionPressure = (bytes) => pressureWebRtcSessionOffer(
+    session,
+    Uint8Array.from(bytes),
+  );
+  window.conduitSessionDeliver = () => deliverWebRtcSessionValue(session);
+  window.conduitSessionValue = () => [...webRtcSessionValue(session)];
+  window.conduitSessionNextSequence = () => webRtcSessionNextSequence(session);
 </script>
