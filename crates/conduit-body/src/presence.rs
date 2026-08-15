@@ -7,6 +7,8 @@ use crate::{
     MAX_BODY_PARTS, MAX_LIFECYCLE_ID_BYTES,
 };
 
+mod validation;
+
 pub const MAX_PRESENCE_EVENTS: usize = 64;
 pub const MAX_PRESENCE_LEASE_MILLIS: u64 = 5 * 60 * 1_000;
 
@@ -34,6 +36,7 @@ pub struct HostPresenceLease {
 pub enum HostPresenceEventKind {
     Started,
     Renewed,
+    SessionLost,
     Expired,
 }
 
@@ -307,69 +310,59 @@ impl HostPresenceTable {
         Ok(())
     }
 
-    pub fn validate(&self) -> Result<(), HostPresenceRefusal> {
-        validate_identity(self.body_id.as_str())?;
-        if self.maximum_lease_millis == 0
-            || self.maximum_lease_millis > MAX_PRESENCE_LEASE_MILLIS
-            || self.leases.len() > MAX_BODY_PARTS
-            || self.events.len() > MAX_PRESENCE_EVENTS
-            || self
-                .dropped_event_count
-                .checked_add(self.events.len() as u64)
-                != Some(self.revision)
-        {
-            return Err(HostPresenceRefusal::MalformedState);
+    pub fn lose_session(
+        &mut self,
+        membership: &mut BodyMembership,
+        part_id: &PartId,
+        session_binding_id: &LinkBindingId,
+        observed_at_millis: u64,
+        sign_id: SignId,
+    ) -> Result<(), HostPresenceRefusal> {
+        self.validate()?;
+        validate_identity(session_binding_id.as_str())?;
+        validate_identity(sign_id.as_str())?;
+        if membership.body_id != self.body_id {
+            return Err(HostPresenceRefusal::WrongBody);
         }
-        for (index, lease) in self.leases.iter().enumerate() {
-            validate_identity(lease.part_id.as_str())?;
-            validate_identity(lease.host_id.as_str())?;
-            validate_identity(lease.boot_id.as_str())?;
-            validate_identity(lease.membership_proof_id.as_str())?;
-            validate_identity(lease.session_binding_id.as_str())?;
-            if lease.sequence == 0
-                || lease.observed_at_millis > lease.expires_at_millis
-                || lease.expires_at_millis - lease.observed_at_millis > self.maximum_lease_millis
-                || self.leases[..index]
-                    .iter()
-                    .any(|prior| prior.part_id == lease.part_id)
-            {
-                return Err(HostPresenceRefusal::MalformedState);
-            }
-            let latest = self
-                .events
-                .iter()
-                .rev()
-                .find(|event| event.part_id == lease.part_id)
-                .ok_or(HostPresenceRefusal::MalformedState)?;
-            let event_available = !matches!(latest.kind, HostPresenceEventKind::Expired);
-            if latest.host_id != lease.host_id
-                || latest.boot_id != lease.boot_id
-                || latest.offer_generation != lease.offer_generation
-                || latest.membership_proof_id != lease.membership_proof_id
-                || latest.session_binding_id != lease.session_binding_id
-                || latest.sequence != lease.sequence
-                || event_available != (lease.state == HostPresenceState::Available)
-            {
-                return Err(HostPresenceRefusal::MalformedState);
-            }
+        let index = self
+            .lease_index(part_id)
+            .ok_or(HostPresenceRefusal::HostUnavailable)?;
+        let lease = &self.leases[index];
+        if lease.state != HostPresenceState::Available {
+            return Err(HostPresenceRefusal::HostUnavailable);
         }
-        for (index, event) in self.events.iter().enumerate() {
-            validate_identity(event.part_id.as_str())?;
-            validate_identity(event.host_id.as_str())?;
-            validate_identity(event.boot_id.as_str())?;
-            validate_identity(event.membership_proof_id.as_str())?;
-            validate_identity(event.session_binding_id.as_str())?;
-            validate_identity(event.sign_id.as_str())?;
-            if event.revision != self.dropped_event_count + index as u64 + 1
-                || event.sequence == 0
-                || (!matches!(event.kind, HostPresenceEventKind::Expired)
-                    && (event.observed_at_millis > event.expires_at_millis
-                        || event.expires_at_millis - event.observed_at_millis
-                            > self.maximum_lease_millis))
-            {
-                return Err(HostPresenceRefusal::MalformedState);
-            }
+        if lease.session_binding_id != *session_binding_id {
+            return Err(HostPresenceRefusal::WrongSession);
         }
+        if observed_at_millis < lease.observed_at_millis {
+            return Err(HostPresenceRefusal::ClockRegressed);
+        }
+        let (event_revision, dropped_event_count) = self.next_event_state()?;
+        let event = HostPresenceEvent {
+            revision: event_revision,
+            part_id: part_id.clone(),
+            host_id: lease.host_id.clone(),
+            boot_id: lease.boot_id.clone(),
+            offer_generation: lease.offer_generation,
+            membership_proof_id: lease.membership_proof_id.clone(),
+            session_binding_id: lease.session_binding_id.clone(),
+            sequence: lease.sequence,
+            observed_at_millis,
+            expires_at_millis: lease.expires_at_millis,
+            sign_id: sign_id.clone(),
+            kind: HostPresenceEventKind::SessionLost,
+        };
+        membership
+            .observe_offline(
+                &self.body_id,
+                membership.revision,
+                part_id,
+                &lease.boot_id,
+                sign_id,
+            )
+            .map_err(HostPresenceRefusal::Membership)?;
+        self.leases[index].state = HostPresenceState::Unavailable;
+        self.commit_event(event, dropped_event_count);
         Ok(())
     }
 

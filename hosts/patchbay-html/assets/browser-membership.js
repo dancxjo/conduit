@@ -1,7 +1,7 @@
 const INPUT_CAPACITY = 4096;
 const MAXIMUM_OUTPUT_BYTES = 9216;
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, onState }) {
+export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, renewPresence = true }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   const required = [
@@ -65,6 +65,10 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState }) {
   requireSuccess(api.conduit_browser_membership_advertisement(), "browser advertisement");
   const advertisement = JSON.parse(decoder.decode(readOutput()));
   let state = "connecting";
+  let presenceState = "unavailable";
+  let credential;
+  let renewalTimer;
+  let renewalSequence = 1;
   const setState = (next) => {
     state = next;
     onState?.(next);
@@ -104,18 +108,45 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState }) {
         signature: Array.from(signature),
       })));
     } else if (frame.kind === "admitted" && frame.protocol === 1) {
+      credential = frame.credential;
       setState("admitted");
+    } else if (frame.kind === "presence-accepted" && frame.protocol === 1) {
+      if (!credential || frame.sequence !== renewalSequence) {
+        throw new Error("presence acceptance did not match the current credential sequence");
+      }
+      presenceState = "available";
+      clearTimeout(renewalTimer);
+      if (renewPresence) {
+        renewalTimer = setTimeout(() => {
+          renewalSequence += 1;
+          socket.send(encoder.encode(JSON.stringify({
+            kind: "presence-renewal",
+            protocol: 1,
+            credential_id: credential.credential_id,
+            body_id: credential.body_id,
+            part_id: credential.part_id,
+            host_id: credential.host_id,
+            boot_id: credential.boot_id,
+            sequence: renewalSequence,
+          })));
+        }, frame.renew_after_millis);
+      }
     } else if (frame.kind === "refused" && frame.protocol === 1) {
+      presenceState = "unavailable";
+      clearTimeout(renewalTimer);
       setState(`refused:${frame.code}`);
     }
   });
   socket.addEventListener("close", () => {
-    if (state !== "admitted" && !state.startsWith("refused:")) setState("offline");
+    clearTimeout(renewalTimer);
+    presenceState = "unavailable";
+    if (!state.startsWith("refused:")) setState("offline");
   });
   return Object.freeze({
     hostId,
     bootId,
     state: () => state,
+    presenceState: () => presenceState,
     close: () => socket.close(1000, "Patchbay browser Host leaving"),
   });
 }

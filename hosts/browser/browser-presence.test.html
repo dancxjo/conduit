@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit browser Host presence proof</title>
+<p role="status">starting</p>
+<script type="module">
+import { joinBrowserBody } from "/hosts/patchbay-html/assets/browser-membership.js";
+
+const parameters = new URLSearchParams(location.search);
+const bodyUrl = parameters.get("body");
+if (!bodyUrl) throw new Error("browser presence proof requires ?body=");
+const wasmBytes = await fetch(
+  "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+).then((response) => {
+  if (!response.ok) throw new Error("browser WASM artifact missing");
+  return response.arrayBuffer();
+});
+const status = document.querySelector("[role=status]");
+globalThis.__browserPresence = await joinBrowserBody({
+  bodyUrl,
+  wasmBytes,
+  renewPresence: parameters.get("renew") !== "false",
+  onState: (state) => { status.textContent = state; },
+});
+</script>

@@ -2,15 +2,26 @@
 
 use conduit_body::{
     AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyMembership,
-    CandidateInventory, CandidateObservation, DiscoveryProofId,
+    CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceRefusal,
+    HostPresenceTable,
 };
 use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
-    BROWSER_ADMISSION_PROTOCOL,
+    BrowserAdmissionSocketError, BROWSER_ADMISSION_PROTOCOL,
 };
+use conduit_std_host::websocket::{NativeWebSocketError, NativeWebSocketError::Transport};
+use std::io::ErrorKind;
+use std::time::{Duration, Instant};
+
+const PRESENCE_LEASE_MILLIS: u64 = 2_000;
+const PRESENCE_RENEW_AFTER_MILLIS: u64 = 500;
 
 fn main() -> Result<(), String> {
+    let live_presence = std::env::args()
+        .skip(1)
+        .any(|argument| argument == "--presence");
+    let clock = Instant::now();
     let body = Body::born(
         SourceDocumentId::from("source/browser-admission-probe"),
         CheckedFormId::from("checked/browser-admission-probe"),
@@ -132,5 +143,187 @@ fn main() -> Result<(), String> {
         candidates.candidates.len(),
         membership.parts.len()
     );
-    Ok(())
+    if !live_presence {
+        return Ok(());
+    }
+    let session_binding = LinkBindingId::from("line/browser-admission-probe/session-1");
+    let mut presence = HostPresenceTable::new(body.body_id.clone(), PRESENCE_LEASE_MILLIS)
+        .map_err(|error| format!("presence table: {error:?}"))?;
+    let observed_at_millis = monotonic_millis(clock)?;
+    presence
+        .start(
+            &membership,
+            &credential.part_id,
+            session_binding.clone(),
+            1,
+            observed_at_millis,
+            PRESENCE_LEASE_MILLIS,
+            SignId::from("sign/browser-admission-probe/presence-started"),
+        )
+        .map_err(|error| format!("start presence: {error:?}"))?;
+    send_presence_accepted(&mut socket, 1, presence.leases[0].expires_at_millis)?;
+    loop {
+        let now = monotonic_millis(clock)?;
+        let remaining = presence.leases[0].expires_at_millis.saturating_sub(now);
+        socket
+            .set_read_timeout(Some(Duration::from_millis(remaining.max(1))))
+            .map_err(|error| format!("set presence deadline: {error:?}"))?;
+        match socket.receive() {
+            Ok(BrowserAdmissionIngress::PresenceRenewal {
+                credential_id,
+                body_id,
+                part_id,
+                host_id,
+                boot_id,
+                sequence,
+                ..
+            }) => {
+                if credential_id != credential.credential_id
+                    || body_id != credential.body_id
+                    || part_id != credential.part_id
+                    || host_id != credential.host_id
+                    || boot_id != credential.boot_id
+                {
+                    socket
+                        .send(&BrowserAdmissionEgress::Refused {
+                            protocol: BROWSER_ADMISSION_PROTOCOL,
+                            code: "stale-membership-credential".into(),
+                        })
+                        .map_err(|error| format!("send renewal refusal: {error:?}"))?;
+                    presence
+                        .lose_session(
+                            &mut membership,
+                            &credential.part_id,
+                            &session_binding,
+                            monotonic_millis(clock)?,
+                            SignId::from("sign/browser-admission-probe/refused-session"),
+                        )
+                        .map_err(|error| format!("lose refused session: {error:?}"))?;
+                    println!("unavailable reason=refused sequence={sequence}");
+                    return Ok(());
+                }
+                let observed_at_millis = monotonic_millis(clock)?;
+                if let Err(refusal) = presence.renew(
+                    &membership,
+                    &credential.part_id,
+                    &session_binding,
+                    sequence,
+                    observed_at_millis,
+                    PRESENCE_LEASE_MILLIS,
+                    SignId::from(format!("sign/browser-admission-probe/presence-{sequence}")),
+                ) {
+                    socket
+                        .send(&BrowserAdmissionEgress::Refused {
+                            protocol: BROWSER_ADMISSION_PROTOCOL,
+                            code: presence_refusal_code(refusal).into(),
+                        })
+                        .map_err(|error| format!("send presence refusal: {error:?}"))?;
+                    presence
+                        .lose_session(
+                            &mut membership,
+                            &credential.part_id,
+                            &session_binding,
+                            monotonic_millis(clock)?,
+                            SignId::from("sign/browser-admission-probe/renewal-refused"),
+                        )
+                        .map_err(|error| format!("lose refused renewal session: {error:?}"))?;
+                    println!(
+                        "unavailable reason={} sequence={sequence}",
+                        presence_refusal_code(refusal)
+                    );
+                    return Ok(());
+                }
+                send_presence_accepted(
+                    &mut socket,
+                    sequence,
+                    presence.leases[0].expires_at_millis,
+                )?;
+                println!("renewed sequence={sequence}");
+            }
+            Ok(_) => return Err("post-admission frame was not a presence renewal".into()),
+            Err(BrowserAdmissionSocketError::Transport(Transport(
+                ErrorKind::TimedOut | ErrorKind::WouldBlock,
+            ))) => {
+                let observed_at_millis = monotonic_millis(clock)?;
+                presence
+                    .expire(
+                        &mut membership,
+                        &credential.part_id,
+                        observed_at_millis,
+                        SignId::from("sign/browser-admission-probe/presence-expired"),
+                    )
+                    .map_err(|error| format!("expire presence: {error:?}"))?;
+                println!(
+                    "unavailable reason=expired sequence={}",
+                    presence.leases[0].sequence
+                );
+                return Ok(());
+            }
+            Err(BrowserAdmissionSocketError::Transport(
+                NativeWebSocketError::Disconnected | NativeWebSocketError::Transport(_),
+            )) => {
+                presence
+                    .lose_session(
+                        &mut membership,
+                        &credential.part_id,
+                        &session_binding,
+                        monotonic_millis(clock)?,
+                        SignId::from("sign/browser-admission-probe/session-lost"),
+                    )
+                    .map_err(|error| format!("lose browser session: {error:?}"))?;
+                println!(
+                    "unavailable reason=session-lost sequence={}",
+                    presence.leases[0].sequence
+                );
+                return Ok(());
+            }
+            Err(error) => return Err(format!("receive presence renewal: {error:?}")),
+        }
+    }
+}
+
+fn monotonic_millis(clock: Instant) -> Result<u64, String> {
+    u64::try_from(clock.elapsed().as_millis())
+        .map_err(|_| "monotonic presence clock overflowed".into())
+}
+
+fn send_presence_accepted(
+    socket: &mut conduit_std_host::browser_admission::BrowserAdmissionSocket,
+    sequence: u64,
+    expires_at_millis: u64,
+) -> Result<(), String> {
+    socket
+        .send(&BrowserAdmissionEgress::PresenceAccepted {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            sequence,
+            renew_after_millis: PRESENCE_RENEW_AFTER_MILLIS,
+            expires_at_millis,
+        })
+        .map_err(|error| format!("send presence acceptance: {error:?}"))
+}
+
+fn presence_refusal_code(refusal: HostPresenceRefusal) -> &'static str {
+    match refusal {
+        HostPresenceRefusal::WrongBody => "wrong-body",
+        HostPresenceRefusal::UnknownPart => "unknown-part",
+        HostPresenceRefusal::RevokedPart => "revoked-part",
+        HostPresenceRefusal::HostUnavailable => "host-unavailable",
+        HostPresenceRefusal::WrongHost => "wrong-host",
+        HostPresenceRefusal::StaleBoot => "stale-boot",
+        HostPresenceRefusal::StaleOfferGeneration => "stale-offer-generation",
+        HostPresenceRefusal::StaleMembershipProof => "stale-membership-proof",
+        HostPresenceRefusal::WrongSession => "wrong-session",
+        HostPresenceRefusal::StaleSequence => "stale-sequence",
+        HostPresenceRefusal::ClockRegressed => "clock-regressed",
+        HostPresenceRefusal::LeaseDurationZero => "lease-duration-zero",
+        HostPresenceRefusal::LeaseDurationTooLong => "lease-duration-too-long",
+        HostPresenceRefusal::LeaseDeadlineOverflow => "lease-deadline-overflow",
+        HostPresenceRefusal::LeaseStillCurrent => "lease-still-current",
+        HostPresenceRefusal::PresenceCapacityExhausted => "presence-capacity-exhausted",
+        HostPresenceRefusal::RevisionOverflow => "revision-overflow",
+        HostPresenceRefusal::MalformedState => "malformed-presence-state",
+        HostPresenceRefusal::EmptyIdentity => "empty-identity",
+        HostPresenceRefusal::IdentityTooLong => "identity-too-long",
+        HostPresenceRefusal::Membership(_) => "membership-refused",
+    }
 }

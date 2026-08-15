@@ -5,11 +5,13 @@
 //! decoded values through `conduit_body`'s canonical state machines.
 
 use conduit_body::{
-    AdmissionChallenge, AdmissionId, BodyId, MembershipCredential, SpawnInvitationId,
-    ADMISSION_SIGNATURE_BYTES, MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
+    AdmissionChallenge, AdmissionId, BodyId, MembershipCredential, MembershipCredentialId, PartId,
+    SpawnInvitationId, ADMISSION_SIGNATURE_BYTES, MAX_CANDIDATE_ADVERTISEMENT_BYTES,
+    MAX_CANDIDATE_LABEL_BYTES,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
 
@@ -45,6 +47,15 @@ pub enum BrowserAdmissionIngress {
         nonce: Vec<u8>,
         signature: Vec<u8>,
     },
+    PresenceRenewal {
+        protocol: u16,
+        credential_id: MembershipCredentialId,
+        body_id: BodyId,
+        part_id: PartId,
+        host_id: HostId,
+        boot_id: BootId,
+        sequence: u64,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,6 +68,12 @@ pub enum BrowserAdmissionEgress {
     Admitted {
         protocol: u16,
         credential: MembershipCredential,
+    },
+    PresenceAccepted {
+        protocol: u16,
+        sequence: u64,
+        renew_after_millis: u64,
+        expires_at_millis: u64,
     },
     Refused {
         protocol: u16,
@@ -74,6 +91,7 @@ pub enum BrowserAdmissionFrameError {
     InvalidVerifyingKey,
     InvalidNonce,
     InvalidSignature,
+    InvalidSequence,
     OutputTooSmall,
 }
 
@@ -128,6 +146,13 @@ pub struct BrowserAdmissionSocket {
 }
 
 impl BrowserAdmissionSocket {
+    pub fn set_read_timeout(
+        &self,
+        timeout: Option<Duration>,
+    ) -> Result<(), BrowserAdmissionSocketError> {
+        Ok(self.line.set_read_timeout(timeout)?)
+    }
+
     pub fn receive(&mut self) -> Result<BrowserAdmissionIngress, BrowserAdmissionSocketError> {
         self.receive_with_size().map(|(frame, _)| frame)
     }
@@ -218,6 +243,14 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             }
             protocol
         }
+        BrowserAdmissionIngress::PresenceRenewal {
+            protocol, sequence, ..
+        } => {
+            if *sequence == 0 {
+                return Err(BrowserAdmissionFrameError::InvalidSequence);
+            }
+            protocol
+        }
     };
     if *protocol != BROWSER_ADMISSION_PROTOCOL {
         return Err(BrowserAdmissionFrameError::WrongProtocol);
@@ -229,6 +262,7 @@ fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissio
     let protocol = match frame {
         BrowserAdmissionEgress::Challenge { protocol, .. }
         | BrowserAdmissionEgress::Admitted { protocol, .. }
+        | BrowserAdmissionEgress::PresenceAccepted { protocol, .. }
         | BrowserAdmissionEgress::Refused { protocol, .. } => protocol,
     };
     (*protocol == BROWSER_ADMISSION_PROTOCOL)
@@ -300,6 +334,20 @@ mod tests {
         assert_eq!(
             decode_browser_admission_frame(&serde_json::to_vec(&bad_key).unwrap()),
             Err(BrowserAdmissionFrameError::InvalidVerifyingKey)
+        );
+    }
+
+    #[test]
+    fn presence_renewal_round_trips_and_zero_sequence_is_refused() {
+        let encoded = br#"{"kind":"presence-renewal","protocol":1,"credential_id":"credential/browser","body_id":"body/browser","part_id":"part/browser","host_id":"host/browser","boot_id":"boot/browser","sequence":2}"#;
+        assert!(matches!(
+            decode_browser_admission_frame(encoded),
+            Ok(BrowserAdmissionIngress::PresenceRenewal { sequence: 2, .. })
+        ));
+        let stale = br#"{"kind":"presence-renewal","protocol":1,"credential_id":"credential/browser","body_id":"body/browser","part_id":"part/browser","host_id":"host/browser","boot_id":"boot/browser","sequence":0}"#;
+        assert_eq!(
+            decode_browser_admission_frame(stale),
+            Err(BrowserAdmissionFrameError::InvalidSequence)
         );
     }
 

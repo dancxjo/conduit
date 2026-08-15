@@ -1,7 +1,7 @@
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyMembership, BodyMembershipRevision,
-    HostPresenceRefusal, HostPresenceState, HostPresenceTable, MembershipProofId, PartId,
-    MAX_PRESENCE_EVENTS,
+    HostPresenceEventKind, HostPresenceRefusal, HostPresenceState, HostPresenceTable,
+    MembershipProofId, PartId, MAX_PRESENCE_EVENTS,
 };
 use conduit_core::{
     BootId, CheckedFormId, HostId, LinkBindingId, OfferGeneration, SignId, SourceDocumentId,
@@ -324,6 +324,53 @@ fn expiry_preserves_part_but_clears_current_boot_and_requires_fresh_continuity()
         )
         .unwrap();
     assert_eq!(table.leases[0].boot_id, BootId::from("boot/browser/2"));
+}
+
+#[test]
+fn exact_session_loss_detaches_immediately_without_masquerading_as_expiry() {
+    let (mut membership, part_id) = admitted();
+    let session = LinkBindingId::from("binding/browser/session-1");
+    let mut table = HostPresenceTable::new(membership.body_id.clone(), 30_000).unwrap();
+    table
+        .start(
+            &membership,
+            &part_id,
+            session.clone(),
+            1,
+            1_000,
+            20_000,
+            SignId::from("sign/presence/start"),
+        )
+        .unwrap();
+    let membership_before = membership.clone();
+    assert_eq!(
+        table.lose_session(
+            &mut membership,
+            &part_id,
+            &LinkBindingId::from("binding/browser/other"),
+            2_000,
+            SignId::from("sign/presence/wrong-session"),
+        ),
+        Err(HostPresenceRefusal::WrongSession)
+    );
+    assert_eq!(membership, membership_before);
+    table
+        .lose_session(
+            &mut membership,
+            &part_id,
+            &session,
+            2_000,
+            SignId::from("sign/presence/session-lost"),
+        )
+        .unwrap();
+    assert!(membership.parts[0].current.is_none());
+    assert_eq!(table.leases[0].state, HostPresenceState::Unavailable);
+    assert_eq!(
+        table.events.last().unwrap().kind,
+        HostPresenceEventKind::SessionLost
+    );
+    assert_eq!(table.events.last().unwrap().expires_at_millis, 21_000);
+    table.validate().unwrap();
 }
 
 #[test]
