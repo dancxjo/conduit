@@ -40,6 +40,42 @@ fn cancellation_is_explicit_and_idempotently_fail_closed() {
 }
 
 #[test]
+fn current_plan_derives_only_its_exact_selected_webrtc_session_grant() {
+    let identity = patchbay_model::RendererAdapterIdentity {
+        host_id: HostId::from("browser/granted-sink"),
+        boot_id: BootId::from("browser-boot/granted-sink"),
+        target_subject: "subject/renderer".into(),
+    };
+    let mut exact = patchbay_model::cross_host_renderer_plan(
+        HostId::from("browser/granted-source"),
+        BootId::from("browser-boot/granted-source"),
+        identity,
+    )
+    .unwrap();
+    let connection = exact
+        .plan
+        .fragments
+        .iter_mut()
+        .find_map(|fragment| fragment.connections.first_mut())
+        .unwrap();
+    let selected = connection.selected_line.as_mut().unwrap();
+    selected.binding.base = conduit_core::ConnectionBase::WebRtcDataChannel;
+    connection.admitted_lines[0] = selected.clone();
+    let binding_id = selected.binding.binding_id.clone();
+
+    let grants = planned_webrtc_bindings(&exact.plan).unwrap();
+    assert_eq!(grants.len(), 1);
+    assert_eq!(grants[0].plan_id, exact.plan.plan_id);
+    assert_eq!(
+        grants[0].attachment.base,
+        conduit_core::ConnectionBase::WebRtcDataChannel
+    );
+    assert_eq!(grants[0].attachment.link_binding_id, binding_id);
+    assert_eq!(grants[0].source.host_id.as_str(), "browser/granted-source");
+    assert_eq!(grants[0].sink.host_id.as_str(), "browser/granted-sink");
+}
+
+#[test]
 fn body_spawn_listener_accepts_one_exact_return_on_the_original_url() {
     run_body_spawn_return(None);
 }

@@ -91,6 +91,16 @@ impl PatchbayApplication {
     }
 
     pub(super) fn play_plan_classified(&mut self) -> Result<(), LifecycleActionError> {
+        let plan = self
+            .control
+            .plan()
+            .cloned()
+            .ok_or(LifecycleActionError::Unavailable)?;
+        if let Some(browser_parts) = &mut self.browser_parts {
+            browser_parts
+                .replace_webrtc_grants(&plan)
+                .map_err(LifecycleActionError::Failure)?;
+        }
         let play = self
             .control
             .planned_play_identity()

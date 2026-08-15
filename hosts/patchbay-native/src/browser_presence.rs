@@ -72,6 +72,16 @@ impl BrowserPresenceCoordinator {
         &self.table
     }
 
+    pub(super) fn replace_webrtc_grants(
+        &mut self,
+        bindings: &[conduit_wire::SessionBinding],
+    ) -> Result<(), String> {
+        self.rendezvous
+            .replace_grants(bindings)
+            .map(|_| ())
+            .map_err(|refusal| format!("replace browser WebRTC grants: {refusal:?}"))
+    }
+
     pub(super) fn is_running(&self) -> bool {
         !self.workers.is_empty()
     }

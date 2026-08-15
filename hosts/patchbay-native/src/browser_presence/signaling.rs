@@ -108,10 +108,7 @@ mod tests {
     use conduit_std_host::browser_admission::{
         BrowserWebRtcDescription, BrowserWebRtcSignal, MAX_WEBRTC_SESSION_HELLO_BYTES,
     };
-    use conduit_wire::{
-        encode_session_frame_into, LineAttachment, SessionBinding, SessionEndpointIdentity,
-        SessionLimits,
-    };
+    use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
     use std::sync::mpsc;
 
     fn credential(label: &str) -> MembershipCredential {
@@ -126,9 +123,9 @@ mod tests {
         .unwrap()
     }
 
-    fn hello(source: &MembershipCredential, sink: &MembershipCredential) -> Vec<u8> {
+    fn binding(source: &MembershipCredential, sink: &MembershipCredential) -> SessionBinding {
         let plan_id = PlanId::from("plan/native-rendezvous");
-        let binding = SessionBinding {
+        SessionBinding {
             protocol_version: PROTOCOL_VERSION,
             plan_id: plan_id.clone(),
             source_fragment_id: FragmentId::from("fragment/source"),
@@ -170,16 +167,7 @@ mod tests {
                     maximum_frame_bytes: MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
                 },
             },
-        };
-        let mut encoded = [0; MAX_WEBRTC_SESSION_HELLO_BYTES];
-        let length = encode_session_frame_into(
-            binding.hello_frame(),
-            &mut encoded,
-            16,
-            MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
-        )
-        .unwrap();
-        encoded[..length].to_vec()
+        }
     }
 
     #[test]
@@ -221,6 +209,10 @@ mod tests {
             });
         }
         let target_receiver = target_receiver.unwrap();
+        let session_hello = coordinator
+            .rendezvous
+            .grant(&binding(&source, &sink))
+            .unwrap();
         coordinator.workers[1]
             .outbound
             .try_send(BrowserAdmissionEgress::Refused {
@@ -240,7 +232,7 @@ mod tests {
             signal: BrowserWebRtcSignal {
                 negotiation_id: LinkBindingId::from("binding/native-rendezvous"),
                 description: BrowserWebRtcDescription::Offer,
-                session_hello: hello(&source, &sink),
+                session_hello,
                 sdp: "v=0\na=setup:actpass".into(),
             },
         };

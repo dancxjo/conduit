@@ -1,66 +1,11 @@
-use conduit_body::{HostPresenceState, HostPresenceTable, MembershipCredential, MAX_BODY_PARTS};
+use conduit_body::{HostPresenceState, HostPresenceTable, MembershipCredential};
 use conduit_core::{BootId, ConnectionBase, HostId, LinkBindingId};
 use conduit_wire::{decode_session_frame, SessionMessage};
-use serde::{Deserialize, Serialize};
-
-use super::BrowserAdmissionFrameError;
-
-pub const MAX_WEBRTC_SESSION_HELLO_BYTES: usize = 1_024;
-pub const MAX_WEBRTC_DESCRIPTION_BYTES: usize = 4_096;
-pub const MAX_WEBRTC_NEGOTIATIONS: usize = MAX_BODY_PARTS;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum BrowserWebRtcDescription {
-    Offer,
-    Answer,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct BrowserWebRtcSignal {
-    pub negotiation_id: LinkBindingId,
-    pub description: BrowserWebRtcDescription,
-    pub session_hello: Vec<u8>,
-    pub sdp: String,
-}
-
-impl BrowserWebRtcSignal {
-    pub(super) fn validate(&self) -> Result<(), BrowserAdmissionFrameError> {
-        if self.negotiation_id.as_str().is_empty()
-            || self.session_hello.is_empty()
-            || self.session_hello.len() > MAX_WEBRTC_SESSION_HELLO_BYTES
-            || self.sdp.is_empty()
-            || self.sdp.len() > MAX_WEBRTC_DESCRIPTION_BYTES
-        {
-            return Err(BrowserAdmissionFrameError::InvalidSignal);
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BrowserWebRtcRendezvousRefusal {
-    InvalidSignal,
-    SourceUnavailable,
-    SourceCredentialMismatch,
-    TargetUnavailable,
-    SessionMismatch,
-    WrongDirection,
-    DuplicateNegotiation,
-    UnknownNegotiation,
-    InvalidStage,
-    CapacityExhausted,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RoutedBrowserWebRtcSignal {
-    pub source_host_id: HostId,
-    pub source_boot_id: BootId,
-    pub target_host_id: HostId,
-    pub target_boot_id: BootId,
-    pub signal: BrowserWebRtcSignal,
-}
+#[path = "webrtc_signaling/grants.rs"]
+mod grants;
+#[path = "webrtc_signaling/types.rs"]
+mod types;
+pub use types::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Negotiation {
@@ -75,12 +20,20 @@ struct Negotiation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrowserWebRtcRendezvous {
+    grants: Vec<GrantedSession>,
     negotiations: Vec<Negotiation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct GrantedSession {
+    negotiation_id: LinkBindingId,
+    session_hello: Vec<u8>,
 }
 
 impl Default for BrowserWebRtcRendezvous {
     fn default() -> Self {
         Self {
+            grants: Vec::with_capacity(MAX_WEBRTC_NEGOTIATIONS),
             negotiations: Vec::with_capacity(MAX_WEBRTC_NEGOTIATIONS),
         }
     }
@@ -133,6 +86,12 @@ impl BrowserWebRtcRendezvous {
             || hello.link_binding_id != signal.negotiation_id.as_str()
         {
             return Err(BrowserWebRtcRendezvousRefusal::SessionMismatch);
+        }
+        if !self.grants.iter().any(|grant| {
+            grant.negotiation_id == signal.negotiation_id
+                && grant.session_hello == signal.session_hello
+        }) {
+            return Err(BrowserWebRtcRendezvousRefusal::UngrantedSession);
         }
 
         let (
@@ -320,9 +279,9 @@ mod tests {
         }
     }
 
-    fn hello(source: &MembershipCredential, sink: &MembershipCredential) -> Vec<u8> {
+    fn binding(source: &MembershipCredential, sink: &MembershipCredential) -> SessionBinding {
         let plan_id = PlanId::from("plan/rendezvous");
-        let binding = SessionBinding {
+        SessionBinding {
             protocol_version: PROTOCOL_VERSION,
             plan_id: plan_id.clone(),
             source_fragment_id: FragmentId::from("fragment/source"),
@@ -364,16 +323,7 @@ mod tests {
                     maximum_frame_bytes: MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
                 },
             },
-        };
-        let mut encoded = [0; MAX_WEBRTC_SESSION_HELLO_BYTES];
-        let length = encode_session_frame_into(
-            binding.hello_frame(),
-            &mut encoded,
-            16,
-            MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
-        )
-        .unwrap();
-        encoded[..length].to_vec()
+        }
     }
 
     fn signal(description: BrowserWebRtcDescription, hello: Vec<u8>) -> BrowserWebRtcSignal {
@@ -394,8 +344,13 @@ mod tests {
         let source = credential("source");
         let sink = credential("sink");
         let presence = presence(&source, &sink);
-        let hello = hello(&source, &sink);
         let mut rendezvous = BrowserWebRtcRendezvous::default();
+        let granted = binding(&source, &sink);
+        let hello = rendezvous.grant(&granted).unwrap();
+        assert_eq!(
+            rendezvous.grant(&granted),
+            Err(BrowserWebRtcRendezvousRefusal::DuplicateGrant)
+        );
 
         let offered = rendezvous
             .prepare(
@@ -417,6 +372,10 @@ mod tests {
             )
             .is_ok());
         rendezvous.commit(&offered).unwrap();
+        assert_eq!(
+            rendezvous.replace_grants(core::iter::empty()),
+            Err(BrowserWebRtcRendezvousRefusal::InvalidStage)
+        );
         assert_eq!(offered.target_host_id, sink.host_id);
         let answered = rendezvous
             .prepare(
@@ -441,8 +400,27 @@ mod tests {
         let source = credential("source");
         let sink = credential("sink");
         let mut presence = presence(&source, &sink);
-        let hello = hello(&source, &sink);
         let mut rendezvous = BrowserWebRtcRendezvous::default();
+        let ungranted = binding(&source, &sink);
+        let mut encoded = [0; MAX_WEBRTC_SESSION_HELLO_BYTES];
+        let length = encode_session_frame_into(
+            ungranted.hello_frame(),
+            &mut encoded,
+            ungranted.limits.maximum_payload_bytes,
+            MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
+        )
+        .unwrap();
+        assert_eq!(
+            rendezvous.prepare(
+                &presence,
+                &source,
+                sink.host_id.clone(),
+                sink.boot_id.clone(),
+                signal(BrowserWebRtcDescription::Offer, encoded[..length].to_vec(),),
+            ),
+            Err(BrowserWebRtcRendezvousRefusal::UngrantedSession)
+        );
+        let hello = rendezvous.grant(&binding(&source, &sink)).unwrap();
 
         assert_eq!(
             rendezvous.prepare(

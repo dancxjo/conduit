@@ -37,6 +37,18 @@ pub(super) struct SpawnArrival {
 }
 
 impl BrowserPartsCoordinator {
+    pub(super) fn replace_webrtc_grants(
+        &mut self,
+        plan: &conduit_core::Plan,
+    ) -> Result<(), String> {
+        let bindings = planned_webrtc_bindings(plan)?;
+        match self.presence.as_mut() {
+            Some(presence) => presence.replace_webrtc_grants(&bindings),
+            None if bindings.is_empty() => Ok(()),
+            None => Err("planned browser WebRTC grants require browser presence".into()),
+        }
+    }
+
     pub(super) fn new(page_url: String, chat_url: String) -> Self {
         Self {
             page_url,
@@ -321,6 +333,50 @@ impl BrowserPartsCoordinator {
             self.returns.atomic_state_for_test(),
         )
     }
+}
+
+fn planned_webrtc_bindings(
+    plan: &conduit_core::Plan,
+) -> Result<Vec<conduit_wire::SessionBinding>, String> {
+    let mut bindings = Vec::with_capacity(conduit_body::MAX_BODY_PARTS);
+    for source in &plan.fragments {
+        for connection in &source.connections {
+            let Some(line) = &connection.selected_line else {
+                continue;
+            };
+            if line.binding.base != conduit_core::ConnectionBase::WebRtcDataChannel {
+                continue;
+            }
+            if source.host_id != line.binding.source.host_id
+                || source.boot_id != line.binding.source.boot_id
+            {
+                return Err("planned WebRTC source fragment does not match selected Line".into());
+            }
+            let mut sinks = plan.fragments.iter().filter(|fragment| {
+                fragment.host_id == line.binding.sink.host_id
+                    && fragment.boot_id == line.binding.sink.boot_id
+            });
+            let sink = sinks
+                .next()
+                .ok_or("planned WebRTC sink fragment is absent")?;
+            if sinks.next().is_some() {
+                return Err("planned WebRTC sink fragment is ambiguous".into());
+            }
+            if bindings.len() == conduit_std_host::browser_admission::MAX_WEBRTC_NEGOTIATIONS {
+                return Err("planned WebRTC grant capacity exhausted".into());
+            }
+            bindings.push(
+                conduit_wire::SessionBinding::from_planned_connection(
+                    plan.plan_id.clone(),
+                    source.fragment_id.clone(),
+                    sink.fragment_id.clone(),
+                    connection,
+                )
+                .map_err(|error| format!("derive planned browser WebRTC binding: {error:?}"))?,
+            );
+        }
+    }
+    Ok(bindings)
 }
 
 fn receive_spawn(listener: BrowserAdmissionListener) -> Result<SpawnArrival, String> {
