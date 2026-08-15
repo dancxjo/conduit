@@ -118,7 +118,7 @@ body[data-lens="play"] .flow-faceplate { box-shadow:inset 0 0 0 1px var(--patchb
 body[data-lens="signs"] .flow-faceplate { border-style:double; }
 .flow-faceplate.semantic-selected { outline:3px solid var(--patchbay-focus); outline-offset:2px; }
 .react-flow__node.selected { outline:3px solid var(--patchbay-focus); }
-.react-flow__edge-path { stroke:var(--patchbay-structure-primary); stroke-width:3; }
+.react-flow__edge-path { stroke:var(--patchbay-structure-primary); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
 .react-flow__controls { box-shadow:none; border:1px solid var(--patchbay-structure-secondary); }
 .react-flow__controls-button { border-radius:0; padding:0; }
 

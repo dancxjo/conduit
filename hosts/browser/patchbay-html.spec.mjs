@@ -106,6 +106,24 @@ async function expectFaceplateTextContained(page) {
   }
 }
 
+async function cordGeometry(page,snapshot) {
+  return page.locator("#flow-root .react-flow__edge.flow-cord").evaluateAll((edges,presentation)=>{
+    const value=property=>property?.value?.Identity??property?.value?.Text;
+    const semanticSubjects=new Map(presentation.properties.filter(property=>property.name==="semantic-id").map(property=>[value(property),property.subject]));
+    const cordPorts=presentation.subjects.filter(subject=>subject.role==="Cord").map(cord=>{
+      const properties=presentation.properties.filter(property=>property.subject===cord.identity);
+      return {id:cord.identity,ports:[semanticSubjects.get(value(properties.find(property=>property.name==="source-port"))),semanticSubjects.get(value(properties.find(property=>property.name==="sink-port")))]};
+    }).filter(cord=>cord.ports.every(Boolean)).sort((left,right)=>left.id.localeCompare(right.id));
+    const center=element=>{const box=element.getBoundingClientRect();return {x:box.x+box.width/2,y:box.y+box.height/2,node:element.closest(".react-flow__node")?.dataset.id};};
+    const screenPoint=(path,offset)=>{const point=path.getPointAtLength(offset),matrix=path.getScreenCTM(),screen=new DOMPoint(point.x,point.y).matrixTransform(matrix);return {x:screen.x,y:screen.y};};
+    return edges.map((edge,index)=>{
+      const {id,ports}=cordPorts[index],path=edge.querySelector(".react-flow__edge-path"),source=center(document.querySelector(`.faceplate-handle[data-port-id="${CSS.escape(ports[0])}"]`)),target=center(document.querySelector(`.faceplate-handle[data-port-id="${CSS.escape(ports[1])}"]`));
+      const length=path.getTotalLength(),start=screenPoint(path,0),end=screenPoint(path,length),direct=Math.hypot(target.x-source.x,target.y-source.y);
+      return {id,d:path.getAttribute("d"),marker:path.getAttribute("marker-end"),source,target,start,end,length,direct,forward:target.x>source.x};
+    });
+  },snapshot.presentation);
+}
+
 function startServer() {
   const process = spawn("target/debug/patchbay-html", ["--documentary-fixture"], { stdio:["ignore","pipe","pipe"] });
   const errors=[]; process.stderr.setEncoding("utf8"); process.stderr.on("data",chunk=>errors.push(chunk));
@@ -227,6 +245,18 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#flow-root .flow-gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
     await expect(page.locator("#flow-root .faceplate-port")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Port").length);
     await expect(page.locator("#flow-root .flow-cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
+    const routes=await cordGeometry(page,snapshot);
+    expect(routes.length).toBeGreaterThan(0);
+    expect(Math.max(...routes.map(route=>Math.hypot(route.start.x-route.source.x,route.start.y-route.source.y)))).toBeLessThan(4);
+    expect(Math.max(...routes.map(route=>Math.hypot(route.end.x-route.target.x,route.end.y-route.target.y)))).toBeLessThan(4);
+    expect(Math.max(...routes.filter(route=>route.forward).map(route=>route.length/route.direct))).toBeLessThan(2.1);
+    expect(routes.every(route=>route.marker?.startsWith("url("))).toBe(true);
+    expect(new Set(routes.map(route=>route.d)).size).toBe(routes.length);
+    const distinctSourceHandles=routes.filter((route,index)=>routes.some((other,otherIndex)=>otherIndex!==index&&other.source.node===route.source.node&&(other.source.x!==route.source.x||other.source.y!==route.source.y)));
+    expect(distinctSourceHandles.every(route=>routes.filter(other=>other.source.node===route.source.node&&(other.source.x!==route.source.x||other.source.y!==route.source.y)).every(other=>Math.hypot(other.source.x-route.source.x,other.source.y-route.source.y)>4))).toBe(true);
+    await page.evaluate(()=>window.patchbayReload());
+    await expect.poll(async()=>(await cordGeometry(page,snapshot)).length).toBe(routes.length);
+    expect((await cordGeometry(page,snapshot)).map(route=>[route.id,route.d])).toEqual(routes.map(route=>[route.id,route.d]));
 
     const first=page.locator('#subjects button[data-role="Gear"]').first(); await first.focus(); await first.press("Enter");
     const identity=await first.getAttribute("data-subject");
@@ -587,6 +617,7 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
         oversized:scene.decodeFlowPresentation("x".repeat(scene.MAX_FLOW_STATE_BYTES+1),projected),
         portIds:projected.nodes.flatMap(node=>node.data.ports.map(port=>port.id)),
         handles:projected.edges.map(edge=>[edge.sourceHandle,edge.targetHandle]),
+        edgeTypes:projected.edges.map(edge=>edge.type),
         cordLine:projected.edges.map(edge=>({cord:edge.data.semanticIdentity,line:edge.data.lineIdentity})),
         acyclic:[acyclic.get("a"),acyclic.get("b"),acyclic.get("c")],
         cycle:[...cycle.entries()],
@@ -607,6 +638,7 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
     expect(result.portIds.length).toBeGreaterThan(0);
     expect(result.handles.length).toBeGreaterThan(0);
     expect(result.handles.flat().every(identity=>result.portIds.includes(identity))).toBe(true);
+    expect(result.edgeTypes.every(type=>type==="simplebezier")).toBe(true);
     expect(result.cordLine.every(item=>typeof item.cord==="string"&&(item.line===null||typeof item.line==="string"))).toBe(true);
     expect(result.acyclic[0].x).toBeLessThan(result.acyclic[1].x);
     expect(result.acyclic[1].x).toBeLessThan(result.acyclic[2].x);
