@@ -82,12 +82,7 @@ mod websocket_signal;
 mod websocket_transport;
 mod radio;
 mod receipts;
-#[cfg(any(
-    feature = "usb-remote",
-    feature = "triple-remote",
-    feature = "wifi-bootstrap",
-    feature = "bluetooth-line"
-))]
+#[cfg(any(feature = "session-control", feature = "bluetooth-line"))]
 mod remote_error;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
 mod remote_signal;
@@ -239,6 +234,7 @@ async fn main(spawner: Spawner) {
             &spawner,
             p.PIO0,
             p.DMA_CH0,
+            p.DMA_CH1,
             p.PIN_23,
             p.PIN_24,
             p.PIN_25,
@@ -267,6 +263,7 @@ async fn main(spawner: Spawner) {
             &spawner,
             p.PIO0,
             p.DMA_CH0,
+            p.DMA_CH1,
             p.PIN_23,
             p.PIN_24,
             p.PIN_25,
@@ -293,6 +290,7 @@ async fn main(spawner: Spawner) {
                 &spawner,
                 p.PIO0,
                 p.DMA_CH0,
+                p.DMA_CH1,
                 p.PIN_23,
                 p.PIN_24,
                 p.PIN_25,
@@ -336,6 +334,7 @@ async fn main(spawner: Spawner) {
             panic_record,
             p.PIO0,
             p.DMA_CH0,
+            p.DMA_CH1,
             p.PIN_23,
             p.PIN_24,
             p.PIN_25,
@@ -356,6 +355,7 @@ async fn main(spawner: Spawner) {
             &mut cdc,
             p.PIO0,
             p.DMA_CH0,
+            p.DMA_CH1,
             p.PIN_23,
             p.PIN_24,
             p.PIN_25,
@@ -383,6 +383,7 @@ async fn main(spawner: Spawner) {
             &mut cdc,
             p.PIO0,
             p.DMA_CH0,
+            p.DMA_CH1,
             p.PIN_23,
             p.PIN_24,
             p.PIN_25,
@@ -410,6 +411,7 @@ async fn main(spawner: Spawner) {
             &mut cdc,
             p.PIO0,
             p.DMA_CH0,
+            p.DMA_CH1,
             p.PIN_23,
             p.PIN_24,
             p.PIN_25,

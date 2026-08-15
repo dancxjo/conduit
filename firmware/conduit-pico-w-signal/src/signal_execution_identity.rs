@@ -46,7 +46,10 @@ impl SignalExecutionIdentity {
             fragment_id: self.fragment_id,
             host_id: self.host_id,
             boot_id: self.boot_id,
+            #[cfg(not(feature = "wifi-bootstrap"))]
             boot_sign_id: crate::signal_image::BOOT_SIGN_ID,
+            #[cfg(feature = "wifi-bootstrap")]
+            boot_sign_id: crate::network_image::BOOT_SIGN_ID,
         }
     }
 

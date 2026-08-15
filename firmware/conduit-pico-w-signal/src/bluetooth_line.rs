@@ -24,7 +24,7 @@ use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embassy_rp::{
     clocks::RoscRng,
-    peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0},
+    peripherals::{DMA_CH0, DMA_CH1, PIN_23, PIN_24, PIN_25, PIN_29, PIO0},
     Peri,
 };
 use embassy_time::{Duration, Timer};
@@ -66,6 +66,7 @@ pub async fn run(
     sign: &mut UsbCdc,
     pio0: Peri<'static, PIO0>,
     dma_ch0: Peri<'static, DMA_CH0>,
+    dma_ch1: Peri<'static, DMA_CH1>,
     pin23: Peri<'static, PIN_23>,
     pin24: Peri<'static, PIN_24>,
     pin25: Peri<'static, PIN_25>,
@@ -77,11 +78,11 @@ pub async fn run(
     runtime: &RuntimeTranscriptIdentity,
 ) -> ! {
     let (bt_driver, mut control) = crate::radio::init_cyw43_bluetooth(
-        spawner, pio0, dma_ch0, pin23, pin24, pin25, pin29, fw, btfw, nvram, clm,
+        spawner, pio0, dma_ch0, dma_ch1, pin23, pin24, pin25, pin29, fw, btfw, nvram, clm,
     )
     .await;
     let controller: ExternalController<_, 10> = ExternalController::new(bt_driver);
-    let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
+    let mut resources: HostResources<_, DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
         HostResources::new();
     let mut rng = RoscRng;
     let mut address_bytes = [0_u8; 6];
@@ -89,12 +90,9 @@ pub async fn run(
     address_bytes[5] = (address_bytes[5] & 0x3f) | 0xc0;
     let stack = trouble_host::new(controller, &mut resources)
         .set_random_address(Address::random(address_bytes))
-        .set_random_generator_seed(&mut rng);
-    let Host {
-        mut peripheral,
-        runner,
-        ..
-    } = stack.build();
+        .build();
+    let mut peripheral = stack.peripheral();
+    let runner = stack.runner();
     let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
         name: "Conduit Pico W",
         appearance: &appearance::computer::GENERIC_COMPUTER,
@@ -160,7 +158,7 @@ async fn advertise<'values, 'server, C: Controller>(
     let len = AdStructure::encode_slice(
         &[
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
-            AdStructure::ServiceUuids128(&[uuid.to_le_bytes()]),
+            AdStructure::CompleteServiceUuids128(&[uuid.to_le_bytes()]),
         ],
         &mut data,
     )?;
@@ -213,11 +211,15 @@ async fn serve_connection<C: Controller>(
                 event: GattEvent::Write(event),
             } if event.handle() == server.conduit.write.handle => {
                 let mut packet = [0_u8; MAXIMUM_BLE_GATT_PACKET_BYTES];
-                let packet_len = event.data().len();
+                let packet_len = event.with_data(|_, data| {
+                    if data.len() <= packet.len() {
+                        packet[..data.len()].copy_from_slice(data);
+                    }
+                    data.len()
+                });
                 if packet_len > packet.len() {
                     return Err(UsbLinkError::BufferOverflow);
                 }
-                packet[..packet_len].copy_from_slice(event.data());
                 if let Ok(reply) = event.accept() {
                     reply.send().await;
                 }
@@ -384,7 +386,7 @@ async fn send_session(
         server
             .conduit
             .notify
-            .notify(connection, &value)
+            .notify(connection, &value, false)
             .await
             .map_err(|_| UsbLinkError::UsbDisconnected)?;
     }

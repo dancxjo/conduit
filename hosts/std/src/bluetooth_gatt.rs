@@ -273,6 +273,12 @@ impl BluezBleGattLine {
         let adapter = session
             .adapter(adapter_name)
             .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
+        if allow_pairing {
+            adapter
+                .set_pairable(true)
+                .await
+                .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
+        }
         let address = Address(address);
         let device = adapter
             .device(address)

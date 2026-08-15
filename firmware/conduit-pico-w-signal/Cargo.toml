@@ -47,7 +47,7 @@ conduit-net = { path = "../../crates/conduit-net", default-features = false, opt
 conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
 conduit-wire = { path = "../../crates/conduit-wire", default-features = false, optional = true }
 conduit-bluetooth = { path = "../../crates/conduit-bluetooth", optional = true }
-trouble-host = { version = "0.6", default-features = false, features = ["peripheral", "gatt", "derive", "security", "default-packet-pool", "default-packet-pool-size-8", "default-packet-pool-mtu-251", "connection-event-queue-size-4", "l2cap-rx-queue-size-4", "l2cap-tx-queue-size-4"], optional = true }
+trouble-host = { version = "0.7", default-features = false, features = ["central", "peripheral", "gatt", "derive", "security", "default-packet-pool", "default-packet-pool-size-8", "default-packet-pool-mtu-251", "connection-event-queue-size-4", "l2cap-rx-queue-size-4", "l2cap-tx-queue-size-4"], optional = true }
 ed25519-dalek = { version = "2.2", default-features = false }
 serde-json-core = "0.6"
 
@@ -70,3 +70,18 @@ path = "src/main.rs"
 opt-level = "s"
 lto = true
 codegen-units = 1
+
+# Trouble's maintained Pico W realization pins this CYW43 PIO revision. It
+# gives reads and writes distinct DMA channels so inbound HCI traffic is not
+# lost while the shared half-duplex bus is transmitting.
+[patch.crates-io]
+cyw43 = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-net-driver = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-net-driver-channel = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
