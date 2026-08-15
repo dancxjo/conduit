@@ -28,6 +28,7 @@ pub struct LocalFrontDoorProjection {
 pub struct LocalFrontDoor {
     pub(super) model: PatchbayModel,
     pub(super) editor: FormEditor,
+    pub(super) form_name: String,
     pub(super) body: Body,
     pub(super) wake: Wake,
     pub(super) membership: BodyMembership,
@@ -121,6 +122,7 @@ impl LocalFrontDoor {
         Ok(Self {
             model,
             editor,
+            form_name: "patchbay-front-door".into(),
             body,
             wake,
             membership,
@@ -338,7 +340,7 @@ impl LocalFrontDoor {
         let host = StdHost::new_with_composition(config, self.composition);
         let expanded = self
             .editor
-            .expand_form("patchbay-front-door")
+            .expand_form(&self.form_name)
             .map_err(|error| error.to_string())?;
         let plan = host
             .plan_expanded_local(&expanded)
@@ -456,7 +458,7 @@ impl LocalFrontDoor {
         let graph = PatchbayGraph::from_expanded(
             &self
                 .editor
-                .expand_form("patchbay-front-door")
+                .expand_form(&self.form_name)
                 .map_err(|error| error.to_string())?,
         )
         .map_err(|error| error.to_string())?;
