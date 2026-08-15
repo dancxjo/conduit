@@ -230,7 +230,10 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, renewPresen
     freshnessProfile: () => freshnessProfile,
     close: () => {
       deliberateClose = true;
+      clearTimeout(renewalTimer);
+      const finalSequence = renewalSequence;
       socket.close(1000, "Patchbay browser Host leaving");
+      return finalSequence;
     },
   });
 }
