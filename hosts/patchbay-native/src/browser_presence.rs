@@ -52,6 +52,11 @@ enum WorkerResponse {
     },
     Refused(String),
     Relayed,
+    WebRtcGrant {
+        index: u16,
+        total: u16,
+        grant: Option<conduit_std_host::browser_admission::BrowserWebRtcGrant>,
+    },
 }
 
 impl BrowserPresenceCoordinator {
@@ -241,6 +246,9 @@ impl BrowserPresenceCoordinator {
                         }
                         BrowserAdmissionIngress::WebRtcSignal { .. } => {
                             self.relay_webrtc(index, frame, response)
+                        }
+                        BrowserAdmissionIngress::WebRtcGrantRequest { .. } => {
+                            self.provide_webrtc_grant(index, frame, response)
                         }
                         _ => {
                             let _ = response.send(WorkerResponse::Refused(
@@ -432,6 +440,24 @@ fn spawn_worker(
                 return;
             }
             Ok(WorkerResponse::Relayed) => {}
+            Ok(WorkerResponse::WebRtcGrant {
+                index,
+                total,
+                grant,
+            }) => {
+                if socket
+                    .send(&BrowserAdmissionEgress::WebRtcGrant {
+                        protocol: BROWSER_ADMISSION_PROTOCOL,
+                        index,
+                        total,
+                        grant,
+                    })
+                    .is_err()
+                {
+                    let _ = sender.send(WorkerEvent::Lost);
+                    return;
+                }
+            }
             Err(_) => return,
         }
     });

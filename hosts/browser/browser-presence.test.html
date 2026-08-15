@@ -3,7 +3,10 @@
 <title>Conduit browser Host presence proof</title>
 <p role="status">starting</p>
 <script type="module">
-import { joinBrowserBody } from "/hosts/patchbay-html/assets/browser-membership.js";
+import {
+  immutableWebRtcGrantFrame,
+  joinBrowserBody,
+} from "/hosts/patchbay-html/assets/browser-membership.js";
 
 const parameters = new URLSearchParams(location.search);
 const bodyUrl = parameters.get("body");
@@ -15,11 +18,14 @@ const wasmBytes = await fetch(
   return response.arrayBuffer();
 });
 const status = document.querySelector("[role=status]");
+globalThis.__browserWebRtcGrants = [];
+globalThis.__immutableWebRtcGrantFrame = immutableWebRtcGrantFrame;
 globalThis.__browserPresence = await joinBrowserBody({
   bodyUrl,
   wasmBytes,
   renewPresence: parameters.get("renew") !== "false",
   reconnectPresence: parameters.get("reconnect") !== "false",
+  onWebRtcGrant: (grant) => { globalThis.__browserWebRtcGrants.push(grant); },
   onState: (state) => { status.textContent = state; },
 });
 </script>

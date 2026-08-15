@@ -1,5 +1,13 @@
 use super::*;
-use conduit_core::{HostProfileId, OfferGeneration, PROTOCOL_VERSION};
+use conduit_core::{
+    bind_active_play, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    HostProfileId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, OfferGeneration,
+    PlanId, PROTOCOL_VERSION,
+};
+use conduit_wire::{
+    decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
+    SessionEndpointIdentity, SessionFrame, SessionLimits, SessionMessage,
+};
 use std::net::SocketAddr;
 
 fn advertisement() -> BrowserAdmissionIngress {
@@ -18,6 +26,78 @@ fn advertisement() -> BrowserAdmissionIngress {
         friendly_label: "Browser".into(),
         verifying_key: vec![7; 32],
         freshness_sequence: 1,
+    }
+}
+
+fn canonical_grant() -> BrowserWebRtcGrant {
+    canonical_grant_for(BrowserWebRtcRole::Source, ConnectionBase::WebRtcDataChannel)
+}
+
+fn canonical_grant_for(role: BrowserWebRtcRole, base: ConnectionBase) -> BrowserWebRtcGrant {
+    let plan_id = PlanId::from("plan/grant-frame");
+    let source_host_id = HostId::from("host/browser");
+    let source_boot_id = BootId::from("boot/browser");
+    let sink_host_id = HostId::from("host/peer");
+    let sink_boot_id = BootId::from("boot/peer");
+    let binding = SessionBinding {
+        protocol_version: PROTOCOL_VERSION,
+        plan_id: plan_id.clone(),
+        source_fragment_id: FragmentId::from("fragment/source"),
+        sink_fragment_id: FragmentId::from("fragment/sink"),
+        source_active_play_id: bind_active_play(&plan_id, &source_host_id, &source_boot_id, 0)
+            .active_play_id,
+        sink_active_play_id: bind_active_play(&plan_id, &sink_host_id, &sink_boot_id, 0)
+            .active_play_id,
+        connection_id: ConnectionId::from("connection/grant-frame"),
+        source: SessionEndpointIdentity {
+            host_id: source_host_id.clone(),
+            boot_id: source_boot_id.clone(),
+        },
+        sink: SessionEndpointIdentity {
+            host_id: sink_host_id.clone(),
+            boot_id: sink_boot_id.clone(),
+        },
+        value_kind: KindId::from("value/bounded@1"),
+        limits: SessionLimits {
+            maximum_in_flight_items: 1,
+            maximum_payload_bytes: 16,
+            maximum_buffered_bytes: 16,
+        },
+        attachment: LineAttachment {
+            line_id: LineId::from("line/grant-frame"),
+            link_binding_id: LinkBindingId::from("binding/grant-frame"),
+            base,
+            base_instance_id: ConnectionBaseInstanceId::from("base/grant-frame"),
+            source_host_id,
+            source_boot_id,
+            source_endpoint_id: LinkEndpointId::from("endpoint/source"),
+            sink_host_id: sink_host_id.clone(),
+            sink_boot_id: sink_boot_id.clone(),
+            sink_endpoint_id: LinkEndpointId::from("endpoint/sink"),
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: 16,
+                maximum_buffered_bytes: 16,
+                maximum_frame_bytes: MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
+            },
+        },
+    };
+    let mut rendezvous = BrowserWebRtcRendezvous::default();
+    let session_hello = rendezvous.grant(&binding).unwrap();
+    BrowserWebRtcGrant {
+        negotiation_id: LinkBindingId::from("binding/grant-frame"),
+        role,
+        peer_host_id: if role == BrowserWebRtcRole::Source {
+            sink_host_id
+        } else {
+            HostId::from("host/browser")
+        },
+        peer_boot_id: if role == BrowserWebRtcRole::Source {
+            sink_boot_id
+        } else {
+            BootId::from("boot/browser")
+        },
+        session_hello,
     }
 }
 
@@ -75,6 +155,119 @@ fn presence_renewal_round_trips_and_zero_sequence_is_refused() {
         decode_browser_admission_frame(stale),
         Err(BrowserAdmissionFrameError::InvalidSequence)
     );
+}
+
+#[test]
+fn bounded_webrtc_grant_request_and_reply_round_trip() {
+    let request = BrowserAdmissionIngress::WebRtcGrantRequest {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        credential_id: serde_json::from_value(serde_json::json!("credential/browser")).unwrap(),
+        body_id: serde_json::from_value(serde_json::json!("body/browser")).unwrap(),
+        part_id: serde_json::from_value(serde_json::json!("part/browser")).unwrap(),
+        host_id: HostId::from("host/browser"),
+        boot_id: BootId::from("boot/browser"),
+        index: 0,
+    };
+    assert_eq!(
+        decode_browser_admission_frame(&serde_json::to_vec(&request).unwrap()),
+        Ok(request)
+    );
+
+    let reply = BrowserAdmissionEgress::WebRtcGrant {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        index: 0,
+        total: 1,
+        grant: Some(canonical_grant()),
+    };
+    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let length = encode_browser_admission_frame(&reply, &mut output).unwrap();
+    assert_eq!(
+        serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
+        reply
+    );
+    assert!(encode_browser_admission_frame(
+        &BrowserAdmissionEgress::WebRtcGrant {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            index: 0,
+            total: 1,
+            grant: Some(canonical_grant_for(
+                BrowserWebRtcRole::Sink,
+                ConnectionBase::WebRtcDataChannel,
+            )),
+        },
+        &mut output,
+    )
+    .is_ok());
+
+    let mut malformed = canonical_grant();
+    malformed.session_hello = vec![1, 2, 3];
+    let mut non_hello = canonical_grant();
+    let decoded = decode_session_frame(
+        &non_hello.session_hello,
+        MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
+        MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
+    )
+    .unwrap();
+    let mut encoded = [0; MAX_WEBRTC_SESSION_HELLO_BYTES];
+    let length = encode_session_frame_into(
+        SessionFrame {
+            identity: decoded.identity,
+            message: SessionMessage::Ready,
+        },
+        &mut encoded,
+        decoded.identity.limits.maximum_payload_bytes,
+        MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
+    )
+    .unwrap();
+    non_hello.session_hello = encoded[..length].to_vec();
+    for grant in [
+        malformed,
+        non_hello,
+        canonical_grant_for(BrowserWebRtcRole::Source, ConnectionBase::WebSocket),
+        BrowserWebRtcGrant {
+            negotiation_id: LinkBindingId::from("binding/wrong"),
+            ..canonical_grant()
+        },
+        BrowserWebRtcGrant {
+            peer_boot_id: BootId::from("boot/wrong"),
+            ..canonical_grant()
+        },
+        BrowserWebRtcGrant {
+            role: BrowserWebRtcRole::Sink,
+            ..canonical_grant()
+        },
+    ] {
+        assert_eq!(
+            encode_browser_admission_frame(
+                &BrowserAdmissionEgress::WebRtcGrant {
+                    protocol: BROWSER_ADMISSION_PROTOCOL,
+                    index: 0,
+                    total: 1,
+                    grant: Some(grant),
+                },
+                &mut output,
+            ),
+            Err(BrowserAdmissionFrameError::InvalidGrant)
+        );
+    }
+    for (index, total, grant) in [
+        (0, 0, Some(canonical_grant())),
+        (0, 1, None),
+        (1, 1, Some(canonical_grant())),
+    ] {
+        assert_eq!(
+            encode_browser_admission_frame(
+                &BrowserAdmissionEgress::WebRtcGrant {
+                    protocol: BROWSER_ADMISSION_PROTOCOL,
+                    index,
+                    total,
+                    grant,
+                },
+                &mut output,
+            ),
+            Err(BrowserAdmissionFrameError::InvalidGrant)
+        );
+    }
 }
 
 #[test]

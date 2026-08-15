@@ -263,6 +263,39 @@ fn main() -> Result<(), String> {
                     break 'presence;
                 }
             }
+            Ok(BrowserAdmissionIngress::WebRtcGrantRequest {
+                credential_id,
+                body_id,
+                part_id,
+                host_id,
+                boot_id,
+                index,
+                ..
+            }) => {
+                if credential_id != credential.credential_id
+                    || body_id != credential.body_id
+                    || part_id != credential.part_id
+                    || host_id != credential.host_id
+                    || boot_id != credential.boot_id
+                {
+                    socket
+                        .send(&BrowserAdmissionEgress::Refused {
+                            protocol: BROWSER_ADMISSION_PROTOCOL,
+                            code: "stale-membership-credential".into(),
+                        })
+                        .map_err(|error| format!("send grant refusal: {error:?}"))?;
+                    return Ok(());
+                }
+                socket
+                    .send(&BrowserAdmissionEgress::WebRtcGrant {
+                        protocol: BROWSER_ADMISSION_PROTOCOL,
+                        index,
+                        total: 0,
+                        grant: None,
+                    })
+                    .map_err(|error| format!("send empty grant result: {error:?}"))?;
+                println!("webrtc-grant index={index} total=0");
+            }
             Ok(_) => return Err("post-admission frame was not a presence renewal".into()),
             Err(BrowserAdmissionSocketError::Transport(Transport(
                 ErrorKind::TimedOut | ErrorKind::WouldBlock,
