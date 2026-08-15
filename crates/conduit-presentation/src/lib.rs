@@ -5,6 +5,7 @@ extern crate alloc;
 mod composition;
 mod contract;
 mod graphics;
+mod identity;
 mod layout;
 mod linear;
 mod manifestation;

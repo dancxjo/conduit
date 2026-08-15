@@ -4,7 +4,8 @@ use alloc::string::String;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::presentation::{hash_string, validate_id, validate_text};
+use crate::identity::hash_string;
+use crate::presentation::{validate_id, validate_text};
 use crate::{Presentation, PresentationError};
 
 pub const MAX_PRESENTATION_ACTIONS: usize = 1_024;
