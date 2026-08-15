@@ -315,9 +315,11 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.locator("#toggle-inspector").click();
     await page.locator("#toggle-palette").click();
     const viewportBefore=await page.evaluate(()=>window.patchbayFlowViewport());
-    await page.locator("#zoom-in").click();await page.locator("#pan-right").click();
-    const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
-    expect(viewportAfter.zoom).toBeGreaterThan(viewportBefore.zoom);expect(viewportAfter.x).toBeGreaterThan(viewportBefore.x);
+    await page.locator("#zoom-in").click();
+    await expect.poll(async()=>(await page.evaluate(()=>window.patchbayFlowViewport())).zoom).toBeGreaterThan(viewportBefore.zoom);
+    const viewportAfterZoom=await page.evaluate(()=>window.patchbayFlowViewport());
+    await page.locator("#pan-right").click();
+    await expect.poll(async()=>(await page.evaluate(()=>window.patchbayFlowViewport())).x).toBeGreaterThan(viewportAfterZoom.x);
     await page.locator("#arrange").click();await page.locator("#theme").click();
     await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("body")).toHaveClass(/high-contrast/);
