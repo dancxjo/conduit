@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     PresentationAction, PresentationActionAvailability, PresentationActionRefusal,
-    PresentationDisclosure,
+    PresentationDisclosure, PresentationTemporalFact, TemporalReference,
 };
 
 pub const MAX_PRESENTATION_SUBJECTS: usize = 1_024;
@@ -21,9 +21,8 @@ pub const MAX_PRESENTATION_SIGNS: usize = 1_024;
 pub const MAX_PRESENTATION_ID_BYTES: usize = 256;
 pub const MAX_PRESENTATION_TEXT_BYTES: usize = 1_024;
 pub const MAX_PRESENTATION_TOTAL_BYTES: usize = 512 * 1024;
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct PresentationContentId(String);
+pub struct PresentationContentId(pub(crate) String);
 
 impl PresentationContentId {
     pub fn as_str(&self) -> &str {
@@ -127,6 +126,10 @@ pub struct Presentation {
     pub text: Vec<PresentationText>,
     pub actions: Vec<PresentationAction>,
     pub disclosures: Vec<PresentationDisclosure>,
+    #[serde(default)]
+    pub temporal_references: Vec<TemporalReference>,
+    #[serde(default)]
+    pub temporal_facts: Vec<PresentationTemporalFact>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -157,6 +160,16 @@ pub enum PresentationError {
     InvalidBasis,
     TooManyBytes,
     InvalidIdentity,
+    TooManyTemporalReferences,
+    TooManyTemporalFacts,
+    DuplicateTemporalReference,
+    UnknownTemporalSubject,
+    UnknownTemporalReference,
+    UnknownTemporalSign,
+    InvalidTemporalInstant,
+    IncomparableTemporalInstants,
+    TemporalIntervalOverflow,
+    InvalidTemporalRelation,
 }
 
 impl core::fmt::Display for PresentationError {
@@ -164,7 +177,6 @@ impl core::fmt::Display for PresentationError {
         write!(formatter, "invalid portable Presentation: {self:?}")
     }
 }
-
 impl Presentation {
     pub fn new(
         revision: u64,
@@ -189,7 +201,7 @@ impl Presentation {
     #[allow(clippy::too_many_arguments)]
     pub fn new_with_semantics(
         revision: u64,
-        mut basis: PresentationBasis,
+        basis: PresentationBasis,
         subjects: Vec<PresentationSubject>,
         relationships: Vec<PresentationRelationship>,
         properties: Vec<PresentationProperty>,
@@ -197,12 +209,7 @@ impl Presentation {
         actions: Vec<PresentationAction>,
         disclosures: Vec<PresentationDisclosure>,
     ) -> Result<Self, PresentationError> {
-        basis.sign_ids.sort();
-        if basis.sign_ids.windows(2).any(|pair| pair[0] == pair[1]) {
-            return Err(PresentationError::DuplicateSign);
-        }
-        let mut value = Self {
-            identity: PresentationContentId(String::new()),
+        Self::new_with_semantics_and_temporal(
             revision,
             basis,
             subjects,
@@ -211,10 +218,9 @@ impl Presentation {
             text,
             actions,
             disclosures,
-        };
-        value.validate_content()?;
-        value.identity = PresentationContentId(value.content_digest());
-        Ok(value)
+            Vec::new(),
+            Vec::new(),
+        )
     }
 
     pub fn validate(&self) -> Result<(), PresentationError> {
@@ -254,7 +260,7 @@ impl Presentation {
         }
     }
 
-    fn validate_content(&self) -> Result<(), PresentationError> {
+    pub(crate) fn validate_content(&self) -> Result<(), PresentationError> {
         if self.subjects.is_empty() {
             return Err(PresentationError::EmptySubjects);
         }
@@ -363,6 +369,7 @@ impl Presentation {
             }
         }
         self.validate_semantics()?;
+        self.validate_temporal()?;
         let total_bytes = self
             .basis
             .seed_id
@@ -441,7 +448,8 @@ impl Presentation {
                     .map(|item| item.subject.len() + item.text.len())
                     .sum::<usize>(),
             )
-            .saturating_add(self.semantics_len());
+            .saturating_add(self.semantics_len())
+            .saturating_add(self.temporal_len());
         if total_bytes > MAX_PRESENTATION_TOTAL_BYTES {
             return Err(PresentationError::TooManyBytes);
         }

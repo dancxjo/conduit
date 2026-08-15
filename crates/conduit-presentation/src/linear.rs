@@ -136,6 +136,32 @@ pub fn render_linear_presentation(
             disclosure.subject, disclosure.level
         ))?;
     }
+    for reference in &presentation.temporal_references {
+        builder.push(format!(
+            "TEMPORAL_REFERENCE id={:?} ticks={} scale={:?} clock_basis={:?} resolution={} uncertainty={}",
+            reference.identity,
+            reference.instant.ticks,
+            reference.instant.scale,
+            reference.instant.clock_basis,
+            reference.instant.resolution_ticks,
+            reference.instant.uncertainty_ticks
+        ))?;
+    }
+    for fact in &presentation.temporal_facts {
+        builder.push(format!(
+            "TEMPORAL_FACT subject={:?} role={:?} sign={} reference={:?} source_ticks={} source_scale={:?} source_clock_basis={:?} source_resolution={} source_uncertainty={} relation={:?}",
+            fact.subject,
+            fact.role,
+            optional_identity(fact.sign_id.as_ref().map(|identity| identity.as_str())),
+            fact.reference,
+            fact.source.ticks,
+            fact.source.scale,
+            fact.source.clock_basis,
+            fact.source.resolution_ticks,
+            fact.source.uncertainty_ticks,
+            fact.relation
+        ))?;
+    }
 
     Ok(LinearPresentation {
         presentation_id: presentation.identity.clone(),

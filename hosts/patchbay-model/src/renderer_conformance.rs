@@ -2,7 +2,8 @@
 
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationDisclosure, PresentationProperty,
-    PresentationRelationship, PresentationSubject, PresentationText,
+    PresentationRelationship, PresentationSubject, PresentationTemporalFact, PresentationText,
+    TemporalReference,
 };
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,8 @@ pub struct EntranceEquivalenceReport {
     pub text: Vec<PresentationText>,
     pub semantic_actions: Vec<PresentationAction>,
     pub disclosures: Vec<PresentationDisclosure>,
+    pub temporal_references: Vec<TemporalReference>,
+    pub temporal_facts: Vec<PresentationTemporalFact>,
     pub selected_subject: Option<String>,
     pub actions: Vec<EntranceAction>,
     pub layer: EntranceLayer,
@@ -78,6 +81,16 @@ pub fn compare_entrances(
     semantic_actions.sort_by(|left, right| left.identity.cmp(&right.identity));
     let mut disclosures = presentation.disclosures.clone();
     disclosures.sort_by(|left, right| left.subject.cmp(&right.subject));
+    let mut temporal_references = presentation.temporal_references.clone();
+    temporal_references.sort_by(|left, right| left.identity.cmp(&right.identity));
+    let mut temporal_facts = presentation.temporal_facts.clone();
+    temporal_facts.sort_by(|left, right| {
+        (&left.subject, left.role as u8, &left.reference).cmp(&(
+            &right.subject,
+            right.role as u8,
+            &right.reference,
+        ))
+    });
     Ok(EntranceEquivalenceReport {
         schema: ENTRANCE_EQUIVALENCE_SCHEMA.into(),
         presentation_id: presentation.identity.as_str().into(),
@@ -88,6 +101,8 @@ pub fn compare_entrances(
         text: content_text,
         semantic_actions,
         disclosures,
+        temporal_references,
+        temporal_facts,
         selected_subject: native.selected_subject.clone(),
         actions: native.available_actions.clone(),
         layer: native.layer,

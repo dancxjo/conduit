@@ -94,6 +94,7 @@ impl Presentation {
             hash_string(&mut digest, &item.text);
         }
         self.hash_semantics(&mut digest);
+        self.hash_temporal(&mut digest);
         let bytes: [u8; 32] = digest.finalize().into();
         hex(&bytes)
     }
