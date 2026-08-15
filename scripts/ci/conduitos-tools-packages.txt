@@ -1,0 +1,9 @@
+build-essential
+curl
+ovmf-ia32
+qemu-efi-aarch64
+qemu-system-arm
+qemu-system-misc
+qemu-system-x86
+u-boot-qemu
+xorriso
