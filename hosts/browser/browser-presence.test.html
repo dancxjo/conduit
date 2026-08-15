@@ -5,6 +5,7 @@
 <script type="module">
 import {
   immutableWebRtcGrantFrame,
+  immutableWebRtcSignalFrame,
   joinBrowserBody,
 } from "/hosts/patchbay-html/assets/browser-membership.js";
 
@@ -20,6 +21,7 @@ const wasmBytes = await fetch(
 const status = document.querySelector("[role=status]");
 globalThis.__browserWebRtcGrants = [];
 globalThis.__immutableWebRtcGrantFrame = immutableWebRtcGrantFrame;
+globalThis.__immutableWebRtcSignalFrame = immutableWebRtcSignalFrame;
 globalThis.__browserPresence = await joinBrowserBody({
   bodyUrl,
   wasmBytes,

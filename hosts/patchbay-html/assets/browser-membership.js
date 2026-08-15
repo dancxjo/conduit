@@ -1,9 +1,15 @@
+import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
+
 const INPUT_CAPACITY = 4096;
 const MAXIMUM_OUTPUT_BYTES = 9216;
 
 const MAXIMUM_WEB_RTC_GRANTS = 16;
 
 export function immutableWebRtcGrantFrame(frame) {
+  if (frame?.grant !== null && (typeof frame?.grant !== "object" ||
+      !Array.isArray(frame.grant.session_hello))) {
+    throw new Error("invalid WebRTC grant frame");
+  }
   const immutableGrant = frame.grant === null ? null : Object.freeze({
     ...frame.grant,
     session_hello: Object.freeze([...frame.grant.session_hello]),
@@ -11,7 +17,19 @@ export function immutableWebRtcGrantFrame(frame) {
   return Object.freeze({ ...frame, grant: immutableGrant });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGrant, onWebRtcSignal, renewPresence = true, reconnectPresence = true }) {
+export function immutableWebRtcSignalFrame(frame) {
+  if (typeof frame?.signal !== "object" || frame.signal === null ||
+      !Array.isArray(frame.signal.session_hello)) {
+    throw new Error("invalid WebRTC signal frame");
+  }
+  const immutableSignal = Object.freeze({
+    ...frame.signal,
+    session_hello: Object.freeze([...frame.signal.session_hello]),
+  });
+  return Object.freeze({ ...frame, signal: immutableSignal });
+}
+
+export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGrant, onWebRtcSignal, onWebRtcState, renewPresence = true, reconnectPresence = true }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   const required = [
@@ -84,6 +102,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
   let deliberateClose = false;
   let reconnectAttempts = 0;
   let presenceEstablished = false;
+  let webRtcSessions;
+  let webRtcFailure = null;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
   let freshnessProfile = Object.freeze({
     scheduling: "best-effort-browser-event-loop",
@@ -113,6 +133,52 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     state = next;
     onState?.(next);
   };
+  const sendWebRtcSignal = ({ targetHostId, targetBootId, signal }) => {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      throw new Error("current browser presence is required for WebRTC signaling");
+    }
+    if (typeof targetHostId !== "string" || targetHostId.length === 0 ||
+        typeof targetBootId !== "string" || targetBootId.length === 0 ||
+        typeof signal !== "object" || signal === null) {
+      throw new Error("invalid WebRTC signaling target or payload");
+    }
+    socket.send(encoder.encode(JSON.stringify({
+      kind: "web-rtc-signal",
+      protocol: 1,
+      credential_id: credential.credential_id,
+      body_id: credential.body_id,
+      part_id: credential.part_id,
+      host_id: credential.host_id,
+      boot_id: credential.boot_id,
+      target_host_id: targetHostId,
+      target_boot_id: targetBootId,
+      signal,
+    })));
+  };
+  const requestWebRtcGrant = (index) => {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      throw new Error("current browser presence is required for WebRTC grants");
+    }
+    if (!Number.isInteger(index) || index < 0 || index >= MAXIMUM_WEB_RTC_GRANTS) {
+      throw new Error("invalid WebRTC grant index");
+    }
+    socket.send(encoder.encode(JSON.stringify({
+      kind: "web-rtc-grant-request",
+      protocol: 1,
+      credential_id: credential.credential_id,
+      body_id: credential.body_id,
+      part_id: credential.part_id,
+      host_id: credential.host_id,
+      boot_id: credential.boot_id,
+      index,
+    })));
+  };
+  webRtcSessions = new BodyWebRtcSessions({
+    wasmBytes,
+    sendSignal: sendWebRtcSignal,
+    requestGrant: requestWebRtcGrant,
+    onState: (next) => onWebRtcState?.(next),
+  });
   const openSocket = (returning = false) => {
     socket = new WebSocket(bodyUrl);
     socket.binaryType = "arraybuffer";
@@ -194,6 +260,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
       });
       presenceState = "available";
       presenceEstablished = true;
+      if (!returning) webRtcSessions.begin();
       if (returning) setState("admitted");
       clearTimeout(renewalTimer);
       if (renewPresence) {
@@ -215,7 +282,21 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
       if (!credential || presenceState !== "available") {
         throw new Error("WebRTC signal arrived without current browser presence");
       }
-      onWebRtcSignal?.(Object.freeze(frame));
+      let immutable;
+      try {
+        immutable = immutableWebRtcSignalFrame(frame);
+      } catch (error) {
+        webRtcFailure = error.message;
+        webRtcSessions.reset(`signal-refused:${error.message}`);
+        onWebRtcState?.(webRtcSessions.state());
+        return;
+      }
+      onWebRtcSignal?.(immutable);
+      void webRtcSessions.acceptSignal(immutable).catch((error) => {
+        webRtcFailure = error.message;
+        webRtcSessions.reset(`signal-refused:${error.message}`);
+        onWebRtcState?.(webRtcSessions.state());
+      });
     } else if (frame.kind === "web-rtc-grant" && frame.protocol === 1) {
       if (!credential || presenceState !== "available" ||
           !Number.isInteger(frame.index) || !Number.isInteger(frame.total) ||
@@ -224,16 +305,32 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
           (frame.grant !== null && typeof frame.grant !== "object")) {
         throw new Error("invalid WebRTC grant response for current browser presence");
       }
-      onWebRtcGrant?.(immutableWebRtcGrantFrame(frame));
+      let immutable;
+      try {
+        immutable = immutableWebRtcGrantFrame(frame);
+      } catch (error) {
+        webRtcFailure = error.message;
+        webRtcSessions.reset(`grant-refused:${error.message}`);
+        onWebRtcState?.(webRtcSessions.state());
+        return;
+      }
+      onWebRtcGrant?.(immutable);
+      void webRtcSessions.acceptGrantFrame(immutable).catch((error) => {
+        webRtcFailure = error.message;
+        webRtcSessions.reset(`grant-refused:${error.message}`);
+        onWebRtcState?.(webRtcSessions.state());
+      });
     } else if (frame.kind === "refused" && frame.protocol === 1) {
       presenceState = "unavailable";
       clearTimeout(renewalTimer);
+      webRtcSessions.reset(`body-refused:${frame.code}`);
       setState(`refused:${frame.code}`);
     }
     });
     socket.addEventListener("close", () => {
       clearTimeout(renewalTimer);
       presenceState = "unavailable";
+      webRtcSessions.reset("presence-lost");
       if (state.startsWith("refused:")) return;
       if (!deliberateClose && presenceEstablished && reconnectPresence && reconnectAttempts === 0) {
         reconnectAttempts += 1;
@@ -252,49 +349,13 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,
     freshnessProfile: () => freshnessProfile,
-    signalWebRtc: ({ targetHostId, targetBootId, signal }) => {
-      if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
-        throw new Error("current browser presence is required for WebRTC signaling");
-      }
-      if (typeof targetHostId !== "string" || targetHostId.length === 0 ||
-          typeof targetBootId !== "string" || targetBootId.length === 0 ||
-          typeof signal !== "object" || signal === null) {
-        throw new Error("invalid WebRTC signaling target or payload");
-      }
-      socket.send(encoder.encode(JSON.stringify({
-        kind: "web-rtc-signal",
-        protocol: 1,
-        credential_id: credential.credential_id,
-        body_id: credential.body_id,
-        part_id: credential.part_id,
-        host_id: credential.host_id,
-        boot_id: credential.boot_id,
-        target_host_id: targetHostId,
-        target_boot_id: targetBootId,
-        signal,
-      })));
-    },
-    requestWebRtcGrant: (index) => {
-      if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
-        throw new Error("current browser presence is required for WebRTC grants");
-      }
-      if (!Number.isInteger(index) || index < 0 || index >= MAXIMUM_WEB_RTC_GRANTS) {
-        throw new Error("invalid WebRTC grant index");
-      }
-      socket.send(encoder.encode(JSON.stringify({
-        kind: "web-rtc-grant-request",
-        protocol: 1,
-        credential_id: credential.credential_id,
-        body_id: credential.body_id,
-        part_id: credential.part_id,
-        host_id: credential.host_id,
-        boot_id: credential.boot_id,
-        index,
-      })));
-    },
+    signalWebRtc: sendWebRtcSignal,
+    requestWebRtcGrant,
+    webRtcSessions: () => Object.freeze({ ...webRtcSessions.state(), failure: webRtcFailure }),
     close: () => {
       deliberateClose = true;
       clearTimeout(renewalTimer);
+      webRtcSessions.reset("presence-closed");
       const finalSequence = renewalSequence;
       socket.close(1000, "Patchbay browser Host leaving");
       return finalSequence;

@@ -46,6 +46,7 @@ export class BodyWebRtcSession {
   #signalAccepted = false;
   #sessionReady = false;
   #terminal = null;
+  #terminalDetail = null;
 
   static async create({ wasmBytes, grant, sendSignal }) {
     if (typeof sendSignal !== "function") throw new Error("sendSignal callback is required");
@@ -163,17 +164,35 @@ export class BodyWebRtcSession {
     try {
       await this.#lineArrival;
       await this.#line.open();
-      const sentHello = this.#line.send(Uint8Array.from(this.#hello));
-      if (!sentHello.accepted) throw new Error(`Hello send refused: ${sentHello.reason}`);
-      const peerHello = await this.#line.receive();
+      let peerHello;
+      if (this.#grant.role === "source") {
+        const sentHello = this.#line.send(Uint8Array.from(this.#hello));
+        if (!sentHello.accepted) throw new Error(`Hello send refused: ${sentHello.reason}`);
+        peerHello = await this.#line.receive();
+      } else {
+        peerHello = await this.#line.receive();
+        const sentHello = this.#line.send(Uint8Array.from(this.#hello));
+        if (!sentHello.accepted) throw new Error(`Hello send refused: ${sentHello.reason}`);
+      }
       if (!peerHello.ok || ingestWebRtcSession(this.#runtime, peerHello.bytes) < 0) {
         throw new Error("peer Hello refused");
       }
       const ready = takeWebRtcSessionOutput(this.#runtime);
-      if (ready === null || !this.#line.send(ready).accepted) throw new Error("Ready send refused");
-      const peerReady = await this.#line.receive();
+      if (ready === null) throw new Error("Ready output missing");
+      let peerReady;
+      if (this.#grant.role === "source") {
+        await this.#line.writable(ready.byteLength);
+        if (!this.#line.send(ready).accepted) throw new Error("Ready send refused");
+        peerReady = await this.#line.receive();
+      } else {
+        peerReady = await this.#line.receive();
+      }
       if (!peerReady.ok || ingestWebRtcSession(this.#runtime, peerReady.bytes) !== 1) {
         throw new Error("peer Ready refused");
+      }
+      if (this.#grant.role === "sink") {
+        await this.#line.writable(ready.byteLength);
+        if (!this.#line.send(ready).accepted) throw new Error("Ready send refused");
       }
       this.#sessionReady = true;
       this.#resolveReady(this.state());
@@ -196,6 +215,7 @@ export class BodyWebRtcSession {
       line: this.#line?.state() ?? null,
       sessionReady: this.#sessionReady,
       terminalReason: this.#terminal,
+      terminalDetail: this.#terminalDetail,
     });
   }
 
@@ -210,6 +230,7 @@ export class BodyWebRtcSession {
   #fail(reason, cause) {
     if (this.#terminal !== null) return;
     this.#terminal = reason;
+    this.#terminalDetail = cause instanceof Error ? cause.message : null;
     this.#sessionReady = false;
     if (this.#line === undefined || this.#line.state().readyState === "closed") {
       this.#peer.close();
