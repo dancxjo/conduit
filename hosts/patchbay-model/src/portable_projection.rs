@@ -4,12 +4,11 @@ use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
 use conduit_core::SignId;
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationError, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationError, PresentationRole,
 };
 
-use crate::{GraphItemKind, PartsView, PatchbayPresentation};
+pub(super) use crate::portable_content::ContentBuilder;
+use crate::{GraphItemKind, PatchbayPresentation};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortableProjectionError {
@@ -33,109 +32,6 @@ impl core::fmt::Display for PortableProjectionError {
 
 impl std::error::Error for PortableProjectionError {}
 
-pub(super) struct ContentBuilder {
-    pub(super) subjects: Vec<PresentationSubject>,
-    pub(super) relationships: Vec<PresentationRelationship>,
-    pub(super) properties: Vec<PresentationProperty>,
-    pub(super) text: Vec<PresentationText>,
-}
-
-impl ContentBuilder {
-    fn new() -> Self {
-        Self {
-            subjects: Vec::new(),
-            relationships: Vec::new(),
-            properties: Vec::new(),
-            text: Vec::new(),
-        }
-    }
-
-    pub(super) fn from_parts(
-        subjects: Vec<PresentationSubject>,
-        relationships: Vec<PresentationRelationship>,
-        properties: Vec<PresentationProperty>,
-        text: Vec<PresentationText>,
-    ) -> Self {
-        Self {
-            subjects,
-            relationships,
-            properties,
-            text,
-        }
-    }
-
-    pub(super) fn subject(
-        &mut self,
-        role: PresentationRole,
-        label: impl Into<String>,
-        accessibility_name: impl Into<String>,
-    ) -> String {
-        let identity = format!("patchbay/subject/{}", self.subjects.len());
-        self.subject_with_identity(identity, role, label, accessibility_name)
-    }
-
-    pub(super) fn subject_with_identity(
-        &mut self,
-        identity: impl Into<String>,
-        role: PresentationRole,
-        label: impl Into<String>,
-        accessibility_name: impl Into<String>,
-    ) -> String {
-        let identity = identity.into();
-        if let Some(existing) = self
-            .subjects
-            .iter()
-            .find(|subject| subject.identity == identity)
-        {
-            debug_assert_eq!(existing.role, role);
-            return identity;
-        }
-        self.subjects.push(PresentationSubject {
-            identity: identity.clone(),
-            role,
-            label: nonempty(label.into()),
-            accessibility_name: nonempty(accessibility_name.into()),
-        });
-        identity
-    }
-
-    pub(super) fn contains(&mut self, source: &str, target: &str) {
-        self.relationships.push(PresentationRelationship {
-            source: source.into(),
-            target: target.into(),
-            kind: PresentationRelationshipKind::Contains,
-        });
-    }
-
-    pub(super) fn describes(&mut self, source: &str, target: &str) {
-        self.relationships.push(PresentationRelationship {
-            source: source.into(),
-            target: target.into(),
-            kind: PresentationRelationshipKind::Describes,
-        });
-    }
-
-    pub(super) fn line(&mut self, subject: &str, value: impl Into<String>) {
-        self.text.push(PresentationText {
-            subject: subject.into(),
-            text: nonempty(value.into()),
-        });
-    }
-
-    pub(super) fn property(&mut self, subject: &str, name: &str, value: PresentationPropertyValue) {
-        if self.properties.iter().any(|property| {
-            property.subject == subject && property.name == name && property.value == value
-        }) {
-            return;
-        }
-        self.properties.push(PresentationProperty {
-            subject: subject.into(),
-            name: name.into(),
-            value,
-        });
-    }
-}
-
 impl PatchbayPresentation {
     pub fn to_portable(
         &self,
@@ -145,7 +41,7 @@ impl PatchbayPresentation {
         self.to_portable_with_wake(body, Some(wake))
     }
 
-    fn to_portable_with_wake(
+    pub(super) fn to_portable_with_wake(
         &self,
         body: &Body,
         wake: Option<&Wake>,
@@ -239,99 +135,6 @@ impl PatchbayPresentation {
         )
         .map_err(PortableProjectionError::InvalidPresentation)
     }
-
-    pub fn to_portable_front_door(
-        &self,
-        body: &Body,
-        wake: &Wake,
-        parts: &PartsView,
-    ) -> Result<Presentation, PortableProjectionError> {
-        if parts.body_id != body.body_id {
-            return Err(PortableProjectionError::LifecycleMismatch);
-        }
-        let mut presentation = self.to_portable(body, wake)?;
-        let mut content = ContentBuilder {
-            subjects: presentation.subjects,
-            relationships: presentation.relationships,
-            properties: presentation.properties,
-            text: presentation.text,
-        };
-        crate::portable_world_projection::append_body_parts(body, parts, &mut content);
-        presentation.basis.sign_ids.extend(
-            parts
-                .parts
-                .iter()
-                .flat_map(|row| row.details.evidence_signs.iter().cloned()),
-        );
-        presentation.basis.sign_ids.extend(
-            parts
-                .wants_to_join
-                .iter()
-                .flat_map(|row| row.evidence_signs.iter().cloned()),
-        );
-        presentation = Presentation::new_with_semantics(
-            self.revision,
-            presentation.basis,
-            content.subjects,
-            content.relationships,
-            content.properties,
-            content.text,
-            presentation.actions,
-            presentation.disclosures,
-        )
-        .map_err(PortableProjectionError::InvalidPresentation)?;
-        Ok(presentation)
-    }
-
-    pub fn to_portable_lulled_front_door(
-        &self,
-        body: &Body,
-        parts: &PartsView,
-    ) -> Result<Presentation, PortableProjectionError> {
-        if parts.body_id != body.body_id {
-            return Err(PortableProjectionError::LifecycleMismatch);
-        }
-        let presentation = self.to_portable_with_wake(body, None)?;
-        append_parts_to_presentation(self.revision, presentation, body, parts)
-    }
-}
-
-fn append_parts_to_presentation(
-    revision: u64,
-    mut presentation: Presentation,
-    body: &Body,
-    parts: &PartsView,
-) -> Result<Presentation, PortableProjectionError> {
-    let mut content = ContentBuilder {
-        subjects: presentation.subjects,
-        relationships: presentation.relationships,
-        properties: presentation.properties,
-        text: presentation.text,
-    };
-    crate::portable_world_projection::append_body_parts(body, parts, &mut content);
-    presentation.basis.sign_ids.extend(
-        parts
-            .parts
-            .iter()
-            .flat_map(|row| row.details.evidence_signs.iter().cloned()),
-    );
-    presentation.basis.sign_ids.extend(
-        parts
-            .wants_to_join
-            .iter()
-            .flat_map(|row| row.evidence_signs.iter().cloned()),
-    );
-    Presentation::new_with_semantics(
-        revision,
-        presentation.basis,
-        content.subjects,
-        content.relationships,
-        content.properties,
-        content.text,
-        presentation.actions,
-        presentation.disclosures,
-    )
-    .map_err(PortableProjectionError::InvalidPresentation)
 }
 
 fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<PresentationAction> {
@@ -612,12 +415,4 @@ pub(super) fn append_sign(document: &str, sign: &SignId, content: &mut ContentBu
         format!("Sign {}", sign.as_str()),
     );
     content.describes(&subject, document);
-}
-
-fn nonempty(value: String) -> String {
-    if value.is_empty() {
-        "unavailable".into()
-    } else {
-        value
-    }
 }
