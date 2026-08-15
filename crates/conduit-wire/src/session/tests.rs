@@ -626,3 +626,31 @@ fn usb_cdc_base_round_trip_and_session_eligibility() {
         .unwrap();
     assert!(machine.is_active());
 }
+
+#[test]
+fn webrtc_datachannel_base_round_trips_through_session_wire() {
+    let mut binding = binding();
+    binding.attachment.base = ConnectionBase::WebRtcDataChannel;
+    assert!(binding.attachment.base.supports_remote_session());
+    assert_eq!(binding.attachment.base.canonical_code(), 7);
+    assert_eq!(
+        ConnectionBase::from_canonical_code(7),
+        Some(ConnectionBase::WebRtcDataChannel)
+    );
+
+    let mut bytes = [0; 1024];
+    let length = encode_session_frame_into(
+        binding.hello_frame(),
+        &mut bytes,
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES,
+    )
+    .expect("encode WebRTC Hello");
+    let decoded =
+        decode_session_frame(&bytes[..length], MAXIMUM_PAYLOAD_BYTES, MAXIMUM_FRAME_BYTES)
+            .expect("decode WebRTC Hello");
+    let SessionMessage::Hello(hello) = decoded.message else {
+        panic!("expected Hello");
+    };
+    assert_eq!(hello.base, ConnectionBase::WebRtcDataChannel);
+}

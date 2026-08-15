@@ -26,6 +26,37 @@ async function connect(context, leftLimits = limits, rightLimits = limits) {
   return { left, right };
 }
 
+const sessionLimits = {
+  maximumMessageBytes: 1024,
+  maximumBufferedBytes: 2048,
+  maximumReceivedMessages: 1,
+};
+
+async function transfer(sender, receiver, bytes) {
+  expect(await sender.evaluate((value) => window.conduitSend([value]), bytes)).toEqual([
+    { accepted: true },
+  ]);
+  const received = await receiver.evaluate(() => window.conduitReceive());
+  expect(received.ok).toBe(true);
+  expect(received.bytes).toEqual(bytes);
+  return receiver.evaluate((value) => window.conduitSessionIngest(value), received.bytes);
+}
+
+async function activeSession(context) {
+  const { left, right } = await connect(context, sessionLimits, sessionLimits);
+  expect(await left.evaluate(() => window.conduitSessionStart(0))).toBe(0);
+  expect(await right.evaluate(() => window.conduitSessionStart(1))).toBe(0);
+  const leftHello = await left.evaluate(() => window.conduitSessionOutput());
+  const rightHello = await right.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(left, right, leftHello)).toBe(0);
+  expect(await transfer(right, left, rightHello)).toBe(0);
+  const leftReady = await left.evaluate(() => window.conduitSessionOutput());
+  const rightReady = await right.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(left, right, leftReady)).toBe(1);
+  expect(await transfer(right, left, rightReady)).toBe(1);
+  return { left, right, leftReady, rightReady };
+}
+
 test("two browser Hosts exchange bounded binary DataChannel messages then observe Line loss", async ({
   context,
 }) => {
@@ -172,4 +203,57 @@ test("terminal transport error fences a still-open raw channel and keeps first r
   });
   expect((await left.evaluate(() => window.conduitState())).channel.terminalReason)
     .toBe("transport-error");
+});
+
+test("exact planned WebRTC session admits, terminates, and rejects late frames", async ({
+  context,
+}) => {
+  const { left, right, leftReady } = await activeSession(context);
+  expect(await left.evaluate(() => window.conduitSessionCloseInput())).toBe(1);
+  const inputClosed = await left.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(left, right, inputClosed)).toBe(1);
+  expect(await right.evaluate(() => window.conduitSessionFinish())).toBe(3);
+  const rightTerminal = await right.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(right, left, rightTerminal)).toBe(3);
+  expect(await left.evaluate(() => window.conduitSessionFinish())).toBe(2);
+  const leftTerminal = await left.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(left, right, leftTerminal)).toBe(2);
+  expect(await left.evaluate(
+    (bytes) => window.conduitSessionIngest(bytes),
+    leftReady,
+  )).toBe(-216);
+});
+
+test("shared session machine refuses mismatched planned and finite wire facts", async ({
+  context,
+}) => {
+  const refusals = [
+    { variant: 5, code: -210 },
+    { variant: 3, code: -211 },
+    { variant: 1, code: -212 },
+    { variant: 2, code: -213 },
+    { variant: 4, code: -214 },
+  ];
+  for (const refusal of refusals) {
+    const { left, right } = await connect(context, sessionLimits, sessionLimits);
+    expect(await left.evaluate(() => window.conduitSessionStart(0))).toBe(0);
+    expect(await right.evaluate(
+      (variant) => window.conduitSessionStart(1, variant),
+      refusal.variant,
+    )).toBe(0);
+    const hello = await left.evaluate(() => window.conduitSessionOutput());
+    await right.evaluate(() => window.conduitSessionOutput());
+    expect(await transfer(left, right, hello)).toBe(refusal.code);
+    await Promise.all([left.close(), right.close()]);
+  }
+
+  const malformed = await connect(context, sessionLimits, sessionLimits);
+  expect(await malformed.right.evaluate(() => window.conduitSessionStart(1))).toBe(0);
+  await malformed.right.evaluate(() => window.conduitSessionOutput());
+  expect(await malformed.right.evaluate(
+    () => window.conduitSessionIngest([1, 2, 3]),
+  )).toBe(-219);
+  expect(await malformed.right.evaluate(
+    () => window.conduitSessionIngest(new Array(1025).fill(0)),
+  )).toBe(-215);
 });

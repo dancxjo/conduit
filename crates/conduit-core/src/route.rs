@@ -19,6 +19,8 @@ pub enum ConnectionBase {
     UsbCdc,
     /// BLE GATT service with bounded write-command and notification characteristics.
     BluetoothLeGatt,
+    /// Ordered reliable bounded binary-message WebRTC DataChannel Base.
+    WebRtcDataChannel,
 }
 
 impl ConnectionBase {
@@ -31,6 +33,7 @@ impl ConnectionBase {
             Self::WebSocket => 4,
             Self::UsbCdc => 5,
             Self::BluetoothLeGatt => 6,
+            Self::WebRtcDataChannel => 7,
         }
     }
 
@@ -43,6 +46,7 @@ impl ConnectionBase {
             4 => Some(Self::WebSocket),
             5 => Some(Self::UsbCdc),
             6 => Some(Self::BluetoothLeGatt),
+            7 => Some(Self::WebRtcDataChannel),
             _ => None,
         }
     }
@@ -51,7 +55,11 @@ impl ConnectionBase {
     pub const fn supports_remote_session(self) -> bool {
         matches!(
             self,
-            Self::FixtureFrame | Self::WebSocket | Self::UsbCdc | Self::BluetoothLeGatt
+            Self::FixtureFrame
+                | Self::WebSocket
+                | Self::UsbCdc
+                | Self::BluetoothLeGatt
+                | Self::WebRtcDataChannel
         )
     }
 }
