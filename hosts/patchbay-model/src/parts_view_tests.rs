@@ -301,6 +301,10 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     assert_eq!(browser_row.state, PartPresentationState::Attached);
     assert_eq!(browser_row.details.presence_sequence, Some(2));
     assert_eq!(
+        browser_row.details.presence_sign_id,
+        Some(SignId::from("sign/presence-projection/renewed"))
+    );
+    assert_eq!(
         browser_row.details.offer_generation,
         Some(OfferGeneration(7))
     );
@@ -418,6 +422,14 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
         Some(BootId::from("browser-boot/tab-2"))
     );
     assert_eq!(browser_row.details.presence_sequence, Some(2));
+    assert_eq!(
+        browser_row.details.presence_sign_id,
+        Some(SignId::from("sign/presence-projection/expired"))
+    );
+    assert_eq!(
+        browser_row.details.presence_observed_at_millis,
+        Some(12_000)
+    );
     assert_eq!(plan, retained_plan);
     let shared_projection = serde_json::to_value(&offline).unwrap();
     let shared_browser_row = shared_projection["parts"]

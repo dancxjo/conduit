@@ -185,6 +185,8 @@ mod parts_view_tests;
 #[cfg(test)]
 mod policy_explanation_tests;
 #[cfg(test)]
+mod portable_parts_temporal_tests;
+#[cfg(test)]
 mod portable_projection_tests;
 #[cfg(test)]
 mod prewake_tests;
