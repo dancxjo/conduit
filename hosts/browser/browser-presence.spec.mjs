@@ -32,6 +32,17 @@ test("admitted browser renews exact current presence and close makes it unavaila
   await page.goto(`/hosts/browser/browser-presence.test.html?body=${encodeURIComponent(probe.url)}`);
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence?.presenceState())).toBe("available");
   await expect.poll(probe.output).toContain("renewed sequence=2");
+  await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.freshnessProfile())).toMatchObject({
+    scheduling: "best-effort-browser-event-loop",
+    availabilityAuthority: "server-session-or-lease",
+    backgroundRealtimeGuarantee: false,
+    maximumReconnectAttempts: 1,
+    sequence: 2,
+    renewAfterMillis: 500,
+  });
+  expect(["visible", "hidden"]).toContain(
+    await page.evaluate(() => globalThis.__browserPresence.pageLifecycle()),
+  );
   await page.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.state())).toBe("offline");
   await expect.poll(probe.output).toContain("unavailable reason=session-lost sequence=2");
@@ -64,6 +75,11 @@ test("same running browser returns after session loss with exact Host and Boot",
     hostId: globalThis.__browserPresence.hostId,
     bootId: globalThis.__browserPresence.bootId,
   }))).toEqual(identity);
+  await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.freshnessProfile())).toMatchObject({
+    sequence: 4,
+    maximumReconnectAttempts: 1,
+    backgroundRealtimeGuarantee: false,
+  });
   await page.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(probe.output).toContain("returned-unavailable reason=session-lost");
   await expect.poll(() => probe.process.exitCode).toBe(0);
