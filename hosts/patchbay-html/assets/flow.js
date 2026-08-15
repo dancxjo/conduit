@@ -183,6 +183,18 @@ export function flowViewport() {
   return instance?.getViewport() || null;
 }
 
+export function zoomFlow(factor) {
+  const viewport = instance?.getViewport();
+  if (!viewport) return;
+  instance.setViewport({ ...viewport, zoom: Math.max(0.2, Math.min(3, viewport.zoom * factor)) }, { duration: 0 });
+}
+
+export function panFlow(x, y) {
+  const viewport = instance?.getViewport();
+  if (!viewport) return;
+  instance.setViewport({ ...viewport, x: viewport.x + x, y: viewport.y + y }, { duration: 0 });
+}
+
 export function flowSceneSnapshot() {
   return currentScene;
 }

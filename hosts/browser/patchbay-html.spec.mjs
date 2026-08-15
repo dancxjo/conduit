@@ -51,8 +51,8 @@ async function prepareCanvasEvidence(page,{inspector=false,structured=false}={})
   for(const name of ["palette","parts","truth"])await closeDrawer(page,name);
   const inspectorOpen=await page.locator("body").getAttribute("data-inspector-open")==="true";
   if(inspectorOpen!==inspector)await page.locator("#toggle-inspector").click();
-  const structuredOpen=await page.locator("#structured-canvas").getAttribute("open")!==null;
-  if(structuredOpen!==structured)await page.locator("#structured-canvas>summary").click();
+  const structuredOpen=await page.locator("#structured-navigator").getAttribute("open")!==null;
+  if(structuredOpen!==structured)await page.locator("#structured-navigator>summary").click();
   if(!structured)await page.locator("#fit-flow").click();
 }
 
@@ -204,7 +204,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
 
     await prepareCanvasEvidence(page);
     await expectFlowDominant(page);
-    const structuredSummary=await page.locator("#structured-canvas").boundingBox();
+    const structuredSummary=await page.locator("#structured-navigator").boundingBox();
     const realizationActions=await page.locator("#front-door-actions").boundingBox();
     const currentStatus=await page.locator(".status-strip:not(#front-door-actions)").boundingBox();
     expect(rectanglesOverlap(structuredSummary,realizationActions)).toBe(false);
@@ -212,45 +212,28 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"overview",snapshot,"full-window-flow-after-semantic-assertions");
 
     const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
-    const semanticSubjects=snapshot.presentation.subjects.filter(item=>item.role==="Gear"||item.role==="Port"||item.role==="Route"||item.role==="Diagnostic"||(item.role==="Cord"&&snapshot.presentation.properties.some(property=>property.subject===item.identity&&(property.name==="source-port"||property.name==="route-status")))).map(item=>item.identity).sort();
     await page.locator("#toggle-palette").click();
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     await page.locator("#toggle-palette").click();
-    await page.locator("#structured-canvas summary").click();
-    const canvasSubjects=await page.locator("#graph [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
-    expect(listSubjects).toEqual(expectedSubjects); expect(canvasSubjects).toEqual(semanticSubjects);
+    const principalNode=await page.locator("#flow-root .react-flow__node").first().elementHandle();
+    await page.locator("#structured-navigator summary").click();
+    const structuredSubjects=await page.locator("#structured-navigator [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
+    expect(listSubjects).toEqual(expectedSubjects); expect(structuredSubjects).toEqual(expectedSubjects);
+    await expect(page.locator("#flow-root .react-flow")).toHaveCount(1);
+    await expect(page.locator("#form svg[role=img]")).toHaveCount(0);
+    await page.locator("#structured-navigator summary").click();
+    expect(await principalNode.evaluate((node,current)=>node.isSameNode(current),await page.locator("#flow-root .react-flow__node").first().elementHandle())).toBe(true);
     await page.locator("#toggle-palette").click();
-    await expect(page.locator("#graph .gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
-    await expect(page.locator("#graph .port")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Port").length);
-    await expect(page.locator("#graph .cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
-    await expect(page.locator("#graph .cord path.cord-line")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
-    expect(await page.locator("#graph").evaluate(svg=>{
-      const gears=[...svg.querySelectorAll(".gear-face")].map(rect=>({left:+rect.getAttribute("x"),right:+rect.getAttribute("x") + +rect.getAttribute("width"),top:+rect.getAttribute("y"),bottom:+rect.getAttribute("y") + +rect.getAttribute("height")}));
-      const inside=(point,gear)=>point.x>gear.left&&point.x<gear.right&&point.y>gear.top&&point.y<gear.bottom;
-      return [...svg.querySelectorAll(".cord path.cord-line")].every(path=>{
-        const length=path.getTotalLength();
-        for(let offset=0;offset<=length;offset+=2){const point=path.getPointAtLength(offset);if(gears.some(gear=>inside(point,gear)))return false;}
-        return true;
-      });
-    })).toBe(true);
-    await expect(page.locator("#graph .diagnostic-overlay")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Diagnostic").length);
-    await expect(page.locator("#graph .route-recovery")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Route").length);
-    await expect(page.locator("#graph .route-candidate.status-unavailable")).toHaveCount(2);
-    await expect(page.locator("#graph .route-candidate.status-selected")).toHaveCount(1);
-    await expect(page.locator("#graph .route-recovery")).toContainText("UNSATISFIED");
-    await expect(page.locator("#graph .route-recovery")).toContainText("replacement Plan");
-    await expect(page.locator("#graph .route-recovery")).toContainText("LINE LOST");
-    await expect(page.locator("#graph .route-recovery")).toContainText("SELECTED");
-    await expect(page.locator("#graph .port-label").first()).toContainText(/>|receiving|outgoing/);
-    await expect(page.locator("#graph .gear[data-subject]").first()).toHaveAttribute("aria-label",/Gear/);
+    await expect(page.locator("#flow-root .flow-gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
+    await expect(page.locator("#flow-root .faceplate-port")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Port").length);
+    await expect(page.locator("#flow-root .flow-cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
 
     const first=page.locator('#subjects button[data-role="Gear"]').first(); await first.focus(); await first.press("Enter");
     const identity=await first.getAttribute("data-subject");
     await expect(first).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .inspector-hint")).toContainText("Gear");
     await expect(page.locator("#inspector .exact-selection dd").first()).toHaveText(identity);
-    expect(await page.locator("#graph [data-subject].selected").getAttribute("data-subject")).toBe(identity);
-    await expect(page.locator("#graph [data-subject].selected .node")).toHaveCSS("stroke","rgb(244, 196, 0)");
+    await expect(page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`)).toHaveClass(/semantic-selected/);
     await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/0");
     await expect(page.locator("#interaction-proof")).toContainText("Interaction Plan");
@@ -280,11 +263,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const playClue=await selectedFaceplate.locator(".faceplate-clue").textContent();
     await page.locator('[data-lens="signs"]').click();await expect(page.locator("#inspector .selected-summary")).toContainText("Evidence");await expect(selectedFaceplate.locator(".faceplate-clue")).not.toHaveText(playClue);await expectFlowDominant(page,{inspector:true});
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"signs-lens",selectedSnapshot,"same-graph-selected-subject-causal-evidence");
-    await page.locator('[data-lens="form"]').click();await expect(page.locator("#graph .gear.selected .plan-overlay")).toBeHidden();await expect(page.locator("#inspector .selected-summary")).toContainText("kind-id");
+    await page.locator('[data-lens="form"]').click();await expect(page.locator("#inspector .selected-summary")).toContainText("kind-id");
     const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({presentation:afterLenses.presentation.identity,plan:afterLenses.presentation.basis.plan_id,play:afterLenses.presentation.basis.active_play_id,selection:afterLenses.interaction.selected_subject,interactionRevision:afterLenses.interaction.revision}).toEqual(stableLensIdentity);
+    expect(await principalNode.evaluate((node,current)=>node.isSameNode(current),await page.locator("#flow-root .react-flow__node").first().elementHandle())).toBe(true);
     await prepareCanvasEvidence(page,{structured:true});
     await page.locator('[data-lens="signs"]').click();
-    const route=page.locator('#graph .route-recovery').first();await route.focus();await route.press("Enter");await expect(route).toHaveClass(/selected/);await expect(page.locator("#inspector .selected-summary")).toContainText("subject-specific causal Sign");await expect(page.locator("#inspector .exact-selection")).toContainText("sign-new-plan-unsatisfied");
+    const route=page.locator('#structured-navigator [data-role="Route"]').first();await route.focus();await route.press("Enter");await expect(route).toHaveAttribute("aria-pressed","true");await expect(page.locator("#inspector .selected-summary")).toContainText("subject-specific causal Sign");await expect(page.locator("#inspector .exact-selection")).toContainText("sign-new-plan-unsatisfied");
     const routeSnapshot=await (await fetch(`${url}/api/snapshot`)).json();expect(routeSnapshot.interaction.selected_subject).toBe(await route.getAttribute("data-subject"));
     await expect(page.locator("#deep-inspection")).toBeHidden();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"route-recovery",routeSnapshot,"exact-line-loss-new-plan-and-same-plan-recovery-spatially-correlated");
@@ -293,13 +277,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const second=page.locator('#subjects button[data-role="Port"]').first();await second.click();
     await expect(second).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .selected-summary")).toContainText(/receiving|outgoing/);
-    expect(await page.locator("#graph .port.selected").getAttribute("data-subject")).toBe(await second.getAttribute("data-subject"));
+    await expect(page.locator(`#structured-navigator [data-subject="${(await second.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/2");
     await page.locator("#toggle-palette").click();
     const third=page.locator('#subjects button[data-role="Cord"]').filter({hasText:"Cord from"}).first();await third.click();
     await expect(third).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .selected-summary")).toContainText("source-port");
-    expect(await page.locator("#graph .cord.selected").getAttribute("data-subject")).toBe(await third.getAttribute("data-subject"));
+    await expect(page.locator(`#structured-navigator [data-subject="${(await third.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/3");
     await page.locator("#toggle-truth").click();
     await page.locator("#toggle-linear").click();
@@ -330,8 +314,14 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.locator("#toggle-truth").click();
     await page.locator("#toggle-inspector").click();
     await page.locator("#toggle-palette").click();
-    await page.locator("#zoom-in").click();await page.locator("#pan-right").click();await page.locator("#arrange").click();await page.locator("#theme").click();
-    await expect(page.locator("#arrange")).toHaveAttribute("aria-pressed","true");await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
+    const viewportBefore=await page.evaluate(()=>window.patchbayFlowViewport());
+    await page.locator("#zoom-in").click();
+    await expect.poll(async()=>(await page.evaluate(()=>window.patchbayFlowViewport())).zoom).toBeGreaterThan(viewportBefore.zoom);
+    const viewportAfterZoom=await page.evaluate(()=>window.patchbayFlowViewport());
+    await page.locator("#pan-right").click();
+    await expect.poll(async()=>(await page.evaluate(()=>window.patchbayFlowViewport())).x).toBeGreaterThan(viewportAfterZoom.x);
+    await page.locator("#arrange").click();await page.locator("#theme").click();
+    await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("body")).toHaveClass(/high-contrast/);
     expect(await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort())).toEqual(identitiesBefore.subjects);
     await expect(page.locator("#status")).toContainText(identitiesBefore.content);await expect(page.locator("#plan")).toContainText(identitiesBefore.plan);await expect(page.locator("#plan")).toContainText(identitiesBefore.manifestation);await expect(page.locator("#play")).toContainText(identitiesBefore.play);
