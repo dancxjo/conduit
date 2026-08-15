@@ -9,6 +9,12 @@ const requiredExports = [
   "conduit_browser_webrtc_session_output_len",
   "conduit_browser_webrtc_session_clear_output",
   "conduit_browser_webrtc_session_ingest",
+  "conduit_browser_webrtc_session_offer",
+  "conduit_browser_webrtc_session_pressure",
+  "conduit_browser_webrtc_session_deliver",
+  "conduit_browser_webrtc_session_value_ptr",
+  "conduit_browser_webrtc_session_value_len",
+  "conduit_browser_webrtc_session_next_sequence",
   "conduit_browser_webrtc_session_close_input",
   "conduit_browser_webrtc_session_finish",
 ];
@@ -61,4 +67,42 @@ export function finishWebRtcSession(runtime) {
 
 export function closeWebRtcSessionInput(runtime) {
   return runtime.api.conduit_browser_webrtc_session_close_input();
+}
+
+function writeInput(runtime, bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length > FRAME_CAPACITY) {
+    throw new Error("CND-WEBRTC-SESSION-005 invalid input");
+  }
+  new Uint8Array(
+    runtime.api.memory.buffer,
+    runtime.api.conduit_browser_webrtc_session_input_ptr(),
+    bytes.length,
+  ).set(bytes);
+}
+
+export function offerWebRtcSessionValue(runtime, bytes) {
+  writeInput(runtime, bytes);
+  return runtime.api.conduit_browser_webrtc_session_offer(bytes.length);
+}
+
+export function pressureWebRtcSessionOffer(runtime, bytes) {
+  writeInput(runtime, bytes);
+  return runtime.api.conduit_browser_webrtc_session_pressure(bytes.length);
+}
+
+export function deliverWebRtcSessionValue(runtime) {
+  return runtime.api.conduit_browser_webrtc_session_deliver();
+}
+
+export function webRtcSessionValue(runtime) {
+  const length = runtime.api.conduit_browser_webrtc_session_value_len();
+  return new Uint8Array(
+    runtime.api.memory.buffer,
+    runtime.api.conduit_browser_webrtc_session_value_ptr(),
+    length,
+  ).slice();
+}
+
+export function webRtcSessionNextSequence(runtime) {
+  return Number(runtime.api.conduit_browser_webrtc_session_next_sequence());
 }
