@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit bounded WebRTC DataChannel Line proof</title>
+<p id="state">idle</p>
+<script type="module">
+  import { BrowserWebRtcDataChannelLine } from "/hosts/browser/webrtc-datachannel-line.mjs";
+
+  let peer;
+  let channel;
+  let line;
+  let lineArrival = Promise.resolve();
+
+  function gathered(connection) {
+    if (connection.iceGatheringState === "complete") return Promise.resolve();
+    return new Promise((resolve) => connection.addEventListener("icegatheringstatechange", () => {
+      if (connection.iceGatheringState === "complete") resolve();
+    }));
+  }
+
+  window.conduitOffer = async (limits) => {
+    peer = new RTCPeerConnection({ iceServers: [] });
+    channel = peer.createDataChannel("conduit-line", {
+      ordered: true,
+      negotiated: false,
+    });
+    line = new BrowserWebRtcDataChannelLine({ channel, ...limits });
+    await peer.setLocalDescription(await peer.createOffer());
+    await gathered(peer);
+    return peer.localDescription.toJSON();
+  };
+
+  window.conduitAnswer = async (offer, limits) => {
+    peer = new RTCPeerConnection({ iceServers: [] });
+    lineArrival = new Promise((resolve) => peer.addEventListener("datachannel", (event) => {
+      channel = event.channel;
+      line = new BrowserWebRtcDataChannelLine({ channel, ...limits });
+      resolve();
+    }, { once: true }));
+    await peer.setRemoteDescription(offer);
+    await peer.setLocalDescription(await peer.createAnswer());
+    await gathered(peer);
+    return peer.localDescription.toJSON();
+  };
+
+  window.conduitAcceptAnswer = async (answer) => {
+    await peer.setRemoteDescription(answer);
+  };
+
+  window.conduitOpen = async () => {
+    await lineArrival;
+    await line.open();
+    document.querySelector("#state").textContent = "open";
+    return { channel: line.state(), peer: peer.connectionState };
+  };
+
+  window.conduitSend = (values) => values.map((value) => line.send(Uint8Array.from(value)));
+  window.conduitReceive = async () => {
+    const result = await line.receive();
+    return result.ok ? { ok: true, bytes: [...result.bytes] } : result;
+  };
+  window.conduitClose = () => line.close();
+  window.conduitClosed = () => line.closed();
+  window.conduitState = () => ({ channel: line.state(), peer: peer.connectionState });
+</script>

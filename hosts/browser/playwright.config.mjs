@@ -16,6 +16,7 @@ export default defineConfig({
     "triple-signal.spec.mjs",
     "presentation-nucleus.spec.mjs",
     "browser-presence.spec.mjs",
+    "webrtc-datachannel-line.spec.mjs",
   ],
   fullyParallel: false,
   workers: 1,
