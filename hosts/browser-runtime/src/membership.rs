@@ -1,7 +1,8 @@
 //! Browser-owned admission proof material, kept separate from renderer handles.
 
 use conduit_body::{
-    AdmissionChallenge, AdmissionRefusal, AmbientAdmissionProof, ADMISSION_SIGNATURE_BYTES,
+    AdmissionChallenge, AdmissionRefusal, AmbientAdmissionProof, PartReturnChallenge,
+    PartReturnProof, ADMISSION_SIGNATURE_BYTES,
 };
 use conduit_core::{BootId, HostId};
 use ed25519_dalek::{Signer, SigningKey};
@@ -75,6 +76,31 @@ impl BrowserAdmissionIdentity {
             signature,
         })
     }
+
+    pub fn prove_return(
+        &self,
+        challenge: &PartReturnChallenge,
+    ) -> Result<PartReturnProof, AdmissionRefusal> {
+        if challenge.host_id != self.host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        if challenge.boot_id != self.boot_id {
+            return Err(AdmissionRefusal::StaleBoot);
+        }
+        let signature: [u8; ADMISSION_SIGNATURE_BYTES] = self
+            .signing_key
+            .sign(&challenge.signing_transcript())
+            .to_bytes();
+        Ok(PartReturnProof {
+            admission_id: challenge.admission_id.clone(),
+            body_id: challenge.body_id.clone(),
+            part_id: challenge.part_id.clone(),
+            host_id: self.host_id.clone(),
+            boot_id: self.boot_id.clone(),
+            nonce: challenge.nonce,
+            signature,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -88,6 +114,7 @@ mod tests {
         CheckedFormId, HostAdvertisement, HostProfileId, LinkBindingId, OfferGeneration, SignId,
         SourceDocumentId, PROTOCOL_VERSION,
     };
+    use ed25519_dalek::Verifier;
 
     fn advertisement(identity: &BrowserAdmissionIdentity) -> HostAdvertisement {
         HostAdvertisement {
@@ -184,6 +211,46 @@ mod tests {
                 [0; 32]
             ),
             Err(AdmissionRefusal::WeakSecret)
+        ));
+    }
+
+    #[test]
+    fn same_browser_identity_proves_exact_part_return_without_changing_host_or_boot() {
+        let identity = BrowserAdmissionIdentity::from_csprng_seed(
+            HostId::from("browser/tab-return"),
+            BootId::from("browser-boot/return"),
+            [11; 32],
+        )
+        .unwrap();
+        let challenge: PartReturnChallenge = serde_json::from_value(serde_json::json!({
+            "admission_id": "return/live",
+            "body_id": "body/live",
+            "part_id": "part/live",
+            "host_id": "browser/tab-return",
+            "boot_id": "browser-boot/return",
+            "offer_generation": 1,
+            "nonce": vec![5; 32],
+            "issued_at_millis": 2_000,
+            "expires_at_millis": 3_000
+        }))
+        .unwrap();
+        let proof = identity.prove_return(&challenge).unwrap();
+        assert_eq!(proof.body_id, challenge.body_id);
+        assert_eq!(proof.part_id, challenge.part_id);
+        assert_eq!(proof.host_id, *identity.host_id());
+        assert_eq!(proof.boot_id, *identity.boot_id());
+        let signature = ed25519_dalek::Signature::from_bytes(&proof.signature);
+        identity
+            .signing_key
+            .verifying_key()
+            .verify(&challenge.signing_transcript(), &signature)
+            .unwrap();
+
+        let mut stale = challenge;
+        stale.boot_id = BootId::from("browser-boot/replaced");
+        assert!(matches!(
+            identity.prove_return(&stale),
+            Err(AdmissionRefusal::StaleBoot)
         ));
     }
 }
