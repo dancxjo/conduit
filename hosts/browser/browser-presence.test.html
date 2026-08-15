@@ -19,6 +19,7 @@ globalThis.__browserPresence = await joinBrowserBody({
   bodyUrl,
   wasmBytes,
   renewPresence: parameters.get("renew") !== "false",
+  reconnectPresence: parameters.get("reconnect") !== "false",
   onState: (state) => { status.textContent = state; },
 });
 </script>

@@ -6,8 +6,8 @@
 
 use conduit_body::{
     AdmissionChallenge, AdmissionId, BodyId, MembershipCredential, MembershipCredentialId, PartId,
-    SpawnInvitationId, ADMISSION_SIGNATURE_BYTES, MAX_CANDIDATE_ADVERTISEMENT_BYTES,
-    MAX_CANDIDATE_LABEL_BYTES,
+    PartReturnChallenge, SpawnInvitationId, ADMISSION_SIGNATURE_BYTES,
+    MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId};
 use serde::{Deserialize, Serialize};
@@ -56,6 +56,21 @@ pub enum BrowserAdmissionIngress {
         boot_id: BootId,
         sequence: u64,
     },
+    ReturnAdvertise {
+        protocol: u16,
+        credential: MembershipCredential,
+        advertisement: HostAdvertisement,
+    },
+    ReturnProof {
+        protocol: u16,
+        admission_id: AdmissionId,
+        body_id: BodyId,
+        part_id: PartId,
+        host_id: HostId,
+        boot_id: BootId,
+        nonce: Vec<u8>,
+        signature: Vec<u8>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,6 +89,10 @@ pub enum BrowserAdmissionEgress {
         sequence: u64,
         renew_after_millis: u64,
         expires_at_millis: u64,
+    },
+    ReturnChallenge {
+        protocol: u16,
+        challenge: PartReturnChallenge,
     },
     Refused {
         protocol: u16,
@@ -177,6 +196,10 @@ impl BrowserAdmissionSocket {
         self.line.send_binary(&self.output[..length])?;
         Ok(())
     }
+
+    pub fn close(&mut self) -> Result<(), BrowserAdmissionSocketError> {
+        Ok(self.line.close()?)
+    }
 }
 
 pub fn decode_browser_admission_frame(
@@ -251,6 +274,21 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             }
             protocol
         }
+        BrowserAdmissionIngress::ReturnAdvertise { protocol, .. } => protocol,
+        BrowserAdmissionIngress::ReturnProof {
+            protocol,
+            nonce,
+            signature,
+            ..
+        } => {
+            if nonce.len() != 32 {
+                return Err(BrowserAdmissionFrameError::InvalidNonce);
+            }
+            if signature.len() != ADMISSION_SIGNATURE_BYTES {
+                return Err(BrowserAdmissionFrameError::InvalidSignature);
+            }
+            protocol
+        }
     };
     if *protocol != BROWSER_ADMISSION_PROTOCOL {
         return Err(BrowserAdmissionFrameError::WrongProtocol);
@@ -263,6 +301,7 @@ fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissio
         BrowserAdmissionEgress::Challenge { protocol, .. }
         | BrowserAdmissionEgress::Admitted { protocol, .. }
         | BrowserAdmissionEgress::PresenceAccepted { protocol, .. }
+        | BrowserAdmissionEgress::ReturnChallenge { protocol, .. }
         | BrowserAdmissionEgress::Refused { protocol, .. } => protocol,
     };
     (*protocol == BROWSER_ADMISSION_PROTOCOL)
@@ -348,6 +387,20 @@ mod tests {
         assert_eq!(
             decode_browser_admission_frame(stale),
             Err(BrowserAdmissionFrameError::InvalidSequence)
+        );
+    }
+
+    #[test]
+    fn exact_return_frames_decode_and_malformed_proof_remains_distinct() {
+        let advertisement = br#"{"kind":"return-advertise","protocol":1,"credential":{"credential_id":"credential/live","body_id":"body/live","part_id":"part/live","host_id":"browser/live","boot_id":"browser-boot/live","issued_at_millis":1000},"advertisement":{"protocol_version":1,"host_id":"browser/live","boot_id":"browser-boot/live","offer_generation":1,"profile":"browser/profile","resources":[],"capabilities":[],"planner_capabilities":[]}}"#;
+        assert!(matches!(
+            decode_browser_admission_frame(advertisement),
+            Ok(BrowserAdmissionIngress::ReturnAdvertise { .. })
+        ));
+        let malformed_proof = br#"{"kind":"return-proof","protocol":1,"admission_id":"return/live","body_id":"body/live","part_id":"part/live","host_id":"browser/live","boot_id":"browser-boot/live","nonce":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"signature":[]}"#;
+        assert_eq!(
+            decode_browser_admission_frame(malformed_proof),
+            Err(BrowserAdmissionFrameError::InvalidSignature)
         );
     }
 

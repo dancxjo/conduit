@@ -171,7 +171,7 @@ impl NativeWebSocketLine {
         }
     }
 
-    pub fn close(mut self) -> Result<(), NativeWebSocketError> {
+    pub fn close(&mut self) -> Result<(), NativeWebSocketError> {
         self.socket
             .close(Some(CloseFrame {
                 code: CloseCode::Normal,
