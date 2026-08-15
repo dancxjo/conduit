@@ -17,34 +17,27 @@ refuse() {
   exit 1
 }
 
-require_runner_identity() {
-  test -n "${ImageOS:-}" || refuse 'ImageOS is absent'
-  test -n "${ImageVersion:-}" || refuse 'ImageVersion is absent'
-}
-
 write_expected_packages() {
   printf '%s\n' "${packages[@]}"
 }
 
 verify_bundle() {
   local bundle=$1
-  require_runner_identity
   test -f "$bundle/identity.env" || refuse 'identity.env is absent'
   test -f "$bundle/packages.txt" || refuse 'packages.txt is absent'
   test -f "$bundle/SHA256SUMS" || refuse 'SHA256SUMS is absent'
 
-  local actual_schema actual_container actual_image_os actual_image_version actual_os_release
+  local actual_schema actual_container actual_os_release actual_dpkg_status
   actual_schema=$(sed -n 's/^schema=//p' "$bundle/identity.env")
   actual_container=$(sed -n 's/^container=//p' "$bundle/identity.env")
-  actual_image_os=$(sed -n 's/^image_os=//p' "$bundle/identity.env")
-  actual_image_version=$(sed -n 's/^image_version=//p' "$bundle/identity.env")
   actual_os_release=$(sed -n 's/^os_release=//p' "$bundle/identity.env")
+  actual_dpkg_status=$(sed -n 's/^dpkg_status_sha256=//p' "$bundle/identity.env")
   test "$actual_schema" = "$schema" || refuse 'schema mismatch'
   test "$actual_container" = "$container_identity" || refuse 'container identity mismatch'
-  test "$actual_image_os" = "$ImageOS" || refuse 'runner image OS mismatch'
-  test "$actual_image_version" = "$ImageVersion" || refuse 'runner image version mismatch'
   test "$actual_os_release" = "$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
     || refuse 'container OS release mismatch'
+  test "$actual_dpkg_status" = "$(sha256sum /var/lib/dpkg/status | cut -d' ' -f1)" \
+    || refuse 'container package baseline mismatch'
   diff -u <(write_expected_packages) "$bundle/packages.txt" \
     || refuse 'package manifest mismatch'
   test -n "$(find "$bundle/debs" -maxdepth 1 -type f -name '*.deb' -print -quit)" \
@@ -65,7 +58,6 @@ verify_bundle() {
 prepare_bundle() {
   local bundle=$1
   local apt_cache="${bundle}.apt-cache"
-  require_runner_identity
   test "$bundle" = "$PWD/target/browser-tools/tool-bundle" \
     || refuse 'preparation path must be target/browser-tools/tool-bundle'
   test ! -e "$bundle" || refuse 'preparation path already exists'
@@ -73,10 +65,11 @@ prepare_bundle() {
   install -d -m 0755 "$bundle/debs"
   install -d -m 0777 "$apt_cache/partial"
   write_expected_packages > "$bundle/packages.txt"
-  printf 'schema=%s\ncontainer=%s\nimage_os=%s\nimage_version=%s\nos_release=%s/%s\n' \
-    "$schema" "$container_identity" "$ImageOS" "$ImageVersion" \
+  printf 'schema=%s\ncontainer=%s\nos_release=%s/%s\ndpkg_status_sha256=%s\n' \
+    "$schema" "$container_identity" \
     "$(. /etc/os-release; printf '%s' "$ID")" \
-    "$(. /etc/os-release; printf '%s' "$VERSION_ID")" > "$bundle/identity.env"
+    "$(. /etc/os-release; printf '%s' "$VERSION_ID")" \
+    "$(sha256sum /var/lib/dpkg/status | cut -d' ' -f1)" > "$bundle/identity.env"
 
   apt-get update
   apt-get install --download-only --reinstall -y --no-install-recommends \

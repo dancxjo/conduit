@@ -216,9 +216,8 @@ jobs:
           printf '%s\n' \
             'schema=conduit.ci.browser-tool-bundle/v1' \
             'container=deliberately-wrong' \
-            "image_os=$ImageOS" \
-            "image_version=$ImageVersion" \
             "os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
+            "dpkg_status_sha256=$(sha256sum /var/lib/dpkg/status | cut -d' ' -f1)" \
             > "$bundle/identity.env"
           cp scripts/ci/browser-tools-packages.txt "$bundle/packages.txt"
           (cd "$bundle" && sha256sum debs/example.deb > SHA256SUMS)
@@ -230,17 +229,17 @@ jobs:
           test "$(scripts/ci/browser-tools.sh cache-status "$bundle")" = rejected
           test ! -e "$bundle"
           test -e "${bundle}.rejected"
-      - name: Capture the exact browser-tool cache identity
-        id: runner-image
-        run: printf 'key=%s-%s\n' "$ImageOS" "$ImageVersion" >> "$GITHUB_OUTPUT"
+      - name: Capture the exact container package baseline
+        id: container-image
+        run: printf 'key=%s\n' "$(sha256sum /var/lib/dpkg/status | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
       - name: Restore the exact browser-tool bundle
         id: tool-cache
         uses: actions/cache@v6
         with:
           path: target/browser-tools/tool-bundle
-          key: browser-tools-v1-playwright-1.62.0-noble-${{ steps.runner-image.outputs.key }}-${{ hashFiles('scripts/ci/browser-tools-packages.txt') }}
+          key: browser-tools-v1-playwright-1.62.0-noble-${{ steps.container-image.outputs.key }}-${{ hashFiles('scripts/ci/browser-tools.sh', 'scripts/ci/browser-tools-packages.txt') }}
           restore-keys: |
-            browser-tools-v1-playwright-1.62.0-noble-${{ steps.runner-image.outputs.key }}-
+            browser-tools-v1-playwright-1.62.0-noble-${{ steps.container-image.outputs.key }}-
       - name: Verify any restored browser-tool bundle
         id: restored-bundle
         run: |
