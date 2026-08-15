@@ -63,10 +63,11 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
     await page.getByRole("button", { name: "Seeds", exact: true }).click();
     await expect(page.getByRole("list", { name: "Available Seeds" }).getByRole("button")).toHaveCount(3);
-    await page.getByRole("searchbox", { name: "Find a Seed" }).fill("tExT lAb");
+    await expect(page.getByRole("button", { name: "Open Seed Text Lab" })).toBeVisible();
+    await page.getByRole("searchbox", { name: "Find a Seed" }).fill("hElLo");
     await expect(page.locator("#seed-results-status")).toHaveText("1 of 3 Seeds available");
-    const seed = initial.presentation.subjects.find(({ role, label }) => role === "Seed" && label === "Text Lab");
-    const seedButton = page.getByRole("button", { name: "Open Seed Text Lab" });
+    const seed = initial.presentation.subjects.find(({ role, label }) => role === "Seed" && label === "Hello");
+    const seedButton = page.getByRole("button", { name: "Open Seed Hello" });
     await page.getByRole("searchbox", { name: "Find a Seed" }).press("ArrowDown");
     await expect(seedButton).toBeFocused();
     const openResponses = [];
