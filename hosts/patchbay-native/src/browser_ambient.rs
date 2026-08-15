@@ -19,12 +19,16 @@ pub(super) struct AmbientBrowserCoordinator {
     accepting: Option<Receiver<AmbientAcceptOutcome>>,
     decisions: Vec<AwaitingDecision>,
     proofs: Vec<Receiver<Result<AmbientProofArrival, String>>>,
+    returns: Vec<super::browser_return::ReturnArrival>,
 }
 
-struct AmbientArrival {
-    socket: BrowserAdmissionSocket,
-    observation: CandidateObservation,
-    verifying_key: [u8; 32],
+enum AmbientArrival {
+    Candidate {
+        socket: BrowserAdmissionSocket,
+        observation: CandidateObservation,
+        verifying_key: [u8; 32],
+    },
+    Return(super::browser_return::ReturnArrival),
 }
 
 struct AmbientAcceptOutcome {
@@ -60,6 +64,7 @@ impl AmbientBrowserCoordinator {
                 accepting: Some(spawn_accept(listener)),
                 decisions: Vec::with_capacity(conduit_body::MAX_CANDIDATES),
                 proofs: Vec::with_capacity(conduit_body::MAX_PENDING_ADMISSIONS),
+                returns: Vec::with_capacity(conduit_body::MAX_PENDING_ADMISSIONS),
             },
             url,
         ))
@@ -82,16 +87,31 @@ impl AmbientBrowserCoordinator {
         };
         self.accepting = Some(spawn_accept(outcome.listener));
         let arrival = outcome.result?;
+        let AmbientArrival::Candidate {
+            socket,
+            observation,
+            verifying_key,
+        } = arrival
+        else {
+            if self.returns.len() == conduit_body::MAX_PENDING_ADMISSIONS {
+                return Err("browser return capacity exhausted".into());
+            }
+            let AmbientArrival::Return(arrival) = arrival else {
+                unreachable!()
+            };
+            self.returns.push(arrival);
+            return Ok(None);
+        };
         if self.decisions.len() == conduit_body::MAX_CANDIDATES {
             return Err("ambient browser decision capacity exhausted".into());
         }
         let candidate_id = inventory
-            .observe(arrival.observation)
+            .observe(observation)
             .map_err(debug("observe candidate"))?;
         self.decisions.push(AwaitingDecision {
             candidate_id: candidate_id.clone(),
-            socket: arrival.socket,
-            verifying_key: arrival.verifying_key,
+            socket,
+            verifying_key,
         });
         Ok(Some(candidate_id))
     }
@@ -154,6 +174,14 @@ impl AmbientBrowserCoordinator {
         Ok(None)
     }
 
+    pub(super) fn take_return(&mut self) -> Option<super::browser_return::ReturnArrival> {
+        self.returns.pop()
+    }
+
+    pub(super) fn manager_mut(&mut self) -> &mut AdmissionManager {
+        &mut self.manager
+    }
+
     pub(super) fn complete(
         &mut self,
         arrival: AmbientProofArrival,
@@ -204,7 +232,7 @@ impl AmbientBrowserCoordinator {
     }
 
     pub(super) fn is_running(&self) -> bool {
-        self.accepting.is_some() || !self.proofs.is_empty()
+        self.accepting.is_some() || !self.proofs.is_empty() || !self.returns.is_empty()
     }
 
     pub(super) fn body_id(&self) -> &BodyId {
@@ -215,21 +243,13 @@ impl AmbientBrowserCoordinator {
 fn spawn_accept(listener: BrowserAdmissionListener) -> Receiver<AmbientAcceptOutcome> {
     let (sender, receiver) = mpsc::sync_channel(1);
     std::thread::spawn(move || {
-        let result = receive_candidate(&listener).map(|(socket, observation, verifying_key)| {
-            AmbientArrival {
-                socket,
-                observation,
-                verifying_key,
-            }
-        });
+        let result = receive_arrival(&listener);
         let _ = sender.send(AmbientAcceptOutcome { listener, result });
     });
     receiver
 }
 
-fn receive_candidate(
-    listener: &BrowserAdmissionListener,
-) -> Result<(BrowserAdmissionSocket, CandidateObservation, [u8; 32]), String> {
+fn receive_arrival(listener: &BrowserAdmissionListener) -> Result<AmbientArrival, String> {
     let mut socket = listener.accept().map_err(debug("accept"))?;
     let (frame, encoded_bytes) = socket.receive_with_size().map_err(debug("advertisement"))?;
     let BrowserAdmissionIngress::Advertise {
@@ -240,7 +260,21 @@ fn receive_candidate(
         ..
     } = frame
     else {
-        return Err("ambient browser did not begin with an advertisement".into());
+        if let BrowserAdmissionIngress::ReturnAdvertise {
+            credential,
+            advertisement,
+            ..
+        } = frame
+        {
+            return Ok(AmbientArrival::Return(
+                super::browser_return::ReturnArrival {
+                    socket,
+                    credential,
+                    advertisement,
+                },
+            ));
+        }
+        return Err("ambient browser did not begin with an advertisement or return".into());
     };
     let verifying_key = verifying_key
         .try_into()
@@ -255,7 +289,11 @@ fn receive_candidate(
         freshness_sequence,
         encoded_bytes,
     };
-    Ok((socket, observation, verifying_key))
+    Ok(AmbientArrival::Candidate {
+        socket,
+        observation,
+        verifying_key,
+    })
 }
 
 fn spawn_proof(

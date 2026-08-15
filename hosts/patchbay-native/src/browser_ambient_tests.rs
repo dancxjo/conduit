@@ -11,7 +11,7 @@ use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
 #[test]
-fn ambient_page_admits_then_live_owner_projects_session_loss_offline() {
+fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
     let body_id = conduit_body::Body::born(
         SourceDocumentId::from("source/native-ambient-test"),
         CheckedFormId::from("checked/native-ambient-test"),
@@ -54,7 +54,7 @@ fn ambient_page_admits_then_live_owner_projects_session_loss_offline() {
         .unwrap();
         let advertise = BrowserAdmissionIngress::Advertise {
             protocol: BROWSER_ADMISSION_PROTOCOL,
-            advertisement,
+            advertisement: advertisement.clone(),
             friendly_label: "This computer".into(),
             verifying_key: identity.verifying_key().to_vec(),
             freshness_sequence: 1,
@@ -102,7 +102,70 @@ fn ambient_page_admits_then_live_owner_projects_session_loss_offline() {
         let length = line.receive_binary(&mut encoded).unwrap();
         let renewed_presence =
             serde_json::from_slice::<BrowserAdmissionEgress>(&encoded[..length]).unwrap();
-        (admitted, initial_presence, renewed_presence)
+        drop(line);
+        let mut returned = NativeWebSocketLine::connect(
+            address,
+            &client_url,
+            MAX_BROWSER_ADMISSION_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        returned
+            .send_binary(
+                &serde_json::to_vec(&BrowserAdmissionIngress::ReturnAdvertise {
+                    protocol: BROWSER_ADMISSION_PROTOCOL,
+                    credential: credential.clone(),
+                    advertisement,
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        let length = returned.receive_binary(&mut encoded).unwrap();
+        let BrowserAdmissionEgress::ReturnChallenge { challenge, .. } =
+            serde_json::from_slice(&encoded[..length]).unwrap()
+        else {
+            panic!("native owner did not challenge exact browser return");
+        };
+        let proof = identity.prove_return(&challenge).unwrap();
+        returned
+            .send_binary(
+                &serde_json::to_vec(&BrowserAdmissionIngress::ReturnProof {
+                    protocol: BROWSER_ADMISSION_PROTOCOL,
+                    admission_id: proof.admission_id,
+                    body_id: proof.body_id,
+                    part_id: proof.part_id,
+                    host_id: proof.host_id,
+                    boot_id: proof.boot_id,
+                    nonce: proof.nonce.to_vec(),
+                    signature: proof.signature.to_vec(),
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        let length = returned.receive_binary(&mut encoded).unwrap();
+        let returned_presence: BrowserAdmissionEgress =
+            serde_json::from_slice(&encoded[..length]).unwrap();
+        let renewal = BrowserAdmissionIngress::PresenceRenewal {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            credential_id: credential.credential_id.clone(),
+            body_id: credential.body_id.clone(),
+            part_id: credential.part_id.clone(),
+            host_id: credential.host_id.clone(),
+            boot_id: credential.boot_id.clone(),
+            sequence: 4,
+        };
+        returned
+            .send_binary(&serde_json::to_vec(&renewal).unwrap())
+            .unwrap();
+        let length = returned.receive_binary(&mut encoded).unwrap();
+        let returned_renewal =
+            serde_json::from_slice::<BrowserAdmissionEgress>(&encoded[..length]).unwrap();
+        (
+            admitted,
+            initial_presence,
+            renewed_presence,
+            returned_presence,
+            returned_renewal,
+        )
     });
 
     let mut inventory = CandidateInventory::new(body_id.clone()).unwrap();
@@ -168,7 +231,79 @@ fn ambient_page_admits_then_live_owner_projects_session_loss_offline() {
     }
     assert_eq!(membership.revision, admitted_revision);
     assert_eq!(presence.table().leases[0].sequence, 2);
-    let (admitted_frame, presence_frame, renewed_frame) = client.join().unwrap();
+    loop {
+        if presence.poll(&mut membership).unwrap().is_some() {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "first session loss was not observed"
+        );
+        std::thread::yield_now();
+    }
+    assert!(membership.parts[0].current.is_none());
+    let returned = loop {
+        coordinator.poll_candidate(&mut inventory).unwrap();
+        if let Some(returned) = coordinator.take_return() {
+            break returned;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "return advertisement did not arrive"
+        );
+        std::thread::yield_now();
+    };
+    assert_eq!(inventory.candidates.len(), 1);
+    let (expected, offer_generation) = presence
+        .return_identity(&returned.credential)
+        .map(|(credential, offer)| (credential.clone(), offer))
+        .unwrap();
+    let proof_receiver = super::super::browser_return::begin(
+        coordinator.manager_mut(),
+        &membership,
+        returned,
+        &expected,
+        offer_generation,
+        [11; 32],
+        1_002,
+    )
+    .unwrap();
+    let proof = loop {
+        match proof_receiver.try_recv() {
+            Ok(result) => break result.unwrap(),
+            Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            Err(error) => panic!("return proof worker failed: {error:?}"),
+        }
+        assert!(Instant::now() < deadline, "return proof did not arrive");
+        std::thread::yield_now();
+    };
+    let returned = super::super::browser_return::complete(
+        coordinator.manager_mut(),
+        &mut membership,
+        proof,
+        1_003,
+        SignId::from("sign/native-ambient/returned"),
+    )
+    .unwrap();
+    assert_eq!(returned.credential, expected);
+    assert_eq!(membership.parts.len(), 1);
+    let returned_sequence = presence
+        .register_return(returned.socket, returned.credential, &mut membership)
+        .unwrap();
+    assert_eq!(returned_sequence, 3);
+    loop {
+        if presence.poll(&mut membership).unwrap().is_some() {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "returned renewal was not observed"
+        );
+        std::thread::yield_now();
+    }
+    assert_eq!(presence.table().leases[0].sequence, 4);
+    let (admitted_frame, presence_frame, renewed_frame, returned_frame, returned_renewal) =
+        client.join().unwrap();
     assert!(matches!(
         admitted_frame,
         BrowserAdmissionEgress::Admitted { .. }
@@ -180,6 +315,14 @@ fn ambient_page_admits_then_live_owner_projects_session_loss_offline() {
     assert!(matches!(
         renewed_frame,
         BrowserAdmissionEgress::PresenceAccepted { sequence: 2, .. }
+    ));
+    assert!(matches!(
+        returned_frame,
+        BrowserAdmissionEgress::PresenceAccepted { sequence: 3, .. }
+    ));
+    assert!(matches!(
+        returned_renewal,
+        BrowserAdmissionEgress::PresenceAccepted { sequence: 4, .. }
     ));
     let offline = loop {
         if let Some(message) = presence.poll(&mut membership).unwrap() {
