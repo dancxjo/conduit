@@ -285,6 +285,29 @@ impl BrowserPartsCoordinator {
             .map(super::browser_presence::BrowserPresenceCoordinator::table)
     }
 
+    pub(super) fn presence_presentation_reference(
+        &self,
+    ) -> Result<Option<conduit_presentation::TemporalReference>, String> {
+        self.presence
+            .as_ref()
+            .map(super::browser_presence::BrowserPresenceCoordinator::presentation_reference)
+            .transpose()
+    }
+
+    #[cfg(test)]
+    pub(super) fn observe_for_presentation_test(
+        &mut self,
+        body_id: &BodyId,
+        membership: &BodyMembership,
+        part_id: &conduit_body::PartId,
+    ) -> Result<conduit_core::SignId, String> {
+        self.ensure_presence(body_id)?;
+        self.presence
+            .as_mut()
+            .expect("test presence was initialized")
+            .observe_for_presentation_test(membership, part_id)
+    }
+
     fn ensure_presence(&mut self, body_id: &BodyId) -> Result<(), String> {
         if let Some(presence) = &self.presence {
             if &presence.table().body_id != body_id {
