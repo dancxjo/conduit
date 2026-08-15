@@ -55,18 +55,24 @@ verify_bundle() {
     sha256sum --check --strict SHA256SUMS
   ) || refuse 'bundle checksum mismatch'
   diff -u \
-    <(cd "$bundle" && find debs -maxdepth 1 -type f -name '*.deb' -printf '%p\n' | LC_ALL=C sort) \
-    <(sed 's/^[[:xdigit:]]\{64\}  //' "$bundle/SHA256SUMS" | LC_ALL=C sort) \
+    <(cd "$bundle" && find . -type f -printf '%P\n' | LC_ALL=C sort) \
+    <({
+      printf '%s\n' SHA256SUMS identity.env packages.txt
+      sed 's/^[[:xdigit:]]\{64\}  //' "$bundle/SHA256SUMS"
+    } | LC_ALL=C sort) \
     || refuse 'bundle file set does not match its checksums'
 }
 
 prepare_bundle() {
   local bundle=$1
+  local apt_cache="${bundle}.apt-cache"
   require_runner_identity
   test "$bundle" = "$PWD/target/conduitos/tool-bundle" \
     || refuse 'preparation path must be target/conduitos/tool-bundle'
   test ! -e "$bundle" || refuse 'preparation path already exists'
-  install -d -m 0777 "$bundle/debs"
+  test ! -e "$apt_cache" || refuse 'APT staging path already exists'
+  install -d -m 0755 "$bundle/debs"
+  install -d -m 0777 "$apt_cache/partial"
   write_expected_packages > "$bundle/packages.txt"
   printf 'schema=%s\nimage_os=%s\nimage_version=%s\nos_release=%s/%s\n' \
     "$schema" "$ImageOS" "$ImageVersion" \
@@ -75,11 +81,10 @@ prepare_bundle() {
 
   sudo apt-get update
   sudo apt-get install --download-only --reinstall -y --no-install-recommends \
-    -o "Dir::Cache::archives=$bundle/debs" "${packages[@]}"
-  # APT creates this empty bookkeeping directory mode-private to _apt. The
-  # checked bundle contains no partial files, but artifact/cache walkers must
-  # be able to prove that rather than failing before verification.
-  sudo chmod 0755 "$bundle/debs/partial"
+    -o "Dir::Cache::archives=$apt_cache" "${packages[@]}"
+  # Admit only completed packages. APT's lock and partial state stay outside
+  # the bundle and therefore cannot enter its checked file set.
+  cp "$apt_cache"/*.deb "$bundle/debs/"
   find "$bundle/debs" -maxdepth 1 -type f -name '*.deb' -printf '%f\n' \
     | while IFS= read -r package; do
         sha256sum "$bundle/debs/$package"
