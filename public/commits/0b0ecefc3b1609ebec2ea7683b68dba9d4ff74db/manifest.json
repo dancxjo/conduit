@@ -1,7 +1,7 @@
 {
   "schema": "conduit.evidence-manifest/v1",
   "result": "complete",
-  "git_commit": "9777929e987001e87be034fa4e6234a6fa3cc5e0",
+  "git_commit": "0b0ecefc3b1609ebec2ea7683b68dba9d4ff74db",
   "proof_id": "browser-host",
   "suite_id": "prove.browser-host",
   "limits": {
@@ -375,8 +375,8 @@
       "path": "disconnected.png",
       "media_type": "image/png",
       "required": true,
-      "bytes": 127301,
-      "sha256": "b9a23dff78b789bef7530dfa0898e18b636ac78a988f07f1d2af92661251c774",
+      "bytes": 127307,
+      "sha256": "2582d6e1241cec5bf924f31afd4247ee2055721926195f8400946001fc15543e",
       "scenario_id": "patchbay-html.disconnected@1",
       "step_id": "prove.browser-host.patchbay-html-matrix",
       "browser_engine": "chromium",
