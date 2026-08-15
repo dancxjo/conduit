@@ -76,6 +76,10 @@ prepare_bundle() {
   sudo apt-get update
   sudo apt-get install --download-only --reinstall -y --no-install-recommends \
     -o "Dir::Cache::archives=$bundle/debs" "${packages[@]}"
+  # APT creates this empty bookkeeping directory mode-private to _apt. The
+  # checked bundle contains no partial files, but artifact/cache walkers must
+  # be able to prove that rather than failing before verification.
+  sudo chmod 0755 "$bundle/debs/partial"
   find "$bundle/debs" -maxdepth 1 -type f -name '*.deb' -printf '%f\n' \
     | while IFS= read -r package; do
         sha256sum "$bundle/debs/$package"
