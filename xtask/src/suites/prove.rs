@@ -101,13 +101,13 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.body-membership.native-ambient-admission",
-        "Prove native Patchbay keeps an ambient browser inert until explicit Admit and exact proof",
+        "Prove native Patchbay admits and renews exact presence until session loss projects offline",
         "cargo",
         &[
             "test",
             "-p",
             "patchbay-native",
-            "ambient_page_stays_candidate_until_explicit_admit_completes_exact_proof",
+            "ambient_page_admits_then_live_owner_projects_session_loss_offline",
         ],
         None,
         None,
@@ -157,7 +157,7 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.body-membership.browser-parts-capstone-build",
-        "Build the bounded native Body and browser Parts capstone",
+        "Build the bounded native Body browser Parts and front-door capstones",
         "cargo",
         &[
             "build",
@@ -165,11 +165,16 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
             "patchbay-native",
             "--bin",
             "browser-parts-capstone",
+            "--bin",
+            "patchbay-front-door-capstone",
         ],
         None,
         None,
         Some(ProofClass::ContractCompile),
-        &["target/debug/browser-parts-capstone"],
+        &[
+            "target/debug/browser-parts-capstone",
+            "target/debug/patchbay-front-door-capstone",
+        ],
     ),
     Step::typed(
         "prove.body-membership.live-browser-admission",

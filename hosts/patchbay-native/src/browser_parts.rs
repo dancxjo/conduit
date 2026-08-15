@@ -20,6 +20,7 @@ pub(super) struct BrowserPartsCoordinator {
     manager: Option<AdmissionManager>,
     pending: Option<PendingSpawn>,
     ambient: Option<super::browser_ambient::AmbientBrowserCoordinator>,
+    presence: Option<super::browser_presence::BrowserPresenceCoordinator>,
 }
 
 struct PendingSpawn {
@@ -41,10 +42,12 @@ impl BrowserPartsCoordinator {
             manager: None,
             pending: None,
             ambient: None,
+            presence: None,
         }
     }
 
     pub(super) fn start_ambient(&mut self, body_id: &BodyId) -> Result<String, String> {
+        self.ensure_presence(body_id)?;
         if let Some(ambient) = &self.ambient {
             if ambient.body_id() != body_id {
                 return Err("ambient browser coordinator belongs to a different Body".into());
@@ -69,6 +72,7 @@ impl BrowserPartsCoordinator {
     }
 
     pub(super) fn begin(&mut self, body_id: &BodyId) -> Result<String, String> {
+        self.ensure_presence(body_id)?;
         if self.pending.is_some() {
             return Err("a browser Part spawn is already pending".into());
         }
@@ -155,6 +159,10 @@ impl BrowserPartsCoordinator {
                 .ambient
                 .as_ref()
                 .is_some_and(super::browser_ambient::AmbientBrowserCoordinator::is_running)
+            || self
+                .presence
+                .as_ref()
+                .is_some_and(super::browser_presence::BrowserPresenceCoordinator::is_running)
     }
 
     pub(super) fn cancel(&mut self) -> bool {
@@ -187,6 +195,10 @@ impl BrowserPartsCoordinator {
                         credential: credential.clone(),
                     })
                     .map_err(debug("send admission"))?;
+                self.presence
+                    .as_mut()
+                    .expect("browser presence initialized with spawn")
+                    .register(arrival.socket, credential.clone(), membership)?;
                 Ok(credential)
             }
             Err(refusal) => {
@@ -197,6 +209,49 @@ impl BrowserPartsCoordinator {
                 Err(format!("browser Part admission refused: {refusal:?}"))
             }
         }
+    }
+
+    pub(super) fn register_ambient_presence(
+        &mut self,
+        admitted: super::browser_ambient::AdmittedAmbientBrowser,
+        membership: &mut BodyMembership,
+    ) -> Result<conduit_body::MembershipCredential, String> {
+        let credential = admitted.credential;
+        self.presence
+            .as_mut()
+            .ok_or("browser presence coordinator is absent")?
+            .register(admitted.socket, credential.clone(), membership)?;
+        Ok(credential)
+    }
+
+    pub(super) fn poll_presence(
+        &mut self,
+        membership: &mut BodyMembership,
+    ) -> Result<Option<String>, String> {
+        self.presence
+            .as_mut()
+            .map(|presence| presence.poll(membership))
+            .transpose()
+            .map(Option::flatten)
+    }
+
+    pub(super) fn presence(&self) -> Option<&conduit_body::HostPresenceTable> {
+        self.presence
+            .as_ref()
+            .map(super::browser_presence::BrowserPresenceCoordinator::table)
+    }
+
+    fn ensure_presence(&mut self, body_id: &BodyId) -> Result<(), String> {
+        if let Some(presence) = &self.presence {
+            if &presence.table().body_id != body_id {
+                return Err("browser presence coordinator belongs to a different Body".into());
+            }
+        } else {
+            self.presence = Some(super::browser_presence::BrowserPresenceCoordinator::new(
+                body_id.clone(),
+            ));
+        }
+        Ok(())
     }
 }
 
