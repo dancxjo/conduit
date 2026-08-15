@@ -127,10 +127,21 @@ fn temporal_facts_are_identity_bearing_validated_and_linearized() {
         .lines
         .iter()
         .any(|line| line.starts_with("TEMPORAL_REFERENCE")));
-    assert!(linear
+    let relative_index = linear
         .lines
         .iter()
-        .any(|line| line.starts_with("TEMPORAL_FACT")));
+        .position(|line| line.starts_with("RELATIVE_TIME"))
+        .unwrap();
+    let fact_index = linear
+        .lines
+        .iter()
+        .position(|line| line.starts_with("TEMPORAL_FACT"))
+        .unwrap();
+    assert_eq!(relative_index + 1, fact_index);
+    assert!(linear.lines[relative_index].contains("value=\"between 0 and 1 second ago\""));
+    assert!(linear.lines[fact_index].contains("sign=sign/observed"));
+    assert!(linear.lines[fact_index].contains("source_clock_basis=\"clock/test-1\""));
+    assert!(linear.lines[fact_index].contains("source_resolution=1 source_uncertainty=1"));
 
     let mut stale = value.clone();
     stale.temporal_facts[0].relation = TemporalRelation::Future {
@@ -217,6 +228,20 @@ fn changing_only_the_reference_recomputes_truth_not_observation_evidence() {
         earlier_presentation.temporal_facts[0].source,
         later_presentation.temporal_facts[0].source
     );
+    let earlier_linear = render_linear_presentation(&earlier_presentation).unwrap();
+    let later_linear = render_linear_presentation(&later_presentation).unwrap();
+    assert!(earlier_linear
+        .lines
+        .iter()
+        .any(|line| line.contains("value=\"in 0 to 1 second\"")));
+    assert!(later_linear
+        .lines
+        .iter()
+        .any(|line| line.contains("value=\"between 0 and 1 second ago\"")));
+    assert_eq!(against_earlier.source, against_later.source);
+    assert_eq!(against_earlier.subject, against_later.subject);
+    assert_eq!(against_earlier.role, against_later.role);
+    assert_eq!(against_earlier.sign_id, against_later.sign_id);
 }
 
 #[test]

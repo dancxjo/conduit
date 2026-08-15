@@ -4,7 +4,10 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::{Presentation, PresentationContentId, PresentationError, PresentationPropertyValue};
+use crate::{
+    format_relative_time, Presentation, PresentationContentId, PresentationError,
+    PresentationPropertyValue,
+};
 
 /// Maximum number of records in a linear projection, including basis records.
 pub const MAX_LINEAR_PRESENTATION_LINES: usize = 10_256;
@@ -148,6 +151,12 @@ pub fn render_linear_presentation(
         ))?;
     }
     for fact in &presentation.temporal_facts {
+        builder.push(format!(
+            "RELATIVE_TIME subject={:?} role={:?} value={:?}",
+            fact.subject,
+            fact.role,
+            format_relative_time(fact)
+        ))?;
         builder.push(format!(
             "TEMPORAL_FACT subject={:?} role={:?} sign={} reference={:?} source_ticks={} source_scale={:?} source_clock_basis={:?} source_resolution={} source_uncertainty={} relation={:?}",
             fact.subject,
