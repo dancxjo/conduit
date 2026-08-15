@@ -4,9 +4,10 @@ use conduit_body::{BodyMembership, HostPresenceState, HostPresenceTable, Members
 use conduit_core::{LinkBindingId, SignId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionSocket,
-    BrowserAdmissionSocketError, BROWSER_ADMISSION_PROTOCOL,
+    BrowserAdmissionSocketError, BrowserWebRtcRendezvous, BROWSER_ADMISSION_PROTOCOL,
 };
 use conduit_std_host::websocket::NativeWebSocketError;
+use std::io::ErrorKind;
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
 use std::time::{Duration, Instant};
 
@@ -15,12 +16,15 @@ const RENEW_AFTER_MILLIS: u64 = 30_000;
 
 #[path = "browser_presence_return.rs"]
 mod return_session;
+#[path = "browser_presence/signaling.rs"]
+mod signaling;
 
 pub(super) struct BrowserPresenceCoordinator {
     clock: Instant,
     table: HostPresenceTable,
     workers: Vec<PresenceWorker>,
     credentials: Vec<MembershipCredential>,
+    rendezvous: BrowserWebRtcRendezvous,
     session_sequence: u64,
     sign_sequence: u64,
 }
@@ -29,6 +33,7 @@ struct PresenceWorker {
     credential: MembershipCredential,
     session_id: LinkBindingId,
     receiver: Receiver<WorkerEvent>,
+    outbound: SyncSender<BrowserAdmissionEgress>,
 }
 
 enum WorkerEvent {
@@ -46,6 +51,7 @@ enum WorkerResponse {
         expires_at_millis: u64,
     },
     Refused(String),
+    Relayed,
 }
 
 impl BrowserPresenceCoordinator {
@@ -56,6 +62,7 @@ impl BrowserPresenceCoordinator {
                 .expect("fixed browser presence lease is valid"),
             workers: Vec::with_capacity(conduit_body::MAX_BODY_PARTS),
             credentials: Vec::with_capacity(conduit_body::MAX_BODY_PARTS),
+            rendezvous: BrowserWebRtcRendezvous::default(),
             session_sequence: 0,
             sign_sequence: 0,
         }
@@ -158,12 +165,14 @@ impl BrowserPresenceCoordinator {
             return Err(error);
         }
         socket
-            .set_read_timeout(Some(Duration::from_millis(LEASE_MILLIS + 5_000)))
+            .set_read_timeout(Some(Duration::from_millis(50)))
             .map_err(debug("set browser presence timeout"))?;
+        let (receiver, outbound) = spawn_worker(socket);
         self.workers.push(PresenceWorker {
             credential,
             session_id,
-            receiver: spawn_worker(socket),
+            receiver,
+            outbound,
         });
         Ok(())
     }
@@ -201,7 +210,21 @@ impl BrowserPresenceCoordinator {
             };
             match event {
                 WorkerEvent::Renewal { frame, response } => {
-                    return self.renew(index, *frame, response, membership, now);
+                    let frame = *frame;
+                    return match &frame {
+                        BrowserAdmissionIngress::PresenceRenewal { .. } => {
+                            self.renew(index, frame, response, membership, now)
+                        }
+                        BrowserAdmissionIngress::WebRtcSignal { .. } => {
+                            self.relay_webrtc(index, frame, response)
+                        }
+                        _ => {
+                            let _ = response.send(WorkerResponse::Refused(
+                                "unexpected-post-admission-frame".into(),
+                            ));
+                            self.lose(index, membership, now, "invalid-frame")
+                        }
+                    };
                 }
                 WorkerEvent::Lost => return self.lose(index, membership, now, "session-lost"),
                 WorkerEvent::Failed(error) => {
@@ -289,6 +312,10 @@ impl BrowserPresenceCoordinator {
         reason: &str,
     ) -> Result<Option<String>, String> {
         let worker = self.workers.swap_remove(index);
+        let invalidated = self
+            .rendezvous
+            .invalidate(&worker.credential.host_id, &worker.credential.boot_id)
+            .len();
         let lost_sign = self.next_sign(reason)?;
         self.table
             .lose_session(
@@ -300,7 +327,7 @@ impl BrowserPresenceCoordinator {
             )
             .map_err(debug("lose browser presence session"))?;
         Ok(Some(format!(
-            "Browser Part {} is offline; durable membership remains",
+            "Browser Part {} is offline; durable membership remains; invalidated WebRTC sessions={invalidated}",
             worker.credential.part_id.as_str()
         )))
     }
@@ -323,11 +350,27 @@ fn presence_sign(label: &str, sequence: u64) -> SignId {
     SignId::from(format!("patchbay/browser-presence/{label}/{sequence}"))
 }
 
-fn spawn_worker(mut socket: BrowserAdmissionSocket) -> Receiver<WorkerEvent> {
+fn spawn_worker(
+    mut socket: BrowserAdmissionSocket,
+) -> (Receiver<WorkerEvent>, SyncSender<BrowserAdmissionEgress>) {
     let (sender, receiver) = mpsc::sync_channel(1);
+    let (outbound, outbound_receiver) = mpsc::sync_channel(1);
     std::thread::spawn(move || loop {
+        match outbound_receiver.try_recv() {
+            Ok(frame) => {
+                if socket.send(&frame).is_err() {
+                    let _ = sender.send(WorkerEvent::Lost);
+                    return;
+                }
+            }
+            Err(TryRecvError::Empty) => {}
+            Err(TryRecvError::Disconnected) => return,
+        }
         let frame = match socket.receive() {
             Ok(frame) => frame,
+            Err(BrowserAdmissionSocketError::Transport(NativeWebSocketError::Transport(
+                ErrorKind::WouldBlock | ErrorKind::TimedOut,
+            ))) => continue,
             Err(BrowserAdmissionSocketError::Transport(NativeWebSocketError::Disconnected)) => {
                 let _ = sender.send(WorkerEvent::Lost);
                 return;
@@ -364,10 +407,11 @@ fn spawn_worker(mut socket: BrowserAdmissionSocket) -> Receiver<WorkerEvent> {
                 });
                 return;
             }
+            Ok(WorkerResponse::Relayed) => {}
             Err(_) => return,
         }
     });
-    receiver
+    (receiver, outbound)
 }
 
 fn send_accepted(

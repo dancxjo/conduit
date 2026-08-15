@@ -44,6 +44,11 @@ test("admitted browser renews exact current presence and close makes it unavaila
   expect(["visible", "hidden"]).toContain(
     await page.evaluate(() => globalThis.__browserPresence.pageLifecycle()),
   );
+  await expect(page.evaluate(() => globalThis.__browserPresence.signalWebRtc({
+    targetHostId: "",
+    targetBootId: "browser-boot/absent",
+    signal: {},
+  }))).rejects.toThrow("invalid WebRTC signaling target or payload");
   const finalSequence = await page.evaluate(() => globalThis.__browserPresence.close());
   expect(finalSequence).toBeGreaterThanOrEqual(3);
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.state())).toBe("offline");

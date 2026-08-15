@@ -1,7 +1,7 @@
 const INPUT_CAPACITY = 4096;
 const MAXIMUM_OUTPUT_BYTES = 9216;
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcSignal, renewPresence = true, reconnectPresence = true }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   const required = [
@@ -201,6 +201,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, renewPresen
           })));
         }, frame.renew_after_millis);
       }
+    } else if (frame.kind === "web-rtc-signal" && frame.protocol === 1) {
+      if (!credential || presenceState !== "available") {
+        throw new Error("WebRTC signal arrived without current browser presence");
+      }
+      onWebRtcSignal?.(Object.freeze(frame));
     } else if (frame.kind === "refused" && frame.protocol === 1) {
       presenceState = "unavailable";
       clearTimeout(renewalTimer);
@@ -228,6 +233,28 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, renewPresen
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,
     freshnessProfile: () => freshnessProfile,
+    signalWebRtc: ({ targetHostId, targetBootId, signal }) => {
+      if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+        throw new Error("current browser presence is required for WebRTC signaling");
+      }
+      if (typeof targetHostId !== "string" || targetHostId.length === 0 ||
+          typeof targetBootId !== "string" || targetBootId.length === 0 ||
+          typeof signal !== "object" || signal === null) {
+        throw new Error("invalid WebRTC signaling target or payload");
+      }
+      socket.send(encoder.encode(JSON.stringify({
+        kind: "web-rtc-signal",
+        protocol: 1,
+        credential_id: credential.credential_id,
+        body_id: credential.body_id,
+        part_id: credential.part_id,
+        host_id: credential.host_id,
+        boot_id: credential.boot_id,
+        target_host_id: targetHostId,
+        target_boot_id: targetBootId,
+        signal,
+      })));
+    },
     close: () => {
       deliberateClose = true;
       clearTimeout(renewalTimer);
