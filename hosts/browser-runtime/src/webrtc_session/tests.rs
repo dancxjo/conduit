@@ -1,5 +1,61 @@
 use super::start::conduit_browser_webrtc_session_start_granted;
 use super::*;
+use conduit_core::{
+    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    HostId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
+};
+use conduit_wire::{LineAttachment, SessionEndpointIdentity, SessionLimits};
+
+fn dynamic_binding() -> SessionBinding {
+    let plan_id = PlanId::from("body-grant/dynamic-plan");
+    let source_host_id = HostId::from("browser/dynamic-source");
+    let source_boot_id = BootId::from("browser-boot/dynamic-source");
+    let sink_host_id = HostId::from("browser/dynamic-sink");
+    let sink_boot_id = BootId::from("browser-boot/dynamic-sink");
+    SessionBinding {
+        protocol_version: PROTOCOL_VERSION,
+        source_active_play_id: bind_active_play(&plan_id, &source_host_id, &source_boot_id, 0)
+            .active_play_id,
+        sink_active_play_id: bind_active_play(&plan_id, &sink_host_id, &sink_boot_id, 0)
+            .active_play_id,
+        plan_id,
+        source_fragment_id: FragmentId::from("body-grant/dynamic-source-fragment"),
+        sink_fragment_id: FragmentId::from("body-grant/dynamic-sink-fragment"),
+        connection_id: ConnectionId::from("body-grant/dynamic-connection"),
+        source: SessionEndpointIdentity {
+            host_id: source_host_id.clone(),
+            boot_id: source_boot_id.clone(),
+        },
+        sink: SessionEndpointIdentity {
+            host_id: sink_host_id.clone(),
+            boot_id: sink_boot_id.clone(),
+        },
+        value_kind: KindId::from("conduit.test/dynamic-bounded-bytes@1"),
+        limits: SessionLimits {
+            maximum_in_flight_items: 1,
+            maximum_payload_bytes: PAYLOAD_CAPACITY,
+            maximum_buffered_bytes: PAYLOAD_CAPACITY,
+        },
+        attachment: LineAttachment {
+            line_id: LineId::from("body-grant/dynamic-line"),
+            link_binding_id: LinkBindingId::from("body-grant/dynamic-link"),
+            base: ConnectionBase::WebRtcDataChannel,
+            base_instance_id: ConnectionBaseInstanceId::from("body-grant/dynamic-base-instance"),
+            source_host_id,
+            source_boot_id,
+            source_endpoint_id: LinkEndpointId::from("body-grant/dynamic-source-endpoint"),
+            sink_host_id,
+            sink_boot_id,
+            sink_endpoint_id: LinkEndpointId::from("body-grant/dynamic-sink-endpoint"),
+            limits: LinkLimits {
+                maximum_in_flight_items: 1,
+                maximum_payload_bytes: PAYLOAD_CAPACITY,
+                maximum_buffered_bytes: PAYLOAD_CAPACITY,
+                maximum_frame_bytes: FRAME_CAPACITY as u32,
+            },
+        },
+    }
+}
 
 #[test]
 fn exact_webrtc_binding_is_planned_and_session_eligible() {
@@ -15,7 +71,8 @@ fn exact_webrtc_binding_is_planned_and_session_eligible() {
 
 #[test]
 fn granted_start_reconstructs_exact_binding_and_refuses_non_hello() {
-    let binding = exact_binding(0).unwrap();
+    let binding = dynamic_binding();
+    binding.validate().unwrap();
     let mut bytes = [0; FRAME_CAPACITY];
     let length = encode_session_frame_into(
         binding.hello_frame(),

@@ -40,10 +40,14 @@ export async function instantiateGrantedWebRtcSession(wasmBytes, grant) {
     throw new Error("CND-WEBRTC-SESSION-001 incomplete WASM ABI");
   }
   const role = grant?.role === "source" ? 0 : grant?.role === "sink" ? 1 : -1;
-  const hello = grant?.session_hello instanceof Uint8Array
-    ? grant.session_hello
-    : Array.isArray(grant?.session_hello)
-      ? Uint8Array.from(grant.session_hello)
+  const arrayHello = grant?.session_hello;
+  const validByteArray = Array.isArray(arrayHello) && arrayHello.every(
+    (byte) => Number.isInteger(byte) && byte >= 0 && byte <= 255,
+  );
+  const hello = arrayHello instanceof Uint8Array
+    ? arrayHello
+    : validByteArray
+      ? Uint8Array.from(arrayHello)
       : null;
   if (role < 0 || hello === null || hello.length === 0 || hello.length > FRAME_CAPACITY) {
     throw new Error("CND-WEBRTC-SESSION-006 invalid Body grant");
