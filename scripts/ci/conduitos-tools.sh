@@ -63,7 +63,7 @@ verify_bundle() {
 prepare_bundle() {
   local bundle=$1
   require_runner_identity
-  test "$bundle" = 'target/conduitos/tool-bundle' \
+  test "$bundle" = "$PWD/target/conduitos/tool-bundle" \
     || refuse 'preparation path must be target/conduitos/tool-bundle'
   test ! -e "$bundle" || refuse 'preparation path already exists'
   install -d -m 0777 "$bundle/debs"
@@ -99,15 +99,15 @@ install_bundle() {
 case "${1:-}" in
   prepare)
     test $# -eq 2 || refuse 'usage: conduitos-tools.sh prepare BUNDLE'
-    prepare_bundle "$2"
+    prepare_bundle "$(realpath -m "$2")"
     ;;
   verify)
     test $# -eq 2 || refuse 'usage: conduitos-tools.sh verify BUNDLE'
-    verify_bundle "$2"
+    verify_bundle "$(realpath -m "$2")"
     ;;
   install)
     test $# -eq 2 || refuse 'usage: conduitos-tools.sh install BUNDLE'
-    install_bundle "$2"
+    install_bundle "$(realpath -m "$2")"
     ;;
   *)
     refuse 'expected prepare, verify, or install'
