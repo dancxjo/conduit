@@ -17,6 +17,8 @@ pub(super) struct BrowserPresenceCoordinator {
     clock: Instant,
     table: HostPresenceTable,
     workers: Vec<PresenceWorker>,
+    credentials: Vec<MembershipCredential>,
+    session_sequence: u64,
     sign_sequence: u64,
 }
 
@@ -50,6 +52,8 @@ impl BrowserPresenceCoordinator {
             table: HostPresenceTable::new(body_id, LEASE_MILLIS)
                 .expect("fixed browser presence lease is valid"),
             workers: Vec::with_capacity(conduit_body::MAX_BODY_PARTS),
+            credentials: Vec::with_capacity(conduit_body::MAX_BODY_PARTS),
+            session_sequence: 0,
             sign_sequence: 0,
         }
     }
@@ -64,17 +68,77 @@ impl BrowserPresenceCoordinator {
 
     pub(super) fn register(
         &mut self,
+        socket: BrowserAdmissionSocket,
+        credential: MembershipCredential,
+        membership: &mut BodyMembership,
+    ) -> Result<(), String> {
+        if !self
+            .credentials
+            .iter()
+            .any(|retained| retained.credential_id == credential.credential_id)
+        {
+            if self.credentials.len() == conduit_body::MAX_BODY_PARTS {
+                return Err("browser presence credential capacity exhausted".into());
+            }
+            self.credentials.push(credential.clone());
+        }
+        self.register_at_sequence(socket, credential, membership, 1)
+    }
+
+    pub(super) fn return_identity(
+        &self,
+        credential: &MembershipCredential,
+    ) -> Option<(&MembershipCredential, conduit_core::OfferGeneration)> {
+        let retained = self
+            .credentials
+            .iter()
+            .find(|retained| retained.credential_id == credential.credential_id)?;
+        let lease = self
+            .table
+            .leases
+            .iter()
+            .find(|lease| lease.part_id == retained.part_id)?;
+        Some((retained, lease.offer_generation))
+    }
+
+    pub(super) fn register_return(
+        &mut self,
+        socket: BrowserAdmissionSocket,
+        credential: MembershipCredential,
+        membership: &mut BodyMembership,
+    ) -> Result<u64, String> {
+        let sequence = self
+            .table
+            .leases
+            .iter()
+            .find(|lease| lease.part_id == credential.part_id)
+            .ok_or("returned browser Part has no retained presence lease")?
+            .sequence
+            .checked_add(1)
+            .ok_or("returned browser presence sequence exhausted")?;
+        self.register_at_sequence(socket, credential, membership, sequence)?;
+        Ok(sequence)
+    }
+
+    fn register_at_sequence(
+        &mut self,
         mut socket: BrowserAdmissionSocket,
         credential: MembershipCredential,
         membership: &mut BodyMembership,
+        sequence: u64,
     ) -> Result<(), String> {
         if self.workers.len() == conduit_body::MAX_BODY_PARTS {
             return Err("browser presence worker capacity exhausted".into());
         }
         let observed_at_millis = self.now_millis()?;
+        self.session_sequence = self
+            .session_sequence
+            .checked_add(1)
+            .ok_or("browser presence session sequence exhausted")?;
         let session_id = LinkBindingId::from(format!(
-            "patchbay/browser-presence/{}",
-            credential.credential_id.as_str()
+            "patchbay/browser-presence/{}/{}",
+            credential.credential_id.as_str(),
+            self.session_sequence
         ));
         let started_sign = self.next_sign("started")?;
         self.table
@@ -82,7 +146,7 @@ impl BrowserPresenceCoordinator {
                 membership,
                 &credential.part_id,
                 session_id.clone(),
-                1,
+                sequence,
                 observed_at_millis,
                 LEASE_MILLIS,
                 started_sign,
@@ -95,7 +159,7 @@ impl BrowserPresenceCoordinator {
             .find(|lease| lease.part_id == credential.part_id)
             .expect("started lease is retained")
             .expires_at_millis;
-        if let Err(error) = send_accepted(&mut socket, 1, expires_at_millis) {
+        if let Err(error) = send_accepted(&mut socket, sequence, expires_at_millis) {
             let lost_at_millis = self.now_millis()?;
             let lost_sign = self.next_sign("initial-response-lost")?;
             self.table
