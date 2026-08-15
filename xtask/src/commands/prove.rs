@@ -50,7 +50,10 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                     },
                 })
                 .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))?;
-            let environment = [("CONDUIT_EVIDENCE_ROOT", evidence.root().as_os_str())];
+            let mut environment = vec![("CONDUIT_EVIDENCE_ROOT", evidence.root().as_os_str())];
+            if args.induce_capture_restart_failure {
+                environment.push(("CONDUIT_CAPTURE_RESTART_PROBE", std::ffi::OsStr::new("1")));
+            }
             match run_suite_with_environment(PROVE_BROWSER_HOST_STEPS, &root, opts, &environment) {
                 Ok(()) => {
                     import_patchbay_captures(&mut evidence, true)?;
@@ -401,6 +404,7 @@ fn clear_patchbay_capture_outputs(root: &std::path::Path) -> Result<(), StepErro
         "interaction.png",
         "high-contrast.png",
         "disconnected.png",
+        "responsive.png",
     ] {
         let path = root.join(name);
         if path.exists() || path.is_symlink() {

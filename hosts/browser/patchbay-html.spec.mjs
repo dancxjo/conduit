@@ -1,17 +1,16 @@
 import { spawn } from "node:child_process";
-import { mkdir, rename, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
-
-const captureDeclarations=[];
+import { persistCaptureDeclaration } from "./capture-declarations.mjs";
 
 async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposition) {
   await page.evaluate(()=>scrollTo(0,0));
   const viewport=page.viewportSize();
   const relativePath=`${name}.png`;
   await page.screenshot({path:path.join(evidenceRoot,relativePath),fullPage:true,animations:"disabled",caret:"hide",scale:"css"});
-  captureDeclarations.push({
+  await persistCaptureDeclaration(evidenceRoot,{
     id:`patchbay.${name}`,
     kind:"screenshot",
     path:relativePath,
@@ -35,10 +34,6 @@ async function captureCanonical(page,browser,evidenceRoot,name,snapshot,disposit
       asserted_semantic_disposition:disposition,
     },
   });
-  const document=JSON.stringify({schema:"conduit.capture-declarations/v1",outputs:captureDeclarations},null,2);
-  const temporary=path.join(evidenceRoot,"captures.json.tmp");
-  await writeFile(temporary,`${document}\n`,{encoding:"utf8"});
-  await rename(temporary,path.join(evidenceRoot,"captures.json"));
 }
 
 async function closeDrawer(page,name) {
@@ -282,7 +277,10 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect.poll(async()=>((await selectedFaceplate.boundingBox())?.y??0)).toBeGreaterThan(headingBox.y+headingBox.height);
     const selectedBox=await selectedFaceplate.boundingBox(),inspectorBox=await page.locator("#inspector").boundingBox();
     expect(selectedBox.x+selectedBox.width).toBeLessThan(inspectorBox.x);
-    expect(selectedBox.width).toBeGreaterThan(150);
+    expect(await selectedFaceplate.evaluate(element=>{
+      const style=getComputedStyle(element);
+      return {width:parseFloat(style.width),maxWidth:parseFloat(style.maxWidth)};
+    })).toEqual({width:240,maxWidth:240});
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"selected-gear",selectedSnapshot,"selection-succeeded-and-inspector-correlated");
     const stableLensIdentity={presentation:selectedSnapshot.presentation.identity,plan:selectedSnapshot.presentation.basis.plan_id,play:selectedSnapshot.presentation.basis.active_play_id,selection:selectedSnapshot.interaction.selected_subject,interactionRevision:selectedSnapshot.interaction.revision};
     await page.locator('[data-lens="plan"]').click();await expect(page.locator("body")).toHaveAttribute("data-lens","plan");await expect(page.locator("#lens-label")).toHaveText("PLAN LENS");await expect(page.locator("#inspector .selected-summary")).toContainText("host-id");await expect(selectedFaceplate.locator(".faceplate-clue")).not.toHaveText(/semantic Gear|current world subject/);await expectFlowDominant(page,{inspector:true});

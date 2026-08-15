@@ -142,6 +142,11 @@ pub struct ProveArgs {
     #[arg(long)]
     pub induce_sink_failure: bool,
 
+    /// Fail the Patchbay proof after its first canonical capture so the
+    /// restarted-worker diagnostic evidence path can be verified.
+    #[arg(long)]
+    pub induce_capture_restart_failure: bool,
+
     /// Environment variable containing the Wi-Fi SSID. The variable value is
     /// never printed.
     #[arg(long)]
@@ -458,6 +463,21 @@ mod tests {
         let prove = Cli::try_parse_from(["xtask", "prove", "std-browser-s4"])
             .expect("prove command parses");
         assert!(matches!(prove.command, Command::Prove(_)));
+
+        let capture_restart = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "browser-host",
+            "--induce-capture-restart-failure",
+        ])
+        .expect("browser capture restart proof parses");
+        assert!(matches!(
+            capture_restart.command,
+            Command::Prove(ProveArgs {
+                induce_capture_restart_failure: true,
+                ..
+            })
+        ));
 
         let proofs = Cli::try_parse_from(["xtask", "--json", "proofs"])
             .expect("proof catalog command parses");
