@@ -1,7 +1,9 @@
-//! Exact Signal capability offer for the inspected classic ESP32 sample.
+//! Build-time Signal planning fixture for the inspected classic ESP32 sample.
 //!
-//! This module describes planning facts only. It does not claim that an image
-//! was flashed, booted, or observed on physical hardware.
+//! `HostAdvertisement` is the planner's input shape, so IMAGE construction
+//! needs synthetic Host/Boot identities. The names below fence those identities
+//! away from runtime truth: they do not claim that an image was flashed,
+//! booted, or observed on physical hardware.
 
 use alloc::vec;
 
@@ -18,21 +20,26 @@ use crate::{
     DISTRIBUTED_MAXIMUM_BUFFERED_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
 };
 
-pub const ESP32_WROOM_LOCAL_HOST_ID: &str = "esp32/wroom32/hw-463-sample";
-pub const ESP32_WROOM_LOCAL_BOOT_ID: &str = "esp32/wroom32/build-plan-boot";
-pub const ESP32_WROOM_TIMER_POOL_ID: &str = "esp32/wroom32/systimer";
-pub const ESP32_WROOM_PRESENTATION_POOL_ID: &str = "esp32/wroom32/uart0-sign";
+pub const ESP32_WROOM_BUILD_FIXTURE_HOST_ID: &str = "fixture/build/esp32/wroom32/hw-463";
+pub const ESP32_WROOM_BUILD_FIXTURE_BOOT_ID: &str = "fixture/build/esp32/wroom32/no-boot";
+pub const ESP32_WROOM_BUILD_FIXTURE_TIMER_POOL_ID: &str = "fixture/build/esp32/wroom32/systimer";
+pub const ESP32_WROOM_BUILD_FIXTURE_PRESENTATION_POOL_ID: &str =
+    "fixture/build/esp32/wroom32/uart0-sign";
 
-pub fn esp32_wroom_local_advertisement() -> HostAdvertisement {
+/// Supplies exact finite planner input during IMAGE construction only.
+///
+/// A physical Boot must construct a fresh advertisement from its exact IMAGE
+/// inclusion and live facilities; this fixture must never be emitted as one.
+pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
-        host_id: HostId::from(ESP32_WROOM_LOCAL_HOST_ID),
-        boot_id: BootId::from(ESP32_WROOM_LOCAL_BOOT_ID),
+        host_id: HostId::from(ESP32_WROOM_BUILD_FIXTURE_HOST_ID),
+        boot_id: BootId::from(ESP32_WROOM_BUILD_FIXTURE_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("esp32-wroom32-signal-kernel"),
         resources: signal_resource_offers(
-            ESP32_WROOM_TIMER_POOL_ID,
-            ESP32_WROOM_PRESENTATION_POOL_ID,
+            ESP32_WROOM_BUILD_FIXTURE_TIMER_POOL_ID,
+            ESP32_WROOM_BUILD_FIXTURE_PRESENTATION_POOL_ID,
             1,
         ),
         planner_capabilities: vec![],
@@ -96,8 +103,10 @@ mod tests {
 
     #[test]
     fn offer_is_exact_finite_and_keeps_portable_kinds() {
-        let offer = esp32_wroom_local_advertisement();
-        assert_eq!(offer.host_id.as_str(), ESP32_WROOM_LOCAL_HOST_ID);
+        let offer = esp32_wroom_build_fixture_advertisement();
+        assert_eq!(offer.host_id.as_str(), ESP32_WROOM_BUILD_FIXTURE_HOST_ID);
+        assert!(offer.host_id.as_str().starts_with("fixture/build/"));
+        assert!(offer.boot_id.as_str().contains("/no-boot"));
         assert_eq!(offer.resources.len(), 2);
         assert!(offer
             .resources

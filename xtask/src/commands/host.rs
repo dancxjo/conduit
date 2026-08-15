@@ -56,6 +56,9 @@ enum HostCommand {
         /// Stable serial device path, preferably beneath /dev/serial/by-id.
         #[arg(long)]
         port: PathBuf,
+        /// Exact SoC class expected from the attached board.
+        #[arg(long, value_enum)]
+        expected_soc: host_esp32_inspection::Esp32SocClass,
         /// Literal text observed on the development-board PCB.
         #[arg(long)]
         board_marking: String,
@@ -136,12 +139,14 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         } => host_capstone::run(&output, &source_identity, &toolchain_identity, opts),
         HostCommand::InspectEsp32 {
             port,
+            expected_soc,
             board_marking,
             module_marking,
             board_revision,
             output,
         } => host_esp32_inspection::run(
             &port,
+            expected_soc,
             &board_marking,
             &module_marking,
             &board_revision,
