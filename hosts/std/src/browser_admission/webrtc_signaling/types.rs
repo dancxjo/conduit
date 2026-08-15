@@ -26,6 +26,37 @@ pub struct BrowserWebRtcSignal {
     pub sdp: String,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BrowserWebRtcRole {
+    Source,
+    Sink,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrowserWebRtcGrant {
+    pub negotiation_id: LinkBindingId,
+    pub role: BrowserWebRtcRole,
+    pub peer_host_id: HostId,
+    pub peer_boot_id: BootId,
+    pub session_hello: Vec<u8>,
+}
+
+impl BrowserWebRtcGrant {
+    pub(crate) fn validate(&self) -> Result<(), BrowserAdmissionFrameError> {
+        if self.negotiation_id.as_str().is_empty()
+            || self.peer_host_id.as_str().is_empty()
+            || self.peer_boot_id.as_str().is_empty()
+            || self.session_hello.is_empty()
+            || self.session_hello.len() > MAX_WEBRTC_SESSION_HELLO_BYTES
+        {
+            return Err(BrowserAdmissionFrameError::InvalidGrant);
+        }
+        Ok(())
+    }
+}
+
 impl BrowserWebRtcSignal {
     pub(crate) fn validate(&self) -> Result<(), BrowserAdmissionFrameError> {
         if self.negotiation_id.as_str().is_empty()

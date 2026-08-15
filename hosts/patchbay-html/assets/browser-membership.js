@@ -1,7 +1,9 @@
 const INPUT_CAPACITY = 4096;
 const MAXIMUM_OUTPUT_BYTES = 9216;
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcSignal, renewPresence = true, reconnectPresence = true }) {
+const MAXIMUM_WEB_RTC_GRANTS = 16;
+
+export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGrant, onWebRtcSignal, renewPresence = true, reconnectPresence = true }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   const required = [
@@ -206,6 +208,15 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcSig
         throw new Error("WebRTC signal arrived without current browser presence");
       }
       onWebRtcSignal?.(Object.freeze(frame));
+    } else if (frame.kind === "web-rtc-grant" && frame.protocol === 1) {
+      if (!credential || presenceState !== "available" ||
+          !Number.isInteger(frame.index) || !Number.isInteger(frame.total) ||
+          frame.index < 0 || frame.index >= MAXIMUM_WEB_RTC_GRANTS ||
+          frame.total < 0 || frame.total > MAXIMUM_WEB_RTC_GRANTS ||
+          (frame.grant !== null && typeof frame.grant !== "object")) {
+        throw new Error("invalid WebRTC grant response for current browser presence");
+      }
+      onWebRtcGrant?.(Object.freeze(frame));
     } else if (frame.kind === "refused" && frame.protocol === 1) {
       presenceState = "unavailable";
       clearTimeout(renewalTimer);
@@ -253,6 +264,24 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcSig
         target_host_id: targetHostId,
         target_boot_id: targetBootId,
         signal,
+      })));
+    },
+    requestWebRtcGrant: (index) => {
+      if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+        throw new Error("current browser presence is required for WebRTC grants");
+      }
+      if (!Number.isInteger(index) || index < 0 || index >= MAXIMUM_WEB_RTC_GRANTS) {
+        throw new Error("invalid WebRTC grant index");
+      }
+      socket.send(encoder.encode(JSON.stringify({
+        kind: "web-rtc-grant-request",
+        protocol: 1,
+        credential_id: credential.credential_id,
+        body_id: credential.body_id,
+        part_id: credential.part_id,
+        host_id: credential.host_id,
+        boot_id: credential.boot_id,
+        index,
       })));
     },
     close: () => {

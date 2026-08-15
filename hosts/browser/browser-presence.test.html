@@ -15,11 +15,13 @@ const wasmBytes = await fetch(
   return response.arrayBuffer();
 });
 const status = document.querySelector("[role=status]");
+globalThis.__browserWebRtcGrants = [];
 globalThis.__browserPresence = await joinBrowserBody({
   bodyUrl,
   wasmBytes,
   renewPresence: parameters.get("renew") !== "false",
   reconnectPresence: parameters.get("reconnect") !== "false",
+  onWebRtcGrant: (grant) => { globalThis.__browserWebRtcGrants.push(grant); },
   onState: (state) => { status.textContent = state; },
 });
 </script>

@@ -8,6 +8,53 @@ use std::sync::mpsc::SyncSender;
 use super::{BrowserPresenceCoordinator, WorkerResponse};
 
 impl BrowserPresenceCoordinator {
+    pub(super) fn provide_webrtc_grant(
+        &mut self,
+        index: usize,
+        frame: BrowserAdmissionIngress,
+        response: SyncSender<WorkerResponse>,
+    ) -> Result<Option<String>, String> {
+        let BrowserAdmissionIngress::WebRtcGrantRequest {
+            credential_id,
+            body_id,
+            part_id,
+            host_id,
+            boot_id,
+            index: grant_index,
+            ..
+        } = frame
+        else {
+            return Err("non-WebRTC-grant frame reached grant provider".into());
+        };
+        let credential = &self.workers[index].credential;
+        if credential_id != credential.credential_id
+            || body_id != credential.body_id
+            || part_id != credential.part_id
+            || host_id != credential.host_id
+            || boot_id != credential.boot_id
+        {
+            response
+                .send(WorkerResponse::Refused(
+                    "stale-membership-credential".into(),
+                ))
+                .map_err(|_| "browser WebRTC grant response worker disconnected".to_string())?;
+            return Ok(Some("Browser WebRTC grant credential refused".into()));
+        }
+        let (total, grant) = self.rendezvous.grant_for_endpoint(
+            &credential.host_id,
+            &credential.boot_id,
+            grant_index,
+        );
+        response
+            .send(WorkerResponse::WebRtcGrant {
+                index: grant_index,
+                total,
+                grant,
+            })
+            .map_err(|_| "browser WebRTC grant response worker disconnected".to_string())?;
+        Ok(Some("Browser WebRTC grant request answered".into()))
+    }
+
     pub(super) fn relay_webrtc(
         &mut self,
         index: usize,
@@ -210,6 +257,57 @@ mod tests {
         }
         let target_receiver = target_receiver.unwrap();
         let session_hello = coordinator
+            .rendezvous
+            .grant(&binding(&source, &sink))
+            .unwrap();
+        let grant_request = BrowserAdmissionIngress::WebRtcGrantRequest {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            credential_id: source.credential_id.clone(),
+            body_id: source.body_id.clone(),
+            part_id: source.part_id.clone(),
+            host_id: source.host_id.clone(),
+            boot_id: source.boot_id.clone(),
+            index: 0,
+        };
+        let mut stale_request = grant_request.clone();
+        let BrowserAdmissionIngress::WebRtcGrantRequest { boot_id, .. } = &mut stale_request else {
+            unreachable!()
+        };
+        *boot_id = conduit_core::BootId::from("boot/stale");
+        let (response, stale_response) = mpsc::sync_channel(1);
+        coordinator
+            .provide_webrtc_grant(0, stale_request, response)
+            .unwrap();
+        assert!(matches!(
+            stale_response.recv().unwrap(),
+            WorkerResponse::Refused(code) if code == "stale-membership-credential"
+        ));
+        let (response, grant_response) = mpsc::sync_channel(1);
+        coordinator
+            .provide_webrtc_grant(0, grant_request.clone(), response)
+            .unwrap();
+        assert!(matches!(
+            grant_response.recv().unwrap(),
+            WorkerResponse::WebRtcGrant { index: 0, total: 1, grant: Some(grant) }
+                if grant.role == conduit_std_host::browser_admission::BrowserWebRtcRole::Source
+                    && grant.peer_host_id == sink.host_id
+                    && grant.peer_boot_id == sink.boot_id
+                    && grant.session_hello == session_hello
+        ));
+        coordinator.rendezvous.deactivate_grants();
+        let (response, grant_response) = mpsc::sync_channel(1);
+        coordinator
+            .provide_webrtc_grant(0, grant_request, response)
+            .unwrap();
+        assert!(matches!(
+            grant_response.recv().unwrap(),
+            WorkerResponse::WebRtcGrant {
+                index: 0,
+                total: 0,
+                grant: None
+            }
+        ));
+        coordinator
             .rendezvous
             .grant(&binding(&source, &sink))
             .unwrap();

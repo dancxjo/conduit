@@ -49,6 +49,12 @@ test("admitted browser renews exact current presence and close makes it unavaila
     targetBootId: "browser-boot/absent",
     signal: {},
   }))).rejects.toThrow("invalid WebRTC signaling target or payload");
+  await expect(page.evaluate(() => globalThis.__browserPresence.requestWebRtcGrant(16)))
+    .rejects.toThrow("invalid WebRTC grant index");
+  await page.evaluate(() => globalThis.__browserPresence.requestWebRtcGrant(0));
+  await expect.poll(() => page.evaluate(() => globalThis.__browserWebRtcGrants.at(-1)))
+    .toEqual({ kind: "web-rtc-grant", protocol: 1, index: 0, total: 0, grant: null });
+  await expect.poll(probe.output).toContain("webrtc-grant index=0 total=0");
   const finalSequence = await page.evaluate(() => globalThis.__browserPresence.close());
   expect(finalSequence).toBeGreaterThanOrEqual(3);
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.state())).toBe("offline");

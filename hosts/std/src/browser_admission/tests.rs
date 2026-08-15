@@ -78,6 +78,42 @@ fn presence_renewal_round_trips_and_zero_sequence_is_refused() {
 }
 
 #[test]
+fn bounded_webrtc_grant_request_and_reply_round_trip() {
+    let request = BrowserAdmissionIngress::WebRtcGrantRequest {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        credential_id: serde_json::from_value(serde_json::json!("credential/browser")).unwrap(),
+        body_id: serde_json::from_value(serde_json::json!("body/browser")).unwrap(),
+        part_id: serde_json::from_value(serde_json::json!("part/browser")).unwrap(),
+        host_id: HostId::from("host/browser"),
+        boot_id: BootId::from("boot/browser"),
+        index: 0,
+    };
+    assert_eq!(
+        decode_browser_admission_frame(&serde_json::to_vec(&request).unwrap()),
+        Ok(request)
+    );
+
+    let reply = BrowserAdmissionEgress::WebRtcGrant {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        index: 0,
+        total: 1,
+        grant: Some(BrowserWebRtcGrant {
+            negotiation_id: conduit_core::LinkBindingId::from("binding/browser"),
+            role: BrowserWebRtcRole::Source,
+            peer_host_id: HostId::from("host/peer"),
+            peer_boot_id: BootId::from("boot/peer"),
+            session_hello: vec![1, 2, 3],
+        }),
+    };
+    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let length = encode_browser_admission_frame(&reply, &mut output).unwrap();
+    assert_eq!(
+        serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
+        reply
+    );
+}
+
+#[test]
 fn exact_return_frames_decode_and_malformed_proof_remains_distinct() {
     let advertisement = br#"{"kind":"return-advertise","protocol":1,"credential":{"credential_id":"credential/live","body_id":"body/live","part_id":"part/live","host_id":"browser/live","boot_id":"browser-boot/live","issued_at_millis":1000},"advertisement":{"protocol_version":1,"host_id":"browser/live","boot_id":"browser-boot/live","offer_generation":1,"profile":"browser/profile","resources":[],"capabilities":[],"planner_capabilities":[]}}"#;
     assert!(matches!(

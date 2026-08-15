@@ -18,9 +18,10 @@ use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocke
 mod webrtc_signaling;
 
 pub use webrtc_signaling::{
-    BrowserWebRtcDescription, BrowserWebRtcRendezvous, BrowserWebRtcRendezvousRefusal,
-    BrowserWebRtcSignal, RoutedBrowserWebRtcSignal, MAX_WEBRTC_DESCRIPTION_BYTES,
-    MAX_WEBRTC_NEGOTIATIONS, MAX_WEBRTC_SESSION_HELLO_BYTES,
+    BrowserWebRtcDescription, BrowserWebRtcGrant, BrowserWebRtcRendezvous,
+    BrowserWebRtcRendezvousRefusal, BrowserWebRtcRole, BrowserWebRtcSignal,
+    RoutedBrowserWebRtcSignal, MAX_WEBRTC_DESCRIPTION_BYTES, MAX_WEBRTC_NEGOTIATIONS,
+    MAX_WEBRTC_SESSION_HELLO_BYTES,
 };
 
 pub const BROWSER_ADMISSION_PROTOCOL: u16 = 1;
@@ -75,6 +76,15 @@ pub enum BrowserAdmissionIngress {
         target_boot_id: BootId,
         signal: BrowserWebRtcSignal,
     },
+    WebRtcGrantRequest {
+        protocol: u16,
+        credential_id: MembershipCredentialId,
+        body_id: BodyId,
+        part_id: PartId,
+        host_id: HostId,
+        boot_id: BootId,
+        index: u16,
+    },
     ReturnAdvertise {
         protocol: u16,
         credential: MembershipCredential,
@@ -115,6 +125,12 @@ pub enum BrowserAdmissionEgress {
         source_boot_id: BootId,
         signal: BrowserWebRtcSignal,
     },
+    WebRtcGrant {
+        protocol: u16,
+        index: u16,
+        total: u16,
+        grant: Option<BrowserWebRtcGrant>,
+    },
     ReturnChallenge {
         protocol: u16,
         challenge: PartReturnChallenge,
@@ -137,6 +153,7 @@ pub enum BrowserAdmissionFrameError {
     InvalidSignature,
     InvalidSequence,
     InvalidSignal,
+    InvalidGrant,
     OutputTooSmall,
 }
 
@@ -306,6 +323,14 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             signal.validate()?;
             protocol
         }
+        BrowserAdmissionIngress::WebRtcGrantRequest {
+            protocol, index, ..
+        } => {
+            if usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS {
+                return Err(BrowserAdmissionFrameError::InvalidGrant);
+            }
+            protocol
+        }
         BrowserAdmissionIngress::ReturnAdvertise { protocol, .. } => protocol,
         BrowserAdmissionIngress::ReturnProof {
             protocol,
@@ -339,6 +364,22 @@ fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissio
             protocol, signal, ..
         } => {
             signal.validate()?;
+            protocol
+        }
+        BrowserAdmissionEgress::WebRtcGrant {
+            protocol,
+            index,
+            total,
+            grant,
+        } => {
+            if usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS
+                || usize::from(*total) > MAX_WEBRTC_NEGOTIATIONS
+            {
+                return Err(BrowserAdmissionFrameError::InvalidGrant);
+            }
+            if let Some(grant) = grant {
+                grant.validate()?;
+            }
             protocol
         }
     };

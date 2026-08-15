@@ -27,6 +27,10 @@ pub struct BrowserWebRtcRendezvous {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct GrantedSession {
     negotiation_id: LinkBindingId,
+    source_host_id: HostId,
+    source_boot_id: BootId,
+    sink_host_id: HostId,
+    sink_boot_id: BootId,
     session_hello: Vec<u8>,
 }
 
@@ -358,6 +362,21 @@ mod tests {
             Err(BrowserWebRtcRendezvousRefusal::UngrantedSession)
         );
         assert_eq!(rendezvous.replace_grants([&granted]).unwrap()[0], hello);
+        let (total, source_grant) =
+            rendezvous.grant_for_endpoint(&source.host_id, &source.boot_id, 0);
+        assert_eq!(total, 1);
+        let source_grant = source_grant.unwrap();
+        assert_eq!(source_grant.role, BrowserWebRtcRole::Source);
+        assert_eq!(source_grant.peer_host_id, sink.host_id);
+        assert_eq!(source_grant.peer_boot_id, sink.boot_id);
+        assert_eq!(source_grant.session_hello, hello);
+        let (total, sink_grant) = rendezvous.grant_for_endpoint(&sink.host_id, &sink.boot_id, 0);
+        assert_eq!(total, 1);
+        assert_eq!(sink_grant.unwrap().role, BrowserWebRtcRole::Sink);
+        assert_eq!(
+            rendezvous.grant_for_endpoint(&HostId::from("host/absent"), &sink.boot_id, 0),
+            (0, None)
+        );
         assert_eq!(
             rendezvous.grant(&granted),
             Err(BrowserWebRtcRendezvousRefusal::DuplicateGrant)
@@ -390,6 +409,10 @@ mod tests {
         assert_eq!(
             rendezvous.deactivate_grants(),
             vec![LinkBindingId::from("binding/rendezvous")]
+        );
+        assert_eq!(
+            rendezvous.grant_for_endpoint(&source.host_id, &source.boot_id, 0),
+            (0, None)
         );
         assert_eq!(
             rendezvous.prepare(
