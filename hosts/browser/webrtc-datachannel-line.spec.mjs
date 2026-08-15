@@ -212,12 +212,12 @@ test("exact planned WebRTC session admits, terminates, and rejects late frames",
   expect(await left.evaluate(() => window.conduitSessionCloseInput())).toBe(1);
   const inputClosed = await left.evaluate(() => window.conduitSessionOutput());
   expect(await transfer(left, right, inputClosed)).toBe(1);
-  expect(await left.evaluate(() => window.conduitSessionFinish())).toBe(2);
-  expect(await right.evaluate(() => window.conduitSessionFinish())).toBe(2);
-  const leftTerminal = await left.evaluate(() => window.conduitSessionOutput());
+  expect(await right.evaluate(() => window.conduitSessionFinish())).toBe(3);
   const rightTerminal = await right.evaluate(() => window.conduitSessionOutput());
+  expect(await transfer(right, left, rightTerminal)).toBe(3);
+  expect(await left.evaluate(() => window.conduitSessionFinish())).toBe(2);
+  const leftTerminal = await left.evaluate(() => window.conduitSessionOutput());
   expect(await transfer(left, right, leftTerminal)).toBe(2);
-  expect(await transfer(right, left, rightTerminal)).toBe(2);
   expect(await left.evaluate(
     (bytes) => window.conduitSessionIngest(bytes),
     leftReady,

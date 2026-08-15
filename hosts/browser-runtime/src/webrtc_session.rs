@@ -22,6 +22,7 @@ const PAYLOAD_CAPACITY: u32 = 16;
 const STATUS_HANDSHAKE: i32 = 0;
 const STATUS_ACTIVE: i32 = 1;
 const STATUS_TERMINAL: i32 = 2;
+const STATUS_TERMINATING: i32 = 3;
 const ERROR_NOT_STARTED: i32 = -200;
 const ERROR_OUTPUT_PENDING: i32 = -201;
 const ERROR_STAGE: i32 = -202;
@@ -31,11 +32,13 @@ thread_local! {
     static INPUT: RefCell<[u8; FRAME_CAPACITY]> = const { RefCell::new([0; FRAME_CAPACITY]) };
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Stage {
     PeerHello,
     PeerReady,
     Active,
+    LocalTerminal,
+    PeerTerminal,
     Terminal,
 }
 
@@ -81,6 +84,19 @@ impl BrowserWebRtcSession {
         }
         let frame = decode_session_frame(bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)?;
         let message = frame.message;
+        let supported = matches!(
+            (self.stage, message),
+            (Stage::PeerHello, SessionMessage::Hello(_))
+                | (Stage::PeerReady, SessionMessage::Ready)
+                | (Stage::Active, SessionMessage::InputClosed { .. })
+                | (Stage::Active, SessionMessage::Terminal { .. })
+                | (Stage::LocalTerminal, SessionMessage::Terminal { .. })
+                | (Stage::PeerTerminal, _)
+                | (Stage::Terminal, _)
+        );
+        if !supported {
+            return Ok(ERROR_STAGE);
+        }
         self.machine.admit_inbound(frame)?;
         match (self.stage, message) {
             (Stage::PeerHello, SessionMessage::Hello(_)) => {
@@ -96,7 +112,14 @@ impl BrowserWebRtcSession {
                 Ok(STATUS_ACTIVE)
             }
             (Stage::Active, SessionMessage::InputClosed { .. }) => Ok(STATUS_ACTIVE),
-            (Stage::Terminal, SessionMessage::Terminal { .. }) => Ok(STATUS_TERMINAL),
+            (Stage::Active, SessionMessage::Terminal { .. }) => {
+                self.stage = Stage::PeerTerminal;
+                Ok(STATUS_TERMINATING)
+            }
+            (Stage::LocalTerminal, SessionMessage::Terminal { .. }) => {
+                self.stage = Stage::Terminal;
+                Ok(STATUS_TERMINAL)
+            }
             _ => Ok(ERROR_STAGE),
         }
     }
@@ -115,7 +138,7 @@ impl BrowserWebRtcSession {
     }
 
     fn finish(&mut self) -> Result<i32, WireError> {
-        if self.output_len != 0 || self.stage != Stage::Active {
+        if self.output_len != 0 || !matches!(self.stage, Stage::Active | Stage::PeerTerminal) {
             return Ok(ERROR_STAGE);
         }
         let binding = self.binding.clone();
@@ -125,8 +148,13 @@ impl BrowserWebRtcSession {
         });
         self.machine.admit_outbound(terminal)?;
         self.write(terminal)?;
-        self.stage = Stage::Terminal;
-        Ok(STATUS_TERMINAL)
+        if self.stage == Stage::PeerTerminal {
+            self.stage = Stage::Terminal;
+            Ok(STATUS_TERMINAL)
+        } else {
+            self.stage = Stage::LocalTerminal;
+            Ok(STATUS_TERMINATING)
+        }
     }
 }
 
@@ -282,6 +310,7 @@ pub extern "C" fn conduit_browser_webrtc_session_clear_output() -> i32 {
         match endpoint.stage {
             Stage::Active => STATUS_ACTIVE,
             Stage::Terminal => STATUS_TERMINAL,
+            Stage::LocalTerminal | Stage::PeerTerminal => STATUS_TERMINATING,
             _ => STATUS_HANDSHAKE,
         }
     })
@@ -320,5 +349,33 @@ mod tests {
         assert_eq!(binding.attachment.base.canonical_code(), 7);
         assert!(binding.attachment.base.supports_remote_session());
         assert!(SessionMachine::new(binding, SessionRole::Source).is_ok());
+    }
+
+    #[test]
+    fn out_of_stage_failure_does_not_mutate_or_create_false_active_state() {
+        let binding = exact_binding(0).unwrap();
+        let mut endpoint = BrowserWebRtcSession::new(SessionRole::Source, 0).unwrap();
+        endpoint.output_len = 0;
+
+        let mut bytes = [0; FRAME_CAPACITY];
+        let failed = binding.frame(SessionMessage::Failed { code: 1 });
+        let failed_len =
+            encode_session_frame_into(failed, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
+                .unwrap();
+        assert_eq!(endpoint.ingest(&bytes[..failed_len]), Ok(ERROR_STAGE));
+        assert_eq!(endpoint.stage, Stage::PeerHello);
+
+        let hello = binding.hello_frame();
+        let hello_len =
+            encode_session_frame_into(hello, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
+                .unwrap();
+        assert_eq!(endpoint.ingest(&bytes[..hello_len]), Ok(STATUS_HANDSHAKE));
+        endpoint.output_len = 0;
+        let ready = binding.frame(SessionMessage::Ready);
+        let ready_len =
+            encode_session_frame_into(ready, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
+                .unwrap();
+        assert_eq!(endpoint.ingest(&bytes[..ready_len]), Ok(STATUS_ACTIVE));
+        assert!(endpoint.machine.is_active());
     }
 }
