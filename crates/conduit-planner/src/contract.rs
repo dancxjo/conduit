@@ -47,6 +47,7 @@ pub enum PlannerError {
     HardRealizationRequirementUnsatisfied(String),
     InvalidRealizationPolicy(String),
     InvalidResourceObservation(String),
+    InvalidPlanningObservation(String),
     CurrentResourceObservationUnavailable(String),
     InvalidHostOperationRequirement(String),
     InvalidResourceContract(String),
@@ -110,6 +111,9 @@ impl core::fmt::Display for PlannerError {
             }
             Self::InvalidResourceObservation(value) => {
                 write!(f, "invalid resource observation: {value}")
+            }
+            Self::InvalidPlanningObservation(value) => {
+                write!(f, "invalid planning observation: {value}")
             }
             Self::CurrentResourceObservationUnavailable(value) => {
                 write!(f, "current resource observation unavailable: {value}")

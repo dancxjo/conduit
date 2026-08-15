@@ -35,6 +35,7 @@ mod diagnostic;
 mod fact_policy;
 mod functional_compatibility;
 mod generic_selection;
+mod locality;
 mod observations;
 mod policy;
 mod policy_composition;
@@ -71,6 +72,12 @@ pub use decision_evidence::{
 };
 pub use diagnostic::structured_planner_diagnostic;
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
+pub use locality::{
+    select_data_locality_candidate, CandidateCostEvidence, CandidatePlacement,
+    CandidatePlacementDisposition, DataFlowObservation, LocalityCandidate, LocalityPlanningBasis,
+    LocalitySelection, ObservationProvenance, RealizationWorkObservation, ReductionObservation,
+    TransportObservation, MAXIMUM_LOCALITY_CANDIDATES, MAXIMUM_LOCALITY_OBSERVATIONS,
+};
 pub use observations::select_realization_with_observations;
 pub use policy::{select_realization_with_policy, RealizationPolicy, RealizationPreference};
 pub use policy_composition::{
