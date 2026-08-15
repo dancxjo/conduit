@@ -350,6 +350,18 @@ impl PatchbayApplication {
             ));
             return Ok(true);
         }
+        let return_update = match (&mut self.browser_parts, &mut self.build_birth) {
+            (Some(coordinator), build_birth) => build_birth
+                .membership_mut()
+                .map(|membership| coordinator.poll_return(membership))
+                .transpose()?
+                .flatten(),
+            _ => None,
+        };
+        if let Some(message) = return_update {
+            self.publish_completed(message);
+            return Ok(true);
+        }
         let ambient_proof = self
             .browser_parts
             .as_mut()

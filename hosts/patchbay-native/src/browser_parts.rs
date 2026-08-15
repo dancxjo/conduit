@@ -21,6 +21,7 @@ pub(super) struct BrowserPartsCoordinator {
     pending: Option<PendingSpawn>,
     ambient: Option<super::browser_ambient::AmbientBrowserCoordinator>,
     presence: Option<super::browser_presence::BrowserPresenceCoordinator>,
+    returns: super::browser_return::ReturnCoordinator,
 }
 
 struct PendingSpawn {
@@ -29,6 +30,7 @@ struct PendingSpawn {
 }
 
 pub(super) struct SpawnArrival {
+    listener: BrowserAdmissionListener,
     socket: BrowserAdmissionSocket,
     advertisement: conduit_core::HostAdvertisement,
     proof: SpawnAdmissionProof,
@@ -43,6 +45,7 @@ impl BrowserPartsCoordinator {
             pending: None,
             ambient: None,
             presence: None,
+            returns: super::browser_return::ReturnCoordinator::new(),
         }
     }
 
@@ -163,6 +166,7 @@ impl BrowserPartsCoordinator {
                 .presence
                 .as_ref()
                 .is_some_and(super::browser_presence::BrowserPresenceCoordinator::is_running)
+            || self.returns.is_running()
     }
 
     pub(super) fn cancel(&mut self) -> bool {
@@ -199,6 +203,7 @@ impl BrowserPartsCoordinator {
                     .as_mut()
                     .expect("browser presence initialized with spawn")
                     .register(arrival.socket, credential.clone(), membership)?;
+                self.returns.listen(arrival.listener)?;
                 Ok(credential)
             }
             Err(refusal) => {
@@ -233,6 +238,18 @@ impl BrowserPartsCoordinator {
             .map(|presence| presence.poll(membership))
             .transpose()
             .map(Option::flatten)
+    }
+
+    pub(super) fn poll_return(
+        &mut self,
+        membership: &mut BodyMembership,
+    ) -> Result<Option<String>, String> {
+        self.returns.poll(
+            membership,
+            &mut self.ambient,
+            &mut self.manager,
+            &mut self.presence,
+        )
     }
 
     pub(super) fn presence(&self) -> Option<&conduit_body::HostPresenceTable> {
@@ -285,6 +302,7 @@ fn receive_spawn(listener: BrowserAdmissionListener) -> Result<SpawnArrival, Str
         _ => return Err("browser spawn did not provide an invitation proof".into()),
     };
     Ok(SpawnArrival {
+        listener,
         socket,
         advertisement,
         proof,
@@ -325,34 +343,5 @@ fn debug<T: core::fmt::Debug>(context: &'static str) -> impl FnOnce(T) -> String
 }
 
 #[cfg(test)]
-mod tests {
-    use super::spawn_target;
-
-    #[test]
-    fn spawn_secret_is_fragment_only_and_transport_urls_are_encoded() {
-        let target = spawn_target(
-            "http://127.0.0.1:8080/index.html",
-            "ws://127.0.0.1:9000/chat?line=one",
-            "ws://127.0.0.1:9001/admit?body=one",
-            "deadbeef",
-        );
-        let (request, fragment) = target.split_once('#').unwrap();
-
-        assert_eq!(
-            request,
-            "http://127.0.0.1:8080/index.html?ws=ws%3A%2F%2F127.0.0.1%3A9000%2Fchat%3Fline%3Done"
-        );
-        assert!(!request.contains("deadbeef"));
-        assert_eq!(
-            fragment,
-            "body=ws%3A%2F%2F127.0.0.1%3A9001%2Fadmit%3Fbody%3Done&spawn_hex=deadbeef"
-        );
-    }
-
-    #[test]
-    fn cancellation_is_explicit_and_idempotently_fail_closed() {
-        let mut coordinator = super::BrowserPartsCoordinator::new("page".into(), "chat".into());
-        assert!(!coordinator.cancel());
-        assert!(!coordinator.is_pending());
-    }
-}
+#[path = "browser_parts_tests.rs"]
+mod tests;
