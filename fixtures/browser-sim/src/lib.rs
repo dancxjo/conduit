@@ -1438,7 +1438,8 @@ mod tests {
                     ConnectionBase::Local
                     | ConnectionBase::InMemory
                     | ConnectionBase::WebSocket
-                    | ConnectionBase::UsbCdc => {
+                    | ConnectionBase::UsbCdc
+                    | ConnectionBase::BluetoothLeGatt => {
                         panic!("triple remote transmit used unsupported base")
                     }
                 }

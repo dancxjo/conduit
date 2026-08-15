@@ -242,6 +242,7 @@ fn display_base(base: ConnectionBase) -> &'static str {
         ConnectionBase::FixtureDatagram => "fixture datagram",
         ConnectionBase::WebSocket => "WebSocket",
         ConnectionBase::UsbCdc => "USB CDC",
+        ConnectionBase::BluetoothLeGatt => "Bluetooth LE GATT",
     }
 }
 

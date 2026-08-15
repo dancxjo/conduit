@@ -17,6 +17,8 @@ pub enum ConnectionBase {
     WebSocket,
     /// Bounded length-framed USB CDC ACM byte-stream Base.
     UsbCdc,
+    /// BLE GATT service with bounded write-command and notification characteristics.
+    BluetoothLeGatt,
 }
 
 impl ConnectionBase {
@@ -28,6 +30,7 @@ impl ConnectionBase {
             Self::FixtureDatagram => 3,
             Self::WebSocket => 4,
             Self::UsbCdc => 5,
+            Self::BluetoothLeGatt => 6,
         }
     }
 
@@ -39,13 +42,17 @@ impl ConnectionBase {
             3 => Some(Self::FixtureDatagram),
             4 => Some(Self::WebSocket),
             5 => Some(Self::UsbCdc),
+            6 => Some(Self::BluetoothLeGatt),
             _ => None,
         }
     }
 
     /// Contract compatibility does not claim an offered or runnable Line.
     pub const fn supports_remote_session(self) -> bool {
-        matches!(self, Self::FixtureFrame | Self::WebSocket | Self::UsbCdc)
+        matches!(
+            self,
+            Self::FixtureFrame | Self::WebSocket | Self::UsbCdc | Self::BluetoothLeGatt
+        )
     }
 }
 
