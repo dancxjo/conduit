@@ -1,4 +1,4 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { persistCaptureDeclaration } from "./capture-declarations.mjs";
@@ -56,4 +56,37 @@ test("restarted worker merges the retained declaration",async({page,browser},tes
   await capture(page,browser,testInfo,"selected-gear");
   const after=JSON.parse(await readFile(path.join(evidenceRoot,"captures.json"),"utf8"));
   expect(after.outputs.map(output=>output.id)).toEqual(["patchbay.overview","patchbay.selected-gear"]);
+});
+
+test("invalid retained mappings and oversized writes preserve the exact manifest",async({},testInfo)=>{
+  const root=testInfo.outputPath("manifest-negatives");
+  await mkdir(root,{recursive:true});
+  const file=path.join(root,"captures.json");
+  const candidate={id:"patchbay.candidate",path:"candidate.png"};
+  const cases=[
+    [
+      {id:"patchbay.same",path:"first.png"},
+      {id:"patchbay.same",path:"second.png"},
+    ],
+    [
+      {id:"patchbay.first",path:"same.png"},
+      {id:"patchbay.second",path:"same.png"},
+    ],
+  ];
+  for(const outputs of cases){
+    const original=`${JSON.stringify({schema:"conduit.capture-declarations/v1",outputs},null,2)}\n`;
+    await writeFile(file,original,"utf8");
+    await expect(persistCaptureDeclaration(root,candidate)).rejects.toThrow(/duplicate capture/);
+    expect(await readFile(file,"utf8")).toBe(original);
+    expect(await readdir(root)).toEqual(["captures.json"]);
+  }
+  const original=`${JSON.stringify({schema:"conduit.capture-declarations/v1",outputs:[{id:"patchbay.retained",path:"retained.png"}]},null,2)}\n`;
+  await writeFile(file,original,"utf8");
+  await expect(persistCaptureDeclaration(root,{
+    id:"patchbay.oversized",
+    path:"oversized.png",
+    padding:"x".repeat(1024*1024),
+  })).rejects.toThrow(/exceed bounded maximum 1048576 bytes/);
+  expect(await readFile(file,"utf8")).toBe(original);
+  expect(await readdir(root)).toEqual(["captures.json"]);
 });

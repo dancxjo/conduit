@@ -10,10 +10,16 @@ function validateDocument(document) {
     throw new Error(`capture declarations must use ${SCHEMA}`);
   }
   if(document.outputs.length>MAX_OUTPUTS)throw new Error(`capture declarations exceed bounded maximum ${MAX_OUTPUTS}`);
+  const identities=new Set();
+  const paths=new Set();
   for(const output of document.outputs){
     if(output===null||typeof output!=="object"||typeof output.id!=="string"||!output.id||typeof output.path!=="string"||!output.path){
       throw new Error("capture declaration identities and paths must be non-empty strings");
     }
+    if(identities.has(output.id))throw new Error(`duplicate capture identity '${output.id}'`);
+    if(paths.has(output.path))throw new Error(`duplicate capture path '${output.path}'`);
+    identities.add(output.id);
+    paths.add(output.path);
   }
   return document.outputs;
 }
@@ -43,6 +49,9 @@ export async function persistCaptureDeclaration(evidenceRoot,output) {
   if(sameId>=0)outputs[sameId]=output;else outputs.push(output);
   validateDocument({schema:SCHEMA,outputs});
   const document=JSON.stringify({schema:SCHEMA,outputs},null,2);
+  if(Buffer.byteLength(document,"utf8")+1>MAX_DOCUMENT_BYTES){
+    throw new Error(`capture declarations exceed bounded maximum ${MAX_DOCUMENT_BYTES} bytes`);
+  }
   const temporary=path.join(evidenceRoot,"captures.json.tmp");
   await writeFile(temporary,`${document}\n`,{encoding:"utf8",flag:"wx"});
   await rename(temporary,file);
