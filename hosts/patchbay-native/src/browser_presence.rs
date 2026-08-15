@@ -80,6 +80,12 @@ impl BrowserPresenceCoordinator {
         &self.table
     }
 
+    pub(super) fn presentation_reference(
+        &self,
+    ) -> Result<conduit_presentation::TemporalReference, String> {
+        self.clock.presentation_reference()
+    }
+
     pub(super) fn replace_webrtc_grants(
         &mut self,
         bindings: &[conduit_wire::SessionBinding],
@@ -368,7 +374,8 @@ impl BrowserPresenceCoordinator {
     }
 
     fn now_millis(&self) -> Result<u64, String> {
-        self.clock.now_millis()
+        self.presentation_reference()
+            .map(|reference| reference.instant.ticks)
     }
 
     fn next_sign(&mut self, label: &str) -> Result<SignId, String> {
