@@ -102,7 +102,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BE BORN", 
     );
     expect(opened.presentation.subjects).toEqual(expect.arrayContaining([
       expect.objectContaining({ role: "Form" }),
-      expect.objectContaining({ role: "Gear", label: "text-lab/uppercase" }),
+      expect.objectContaining({ role: "Gear", label: "hello/upper" }),
       expect.objectContaining({ role: "Cord" }),
     ]));
     const beBornAction = opened.presentation.actions.find(
