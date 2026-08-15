@@ -30,7 +30,7 @@ impl PatchbayApplication {
             .is_running()
             .then(|| self.control.planned_play_identity())
             .flatten();
-        PartsView::project(
+        PartsView::project_with_presence(
             body,
             membership,
             candidates,
@@ -38,6 +38,9 @@ impl PatchbayApplication {
             self.control.plan(),
             play.as_ref(),
             self.build_birth.wake_value().is_some(),
+            self.browser_parts
+                .as_ref()
+                .and_then(super::browser_parts::BrowserPartsCoordinator::presence),
         )
         .map(Some)
         .map_err(|error| format!("Parts projection: {error:?}"))
@@ -240,6 +243,18 @@ impl PatchbayApplication {
     }
 
     pub(super) fn poll_body_parts(&mut self) -> Result<bool, String> {
+        let presence_update = match (&mut self.browser_parts, &mut self.build_birth) {
+            (Some(coordinator), build_birth) => build_birth
+                .membership_mut()
+                .map(|membership| coordinator.poll_presence(membership))
+                .transpose()?
+                .flatten(),
+            _ => None,
+        };
+        if let Some(message) = presence_update {
+            self.publish_completed(message);
+            return Ok(true);
+        }
         let pico_disconnect = self
             .pico_parts
             .as_mut()
@@ -354,7 +369,7 @@ impl PatchbayApplication {
                 &mut self.body_candidates,
                 &mut self.build_birth,
             );
-            let credential = browser_parts
+            let admitted = browser_parts
                 .as_mut()
                 .and_then(super::browser_parts::BrowserPartsCoordinator::ambient_mut)
                 .expect("ambient proof requires coordinator")
@@ -368,6 +383,15 @@ impl PatchbayApplication {
                         .ok_or("ambient proof arrived before Body membership existed")?,
                     now,
                     signs,
+                )?;
+            let credential = browser_parts
+                .as_mut()
+                .expect("ambient proof requires browser coordinator")
+                .register_ambient_presence(
+                    admitted,
+                    build_birth
+                        .membership_mut()
+                        .ok_or("ambient presence requires Body membership")?,
                 )?;
             self.selected_candidate = None;
             self.publish_completed(format!(
