@@ -95,6 +95,56 @@ fn clock_truth_is_required_validated_and_preserved_by_serialization() {
 }
 
 #[test]
+fn epoch_and_process_relative_timelines_keep_equal_ticks_incomparable() {
+    let (membership, part_id) = admitted();
+    let epoch_clock = HostPresenceClock::new(
+        "clock/unix-epoch/utc".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        5,
+    )
+    .unwrap();
+    let process_clock = HostPresenceClock::new(
+        "clock/process-restart/conformance-1".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        1,
+    )
+    .unwrap();
+    let mut epoch =
+        HostPresenceTable::new(membership.body_id.clone(), epoch_clock, 30_000).unwrap();
+    let mut process =
+        HostPresenceTable::new(membership.body_id.clone(), process_clock, 30_000).unwrap();
+
+    for (table, label) in [(&mut epoch, "epoch"), (&mut process, "process")] {
+        table
+            .start(
+                &membership,
+                &part_id,
+                LinkBindingId::from(format!("binding/{label}")),
+                1,
+                1_000,
+                10_000,
+                SignId::from(format!("sign/{label}")),
+            )
+            .unwrap();
+    }
+
+    assert_eq!(
+        epoch.leases[0].observed_at_millis,
+        process.leases[0].observed_at_millis
+    );
+    assert_ne!(epoch.clock.basis_id, process.clock.basis_id);
+    let epoch_encoded = serde_json::to_value(&epoch).unwrap();
+    let process_encoded = serde_json::to_value(&process).unwrap();
+    assert_ne!(epoch_encoded["clock"], process_encoded["clock"]);
+    assert_eq!(
+        epoch_encoded["leases"][0]["observed_at_millis"],
+        process_encoded["leases"][0]["observed_at_millis"]
+    );
+}
+
+#[test]
 fn renewal_advances_presence_without_mutating_membership_or_offer_truth() {
     let (membership, part_id) = admitted();
     let membership_before = membership.clone();

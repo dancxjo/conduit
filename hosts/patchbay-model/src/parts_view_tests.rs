@@ -252,7 +252,7 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     let candidates = CandidateInventory::new(body.body_id.clone()).unwrap();
     let session = LinkBindingId::from("binding/browser/tab-2");
     let clock = HostPresenceClock::new(
-        "clock/parts-view/conformance".into(),
+        "clock/process-restart/parts-view-conformance".into(),
         HostPresenceClockScale::Milliseconds,
         1,
         2,
@@ -314,7 +314,7 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
             .presence_clock
             .as_ref()
             .map(|clock| clock.basis_id.as_str()),
-        Some("clock/parts-view/conformance")
+        Some("clock/process-restart/parts-view-conformance")
     );
     assert_eq!(
         browser_row
@@ -323,6 +323,63 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
             .as_ref()
             .map(|clock| clock.uncertainty_ticks),
         Some(2)
+    );
+
+    let epoch_clock = HostPresenceClock::new(
+        "clock/unix-epoch/parts-view-conformance".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        5,
+    )
+    .unwrap();
+    let mut epoch_presence =
+        HostPresenceTable::new(body.body_id.clone(), epoch_clock, 30_000).unwrap();
+    let epoch_session = LinkBindingId::from("binding/browser/tab-2-epoch-vector");
+    epoch_presence
+        .start(
+            &membership,
+            &browser,
+            epoch_session.clone(),
+            1,
+            1_000,
+            10_000,
+            SignId::from("sign/presence-projection/epoch-started"),
+        )
+        .unwrap();
+    epoch_presence
+        .renew(
+            &membership,
+            &browser,
+            &epoch_session,
+            2,
+            2_000,
+            10_000,
+            SignId::from("sign/presence-projection/epoch-renewed"),
+        )
+        .unwrap();
+    let epoch_projection = PartsView::project_with_presence(
+        &body,
+        &membership,
+        &candidates,
+        &here,
+        Some(&plan),
+        None,
+        true,
+        Some(&epoch_presence),
+    )
+    .unwrap();
+    let epoch_browser_row = epoch_projection
+        .parts
+        .iter()
+        .find(|row| row.details.part_id == browser)
+        .unwrap();
+    assert_eq!(
+        browser_row.details.presence_observed_at_millis,
+        epoch_browser_row.details.presence_observed_at_millis
+    );
+    assert_ne!(
+        browser_row.details.presence_clock,
+        epoch_browser_row.details.presence_clock
     );
 
     presence
@@ -377,7 +434,7 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     );
     assert_eq!(
         shared_browser_row["details"]["presence_clock"]["basis_id"],
-        "clock/parts-view/conformance"
+        "clock/process-restart/parts-view-conformance"
     );
     assert_eq!(
         shared_browser_row["details"]["presence_clock"]["scale"],
