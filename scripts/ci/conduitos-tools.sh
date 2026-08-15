@@ -103,6 +103,19 @@ install_bundle() {
   fi
 }
 
+cache_status() {
+  local bundle=$1
+  if test ! -e "$bundle"; then
+    printf 'absent\n'
+  elif (verify_bundle "$bundle") >&2; then
+    printf 'present\n'
+  else
+    test ! -e "${bundle}.rejected" || refuse 'rejected cache path already exists'
+    mv "$bundle" "${bundle}.rejected"
+    printf 'rejected\n'
+  fi
+}
+
 case "${1:-}" in
   prepare)
     test $# -eq 2 || refuse 'usage: conduitos-tools.sh prepare BUNDLE'
@@ -116,7 +129,11 @@ case "${1:-}" in
     test $# -eq 2 || refuse 'usage: conduitos-tools.sh install BUNDLE'
     install_bundle "$(realpath -m "$2")"
     ;;
+  cache-status)
+    test $# -eq 2 || refuse 'usage: conduitos-tools.sh cache-status BUNDLE'
+    cache_status "$(realpath -m "$2")"
+    ;;
   *)
-    refuse 'expected prepare, verify, or install'
+    refuse 'expected prepare, verify, install, or cache-status'
     ;;
 esac

@@ -115,6 +115,9 @@ jobs:
             exit 1
           fi
           grep -Fx 'conduitos-tool-bundle-refused: runner image version mismatch' refusal.log
+          test "$(scripts/ci/conduitos-tools.sh cache-status "$bundle")" = rejected
+          test ! -e "$bundle"
+          test -e "${bundle}.rejected"
       - name: Capture the exact runner cache identity
         id: runner-image
         run: printf 'key=%s-%s\n' "$ImageOS" "$ImageVersion" >> "$GITHUB_OUTPUT"
@@ -129,8 +132,9 @@ jobs:
       - name: Verify any restored ConduitOS tool bundle
         id: restored-bundle
         run: |
-          if test -e target/conduitos/tool-bundle; then
-            scripts/ci/conduitos-tools.sh verify target/conduitos/tool-bundle
+          state=$(scripts/ci/conduitos-tools.sh cache-status target/conduitos/tool-bundle)
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          if test "$state" = present; then
             echo 'present=true' >> "$GITHUB_OUTPUT"
           else
             echo 'present=false' >> "$GITHUB_OUTPUT"
@@ -143,11 +147,12 @@ jobs:
       - name: Distribute the exact ConduitOS tool bundle
         uses: actions/upload-artifact@v7
         with:
-          name: conduitos-tools-${{ github.run_id }}-${{ github.run_attempt }}
+          name: conduitos-tools-${{ github.run_id }}
           path: target/conduitos/tool-bundle
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
+          overwrite: true
 
   workspace-check:
     needs: classify
@@ -325,7 +330,7 @@ jobs:
       - name: Receive the exact ConduitOS tool bundle
         uses: actions/download-artifact@v8
         with:
-          name: conduitos-tools-${{ github.run_id }}-${{ github.run_attempt }}
+          name: conduitos-tools-${{ github.run_id }}
           path: target/conduitos/tool-bundle
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
@@ -383,7 +388,7 @@ jobs:
       - name: Receive the exact ConduitOS tool bundle
         uses: actions/download-artifact@v8
         with:
-          name: conduitos-tools-${{ github.run_id }}-${{ github.run_attempt }}
+          name: conduitos-tools-${{ github.run_id }}
           path: target/conduitos/tool-bundle
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
@@ -414,7 +419,7 @@ jobs:
       - name: Receive the exact ConduitOS tool bundle
         uses: actions/download-artifact@v8
         with:
-          name: conduitos-tools-${{ github.run_id }}-${{ github.run_attempt }}
+          name: conduitos-tools-${{ github.run_id }}
           path: target/conduitos/tool-bundle
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
