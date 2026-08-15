@@ -510,4 +510,41 @@ mod tests {
             Err(BrowserWebRtcRendezvousRefusal::SourceUnavailable)
         );
     }
+
+    #[test]
+    fn failed_candidate_preflight_preserves_exact_prior_grant() {
+        let source = credential("source");
+        let sink = credential("sink");
+        let presence = presence(&source, &sink);
+        let mut rendezvous = BrowserWebRtcRendezvous::default();
+        let prior = binding(&source, &sink);
+        let prior_hello = rendezvous.replace_grants([&prior]).unwrap().remove(0);
+
+        let mut candidate = prior.clone();
+        candidate.attachment.link_binding_id = LinkBindingId::from("binding/candidate");
+        let candidate_hello = rendezvous.preflight_grants([&candidate]).unwrap().remove(0);
+        assert_ne!(candidate_hello, prior_hello);
+
+        assert!(rendezvous
+            .prepare(
+                &presence,
+                &source,
+                sink.host_id.clone(),
+                sink.boot_id.clone(),
+                signal(BrowserWebRtcDescription::Offer, prior_hello),
+            )
+            .is_ok());
+        let mut candidate_signal = signal(BrowserWebRtcDescription::Offer, candidate_hello);
+        candidate_signal.negotiation_id = LinkBindingId::from("binding/candidate");
+        assert_eq!(
+            rendezvous.prepare(
+                &presence,
+                &source,
+                sink.host_id.clone(),
+                sink.boot_id.clone(),
+                candidate_signal,
+            ),
+            Err(BrowserWebRtcRendezvousRefusal::UngrantedSession)
+        );
+    }
 }
