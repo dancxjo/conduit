@@ -1,11 +1,22 @@
 use conduit_body::{
-    AuthenticatedHostObservation, Body, BodyMembership, BodyMembershipRevision,
-    HostPresenceEventKind, HostPresenceRefusal, HostPresenceState, HostPresenceTable,
-    MembershipProofId, PartId, MAX_PRESENCE_EVENTS,
+    AuthenticatedHostObservation, Body, BodyMembership, BodyMembershipRevision, HostPresenceClock,
+    HostPresenceClockScale, HostPresenceEventKind, HostPresenceRefusal, HostPresenceState,
+    HostPresenceTable, MembershipProofId, PartId, MAX_PRESENCE_EVENTS,
 };
+
 use conduit_core::{
     BootId, CheckedFormId, HostId, LinkBindingId, OfferGeneration, SignId, SourceDocumentId,
 };
+
+fn clock(label: &str) -> HostPresenceClock {
+    HostPresenceClock::new(
+        format!("clock/conformance/{label}"),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        0,
+    )
+    .unwrap()
+}
 
 fn admitted() -> (BodyMembership, PartId) {
     let body = Body::born(
@@ -46,11 +57,50 @@ fn admitted() -> (BodyMembership, PartId) {
 }
 
 #[test]
+fn clock_truth_is_required_validated_and_preserved_by_serialization() {
+    assert_eq!(
+        HostPresenceClock::new(
+            "clock/invalid-resolution".into(),
+            HostPresenceClockScale::Milliseconds,
+            0,
+            0,
+        ),
+        Err(HostPresenceRefusal::InvalidClock)
+    );
+    assert_eq!(
+        HostPresenceClock::new(String::new(), HostPresenceClockScale::Milliseconds, 1, 0,),
+        Err(HostPresenceRefusal::EmptyIdentity)
+    );
+
+    let (membership, _) = admitted();
+    let clock = HostPresenceClock::new(
+        "clock/serialization/exact".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        7,
+    )
+    .unwrap();
+    let table = HostPresenceTable::new(membership.body_id, clock.clone(), 30_000).unwrap();
+    let encoded = serde_json::to_value(&table).unwrap();
+    let decoded: HostPresenceTable = serde_json::from_value(encoded.clone()).unwrap();
+    assert_eq!(decoded.clock, clock);
+
+    let mut legacy = encoded;
+    legacy.as_object_mut().unwrap().remove("clock");
+    assert!(serde_json::from_value::<HostPresenceTable>(legacy).is_err());
+
+    let mut malformed = table;
+    malformed.clock.resolution_ticks = 0;
+    assert_eq!(malformed.validate(), Err(HostPresenceRefusal::InvalidClock));
+}
+
+#[test]
 fn renewal_advances_presence_without_mutating_membership_or_offer_truth() {
     let (membership, part_id) = admitted();
     let membership_before = membership.clone();
     let session = LinkBindingId::from("binding/browser/session-1");
-    let mut table = HostPresenceTable::new(membership.body_id.clone(), 30_000).unwrap();
+    let mut table =
+        HostPresenceTable::new(membership.body_id.clone(), clock("presence"), 30_000).unwrap();
     table
         .start(
             &membership,
@@ -84,7 +134,8 @@ fn renewal_advances_presence_without_mutating_membership_or_offer_truth() {
 fn stale_replayed_wrong_session_and_clock_regression_refuse_distinctly() {
     let (membership, part_id) = admitted();
     let session = LinkBindingId::from("binding/browser/session-1");
-    let mut table = HostPresenceTable::new(membership.body_id.clone(), 30_000).unwrap();
+    let mut table =
+        HostPresenceTable::new(membership.body_id.clone(), clock("presence"), 30_000).unwrap();
     table
         .start(
             &membership,
@@ -150,7 +201,8 @@ fn stale_replayed_wrong_session_and_clock_regression_refuse_distinctly() {
 fn host_boot_offer_and_body_drift_refuse_without_changing_the_current_lease() {
     let (membership, part_id) = admitted();
     let session = LinkBindingId::from("binding/browser/session-1");
-    let mut table = HostPresenceTable::new(membership.body_id.clone(), 30_000).unwrap();
+    let mut table =
+        HostPresenceTable::new(membership.body_id.clone(), clock("presence"), 30_000).unwrap();
     table
         .start(
             &membership,
@@ -250,7 +302,8 @@ fn host_boot_offer_and_body_drift_refuse_without_changing_the_current_lease() {
 fn expiry_preserves_part_but_clears_current_boot_and_requires_fresh_continuity() {
     let (mut membership, part_id) = admitted();
     let old_session = LinkBindingId::from("binding/browser/session-1");
-    let mut table = HostPresenceTable::new(membership.body_id.clone(), 30_000).unwrap();
+    let mut table =
+        HostPresenceTable::new(membership.body_id.clone(), clock("presence"), 30_000).unwrap();
     table
         .start(
             &membership,
@@ -330,7 +383,8 @@ fn expiry_preserves_part_but_clears_current_boot_and_requires_fresh_continuity()
 fn exact_session_loss_detaches_immediately_without_masquerading_as_expiry() {
     let (mut membership, part_id) = admitted();
     let session = LinkBindingId::from("binding/browser/session-1");
-    let mut table = HostPresenceTable::new(membership.body_id.clone(), 30_000).unwrap();
+    let mut table =
+        HostPresenceTable::new(membership.body_id.clone(), clock("presence"), 30_000).unwrap();
     table
         .start(
             &membership,
@@ -377,7 +431,8 @@ fn exact_session_loss_detaches_immediately_without_masquerading_as_expiry() {
 fn renewal_history_is_finite_and_reports_the_exact_retention_gap() {
     let (membership, part_id) = admitted();
     let session = LinkBindingId::from("binding/browser/session-1");
-    let mut table = HostPresenceTable::new(membership.body_id.clone(), 30_000).unwrap();
+    let mut table =
+        HostPresenceTable::new(membership.body_id.clone(), clock("presence"), 30_000).unwrap();
     table
         .start(
             &membership,
@@ -413,7 +468,8 @@ fn renewal_history_is_finite_and_reports_the_exact_retention_gap() {
 fn malformed_or_overflown_state_refuses_before_lease_or_membership_mutation() {
     let (mut membership, part_id) = admitted();
     let session = LinkBindingId::from("binding/browser/session-1");
-    let mut table = HostPresenceTable::new(membership.body_id.clone(), 30_000).unwrap();
+    let mut table =
+        HostPresenceTable::new(membership.body_id.clone(), clock("presence"), 30_000).unwrap();
     table
         .start(
             &membership,

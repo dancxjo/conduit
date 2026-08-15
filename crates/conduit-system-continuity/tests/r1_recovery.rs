@@ -1,6 +1,6 @@
 use conduit_body::{
-    AuthenticatedHostObservation, BodyMembership, HostPresenceTable, MembershipProofId, PartId,
-    WakeLifecycle,
+    AuthenticatedHostObservation, BodyMembership, HostPresenceClock, HostPresenceClockScale,
+    HostPresenceTable, MembershipProofId, PartId, WakeLifecycle,
 };
 use conduit_core::{
     BootId, ControlLoopEvent, GearId, HostId, LineAvailability, LineAvailabilitySign,
@@ -90,7 +90,14 @@ fn presence_for(
         )
         .unwrap();
     let session = LinkBindingId::from("r1/host-presence-session");
-    let mut presence = HostPresenceTable::new(body_id, 30_000).unwrap();
+    let clock = HostPresenceClock::new(
+        "clock/r1-recovery/conformance".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        0,
+    )
+    .unwrap();
+    let mut presence = HostPresenceTable::new(body_id, clock, 30_000).unwrap();
     presence
         .start(
             &membership,

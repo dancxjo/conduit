@@ -1,7 +1,8 @@
 use crate::{PartPresentationState, PartsAction, PartsView};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory, CandidateObservation,
-    DiscoveryProofId, HostPresenceState, HostPresenceTable, MembershipProofId, PartId,
+    DiscoveryProofId, HostPresenceClock, HostPresenceClockScale, HostPresenceState,
+    HostPresenceTable, MembershipProofId, PartId,
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use conduit_std_host::{StdHost, StdHostConfig};
@@ -250,7 +251,14 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     );
     let candidates = CandidateInventory::new(body.body_id.clone()).unwrap();
     let session = LinkBindingId::from("binding/browser/tab-2");
-    let mut presence = HostPresenceTable::new(body.body_id.clone(), 30_000).unwrap();
+    let clock = HostPresenceClock::new(
+        "clock/parts-view/conformance".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        2,
+    )
+    .unwrap();
+    let mut presence = HostPresenceTable::new(body.body_id.clone(), clock, 30_000).unwrap();
     presence
         .start(
             &membership,
@@ -299,6 +307,22 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     assert_eq!(
         browser_row.details.presence_session_binding.as_deref(),
         Some(session.as_str())
+    );
+    assert_eq!(
+        browser_row
+            .details
+            .presence_clock
+            .as_ref()
+            .map(|clock| clock.basis_id.as_str()),
+        Some("clock/parts-view/conformance")
+    );
+    assert_eq!(
+        browser_row
+            .details
+            .presence_clock
+            .as_ref()
+            .map(|clock| clock.uncertainty_ticks),
+        Some(2)
     );
 
     presence
@@ -350,5 +374,13 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
     assert_eq!(
         shared_browser_row["details"]["presence_session_binding"],
         session.as_str()
+    );
+    assert_eq!(
+        shared_browser_row["details"]["presence_clock"]["basis_id"],
+        "clock/parts-view/conformance"
+    );
+    assert_eq!(
+        shared_browser_row["details"]["presence_clock"]["scale"],
+        "Milliseconds"
     );
 }

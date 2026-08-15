@@ -7,8 +7,8 @@ mod return_session;
 
 use conduit_body::{
     AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyMembership,
-    CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceRefusal,
-    HostPresenceTable,
+    CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceClock,
+    HostPresenceClockScale, HostPresenceRefusal, HostPresenceTable,
 };
 use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
@@ -154,8 +154,19 @@ fn main() -> Result<(), String> {
         return Ok(());
     }
     let session_binding = LinkBindingId::from("line/browser-admission-probe/session-1");
-    let mut presence = HostPresenceTable::new(body.body_id.clone(), PRESENCE_LEASE_MILLIS)
-        .map_err(|error| format!("presence table: {error:?}"))?;
+    let presence_clock = HostPresenceClock::new(
+        format!(
+            "clock/browser-admission-probe/{}",
+            credential.boot_id.as_str()
+        ),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        1,
+    )
+    .map_err(|error| format!("presence clock: {error:?}"))?;
+    let mut presence =
+        HostPresenceTable::new(body.body_id.clone(), presence_clock, PRESENCE_LEASE_MILLIS)
+            .map_err(|error| format!("presence table: {error:?}"))?;
     let observed_at_millis = monotonic_millis(clock)?;
     presence
         .start(
@@ -384,6 +395,7 @@ fn presence_refusal_code(refusal: HostPresenceRefusal) -> &'static str {
         HostPresenceRefusal::WrongSession => "wrong-session",
         HostPresenceRefusal::StaleSequence => "stale-sequence",
         HostPresenceRefusal::ClockRegressed => "clock-regressed",
+        HostPresenceRefusal::InvalidClock => "invalid-clock",
         HostPresenceRefusal::LeaseDurationZero => "lease-duration-zero",
         HostPresenceRefusal::LeaseDurationTooLong => "lease-duration-too-long",
         HostPresenceRefusal::LeaseDeadlineOverflow => "lease-deadline-overflow",

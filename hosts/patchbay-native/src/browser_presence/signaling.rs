@@ -221,7 +221,7 @@ mod tests {
     fn target_pressure_refuses_without_committing_then_exact_retry_relays() {
         let source = credential("source");
         let sink = credential("sink");
-        let mut coordinator = BrowserPresenceCoordinator::new(source.body_id.clone());
+        let mut coordinator = BrowserPresenceCoordinator::new(source.body_id.clone()).unwrap();
         coordinator.table.leases = [&source, &sink]
             .into_iter()
             .enumerate()
