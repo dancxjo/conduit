@@ -130,6 +130,16 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
+        "prove.body-membership.native-return-atomicity",
+        "Prove hostile native return states refuse before canonical or presence mutation",
+        "cargo",
+        &["test", "-p", "patchbay-native", "refuses_before_any"],
+        None,
+        None,
+        Some(ProofClass::LiveTransport),
+        &[],
+    ),
+    Step::typed(
         "prove.body-membership.browser-wasm-build",
         "Build the browser Host and admission proof WASM artifact",
         "cargo",
