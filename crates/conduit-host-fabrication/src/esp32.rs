@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{TargetSelection, MAX_PROFILE_ID_BYTES, MAX_PROFILE_ITEMS};
 
-pub const ESP32_DESCRIPTOR_SCHEMA: &str = "conduit.host/esp32-board-descriptor@1";
+pub const ESP32_DESCRIPTOR_SCHEMA: &str = "conduit.host/esp32-board-descriptor@2";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -67,7 +67,7 @@ pub struct Esp32MemoryRegion {
 pub struct Esp32FlashFacts {
     pub bytes: u64,
     pub mode: String,
-    pub frequency_hz: u64,
+    pub maximum_frequency_hz: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -325,7 +325,10 @@ pub fn validate_esp32_descriptor(
         ("target.cores", u64::from(descriptor.target.cores)),
         ("target.clock_hz", descriptor.target.clock_hz),
         ("flash.bytes", descriptor.flash.bytes),
-        ("flash.frequency_hz", descriptor.flash.frequency_hz),
+        (
+            "flash.maximum_frequency_hz",
+            descriptor.flash.maximum_frequency_hz,
+        ),
     ] {
         if value == 0 {
             diagnostics.push(Esp32DescriptorDiagnostic::ZeroCapacity {
