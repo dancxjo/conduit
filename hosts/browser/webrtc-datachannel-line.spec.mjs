@@ -236,6 +236,32 @@ test("exact planned WebRTC session admits, terminates, and rejects late frames",
   )).toBe(-216);
 });
 
+test("Body-granted canonical Hello initializes the exact browser session", async ({ page }) => {
+  await page.goto("/hosts/browser/webrtc-datachannel-line.test.html");
+  expect(await page.evaluate(() => window.conduitSessionStart(0))).toBe(0);
+  const grantedHello = await page.evaluate(() => window.conduitSessionOutput());
+  expect(await page.evaluate(
+    (hello) => window.conduitSessionStartGranted("source", hello),
+    grantedHello,
+  )).toBe(0);
+  expect(await page.evaluate(() => window.conduitSessionOutput())).toEqual(grantedHello);
+  await expect(page.evaluate(
+    () => window.conduitSessionStartGranted("source", [1, 2, 3]),
+  )).rejects.toThrow("granted start refused");
+  const zeroIndex = grantedHello.indexOf(0);
+  expect(zeroIndex).toBeGreaterThanOrEqual(0);
+  const coercingHello = [...grantedHello];
+  coercingHello[zeroIndex] = 256;
+  await expect(page.evaluate(
+    (hello) => window.conduitSessionStartGranted("source", hello),
+    coercingHello,
+  )).rejects.toThrow("invalid Body grant");
+  await expect(page.evaluate(
+    (hello) => window.conduitSessionStartGranted("fixture-variant-1", hello),
+    grantedHello,
+  )).rejects.toThrow("invalid Body grant");
+});
+
 test("shared session machine refuses mismatched planned and finite wire facts", async ({
   context,
 }) => {

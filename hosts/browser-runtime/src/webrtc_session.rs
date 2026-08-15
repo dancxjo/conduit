@@ -12,6 +12,8 @@ use std::cell::RefCell;
 
 #[path = "webrtc_session/plan.rs"]
 mod plan;
+#[path = "webrtc_session/start.rs"]
+mod start;
 
 use plan::exact_binding;
 
@@ -53,8 +55,7 @@ struct BrowserWebRtcSession {
 }
 
 impl BrowserWebRtcSession {
-    fn new(role: SessionRole, variant: u32) -> Result<Self, WireError> {
-        let binding = exact_binding(variant)?;
+    fn new(role: SessionRole, binding: SessionBinding) -> Result<Self, WireError> {
         let machine = SessionMachine::new(binding.clone(), role)?;
         let mut session = Self {
             binding,
@@ -255,22 +256,6 @@ fn wire_error(error: WireError) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_browser_webrtc_session_start(role: u32, variant: u32) -> i32 {
-    let role = match role {
-        0 => SessionRole::Source,
-        1 => SessionRole::Sink,
-        _ => return ERROR_STAGE,
-    };
-    match BrowserWebRtcSession::new(role, variant) {
-        Ok(endpoint) => {
-            ENDPOINT.with(|slot| *slot.borrow_mut() = Some(endpoint));
-            STATUS_HANDSHAKE
-        }
-        Err(error) => wire_error(error),
-    }
-}
-
-#[no_mangle]
 pub extern "C" fn conduit_browser_webrtc_session_input_ptr() -> *mut u8 {
     INPUT.with(|input| input.borrow_mut().as_mut_ptr())
 }
@@ -399,108 +384,5 @@ pub extern "C" fn conduit_browser_webrtc_session_close_input() -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn exact_webrtc_binding_is_planned_and_session_eligible() {
-        let binding = exact_binding(0).unwrap();
-        assert_eq!(
-            binding.attachment.base,
-            conduit_core::ConnectionBase::WebRtcDataChannel
-        );
-        assert_eq!(binding.attachment.base.canonical_code(), 7);
-        assert!(binding.attachment.base.supports_remote_session());
-        assert!(SessionMachine::new(binding, SessionRole::Source).is_ok());
-    }
-
-    #[test]
-    fn out_of_stage_failure_does_not_mutate_or_create_false_active_state() {
-        let binding = exact_binding(0).unwrap();
-        let mut endpoint = BrowserWebRtcSession::new(SessionRole::Source, 0).unwrap();
-        endpoint.output_len = 0;
-
-        let mut bytes = [0; FRAME_CAPACITY];
-        let failed = binding.frame(SessionMessage::Failed { code: 1 });
-        let failed_len =
-            encode_session_frame_into(failed, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
-                .unwrap();
-        assert_eq!(endpoint.ingest(&bytes[..failed_len]), Ok(ERROR_STAGE));
-        assert_eq!(endpoint.stage, Stage::PeerHello);
-
-        let hello = binding.hello_frame();
-        let hello_len =
-            encode_session_frame_into(hello, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
-                .unwrap();
-        assert_eq!(endpoint.ingest(&bytes[..hello_len]), Ok(STATUS_HANDSHAKE));
-        endpoint.output_len = 0;
-        let ready = binding.frame(SessionMessage::Ready);
-        let ready_len =
-            encode_session_frame_into(ready, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
-                .unwrap();
-        assert_eq!(endpoint.ingest(&bytes[..ready_len]), Ok(STATUS_ACTIVE));
-        assert!(endpoint.machine.is_active());
-    }
-
-    #[test]
-    fn reordered_offer_refuses_without_consuming_the_expected_sequence() {
-        let binding = exact_binding(0).unwrap();
-        let mut endpoint = BrowserWebRtcSession::new(SessionRole::Sink, 0).unwrap();
-        endpoint.output_len = 0;
-
-        let mut bytes = [0; FRAME_CAPACITY];
-        let hello = binding.hello_frame();
-        let hello_len =
-            encode_session_frame_into(hello, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
-                .unwrap();
-        assert_eq!(endpoint.ingest(&bytes[..hello_len]), Ok(STATUS_HANDSHAKE));
-        endpoint.output_len = 0;
-        let ready = binding.frame(SessionMessage::Ready);
-        let ready_len =
-            encode_session_frame_into(ready, &mut bytes, PAYLOAD_CAPACITY, FRAME_CAPACITY as u32)
-                .unwrap();
-        assert_eq!(endpoint.ingest(&bytes[..ready_len]), Ok(STATUS_ACTIVE));
-
-        let reordered = binding.frame(SessionMessage::Offered {
-            sequence: 1,
-            payload: &[7],
-        });
-        let reordered_len = encode_session_frame_into(
-            reordered,
-            &mut bytes,
-            PAYLOAD_CAPACITY,
-            FRAME_CAPACITY as u32,
-        )
-        .unwrap();
-        assert_eq!(
-            endpoint.ingest(&bytes[..reordered_len]),
-            Err(WireError::ReorderedFrame)
-        );
-        assert_eq!(endpoint.machine.next_sequence(), 0);
-        assert_eq!(endpoint.received_sequence, None);
-
-        let expected = binding.frame(SessionMessage::Offered {
-            sequence: 0,
-            payload: &[7],
-        });
-        let expected_len = encode_session_frame_into(
-            expected,
-            &mut bytes,
-            PAYLOAD_CAPACITY,
-            FRAME_CAPACITY as u32,
-        )
-        .unwrap();
-        assert_eq!(endpoint.ingest(&bytes[..expected_len]), Ok(STATUS_ACTIVE));
-        assert_eq!(endpoint.received_sequence, Some(0));
-        assert_eq!(&endpoint.received[..endpoint.received_len], &[7]);
-
-        endpoint.output_len = 0;
-        assert_eq!(
-            endpoint.ingest(&bytes[..expected_len]),
-            Err(WireError::ReorderedFrame)
-        );
-        assert_eq!(endpoint.machine.next_sequence(), 0);
-        assert_eq!(endpoint.received_sequence, Some(0));
-        assert_eq!(&endpoint.received[..endpoint.received_len], &[7]);
-    }
-}
+#[path = "webrtc_session/tests.rs"]
+mod tests;

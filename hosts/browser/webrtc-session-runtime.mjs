@@ -2,7 +2,8 @@ const FRAME_CAPACITY = 1024;
 
 const requiredExports = [
   "memory",
-  "conduit_browser_webrtc_session_start",
+  "conduit_browser_webrtc_session_start_fixture",
+  "conduit_browser_webrtc_session_start_granted",
   "conduit_browser_webrtc_session_input_ptr",
   "conduit_browser_webrtc_session_input_capacity",
   "conduit_browser_webrtc_session_output_ptr",
@@ -26,8 +27,38 @@ export async function instantiateWebRtcSession(wasmBytes, role, variant = 0) {
       api.conduit_browser_webrtc_session_input_capacity() !== FRAME_CAPACITY) {
     throw new Error("CND-WEBRTC-SESSION-001 incomplete WASM ABI");
   }
-  const status = api.conduit_browser_webrtc_session_start(role, variant);
+  const status = api.conduit_browser_webrtc_session_start_fixture(role, variant);
   if (status < 0) throw new Error(`CND-WEBRTC-SESSION-002 start refused ${status}`);
+  return { api, status };
+}
+
+export async function instantiateGrantedWebRtcSession(wasmBytes, grant) {
+  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+  const api = instance.exports;
+  if (requiredExports.some((name) => !(name in api)) ||
+      api.conduit_browser_webrtc_session_input_capacity() !== FRAME_CAPACITY) {
+    throw new Error("CND-WEBRTC-SESSION-001 incomplete WASM ABI");
+  }
+  const role = grant?.role === "source" ? 0 : grant?.role === "sink" ? 1 : -1;
+  const arrayHello = grant?.session_hello;
+  const validByteArray = Array.isArray(arrayHello) && arrayHello.every(
+    (byte) => Number.isInteger(byte) && byte >= 0 && byte <= 255,
+  );
+  const hello = arrayHello instanceof Uint8Array
+    ? arrayHello
+    : validByteArray
+      ? Uint8Array.from(arrayHello)
+      : null;
+  if (role < 0 || hello === null || hello.length === 0 || hello.length > FRAME_CAPACITY) {
+    throw new Error("CND-WEBRTC-SESSION-006 invalid Body grant");
+  }
+  new Uint8Array(
+    api.memory.buffer,
+    api.conduit_browser_webrtc_session_input_ptr(),
+    hello.length,
+  ).set(hello);
+  const status = api.conduit_browser_webrtc_session_start_granted(role, hello.length);
+  if (status < 0) throw new Error(`CND-WEBRTC-SESSION-007 granted start refused ${status}`);
   return { api, status };
 }
 
