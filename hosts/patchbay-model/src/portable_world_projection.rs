@@ -68,6 +68,27 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
                 PresentationPropertyValue::Count(generation.0),
             );
         }
+        if let Some(sequence) = row.details.presence_sequence {
+            content.property(
+                &part_subject,
+                "freshness-sequence",
+                PresentationPropertyValue::Count(sequence),
+            );
+        }
+        if let Some(binding) = &row.details.presence_session_binding {
+            identity(content, &part_subject, "binding-id", binding);
+        }
+        if let (Some(observed_at), Some(expires_at)) = (
+            row.details.presence_observed_at_millis,
+            row.details.presence_expires_at_millis,
+        ) {
+            text(
+                content,
+                &part_subject,
+                "freshness",
+                &format!("observed-at-millis={observed_at} expires-at-millis={expires_at}"),
+            );
+        }
         if let (Some(host_id), Some(boot_id)) = (&row.details.host_id, &row.details.boot_id) {
             let host_subject = host_identity(host_id.as_str(), boot_id.as_str());
             content.subject_with_identity(

@@ -1,7 +1,7 @@
 use crate::{PartPresentationState, PartsAction, PartsView};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory, CandidateObservation,
-    DiscoveryProofId, MembershipProofId, PartId,
+    DiscoveryProofId, HostPresenceState, HostPresenceTable, MembershipProofId, PartId,
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use conduit_std_host::{StdHost, StdHostConfig};
@@ -208,4 +208,147 @@ fn joining_part_does_not_change_form_or_active_plan_annotations() {
     assert!(after.new_realization_possibilities);
     assert_eq!(plan, original_plan);
     assert_eq!(plan.checked_form_id, original_form);
+}
+
+#[test]
+fn canonical_presence_drives_shared_available_offline_projection_without_mutating_plan() {
+    let std = StdHost::new_with_config(StdHostConfig {
+        host_id: HostId::from("patchbay/std"),
+        boot_id: BootId::from("patchbay/std-boot"),
+        offer_generation: OfferGeneration(1),
+    });
+    let expanded = crate::FormEditor::from_source(
+        "presence-projection.conduit".into(),
+        include_str!("../../../examples/hello.conduit").into(),
+    )
+    .unwrap()
+    .expand_form("hello")
+    .unwrap();
+    let plan = std.plan_expanded_local(&expanded).unwrap();
+    let retained_plan = plan.clone();
+    let body = Body::born(
+        plan.source_document_id.clone(),
+        plan.checked_form_id.clone(),
+        3,
+        SignId::from("sign/presence-projection/body-born"),
+    )
+    .unwrap();
+    let mut membership = BodyMembership::new(body.body_id.clone()).unwrap();
+    let here = admit(
+        &mut membership,
+        &body,
+        "local-presence",
+        Some(("patchbay/std", "patchbay/std-boot", 1)),
+        0,
+    );
+    let browser = admit(
+        &mut membership,
+        &body,
+        "browser-presence",
+        Some(("browser/tab-2", "browser-boot/tab-2", 7)),
+        1,
+    );
+    let candidates = CandidateInventory::new(body.body_id.clone()).unwrap();
+    let session = LinkBindingId::from("binding/browser/tab-2");
+    let mut presence = HostPresenceTable::new(body.body_id.clone(), 30_000).unwrap();
+    presence
+        .start(
+            &membership,
+            &browser,
+            session.clone(),
+            1,
+            1_000,
+            10_000,
+            SignId::from("sign/presence-projection/started"),
+        )
+        .unwrap();
+    presence
+        .renew(
+            &membership,
+            &browser,
+            &session,
+            2,
+            2_000,
+            10_000,
+            SignId::from("sign/presence-projection/renewed"),
+        )
+        .unwrap();
+    let available = PartsView::project_with_presence(
+        &body,
+        &membership,
+        &candidates,
+        &here,
+        Some(&plan),
+        None,
+        true,
+        Some(&presence),
+    )
+    .unwrap();
+    let browser_row = available
+        .parts
+        .iter()
+        .find(|row| row.details.part_id == browser)
+        .unwrap();
+    assert!(browser_row.available);
+    assert_eq!(browser_row.state, PartPresentationState::Attached);
+    assert_eq!(browser_row.details.presence_sequence, Some(2));
+    assert_eq!(
+        browser_row.details.offer_generation,
+        Some(OfferGeneration(7))
+    );
+    assert_eq!(
+        browser_row.details.presence_session_binding.as_deref(),
+        Some(session.as_str())
+    );
+
+    presence
+        .expire(
+            &mut membership,
+            &browser,
+            12_000,
+            SignId::from("sign/presence-projection/expired"),
+        )
+        .unwrap();
+    let offline = PartsView::project_with_presence(
+        &body,
+        &membership,
+        &candidates,
+        &here,
+        Some(&plan),
+        None,
+        true,
+        Some(&presence),
+    )
+    .unwrap();
+    let browser_row = offline
+        .parts
+        .iter()
+        .find(|row| row.details.part_id == browser)
+        .unwrap();
+    assert!(!browser_row.available);
+    assert_eq!(browser_row.state, PartPresentationState::Offline);
+    assert_eq!(presence.leases[0].state, HostPresenceState::Unavailable);
+    assert_eq!(
+        browser_row.details.host_id,
+        Some(HostId::from("browser/tab-2"))
+    );
+    assert_eq!(
+        browser_row.details.boot_id,
+        Some(BootId::from("browser-boot/tab-2"))
+    );
+    assert_eq!(browser_row.details.presence_sequence, Some(2));
+    assert_eq!(plan, retained_plan);
+    let shared_projection = serde_json::to_value(&offline).unwrap();
+    let shared_browser_row = shared_projection["parts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["details"]["part_id"] == browser.as_str())
+        .unwrap();
+    assert_eq!(shared_browser_row["available"], false);
+    assert_eq!(shared_browser_row["details"]["presence_sequence"], 2);
+    assert_eq!(
+        shared_browser_row["details"]["presence_session_binding"],
+        session.as_str()
+    );
 }
