@@ -122,7 +122,7 @@ impl BrowserPresenceCoordinator {
         socket: &BrowserAdmissionSocket,
     ) -> Result<(), String> {
         socket
-            .set_read_timeout(Some(Duration::from_millis(LEASE_MILLIS + 5_000)))
+            .set_read_timeout(Some(Duration::from_millis(50)))
             .map_err(debug("set returned browser presence timeout"))
     }
 
@@ -150,10 +150,12 @@ impl BrowserPresenceCoordinator {
                 .expect("preflight proved returned presence cleanup");
             return Err(error);
         }
+        let (receiver, outbound) = spawn_worker(socket);
         self.workers.push(PresenceWorker {
             credential,
             session_id: prepared.session_id,
-            receiver: spawn_worker(socket),
+            receiver,
+            outbound,
         });
         Ok(prepared.sequence)
     }
@@ -212,6 +214,7 @@ impl BrowserPresenceCoordinator {
     pub(crate) fn exhaust_return_workers_for_test(&mut self, credential: &MembershipCredential) {
         while self.workers.len() < conduit_body::MAX_BODY_PARTS {
             let (_sender, receiver) = mpsc::channel();
+            let (outbound, _outbound_receiver) = mpsc::sync_channel(1);
             self.workers.push(PresenceWorker {
                 credential: credential.clone(),
                 session_id: LinkBindingId::from(format!(
@@ -219,6 +222,7 @@ impl BrowserPresenceCoordinator {
                     self.workers.len()
                 )),
                 receiver,
+                outbound,
             });
         }
     }
