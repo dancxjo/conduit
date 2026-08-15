@@ -33,29 +33,22 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                 EvidenceManifest::new(&evidence_root, &root, "browser-host", "prove.browser-host")
                     .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))?;
             clear_patchbay_capture_outputs(evidence.root())?;
-            evidence
-                .declare(EvidenceOutput {
-                    id: "patchbay.capture-declarations".into(),
-                    kind: EvidenceKind::MachineReadableManifest,
-                    path: "captures.json".into(),
-                    media_type: "application/json".into(),
-                    required: true,
-                    provenance: EvidenceProvenance {
-                        scenario_id: "patchbay-html.canonical-captures@1".into(),
-                        step_id: Some("prove.browser-host.patchbay-html-matrix".into()),
-                        asserted_semantic_disposition: Some(
-                            "five-canonical-states-asserted".into(),
-                        ),
-                        ..Default::default()
-                    },
-                })
-                .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))?;
+            if args.induce_pre_capture_failure {
+                evidence
+                    .finish(EvidenceResult::DiagnosticIncomplete)
+                    .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))?;
+                return Err(StepError::prereq(
+                    "prove.browser-host.induced-pre-capture",
+                    "intentional failure before canonical capture",
+                ));
+            }
             let mut environment = vec![("CONDUIT_EVIDENCE_ROOT", evidence.root().as_os_str())];
             if args.induce_capture_restart_failure {
                 environment.push(("CONDUIT_CAPTURE_RESTART_PROBE", std::ffi::OsStr::new("1")));
             }
             match run_suite_with_environment(PROVE_BROWSER_HOST_STEPS, &root, opts, &environment) {
                 Ok(()) => {
+                    declare_patchbay_capture_manifest(&mut evidence)?;
                     import_patchbay_captures(&mut evidence, true)?;
                     evidence
                         .finish(EvidenceResult::Complete)
@@ -63,7 +56,9 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                 }
                 Err(proof_error) => {
                     if evidence.root().join("captures.json").is_file() {
-                        if let Err(error) = import_patchbay_captures(&mut evidence, false) {
+                        if let Err(error) = declare_patchbay_capture_manifest(&mut evidence)
+                            .and_then(|()| import_patchbay_captures(&mut evidence, false))
+                        {
                             eprintln!("xtask evidence import error after proof failure: {error}");
                         }
                     }
@@ -376,6 +371,24 @@ const PATCHBAY_CAPTURE_IDS: &[&str] = &[
     "patchbay.disconnected",
     "patchbay.responsive",
 ];
+
+fn declare_patchbay_capture_manifest(evidence: &mut EvidenceManifest) -> Result<(), StepError> {
+    evidence
+        .declare(EvidenceOutput {
+            id: "patchbay.capture-declarations".into(),
+            kind: EvidenceKind::MachineReadableManifest,
+            path: "captures.json".into(),
+            media_type: "application/json".into(),
+            required: true,
+            provenance: EvidenceProvenance {
+                scenario_id: "patchbay-html.canonical-captures@1".into(),
+                step_id: Some("prove.browser-host.patchbay-html-matrix".into()),
+                asserted_semantic_disposition: Some("five-canonical-states-asserted".into()),
+                ..Default::default()
+            },
+        })
+        .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))
+}
 
 fn import_patchbay_captures(
     evidence: &mut EvidenceManifest,
