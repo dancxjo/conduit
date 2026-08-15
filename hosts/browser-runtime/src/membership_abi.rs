@@ -2,7 +2,8 @@
 
 use crate::membership::BrowserAdmissionIdentity;
 use conduit_body::{
-    AdmissionChallenge, SpawnInvitationClaim, SpawnInvitationSecret, ADMISSION_SIGNATURE_BYTES,
+    AdmissionChallenge, PartReturnChallenge, SpawnInvitationClaim, SpawnInvitationSecret,
+    ADMISSION_SIGNATURE_BYTES,
 };
 use conduit_core::{BootId, HostId, OfferGeneration};
 use serde::Deserialize;
@@ -115,6 +116,40 @@ pub extern "C" fn conduit_browser_membership_prove(challenge_length: u32) -> i32
                 return ERROR_NOT_INITIALIZED;
             };
             let proof = match identity.prove(&challenge) {
+                Ok(proof) => proof,
+                Err(_) => return ERROR_CHALLENGE,
+            };
+            OUTPUT.with(|output| {
+                output.borrow_mut()[..ADMISSION_SIGNATURE_BYTES].copy_from_slice(&proof.signature)
+            });
+            OUTPUT_LEN.with(|length| *length.borrow_mut() = ADMISSION_SIGNATURE_BYTES);
+            STATUS_READY
+        })
+    })
+}
+
+/// Signs one canonical return challenge with the same in-memory browser Host
+/// incarnation. It cannot change the Host or Boot named by the challenge.
+#[no_mangle]
+pub extern "C" fn conduit_browser_membership_prove_return(challenge_length: u32) -> i32 {
+    clear_output();
+    let challenge_length = challenge_length as usize;
+    if challenge_length == 0 || challenge_length > INPUT_CAPACITY {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let input = input.borrow();
+        let challenge: PartReturnChallenge =
+            match serde_json::from_slice(&input[..challenge_length]) {
+                Ok(challenge) => challenge,
+                Err(_) => return ERROR_CHALLENGE,
+            };
+        IDENTITY.with(|slot| {
+            let slot = slot.borrow();
+            let Some(identity) = slot.as_ref() else {
+                return ERROR_NOT_INITIALIZED;
+            };
+            let proof = match identity.prove_return(&challenge) {
                 Ok(proof) => proof,
                 Err(_) => return ERROR_CHALLENGE,
             };
@@ -265,6 +300,44 @@ mod tests {
         verifying_key
             .verify(&challenge.signing_transcript(), &signature)
             .unwrap();
+    }
+
+    #[test]
+    fn abi_signs_exact_same_boot_return_and_refuses_replacement_boot() {
+        initialize();
+        let verifying_key = VerifyingKey::from_bytes(&output()).unwrap();
+        let challenge: PartReturnChallenge = serde_json::from_value(serde_json::json!({
+            "admission_id": "return/live",
+            "body_id": "body/live",
+            "part_id": "part/live",
+            "host_id": "browser/tab-live",
+            "boot_id": "browser-boot/live",
+            "offer_generation": 1,
+            "nonce": vec![4; 32],
+            "issued_at_millis": 2_000,
+            "expires_at_millis": 3_000
+        }))
+        .unwrap();
+        let encoded = serde_json::to_vec(&challenge).unwrap();
+        write(&encoded);
+        assert_eq!(
+            conduit_browser_membership_prove_return(encoded.len() as u32),
+            STATUS_READY
+        );
+        let signature = Signature::from_bytes(&output());
+        verifying_key
+            .verify(&challenge.signing_transcript(), &signature)
+            .unwrap();
+
+        let mut replaced = challenge;
+        replaced.boot_id = BootId::from("browser-boot/replaced");
+        let encoded = serde_json::to_vec(&replaced).unwrap();
+        write(&encoded);
+        assert_eq!(
+            conduit_browser_membership_prove_return(encoded.len() as u32),
+            ERROR_CHALLENGE
+        );
+        assert_eq!(conduit_browser_membership_output_len(), 0);
     }
 
     #[test]
