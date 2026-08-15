@@ -98,13 +98,23 @@ mod tests {
 
     #[test]
     fn html_open_seed_is_inert_then_explicit_be_born_establishes_body() {
-        let mut server = PatchbayHtmlServer::bind_front_door_ephemeral().unwrap();
+        let explicit = patchbay_model::SeedCandidate::from_source(
+            "Text Lab",
+            "text-lab.conduit",
+            include_str!("../../../../examples/text-lab.conduit"),
+            "checked test source",
+            conduit_core::SignId::from("test/text-lab/checked"),
+            1,
+        )
+        .unwrap();
+        let mut server =
+            PatchbayHtmlServer::bind_front_door_with_seeds_ephemeral(vec![explicit]).unwrap();
         let seed = server
             .snapshot
             .presentation
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Seed)
+            .find(|subject| subject.role == PresentationRole::Seed && subject.label == "Text Lab")
             .unwrap()
             .identity
             .clone();

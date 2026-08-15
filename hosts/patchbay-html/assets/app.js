@@ -36,6 +36,14 @@ function actionAvailability(action){
   if(action.availability?.Refused)return {available:false,state:"Refused",explanation:action.availability.Refused.explanation};
   throw new Error("unsupported semantic action availability");
 }
+function renderSemanticActions(identity){
+  const container=document.querySelector("#semantic-actions"),current=new Map([...container.querySelectorAll("button[data-semantic-action]")].map(button=>[button.dataset.semanticAction,button])),desired=semanticActions(identity),desiredIds=new Set(desired.map(action=>action.identity));
+  for(const button of current.values())if(!desiredIds.has(button.dataset.semanticAction)){document.getElementById(`${button.dataset.semanticAction}-availability`)?.remove();button.remove();}
+  for(const action of desired){
+    const availability=actionAvailability(action),button=current.get(action.identity)??document.createElement("button");button.type="button";button.textContent=action.label.toUpperCase();button.disabled=!availability.available;button.dataset.semanticAction=action.identity;button.setAttribute("aria-describedby",`${action.identity}-availability`);button.onclick=()=>dispatchSemanticAction(action);
+    let status=document.getElementById(`${action.identity}-availability`);if(!status){status=document.createElement("span");status.id=`${action.identity}-availability`;status.className="semantic-action-availability";container.append(button,status);}status.textContent=availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state;
+  }
+}
 function propertyText(value){
   if(value.Identity!==undefined)return value.Identity;
   if(value.Text!==undefined)return value.Text;
@@ -53,24 +61,17 @@ function displaySelection(identity){
   document.body.dataset.inspectorOpen=String(Boolean(subject)&&state.inspectorOpen);
   document.querySelector("#toggle-inspector").setAttribute("aria-expanded",String(Boolean(subject)&&state.inspectorOpen));
   const summary=document.querySelector("#inspector .selected-summary"),exact=document.querySelector("#inspector .exact-selection"),exactFacts=exact.querySelector("dl");summary.replaceChildren();exactFacts.replaceChildren();
-  const actions=document.querySelector("#semantic-actions");actions.replaceChildren();
   document.querySelector("#clear-selection").hidden=!subject;
   document.querySelector("#center-flow").disabled=!subject;
-  if(!subject){exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
+  if(!subject){document.querySelector("#semantic-actions").replaceChildren();exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
   exact.hidden=false;document.querySelector("#inspector .inspector-hint").textContent=subject.accessibility_name;term(summary,"Meaning",subject.label);term(summary,"Subject",subject.role);
   const selectedProperties=properties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name));for(const item of visible){const name=item.name.startsWith("authored-control-")?"Authored configuration":item.name,full=propertyText(item.value);term(summary,name,summaryText(item.value),full);}
   if(state.lens==="signs"){const signs=selectedProperties.filter(item=>item.name.startsWith("sign-"));term(summary,"Evidence",signs.length?`${signs.length} subject-specific causal Sign${signs.length===1?"":"s"}`:"No subject-specific Signs; Plan-level evidence remains below");}
   if(!visible.length&&state.lens!=="form"&&state.lens!=="signs")term(summary,"Layer",`No ${state.lens} facts for this subject; semantic selection retained`);
   term(exactFacts,"Presentation subject",identity);for(const item of selectedProperties.filter(item=>item.name==="semantic-id"||item.name.endsWith("-id")||item.name.startsWith("sign-")))term(exactFacts,item.name,propertyText(item.value));
   const manifestation=state.snapshot.renderer.manifestation;term(exactFacts,"Body",state.snapshot.presentation.basis.body_id);term(exactFacts,"Wake",state.snapshot.presentation.basis.wake_id);term(exactFacts,"Source Plan",state.snapshot.presentation.basis.plan_id);term(exactFacts,"Source Play",state.snapshot.presentation.basis.active_play_id);term(exactFacts,"Renderer Plan",manifestation.plan_id);term(exactFacts,"Renderer Play",manifestation.active_play_id);term(exactFacts,"Manifestation",manifestation.manifestation_id);term(exactFacts,"Manifestation lifecycle",manifestation.lifecycle);
-  const presentationBasis=currentPresentationBasis();
-  for(const action of semanticActions(identity)){
-    const availability=actionAvailability(action),button=document.createElement("button");button.type="button";button.textContent=action.label.toUpperCase();button.disabled=!availability.available;button.setAttribute("aria-describedby",`${action.identity}-availability`);
-    button.dataset.semanticAction=action.identity;button.onclick=()=>dispatchSemanticAction(action,presentationBasis);
-    const status=document.createElement("span");status.id=`${action.identity}-availability`;status.className="semantic-action-availability";status.textContent=availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state;
-    actions.append(button,status);
-  }
-  if(focusedAction)actions.querySelector(`[data-semantic-action="${CSS.escape(focusedAction)}"]`)?.focus();
+  renderSemanticActions(identity);
+  if(focusedAction)document.querySelector(`#semantic-actions [data-semantic-action="${CSS.escape(focusedAction)}"]`)?.focus();
 }
 function lensProperty(lens,name){if(lens==="world")return ["seed-id","body-id","part-id","candidate-id","membership-state","membership-proof","current","current-body","this-host","opened","freshness-sequence","source-document-id","checked-form-id","offer-generation","profile-id","capability-count","resource-count","planner-capability-count","capability-id","kind-id","operational-state","availability","freshness","line-id","binding-id","source-host-id","source-boot-id","sink-host-id","sink-boot-id","base","in-plan","playing"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="form")return !["plan-id","plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","admitted-capacity","active-play-id","play-state","pressure","line-id","line","base","base-instance-id"].includes(name)&&!name.startsWith("resource-")&&!name.startsWith("sign-");if(lens==="plan")return ["plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","admitted-capacity","line-id","line","base","base-instance-id"].includes(name)||name.startsWith("resource-");if(lens==="play")return ["active-play-id","play-state","pressure"].includes(name);return false;}
 

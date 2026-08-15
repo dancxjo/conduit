@@ -69,6 +69,14 @@ impl LocalFrontDoor {
         revision: u64,
         transition: &str,
     ) -> Result<Self, String> {
+        let form_name = editor
+            .view()
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.checked_form_id == body.checked_form_id)
+            .map(|form| form.name.clone())
+            .ok_or("Body checked Form is absent from its source document")?;
         let composition = StdHostComposition::minimal().with_text();
         let here = PartId::bind(
             &body.body_id,
@@ -107,6 +115,7 @@ impl LocalFrontDoor {
         Ok(Self {
             model,
             editor,
+            form_name,
             body,
             wake,
             membership,
