@@ -8,6 +8,7 @@
     closeWebRtcSessionInput,
     finishWebRtcSession,
     ingestWebRtcSession,
+    instantiateGrantedWebRtcSession,
     instantiateWebRtcSession,
     offerWebRtcSessionValue,
     pressureWebRtcSessionOffer,
@@ -83,6 +84,19 @@
       return response.arrayBuffer();
     });
     session = await instantiateWebRtcSession(wasmBytes, role, variant);
+    return session.status;
+  };
+  window.conduitSessionStartGranted = async (role, sessionHello) => {
+    const wasmBytes = await fetch(
+      "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+    ).then((response) => {
+      if (!response.ok) throw new Error("browser WASM artifact missing");
+      return response.arrayBuffer();
+    });
+    session = await instantiateGrantedWebRtcSession(wasmBytes, {
+      role,
+      session_hello: sessionHello,
+    });
     return session.status;
   };
   window.conduitSessionOutput = () => {

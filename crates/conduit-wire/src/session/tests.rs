@@ -172,6 +172,36 @@ fn borrowed_codec_round_trips_exact_hello_and_rejects_frame_mutations() {
     .unwrap();
     assert_eq!(decoded, binding.hello_frame());
     assert_eq!(
+        SessionBinding::from_hello_frame(decoded),
+        Ok(binding.clone())
+    );
+    assert_eq!(
+        SessionBinding::from_hello_frame(binding.frame(SessionMessage::Ready)),
+        Err(WireError::InvalidSession)
+    );
+    let dynamic = binding
+        .clone()
+        .with_observed_boots(
+            BootId::from("browser-boot/dynamic-source"),
+            BootId::from("browser-boot/dynamic-sink"),
+        )
+        .unwrap();
+    let mut dynamic_output = [0_u8; MAXIMUM_FRAME_BYTES as usize];
+    let dynamic_length = encode_session_frame_into(
+        dynamic.hello_frame(),
+        &mut dynamic_output,
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES,
+    )
+    .unwrap();
+    let dynamic_frame = decode_session_frame(
+        &dynamic_output[..dynamic_length],
+        MAXIMUM_PAYLOAD_BYTES,
+        MAXIMUM_FRAME_BYTES,
+    )
+    .unwrap();
+    assert_eq!(SessionBinding::from_hello_frame(dynamic_frame), Ok(dynamic));
+    assert_eq!(
         decode_session_frame(
             &output[..length - 1],
             MAXIMUM_PAYLOAD_BYTES,

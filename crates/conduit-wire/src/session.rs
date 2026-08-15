@@ -338,6 +338,8 @@ pub enum SessionTerminalDisposition {
     Failed,
 }
 
+mod reconstruction;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SessionMessage<'a> {
     Hello(SessionHello<'a>),
