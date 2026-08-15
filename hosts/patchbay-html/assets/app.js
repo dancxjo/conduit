@@ -1,5 +1,6 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
 import { arrangeFlow, fitFlow, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
+import { installPanelFurniture } from "/assets/panel-furniture.js";
 
 const schema = "conduit.patchbay.portable-presentation";
 const bases = new Map([
@@ -202,9 +203,22 @@ document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);
 document.querySelector("#plan-form").onclick=()=>dispatchFrontDoorAction("Plan");document.querySelector("#play-plan").onclick=()=>dispatchFrontDoorAction("Play");
 document.querySelector("#clear-selection").onclick=()=>dispatchInteraction({kind:"clear"});
 document.querySelector("#seed-query").oninput=event=>{state.seedQuery=event.currentTarget.value;renderSeedPalette();};document.querySelector("#seed-query").addEventListener("keydown",moveSeedFocus);document.querySelector("#seed-results").addEventListener("keydown",moveSeedFocus);
-function focusSurface(name){const surface=document.querySelector(name==="truth"?"#deep-inspection":`#${name}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
-function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next)focusSurface(name);else launcher.focus();}
-for(const name of ["palette","parts","truth"])document.querySelector(`#toggle-${name}`).onclick=event=>{event.stopPropagation();toggleDrawer(name);};
-document.querySelector("#toggle-inspector").onclick=event=>{event.stopPropagation();state.inspectorOpen=!state.inspectorOpen;if(state.inspectorOpen)closeSubordinateSurfaces("inspector");displaySelection(state.selected);if(state.inspectorOpen)focusSurface("inspector");else event.currentTarget.focus();};
+const furnitureSurface={palette:"palette",parts:"parts",truth:"deep-inspection",structured:"structured-navigator",inspector:"inspector"};
+function focusSurface(name){const surface=document.querySelector(`#${furnitureSurface[name]}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
+function dismissFurnitureSurface(name){
+  if(name==="inspector"){state.inspectorOpen=false;displaySelection(state.selected);}
+  else document.body.dataset[`${name}Open`]="false";
+  const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded","false");launcher.focus();
+}
+const furniture=installPanelFurniture([
+  {name:"palette",selector:"#palette",title:"Navigate",dock:"left",onDismiss:()=>dismissFurnitureSurface("palette")},
+  {name:"parts",selector:"#parts",title:"Parts",dock:"left",onDismiss:()=>dismissFurnitureSurface("parts")},
+  {name:"inspector",selector:"#inspector",title:"Inspector",dock:"right",onDismiss:()=>dismissFurnitureSurface("inspector")},
+  {name:"truth",selector:"#deep-inspection",title:"Exact truth",dock:"right",onDismiss:()=>dismissFurnitureSurface("truth")},
+  {name:"structured",selector:"#structured-navigator",title:"Subjects",dock:"bottom",onDismiss:()=>dismissFurnitureSurface("structured")},
+]);
+function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next){furniture.restore(name);focusSurface(name);}else launcher.focus();}
+for(const name of ["palette","parts","truth","structured"])document.querySelector(`#toggle-${name}`).onclick=event=>{event.stopPropagation();toggleDrawer(name);};
+document.querySelector("#toggle-inspector").onclick=event=>{event.stopPropagation();state.inspectorOpen=!state.inspectorOpen;if(state.inspectorOpen)closeSubordinateSurfaces("inspector");displaySelection(state.selected);if(state.inspectorOpen){furniture.restore("inspector");focusSurface("inspector");}else event.currentTarget.focus();};
 for(const selector of ["#palette","#parts","#inspector","#deep-inspection","#structured-navigator"]){document.querySelector(selector).addEventListener("click",event=>event.stopPropagation());}
-document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;const open=["truth","parts","palette"].find(name=>document.body.dataset[`${name}Open`]==="true");if(open){event.preventDefault();toggleDrawer(open);return;}if(state.inspectorOpen){event.preventDefault();state.inspectorOpen=false;displaySelection(state.selected);document.querySelector("#toggle-inspector").focus();}});
+document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;const open=["truth","parts","palette","structured"].find(name=>document.body.dataset[`${name}Open`]==="true");if(open){event.preventDefault();toggleDrawer(open);return;}if(state.inspectorOpen){event.preventDefault();dismissFurnitureSurface("inspector");}});

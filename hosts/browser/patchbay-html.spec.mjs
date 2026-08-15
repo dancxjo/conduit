@@ -51,8 +51,8 @@ async function prepareCanvasEvidence(page,{inspector=false,structured=false}={})
   for(const name of ["palette","parts","truth"])await closeDrawer(page,name);
   const inspectorOpen=await page.locator("body").getAttribute("data-inspector-open")==="true";
   if(inspectorOpen!==inspector)await page.locator("#toggle-inspector").click();
-  const structuredOpen=await page.locator("#structured-navigator").getAttribute("open")!==null;
-  if(structuredOpen!==structured)await page.locator("#structured-navigator>summary").click();
+  const structuredOpen=await page.locator("body").getAttribute("data-structured-open")==="true";
+  if(structuredOpen!==structured)await page.locator("#toggle-structured").click();
   if(!structured)await page.locator("#fit-flow").click();
 }
 
@@ -222,7 +222,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
 
     await prepareCanvasEvidence(page);
     await expectFlowDominant(page);
-    const structuredSummary=await page.locator("#structured-navigator").boundingBox();
+    const structuredSummary=await page.locator("#toggle-structured").boundingBox();
     const realizationActions=await page.locator("#front-door-actions").boundingBox();
     const currentStatus=await page.locator(".status-strip:not(#front-door-actions)").boundingBox();
     expect(rectanglesOverlap(structuredSummary,realizationActions)).toBe(false);
@@ -234,12 +234,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     await page.locator("#toggle-palette").click();
     const principalNode=await page.locator("#flow-root .react-flow__node").first().elementHandle();
-    await page.locator("#structured-navigator summary").click();
+    await page.locator("#toggle-structured").click();
     const structuredSubjects=await page.locator("#structured-navigator [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     expect(listSubjects).toEqual(expectedSubjects); expect(structuredSubjects).toEqual(expectedSubjects);
     await expect(page.locator("#flow-root .react-flow")).toHaveCount(1);
     await expect(page.locator("#form svg[role=img]")).toHaveCount(0);
-    await page.locator("#structured-navigator summary").click();
+    await page.locator("#toggle-structured").click();
     expect(await principalNode.evaluate((node,current)=>node.isSameNode(current),await page.locator("#flow-root .react-flow__node").first().elementHandle())).toBe(true);
     await page.locator("#toggle-palette").click();
     await expect(page.locator("#flow-root .flow-gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
@@ -344,6 +344,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.locator("#toggle-truth").click();
     await page.locator("#toggle-inspector").click();
     await page.locator("#toggle-palette").click();
+    await page.locator("#toggle-structured").click();
     const viewportBefore=await page.evaluate(()=>window.patchbayFlowViewport());
     await page.locator("#zoom-in").click();
     await expect.poll(async()=>(await page.evaluate(()=>window.patchbayFlowViewport())).zoom).toBeGreaterThan(viewportBefore.zoom);
