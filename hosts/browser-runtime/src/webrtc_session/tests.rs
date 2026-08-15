@@ -107,6 +107,27 @@ fn granted_start_reconstructs_exact_binding_and_refuses_non_hello() {
     ENDPOINT.with(|slot| assert!(slot.borrow().is_none()));
     assert_eq!(conduit_browser_webrtc_session_maximum_frame_bytes(), 0);
     assert_eq!(conduit_browser_webrtc_session_maximum_in_flight_items(), 0);
+
+    let mut unsupported = dynamic_binding();
+    unsupported.limits.maximum_payload_bytes = PAYLOAD_CAPACITY + 1;
+    unsupported.limits.maximum_buffered_bytes = PAYLOAD_CAPACITY + 1;
+    unsupported.attachment.limits.maximum_payload_bytes = PAYLOAD_CAPACITY + 1;
+    unsupported.attachment.limits.maximum_buffered_bytes = PAYLOAD_CAPACITY + 1;
+    let unsupported_length = encode_session_frame_into(
+        unsupported.hello_frame(),
+        &mut bytes,
+        PAYLOAD_CAPACITY + 1,
+        FRAME_CAPACITY as u32,
+    )
+    .unwrap();
+    INPUT.with(|input| {
+        input.borrow_mut()[..unsupported_length].copy_from_slice(&bytes[..unsupported_length])
+    });
+    assert_eq!(
+        conduit_browser_webrtc_session_start_granted(0, unsupported_length as u32),
+        -215
+    );
+    ENDPOINT.with(|slot| assert!(slot.borrow().is_none()));
 }
 
 #[test]

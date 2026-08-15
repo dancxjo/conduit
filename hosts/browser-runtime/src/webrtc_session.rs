@@ -56,6 +56,17 @@ struct BrowserWebRtcSession {
 
 impl BrowserWebRtcSession {
     fn new(role: SessionRole, binding: SessionBinding) -> Result<Self, WireError> {
+        if binding.limits.maximum_payload_bytes > PAYLOAD_CAPACITY
+            || binding.limits.maximum_buffered_bytes > PAYLOAD_CAPACITY
+        {
+            return Err(WireError::OversizedPayload);
+        }
+        if binding.attachment.limits.maximum_frame_bytes > FRAME_CAPACITY as u32 {
+            return Err(WireError::OversizedFrame);
+        }
+        if binding.limits.maximum_in_flight_items > 1 {
+            return Err(WireError::InvalidSession);
+        }
         let machine = SessionMachine::new(binding.clone(), role)?;
         let mut session = Self {
             binding,
