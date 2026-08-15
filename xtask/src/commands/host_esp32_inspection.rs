@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
-const SCHEMA: &str = "conduit.host/esp32-physical-inspection@1";
+const SCHEMA: &str = "conduit.host/esp32-physical-inspection@2";
 const ESPTOOL_VERSION: &str = "5.3.0";
 const ESPTOOL_ARCHIVE: &str = "esptool-v5.3.0-linux-amd64.tar.gz";
 const ESPTOOL_URL: &str =
@@ -22,12 +22,31 @@ const ESPTOOL_BINARY_SHA256: &str =
 const MAX_FIELD_BYTES: usize = 512;
 const MAX_OUTPUT_BYTES: usize = 2048;
 
+#[derive(Debug, Clone, Copy, clap::ValueEnum, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub(super) enum Esp32SocClass {
+    ClassicEsp32,
+    Esp32C3,
+    Esp32S3,
+}
+
+impl Esp32SocClass {
+    fn accepts_chip(self, chip: &str) -> bool {
+        match self {
+            Self::ClassicEsp32 => chip == "ESP32-D0WD-V3",
+            Self::Esp32C3 => chip == "ESP32-C3" || chip.starts_with("ESP32-C3 "),
+            Self::Esp32S3 => chip == "ESP32-S3" || chip.starts_with("ESP32-S3 "),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub(super) struct InspectionReceipt {
     schema: &'static str,
     proof_class: &'static str,
     status: &'static str,
     git_head: String,
+    expected_soc_class: Esp32SocClass,
     physical_markings: PhysicalMarkings,
     serial_base: SerialBase,
     rom: RomFacts,
@@ -88,6 +107,7 @@ struct ToolIdentity {
 
 pub(super) fn run(
     port: &Path,
+    expected_soc: Esp32SocClass,
     board_marking: &str,
     module_marking: &str,
     board_revision: &str,
@@ -130,13 +150,14 @@ pub(super) fn run(
         proof_class: "physical-inspection",
         status: "observed",
         git_head: git_head(&root)?,
+        expected_soc_class: expected_soc,
         physical_markings: PhysicalMarkings {
             board: board_marking.to_owned(),
             module: module_marking.to_owned(),
             board_revision: board_revision.to_owned(),
         },
         serial_base: serial_base(port, &properties)?,
-        rom: parse_rom_facts(&chip)?,
+        rom: parse_rom_facts(&chip, expected_soc)?,
         flash: parse_flash_facts(&flash)?,
         security_info: parse_security_info(&security)?,
         tool: ToolIdentity {
@@ -288,7 +309,10 @@ fn serial_base(
     })
 }
 
-pub(super) fn parse_rom_facts(source: &str) -> Result<RomFacts, Box<dyn std::error::Error>> {
+pub(super) fn parse_rom_facts(
+    source: &str,
+    expected_soc: Esp32SocClass,
+) -> Result<RomFacts, Box<dyn std::error::Error>> {
     let chip_line = line_value(source, "Chip type:")?;
     let (chip, revision) = chip_line
         .rsplit_once(" (revision ")
@@ -300,8 +324,11 @@ pub(super) fn parse_rom_facts(source: &str) -> Result<RomFacts, Box<dyn std::err
         .filter(|item| !item.is_empty())
         .map(str::to_owned)
         .collect::<Vec<_>>();
-    if chip != "ESP32-D0WD-V3" || !features.iter().any(|item| item == "Dual Core + LP Core") {
-        return Err(format!("unsupported classic ESP32 identity: {chip} {features:?}").into());
+    if !expected_soc.accepts_chip(chip) {
+        return Err(format!(
+            "ESP32 SoC-class mismatch: expected {expected_soc:?}, observed {chip}"
+        )
+        .into());
     }
     let crystal_mhz = line_value(source, "Crystal frequency:")?
         .strip_suffix("MHz")
