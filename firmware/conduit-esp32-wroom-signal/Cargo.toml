@@ -1,0 +1,34 @@
+[package]
+name = "conduit-esp32-wroom-signal"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+[workspace]
+
+[[bin]]
+name = "conduit-esp32-wroom-signal"
+path = "src/main.rs"
+
+[dependencies]
+conduit-kernel = { path = "../../crates/conduit-kernel" }
+critical-section = "1.2.0"
+esp-bootloader-esp-idf = { version = "0.5.0", features = ["esp32"] }
+esp-hal = { version = "~1.1.0", features = ["esp32"] }
+
+[build-dependencies]
+conduit-core = { path = "../../crates/conduit-core" }
+conduit-embedded-build = { path = "../../crates/conduit-embedded-build" }
+conduit-form = { path = "../../crates/conduit-form" }
+conduit-planner = { path = "../../crates/conduit-planner" }
+conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
+conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+
+[profile.dev]
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = "fat"
+opt-level = "s"
