@@ -7,6 +7,7 @@ const root = resolve(".");
 const port = Number.parseInt(process.argv[2] ?? "4173", 10);
 const mediaTypes = new Map([
   [".html", "text/html; charset=utf-8"],
+  [".js", "text/javascript; charset=utf-8"],
   [".mjs", "text/javascript; charset=utf-8"],
 ]);
 

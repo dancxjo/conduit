@@ -131,6 +131,13 @@ impl NativeWebSocketLine {
         self.maximum_message_bytes
     }
 
+    pub fn set_read_timeout(&self, timeout: Option<Duration>) -> Result<(), NativeWebSocketError> {
+        self.socket
+            .get_ref()
+            .set_read_timeout(timeout)
+            .map_err(|error| NativeWebSocketError::Transport(error.kind()))
+    }
+
     pub fn send_binary(&mut self, bytes: &[u8]) -> Result<(), NativeWebSocketError> {
         if bytes.len() > self.maximum_message_bytes {
             return Err(NativeWebSocketError::OversizedMessage);
