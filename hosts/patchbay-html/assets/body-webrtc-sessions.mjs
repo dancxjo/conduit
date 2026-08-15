@@ -15,24 +15,27 @@ export class BodyWebRtcSessions {
   #sendSignal;
   #requestGrant;
   #onState;
+  #createSession;
   #sessions = new Map();
   #creating = new Map();
   #pendingSignals = new Map();
   #expectedTotal = null;
   #nextGrantIndex = 0;
+  #inFlightGrantIndex = null;
   #begun = false;
   #generation = 0;
   #terminal = null;
 
-  constructor({ wasmBytes, sendSignal, requestGrant, onState }) {
+  constructor({ wasmBytes, sendSignal, requestGrant, onState, createSession = BodyWebRtcSession.create }) {
     if (!(wasmBytes instanceof ArrayBuffer) || typeof sendSignal !== "function" ||
-        typeof requestGrant !== "function") {
+        typeof requestGrant !== "function" || typeof createSession !== "function") {
       throw new Error("invalid Body WebRTC session composition");
     }
     this.#wasmBytes = wasmBytes;
     this.#sendSignal = sendSignal;
     this.#requestGrant = requestGrant;
     this.#onState = onState;
+    this.#createSession = createSession;
   }
 
   begin() {
@@ -53,6 +56,7 @@ export class BodyWebRtcSessions {
     if (this.#expectedTotal === null) this.#expectedTotal = total;
     if (this.#expectedTotal !== total) throw new Error("WebRTC grant total changed");
     if (index !== this.#nextGrantIndex) throw new Error("WebRTC grant index stage refused");
+    if (this.#inFlightGrantIndex !== null) throw new Error("WebRTC grant creation already in flight");
     if (total === 0) {
       if (index !== 0 || grant !== null) throw new Error("invalid empty WebRTC grant set");
       if (this.#pendingSignals.size !== 0) {
@@ -72,17 +76,34 @@ export class BodyWebRtcSessions {
       throw new Error("WebRTC session capacity exhausted");
     }
     const generation = this.#generation;
-    const creation = BodyWebRtcSession.create({
-      wasmBytes: this.#wasmBytes,
-      grant,
-      sendSignal: (signal) => this.#sendSignal(signal),
-    });
+    this.#inFlightGrantIndex = index;
+    let creation;
+    try {
+      creation = this.#createSession({
+        wasmBytes: this.#wasmBytes,
+        grant,
+        sendSignal: (signal) => this.#sendSignal(signal),
+      });
+    } catch (error) {
+      this.#inFlightGrantIndex = null;
+      throw error;
+    }
     this.#creating.set(negotiationId, creation);
     let session;
     try {
       session = await creation;
+    } catch (error) {
+      if (generation === this.#generation && this.#inFlightGrantIndex === index) {
+        this.#inFlightGrantIndex = null;
+      }
+      throw error;
     } finally {
-      this.#creating.delete(negotiationId);
+      if (this.#creating.get(negotiationId) === creation) {
+        this.#creating.delete(negotiationId);
+      }
+    }
+    if (generation === this.#generation && this.#inFlightGrantIndex === index) {
+      this.#inFlightGrantIndex = null;
     }
     if (this.#terminal !== null || generation !== this.#generation) {
       session.close();
@@ -125,9 +146,11 @@ export class BodyWebRtcSessions {
     this.#generation += 1;
     for (const session of this.#sessions.values()) session.close();
     this.#sessions.clear();
+    this.#creating.clear();
     this.#pendingSignals.clear();
     this.#expectedTotal = null;
     this.#nextGrantIndex = 0;
+    this.#inFlightGrantIndex = null;
     this.#begun = false;
     this.#terminal = reason;
     this.#onState?.(this.state());
@@ -137,6 +160,7 @@ export class BodyWebRtcSessions {
     return Object.freeze({
       expectedTotal: this.#expectedTotal,
       nextGrantIndex: this.#nextGrantIndex,
+      inFlightGrantIndex: this.#inFlightGrantIndex,
       activeSessions: this.#sessions.size,
       creatingSessions: this.#creating.size,
       pendingSignals: this.#pendingSignals.size,

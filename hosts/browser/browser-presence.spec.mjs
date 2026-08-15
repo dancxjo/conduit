@@ -116,6 +116,37 @@ test("admitted browser renews exact current presence and close makes it unavaila
   await expect(page.evaluate(() => globalThis.__immutableWebRtcSignalFrame({
     signal: { negotiation_id: "binding/malformed" },
   }))).rejects.toThrow("invalid WebRTC signal frame");
+  expect(await page.evaluate(() => globalThis.__probeConcurrentGrantStage())).toMatchObject({
+    creations: 1,
+    requests: [0],
+    secondRefusal: "WebRTC grant creation already in flight",
+    creationRefusal: "creation refused",
+    state: {
+      nextGrantIndex: 1,
+      inFlightGrantIndex: null,
+      activeSessions: 1,
+      creatingSessions: 0,
+    },
+    failedState: {
+      nextGrantIndex: 0,
+      inFlightGrantIndex: null,
+      activeSessions: 0,
+      creatingSessions: 0,
+    },
+    staleRefusal: "stale WebRTC session creation",
+    stateAfterStale: {
+      nextGrantIndex: 0,
+      inFlightGrantIndex: 0,
+      activeSessions: 0,
+      creatingSessions: 1,
+    },
+    generationState: {
+      nextGrantIndex: 1,
+      inFlightGrantIndex: null,
+      activeSessions: 1,
+      creatingSessions: 0,
+    },
+  });
   expect(await page.evaluate(() => {
     const source = {
       kind: "web-rtc-signal",
