@@ -195,7 +195,7 @@ impl PatchbayApplication {
             application.plan_play()?;
             application.play_plan()?;
             if arguments.control_demo_stop {
-                application.control.stop()?;
+                application.stop_play()?;
             }
         }
         if arguments.body_parts_demo {

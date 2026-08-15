@@ -17,6 +17,7 @@ conduit-presentation = { path = "../../crates/conduit-presentation" }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", features = ["form-catalog"] }
 conduit-std-host = { path = "../std" }
 conduit-system-continuity = { path = "../../crates/conduit-system-continuity" }
+conduit-wire = { path = "../../crates/conduit-wire" }
 embedded-graphics = "=0.8.1"
 patchbay-model = { path = "../patchbay-model" }
 serde_json = "1"
@@ -25,5 +26,4 @@ winit = { version = "0.30", default-features = false, features = ["rwh_06", "way
 
 [dev-dependencies]
 conduit-browser-runtime = { path = "../browser-runtime" }
-conduit-wire = { path = "../../crates/conduit-wire" }
 conduitos = { path = "../conduitos" }
