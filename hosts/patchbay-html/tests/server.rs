@@ -95,6 +95,32 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
 }
 
 #[test]
+fn product_serves_one_canonical_bounded_webrtc_client_module_graph() {
+    for (path, marker) in [
+        ("/assets/browser-membership.js", "BodyWebRtcSessions"),
+        (
+            "/assets/body-webrtc-sessions.mjs",
+            "class BodyWebRtcSessions",
+        ),
+        ("/assets/body-webrtc-session.mjs", "class BodyWebRtcSession"),
+        (
+            "/assets/webrtc-datachannel-line.mjs",
+            "class BrowserWebRtcDataChannelLine",
+        ),
+        (
+            "/assets/webrtc-session-runtime.mjs",
+            "instantiateGrantedWebRtcSession",
+        ),
+    ] {
+        let response = request(path, "GET");
+        assert!(response.starts_with("HTTP/1.1 200 OK"), "{path}");
+        assert!(response.contains("Content-Type: text/javascript; charset=utf-8"));
+        assert!(response.contains("Cache-Control: no-store"));
+        assert!(response.contains(marker), "{path}");
+    }
+}
+
+#[test]
 fn parts_inspection_is_non_mutating_and_ambient_admission_is_never_implicit() {
     let snapshot = demonstration_snapshot().unwrap();
     let presentation_id = snapshot.presentation.identity.as_str().to_owned();

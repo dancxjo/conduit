@@ -121,6 +121,38 @@ export class BrowserWebRtcDataChannelLine {
     }
   }
 
+  async writable(byteLength) {
+    positiveInteger(byteLength, "writable byteLength");
+    if (byteLength > this.#maximumBufferedBytes) {
+      throw new Error("writable-message-too-large");
+    }
+    if (this.#terminal !== null) throw new Error(`line-terminal:${this.#terminal.reason}`);
+    if (this.#channel.readyState !== "open") {
+      throw new Error(`datachannel-writable-refused:${this.#channel.readyState}`);
+    }
+    const threshold = this.#maximumBufferedBytes - byteLength;
+    if (this.#channel.bufferedAmount <= threshold) return;
+    this.#channel.bufferedAmountLowThreshold = threshold;
+    await new Promise((resolve, reject) => {
+      const writable = () => {
+        cleanup();
+        resolve();
+      };
+      const refused = () => {
+        cleanup();
+        reject(new Error(`datachannel-writable-refused:${this.#channel.readyState}`));
+      };
+      const cleanup = () => {
+        this.#channel.removeEventListener("bufferedamountlow", writable);
+        this.#channel.removeEventListener("close", refused);
+        this.#channel.removeEventListener("error", refused);
+      };
+      this.#channel.addEventListener("bufferedamountlow", writable, { once: true });
+      this.#channel.addEventListener("close", refused, { once: true });
+      this.#channel.addEventListener("error", refused, { once: true });
+    });
+  }
+
   receive() {
     if (this.#terminal !== null) return Promise.resolve(this.#terminal);
     if (this.#received.length > 0) {
