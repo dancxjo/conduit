@@ -3,6 +3,14 @@ const MAXIMUM_OUTPUT_BYTES = 9216;
 
 const MAXIMUM_WEB_RTC_GRANTS = 16;
 
+export function immutableWebRtcGrantFrame(frame) {
+  const immutableGrant = frame.grant === null ? null : Object.freeze({
+    ...frame.grant,
+    session_hello: Object.freeze([...frame.grant.session_hello]),
+  });
+  return Object.freeze({ ...frame, grant: immutableGrant });
+}
+
 export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGrant, onWebRtcSignal, renewPresence = true, reconnectPresence = true }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
@@ -216,7 +224,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
           (frame.grant !== null && typeof frame.grant !== "object")) {
         throw new Error("invalid WebRTC grant response for current browser presence");
       }
-      onWebRtcGrant?.(Object.freeze(frame));
+      onWebRtcGrant?.(immutableWebRtcGrantFrame(frame));
     } else if (frame.kind === "refused" && frame.protocol === 1) {
       presenceState = "unavailable";
       clearTimeout(renewalTimer);

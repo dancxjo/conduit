@@ -374,6 +374,7 @@ fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissio
         } => {
             if usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS
                 || usize::from(*total) > MAX_WEBRTC_NEGOTIATIONS
+                || grant.is_some() != (*index < *total)
             {
                 return Err(BrowserAdmissionFrameError::InvalidGrant);
             }

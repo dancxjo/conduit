@@ -54,6 +54,39 @@ test("admitted browser renews exact current presence and close makes it unavaila
   await page.evaluate(() => globalThis.__browserPresence.requestWebRtcGrant(0));
   await expect.poll(() => page.evaluate(() => globalThis.__browserWebRtcGrants.at(-1)))
     .toEqual({ kind: "web-rtc-grant", protocol: 1, index: 0, total: 0, grant: null });
+  expect(await page.evaluate(() => Object.isFrozen(globalThis.__browserWebRtcGrants.at(-1))))
+    .toBe(true);
+  expect(await page.evaluate(() => {
+    const source = {
+      kind: "web-rtc-grant",
+      protocol: 1,
+      index: 0,
+      total: 1,
+      grant: {
+        negotiation_id: "binding/exact",
+        role: "source",
+        peer_host_id: "host/peer",
+        peer_boot_id: "boot/peer",
+        session_hello: [1, 2, 3],
+      },
+    };
+    const immutable = globalThis.__immutableWebRtcGrantFrame(source);
+    source.grant.peer_host_id = "host/mutated";
+    source.grant.session_hello[0] = 9;
+    return {
+      outer: Object.isFrozen(immutable),
+      grant: Object.isFrozen(immutable.grant),
+      hello: Object.isFrozen(immutable.grant.session_hello),
+      peerHostId: immutable.grant.peer_host_id,
+      firstByte: immutable.grant.session_hello[0],
+    };
+  })).toEqual({
+    outer: true,
+    grant: true,
+    hello: true,
+    peerHostId: "host/peer",
+    firstByte: 1,
+  });
   await expect.poll(probe.output).toContain("webrtc-grant index=0 total=0");
   const finalSequence = await page.evaluate(() => globalThis.__browserPresence.close());
   expect(finalSequence).toBeGreaterThanOrEqual(3);
