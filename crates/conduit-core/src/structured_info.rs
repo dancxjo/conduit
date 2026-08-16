@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use crate::KindId;
 
 mod canonical;
+mod inspection;
 mod profile;
 mod selection;
 mod transport;
@@ -16,6 +17,7 @@ use canonical::{
     check_encoding_size, decode_type, decode_value, digest, encode_type, encode_value_node,
     type_extent, value_extent,
 };
+pub use inspection::*;
 pub use profile::*;
 pub use selection::*;
 pub use transport::*;
@@ -250,6 +252,17 @@ pub struct StructuredInfoValue {
     node: StructuredInfoValueNode,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StructuredInfoValueShape<'a> {
+    Leaf(&'a [u8]),
+    Collection(&'a [StructuredInfoValue]),
+    Record(&'a [StructuredFieldValue]),
+    Variant {
+        tag: &'a str,
+        payload: &'a StructuredInfoValue,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum StructuredInfoValueNode {
     Leaf(Vec<u8>),
@@ -287,6 +300,19 @@ impl StructuredFieldValue {
 }
 
 impl StructuredInfoValue {
+    pub fn shape(&self) -> StructuredInfoValueShape<'_> {
+        match &self.node {
+            StructuredInfoValueNode::Leaf(bytes) => StructuredInfoValueShape::Leaf(bytes),
+            StructuredInfoValueNode::Collection(values) => {
+                StructuredInfoValueShape::Collection(values)
+            }
+            StructuredInfoValueNode::Record(fields) => StructuredInfoValueShape::Record(fields),
+            StructuredInfoValueNode::Variant { tag, payload } => {
+                StructuredInfoValueShape::Variant { tag, payload }
+            }
+        }
+    }
+
     pub fn from_canonical_bytes(encoded: &[u8]) -> Result<Self, StructuredInfoRefusal> {
         if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
             return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);

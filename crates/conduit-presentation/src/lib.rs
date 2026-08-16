@@ -14,6 +14,7 @@ mod navigation;
 mod presentation;
 mod projection;
 mod semantics;
+mod structured_info;
 mod temporal;
 mod temporal_wording;
 
@@ -28,5 +29,6 @@ pub use navigation::*;
 pub use presentation::*;
 pub use projection::*;
 pub use semantics::*;
+pub use structured_info::*;
 pub use temporal::*;
 pub use temporal_wording::*;
