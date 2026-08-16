@@ -46,6 +46,7 @@ mod policy_composition;
 mod profile;
 mod protected_resources;
 mod realization;
+mod realization_families;
 mod replanning;
 mod requirements;
 mod startup;
@@ -119,6 +120,11 @@ pub use profile::{
     FULL_PLANNER_PROFILE,
 };
 pub use realization::plan_selected_realizations;
+pub use realization_families::{
+    select_current_family_frontier, CurrentFamilyOffer, FamilyFrontier, FamilyFrontierMetrics,
+    RealizationFamily, RealizationFamilyCatalog, MAXIMUM_CURRENT_FAMILY_OFFERS,
+    MAXIMUM_REALIZATION_FAMILIES, MAXIMUM_REALIZATION_FAMILY_PREREQUISITES,
+};
 pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
 pub use style::{
