@@ -10,6 +10,8 @@ mod local_model;
 pub use local_model::*;
 mod model_result;
 pub use model_result::*;
+mod structured_result;
+pub use structured_result::*;
 #[cfg(feature = "form-catalog")]
 mod provider;
 #[cfg(feature = "form-catalog")]

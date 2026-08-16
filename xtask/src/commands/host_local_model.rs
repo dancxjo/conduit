@@ -48,6 +48,7 @@ pub(super) fn prove(
         vec![
             LocalModelKindProfile::Generate,
             LocalModelKindProfile::ClassifyFiniteLabels,
+            LocalModelKindProfile::ExtractValidatedInfo,
         ],
     )?;
     let offer = adapter.offer().clone();
@@ -73,11 +74,13 @@ pub(super) fn prove(
             offer.limits.cancellation_supported
         );
         println!(
-            "Plans: generate={} classify={} completed={}/{}",
+            "Plans: generate={} classify={} extract={} completed={}/{}/{}",
             receipt.generate_plan_id,
             receipt.classify_plan_id,
+            receipt.extract_plan_id,
             receipt.generate_play_completed,
-            receipt.classify_play_completed
+            receipt.classify_play_completed,
+            receipt.extract_play_completed
         );
     }
     Ok(())

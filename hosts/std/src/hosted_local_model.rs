@@ -13,6 +13,7 @@ pub enum LocalModelAdapterTerminal {
     Failed,
     Cancelled,
     ProviderLost,
+    InvalidStructuredResult,
 }
 
 pub trait HostedLocalModelAdapter: Send {
@@ -38,6 +39,7 @@ mod tests {
     use conduit_form::{
         check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog,
     };
+    use std::collections::BTreeMap;
 
     struct FakeLocalModel {
         offer: LocalModelOffer,
@@ -57,7 +59,34 @@ mod tests {
             output: &mut Vec<u8>,
         ) -> LocalModelAdapterTerminal {
             output.clear();
-            output.extend_from_slice(input);
+            let encoded = match placement.kind_id.as_str() {
+                conduit_ai::LLM_GENERATE_KIND => input.to_vec(),
+                conduit_ai::LLM_CLASSIFY_KIND => {
+                    serde_json::to_vec(&conduit_ai::FiniteClassification {
+                        label: "conduit".into(),
+                        allowed_labels: vec!["conduit".into(), "other".into()],
+                    })
+                    .unwrap()
+                }
+                conduit_ai::LLM_EXTRACT_KIND => {
+                    serde_json::to_vec(&conduit_ai::ValidatedExtraction {
+                        schema_identity: "fixture/subject@1".into(),
+                        fields: vec![conduit_ai::ExtractedField {
+                            key: "subject".into(),
+                            value: "Conduit".into(),
+                        }],
+                    })
+                    .unwrap()
+                }
+                conduit_ai::LLM_EMBED_KIND => serde_json::to_vec(&conduit_ai::FiniteEmbedding {
+                    profile_identity: "fixture/embedding-3@1".into(),
+                    dimensions: 3,
+                    values: vec![0.25, -0.5, 1.0],
+                })
+                .unwrap(),
+                _ => return LocalModelAdapterTerminal::Refused,
+            };
+            output.extend_from_slice(&encoded);
             self.calls.push(placement.kind_id.as_str().into());
             self.terminal
         }
@@ -254,11 +283,22 @@ mod tests {
         let expanded = conduit_form::expand_canonical_form(&checked, "run", &profiles).unwrap();
         let hosts = vec![advertisement.clone()];
         let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
-        let plan = conduit_planner::plan_expanded_canonical(
+        let connection_bases = BTreeMap::new();
+        let line_candidates = BTreeMap::new();
+        let plan = conduit_planner::plan_expanded_canonical_with_options(
             &expanded,
             &hosts,
             &placements,
             &[conduit_core::ConnectionBase::Local],
+            conduit_planner::PlanningOptions {
+                connection_bases: &connection_bases,
+                line_candidates: &line_candidates,
+                connection_item_capacity: 4,
+                connection_byte_capacity: 4_096,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
         )
         .unwrap();
         let mut adapter = FakeLocalModel {
@@ -288,8 +328,10 @@ mod tests {
     }
 
     #[test]
-    fn generate_and_classify_execute_through_ordinary_plan_and_play() {
+    fn all_four_l2_profiles_execute_through_ordinary_plan_and_play() {
         plan_and_play(LocalModelKindProfile::Generate);
         plan_and_play(LocalModelKindProfile::ClassifyFiniteLabels);
+        plan_and_play(LocalModelKindProfile::ExtractValidatedInfo);
+        plan_and_play(LocalModelKindProfile::EmbedFiniteVector);
     }
 }

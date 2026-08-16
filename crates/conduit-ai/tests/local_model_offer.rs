@@ -36,6 +36,8 @@ fn offer() -> LocalModelOffer {
         supported_profiles: vec![
             LocalModelKindProfile::Generate,
             LocalModelKindProfile::ClassifyFiniteLabels,
+            LocalModelKindProfile::ExtractValidatedInfo,
+            LocalModelKindProfile::EmbedFiniteVector,
         ],
         initialized: true,
         lifecycle: LocalModelLifecycleState::Ready,
@@ -44,11 +46,13 @@ fn offer() -> LocalModelOffer {
 }
 
 #[test]
-fn initialized_offer_exposes_two_exact_finite_l0_capabilities() {
+fn initialized_offer_exposes_four_exact_finite_l0_capabilities() {
     let offers = offer().capability_offers().unwrap();
-    assert_eq!(offers.len(), 2);
+    assert_eq!(offers.len(), 4);
     assert_eq!(offers[0].kind_id.as_str(), "llm/generate");
     assert_eq!(offers[1].kind_id.as_str(), "llm/classify");
+    assert_eq!(offers[2].kind_id.as_str(), "llm/extract");
+    assert_eq!(offers[3].kind_id.as_str(), "llm/embed");
     for capability in offers {
         assert_eq!(capability.host_operations.len(), 1);
         assert_eq!(

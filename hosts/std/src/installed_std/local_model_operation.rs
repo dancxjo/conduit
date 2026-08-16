@@ -82,7 +82,10 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
         .ok_or_else(|| "planned local-model Kind is not an L0 semantic contract".to_string())?;
     if !matches!(
         placement.kind_id.as_str(),
-        conduit_ai::LLM_GENERATE_KIND | conduit_ai::LLM_CLASSIFY_KIND
+        conduit_ai::LLM_GENERATE_KIND
+            | conduit_ai::LLM_CLASSIFY_KIND
+            | conduit_ai::LLM_EXTRACT_KIND
+            | conduit_ai::LLM_EMBED_KIND
     ) || placement.kind_contract_revision != contract.kind_contract_revision
         || placement.execution_profile_id.as_str() != conduit_ai::LOCAL_MODEL_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != conduit_ai::LOCAL_MODEL_IMPLEMENTATION

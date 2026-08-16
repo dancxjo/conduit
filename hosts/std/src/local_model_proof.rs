@@ -16,9 +16,11 @@ pub struct LocalModelLiveProofReceipt {
     pub model_content_identity: String,
     pub generate_plan_id: String,
     pub classify_plan_id: String,
+    pub extract_plan_id: String,
     pub implementation_identity: String,
     pub generate_play_completed: bool,
     pub classify_play_completed: bool,
+    pub extract_play_completed: bool,
 }
 
 struct NoopTimer;
@@ -43,6 +45,7 @@ pub fn run(
     for profile in [
         LocalModelKindProfile::Generate,
         LocalModelKindProfile::ClassifyFiniteLabels,
+        LocalModelKindProfile::ExtractValidatedInfo,
     ] {
         let contract = conduit_ai::llm_contract(profile.kind()).expect("proof profiles are L0");
         host.advertisement.capabilities.extend([
@@ -56,6 +59,7 @@ pub fn run(
     }
     let generate = run_profile(&mut host, LocalModelKindProfile::Generate)?;
     let classify = run_profile(&mut host, LocalModelKindProfile::ClassifyFiniteLabels)?;
+    let extract = run_profile(&mut host, LocalModelKindProfile::ExtractValidatedInfo)?;
     Ok(LocalModelLiveProofReceipt {
         proof_class: "live-local-model",
         host_id: host.advertisement.host_id.as_str().into(),
@@ -63,9 +67,11 @@ pub fn run(
         model_content_identity,
         generate_plan_id: generate.0,
         classify_plan_id: classify.0,
+        extract_plan_id: extract.0,
         implementation_identity: conduit_ai::LOCAL_MODEL_IMPLEMENTATION.into(),
         generate_play_completed: generate.1,
         classify_play_completed: classify.1,
+        extract_play_completed: extract.1,
     })
 }
 
