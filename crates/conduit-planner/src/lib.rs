@@ -37,6 +37,7 @@ mod fact_policy;
 mod functional_compatibility;
 mod fusion;
 mod generic_selection;
+mod incremental;
 mod locality;
 mod observations;
 mod performance_policy;
@@ -87,6 +88,12 @@ pub use fusion::{
     FusionCandidateEvidence, FusionDecisionGroup, FusionPlanningInputs, FusionPlanningObservation,
     FusionRealizationOffer, FusionSelection, OptimizedPlan, MAXIMUM_FUSION_CANDIDATES,
     MAXIMUM_FUSION_GROUPS, MAXIMUM_FUSION_MEMBERS, MAXIMUM_FUSION_OFFERS,
+};
+pub use incremental::{
+    plan_cold, CandidateEvaluation, CandidateEvaluationDisposition, CandidateStructure, FactDomain,
+    IncrementalCandidateEvidence, IncrementalPlan, IncrementalPlanner, IncrementalPlannerMetrics,
+    PlanningFact, PlanningFactKey, StabilityPolicy, MAXIMUM_CACHED_CANDIDATES,
+    MAXIMUM_CANDIDATE_DEPENDENCIES, MAXIMUM_INCREMENTAL_CANDIDATES, MAXIMUM_PLANNING_FACTS,
 };
 pub use locality::{
     select_data_locality_candidate, CandidateCostEvidence, CandidatePlacement,
