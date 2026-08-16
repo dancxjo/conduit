@@ -329,11 +329,13 @@ pub enum ConfigurationRule {
     DurationMillis { minimum: u64, maximum: u64 },
     TextBytes { maximum: u32 },
     TextOneOf { values: Vec<String> },
+    Structured { profile: KindId },
 }
 
 impl ConfigurationRule {
     fn accepts(&self, value: &ConfigurationValue) -> bool {
         match (self, value) {
+            (Self::Any, ConfigurationValue::Structured(_)) => false,
             (Self::Any, _) => true,
             (Self::U64Range { minimum, maximum }, ConfigurationValue::U64(value)) => {
                 (*minimum..=*maximum).contains(value)
@@ -353,6 +355,10 @@ impl ConfigurationRule {
             (Self::TextBytes { .. }, _) => false,
             (Self::TextOneOf { values }, ConfigurationValue::Text(value)) => values.contains(value),
             (Self::TextOneOf { .. }, _) => false,
+            (Self::Structured { profile }, ConfigurationValue::Structured(value)) => {
+                value.profile() == profile
+            }
+            (Self::Structured { .. }, _) => false,
         }
     }
 }
@@ -654,6 +660,9 @@ fn parse_form_block(
                                 ConfigurationValue::U64(_) => "Count",
                                 ConfigurationValue::I64(_) => "Scalar",
                                 ConfigurationValue::Text(_) => "Text",
+                                ConfigurationValue::Structured(ref value) => {
+                                    value.profile().as_str()
+                                }
                             }
                             .to_string(),
                             has_default: true,
@@ -1229,6 +1238,9 @@ fn parse_configuration_value(
         ConfigurationValue::Text(_) => text_value::parse_quoted_text(source)
             .map(ConfigurationValue::Text)
             .ok_or_else(|| FormError::InvalidConfiguration(format!("invalid text {source}"))),
+        ConfigurationValue::Structured(_) => Err(FormError::InvalidConfiguration(
+            "structured configuration requires canonical syntax checking".into(),
+        )),
     }
 }
 
@@ -1461,6 +1473,11 @@ fn render_value(value: &ConfigurationValue) -> String {
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => value.to_string(),
         ConfigurationValue::Text(value) => format!("{value:?}"),
+        ConfigurationValue::Structured(value) => alloc::format!(
+            "<structured:{}:{}-bytes>",
+            value.profile().as_str(),
+            value.canonical_value().len()
+        ),
     }
 }
 

@@ -7,8 +7,8 @@ use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
 };
 
-/// Installs the four portable semantic leaves. This installs no Host offer:
-/// availability and implementation remain separate realization facts.
+/// Installs portable sound semantics and structured instrument authoring contracts.
+/// This installs no Host offer: availability and implementation remain separate realization facts.
 pub fn install_sound_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -73,6 +73,7 @@ pub fn install_sound_catalogs(
             })
             .map_err(|error| error.to_string())?;
     }
+    crate::install_structured_music_form_catalogs(startup, profile)?;
     Ok(())
 }
 
@@ -82,5 +83,10 @@ fn configuration_source(value: &ConfigurationValue) -> String {
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => value.to_string(),
         ConfigurationValue::Bool(value) => value.to_string(),
+        ConfigurationValue::Structured(value) => format!(
+            "<structured:{}:{}-bytes>",
+            value.profile().as_str(),
+            value.canonical_value().len()
+        ),
     }
 }

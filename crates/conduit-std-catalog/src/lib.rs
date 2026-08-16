@@ -89,6 +89,10 @@ pub use sound_stream::*;
 mod sound_catalog;
 #[cfg(feature = "form-catalog")]
 pub use sound_catalog::install_sound_catalogs;
+#[cfg(feature = "form-catalog")]
+mod structured_music_form;
+#[cfg(feature = "form-catalog")]
+pub use structured_music_form::*;
 
 /// Exact typed contracts currently supported by the executable `conduit.std` nucleus.
 ///

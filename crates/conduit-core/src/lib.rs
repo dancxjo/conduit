@@ -38,7 +38,7 @@ mod structured_info;
 pub use audio_info::*;
 pub use audio_render_demand::*;
 pub use characteristic::*;
-pub use configuration::{ConfigurationEntry, ConfigurationValue};
+pub use configuration::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
 pub use control_loop::*;
 pub use deadline::*;
 pub use execution::*;
@@ -944,6 +944,12 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                 ConfigurationValue::Text(ref value) => {
                     canonical.push(2);
                     push_string(&mut canonical, value);
+                }
+                ConfigurationValue::Structured(ref value) => {
+                    canonical.push(4);
+                    push_string(&mut canonical, value.profile().as_str());
+                    push_u32(&mut canonical, value.canonical_value().len() as u32);
+                    canonical.extend_from_slice(value.canonical_value());
                 }
             }
         }
