@@ -15,7 +15,7 @@ use std::{
 };
 
 const PREFIX: &str = "CONDUIT_RISCV64_ENTRY_SIGN ";
-const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-opensbi-uboot";
+const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-tcg-opensbi-uboot";
 const EMULATOR_BOOT_DEADLINE: Duration = Duration::from_secs(120);
 const MAXIMUM_TIMEOUT_DIAGNOSTIC_BYTES: usize = 4_096;
 
@@ -158,6 +158,8 @@ pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String,
         .args([
             "-machine",
             "virt",
+            "-accel",
+            "tcg,thread=single",
             "-cpu",
             "rv64,sv57=off,sv48=off",
             "-m",
