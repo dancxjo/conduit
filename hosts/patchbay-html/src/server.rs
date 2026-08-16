@@ -25,6 +25,10 @@ const FLOW_LAYOUT_SCRIPT: &[u8] = include_bytes!("../assets/flow-layout.js");
 const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js");
 const PANEL_FURNITURE_SCRIPT: &[u8] = include_bytes!("../assets/panel-furniture.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
+const BODY_WEBRTC_SESSIONS_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-sessions.mjs");
+const BODY_WEBRTC_SESSION_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-session.mjs");
+const WEBRTC_LINE_SCRIPT: &[u8] = include_bytes!("../assets/webrtc-datachannel-line.mjs");
+const WEBRTC_RUNTIME_SCRIPT: &[u8] = include_bytes!("../assets/webrtc-session-runtime.mjs");
 const STYLE: &[u8] = include_bytes!("../assets/app.css");
 const REACT: &[u8] = include_bytes!("../assets/react.min.js");
 const REACT_DOM: &[u8] = include_bytes!("../assets/react-dom.min.js");
@@ -299,6 +303,26 @@ impl PatchbayHtmlServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 MEMBERSHIP_SCRIPT,
+            ),
+            "GET /assets/body-webrtc-sessions.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                BODY_WEBRTC_SESSIONS_SCRIPT,
+            ),
+            "GET /assets/body-webrtc-session.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                BODY_WEBRTC_SESSION_SCRIPT,
+            ),
+            "GET /assets/webrtc-datachannel-line.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                WEBRTC_LINE_SCRIPT,
+            ),
+            "GET /assets/webrtc-session-runtime.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                WEBRTC_RUNTIME_SCRIPT,
             ),
             "GET /assets/conduit-browser-runtime.wasm HTTP/1.1" => {
                 self.browser_wasm.as_deref().map_or(
