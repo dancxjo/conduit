@@ -48,6 +48,19 @@ impl PatchbayPresentation {
         let presentation = self.to_portable_with_wake(body, None)?;
         append_parts_to_presentation(self.revision, presentation, body, parts, None)
     }
+
+    pub fn to_portable_lulled_front_door_with_temporal_reference(
+        &self,
+        body: &Body,
+        parts: &PartsView,
+        reference: TemporalReference,
+    ) -> Result<Presentation, PortableProjectionError> {
+        if parts.body_id != body.body_id {
+            return Err(PortableProjectionError::LifecycleMismatch);
+        }
+        let presentation = self.to_portable_with_wake(body, None)?;
+        append_parts_to_presentation(self.revision, presentation, body, parts, Some(reference))
+    }
 }
 
 fn append_parts_to_presentation(

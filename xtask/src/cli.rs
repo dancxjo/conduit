@@ -142,6 +142,11 @@ pub struct ProveArgs {
     #[arg(long)]
     pub induce_sink_failure: bool,
 
+    /// Connect the physical Bluetooth Line and require explicit transport-loss
+    /// evidence instead of successful message delivery.
+    #[arg(long)]
+    pub induce_transport_loss: bool,
+
     /// Fail the Patchbay proof after its first canonical capture so the
     /// restarted-worker diagnostic evidence path can be verified.
     #[arg(long)]
@@ -227,6 +232,7 @@ pub struct ProofsArgs {
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProveTarget {
     BluetoothLine,
+    BluetoothPico,
     BodyMembership,
     BodyMembershipHil,
     StdBrowserS4,

@@ -145,7 +145,7 @@ fn generate_remote_endpoints(
         }
         if !matches!(
             endpoint.line.binding.base,
-            ConnectionBase::UsbCdc | ConnectionBase::WebSocket
+            ConnectionBase::UsbCdc | ConnectionBase::WebSocket | ConnectionBase::BluetoothLeGatt
         ) {
             return Err(GenerationError::Unsupported(
                 UnsupportedPlanFeature::RemoteConnection,

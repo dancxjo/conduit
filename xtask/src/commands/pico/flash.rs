@@ -33,7 +33,9 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     }
 
     let actual_mode = read_firmware_mode(&root)?;
-    let expected_mode = if args.appliance_hello {
+    let expected_mode = if args.bluetooth_line {
+        "bluetooth-line"
+    } else if args.appliance_hello {
         "appliance-hello"
     } else if args.appliance_hil_client {
         "appliance-hil-client"

@@ -26,7 +26,10 @@ use tokio::io::AsyncReadExt;
 const MAXIMUM_GATT_OBJECTS_INSPECTED: usize = 16;
 mod discovery;
 
-pub use discovery::discover_ble_gatt_candidate;
+pub use discovery::{
+    disconnect_ble_gatt_candidate, discover_ble_gatt_candidate, discover_one_ble_gatt_candidate,
+    pair_ble_gatt_candidate,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BluezBleGattError {
@@ -38,9 +41,11 @@ pub enum BluezBleGattError {
     AdvertisementUnavailable(String),
     DiscoveryUnavailable(String),
     CandidateUnavailable,
+    MultipleCandidates,
     IncompatibleProfile,
     DeviceUnavailable,
     NotPaired,
+    PairingFailed(String),
     ConnectFailed,
     MissingService,
     MissingWriteCharacteristic,
@@ -230,30 +235,84 @@ impl BluezBleGattLine {
         address: [u8; 6],
         profile: BleGattProfile,
     ) -> Result<Self, BluezBleGattError> {
+        Self::connect_inner(adapter_name, address, profile, false).await
+    }
+
+    /// Pair one explicitly discovered peer and adopt that same encrypted
+    /// connection as the Line, without a process boundary or reconnect.
+    pub async fn pair_and_connect(
+        adapter_name: &str,
+        address: [u8; 6],
+        profile: BleGattProfile,
+    ) -> Result<Self, BluezBleGattError> {
+        Self::connect_inner(adapter_name, address, profile, true).await
+    }
+
+    async fn connect_inner(
+        adapter_name: &str,
+        address: [u8; 6],
+        profile: BleGattProfile,
+        allow_pairing: bool,
+    ) -> Result<Self, BluezBleGattError> {
         let profile = profile
             .validate()
             .map_err(|_| BluezBleGattError::InvalidProfile)?;
         let session = Session::new()
             .await
             .map_err(|_| BluezBleGattError::BluetoothUnavailable)?;
+        let _agent = if allow_pairing {
+            Some(
+                session
+                    .register_agent(bluer::agent::Agent::default())
+                    .await
+                    .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?,
+            )
+        } else {
+            None
+        };
         let adapter = session
             .adapter(adapter_name)
             .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
+        if allow_pairing {
+            adapter
+                .set_pairable(true)
+                .await
+                .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
+        }
         let address = Address(address);
         let device = adapter
             .device(address)
             .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-        if !device
+        let paired = device
             .is_paired()
+            .await
+            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+        if !paired {
+            if !allow_pairing {
+                return Err(BluezBleGattError::NotPaired);
+            }
+            // Own the selected physical connection before pairing. BlueZ may
+            // otherwise create an ephemeral pairing connection and close it
+            // before the admitted GATT Line can adopt the same link.
+            device
+                .connect()
+                .await
+                .map_err(|_| BluezBleGattError::ConnectFailed)?;
+            device
+                .pair()
+                .await
+                .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?;
+        }
+        if !device
+            .is_connected()
             .await
             .map_err(|_| BluezBleGattError::DeviceUnavailable)?
         {
-            return Err(BluezBleGattError::NotPaired);
+            device
+                .connect()
+                .await
+                .map_err(|_| BluezBleGattError::ConnectFailed)?;
         }
-        device
-            .connect()
-            .await
-            .map_err(|_| BluezBleGattError::ConnectFailed)?;
 
         let service_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_SERVICE_UUID);
         let write_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_WRITE_UUID);

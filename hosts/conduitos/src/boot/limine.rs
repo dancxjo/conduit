@@ -1,6 +1,10 @@
 //! Sole adapter from Limine protocol types into bootloader-neutral boot truth.
 
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "riscv64",
+    target_arch = "x86_64"
+))]
 use limine::request::StackSizeRequest;
 use limine::{
     BaseRevision,
@@ -64,6 +68,10 @@ static EXECUTABLE_CMDLINE: ExecutableCmdlineRequest = ExecutableCmdlineRequest::
 #[unsafe(link_section = ".requests")]
 #[cfg(target_arch = "aarch64")]
 static AARCH64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
+#[used]
+#[unsafe(link_section = ".requests")]
+#[cfg(target_arch = "riscv64")]
+static RISCV64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
 #[used]
 #[unsafe(link_section = ".requests")]
 #[cfg(target_arch = "x86_64")]

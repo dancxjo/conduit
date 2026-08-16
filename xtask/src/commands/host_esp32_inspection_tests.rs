@@ -19,6 +19,15 @@ Detected flash size: 4MB
 Flash voltage set by a strapping pin: 3.3V
 "#;
 
+const S3_FLASH: &str = r#"
+Flash Memory Information:
+Manufacturer: 5e
+Device: 4018
+Detected flash size: 16MB
+Flash type set in eFuse: quad (4 data lines)
+Flash voltage set by eFuse: 3.3V
+"#;
+
 const C3_CHIP: &str = r#"
 Connected to ESP32-C3:
 Chip type:          ESP32-C3 (QFN32) (revision v0.4)
@@ -46,6 +55,15 @@ fn exact_classic_rom_and_flash_transcripts_parse() {
     assert_eq!(flash.manufacturer_id, "0x5e");
     assert_eq!(flash.device_id, "0x4016");
     assert_eq!(flash.detected_bytes, 4 * 1024 * 1024);
+    assert_eq!(flash.voltage, "3.3V");
+}
+
+#[test]
+fn exact_s3_efuse_flash_transcript_parses_without_classic_wording() {
+    let flash = parse_flash_facts(S3_FLASH).unwrap();
+    assert_eq!(flash.manufacturer_id, "0x5e");
+    assert_eq!(flash.device_id, "0x4018");
+    assert_eq!(flash.detected_bytes, 16 * 1024 * 1024);
     assert_eq!(flash.voltage, "3.3V");
 }
 
@@ -79,6 +97,11 @@ fn malformed_or_different_hardware_refuses_before_evidence() {
         FLASH.replace("4MB", "4GB"),
         FLASH.replace("Manufacturer: 5e", "Manufacturer: nope"),
         FLASH.replace("Device: 4016", "Device:"),
+        FLASH.replace(
+            "Flash voltage set by a strapping pin: 3.3V",
+            "Flash voltage unavailable",
+        ),
+        format!("{FLASH}\nFlash voltage set by eFuse: 3.3V"),
     ] {
         assert!(parse_flash_facts(&hostile).is_err());
     }

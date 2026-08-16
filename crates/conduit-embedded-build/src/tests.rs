@@ -402,6 +402,7 @@ fn sealed_current_fragment() -> PlanFragment {
             },
         ],
         execution_regions: vec![],
+        execution_fusions: vec![],
         connections: vec![PlannedConnection {
             connection_id: connection.clone(),
             source_placement_id: source.clone(),

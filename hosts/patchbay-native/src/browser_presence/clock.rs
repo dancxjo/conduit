@@ -1,6 +1,7 @@
 //! Restart-scoped process-relative clock for native browser presence.
 
 use conduit_body::{HostPresenceClock, HostPresenceClockScale};
+use conduit_presentation::{TemporalInstant, TemporalReference, TemporalScale};
 use std::io::Read;
 use std::time::Instant;
 
@@ -37,8 +38,23 @@ impl BrowserPresenceClock {
     }
 
     pub(super) fn now_millis(&self) -> Result<u64, String> {
-        u64::try_from(self.origin.elapsed().as_millis())
-            .map_err(|_| "browser presence clock overflowed".into())
+        let elapsed = u64::try_from(self.origin.elapsed().as_millis())
+            .map_err(|_| "browser presence clock overflowed")?;
+        // Keep the declared uncertainty interval representable at process start.
+        Ok(elapsed.max(self.descriptor.uncertainty_ticks))
+    }
+
+    pub(super) fn presentation_reference(&self) -> Result<TemporalReference, String> {
+        Ok(TemporalReference {
+            identity: "reference/native-parts-presentation".into(),
+            instant: TemporalInstant {
+                ticks: self.now_millis()?,
+                scale: TemporalScale::Milliseconds,
+                clock_basis: self.descriptor.basis_id.clone(),
+                resolution_ticks: self.descriptor.resolution_ticks,
+                uncertainty_ticks: self.descriptor.uncertainty_ticks,
+            },
+        })
     }
 }
 
@@ -54,5 +70,16 @@ mod tests {
         assert_eq!(first.descriptor.scale, HostPresenceClockScale::Milliseconds);
         assert_eq!(first.descriptor.resolution_ticks, 1);
         assert_eq!(first.descriptor.uncertainty_ticks, 1);
+    }
+
+    #[test]
+    fn presentation_reference_reuses_the_exact_presence_clock_basis() {
+        let clock = BrowserPresenceClock::new().unwrap();
+        let reference = clock.presentation_reference().unwrap();
+
+        assert_eq!(reference.instant.clock_basis, clock.descriptor.basis_id);
+        assert_eq!(reference.instant.scale, TemporalScale::Milliseconds);
+        assert_eq!(reference.instant.resolution_ticks, 1);
+        assert_eq!(reference.instant.uncertainty_ticks, 1);
     }
 }

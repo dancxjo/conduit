@@ -26,6 +26,13 @@ const STATUS_TERMINATING: i32 = 3;
 const ERROR_NOT_STARTED: i32 = -200;
 const ERROR_OUTPUT_PENDING: i32 = -201;
 const ERROR_STAGE: i32 = -202;
+const EVENT_NONE: i32 = 0;
+const EVENT_OFFERED: i32 = 1;
+const EVENT_PRESSURE: i32 = 2;
+const EVENT_ACCEPTED: i32 = 3;
+const EVENT_DELIVERED: i32 = 4;
+const EVENT_INPUT_CLOSED: i32 = 5;
+const EVENT_TERMINAL: i32 = 6;
 
 thread_local! {
     static ENDPOINT: RefCell<Option<BrowserWebRtcSession>> = const { RefCell::new(None) };
@@ -51,6 +58,7 @@ struct BrowserWebRtcSession {
     received: [u8; PAYLOAD_CAPACITY as usize],
     received_len: usize,
     received_sequence: Option<u64>,
+    last_event: i32,
     stage: Stage,
 }
 
@@ -77,6 +85,7 @@ impl BrowserWebRtcSession {
             received: [0; PAYLOAD_CAPACITY as usize],
             received_len: 0,
             received_sequence: None,
+            last_event: EVENT_NONE,
             stage: Stage::PeerHello,
         };
         let binding = session.binding.clone();
@@ -136,7 +145,10 @@ impl BrowserWebRtcSession {
                 self.stage = Stage::Active;
                 Ok(STATUS_ACTIVE)
             }
-            (Stage::Active, SessionMessage::InputClosed { .. }) => Ok(STATUS_ACTIVE),
+            (Stage::Active, SessionMessage::InputClosed { .. }) => {
+                self.last_event = EVENT_INPUT_CLOSED;
+                Ok(STATUS_ACTIVE)
+            }
             (Stage::Active, SessionMessage::Offered { sequence, payload }) => {
                 self.received[..payload.len()].copy_from_slice(payload);
                 self.received_len = payload.len();
@@ -145,16 +157,28 @@ impl BrowserWebRtcSession {
                 let accepted = binding.frame(SessionMessage::Accepted { sequence });
                 self.machine.admit_outbound(accepted)?;
                 self.write(accepted)?;
+                self.last_event = EVENT_OFFERED;
                 Ok(STATUS_ACTIVE)
             }
-            (Stage::Active, SessionMessage::Pressure { .. })
-            | (Stage::Active, SessionMessage::Accepted { .. })
-            | (Stage::Active, SessionMessage::Delivered { .. }) => Ok(STATUS_ACTIVE),
+            (Stage::Active, SessionMessage::Pressure { .. }) => {
+                self.last_event = EVENT_PRESSURE;
+                Ok(STATUS_ACTIVE)
+            }
+            (Stage::Active, SessionMessage::Accepted { .. }) => {
+                self.last_event = EVENT_ACCEPTED;
+                Ok(STATUS_ACTIVE)
+            }
+            (Stage::Active, SessionMessage::Delivered { .. }) => {
+                self.last_event = EVENT_DELIVERED;
+                Ok(STATUS_ACTIVE)
+            }
             (Stage::Active, SessionMessage::Terminal { .. }) => {
+                self.last_event = EVENT_TERMINAL;
                 self.stage = Stage::PeerTerminal;
                 Ok(STATUS_TERMINATING)
             }
             (Stage::LocalTerminal, SessionMessage::Terminal { .. }) => {
+                self.last_event = EVENT_TERMINAL;
                 self.stage = Stage::Terminal;
                 Ok(STATUS_TERMINAL)
             }
@@ -406,6 +430,16 @@ pub extern "C" fn conduit_browser_webrtc_session_next_sequence() -> u64 {
             .as_ref()
             .map(|endpoint| endpoint.machine.next_sequence())
             .unwrap_or(0)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_last_event() -> i32 {
+    ENDPOINT.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|endpoint| endpoint.last_event)
+            .unwrap_or(EVENT_NONE)
     })
 }
 

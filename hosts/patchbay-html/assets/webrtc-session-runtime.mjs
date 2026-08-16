@@ -18,6 +18,7 @@ const requiredExports = [
   "conduit_browser_webrtc_session_value_ptr",
   "conduit_browser_webrtc_session_value_len",
   "conduit_browser_webrtc_session_next_sequence",
+  "conduit_browser_webrtc_session_last_event",
   "conduit_browser_webrtc_session_close_input",
   "conduit_browser_webrtc_session_finish",
 ];
@@ -150,4 +151,15 @@ export function webRtcSessionValue(runtime) {
 
 export function webRtcSessionNextSequence(runtime) {
   return Number(runtime.api.conduit_browser_webrtc_session_next_sequence());
+}
+
+const sessionEvents = Object.freeze([
+  "none", "offered", "pressure", "accepted", "delivered", "input-closed", "terminal",
+]);
+
+export function webRtcSessionLastEvent(runtime) {
+  const code = runtime.api.conduit_browser_webrtc_session_last_event();
+  const event = sessionEvents[code];
+  if (event === undefined) throw new Error(`CND-WEBRTC-SESSION-009 invalid event ${code}`);
+  return event;
 }

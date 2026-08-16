@@ -64,12 +64,12 @@ pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     })
 }
 
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap", feature = "bluetooth-line"))]
 pub fn presentation_ids() -> &'static [&'static str] {
     &generated_signal::PRESENTATION_IDS
 }
 
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap", feature = "bluetooth-line"))]
 pub fn presentation_sign_ids() -> &'static [&'static str] {
     &generated_signal::PRESENTATION_SIGN_IDS
 }

@@ -355,11 +355,18 @@ pub(super) fn parse_flash_facts(source: &str) -> Result<FlashFacts, Box<dyn std:
         .parse::<u64>()?
         .checked_mul(1024 * 1024)
         .ok_or("flash size overflow")?;
+    let strapped_voltage = optional_line_value(source, "Flash voltage set by a strapping pin:");
+    let efuse_voltage = optional_line_value(source, "Flash voltage set by eFuse:");
+    let voltage = match (strapped_voltage, efuse_voltage) {
+        (Some(voltage), None) | (None, Some(voltage)) => voltage,
+        (None, None) => return Err("missing inspection field Flash voltage".into()),
+        (Some(_), Some(_)) => return Err("ambiguous flash voltage sources".into()),
+    };
     Ok(FlashFacts {
         manufacturer_id: normalize_hex(line_value(source, "Manufacturer:")?)?,
         device_id: normalize_hex(line_value(source, "Device:")?)?,
         detected_bytes,
-        voltage: line_value(source, "Flash voltage set by a strapping pin:")?.to_owned(),
+        voltage: voltage.to_owned(),
     })
 }
 
@@ -375,11 +382,15 @@ fn parse_security_info(output: &Output) -> Result<SecurityInfo, Box<dyn std::err
 }
 
 fn line_value<'a>(source: &'a str, prefix: &str) -> Result<&'a str, Box<dyn std::error::Error>> {
+    optional_line_value(source, prefix)
+        .ok_or_else(|| format!("missing inspection field {prefix}").into())
+}
+
+fn optional_line_value<'a>(source: &'a str, prefix: &str) -> Option<&'a str> {
     source
         .lines()
         .find_map(|line| line.trim().strip_prefix(prefix).map(str::trim))
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| format!("missing inspection field {prefix}").into())
 }
 
 fn normalize_hex(value: &str) -> Result<String, Box<dyn std::error::Error>> {

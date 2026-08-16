@@ -15,7 +15,9 @@ use std::{
 };
 
 const PREFIX: &str = "CONDUIT_RISCV64_ENTRY_SIGN ";
-const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-opensbi-uboot";
+const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-tcg-opensbi-uboot";
+const EMULATOR_BOOT_DEADLINE: Duration = Duration::from_secs(120);
+const MAXIMUM_TIMEOUT_DIAGNOSTIC_BYTES: usize = 4_096;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub(super) struct EntrySign {
@@ -156,6 +158,8 @@ pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String,
         .args([
             "-machine",
             "virt",
+            "-accel",
+            "tcg,thread=single",
             "-cpu",
             "rv64,sv57=off,sv48=off",
             "-m",
@@ -191,7 +195,7 @@ pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String,
     let mut child = command
         .spawn()
         .map_err(|e| refusal("unavailable-riscv64-emulator", e.to_string()))?;
-    let deadline = Instant::now() + Duration::from_secs(60);
+    let deadline = Instant::now() + EMULATOR_BOOT_DEADLINE;
     loop {
         if let Some(status) = child
             .try_wait()
@@ -214,10 +218,29 @@ pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String,
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
-            return Err(refusal("absent-riscv64-entry-sign", "emulator timed out"));
+            let text = fs::read_to_string(&log).unwrap_or_default();
+            return Err(refusal(
+                "absent-riscv64-entry-sign",
+                format!(
+                    "emulator timed out after {} seconds; bounded serial suffix:\n{}",
+                    EMULATOR_BOOT_DEADLINE.as_secs(),
+                    bounded_serial_suffix(&text)
+                ),
+            ));
         }
         thread::sleep(Duration::from_millis(10));
     }
+}
+
+fn bounded_serial_suffix(text: &str) -> &str {
+    if text.len() <= MAXIMUM_TIMEOUT_DIAGNOSTIC_BYTES {
+        return text;
+    }
+    let mut start = text.len() - MAXIMUM_TIMEOUT_DIAGNOSTIC_BYTES;
+    while !text.is_char_boundary(start) {
+        start += 1;
+    }
+    &text[start..]
 }
 
 pub(super) fn parse(text: &str) -> Result<EntrySign, ConduitosError> {
@@ -316,8 +339,21 @@ fn refusal(reason: &'static str, detail: impl Into<String>) -> ConduitosError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn absent_sign_refuses() {
         assert!(parse("").is_err());
+    }
+
+    #[test]
+    fn timeout_diagnostic_suffix_is_bounded_and_utf8_safe() {
+        let short = "OpenSBI\nU-Boot\n";
+        assert_eq!(bounded_serial_suffix(short), short);
+
+        let prefix = "x".repeat(MAXIMUM_TIMEOUT_DIAGNOSTIC_BYTES);
+        let transcript = format!("{prefix}éterminal progress\n");
+        let suffix = bounded_serial_suffix(&transcript);
+        assert!(suffix.len() <= MAXIMUM_TIMEOUT_DIAGNOSTIC_BYTES);
+        assert!(suffix.ends_with("éterminal progress\n"));
     }
 }

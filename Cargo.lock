@@ -692,11 +692,13 @@ dependencies = [
 name = "conduit-signal"
 version = "0.1.0"
 dependencies = [
+ "conduit-bluetooth",
  "conduit-core",
  "conduit-form",
  "conduit-planner",
  "conduit-runtime",
  "conduit-std-catalog",
+ "conduit-wire",
  "serde",
 ]
 

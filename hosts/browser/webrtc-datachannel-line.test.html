@@ -3,8 +3,8 @@
 <title>Conduit bounded WebRTC DataChannel Line proof</title>
 <p id="state">idle</p>
 <script type="module">
-  import { BrowserWebRtcDataChannelLine } from "/hosts/browser/webrtc-datachannel-line.mjs";
-  import { BodyWebRtcSession } from "/hosts/browser/body-webrtc-session.mjs";
+  import { BrowserWebRtcDataChannelLine } from "/hosts/patchbay-html/assets/webrtc-datachannel-line.mjs";
+  import { BodyWebRtcSession } from "/hosts/patchbay-html/assets/body-webrtc-session.mjs";
   import {
     closeWebRtcSessionInput,
     finishWebRtcSession,
@@ -17,7 +17,7 @@
     deliverWebRtcSessionValue,
     webRtcSessionNextSequence,
     webRtcSessionValue,
-  } from "/hosts/browser/webrtc-session-runtime.mjs";
+  } from "/hosts/patchbay-html/assets/webrtc-session-runtime.mjs";
 
   let peer;
   let channel;
