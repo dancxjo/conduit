@@ -3,8 +3,9 @@ use std::collections::BTreeMap;
 use conduit_core::{BootId, CapabilityId, GearId, HostId, LineId, OfferGeneration, SignId};
 use conduit_planner::{
     select_data_locality_candidate, CandidatePlacementDisposition, DataFlowObservation,
-    LocalityCandidate, LocalityPlanningBasis, ObservationProvenance, PlacementChoice,
-    PlacementChoices, RealizationWorkObservation, ReductionObservation, TransportObservation,
+    LocalCordObservation, LocalityCandidate, LocalityPlanningBasis, ObservationProvenance,
+    PlacementChoice, PlacementChoices, RealizationWorkObservation, ReductionObservation,
+    TransportObservation,
 };
 
 fn fixture() -> (
@@ -135,6 +136,7 @@ fn basis(
     LocalityPlanningBasis {
         now_ms: 1_000,
         horizon_seconds: 10,
+        remote_bytes_per_second_ceiling: None,
         data_flow: DataFlowObservation {
             source_gear_id: GearId::from("source"),
             items_per_second: 100_000,
@@ -156,11 +158,35 @@ fn basis(
             sink_host_id: hosts[1].host_id.clone(),
             throughput_bytes_per_second: 200_000,
             setup_work_units: 20,
-            work_units_per_kibibyte: 2,
+            bandwidth_work_units_per_kibibyte: 1,
+            serialization_work_units_per_kibibyte: 1,
+            framing_work_units: 1,
+            queueing_work_units: 1,
             latency_work_units: 5,
+            jitter_work_units: 1,
             pressure_work_units: 5,
+            cancellation_work_units: 1,
+            loss_work_units: 1,
             provenance: provenance("line/current"),
         }],
+        local_cords: vec![
+            LocalCordObservation {
+                source_gear_id: GearId::from("source"),
+                sink_gear_id: GearId::from("reduction"),
+                host_id: hosts[0].host_id.clone(),
+                boot_id: hosts[0].boot_id.clone(),
+                work_units: 5,
+                provenance: provenance("cord/source-reduction/local"),
+            },
+            LocalCordObservation {
+                source_gear_id: GearId::from("reduction"),
+                sink_gear_id: GearId::from("analysis"),
+                host_id: hosts[1].host_id.clone(),
+                boot_id: hosts[1].boot_id.clone(),
+                work_units: 5,
+                provenance: provenance("cord/reduction-analysis/remote-host"),
+            },
+        ],
         resources: hosts
             .iter()
             .flat_map(|host| {
@@ -354,4 +380,87 @@ fn absent_local_implementation_and_transport_increase_do_not_force_locality() {
     )
     .expect("a reduction that increases traffic does not get a locality bonus");
     assert_eq!(selected.selected.candidate_id, "remote");
+}
+
+#[test]
+fn policy_can_forbid_remote_transport_without_changing_form_meaning() {
+    let (form, hosts, line) = fixture();
+    let candidates = [
+        candidate(&form, &hosts, "local-reduction", 0),
+        candidate(&form, &hosts, "remote-reduction", 1),
+    ];
+    let mut policy = basis(&form, &hosts, 80);
+    policy.remote_bytes_per_second_ceiling = Some(0);
+    let checked_form_id = form.checked_form_id.clone();
+    assert!(matches!(
+        select_data_locality_candidate(
+            &form,
+            &hosts,
+            &candidates,
+            &policy,
+            std::slice::from_ref(&line),
+        ),
+        Err(conduit_planner::PlannerError::CurrentResourceObservationUnavailable(_))
+    ));
+    assert_eq!(form.checked_form_id, checked_form_id);
+}
+
+#[test]
+fn insufficient_local_resource_observation_moves_reduction_remote() {
+    let (form, mut hosts, line) = fixture();
+    let timer_requirement = hosts[0]
+        .capabilities
+        .iter()
+        .find(|offer| {
+            offer.checked_face()
+                == form
+                    .gears
+                    .iter()
+                    .find(|gear| gear.gear_id.as_str() == "source")
+                    .unwrap()
+                    .checked_face()
+        })
+        .unwrap()
+        .resource_requirements[0]
+        .clone();
+    for host in &mut hosts {
+        let reduction = form
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id.as_str() == "reduction")
+            .unwrap();
+        host.capabilities
+            .iter_mut()
+            .find(|offer| offer.checked_face() == reduction.checked_face())
+            .unwrap()
+            .resource_requirements
+            .push(timer_requirement.clone());
+    }
+    let candidates = [
+        candidate(&form, &hosts, "local", 0),
+        candidate(&form, &hosts, "remote", 1),
+    ];
+    let mut constrained = basis(&form, &hosts, 80);
+    constrained
+        .resources
+        .iter_mut()
+        .find(|observation| {
+            observation.host_id == hosts[0].host_id
+                && observation.class_id == timer_requirement.class_id
+        })
+        .unwrap()
+        .unreserved_units = 1;
+    let selection = select_data_locality_candidate(
+        &form,
+        &hosts,
+        &candidates,
+        &constrained,
+        std::slice::from_ref(&line),
+    )
+    .expect("remote reduction remains within observed resources");
+    assert_eq!(selection.selected.candidate_id, "remote");
+    assert!(matches!(
+        selection.considered[0].disposition,
+        CandidatePlacementDisposition::Rejected(_)
+    ));
 }

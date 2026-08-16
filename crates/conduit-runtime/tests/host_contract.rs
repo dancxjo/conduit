@@ -793,6 +793,7 @@ fn echo_kind_uses_only_the_installed_implementation_boundary() {
                 pool_references: Vec::new(),
             }],
             execution_regions: Vec::new(),
+            execution_fusions: Vec::new(),
             connections: Vec::new(),
             shared_pools: Vec::new(),
             startup_dependencies: Vec::new(),

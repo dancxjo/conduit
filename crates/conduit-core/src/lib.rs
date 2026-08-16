@@ -16,6 +16,7 @@ mod configuration;
 mod control_loop;
 mod deadline;
 mod execution;
+mod execution_fusion;
 mod face;
 mod implementation;
 mod info;
@@ -40,6 +41,7 @@ pub use configuration::{ConfigurationEntry, ConfigurationValue};
 pub use control_loop::*;
 pub use deadline::*;
 pub use execution::*;
+pub use execution_fusion::*;
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
@@ -114,6 +116,7 @@ identity_type!(KindContractRevision);
 // Immutable identity of one exact implementation execution profile.
 identity_type!(ExecutionProfileId);
 identity_type!(ExecutionRegionId);
+identity_type!(FusionId);
 identity_type!(ImplementationId);
 identity_type!(ArtifactId);
 identity_type!(CharacteristicId);
@@ -582,6 +585,8 @@ pub struct PlanFragment {
     pub placements: Vec<PlannedGear>,
     #[serde(default)]
     pub execution_regions: Vec<ExecutionRegion>,
+    #[serde(default)]
+    pub execution_fusions: Vec<PlannedFusion>,
     pub connections: Vec<PlannedConnection>,
     #[serde(default)]
     pub shared_pools: Vec<PlannedSharedPool>,
@@ -863,6 +868,7 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         .count();
     own_matches == 1
         && execution::verify_execution_regions(fragment)
+        && execution_fusion::verify(fragment)
         && compute_plan_id(
             &FormIdentity {
                 source_document_id: fragment.source_document_id.clone(),
@@ -909,6 +915,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         canonical.push(u8::from(region.preemption_required));
         canonical.push(u8::from(region.isolation_required));
     }
+    execution_fusion::push_canonical(&mut canonical, &fragment.execution_fusions);
     push_u32(&mut canonical, fragment.placements.len() as u32);
     for gear in &fragment.placements {
         push_string(&mut canonical, gear.placement_id.as_str());

@@ -123,6 +123,7 @@ fn exact_plan(hosts: &[&str], label: &str) -> Plan {
             offer_generation: OfferGeneration(7),
             placements: vec![],
             execution_regions: vec![],
+            execution_fusions: vec![],
             connections: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![],

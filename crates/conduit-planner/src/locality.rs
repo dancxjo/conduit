@@ -1,123 +1,12 @@
 use crate::observations::{observations_admit, validate_resource_observations};
 use crate::prelude::*;
 use crate::realization::consume_selected_capacity;
-use crate::{PlacementChoices, PlannerError};
+use crate::PlannerError;
 use alloc::collections::{BTreeMap, BTreeSet};
-use conduit_core::{
-    BootId, CapabilityId, GearId, HostAdvertisement, HostId, LineAvailability, LineId, LineOffer,
-    ResourceObservation, SignId,
-};
+use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
 use conduit_form::CheckedForm;
-
-pub const MAXIMUM_LOCALITY_CANDIDATES: usize = 32;
-pub const MAXIMUM_LOCALITY_OBSERVATIONS: usize = 256;
-
-/// Current evidence used only to choose a new realization. It is neither Form
-/// meaning nor a stable Host offer.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ObservationProvenance {
-    pub sign_id: SignId,
-    pub source: String,
-    pub observed_at_ms: u64,
-    pub valid_until_ms: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DataFlowObservation {
-    pub source_gear_id: GearId,
-    pub items_per_second: u64,
-    pub bytes_per_item: u32,
-    pub provenance: ObservationProvenance,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReductionObservation {
-    pub gear_id: GearId,
-    pub output_items_numerator: u32,
-    pub input_items_denominator: u32,
-    pub output_bytes_numerator: u32,
-    pub input_bytes_denominator: u32,
-    pub provenance: ObservationProvenance,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RealizationWorkObservation {
-    pub gear_id: GearId,
-    pub host_id: HostId,
-    pub boot_id: BootId,
-    pub capability_id: CapabilityId,
-    /// Basis-specific admitted work for the comparison horizon. This is not a
-    /// universal Host speed score.
-    pub work_units: u64,
-    pub provenance: ObservationProvenance,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TransportObservation {
-    pub line_id: LineId,
-    pub source_host_id: HostId,
-    pub sink_host_id: HostId,
-    pub throughput_bytes_per_second: u64,
-    pub setup_work_units: u64,
-    pub work_units_per_kibibyte: u64,
-    pub latency_work_units: u64,
-    pub pressure_work_units: u64,
-    pub provenance: ObservationProvenance,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LocalityPlanningBasis {
-    pub now_ms: u64,
-    pub horizon_seconds: u32,
-    pub data_flow: DataFlowObservation,
-    pub reductions: Vec<ReductionObservation>,
-    pub realization_work: Vec<RealizationWorkObservation>,
-    pub transports: Vec<TransportObservation>,
-    pub resources: Vec<ResourceObservation>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LocalityCandidate {
-    pub candidate_id: String,
-    pub placements: PlacementChoices,
-    /// Exact Line selected for each authored cross-Host Cord.
-    pub lines: BTreeMap<(GearId, GearId), LineId>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CandidatePlacementDisposition {
-    Admitted,
-    Rejected(String),
-    Selected,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CandidateCostEvidence {
-    pub candidate_id: String,
-    pub disposition: CandidatePlacementDisposition,
-    pub compute_work_units: u64,
-    pub transport_work_units: u64,
-    pub transported_bytes: u64,
-    pub total_work_units: u64,
-    pub supporting_sign_ids: Vec<SignId>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LocalitySelection {
-    pub checked_form_id: conduit_core::CheckedFormId,
-    pub selected: CandidatePlacement,
-    pub considered: Vec<CandidateCostEvidence>,
-    /// Exact bounded observations behind the explanation. These remain
-    /// planning evidence and are not copied into Form meaning or the Plan.
-    pub planning_basis: LocalityPlanningBasis,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CandidatePlacement {
-    pub candidate_id: String,
-    pub placements: PlacementChoices,
-    pub lines: BTreeMap<(GearId, GearId), LineId>,
-}
+mod model;
+pub use model::*;
 
 pub fn select_data_locality_candidate(
     form: &CheckedForm,
@@ -130,6 +19,9 @@ pub fn select_data_locality_candidate(
         .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
     validate_resource_observations(hosts, &basis.resources)?;
     validate_inputs(form, hosts, candidates, basis)?;
+    if line_offers.len() > MAXIMUM_LOCALITY_LINE_OFFERS {
+        return invalid("Line offer count exceeds the locality planning bound");
+    }
     let mut considered = candidates
         .iter()
         .map(|candidate| evaluate(form, hosts, candidate, basis, line_offers))
@@ -159,45 +51,6 @@ pub fn select_data_locality_candidate(
     })
 }
 
-impl LocalitySelection {
-    pub fn explain(&self) -> String {
-        let winner = self
-            .considered
-            .iter()
-            .find(|item| item.disposition == CandidatePlacementDisposition::Selected)
-            .expect("a locality selection always has one winner");
-        let mut explanation = format!(
-            "candidate '{}' won with {} total work units: {} compute + {} transport, carrying {} bytes",
-            winner.candidate_id, winner.total_work_units, winner.compute_work_units,
-            winner.transport_work_units, winner.transported_bytes
-        );
-        for candidate in self
-            .considered
-            .iter()
-            .filter(|item| item.candidate_id != winner.candidate_id)
-        {
-            match &candidate.disposition {
-                CandidatePlacementDisposition::Rejected(reason) => {
-                    explanation.push_str(&format!(
-                        "; candidate '{}' was rejected: {reason}",
-                        candidate.candidate_id
-                    ));
-                }
-                _ => {
-                    let improvement = candidate
-                        .total_work_units
-                        .saturating_sub(winner.total_work_units);
-                    explanation.push_str(&format!(
-                        "; candidate '{}' carried {} bytes and would need at least {} fewer work units to win",
-                        candidate.candidate_id, candidate.transported_bytes, improvement.saturating_add(1)
-                    ));
-                }
-            }
-        }
-        explanation
-    }
-}
-
 fn validate_inputs(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
@@ -211,6 +64,7 @@ fn validate_inputs(
         + basis.reductions.len()
         + basis.realization_work.len()
         + basis.transports.len()
+        + basis.local_cords.len()
         + basis.resources.len();
     if observation_count > MAXIMUM_LOCALITY_OBSERVATIONS || basis.horizon_seconds == 0 {
         return invalid("observation count or comparison horizon is invalid");
@@ -221,18 +75,28 @@ fn validate_inputs(
             return invalid("candidate identities must be non-empty and unique");
         }
     }
+    let mut observation_signs = BTreeSet::new();
     for provenance in core::iter::once(&basis.data_flow.provenance)
         .chain(basis.reductions.iter().map(|item| &item.provenance))
         .chain(basis.realization_work.iter().map(|item| &item.provenance))
         .chain(basis.transports.iter().map(|item| &item.provenance))
+        .chain(basis.local_cords.iter().map(|item| &item.provenance))
     {
         if provenance.sign_id.as_str().is_empty()
+            || !observation_signs.insert(&provenance.sign_id)
             || provenance.source.is_empty()
             || provenance.observed_at_ms > basis.now_ms
             || basis.now_ms > provenance.valid_until_ms
         {
             return invalid("planning observations must have non-empty, fresh provenance");
         }
+    }
+    if basis
+        .resources
+        .iter()
+        .any(|item| !observation_signs.insert(&item.sign_id))
+    {
+        return invalid("planning observation Sign identities must be unique");
     }
     if !form
         .gears
@@ -282,15 +146,20 @@ fn evaluate(
         evidence.disposition = CandidatePlacementDisposition::Rejected(detail.to_string());
     };
     let mut remaining_resources = basis.resources.clone();
+    let initial_bytes_per_second = match basis
+        .data_flow
+        .items_per_second
+        .checked_mul(u64::from(basis.data_flow.bytes_per_item))
+    {
+        Some(value) => value,
+        None => {
+            reject(&mut evidence, "data-flow byte rate overflowed");
+            return evidence;
+        }
+    };
     let mut rates = BTreeMap::from([(
         basis.data_flow.source_gear_id.clone(),
-        (
-            basis.data_flow.items_per_second,
-            basis
-                .data_flow
-                .items_per_second
-                .saturating_mul(u64::from(basis.data_flow.bytes_per_item)),
-        ),
+        (basis.data_flow.items_per_second, initial_bytes_per_second),
     )]);
     let mut ordered = Vec::new();
     let mut ready = vec![basis.data_flow.source_gear_id.clone()];
@@ -385,15 +254,21 @@ fn evaluate(
             .find(|item| item.gear_id == gear.gear_id)
         {
             if let Some((items, bytes)) = rates.get(&gear.gear_id).copied() {
-                rates.insert(
-                    gear.gear_id.clone(),
-                    (
-                        items.saturating_mul(u64::from(reduction.output_items_numerator))
-                            / u64::from(reduction.input_items_denominator),
-                        bytes.saturating_mul(u64::from(reduction.output_bytes_numerator))
-                            / u64::from(reduction.input_bytes_denominator),
-                    ),
-                );
+                let Some(output_items) = items
+                    .checked_mul(u64::from(reduction.output_items_numerator))
+                    .map(|value| value / u64::from(reduction.input_items_denominator))
+                else {
+                    reject(&mut evidence, "reduced item rate overflowed");
+                    return evidence;
+                };
+                let Some(output_bytes) = bytes
+                    .checked_mul(u64::from(reduction.output_bytes_numerator))
+                    .map(|value| value / u64::from(reduction.input_bytes_denominator))
+                else {
+                    reject(&mut evidence, "reduced byte rate overflowed");
+                    return evidence;
+                };
+                rates.insert(gear.gear_id.clone(), (output_items, output_bytes));
                 evidence
                     .supporting_sign_ids
                     .push(reduction.provenance.sign_id.clone());
@@ -404,13 +279,10 @@ fn evaluate(
             .iter()
             .filter(|connection| connection.source_gear_id == gear.gear_id)
         {
-            let rate = rates.get(&gear.gear_id).copied().unwrap_or((
-                basis.data_flow.items_per_second,
-                basis
-                    .data_flow
-                    .items_per_second
-                    .saturating_mul(u64::from(basis.data_flow.bytes_per_item)),
-            ));
+            let rate = rates
+                .get(&gear.gear_id)
+                .copied()
+                .unwrap_or((basis.data_flow.items_per_second, initial_bytes_per_second));
             rates.insert(connection.sink_gear_id.clone(), rate);
             let source = choice;
             let Some(sink) = candidate.placements.by_gear.get(&connection.sink_gear_id) else {
@@ -459,28 +331,97 @@ fn evaluate(
                     return evidence;
                 }
                 let bytes_per_second = rate.1;
+                if basis
+                    .remote_bytes_per_second_ceiling
+                    .is_some_and(|ceiling| bytes_per_second > ceiling)
+                {
+                    reject(&mut evidence, "remote transport policy ceiling is exceeded");
+                    return evidence;
+                }
                 if bytes_per_second > line.throughput_bytes_per_second {
                     reject(&mut evidence, "observed Line throughput is insufficient");
                     return evidence;
                 }
-                let bytes = bytes_per_second.saturating_mul(u64::from(basis.horizon_seconds));
-                let transfer = bytes.saturating_add(1023) / 1024 * line.work_units_per_kibibyte;
-                let cost = line
+                let Some(bytes) = bytes_per_second.checked_mul(u64::from(basis.horizon_seconds))
+                else {
+                    reject(&mut evidence, "transport byte horizon overflowed");
+                    return evidence;
+                };
+                let Some(transfer) = bytes.checked_add(1023).and_then(|value| {
+                    let kibibytes = value / 1024;
+                    kibibytes
+                        .checked_mul(line.bandwidth_work_units_per_kibibyte)
+                        .and_then(|bandwidth| {
+                            kibibytes
+                                .checked_mul(line.serialization_work_units_per_kibibyte)
+                                .and_then(|serialization| bandwidth.checked_add(serialization))
+                        })
+                }) else {
+                    reject(&mut evidence, "transport work overflowed");
+                    return evidence;
+                };
+                let Some(cost) = line
                     .setup_work_units
-                    .saturating_add(transfer)
-                    .saturating_add(line.latency_work_units)
-                    .saturating_add(line.pressure_work_units);
-                evidence.transported_bytes = evidence.transported_bytes.saturating_add(bytes);
-                evidence.transport_work_units = evidence.transport_work_units.saturating_add(cost);
+                    .checked_add(transfer)
+                    .and_then(|value| value.checked_add(line.framing_work_units))
+                    .and_then(|value| value.checked_add(line.queueing_work_units))
+                    .and_then(|value| value.checked_add(line.latency_work_units))
+                    .and_then(|value| value.checked_add(line.jitter_work_units))
+                    .and_then(|value| value.checked_add(line.pressure_work_units))
+                    .and_then(|value| value.checked_add(line.cancellation_work_units))
+                    .and_then(|value| value.checked_add(line.loss_work_units))
+                else {
+                    reject(&mut evidence, "transport fixed cost overflowed");
+                    return evidence;
+                };
+                let Some(transported) = evidence.transported_bytes.checked_add(bytes) else {
+                    reject(&mut evidence, "transported byte total overflowed");
+                    return evidence;
+                };
+                let Some(transport_work) = evidence.transport_work_units.checked_add(cost) else {
+                    reject(&mut evidence, "transport work total overflowed");
+                    return evidence;
+                };
+                evidence.transported_bytes = transported;
+                evidence.transport_work_units = transport_work;
                 evidence
                     .supporting_sign_ids
                     .push(line.provenance.sign_id.clone());
+            } else {
+                let Some(local) = basis.local_cords.iter().find(|item| {
+                    item.source_gear_id == connection.source_gear_id
+                        && item.sink_gear_id == connection.sink_gear_id
+                        && item.host_id == source.host_id
+                        && hosts.iter().any(|host| {
+                            host.host_id == item.host_id && host.boot_id == item.boot_id
+                        })
+                }) else {
+                    reject(
+                        &mut evidence,
+                        "local Cord lacks current coordination-cost evidence",
+                    );
+                    return evidence;
+                };
+                let Some(local_total) = evidence.transport_work_units.checked_add(local.work_units)
+                else {
+                    reject(&mut evidence, "local Cord work total overflowed");
+                    return evidence;
+                };
+                evidence.transport_work_units = local_total;
+                evidence
+                    .supporting_sign_ids
+                    .push(local.provenance.sign_id.clone());
             }
         }
     }
-    evidence.total_work_units = evidence
+    let Some(total) = evidence
         .compute_work_units
-        .saturating_add(evidence.transport_work_units);
+        .checked_add(evidence.transport_work_units)
+    else {
+        reject(&mut evidence, "candidate total work overflowed");
+        return evidence;
+    };
+    evidence.total_work_units = total;
     evidence
 }
 
