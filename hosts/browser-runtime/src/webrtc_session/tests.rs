@@ -157,6 +157,7 @@ fn out_of_stage_failure_does_not_mutate_or_create_false_active_state() {
             .unwrap();
     assert_eq!(endpoint.ingest(&bytes[..ready_len]), Ok(STATUS_ACTIVE));
     assert!(endpoint.machine.is_active());
+    assert_eq!(endpoint.last_event, EVENT_NONE);
 }
 
 #[test]
@@ -209,6 +210,7 @@ fn reordered_offer_refuses_without_consuming_the_expected_sequence() {
     )
     .unwrap();
     assert_eq!(endpoint.ingest(&bytes[..expected_len]), Ok(STATUS_ACTIVE));
+    assert_eq!(endpoint.last_event, EVENT_OFFERED);
     assert_eq!(endpoint.received_sequence, Some(0));
     assert_eq!(&endpoint.received[..endpoint.received_len], &[7]);
 

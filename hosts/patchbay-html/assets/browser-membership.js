@@ -352,6 +352,14 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     signalWebRtc: sendWebRtcSignal,
     requestWebRtcGrant,
     webRtcSessions: () => Object.freeze({ ...webRtcSessions.state(), failure: webRtcFailure }),
+    offerWebRtcValue: (negotiationId, bytes) => webRtcSessions.offerValue(
+      negotiationId,
+      bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes),
+    ),
+    receiveWebRtcValue: (negotiationId) => webRtcSessions.receiveValue(negotiationId),
+    pressureNextWebRtcValue: (negotiationId) => webRtcSessions.pressureNextValue(negotiationId),
+    deliverWebRtcValue: (negotiationId, sequence) => webRtcSessions.deliverValue(negotiationId, sequence),
+    waitWebRtcValueDelivered: (negotiationId, sequence) => webRtcSessions.waitDelivered(negotiationId, sequence),
     close: () => {
       deliberateClose = true;
       clearTimeout(renewalTimer);
