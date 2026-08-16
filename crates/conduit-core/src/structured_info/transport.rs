@@ -67,6 +67,63 @@ pub fn decode_structured_transport(
     encoded: &[u8],
     maximum_bytes: u32,
 ) -> Result<StructuredInfoValue, StructuredInfoTransportRefusal> {
+    let frame = decode_transport_frame(encoded, maximum_bytes)?;
+    let expected_digest = expected_type
+        .semantic_digest()
+        .map_err(StructuredInfoTransportRefusal::Semantic)?;
+    if frame.type_digest != expected_digest {
+        return Err(StructuredInfoTransportRefusal::ProfileMismatch);
+    }
+    let type_prefix = expected_type
+        .canonical_bytes()
+        .map_err(StructuredInfoTransportRefusal::Semantic)?;
+    let node = frame
+        .payload
+        .strip_prefix(type_prefix.as_slice())
+        .ok_or(StructuredInfoTransportRefusal::ProfileMismatch)?;
+    let mut cursor = Cursor::new(node);
+    let value = decode_node(expected_type, &mut cursor)?;
+    if !cursor.remaining().is_empty() {
+        return Err(StructuredInfoTransportRefusal::MalformedRepresentation);
+    }
+    validate_value_digest(&value, frame.value_digest)?;
+    Ok(value)
+}
+
+/// Decode a self-describing structured transport value at a Line boundary.
+///
+/// The embedded canonical type is validated against both transport digests.
+/// A peer runtime still receives the ordinary canonical semantic value; this
+/// representation does not become local Info truth.
+pub fn decode_self_describing_structured_transport(
+    encoded: &[u8],
+    maximum_bytes: u32,
+) -> Result<StructuredInfoValue, StructuredInfoTransportRefusal> {
+    let frame = decode_transport_frame(encoded, maximum_bytes)?;
+    let value = StructuredInfoValue::from_canonical_bytes(frame.payload)
+        .map_err(|_| StructuredInfoTransportRefusal::MalformedRepresentation)?;
+    if value
+        .value_type()
+        .semantic_digest()
+        .map_err(StructuredInfoTransportRefusal::Semantic)?
+        != frame.type_digest
+    {
+        return Err(StructuredInfoTransportRefusal::ProfileMismatch);
+    }
+    validate_value_digest(&value, frame.value_digest)?;
+    Ok(value)
+}
+
+struct TransportFrame<'a> {
+    type_digest: &'a [u8],
+    value_digest: &'a [u8],
+    payload: &'a [u8],
+}
+
+fn decode_transport_frame(
+    encoded: &[u8],
+    maximum_bytes: u32,
+) -> Result<TransportFrame<'_>, StructuredInfoTransportRefusal> {
     let maximum_bytes = usize::try_from(maximum_bytes)
         .map_err(|_| StructuredInfoTransportRefusal::InvalidBudget)?;
     if !(HEADER_BYTES..=MAXIMUM_STRUCTURED_TRANSPORT_BYTES).contains(&maximum_bytes) {
@@ -84,15 +141,10 @@ pub fn decode_structured_transport(
     if encoded[MAGIC.len()] != VERSION {
         return Err(StructuredInfoTransportRefusal::UnsupportedVersion);
     }
-    let expected_digest = expected_type
-        .semantic_digest()
-        .map_err(StructuredInfoTransportRefusal::Semantic)?;
     let digest_offset = MAGIC.len() + 1;
-    if encoded[digest_offset..digest_offset + 32] != expected_digest {
-        return Err(StructuredInfoTransportRefusal::ProfileMismatch);
-    }
+    let type_digest = &encoded[digest_offset..digest_offset + 32];
     let value_digest_offset = digest_offset + 32;
-    let expected_value_digest = &encoded[value_digest_offset..value_digest_offset + 32];
+    let value_digest = &encoded[value_digest_offset..value_digest_offset + 32];
     let length_offset = value_digest_offset + 32;
     let payload_length = u32::from_le_bytes(
         encoded[length_offset..length_offset + 4]
@@ -105,17 +157,17 @@ pub fn decode_structured_transport(
     if payload.len() != payload_length {
         return Err(StructuredInfoTransportRefusal::MalformedRepresentation);
     }
-    let type_prefix = expected_type
-        .canonical_bytes()
-        .map_err(StructuredInfoTransportRefusal::Semantic)?;
-    let node = payload
-        .strip_prefix(type_prefix.as_slice())
-        .ok_or(StructuredInfoTransportRefusal::ProfileMismatch)?;
-    let mut cursor = Cursor::new(node);
-    let value = decode_node(expected_type, &mut cursor)?;
-    if !cursor.remaining().is_empty() {
-        return Err(StructuredInfoTransportRefusal::MalformedRepresentation);
-    }
+    Ok(TransportFrame {
+        type_digest,
+        value_digest,
+        payload,
+    })
+}
+
+fn validate_value_digest(
+    value: &StructuredInfoValue,
+    expected_value_digest: &[u8],
+) -> Result<(), StructuredInfoTransportRefusal> {
     if value
         .semantic_digest()
         .map_err(StructuredInfoTransportRefusal::Semantic)?
@@ -123,7 +175,7 @@ pub fn decode_structured_transport(
     {
         return Err(StructuredInfoTransportRefusal::ValueIdentityMismatch);
     }
-    Ok(value)
+    Ok(())
 }
 
 fn decode_node(
