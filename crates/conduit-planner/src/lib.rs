@@ -23,6 +23,7 @@ use conduit_core::{
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
 
+mod accelerator;
 mod body_envelope;
 mod canonical;
 mod characteristic_policy;
@@ -38,6 +39,7 @@ mod fusion;
 mod generic_selection;
 mod locality;
 mod observations;
+mod performance_policy;
 mod policy;
 mod policy_composition;
 mod profile;
@@ -53,6 +55,13 @@ mod style;
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
 
+pub use accelerator::{
+    select_accelerator_candidate, AcceleratorCandidate, AcceleratorCandidateDisposition,
+    AcceleratorCandidateEvidence, AcceleratorDemand, AcceleratorDimension, AcceleratorObservation,
+    AcceleratorOffer, AcceleratorPlanningBasis, AcceleratorReservation, AcceleratorSelection,
+    ExecutionMechanism, MAXIMUM_ACCELERATOR_CANDIDATES, MAXIMUM_ACCELERATOR_DEMANDS,
+    MAXIMUM_ACCELERATOR_DIMENSIONS, MAXIMUM_ACCELERATOR_OFFERS,
+};
 pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
@@ -87,6 +96,11 @@ pub use locality::{
     MAXIMUM_LOCALITY_LINE_OFFERS, MAXIMUM_LOCALITY_OBSERVATIONS,
 };
 pub use observations::select_realization_with_observations;
+pub use performance_policy::{
+    select_performance_candidate, PerformanceCandidate, PerformanceCandidateDisposition,
+    PerformanceCandidateEvidence, PerformanceIntent, PerformancePolicy, PerformancePolicySelection,
+    PerformanceProfileObservation, MAXIMUM_PERFORMANCE_CANDIDATES,
+};
 pub use policy::{select_realization_with_policy, RealizationPolicy, RealizationPreference};
 pub use policy_composition::{
     select_realization_with_scoped_policy, ObservationBasis, PlanningPolicyBasis, PolicyLayer,
