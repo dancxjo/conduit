@@ -36,6 +36,10 @@ mod std_pico_usb;
 #[cfg(feature = "host-profile")]
 pub use std_pico_usb::*;
 #[cfg(feature = "host-profile")]
+mod std_pico_bluetooth;
+#[cfg(feature = "host-profile")]
+pub use std_pico_bluetooth::*;
+#[cfg(feature = "host-profile")]
 pub mod triple;
 
 #[cfg(feature = "host-profile")]

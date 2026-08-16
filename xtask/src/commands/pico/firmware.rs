@@ -172,7 +172,9 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         TARGET,
         "--release",
     ];
-    if args.appliance_hello {
+    if args.bluetooth_line {
+        build_args.extend(["--no-default-features", "--features", "bluetooth-line"]);
+    } else if args.appliance_hello {
         build_args.extend(["--no-default-features", "--features", "appliance-hello"]);
     } else if args.appliance_hil_client {
         build_args.extend([

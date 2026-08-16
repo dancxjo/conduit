@@ -1,7 +1,7 @@
 //! CYW43 radio initialisation for the Pico W onboard LED.
 //!
 //! Wiring follows the proven Pico W radio pinout:
-//!   PIO0 / SM0 / DMA_CH0
+//!   PIO0 / SM0 / DMA_CH0 (TX) / DMA_CH1 (RX)
 //!   PIN_23 (power), PIN_24 (DIO), PIN_25 (CS), PIN_29 (clock)
 
 use cyw43::Control;
@@ -11,7 +11,7 @@ use embassy_rp::{
     bind_interrupts,
     dma,
     gpio::{Level, Output},
-    peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0, USB},
+    peripherals::{DMA_CH0, DMA_CH1, PIN_23, PIN_24, PIN_25, PIN_29, PIO0, USB},
     pio::Pio,
     usb,
     Peri,
@@ -30,10 +30,56 @@ bind_interrupts!(pub struct UsbIrq {
 
 bind_interrupts!(struct RadioIrqs {
     PIO0_IRQ_0 => embassy_rp::pio::InterruptHandler<PIO0>;
-    DMA_IRQ_0 => dma::InterruptHandler<embassy_rp::peripherals::DMA_CH0>;
+    DMA_IRQ_0 => dma::InterruptHandler<DMA_CH0>, dma::InterruptHandler<DMA_CH1>;
 });
 
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
+
+#[cfg(feature = "bluetooth-line")]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the Pico W Bluetooth boundary names each fixed peripheral and firmware asset"
+)]
+pub async fn init_cyw43_bluetooth(
+    spawner: &Spawner,
+    pio0: Peri<'static, PIO0>,
+    dma_ch0: Peri<'static, DMA_CH0>,
+    dma_ch1: Peri<'static, DMA_CH1>,
+    pin23: Peri<'static, PIN_23>,
+    pin24: Peri<'static, PIN_24>,
+    pin25: Peri<'static, PIN_25>,
+    pin29: Peri<'static, PIN_29>,
+    fw: &'static aligned::Aligned<aligned::A4, [u8]>,
+    btfw: &'static aligned::Aligned<aligned::A4, [u8]>,
+    nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
+    clm: &'static [u8],
+) -> (cyw43::bluetooth::BtDriver<'static>, Control<'static>) {
+    let pwr = Output::new(pin23, Level::Low);
+    let cs = Output::new(pin25, Level::High);
+    let mut pio = Pio::new(pio0, RadioIrqs);
+    let dma_tx = dma::Channel::new(dma_ch0, RadioIrqs);
+    let dma_rx = dma::Channel::new(dma_ch1, RadioIrqs);
+    let spi = PioSpi::new(
+        &mut pio.common,
+        pio.sm0,
+        DEFAULT_CLOCK_DIVIDER,
+        pio.irq0,
+        cs,
+        pin24,
+        pin29,
+        dma_tx,
+        dma_rx,
+    );
+    let state = STATE.init(cyw43::State::new());
+    let (_net_device, bt_driver, mut control, runner) =
+        cyw43::new_with_bluetooth(state, pwr, spi, fw, btfw, nvram).await;
+    spawner.spawn(cyw43_task(runner).unwrap());
+    control.init(clm).await;
+    control
+        .set_power_management(cyw43::PowerManagementMode::None)
+        .await;
+    (bt_driver, control)
+}
 
 #[cfg(any(
     feature = "wifi-bootstrap",
@@ -68,7 +114,11 @@ impl NetworkRadioInitError {
 
 #[embassy_executor::task]
 async fn cyw43_task(
-    runner: cyw43::Runner<'static, cyw43::SpiBus<Output<'static>, PioSpi<'static, PIO0, 0>>>,
+    runner: cyw43::Runner<
+        'static,
+        cyw43::SpiBus<Output<'static>, PioSpi<'static, PIO0, 0>>,
+        cyw43::Cyw43439,
+    >,
 ) -> ! {
     runner.run().await
 }
@@ -82,10 +132,12 @@ async fn cyw43_task(
     feature = "appliance-hello",
     feature = "appliance-hil-client"
 )))]
+#[cfg(not(feature = "bluetooth-line"))]
 pub async fn init_cyw43(
     spawner: &Spawner,
     pio0: Peri<'static, PIO0>,
     dma_ch0: Peri<'static, DMA_CH0>,
+    dma_ch1: Peri<'static, DMA_CH1>,
     pin23: Peri<'static, PIN_23>,
     pin24: Peri<'static, PIN_24>,
     pin25: Peri<'static, PIN_25>,
@@ -96,7 +148,8 @@ pub async fn init_cyw43(
     let pwr = Output::new(pin23, Level::Low);
     let cs = Output::new(pin25, Level::High);
     let mut pio = Pio::new(pio0, RadioIrqs);
-    let dma = dma::Channel::new(dma_ch0, RadioIrqs);
+    let dma_tx = dma::Channel::new(dma_ch0, RadioIrqs);
+    let dma_rx = dma::Channel::new(dma_ch1, RadioIrqs);
     let spi = PioSpi::new(
         &mut pio.common,
         pio.sm0,
@@ -105,7 +158,8 @@ pub async fn init_cyw43(
         cs,
         pin24,
         pin29,
-        dma,
+        dma_tx,
+        dma_rx,
     );
     let state = STATE.init(cyw43::State::new());
     let (_net_device, control, runner) = cyw43::new(state, pwr, spi, fw, nvram).await;
@@ -126,6 +180,7 @@ pub async fn init_cyw43_network(
     spawner: &Spawner,
     pio0: Peri<'static, PIO0>,
     dma_ch0: Peri<'static, DMA_CH0>,
+    dma_ch1: Peri<'static, DMA_CH1>,
     pin23: Peri<'static, PIN_23>,
     pin24: Peri<'static, PIN_24>,
     pin25: Peri<'static, PIN_25>,
@@ -139,7 +194,8 @@ pub async fn init_cyw43_network(
     let pwr = Output::new(pin23, Level::Low);
     let cs = Output::new(pin25, Level::High);
     let mut pio = Pio::new(pio0, RadioIrqs);
-    let dma = dma::Channel::new(dma_ch0, RadioIrqs);
+    let dma_tx = dma::Channel::new(dma_ch0, RadioIrqs);
+    let dma_rx = dma::Channel::new(dma_ch1, RadioIrqs);
     let spi = PioSpi::new(
         &mut pio.common,
         pio.sm0,
@@ -148,7 +204,8 @@ pub async fn init_cyw43_network(
         cs,
         pin24,
         pin29,
-        dma,
+        dma_tx,
+        dma_rx,
     );
     let state = STATE.init(cyw43::State::new());
     let driver_startup = with_timeout(

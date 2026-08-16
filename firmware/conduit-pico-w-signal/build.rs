@@ -12,7 +12,7 @@ use conduit_embedded_build::{
 };
 use conduit_runtime::lowering::lower_plan_fragment;
 use conduit_signal::{
-    exact_std_pico_usb_plan, pico_local_advertisement, signal_profile_catalog,
+    exact_std_pico_bluetooth_plan, exact_std_pico_usb_plan, pico_local_advertisement, signal_profile_catalog,
     triple,
     DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, SHOW_KIND, SIGNAL_ENCODED_LEN,
     STD_PICO_USB_SINK_HOST_ID,
@@ -381,6 +381,13 @@ fn generate_pico_signal_image(out: &Path) {
         (exact.plan, triple::PICO_HOST_ID)
     } else if firmware_mode() == "usb-remote" {
         let exact = exact_std_pico_usb_plan().expect("exact std-to-Pico UsbCdc plan must resolve");
+        (exact.plan, STD_PICO_USB_SINK_HOST_ID)
+    } else if firmware_mode() == "bluetooth-line" {
+        // The physical address is mutable observation truth and deliberately
+        // excluded from Plan identity; this build-time sentinel is replaced by
+        // exact current observation before the Line is offered at runtime.
+        let exact = exact_std_pico_bluetooth_plan([0; 6])
+            .expect("exact std-to-Pico Bluetooth plan must resolve");
         (exact.plan, STD_PICO_USB_SINK_HOST_ID)
     } else {
         let advertisement = pico_local_advertisement();
