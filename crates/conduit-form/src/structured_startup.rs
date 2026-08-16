@@ -61,7 +61,7 @@ impl CanonicalStructuredStartupValue {
 pub(crate) fn check_structured_expression(
     expression: &ExpressionSyntax,
     expected: &StructuredInfoType,
-    resolve_atomic: &mut impl FnMut(
+    resolve_atomic: &mut dyn FnMut(
         &SpannedText,
         &StructuredInfoType,
     ) -> Result<CanonicalStartupValue, SyntaxCheckDiagnostic>,
@@ -321,8 +321,10 @@ fn push_text(identity: &mut String, value: &str) {
 fn push_bytes(identity: &mut String, value: &[u8]) {
     identity.push_str(&value.len().to_string());
     identity.push(':');
+    const HEX: &[u8; 16] = b"0123456789abcdef";
     for byte in value {
-        identity.push_str(&format!("{byte:02x}"));
+        identity.push(char::from(HEX[usize::from(byte >> 4)]));
+        identity.push(char::from(HEX[usize::from(byte & 0x0f)]));
     }
 }
 
@@ -366,27 +368,38 @@ fn is_scalar_literal(value: &str) -> bool {
     {
         return false;
     }
-    let Ok(whole) = whole.parse::<i128>() else {
+    let Some(whole) = parse_decimal_magnitude(whole) else {
         return false;
     };
     let fraction_digits = fraction.unwrap_or_default();
     let fraction = if fraction_digits.is_empty() {
         0
-    } else if let Ok(value) = fraction_digits.parse::<i128>() {
+    } else if let Some(value) = parse_decimal_magnitude(fraction_digits) {
         value
     } else {
         return false;
     };
     let Some(magnitude) = whole
-        .checked_mul(i128::from(conduit_core::Scalar::SCALE))
+        .checked_mul(conduit_core::Scalar::SCALE as u64)
         .and_then(|whole| {
-            whole.checked_add(fraction * 10_i128.pow((6 - fraction_digits.len()) as u32))
+            whole.checked_add(fraction * 10_u64.pow((6 - fraction_digits.len()) as u32))
         })
     else {
         return false;
     };
-    let signed = if negative { -magnitude } else { magnitude };
-    i64::try_from(signed).is_ok()
+    if negative {
+        magnitude <= (i64::MAX as u64) + 1
+    } else {
+        magnitude <= i64::MAX as u64
+    }
+}
+
+fn parse_decimal_magnitude(value: &str) -> Option<u64> {
+    value.bytes().try_fold(0_u64, |magnitude, digit| {
+        magnitude
+            .checked_mul(10)?
+            .checked_add(u64::from(digit - b'0'))
+    })
 }
 
 fn structured_diagnostic(span: Span, detail: &str) -> SyntaxCheckDiagnostic {
