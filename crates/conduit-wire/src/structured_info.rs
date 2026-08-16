@@ -1,9 +1,9 @@
 //! Exact bounded structured Info carried by an ordinary connection envelope.
 
 use conduit_core::{
-    decode_structured_transport, encode_structured_transport, ConnectionEnvelope, ConnectionId,
-    PlanId, StructuredInfoTransportRefusal, StructuredInfoType, StructuredInfoValue,
-    PROTOCOL_VERSION,
+    decode_self_describing_structured_transport, decode_structured_transport,
+    encode_structured_transport, ConnectionEnvelope, ConnectionId, PlanId,
+    StructuredInfoTransportRefusal, StructuredInfoType, StructuredInfoValue, PROTOCOL_VERSION,
 };
 
 use crate::WireError;
@@ -53,4 +53,43 @@ pub fn structured_value_from_envelope(
     }
     decode_structured_transport(expected_type, &envelope.payload, maximum_payload_bytes)
         .map_err(StructuredWireRefusal::Structured)
+}
+
+/// Convert runtime-local canonical structured bytes into the exact Line form.
+pub fn structured_transport_envelope_from_local(
+    mut envelope: ConnectionEnvelope,
+    maximum_payload_bytes: u32,
+) -> Result<ConnectionEnvelope, StructuredWireRefusal> {
+    let value = StructuredInfoValue::from_canonical_bytes(&envelope.payload).map_err(|error| {
+        StructuredWireRefusal::Structured(StructuredInfoTransportRefusal::Semantic(error))
+    })?;
+    let profile = value.value_type().profile().map_err(|error| {
+        StructuredWireRefusal::Structured(StructuredInfoTransportRefusal::Semantic(error))
+    })?;
+    if envelope.value_kind != *profile.value_kind() {
+        return Err(StructuredWireRefusal::ProfileMismatch);
+    }
+    envelope.payload = encode_structured_transport(&value, maximum_payload_bytes)
+        .map_err(StructuredWireRefusal::Structured)?;
+    Ok(envelope)
+}
+
+/// Validate a Line representation and restore runtime-local canonical bytes.
+pub fn structured_local_envelope_from_transport(
+    mut envelope: ConnectionEnvelope,
+    maximum_payload_bytes: u32,
+) -> Result<ConnectionEnvelope, StructuredWireRefusal> {
+    let value =
+        decode_self_describing_structured_transport(&envelope.payload, maximum_payload_bytes)
+            .map_err(StructuredWireRefusal::Structured)?;
+    let profile = value.value_type().profile().map_err(|error| {
+        StructuredWireRefusal::Structured(StructuredInfoTransportRefusal::Semantic(error))
+    })?;
+    if envelope.value_kind != *profile.value_kind() {
+        return Err(StructuredWireRefusal::ProfileMismatch);
+    }
+    envelope.payload = value.canonical_bytes().map_err(|error| {
+        StructuredWireRefusal::Structured(StructuredInfoTransportRefusal::Semantic(error))
+    })?;
+    Ok(envelope)
 }

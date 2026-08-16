@@ -4,6 +4,7 @@ use conduit_core::{
 };
 use conduit_wire::{
     decode_envelope, encode_envelope, structured_connection_envelope,
+    structured_local_envelope_from_transport, structured_transport_envelope_from_local,
     structured_value_from_envelope, StructuredWireRefusal, WireError,
 };
 
@@ -136,5 +137,57 @@ fn profile_size_malformed_and_mutated_identity_refuse_distinctly() {
     assert_eq!(
         decode_envelope(&frame, MAXIMUM_PAYLOAD_BYTES),
         Err(WireError::TruncatedFrame)
+    );
+}
+
+#[test]
+fn line_conversion_is_bidirectional_and_fails_before_peer_runtime_admission() {
+    let value = extraction();
+    let local = conduit_core::ConnectionEnvelope {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        plan_id: PlanId::from("plan-live"),
+        connection_id: ConnectionId::from("connection-live"),
+        sequence: 7,
+        value_kind: value.value_type().profile().unwrap().value_kind().clone(),
+        payload: value.canonical_bytes().unwrap(),
+    };
+    let transport =
+        structured_transport_envelope_from_local(local.clone(), MAXIMUM_PAYLOAD_BYTES).unwrap();
+    assert_ne!(transport.payload, local.payload);
+    assert_eq!(
+        structured_local_envelope_from_transport(transport.clone(), MAXIMUM_PAYLOAD_BYTES).unwrap(),
+        local
+    );
+
+    let mut wrong_profile = local.clone();
+    wrong_profile.value_kind = KindId::from("structured-info/profile-wrong@1");
+    assert_eq!(
+        structured_transport_envelope_from_local(wrong_profile, MAXIMUM_PAYLOAD_BYTES),
+        Err(StructuredWireRefusal::ProfileMismatch)
+    );
+    let mut malformed_local = local;
+    malformed_local.payload.truncate(3);
+    assert!(matches!(
+        structured_transport_envelope_from_local(malformed_local, MAXIMUM_PAYLOAD_BYTES),
+        Err(StructuredWireRefusal::Structured(
+            StructuredInfoTransportRefusal::Semantic(_)
+        ))
+    ));
+
+    let mut wrong_type_digest = transport.clone();
+    wrong_type_digest.payload[7] ^= 1;
+    assert_eq!(
+        structured_local_envelope_from_transport(wrong_type_digest, MAXIMUM_PAYLOAD_BYTES),
+        Err(StructuredWireRefusal::Structured(
+            StructuredInfoTransportRefusal::ProfileMismatch
+        ))
+    );
+    let mut wrong_value_digest = transport;
+    wrong_value_digest.payload[39] ^= 1;
+    assert_eq!(
+        structured_local_envelope_from_transport(wrong_value_digest, MAXIMUM_PAYLOAD_BYTES),
+        Err(StructuredWireRefusal::Structured(
+            StructuredInfoTransportRefusal::ValueIdentityMismatch
+        ))
     );
 }

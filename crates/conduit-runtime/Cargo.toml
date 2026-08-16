@@ -14,9 +14,14 @@ conduit-kernel = { path = "../conduit-kernel" }
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }
 conduit-planner = { path = "../conduit-planner" }
+conduit-wire = { path = "../conduit-wire" }
 
 [[test]]
 name = "host_contract"
+required-features = ["compatibility-executor"]
+
+[[test]]
+name = "structured_remote_delivery"
 required-features = ["compatibility-executor"]
 
 [[test]]

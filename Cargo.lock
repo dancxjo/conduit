@@ -686,6 +686,7 @@ dependencies = [
  "conduit-form",
  "conduit-kernel",
  "conduit-planner",
+ "conduit-wire",
 ]
 
 [[package]]
