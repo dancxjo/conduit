@@ -17,8 +17,11 @@ use conduit_kernel::{
     SignExpectationId, SignExpectationTarget,
 };
 
+mod fusion;
 mod remote;
 mod shared_pool;
+use fusion::lower_fusions;
+pub use fusion::LoweredFusion;
 use remote::lower_remote_endpoints;
 use shared_pool::lower_shared_pools;
 pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
@@ -518,6 +521,7 @@ pub struct LoweredPlanFragment {
     pub nodes: Vec<LoweredNode>,
     pub node_specs: Vec<NodeSpec<MAXIMUM_KERNEL_PORTS_PER_NODE>>,
     pub cords: Vec<LoweredCord>,
+    pub fusions: Vec<LoweredFusion>,
     pub remote_endpoints: Vec<LoweredRemoteEndpoint>,
     pub routes: Vec<LoweredRoute>,
     pub host_operations: Vec<LoweredHostOperation>,
@@ -809,6 +813,7 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
     }
 
     let shared_pools = lower_shared_pools(fragment, &placement_nodes)?;
+    let fusions = lower_fusions(fragment, &placement_nodes, &cords)?;
 
     Ok(LoweredPlanFragment {
         identity: KernelIdentityMap {
@@ -845,6 +850,7 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
         nodes,
         node_specs,
         cords,
+        fusions,
         remote_endpoints,
         routes,
         host_operations,

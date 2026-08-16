@@ -34,7 +34,9 @@ mod decision_evidence;
 mod diagnostic;
 mod fact_policy;
 mod functional_compatibility;
+mod fusion;
 mod generic_selection;
+mod locality;
 mod observations;
 mod policy;
 mod policy_composition;
@@ -71,6 +73,19 @@ pub use decision_evidence::{
 };
 pub use diagnostic::structured_planner_diagnostic;
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
+pub use fusion::{
+    plan_selected_optimization, select_fusion_candidate, FusionBoundary, FusionCandidate,
+    FusionCandidateEvidence, FusionDecisionGroup, FusionPlanningInputs, FusionPlanningObservation,
+    FusionRealizationOffer, FusionSelection, OptimizedPlan, MAXIMUM_FUSION_CANDIDATES,
+    MAXIMUM_FUSION_GROUPS, MAXIMUM_FUSION_MEMBERS, MAXIMUM_FUSION_OFFERS,
+};
+pub use locality::{
+    select_data_locality_candidate, CandidateCostEvidence, CandidatePlacement,
+    CandidatePlacementDisposition, DataFlowObservation, LocalCordObservation, LocalityCandidate,
+    LocalityPlanningBasis, LocalitySelection, ObservationProvenance, RealizationWorkObservation,
+    ReductionObservation, TransportObservation, MAXIMUM_LOCALITY_CANDIDATES,
+    MAXIMUM_LOCALITY_LINE_OFFERS, MAXIMUM_LOCALITY_OBSERVATIONS,
+};
 pub use observations::select_realization_with_observations;
 pub use policy::{select_realization_with_policy, RealizationPolicy, RealizationPreference};
 pub use policy_composition::{
@@ -631,6 +646,7 @@ pub(crate) fn plan_validated_form(
                 offer_generation: host.offer_generation,
                 placements,
                 execution_regions: Vec::new(),
+                execution_fusions: Vec::new(),
                 connections,
                 shared_pools: Vec::new(),
                 startup_dependencies,

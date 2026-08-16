@@ -70,6 +70,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
             pool_references: vec![],
         }],
         execution_regions: vec![],
+        execution_fusions: vec![],
         connections: vec![],
         shared_pools: vec![],
         startup_dependencies: vec![],
