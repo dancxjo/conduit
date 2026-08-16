@@ -8,7 +8,7 @@ use conduit_core::CheckedFormId;
 pub(crate) fn checked_identity(
     name: &str,
     parameters: &[CheckedStartupParameter],
-    runtime_ports: &[crate::RuntimePort],
+    runtime_face: &conduit_core::CheckedFace,
     shorthand: Option<(&str, &str)>,
     gears: &[CheckedCanonicalGear],
     cords: &[CheckedCanonicalCord],
@@ -27,14 +27,12 @@ pub(crate) fn checked_identity(
             .unwrap_or_else(|| "required".into());
         push_field(&mut canonical, &default);
     }
-    let mut ports = runtime_ports.to_vec();
-    ports.sort_by(|left, right| left.name.text.cmp(&right.name.text));
-    for port in ports {
+    for port in runtime_face.inputs().iter().chain(runtime_face.outputs()) {
         canonical.push_str("port");
-        push_field(&mut canonical, &port.name.text);
-        push_field(&mut canonical, &port.value_type.text);
+        push_field(&mut canonical, port.port_id.as_str());
+        push_field(&mut canonical, port.value_kind.as_str());
         push_field(&mut canonical, &format!("{:?}", port.direction));
-        push_field(&mut canonical, &format!("{:?}", port.temporal));
+        push_field(&mut canonical, port.temporal.as_str());
     }
     if let Some((input, output)) = shorthand {
         canonical.push_str("shorthand");

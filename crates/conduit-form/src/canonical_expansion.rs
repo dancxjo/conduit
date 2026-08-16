@@ -48,13 +48,13 @@ struct Instance {
 #[derive(Debug, Clone)]
 enum StageSource {
     Internal(Endpoint),
-    FaceInput(String, String, conduit_core::PortTemporal),
+    FaceInput(String, conduit_core::KindId, conduit_core::PortTemporal),
 }
 
 #[derive(Debug, Clone)]
 enum StageSink {
     Internal(Endpoint),
-    FaceOutput(String, String, conduit_core::PortTemporal),
+    FaceOutput(String, conduit_core::KindId, conduit_core::PortTemporal),
 }
 
 #[derive(Debug)]
@@ -148,11 +148,8 @@ fn expand_instance_inner(
         instances.insert(name.to_string(), instance);
     }
 
-    let face_ports = form
-        .runtime_ports
-        .iter()
-        .map(|port| (port.name.text.as_str(), port))
-        .collect::<BTreeMap<_, _>>();
+    let runtime_face = form.checked_face();
+    let face_ports = checked_face_ports(form, &runtime_face);
     let mut inputs = BTreeMap::new();
     let mut outputs = BTreeMap::new();
     let mut anonymous_counts = BTreeMap::<String, usize>::new();

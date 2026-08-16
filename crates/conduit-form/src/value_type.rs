@@ -1,5 +1,12 @@
-use crate::RuntimePortTemporal;
-use conduit_core::{kind_id, KindId};
+use alloc::vec::Vec;
+
+use crate::{FormSyntax, RuntimePortDirection, RuntimePortTemporal, SyntaxCheckDiagnostic};
+use conduit_core::{
+    kind_id, CheckedFace, FaceStartupParameter, KindId, PortDescriptor, PortDirection,
+    StructuredInfoRefusal,
+};
+
+use crate::StartupCatalog;
 
 pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
     match source_type {
@@ -10,6 +17,70 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Manifestation" => kind_id("presentation/manifestation@1"),
         exact => kind_id(exact),
     }
+}
+
+pub(crate) fn checked_value_kind(
+    source_type: &str,
+    catalog: &StartupCatalog,
+) -> Result<KindId, StructuredInfoRefusal> {
+    catalog
+        .structured_type(source_type)
+        .map(|value_type| {
+            value_type
+                .profile()
+                .map(|profile| profile.value_kind().clone())
+        })
+        .unwrap_or_else(|| Ok(canonical_value_kind(source_type)))
+}
+
+pub(crate) fn checked_face(
+    form: &FormSyntax,
+    catalog: &StartupCatalog,
+) -> Result<CheckedFace, SyntaxCheckDiagnostic> {
+    let startup_parameters = form
+        .face
+        .startup_parameters
+        .iter()
+        .map(|parameter| FaceStartupParameter {
+            name: parameter.name.text.clone(),
+            value_type: parameter.value_type.text.clone(),
+            has_default: parameter.default.is_some(),
+        })
+        .collect();
+    let mut inputs = Vec::new();
+    let mut outputs = Vec::new();
+    for port in &form.face.runtime_ports {
+        let descriptor = PortDescriptor {
+            port_id: conduit_core::port_id(&port.name.text),
+            value_kind: checked_value_kind(&port.value_type.text, catalog).map_err(|_| {
+                SyntaxCheckDiagnostic {
+                    code: "CND-FRM-053",
+                    span: port.value_type.span,
+                    message: "structured runtime Port profile exceeds canonical bounds".into(),
+                }
+            })?,
+            direction: match port.direction {
+                RuntimePortDirection::Input => PortDirection::Input,
+                RuntimePortDirection::Output => PortDirection::Output,
+            },
+            temporal: canonical_port_temporal(port.temporal),
+        };
+        match descriptor.direction {
+            PortDirection::Input => inputs.push(descriptor),
+            PortDirection::Output => outputs.push(descriptor),
+        }
+    }
+    Ok(CheckedFace::new(
+        startup_parameters,
+        inputs,
+        outputs,
+        form.face.shorthand.as_ref().map(|pair| {
+            (
+                conduit_core::port_id(&pair.input_port.text),
+                conduit_core::port_id(&pair.output_port.text),
+            )
+        }),
+    ))
 }
 
 pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_core::PortTemporal {

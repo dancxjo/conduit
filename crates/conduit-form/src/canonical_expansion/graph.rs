@@ -1,5 +1,26 @@
 use super::*;
 
+pub(super) fn checked_face_ports<'a>(
+    form: &'a CheckedCanonicalForm,
+    runtime_face: &'a conduit_core::CheckedFace,
+) -> BTreeMap<&'a str, (&'a crate::RuntimePort, &'a conduit_core::PortDescriptor)> {
+    let descriptors = runtime_face
+        .inputs()
+        .iter()
+        .chain(runtime_face.outputs())
+        .map(|port| (port.port_id.as_str(), port))
+        .collect::<BTreeMap<_, _>>();
+    form.runtime_ports
+        .iter()
+        .map(|port| {
+            let descriptor = descriptors
+                .get(port.name.text.as_str())
+                .expect("checked runtime face retains every syntax Port");
+            (port.name.text.as_str(), (port, *descriptor))
+        })
+        .collect()
+}
+
 pub(super) fn inline_key(gear: &CheckedCanonicalGear) -> String {
     format!("{}:{:?}", gear.kind, gear.startup_bindings)
 }
@@ -170,22 +191,22 @@ fn parse_duration_millis(literal: &str) -> Option<u64> {
 pub(super) fn resolve_reference(
     reference: &str,
     instances: &BTreeMap<String, Instance>,
-    face_ports: &BTreeMap<&str, &crate::RuntimePort>,
+    face_ports: &BTreeMap<&str, (&crate::RuntimePort, &conduit_core::PortDescriptor)>,
 ) -> Result<Stage, CanonicalExpansionDiagnostic> {
-    if let Some(port) = face_ports.get(reference) {
+    if let Some((port, descriptor)) = face_ports.get(reference) {
         return Ok(match port.direction {
             RuntimePortDirection::Input => Stage {
                 input: None,
                 output: Some(StageSource::FaceInput(
                     reference.to_string(),
-                    port.value_type.text.clone(),
+                    descriptor.value_kind.clone(),
                     crate::value_type::canonical_port_temporal(port.temporal),
                 )),
             },
             RuntimePortDirection::Output => Stage {
                 input: Some(vec![StageSink::FaceOutput(
                     reference.to_string(),
-                    port.value_type.text.clone(),
+                    descriptor.value_kind.clone(),
                     crate::value_type::canonical_port_temporal(port.temporal),
                 )]),
                 output: None,
@@ -317,17 +338,16 @@ fn insert_boundary(
 
 fn require_face_contract(
     name: &str,
-    value_type: &str,
+    value_kind: &conduit_core::KindId,
     temporal: conduit_core::PortTemporal,
     actual: &conduit_core::PortDescriptor,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
-    if crate::value_type::canonical_value_kind(value_type) != actual.value_kind
-        || temporal != actual.temporal
-    {
+    if value_kind != &actual.value_kind || temporal != actual.temporal {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-045",
             format!(
-                "runtime face port '{name}' declares '{value_type}' but binds '{}'",
+                "runtime face port '{name}' declares '{}' but binds '{}'",
+                value_kind.as_str(),
                 actual.value_kind.as_str()
             ),
         ));

@@ -8,6 +8,7 @@ impl ExpandedCanonicalForm {
             name: self.name.clone(),
             startup_parameters: vec![],
             runtime_ports: Vec::new(),
+            runtime_face: conduit_core::CheckedFace::new(vec![], vec![], vec![], None),
             shorthand: None,
             local_values: Vec::new(),
             pools: Vec::new(),
