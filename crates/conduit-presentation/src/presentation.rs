@@ -63,6 +63,7 @@ pub enum PresentationRole {
     Diagnostic,
     Sign,
     Seed,
+    Info,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
