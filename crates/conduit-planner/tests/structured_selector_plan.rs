@@ -88,7 +88,15 @@ fn primitive(kind: &str, direction: PortDirection, value_kind: KindId) -> KindDe
 fn offer(definition: &KindDefinition) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
-        startup_parameters: vec![],
+        startup_parameters: definition
+            .configuration
+            .iter()
+            .map(|field| conduit_core::FaceStartupParameter {
+                name: field.key.clone(),
+                value_type: "Text".into(),
+                has_default: false,
+            })
+            .collect(),
         shorthand: None,
         capability_id: CapabilityId::from(slug.as_str()),
         kind_id: definition.kind_id.clone(),

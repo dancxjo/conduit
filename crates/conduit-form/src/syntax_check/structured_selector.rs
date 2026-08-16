@@ -55,7 +55,8 @@ fn refusal_message(refusal: &StructuredSelectorRefusal) -> &'static str {
         | StructuredSelectorRefusal::MalformedCheckedValue
         | StructuredSelectorRefusal::UnmatchedVariant
         | StructuredSelectorRefusal::FlowAlreadyClosed
-        | StructuredSelectorRefusal::CanonicalEncodingTooLarge => {
+        | StructuredSelectorRefusal::CanonicalEncodingTooLarge
+        | StructuredSelectorRefusal::MalformedCanonicalEncoding => {
             "invalid finite structured selector"
         }
     }

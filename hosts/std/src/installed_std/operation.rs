@@ -23,11 +23,16 @@ use super::presentation_composition::{
 use super::render_demand_operation::AudioRenderDemandOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
+use super::structured_selector_operation::StructuredSelectorOperation;
 use super::synth_operation::MusicSynthOperation;
 #[cfg(test)]
 use super::test_json_codec::{TestJsonSinkOperation, TestJsonSourceOperation};
 #[cfg(any(test, feature = "local-model-proof"))]
 use super::test_local_model_io::{TestLocalModelSinkOperation, TestLocalModelSourceOperation};
+#[cfg(test)]
+use super::test_structured_selector::{
+    SinkOperation as TestStructuredSinkOperation, SourceOperation as TestStructuredSourceOperation,
+};
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
@@ -106,6 +111,7 @@ pub(super) enum InstalledOperation {
     HttpServer(HttpServerOperation),
     JsonEncode(JsonOperation),
     JsonDecode(JsonOperation),
+    StructuredSelector(StructuredSelectorOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
     #[cfg(test)]
@@ -115,6 +121,10 @@ pub(super) enum InstalledOperation {
     TestJsonSource(TestJsonSourceOperation),
     #[cfg(test)]
     TestJsonSink(TestJsonSinkOperation),
+    #[cfg(test)]
+    TestStructuredSource(TestStructuredSourceOperation),
+    #[cfg(test)]
+    TestStructuredSink(TestStructuredSinkOperation),
     #[cfg(any(test, feature = "local-model-proof"))]
     TestLocalModelSource(TestLocalModelSourceOperation),
     #[cfg(any(test, feature = "local-model-proof"))]
@@ -206,6 +216,7 @@ impl Operation for InstalledOperation {
             Self::HttpClient(operation) => operation.start(),
             Self::HttpServer(operation) => operation.start(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.start(),
+            Self::StructuredSelector(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
@@ -215,6 +226,10 @@ impl Operation for InstalledOperation {
             Self::TestJsonSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
             Self::TestJsonSink(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestStructuredSource(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestStructuredSink(operation) => operation.start(),
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestLocalModelSource(operation) => operation.emit_or_complete(),
             #[cfg(any(test, feature = "local-model-proof"))]
@@ -297,6 +312,7 @@ impl Operation for InstalledOperation {
             (Self::JsonEncode(operation), input) | (Self::JsonDecode(operation), input) => {
                 operation.resume(input)
             }
+            (Self::StructuredSelector(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestTextSource(_), _) => Self::fail(6),
             #[cfg(test)]
@@ -306,6 +322,10 @@ impl Operation for InstalledOperation {
             (Self::TestJsonSource(_), _) => Self::fail(104),
             #[cfg(test)]
             (Self::TestJsonSink(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestStructuredSource(_), _) => Self::fail(152),
+            #[cfg(test)]
+            (Self::TestStructuredSink(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
             (Self::TestLocalModelSource(_), _) => Self::fail(141),
             #[cfg(any(test, feature = "local-model-proof"))]
@@ -348,6 +368,8 @@ impl Operation for InstalledOperation {
             Self::TestLogicSink(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
             Self::TestChordSink(operation) => operation.resume_value(port, canonical),
+            #[cfg(test)]
+            Self::TestStructuredSink(operation) => operation.resume_value(port, canonical),
             _ => self.resume(OperationInput::Value { port, value }),
         }
     }
@@ -384,6 +406,7 @@ impl Operation for InstalledOperation {
             Self::TextJoin(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.advance(),
+            Self::StructuredSelector(operation) => operation.advance(),
             Self::StateCount(operation) => operation.advance(),
             Self::StateToggle(operation) => operation.advance(),
             Self::CountPresentation(_) => OperationAction::Await,
@@ -446,6 +469,10 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestJsonSink(_) => OperationAction::Await,
             #[cfg(test)]
+            Self::TestStructuredSource(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestStructuredSink(_) => OperationAction::Await,
+            #[cfg(test)]
             Self::TestLogicSink(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestSlowScalarSink(_) => OperationAction::Await,
@@ -505,6 +532,7 @@ impl Operation for InstalledOperation {
             Self::HttpClient(operation) => operation.cancel(),
             Self::HttpServer(operation) => operation.cancel(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.cancel(),
+            Self::StructuredSelector(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]
@@ -514,6 +542,8 @@ impl Operation for InstalledOperation {
             Self::TestJsonSource(_) => {}
             #[cfg(test)]
             Self::TestJsonSink(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestStructuredSource(_) | Self::TestStructuredSink(_) => {}
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestLocalModelSource(_) | Self::TestLocalModelSink(_) => {}
             #[cfg(test)]

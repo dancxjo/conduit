@@ -29,6 +29,7 @@ mod presentation_composition;
 mod render_demand_operation;
 mod robotics_effect;
 mod robotics_operations;
+mod structured_selector_operation;
 mod synth_operation;
 mod synth_render;
 mod test_audio_source;
@@ -46,6 +47,8 @@ mod test_logic;
 mod test_midi_source;
 #[cfg(test)]
 mod test_scalar_flow;
+#[cfg(test)]
+pub(super) mod test_structured_selector;
 #[cfg(test)]
 mod test_support;
 #[cfg(test)]
@@ -503,6 +506,20 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut http_output =
         Vec::with_capacity(conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
     let mut json_host = json_operations::JsonHost::prepare();
+    let mut structured_selector_hosts = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_catalog::STRUCTURED_SELECTOR_STD_IMPLEMENTATION
+            {
+                structured_selector_operation::StructuredSelectorHost::from_placement(placement)
+                    .map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     let mut generate_text_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
     let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
@@ -711,6 +728,57 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete bounded JSON operation: {error:?}"))?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_catalog::STRUCTURED_SELECTOR_HOST_OPERATION {
+                let completion = structured_selector_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "structured selector request has no admitted host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(Some(encoded)) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded structured selector output: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound structured selector output: {error:?}")
+                                })?,
+                            ),
+                            None,
+                        )
+                    }
+                    Ok(None) => (HostOperationDisposition::Completed, None, None),
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: structured_selector_operation::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded structured selector operation: {error:?}")
+                    })?;
                 continue;
             }
             if matches!(

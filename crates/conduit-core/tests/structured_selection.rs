@@ -1,7 +1,7 @@
 use conduit_core::{
-    KindId, StructuredFieldType, StructuredFieldValue, StructuredFlowSelection,
-    StructuredFlowSelector, StructuredInfoType, StructuredInfoValue, StructuredSelection,
-    StructuredSelector, StructuredSelectorRefusal, StructuredVariantCase,
+    KindId, StructuredCanonicalSelection, StructuredFieldType, StructuredFieldValue,
+    StructuredFlowSelection, StructuredFlowSelector, StructuredInfoType, StructuredInfoValue,
+    StructuredSelection, StructuredSelector, StructuredSelectorRefusal, StructuredVariantCase,
     UnmatchedVariantDisposition,
 };
 
@@ -217,5 +217,51 @@ fn selector_identity_is_canonical_and_includes_unmatched_policy() {
     assert_ne!(
         drop.semantic_digest().unwrap(),
         refuse.semantic_digest().unwrap()
+    );
+}
+
+#[test]
+fn selector_configuration_round_trips_and_rejects_noncanonical_bytes() {
+    let selector = StructuredSelector::field(note_type(), "velocity").unwrap();
+    let encoded = selector.canonical_bytes().unwrap();
+    assert_eq!(
+        StructuredSelector::from_canonical_bytes(&encoded).unwrap(),
+        selector
+    );
+    assert_eq!(
+        StructuredSelector::from_canonical_hex(&selector.canonical_hex().unwrap()).unwrap(),
+        selector
+    );
+
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert_eq!(
+        StructuredSelector::from_canonical_bytes(&trailing),
+        Err(StructuredSelectorRefusal::MalformedCanonicalEncoding)
+    );
+}
+
+#[test]
+fn canonical_selection_validates_the_whole_input_and_writes_the_exact_value() {
+    let selector = StructuredSelector::field(note_type(), "velocity").unwrap();
+    let input_type = selector.input_type().canonical_bytes().unwrap();
+    let output_type = selector.output_type().canonical_bytes().unwrap();
+    let mut output = Vec::with_capacity(512);
+    assert_eq!(
+        selector.select_canonical_into(
+            &note(64).canonical_bytes().unwrap(),
+            &input_type,
+            &output_type,
+            &mut output,
+        ),
+        Ok(StructuredCanonicalSelection::Matched)
+    );
+    assert_eq!(output, count(96).canonical_bytes().unwrap());
+
+    let mut malformed = note(64).canonical_bytes().unwrap();
+    malformed.push(0);
+    assert_eq!(
+        selector.select_canonical_into(&malformed, &input_type, &output_type, &mut output),
+        Err(StructuredSelectorRefusal::MalformedCheckedValue)
     );
 }

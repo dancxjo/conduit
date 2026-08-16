@@ -1,12 +1,16 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::{KindId, PortTemporal};
 use sha2::{Digest, Sha256};
 
 use super::{
+    canonical::{decode_type, Cursor},
     validate_name, StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeNode,
     StructuredInfoValue, StructuredInfoValueNode, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
+
+mod canonical_selection;
 
 const SELECTOR_DIGEST_DOMAIN: &[u8] = b"conduit.structured-info.selector.v1";
 
@@ -48,11 +52,18 @@ pub enum StructuredSelectorRefusal {
     UnmatchedVariant,
     FlowAlreadyClosed,
     CanonicalEncodingTooLarge,
+    MalformedCanonicalEncoding,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StructuredSelection {
     Matched(StructuredInfoValue),
+    Unmatched(UnmatchedVariantDisposition),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StructuredCanonicalSelection {
+    Matched,
     Unmatched(UnmatchedVariantDisposition),
 }
 
@@ -65,6 +76,87 @@ pub enum StructuredFlowSelection {
 }
 
 impl StructuredSelector {
+    pub fn from_canonical_bytes(encoded: &[u8]) -> Result<Self, StructuredSelectorRefusal> {
+        if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || !encoded.starts_with(SELECTOR_DIGEST_DOMAIN)
+        {
+            return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding);
+        }
+        let mut cursor = Cursor::new(&encoded[SELECTOR_DIGEST_DOMAIN.len()..]);
+        let type_bytes = cursor
+            .bytes()
+            .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?;
+        let (input_type, remaining) = decode_type(type_bytes)
+            .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?;
+        if !remaining.is_empty() {
+            return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding);
+        }
+        let selector = match cursor
+            .byte()
+            .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?
+        {
+            0 => Self::field(
+                input_type,
+                cursor
+                    .text()
+                    .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?,
+            )?,
+            1 => Self::index(
+                input_type,
+                cursor
+                    .u16()
+                    .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?,
+            )?,
+            2 => {
+                let tag = cursor
+                    .text()
+                    .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?;
+                let unmatched = match cursor
+                    .byte()
+                    .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?
+                {
+                    0 => UnmatchedVariantDisposition::Drop,
+                    1 => UnmatchedVariantDisposition::Refuse,
+                    _ => return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding),
+                };
+                Self::variant(input_type, tag, unmatched)?
+            }
+            _ => return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding),
+        };
+        if !cursor.remaining.is_empty()
+            || selector.canonical_bytes().ok().as_deref() != Some(encoded)
+        {
+            return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding);
+        }
+        Ok(selector)
+    }
+
+    pub fn canonical_hex(&self) -> Result<String, StructuredSelectorRefusal> {
+        let canonical = self.canonical_bytes()?;
+        let mut encoded = String::with_capacity(canonical.len() * 2);
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        for byte in canonical {
+            encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+            encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+        }
+        Ok(encoded)
+    }
+
+    pub fn from_canonical_hex(encoded: &str) -> Result<Self, StructuredSelectorRefusal> {
+        if !encoded.len().is_multiple_of(2)
+            || encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2
+        {
+            return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding);
+        }
+        let mut canonical = Vec::with_capacity(encoded.len() / 2);
+        for pair in encoded.as_bytes().chunks_exact(2) {
+            let high = decode_hex(pair[0])?;
+            let low = decode_hex(pair[1])?;
+            canonical.push((high << 4) | low);
+        }
+        Self::from_canonical_bytes(&canonical)
+    }
+
     pub fn field(
         input_type: StructuredInfoType,
         field: impl Into<String>,
@@ -179,6 +271,20 @@ impl StructuredSelector {
         Ok(digest.finalize().into())
     }
 
+    pub fn kind_id(&self, temporal: PortTemporal) -> Result<KindId, StructuredSelectorRefusal> {
+        let digest = self.semantic_digest()?;
+        let mut encoded = String::with_capacity(digest.len() * 2);
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        for byte in digest {
+            encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+            encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+        }
+        Ok(KindId::from(alloc::format!(
+            "structured-info/selector-{encoded}-{}@1",
+            temporal.as_str()
+        )))
+    }
+
     pub fn select(
         &self,
         input: &StructuredInfoValue,
@@ -274,4 +380,12 @@ impl StructuredFlowSelector {
 fn push_bytes(encoded: &mut Vec<u8>, bytes: &[u8]) {
     encoded.extend_from_slice(&(bytes.len() as u32).to_le_bytes());
     encoded.extend_from_slice(bytes);
+}
+
+fn decode_hex(byte: u8) -> Result<u8, StructuredSelectorRefusal> {
+    match byte {
+        b'0'..=b'9' => Ok(byte - b'0'),
+        b'a'..=b'f' => Ok(byte - b'a' + 10),
+        _ => Err(StructuredSelectorRefusal::MalformedCanonicalEncoding),
+    }
 }

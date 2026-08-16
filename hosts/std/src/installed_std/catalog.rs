@@ -41,6 +41,7 @@ use super::robotics_operations::{
     ROBOTICS_OBSERVE_BUMP_FACTORY, ROBOTICS_OBSERVE_IMU_FACTORY, ROBOTICS_OBSERVE_ODOMETRY_FACTORY,
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
+use super::structured_selector_operation::FACTORY as STRUCTURED_SELECTOR_FACTORY;
 use super::synth_operation::MUSIC_SYNTH_FACTORY;
 use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 #[cfg(test)]
@@ -58,6 +59,10 @@ use super::test_midi_source::FACTORY as TEST_MIDI_SOURCE_FACTORY;
 #[cfg(test)]
 use super::test_scalar_flow::{
     TEST_SCALAR_LITERAL_FACTORY, TEST_SCALAR_SINK_FACTORY, TEST_SCALAR_SOURCE_FACTORY,
+};
+#[cfg(test)]
+use super::test_structured_selector::{
+    SINK_FACTORY as TEST_STRUCTURED_SINK_FACTORY, SOURCE_FACTORY as TEST_STRUCTURED_SOURCE_FACTORY,
 };
 #[cfg(test)]
 use super::test_text_source::TEST_TEXT_SOURCE_FACTORY;
@@ -143,6 +148,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &HTTP_SERVER_FACTORY,
     &JSON_ENCODE_FACTORY,
     &JSON_DECODE_FACTORY,
+    &STRUCTURED_SELECTOR_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
@@ -178,6 +184,10 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEST_JSON_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_JSON_SINK_FACTORY,
+    #[cfg(test)]
+    &TEST_STRUCTURED_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_STRUCTURED_SINK_FACTORY,
     #[cfg(test)]
     &TEST_OBSERVER_FACTORY,
 ];
