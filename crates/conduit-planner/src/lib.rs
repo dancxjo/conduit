@@ -23,6 +23,7 @@ use conduit_core::{
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
 
+mod accelerator;
 mod body_envelope;
 mod canonical;
 mod characteristic_policy;
@@ -54,6 +55,13 @@ mod style;
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
 
+pub use accelerator::{
+    select_accelerator_candidate, AcceleratorCandidate, AcceleratorCandidateDisposition,
+    AcceleratorCandidateEvidence, AcceleratorDemand, AcceleratorDimension, AcceleratorObservation,
+    AcceleratorOffer, AcceleratorPlanningBasis, AcceleratorReservation, AcceleratorSelection,
+    ExecutionMechanism, MAXIMUM_ACCELERATOR_CANDIDATES, MAXIMUM_ACCELERATOR_DEMANDS,
+    MAXIMUM_ACCELERATOR_DIMENSIONS, MAXIMUM_ACCELERATOR_OFFERS,
+};
 pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,

@@ -13,7 +13,7 @@ use super::{
 
 const BINARY: &str = "conduitos-riscv64-a2";
 const PREFIX: &str = "CONDUIT_RISCV64_MACHINE_SIGN ";
-const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-opensbi-uboot";
+const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-tcg-opensbi-uboot";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct MachineSign {
