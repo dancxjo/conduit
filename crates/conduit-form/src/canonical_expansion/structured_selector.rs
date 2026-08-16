@@ -1,26 +1,17 @@
 use super::*;
-use crate::{ConfigurationField, KindDefinition};
+use crate::{ConfigurationField, ConfigurationRule, KindDefinition};
 use conduit_core::{
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal, StructuredSelector,
+    ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub fn structured_selector_definition(
     selector: &StructuredSelector,
     temporal: PortTemporal,
 ) -> KindDefinition {
-    let digest = selector
-        .semantic_digest()
+    let kind_id = selector
+        .kind_id(temporal)
         .expect("checked selector has a finite semantic identity");
-    let mut encoded = String::with_capacity(digest.len() * 2);
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    for byte in digest {
-        encoded.push(char::from(HEX[usize::from(byte >> 4)]));
-        encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
-    }
-    let kind_id = KindId::from(format!(
-        "structured-info/selector-{encoded}-{}@1",
-        temporal.as_str()
-    ));
     KindDefinition {
         kind_id,
         kind_contract_revision: KindContractRevision::from("structured-info/selector-operation@1"),
@@ -46,7 +37,17 @@ pub fn structured_selector_definition(
             direction: PortDirection::Output,
             temporal,
         }],
-        configuration: Vec::<ConfigurationField>::new(),
+        configuration: vec![ConfigurationField {
+            key: "selector".to_string(),
+            default_value: ConfigurationValue::Text(
+                selector
+                    .canonical_hex()
+                    .expect("checked selector has a finite canonical configuration"),
+            ),
+            validation: ConfigurationRule::TextBytes {
+                maximum: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+            },
+        }],
     }
 }
 
@@ -118,11 +119,25 @@ pub(super) fn resolve_selectors(
         let count = anonymous_counts.entry(key.clone()).or_default();
         let name = format!("selector-{}-{count}", &hash_string(&key)[..12]);
         *count += 1;
+        let selector_configuration = selector.canonical_hex().map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-045",
+                "structured selector exceeds the finite canonical configuration bound".into(),
+            )
+        })?;
         let gear = CheckedCanonicalGear {
             name: None,
             kind: key,
-            startup_parameters: vec![],
-            startup_bindings: vec![],
+            startup_parameters: vec![crate::StartupParameterSignature {
+                name: "selector".to_string(),
+                value_type: "Text".to_string(),
+                default: None,
+            }],
+            startup_bindings: vec![crate::CheckedStartupBinding {
+                name: "selector".to_string(),
+                value_type: "Text".to_string(),
+                value: CanonicalStartupValue::Literal(format!("\"{selector_configuration}\"")),
+            }],
             source_span: *source_span,
         };
         let instance = instantiate_gear(

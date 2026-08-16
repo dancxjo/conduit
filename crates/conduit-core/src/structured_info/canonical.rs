@@ -1,9 +1,11 @@
+use alloc::string::String;
 use alloc::vec::Vec;
 use sha2::{Digest, Sha256};
 
 use super::{
-    StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeNode, StructuredInfoValue,
-    StructuredInfoValueNode, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoTypeNode, StructuredInfoValue, StructuredInfoValueNode, StructuredVariantCase,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub(super) fn type_extent(value: &StructuredInfoType) -> (usize, usize) {
@@ -112,6 +114,183 @@ pub(super) fn encode_value_node(value: &StructuredInfoValueNode, out: &mut Vec<u
             encode_text(tag, out);
             encode_value_node(&payload.node, out);
         }
+    }
+}
+
+pub(super) fn decode_type(
+    encoded: &[u8],
+) -> Result<(StructuredInfoType, &[u8]), StructuredInfoRefusal> {
+    let mut cursor = Cursor::new(encoded);
+    let mut remaining_nodes = super::MAXIMUM_STRUCTURED_INFO_NODES;
+    let value = decode_type_node(&mut cursor, 1, &mut remaining_nodes)?;
+    Ok((value, cursor.remaining))
+}
+
+fn decode_type_node(
+    cursor: &mut Cursor<'_>,
+    depth: usize,
+    remaining_nodes: &mut usize,
+) -> Result<StructuredInfoType, StructuredInfoRefusal> {
+    if depth > super::MAXIMUM_STRUCTURED_INFO_DEPTH || *remaining_nodes == 0 {
+        return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+    }
+    *remaining_nodes -= 1;
+    match cursor.byte()? {
+        0 => StructuredInfoType::leaf(crate::KindId::from(cursor.text()?)),
+        1 => {
+            let length = cursor.u16()?;
+            StructuredInfoType::collection(
+                decode_type_node(cursor, depth + 1, remaining_nodes)?,
+                Some(length),
+            )
+        }
+        2 => {
+            let schema = crate::KindId::from(cursor.text()?);
+            let length = cursor.length()?;
+            if length > super::MAXIMUM_STRUCTURED_RECORD_FIELDS {
+                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+            }
+            let mut fields = Vec::with_capacity(length);
+            for _ in 0..length {
+                fields.push(StructuredFieldType::new(
+                    cursor.text()?,
+                    decode_type_node(cursor, depth + 1, remaining_nodes)?,
+                )?);
+            }
+            StructuredInfoType::record(schema, fields)
+        }
+        3 => {
+            let schema = crate::KindId::from(cursor.text()?);
+            let length = cursor.length()?;
+            if length > super::MAXIMUM_STRUCTURED_VARIANT_CASES {
+                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+            }
+            let mut cases = Vec::with_capacity(length);
+            for _ in 0..length {
+                cases.push(StructuredVariantCase::new(
+                    cursor.text()?,
+                    decode_type_node(cursor, depth + 1, remaining_nodes)?,
+                )?);
+            }
+            StructuredInfoType::variant(schema, cases)
+        }
+        _ => Err(StructuredInfoRefusal::MalformedCanonicalEncoding),
+    }
+}
+
+pub(super) fn decode_value<'a>(
+    expected: &StructuredInfoType,
+    encoded: &'a [u8],
+) -> Result<(StructuredInfoValue, &'a [u8]), StructuredInfoRefusal> {
+    let mut cursor = Cursor::new(encoded);
+    let value = decode_value_node(expected, &mut cursor)?;
+    Ok((value, cursor.remaining))
+}
+
+fn decode_value_node(
+    expected: &StructuredInfoType,
+    cursor: &mut Cursor<'_>,
+) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
+    match (expected.shape(), cursor.byte()?) {
+        (super::StructuredInfoTypeShape::Leaf(_), 0) => {
+            StructuredInfoValue::leaf(expected.clone(), cursor.bytes()?.to_vec())
+        }
+        (super::StructuredInfoTypeShape::Collection { element, length }, 1) => {
+            if cursor.length()? != usize::from(length) {
+                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+            }
+            let mut values = Vec::with_capacity(usize::from(length));
+            for _ in 0..length {
+                values.push(decode_value_node(element, cursor)?);
+            }
+            StructuredInfoValue::collection(expected.clone(), values)
+        }
+        (super::StructuredInfoTypeShape::Record { fields, .. }, 2) => {
+            if cursor.length()? != fields.len() {
+                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+            }
+            let mut values = Vec::with_capacity(fields.len());
+            for field in fields {
+                let name = cursor.text()?;
+                if name != field.name() {
+                    return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+                }
+                values.push(StructuredFieldValue::new(
+                    name,
+                    decode_value_node(field.value_type(), cursor)?,
+                )?);
+            }
+            StructuredInfoValue::record(expected.clone(), values)
+        }
+        (super::StructuredInfoTypeShape::Variant { cases, .. }, 3) => {
+            let tag = cursor.text()?;
+            let case = cases
+                .iter()
+                .find(|case| case.tag() == tag)
+                .ok_or(StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+            StructuredInfoValue::variant(
+                expected.clone(),
+                tag,
+                decode_value_node(case.payload_type(), cursor)?,
+            )
+        }
+        _ => Err(StructuredInfoRefusal::MalformedCanonicalEncoding),
+    }
+}
+
+pub(super) struct Cursor<'a> {
+    pub(super) remaining: &'a [u8],
+}
+
+impl<'a> Cursor<'a> {
+    pub(super) fn new(bytes: &'a [u8]) -> Self {
+        Self { remaining: bytes }
+    }
+
+    pub(super) fn byte(&mut self) -> Result<u8, StructuredInfoRefusal> {
+        let (&byte, rest) = self
+            .remaining
+            .split_first()
+            .ok_or(StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+        self.remaining = rest;
+        Ok(byte)
+    }
+
+    pub(super) fn u16(&mut self) -> Result<u16, StructuredInfoRefusal> {
+        let bytes = self.take(2)?;
+        Ok(u16::from_le_bytes(bytes.try_into().map_err(|_| {
+            StructuredInfoRefusal::MalformedCanonicalEncoding
+        })?))
+    }
+
+    pub(super) fn length(&mut self) -> Result<usize, StructuredInfoRefusal> {
+        let bytes = self.take(4)?;
+        usize::try_from(u32::from_le_bytes(
+            bytes
+                .try_into()
+                .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+        ))
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)
+    }
+
+    pub(super) fn bytes(&mut self) -> Result<&'a [u8], StructuredInfoRefusal> {
+        let length = self.length()?;
+        self.take(length)
+    }
+
+    pub(super) fn text(&mut self) -> Result<String, StructuredInfoRefusal> {
+        core::str::from_utf8(self.bytes()?)
+            .map(String::from)
+            .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)
+    }
+
+    pub(super) fn take(&mut self, length: usize) -> Result<&'a [u8], StructuredInfoRefusal> {
+        if length > self.remaining.len() {
+            return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+        }
+        let (value, rest) = self.remaining.split_at(length);
+        self.remaining = rest;
+        Ok(value)
     }
 }
 

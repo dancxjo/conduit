@@ -13,7 +13,8 @@ mod profile;
 mod selection;
 mod transport;
 use canonical::{
-    check_encoding_size, digest, encode_type, encode_value_node, type_extent, value_extent,
+    check_encoding_size, decode_type, decode_value, digest, encode_type, encode_value_node,
+    type_extent, value_extent,
 };
 pub use profile::*;
 pub use selection::*;
@@ -49,6 +50,7 @@ pub enum StructuredInfoRefusal {
     WrongRecordFields,
     UnknownVariantTag,
     CanonicalEncodingTooLarge,
+    MalformedCanonicalEncoding,
 }
 
 /// One exact canonical structured Info type.
@@ -285,6 +287,18 @@ impl StructuredFieldValue {
 }
 
 impl StructuredInfoValue {
+    pub fn from_canonical_bytes(encoded: &[u8]) -> Result<Self, StructuredInfoRefusal> {
+        if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        let (value_type, remaining) = decode_type(encoded)?;
+        let (value, remaining) = decode_value(&value_type, remaining)?;
+        if !remaining.is_empty() {
+            return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+        }
+        Ok(value)
+    }
+
     pub fn leaf(
         value_type: StructuredInfoType,
         canonical_value: Vec<u8>,
