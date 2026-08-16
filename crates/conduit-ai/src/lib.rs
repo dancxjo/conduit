@@ -8,6 +8,8 @@ mod llm_contract;
 pub use llm_contract::*;
 mod local_model;
 pub use local_model::*;
+mod interpretation;
+pub use interpretation::*;
 mod model_result;
 pub use model_result::*;
 mod structured_result;

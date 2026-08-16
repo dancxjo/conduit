@@ -183,7 +183,7 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement, PortDirection::Output)?;
     Ok(OperationBudget {
         value_items: 1,
-        value_bytes: 256,
+        value_bytes: 4_096,
         host_requests: 0,
         sign_items: 16,
         maximum_value_bytes: 4_096,
@@ -206,8 +206,30 @@ fn prepare_source(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement, PortDirection::Output)?;
+    let request = if placement.outputs[0].value_kind.as_str() == "llm/interpretation-request@1" {
+        serde_json::to_vec(&conduit_ai::InterpretationRequest {
+            evidence: vec![
+                conduit_ai::InterpretationEvidence {
+                    sign_id: conduit_core::SignId::from("sign/line/carrier-lost/7"),
+                    observation: "carrier lost".into(),
+                },
+                conduit_ai::InterpretationEvidence {
+                    sign_id: conduit_core::SignId::from("sign/peer/unreachable/8"),
+                    observation: "peer unreachable".into(),
+                },
+                conduit_ai::InterpretationEvidence {
+                    sign_id: conduit_core::SignId::from("sign/host/offer-fresh/9"),
+                    observation: "fresh Host offer remains available".into(),
+                },
+            ],
+            context: "explain the likely operational boundary without taking action".into(),
+        })
+        .map_err(|error| format!("encode local-model interpretation request: {error}"))?
+    } else {
+        b"Conduit bounded local model request".to_vec()
+    };
     let value = values
-        .store(b"Conduit bounded local model request")
+        .store(&request)
         .map_err(|error| format!("store local-model test request: {error:?}"))?;
     Ok(InstalledOperation::TestLocalModelSource(
         TestLocalModelSourceOperation {
