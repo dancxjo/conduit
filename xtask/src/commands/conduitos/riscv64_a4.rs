@@ -13,7 +13,7 @@ use super::{
 
 const BINARY: &str = "conduitos-riscv64-a4";
 const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
-const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-opensbi-uboot";
+const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-tcg-opensbi-uboot";
 
 #[derive(Serialize)]
 struct Proof {

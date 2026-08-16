@@ -14,7 +14,7 @@ use super::{
 const BINARY: &str = "conduitos-riscv64-a3";
 const KERNEL_PREFIX: &str = "CONDUIT_KERNEL_SIGN ";
 const IDENTITY_PREFIX: &str = "CONDUIT_RISCV64_A3_IDENTITY ";
-const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-opensbi-uboot";
+const PROFILE: &str = "qemu-riscv64-virt-single-hart-256m-tcg-opensbi-uboot";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub(super) struct KernelSign {
