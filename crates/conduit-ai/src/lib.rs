@@ -6,6 +6,8 @@ mod bases;
 pub use bases::*;
 mod llm_contract;
 pub use llm_contract::*;
+mod local_model;
+pub use local_model::*;
 mod model_result;
 pub use model_result::*;
 #[cfg(feature = "form-catalog")]

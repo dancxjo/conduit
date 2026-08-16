@@ -16,6 +16,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 conduit-body = { path = "../crates/conduit-body" }
+conduit-ai = { path = "../crates/conduit-ai" }
 conduit-core = { path = "../crates/conduit-core" }
 conduit-form = { path = "../crates/conduit-form" }
 conduit-host-fabrication = { path = "../crates/conduit-host-fabrication" }
@@ -31,7 +32,7 @@ conduit-synth = { path = "../crates/conduit-synth" }
 conduit-planner = { path = "../crates/conduit-planner" }
 conduit-presentation = { path = "../crates/conduit-presentation", features = ["form-catalog"] }
 conduit-runtime = { path = "../crates/conduit-runtime", default-features = false }
-conduit-std-host = { path = "../hosts/std" }
+conduit-std-host = { path = "../hosts/std", features = ["local-model-proof"] }
 conduit-system-continuity = { path = "../crates/conduit-system-continuity", features = ["r1-recovery"] }
 conduit-tongues = { path = "../crates/conduit-tongues" }
 conduit-wire = { path = "../crates/conduit-wire" }

@@ -42,6 +42,7 @@ pub mod external_websocket;
 pub mod hosted_audio;
 pub mod hosted_http;
 pub mod hosted_keyboard;
+pub mod hosted_local_model;
 pub mod hosted_midi;
 pub mod hosted_synth;
 #[cfg(test)]
@@ -52,6 +53,8 @@ mod installed_std_tests;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
+#[cfg(feature = "local-model-proof")]
+pub mod local_model_proof;
 mod run_control;
 pub use run_control::{
     RejectedRunControlRequest, RunControl, RunControlDisposition, RunControlReceipt,
@@ -306,6 +309,7 @@ pub struct StdHost {
     playback: Option<hosted_audio::HostedPlaybackSelection>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
+    local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -341,10 +345,52 @@ impl StdHost {
             playback: None,
             midi_input: None,
             midi_output: None,
+            local_model: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
         }
+    }
+
+    pub fn new_with_local_model(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+    ) -> Result<Self, String> {
+        let offer = adapter.offer();
+        offer
+            .validate()
+            .map_err(|error| format!("local-model offer is not initialized: {error:?}"))?;
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement.resources.push(conduit_core::resource_offer(
+            "std/local-model-memory",
+            conduit_ai::LOCAL_MODEL_MEMORY_RESOURCE,
+            offer.limits.admitted_memory_mib,
+        ));
+        advertisement.capabilities.extend(
+            offer
+                .capability_offers()
+                .map_err(|error| format!("local-model capabilities: {error:?}"))?,
+        );
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: Some(adapter),
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
     }
 
     /// Executes against one platform-extended advertisement that was already
@@ -358,6 +404,7 @@ impl StdHost {
             playback: None,
             midi_input: None,
             midi_output: None,
+            local_model: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -391,6 +438,7 @@ impl StdHost {
             playback: Some(playback),
             midi_input: None,
             midi_output: None,
+            local_model: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -427,6 +475,7 @@ impl StdHost {
             playback: None,
             midi_input: None,
             midi_output: Some(midi_output),
+            local_model: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -452,6 +501,7 @@ impl StdHost {
             playback: None,
             midi_input: None,
             midi_output: None,
+            local_model: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -490,6 +540,7 @@ impl StdHost {
             playback: Some(playback),
             midi_input: None,
             midi_output: None,
+            local_model: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -677,6 +728,7 @@ impl StdHost {
                         midi_input: self.midi_input.as_ref(),
                         midi_output: self.midi_output.as_ref(),
                         keyboard,
+                        local_model: self.local_model.as_deref_mut(),
                     },
                     &fragment,
                     play_sequence,

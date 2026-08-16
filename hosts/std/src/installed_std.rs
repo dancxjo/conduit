@@ -16,10 +16,12 @@ mod json_operations;
 mod keyboard_input_host;
 mod keyboard_input_operation;
 mod layout_operations;
+mod local_model_operation;
 mod logic_operations;
 mod math_operations;
 mod midi_input_operation;
 mod midi_output_operation;
+mod model_host;
 mod operation;
 mod operation_capacity;
 mod pacing_operations;
@@ -36,6 +38,8 @@ mod test_gate;
 mod test_input_semantics;
 #[cfg(test)]
 mod test_json_codec;
+#[cfg(any(test, feature = "local-model-proof"))]
+pub(crate) mod test_local_model_io;
 #[cfg(test)]
 mod test_logic;
 #[cfg(test)]
@@ -62,7 +66,6 @@ pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
-use self::generate_text::execute_fixture;
 use self::operation::InstalledOperation;
 #[cfg(test)]
 use self::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
@@ -217,16 +220,18 @@ pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
 pub(super) use contract::every_offer;
 pub(super) use contract::tick_offer;
 
-pub(super) struct InstalledRunHost<'a, 'keyboard> {
+pub(super) struct InstalledRunHost<'a, 'keyboard, 'model> {
     pub advertisement: &'a HostAdvertisement,
     pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
     pub midi_input: Option<&'a crate::hosted_midi::HostedRawMidiSelection>,
     pub midi_output: Option<&'a crate::hosted_midi::MidiOutputSelection>,
     pub keyboard: Option<&'keyboard mut dyn crate::hosted_keyboard::HostedKeyboardAdapter>,
+    pub local_model:
+        Option<&'model mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static)>,
 }
 
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
-    host: InstalledRunHost<'_, '_>,
+    host: InstalledRunHost<'_, '_, '_>,
     fragment: &PlanFragment,
     play_sequence: u64,
     next_sign_sequence: &mut u64,
@@ -240,6 +245,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         midi_input,
         midi_output,
         keyboard,
+        mut local_model,
     } = host;
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     let active_nodes = lowered.nodes.len();
@@ -852,37 +858,43 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == conduit_ai::GENERATE_TEXT_HOST_OPERATION {
+            } else if matches!(
+                contract.as_str(),
+                conduit_ai::GENERATE_TEXT_HOST_OPERATION | conduit_ai::LOCAL_MODEL_OPERATION
+            ) {
                 let placement = fragment
                     .placements
                     .get(usize::from(request.node.0))
-                    .ok_or_else(|| "generate-text request has no exact placement".to_string())?;
-                execute_fixture(placement, input, &mut generate_text_output)?;
-                let value = scheduler
-                    .store_host_value(&generate_text_output)
-                    .map_err(|error| format!("store generate-text fixture output: {error:?}"))?;
+                    .ok_or_else(|| "model request has no exact placement".to_string())?;
+                let completion = model_host::execute(
+                    contract.as_str(),
+                    placement,
+                    input,
+                    match &mut local_model {
+                        Some(adapter) => Some(&mut **adapter),
+                        None => None,
+                    },
+                    &mut generate_text_output,
+                )?;
+                let output = if completion.has_output() {
+                    let value = scheduler
+                        .store_host_value(&generate_text_output)
+                        .map_err(|error| format!("store model output: {error:?}"))?;
+                    Some(
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                            .map_err(|error| format!("bound model output: {error:?}"))?,
+                    )
+                } else {
+                    None
+                };
                 requests.push(request);
                 scheduler
                     .complete_host_operation(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(
-                                BoundedValueRef::new(
-                                    value,
-                                    lowered_operation.binding.maximum_output_bytes,
-                                )
-                                .map_err(|error| {
-                                    format!("bound generate-text fixture output: {error:?}")
-                                })?,
-                            ),
-                            failure: None,
-                        },
+                        completion.outcome(output),
                     )
-                    .map_err(|error| {
-                        format!("complete generate-text fixture operation: {error:?}")
-                    })?;
+                    .map_err(|error| format!("complete model operation: {error:?}"))?;
                 continue;
             } else if contract
                 .as_str()
