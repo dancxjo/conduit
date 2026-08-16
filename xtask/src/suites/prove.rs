@@ -170,6 +170,8 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
             "browser-admission-probe",
             "--bin",
             "browser-spawn-probe",
+            "--bin",
+            "browser-webrtc-rendezvous-probe",
         ],
         None,
         None,
@@ -178,6 +180,7 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
             "target/debug/webchat-server",
             "target/debug/browser-admission-probe",
             "target/debug/browser-spawn-probe",
+            "target/debug/browser-webrtc-rendezvous-probe",
         ],
     ),
     Step::typed(
@@ -428,6 +431,8 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
             "browser-admission-probe",
             "--bin",
             "browser-spawn-probe",
+            "--bin",
+            "browser-webrtc-rendezvous-probe",
         ],
         None,
         None,
@@ -435,6 +440,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &[
             "target/debug/browser-admission-probe",
             "target/debug/browser-spawn-probe",
+            "target/debug/browser-webrtc-rendezvous-probe",
         ],
     ),
     Step::typed(

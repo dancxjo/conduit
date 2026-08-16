@@ -68,6 +68,8 @@ mod palette_state;
 mod palette_view;
 mod parts_interaction;
 mod parts_keyboard;
+#[cfg(test)]
+mod parts_temporal_presentation_tests;
 mod parts_view;
 mod pico_parts;
 mod portable_keyboard;
