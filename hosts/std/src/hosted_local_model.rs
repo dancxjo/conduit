@@ -84,6 +84,26 @@ mod tests {
                     values: vec![0.25, -0.5, 1.0],
                 })
                 .unwrap(),
+                conduit_ai::LLM_INTERPRET_KIND => {
+                    let request: conduit_ai::InterpretationRequest =
+                        serde_json::from_slice(input).unwrap();
+                    serde_json::to_vec(&conduit_ai::ModelInterpretation {
+                        provenance: conduit_ai::InterpretationProvenance::ModelDerived,
+                        hypothesis: "carrier loss likely explains peer unreachability".into(),
+                        referenced_evidence: request
+                            .evidence
+                            .iter()
+                            .map(|evidence| evidence.sign_id.clone())
+                            .collect(),
+                        unresolved_evidence: Vec::new(),
+                        confidence: Some(conduit_ai::ProfileReportedConfidence {
+                            score_permille: 700,
+                        }),
+                        implications: vec!["seek a fresh carrier observation".into()],
+                        disposition: conduit_ai::InterpretationDisposition::Interpreted,
+                    })
+                    .unwrap()
+                }
                 _ => return LocalModelAdapterTerminal::Refused,
             };
             output.extend_from_slice(&encoded);
@@ -328,10 +348,11 @@ mod tests {
     }
 
     #[test]
-    fn all_four_l2_profiles_execute_through_ordinary_plan_and_play() {
+    fn all_five_l3_profiles_execute_through_ordinary_plan_and_play() {
         plan_and_play(LocalModelKindProfile::Generate);
         plan_and_play(LocalModelKindProfile::ClassifyFiniteLabels);
         plan_and_play(LocalModelKindProfile::ExtractValidatedInfo);
         plan_and_play(LocalModelKindProfile::EmbedFiniteVector);
+        plan_and_play(LocalModelKindProfile::InterpretSignEvidence);
     }
 }

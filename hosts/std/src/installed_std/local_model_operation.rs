@@ -86,6 +86,7 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
             | conduit_ai::LLM_CLASSIFY_KIND
             | conduit_ai::LLM_EXTRACT_KIND
             | conduit_ai::LLM_EMBED_KIND
+            | conduit_ai::LLM_INTERPRET_KIND
     ) || placement.kind_contract_revision != contract.kind_contract_revision
         || placement.execution_profile_id.as_str() != conduit_ai::LOCAL_MODEL_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != conduit_ai::LOCAL_MODEL_IMPLEMENTATION
