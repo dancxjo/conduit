@@ -190,6 +190,14 @@ pub struct ProveArgs {
     /// Exact paired peer Bluetooth address for this proof run.
     #[arg(long)]
     pub bluetooth_peer_address: Option<String>,
+
+    /// Exact peer Host identity advertised by the constrained boot.
+    #[arg(long)]
+    pub bluetooth_peer_host_id: Option<String>,
+
+    /// Exact peer Boot identity advertised by the constrained boot.
+    #[arg(long)]
+    pub bluetooth_peer_boot_id: Option<String>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

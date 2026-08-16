@@ -35,6 +35,19 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
             "--bluetooth-peer-address <address> is required",
         )
     })?;
+    let peer_identity = match (
+        args.bluetooth_peer_host_id.as_deref(),
+        args.bluetooth_peer_boot_id.as_deref(),
+    ) {
+        (Some(host), Some(boot)) => Some((host, boot)),
+        (None, None) => None,
+        _ => {
+            return Err(StepError::prereq(
+                "prove.bluetooth-line.arguments",
+                "--bluetooth-peer-host-id and --bluetooth-peer-boot-id must be supplied together",
+            ));
+        }
+    };
     let role = match role {
         BluetoothProofRole::Source => "source",
         BluetoothProofRole::Sink => "sink",
@@ -55,6 +68,9 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     ];
     if opts.locked {
         displayed.insert(2, "--locked");
+    }
+    if let Some((host, boot)) = peer_identity {
+        displayed.extend([host, boot]);
     }
     if !opts.quiet && !opts.json {
         println!("» [prove.bluetooth-line] Run one exact bounded BlueZ BLE GATT proof side");
@@ -77,11 +93,11 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     if opts.locked {
         command.arg("--locked");
     }
+    let command = command.arg("--").arg(role).arg(adapter).arg(peer);
+    if let Some((host, boot)) = peer_identity {
+        command.arg(host).arg(boot);
+    }
     let output = command
-        .arg("--")
-        .arg(role)
-        .arg(adapter)
-        .arg(peer)
         .output()
         .map_err(|error| StepError::prereq("prove.bluetooth-line.launch", error.to_string()))?;
     if !output.status.success() {

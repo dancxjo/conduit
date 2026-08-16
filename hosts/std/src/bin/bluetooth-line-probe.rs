@@ -1,7 +1,10 @@
 use std::str::FromStr;
 
 use conduit_bluetooth::BleGattProfile;
-use conduit_core::HostId;
+use conduit_core::{
+    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    HostId, KindId, LinkBindingId, LinkEndpointId, PlanId, PROTOCOL_VERSION,
+};
 use conduit_signal::{exact_std_pico_bluetooth_plan, STD_PICO_USB_SINK_HOST_ID};
 use conduit_std_host::bluetooth_gatt::{
     disconnect_ble_gatt_candidate, discover_ble_gatt_candidate, discover_one_ble_gatt_candidate,
@@ -9,8 +12,9 @@ use conduit_std_host::bluetooth_gatt::{
 };
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
-    SessionMessage, SessionRole, SessionTerminalDisposition,
+    decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
+    SessionEndpointIdentity, SessionLimits, SessionMachine, SessionMessage, SessionRole,
+    SessionTerminalDisposition,
 };
 
 const FRAME_BYTES: usize = 2_048;
@@ -38,9 +42,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         return Ok(());
     }
-    if arguments.len() != 4 || !matches!(arguments[1].as_str(), "source" | "sink" | "loss") {
+    let role_accepts_binding = matches!(arguments[1].as_str(), "source" | "sink");
+    if !matches!(arguments.len(), 4 | 6)
+        || !matches!(arguments[1].as_str(), "source" | "sink" | "loss")
+        || (arguments.len() == 6 && !role_accepts_binding)
+    {
         return Err(
-            "usage: bluetooth-line-probe prepare <adapter> | <source|sink|loss> <adapter> <peer-address>"
+            "usage: bluetooth-line-probe prepare <adapter> | <source|sink> <adapter> <peer-address> [peer-host-id peer-boot-id] | loss <adapter> <peer-address>"
                 .into(),
         );
     }
@@ -54,7 +62,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map_err(|_| "peer address must be six colon-separated hexadecimal bytes")?
             .0
     };
-    let binding = binding();
+    let binding = binding(
+        arguments.get(4).map(String::as_str),
+        arguments.get(5).map(String::as_str),
+    )?;
     if arguments[1] == "loss" {
         let candidate = discover_ble_gatt_candidate(&arguments[2], address)
             .await
@@ -378,7 +389,59 @@ async fn receive(
     Ok(())
 }
 
-fn binding() -> SessionBinding {
-    conduit_signal::std_pico_bluetooth_session_binding()
-        .expect("canonical Bluetooth Session binding must resolve")
+fn binding(
+    peer_host_id: Option<&str>,
+    peer_boot_id: Option<&str>,
+) -> Result<SessionBinding, Box<dyn std::error::Error>> {
+    if peer_host_id.is_some() != peer_boot_id.is_some() {
+        return Err("peer HostId and BootId must be supplied together".into());
+    }
+    let (Some(peer_host_id), Some(peer_boot_id)) = (peer_host_id, peer_boot_id) else {
+        return conduit_signal::std_pico_bluetooth_session_binding()
+            .map_err(|error| format!("canonical Bluetooth Session binding: {error:?}").into());
+    };
+    let plan_id = PlanId::from("bluetooth/physical-capstone-plan");
+    let source_host = HostId::from("bluetooth/source-host");
+    let source_boot = BootId::from("bluetooth/source-boot");
+    let sink_host = HostId::from(peer_host_id);
+    let sink_boot = BootId::from(peer_boot_id);
+    Ok(SessionBinding {
+        protocol_version: PROTOCOL_VERSION,
+        source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0)
+            .active_play_id,
+        sink_active_play_id: bind_active_play(&plan_id, &sink_host, &sink_boot, 0).active_play_id,
+        plan_id,
+        source_fragment_id: FragmentId::from("bluetooth/source-fragment"),
+        sink_fragment_id: FragmentId::from("bluetooth/sink-fragment"),
+        connection_id: ConnectionId::from("bluetooth/unchanged-signal-cord"),
+        source: SessionEndpointIdentity {
+            host_id: source_host.clone(),
+            boot_id: source_boot.clone(),
+        },
+        sink: SessionEndpointIdentity {
+            host_id: sink_host.clone(),
+            boot_id: sink_boot.clone(),
+        },
+        value_kind: KindId::from("conduit.signal/level@1"),
+        limits: SessionLimits {
+            maximum_in_flight_items: 1,
+            maximum_payload_bytes: PAYLOAD_BYTES,
+            maximum_buffered_bytes: PAYLOAD_BYTES,
+        },
+        attachment: LineAttachment {
+            line_id: "bluetooth/physical-line".into(),
+            link_binding_id: LinkBindingId::from("bluetooth/physical-binding"),
+            base: ConnectionBase::BluetoothLeGatt,
+            base_instance_id: ConnectionBaseInstanceId::from("bluetooth/physical-session"),
+            source_host_id: source_host,
+            source_boot_id: source_boot,
+            source_endpoint_id: LinkEndpointId::from("bluetooth/source-write"),
+            sink_host_id: sink_host,
+            sink_boot_id: sink_boot,
+            sink_endpoint_id: LinkEndpointId::from("bluetooth/sink-indicate"),
+            limits: BleGattProfile::FIRST
+                .link_limits()
+                .expect("first Bluetooth profile has valid finite limits"),
+        },
+    })
 }

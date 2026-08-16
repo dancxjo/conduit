@@ -30,6 +30,30 @@ pub async fn discover_ble_gatt_candidate(
     require_powered(&adapter).await?;
     let service_uuid = configure_discovery(&adapter).await?;
     let expected = Address(expected_address);
+    let expected_device = adapter
+        .device(expected)
+        .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+    if expected_device
+        .is_connected()
+        .await
+        .map_err(|_| BluezBleGattError::DeviceUnavailable)?
+    {
+        let uuids = expected_device
+            .uuids()
+            .await
+            .map_err(|_| BluezBleGattError::DeviceUnavailable)?
+            .unwrap_or_default();
+        if !uuids.contains(&service_uuid) {
+            return Err(BluezBleGattError::IncompatibleProfile);
+        }
+        return Ok(BluezBleGattCandidate {
+            address: expected_address,
+            paired: expected_device
+                .is_paired()
+                .await
+                .map_err(|_| BluezBleGattError::DeviceUnavailable)?,
+        });
+    }
     if adapter
         .device_addresses()
         .await

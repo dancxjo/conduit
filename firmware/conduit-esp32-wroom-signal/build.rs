@@ -51,8 +51,7 @@ fn main() {
     module.push_str(&format!(
         "\npub const GENERATED_FABRICATION_DESCRIPTOR_BINDING: &str = {descriptor_binding:?};\n"
     ));
-    fs::write(out.join("signal_image.rs"), module)
-    .expect("generated WROOM image must be writable");
+    fs::write(out.join("signal_image.rs"), module).expect("generated WROOM image must be writable");
 }
 
 fn image_bounds() -> EmbeddedImageBounds {
