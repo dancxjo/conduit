@@ -273,15 +273,99 @@ test("two admitted product clients compose Body grants into one exact ready sess
   expect([sourceSession.role, sinkSession.role].sort()).toEqual(["sink", "source"]);
   expect(sourceSession).toMatchObject({ peerHostId: sinkIdentity.hostId, peerBootId: sinkIdentity.bootId });
   expect(sinkSession).toMatchObject({ peerHostId: sourceIdentity.hostId, peerBootId: sourceIdentity.bootId });
-  await source.evaluate(() => globalThis.__browserPresence.close());
-  await expect.poll(() => source.evaluate(() => globalThis.__browserPresence.webRtcSessions()))
+  const sourcePage = sourceSession.role === "source" ? source : sink;
+  const sinkPage = sourceSession.role === "sink" ? source : sink;
+  const negotiationId = sourceSession.negotiationId;
+  const value = [11, 22, 33, 44];
+  await expect(sourcePage.evaluate(
+    (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
+    negotiationId,
+  )).rejects.toThrow("WebRTC sink role required");
+  await expect(sourcePage.evaluate(
+    (id) => globalThis.__browserPresence.offerWebRtcValue(`${id}/stale`, [1]),
+    negotiationId,
+  )).rejects.toThrow("unknown or stale WebRTC negotiation identity");
+
+  await sinkPage.evaluate((id) => globalThis.__browserPresence.pressureNextWebRtcValue(id), negotiationId);
+  expect(await sourcePage.evaluate(
+    ({ id, bytes }) => globalThis.__browserPresence.offerWebRtcValue(id, bytes),
+    { id: negotiationId, bytes: value },
+  )).toEqual({
+    accepted: false,
+    retryable: true,
+    reason: "peer-pressure",
+    sequence: 0,
+    delivered: false,
+  });
+  await expect(sourcePage.evaluate(
+    ({ id, bytes }) => globalThis.__browserPresence.offerWebRtcValue(id, bytes),
+    { id: negotiationId, bytes: new Array(17).fill(1) },
+  )).rejects.toThrow("Cord offer refused -215");
+
+  const receive = sinkPage.evaluate(
+    (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
+    negotiationId,
+  );
+  await expect(sinkPage.evaluate(
+    (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
+    negotiationId,
+  )).rejects.toThrow("Cord receive already pending");
+  const accepted = sourcePage.evaluate(
+    ({ id, bytes }) => globalThis.__browserPresence.offerWebRtcValue(id, bytes),
+    { id: negotiationId, bytes: value },
+  );
+  expect(await accepted).toEqual({
+    accepted: true,
+    retryable: false,
+    reason: null,
+    sequence: 0,
+    delivered: false,
+  });
+  const received = await receive;
+  expect(received).toEqual({ sequence: 0, bytes: value });
+  await expect(sinkPage.evaluate(
+    (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
+    negotiationId,
+  )).rejects.toThrow("Cord value already received");
+  await expect(sourcePage.evaluate(
+    ({ id, bytes }) => globalThis.__browserPresence.offerWebRtcValue(id, bytes),
+    { id: negotiationId, bytes: [55] },
+  )).rejects.toThrow("Cord value already in flight");
+  const delivered = sourcePage.evaluate(
+    ({ id, sequence }) => globalThis.__browserPresence.waitWebRtcValueDelivered(id, sequence),
+    { id: negotiationId, sequence: received.sequence },
+  );
+  expect(await sinkPage.evaluate(
+    ({ id, sequence }) => globalThis.__browserPresence.deliverWebRtcValue(id, sequence),
+    { id: negotiationId, sequence: received.sequence },
+  )).toEqual({ delivered: true, sequence: 0 });
+  expect(await delivered).toEqual({ delivered: true, sequence: 0 });
+  await expect(sinkPage.evaluate(
+    ({ id, sequence }) => globalThis.__browserPresence.deliverWebRtcValue(id, sequence),
+    { id: negotiationId, sequence: received.sequence },
+  )).rejects.toThrow("Cord delivery identity refused");
+  for (const page of [sourcePage, sinkPage]) {
+    await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.webRtcSessions().sessions[0]))
+      .toMatchObject({ acceptedSequence: 0, deliveredSequence: 0, valuePending: false });
+  }
+  const pendingReceive = sinkPage.evaluate(
+    (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
+    negotiationId,
+  );
+  await sourcePage.evaluate(() => globalThis.__browserPresence.close());
+  await expect(pendingReceive).rejects.toThrow(/closed|traffic|Line/);
+  await expect.poll(() => sourcePage.evaluate(() => globalThis.__browserPresence.webRtcSessions()))
     .toMatchObject({ activeSessions: 0, terminalReason: "presence-closed" });
-  await expect.poll(() => sink.evaluate(() => {
+  await expect.poll(() => sinkPage.evaluate(() => {
     const session = globalThis.__browserPresence.webRtcSessions().sessions[0];
     return session !== undefined && !session.sessionReady && session.terminalReason !== null;
   })).toBe(true);
+  await expect(sourcePage.evaluate(
+    (id) => globalThis.__browserPresence.offerWebRtcValue(id, [1]),
+    negotiationId,
+  )).rejects.toThrow(/not current|unknown or stale/);
   await expect.poll(probe.output).toContain("relayed stage=2");
   await expect.poll(probe.output).toContain("peer-lost");
-  await sink.evaluate(() => globalThis.__browserPresence.close());
+  await sinkPage.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(() => probe.process.exitCode).toBe(0);
 });
