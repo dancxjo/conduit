@@ -468,6 +468,10 @@ fn substitute(
 ) -> Result<CanonicalStartupValue, CanonicalExpansionDiagnostic> {
     match value {
         CanonicalStartupValue::Literal(_) => Ok(value.clone()),
+        CanonicalStartupValue::Structured(_) => Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-039",
+            "structured startup propagation is not implemented in this Form layer".into(),
+        )),
         CanonicalStartupValue::PoolReference(pool) => environment
             .get(pool.as_str())
             .cloned()

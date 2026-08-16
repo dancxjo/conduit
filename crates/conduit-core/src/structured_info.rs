@@ -53,6 +53,23 @@ pub enum StructuredInfoRefusal {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StructuredInfoType(StructuredInfoTypeNode);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StructuredInfoTypeShape<'a> {
+    Leaf(&'a KindId),
+    Collection {
+        element: &'a StructuredInfoType,
+        length: u16,
+    },
+    Record {
+        schema: &'a KindId,
+        fields: &'a [StructuredFieldType],
+    },
+    Variant {
+        schema: &'a KindId,
+        cases: &'a [StructuredVariantCase],
+    },
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum StructuredInfoTypeNode {
     Leaf(KindId),
@@ -121,6 +138,24 @@ impl StructuredVariantCase {
 }
 
 impl StructuredInfoType {
+    pub fn shape(&self) -> StructuredInfoTypeShape<'_> {
+        match &self.0 {
+            StructuredInfoTypeNode::Leaf(kind) => StructuredInfoTypeShape::Leaf(kind),
+            StructuredInfoTypeNode::Collection { element, length } => {
+                StructuredInfoTypeShape::Collection {
+                    element,
+                    length: *length,
+                }
+            }
+            StructuredInfoTypeNode::Record { schema, fields } => {
+                StructuredInfoTypeShape::Record { schema, fields }
+            }
+            StructuredInfoTypeNode::Variant { schema, cases } => {
+                StructuredInfoTypeShape::Variant { schema, cases }
+            }
+        }
+    }
+
     pub fn leaf(kind: KindId) -> Result<Self, StructuredInfoRefusal> {
         validate_name(kind.as_str())?;
         Ok(Self(StructuredInfoTypeNode::Leaf(kind)))

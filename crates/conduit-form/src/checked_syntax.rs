@@ -19,6 +19,7 @@ pub struct KindSignature {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
     kinds: BTreeMap<String, KindSignature>,
+    structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
 }
 
 impl StartupCatalog {
@@ -49,6 +50,26 @@ impl StartupCatalog {
     pub(crate) fn get(&self, kind: &str) -> Option<&KindSignature> {
         self.kinds.get(kind)
     }
+
+    pub fn insert_structured_type(
+        &mut self,
+        name: impl Into<String>,
+        value_type: conduit_core::StructuredInfoType,
+    ) -> Result<(), String> {
+        let name = name.into();
+        if name.is_empty() {
+            return Err("structured startup type name must not be empty".into());
+        }
+        if self.structured_types.contains_key(&name) {
+            return Err(format!("duplicate structured startup type '{name}'"));
+        }
+        self.structured_types.insert(name, value_type);
+        Ok(())
+    }
+
+    pub(crate) fn structured_type(&self, name: &str) -> Option<&conduit_core::StructuredInfoType> {
+        self.structured_types.get(name)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -56,6 +77,7 @@ pub enum CanonicalStartupValue {
     Literal(String),
     FormParameter(String),
     PoolReference(conduit_core::SharedPoolId),
+    Structured(crate::CanonicalStructuredStartupValue),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -226,59 +248,77 @@ pub(crate) enum SyntaxCheckError {
     DuplicateGear(String),
     UnsupportedExpression(String),
     AmbiguousFaceName(String),
+    StructuredExpression(String, Option<Span>),
 }
 
 impl SyntaxCheckError {
     pub(crate) fn diagnostic(self, span: Span) -> SyntaxCheckDiagnostic {
-        let (code, detail) = match self {
+        let (code, detail, owned_span) = match self {
             Self::DuplicateImmutable(name) => (
                 "CND-FRM-020",
                 format!("duplicate immutable binding '{name}'"),
+                None,
             ),
             Self::ConflictingArgument(name) => (
                 "CND-FRM-021",
                 format!("conflicting gear argument for startup parameter '{name}'"),
+                None,
             ),
-            Self::UnknownParameter(name) => {
-                ("CND-FRM-022", format!("unknown startup parameter '{name}'"))
-            }
+            Self::UnknownParameter(name) => (
+                "CND-FRM-022",
+                format!("unknown startup parameter '{name}'"),
+                None,
+            ),
             Self::MissingParameter(name) => (
                 "CND-FRM-023",
                 format!("missing required startup parameter '{name}'"),
+                None,
             ),
             Self::TooManyPositional(gear) => (
                 "CND-FRM-024",
                 format!("too many positional arguments for '{gear}'"),
+                None,
             ),
             Self::PositionalNamedDuplicate(name) => (
                 "CND-FRM-025",
                 format!("positional and named arguments both bind '{name}'"),
+                None,
             ),
             Self::DependencyCycle(name) => (
                 "CND-FRM-026",
                 format!("startup dependency cycle includes '{name}'"),
+                None,
             ),
             Self::RuntimeAsStartup(name) => (
                 "CND-FRM-027",
                 format!("runtime port '{name}' cannot supply a startup value"),
+                None,
             ),
             Self::UnsupportedKind(gear) => (
                 "CND-FRM-028",
                 format!("no startup signature is available for '{gear}'"),
+                None,
             ),
-            Self::DuplicateGear(name) => ("CND-FRM-029", format!("duplicate named gear '{name}'")),
+            Self::DuplicateGear(name) => (
+                "CND-FRM-029",
+                format!("duplicate named gear '{name}'"),
+                None,
+            ),
             Self::UnsupportedExpression(expression) => (
                 "CND-FRM-030",
                 format!("unsupported pure startup expression '{expression}'"),
+                None,
             ),
             Self::AmbiguousFaceName(name) => (
                 "CND-FRM-050",
                 format!("face name '{name}' is duplicated or ambiguously shadowed"),
+                None,
             ),
+            Self::StructuredExpression(detail, owned_span) => ("CND-FRM-051", detail, owned_span),
         };
         SyntaxCheckDiagnostic {
             code,
-            span,
+            span: owned_span.unwrap_or(span),
             message: format!("{detail}; '=' is declarative and there is no later assignment"),
         }
     }

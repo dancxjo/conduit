@@ -102,7 +102,9 @@ pub(super) fn pool_references(
         .into_iter()
         .filter_map(|value| match value {
             CanonicalStartupValue::PoolReference(pool) => Some(pool),
-            CanonicalStartupValue::Literal(_) | CanonicalStartupValue::FormParameter(_) => None,
+            CanonicalStartupValue::Literal(_)
+            | CanonicalStartupValue::FormParameter(_)
+            | CanonicalStartupValue::Structured(_) => None,
         })
         .collect::<Vec<_>>();
     pools.sort();

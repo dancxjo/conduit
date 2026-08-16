@@ -297,14 +297,6 @@ impl<'a> Parser<'a> {
                 self.index += 1;
                 continue;
             }
-            if !top_level_positions(text, '{').is_empty()
-                || !top_level_positions(text, '}').is_empty()
-            {
-                return Err((
-                    FormError::InvalidSyntax("a gear invocation cannot have a form back".into()),
-                    self.line_span(line),
-                ));
-            }
             statements.push(self.parse_statement(text, start)?);
             self.index += 1;
         }
@@ -389,6 +381,12 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_invocation(&self, text: &str, start: usize) -> Result<Invocation, (FormError, Span)> {
+        if !top_level_positions(text, '{').is_empty() {
+            return Err((
+                FormError::InvalidSyntax("a gear invocation cannot have a form back".into()),
+                self.span(start, start + text.len()),
+            ));
+        }
         let (gear, arguments, end) = if let Some(open) = text.find('(') {
             if !text.ends_with(')') {
                 return Err(self.invalid_statement(text, start));
@@ -470,8 +468,11 @@ impl<'a> Parser<'a> {
             return Err(self.invalid_statement(container, start));
         }
         let offset = start + container.find(value).unwrap();
+        let syntax = crate::structured_expression::parse(self.source, value, offset)
+            .map_err(|(message, span)| (FormError::InvalidSyntax(message), span))?;
         Ok(Expression {
             text: value.to_string(),
+            syntax,
             span: self.span(offset, offset + value.len()),
         })
     }

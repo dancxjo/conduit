@@ -154,8 +154,45 @@ pub enum Argument {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expression {
-    /// Exact expression spelling. Meaning is assigned by #509, not this AST.
+    /// Exact expression spelling retained independently of parsed shape.
     pub text: String,
+    pub syntax: ExpressionSyntax,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExpressionSyntax {
+    Atomic(SpannedText),
+    Collection {
+        values: Vec<ExpressionSyntax>,
+        span: Span,
+    },
+    Record {
+        fields: Vec<StructuredExpressionField>,
+        span: Span,
+    },
+    Variant {
+        tag: SpannedText,
+        payload: Box<ExpressionSyntax>,
+        span: Span,
+    },
+}
+
+impl ExpressionSyntax {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Atomic(value) => value.span,
+            Self::Collection { span, .. }
+            | Self::Record { span, .. }
+            | Self::Variant { span, .. } => *span,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructuredExpressionField {
+    pub name: SpannedText,
+    pub value: ExpressionSyntax,
     pub span: Span,
 }
 

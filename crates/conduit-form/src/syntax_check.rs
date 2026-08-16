@@ -4,16 +4,18 @@ use crate::checked_syntax::{
     KindSignature, StartupCatalog, StartupParameterSignature, SyntaxCheckDiagnostic,
     SyntaxCheckError,
 };
+use crate::hash_string;
 use crate::prelude::*;
 use crate::syntax::{Argument, BackStatement, CordStage, FormSyntax, Invocation, SyntaxDocument};
 use crate::syntax_identity::{canonical_cord, canonical_gear, checked_identity};
-use crate::{hash_string, Span};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     CheckedFace, FaceStartupParameter, PortDescriptor, PortDirection, SourceDocumentId,
 };
 
+mod resolution;
 mod shared_pool;
+use resolution::{is_atomic_literal, Resolver};
 use shared_pool::{check_pool_declarations, checked_pool};
 
 pub(crate) fn check_document(
@@ -91,7 +93,7 @@ fn check_form(
     let signature = form_signatures
         .get(&form.name.text)
         .expect("every parsed form has a derived signature");
-    let parameters = checked_parameters(signature, form.name.span)?;
+    let parameters = checked_parameters(signature, catalog, form)?;
     let parameter_names = signature
         .startup_parameters
         .iter()
@@ -154,16 +156,6 @@ fn check_form(
     }
 
     let mut resolver = Resolver::new(locals, parameter_names, runtime_names, pool_names);
-    let local_names = resolver.locals.keys().cloned().collect::<Vec<_>>();
-    let mut local_values = Vec::with_capacity(local_names.len());
-    for name in local_names {
-        let local = resolver.locals[&name];
-        let value = resolver
-            .resolve_name(&name)
-            .map_err(|error| error.diagnostic(local.span))?;
-        local_values.push((name, value));
-    }
-
     let mut gears = Vec::new();
     let mut cords = Vec::new();
     let mut pools = Vec::new();
@@ -196,7 +188,7 @@ fn check_form(
                         }
                         CordStage::Literal(expression) => {
                             let value = resolver
-                                .resolve_expression(&expression.text)
+                                .resolve_expression(expression, None)
                                 .map_err(|error| error.diagnostic(expression.span))?;
                             if !matches!(value, CanonicalStartupValue::Literal(_))
                                 || crate::text_value::parse_quoted_text(&expression.text).is_none()
@@ -218,6 +210,15 @@ fn check_form(
             BackStatement::Pool(pool) => pools.push(checked_pool(pool, form_faces)),
             BackStatement::LocalValue(_) => {}
         }
+    }
+    let local_names = resolver.locals.keys().cloned().collect::<Vec<_>>();
+    let mut local_values = Vec::with_capacity(local_names.len());
+    for name in local_names {
+        let local = resolver.locals[&name];
+        let value = resolver
+            .resolve_name(&name, None)
+            .map_err(|error| error.diagnostic(local.span))?;
+        local_values.push((name, value));
     }
     gears.sort_by_key(canonical_gear);
     cords.sort_by_key(canonical_cord);
@@ -297,15 +298,24 @@ fn syntax_face(form: &FormSyntax) -> CheckedFace {
 
 fn checked_parameters(
     signature: &KindSignature,
-    span: Span,
+    catalog: &StartupCatalog,
+    form: &FormSyntax,
 ) -> Result<Vec<CheckedStartupParameter>, SyntaxCheckDiagnostic> {
     let mut values = vec![None; signature.startup_parameters.len()];
     let mut checked = Vec::with_capacity(signature.startup_parameters.len());
     for (index, parameter) in signature.startup_parameters.iter().enumerate() {
         let default = if parameter.default.is_some() {
             Some(
-                resolve_bound_value(index, &mut values, signature, &mut BTreeSet::new())
-                    .map_err(|error| error.diagnostic(span))?,
+                resolve_bound_value(index, &mut values, signature, catalog, &mut BTreeSet::new())
+                    .map_err(|error| {
+                    let parameter = &form.face.startup_parameters[index];
+                    error.diagnostic(
+                        parameter
+                            .default
+                            .as_ref()
+                            .map_or(parameter.span, |value| value.span),
+                    )
+                })?,
             )
         } else {
             None
@@ -342,9 +352,13 @@ fn check_invocation(
                     return Err(SyntaxCheckError::TooManyPositional(signature.kind.clone())
                         .diagnostic(expression.span));
                 }
+                let parameter = &signature.startup_parameters[positional_count];
                 values[positional_count] = Some(
                     resolver
-                        .resolve_expression(&expression.text)
+                        .resolve_expression(
+                            expression,
+                            catalog.structured_type(&parameter.value_type),
+                        )
                         .map_err(|error| error.diagnostic(expression.span))?,
                 );
                 positional_count += 1;
@@ -367,7 +381,11 @@ fn check_invocation(
                 }
                 values[index] = Some(
                     resolver
-                        .resolve_expression(&value.text)
+                        .resolve_expression(
+                            value,
+                            catalog
+                                .structured_type(&signature.startup_parameters[index].value_type),
+                        )
                         .map_err(|error| error.diagnostic(value.span))?,
                 );
             }
@@ -375,8 +393,9 @@ fn check_invocation(
     }
     let mut startup_bindings = Vec::with_capacity(signature.startup_parameters.len());
     for (index, parameter) in signature.startup_parameters.iter().enumerate() {
-        let value = resolve_bound_value(index, &mut values, signature, &mut BTreeSet::new())
-            .map_err(|error| error.diagnostic(invocation.span))?;
+        let value =
+            resolve_bound_value(index, &mut values, signature, catalog, &mut BTreeSet::new())
+                .map_err(|error| error.diagnostic(invocation.span))?;
         startup_bindings.push(CheckedStartupBinding {
             name: parameter.name.clone(),
             value_type: parameter.value_type.clone(),
@@ -396,6 +415,7 @@ fn resolve_bound_value(
     index: usize,
     values: &mut [Option<CanonicalStartupValue>],
     signature: &KindSignature,
+    catalog: &StartupCatalog,
     visiting: &mut BTreeSet<usize>,
 ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
     if let Some(value) = &values[index] {
@@ -416,104 +436,50 @@ fn resolve_bound_value(
     {
         if values[reference].is_some() || signature.startup_parameters[reference].default.is_some()
         {
-            resolve_bound_value(reference, values, signature, visiting)?
+            resolve_bound_value(reference, values, signature, catalog, visiting)?
         } else {
             CanonicalStartupValue::FormParameter(default.to_string())
         }
+    } else if let Some(expected) = catalog.structured_type(&parameter.value_type) {
+        let syntax = crate::structured_expression::parse(default, default, 0)
+            .map_err(|(message, _)| SyntaxCheckError::StructuredExpression(message, None))?;
+        let checked = crate::structured_startup::check_structured_expression(
+            &syntax,
+            expected,
+            &mut |atomic, _| {
+                if let Some(reference) = signature
+                    .startup_parameters
+                    .iter()
+                    .position(|candidate| candidate.name == atomic.text)
+                {
+                    if values[reference].is_some()
+                        || signature.startup_parameters[reference].default.is_some()
+                    {
+                        resolve_bound_value(reference, values, signature, catalog, visiting)
+                            .map_err(|error| error.diagnostic(atomic.span))
+                    } else {
+                        Ok(CanonicalStartupValue::FormParameter(atomic.text.clone()))
+                    }
+                } else if is_atomic_literal(&atomic.text) {
+                    Ok(CanonicalStartupValue::Literal(atomic.text.clone()))
+                } else {
+                    Err(SyntaxCheckError::UnsupportedExpression(atomic.text.clone())
+                        .diagnostic(atomic.span))
+                }
+            },
+        )
+        .map_err(|diagnostic| SyntaxCheckError::StructuredExpression(diagnostic.message, None))?;
+        if !checked.satisfies_concrete_bounds() {
+            return Err(SyntaxCheckError::StructuredExpression(
+                "structured default exceeds the finite canonical encoding bound".into(),
+                None,
+            ));
+        }
+        CanonicalStartupValue::Structured(checked)
     } else {
         CanonicalStartupValue::Literal(default.to_string())
     };
     visiting.remove(&index);
     values[index] = Some(value.clone());
     Ok(value)
-}
-
-struct Resolver<'a> {
-    locals: BTreeMap<String, &'a crate::LocalValue>,
-    parameters: BTreeSet<String>,
-    runtime_ports: BTreeSet<String>,
-    pools: BTreeSet<String>,
-    resolved: BTreeMap<String, CanonicalStartupValue>,
-    visiting: BTreeSet<String>,
-}
-
-impl<'a> Resolver<'a> {
-    fn new(
-        locals: BTreeMap<String, &'a crate::LocalValue>,
-        parameters: BTreeSet<String>,
-        runtime_ports: BTreeSet<String>,
-        pools: BTreeSet<String>,
-    ) -> Self {
-        Self {
-            locals,
-            parameters,
-            runtime_ports,
-            pools,
-            resolved: BTreeMap::new(),
-            visiting: BTreeSet::new(),
-        }
-    }
-
-    fn resolve_name(&mut self, name: &str) -> Result<CanonicalStartupValue, SyntaxCheckError> {
-        if let Some(value) = self.resolved.get(name) {
-            return Ok(value.clone());
-        }
-        if !self.visiting.insert(name.to_string()) {
-            return Err(SyntaxCheckError::DependencyCycle(name.to_string()));
-        }
-        let expression = self.locals[name].value.text.clone();
-        let value = self.resolve_expression(&expression)?;
-        self.visiting.remove(name);
-        self.resolved.insert(name.to_string(), value.clone());
-        Ok(value)
-    }
-
-    fn resolve_expression(
-        &mut self,
-        expression: &str,
-    ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
-        if self.locals.contains_key(expression) {
-            self.resolve_name(expression)
-        } else if self.runtime_ports.contains(expression) {
-            Err(SyntaxCheckError::RuntimeAsStartup(expression.to_string()))
-        } else if self.parameters.contains(expression) {
-            Ok(CanonicalStartupValue::FormParameter(expression.to_string()))
-        } else if self.pools.contains(expression) {
-            Ok(CanonicalStartupValue::PoolReference(
-                conduit_core::SharedPoolId::from(expression),
-            ))
-        } else if is_atomic_literal(expression) {
-            Ok(CanonicalStartupValue::Literal(expression.to_string()))
-        } else if let Some(runtime) = self
-            .runtime_ports
-            .iter()
-            .find(|name| contains_identifier(expression, name))
-        {
-            Err(SyntaxCheckError::RuntimeAsStartup(runtime.clone()))
-        } else {
-            Err(SyntaxCheckError::UnsupportedExpression(
-                expression.to_string(),
-            ))
-        }
-    }
-}
-
-fn is_atomic_literal(expression: &str) -> bool {
-    let quoted = (expression.starts_with('"') && expression.ends_with('"'))
-        || (expression.starts_with('\'') && expression.ends_with('\''));
-    quoted
-        || !expression.is_empty()
-            && !expression.chars().any(|character| {
-                character.is_whitespace()
-                    || matches!(
-                        character,
-                        '(' | ')' | '[' | ']' | '{' | '}' | ',' | '+' | '*' | '/'
-                    )
-            })
-}
-
-fn contains_identifier(expression: &str, name: &str) -> bool {
-    expression
-        .split(|character: char| !(character.is_alphanumeric() || matches!(character, '_' | '-')))
-        .any(|candidate| candidate == name)
 }
