@@ -67,7 +67,7 @@ fn entry_sign(nonce: u64) {
     output.push(BUILD_ID.as_bytes());
     output.push(b"\",\"image_id\":\"");
     output.push(IMAGE_ID.as_bytes());
-    output.push(b"\",\"bootloader\":\"Limine 12.5.2/BOOTRISCV64.EFI\",\"emulator_profile\":\"qemu-riscv64-virt-single-hart-256m-opensbi-uboot\",\"firmware\":\"OpenSBI+U-Boot EFI\",\"host_id\":\"host-riscv64-");
+    output.push(b"\",\"bootloader\":\"Limine 12.5.2/BOOTRISCV64.EFI\",\"emulator_profile\":\"qemu-riscv64-virt-single-hart-256m-tcg-opensbi-uboot\",\"firmware\":\"OpenSBI+U-Boot EFI\",\"host_id\":\"host-riscv64-");
     output.hex(nonce.rotate_left(13) ^ 0x434f_4e44_5549_5402);
     output.push(b"\",\"boot_id\":\"boot-riscv64-");
     output.hex(nonce ^ 0x5256_3634_0000_0002);
