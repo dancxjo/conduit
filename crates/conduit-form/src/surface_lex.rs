@@ -45,7 +45,7 @@ pub(crate) fn split_top_level(text: &str, delimiter: char) -> Vec<&str> {
 
 pub(crate) fn top_level_positions(text: &str, target: char) -> Vec<usize> {
     let mut positions = Vec::new();
-    let mut depth = 0usize;
+    let mut delimiters = Vec::new();
     let mut quote = None;
     let mut escaped = false;
     for (offset, character) in text.char_indices() {
@@ -56,11 +56,17 @@ pub(crate) fn top_level_positions(text: &str, target: char) -> Vec<usize> {
             escaped = character == '\\' && !escaped;
             continue;
         }
+        if character == target && delimiters.is_empty() {
+            positions.push(offset);
+        }
         match character {
             '\'' | '"' => quote = Some(character),
-            '(' => depth += 1,
-            ')' => depth = depth.saturating_sub(1),
-            _ if character == target && depth == 0 => positions.push(offset),
+            '(' => delimiters.push(')'),
+            '[' => delimiters.push(']'),
+            '{' => delimiters.push('}'),
+            ')' | ']' | '}' if delimiters.last() == Some(&character) => {
+                delimiters.pop();
+            }
             _ => {}
         }
     }
@@ -68,7 +74,7 @@ pub(crate) fn top_level_positions(text: &str, target: char) -> Vec<usize> {
 }
 
 pub(crate) fn delimiters_are_balanced(text: &str) -> bool {
-    let mut depth = 0usize;
+    let mut delimiters = Vec::new();
     let mut quote = None;
     let mut escaped = false;
     for character in text.chars() {
@@ -81,13 +87,14 @@ pub(crate) fn delimiters_are_balanced(text: &str) -> bool {
         }
         match character {
             '\'' | '"' => quote = Some(character),
-            '(' => depth += 1,
-            ')' if depth == 0 => return false,
-            ')' => depth -= 1,
+            '(' => delimiters.push(')'),
+            '[' => delimiters.push(']'),
+            '{' => delimiters.push('}'),
+            ')' | ']' | '}' if delimiters.pop() != Some(character) => return false,
             _ => {}
         }
     }
-    depth == 0 && quote.is_none()
+    delimiters.is_empty() && quote.is_none()
 }
 
 pub(crate) fn is_name(text: &str) -> bool {

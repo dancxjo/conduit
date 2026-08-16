@@ -130,5 +130,8 @@ fn canonical_value(value: &CanonicalStartupValue) -> String {
         CanonicalStartupValue::PoolReference(pool) => {
             format!("pool-reference:{}", pool.as_str())
         }
+        CanonicalStartupValue::Structured(value) => {
+            format!("structured:{}", value.canonical_identity())
+        }
     }
 }

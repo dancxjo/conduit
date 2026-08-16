@@ -6,6 +6,7 @@ extern crate alloc;
 extern crate std;
 
 mod prelude {
+    pub use alloc::boxed::Box;
     pub use alloc::string::{String, ToString};
     pub use alloc::vec::Vec;
 }
@@ -24,6 +25,8 @@ mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
 mod functional_face;
+mod structured_expression;
+mod structured_startup;
 mod surface_lex;
 mod surface_parser;
 pub mod syntax;
@@ -36,6 +39,7 @@ pub use back_catalog::*;
 pub use canonical_expansion::*;
 pub use checked_syntax::*;
 pub use diagnostic::*;
+pub use structured_startup::*;
 pub use syntax::*;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
