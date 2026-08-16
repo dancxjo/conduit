@@ -134,6 +134,9 @@ impl PatchbayEdit {
                         return Err(InteractionError::ValueTooLarge);
                     }
                 }
+                if matches!(value, ConfigurationValue::Structured(_)) {
+                    return Err(InteractionError::UnsupportedConfiguration);
+                }
                 Ok(())
             }
         }

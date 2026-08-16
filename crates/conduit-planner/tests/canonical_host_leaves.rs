@@ -126,6 +126,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
                     ConfigurationValue::I64(_) => "Scalar",
                     ConfigurationValue::U64(_) => "Count",
                     ConfigurationValue::Text(_) => "Text",
+                    ConfigurationValue::Structured(ref value) => value.profile().as_str(),
                 }
                 .into(),
                 has_default: true,

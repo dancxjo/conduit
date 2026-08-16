@@ -50,6 +50,7 @@ pub enum UnsupportedPlanFeature {
     RemoteRouteTarget,
     WiderKernelPortTable,
     TextConfiguration,
+    StructuredConfiguration,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

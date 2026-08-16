@@ -302,6 +302,11 @@ fn encode_configuration_value(
             output.push(4);
             push_field(output, value)?;
         }
+        ConfigurationValue::Structured(value) => {
+            output.push(5);
+            push_field(output, value.profile().as_str())?;
+            push_blob(output, value.canonical_value())?;
+        }
     }
     Ok(())
 }
@@ -329,6 +334,13 @@ fn decode_configuration_value(
         2 => Ok(ConfigurationValue::U64(read_u64(input, cursor)?)),
         3 => Ok(ConfigurationValue::I64(read_i64(input, cursor)?)),
         4 => Ok(ConfigurationValue::Text(read_field(input, cursor)?)),
+        5 => {
+            let profile = conduit_core::KindId::from(read_field(input, cursor)?);
+            let canonical = read_blob(input, cursor)?;
+            conduit_core::StructuredConfigurationValue::new(profile, canonical)
+                .map(ConfigurationValue::Structured)
+                .ok_or(InteractionError::MalformedValue)
+        }
         _ => Err(InteractionError::MalformedValue),
     }
 }
@@ -355,6 +367,34 @@ fn read_i64(input: &[u8], cursor: &mut usize) -> Result<i64, InteractionError> {
         .ok_or(InteractionError::MalformedValue)?;
     *cursor = end;
     Ok(i64::from_le_bytes(bytes))
+}
+
+fn push_blob(output: &mut Vec<u8>, value: &[u8]) -> Result<(), InteractionError> {
+    let length = u32::try_from(value.len()).map_err(|_| InteractionError::ValueTooLarge)?;
+    output.extend_from_slice(&length.to_le_bytes());
+    output.extend_from_slice(value);
+    Ok(())
+}
+
+fn read_blob(input: &[u8], cursor: &mut usize) -> Result<Vec<u8>, InteractionError> {
+    let length_end = cursor
+        .checked_add(4)
+        .ok_or(InteractionError::MalformedValue)?;
+    let length = input
+        .get(*cursor..length_end)
+        .and_then(|bytes| <[u8; 4]>::try_from(bytes).ok())
+        .map(u32::from_le_bytes)
+        .ok_or(InteractionError::MalformedValue)? as usize;
+    *cursor = length_end;
+    let end = cursor
+        .checked_add(length)
+        .ok_or(InteractionError::MalformedValue)?;
+    let value = input
+        .get(*cursor..end)
+        .ok_or(InteractionError::MalformedValue)?
+        .to_vec();
+    *cursor = end;
+    Ok(value)
 }
 
 fn require_end(input: &[u8], cursor: usize) -> Result<(), InteractionError> {

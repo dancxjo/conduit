@@ -609,6 +609,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
                 ConfigurationValue::I64(_) => "Scalar",
                 ConfigurationValue::U64(_) => "Count",
                 ConfigurationValue::Text(_) => "Text",
+                ConfigurationValue::Structured(ref value) => value.profile().as_str(),
             }
             .to_string(),
             has_default: true,
@@ -1276,6 +1277,7 @@ fn configuration_u64(configuration: &[ConfigurationEntry], key: &str) -> Result<
             ConfigurationValue::Bool(_) => None,
             ConfigurationValue::I64(_) => None,
             ConfigurationValue::Text(_) => None,
+            ConfigurationValue::Structured(_) => None,
         })
         .ok_or_else(|| format!("missing u64 configuration '{key}'"))
 }

@@ -1,0 +1,12 @@
+# Portable instrument meaning. A fixture/profile binds physical controls; this
+# Form contains no Pico, GPIO, ADC, USB, MIDI endpoint, or Host identity.
+form breadboard-instrument (
+    > input: InstrumentControl...|
+    notes: music/note-event@1...| >
+    controls: music/control-event@1...| >
+) {
+    mapper: music/instrument-map({ pitches: [60, 62, 64, 65, 67, 69, 71, 72], sustain_button: 8, modulation_control: 0, expression_control: 1 })
+    input > mapper.input
+    mapper.notes > notes
+    mapper.controls > controls
+}

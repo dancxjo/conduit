@@ -226,6 +226,7 @@ fn capability(catalog: &ProfileCatalog, kind: &str) -> Result<CapabilityOffer, C
                     ConfigurationValue::U64(_) => "Count",
                     ConfigurationValue::I64(_) => "Scalar",
                     ConfigurationValue::Text(_) => "Text",
+                    ConfigurationValue::Structured(ref value) => value.profile().as_str(),
                 }
                 .into(),
                 has_default: true,

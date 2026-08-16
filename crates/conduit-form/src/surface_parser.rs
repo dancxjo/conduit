@@ -467,8 +467,6 @@ impl<'a> Parser<'a> {
             || !delimiters_are_balanced(value)
             || !top_level_positions(value, '>').is_empty()
             || !top_level_positions(value, '=').is_empty()
-            || !top_level_positions(value, '{').is_empty()
-            || !top_level_positions(value, '}').is_empty()
         {
             return Err(self.invalid_statement(container, start));
         }

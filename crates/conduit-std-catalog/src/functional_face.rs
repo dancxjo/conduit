@@ -13,6 +13,7 @@ pub(crate) fn startup_face(fields: &[StandardConfigurationField]) -> Vec<FaceSta
                 ConfigurationValue::U64(_) => "Count",
                 ConfigurationValue::I64(_) => "Scalar",
                 ConfigurationValue::Text(_) => "Text",
+                ConfigurationValue::Structured(ref value) => value.profile().as_str(),
             }
             .to_string(),
             has_default: true,

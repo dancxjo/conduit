@@ -183,6 +183,11 @@ pub(super) fn expanded_identity(
                     push(&mut canonical, "text");
                     push(&mut canonical, value);
                 }
+                conduit_core::ConfigurationValue::Structured(ref value) => {
+                    push(&mut canonical, "structured");
+                    push(&mut canonical, value.profile().as_str());
+                    push(&mut canonical, &hex(value.canonical_value()));
+                }
             }
         }
         for pool in &gear.pool_references {
@@ -244,6 +249,16 @@ pub(super) fn expanded_identity(
         push(&mut canonical, back.checked_form_id.as_str());
     }
     ExpandedFormId::from(hash_string(&canonical))
+}
+
+fn hex(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        encoded.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        encoded.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
+    }
+    encoded
 }
 
 pub(super) fn provenance_digest(

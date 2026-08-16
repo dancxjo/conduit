@@ -14,6 +14,7 @@ pub(super) fn edit_signature() -> KindSignature {
                     ConfigurationValue::U64(_) => "Count",
                     ConfigurationValue::I64(_) => "Scalar",
                     ConfigurationValue::Text(_) => "Text",
+                    ConfigurationValue::Structured(ref value) => value.profile().as_str(),
                 }
                 .into(),
                 default: None,
@@ -218,6 +219,13 @@ fn edit_request_source(request_id: &PatchbayInteractionRequestId, edit: &Patchba
         Some(ConfigurationValue::U64(value)) => ("count", false, *value, 0, ""),
         Some(ConfigurationValue::I64(value)) => ("scalar", false, 0, *value, ""),
         Some(ConfigurationValue::Text(value)) => ("text", false, 0, 0, value.as_str()),
+        Some(ConfigurationValue::Structured(value)) => (
+            "structured-read-only",
+            false,
+            0,
+            0,
+            value.profile().as_str(),
+        ),
     };
     format!(
         "form patchbay-interaction {{\n    request: {EDIT_KIND}(\"{}\", \"{}\", {}, \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, \"{}\")\n    apply: {APPLY_KIND}\n    request > apply\n}}\n",

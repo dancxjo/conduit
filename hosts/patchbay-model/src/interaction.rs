@@ -132,6 +132,7 @@ pub enum InteractionError {
     InvalidIdentity,
     ValueTooLarge,
     MalformedValue,
+    UnsupportedConfiguration,
     Action(conduit_presentation::PresentationActionRefusal),
     Form(String),
     Planning(String),

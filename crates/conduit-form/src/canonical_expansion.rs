@@ -470,9 +470,12 @@ fn substitute(
 ) -> Result<CanonicalStartupValue, CanonicalExpansionDiagnostic> {
     match value {
         CanonicalStartupValue::Literal(_) => Ok(value.clone()),
+        CanonicalStartupValue::Structured(value) if value.try_concrete().is_some() => {
+            Ok(CanonicalStartupValue::Structured(value.clone()))
+        }
         CanonicalStartupValue::Structured(_) => Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-039",
-            "structured startup propagation is not implemented in this Form layer".into(),
+            "structured startup value remains unresolved".into(),
         )),
         CanonicalStartupValue::PoolReference(pool) => environment
             .get(pool.as_str())

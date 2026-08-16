@@ -176,6 +176,11 @@ fn displayed_value(value: &conduit_core::ConfigurationValue) -> String {
         conduit_core::ConfigurationValue::U64(value) => value.to_string(),
         conduit_core::ConfigurationValue::I64(value) => value.to_string(),
         conduit_core::ConfigurationValue::Text(value) => format!("\"{value}\""),
+        conduit_core::ConfigurationValue::Structured(value) => format!(
+            "<structured:{}:{}-bytes>",
+            value.profile().as_str(),
+            value.canonical_value().len()
+        ),
     }
 }
 

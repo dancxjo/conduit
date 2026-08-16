@@ -150,5 +150,10 @@ fn configuration_spelling(rule: &StandardConfigurationRule, value: &Configuratio
         (_, ConfigurationValue::Text(value)) => {
             format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
         }
+        (_, ConfigurationValue::Structured(value)) => format!(
+            "<structured:{}:{}-bytes>",
+            value.profile().as_str(),
+            value.canonical_value().len()
+        ),
     }
 }

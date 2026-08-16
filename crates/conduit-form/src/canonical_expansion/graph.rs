@@ -73,6 +73,7 @@ pub(super) fn configuration(
                     parse_configuration_value(&field.key, value, &field.validation)
                 })?;
             let accepted = match (&field.validation, &value) {
+                (ConfigurationRule::Any, ConfigurationValue::Structured(_)) => false,
                 (ConfigurationRule::Any, _) => true,
                 (
                     ConfigurationRule::U64Range { minimum, maximum },
@@ -92,6 +93,10 @@ pub(super) fn configuration(
                 (ConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
                     values.contains(value)
                 }
+                (
+                    ConfigurationRule::Structured { profile },
+                    ConfigurationValue::Structured(value),
+                ) => value.profile() == profile,
                 _ => false,
             };
             if !accepted {
@@ -138,6 +143,47 @@ fn parse_configuration_value(
     value: CanonicalStartupValue,
     validation: &ConfigurationRule,
 ) -> Result<ConfigurationValue, CanonicalExpansionDiagnostic> {
+    if let ConfigurationRule::Structured { profile } = validation {
+        let CanonicalStartupValue::Structured(value) = value else {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-039",
+                format!("structured startup value '{name}' remains unresolved"),
+            ));
+        };
+        let actual_profile = value.value_type().profile().map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                format!("structured startup value '{name}' has no finite profile"),
+            )
+        })?;
+        if actual_profile.value_kind() != profile {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                format!("structured startup value '{name}' violates its exact profile"),
+            ));
+        }
+        let concrete = value.try_concrete().ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-039",
+                format!("structured startup value '{name}' remains unresolved"),
+            )
+        })?;
+        let canonical = concrete.canonical_bytes().map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                format!("structured startup value '{name}' exceeds canonical bounds"),
+            )
+        })?;
+        let structured =
+            conduit_core::StructuredConfigurationValue::new(profile.clone(), canonical)
+                .ok_or_else(|| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        format!("structured startup value '{name}' exceeds configuration bounds"),
+                    )
+                })?;
+        return Ok(ConfigurationValue::Structured(structured));
+    }
     let CanonicalStartupValue::Literal(literal) = value else {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-039",

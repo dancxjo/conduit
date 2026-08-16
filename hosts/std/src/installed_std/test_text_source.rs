@@ -101,6 +101,7 @@ fn invalid(placement: &PlannedGear) -> Result<bool, String> {
             ConfigurationValue::I64(_) => None,
             ConfigurationValue::U64(_) => None,
             ConfigurationValue::Text(_) => None,
+            ConfigurationValue::Structured(_) => None,
         })
         .ok_or_else(|| "test text source requires boolean invalid configuration".to_string())
 }
