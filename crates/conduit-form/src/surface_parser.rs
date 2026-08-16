@@ -357,7 +357,12 @@ impl<'a> Parser<'a> {
             let relative = text[search..].find(part).unwrap() + search;
             let part_start = start + relative;
             search = relative + part.len();
-            if part.contains('/') || part.contains('(') {
+            if let Some(selector) = crate::structured_selector::parse(self.source, part, part_start)
+            {
+                let selector = selector
+                    .map_err(|(message, span)| (FormError::InvalidSyntax(message), span))?;
+                stages.push(CordStage::StructuredSelector(selector));
+            } else if part.contains('/') || part.contains('(') {
                 stages.push(CordStage::InlineGear(
                     self.parse_invocation(part, part_start)?,
                 ));

@@ -112,9 +112,26 @@ pub(crate) fn canonical_cord(cord: &CheckedCanonicalCord) -> String {
                 push_field(&mut value, "literal");
                 push_field(&mut value, &canonical_value(literal));
             }
+            CheckedCordStage::StructuredSelector { selector, .. } => {
+                push_field(&mut value, "structured-selector");
+                let bytes = selector
+                    .canonical_bytes()
+                    .expect("a checked selector retains its finite canonical identity");
+                let mut encoded = String::with_capacity(bytes.len() * 2);
+                push_hex(&mut encoded, &bytes);
+                push_field(&mut value, &encoded);
+            }
         }
     }
     value
+}
+
+fn push_hex(output: &mut String, bytes: &[u8]) {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    for byte in bytes {
+        output.push(char::from(HEX[usize::from(byte >> 4)]));
+        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
 }
 
 fn push_field(target: &mut String, value: &str) {

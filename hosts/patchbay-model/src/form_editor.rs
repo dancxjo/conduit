@@ -56,6 +56,7 @@ pub enum GraphCordStage {
     Reference(String),
     InlineGear { kind: String },
     Literal,
+    StructuredSelector,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -494,6 +495,9 @@ fn graph_revision(
                                         }
                                     }
                                     CheckedCordStage::Literal { .. } => GraphCordStage::Literal,
+                                    CheckedCordStage::StructuredSelector { .. } => {
+                                        GraphCordStage::StructuredSelector
+                                    }
                                 })
                                 .collect(),
                         });
@@ -527,6 +531,7 @@ fn cord_label(cord: &conduit_form::CheckedCanonicalCord) -> String {
             CheckedCordStage::Reference(name) => name.clone(),
             CheckedCordStage::InlineGear(gear) => gear.kind.clone(),
             CheckedCordStage::Literal { value, .. } => format!("{value:?}"),
+            CheckedCordStage::StructuredSelector { .. } => "structured selector".into(),
         })
         .collect::<Vec<_>>()
         .join(" -> ")

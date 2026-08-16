@@ -15,6 +15,7 @@ use conduit_core::{
 
 mod resolution;
 mod shared_pool;
+mod structured_selector;
 use resolution::{is_atomic_literal, Resolver};
 use shared_pool::{check_pool_declarations, checked_pool};
 
@@ -201,6 +202,12 @@ fn check_form(
                             stages.push(CheckedCordStage::Literal {
                                 value,
                                 source_span: expression.span,
+                            });
+                        }
+                        CordStage::StructuredSelector(selector) => {
+                            stages.push(CheckedCordStage::StructuredSelector {
+                                selector: structured_selector::check(selector, catalog)?,
+                                source_span: selector.span(),
                             });
                         }
                     }

@@ -9,9 +9,11 @@ use alloc::vec::Vec;
 use crate::KindId;
 
 mod canonical;
+mod selection;
 use canonical::{
     check_encoding_size, digest, encode_type, encode_value_node, type_extent, value_extent,
 };
+pub use selection::*;
 
 pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 8;
 pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 1_024;

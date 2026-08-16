@@ -133,6 +133,37 @@ pub enum CordStage {
     Reference(SpannedText),
     InlineGear(Invocation),
     Literal(Expression),
+    StructuredSelector(StructuredSelectorSyntax),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StructuredSelectorSyntax {
+    Field {
+        value_type: SpannedText,
+        field: SpannedText,
+        span: Span,
+    },
+    Index {
+        value_type: SpannedText,
+        index: SpannedText,
+        span: Span,
+    },
+    Variant {
+        value_type: SpannedText,
+        tag: SpannedText,
+        unmatched: SpannedText,
+        span: Span,
+    },
+}
+
+impl StructuredSelectorSyntax {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Field { span, .. } | Self::Index { span, .. } | Self::Variant { span, .. } => {
+                *span
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

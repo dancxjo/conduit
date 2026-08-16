@@ -234,6 +234,13 @@ fn expand_instance_inner(
                     )?;
                     stage_for_instance(&name, &instance, None)?
                 }
+                CheckedCordStage::StructuredSelector { .. } => {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-039",
+                        "structured selector propagation is owned by Structured Form Info F3"
+                            .into(),
+                    ));
+                }
             });
         }
         for pair in stages.windows(2) {
