@@ -1,8 +1,9 @@
 use super::{HostedLocalModelAdapter, LocalModelAdapterTerminal};
 use conduit_ai::{
-    LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelIdentity,
-    LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
-    ModelDerivedResult, ModelResultDisposition, ModelResultProvenance, ModelWorkAccounting,
+    ExtractedField, FiniteClassification, FiniteEmbedding, LlmDeterminismProfile, LlmWorkBounds,
+    LocalModelCachePolicy, LocalModelIdentity, LocalModelKindProfile, LocalModelLifecycleState,
+    LocalModelLimits, LocalModelOffer, ModelDerivedResult, ModelResultDisposition,
+    ModelResultProvenance, ModelWorkAccounting, ValidatedExtraction,
 };
 use conduit_core::PlannedGear;
 use serde::{Deserialize, Serialize};
@@ -26,6 +27,7 @@ pub struct OllamaDiscovery {
     pub quantization: String,
     pub context_length: u64,
     pub completion_supported: bool,
+    pub embedding_supported: bool,
 }
 
 pub struct OllamaLocalModelAdapter {
@@ -71,6 +73,23 @@ struct GenerateResponse {
     eval_count: u64,
 }
 
+#[derive(Deserialize)]
+struct ClassificationWire {
+    label: String,
+}
+
+#[derive(Deserialize)]
+struct ExtractionWire {
+    subject: String,
+}
+
+#[derive(Deserialize)]
+struct EmbedResponse {
+    embeddings: Vec<Vec<f32>>,
+    #[serde(default)]
+    prompt_eval_count: u64,
+}
+
 impl OllamaDiscovery {
     pub fn discover(model: &str) -> Result<Self, String> {
         if model.is_empty() || model.len() > conduit_ai::MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES {
@@ -113,6 +132,7 @@ impl OllamaDiscovery {
             quantization: selected.details.quantization_level,
             context_length,
             completion_supported: show.capabilities.iter().any(|value| value == "completion"),
+            embedding_supported: show.capabilities.iter().any(|value| value == "embedding"),
         })
     }
 
@@ -121,8 +141,15 @@ impl OllamaDiscovery {
         admitted_memory_mib: u32,
         profiles: Vec<LocalModelKindProfile>,
     ) -> Result<OllamaLocalModelAdapter, String> {
-        if !self.completion_supported {
+        let needs_completion = profiles
+            .iter()
+            .any(|profile| !matches!(profile, LocalModelKindProfile::EmbedFiniteVector));
+        if needs_completion && !self.completion_supported {
             return Err("local model does not advertise completion capability".to_string());
+        }
+        if profiles.contains(&LocalModelKindProfile::EmbedFiniteVector) && !self.embedding_supported
+        {
+            return Err("local model does not advertise embedding capability".to_string());
         }
         let work = LlmWorkBounds {
             maximum_input_bytes: 4_096,
@@ -165,26 +192,48 @@ impl OllamaDiscovery {
             model_name: self.model_name,
             next_request_sequence: 1,
         };
-        let warmup = adapter.generate("Reply with one word.", 1)?;
-        if warmup.response.is_empty() {
-            return Err("local model warmup produced no output".to_string());
+        if needs_completion {
+            let warmup = adapter.generate("Reply with one word.", 1, false)?;
+            if warmup.response.is_empty() {
+                return Err("local model warmup produced no output".to_string());
+            }
         }
         Ok(adapter)
     }
 }
 
 impl OllamaLocalModelAdapter {
-    fn generate(&self, input: &str, maximum_tokens: u64) -> Result<GenerateResponse, String> {
-        let body = serde_json::to_vec(&json!({
+    fn generate(
+        &self,
+        input: &str,
+        maximum_tokens: u64,
+        structured: bool,
+    ) -> Result<GenerateResponse, String> {
+        let mut request = json!({
             "model": self.model_name,
             "prompt": input,
             "stream": false,
             "keep_alive": "5m",
             "options": { "num_predict": maximum_tokens }
-        }))
-        .map_err(|error| error.to_string())?;
+        });
+        if structured {
+            request["format"] = json!("json");
+        }
+        let body = serde_json::to_vec(&request).map_err(|error| error.to_string())?;
         serde_json::from_slice(&curl_json("/api/generate", Some(&body))?)
             .map_err(|error| format!("decode local Ollama inference: {error}"))
+    }
+
+    fn embed(&self, input: &str) -> Result<EmbedResponse, String> {
+        let body = serde_json::to_vec(&json!({
+            "model": self.model_name,
+            "input": input,
+            "truncate": false,
+            "keep_alive": "5m"
+        }))
+        .map_err(|error| error.to_string())?;
+        serde_json::from_slice(&curl_json("/api/embed", Some(&body))?)
+            .map_err(|error| format!("decode local Ollama embedding: {error}"))
     }
 }
 
@@ -212,12 +261,109 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             .checked_div(8)
             .unwrap_or(1)
             .clamp(1, 64);
-        let generated = match self.generate(input, maximum_tokens) {
-            Ok(generated) => generated,
-            Err(_) => return LocalModelAdapterTerminal::ProviderLost,
+        let (payload, truncated, work_units) = match placement.kind_id.as_str() {
+            conduit_ai::LLM_GENERATE_KIND => match self.generate(input, maximum_tokens, false) {
+                Ok(generated) => (
+                    generated.response.into_bytes(),
+                    generated.done_reason == "length",
+                    generated
+                        .prompt_eval_count
+                        .saturating_add(generated.eval_count),
+                ),
+                Err(_) => return LocalModelAdapterTerminal::ProviderLost,
+            },
+            conduit_ai::LLM_CLASSIFY_KIND => {
+                let prompt = format!(
+                    "Classify the following text. Return only JSON {{\"label\":\"conduit\"}} or {{\"label\":\"other\"}}. Text: {input}"
+                );
+                let generated = match self.generate(&prompt, maximum_tokens, true) {
+                    Ok(generated) => generated,
+                    Err(_) => return LocalModelAdapterTerminal::ProviderLost,
+                };
+                let wire: ClassificationWire = match serde_json::from_str(&generated.response) {
+                    Ok(wire) => wire,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                };
+                let result = FiniteClassification {
+                    label: wire.label,
+                    allowed_labels: vec!["conduit".into(), "other".into()],
+                };
+                if result.validate().is_err() {
+                    return LocalModelAdapterTerminal::InvalidStructuredResult;
+                }
+                let payload = match serde_json::to_vec(&result) {
+                    Ok(payload) => payload,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                };
+                (
+                    payload,
+                    generated.done_reason == "length",
+                    generated
+                        .prompt_eval_count
+                        .saturating_add(generated.eval_count),
+                )
+            }
+            conduit_ai::LLM_EXTRACT_KIND => {
+                let prompt = format!(
+                    "Extract the subject. Return only JSON {{\"subject\":\"non-empty text\"}}. Text: {input}"
+                );
+                let generated = match self.generate(&prompt, maximum_tokens, true) {
+                    Ok(generated) => generated,
+                    Err(_) => return LocalModelAdapterTerminal::ProviderLost,
+                };
+                let wire: ExtractionWire = match serde_json::from_str(&generated.response) {
+                    Ok(wire) => wire,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                };
+                let result = ValidatedExtraction {
+                    schema_identity: "conduit.proof/subject@1".into(),
+                    fields: vec![ExtractedField {
+                        key: "subject".into(),
+                        value: wire.subject,
+                    }],
+                };
+                if result.validate().is_err() {
+                    return LocalModelAdapterTerminal::InvalidStructuredResult;
+                }
+                let payload = match serde_json::to_vec(&result) {
+                    Ok(payload) => payload,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                };
+                (
+                    payload,
+                    generated.done_reason == "length",
+                    generated
+                        .prompt_eval_count
+                        .saturating_add(generated.eval_count),
+                )
+            }
+            conduit_ai::LLM_EMBED_KIND => {
+                let embedded = match self.embed(input) {
+                    Ok(embedded) => embedded,
+                    Err(_) => return LocalModelAdapterTerminal::ProviderLost,
+                };
+                let Some(values) = embedded.embeddings.into_iter().next() else {
+                    return LocalModelAdapterTerminal::InvalidStructuredResult;
+                };
+                let result = FiniteEmbedding {
+                    profile_identity: format!(
+                        "{}/{}",
+                        self.offer.identity.model_name, self.offer.identity.model_content_identity
+                    ),
+                    dimensions: values.len() as u32,
+                    values,
+                };
+                if result.validate().is_err() {
+                    return LocalModelAdapterTerminal::InvalidStructuredResult;
+                }
+                let payload = match serde_json::to_vec(&result) {
+                    Ok(payload) => payload,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                };
+                (payload, false, embedded.prompt_eval_count)
+            }
+            _ => return LocalModelAdapterTerminal::Refused,
         };
-        let truncated = generated.done_reason == "length";
-        let payload = generated.response.into_bytes();
         if payload.is_empty() || payload.len() as u64 > maximum_output_bytes {
             return LocalModelAdapterTerminal::Failed;
         }
@@ -234,9 +380,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                 input_bytes: input.len() as u64,
                 context_items: 1,
                 output_bytes: payload.len() as u64,
-                work_units: generated
-                    .prompt_eval_count
-                    .saturating_add(generated.eval_count),
+                work_units,
                 history_items: 0,
             },
             payload,

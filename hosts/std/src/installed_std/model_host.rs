@@ -12,6 +12,7 @@ pub(super) enum ModelHostCompletion {
     Failed,
     Cancelled,
     ProviderLost,
+    InvalidStructuredResult,
 }
 
 impl ModelHostCompletion {
@@ -36,6 +37,13 @@ impl ModelHostCompletion {
                 Some(Failure {
                     code: FailureCode::HostOperationFailed,
                     detail: 54,
+                }),
+            ),
+            Self::InvalidStructuredResult => (
+                HostOperationDisposition::Failed,
+                Some(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 55,
                 }),
             ),
         };
@@ -86,5 +94,23 @@ pub(super) fn execute(
         LocalModelAdapterTerminal::Failed => ModelHostCompletion::Failed,
         LocalModelAdapterTerminal::Cancelled => ModelHostCompletion::Cancelled,
         LocalModelAdapterTerminal::ProviderLost => ModelHostCompletion::ProviderLost,
+        LocalModelAdapterTerminal::InvalidStructuredResult => {
+            ModelHostCompletion::InvalidStructuredResult
+        }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn malformed_structure_and_provider_loss_keep_distinct_machine_details() {
+        let malformed = ModelHostCompletion::InvalidStructuredResult.outcome(None);
+        let lost = ModelHostCompletion::ProviderLost.outcome(None);
+        assert_eq!(malformed.disposition, HostOperationDisposition::Failed);
+        assert_eq!(lost.disposition, HostOperationDisposition::Failed);
+        assert_eq!(malformed.failure.unwrap().detail, 55);
+        assert_eq!(lost.failure.unwrap().detail, 54);
+    }
 }
