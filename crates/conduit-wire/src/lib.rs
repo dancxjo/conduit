@@ -12,6 +12,9 @@ pub use session::*;
 mod routing;
 pub use routing::*;
 
+mod structured_info;
+pub use structured_info::*;
+
 mod infrared_framing;
 pub use infrared_framing::*;
 
