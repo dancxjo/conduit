@@ -12,6 +12,9 @@ pub use session::*;
 mod routing;
 pub use routing::*;
 
+mod infrared_framing;
+pub use infrared_framing::*;
+
 pub mod stream_framing;
 pub use stream_framing::*;
 
