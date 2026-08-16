@@ -1,11 +1,13 @@
 use super::audio_play_operation::AudioPlayOperation;
 use super::bool_presentation::BoolPresentationOperation;
 use super::count_operations::{CountPresentationOperation, StateCountOperation};
+pub(super) use super::factory::{InstalledFactory, OperationBudget};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
 use super::http::{HttpClientOperation, HttpServerOperation};
 use super::input_semantic_operations::{InputSemanticOperation, KeyEventTeeOperation};
+use super::instrument_map_operation::InstrumentMapOperation;
 use super::json_operations::JsonOperation;
 use super::keyboard_input_operation::KeyboardInputOperation;
 use super::layout_operations::LayoutOperation;
@@ -42,27 +44,9 @@ use super::tick_operations::TickOperation;
 use super::tick_presentation::TickPresentationOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
-use conduit_core::PlannedGear;
 use conduit_kernel::{
     Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
-
-pub(super) struct OperationBudget {
-    pub(super) value_items: u16,
-    pub(super) value_bytes: u32,
-    pub(super) host_requests: usize,
-    pub(super) sign_items: u16,
-    pub(super) maximum_value_bytes: u32,
-}
-
-pub(super) struct InstalledFactory {
-    pub(super) implementation_id: &'static str,
-    pub(super) budget: fn(&PlannedGear) -> Result<OperationBudget, String>,
-    pub(super) prepare: fn(
-        &PlannedGear,
-        &mut conduit_kernel::HostedValueStore,
-    ) -> Result<InstalledOperation, String>,
-}
 
 pub(super) enum InstalledOperation {
     KeyboardInput(KeyboardInputOperation),
@@ -86,6 +70,7 @@ pub(super) enum InstalledOperation {
     KeyEventTee(KeyEventTeeOperation),
     InputKeymap(InputSemanticOperation),
     InputChords(InputSemanticOperation),
+    InstrumentMap(InstrumentMapOperation),
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),
@@ -192,6 +177,7 @@ impl Operation for InstalledOperation {
             Self::FlowGateScalar(operation) => operation.start(),
             Self::KeyEventTee(operation) => operation.start(),
             Self::InputKeymap(operation) | Self::InputChords(operation) => operation.start(),
+            Self::InstrumentMap(operation) => operation.start(),
             Self::LogicCompareScalar(operation) => operation.start(),
             Self::LogicNot(operation) => operation.start(),
             Self::LogicSelectScalar(operation) => operation.start(),
@@ -286,6 +272,7 @@ impl Operation for InstalledOperation {
             (Self::InputKeymap(operation), input) | (Self::InputChords(operation), input) => {
                 operation.resume(input)
             }
+            (Self::InstrumentMap(operation), input) => operation.resume(input),
             (Self::LogicCompareScalar(operation), input) => operation.resume(input),
             (Self::LogicNot(operation), input) => operation.resume(input),
             (Self::LogicSelectScalar(operation), input) => operation.resume(input),
@@ -370,6 +357,7 @@ impl Operation for InstalledOperation {
             Self::TestChordSink(operation) => operation.resume_value(port, canonical),
             #[cfg(test)]
             Self::TestStructuredSink(operation) => operation.resume_value(port, canonical),
+            Self::InstrumentMap(operation) => operation.resume_value(port, canonical),
             _ => self.resume(OperationInput::Value { port, value }),
         }
     }
@@ -415,6 +403,7 @@ impl Operation for InstalledOperation {
             Self::FlowGateScalar(operation) => operation.advance(),
             Self::KeyEventTee(operation) => operation.advance(),
             Self::InputKeymap(_) | Self::InputChords(_) => OperationAction::Await,
+            Self::InstrumentMap(operation) => operation.advance(),
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => {
                 OperationAction::Complete
             }
@@ -508,6 +497,7 @@ impl Operation for InstalledOperation {
             Self::FlowGateScalar(operation) => operation.cancel(),
             Self::KeyEventTee(operation) => operation.cancel(),
             Self::InputKeymap(operation) | Self::InputChords(operation) => operation.cancel(),
+            Self::InstrumentMap(operation) => operation.cancel(),
             Self::LogicCompareScalar(operation) => operation.cancel(),
             Self::LogicNot(operation) => operation.cancel(),
             Self::LogicSelectScalar(operation) => operation.cancel(),

@@ -5,7 +5,7 @@ form breadboard-instrument (
     notes: music/note-event@1...| >
     controls: music/control-event@1...| >
 ) {
-    mapper: music/instrument-map({ pitches: [60, 62, 64, 65, 67, 69, 71, 72], sustain_button: 8, modulation_control: 0, expression_control: 1 })
+    mapper: music/instrument-map({ pitch_millihertz: [261626, 293665, 329628, 349228, 391995, 440000, 493883, 523251], sustain_button: 8, modulation_control: 0, expression_control: 1 })
     input > mapper.input
     mapper.notes > notes
     mapper.controls > controls

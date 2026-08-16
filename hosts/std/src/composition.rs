@@ -189,6 +189,7 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::key_event_tee_offer(),
             conduit_std_catalog::keymap_offer(),
             conduit_std_catalog::chords_offer(),
+            conduit_std_catalog::instrument_map_std_offer(),
         ]);
     }
     if composition.state {
@@ -466,9 +467,10 @@ mod tests {
             .iter()
             .filter(|offer| {
                 let revision = offer.kind_contract_revision.as_str();
-                revision.starts_with("conduit.std/")
-                    || revision.starts_with("conduit.input/")
-                    || offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND
+                offer.kind_id.as_str() != conduit_std_catalog::INSTRUMENT_MAP_KIND
+                    && (revision.starts_with("conduit.std/")
+                        || revision.starts_with("conduit.input/")
+                        || offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND)
             })
             .cloned()
             .collect::<Vec<_>>();
@@ -484,5 +486,10 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(advertised, supported);
+        assert!(host
+            .advertisement()
+            .capabilities
+            .iter()
+            .any(|offer| { offer == &conduit_std_catalog::instrument_map_std_offer() }));
     }
 }
