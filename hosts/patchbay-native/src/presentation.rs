@@ -5,7 +5,7 @@ use conduit_presentation::{
     render_linear_presentation, Presentation, PresentationActionAvailability,
     PresentationDisclosureLevel,
 };
-use patchbay_model::{GraphItemKind, RendererSelfInspection};
+use patchbay_model::{GraphItemKind, PatchbayPresentation, RendererSelfInspection};
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
 
@@ -148,6 +148,59 @@ fn renderer_self_inspection_lines(
 }
 
 impl PatchbayApplication {
+    pub(super) fn parts_portable_presentation(&self) -> Result<Option<Presentation>, String> {
+        let Some(parts) = self.parts_projection()? else {
+            return Ok(None);
+        };
+        let editor = self
+            .form_editor
+            .as_ref()
+            .ok_or("Parts Presentation requires an open Form")?;
+        let body = self
+            .build_birth
+            .body()
+            .ok_or("Parts Presentation requires a born Body")?;
+        let document = editor.view();
+        let mut projection = PatchbayPresentation::new(
+            document.revision,
+            document,
+            self.control.plan_document().cloned(),
+            self.control.play_document().cloned(),
+            None,
+            Vec::new(),
+        )
+        .map_err(|error| format!("Parts Presentation projection: {error:?}"))?;
+        if let Some(graph) = &self.graphical_form {
+            projection = projection
+                .with_graph(graph.clone())
+                .map_err(|error| format!("Parts Presentation graph: {error:?}"))?;
+        }
+        let reference = self
+            .browser_parts
+            .as_ref()
+            .map(super::browser_parts::BrowserPartsCoordinator::presence_presentation_reference)
+            .transpose()?
+            .flatten();
+        match (self.build_birth.wake_value(), reference) {
+            (Some(wake), Some(reference)) => projection
+                .to_portable_front_door_with_temporal_reference(body, wake, &parts, reference)
+                .map(Some)
+                .map_err(|error| error.to_string()),
+            (Some(wake), None) => projection
+                .to_portable_front_door(body, wake, &parts)
+                .map(Some)
+                .map_err(|error| error.to_string()),
+            (None, Some(reference)) => projection
+                .to_portable_lulled_front_door_with_temporal_reference(body, &parts, reference)
+                .map(Some)
+                .map_err(|error| error.to_string()),
+            (None, None) => projection
+                .to_portable_lulled_front_door(body, &parts)
+                .map(Some)
+                .map_err(|error| error.to_string()),
+        }
+    }
+
     pub(super) fn details_content_lines(&self) -> Vec<String> {
         if self.details_lens == crate::details::DetailsLens::Source {
             let mut lines = vec![
@@ -197,6 +250,19 @@ impl PatchbayApplication {
     }
 
     pub(super) fn presentation_lines(&self) -> Vec<String> {
+        if self.linear_view {
+            match self.parts_portable_presentation() {
+                Ok(Some(presentation)) => {
+                    return portable_presentation_lines(&presentation).unwrap_or_else(|error| {
+                        vec![format!("PORTABLE PARTS PRESENTATION INVALID: {error}")]
+                    });
+                }
+                Err(error) => {
+                    return vec![format!("PORTABLE PARTS PRESENTATION INVALID: {error}")];
+                }
+                Ok(None) => {}
+            }
+        }
         if let Some(execution) = &self.renderer_execution {
             if self.zero_body_front_door.is_some() && !self.linear_view {
                 return ordinary_front_door_lines(&execution.presentation).unwrap_or_else(

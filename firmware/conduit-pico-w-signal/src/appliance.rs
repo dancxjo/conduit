@@ -8,7 +8,7 @@ use embassy_net::tcp::TcpSocket;
 use embassy_net::udp::{PacketMetadata, UdpSocket};
 use embassy_net::{Config, IpEndpoint, Ipv4Address, Ipv4Cidr, StackResources, StaticConfigV4};
 use embassy_rp::clocks::RoscRng;
-use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
+use embassy_rp::peripherals::{DMA_CH0, DMA_CH1, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
 use embassy_rp::Peri;
 use embassy_time::{with_timeout, Duration};
 use heapless::String as HString;
@@ -46,7 +46,8 @@ pub async fn run(
     spawner: &Spawner,
     sign: &mut UsbCdc,
     pio0: Peri<'static, PIO0>,
-    dma: Peri<'static, DMA_CH0>,
+    dma_tx: Peri<'static, DMA_CH0>,
+    dma_rx: Peri<'static, DMA_CH1>,
     pin23: Peri<'static, PIN_23>,
     pin24: Peri<'static, PIN_24>,
     pin25: Peri<'static, PIN_25>,
@@ -59,7 +60,7 @@ pub async fn run(
     let runtime_boot = runtime_boot_id();
     write_progress(sign, &runtime_boot, "dtr-ready").await;
     let (device, mut control) = match crate::radio::init_cyw43_network(
-        spawner, pio0, dma, pin23, pin24, pin25, pin29, fw, nvram, clm,
+        spawner, pio0, dma_tx, dma_rx, pin23, pin24, pin25, pin29, fw, nvram, clm,
     )
     .await
     {

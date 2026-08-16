@@ -2,86 +2,14 @@
 //!
 //! Handles length-prefixed stream framing over CDC 0 USB packets.
 
-use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder, StreamFrameError};
-use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, SessionFrame, WireError,
-};
+use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder};
+use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionFrame};
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
 use embassy_usb::class::cdc_acm::CdcAcmClass;
 
 use super::usb::PicoUsbCdcLine;
-use crate::receipts::UsbSignError;
-
-#[allow(dead_code)]
-pub type UsbLinkResult<T> = Result<T, UsbLinkError>;
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum UsbLinkError {
-    UsbDisconnected,
-    Framing(StreamFrameError),
-    Codec(WireError),
-    Sign(UsbSignError),
-    BufferOverflow,
-    InvalidGeneratedEndpoint,
-    InvalidSignal,
-    InvalidNetworkJoin,
-    NetworkJoinFailed,
-    NetworkJoinTimeout,
-    NetworkConfigurationTimeout,
-    Storage(conduit_kernel::StorageError),
-    Kernel(conduit_kernel::scheduler::SchedulerError),
-    SignStorage(conduit_kernel::SignError),
-    KernelIdle,
-    KernelCompletedEarly,
-    KernelCancelled,
-    KernelTerminalInvariant,
-}
-
-impl UsbLinkError {
-    #[allow(dead_code)]
-    pub const fn code(&self) -> &'static str {
-        match self {
-            Self::UsbDisconnected => "usb-disconnected",
-            Self::Framing(_) => "malformed-stream-frame",
-            Self::Codec(_) => "invalid-session-frame",
-            Self::Sign(_) => "sign-channel-failure",
-            Self::BufferOverflow => "bounded-buffer-overflow",
-            Self::InvalidGeneratedEndpoint => "invalid-generated-endpoint",
-            Self::InvalidSignal => "invalid-signal",
-            Self::InvalidNetworkJoin => "invalid-network-join",
-            Self::NetworkJoinFailed => "network-join-failed",
-            Self::NetworkJoinTimeout => "network-join-timeout",
-            Self::NetworkConfigurationTimeout => "network-configuration-timeout",
-            Self::Storage(_) => "kernel-storage-failure",
-            Self::Kernel(_) => "kernel-scheduler-failure",
-            Self::SignStorage(_) => "kernel-sign-failure",
-            Self::KernelIdle => "kernel-idle-before-effect",
-            Self::KernelCompletedEarly => "kernel-completed-before-effect",
-            Self::KernelCancelled => "kernel-cancelled",
-            Self::KernelTerminalInvariant => "kernel-terminal-invariant",
-        }
-    }
-}
-
-impl From<StreamFrameError> for UsbLinkError {
-    fn from(err: StreamFrameError) -> Self {
-        Self::Framing(err)
-    }
-}
-
-impl From<WireError> for UsbLinkError {
-    fn from(err: WireError) -> Self {
-        Self::Codec(err)
-    }
-}
-
-impl From<UsbSignError> for UsbLinkError {
-    fn from(err: UsbSignError) -> Self {
-        Self::Sign(err)
-    }
-}
+pub use crate::remote_error::{RemoteError as UsbLinkError, RemoteResult as UsbLinkResult};
 
 pub struct UsbLinkSession {
     class: CdcAcmClass<'static, usb::Driver<'static, USB>>,

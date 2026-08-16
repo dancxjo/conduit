@@ -30,6 +30,10 @@ pub const CYW43_ASSETS: &[(&str, &str)] = &[
         "e712b3d218e8b1e2747b092e03b8b0afcb8c8c8e355d2a4a0d47b493800f3f89",
     ),
     (
+        "43439A0_btfw.bin",
+        "ce1992c1a6a16ae51bc012439486e9fb212623eca92d9e82a8090c2acf7ef1df",
+    ),
+    (
         "nvram_rp2040.bin",
         "4904bdbb0c937bd0ac2eb2a1d62f2da4dd90e32082384e02874e8d671b0f330d",
     ),
@@ -176,14 +180,14 @@ mod tests {
 
     #[test]
     fn pinned_asset_table_is_complete_and_unique() {
-        assert_eq!(CYW43_ASSETS.len(), 4);
+        assert_eq!(CYW43_ASSETS.len(), 5);
         let mut names = CYW43_ASSETS
             .iter()
             .map(|(name, _)| *name)
             .collect::<Vec<_>>();
         names.sort_unstable();
         names.dedup();
-        assert_eq!(names.len(), 4);
+        assert_eq!(names.len(), CYW43_ASSETS.len());
         assert!(CYW43_ASSETS.iter().all(|(_, digest)| digest.len() == 64));
     }
 }

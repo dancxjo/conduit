@@ -52,7 +52,7 @@ impl UsbCdc {
     }
 
     /// Write a mandatory proof marker to CDC 1.
-    #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
+    #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "bluetooth-line"))]
     pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbSignError> {
         self.write_all_mandatory(msg.as_bytes()).await?;
         self.write_all_mandatory(b"\n").await

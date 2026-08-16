@@ -80,6 +80,34 @@ impl BrowserPresenceCoordinator {
         &self.table
     }
 
+    pub(super) fn presentation_reference(
+        &self,
+    ) -> Result<conduit_presentation::TemporalReference, String> {
+        self.clock.presentation_reference()
+    }
+
+    #[cfg(test)]
+    pub(super) fn observe_for_presentation_test(
+        &mut self,
+        membership: &BodyMembership,
+        part_id: &conduit_body::PartId,
+    ) -> Result<SignId, String> {
+        let observed_at_millis = self.now_millis()?;
+        let sign = SignId::from("sign/native-parts-temporal-observation");
+        self.table
+            .start(
+                membership,
+                part_id,
+                LinkBindingId::from("binding/native-parts-temporal-observation"),
+                1,
+                observed_at_millis,
+                LEASE_MILLIS,
+                sign.clone(),
+            )
+            .map_err(debug("start test presentation presence"))?;
+        Ok(sign)
+    }
+
     pub(super) fn replace_webrtc_grants(
         &mut self,
         bindings: &[conduit_wire::SessionBinding],

@@ -5,8 +5,10 @@
 <script type="module">
 import {
   immutableWebRtcGrantFrame,
+  immutableWebRtcSignalFrame,
   joinBrowserBody,
 } from "/hosts/patchbay-html/assets/browser-membership.js";
+import { BodyWebRtcSessions } from "/hosts/patchbay-html/assets/body-webrtc-sessions.mjs";
 
 const parameters = new URLSearchParams(location.search);
 const bodyUrl = parameters.get("body");
@@ -20,6 +22,105 @@ const wasmBytes = await fetch(
 const status = document.querySelector("[role=status]");
 globalThis.__browserWebRtcGrants = [];
 globalThis.__immutableWebRtcGrantFrame = immutableWebRtcGrantFrame;
+globalThis.__immutableWebRtcSignalFrame = immutableWebRtcSignalFrame;
+globalThis.__probeConcurrentGrantStage = async () => {
+  let finishCreation;
+  let creations = 0;
+  let ownershipCloses = 0;
+  const requests = [];
+  const fakeSession = (onClose = () => {}) => ({
+    acceptSignal: async () => {},
+    close: onClose,
+    state: () => ({ sessionReady: false }),
+  });
+  const controller = new BodyWebRtcSessions({
+    wasmBytes: new ArrayBuffer(0),
+    sendSignal: () => {},
+    requestGrant: (index) => requests.push(index),
+    createSession: ({ onSession }) => {
+      creations += 1;
+      const session = fakeSession();
+      onSession(session);
+      return new Promise((resolve) => { finishCreation = () => resolve(session); });
+    },
+  });
+  controller.begin();
+  const grant = (negotiation_id) => ({
+    index: 0,
+    total: 1,
+    grant: {
+      negotiation_id,
+      role: "sink",
+      peer_host_id: "host/peer",
+      peer_boot_id: "boot/peer",
+      session_hello: [1],
+    },
+  });
+  const first = controller.acceptGrantFrame(grant("binding/first"));
+  let secondRefusal = null;
+  try {
+    await controller.acceptGrantFrame(grant("binding/second"));
+  } catch (error) {
+    secondRefusal = error.message;
+  }
+  finishCreation();
+  await first;
+  const failed = new BodyWebRtcSessions({
+    wasmBytes: new ArrayBuffer(0),
+    sendSignal: () => {},
+    requestGrant: () => {},
+    createSession: () => { throw new Error("creation refused"); },
+  });
+  failed.begin();
+  let creationRefusal = null;
+  try {
+    await failed.acceptGrantFrame(grant("binding/failed"));
+  } catch (error) {
+    creationRefusal = error.message;
+  }
+  const generationFinishes = [];
+  const generationController = new BodyWebRtcSessions({
+    wasmBytes: new ArrayBuffer(0),
+    sendSignal: () => {},
+    requestGrant: () => {},
+    createSession: ({ onSession }) => {
+      const session = fakeSession(() => { ownershipCloses += 1; });
+      onSession(session);
+      return new Promise((resolve) => generationFinishes.push(() => resolve(session)));
+    },
+  });
+  generationController.begin();
+  const oldGeneration = generationController.acceptGrantFrame(grant("binding/reused"));
+  generationController.reset("test reset");
+  const resetState = generationController.state();
+  const closesAfterReset = ownershipCloses;
+  generationController.begin();
+  const newGeneration = generationController.acceptGrantFrame(grant("binding/reused"));
+  generationFinishes[0]();
+  let staleRefusal = null;
+  try {
+    await oldGeneration;
+  } catch (error) {
+    staleRefusal = error.message;
+  }
+  const stateAfterStale = generationController.state();
+  generationFinishes[1]();
+  await newGeneration;
+  return {
+    creations,
+    requests,
+    secondRefusal,
+    state: controller.state(),
+    creationRefusal,
+    failedState: failed.state(),
+    staleRefusal,
+    ownershipCloses,
+    closesAfterReset,
+    resetState,
+    stateAfterStale,
+    generationState: generationController.state(),
+  };
+};
 globalThis.__browserPresence = await joinBrowserBody({
   bodyUrl,
   wasmBytes,
