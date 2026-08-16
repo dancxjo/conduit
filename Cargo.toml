@@ -39,3 +39,6 @@ exclude = [
 	"firmware/conduit-pico-w-signal",
 ]
 resolver = "2"
+
+[profile.release.package.conduit-browser-runtime]
+strip = "symbols"
