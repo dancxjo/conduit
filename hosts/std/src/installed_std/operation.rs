@@ -9,6 +9,7 @@ use super::input_semantic_operations::{InputSemanticOperation, KeyEventTeeOperat
 use super::json_operations::JsonOperation;
 use super::keyboard_input_operation::KeyboardInputOperation;
 use super::layout_operations::LayoutOperation;
+use super::local_model_operation::LocalModelOperation;
 use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
@@ -25,6 +26,8 @@ use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation
 use super::synth_operation::MusicSynthOperation;
 #[cfg(test)]
 use super::test_json_codec::{TestJsonSinkOperation, TestJsonSourceOperation};
+#[cfg(any(test, feature = "local-model-proof"))]
+use super::test_local_model_io::{TestLocalModelSinkOperation, TestLocalModelSourceOperation};
 use super::text_operations::{
     TextLiteralOperation, TextPresentationOperation, TextTransformOperation,
 };
@@ -98,6 +101,7 @@ pub(super) enum InstalledOperation {
     MidiInput(Box<MidiInputOperation>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
+    LocalModel(LocalModelOperation),
     HttpClient(HttpClientOperation),
     HttpServer(HttpServerOperation),
     JsonEncode(JsonOperation),
@@ -111,6 +115,10 @@ pub(super) enum InstalledOperation {
     TestJsonSource(TestJsonSourceOperation),
     #[cfg(test)]
     TestJsonSink(TestJsonSinkOperation),
+    #[cfg(any(test, feature = "local-model-proof"))]
+    TestLocalModelSource(TestLocalModelSourceOperation),
+    #[cfg(any(test, feature = "local-model-proof"))]
+    TestLocalModelSink(TestLocalModelSinkOperation),
     #[cfg(test)]
     TestKeyEventSource(super::test_input_semantics::TestKeyEventSourceOperation),
     #[cfg(test)]
@@ -194,6 +202,7 @@ impl Operation for InstalledOperation {
             Self::MidiInput(operation) => operation.start(),
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
+            Self::LocalModel(operation) => operation.start(),
             Self::HttpClient(operation) => operation.start(),
             Self::HttpServer(operation) => operation.start(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.start(),
@@ -206,6 +215,10 @@ impl Operation for InstalledOperation {
             Self::TestJsonSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
             Self::TestJsonSink(operation) => operation.start(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::TestLocalModelSource(operation) => operation.emit_or_complete(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::TestLocalModelSink(operation) => operation.start(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.start(),
             #[cfg(test)]
@@ -278,6 +291,7 @@ impl Operation for InstalledOperation {
             (Self::MidiInput(operation), _) => operation.resume(),
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
+            (Self::LocalModel(operation), input) => operation.resume(input),
             (Self::HttpClient(operation), input) => operation.resume(input),
             (Self::HttpServer(operation), input) => operation.resume(input),
             (Self::JsonEncode(operation), input) | (Self::JsonDecode(operation), input) => {
@@ -292,6 +306,10 @@ impl Operation for InstalledOperation {
             (Self::TestJsonSource(_), _) => Self::fail(104),
             #[cfg(test)]
             (Self::TestJsonSink(operation), input) => operation.resume(input),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            (Self::TestLocalModelSource(_), _) => Self::fail(141),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            (Self::TestLocalModelSink(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestKeyEventSource(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -394,6 +412,7 @@ impl Operation for InstalledOperation {
             Self::MidiInput(operation) => operation.advance(),
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
+            Self::LocalModel(operation) => operation.advance(),
             Self::HttpClient(operation) => operation.advance(),
             Self::HttpServer(operation) => operation.advance(),
             #[cfg(test)]
@@ -420,6 +439,10 @@ impl Operation for InstalledOperation {
             Self::TestLogicScript(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestJsonSource(operation) => operation.advance(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::TestLocalModelSource(operation) => operation.advance(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::TestLocalModelSink(_) => OperationAction::Complete,
             #[cfg(test)]
             Self::TestJsonSink(_) => OperationAction::Await,
             #[cfg(test)]
@@ -478,6 +501,7 @@ impl Operation for InstalledOperation {
             Self::MidiInput(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
+            Self::LocalModel(operation) => operation.cancel(),
             Self::HttpClient(operation) => operation.cancel(),
             Self::HttpServer(operation) => operation.cancel(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.cancel(),
@@ -490,6 +514,8 @@ impl Operation for InstalledOperation {
             Self::TestJsonSource(_) => {}
             #[cfg(test)]
             Self::TestJsonSink(operation) => operation.cancel(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::TestLocalModelSource(_) | Self::TestLocalModelSink(_) => {}
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.cancel(),
             #[cfg(test)]

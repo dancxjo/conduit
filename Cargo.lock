@@ -4109,6 +4109,7 @@ name = "xtask"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "conduit-ai",
  "conduit-body",
  "conduit-core",
  "conduit-form",

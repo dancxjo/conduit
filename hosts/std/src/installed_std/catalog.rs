@@ -19,6 +19,7 @@ use super::layout_operations::{
     LAYOUT_ALIGN_FACTORY, LAYOUT_COLUMN_FACTORY, LAYOUT_INSET_FACTORY, LAYOUT_ROW_FACTORY,
     LAYOUT_STACK_FACTORY, LAYOUT_VIEWPORT_FACTORY,
 };
+use super::local_model_operation::LOCAL_MODEL_FACTORY;
 use super::logic_operations::{
     LOGIC_COMPARE_SCALAR_FACTORY, LOGIC_NOT_FACTORY, LOGIC_SELECT_SCALAR_FACTORY,
 };
@@ -48,6 +49,8 @@ use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
 use super::test_input_semantics::{TEST_CHORD_SINK_FACTORY, TEST_KEY_EVENT_SOURCE_FACTORY};
 #[cfg(test)]
 use super::test_json_codec::{TEST_JSON_SINK_FACTORY, TEST_JSON_SOURCE_FACTORY};
+#[cfg(any(test, feature = "local-model-proof"))]
+use super::test_local_model_io::{TEST_LOCAL_MODEL_SINK_FACTORY, TEST_LOCAL_MODEL_SOURCE_FACTORY};
 #[cfg(test)]
 use super::test_logic::{TEST_LOGIC_SCRIPT_FACTORY, TEST_LOGIC_SINK_FACTORY};
 #[cfg(test)]
@@ -97,6 +100,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_COMPARE_SCALAR_FACTORY,
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,
+    &LOCAL_MODEL_FACTORY,
     &MATH_CLAMP_FACTORY,
     &MATH_SCALE_FACTORY,
     &MATH_DEADBAND_FACTORY,
@@ -160,6 +164,10 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEST_LOGIC_SCRIPT_FACTORY,
     #[cfg(test)]
     &TEST_LOGIC_SINK_FACTORY,
+    #[cfg(any(test, feature = "local-model-proof"))]
+    &TEST_LOCAL_MODEL_SOURCE_FACTORY,
+    #[cfg(any(test, feature = "local-model-proof"))]
+    &TEST_LOCAL_MODEL_SINK_FACTORY,
     #[cfg(test)]
     &TEST_SLOW_SCALAR_SINK_FACTORY,
     #[cfg(test)]

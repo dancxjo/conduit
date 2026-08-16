@@ -10,6 +10,7 @@ legacy-fixture-driver = [
     "conduit-runtime/compatibility-executor",
     "conduit-signal/legacy-fixture-driver",
 ]
+local-model-proof = []
 
 [dependencies]
 conduit-ai = { path = "../../crates/conduit-ai", features = ["form-catalog"] }

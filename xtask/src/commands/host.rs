@@ -14,6 +14,8 @@ mod host_esp32_inspection;
 #[cfg(test)]
 #[path = "host_esp32_inspection_tests.rs"]
 mod host_esp32_inspection_tests;
+#[path = "host_local_model.rs"]
+mod host_local_model;
 #[path = "host_target.rs"]
 mod host_target;
 
@@ -70,6 +72,21 @@ enum HostCommand {
         board_revision: String,
         #[arg(long, default_value = "target/esp32-inspection/inspection.json")]
         output: PathBuf,
+    },
+    /// Inspect one already-local Ollama model without loading or downloading it.
+    InspectLocalModel {
+        /// Exact local model name or its local `:latest` alias.
+        #[arg(long)]
+        model: String,
+    },
+    /// Initialize and warm one already-local Ollama model under finite Host limits.
+    ProveLocalModel {
+        /// Exact local model name or its local `:latest` alias.
+        #[arg(long)]
+        model: String,
+        /// Finite admitted RAM/VRAM ceiling expressed in MiB.
+        #[arg(long)]
+        admitted_memory_mib: u32,
     },
 }
 
@@ -153,6 +170,11 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             &output,
             opts,
         ),
+        HostCommand::InspectLocalModel { model } => host_local_model::inspect(&model, opts),
+        HostCommand::ProveLocalModel {
+            model,
+            admitted_memory_mib,
+        } => host_local_model::prove(&model, admitted_memory_mib, opts),
         HostCommand::Verify { output, boot } => {
             let manifest = host_target::verify_target(&output)?;
             if boot {
