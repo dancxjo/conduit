@@ -11,10 +11,25 @@ name = "conduit-esp32-wroom-signal"
 path = "src/main.rs"
 
 [dependencies]
+conduit-bluetooth = { path = "../../crates/conduit-bluetooth" }
+conduit-core = { path = "../../crates/conduit-core" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
+conduit-wire = { path = "../../crates/conduit-wire", default-features = false }
 critical-section = "1.2.0"
+embassy-executor = "0.10.0"
+embassy-futures = "0.1"
+embassy-sync = "0.7.2"
+esp-alloc = { version = "0.10.0", features = ["esp32"] }
+esp-backtrace = { version = "0.19.0", features = ["esp32", "panic-handler", "println"] }
 esp-bootloader-esp-idf = { version = "0.5.0", features = ["esp32"] }
-esp-hal = { version = "~1.1.0", features = ["esp32"] }
+esp-hal = { version = "~1.1.0", features = ["esp32", "log-04", "unstable"] }
+esp-println = { version = "0.17.0", features = ["esp32", "log-04"] }
+esp-radio = { version = "0.18.0", features = ["ble", "esp32", "log-04", "unstable"] }
+esp-rtos = { version = "0.3.0", features = ["embassy", "esp-radio", "esp32", "log-04"] }
+heapless = "0.9.1"
+log = "0.4.27"
+static_cell = "2.1.1"
+trouble-host = { version = "0.6.0", default-features = false, features = ["default-packet-pool-mtu-255", "derive", "gatt", "peripheral", "security"] }
 
 [build-dependencies]
 conduit-core = { path = "../../crates/conduit-core" }

@@ -19,13 +19,16 @@ const PAYLOAD_BYTES: u32 = 96;
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments = std::env::args().collect::<Vec<_>>();
-    if arguments.len() != 4 || !matches!(arguments[1].as_str(), "source" | "sink") {
-        return Err("usage: bluetooth-line-probe <source|sink> <adapter> <peer-address>".into());
+    if !matches!(arguments.len(), 4 | 6) || !matches!(arguments[1].as_str(), "source" | "sink") {
+        return Err("usage: bluetooth-line-probe <source|sink> <adapter> <peer-address> [peer-host-id peer-boot-id]".into());
     }
     let address = bluer::Address::from_str(&arguments[3])
         .map_err(|_| "peer address must be six colon-separated hexadecimal bytes")?
         .0;
-    let binding = binding();
+    let binding = binding(
+        arguments.get(4).map(String::as_str),
+        arguments.get(5).map(String::as_str),
+    )?;
     match arguments[1].as_str() {
         "source" => {
             let candidate = discover_ble_gatt_candidate(&arguments[2], address)
@@ -165,13 +168,19 @@ async fn receive(
     Ok(())
 }
 
-fn binding() -> SessionBinding {
+fn binding(
+    peer_host_id: Option<&str>,
+    peer_boot_id: Option<&str>,
+) -> Result<SessionBinding, Box<dyn std::error::Error>> {
+    if peer_host_id.is_some() != peer_boot_id.is_some() {
+        return Err("peer HostId and BootId must be supplied together".into());
+    }
     let plan_id = PlanId::from("bluetooth/physical-capstone-plan");
     let source_host = HostId::from("bluetooth/source-host");
     let source_boot = BootId::from("bluetooth/source-boot");
-    let sink_host = HostId::from("bluetooth/sink-host");
-    let sink_boot = BootId::from("bluetooth/sink-boot");
-    SessionBinding {
+    let sink_host = HostId::from(peer_host_id.unwrap_or("bluetooth/sink-host"));
+    let sink_boot = BootId::from(peer_boot_id.unwrap_or("bluetooth/sink-boot"));
+    Ok(SessionBinding {
         protocol_version: PROTOCOL_VERSION,
         source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0)
             .active_play_id,
@@ -207,5 +216,5 @@ fn binding() -> SessionBinding {
             sink_endpoint_id: LinkEndpointId::from("bluetooth/sink-indicate"),
             limits: BleGattProfile::FIRST.link_limits().unwrap(),
         },
-    }
+    })
 }

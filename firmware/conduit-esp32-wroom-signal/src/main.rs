@@ -1,17 +1,27 @@
-//! Finite generated Signal image for the inspected HW-463 / ESP-WROOM-32.
-//!
-//! This build checkpoint proves PROFILE -> BUILD -> IMAGE only. Physical
-//! BOOT/HOST receipts are added and accepted separately.
+//! Finite generated Signal image and optional bounded BLE Base for the
+//! inspected HW-463 / ESP-WROOM-32.
 
 #![no_std]
 #![no_main]
 #![deny(clippy::large_stack_frames, clippy::mem_forget)]
 
+extern crate alloc;
+
+use embassy_executor::Spawner;
+use esp_alloc as _;
+use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
-    main,
-    time::{Duration, Instant},
+    interrupt::software::SoftwareInterruptControl,
+    rng::{Trng, TrngSource},
+    timer::timg::TimerGroup,
 };
+use esp_radio::ble::controller::BleConnector;
+use trouble_host::prelude::ExternalController;
+
+mod bluetooth;
+mod receipts;
+mod session;
 
 mod generated {
     #![allow(dead_code)]
@@ -28,19 +38,21 @@ const _: () = assert!(generated::CORD_VALUE_SLOTS == 1);
 const _: () = assert!(generated::CORD_VALUE_BYTES == 9);
 const _: () = assert!(!generated::GENERATED_FABRICATION_DESCRIPTOR_BINDING.is_empty());
 
-#[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
-    loop {
-        core::hint::spin_loop();
-    }
-}
-
 esp_bootloader_esp_idf::esp_app_desc!();
 
-#[main]
-fn main() -> ! {
+#[esp_rtos::main]
+async fn main(_spawner: Spawner) {
+    esp_println::logger::init_logger_from_env();
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
-    let _peripherals = esp_hal::init(config);
+    let peripherals = esp_hal::init(config);
+    esp_alloc::heap_allocator!(size: 72 * 1024);
+    let timer_group = TimerGroup::new(peripherals.TIMG0);
+    let software_interrupts = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    esp_rtos::start(timer_group.timer0, software_interrupts.software_interrupt0);
+    let _trng_source = TrngSource::new(peripherals.RNG, peripherals.ADC1);
+    let mut trng = Trng::try_new().expect("the physical entropy source must initialize");
+    let boot = receipts::BootIdentity::fresh(&trng);
+    boot.print_boot();
 
     // Keep the descriptor-bound generated image resident. Its planner input
     // used explicitly synthetic fixture identities. This build-only checkpoint
@@ -48,10 +60,8 @@ fn main() -> ! {
     let _exact_kernel_node_specs: &[conduit_kernel::scheduler::NodeSpec<
         { generated::GENERATED_PORTS_PER_NODE },
     >] = &generated::GENERATED_NODES;
-    loop {
-        let started = Instant::now();
-        while started.elapsed() < Duration::from_millis(500) {
-            core::hint::spin_loop();
-        }
-    }
+    let connector = BleConnector::new(peripherals.BT, Default::default())
+        .expect("the inspected ESP32 BLE controller must initialize");
+    let controller: ExternalController<_, 1> = ExternalController::new(connector);
+    bluetooth::run(controller, &boot, &mut trng).await;
 }

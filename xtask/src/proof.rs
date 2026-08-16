@@ -159,7 +159,7 @@ impl ProofRecord {
 pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
     ProofCommandContract {
         id: "bluetooth.ble-gatt-physical",
-        command: "cargo xtask prove bluetooth-line --evidence-root <directory> --bluetooth-role <source|sink> --bluetooth-adapter <hci-name> --bluetooth-peer-address <address>",
+        command: "cargo xtask prove bluetooth-line --evidence-root <directory> --bluetooth-role <source|sink> --bluetooth-adapter <hci-name> --bluetooth-peer-address <address> [--bluetooth-peer-host-id <host-id> --bluetooth-peer-boot-id <boot-id>]",
         proof_class: ProofClass::PhysicalCrossHost,
         required_tools_or_targets: &["cargo", "BlueZ", "two paired BLE controllers", "physical BLE radio path"],
         named_artifacts: &["bluetooth-line-source.json", "bluetooth-line-sink.json"],
