@@ -122,6 +122,10 @@ pub enum CheckedCordStage {
         value: CanonicalStartupValue,
         source_span: Span,
     },
+    StructuredSelector {
+        selector: conduit_core::StructuredSelector,
+        source_span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

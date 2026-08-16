@@ -26,6 +26,7 @@ mod checked_syntax;
 mod diagnostic;
 mod functional_face;
 mod structured_expression;
+mod structured_selector;
 mod structured_startup;
 mod surface_lex;
 mod surface_parser;

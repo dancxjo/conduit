@@ -130,7 +130,9 @@ impl FormEditor {
                             .strip_prefix(gear_name)
                             .is_some_and(|suffix| suffix.starts_with('.'))
                 }
-                crate::GraphCordStage::InlineGear { .. } | crate::GraphCordStage::Literal => false,
+                crate::GraphCordStage::InlineGear { .. }
+                | crate::GraphCordStage::Literal
+                | crate::GraphCordStage::StructuredSelector => false,
             }) {
                 ranges.push(line_range(
                     &self.source,
