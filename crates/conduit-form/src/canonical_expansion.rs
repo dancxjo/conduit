@@ -12,7 +12,9 @@ use conduit_core::{GearId, KindId, PortDescriptor};
 mod entry;
 mod graph;
 mod identity;
+mod literal;
 mod shared_pool;
+mod structured_selector;
 pub use entry::{
     expand_canonical_form, expand_canonical_form_for_authoring,
     expand_canonical_form_for_authoring_with_backs, expand_canonical_form_with_backs,
@@ -20,6 +22,7 @@ pub use entry::{
 use graph::*;
 use identity::{expanded_identity, provenance_digest};
 use shared_pool::{bind_pool_environment, expanded_pool_declarations, seal_pool_consumers};
+pub use structured_selector::structured_selector_definition;
 
 #[derive(Debug, Clone)]
 struct Endpoint {
@@ -57,7 +60,7 @@ enum StageSink {
     FaceOutput(String, conduit_core::KindId, conduit_core::PortTemporal),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Stage {
     input: Option<Vec<StageSink>>,
     output: Option<StageSource>,
@@ -154,12 +157,12 @@ fn expand_instance_inner(
     let mut outputs = BTreeMap::new();
     let mut anonymous_counts = BTreeMap::<String, usize>::new();
     for cord in &form.cords {
-        let mut stages = Vec::with_capacity(cord.stages.len());
+        let mut pending = Vec::with_capacity(cord.stages.len());
         for cord_stage in &cord.stages {
-            stages.push(match cord_stage {
-                CheckedCordStage::Reference(reference) => {
-                    resolve_reference(reference, &instances, &face_ports)?
-                }
+            pending.push(match cord_stage {
+                CheckedCordStage::Reference(reference) => structured_selector::PendingStage::Ready(
+                    resolve_reference(reference, &instances, &face_ports)?,
+                ),
                 CheckedCordStage::InlineGear(gear) => {
                     let key = inline_key(gear);
                     let count = anonymous_counts.entry(key.clone()).or_default();
@@ -183,37 +186,14 @@ fn expand_instance_inner(
                         &mut provenance,
                         &mut gear_ids,
                     )?;
-                    stage_for_instance(&name, &instance, None)?
+                    structured_selector::PendingStage::Ready(stage_for_instance(
+                        &name, &instance, None,
+                    )?)
                 }
                 CheckedCordStage::Literal { value, source_span } => {
-                    let CanonicalStartupValue::Literal(literal) = value else {
-                        return Err(CanonicalExpansionDiagnostic::new(
-                            "CND-FRM-041",
-                            "runtime literal stage did not retain an immutable literal".into(),
-                        ));
-                    };
-                    let key = format!("text/literal:{}:{literal}", literal.len());
-                    let count = anonymous_counts.entry(key.clone()).or_default();
-                    let name = format!("literal-{}-{count}", &hash_string(&key)[..12]);
-                    *count += 1;
-                    let gear = CheckedCanonicalGear {
-                        name: None,
-                        kind: "text/literal".to_string(),
-                        startup_parameters: vec![crate::StartupParameterSignature {
-                            name: "value".to_string(),
-                            value_type: "Text".to_string(),
-                            default: None,
-                        }],
-                        startup_bindings: vec![crate::CheckedStartupBinding {
-                            name: "value".to_string(),
-                            value_type: "Text".to_string(),
-                            value: value.clone(),
-                        }],
-                        source_span: *source_span,
-                    };
-                    let instance = instantiate_gear(
-                        &gear,
-                        &name,
+                    structured_selector::PendingStage::Ready(literal::expand_literal(
+                        value,
+                        *source_span,
                         form,
                         forms,
                         catalog,
@@ -228,18 +208,36 @@ fn expand_instance_inner(
                         &mut shared_pools,
                         &mut provenance,
                         &mut gear_ids,
-                    )?;
-                    stage_for_instance(&name, &instance, None)?
+                        &mut anonymous_counts,
+                    )?)
                 }
-                CheckedCordStage::StructuredSelector { .. } => {
-                    return Err(CanonicalExpansionDiagnostic::new(
-                        "CND-FRM-039",
-                        "structured selector propagation is owned by Structured Form Info F3"
-                            .into(),
-                    ));
-                }
+                CheckedCordStage::StructuredSelector {
+                    selector,
+                    source_span,
+                } => structured_selector::PendingStage::Selector {
+                    selector: selector.clone(),
+                    source_span: *source_span,
+                },
             });
         }
+        let stages = structured_selector::resolve_selectors(
+            pending,
+            form,
+            forms,
+            catalog,
+            backs,
+            environment,
+            path,
+            stack,
+            realization_backs,
+            depth,
+            &mut gears,
+            &mut connections,
+            &mut shared_pools,
+            &mut provenance,
+            &mut gear_ids,
+            &mut anonymous_counts,
+        )?;
         for pair in stages.windows(2) {
             let source = pair[0].output.clone().ok_or_else(|| {
                 CanonicalExpansionDiagnostic::new(
