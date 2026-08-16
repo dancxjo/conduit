@@ -1,7 +1,7 @@
 {
   "schema": "conduit.evidence-manifest/v1",
   "result": "complete",
-  "git_commit": "54217bfd5a6259e12bd31ea097bb367e3dcea058",
+  "git_commit": "6a09696ea9ee06ac707f87ca53f998aaad2021f2",
   "proof_id": "browser-host",
   "suite_id": "prove.browser-host",
   "limits": {
@@ -55,8 +55,8 @@
       "path": "overview.png",
       "media_type": "image/png",
       "required": true,
-      "bytes": 127346,
-      "sha256": "bd4731f4e813bd31acfb0ebdc6764489b5363db0ff4cd749ed2bd8cbc6c28aa5",
+      "bytes": 127333,
+      "sha256": "29768a0f319c45634d89d0160b7e8dad728194b7bdd2aa87b425c608d4ff9add",
       "scenario_id": "patchbay-html.overview@1",
       "step_id": "prove.browser-host.patchbay-html-matrix",
       "browser_engine": "chromium",
