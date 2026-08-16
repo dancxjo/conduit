@@ -165,6 +165,34 @@ export class BodyWebRtcSessions {
     this.#onState?.(this.state());
   }
 
+  #session(negotiationId) {
+    negotiationIdentity(negotiationId);
+    if (this.#terminal !== null || !this.#begun) throw new Error("WebRTC sessions are not current");
+    const session = this.#sessions.get(negotiationId);
+    if (session === undefined) throw new Error("unknown or stale WebRTC negotiation identity");
+    return session;
+  }
+
+  offerValue(negotiationId, bytes) {
+    return this.#session(negotiationId).offerValue(negotiationId, bytes);
+  }
+
+  receiveValue(negotiationId) {
+    return this.#session(negotiationId).receiveValue(negotiationId);
+  }
+
+  pressureNextValue(negotiationId) {
+    return this.#session(negotiationId).pressureNextValue(negotiationId);
+  }
+
+  deliverValue(negotiationId, sequence) {
+    return this.#session(negotiationId).deliverValue(negotiationId, sequence);
+  }
+
+  waitDelivered(negotiationId, sequence) {
+    return this.#session(negotiationId).waitDelivered(negotiationId, sequence);
+  }
+
   state() {
     return Object.freeze({
       expectedTotal: this.#expectedTotal,
