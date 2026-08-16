@@ -147,6 +147,7 @@ pub struct CheckedCanonicalForm {
     pub name: String,
     pub startup_parameters: Vec<CheckedStartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
+    pub runtime_face: CheckedFace,
     pub shorthand: Option<(String, String)>,
     pub local_values: Vec<(String, CanonicalStartupValue)>,
     pub pools: Vec<CheckedPoolDeclaration>,

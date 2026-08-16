@@ -9,11 +9,15 @@ use alloc::vec::Vec;
 use crate::KindId;
 
 mod canonical;
+mod profile;
 mod selection;
+mod transport;
 use canonical::{
     check_encoding_size, digest, encode_type, encode_value_node, type_extent, value_extent,
 };
+pub use profile::*;
 pub use selection::*;
+pub use transport::*;
 
 pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 8;
 pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 1_024;

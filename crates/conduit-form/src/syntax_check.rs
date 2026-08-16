@@ -9,9 +9,7 @@ use crate::prelude::*;
 use crate::syntax::{Argument, BackStatement, CordStage, FormSyntax, Invocation, SyntaxDocument};
 use crate::syntax_identity::{canonical_cord, canonical_gear, checked_identity};
 use alloc::collections::{BTreeMap, BTreeSet};
-use conduit_core::{
-    CheckedFace, FaceStartupParameter, PortDescriptor, PortDirection, SourceDocumentId,
-};
+use conduit_core::{CheckedFace, SourceDocumentId};
 
 mod resolution;
 mod shared_pool;
@@ -31,11 +29,13 @@ pub(crate) fn check_document(
         });
     }
     let form_signatures = form_signatures(&document.forms)?;
-    let form_faces = document
-        .forms
-        .iter()
-        .map(|form| (form.name.text.clone(), syntax_face(form)))
-        .collect::<BTreeMap<_, _>>();
+    let mut form_faces = BTreeMap::new();
+    for form in &document.forms {
+        form_faces.insert(
+            form.name.text.clone(),
+            crate::value_type::checked_face(form, catalog)?,
+        );
+    }
     let mut forms = Vec::with_capacity(document.forms.len());
     for form in &document.forms {
         forms.push(check_form(form, catalog, &form_signatures, &form_faces)?);
@@ -231,10 +231,14 @@ fn check_form(
     cords.sort_by_key(canonical_cord);
     pools.sort_by(|left, right| left.name.cmp(&right.name));
     local_values.sort_by(|left, right| left.0.cmp(&right.0));
+    let runtime_face = form_faces
+        .get(&form.name.text)
+        .expect("every parsed form has a checked face")
+        .clone();
     let checked_form_id = checked_identity(
         &form.name.text,
         &parameters,
-        &form.face.runtime_ports,
+        &runtime_face,
         form.face.shorthand.as_ref().map(|pair| {
             (
                 pair.input_port.text.as_str(),
@@ -250,6 +254,7 @@ fn check_form(
         name: form.name.text.clone(),
         startup_parameters: parameters,
         runtime_ports: form.face.runtime_ports.clone(),
+        runtime_face,
         shorthand: form
             .face
             .shorthand
@@ -260,47 +265,6 @@ fn check_form(
         gears,
         cords,
     })
-}
-
-fn syntax_face(form: &FormSyntax) -> CheckedFace {
-    let startup_parameters = form
-        .face
-        .startup_parameters
-        .iter()
-        .map(|parameter| FaceStartupParameter {
-            name: parameter.name.text.clone(),
-            value_type: parameter.value_type.text.clone(),
-            has_default: parameter.default.is_some(),
-        })
-        .collect();
-    let mut inputs = Vec::new();
-    let mut outputs = Vec::new();
-    for port in &form.face.runtime_ports {
-        let descriptor = PortDescriptor {
-            port_id: conduit_core::port_id(&port.name.text),
-            value_kind: crate::value_type::canonical_value_kind(&port.value_type.text),
-            direction: match port.direction {
-                crate::RuntimePortDirection::Input => PortDirection::Input,
-                crate::RuntimePortDirection::Output => PortDirection::Output,
-            },
-            temporal: crate::value_type::canonical_port_temporal(port.temporal),
-        };
-        match descriptor.direction {
-            PortDirection::Input => inputs.push(descriptor),
-            PortDirection::Output => outputs.push(descriptor),
-        }
-    }
-    CheckedFace::new(
-        startup_parameters,
-        inputs,
-        outputs,
-        form.face.shorthand.as_ref().map(|pair| {
-            (
-                conduit_core::port_id(&pair.input_port.text),
-                conduit_core::port_id(&pair.output_port.text),
-            )
-        }),
-    )
 }
 
 fn checked_parameters(
