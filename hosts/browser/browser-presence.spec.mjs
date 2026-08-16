@@ -348,12 +348,12 @@ test("two admitted product clients compose Body grants into one exact ready sess
     await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.webRtcSessions().sessions[0]))
       .toMatchObject({ acceptedSequence: 0, deliveredSequence: 0, valuePending: false });
   }
-  const pendingReceive = sinkPage.evaluate(
+  const pendingReceive = expect(sinkPage.evaluate(
     (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
     negotiationId,
-  );
+  )).rejects.toThrow(/closed|traffic|Line/);
   await sourcePage.evaluate(() => globalThis.__browserPresence.close());
-  await expect(pendingReceive).rejects.toThrow(/closed|traffic|Line/);
+  await pendingReceive;
   await expect.poll(() => sourcePage.evaluate(() => globalThis.__browserPresence.webRtcSessions()))
     .toMatchObject({ activeSessions: 0, terminalReason: "presence-closed" });
   await expect.poll(() => sinkPage.evaluate(() => {
