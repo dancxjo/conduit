@@ -1,15 +1,15 @@
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ConnectionBase, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    BootId, ConfigurationValue, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    KindDefinition, ProfileCatalog, StartupCatalog,
+    ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_catalog::{
-    install_structured_music_form_catalogs, instrument_mapping_type, INSTRUMENT_MAP_KIND,
+    install_structured_music_form_catalogs, instrument_map_std_offer, instrument_mapping_type,
+    INSTRUMENT_MAP_KIND, INSTRUMENT_MAP_STD_IMPLEMENTATION,
 };
 
 const SOURCE: &str = include_str!("../../../examples/breadboard-instrument.conduit");
@@ -60,11 +60,7 @@ fn exact_mapping_reaches_an_ordinary_plan_and_shape_changes_change_identity() {
     let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
     let authored =
         expand_canonical_form_for_authoring(&checked, "breadboard-instrument", &profile).unwrap();
-    let definition = profile
-        .get(&conduit_core::KindId::from(INSTRUMENT_MAP_KIND))
-        .unwrap()
-        .clone();
-    let host = host(&definition);
+    let host = host();
     let placements =
         default_expanded_placements(&authored.expanded, core::slice::from_ref(&host)).unwrap();
     let plan = plan_expanded_canonical(
@@ -79,10 +75,14 @@ fn exact_mapping_reaches_an_ordinary_plan_and_shape_changes_change_identity() {
         planned_mapping,
         &authored.expanded.gears[0].configuration[0].value
     );
+    assert_eq!(
+        plan.fragments[0].placements[0].implementation_id.as_str(),
+        INSTRUMENT_MAP_STD_IMPLEMENTATION
+    );
 
     let changed = SOURCE.replace(
-        "[60, 62, 64, 65, 67, 69, 71, 72]",
-        "[60, 62, 63, 65, 67, 69, 71, 72]",
+        "[261626, 293665, 329628, 349228, 391995, 440000, 493883, 523251]",
+        "[261626, 293665, 330000, 349228, 391995, 440000, 493883, 523251]",
     );
     let changed = check_syntax_document(&parse_syntax_document(&changed), &startup).unwrap();
     assert_ne!(
@@ -95,8 +95,8 @@ fn exact_mapping_reaches_an_ordinary_plan_and_shape_changes_change_identity() {
 fn mapping_length_and_control_schema_refuse_before_expansion() {
     let (startup, _) = catalogs();
     let short = SOURCE.replace(
-        "[60, 62, 64, 65, 67, 69, 71, 72]",
-        "[60, 62, 64, 65, 67, 69, 71]",
+        "[261626, 293665, 329628, 349228, 391995, 440000, 493883, 523251]",
+        "[261626, 293665, 329628, 349228, 391995, 440000, 493883]",
     );
     let error = check_syntax_document(&parse_syntax_document(&short), &startup).unwrap_err();
     assert_eq!(error.code, "CND-FRM-051");
@@ -108,7 +108,7 @@ fn mapping_length_and_control_schema_refuse_before_expansion() {
     assert!(error.message.contains("unknown structured field"));
 }
 
-fn host(definition: &KindDefinition) -> HostAdvertisement {
+fn host() -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("instrument-host"),
@@ -116,36 +116,7 @@ fn host(definition: &KindDefinition) -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/instrument-host@1"),
         resources: vec![],
-        capabilities: vec![offer(definition)],
+        capabilities: vec![instrument_map_std_offer()],
         planner_capabilities: vec![],
-    }
-}
-
-fn offer(definition: &KindDefinition) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
-            name: "mapping".into(),
-            value_type: "InstrumentMapping".into(),
-            has_default: false,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from("instrument-map"),
-        kind_id: definition.kind_id.clone(),
-        kind_contract_revision: definition.kind_contract_revision.clone(),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("test/instrument-map@1"),
-            implementation_id: ImplementationId::from("test/instrument-map@1"),
-            artifact_id: ArtifactId::from("test/instrument-map@1"),
-        },
-        inputs: definition.inputs.clone(),
-        outputs: definition.outputs.clone(),
-        host_operations: vec![],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 16,
-            max_queue_bytes: 16_384,
-        },
     }
 }
