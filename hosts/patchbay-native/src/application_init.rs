@@ -155,6 +155,7 @@ impl PatchbayApplication {
             modifiers: winit::keyboard::ModifiersState::empty(),
             native_keyboard,
             palette: Default::default(),
+            selected_follow: None,
             exact_identity_open: false,
             parts_open: false,
             selected_part: None,

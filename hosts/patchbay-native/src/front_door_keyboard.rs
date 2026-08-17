@@ -34,6 +34,10 @@ impl PatchbayApplication {
                     self.linear_view = true;
                 }
             }
+            Key::Named(NamedKey::F3) if self.modifiers.shift_key() => {
+                self.cycle_front_door_follow()?
+            }
+            Key::Named(NamedKey::F3) => self.follow_front_door()?,
             Key::Named(NamedKey::F4) => {
                 // Resolve the exact current advertised action and let the
                 // ordinary invocation boundary enforce its availability.

@@ -1,6 +1,7 @@
 //! Native Patchbay document composition, kept separate from event-loop policy.
 
 use super::PatchbayApplication;
+use crate::front_door_follow::append_follow_lines;
 use conduit_presentation::{
     render_linear_navigation, render_linear_presentation, Presentation,
     PresentationActionAvailability, ProjectionItem,
@@ -40,6 +41,7 @@ pub(super) fn portable_navigation_lines(
 pub(super) fn ordinary_front_door_lines(
     presentation: &Presentation,
     navigation: &PatchbayNavigationProjection,
+    selected_follow: Option<&str>,
 ) -> Result<Vec<String>, String> {
     presentation.validate().map_err(|error| error.to_string())?;
     let projected = navigation
@@ -66,7 +68,7 @@ pub(super) fn ordinary_front_door_lines(
                 .collect::<Vec<_>>()
                 .join(" / ")
         ),
-        "CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT".into(),
+        "CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT  ·  SHIFT-F3 CHOOSE / F3 FOLLOW".into(),
     ];
     for identity in projected.items.iter().filter_map(|membership| {
         if let ProjectionItem::Subject(identity) = &membership.item {
@@ -112,6 +114,13 @@ pub(super) fn ordinary_front_door_lines(
             ));
         }
     }
+    append_follow_lines(
+        presentation,
+        &navigation.navigation,
+        &navigation.cursor,
+        selected_follow,
+        &mut lines,
+    )?;
     lines.push("F2 EXACT  ·  portable depth, exact identity and provenance".into());
     Ok(lines)
 }
@@ -325,10 +334,12 @@ impl PatchbayApplication {
                 let Some(entrance) = &self.entrance else {
                     return vec!["PORTABLE NAVIGATION ABSENT".into()];
                 };
-                return ordinary_front_door_lines(&execution.presentation, &entrance.navigation)
-                    .unwrap_or_else(|error| {
-                        vec![format!("PORTABLE PRESENTATION INVALID: {error}")]
-                    });
+                return ordinary_front_door_lines(
+                    &execution.presentation,
+                    &entrance.navigation,
+                    self.selected_follow.as_deref(),
+                )
+                .unwrap_or_else(|error| vec![format!("PORTABLE PRESENTATION INVALID: {error}")]);
             }
             let mut lines = self
                 .entrance
