@@ -92,6 +92,7 @@ fn civil_weekday_rule_retains_zone_and_requires_explicit_resolution() {
             local_time: LocalTime::new(9, 0, 0, 0).unwrap(),
             zone: NamedTimeZone::new("America/Los_Angeles".into(), "tzdb/2026a".into()).unwrap(),
             weekdays: WeekdaySet::WEEKDAYS,
+            excluded_dates: vec![],
         },
         maximum_occurrences: 10,
         excluded_ordinals: vec![3],

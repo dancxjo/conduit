@@ -4,8 +4,8 @@ use alloc::{format, string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    LocalDate, LocalTime, MonotonicDuration, MonotonicInstant, NamedTimeZone, TemporalInstant,
-    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    CivilResolutionChoice, LocalDate, LocalDateTime, LocalTime, MonotonicDuration,
+    MonotonicInstant, NamedTimeZone, TemporalInstant, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_RECURRENCE_OCCURRENCES: u32 = 4_096;
@@ -33,6 +33,7 @@ pub enum RecurrenceRule {
         local_time: LocalTime,
         zone: NamedTimeZone,
         weekdays: WeekdaySet,
+        excluded_dates: Vec<LocalDate>,
     },
 }
 
@@ -69,6 +70,12 @@ pub struct RecurrenceOccurrence {
 pub enum OccurrenceInstant {
     Wall(TemporalInstant),
     Monotonic(MonotonicInstant),
+    Civil {
+        local: LocalDateTime,
+        zone: NamedTimeZone,
+        instant: TemporalInstant,
+        resolution: CivilResolutionChoice,
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -83,6 +90,8 @@ pub enum RecurrenceRefusal {
     WorkLimitExceeded,
     ArithmeticOverflow,
     CivilResolutionRequired,
+    InvalidCivilResolution,
+    CivilResolutionMismatch,
 }
 
 impl WeekdaySet {
@@ -156,6 +165,7 @@ impl RecurrenceDefinition {
                 local_time,
                 zone,
                 weekdays,
+                excluded_dates,
             } => {
                 first_date
                     .validate()
@@ -166,6 +176,17 @@ impl RecurrenceDefinition {
                 zone.validate()
                     .map_err(|_| RecurrenceRefusal::InvalidRule)?;
                 weekdays.validate()?;
+                if excluded_dates.len() > MAXIMUM_RECURRENCE_EXCEPTIONS
+                    || excluded_dates.iter().any(|date| date.validate().is_err())
+                    || excluded_dates
+                        .windows(2)
+                        .any(|pair| date_key(pair[0]) >= date_key(pair[1]))
+                    || excluded_dates
+                        .iter()
+                        .any(|date| date_key(*date) < date_key(*first_date))
+                {
+                    return Err(RecurrenceRefusal::InvalidExceptions);
+                }
             }
         }
         Ok(())
@@ -177,9 +198,6 @@ impl RecurrenceDefinition {
     ) -> Result<Vec<RecurrenceOccurrence>, RecurrenceRefusal> {
         self.validate()?;
         request.validate()?;
-        if request.maximum_results > self.maximum_occurrences {
-            return Err(RecurrenceRefusal::WorkLimitExceeded);
-        }
         match (&self.rule, &request.window) {
             (RecurrenceRule::OneShot { at }, RecurrenceWindow::Wall { start, end }) => {
                 let mut occurrences = Vec::with_capacity(1);
@@ -233,12 +251,21 @@ impl RecurrenceDefinition {
         }
     }
 
-    fn occurrence(
+    pub(crate) fn occurrence(
         &self,
         ordinal: u32,
         at: OccurrenceInstant,
     ) -> Result<RecurrenceOccurrence, RecurrenceRefusal> {
-        let identity = format!("{}/occurrence/{ordinal}", self.identity);
+        self.occurrence_with_suffix(ordinal, at, "")
+    }
+
+    pub(crate) fn occurrence_with_suffix(
+        &self,
+        ordinal: u32,
+        at: OccurrenceInstant,
+        suffix: &str,
+    ) -> Result<RecurrenceOccurrence, RecurrenceRefusal> {
+        let identity = format!("{}/occurrence/{ordinal}{suffix}", self.identity);
         validate_identity(&identity)?;
         Ok(RecurrenceOccurrence {
             identity,
@@ -321,4 +348,8 @@ fn validate_identity(identity: &str) -> Result<(), RecurrenceRefusal> {
     } else {
         Ok(())
     }
+}
+
+pub(crate) const fn date_key(date: LocalDate) -> (i32, u8, u8) {
+    (date.year(), date.month(), date.day())
 }
