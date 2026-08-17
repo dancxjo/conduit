@@ -216,11 +216,19 @@ impl BrowserWebRtcRendezvous {
     }
 
     pub fn invalidate(&mut self, host_id: &HostId, boot_id: &BootId) -> Vec<LinkBindingId> {
-        let mut invalidated = Vec::with_capacity(self.negotiations.len());
-        self.negotiations.retain(|entry| {
+        let mut invalidated = Vec::with_capacity(MAX_WEBRTC_NEGOTIATIONS);
+        self.grants.retain(|entry| {
             let matches = (&entry.source_host_id == host_id && &entry.source_boot_id == boot_id)
                 || (&entry.sink_host_id == host_id && &entry.sink_boot_id == boot_id);
             if matches {
+                invalidated.push(entry.negotiation_id.clone());
+            }
+            !matches
+        });
+        self.negotiations.retain(|entry| {
+            let matches = (&entry.source_host_id == host_id && &entry.source_boot_id == boot_id)
+                || (&entry.sink_host_id == host_id && &entry.sink_boot_id == boot_id);
+            if matches && !invalidated.contains(&entry.negotiation_id) {
                 invalidated.push(entry.negotiation_id.clone());
             }
             !matches
@@ -459,6 +467,10 @@ mod tests {
         assert_eq!(
             rendezvous.invalidate(&sink.host_id, &sink.boot_id),
             vec![LinkBindingId::from("binding/rendezvous")]
+        );
+        assert_eq!(
+            rendezvous.grant_for_endpoint(&source.host_id, &source.boot_id, 0),
+            (0, None)
         );
     }
 

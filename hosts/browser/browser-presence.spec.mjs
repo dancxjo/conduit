@@ -462,6 +462,14 @@ test("two admitted product clients compose Body grants into one exact ready sess
   ));
   await sourcePage.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(probe.output).toContain("peer-lost");
+  const hostLossMatch = probe.output().match(/^host_loss=(\{.*\})$/m);
+  expect(hostLossMatch, probe.output()).not.toBeNull();
+  const hostLoss = JSON.parse(hostLossMatch[1]);
+  await expect.poll(() => sinkPage.evaluate(
+    () => globalThis.__browserPresence.webRtcSessions().sessions[0]?.terminalReason,
+  )).toBe("line-closed");
+  await expect.poll(() => sinkPage.evaluate(() => globalThis.__browserPresence.presenceState()))
+    .toBe("available");
   await sinkPage.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(() => probe.process.exitCode).toBe(0);
   const basisMatch = probe.output().match(/^session_basis=(\{.*\})$/m);
@@ -516,6 +524,7 @@ test("two admitted product clients compose Body grants into one exact ready sess
         },
         session_states: replacementStates,
       },
+      host_loss: hostLoss,
       assertions: {
         distinct_host_boot_peers: sourceIdentity.hostId !== sinkIdentity.hostId
           && sourceIdentity.bootId !== sinkIdentity.bootId,
@@ -562,6 +571,21 @@ test("two admitted product clients compose Body grants into one exact ready sess
           && replacementStates.filter(
             (state) => state.refusal === "stale WebRTC grant generation",
           ).length === 1,
+        host_loss_retains_part_but_invalidates_current_boot_and_lines:
+          hostLoss.lost_part.state === "Admitted"
+          && hostLoss.lost_part.current === null
+          && hostLoss.lost_presence.state === "Unavailable"
+          && hostLoss.lost_presence.host_id === sourceRoleIdentity.hostId
+          && hostLoss.lost_presence.boot_id === sourceRoleIdentity.bootId
+          && hostLoss.survivor_part.state === "Admitted"
+          && hostLoss.survivor_part.current.host_id === sinkRoleIdentity.hostId
+          && hostLoss.survivor_part.current.boot_id === sinkRoleIdentity.bootId
+          && hostLoss.survivor_presence.state === "Available"
+          && hostLoss.invalidated_binding_ids.includes(replacementBasis.binding_id)
+          && hostLoss.lost_grant_total === 0
+          && !hostLoss.lost_grant_present
+          && hostLoss.survivor_grant_total === 0
+          && !hostLoss.survivor_grant_present,
         state_is_finite: basis.session_limits.maximum_in_flight_items === 1
           && basis.session_limits.maximum_payload_bytes === 16
           && basis.session_limits.maximum_buffered_bytes === 16
