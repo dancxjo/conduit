@@ -2,6 +2,8 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::SignId;
 use serde::{Deserialize, Serialize};
 
+use crate::{TemporalReference, TemporalRetrievalIntent};
+
 pub const MAXIMUM_INTERPRETATION_EVIDENCE: usize = 16;
 pub const MAXIMUM_INTERPRETATION_TEXT_BYTES: usize = 2_048;
 pub const MAXIMUM_INTERPRETATION_IMPLICATIONS: usize = 8;
@@ -16,6 +18,8 @@ pub struct InterpretationEvidence {
 pub struct InterpretationRequest {
     pub evidence: Vec<InterpretationEvidence>,
     pub context: String,
+    pub temporal_reference: TemporalReference,
+    pub temporal_intent: Option<TemporalRetrievalIntent>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,6 +63,7 @@ pub enum InterpretationInvalidity {
     InvalidConfidence,
     FabricatedEvidenceReference,
     ResolvedEvidenceMarkedUnresolved,
+    InvalidTemporalContext,
 }
 
 impl InterpretationRequest {
@@ -90,6 +95,14 @@ impl InterpretationRequest {
             })
         {
             return Err(InterpretationInvalidity::TextBoundExceeded);
+        }
+        if self.temporal_reference.validate().is_err()
+            || self
+                .temporal_intent
+                .as_ref()
+                .is_some_and(|intent| intent.validate().is_err())
+        {
+            return Err(InterpretationInvalidity::InvalidTemporalContext);
         }
         Ok(())
     }

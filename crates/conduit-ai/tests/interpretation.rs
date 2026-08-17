@@ -1,7 +1,7 @@
 use conduit_ai::{
     InterpretationDisposition, InterpretationEvidence, InterpretationInvalidity,
     InterpretationProvenance, InterpretationRequest, ModelInterpretation,
-    ProfileReportedConfidence,
+    ProfileReportedConfidence, TemporalReference, TemporalRetrievalIntent,
 };
 use conduit_core::SignId;
 
@@ -18,7 +18,42 @@ fn request() -> InterpretationRequest {
             },
         ],
         context: "fresh host offer remains available".into(),
+        temporal_reference: TemporalReference {
+            reference_at: 1_723_456_789_000,
+            clock_basis: conduit_ai::ClockBasis::UnixEpochMilliseconds,
+        },
+        temporal_intent: Some(TemporalRetrievalIntent::LatestEvidence),
     }
+}
+
+#[test]
+fn model_request_carries_typed_reference_and_retrieval_intent() {
+    let request = request();
+    request.validate().unwrap();
+    let encoded = serde_json::to_string(&request).unwrap();
+    let decoded: InterpretationRequest = serde_json::from_str(&encoded).unwrap();
+    assert_eq!(decoded, request);
+    assert!(encoded.contains("reference_at"));
+    assert!(!encoded.contains("ago"));
+}
+
+#[test]
+fn invalid_clock_and_query_window_refuse_before_interpretation() {
+    let mut invalid_clock = request();
+    invalid_clock.temporal_reference.clock_basis = conduit_ai::ClockBasis::MonotonicMilliseconds {
+        identity: String::new(),
+    };
+    assert_eq!(
+        invalid_clock.validate(),
+        Err(InterpretationInvalidity::InvalidTemporalContext)
+    );
+
+    let mut reversed = request();
+    reversed.temporal_intent = Some(TemporalRetrievalIntent::EvidenceWithin { start: 20, end: 10 });
+    assert_eq!(
+        reversed.validate(),
+        Err(InterpretationInvalidity::InvalidTemporalContext)
+    );
 }
 
 fn interpretation() -> ModelInterpretation {
