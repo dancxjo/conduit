@@ -11,6 +11,9 @@ const BOOTSEL_WAIT_SECS: u64 = 90;
 const HEADLESS_MOUNT_HELPER: &str = "/usr/local/libexec/conduit-pico-headless-mount";
 
 pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
+    if args.usb_midi_fixture {
+        return Err("the USB-MIDI fixture checkpoint is build-only; flashing requires an explicit wiring and physical-acceptance slice".into());
+    }
     let root = repo_root();
     let uf2 = uf2_path(&root);
 

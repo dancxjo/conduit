@@ -16,6 +16,7 @@ use super::{PicoArgs, PicoResult};
 pub const FIRMWARE_PACKAGE: &str = "conduit-pico-w-signal";
 pub const TARGET: &str = "thumbv6m-none-eabi";
 pub const PROFILE: &str = "release";
+const MIDI_FIXTURE_BINARY: &str = "conduit-pico-w-midi-fixture";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FirmwareIdentity {
@@ -145,15 +146,17 @@ pub struct AssetEntry {
 }
 
 pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
-    println!("==> pico build: verifying CYW43 assets");
+    println!("==> pico build: verifying required assets");
     let root = repo_root();
-    let asset_dir = root.join(CYW43_ASSET_DIR);
-    for (filename, expected) in CYW43_ASSETS {
-        let path = asset_dir.join(filename);
-        if args.dry_run {
-            println!("  planned: verify {}", path.display());
-        } else {
-            verify_sha256(&path, expected)?;
+    if !args.usb_midi_fixture {
+        let asset_dir = root.join(CYW43_ASSET_DIR);
+        for (filename, expected) in CYW43_ASSETS {
+            let path = asset_dir.join(filename);
+            if args.dry_run {
+                println!("  planned: verify {}", path.display());
+            } else {
+                verify_sha256(&path, expected)?;
+            }
         }
     }
 
@@ -172,7 +175,15 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         TARGET,
         "--release",
     ];
-    if args.bluetooth_line {
+    if args.usb_midi_fixture {
+        build_args.extend([
+            "--bin",
+            MIDI_FIXTURE_BINARY,
+            "--no-default-features",
+            "--features",
+            "usb-midi-fixture",
+        ]);
+    } else if args.bluetooth_line {
         build_args.extend(["--no-default-features", "--features", "bluetooth-line"]);
     } else if args.appliance_hello {
         build_args.extend(["--no-default-features", "--features", "appliance-hello"]);
@@ -197,14 +208,18 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     let appliance_identity_sidecar = appliance_identity_sidecar_path(&root);
     let appliance_hil_client_identity_sidecar = appliance_hil_client_identity_sidecar_path(&root);
     if args.dry_run {
-        let planned_sidecar = if args.appliance_hello {
-            &appliance_identity_sidecar
+        let planned_sidecar = if args.usb_midi_fixture {
+            None
+        } else if args.appliance_hello {
+            Some(&appliance_identity_sidecar)
         } else if args.appliance_hil_client {
-            &appliance_hil_client_identity_sidecar
+            Some(&appliance_hil_client_identity_sidecar)
         } else {
-            &generated_identity_sidecar
+            Some(&generated_identity_sidecar)
         };
-        println!("  planned: identity sidecar {}", planned_sidecar.display());
+        if let Some(planned_sidecar) = planned_sidecar {
+            println!("  planned: identity sidecar {}", planned_sidecar.display());
+        }
     } else {
         if generated_identity_sidecar.exists() {
             std::fs::remove_file(&generated_identity_sidecar)?;
@@ -253,7 +268,11 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
     }
 
-    let elf = firmware_elf_path(&root);
+    let elf = if args.usb_midi_fixture {
+        firmware_target_profile_dir(&root).join(MIDI_FIXTURE_BINARY)
+    } else {
+        firmware_elf_path(&root)
+    };
     let uf2 = elf.with_extension("uf2");
 
     println!(
@@ -273,7 +292,9 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
-        if args.appliance_hello {
+        if args.usb_midi_fixture {
+            println!("  fixture artifact: build-only; no Conduit Plan identity is claimed");
+        } else if args.appliance_hello {
             write_appliance_identity_manifest(&root, &elf, &appliance_identity_sidecar)?;
         } else if args.appliance_hil_client {
             write_appliance_hil_client_identity_manifest(

@@ -2,6 +2,27 @@ use crate::{process::Step, proof::ProofClass};
 
 pub const PICO_COMPOSITION_STEPS: &[Step] = &[
     Step::typed(
+        "check.thumb.firmware-usb-midi-fixture",
+        "Pico W bounded breadboard USB-MIDI fixture Thumb check",
+        "cargo",
+        &[
+            "check",
+            "--manifest-path",
+            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "--bin",
+            "conduit-pico-w-midi-fixture",
+            "--no-default-features",
+            "--features",
+            "usb-midi-fixture",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
+    ),
+    Step::typed(
         "check.thumb.firmware",
         "Pico W default local composition Thumb check",
         "cargo",
@@ -205,7 +226,8 @@ mod tests {
         ));
         assert!(firmware.contains("#[cfg(feature = \"session-control\")]\nmod usb_link;"));
         assert!(firmware.contains("#[cfg(feature = \"pico-local-minimal\")]"));
-        assert_eq!(PICO_COMPOSITION_STEPS.len(), 9);
+        assert!(manifest.contains("usb-midi-fixture = [\"dep:embassy-futures\"]"));
+        assert_eq!(PICO_COMPOSITION_STEPS.len(), 10);
     }
 
     #[test]

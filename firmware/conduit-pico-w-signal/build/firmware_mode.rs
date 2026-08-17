@@ -1,7 +1,9 @@
 //! Exact firmware composition identity selected by Cargo features.
 
 pub(super) fn firmware_mode() -> &'static str {
-    if std::env::var_os("CARGO_FEATURE_APPLIANCE_HELLO").is_some() {
+    if std::env::var_os("CARGO_FEATURE_USB_MIDI_FIXTURE").is_some() {
+        "usb-midi-fixture"
+    } else if std::env::var_os("CARGO_FEATURE_APPLIANCE_HELLO").is_some() {
         "appliance-hello"
     } else if std::env::var_os("CARGO_FEATURE_BLUETOOTH_LINE").is_some() {
         "bluetooth-line"
