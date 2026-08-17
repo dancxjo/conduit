@@ -122,6 +122,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
             midi_output: None,
             keyboard: None,
             local_model: None,
+            vector_search: None,
         },
         &plan.fragments[0],
         0,

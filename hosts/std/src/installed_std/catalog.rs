@@ -82,6 +82,7 @@ use super::tick_operations::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
 use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_operation::STATE_TOGGLE_FACTORY;
+use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
@@ -114,6 +115,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,
     &LOCAL_MODEL_FACTORY,
+    &EXACT_VECTOR_SEARCH_FACTORY,
+    &HNSW_FACTORY,
     &MATH_CLAMP_FACTORY,
     &MATH_SCALE_FACTORY,
     &MATH_DEADBAND_FACTORY,

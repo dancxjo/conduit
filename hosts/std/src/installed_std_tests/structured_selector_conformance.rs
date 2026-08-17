@@ -192,6 +192,7 @@ fn execute_case(
             midi_output: None,
             keyboard: None,
             local_model: None,
+            vector_search: None,
         },
         &plan.fragments[0],
         0,

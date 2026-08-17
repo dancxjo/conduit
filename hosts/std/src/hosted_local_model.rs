@@ -335,6 +335,7 @@ mod tests {
                 midi_output: None,
                 keyboard: None,
                 local_model: Some(&mut adapter),
+                vector_search: None,
             },
             &plan.fragments[0],
             1,

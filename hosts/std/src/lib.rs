@@ -46,6 +46,7 @@ pub mod hosted_local_model;
 pub mod hosted_midi;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
+pub mod hosted_vector_search;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
@@ -311,6 +312,7 @@ pub struct StdHost {
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
+    vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -347,6 +349,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            vector_search: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -388,6 +391,41 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
+            vector_search: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    pub fn new_with_vector_search(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_vector_search::HostedVectorSearchAdapter>,
+    ) -> Result<Self, String> {
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement
+            .resources
+            .push(adapter.resource_offer().clone());
+        advertisement
+            .capabilities
+            .push(adapter.capability_offer().clone());
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            vector_search: Some(adapter),
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -406,6 +444,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            vector_search: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -440,6 +479,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            vector_search: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -477,6 +517,7 @@ impl StdHost {
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
+            vector_search: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -503,6 +544,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            vector_search: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -542,6 +584,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            vector_search: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -730,6 +773,7 @@ impl StdHost {
                         midi_output: self.midi_output.as_ref(),
                         keyboard,
                         local_model: self.local_model.as_deref_mut(),
+                        vector_search: self.vector_search.as_deref_mut(),
                     },
                     &fragment,
                     play_sequence,
