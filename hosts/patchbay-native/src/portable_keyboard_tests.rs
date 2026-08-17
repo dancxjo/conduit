@@ -6,6 +6,7 @@ use conduit_core::{
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
+use conduit_std_host::hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll};
 use std::collections::BTreeMap;
 use winit::event::ElementState;
 use winit::keyboard::{KeyCode, PhysicalKey};
@@ -269,5 +270,68 @@ fn pressure_focus_cancellation_closure_and_mapping_refusals_are_distinct() {
             true
         ),
         Err(NativeKeyboardFailure::RepeatedPlatformEvent)
+    );
+}
+
+#[test]
+fn focus_regain_reopens_only_focus_loss_and_discards_stale_input_state() {
+    let mut keyboard = NativeKeyboardInput::new();
+    let mut reader = keyboard.reader();
+    keyboard
+        .observe(
+            PhysicalKey::Code(KeyCode::KeyA),
+            ElementState::Pressed,
+            false,
+        )
+        .unwrap();
+
+    keyboard.focus_lost();
+    assert_eq!(
+        reader.poll_next(),
+        HostedKeyboardPoll::Failed(NativeKeyboardFailure::FocusLost as u16)
+    );
+
+    keyboard.focus_gained();
+    assert_eq!(reader.poll_next(), HostedKeyboardPoll::Pending);
+    keyboard
+        .observe(
+            PhysicalKey::Code(KeyCode::KeyA),
+            ElementState::Pressed,
+            false,
+        )
+        .unwrap();
+    assert!(matches!(reader.poll_next(), HostedKeyboardPoll::Event(_)));
+
+    let mut pressure = NativeKeyboardInput::new();
+    for code in [
+        KeyCode::KeyA,
+        KeyCode::KeyB,
+        KeyCode::KeyC,
+        KeyCode::KeyD,
+        KeyCode::KeyE,
+        KeyCode::KeyF,
+        KeyCode::KeyG,
+        KeyCode::KeyH,
+    ] {
+        pressure
+            .observe(PhysicalKey::Code(code), ElementState::Pressed, false)
+            .unwrap();
+    }
+    assert_eq!(
+        pressure.observe(
+            PhysicalKey::Code(KeyCode::KeyI),
+            ElementState::Pressed,
+            false,
+        ),
+        Err(NativeKeyboardFailure::QueuePressure)
+    );
+    pressure.focus_gained();
+    assert_eq!(
+        pressure.observe(
+            PhysicalKey::Code(KeyCode::KeyJ),
+            ElementState::Pressed,
+            false,
+        ),
+        Err(NativeKeyboardFailure::QueuePressure)
     );
 }

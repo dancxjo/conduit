@@ -160,7 +160,25 @@ impl NativeKeyboardInput {
             .lock()
             .expect("native keyboard state is not poisoned");
         if matches!(state.lifecycle, Lifecycle::Available) {
+            state.values = [None; EVENT_CAPACITY];
+            state.read = 0;
+            state.len = 0;
+            state.held = [None; HELD_CAPACITY];
+            state.modifiers = 0;
             state.lifecycle = Lifecycle::Failed(NativeKeyboardFailure::FocusLost);
+        }
+    }
+
+    pub fn focus_gained(&mut self) {
+        let mut state = self
+            .state
+            .lock()
+            .expect("native keyboard state is not poisoned");
+        if matches!(
+            state.lifecycle,
+            Lifecycle::Failed(NativeKeyboardFailure::FocusLost)
+        ) {
+            state.lifecycle = Lifecycle::Available;
         }
     }
 
