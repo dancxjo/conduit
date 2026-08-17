@@ -1,8 +1,8 @@
 use conduit_core::{
     BootId, HostId, LocalDate, LocalTime, MonotonicClockIdentity, MonotonicDuration,
     MonotonicInstant, NamedTimeZone, OccurrenceInstant, RecurrenceDefinition, RecurrenceExpansion,
-    RecurrenceRefusal, RecurrenceRule, RecurrenceWindow, TemporalInstant, TemporalScale,
-    WeekdaySet,
+    RecurrenceRefusal, RecurrenceRule, RecurrenceUntil, RecurrenceWindow, TemporalInstant,
+    TemporalScale, WeekdaySet,
 };
 
 fn clock(boot: &str) -> MonotonicClockIdentity {
@@ -40,6 +40,7 @@ fn fixed_elapsed_expansion_is_bounded_deterministic_and_exception_aware() {
             every: MonotonicDuration::new(10, TemporalScale::Milliseconds),
         },
         maximum_occurrences: 6,
+        until: None,
         excluded_ordinals: vec![2, 4],
     };
     let occurrences = recurrence
@@ -68,6 +69,7 @@ fn one_shot_is_distinct_from_elapsed_repetition() {
         identity: "recurrence/deadline".into(),
         rule: RecurrenceRule::OneShot { at: wall(200) },
         maximum_occurrences: 1,
+        until: None,
         excluded_ordinals: vec![],
     };
     let occurrences = recurrence
@@ -95,6 +97,7 @@ fn civil_weekday_rule_retains_zone_and_requires_explicit_resolution() {
             excluded_dates: vec![],
         },
         maximum_occurrences: 10,
+        until: None,
         excluded_ordinals: vec![3],
     };
     assert_eq!(
@@ -124,6 +127,7 @@ fn work_window_clock_and_exception_bounds_fail_closed() {
             every: MonotonicDuration::new(1, TemporalScale::Milliseconds),
         },
         maximum_occurrences: 4,
+        until: None,
         excluded_ordinals: vec![],
     };
     assert_eq!(
@@ -162,6 +166,7 @@ fn arithmetic_overflow_refuses_without_partial_occurrences() {
             every: MonotonicDuration::new(2, TemporalScale::Milliseconds),
         },
         maximum_occurrences: 2,
+        until: None,
         excluded_ordinals: vec![],
     };
     assert_eq!(
@@ -174,4 +179,38 @@ fn arithmetic_overflow_refuses_without_partial_occurrences() {
         }),
         Err(RecurrenceRefusal::ArithmeticOverflow)
     );
+}
+
+#[test]
+fn elapsed_until_is_distinct_from_count_and_request_window() {
+    let recurrence = RecurrenceDefinition {
+        identity: "recurrence/bounded-heartbeat".into(),
+        rule: RecurrenceRule::FixedElapsed {
+            first: monotonic(10),
+            every: MonotonicDuration::new(10, TemporalScale::Milliseconds),
+        },
+        maximum_occurrences: 10,
+        until: Some(RecurrenceUntil::Monotonic(monotonic(35))),
+        excluded_ordinals: vec![],
+    };
+    let occurrences = recurrence
+        .expand(&RecurrenceExpansion {
+            maximum_results: 10,
+            window: RecurrenceWindow::Monotonic {
+                start: monotonic(0),
+                end: monotonic(100),
+            },
+        })
+        .unwrap();
+    assert_eq!(
+        occurrences
+            .iter()
+            .map(|occurrence| occurrence.ordinal)
+            .collect::<Vec<_>>(),
+        vec![0, 1, 2]
+    );
+
+    let mut wrong_basis = recurrence;
+    wrong_basis.until = Some(RecurrenceUntil::Wall(wall(35)));
+    assert_eq!(wrong_basis.validate(), Err(RecurrenceRefusal::InvalidRule));
 }

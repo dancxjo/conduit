@@ -1,9 +1,9 @@
 use conduit_core::{
     CivilFoldPolicy, CivilGapPolicy, CivilOccurrenceResolution, CivilResolutionChoice,
     CivilResolutionPolicy, LocalDate, LocalDateTime, LocalTime, NamedTimeZone, OccurrenceInstant,
-    RecurrenceDefinition, RecurrenceExpansion, RecurrenceRefusal, RecurrenceRule, RecurrenceWindow,
-    TemporalInstant, TemporalScale, UtcOffsetSeconds, WeekdaySet, ZonedResolution,
-    UNIX_UTC_CLOCK_BASIS,
+    RecurrenceDefinition, RecurrenceExpansion, RecurrenceRefusal, RecurrenceRule, RecurrenceUntil,
+    RecurrenceWindow, TemporalInstant, TemporalScale, UtcOffsetSeconds, WeekdaySet,
+    ZonedResolution, UNIX_UTC_CLOCK_BASIS,
 };
 
 fn zone(rule_set: &str) -> NamedTimeZone {
@@ -63,6 +63,7 @@ fn weekday_meeting_preserves_nine_am_across_spring_and_fall_dst() {
             excluded_dates: vec![],
         },
         maximum_occurrences: 36,
+        until: None,
         excluded_ordinals: (1..18).chain(19..35).collect(),
     };
     let march_instant = instant(march, -8 * 3_600);
@@ -143,6 +144,7 @@ fn gap_and_fold_policy_are_explicit_and_fold_both_has_unique_identities() {
             excluded_dates: vec![],
         },
         maximum_occurrences: 1,
+        until: None,
         excluded_ordinals: vec![],
     };
     let gap_truth = [CivilOccurrenceResolution {
@@ -185,6 +187,7 @@ fn gap_and_fold_policy_are_explicit_and_fold_both_has_unique_identities() {
             excluded_dates: vec![],
         },
         maximum_occurrences: 1,
+        until: None,
         excluded_ordinals: vec![],
     };
     let both = fold
@@ -222,7 +225,8 @@ fn exceptions_need_no_resolution_and_ruleset_mutation_refuses() {
             weekdays: WeekdaySet::MONDAY,
             excluded_dates: vec![first.date],
         },
-        maximum_occurrences: 2,
+        maximum_occurrences: 3,
+        until: Some(RecurrenceUntil::CivilDate(second.date)),
         excluded_ordinals: vec![],
     };
     let resolved = instant(second, -7 * 3_600);
@@ -276,6 +280,7 @@ fn missing_duplicate_and_result_overflow_never_return_partial_state() {
             excluded_dates: vec![],
         },
         maximum_occurrences: 1,
+        until: None,
         excluded_ordinals: vec![],
     };
     assert_eq!(

@@ -16,7 +16,15 @@ pub struct RecurrenceDefinition {
     pub identity: String,
     pub rule: RecurrenceRule,
     pub maximum_occurrences: u32,
+    pub until: Option<RecurrenceUntil>,
     pub excluded_ordinals: Vec<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecurrenceUntil {
+    Wall(TemporalInstant),
+    Monotonic(MonotonicInstant),
+    CivilDate(LocalDate),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -151,6 +159,16 @@ impl RecurrenceDefinition {
                 if self.maximum_occurrences != 1 {
                     return Err(RecurrenceRefusal::InvalidLimit);
                 }
+                match &self.until {
+                    Some(RecurrenceUntil::Wall(until)) => {
+                        until
+                            .validate()
+                            .map_err(|_| RecurrenceRefusal::InvalidRule)?;
+                        wall_comparable(at, until)?;
+                    }
+                    None => {}
+                    _ => return Err(RecurrenceRefusal::InvalidRule),
+                }
             }
             RecurrenceRule::FixedElapsed { first, every } => {
                 first
@@ -158,6 +176,16 @@ impl RecurrenceDefinition {
                     .map_err(|_| RecurrenceRefusal::InvalidRule)?;
                 if every.ticks() == 0 || every.scale() != first.clock().scale() {
                     return Err(RecurrenceRefusal::InvalidRule);
+                }
+                match &self.until {
+                    Some(RecurrenceUntil::Monotonic(until)) => {
+                        until
+                            .validate()
+                            .map_err(|_| RecurrenceRefusal::InvalidRule)?;
+                        ensure_same_monotonic_clock(first, until)?;
+                    }
+                    None => {}
+                    _ => return Err(RecurrenceRefusal::InvalidRule),
                 }
             }
             RecurrenceRule::CivilWeekdays {
@@ -187,6 +215,18 @@ impl RecurrenceDefinition {
                 {
                     return Err(RecurrenceRefusal::InvalidExceptions);
                 }
+                match &self.until {
+                    Some(RecurrenceUntil::CivilDate(until)) => {
+                        until
+                            .validate()
+                            .map_err(|_| RecurrenceRefusal::InvalidRule)?;
+                        if date_key(*until) < date_key(*first_date) {
+                            return Err(RecurrenceRefusal::InvalidRule);
+                        }
+                    }
+                    None => {}
+                    _ => return Err(RecurrenceRefusal::InvalidRule),
+                }
             }
         }
         Ok(())
@@ -202,6 +242,9 @@ impl RecurrenceDefinition {
             (RecurrenceRule::OneShot { at }, RecurrenceWindow::Wall { start, end }) => {
                 let mut occurrences = Vec::with_capacity(1);
                 if self.excluded_ordinals.binary_search(&0).is_err()
+                    && self.until.as_ref().is_none_or(
+                        |until| matches!(until, RecurrenceUntil::Wall(value) if at.ticks <= value.ticks),
+                    )
                     && wall_in_window(at, start, end)?
                     && request.maximum_results > 0
                 {
@@ -229,6 +272,11 @@ impl RecurrenceDefinition {
                         .map_err(|_| RecurrenceRefusal::ArithmeticOverflow)?
                         .instant()
                         .clone();
+                    if self.until.as_ref().is_some_and(|until| {
+                        matches!(until, RecurrenceUntil::Monotonic(value) if at.ticks() > value.ticks())
+                    }) {
+                        break;
+                    }
                     if at.ticks() > end.ticks() {
                         break;
                     }
@@ -325,6 +373,17 @@ fn wall_in_window(
         return Err(RecurrenceRefusal::InvalidRule);
     }
     Ok(at.ticks >= start.ticks && at.ticks <= end.ticks)
+}
+
+fn wall_comparable(
+    left: &TemporalInstant,
+    right: &TemporalInstant,
+) -> Result<(), RecurrenceRefusal> {
+    if left.clock_basis != right.clock_basis || left.scale != right.scale {
+        Err(RecurrenceRefusal::IncomparableWindow)
+    } else {
+        Ok(())
+    }
 }
 
 fn ensure_same_monotonic_clock(

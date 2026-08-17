@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     date_key, LocalDate, LocalDateTime, OccurrenceInstant, RecurrenceDefinition,
-    RecurrenceExpansion, RecurrenceOccurrence, RecurrenceRefusal, RecurrenceRule, RecurrenceWindow,
-    TemporalInstant, WeekdaySet, ZonedResolution,
+    RecurrenceExpansion, RecurrenceOccurrence, RecurrenceRefusal, RecurrenceRule, RecurrenceUntil,
+    RecurrenceWindow, TemporalInstant, WeekdaySet, ZonedResolution,
 };
 
 pub const MAXIMUM_CIVIL_RECURRENCE_SCAN_DAYS: u32 = 36_600;
@@ -83,6 +83,11 @@ impl RecurrenceDefinition {
         let mut scanned_days = 0_u32;
         for ordinal in 0..self.maximum_occurrences {
             date = next_selected_date(date, *weekdays, &mut scanned_days)?;
+            if self.until.as_ref().is_some_and(|until| {
+                matches!(until, RecurrenceUntil::CivilDate(value) if date_key(date) > date_key(*value))
+            }) {
+                break;
+            }
             let date_is_excluded = excluded_dates
                 .binary_search_by_key(&date_key(date), |candidate| date_key(*candidate))
                 .is_ok();
