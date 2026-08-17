@@ -317,3 +317,25 @@ fn missing_duplicate_and_result_overflow_never_return_partial_state() {
         Err(RecurrenceRefusal::WorkLimitExceeded)
     );
 }
+
+#[test]
+fn exception_date_must_name_an_actual_selected_civil_occurrence() {
+    let first = local(2026, 3, 2, 9, 0);
+    let recurrence = RecurrenceDefinition {
+        identity: "recurrence/invalid-exception".into(),
+        rule: RecurrenceRule::CivilWeekdays {
+            first_date: first.date,
+            local_time: first.time,
+            zone: zone("tzdb/2026a"),
+            weekdays: WeekdaySet::MONDAY,
+            excluded_dates: vec![LocalDate::new(2026, 3, 3).unwrap()],
+        },
+        maximum_occurrences: 2,
+        until: None,
+        excluded_ordinals: vec![],
+    };
+    assert_eq!(
+        recurrence.validate(),
+        Err(RecurrenceRefusal::InvalidExceptions)
+    );
+}

@@ -212,6 +212,9 @@ impl RecurrenceDefinition {
                     || excluded_dates
                         .iter()
                         .any(|date| date_key(*date) < date_key(*first_date))
+                    || excluded_dates.iter().any(|date| {
+                        !weekdays.contains(crate::temporal_recurrence_civil::weekday(*date))
+                    })
                 {
                     return Err(RecurrenceRefusal::InvalidExceptions);
                 }

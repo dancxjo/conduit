@@ -67,12 +67,6 @@ impl RecurrenceDefinition {
         else {
             return Err(RecurrenceRefusal::WrongWindowKind);
         };
-        if excluded_dates
-            .iter()
-            .any(|date| !weekdays.contains(weekday(*date)))
-        {
-            return Err(RecurrenceRefusal::InvalidExceptions);
-        }
         let RecurrenceWindow::Wall { start, end } = &request.window else {
             return Err(RecurrenceRefusal::WrongWindowKind);
         };
@@ -269,7 +263,7 @@ fn next_date(date: LocalDate) -> Result<LocalDate, RecurrenceRefusal> {
     }
 }
 
-fn weekday(date: LocalDate) -> WeekdaySet {
+pub(crate) fn weekday(date: LocalDate) -> WeekdaySet {
     let mut year = i64::from(date.year());
     let month = i64::from(date.month());
     let day = i64::from(date.day());
