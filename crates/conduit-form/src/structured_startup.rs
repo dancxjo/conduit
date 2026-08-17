@@ -12,7 +12,9 @@ pub struct CanonicalStructuredStartupValue {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum CanonicalStructuredStartupNode {
-    Literal(String),
+    Literal {
+        canonical: Vec<u8>,
+    },
     Parameter(String),
     Collection(Vec<CanonicalStructuredStartupValue>),
     Record(Vec<CanonicalStructuredStartupField>),
@@ -81,10 +83,10 @@ pub(crate) fn check_structured_expression(
                         "structured leaf literal exceeds the finite byte limit",
                     ));
                 }
-                validate_known_leaf_literal(kind.as_str(), &value, atomic.span)?;
+                let canonical = canonical_leaf_literal(kind.as_str(), &value, atomic.span)?;
                 Ok(CanonicalStructuredStartupValue {
                     value_type: expected.clone(),
-                    node: CanonicalStructuredStartupNode::Literal(value),
+                    node: CanonicalStructuredStartupNode::Literal { canonical },
                 })
             }
             CanonicalStartupValue::FormParameter(name) => Ok(CanonicalStructuredStartupValue {
@@ -227,9 +229,8 @@ pub(crate) fn check_structured_expression(
 
 fn concrete(value: &CanonicalStructuredStartupValue) -> Result<StructuredInfoValue, ()> {
     match &value.node {
-        CanonicalStructuredStartupNode::Literal(literal) => {
-            StructuredInfoValue::leaf(value.value_type.clone(), literal.as_bytes().to_vec())
-                .map_err(|_| ())
+        CanonicalStructuredStartupNode::Literal { canonical, .. } => {
+            StructuredInfoValue::leaf(value.value_type.clone(), canonical.clone()).map_err(|_| ())
         }
         CanonicalStructuredStartupNode::Parameter(_) => Err(()),
         CanonicalStructuredStartupNode::Collection(values) => StructuredInfoValue::collection(
@@ -257,8 +258,8 @@ fn concrete(value: &CanonicalStructuredStartupValue) -> Result<StructuredInfoVal
 
 fn node_encoded_size(node: &CanonicalStructuredStartupNode) -> usize {
     match node {
-        CanonicalStructuredStartupNode::Literal(value)
-        | CanonicalStructuredStartupNode::Parameter(value) => 1 + 4 + value.len(),
+        CanonicalStructuredStartupNode::Literal { canonical, .. } => 1 + 4 + canonical.len(),
+        CanonicalStructuredStartupNode::Parameter(value) => 1 + 4 + value.len(),
         CanonicalStructuredStartupNode::Collection(values) => {
             1 + 4
                 + values
@@ -281,9 +282,9 @@ fn node_encoded_size(node: &CanonicalStructuredStartupNode) -> usize {
 
 fn push_node(identity: &mut String, node: &CanonicalStructuredStartupNode) {
     match node {
-        CanonicalStructuredStartupNode::Literal(value) => {
+        CanonicalStructuredStartupNode::Literal { canonical, .. } => {
             identity.push('l');
-            push_text(identity, value);
+            push_bytes(identity, canonical);
         }
         CanonicalStructuredStartupNode::Parameter(name) => {
             identity.push('p');
@@ -328,11 +329,23 @@ fn push_bytes(identity: &mut String, value: &[u8]) {
     }
 }
 
-fn validate_known_leaf_literal(
+fn canonical_leaf_literal(
     kind: &str,
     literal: &str,
     span: Span,
-) -> Result<(), SyntaxCheckDiagnostic> {
+) -> Result<Vec<u8>, SyntaxCheckDiagnostic> {
+    if kind == conduit_core::QUANTITY_INFO_ID {
+        return conduit_core::Quantity::parse_form_literal(literal)
+            .map(|quantity| quantity.encode().to_vec())
+            .map_err(|refusal| {
+                structured_diagnostic(
+                    span,
+                    &format!(
+                        "literal '{literal}' is incompatible with exact leaf kind '{kind}': {refusal:?}"
+                    ),
+                )
+            });
+    }
     let valid = match kind {
         "value/text@1" => crate::text_value::parse_quoted_text(literal).is_some(),
         "value/count@1" => literal.parse::<u64>().is_ok(),
@@ -341,7 +354,7 @@ fn validate_known_leaf_literal(
         _ => true,
     };
     if valid {
-        Ok(())
+        Ok(literal.as_bytes().to_vec())
     } else {
         Err(structured_diagnostic(
             span,

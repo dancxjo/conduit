@@ -1,4 +1,7 @@
-use conduit_core::{KindId, StructuredFieldType, StructuredInfoType, StructuredVariantCase};
+use conduit_core::{
+    KindId, Quantity, QuantityUnit, StructuredFieldType, StructuredInfoType,
+    StructuredInfoValueShape, StructuredVariantCase,
+};
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalStartupValue, KindSignature,
     StartupCatalog, StartupParameterSignature,
@@ -45,6 +48,33 @@ fn defaulted_structured_catalog() -> StartupCatalog {
                 name: "event".into(),
                 value_type: "MusicEvent".into(),
                 default: Some("note_on({ pitches: [60, 62, 64], velocity: 96 })".into()),
+            }],
+        })
+        .unwrap();
+    catalog
+}
+
+fn quantity_catalog() -> StartupCatalog {
+    let quantity = StructuredInfoType::leaf(KindId::from(conduit_core::QUANTITY_INFO_ID)).unwrap();
+    let sample = StructuredInfoType::record(
+        KindId::from("test/quantity-sample@1"),
+        vec![
+            StructuredFieldType::new("elapsed", quantity.clone()).unwrap(),
+            StructuredFieldType::new("frequency", quantity).unwrap(),
+        ],
+    )
+    .unwrap();
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert_structured_type("QuantitySample", sample)
+        .unwrap();
+    catalog
+        .insert(KindSignature {
+            kind: "test/consume-quantity-sample".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "sample".into(),
+                value_type: "QuantitySample".into(),
+                default: None,
             }],
         })
         .unwrap();
@@ -288,4 +318,55 @@ fn leaf_and_total_canonical_byte_bounds_fail_before_checked_identity() {
     let error = check_syntax_document(&parsed, &catalog).unwrap_err();
     assert_eq!(error.code, "CND-FRM-051");
     assert!(error.message.contains("canonical encoding bound"));
+}
+
+#[test]
+fn quantity_literals_become_exact_canonical_leaf_bytes_during_form_checking() {
+    let source = "form measured {\n sink: test/consume-quantity-sample({ elapsed: 17ms, frequency: 440Hz })\n}\n";
+    let parsed = parse_syntax_document(source);
+    let checked = check_syntax_document(&parsed, &quantity_catalog()).unwrap();
+    assert_eq!(parsed.round_trip(), source);
+    let CanonicalStartupValue::Structured(value) =
+        &checked.forms[0].gears[0].startup_bindings[0].value
+    else {
+        panic!("quantity record must be checked structured truth");
+    };
+    let concrete = value.try_concrete().expect("literal record is concrete");
+    let StructuredInfoValueShape::Record(fields) = concrete.shape() else {
+        panic!("sample remains a record");
+    };
+    let StructuredInfoValueShape::Leaf(elapsed) = fields[0].value().shape() else {
+        panic!("elapsed remains a typed leaf");
+    };
+    let StructuredInfoValueShape::Leaf(frequency) = fields[1].value().shape() else {
+        panic!("frequency remains a typed leaf");
+    };
+    assert_eq!(
+        Quantity::decode(elapsed),
+        Ok(Quantity::new(17, QuantityUnit::Millisecond))
+    );
+    assert_eq!(
+        Quantity::decode(frequency),
+        Ok(Quantity::new(440, QuantityUnit::Hertz))
+    );
+}
+
+#[test]
+fn malformed_quantity_literals_refuse_at_the_owned_source_span() {
+    for (literal, refusal) in [
+        ("17", "MissingUnit"),
+        ("17fortnight", "UnknownUnit"),
+        ("1.5s", "UnknownUnit"),
+        ("9223372036854775808ms", "InvalidValue"),
+    ] {
+        let source = format!(
+            "form bad {{\n sink: test/consume-quantity-sample({{ elapsed: {literal}, frequency: 440Hz }})\n}}\n"
+        );
+        let parsed = parse_syntax_document(&source);
+        let error = check_syntax_document(&parsed, &quantity_catalog()).unwrap_err();
+        assert_eq!(error.code, "CND-FRM-051");
+        assert!(error.message.contains(refusal), "{}", error.message);
+        assert_eq!(&source[error.span.start..error.span.end], literal);
+        assert_eq!(parsed.round_trip(), source);
+    }
 }

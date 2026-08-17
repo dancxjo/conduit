@@ -1,4 +1,6 @@
-use conduit_core::{Quantity, QuantityConversionRefusal, QuantityDimension, QuantityUnit};
+use conduit_core::{
+    Quantity, QuantityConversionRefusal, QuantityDimension, QuantityLiteralRefusal, QuantityUnit,
+};
 
 #[test]
 fn reviewed_families_have_exact_distinct_dimensions() {
@@ -82,5 +84,65 @@ fn canonical_multiplication_overflow_is_explicit() {
     assert_eq!(
         Quantity::new(i64::MAX, QuantityUnit::Second).convert(QuantityUnit::Second),
         Ok(Quantity::new(i64::MAX, QuantityUnit::Second))
+    );
+}
+
+#[test]
+fn every_reviewed_unit_has_one_round_tripping_form_suffix() {
+    let units = [
+        QuantityUnit::Nanosecond,
+        QuantityUnit::Microsecond,
+        QuantityUnit::Millisecond,
+        QuantityUnit::Second,
+        QuantityUnit::Millihertz,
+        QuantityUnit::Hertz,
+        QuantityUnit::Microvolt,
+        QuantityUnit::Millivolt,
+        QuantityUnit::Volt,
+        QuantityUnit::Micrometer,
+        QuantityUnit::Millimeter,
+        QuantityUnit::Centimeter,
+        QuantityUnit::Meter,
+        QuantityUnit::Microdegree,
+        QuantityUnit::Millidegree,
+        QuantityUnit::Degree,
+        QuantityUnit::Millionth,
+        QuantityUnit::Permille,
+        QuantityUnit::Percent,
+        QuantityUnit::One,
+        QuantityUnit::Byte,
+        QuantityUnit::Kibibyte,
+        QuantityUnit::Mebibyte,
+    ];
+    for unit in units {
+        let literal = format!("-17{}", unit.form_suffix());
+        assert_eq!(
+            Quantity::parse_form_literal(&literal),
+            Ok(Quantity::new(-17, unit))
+        );
+    }
+}
+
+#[test]
+fn form_literals_refuse_missing_unknown_fractional_and_overflowing_parts() {
+    assert_eq!(
+        Quantity::parse_form_literal("ms"),
+        Err(QuantityLiteralRefusal::MissingValue)
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("17"),
+        Err(QuantityLiteralRefusal::MissingUnit)
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("17fortnight"),
+        Err(QuantityLiteralRefusal::UnknownUnit)
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("1.5s"),
+        Err(QuantityLiteralRefusal::UnknownUnit)
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("9223372036854775808ms"),
+        Err(QuantityLiteralRefusal::InvalidValue)
     );
 }
