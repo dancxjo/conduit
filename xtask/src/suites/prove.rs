@@ -586,7 +586,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.browser",
-        "Run zero-Body OPEN, stale refusal, explicit BIRTH, Plan, and Play through one pinned Chromium manifestation",
+        "Run zero-Body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, disclosure, Back, and finite refusals through one pinned Chromium manifestation",
         "npx",
         &[
             "playwright",

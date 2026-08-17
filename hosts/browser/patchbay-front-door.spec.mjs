@@ -24,6 +24,68 @@ function startPublicEntrance() {
   return { child, errors, lines, url };
 }
 
+const semanticBasis = ({ presentation }) => ({
+  seed_id: presentation.basis.seed_id,
+  source_document_id: presentation.basis.source_document_id,
+  checked_form_id: presentation.basis.checked_form_id,
+  expanded_form_id: presentation.basis.expanded_form_id,
+  body_id: presentation.basis.body_id,
+  wake_id: presentation.basis.wake_id,
+  plan_id: presentation.basis.plan_id,
+  active_play_id: presentation.basis.active_play_id,
+});
+
+async function snapshot(page) {
+  return page.evaluate(async () => (await fetch("/api/snapshot", { cache: "no-store" })).json());
+}
+
+async function enactNavigation(page, steps, operation, enact) {
+  const before = await snapshot(page);
+  const response = page.waitForResponse(
+    candidate => candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST",
+  );
+  await enact();
+  const after = await (await response).json();
+  expect(after.interaction.last_disposition).toBe("Succeeded");
+  expect(after.presentation.identity).toBe(before.presentation.identity);
+  expect(after.presentation.revision).toBe(before.presentation.revision);
+  expect(after.navigation.navigation.identity).toBe(before.navigation.navigation.identity);
+  expect(semanticBasis(after)).toEqual(semanticBasis(before));
+  steps.push({
+    sequence: steps.length,
+    operation,
+    disposition: after.interaction.last_disposition,
+    presentation_id: after.presentation.identity,
+    presentation_revision: after.presentation.revision,
+    navigation_id: after.navigation.navigation.identity,
+    before_cursor: before.navigation.cursor,
+    after_cursor: after.navigation.cursor,
+    semantic_basis: semanticBasis(after),
+  });
+  return after;
+}
+
+async function refuseNavigation(page, refusals, operation, request, expected) {
+  const before = await snapshot(page);
+  const after = await page.evaluate(async body => (await fetch("/api/navigation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })).json(), request);
+  expect(after.interaction.last_disposition).toBe(`Refused(${expected})`);
+  expect(after.navigation.cursor).toEqual(before.navigation.cursor);
+  expect(after.presentation.identity).toBe(before.presentation.identity);
+  expect(after.presentation.revision).toBe(before.presentation.revision);
+  expect(semanticBasis(after)).toEqual(semanticBasis(before));
+  refusals.push({
+    operation,
+    disposition: after.interaction.last_disposition,
+    cursor: after.navigation.cursor,
+    semantic_basis: semanticBasis(after),
+  });
+  return after;
+}
+
 test("public browser entrance stays unbodied until OPEN then explicit BIRTH", async ({ browser, page }) => {
   const server = startPublicEntrance();
   try {
@@ -200,10 +262,95 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(playing.parts.parts[0].in_plan).toBe(true);
     expect(playing.parts.parts[0].playing).toBe(true);
 
+    const navigationSteps = [];
+    const navigationRefusals = [];
+    const journeyStartCursor = playing.navigation.cursor;
+    expect(playing.navigation.cursor).toMatchObject({ place: "Program", aspect: "Structure" });
+    await page.getByRole("button", { name: "Navigate", exact: true }).click();
+    const upper = page.locator('#subjects button[data-role="Gear"]').filter({ hasText: "hello/upper" });
+    const upperIdentity = await upper.getAttribute("data-subject");
+    expect(upperIdentity).toBeTruthy();
+    let navigated = await enactNavigation(page, navigationSteps,
+      { kind: "focus-and-disclose", subject: upperIdentity, depth: "Detail" },
+      () => upper.click());
+    expect(navigated.navigation.cursor).toMatchObject({
+      place: "Program", aspect: "Structure", focus: upperIdentity, depth: "Detail",
+    });
+    navigated = await enactNavigation(page, navigationSteps, { kind: "show", aspect: "Plan" },
+      () => page.getByRole("button", { name: "Plan", exact: true }).click());
+    expect(navigated.navigation.cursor).toMatchObject({ place: "Program", aspect: "Plan", focus: null });
+
+    await page.locator("#toggle-structured").click();
+    const upperInPlan = page.locator(`#structured-navigator button[data-subject="${upperIdentity.replaceAll('"', '\\"')}"]`);
+    navigated = await enactNavigation(page, navigationSteps,
+      { kind: "focus-and-disclose", subject: upperIdentity, depth: "Detail" },
+      () => upperInPlan.click());
+    const followButton = page.locator("#structured-navigator [data-follow]").filter({ hasText: "Host:" }).first();
+    const followIdentity = await followButton.getAttribute("data-follow");
+    const follow = navigated.navigation.navigation.follows.find(candidate => candidate.identity === followIdentity);
+    expect(follow).toMatchObject({ source_subject: upperIdentity, target_place: "Body", target_aspect: "Plan" });
+    navigated = await enactNavigation(page, navigationSteps,
+      { kind: "follow", relationship: followIdentity, target: follow.target_subject },
+      () => followButton.click());
+    expect(navigated.navigation.cursor).toMatchObject({
+      place: "Body", aspect: "Plan", focus: follow.target_subject, depth: "Detail",
+    });
+    const bodyPlace = navigated.navigation.navigation.places.find(place => place.place === "Body");
+    const currentTruthAspect = bodyPlace.aspects.find(aspect =>
+      ["Play", "Signs"].includes(aspect.aspect)
+        && aspect.focusable_subjects.includes(follow.target_subject));
+    expect(currentTruthAspect).toBeTruthy();
+    navigated = await enactNavigation(page, navigationSteps,
+      { kind: "show", aspect: currentTruthAspect.aspect },
+      () => page.getByRole("button", { name: currentTruthAspect.aspect, exact: true }).click());
+    expect(navigated.navigation.cursor).toMatchObject({
+      place: "Body", aspect: currentTruthAspect.aspect, focus: null, depth: "Detail",
+    });
+    const hostInCurrentTruth = page.locator(
+      `#structured-navigator button[data-subject="${follow.target_subject.replaceAll('"', '\\"')}"]`,
+    );
+    navigated = await enactNavigation(page, navigationSteps,
+      { kind: "focus-and-disclose", subject: follow.target_subject, depth: "Detail" },
+      () => hostInCurrentTruth.click());
+    navigated = await enactNavigation(page, navigationSteps, { kind: "disclose", depth: "Exact" },
+      () => page.locator("#toggle-truth").click());
+    expect(navigated.navigation.cursor).toMatchObject({
+      place: "Body", aspect: currentTruthAspect.aspect, focus: follow.target_subject, depth: "Exact",
+    });
+    await expect(page.locator("#deep-inspection")).toBeVisible();
+
+    navigated = await enactNavigation(page, navigationSteps, { kind: "back" },
+      () => page.keyboard.press("Escape"));
+    expect(navigated.navigation.cursor.depth).toBe("Detail");
+    while (JSON.stringify(navigated.navigation.cursor) !== JSON.stringify(journeyStartCursor)) {
+      navigated = await enactNavigation(page, navigationSteps, { kind: "back" },
+        () => page.locator('[data-navigation-back="true"]').click());
+    }
+    expect(navigationSteps.length).toBeLessThanOrEqual(16);
+
+    const current = navigated;
+    const navigationRequest = operation => ({
+      presentation_id: current.presentation.identity,
+      presentation_revision: current.presentation.revision,
+      navigation_id: current.navigation.navigation.identity,
+      operation,
+    });
+    await refuseNavigation(page, navigationRefusals, { kind: "stale-presentation" }, {
+      ...navigationRequest({ kind: "enter", place: "Body" }),
+      presentation_revision: current.presentation.revision - 1,
+    }, "StalePresentation");
+    await refuseNavigation(page, navigationRefusals, { kind: "focus", subject: "subject/absent" },
+      navigationRequest({ kind: "focus", subject: "subject/absent" }), "UnknownSubject");
+    await refuseNavigation(page, navigationRefusals, { kind: "follow", relationship: followIdentity },
+      navigationRequest({ kind: "follow", relationship: followIdentity }), "UnknownRelationship");
+    await refuseNavigation(page, navigationRefusals, { kind: "back" },
+      navigationRequest({ kind: "back" }), "HistoryExhausted");
+    expect(navigationRefusals).toHaveLength(4);
+
     const receiptPath = process.env.CONDUIT_PATCHBAY_FRONT_DOOR_RECEIPT_PATH;
     if (receiptPath) {
       const receipt = {
-        schema: "conduit.patchbay/zero-body-front-door-capstone@1",
+        schema: "conduit.patchbay/zero-body-front-door-capstone@2",
         proof_class: "live-browser",
         browser_engine: "chromium",
         browser_version: browser.version(),
@@ -223,6 +370,15 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
         plan_id: playing.presentation.basis.plan_id,
         active_play_id: playing.presentation.basis.active_play_id,
         stale_outcome: stale.interaction.last_disposition,
+        navigation_journey: {
+          schema: "conduit.presentation/navigation-journey-receipt@1",
+          maximum_steps: 16,
+          start_cursor: journeyStartCursor,
+          terminal_cursor: navigated.navigation.cursor,
+          followed_relationship: follow,
+          steps: navigationSteps,
+          refusals: navigationRefusals,
+        },
         assertions: {
           no_body_on_entry: true,
           open_is_inert: opened.presentation.basis.body_id === null,
@@ -233,6 +389,16 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
           renderer_local_state_excluded_from_semantic_subjects: playing.presentation.subjects.every(
             ({ identity }) => !identity.startsWith("dom/") && !identity.startsWith("window/"),
           ),
+          navigate_does_not_act: navigationSteps.every(step =>
+            JSON.stringify(step.semantic_basis) === JSON.stringify(semanticBasis(playing))),
+          program_body_follow_is_exact: follow.source_subject === upperIdentity
+            && follow.target_subject === navigationSteps.find(step => step.operation.kind === "follow").after_cursor.focus,
+          body_current_truth_is_reachable: ["Play", "Signs"].includes(currentTruthAspect.aspect),
+          detail_and_exact_are_depth: navigationSteps.some(step => step.after_cursor.depth === "Detail")
+            && navigationSteps.some(step => step.after_cursor.depth === "Exact"),
+          returned_to_program_structure: JSON.stringify(navigated.navigation.cursor)
+            === JSON.stringify(journeyStartCursor),
+          bounded_explicit_refusals: navigationRefusals.length === 4,
         },
       };
       await mkdir(dirname(receiptPath), { recursive: true });
