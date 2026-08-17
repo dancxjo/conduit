@@ -25,6 +25,8 @@ mod vector_index_lifecycle;
 pub use vector_index_lifecycle::*;
 mod vector_index_resource;
 pub use vector_index_resource::*;
+mod vector_exact_search;
+pub use vector_exact_search::*;
 mod vector_retrieval;
 pub use vector_retrieval::*;
 #[cfg(feature = "form-catalog")]
