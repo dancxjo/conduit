@@ -87,6 +87,11 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
         decoded.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Available
     );
+    let observation = request("/api/navigation-observation", "GET");
+    assert!(observation.starts_with("HTTP/1.1 200 OK"));
+    let observed: conduit_presentation::NavigationObservation =
+        serde_json::from_str(observation.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    assert_eq!(Some(observed), decoded.navigation_observation().unwrap());
     assert_eq!(
         request("/unknown", "GET").lines().next(),
         Some("HTTP/1.1 404 Not Found")

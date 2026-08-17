@@ -1,7 +1,8 @@
 //! Native selection and rendering of exact portable FOLLOW correlations.
 
 use conduit_presentation::{
-    NavigationFollow, Presentation, PresentationCursor, PresentationNavigation,
+    NavigationFollow, NavigationObservation, Presentation, PresentationCursor,
+    PresentationNavigation,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,26 +39,17 @@ pub(super) fn exact_current_follow<'a>(
 
 pub(super) fn append_follow_lines(
     presentation: &Presentation,
-    navigation: &PresentationNavigation,
-    cursor: &PresentationCursor,
+    observation: &NavigationObservation,
     selected_follow: Option<&str>,
     lines: &mut Vec<String>,
 ) -> Result<(), String> {
-    let Some(focus) = cursor.focus.as_deref() else {
-        return Ok(());
-    };
-    let follows = navigation
-        .follows
-        .iter()
-        .filter(|follow| follow.source_subject == focus)
-        .collect::<Vec<_>>();
-    for follow in &follows {
+    for follow in &observation.current_follows {
         let destination = presentation
             .subjects
             .iter()
             .find(|subject| subject.identity == follow.target_subject)
             .ok_or_else(|| "FOLLOW destination subject is absent".to_string())?;
-        let selected = follows.len() == 1
+        let selected = observation.current_follows.len() == 1
             || selected_follow.is_some_and(|identity| identity == follow.identity);
         let binding = if selected {
             "F3 SELECTED"

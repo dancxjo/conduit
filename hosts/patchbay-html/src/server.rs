@@ -10,6 +10,7 @@ mod browser_membership;
 mod front_door;
 mod interaction;
 mod navigation;
+mod observation;
 mod parts;
 mod theme;
 mod transition;
@@ -44,6 +45,7 @@ pub enum ServerError {
     Snapshot(SnapshotError),
     NonLoopbackBind,
     ThemeCssTooLarge,
+    NavigationObservationTooLarge,
     RequestTooLarge,
     InvalidRequest,
     Interaction(String),
@@ -57,6 +59,9 @@ impl std::fmt::Display for ServerError {
             Self::NonLoopbackBind => f.write_str("Patchbay HTML binds only to IPv4 loopback"),
             Self::ThemeCssTooLarge => {
                 f.write_str("Patchbay theme CSS exceeds its finite encoded bound")
+            }
+            Self::NavigationObservationTooLarge => {
+                f.write_str("Patchbay navigation observation exceeds its finite encoded bound")
             }
             Self::RequestTooLarge => f.write_str("Patchbay HTTP request exceeds its finite bound"),
             Self::InvalidRequest => f.write_str("Patchbay HTTP request is not valid UTF-8"),
@@ -284,10 +289,15 @@ impl PatchbayHtmlServer {
                 &body,
             );
         }
-        if first == "GET /api/snapshot HTTP/1.1"
-            && (self.front_door.is_some() || self.zero_body_front_door.is_some())
+        if matches!(
+            first,
+            "GET /api/snapshot HTTP/1.1" | "GET /api/navigation-observation HTTP/1.1"
+        ) && (self.front_door.is_some() || self.zero_body_front_door.is_some())
         {
             self.refresh_front_door()?;
+        }
+        if first == "GET /api/navigation-observation HTTP/1.1" {
+            return self.write_navigation_observation(&mut stream);
         }
         let (status, content_type, body): (&str, &str, &[u8]) = match first {
             "GET / HTTP/1.1" => ("200 OK", "text/html; charset=utf-8", INDEX),

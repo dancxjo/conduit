@@ -39,6 +39,28 @@ export function projectCurrent(snapshot) {
   };
 }
 
+export function observeCurrent(snapshot) {
+  const projected=projectCurrent(snapshot), bundle=snapshot.navigation;
+  if (!projected.portable || !bundle) throw new Error("portable navigation observation unavailable");
+  const place=bundle.navigation.places.find(candidate=>candidate.place===bundle.cursor.place);
+  const byIdentity=(left,right)=>left.identity<right.identity?-1:left.identity>right.identity?1:0;
+  return {
+    schema:"conduit.presentation/navigation-observation@1",
+    presentation_id:snapshot.presentation.identity,
+    presentation_revision:snapshot.presentation.revision,
+    navigation_id:bundle.navigation.identity,
+    projection_id:bundle.projection.identity,
+    cursor:bundle.cursor,
+    available_places:bundle.navigation.places,
+    available_aspects:place.aspects,
+    projected_subjects:[...projected.subjects].sort(byIdentity),
+    projected_actions:[...projected.actions].sort(byIdentity),
+    current_follows:bundle.navigation.follows
+      .filter(follow=>follow.source_subject===bundle.cursor.focus)
+      .sort(byIdentity),
+  };
+}
+
 export function lensForCursor(cursor) {
   if (!cursor || cursor.aspect === "Structure") return cursor?.place === "Program" ? "form" : "world";
   return ({Plan:"plan",Play:"play",Signs:"signs"})[cursor.aspect] ?? "world";
