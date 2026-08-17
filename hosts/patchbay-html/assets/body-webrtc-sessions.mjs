@@ -193,6 +193,11 @@ export class BodyWebRtcSessions {
     return this.#session(negotiationId).waitDelivered(negotiationId, sequence);
   }
 
+  closeLine(negotiationId) {
+    this.#session(negotiationId).close();
+    this.#onState?.(this.state());
+  }
+
   state() {
     return Object.freeze({
       expectedTotal: this.#expectedTotal,

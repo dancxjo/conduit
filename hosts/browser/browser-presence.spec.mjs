@@ -279,6 +279,8 @@ test("two admitted product clients compose Body grants into one exact ready sess
   expect(sinkSession).toMatchObject({ peerHostId: sourceIdentity.hostId, peerBootId: sourceIdentity.bootId });
   const sourcePage = sourceSession.role === "source" ? source : sink;
   const sinkPage = sourceSession.role === "sink" ? source : sink;
+  const sourceRoleIdentity = sourceSession.role === "source" ? sourceIdentity : sinkIdentity;
+  const sinkRoleIdentity = sourceSession.role === "sink" ? sourceIdentity : sinkIdentity;
   const negotiationId = sourceSession.negotiationId;
   const value = [11, 22, 33, 44];
   await expect(sourcePage.evaluate(
@@ -358,21 +360,40 @@ test("two admitted product clients compose Body grants into one exact ready sess
     (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
     negotiationId,
   )).rejects.toThrow(/closed|traffic|Line/);
-  await sourcePage.evaluate(() => globalThis.__browserPresence.close());
+  await sourcePage.evaluate(
+    (id) => globalThis.__browserPresence.closeWebRtcLine(id),
+    negotiationId,
+  );
   await pendingReceive;
-  await expect.poll(() => sourcePage.evaluate(() => globalThis.__browserPresence.webRtcSessions()))
-    .toMatchObject({ activeSessions: 0, terminalReason: "presence-closed" });
-  await expect.poll(() => sinkPage.evaluate(() => {
-    const session = globalThis.__browserPresence.webRtcSessions().sessions[0];
-    return session !== undefined && !session.sessionReady && session.terminalReason !== null;
-  })).toBe(true);
-  const sourceAfterLoss = await sourcePage.evaluate(() => globalThis.__browserPresence.webRtcSessions());
+  for (const page of [sourcePage, sinkPage]) {
+    await expect.poll(() => page.evaluate(() => {
+      const session = globalThis.__browserPresence.webRtcSessions().sessions[0];
+      return session !== undefined
+        && !session.sessionReady
+        && session.terminalReason === "line-closed"
+        && session.line.readyState === "closed";
+    })).toBe(true);
+    await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.presenceState()))
+      .toBe("available");
+  }
+  const sourceAfterLoss = await sourcePage.evaluate(() => globalThis.__browserPresence.webRtcSessions().sessions[0]);
   const sinkAfterLoss = await sinkPage.evaluate(() => globalThis.__browserPresence.webRtcSessions().sessions[0]);
+  const sourcePresenceAfterLoss = await sourcePage.evaluate(() => ({
+    hostId: globalThis.__browserPresence.hostId,
+    bootId: globalThis.__browserPresence.bootId,
+    state: globalThis.__browserPresence.presenceState(),
+  }));
+  const sinkPresenceAfterLoss = await sinkPage.evaluate(() => ({
+    hostId: globalThis.__browserPresence.hostId,
+    bootId: globalThis.__browserPresence.bootId,
+    state: globalThis.__browserPresence.presenceState(),
+  }));
   await expect(sourcePage.evaluate(
     (id) => globalThis.__browserPresence.offerWebRtcValue(id, [1]),
     negotiationId,
-  )).rejects.toThrow(/not current|unknown or stale/);
+  )).rejects.toThrow("WebRTC session is not current and Ready");
   await expect.poll(probe.output).toContain("relayed stage=2");
+  await sourcePage.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(probe.output).toContain("peer-lost");
   await sinkPage.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(() => probe.process.exitCode).toBe(0);
@@ -404,12 +425,12 @@ test("two admitted product clients compose Body grants into one exact ready sess
         delivered: { delivered: true, sequence: received.sequence },
       },
       loss: {
-        source_presence: "closed",
-        source_sessions: sourceAfterLoss,
+        source_presence: sourcePresenceAfterLoss,
+        sink_presence: sinkPresenceAfterLoss,
+        source_session: sourceAfterLoss,
         sink_session: sinkAfterLoss,
         line_ready_before: true,
         line_ready_after: false,
-        probe_observed_peer_loss: probe.output().includes("peer-lost"),
       },
       assertions: {
         distinct_host_boot_peers: sourceIdentity.hostId !== sinkIdentity.hostId
@@ -425,15 +446,22 @@ test("two admitted product clients compose Body grants into one exact ready sess
           && acceptedOutcome.accepted
           && sinkAfterLoss.deliveredSequence === received.sequence,
         membership_presence_distinct_from_line_readiness:
-          sourceAfterLoss.terminalReason === "presence-closed"
+          sourcePresenceAfterLoss.state === "available"
+          && sinkPresenceAfterLoss.state === "available"
+          && sourcePresenceAfterLoss.hostId === sourceRoleIdentity.hostId
+          && sourcePresenceAfterLoss.bootId === sourceRoleIdentity.bootId
+          && sinkPresenceAfterLoss.hostId === sinkRoleIdentity.hostId
+          && sinkPresenceAfterLoss.bootId === sinkRoleIdentity.bootId
+          && sourceAfterLoss.terminalReason === "line-closed"
           && sinkAfterLoss.terminalReason === "line-closed"
+          && sourceAfterLoss.line.readyState === "closed"
           && sinkAfterLoss.line.readyState === "closed",
         state_is_finite: basis.session_limits.maximum_in_flight_items === 1
           && basis.session_limits.maximum_payload_bytes === 16
           && basis.session_limits.maximum_buffered_bytes === 16
-          && sourceAfterLoss.activeSessions === 0
-          && sourceAfterLoss.creatingSessions === 0
-          && sourceAfterLoss.pendingSignals === 0
+          && sourceAfterLoss.line.bufferedBytes === 0
+          && sourceAfterLoss.line.retainedMessages === 0
+          && sourceAfterLoss.line.retainedBytes === 0
           && sinkAfterLoss.line.bufferedBytes === 0
           && sinkAfterLoss.line.retainedMessages === 0
           && sinkAfterLoss.line.retainedBytes === 0,
