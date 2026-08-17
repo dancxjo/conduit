@@ -11,6 +11,9 @@ pub(crate) use validation::{validate_predicates, validate_preference};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PlannerFactRef {
+    /// Exact current Host identity. This is realization truth supplied to the
+    /// planner, never authored Form meaning or an aggregate Host score.
+    HostIdentity,
     RealizationCharacteristic(CharacteristicId),
     ResourceUnits(ResourceClassId),
     ComputeServiceGuarantee(ResourceClassId),
@@ -273,6 +276,9 @@ fn fact_value(
     fact: &PlannerFactRef,
 ) -> Result<Option<PlannerFactValue>, FactPolicyError> {
     let value = match fact {
+        PlannerFactRef::HostIdentity => Some(PlannerFactValue::Category(
+            candidate.host.host_id.as_str().into(),
+        )),
         PlannerFactRef::RealizationCharacteristic(id) => candidate
             .realization
             .and_then(|advertisement| {

@@ -72,6 +72,7 @@ pub use canonical::{
 pub use characteristics::{
     plan_selected_realizations_with_characteristics,
     plan_selected_realizations_with_characteristics_and_authority,
+    plan_selected_realizations_with_characteristics_and_options,
     select_realization_with_characteristics, select_realization_with_characteristics_and_signs,
     SelectedRealizationPlanning, MAXIMUM_PLANNER_POLICY_CLAUSES,
 };
