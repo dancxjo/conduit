@@ -50,6 +50,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             match run_suite_with_environment(PROVE_BROWSER_HOST_STEPS, &root, opts, &environment) {
                 Ok(()) => {
                     declare_patchbay_capture_manifest(&mut evidence)?;
+                    declare_browser_webrtc_manifest(&mut evidence)?;
                     import_patchbay_captures(&mut evidence, true)?;
                     evidence
                         .finish(EvidenceResult::Complete)
@@ -61,6 +62,17 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                             .and_then(|()| import_patchbay_captures(&mut evidence, false))
                         {
                             eprintln!("xtask evidence import error after proof failure: {error}");
+                        }
+                    }
+                    if evidence
+                        .root()
+                        .join("browser-webrtc-session.json")
+                        .is_file()
+                    {
+                        if let Err(error) = declare_browser_webrtc_manifest(&mut evidence) {
+                            eprintln!(
+                                "xtask WebRTC evidence import error after proof failure: {error}"
+                            );
                         }
                     }
                     if let Err(evidence_error) =
@@ -391,6 +403,27 @@ fn declare_patchbay_capture_manifest(evidence: &mut EvidenceManifest) -> Result<
         .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))
 }
 
+fn declare_browser_webrtc_manifest(evidence: &mut EvidenceManifest) -> Result<(), StepError> {
+    evidence
+        .declare(EvidenceOutput {
+            id: "browser-host.body-granted-webrtc-session".into(),
+            kind: EvidenceKind::MachineReadableManifest,
+            path: "browser-webrtc-session.json".into(),
+            media_type: "application/json".into(),
+            required: true,
+            provenance: EvidenceProvenance {
+                scenario_id: "browser-host.body-granted-webrtc-session@1".into(),
+                step_id: Some("prove.browser-host.playwright".into()),
+                asserted_semantic_disposition: Some(
+                    "two-admitted-browser-hosts-ready-value-delivery-and-line-loss-asserted".into(),
+                ),
+                proof_class: Some("live-browser".into()),
+                ..Default::default()
+            },
+        })
+        .map_err(|error| StepError::prereq("prove.browser-host.evidence", error))
+}
+
 fn import_patchbay_captures(
     evidence: &mut EvidenceManifest,
     require_complete: bool,
@@ -419,6 +452,8 @@ fn clear_patchbay_capture_outputs(root: &std::path::Path) -> Result<(), StepErro
         "high-contrast.png",
         "disconnected.png",
         "responsive.png",
+        "browser-webrtc-session.json",
+        "browser-webrtc-session.json.tmp",
     ] {
         let path = root.join(name);
         if path.exists() || path.is_symlink() {

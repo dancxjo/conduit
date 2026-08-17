@@ -37,6 +37,7 @@ fn main() -> Result<(), String> {
         SignId::from("sign/browser-webrtc-rendezvous-probe/body-born"),
     )
     .map_err(debug("Body birth"))?;
+    let body_id = body.body_id.clone();
     let mut membership = BodyMembership::new(body.body_id.clone()).map_err(debug("membership"))?;
     let mut candidates =
         CandidateInventory::new(body.body_id.clone()).map_err(debug("inventory"))?;
@@ -103,6 +104,29 @@ fn main() -> Result<(), String> {
         peers[0].credential.boot_id.as_str(),
         peers[1].credential.host_id.as_str(),
         peers[1].credential.boot_id.as_str()
+    );
+    println!(
+        "session_basis={}",
+        serde_json::json!({
+            "body_id": body_id.as_str(),
+            "source_part_id": peers[0].credential.part_id.as_str(),
+            "sink_part_id": peers[1].credential.part_id.as_str(),
+            "plan_id": binding.plan_id.as_str(),
+            "source_active_play_id": binding.source_active_play_id.as_str(),
+            "sink_active_play_id": binding.sink_active_play_id.as_str(),
+            "connection_id": binding.connection_id.as_str(),
+            "line_id": binding.attachment.line_id.as_str(),
+            "binding_id": binding.attachment.link_binding_id.as_str(),
+            "base": binding.attachment.base,
+            "base_instance_id": binding.attachment.base_instance_id.as_str(),
+            "value_kind": binding.value_kind.as_str(),
+            "session_limits": {
+                "maximum_in_flight_items": binding.limits.maximum_in_flight_items,
+                "maximum_payload_bytes": binding.limits.maximum_payload_bytes,
+                "maximum_buffered_bytes": binding.limits.maximum_buffered_bytes,
+            },
+            "line_limits": binding.attachment.limits,
+        })
     );
 
     let mut relayed = 0_u8;
