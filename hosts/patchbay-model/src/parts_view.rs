@@ -68,6 +68,27 @@ pub struct PartRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PartsTruthExplanation {
+    pub available: String,
+    pub line_ready: String,
+    pub line_unavailable: String,
+    pub in_plan: String,
+    pub playing: String,
+}
+
+impl PartsTruthExplanation {
+    fn canonical() -> Self {
+        Self {
+            available: "AVAILABLE means this admitted Part has fresh current Host/Boot presence; it does not mean a Line is Ready or selected.".into(),
+            line_ready: "LINE READY means this exact Line is currently usable; it does not grant authority or place the Line in a Plan.".into(),
+            line_unavailable: "LINE UNAVAILABLE means this exact Line cannot carry traffic; the Parts may remain AVAILABLE and the immutable Plan remains unchanged.".into(),
+            in_plan: "IN PLAN means the immutable Plan selected this exact Part/Host/Boot realization; it does not mean a Play is active.".into(),
+            playing: "PLAYING means an active Play bound to the current Plan includes this Part; loss or stopping does not rewrite that Plan.".into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CandidateRow {
     pub candidate_id: CandidateId,
     pub label: String,
@@ -89,6 +110,7 @@ pub struct PartsView {
     pub wants_to_join: Vec<CandidateRow>,
     pub actions: Vec<PartsAction>,
     pub new_realization_possibilities: bool,
+    pub truth_explanation: PartsTruthExplanation,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -386,6 +408,7 @@ impl PartsView {
             wants_to_join,
             actions,
             new_realization_possibilities,
+            truth_explanation: PartsTruthExplanation::canonical(),
         })
     }
 }

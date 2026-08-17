@@ -143,6 +143,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(await page.evaluate(()=>({innerHeight,innerWidth,scrollHeight:document.documentElement.scrollHeight,scrollWidth:document.documentElement.scrollWidth}))).toEqual({innerHeight:768,innerWidth:1366,scrollHeight:768,scrollWidth:1366});
     await page.locator("#toggle-parts").click();
     await expect(page.getByRole("heading",{name:/Parts/})).toBeVisible();
+    const truthExplanation=page.locator("#parts-truth-explanation");
+    await expect(truthExplanation).toContainText("AVAILABLE means this admitted Part has fresh current Host/Boot presence");
+    await expect(truthExplanation).toContainText("LINE READY means this exact Line is currently usable");
+    await expect(truthExplanation).toContainText("LINE UNAVAILABLE means this exact Line cannot carry traffic");
+    await expect(truthExplanation).toContainText("IN PLAN means the immutable Plan selected this exact Part/Host/Boot realization");
+    await expect(truthExplanation).toContainText("PLAYING means an active Play bound to the current Plan includes this Part");
     await expect(page.getByRole("list",{name:"Body Parts"}).getByRole("listitem")).toHaveCount(3);
     await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("HERE · AVAILABLE");
     await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("ATTACHED · AVAILABLE");
