@@ -7,6 +7,10 @@ use conduit_core::{
     process_owned_line_offer_with_limits, BootId, ConnectionBase, HostId, LineAvailability, LineId,
     LinkBindingId, LinkLimits, OfferGeneration, SignId,
 };
+use conduit_presentation::{
+    NavigationOperation, NavigationRefusal, NavigationState, PresentationAspect, PresentationDepth,
+    PresentationPlace, PresentationPropertyValue, MAX_NAVIGATION_HISTORY,
+};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BROWSER_ADMISSION_PROTOCOL, MAX_BROWSER_ADMISSION_FRAME_BYTES,
@@ -145,6 +149,9 @@ fn main() -> Result<(), String> {
     {
         return Err("browser admission mutated the active Plan or Play".into());
     }
+    let line_subject = format!("line/{BROWSER_LINE_ID}");
+    let mut before_loss_navigation = navigate_to_line_exact(&attached, &line_subject)?;
+    let before_loss_cursor = before_loss_navigation.cursor().clone();
     println!(
         "ready_for_offline body={} part={} plan={} play={}",
         session.body().body_id.as_str(),
@@ -162,6 +169,35 @@ fn main() -> Result<(), String> {
         SignId::from("patchbay-front-door/browser-line-unavailable"),
     )?;
     let line_lost = session.project()?;
+    let stale_refusal = before_loss_navigation
+        .navigate(
+            &line_lost.presentation,
+            &line_lost.navigation.navigation,
+            line_lost.presentation.revision,
+            NavigationOperation::Disclose(PresentationDepth::Exact),
+        )
+        .expect_err("a cursor over the prior live-Line Presentation must become stale");
+    if stale_refusal != NavigationRefusal::StalePresentation {
+        return Err(format!(
+            "loss navigation refused with {stale_refusal:?}, expected StalePresentation"
+        ));
+    }
+    if session.current_plan_id() != Some(&first_plan)
+        || session.current_play_id() != Some(&first_play)
+    {
+        return Err("Line loss mutated the active Plan or Play".into());
+    }
+    let after_loss_cursor = navigate_to_line_exact(&line_lost, &line_subject)?
+        .cursor()
+        .clone();
+    let line_is_unavailable = line_lost.presentation.properties.iter().any(|property| {
+        property.subject == line_subject
+            && property.name == "availability"
+            && property.value == PresentationPropertyValue::Text("Unavailable".into())
+    });
+    if !line_is_unavailable {
+        return Err("current loss Presentation did not expose the Line as Unavailable".into());
+    }
     for state in [&mut native_state, &mut browser_state] {
         if state
             .update(&line_lost.presentation)
@@ -232,7 +268,7 @@ fn main() -> Result<(), String> {
         "browser",
     )?;
     let receipt = json!({
-        "schema": "conduit.patchbay/live-front-door-topology@1",
+        "schema": "conduit.patchbay/live-front-door-topology@2",
         "proof_class": "live-browser",
         "body_id": session.body().body_id.as_str(),
         "wake_id": session
@@ -259,6 +295,17 @@ fn main() -> Result<(), String> {
         "line_binding_id": BROWSER_BINDING_ID,
         "line_base": "WebSocket",
         "line_availability_transition": ["Ready", "Unavailable"],
+        "loss_navigation": {
+            "schema": "conduit.presentation/loss-navigation-receipt@1",
+            "before": before_loss_cursor,
+            "prior_cursor_refusal": format!("{stale_refusal:?}"),
+            "after": after_loss_cursor,
+            "line_subject": line_subject,
+            "line_is_unavailable": line_is_unavailable,
+            "plan_id_before_and_after": first_plan.as_str(),
+            "play_id_before_and_after": first_play.as_str(),
+            "hidden_replan": false,
+        },
         "final_presentation_id": final_projection.presentation.identity.as_str(),
         "final_presentation_revision": final_projection.presentation.revision,
         "final_basis_sign_ids": final_projection.presentation.basis.sign_ids,
@@ -283,6 +330,35 @@ fn main() -> Result<(), String> {
     retain(&receipt)?;
     println!("{receipt}");
     Ok(())
+}
+
+fn navigate_to_line_exact(
+    projection: &patchbay_model::LocalFrontDoorProjection,
+    line_subject: &str,
+) -> Result<NavigationState, String> {
+    let navigation = &projection.navigation.navigation;
+    let mut state = NavigationState::new(
+        navigation,
+        projection.navigation.cursor.clone(),
+        MAX_NAVIGATION_HISTORY,
+    )
+    .map_err(|error| format!("initialize loss navigation: {error:?}"))?;
+    for operation in [
+        NavigationOperation::Enter(PresentationPlace::Body),
+        NavigationOperation::Show(PresentationAspect::Plan),
+        NavigationOperation::Focus(line_subject.into()),
+        NavigationOperation::Disclose(PresentationDepth::Exact),
+    ] {
+        state
+            .navigate(
+                &projection.presentation,
+                navigation,
+                projection.presentation.revision,
+                operation,
+            )
+            .map_err(|error| format!("navigate to exact Line truth: {error:?}"))?;
+    }
+    Ok(state)
 }
 
 fn ambient_proof(frame: BrowserAdmissionIngress) -> Result<AmbientAdmissionProof, String> {
