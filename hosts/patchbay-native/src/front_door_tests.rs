@@ -8,8 +8,9 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
         ..Arguments::default()
     })
     .unwrap();
-    let state = application.entrance_state.as_ref().unwrap();
-    let presentation = application.entrance_presentation.as_ref().unwrap();
+    let entrance = application.entrance.as_ref().unwrap();
+    let state = &entrance.state;
+    let presentation = &entrance.presentation;
     assert!(!application.parts_open);
     assert!(application.form_editor.is_none());
     assert!(application.build_birth.body().is_none());
@@ -26,6 +27,15 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
         .subjects
         .iter()
         .any(|subject| subject.role == conduit_presentation::PresentationRole::Seed));
+    let navigation = &entrance.navigation;
+    assert_eq!(
+        navigation.cursor.place,
+        conduit_presentation::PresentationPlace::Entrance
+    );
+    assert_eq!(
+        navigation.cursor.aspect,
+        conduit_presentation::PresentationAspect::Structure
+    );
     let renderer = application.renderer_execution.as_ref().unwrap();
     assert_eq!(renderer.presentation.identity, presentation.identity);
     assert!(renderer.plan.fragments.iter().any(|fragment| {
@@ -34,6 +44,8 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
         })
     }));
     let ordinary = application.presentation_lines().join("\n");
+    assert!(ordinary.contains("PLACE Entrance  ·  ASPECT Structure"));
+    assert!(ordinary.contains("CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT"));
     assert!(ordinary.contains("Seed  Patchbay entrance specimen"));
     assert!(ordinary.contains("OPEN [ENTER]  ·  AVAILABLE"));
     assert!(ordinary.contains("BIRTH [F4]  ·  UNAVAILABLE — No admitted authority"));
@@ -48,14 +60,14 @@ fn native_front_door_keys_invoke_current_open_and_disclose_exact_details() {
         ..Arguments::default()
     })
     .unwrap();
-    let original = application.entrance_presentation.as_ref().unwrap().clone();
+    let original = application.entrance.as_ref().unwrap().presentation.clone();
 
     assert!(application
         .handle_front_door_key(&winit::keyboard::Key::Named(
             winit::keyboard::NamedKey::Enter,
         ))
         .unwrap());
-    let opened = application.entrance_presentation.as_ref().unwrap();
+    let opened = &application.entrance.as_ref().unwrap().presentation;
     assert_eq!(opened.revision, original.revision + 1);
     assert_ne!(opened.identity, original.identity);
     assert!(opened.properties.iter().any(|property| {
@@ -63,14 +75,98 @@ fn native_front_door_keys_invoke_current_open_and_disclose_exact_details() {
             && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
     }));
     let opened_identity = opened.identity.clone();
+    assert_eq!(
+        application
+            .entrance
+            .as_ref()
+            .unwrap()
+            .navigation
+            .cursor
+            .place,
+        conduit_presentation::PresentationPlace::Program
+    );
 
     assert!(application
         .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F2,))
         .unwrap());
     assert!(application.linear_view);
     let details = application.presentation_lines().join("\n");
+    assert!(details.contains("CURSOR place=Program aspect=Structure"));
+    assert!(details.contains("depth=Exact"));
     assert!(details.contains(opened_identity.as_str()));
     assert!(details.contains("ACTION id="));
+
+    application
+        .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F2))
+        .unwrap();
+    assert!(!application.linear_view);
+    assert_eq!(
+        application
+            .entrance
+            .as_ref()
+            .unwrap()
+            .navigation
+            .cursor
+            .depth,
+        conduit_presentation::PresentationDepth::Primary
+    );
+}
+
+#[test]
+fn native_place_and_aspect_keys_mutate_only_the_portable_cursor() {
+    let mut application = PatchbayApplication::new(Arguments {
+        front_door: true,
+        ..Arguments::default()
+    })
+    .unwrap();
+    application
+        .handle_front_door_key(&winit::keyboard::Key::Named(
+            winit::keyboard::NamedKey::Enter,
+        ))
+        .unwrap();
+    let presentation = application.entrance.as_ref().unwrap().presentation.clone();
+    let before_basis = presentation.basis.clone();
+
+    assert!(!application
+        .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::Tab))
+        .unwrap());
+    application.modifiers = winit::keyboard::ModifiersState::CONTROL;
+    application
+        .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::Tab))
+        .unwrap();
+    assert_eq!(
+        application
+            .entrance
+            .as_ref()
+            .unwrap()
+            .navigation
+            .cursor
+            .place,
+        conduit_presentation::PresentationPlace::Entrance
+    );
+    application
+        .handle_front_door_key(&winit::keyboard::Key::Named(
+            winit::keyboard::NamedKey::PageDown,
+        ))
+        .unwrap();
+    assert_eq!(
+        application
+            .entrance
+            .as_ref()
+            .unwrap()
+            .navigation
+            .cursor
+            .aspect,
+        conduit_presentation::PresentationAspect::Signs
+    );
+    assert_eq!(
+        &application.entrance.as_ref().unwrap().presentation,
+        &presentation
+    );
+    assert_eq!(
+        application.entrance.as_ref().unwrap().presentation.basis,
+        before_basis
+    );
 }
 
 #[test]
@@ -122,9 +218,10 @@ fn native_front_door_discloses_exact_truth_only_in_details() {
     })
     .unwrap();
     let identity = application
-        .entrance_presentation
+        .entrance
         .as_ref()
         .unwrap()
+        .presentation
         .identity
         .as_str()
         .to_owned();
@@ -155,17 +252,29 @@ fn native_open_seed_revision_remains_unbodied_and_preserves_selection() {
     application
         .select_front_door_subject(&seed_subject)
         .unwrap();
+    assert_eq!(
+        application
+            .entrance
+            .as_ref()
+            .unwrap()
+            .navigation
+            .cursor
+            .focus
+            .as_deref(),
+        Some(seed_subject.as_str())
+    );
     let selected = Some(seed_subject);
     application.handle_gui_action(GuiAction::OpenBack).unwrap();
-    let opened = application.entrance_presentation.as_ref().unwrap();
+    let opened = &application.entrance.as_ref().unwrap().presentation;
     assert_eq!(opened.revision, 2);
     assert!(opened.basis.body_id.is_none());
     assert!(opened.basis.seed_id.is_none());
     assert_eq!(
         application
-            .entrance_state
+            .entrance
             .as_ref()
             .unwrap()
+            .state
             .selected_subject,
         selected
     );

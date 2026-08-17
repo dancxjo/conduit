@@ -26,6 +26,8 @@ pub struct LinearPresentation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LinearPresentationError {
     InvalidPresentation(PresentationError),
+    InvalidNavigation(crate::NavigationRefusal),
+    InvalidProjection(crate::ProjectionRefusal),
     TooManyLines,
     TooManyBytes,
 }
@@ -48,8 +50,43 @@ pub fn render_linear_presentation(
         .validate()
         .map_err(LinearPresentationError::InvalidPresentation)?;
 
-    let basis = &presentation.basis;
     let mut builder = LinearBuilder::new();
+    push_linear_basis(&mut builder, presentation)?;
+    for subject in &presentation.subjects {
+        builder.push(linear_subject(subject))?;
+    }
+    for relationship in &presentation.relationships {
+        builder.push(linear_relationship(relationship))?;
+    }
+    for property in &presentation.properties {
+        builder.push(linear_property(property))?;
+    }
+    for text in &presentation.text {
+        builder.push(linear_text(text))?;
+    }
+    for action in &presentation.actions {
+        builder.push(linear_action(action))?;
+    }
+    for disclosure in &presentation.disclosures {
+        builder.push(linear_disclosure(disclosure))?;
+    }
+    for reference in &presentation.temporal_references {
+        builder.push(linear_temporal_reference(reference))?;
+    }
+    for fact in &presentation.temporal_facts {
+        for line in linear_temporal_fact(fact) {
+            builder.push(line)?;
+        }
+    }
+
+    Ok(builder.finish(presentation))
+}
+
+pub(crate) fn push_linear_basis(
+    builder: &mut LinearBuilder,
+    presentation: &Presentation,
+) -> Result<(), LinearPresentationError> {
+    let basis = &presentation.basis;
     builder.push(format!(
         "PRESENTATION {} revision={}",
         presentation.identity.as_str(),
@@ -96,51 +133,57 @@ pub fn render_linear_presentation(
     for sign_id in &basis.sign_ids {
         builder.push(format!("SIGN id={}", sign_id.as_str()))?;
     }
-    for subject in &presentation.subjects {
-        builder.push(format!(
-            "SUBJECT role={:?} id={:?} label={:?} accessibility={:?}",
-            subject.role, subject.identity, subject.label, subject.accessibility_name
-        ))?;
-    }
-    for relationship in &presentation.relationships {
-        builder.push(format!(
-            "RELATIONSHIP kind={:?} source={:?} target={:?}",
-            relationship.kind, relationship.source, relationship.target
-        ))?;
-    }
-    for property in &presentation.properties {
-        builder.push(format!(
-            "PROPERTY subject={:?} name={:?} value={}",
-            property.subject,
-            property.name,
-            display_property(&property.value)
-        ))?;
-    }
-    for text in &presentation.text {
-        builder.push(format!(
-            "TEXT subject={:?} value={:?}",
-            text.subject, text.text
-        ))?;
-    }
-    for action in &presentation.actions {
-        builder.push(format!(
-            "ACTION id={:?} intent={:?} target={:?} label={:?} disclosure={:?} availability={}",
-            action.identity,
-            action.intent,
-            action.target,
-            action.label,
-            action.disclosure,
-            display_availability(&action.availability)
-        ))?;
-    }
-    for disclosure in &presentation.disclosures {
-        builder.push(format!(
-            "DISCLOSURE subject={:?} level={:?}",
-            disclosure.subject, disclosure.level
-        ))?;
-    }
-    for reference in &presentation.temporal_references {
-        builder.push(format!(
+    Ok(())
+}
+
+pub(crate) fn linear_subject(subject: &crate::PresentationSubject) -> String {
+    format!(
+        "SUBJECT role={:?} id={:?} label={:?} accessibility={:?}",
+        subject.role, subject.identity, subject.label, subject.accessibility_name
+    )
+}
+
+pub(crate) fn linear_relationship(relationship: &crate::PresentationRelationship) -> String {
+    format!(
+        "RELATIONSHIP kind={:?} source={:?} target={:?}",
+        relationship.kind, relationship.source, relationship.target
+    )
+}
+
+pub(crate) fn linear_property(property: &crate::PresentationProperty) -> String {
+    format!(
+        "PROPERTY subject={:?} name={:?} value={}",
+        property.subject,
+        property.name,
+        display_property(&property.value)
+    )
+}
+
+pub(crate) fn linear_text(text: &crate::PresentationText) -> String {
+    format!("TEXT subject={:?} value={:?}", text.subject, text.text)
+}
+
+pub(crate) fn linear_action(action: &crate::PresentationAction) -> String {
+    format!(
+        "ACTION id={:?} intent={:?} target={:?} label={:?} disclosure={:?} availability={}",
+        action.identity,
+        action.intent,
+        action.target,
+        action.label,
+        action.disclosure,
+        display_availability(&action.availability)
+    )
+}
+
+pub(crate) fn linear_disclosure(disclosure: &crate::PresentationDisclosure) -> String {
+    format!(
+        "DISCLOSURE subject={:?} level={:?}",
+        disclosure.subject, disclosure.level
+    )
+}
+
+pub(crate) fn linear_temporal_reference(reference: &crate::TemporalReference) -> String {
+    format!(
             "TEMPORAL_REFERENCE id={:?} ticks={} scale={:?} clock_basis={:?} resolution={} uncertainty={}",
             reference.identity,
             reference.instant.ticks,
@@ -148,16 +191,18 @@ pub fn render_linear_presentation(
             reference.instant.clock_basis,
             reference.instant.resolution_ticks,
             reference.instant.uncertainty_ticks
-        ))?;
-    }
-    for fact in &presentation.temporal_facts {
-        builder.push(format!(
+        )
+}
+
+pub(crate) fn linear_temporal_fact(fact: &crate::PresentationTemporalFact) -> [String; 2] {
+    [
+        format!(
             "RELATIVE_TIME subject={:?} role={:?} value={:?}",
             fact.subject,
             fact.role,
             format_relative_time(fact)
-        ))?;
-        builder.push(format!(
+        ),
+        format!(
             "TEMPORAL_FACT subject={:?} role={:?} sign={} reference={:?} source_ticks={} source_scale={:?} source_clock_basis={:?} source_resolution={} source_uncertainty={} relation={:?}",
             fact.subject,
             fact.role,
@@ -169,31 +214,24 @@ pub fn render_linear_presentation(
             fact.source.resolution_ticks,
             fact.source.uncertainty_ticks,
             fact.relation
-        ))?;
-    }
-
-    Ok(LinearPresentation {
-        presentation_id: presentation.identity.clone(),
-        revision: presentation.revision,
-        lines: builder.lines,
-        encoded_bytes: builder.encoded_bytes,
-    })
+        ),
+    ]
 }
 
-struct LinearBuilder {
+pub(crate) struct LinearBuilder {
     lines: Vec<String>,
     encoded_bytes: usize,
 }
 
 impl LinearBuilder {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             lines: Vec::new(),
             encoded_bytes: 0,
         }
     }
 
-    fn push(&mut self, line: String) -> Result<(), LinearPresentationError> {
+    pub(crate) fn push(&mut self, line: String) -> Result<(), LinearPresentationError> {
         if self.lines.len() >= MAX_LINEAR_PRESENTATION_LINES {
             return Err(LinearPresentationError::TooManyLines);
         }
@@ -208,6 +246,15 @@ impl LinearBuilder {
         self.lines.push(line);
         self.encoded_bytes = next_bytes;
         Ok(())
+    }
+
+    pub(crate) fn finish(self, presentation: &Presentation) -> LinearPresentation {
+        LinearPresentation {
+            presentation_id: presentation.identity.clone(),
+            revision: presentation.revision,
+            lines: self.lines,
+            encoded_bytes: self.encoded_bytes,
+        }
     }
 }
 
