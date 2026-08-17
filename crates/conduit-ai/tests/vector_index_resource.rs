@@ -62,6 +62,7 @@ fn authority(query: bool, insert: bool, upsert: bool, delete: bool) -> VectorInd
         insert,
         upsert,
         delete,
+        maintain: false,
     }
 }
 

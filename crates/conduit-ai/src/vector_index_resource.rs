@@ -22,6 +22,7 @@ pub struct VectorIndexAuthority {
     pub insert: bool,
     pub upsert: bool,
     pub delete: bool,
+    pub maintain: bool,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -72,8 +73,9 @@ pub struct VectorIndexMember {
 pub struct VectorIndexState {
     pub contract: VectorIndexContract,
     pub health: VectorIndexHealth,
-    authorities: Vec<VectorIndexAuthorization>,
-    members: Vec<VectorIndexMember>,
+    pub lifecycle: crate::VectorIndexLifecycle,
+    pub(crate) authorities: Vec<VectorIndexAuthorization>,
+    pub(crate) members: Vec<VectorIndexMember>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -126,6 +128,10 @@ pub enum VectorIndexResourceRefusal {
     InsertNotAuthorized,
     UpsertNotAuthorized,
     DeleteNotAuthorized,
+    MaintenanceNotAuthorized,
+    ResourceBusy,
+    WrongMaintenanceOperation,
+    SourceSetMismatch,
     SourceAlreadyPresent,
     SourceNotPresent,
     ItemLimitExceeded,
@@ -197,6 +203,7 @@ impl VectorIndexState {
         Ok(Self {
             contract,
             health: VectorIndexHealth::Ready,
+            lifecycle: crate::VectorIndexLifecycle::Idle,
             authorities,
             members: Vec::new(),
         })
@@ -373,7 +380,7 @@ impl VectorIndexState {
         Ok(self.contract.generation)
     }
 
-    fn authority(
+    pub(crate) fn authority(
         &self,
         authority_identity: &str,
     ) -> Result<VectorIndexAuthority, VectorIndexResourceRefusal> {
@@ -384,7 +391,7 @@ impl VectorIndexState {
             .ok_or(VectorIndexResourceRefusal::UnknownAuthority)
     }
 
-    fn validate_handle(
+    pub(crate) fn validate_handle(
         &self,
         handle: &VectorIndexHandle,
     ) -> Result<(), VectorIndexResourceRefusal> {
@@ -396,6 +403,9 @@ impl VectorIndexState {
         }
         if self.health != VectorIndexHealth::Ready {
             return Err(VectorIndexResourceRefusal::ResourceUnavailable);
+        }
+        if self.lifecycle != crate::VectorIndexLifecycle::Idle {
+            return Err(VectorIndexResourceRefusal::ResourceBusy);
         }
         Ok(())
     }
@@ -428,7 +438,7 @@ enum MutationOperation {
     Delete,
 }
 
-fn validate_identity(identity: &str) -> Result<(), VectorIndexResourceRefusal> {
+pub(crate) fn validate_identity(identity: &str) -> Result<(), VectorIndexResourceRefusal> {
     if identity.is_empty() || identity.len() > crate::MAXIMUM_VECTOR_IDENTITY_BYTES {
         Err(VectorIndexResourceRefusal::InvalidIdentity)
     } else {
