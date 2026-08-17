@@ -6,6 +6,7 @@ mod count_operations;
 mod deadline_host;
 mod external_websocket;
 mod external_websocket_host;
+mod facade;
 mod factory;
 mod flow_gate_operation;
 mod flow_state_operations;
@@ -108,104 +109,7 @@ const MAX_QUEUE_SLOTS: usize = 64;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 64;
 
-pub(super) use contract::text_offer;
-pub(crate) use http::{client_offer as http_client_offer, server_offer as http_server_offer};
-pub(crate) fn http_client_resource_class() -> &'static str {
-    http::CLIENT_RESOURCE
-}
-pub(crate) fn http_server_resource_class() -> &'static str {
-    http::SERVER_RESOURCE
-}
-pub(super) use render_demand_operation::offer as render_demand_offer;
-pub(super) use synth_operation::offer as synth_offer;
-#[cfg(test)]
-pub(super) use test_support::{
-    test_catalog, test_graphics_sink_offer, test_layout_sink_offer, test_observer_offer,
-    test_presentation_sink_offer,
-};
-
-#[cfg(test)]
-pub(super) fn test_text_source_offer() -> conduit_core::CapabilityOffer {
-    test_text_source::offer()
-}
-
-pub(super) fn test_pcm_source_offer() -> conduit_core::CapabilityOffer {
-    test_audio_source::offer()
-}
-
-#[cfg(test)]
-pub(crate) use test_json_codec::{
-    sink_offer as test_json_sink_offer, source_offer as test_json_source_offer,
-};
-
-#[cfg(test)]
-pub(super) fn test_midi_source_offer() -> conduit_core::CapabilityOffer {
-    test_midi_source::offer()
-}
-
-pub(crate) fn playback_proof_catalog() -> conduit_form::ProfileCatalog {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profile)
-        .expect("sound proof catalog identities are unique");
-    test_audio_source::install_catalog(&mut profile);
-    profile
-}
-
-#[cfg(test)]
-pub(super) fn test_key_event_source_offer() -> conduit_core::CapabilityOffer {
-    test_input_semantics::source_offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_chord_sink_offer() -> conduit_core::CapabilityOffer {
-    test_input_semantics::sink_offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_scalar_source_offer() -> conduit_core::CapabilityOffer {
-    test_scalar_flow::source_offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_scalar_literal_offer() -> conduit_core::CapabilityOffer {
-    test_scalar_flow::literal_offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_scalar_sink_offer() -> conduit_core::CapabilityOffer {
-    test_scalar_flow::sink_offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_gate_script_offer() -> conduit_core::CapabilityOffer {
-    test_gate::source_offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_logic_script_offer() -> conduit_core::CapabilityOffer {
-    test_logic::offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_logic_sink_offer() -> conduit_core::CapabilityOffer {
-    test_logic::sink_offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_slow_scalar_sink_offer() -> conduit_core::CapabilityOffer {
-    test_gate::slow_sink_offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_timing_sink_offer() -> conduit_core::CapabilityOffer {
-    test_timing_sink::offer()
-}
-
-#[cfg(test)]
-pub(super) fn test_timing_source_offer() -> conduit_core::CapabilityOffer {
-    test_timing_sink::source_offer()
-}
+pub(crate) use facade::*;
 const HOST_OPERATIONS_PER_NODE: u16 = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
