@@ -156,6 +156,11 @@ fn append_gear_plan(
         ("placement-id", placement.placement_id.as_str()),
         ("host-id", placement.host_id.as_str()),
         ("boot-id", placement.boot_id.as_str()),
+        ("capability-id", placement.capability_id.as_str()),
+        (
+            "execution-profile-id",
+            placement.execution_profile_id.as_str(),
+        ),
         ("implementation-id", placement.implementation_id.as_str()),
         ("artifact-id", placement.artifact_id.as_str()),
     ] {
@@ -185,6 +190,9 @@ fn append_gear_plan(
             ),
         );
     }
+    crate::portable_vector_search_projection::append_vector_search_realization(
+        content, subject, gear, placement,
+    );
     append_play(
         content,
         subject,

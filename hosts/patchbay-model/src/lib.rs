@@ -49,6 +49,7 @@ mod portable_navigation;
 mod portable_parts_projection;
 mod portable_projection;
 mod portable_route_projection;
+mod portable_vector_search_projection;
 mod portable_world_projection;
 mod presentation_layout;
 mod presenter_capstone;
@@ -195,6 +196,8 @@ mod portable_navigation_tests;
 mod portable_parts_temporal_tests;
 #[cfg(test)]
 mod portable_projection_tests;
+#[cfg(test)]
+mod portable_vector_search_projection_tests;
 #[cfg(test)]
 mod prewake_tests;
 #[cfg(test)]
