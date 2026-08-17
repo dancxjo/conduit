@@ -299,7 +299,17 @@ fn memberships(
                     depth,
                 );
                 for (index, property) in presentation.properties.iter().enumerate() {
-                    if property.subject == *subject {
+                    if property.subject == *subject
+                        && property_belongs_to_aspect(
+                            property,
+                            aspect.aspect,
+                            presentation
+                                .subjects
+                                .iter()
+                                .find(|candidate| candidate.identity == *subject)
+                                .map(|candidate| candidate.role),
+                        )
+                    {
                         push(
                             &mut memberships,
                             place.place,
@@ -431,6 +441,47 @@ fn property_depth(property: &PresentationProperty) -> PresentationDepth {
         PresentationDepth::Exact
     } else {
         PresentationDepth::Detail
+    }
+}
+
+fn property_belongs_to_aspect(
+    property: &PresentationProperty,
+    aspect: PresentationAspect,
+    role: Option<PresentationRole>,
+) -> bool {
+    if !matches!(role, Some(PresentationRole::Gear | PresentationRole::Cord)) {
+        return aspect == PresentationAspect::Structure;
+    }
+    let name = property.name.as_str();
+    let planned = matches!(
+        name,
+        "plan-id"
+            | "plan-status"
+            | "realization-layer"
+            | "placement-id"
+            | "host-id"
+            | "boot-id"
+            | "capability-id"
+            | "execution-profile-id"
+            | "implementation-id"
+            | "artifact-id"
+            | "admitted-capacity"
+            | "vector-search-proof-class"
+            | "vector-index-resource"
+            | "line-id"
+            | "line"
+            | "base"
+            | "base-instance-id"
+    ) || name.starts_with("resource-");
+    let playing =
+        matches!(name, "active-play-id" | "play-state" | "pressure") || name.starts_with("sign-");
+
+    if planned {
+        aspect == PresentationAspect::Plan
+    } else if playing {
+        aspect == PresentationAspect::Play
+    } else {
+        aspect == PresentationAspect::Structure
     }
 }
 
