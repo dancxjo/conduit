@@ -65,7 +65,73 @@ pub enum QuantityDecodeRefusal {
     UnknownUnitTag(u8),
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum QuantityLiteralRefusal {
+    MissingValue,
+    InvalidValue,
+    MissingUnit,
+    UnknownUnit,
+}
+
 impl QuantityUnit {
+    pub const fn form_suffix(self) -> &'static str {
+        match self {
+            Self::Nanosecond => "ns",
+            Self::Microsecond => "us",
+            Self::Millisecond => "ms",
+            Self::Second => "s",
+            Self::Millihertz => "mHz",
+            Self::Hertz => "Hz",
+            Self::Microvolt => "uV",
+            Self::Millivolt => "mV",
+            Self::Volt => "V",
+            Self::Micrometer => "um",
+            Self::Millimeter => "mm",
+            Self::Centimeter => "cm",
+            Self::Meter => "m",
+            Self::Microdegree => "udeg",
+            Self::Millidegree => "mdeg",
+            Self::Degree => "deg",
+            Self::Millionth => "ppm",
+            Self::Permille => "permille",
+            Self::Percent => "%",
+            Self::One => "one",
+            Self::Byte => "B",
+            Self::Kibibyte => "KiB",
+            Self::Mebibyte => "MiB",
+        }
+    }
+
+    pub fn from_form_suffix(suffix: &str) -> Result<Self, QuantityLiteralRefusal> {
+        match suffix {
+            "ns" => Ok(Self::Nanosecond),
+            "us" => Ok(Self::Microsecond),
+            "ms" => Ok(Self::Millisecond),
+            "s" => Ok(Self::Second),
+            "mHz" => Ok(Self::Millihertz),
+            "Hz" => Ok(Self::Hertz),
+            "uV" => Ok(Self::Microvolt),
+            "mV" => Ok(Self::Millivolt),
+            "V" => Ok(Self::Volt),
+            "um" => Ok(Self::Micrometer),
+            "mm" => Ok(Self::Millimeter),
+            "cm" => Ok(Self::Centimeter),
+            "m" => Ok(Self::Meter),
+            "udeg" => Ok(Self::Microdegree),
+            "mdeg" => Ok(Self::Millidegree),
+            "deg" => Ok(Self::Degree),
+            "ppm" => Ok(Self::Millionth),
+            "permille" => Ok(Self::Permille),
+            "%" => Ok(Self::Percent),
+            "one" => Ok(Self::One),
+            "B" => Ok(Self::Byte),
+            "KiB" => Ok(Self::Kibibyte),
+            "MiB" => Ok(Self::Mebibyte),
+            "" => Err(QuantityLiteralRefusal::MissingUnit),
+            _ => Err(QuantityLiteralRefusal::UnknownUnit),
+        }
+    }
+
     pub const fn dimension(self) -> QuantityDimension {
         match self {
             Self::Nanosecond | Self::Microsecond | Self::Millisecond | Self::Second => {
@@ -185,6 +251,26 @@ impl Quantity {
 
     pub const fn dimension(self) -> QuantityDimension {
         self.unit.dimension()
+    }
+
+    /// Parses the closed authored Form spelling `<signed-integer><unit>`.
+    /// Fractions are deliberately absent: authors choose an exact smaller
+    /// reviewed unit instead of relying on hidden rounding.
+    pub fn parse_form_literal(literal: &str) -> Result<Self, QuantityLiteralRefusal> {
+        let value_end = literal
+            .char_indices()
+            .find_map(|(index, character)| {
+                (!(character.is_ascii_digit() || (index == 0 && character == '-'))).then_some(index)
+            })
+            .unwrap_or(literal.len());
+        let (value, suffix) = literal.split_at(value_end);
+        if value.is_empty() || value == "-" {
+            return Err(QuantityLiteralRefusal::MissingValue);
+        }
+        let value = value
+            .parse::<i64>()
+            .map_err(|_| QuantityLiteralRefusal::InvalidValue)?;
+        Ok(Self::new(value, QuantityUnit::from_form_suffix(suffix)?))
     }
 
     pub fn convert(self, target: QuantityUnit) -> Result<Self, QuantityConversionRefusal> {
