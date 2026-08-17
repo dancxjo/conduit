@@ -10,6 +10,8 @@ use instant_distance::{Builder, HnswMap, Point, Search};
 
 mod validation;
 use validation::{record_members, validate_membership, validate_records};
+mod offer;
+pub use offer::*;
 
 pub const HOSTED_HNSW_IMPLEMENTATION_ID: &str = "std/vector-index/hnsw@1";
 pub const HOSTED_HNSW_LIBRARY_NAME: &str = "instant-distance";
