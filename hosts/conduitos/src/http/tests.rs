@@ -36,7 +36,7 @@ fn request(scheme: &str, authority: &str) -> alloc::vec::Vec<u8> {
             name: "x-test".into(),
             value: b"yes".to_vec(),
         }],
-        body: b"hello".to_vec(),
+        body: conduit_std_catalog::HttpBody::inline(b"hello".to_vec()),
     })
     .unwrap()
 }
@@ -94,7 +94,7 @@ fn request_encoding_and_response_parsing_preserve_status_as_data() {
     let response = decode_response(output.as_bytes()).unwrap();
     assert_eq!(response.transaction_id, HttpTransactionId(44));
     assert_eq!(response.status, 500);
-    assert_eq!(response.body, b"oops");
+    assert_eq!(response.body.as_inline(), Some(b"oops".as_slice()));
     assert_eq!(client.sign_count(), 3);
 }
 
@@ -202,7 +202,7 @@ fn semantic_response_matches_the_shared_http_contract() {
         transaction_id: HttpTransactionId(44),
         status: 204,
         headers: alloc::vec::Vec::new(),
-        body: alloc::vec::Vec::new(),
+        body: conduit_std_catalog::HttpBody::inline(alloc::vec::Vec::new()),
     };
     assert!(conduit_std_catalog::encode_response(&response).is_ok());
 }

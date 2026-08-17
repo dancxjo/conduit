@@ -38,9 +38,14 @@ pub(super) static HTTP_SERVER_FACTORY: InstalledFactory = InstalledFactory {
 
 pub(crate) fn client_offer() -> CapabilityOffer {
     let contract = conduit_std_catalog::http_client_contract();
+    let request_kind = conduit_std_catalog::http_request_type()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone();
     let operation = host_operation(
         CLIENT_OPERATION,
-        conduit_std_catalog::HTTP_REQUEST_INFO_ID,
+        request_kind.as_str(),
         conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
         conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     );
@@ -64,7 +69,7 @@ pub(crate) fn client_offer() -> CapabilityOffer {
         authority_requirements: vec![authority(
             CLIENT_AUTHORITY,
             &operation,
-            conduit_std_catalog::HTTP_REQUEST_INFO_ID,
+            request_kind.as_str(),
         )],
         limits: contract.limits,
     }
@@ -72,15 +77,25 @@ pub(crate) fn client_offer() -> CapabilityOffer {
 
 pub(crate) fn server_offer() -> CapabilityOffer {
     let contract = conduit_std_catalog::http_server_contract();
+    let request_kind = conduit_std_catalog::http_request_type()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone();
+    let response_kind = conduit_std_catalog::http_response_type()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone();
     let accept = host_operation(
         SERVER_ACCEPT_OPERATION,
-        conduit_std_catalog::HTTP_REQUEST_INFO_ID,
+        request_kind.as_str(),
         0,
         conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
     );
     let respond = host_operation(
         SERVER_RESPOND_OPERATION,
-        conduit_std_catalog::HTTP_RESPONSE_INFO_ID,
+        response_kind.as_str(),
         conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
         0,
     );
@@ -102,16 +117,8 @@ pub(crate) fn server_offer() -> CapabilityOffer {
         host_operations: vec![accept.clone(), respond.clone()],
         resource_requirements: vec![resource_requirement(SERVER_RESOURCE, 1)],
         authority_requirements: vec![
-            authority(
-                SERVER_AUTHORITY,
-                &accept,
-                conduit_std_catalog::HTTP_REQUEST_INFO_ID,
-            ),
-            authority(
-                SERVER_AUTHORITY,
-                &respond,
-                conduit_std_catalog::HTTP_RESPONSE_INFO_ID,
-            ),
+            authority(SERVER_AUTHORITY, &accept, request_kind.as_str()),
+            authority(SERVER_AUTHORITY, &respond, response_kind.as_str()),
         ],
         limits: contract.limits,
     }

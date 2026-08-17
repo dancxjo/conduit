@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use conduit_core::BoundedResourceRef;
 use serde::{Deserialize, Serialize};
 
 pub const HTTP_MAXIMUM_IN_FLIGHT: u16 = 4;
@@ -9,10 +10,11 @@ pub const HTTP_MAXIMUM_HEADER_VALUE_BYTES: usize = 512;
 pub const HTTP_MAXIMUM_SCHEME_BYTES: usize = 8;
 pub const HTTP_MAXIMUM_AUTHORITY_BYTES: usize = 255;
 pub const HTTP_MAXIMUM_TARGET_BYTES: usize = 2_048;
-pub const HTTP_MAXIMUM_REQUEST_BODY_BYTES: usize = 16_384;
-pub const HTTP_MAXIMUM_RESPONSE_BODY_BYTES: usize = 65_536;
-pub const HTTP_MAXIMUM_ENCODED_REQUEST_BYTES: u32 = 29_000;
-pub const HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES: u32 = 78_000;
+pub const HTTP_MAXIMUM_INLINE_BODY_BYTES: usize = 4_096;
+pub const HTTP_MAXIMUM_REQUEST_BODY_BYTES: usize = HTTP_MAXIMUM_INLINE_BODY_BYTES;
+pub const HTTP_MAXIMUM_RESPONSE_BODY_BYTES: usize = HTTP_MAXIMUM_INLINE_BODY_BYTES;
+pub const HTTP_MAXIMUM_ENCODED_REQUEST_BYTES: u32 = 32_768;
+pub const HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES: u32 = 32_768;
 pub const HTTP_MAXIMUM_WORK_UNITS_PER_STEP: u16 = 1;
 pub const HTTP_MANDATORY_SIGN_ITEMS_PER_TRANSACTION: u16 = 3;
 pub const HTTP_AUTOMATIC_REDIRECTS: bool = false;
@@ -49,24 +51,43 @@ pub struct HttpHeader {
     pub value: Vec<u8>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HttpBody {
+    Inline(Vec<u8>),
+    Resource(BoundedResourceRef),
+}
+
+impl HttpBody {
+    pub fn inline(bytes: impl Into<Vec<u8>>) -> Self {
+        Self::Inline(bytes.into())
+    }
+
+    pub fn as_inline(&self) -> Option<&[u8]> {
+        match self {
+            Self::Inline(bytes) => Some(bytes),
+            Self::Resource(_) => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HttpRequest {
     pub transaction_id: HttpTransactionId,
     pub method: HttpMethod,
     pub target: HttpTarget,
     /// Ordered and duplicate-preserving. Header names must be lowercase ASCII.
     pub headers: Vec<HttpHeader>,
-    pub body: Vec<u8>,
+    pub body: HttpBody,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HttpResponse {
     pub transaction_id: HttpTransactionId,
     /// HTTP status is exchange data, never a transport failure disposition.
     pub status: u16,
     /// Ordered and duplicate-preserving. Header names must be lowercase ASCII.
     pub headers: Vec<HttpHeader>,
-    pub body: Vec<u8>,
+    pub body: HttpBody,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,6 +100,7 @@ pub enum HttpExchangeFailure {
     RequestOverflow,
     ResponseHeaderOverflow,
     ResponseBodyOverflow,
+    ResourceUnavailable,
     Capacity,
     AuthorityDenied,
     Cancelled,
@@ -92,6 +114,7 @@ pub enum HttpServerResponseRefusal {
     LateResponse,
     ResponseHeaderOverflow,
     ResponseBodyOverflow,
+    ResourceUnavailable,
     ListenerLost,
     Capacity,
     AuthorityDenied,
@@ -122,9 +145,8 @@ impl HttpRequest {
     pub fn validate(&self) -> Result<(), HttpContractError> {
         validate_target(&self.target)?;
         validate_headers(&self.headers)?;
-        if self.body.len() > HTTP_MAXIMUM_REQUEST_BODY_BYTES {
-            return Err(HttpContractError::RequestBodyOverflow);
-        }
+        validate_body(&self.body, HTTP_MAXIMUM_REQUEST_BODY_BYTES)
+            .map_err(|_| HttpContractError::RequestBodyOverflow)?;
         Ok(())
     }
 }
@@ -135,10 +157,17 @@ impl HttpResponse {
             return Err(HttpContractError::InvalidStatus);
         }
         validate_headers(&self.headers)?;
-        if self.body.len() > HTTP_MAXIMUM_RESPONSE_BODY_BYTES {
-            return Err(HttpContractError::ResponseBodyOverflow);
-        }
+        validate_body(&self.body, HTTP_MAXIMUM_RESPONSE_BODY_BYTES)
+            .map_err(|_| HttpContractError::ResponseBodyOverflow)?;
         Ok(())
+    }
+}
+
+fn validate_body(body: &HttpBody, maximum_inline_bytes: usize) -> Result<(), ()> {
+    match body {
+        HttpBody::Inline(bytes) if bytes.len() <= maximum_inline_bytes => Ok(()),
+        HttpBody::Inline(_) => Err(()),
+        HttpBody::Resource(reference) => reference.validate().map_err(|_| ()),
     }
 }
 

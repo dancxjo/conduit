@@ -1,5 +1,5 @@
 use conduit_std_catalog::{
-    HttpExchangeFailure, HttpHeader, HttpMethod, HttpRequest, HttpResponse, HttpTarget,
+    HttpBody, HttpExchangeFailure, HttpHeader, HttpMethod, HttpRequest, HttpResponse, HttpTarget,
     HttpTransactionId, HTTP_MAXIMUM_HEADERS, HTTP_MAXIMUM_HEADER_NAME_BYTES,
     HTTP_MAXIMUM_HEADER_VALUE_BYTES, HTTP_MAXIMUM_REQUEST_BODY_BYTES,
     HTTP_MAXIMUM_RESPONSE_BODY_BYTES,
@@ -11,7 +11,8 @@ const MAXIMUM_HEAD_BYTES: usize = HTTP_MAXIMUM_HEADERS
     + 4_096;
 
 pub(super) fn encode_request(request: &HttpRequest) -> Result<Vec<u8>, HttpExchangeFailure> {
-    let mut out = Vec::with_capacity(MAXIMUM_HEAD_BYTES.min(8_192) + request.body.len());
+    let body = inline_body(&request.body)?;
+    let mut out = Vec::with_capacity(MAXIMUM_HEAD_BYTES.min(8_192) + body.len());
     out.extend_from_slice(method(request.method));
     out.push(b' ');
     out.extend_from_slice(request.target.path_and_query.as_bytes());
@@ -24,13 +25,14 @@ pub(super) fn encode_request(request: &HttpRequest) -> Result<Vec<u8>, HttpExcha
         out.extend_from_slice(&header.value);
         out.extend_from_slice(b"\r\n");
     }
-    out.extend_from_slice(format!("Content-Length: {}\r\n\r\n", request.body.len()).as_bytes());
-    out.extend_from_slice(&request.body);
+    out.extend_from_slice(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes());
+    out.extend_from_slice(body);
     Ok(out)
 }
 
 pub(super) fn encode_response(response: &HttpResponse) -> Result<Vec<u8>, HttpExchangeFailure> {
-    let mut out = Vec::with_capacity(MAXIMUM_HEAD_BYTES.min(8_192) + response.body.len());
+    let body = inline_body(&response.body)?;
+    let mut out = Vec::with_capacity(MAXIMUM_HEAD_BYTES.min(8_192) + body.len());
     out.extend_from_slice(format!("HTTP/1.1 {} Conduit\r\n", response.status).as_bytes());
     out.extend_from_slice(b"Connection: close\r\n");
     for header in &response.headers {
@@ -39,8 +41,8 @@ pub(super) fn encode_response(response: &HttpResponse) -> Result<Vec<u8>, HttpEx
         out.extend_from_slice(&header.value);
         out.extend_from_slice(b"\r\n");
     }
-    out.extend_from_slice(format!("Content-Length: {}\r\n\r\n", response.body.len()).as_bytes());
-    out.extend_from_slice(&response.body);
+    out.extend_from_slice(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes());
+    out.extend_from_slice(body);
     Ok(out)
 }
 
@@ -63,7 +65,7 @@ pub(super) fn read_response(
         transaction_id,
         status,
         headers,
-        body,
+        body: HttpBody::inline(body),
     })
 }
 
@@ -106,8 +108,13 @@ pub(super) fn read_request(
             path_and_query,
         },
         headers: semantic_headers,
-        body,
+        body: HttpBody::inline(body),
     })
+}
+
+fn inline_body(body: &HttpBody) -> Result<&[u8], HttpExchangeFailure> {
+    body.as_inline()
+        .ok_or(HttpExchangeFailure::ResourceUnavailable)
 }
 
 fn read_message(

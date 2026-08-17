@@ -1,214 +1,68 @@
 use super::{
-    HttpContractError, HttpHeader, HttpMethod, HttpRequest, HttpResponse, HttpTarget,
-    HttpTransactionId, HTTP_MAXIMUM_ENCODED_REQUEST_BYTES, HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+    schema::{request_from_value, request_value, response_from_value, response_value},
+    HttpContractError, HttpRequest, HttpResponse, HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
+    HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
 };
-use alloc::string::String;
 use alloc::vec::Vec;
-
-const REQUEST_TAG: u8 = 1;
-const RESPONSE_TAG: u8 = 2;
+use conduit_core::StructuredInfoValue;
 
 pub fn encode_request(value: &HttpRequest) -> Result<Vec<u8>, HttpContractError> {
-    value.validate()?;
-    let mut out = Vec::new();
-    out.push(REQUEST_TAG);
-    out.extend_from_slice(&value.transaction_id.0.to_be_bytes());
-    out.push(method_tag(value.method));
-    put_bytes(&mut out, value.target.scheme.as_bytes())?;
-    put_bytes(&mut out, value.target.authority.as_bytes())?;
-    put_bytes(&mut out, value.target.path_and_query.as_bytes())?;
-    put_headers(&mut out, &value.headers)?;
-    put_bytes(&mut out, &value.body)?;
-    if out.len() > HTTP_MAXIMUM_ENCODED_REQUEST_BYTES as usize {
-        return Err(HttpContractError::EncodedValueOverflow);
-    }
-    Ok(out)
+    let encoded = request_value(value)?
+        .canonical_bytes()
+        .map_err(|_| HttpContractError::EncodedValueOverflow)?;
+    bounded(encoded, HTTP_MAXIMUM_ENCODED_REQUEST_BYTES)
 }
 
 pub fn decode_request(encoded: &[u8]) -> Result<HttpRequest, HttpContractError> {
-    if encoded.len() > HTTP_MAXIMUM_ENCODED_REQUEST_BYTES as usize {
-        return Err(HttpContractError::EncodedValueOverflow);
-    }
-    let mut input = Input::new(encoded);
-    if input.byte()? != REQUEST_TAG {
-        return Err(HttpContractError::MalformedEncoding);
-    }
-    let transaction_id = HttpTransactionId(input.u64()?);
-    let method = method(input.byte()?)?;
-    let target = HttpTarget {
-        scheme: input.string()?,
-        authority: input.string()?,
-        path_and_query: input.string()?,
-    };
-    let headers = input.headers()?;
-    let body = input.bytes()?.to_vec();
-    input.finish()?;
-    let value = HttpRequest {
-        transaction_id,
-        method,
-        target,
-        headers,
-        body,
-    };
+    check_bound(encoded, HTTP_MAXIMUM_ENCODED_REQUEST_BYTES)?;
+    let structured = StructuredInfoValue::from_canonical_bytes(encoded)
+        .map_err(|_| HttpContractError::MalformedEncoding)?;
+    let value = request_from_value(&structured)?;
     value.validate()?;
     Ok(value)
 }
 
 pub fn encode_response(value: &HttpResponse) -> Result<Vec<u8>, HttpContractError> {
-    value.validate()?;
-    let mut out = Vec::new();
-    out.push(RESPONSE_TAG);
-    out.extend_from_slice(&value.transaction_id.0.to_be_bytes());
-    out.extend_from_slice(&value.status.to_be_bytes());
-    put_headers(&mut out, &value.headers)?;
-    put_bytes(&mut out, &value.body)?;
-    if out.len() > HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize {
-        return Err(HttpContractError::EncodedValueOverflow);
-    }
-    Ok(out)
+    let encoded = response_value(value)?
+        .canonical_bytes()
+        .map_err(|_| HttpContractError::EncodedValueOverflow)?;
+    bounded(encoded, HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES)
 }
 
 pub fn decode_response(encoded: &[u8]) -> Result<HttpResponse, HttpContractError> {
-    if encoded.len() > HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize {
-        return Err(HttpContractError::EncodedValueOverflow);
-    }
-    let mut input = Input::new(encoded);
-    if input.byte()? != RESPONSE_TAG {
-        return Err(HttpContractError::MalformedEncoding);
-    }
-    let transaction_id = HttpTransactionId(input.u64()?);
-    let status = input.u16()?;
-    let headers = input.headers()?;
-    let body = input.bytes()?.to_vec();
-    input.finish()?;
-    let value = HttpResponse {
-        transaction_id,
-        status,
-        headers,
-        body,
-    };
+    check_bound(encoded, HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES)?;
+    let structured = StructuredInfoValue::from_canonical_bytes(encoded)
+        .map_err(|_| HttpContractError::MalformedEncoding)?;
+    let value = response_from_value(&structured)?;
     value.validate()?;
     Ok(value)
 }
 
-fn method_tag(method: HttpMethod) -> u8 {
-    match method {
-        HttpMethod::Get => 0,
-        HttpMethod::Head => 1,
-        HttpMethod::Post => 2,
-        HttpMethod::Put => 3,
-        HttpMethod::Patch => 4,
-        HttpMethod::Delete => 5,
-        HttpMethod::Options => 6,
-    }
-}
-fn method(tag: u8) -> Result<HttpMethod, HttpContractError> {
-    match tag {
-        0 => Ok(HttpMethod::Get),
-        1 => Ok(HttpMethod::Head),
-        2 => Ok(HttpMethod::Post),
-        3 => Ok(HttpMethod::Put),
-        4 => Ok(HttpMethod::Patch),
-        5 => Ok(HttpMethod::Delete),
-        6 => Ok(HttpMethod::Options),
-        _ => Err(HttpContractError::MalformedEncoding),
-    }
+fn bounded(encoded: Vec<u8>, maximum: u32) -> Result<Vec<u8>, HttpContractError> {
+    check_bound(&encoded, maximum)?;
+    Ok(encoded)
 }
 
-fn put_headers(out: &mut Vec<u8>, headers: &[HttpHeader]) -> Result<(), HttpContractError> {
-    let count =
-        u16::try_from(headers.len()).map_err(|_| HttpContractError::EncodedValueOverflow)?;
-    out.extend_from_slice(&count.to_be_bytes());
-    for header in headers {
-        put_bytes(out, header.name.as_bytes())?;
-        put_bytes(out, &header.value)?;
-    }
-    Ok(())
-}
-
-fn put_bytes(out: &mut Vec<u8>, bytes: &[u8]) -> Result<(), HttpContractError> {
-    let length = u32::try_from(bytes.len()).map_err(|_| HttpContractError::EncodedValueOverflow)?;
-    out.extend_from_slice(&length.to_be_bytes());
-    out.extend_from_slice(bytes);
-    Ok(())
-}
-
-struct Input<'a> {
-    bytes: &'a [u8],
-    offset: usize,
-}
-impl<'a> Input<'a> {
-    fn new(bytes: &'a [u8]) -> Self {
-        Self { bytes, offset: 0 }
-    }
-    fn take(&mut self, count: usize) -> Result<&'a [u8], HttpContractError> {
-        let end = self
-            .offset
-            .checked_add(count)
-            .ok_or(HttpContractError::MalformedEncoding)?;
-        let value = self
-            .bytes
-            .get(self.offset..end)
-            .ok_or(HttpContractError::MalformedEncoding)?;
-        self.offset = end;
-        Ok(value)
-    }
-    fn byte(&mut self) -> Result<u8, HttpContractError> {
-        Ok(self.take(1)?[0])
-    }
-    fn u16(&mut self) -> Result<u16, HttpContractError> {
-        Ok(u16::from_be_bytes(
-            self.take(2)?
-                .try_into()
-                .map_err(|_| HttpContractError::MalformedEncoding)?,
-        ))
-    }
-    fn u32(&mut self) -> Result<u32, HttpContractError> {
-        Ok(u32::from_be_bytes(
-            self.take(4)?
-                .try_into()
-                .map_err(|_| HttpContractError::MalformedEncoding)?,
-        ))
-    }
-    fn u64(&mut self) -> Result<u64, HttpContractError> {
-        Ok(u64::from_be_bytes(
-            self.take(8)?
-                .try_into()
-                .map_err(|_| HttpContractError::MalformedEncoding)?,
-        ))
-    }
-    fn bytes(&mut self) -> Result<&'a [u8], HttpContractError> {
-        let length =
-            usize::try_from(self.u32()?).map_err(|_| HttpContractError::MalformedEncoding)?;
-        self.take(length)
-    }
-    fn string(&mut self) -> Result<String, HttpContractError> {
-        String::from_utf8(self.bytes()?.to_vec()).map_err(|_| HttpContractError::MalformedEncoding)
-    }
-    fn headers(&mut self) -> Result<Vec<HttpHeader>, HttpContractError> {
-        let count = usize::from(self.u16()?);
-        let mut headers = Vec::with_capacity(count);
-        for _ in 0..count {
-            headers.push(HttpHeader {
-                name: self.string()?,
-                value: self.bytes()?.to_vec(),
-            });
-        }
-        Ok(headers)
-    }
-    fn finish(self) -> Result<(), HttpContractError> {
-        if self.offset == self.bytes.len() {
-            Ok(())
-        } else {
-            Err(HttpContractError::TrailingBytes)
-        }
+fn check_bound(encoded: &[u8], maximum: u32) -> Result<(), HttpContractError> {
+    if encoded.len() > maximum as usize {
+        Err(HttpContractError::EncodedValueOverflow)
+    } else {
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{
+        http_request_type, HttpBody, HttpHeader, HttpMethod, HttpTarget, HttpTransactionId,
+    };
     use alloc::vec;
+    use conduit_core::{
+        kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
+        ResourceSemanticIdentity, ResourceVersionIdentity, StructuredSelection, StructuredSelector,
+        UnmatchedVariantDisposition,
+    };
 
     fn request() -> HttpRequest {
         HttpRequest {
@@ -229,53 +83,123 @@ mod tests {
                     value: b"second".to_vec(),
                 },
             ],
-            body: b"bounded".to_vec(),
+            body: HttpBody::inline(b"bounded".to_vec()),
         }
     }
 
     #[test]
-    fn request_round_trip_preserves_order_and_duplicates() {
+    fn request_round_trip_is_canonical_structured_info() {
         let value = request();
-        assert_eq!(
-            decode_request(&encode_request(&value).unwrap()).unwrap(),
-            value
-        );
+        let encoded = encode_request(&value).unwrap();
+        let structured = StructuredInfoValue::from_canonical_bytes(&encoded).unwrap();
+        assert_eq!(structured.value_type(), &crate::http_request_type());
+        assert_eq!(decode_request(&encoded).unwrap(), value);
     }
+
+    #[test]
+    fn header_name_is_selected_without_protocol_or_text_parsing() {
+        let structured =
+            StructuredInfoValue::from_canonical_bytes(&encode_request(&request()).unwrap())
+                .unwrap();
+        let headers = matched(
+            StructuredSelector::field(http_request_type(), "headers")
+                .unwrap()
+                .select(&structured)
+                .unwrap(),
+        );
+        let first = matched(
+            StructuredSelector::index(headers.value_type().clone(), 0)
+                .unwrap()
+                .select(&headers)
+                .unwrap(),
+        );
+        let header = matched(
+            StructuredSelector::variant(
+                first.value_type().clone(),
+                "header",
+                UnmatchedVariantDisposition::Refuse,
+            )
+            .unwrap()
+            .select(&first)
+            .unwrap(),
+        );
+        let name = matched(
+            StructuredSelector::field(header.value_type().clone(), "name")
+                .unwrap()
+                .select(&header)
+                .unwrap(),
+        );
+        assert!(matches!(
+            name.shape(),
+            conduit_core::StructuredInfoValueShape::Leaf(b"x-order")
+        ));
+    }
+
+    fn matched(selection: StructuredSelection) -> StructuredInfoValue {
+        match selection {
+            StructuredSelection::Matched(value) => value,
+            StructuredSelection::Unmatched(_) => panic!("expected exact HTTP selection"),
+        }
+    }
+
     #[test]
     fn response_status_is_data_including_500() {
         let value = HttpResponse {
             transaction_id: HttpTransactionId(42),
             status: 500,
             headers: Vec::new(),
-            body: b"error document".to_vec(),
+            body: HttpBody::inline(b"error document".to_vec()),
         };
         assert_eq!(
             decode_response(&encode_response(&value).unwrap()).unwrap(),
             value
         );
     }
+
     #[test]
-    fn malformed_and_trailing_framing_refuse_distinctly() {
+    fn bounded_resource_body_round_trips_without_a_path_or_url() {
+        let reference = BoundedResourceRef {
+            identity: ResourceSemanticIdentity::from_digest([1; 32]),
+            content_profile: kind_id("media/http-body@1"),
+            access_class: ResourceClassId::from("resource/http-body"),
+            extent: ResourceExtent {
+                bytes: 8_000_000,
+                items: None,
+            },
+            lifetime: ResourceLifetime {
+                version: ResourceVersionIdentity::from_digest([2; 32]),
+                expires_at: None,
+            },
+        };
+        let mut value = request();
+        value.body = HttpBody::Resource(reference);
         assert_eq!(
-            decode_request(&[REQUEST_TAG]),
+            decode_request(&encode_request(&value).unwrap()).unwrap(),
+            value
+        );
+    }
+
+    #[test]
+    fn wrong_profile_and_trailing_bytes_refuse() {
+        assert_eq!(
+            decode_request(&[1]),
             Err(HttpContractError::MalformedEncoding)
         );
         let mut encoded = encode_request(&request()).unwrap();
         encoded.push(0);
         assert_eq!(
             decode_request(&encoded),
-            Err(HttpContractError::TrailingBytes)
+            Err(HttpContractError::MalformedEncoding)
         );
     }
+
     #[test]
-    fn invalid_headers_and_body_overflow_refuse() {
+    fn invalid_headers_and_inline_body_overflow_refuse() {
         let mut value = request();
         value.headers[0].name = "Upper".into();
         assert_eq!(value.validate(), Err(HttpContractError::InvalidHeaderName));
         value = request();
-        value
-            .body
-            .resize(super::super::HTTP_MAXIMUM_REQUEST_BODY_BYTES + 1, 0);
+        value.body = HttpBody::Inline(vec![0; crate::HTTP_MAXIMUM_REQUEST_BODY_BYTES + 1]);
         assert_eq!(
             value.validate(),
             Err(HttpContractError::RequestBodyOverflow)
@@ -283,7 +207,7 @@ mod tests {
     }
 
     #[test]
-    fn credentials_and_cookies_cannot_enter_the_ordinary_header_path() {
+    fn credentials_framing_and_cookies_stay_out_of_ordinary_headers() {
         for name in [
             "authorization",
             "proxy-authorization",
@@ -297,10 +221,6 @@ mod tests {
                 Err(HttpContractError::SensitiveHeaderRequiresProtectedPath)
             );
         }
-    }
-
-    #[test]
-    fn framing_is_derived_from_the_exact_bounded_body() {
         for name in ["content-length", "transfer-encoding"] {
             let mut value = request();
             value.headers[0].name = name.into();

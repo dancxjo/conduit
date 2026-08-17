@@ -123,7 +123,7 @@ pub fn provider_http_request(
             name: "content-type".into(),
             value: b"application/json".to_vec(),
         }],
-        body: json.to_vec(),
+        body: conduit_std_catalog::HttpBody::inline(json.to_vec()),
     };
     request
         .validate()
@@ -136,7 +136,10 @@ pub fn provider_http_response(response: &HttpResponse) -> Result<&[u8], Provider
         .validate()
         .map_err(|_| ProviderFailure::ProviderProtocol)?;
     match response.status {
-        200..=299 => Ok(&response.body),
+        200..=299 => response
+            .body
+            .as_inline()
+            .ok_or(ProviderFailure::ProviderProtocol),
         429 => Err(ProviderFailure::ProviderCapacity),
         _ => Err(ProviderFailure::HttpStatus),
     }
@@ -257,13 +260,21 @@ fn provider_definitions() -> Vec<KindDefinition> {
             conduit_core::JSON_TEXT_INFO_ID,
             PortTemporal::Value,
             "request",
-            conduit_std_catalog::HTTP_REQUEST_INFO_ID,
+            conduit_std_catalog::http_request_type()
+                .profile()
+                .expect("finite HTTP request profile")
+                .value_kind()
+                .as_str(),
             PortTemporal::Flow { closes: true },
         ),
         definition(
             PROVIDER_RESPONSE_KIND,
             "response",
-            conduit_std_catalog::HTTP_RESPONSE_INFO_ID,
+            conduit_std_catalog::http_response_type()
+                .profile()
+                .expect("finite HTTP response profile")
+                .value_kind()
+                .as_str(),
             PortTemporal::Flow { closes: true },
             "json",
             conduit_core::JSON_TEXT_INFO_ID,
