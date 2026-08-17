@@ -449,6 +449,7 @@ dependencies = [
  "conduit-planner",
  "conduit-signal",
  "conduit-std-catalog",
+ "libm",
  "serde",
  "serde_json",
 ]
