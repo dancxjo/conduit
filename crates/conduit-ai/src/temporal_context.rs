@@ -182,7 +182,7 @@ impl TemporalProvenance {
             .transpose()
     }
 
-    fn source_instant(&self, source: TemporalSource) -> Result<u64, TemporalContextRefusal> {
+    pub fn source_instant(&self, source: TemporalSource) -> Result<u64, TemporalContextRefusal> {
         let instant = match source {
             TemporalSource::Event => self.event_at,
             TemporalSource::ValidFrom => self.valid_from,
