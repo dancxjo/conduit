@@ -29,6 +29,8 @@ mod vector_exact_search;
 pub use vector_exact_search::*;
 mod vector_retrieval;
 pub use vector_retrieval::*;
+mod vector_search_contract;
+pub use vector_search_contract::*;
 #[cfg(feature = "form-catalog")]
 mod provider;
 #[cfg(feature = "form-catalog")]
