@@ -16,11 +16,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "full-window-flow-after-semantic-assertions"
       }
@@ -40,11 +40,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "selection-succeeded-and-inspector-correlated"
       }
@@ -64,11 +64,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "same-graph-plan-realization-overlay"
       }
@@ -88,11 +88,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "same-graph-active-play-state-and-pressure-overlay"
       }
@@ -112,11 +112,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "same-graph-selected-subject-causal-evidence"
       }
@@ -136,11 +136,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "exact-line-loss-new-plan-and-same-plan-recovery-spatially-correlated"
       }
@@ -160,11 +160,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "control-invocation-plan-play-succeeded"
       }
@@ -184,11 +184,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "presentation-changed-semantic-identities-stable"
       }
@@ -208,11 +208,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "delivery-unavailable-revision-and-plan-retained"
       }
@@ -232,11 +232,11 @@
         "device_scale_factor": "1",
         "locale": "en-US",
         "timezone": "UTC",
-        "presentation_id": "3babff67a3f92eac9b555e31267c52c97998d9cd4dec13b7e102a4b666184955",
+        "presentation_id": "30cb11cca2f3f34c604f03399f2b218c8d4a9acc793da1b12204a714f3954533",
         "presentation_revision": "1",
         "plan_id": "84c67a3855f8a1d6c1dd77b933442a555db24474c16163126b289b80fb052d31",
         "active_play_id": "7478060302940a67f8d9ce090d4d00daeea4f0e69acbd056daccc3e3536c34a3",
-        "manifestation_id": "157e9ddad6063cd61e1982de352d200113c909d19a57eb5825bcb16687785d5f",
+        "manifestation_id": "7226bb6a806e7ba774f997556d86ed481f75ce5f6b1814ec35c1ca96e2e53a96",
         "renderer_id": "patchbay-html/dom-svg@1",
         "asserted_semantic_disposition": "narrow-enlarged-content-accessibility-after-semantic-assertions"
       }
