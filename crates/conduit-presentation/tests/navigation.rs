@@ -181,6 +181,41 @@ fn finite_navigation_composes_place_aspect_focus_depth_and_back() {
 }
 
 #[test]
+fn focus_and_disclose_moves_one_bounded_cursor_revision() {
+    let presentation = presentation(7);
+    let navigation = navigation(&presentation);
+    let mut state =
+        NavigationState::new(&navigation, cursor(&presentation, &navigation), 4).unwrap();
+
+    state
+        .navigate(
+            &presentation,
+            &navigation,
+            7,
+            NavigationOperation::Enter(PresentationPlace::Program),
+        )
+        .unwrap();
+    let before = state.cursor().clone();
+    let history_before = state.history_len();
+    state
+        .navigate(
+            &presentation,
+            &navigation,
+            7,
+            NavigationOperation::FocusAndDisclose("cord/foo".into(), PresentationDepth::Detail),
+        )
+        .unwrap();
+
+    assert_eq!(state.cursor().focus.as_deref(), Some("cord/foo"));
+    assert_eq!(state.cursor().depth, PresentationDepth::Detail);
+    assert_eq!(state.history_len(), history_before + 1);
+    state
+        .navigate(&presentation, &navigation, 7, NavigationOperation::Back)
+        .unwrap();
+    assert_eq!(state.cursor(), &before);
+}
+
+#[test]
 fn navigation_cannot_change_presentation_or_semantic_identity_basis() {
     let presentation = presentation(11);
     let before = presentation.clone();

@@ -18,11 +18,22 @@ struct NavigationInput {
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 enum NavigationInputOperation {
-    Enter { place: PresentationPlace },
-    Show { aspect: PresentationAspect },
-    Focus { subject: String },
-    Follow { relationship: String },
-    Disclose { depth: PresentationDepth },
+    Enter {
+        place: PresentationPlace,
+    },
+    Show {
+        aspect: PresentationAspect,
+    },
+    Focus {
+        subject: String,
+        depth: Option<PresentationDepth>,
+    },
+    Follow {
+        relationship: String,
+    },
+    Disclose {
+        depth: PresentationDepth,
+    },
     Back,
 }
 
@@ -31,7 +42,10 @@ impl From<NavigationInputOperation> for NavigationOperation {
         match value {
             NavigationInputOperation::Enter { place } => Self::Enter(place),
             NavigationInputOperation::Show { aspect } => Self::Show(aspect),
-            NavigationInputOperation::Focus { subject } => Self::Focus(subject),
+            NavigationInputOperation::Focus { subject, depth } => match depth {
+                Some(depth) => Self::FocusAndDisclose(subject, depth),
+                None => Self::Focus(subject),
+            },
             NavigationInputOperation::Follow { relationship } => Self::Follow(relationship),
             NavigationInputOperation::Disclose { depth } => Self::Disclose(depth),
             NavigationInputOperation::Back => Self::Back,
