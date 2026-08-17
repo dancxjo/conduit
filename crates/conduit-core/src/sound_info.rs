@@ -3,7 +3,7 @@
 //! These values contain musical/media meaning only. MIDI keys, device names,
 //! PCM handles, OPL registers, and host callback facts belong to realizations.
 
-use crate::semantic_digest;
+use crate::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
 
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
 pub const MUSIC_NOTE_INFO_ID: &str = "music/note-event@1";
@@ -28,6 +28,7 @@ pub enum SoundInfoError {
     InvalidTag { field: &'static str, actual: u8 },
     NonCanonicalReserved(&'static str),
     InconsistentPcmLength { expected: u32, actual: u32 },
+    QuantityConversion(QuantityConversionRefusal),
 }
 
 /// Canonical physical pitch plus its explicit musical tuning relationship.
@@ -43,6 +44,28 @@ pub struct MusicalPitch {
 }
 
 impl MusicalPitch {
+    pub fn from_quantities(
+        frequency: Quantity,
+        a4_reference: Quantity,
+        detune_microcents: i32,
+    ) -> Result<Self, SoundInfoError> {
+        let frequency = frequency
+            .convert(QuantityUnit::Millihertz)
+            .map_err(SoundInfoError::QuantityConversion)?;
+        let a4_reference = a4_reference
+            .convert(QuantityUnit::Millihertz)
+            .map_err(SoundInfoError::QuantityConversion)?;
+        let frequency_millihertz = u64::try_from(frequency.value())
+            .map_err(|_| SoundInfoError::OutOfRange("frequency-millihertz"))?;
+        let a4_reference_millihertz = u64::try_from(a4_reference.value())
+            .map_err(|_| SoundInfoError::OutOfRange("a4-reference-millihertz"))?;
+        Self::new(
+            frequency_millihertz,
+            a4_reference_millihertz,
+            detune_microcents,
+        )
+    }
+
     pub fn new(
         frequency_millihertz: u64,
         a4_reference_millihertz: u64,
@@ -90,6 +113,17 @@ impl MusicalPitch {
             return Err(SoundInfoError::OutOfRange("frequency-millihertz"));
         }
         Self::new(frequency as u64, a4_reference_millihertz, detune_microcents)
+    }
+
+    pub const fn frequency(self) -> Quantity {
+        Quantity::new(self.frequency_millihertz as i64, QuantityUnit::Millihertz)
+    }
+
+    pub const fn a4_reference(self) -> Quantity {
+        Quantity::new(
+            self.a4_reference_millihertz as i64,
+            QuantityUnit::Millihertz,
+        )
     }
 
     pub const fn encode(self) -> [u8; 20] {

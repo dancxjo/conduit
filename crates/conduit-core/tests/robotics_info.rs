@@ -1,8 +1,9 @@
 use conduit_core::{
-    BatteryObservation, InfoDecodeError, OdometryObservation, OrientationObservation,
-    RangeObservation, HALF_PI_MICRORADIANS, MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS,
-    MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM, PI_MICRORADIANS, ROBOTICS_BATTERY_INFO_ID,
-    ROBOTICS_ODOMETRY_INFO_ID, ROBOTICS_ORIENTATION_INFO_ID, ROBOTICS_RANGE_INFO_ID,
+    BatteryObservation, InfoDecodeError, OdometryObservation, OrientationObservation, Quantity,
+    QuantityConversionRefusal, QuantityUnit, RangeObservation, HALF_PI_MICRORADIANS,
+    MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM,
+    PI_MICRORADIANS, ROBOTICS_BATTERY_INFO_ID, ROBOTICS_ODOMETRY_INFO_ID,
+    ROBOTICS_ORIENTATION_INFO_ID, ROBOTICS_RANGE_INFO_ID,
 };
 
 #[test]
@@ -83,4 +84,41 @@ fn malformed_or_out_of_range_robotics_values_refuse_deterministically() {
             ..
         })
     ));
+}
+
+#[test]
+fn robotics_consumes_typed_range_and_battery_without_changing_encoding() {
+    let range = RangeObservation::from_quantities(
+        Quantity::new(2, QuantityUnit::Meter),
+        Quantity::new(1, QuantityUnit::Second),
+    )
+    .unwrap();
+    assert_eq!(range, RangeObservation::new(2_000, 1_000).unwrap());
+    assert_eq!(
+        range.distance(),
+        Quantity::new(2_000, QuantityUnit::Millimeter)
+    );
+    assert_eq!(range.age(), Quantity::new(1_000, QuantityUnit::Millisecond));
+
+    let battery = BatteryObservation::from_quantities(
+        Quantity::new(75, QuantityUnit::Percent),
+        Quantity::new(12, QuantityUnit::Volt),
+    )
+    .unwrap();
+    assert_eq!(battery, BatteryObservation::new(750, 12_000).unwrap());
+    assert_eq!(battery.charge(), Quantity::new(750, QuantityUnit::Permille));
+    assert_eq!(
+        battery.voltage(),
+        Quantity::new(12_000, QuantityUnit::Millivolt)
+    );
+
+    assert_eq!(
+        RangeObservation::from_quantities(
+            Quantity::new(1, QuantityUnit::Hertz),
+            Quantity::new(1, QuantityUnit::Second),
+        ),
+        Err(InfoDecodeError::QuantityConversion(
+            QuantityConversionRefusal::IncompatibleDimensions
+        ))
+    );
 }

@@ -6,6 +6,8 @@
 use core::convert::TryFrom;
 use sha2::{Digest, Sha256};
 
+use crate::QuantityConversionRefusal;
+
 pub const BOOL_INFO_ID: &str = "value/bool@1";
 pub const BOOL_ENCODED_LEN: usize = 1;
 pub const SCALAR_INFO_ID: &str = "value/scalar@1";
@@ -32,6 +34,7 @@ pub enum InfoDecodeError {
         maximum: i64,
         actual: i64,
     },
+    QuantityConversion(QuantityConversionRefusal),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

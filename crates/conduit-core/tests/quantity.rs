@@ -26,6 +26,7 @@ fn exact_decimal_and_binary_conversions_are_deterministic() {
         (18, QuantityUnit::Meter, 1_800, QuantityUnit::Centimeter),
         (90, QuantityUnit::Degree, 90_000, QuantityUnit::Millidegree),
         (72, QuantityUnit::Percent, 720_000, QuantityUnit::Millionth),
+        (75, QuantityUnit::Percent, 750, QuantityUnit::Permille),
         (2, QuantityUnit::Kibibyte, 2_048, QuantityUnit::Byte),
     ];
     for (source, source_unit, expected, target_unit) in vectors {

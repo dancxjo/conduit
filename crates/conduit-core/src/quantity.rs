@@ -32,6 +32,7 @@ pub enum QuantityUnit {
     Millidegree,
     Degree,
     Millionth,
+    Permille,
     Percent,
     One,
     Byte,
@@ -65,7 +66,9 @@ impl QuantityUnit {
                 QuantityDimension::Length
             }
             Self::Microdegree | Self::Millidegree | Self::Degree => QuantityDimension::Angle,
-            Self::Millionth | Self::Percent | Self::One => QuantityDimension::Ratio,
+            Self::Millionth | Self::Permille | Self::Percent | Self::One => {
+                QuantityDimension::Ratio
+            }
             Self::Byte | Self::Kibibyte | Self::Mebibyte => QuantityDimension::DataSize,
         }
     }
@@ -89,6 +92,7 @@ impl QuantityUnit {
             Self::Millidegree => 1_000,
             Self::Degree => 1_000_000,
             Self::Millionth => 1,
+            Self::Permille => 1_000,
             Self::Percent => 10_000,
             Self::One => 1_000_000,
             Self::Byte => 1,
