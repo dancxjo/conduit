@@ -462,6 +462,7 @@ test("two admitted product clients compose Body grants into one exact ready sess
   ));
   await sourcePage.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(probe.output).toContain("peer-lost");
+  await expect.poll(() => probe.output().match(/^host_loss=(\{.*\})$/m)?.[1]).toBeDefined();
   const hostLossMatch = probe.output().match(/^host_loss=(\{.*\})$/m);
   expect(hostLossMatch, probe.output()).not.toBeNull();
   const hostLoss = JSON.parse(hostLossMatch[1]);
