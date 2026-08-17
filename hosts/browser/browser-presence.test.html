@@ -36,7 +36,7 @@ globalThis.__probeConcurrentGrantStage = async () => {
   const controller = new BodyWebRtcSessions({
     wasmBytes: new ArrayBuffer(0),
     sendSignal: () => {},
-    requestGrant: (index) => requests.push(index),
+    requestGrant: (generation, index) => requests.push([generation, index]),
     createSession: ({ onSession }) => {
       creations += 1;
       const session = fakeSession();
@@ -46,6 +46,7 @@ globalThis.__probeConcurrentGrantStage = async () => {
   });
   controller.begin();
   const grant = (negotiation_id) => ({
+    generation: 0,
     index: 0,
     total: 1,
     grant: {

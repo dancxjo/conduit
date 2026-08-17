@@ -55,6 +55,7 @@ enum WorkerResponse {
     Refused(String),
     Relayed,
     WebRtcGrant {
+        generation: u16,
         index: u16,
         total: u16,
         grant: Option<conduit_std_host::browser_admission::BrowserWebRtcGrant>,
@@ -471,6 +472,7 @@ fn spawn_worker(
             }
             Ok(WorkerResponse::Relayed) => {}
             Ok(WorkerResponse::WebRtcGrant {
+                generation,
                 index,
                 total,
                 grant,
@@ -478,6 +480,7 @@ fn spawn_worker(
                 if socket
                     .send(&BrowserAdmissionEgress::WebRtcGrant {
                         protocol: BROWSER_ADMISSION_PROTOCOL,
+                        generation,
                         index,
                         total,
                         grant,

@@ -280,6 +280,7 @@ fn main() -> Result<(), String> {
                 part_id,
                 host_id,
                 boot_id,
+                generation,
                 index,
                 ..
             }) => {
@@ -300,12 +301,13 @@ fn main() -> Result<(), String> {
                 socket
                     .send(&BrowserAdmissionEgress::WebRtcGrant {
                         protocol: BROWSER_ADMISSION_PROTOCOL,
+                        generation,
                         index,
                         total: 0,
                         grant: None,
                     })
                     .map_err(|error| format!("send empty grant result: {error:?}"))?;
-                println!("webrtc-grant index={index} total=0");
+                println!("webrtc-grant generation={generation} index={index} total=0");
             }
             Ok(_) => return Err("post-admission frame was not a presence renewal".into()),
             Err(BrowserAdmissionSocketError::Transport(Transport(

@@ -78,16 +78,17 @@ test("admitted browser renews exact current presence and close makes it unavaila
     signal: {},
   }))).rejects.toThrow("invalid WebRTC signaling target or payload");
   await expect(page.evaluate(() => globalThis.__browserPresence.requestWebRtcGrant(16)))
-    .rejects.toThrow("invalid WebRTC grant index");
+    .rejects.toThrow("invalid WebRTC grant generation or index");
   await page.evaluate(() => globalThis.__browserPresence.requestWebRtcGrant(0));
   await expect.poll(() => page.evaluate(() => globalThis.__browserWebRtcGrants.at(-1)))
-    .toEqual({ kind: "web-rtc-grant", protocol: 1, index: 0, total: 0, grant: null });
+    .toEqual({ kind: "web-rtc-grant", protocol: 1, generation: 0, index: 0, total: 0, grant: null });
   expect(await page.evaluate(() => Object.isFrozen(globalThis.__browserWebRtcGrants.at(-1))))
     .toBe(true);
   expect(await page.evaluate(() => {
     const source = {
       kind: "web-rtc-grant",
       protocol: 1,
+      generation: 0,
       index: 0,
       total: 1,
       grant: {
@@ -120,7 +121,7 @@ test("admitted browser renews exact current presence and close makes it unavaila
   }))).rejects.toThrow("invalid WebRTC signal frame");
   expect(await page.evaluate(() => globalThis.__probeConcurrentGrantStage())).toMatchObject({
     creations: 1,
-    requests: [0],
+    requests: [[0, 0]],
     secondRefusal: "WebRTC grant creation already in flight",
     creationRefusal: "creation refused",
     state: {
@@ -187,7 +188,7 @@ test("admitted browser renews exact current presence and close makes it unavaila
     description: "offer",
     firstByte: 1,
   });
-  await expect.poll(probe.output).toContain("webrtc-grant index=0 total=0");
+  await expect.poll(probe.output).toContain("webrtc-grant generation=0 index=0 total=0");
   const finalSequence = await page.evaluate(() => globalThis.__browserPresence.close());
   expect(finalSequence).toBeGreaterThanOrEqual(3);
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.state())).toBe("offline");
@@ -393,6 +394,72 @@ test("two admitted product clients compose Body grants into one exact ready sess
     negotiationId,
   )).rejects.toThrow("WebRTC session is not current and Ready");
   await expect.poll(probe.output).toContain("relayed stage=2");
+  expect(await Promise.all([source, sink].map(
+    (page) => page.evaluate(() => globalThis.__browserPresence.replanWebRtc()),
+  ))).toEqual([1, 1]);
+  for (const page of [source, sink]) {
+    await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.webRtcSessions()))
+      .toMatchObject({
+        generation: 1,
+        activeSessions: 1,
+        creatingSessions: 0,
+        pendingSignals: 0,
+        retiredNegotiations: 1,
+        failure: null,
+      });
+    await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.webRtcSessions().sessions[0]))
+      .toMatchObject({ sessionReady: true, terminalReason: null });
+  }
+  await expect.poll(probe.output).toContain("relayed stage=4");
+  await expect.poll(probe.output).toContain("stale-grant-callback generation=0 current=1");
+  await expect.poll(async () => (await Promise.all([source, sink].map(
+    (page) => page.evaluate(() => globalThis.__browserPresence.webRtcSessions().refusal),
+  ))).filter((refusal) => refusal === "stale WebRTC grant generation").length).toBe(1);
+  const replacementSourceSession = await source.evaluate(
+    () => globalThis.__browserPresence.webRtcSessions().sessions[0],
+  );
+  const replacementSinkSession = await sink.evaluate(
+    () => globalThis.__browserPresence.webRtcSessions().sessions[0],
+  );
+  expect([replacementSourceSession.role, replacementSinkSession.role].sort()).toEqual(["sink", "source"]);
+  const replacementSourcePage = replacementSourceSession.role === "source" ? source : sink;
+  const replacementSinkPage = replacementSourceSession.role === "sink" ? source : sink;
+  const replacementNegotiationId = replacementSourceSession.negotiationId;
+  expect(replacementNegotiationId).not.toBe(negotiationId);
+  await expect(replacementSourcePage.evaluate(
+    (id) => globalThis.__browserPresence.offerWebRtcValue(id, [9]),
+    negotiationId,
+  )).rejects.toThrow("unknown or stale WebRTC negotiation identity");
+  const replacementValue = [55, 66, 77];
+  const replacementReceive = replacementSinkPage.evaluate(
+    (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
+    replacementNegotiationId,
+  );
+  const replacementAccepted = await replacementSourcePage.evaluate(
+    ({ id, bytes }) => globalThis.__browserPresence.offerWebRtcValue(id, bytes),
+    { id: replacementNegotiationId, bytes: replacementValue },
+  );
+  expect(replacementAccepted).toEqual({
+    accepted: true,
+    retryable: false,
+    reason: null,
+    sequence: 0,
+    delivered: false,
+  });
+  const replacementReceived = await replacementReceive;
+  expect(replacementReceived).toEqual({ sequence: 0, bytes: replacementValue });
+  const replacementDelivered = replacementSourcePage.evaluate(
+    ({ id, sequence }) => globalThis.__browserPresence.waitWebRtcValueDelivered(id, sequence),
+    { id: replacementNegotiationId, sequence: 0 },
+  );
+  expect(await replacementSinkPage.evaluate(
+    ({ id, sequence }) => globalThis.__browserPresence.deliverWebRtcValue(id, sequence),
+    { id: replacementNegotiationId, sequence: 0 },
+  )).toEqual({ delivered: true, sequence: 0 });
+  expect(await replacementDelivered).toEqual({ delivered: true, sequence: 0 });
+  const replacementStates = await Promise.all([source, sink].map(
+    (page) => page.evaluate(() => globalThis.__browserPresence.webRtcSessions()),
+  ));
   await sourcePage.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(probe.output).toContain("peer-lost");
   await sinkPage.evaluate(() => globalThis.__browserPresence.close());
@@ -400,6 +467,9 @@ test("two admitted product clients compose Body grants into one exact ready sess
   const basisMatch = probe.output().match(/^session_basis=(\{.*\})$/m);
   expect(basisMatch, probe.output()).not.toBeNull();
   const basis = JSON.parse(basisMatch[1]);
+  const replacementBasisMatch = probe.output().match(/^replacement_basis=(\{.*\})$/m);
+  expect(replacementBasisMatch, probe.output()).not.toBeNull();
+  const replacementBasis = JSON.parse(replacementBasisMatch[1]);
   expect(basis).toMatchObject({
     base: "WebRtcDataChannel",
     session_limits: { maximum_in_flight_items: 1, maximum_payload_bytes: 16, maximum_buffered_bytes: 16 },
@@ -432,6 +502,20 @@ test("two admitted product clients compose Body grants into one exact ready sess
         line_ready_before: true,
         line_ready_after: false,
       },
+      replacement: {
+        basis: replacementBasis,
+        browser_peers: [
+          { ...sourceIdentity, session: replacementSourceSession },
+          { ...sinkIdentity, session: replacementSinkSession },
+        ],
+        traffic: {
+          value: replacementValue,
+          accepted: replacementAccepted,
+          received: replacementReceived,
+          delivered: { delivered: true, sequence: replacementReceived.sequence },
+        },
+        session_states: replacementStates,
+      },
       assertions: {
         distinct_host_boot_peers: sourceIdentity.hostId !== sinkIdentity.hostId
           && sourceIdentity.bootId !== sinkIdentity.bootId,
@@ -456,6 +540,28 @@ test("two admitted product clients compose Body grants into one exact ready sess
           && sinkAfterLoss.terminalReason === "line-closed"
           && sourceAfterLoss.line.readyState === "closed"
           && sinkAfterLoss.line.readyState === "closed",
+        explicit_replan_is_distinct_and_old_truth_is_immutable:
+          basis.generation === 0
+          && replacementBasis.generation === 1
+          && basis.body_id === replacementBasis.body_id
+          && basis.source_part_id === replacementBasis.source_part_id
+          && basis.sink_part_id === replacementBasis.sink_part_id
+          && basis.connection_id === replacementBasis.connection_id
+          && basis.plan_id !== replacementBasis.plan_id
+          && basis.source_active_play_id !== replacementBasis.source_active_play_id
+          && basis.sink_active_play_id !== replacementBasis.sink_active_play_id
+          && basis.line_id !== replacementBasis.line_id
+          && basis.binding_id !== replacementBasis.binding_id
+          && basis.base_instance_id !== replacementBasis.base_instance_id
+          && replacementNegotiationId === replacementBasis.binding_id
+          && replacementReceived.bytes.join(",") === replacementValue.join(",")
+          && replacementStates.every((state) => state.generation === 1
+            && state.retiredNegotiations === 1
+            && state.activeSessions === 1
+            && state.failure === null)
+          && replacementStates.filter(
+            (state) => state.refusal === "stale WebRTC grant generation",
+          ).length === 1,
         state_is_finite: basis.session_limits.maximum_in_flight_items === 1
           && basis.session_limits.maximum_payload_bytes === 16
           && basis.session_limits.maximum_buffered_bytes === 16
