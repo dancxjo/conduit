@@ -250,7 +250,10 @@ pub(super) fn build_advertisement(
         ]);
     }
     if composition.files {
-        capabilities.push(conduit_std_catalog::copy_file_offer());
+        capabilities.extend([
+            conduit_std_catalog::copy_file_offer(),
+            conduit_std_catalog::copy_result_presentation_offer(),
+        ]);
     }
     if composition.external_websocket {
         capabilities.push(conduit_net::std_external_websocket_family().capability);

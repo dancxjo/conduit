@@ -1,38 +1,17 @@
 use super::base::{CopyFiles, ExecutionFaults};
 use super::model::{CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken};
-use super::operation::CopyOperation;
 use super::registry::{ProtectedFileAvailability, ProtectedFileEntry, ProtectedFileRegistry};
+use super::scheduler::{prepare_copy_scheduler, CopyScheduler};
 use crate::StdHost;
 use conduit_core::{
     bind_active_play, PlanFragment, ProtectedResourceAccess, ProtectedResourceBinding,
     ProtectedResourceCommitPolicy,
 };
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
-};
-use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, NodeId, PortId, SignSink, ValueStorage,
-};
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_kernel::scheduler::{HostOperationRequest, SchedulerStatus};
+use conduit_kernel::{HostOperationDisposition, HostOperationOutcome, SignSink, ValueStorage};
+use conduit_runtime::lowering::lower_plan_fragment;
 
 const MAX_COPY_BYTES: u64 = 16 * 1024 * 1024;
-const MAX_SIGN_ITEMS: u16 = 20_000;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-
-type CopyScheduler = FixedScheduler<
-    OperationDriver<CopyOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    1,
-    PORTS,
-    1,
-    PORTS,
-    1,
-    1,
-    1,
->;
 
 impl StdHost {
     pub fn run_copy_fragment(
@@ -88,7 +67,7 @@ impl StdHost {
             &self.advertisement.boot_id,
             play_sequence,
         );
-        let make_receipt = |result, kernel_events| CopyRunReceipt {
+        let make_receipt = |result, kernel_events, presented_result| CopyRunReceipt {
             request_id: request_id.clone(),
             run_id: active_play.active_play_id.clone(),
             plan_id: fragment.plan_id.clone(),
@@ -96,11 +75,12 @@ impl StdHost {
             destination_binding_id: destination_id.clone(),
             result,
             kernel_events,
+            presented_result,
         };
 
         for binding in [source_binding, destination_binding] {
             if let Err(result) = resolve_entry(registry, placement, binding) {
-                return Ok(make_receipt(result, 0));
+                return Ok(make_receipt(result, 0, None));
             }
         }
 
@@ -119,9 +99,9 @@ impl StdHost {
             faults,
         );
         let release = self.kernel_resources.release(reservation);
-        let (result, kernel_events) = execution?;
+        let (result, kernel_events, presented_result) = execution?;
         release?;
-        Ok(make_receipt(result, kernel_events))
+        Ok(make_receipt(result, kernel_events, presented_result))
     }
 }
 
@@ -133,24 +113,24 @@ fn use_protected_copy_resources(
     destination_binding: &ProtectedResourceBinding,
     stop: &CopyStopToken,
     faults: ExecutionFaults,
-) -> Result<(CopyResult, usize), String> {
+) -> Result<(CopyResult, usize, Option<conduit_core::StructuredInfoValue>), String> {
     let source = match resolve_entry(registry, placement, source_binding) {
         Ok(entry) => entry,
-        Err(result) => return Ok((result, 0)),
+        Err(result) => return Ok((result, 0, None)),
     };
     let destination = match resolve_entry(registry, placement, destination_binding) {
         Ok(entry) => entry,
-        Err(result) => return Ok((result, 0)),
+        Err(result) => return Ok((result, 0, None)),
     };
     if source.path == destination.path {
-        return Ok((CopyResult::Denied, 0));
+        return Ok((CopyResult::Denied, 0, None));
     }
     let source_bytes = match source.path.metadata() {
         Ok(metadata) => metadata.len(),
         Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
-            return Ok((CopyResult::Denied, 0));
+            return Ok((CopyResult::Denied, 0, None));
         }
-        Err(_) => return Ok((CopyResult::StaleHandle, 0)),
+        Err(_) => return Ok((CopyResult::StaleHandle, 0, None)),
     };
     let maximum_bytes = source_binding
         .maximum_bytes
@@ -163,29 +143,34 @@ fn use_protected_copy_resources(
                 maximum_bytes,
             },
             0,
+            None,
         ));
     }
     if destination_binding.commit_policy == ProtectedResourceCommitPolicy::CreateOnly
         && destination.path.exists()
     {
-        return Ok((CopyResult::DestinationExists, 0));
+        return Ok((CopyResult::DestinationExists, 0, None));
     }
     execute_copy(
         fragment,
         source,
         destination,
+        source_bytes,
         destination_binding.commit_policy,
-        maximum_bytes,
         stop,
         faults,
     )
 }
 
 fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::PlannedGear, String> {
-    if fragment.placements.len() != 1 || !fragment.connections.is_empty() {
-        return Err("copy Plan fragment must contain one operation and zero cords".to_string());
+    if fragment.placements.len() != 2 || fragment.connections.len() != 1 {
+        return Err("copy Plan fragment must contain copy, presentation, and one Cord".to_string());
     }
-    let placement = &fragment.placements[0];
+    let placement = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::COPY_FILE_KIND)
+        .ok_or_else(|| "copy Plan has no copy placement".to_string())?;
     if placement.kind_id.as_str() != conduit_std_catalog::COPY_FILE_KIND
         || placement.kind_contract_revision.as_str()
             != conduit_std_catalog::COPY_FILE_CONTRACT_REVISION
@@ -194,13 +179,49 @@ fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::Planne
         || placement.implementation_id.as_str() != conduit_std_catalog::COPY_FILE_IMPLEMENTATION
         || placement.artifact_id.as_str() != conduit_std_catalog::COPY_FILE_ARTIFACT
         || !placement.inputs.is_empty()
-        || !placement.outputs.is_empty()
+        || placement.outputs.len() != 1
         || placement.host_operations != conduit_std_catalog::copy_file_offer().host_operations
         || placement.resources.len() != 2
     {
         return Err(
             "copy executable identity does not match the installed implementation".to_string(),
         );
+    }
+    let presenter = fragment
+        .placements
+        .iter()
+        .find(|candidate| {
+            candidate.implementation_id.as_str()
+                == conduit_std_catalog::COPY_RESULT_PRESENTATION_IMPLEMENTATION
+        })
+        .ok_or_else(|| "copy Plan has no result presentation placement".to_string())?;
+    let presentation_offer = conduit_std_catalog::copy_result_presentation_offer();
+    if presenter.kind_id != presentation_offer.kind_id
+        || presenter.kind_contract_revision != presentation_offer.kind_contract_revision
+        || presenter.execution_profile_id != presentation_offer.implementation.execution_profile_id
+        || presenter.artifact_id != presentation_offer.implementation.artifact_id
+        || presenter.inputs != presentation_offer.inputs
+        || !presenter.outputs.is_empty()
+        || presenter.host_operations != presentation_offer.host_operations
+        || presenter.resources.len() != 1
+    {
+        return Err(
+            "copy result presentation identity does not match the installed implementation"
+                .to_string(),
+        );
+    }
+    let connection = &fragment.connections[0];
+    if connection.source_placement_id != placement.placement_id
+        || connection.source_port_id.as_str() != "result"
+        || connection.sink_placement_id != presenter.placement_id
+        || connection.sink_port_id.as_str() != "input"
+        || connection.value_kind != placement.outputs[0].value_kind
+        || connection.item_capacity != 1
+        || connection.byte_capacity != conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+        || connection.selected_line.is_some()
+        || !connection.admitted_lines.is_empty()
+    {
+        return Err("copy result Cord does not match the exact planned local route".to_string());
     }
     Ok(placement)
 }
@@ -264,11 +285,16 @@ fn execute_copy(
     fragment: &PlanFragment,
     source: &ProtectedFileEntry,
     destination: &ProtectedFileEntry,
+    source_bytes: u64,
     policy: ProtectedResourceCommitPolicy,
-    maximum_bytes: u64,
     stop: &CopyStopToken,
     faults: ExecutionFaults,
-) -> Result<(CopyResult, usize), String> {
+) -> Result<(CopyResult, usize, Option<conduit_core::StructuredInfoValue>), String> {
+    let maximum_bytes = source
+        .grant
+        .maximum_bytes
+        .min(destination.grant.maximum_bytes)
+        .min(MAX_COPY_BYTES);
     let mut files = match CopyFiles::prepare(
         &source.path,
         &destination.path,
@@ -277,12 +303,49 @@ fn execute_copy(
         faults,
     ) {
         Ok(files) => files,
-        Err(result) => return Ok((result, 0)),
+        Err(result) => return Ok((result, 0, None)),
     };
-    let mut scheduler = copy_scheduler(fragment)?;
+    let (mut scheduler, success_encoded) = prepare_copy_scheduler(fragment, source_bytes)?;
+    let lowered =
+        lower_plan_fragment(fragment).map_err(|error| format!("lower copy: {error:?}"))?;
+    let presentation_node = fragment
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.implementation_id.as_str()
+                == conduit_std_catalog::COPY_RESULT_PRESENTATION_IMPLEMENTATION
+        })
+        .and_then(|placement| {
+            lowered
+                .nodes
+                .iter()
+                .find(|node| node.placement_id == placement.placement_id)
+        })
+        .map(|node| node.node)
+        .ok_or_else(|| "copy result presentation node is missing".to_string())?;
     let mut result = None;
+    let mut presented_encoded =
+        Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES);
     loop {
         while let Some(request) = scheduler.next_host_request() {
+            if request.node == presentation_node {
+                let encoded = scheduler
+                    .host_value(request.input.value)
+                    .map_err(|error| format!("read copy presentation: {error:?}"))?;
+                presented_encoded.extend_from_slice(encoded);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: None,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete copy presentation: {error:?}"))?;
+                continue;
+            }
             if stop.is_requested()
                 || files
                     .faults
@@ -306,13 +369,21 @@ fn execute_copy(
             match files.step() {
                 Ok(true) => complete_continue(&mut scheduler, request)?,
                 Ok(false) => {
+                    let value = scheduler
+                        .store_host_value(&success_encoded)
+                        .map_err(|error| format!("store admitted copy result: {error:?}"))?;
+                    let success_value = conduit_kernel::BoundedValueRef::new(
+                        value,
+                        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                    )
+                    .map_err(|_| "copy result exceeded its admitted bound")?;
                     scheduler
                         .complete_host_operation(
                             request.node,
                             request.request,
                             HostOperationOutcome {
                                 disposition: HostOperationDisposition::Completed,
-                                output: None,
+                                output: Some(success_value),
                                 failure: None,
                             },
                         )
@@ -355,9 +426,20 @@ fn execute_copy(
     if scheduler.values().used_items() != 0 {
         return Err("copy kernel retained values after terminal state".to_string());
     }
+    let presented_result = if presented_encoded.is_empty() {
+        None
+    } else {
+        let value = conduit_core::StructuredInfoValue::from_canonical_bytes(&presented_encoded)
+            .map_err(|error| format!("decode copy presentation: {error:?}"))?;
+        if value.value_type() != &conduit_std_catalog::copy_result_type() {
+            return Err("copy presentation has the wrong exact type".into());
+        }
+        Some(value)
+    };
     Ok((
         result.ok_or_else(|| "copy kernel terminated without a result".to_string())?,
         usize::from(scheduler.signs().len()),
+        presented_result,
     ))
 }
 
@@ -376,60 +458,4 @@ fn complete_continue(
             },
         )
         .map_err(|error| format!("complete copy chunk: {error:?}"))
-}
-
-fn copy_scheduler(fragment: &PlanFragment) -> Result<CopyScheduler, String> {
-    let lowered =
-        lower_plan_fragment(fragment).map_err(|error| format!("lower copy: {error:?}"))?;
-    if lowered.nodes.len() != 1 || !lowered.cords.is_empty() || lowered.host_operations.len() != 1 {
-        return Err(
-            "lowered copy shape is not one node, zero cords, one host operation".to_string(),
-        );
-    }
-    let mut values = HostedValueStore::new(1, 1, 1)
-        .map_err(|error| format!("prepare copy values: {error:?}"))?;
-    let command = values
-        .store(&[0])
-        .map_err(|error| format!("store copy command: {error:?}"))?;
-    let driver = OperationDriver::new(CopyOperation::new(command))
-        .map_err(|error| format!("prepare copy operation: {error:?}"))?;
-    let mut routes = FixedRoutes::<PORTS, 1>::new(PORTS as u16);
-    routes
-        .seal()
-        .map_err(|error| format!("seal empty copy routes: {error:?}"))?;
-    let mut bindings = FixedHostOperationBindings::<1>::new(1);
-    bindings
-        .install(
-            lowered.host_operations[0].node,
-            lowered.host_operations[0].binding,
-        )
-        .map_err(|error| format!("install copy host operation: {error:?}"))?;
-    bindings
-        .seal()
-        .map_err(|error| format!("seal copy host operation: {error:?}"))?;
-    let inactive_cord = CordSpec {
-        cord: CordId(u16::MAX),
-        source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        slot_start: u16::MAX,
-        item_capacity: 0,
-        byte_capacity: 0,
-    };
-    let sign_bytes = u32::from(MAX_SIGN_ITEMS)
-        .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
-        .ok_or_else(|| "copy sign byte budget overflow".to_string())?;
-    let sign = HostedSignLog::new(MAX_SIGN_ITEMS, sign_bytes)
-        .map_err(|error| format!("prepare copy sign: {error:?}"))?;
-    CopyScheduler::new_with_active_counts_and_host_operations(
-        1,
-        0,
-        [lowered.node_specs[0]],
-        [inactive_cord],
-        routes,
-        bindings,
-        [driver],
-        values,
-        sign,
-    )
-    .map_err(|error| format!("prepare copy scheduler: {error:?}"))
 }

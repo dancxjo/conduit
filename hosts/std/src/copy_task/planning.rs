@@ -4,7 +4,7 @@ use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
 
-const COPY_FORM_SOURCE: &str = "form 0\n\ncopy-task {\n    copy: file/copy\n}\n";
+const COPY_FORM_SOURCE: &str = "form 0\n\ncopy-task {\n    copy: file/copy\n    show: presentation/structured-info\n    copy.result -> show.input\n}\n";
 
 #[derive(Debug, Clone)]
 pub struct PreparedCopyTask {
@@ -33,7 +33,7 @@ pub fn prepare_copy_task(
             connection_bases: &overrides,
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: 1,
+            connection_byte_capacity: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             authority_grants: &[],
             protected_resource_grants: grants,
             line_offers: &[],
