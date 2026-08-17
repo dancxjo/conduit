@@ -39,6 +39,7 @@ mod patchbay_backs;
 mod policy_explanation;
 mod portable_composition;
 mod portable_content;
+mod portable_correlations;
 mod portable_demo;
 mod portable_graph_projection;
 mod portable_graphics;

@@ -80,6 +80,10 @@ pub struct NavigationPlace {
 }
 
 /// One exact advertised Presentation relationship and its navigation destination.
+///
+/// Navigation may traverse either direction of the relationship. `source_subject`
+/// and `target_subject` describe the FOLLOW direction, while `relationship`
+/// preserves the exact underlying semantic relationship kind.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NavigationFollow {
     pub identity: String,
@@ -200,9 +204,11 @@ impl PresentationNavigation {
                     .iter()
                     .any(|candidate| candidate.identity == follow.identity)
                 || !presentation.relationships.iter().any(|relationship| {
-                    relationship.source == follow.source_subject
-                        && relationship.target == follow.target_subject
-                        && relationship.kind == follow.relationship
+                    relationship.kind == follow.relationship
+                        && ((relationship.source == follow.source_subject
+                            && relationship.target == follow.target_subject)
+                            || (relationship.source == follow.target_subject
+                                && relationship.target == follow.source_subject))
                 })
                 || !self.places.iter().any(|place| {
                     place.aspects.iter().any(|aspect| {

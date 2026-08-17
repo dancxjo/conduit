@@ -1,10 +1,10 @@
 //! Derive portable Place x Aspect navigation from one exact Patchbay Presentation.
 
 use conduit_presentation::{
-    NavigationAspect, NavigationPlace, Presentation, PresentationAspect, PresentationCursor,
-    PresentationDepth, PresentationDisclosureLevel, PresentationNavigation, PresentationPlace,
-    PresentationProjection, PresentationProperty, PresentationRole, ProjectionItem,
-    ProjectionMembership,
+    NavigationAspect, NavigationFollow, NavigationPlace, Presentation, PresentationAspect,
+    PresentationCursor, PresentationDepth, PresentationDisclosureLevel, PresentationNavigation,
+    PresentationPlace, PresentationProjection, PresentationProperty, PresentationRelationshipKind,
+    PresentationRole, ProjectionItem, ProjectionMembership,
 };
 use serde::{Deserialize, Serialize};
 
@@ -76,7 +76,8 @@ impl PatchbayNavigationProjection {
         places: Vec<NavigationPlace>,
         current_place: PresentationPlace,
     ) -> Result<Self, String> {
-        let navigation = PresentationNavigation::new(presentation, places, Vec::new())
+        let follows = follows(presentation, &places)?;
+        let navigation = PresentationNavigation::new(presentation, places, follows)
             .map_err(|error| format!("invalid Patchbay navigation: {error:?}"))?;
         let memberships = memberships(presentation, &navigation)?;
         let projection = PresentationProjection::new(presentation, &navigation, memberships)
@@ -104,6 +105,68 @@ impl PatchbayNavigationProjection {
             cursor,
         })
     }
+}
+
+fn follows(
+    presentation: &Presentation,
+    places: &[NavigationPlace],
+) -> Result<Vec<NavigationFollow>, String> {
+    let mut follows = Vec::new();
+    for (index, relationship) in presentation.relationships.iter().enumerate() {
+        if relationship.kind != PresentationRelationshipKind::Realizes {
+            continue;
+        }
+        let Some((source_place, source_aspect)) = planned_location(places, &relationship.source)
+        else {
+            continue;
+        };
+        let Some((target_place, target_aspect)) = planned_location(places, &relationship.target)
+        else {
+            continue;
+        };
+        if source_place == target_place {
+            continue;
+        }
+        follows.push(NavigationFollow {
+            identity: format!("follow/{index}/forward"),
+            source_subject: relationship.source.clone(),
+            relationship: relationship.kind,
+            target_subject: relationship.target.clone(),
+            target_place,
+            target_aspect,
+        });
+        follows.push(NavigationFollow {
+            identity: format!("follow/{index}/reverse"),
+            source_subject: relationship.target.clone(),
+            relationship: relationship.kind,
+            target_subject: relationship.source.clone(),
+            target_place: source_place,
+            target_aspect: source_aspect,
+        });
+    }
+    if follows.len() > conduit_presentation::MAX_NAVIGATION_FOLLOWS {
+        return Err("Patchbay FOLLOW capacity exceeded".into());
+    }
+    Ok(follows)
+}
+
+fn planned_location(
+    places: &[NavigationPlace],
+    subject: &str,
+) -> Option<(PresentationPlace, PresentationAspect)> {
+    places.iter().find_map(|place| {
+        place
+            .aspects
+            .iter()
+            .find(|aspect| {
+                aspect.aspect == PresentationAspect::Plan
+                    && aspect
+                        .focusable_subjects
+                        .iter()
+                        .any(|candidate| candidate == subject)
+            })
+            .map(|aspect| (place.place, aspect.aspect))
+    })
 }
 
 fn place(
@@ -289,6 +352,28 @@ fn memberships(
                 }
             }
         }
+    }
+    for follow in &navigation.follows {
+        let index = presentation
+            .relationships
+            .iter()
+            .position(|relationship| {
+                relationship.kind == follow.relationship
+                    && ((relationship.source == follow.source_subject
+                        && relationship.target == follow.target_subject)
+                        || (relationship.source == follow.target_subject
+                            && relationship.target == follow.source_subject))
+            })
+            .ok_or_else(|| "Patchbay FOLLOW relationship is absent".to_owned())?;
+        let (place, aspect) = planned_location(&navigation.places, &follow.source_subject)
+            .ok_or_else(|| "Patchbay FOLLOW source is not projected".to_owned())?;
+        push(
+            &mut memberships,
+            place,
+            aspect,
+            ProjectionItem::Relationship(ordinal(index)?),
+            PresentationDepth::Primary,
+        );
     }
     Ok(memberships)
 }

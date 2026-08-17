@@ -156,9 +156,11 @@ impl PresentationProjection {
         }
         for follow in &navigation.follows {
             let relationship = presentation.relationships.iter().position(|candidate| {
-                candidate.source == follow.source_subject
-                    && candidate.target == follow.target_subject
-                    && candidate.kind == follow.relationship
+                candidate.kind == follow.relationship
+                    && ((candidate.source == follow.source_subject
+                        && candidate.target == follow.target_subject)
+                        || (candidate.source == follow.target_subject
+                            && candidate.target == follow.source_subject))
             });
             if relationship.is_none_or(|relationship| {
                 !source_places(navigation, &follow.source_subject).any(|source_place| {

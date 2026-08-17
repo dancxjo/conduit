@@ -77,6 +77,7 @@ fn append_parts_to_presentation(
         presentation.text,
     );
     crate::portable_world_projection::append_body_parts(body, parts, &mut content);
+    crate::portable_correlations::append_planned_correlations(&mut content);
     presentation.basis.sign_ids.extend(
         parts
             .parts
