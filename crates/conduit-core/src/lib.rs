@@ -39,6 +39,7 @@ mod temporal;
 mod temporal_civil_conversion;
 mod temporal_clock;
 mod temporal_quantity;
+mod temporal_recurrence;
 mod temporal_window;
 
 pub use audio_info::*;
@@ -73,6 +74,7 @@ pub use temporal::*;
 pub use temporal_civil_conversion::*;
 pub use temporal_clock::*;
 pub use temporal_quantity::*;
+pub use temporal_recurrence::*;
 pub use temporal_window::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
