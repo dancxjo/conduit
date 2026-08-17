@@ -110,6 +110,7 @@ pub enum NavigationOperation {
     Enter(PresentationPlace),
     Show(PresentationAspect),
     Focus(String),
+    FocusAndDisclose(String, PresentationDepth),
     Follow(String),
     Disclose(PresentationDepth),
     Back,
@@ -381,6 +382,13 @@ impl NavigationState {
                     return Err(NavigationRefusal::UnknownSubject);
                 }
                 next.focus = Some(subject);
+            }
+            NavigationOperation::FocusAndDisclose(subject, depth) => {
+                if !navigation.subject_is_focusable(next.place, next.aspect, &subject) {
+                    return Err(NavigationRefusal::UnknownSubject);
+                }
+                next.focus = Some(subject);
+                next.depth = depth;
             }
             NavigationOperation::Follow(identity) => {
                 let source = next

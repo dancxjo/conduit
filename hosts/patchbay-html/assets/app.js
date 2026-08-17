@@ -9,7 +9,7 @@ const bases = new Map([
   ["FixtureFrame", "fixture frame"], ["FixtureDatagram", "fixture datagram"],
   ["WebSocket", "WebSocket"], ["UsbCdc", "USB CDC"],
 ]);
-const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", lens:"world", inspectorOpen:false };
+const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", lens:"world", inspectorOpen:false, inspectorDepth:false, truthTransition:null };
 
 function requireSnapshot(value) {
   const presentation=value?.presentation;
@@ -31,6 +31,7 @@ function subjects(role){return state.snapshot.presentation.subjects.filter(subje
 function projectedSubjects(role){return state.projected.subjects.filter(subject=>!role||subject.role===role);}
 function texts(identity){return state.snapshot.presentation.text.filter(item=>item.subject===identity).map(item=>item.text);}
 function properties(identity){return state.snapshot.presentation.properties.filter(item=>item.subject===identity);}
+function projectedProperties(identity){return state.projected.properties.filter(item=>item.subject===identity);}
 function property(identity,name){return properties(identity).find(item=>item.name===name);}
 function semanticActions(identity){return state.projected.actions.filter(action=>action.target===identity);}
 function currentPresentationBasis(){return {presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision};}
@@ -61,19 +62,19 @@ function displaySelection(identity){
   const focusedAction=document.activeElement?.dataset?.semanticAction;
   state.selected=identity;
   document.querySelectorAll("[data-subject]").forEach(item=>{const selected=item.dataset.subject===identity;item.classList.toggle("selected",selected);if(item.tagName==="BUTTON")item.setAttribute("aria-pressed",String(selected));});
-  const subject=state.snapshot.presentation.subjects.find(item=>item.identity===identity);
-  document.body.dataset.inspectorOpen=String(Boolean(subject)&&state.inspectorOpen);
-  document.querySelector("#toggle-inspector").setAttribute("aria-expanded",String(Boolean(subject)&&state.inspectorOpen));
+  const subject=state.projected.subjects.find(item=>item.identity===identity);
+  document.body.dataset.inspectorOpen=String(state.inspectorOpen);
+  document.querySelector("#toggle-inspector").setAttribute("aria-expanded",String(state.inspectorOpen));
   const summary=document.querySelector("#inspector .selected-summary"),exact=document.querySelector("#inspector .exact-selection"),exactFacts=exact.querySelector("dl");summary.replaceChildren();exactFacts.replaceChildren();
   document.querySelector("#clear-selection").hidden=!subject;
   document.querySelector("#center-flow").disabled=!subject;
   if(!subject){document.querySelector("#semantic-actions").replaceChildren();exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
-  exact.hidden=false;document.querySelector("#inspector .inspector-hint").textContent=subject.accessibility_name;term(summary,"Meaning",subject.label);term(summary,"Subject",subject.role);
-  const selectedProperties=properties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name));for(const item of visible){const name=item.name.startsWith("authored-control-")?"Authored configuration":item.name,full=propertyText(item.value);term(summary,name,summaryText(item.value),full);}
+  const depth=state.projected.cursor?.depth??"Exact";exact.hidden=!(["Detail","Exact"].includes(depth));document.querySelector("#inspector .inspector-hint").textContent=subject.accessibility_name;term(summary,"Meaning",subject.label);term(summary,"Subject",subject.role);
+  const selectedProperties=projectedProperties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name));for(const item of visible){const name=item.name.startsWith("authored-control-")?"Authored configuration":item.name,full=propertyText(item.value);term(summary,name,summaryText(item.value),full);}
   if(state.lens==="signs"){const signs=selectedProperties.filter(item=>item.name.startsWith("sign-"));term(summary,"Evidence",signs.length?`${signs.length} subject-specific causal Sign${signs.length===1?"":"s"}`:"No subject-specific Signs; Plan-level evidence remains below");}
   if(!visible.length&&state.lens!=="form"&&state.lens!=="signs")term(summary,"Layer",`No ${state.lens} facts for this subject; semantic selection retained`);
   term(exactFacts,"Presentation subject",identity);for(const item of selectedProperties.filter(item=>item.name==="semantic-id"||item.name.endsWith("-id")||item.name.startsWith("sign-")))term(exactFacts,item.name,propertyText(item.value));
-  const manifestation=state.snapshot.renderer.manifestation;term(exactFacts,"Body",state.snapshot.presentation.basis.body_id);term(exactFacts,"Wake",state.snapshot.presentation.basis.wake_id);term(exactFacts,"Source Plan",state.snapshot.presentation.basis.plan_id);term(exactFacts,"Source Play",state.snapshot.presentation.basis.active_play_id);term(exactFacts,"Renderer Plan",manifestation.plan_id);term(exactFacts,"Renderer Play",manifestation.active_play_id);term(exactFacts,"Manifestation",manifestation.manifestation_id);term(exactFacts,"Manifestation lifecycle",manifestation.lifecycle);
+  if(depth==="Exact"){const manifestation=state.snapshot.renderer.manifestation;term(exactFacts,"Body",state.snapshot.presentation.basis.body_id);term(exactFacts,"Wake",state.snapshot.presentation.basis.wake_id);term(exactFacts,"Source Plan",state.snapshot.presentation.basis.plan_id);term(exactFacts,"Source Play",state.snapshot.presentation.basis.active_play_id);term(exactFacts,"Renderer Plan",manifestation.plan_id);term(exactFacts,"Renderer Play",manifestation.active_play_id);term(exactFacts,"Manifestation",manifestation.manifestation_id);term(exactFacts,"Manifestation lifecycle",manifestation.lifecycle);}
   renderSemanticActions(identity);
   if(focusedAction)document.querySelector(`#semantic-actions [data-semantic-action="${CSS.escape(focusedAction)}"]`)?.focus();
 }
@@ -90,11 +91,14 @@ async function dispatchNavigation(operation){
   if(!response.ok)throw new Error(`navigation delivery HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
 }
-function closeSubordinateSurfaces(except){
+async function closeSubordinateSurfaces(except){
+  const closeTruth=except!=="truth"&&document.body.dataset.truthOpen==="true";
   for(const name of ["palette","parts","truth"]){if(name===except)continue;document.body.dataset[`${name}Open`]="false";document.querySelector(`#toggle-${name}`).setAttribute("aria-expanded","false");}
-  if(except!=="inspector"){state.inspectorOpen=false;document.querySelector("#toggle-inspector").setAttribute("aria-expanded","false");}
+  if(except!=="inspector"){state.inspectorOpen=false;document.body.dataset.inspectorOpen="false";document.querySelector("#toggle-inspector").setAttribute("aria-expanded","false");}
+  if(closeTruth&&state.truthTransition)await state.truthTransition;
+  if(closeTruth&&state.snapshot.navigation?.cursor.depth==="Exact")await dispatchNavigation({kind:"back"});
 }
-function select(identity){closeSubordinateSurfaces("inspector");state.inspectorOpen=true;return state.snapshot.navigation?dispatchNavigation({kind:"focus",subject:identity}):dispatchInteraction({kind:"select",subject:identity});}
+async function select(identity){await closeSubordinateSurfaces("inspector");state.inspectorOpen=true;state.inspectorDepth=Boolean(state.snapshot.navigation);return state.snapshot.navigation?dispatchNavigation({kind:"focus",subject:identity,depth:"Detail"}):dispatchInteraction({kind:"select",subject:identity});}
 function dispatchSemanticAction(action,presentationBasis=currentPresentationBasis()){return dispatchInteraction({kind:"invoke",action_id:action.identity},presentationBasis);}
 
 async function openSeed(identity){
@@ -222,9 +226,9 @@ document.querySelector("#clear-selection").onclick=()=>{const navigation=state.s
 document.querySelector("#seed-query").oninput=event=>{state.seedQuery=event.currentTarget.value;renderSeedPalette();};document.querySelector("#seed-query").addEventListener("keydown",moveSeedFocus);document.querySelector("#seed-results").addEventListener("keydown",moveSeedFocus);
 const furnitureSurface={palette:"palette",parts:"parts",truth:"deep-inspection",structured:"structured-navigator",inspector:"inspector"};
 function focusSurface(name){const surface=document.querySelector(`#${furnitureSurface[name]}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
-function dismissFurnitureSurface(name){
-  if(name==="inspector"){state.inspectorOpen=false;displaySelection(state.selected);}
-  else document.body.dataset[`${name}Open`]="false";
+async function dismissFurnitureSurface(name){
+  if(name==="inspector"){const returnFromDetail=state.inspectorDepth;state.inspectorOpen=false;state.inspectorDepth=false;displaySelection(state.selected);if(returnFromDetail)await dispatchNavigation({kind:"back"});}
+  else {document.body.dataset[`${name}Open`]="false";if(name==="truth"){if(state.truthTransition)await state.truthTransition;if(state.snapshot.navigation?.cursor.depth==="Exact")await dispatchNavigation({kind:"back"});}}
   const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded","false");launcher.focus();
 }
 const furniture=installPanelFurniture([
@@ -234,8 +238,9 @@ const furniture=installPanelFurniture([
   {name:"truth",selector:"#deep-inspection",title:"Exact truth",dock:"right",onDismiss:()=>dismissFurnitureSurface("truth")},
   {name:"structured",selector:"#structured-navigator",title:"Subjects",dock:"bottom",onDismiss:()=>dismissFurnitureSurface("structured")},
 ]);
-function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next){furniture.restore(name);focusSurface(name);}else launcher.focus();}
-for(const name of ["palette","parts","truth","structured"])document.querySelector(`#toggle-${name}`).onclick=event=>{event.stopPropagation();toggleDrawer(name);};
-document.querySelector("#toggle-inspector").onclick=event=>{event.stopPropagation();state.inspectorOpen=!state.inspectorOpen;if(state.inspectorOpen)closeSubordinateSurfaces("inspector");displaySelection(state.selected);if(state.inspectorOpen){furniture.restore("inspector");focusSurface("inspector");}else event.currentTarget.focus();};
+async function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)await closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next){furniture.restore(name);focusSurface(name);}else launcher.focus();}
+for(const name of ["palette","parts","structured"])document.querySelector(`#toggle-${name}`).onclick=event=>{event.stopPropagation();return toggleDrawer(name);};
+document.querySelector("#toggle-truth").onclick=async event=>{event.stopPropagation();const opening=document.body.dataset.truthOpen!=="true";if(opening){document.body.dataset.truthOpen="true";event.currentTarget.setAttribute("aria-expanded","true");furniture.restore("truth");focusSurface("truth");state.truthTransition=(async()=>{await closeSubordinateSurfaces("truth");if(state.snapshot.navigation)await dispatchNavigation({kind:"disclose",depth:"Exact"});})();await state.truthTransition;state.truthTransition=null;focusSurface("truth");}else{document.body.dataset.truthOpen="false";event.currentTarget.setAttribute("aria-expanded","false");event.currentTarget.focus();if(state.truthTransition)await state.truthTransition;if(state.snapshot.navigation?.cursor.depth==="Exact")await dispatchNavigation({kind:"back"});event.currentTarget.focus();}};
+document.querySelector("#toggle-inspector").onclick=async event=>{event.stopPropagation();const opening=document.body.dataset.truthOpen==="true"||document.body.dataset.inspectorOpen!=="true";if(opening){state.inspectorOpen=true;state.inspectorDepth=state.inspectorDepth||Boolean(state.snapshot.navigation?.cursor.focus);displaySelection(state.selected);furniture.restore("inspector");focusSurface("inspector");await closeSubordinateSurfaces("inspector");if(state.snapshot.navigation?.cursor.focus&&state.snapshot.navigation.cursor.depth!=="Detail")await dispatchNavigation({kind:"disclose",depth:"Detail"});displaySelection(state.selected);focusSurface("inspector");}else await dismissFurnitureSurface("inspector");};
 for(const selector of ["#palette","#parts","#inspector","#deep-inspection","#structured-navigator"]){document.querySelector(selector).addEventListener("click",event=>event.stopPropagation());}
-document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;const open=["truth","parts","palette","structured"].find(name=>document.body.dataset[`${name}Open`]==="true");if(open){event.preventDefault();toggleDrawer(open);return;}if(state.inspectorOpen){event.preventDefault();dismissFurnitureSurface("inspector");}});
+document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;const open=["truth","parts","palette","structured"].find(name=>document.body.dataset[`${name}Open`]==="true");if(open){event.preventDefault();if(open==="truth")document.querySelector("#toggle-truth").click();else toggleDrawer(open);return;}if(state.inspectorOpen){event.preventDefault();dismissFurnitureSurface("inspector");}});

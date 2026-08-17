@@ -17,7 +17,7 @@ function semanticIdentity(snapshot) {
     plan:snapshot.presentation.basis.plan_id,
     play:snapshot.presentation.basis.active_play_id,
     selection:snapshot.interaction.selected_subject,
-    interactionRevision:snapshot.interaction.revision,
+    cursor:snapshot.navigation.cursor,
     manifestation:snapshot.renderer.manifestation.manifestation_id,
     actions:snapshot.presentation.actions.map(action=>({identity:action.identity,target:action.target,availability:action.availability})),
   };
@@ -59,6 +59,8 @@ test("subordinate furniture is keyboard-operable and presentation-only",async ({
         await expect(surface).toBeHidden();
         expect((await page.locator("#flow-root").boundingBox()).width).toBeGreaterThan(constrainedFlow.width);
         await launcher.press("Enter");
+        await expect(surface).toBeVisible();
+        await expect(surface).toHaveAttribute("data-furniture-collapsed","false");
       }
       await surface.locator('[data-furniture-action="move"]').focus();
       await surface.locator('[data-furniture-action="move"]').press("Enter");
@@ -86,7 +88,9 @@ test("subordinate furniture is keyboard-operable and presentation-only",async ({
     expect(restored.x).toBeGreaterThanOrEqual(0);expect(restored.y).toBeGreaterThanOrEqual(0);
     expect(restored.x+restored.width).toBeLessThanOrEqual(viewport.width);
     expect(restored.y+restored.height).toBeLessThanOrEqual(viewport.height);
+    await page.keyboard.press("Escape");
+    await expect(inspector).toBeHidden();
     expect(interactionPosts).toBe(0);
-    expect(semanticIdentity(await (await fetch(`${url}/api/snapshot`)).json())).toEqual(before);
+    await expect.poll(async()=>semanticIdentity(await (await fetch(`${url}/api/snapshot`)).json())).toEqual(before);
   } finally {server.process.kill();server.lines.close();}
 });

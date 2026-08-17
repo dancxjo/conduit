@@ -311,7 +311,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.locator("#toggle-palette").click();
     const third=page.locator('#subjects button[data-role="Cord"]').filter({hasText:"Cord from"}).first();await third.click();
     await expect(third).toHaveAttribute("aria-pressed","true");
-    await expect(page.locator("#inspector .selected-summary")).toContainText("source-port");
+    await expect(page.locator("#inspector .selected-summary")).not.toContainText("source-port");
     await expect(page.locator(`#structured-navigator [data-subject="${(await third.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#interaction-proof")).toContainText("navigation/");
     await page.locator("#toggle-truth").click();
