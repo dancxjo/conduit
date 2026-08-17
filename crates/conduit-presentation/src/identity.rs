@@ -84,6 +84,10 @@ impl Presentation {
                     digest.update([3]);
                     digest.update(value.to_le_bytes());
                 }
+                PresentationPropertyValue::Signed(value) => {
+                    digest.update([5]);
+                    digest.update(value.to_le_bytes());
+                }
                 PresentationPropertyValue::Flag(value) => {
                     digest.update([4, u8::from(*value)]);
                 }

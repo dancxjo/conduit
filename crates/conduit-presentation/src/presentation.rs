@@ -102,6 +102,7 @@ pub enum PresentationPropertyValue {
     ConnectionBase(ConnectionBase),
     Text(String),
     Count(u64),
+    Signed(i64),
     Flag(bool),
 }
 
@@ -366,6 +367,7 @@ impl Presentation {
                 PresentationPropertyValue::Text(value) => validate_text(value)?,
                 PresentationPropertyValue::ConnectionBase(_)
                 | PresentationPropertyValue::Count(_)
+                | PresentationPropertyValue::Signed(_)
                 | PresentationPropertyValue::Flag(_) => {}
             }
         }
@@ -494,7 +496,7 @@ fn property_value_len(value: &PresentationPropertyValue) -> usize {
             value.len()
         }
         PresentationPropertyValue::ConnectionBase(_) => 1,
-        PresentationPropertyValue::Count(_) => 8,
+        PresentationPropertyValue::Count(_) | PresentationPropertyValue::Signed(_) => 8,
         PresentationPropertyValue::Flag(_) => 1,
     }
 }

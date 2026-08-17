@@ -6,7 +6,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     Observation, StructuredInfoInspection, StructuredInfoInspectionMember,
-    StructuredInfoInspectionRefusal, StructuredInfoInspectionShape, StructuredInfoType,
+    StructuredInfoInspectionRefusal, StructuredInfoInspectionShape, StructuredInfoLeafSemantic,
+    StructuredInfoType,
 };
 
 use crate::{
@@ -170,7 +171,11 @@ fn add_node_properties(
         )),
     }
     match &node.shape {
-        StructuredInfoInspectionShape::Leaf { kind, byte_len } => {
+        StructuredInfoInspectionShape::Leaf {
+            kind,
+            byte_len,
+            semantic,
+        } => {
             properties.push(property(
                 subject,
                 "leaf-kind",
@@ -181,6 +186,18 @@ fn add_node_properties(
                 "leaf-byte-count",
                 PresentationPropertyValue::Count(u64::from(*byte_len)),
             ));
+            if let Some(StructuredInfoLeafSemantic::Quantity(quantity)) = semantic {
+                properties.push(property(
+                    subject,
+                    "quantity-unit",
+                    PresentationPropertyValue::Identity(quantity.unit().semantic_id().to_string()),
+                ));
+                properties.push(property(
+                    subject,
+                    "quantity-value",
+                    PresentationPropertyValue::Signed(quantity.value()),
+                ));
+            }
         }
         StructuredInfoInspectionShape::Collection { length } => properties.push(property(
             subject,
