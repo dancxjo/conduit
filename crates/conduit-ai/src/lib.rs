@@ -22,6 +22,8 @@ mod temporal_evidence_selection;
 pub use temporal_evidence_selection::*;
 mod vector_retrieval;
 pub use vector_retrieval::*;
+mod vector_index_resource;
+pub use vector_index_resource::*;
 #[cfg(feature = "form-catalog")]
 mod provider;
 #[cfg(feature = "form-catalog")]
