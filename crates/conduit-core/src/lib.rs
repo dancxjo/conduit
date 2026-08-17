@@ -35,6 +35,7 @@ mod shared_pool;
 mod sound_info;
 mod structured_info;
 mod temporal;
+mod temporal_clock;
 
 pub use audio_info::*;
 pub use audio_render_demand::*;
@@ -64,6 +65,7 @@ pub use shared_pool::*;
 pub use sound_info::*;
 pub use structured_info::*;
 pub use temporal::*;
+pub use temporal_clock::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
