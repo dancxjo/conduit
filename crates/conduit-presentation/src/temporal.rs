@@ -3,6 +3,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::SignId;
+pub use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError, TemporalScale};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -17,23 +18,6 @@ use crate::{
 pub const MAX_TEMPORAL_REFERENCES: usize = 256;
 pub const MAX_PRESENTATION_TEMPORAL_FACTS: usize = 1_024;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalScale {
-    Seconds,
-    Milliseconds,
-    Microseconds,
-    Nanoseconds,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TemporalInstant {
-    pub ticks: u64,
-    pub scale: TemporalScale,
-    pub clock_basis: String,
-    pub resolution_ticks: u64,
-    pub uncertainty_ticks: u64,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporalReference {
     pub identity: String,
@@ -47,27 +31,6 @@ pub enum PresentationTemporalRole {
     Ingestion,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalRelation {
-    Past {
-        minimum_ticks: u64,
-        maximum_ticks: u64,
-    },
-    Present,
-    Future {
-        minimum_ticks: u64,
-        maximum_ticks: u64,
-    },
-    Indeterminate,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TemporalRelationError {
-    InvalidInstant,
-    Incomparable,
-    IntervalOverflow,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationTemporalFact {
     pub subject: String,
@@ -76,41 +39,6 @@ pub struct PresentationTemporalFact {
     pub source: TemporalInstant,
     pub reference: String,
     pub relation: TemporalRelation,
-}
-
-impl TemporalInstant {
-    pub fn relation_to(
-        &self,
-        reference: &TemporalInstant,
-    ) -> Result<TemporalRelation, TemporalRelationError> {
-        validate_instant(self)?;
-        validate_instant(reference)?;
-        if self.clock_basis != reference.clock_basis || self.scale != reference.scale {
-            return Err(TemporalRelationError::Incomparable);
-        }
-        let source = interval(self)?;
-        let target = interval(reference)?;
-        if source.1 < target.0 {
-            return Ok(TemporalRelation::Past {
-                minimum_ticks: target.0 - source.1,
-                maximum_ticks: target.1 - source.0,
-            });
-        }
-        if source.0 > target.1 {
-            return Ok(TemporalRelation::Future {
-                minimum_ticks: source.0 - target.1,
-                maximum_ticks: source.1 - target.0,
-            });
-        }
-        if self.ticks == reference.ticks
-            && self.uncertainty_ticks == 0
-            && reference.uncertainty_ticks == 0
-        {
-            Ok(TemporalRelation::Present)
-        } else {
-            Ok(TemporalRelation::Indeterminate)
-        }
-    }
 }
 
 impl PresentationTemporalFact {
@@ -178,7 +106,7 @@ impl Presentation {
         }
         for (index, reference) in self.temporal_references.iter().enumerate() {
             validate_id(&reference.identity)?;
-            map_relation_error(validate_instant(&reference.instant))?;
+            map_relation_error(reference.instant.validate())?;
             if self.temporal_references[index + 1..]
                 .iter()
                 .any(|candidate| candidate.identity == reference.identity)
@@ -244,29 +172,6 @@ impl Presentation {
             hash_relation(digest, fact.relation);
         }
     }
-}
-
-fn validate_instant(instant: &TemporalInstant) -> Result<(), TemporalRelationError> {
-    if instant.clock_basis.is_empty()
-        || instant.clock_basis.len() > crate::MAX_PRESENTATION_ID_BYTES
-        || instant.resolution_ticks == 0
-    {
-        Err(TemporalRelationError::InvalidInstant)
-    } else {
-        Ok(())
-    }
-}
-
-fn interval(instant: &TemporalInstant) -> Result<(u64, u64), TemporalRelationError> {
-    let lower = instant
-        .ticks
-        .checked_sub(instant.uncertainty_ticks)
-        .ok_or(TemporalRelationError::IntervalOverflow)?;
-    let upper = instant
-        .ticks
-        .checked_add(instant.uncertainty_ticks)
-        .ok_or(TemporalRelationError::IntervalOverflow)?;
-    Ok((lower, upper))
 }
 
 fn map_relation_error<T>(result: Result<T, TemporalRelationError>) -> Result<T, PresentationError> {
