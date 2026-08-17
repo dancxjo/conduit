@@ -1,7 +1,9 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::{KindId, Observation, ObservationKind, SignId};
+use crate::{
+    KindId, Observation, ObservationKind, Quantity, QuantityDecodeRefusal, SignId, QUANTITY_INFO_ID,
+};
 
 use super::{
     StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
@@ -38,10 +40,27 @@ pub enum StructuredInfoInspectionMember {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StructuredInfoInspectionShape {
-    Leaf { kind: KindId, byte_len: u32 },
-    Collection { length: u16 },
-    Record { schema: KindId, field_count: u16 },
-    Variant { schema: KindId, active_tag: String },
+    Leaf {
+        kind: KindId,
+        byte_len: u32,
+        semantic: Option<StructuredInfoLeafSemantic>,
+    },
+    Collection {
+        length: u16,
+    },
+    Record {
+        schema: KindId,
+        field_count: u16,
+    },
+    Variant {
+        schema: KindId,
+        active_tag: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StructuredInfoLeafSemantic {
+    Quantity(Quantity),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,6 +69,7 @@ pub enum StructuredInfoInspectionRefusal {
     ProfileMismatch,
     InvalidStructuredValue(StructuredInfoRefusal),
     NodeCountOverflow,
+    InvalidQuantity(QuantityDecodeRefusal),
 }
 
 impl StructuredInfoInspection {
@@ -179,10 +199,19 @@ fn inspection_shape(
 ) -> Result<StructuredInfoInspectionShape, StructuredInfoInspectionRefusal> {
     match (value.value_type().shape(), value.shape()) {
         (StructuredInfoTypeShape::Leaf(kind), StructuredInfoValueShape::Leaf(bytes)) => {
+            let semantic = if kind.as_str() == QUANTITY_INFO_ID {
+                Some(StructuredInfoLeafSemantic::Quantity(
+                    Quantity::decode(bytes)
+                        .map_err(StructuredInfoInspectionRefusal::InvalidQuantity)?,
+                ))
+            } else {
+                None
+            };
             Ok(StructuredInfoInspectionShape::Leaf {
                 kind: kind.clone(),
                 byte_len: u32::try_from(bytes.len())
                     .map_err(|_| StructuredInfoInspectionRefusal::NodeCountOverflow)?,
+                semantic,
             })
         }
         (

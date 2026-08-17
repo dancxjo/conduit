@@ -270,6 +270,7 @@ fn display_property(value: &PresentationPropertyValue) -> String {
         }
         PresentationPropertyValue::Text(value) => format!("text:{value:?}"),
         PresentationPropertyValue::Count(value) => format!("count:{value}"),
+        PresentationPropertyValue::Signed(value) => format!("signed:{value}"),
         PresentationPropertyValue::Flag(value) => format!("flag:{value}"),
     }
 }

@@ -74,6 +74,34 @@ pub enum QuantityLiteralRefusal {
 }
 
 impl QuantityUnit {
+    pub const fn semantic_id(self) -> &'static str {
+        match self {
+            Self::Nanosecond => "time/nanosecond",
+            Self::Microsecond => "time/microsecond",
+            Self::Millisecond => "time/millisecond",
+            Self::Second => "time/second",
+            Self::Millihertz => "frequency/millihertz",
+            Self::Hertz => "frequency/hertz",
+            Self::Microvolt => "voltage/microvolt",
+            Self::Millivolt => "voltage/millivolt",
+            Self::Volt => "voltage/volt",
+            Self::Micrometer => "length/micrometer",
+            Self::Millimeter => "length/millimeter",
+            Self::Centimeter => "length/centimeter",
+            Self::Meter => "length/meter",
+            Self::Microdegree => "angle/microdegree",
+            Self::Millidegree => "angle/millidegree",
+            Self::Degree => "angle/degree",
+            Self::Millionth => "ratio/millionth",
+            Self::Permille => "ratio/permille",
+            Self::Percent => "ratio/percent",
+            Self::One => "ratio/one",
+            Self::Byte => "data-size/byte",
+            Self::Kibibyte => "data-size/kibibyte",
+            Self::Mebibyte => "data-size/mebibyte",
+        }
+    }
+
     pub const fn form_suffix(self) -> &'static str {
         match self {
             Self::Nanosecond => "ns",

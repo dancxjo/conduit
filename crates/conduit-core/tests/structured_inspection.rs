@@ -1,8 +1,8 @@
 use conduit_core::{
-    BootId, HostId, KindId, Observation, ObservationKind, SignId, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoInspection, StructuredInfoInspectionRefusal,
-    StructuredInfoInspectionShape, StructuredInfoType, StructuredInfoValue, ValuePayload,
-    MAXIMUM_STRUCTURED_INSPECTION_NODES,
+    BootId, HostId, KindId, Observation, ObservationKind, Quantity, QuantityDecodeRefusal,
+    QuantityUnit, SignId, StructuredFieldType, StructuredFieldValue, StructuredInfoInspection,
+    StructuredInfoInspectionRefusal, StructuredInfoInspectionShape, StructuredInfoLeafSemantic,
+    StructuredInfoType, StructuredInfoValue, ValuePayload, MAXIMUM_STRUCTURED_INSPECTION_NODES,
 };
 
 fn leaf_type(kind: &str) -> StructuredInfoType {
@@ -137,4 +137,30 @@ fn non_value_malformed_and_wrong_profile_signs_refuse_distinctly() {
         StructuredInfoInspection::from_sign(&malformed, &expected),
         Err(StructuredInfoInspectionRefusal::InvalidStructuredValue(_))
     ));
+}
+
+#[test]
+fn quantity_signs_retain_exact_typed_semantics_without_general_leaf_disclosure() {
+    let quantity = Quantity::new(-17, QuantityUnit::Millivolt);
+    let value = leaf(conduit_core::QUANTITY_INFO_ID, &quantity.encode());
+    let inspection =
+        StructuredInfoInspection::from_sign(&sign(&value), value.value_type()).unwrap();
+    assert!(matches!(
+        &inspection.nodes[0].shape,
+        StructuredInfoInspectionShape::Leaf {
+            semantic: Some(StructuredInfoLeafSemantic::Quantity(observed)),
+            ..
+        } if *observed == quantity
+    ));
+
+    let malformed = leaf(conduit_core::QUANTITY_INFO_ID, &[0; 8]);
+    assert_eq!(
+        StructuredInfoInspection::from_sign(&sign(&malformed), malformed.value_type()),
+        Err(StructuredInfoInspectionRefusal::InvalidQuantity(
+            QuantityDecodeRefusal::WrongLength {
+                expected: conduit_core::QUANTITY_ENCODED_LEN,
+                actual: 8,
+            }
+        ))
+    );
 }
