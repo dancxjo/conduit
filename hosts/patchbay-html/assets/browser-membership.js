@@ -104,6 +104,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
   let presenceEstablished = false;
   let webRtcSessions;
   let webRtcFailure = null;
+  let webRtcRefusal = null;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
   let freshnessProfile = Object.freeze({
     scheduling: "best-effort-browser-event-loop",
@@ -155,12 +156,13 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
       signal,
     })));
   };
-  const requestWebRtcGrant = (index) => {
+  const requestWebRtcGrant = (generation, index) => {
     if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
       throw new Error("current browser presence is required for WebRTC grants");
     }
-    if (!Number.isInteger(index) || index < 0 || index >= MAXIMUM_WEB_RTC_GRANTS) {
-      throw new Error("invalid WebRTC grant index");
+    if (!Number.isInteger(generation) || generation < 0 || generation >= 2 ||
+        !Number.isInteger(index) || index < 0 || index >= MAXIMUM_WEB_RTC_GRANTS) {
+      throw new Error("invalid WebRTC grant generation or index");
     }
     socket.send(encoder.encode(JSON.stringify({
       kind: "web-rtc-grant-request",
@@ -170,6 +172,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
       part_id: credential.part_id,
       host_id: credential.host_id,
       boot_id: credential.boot_id,
+      generation,
       index,
     })));
   };
@@ -299,6 +302,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
       });
     } else if (frame.kind === "web-rtc-grant" && frame.protocol === 1) {
       if (!credential || presenceState !== "available" ||
+          !Number.isInteger(frame.generation) || frame.generation < 0 || frame.generation >= 2 ||
           !Number.isInteger(frame.index) || !Number.isInteger(frame.total) ||
           frame.index < 0 || frame.index >= MAXIMUM_WEB_RTC_GRANTS ||
           frame.total < 0 || frame.total > MAXIMUM_WEB_RTC_GRANTS ||
@@ -316,6 +320,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
       }
       onWebRtcGrant?.(immutable);
       void webRtcSessions.acceptGrantFrame(immutable).catch((error) => {
+        if (error.message === "stale WebRTC grant generation") {
+          webRtcRefusal = error.message;
+          onWebRtcState?.(webRtcSessions.state());
+          return;
+        }
         webRtcFailure = error.message;
         webRtcSessions.reset(`grant-refused:${error.message}`);
         onWebRtcState?.(webRtcSessions.state());
@@ -350,8 +359,12 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     pageLifecycle: () => pageLifecycle,
     freshnessProfile: () => freshnessProfile,
     signalWebRtc: sendWebRtcSignal,
-    requestWebRtcGrant,
-    webRtcSessions: () => Object.freeze({ ...webRtcSessions.state(), failure: webRtcFailure }),
+    requestWebRtcGrant: (index, generation = 0) => requestWebRtcGrant(generation, index),
+    webRtcSessions: () => Object.freeze({
+      ...webRtcSessions.state(),
+      failure: webRtcFailure,
+      refusal: webRtcRefusal,
+    }),
     offerWebRtcValue: (negotiationId, bytes) => webRtcSessions.offerValue(
       negotiationId,
       bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes),
@@ -361,6 +374,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     deliverWebRtcValue: (negotiationId, sequence) => webRtcSessions.deliverValue(negotiationId, sequence),
     waitWebRtcValueDelivered: (negotiationId, sequence) => webRtcSessions.waitDelivered(negotiationId, sequence),
     closeWebRtcLine: (negotiationId) => webRtcSessions.closeLine(negotiationId),
+    replanWebRtc: () => webRtcSessions.replan(),
     close: () => {
       deliberateClose = true;
       clearTimeout(renewalTimer);

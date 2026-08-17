@@ -166,15 +166,27 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
         part_id: serde_json::from_value(serde_json::json!("part/browser")).unwrap(),
         host_id: HostId::from("host/browser"),
         boot_id: BootId::from("boot/browser"),
+        generation: 0,
         index: 0,
     };
     assert_eq!(
         decode_browser_admission_frame(&serde_json::to_vec(&request).unwrap()),
-        Ok(request)
+        Ok(request.clone())
+    );
+    let mut exhausted_generation = request.clone();
+    let BrowserAdmissionIngress::WebRtcGrantRequest { generation, .. } = &mut exhausted_generation
+    else {
+        unreachable!()
+    };
+    *generation = super::MAX_WEBRTC_GRANT_GENERATIONS;
+    assert_eq!(
+        decode_browser_admission_frame(&serde_json::to_vec(&exhausted_generation).unwrap()),
+        Err(BrowserAdmissionFrameError::InvalidGrant)
     );
 
     let reply = BrowserAdmissionEgress::WebRtcGrant {
         protocol: BROWSER_ADMISSION_PROTOCOL,
+        generation: 0,
         index: 0,
         total: 1,
         grant: Some(canonical_grant()),
@@ -185,9 +197,23 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
         reply
     );
+    assert_eq!(
+        encode_browser_admission_frame(
+            &BrowserAdmissionEgress::WebRtcGrant {
+                protocol: BROWSER_ADMISSION_PROTOCOL,
+                generation: super::MAX_WEBRTC_GRANT_GENERATIONS,
+                index: 0,
+                total: 1,
+                grant: Some(canonical_grant()),
+            },
+            &mut output,
+        ),
+        Err(BrowserAdmissionFrameError::InvalidGrant)
+    );
     assert!(encode_browser_admission_frame(
         &BrowserAdmissionEgress::WebRtcGrant {
             protocol: BROWSER_ADMISSION_PROTOCOL,
+            generation: 0,
             index: 0,
             total: 1,
             grant: Some(canonical_grant_for(
@@ -241,6 +267,7 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
             encode_browser_admission_frame(
                 &BrowserAdmissionEgress::WebRtcGrant {
                     protocol: BROWSER_ADMISSION_PROTOCOL,
+                    generation: 0,
                     index: 0,
                     total: 1,
                     grant: Some(grant),
@@ -259,6 +286,7 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
             encode_browser_admission_frame(
                 &BrowserAdmissionEgress::WebRtcGrant {
                     protocol: BROWSER_ADMISSION_PROTOCOL,
+                    generation: 0,
                     index,
                     total,
                     grant,

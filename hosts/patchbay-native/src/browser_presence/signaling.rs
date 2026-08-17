@@ -20,6 +20,7 @@ impl BrowserPresenceCoordinator {
             part_id,
             host_id,
             boot_id,
+            generation,
             index: grant_index,
             ..
         } = frame
@@ -40,6 +41,14 @@ impl BrowserPresenceCoordinator {
                 .map_err(|_| "browser WebRTC grant response worker disconnected".to_string())?;
             return Ok(Some("Browser WebRTC grant credential refused".into()));
         }
+        if generation != 0 {
+            response
+                .send(WorkerResponse::Refused(
+                    "unsupported-webrtc-grant-generation".into(),
+                ))
+                .map_err(|_| "browser WebRTC grant response worker disconnected".to_string())?;
+            return Ok(Some("Browser WebRTC grant generation refused".into()));
+        }
         let (total, grant) = self.rendezvous.grant_for_endpoint(
             &credential.host_id,
             &credential.boot_id,
@@ -47,6 +56,7 @@ impl BrowserPresenceCoordinator {
         );
         response
             .send(WorkerResponse::WebRtcGrant {
+                generation,
                 index: grant_index,
                 total,
                 grant,
@@ -267,6 +277,7 @@ mod tests {
             part_id: source.part_id.clone(),
             host_id: source.host_id.clone(),
             boot_id: source.boot_id.clone(),
+            generation: 0,
             index: 0,
         };
         let mut stale_request = grant_request.clone();
@@ -282,13 +293,28 @@ mod tests {
             stale_response.recv().unwrap(),
             WorkerResponse::Refused(code) if code == "stale-membership-credential"
         ));
+        let mut unsupported_generation = grant_request.clone();
+        let BrowserAdmissionIngress::WebRtcGrantRequest { generation, .. } =
+            &mut unsupported_generation
+        else {
+            unreachable!()
+        };
+        *generation = 1;
+        let (response, generation_response) = mpsc::sync_channel(1);
+        coordinator
+            .provide_webrtc_grant(0, unsupported_generation, response)
+            .unwrap();
+        assert!(matches!(
+            generation_response.recv().unwrap(),
+            WorkerResponse::Refused(code) if code == "unsupported-webrtc-grant-generation"
+        ));
         let (response, grant_response) = mpsc::sync_channel(1);
         coordinator
             .provide_webrtc_grant(0, grant_request.clone(), response)
             .unwrap();
         assert!(matches!(
             grant_response.recv().unwrap(),
-            WorkerResponse::WebRtcGrant { index: 0, total: 1, grant: Some(grant) }
+            WorkerResponse::WebRtcGrant { generation: 0, index: 0, total: 1, grant: Some(grant) }
                 if grant.role == conduit_std_host::browser_admission::BrowserWebRtcRole::Source
                     && grant.peer_host_id == sink.host_id
                     && grant.peer_boot_id == sink.boot_id
@@ -302,6 +328,7 @@ mod tests {
         assert!(matches!(
             grant_response.recv().unwrap(),
             WorkerResponse::WebRtcGrant {
+                generation: 0,
                 index: 0,
                 total: 0,
                 grant: None

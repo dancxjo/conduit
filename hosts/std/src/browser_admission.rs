@@ -25,6 +25,7 @@ pub use webrtc_signaling::{
 };
 
 pub const BROWSER_ADMISSION_PROTOCOL: u16 = 1;
+pub const MAX_WEBRTC_GRANT_GENERATIONS: u16 = 2;
 pub const MAX_BROWSER_ADMISSION_FRAME_BYTES: usize =
     MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 1_024;
 
@@ -83,6 +84,7 @@ pub enum BrowserAdmissionIngress {
         part_id: PartId,
         host_id: HostId,
         boot_id: BootId,
+        generation: u16,
         index: u16,
     },
     ReturnAdvertise {
@@ -127,6 +129,7 @@ pub enum BrowserAdmissionEgress {
     },
     WebRtcGrant {
         protocol: u16,
+        generation: u16,
         index: u16,
         total: u16,
         grant: Option<BrowserWebRtcGrant>,
@@ -324,9 +327,14 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             protocol
         }
         BrowserAdmissionIngress::WebRtcGrantRequest {
-            protocol, index, ..
+            protocol,
+            generation,
+            index,
+            ..
         } => {
-            if usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS {
+            if *generation >= MAX_WEBRTC_GRANT_GENERATIONS
+                || usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS
+            {
                 return Err(BrowserAdmissionFrameError::InvalidGrant);
             }
             protocol
@@ -368,11 +376,13 @@ fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissio
         }
         BrowserAdmissionEgress::WebRtcGrant {
             protocol,
+            generation,
             index,
             total,
             grant,
         } => {
-            if usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS
+            if *generation >= MAX_WEBRTC_GRANT_GENERATIONS
+                || usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS
                 || usize::from(*total) > MAX_WEBRTC_NEGOTIATIONS
                 || grant.is_some() != (*index < *total)
             {

@@ -1,22 +1,21 @@
 //! Bounded two-browser admission and WebRTC rendezvous proof fixture.
 
+#[path = "browser_webrtc_rendezvous_probe/planning.rs"]
+mod planning;
+
 use conduit_body::{
     AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyMembership,
     CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceClock,
     HostPresenceClockScale, HostPresenceTable, MembershipCredential,
 };
-use conduit_core::{
-    bind_active_play, CheckedFormId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
-    FragmentId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, SignId,
-    SourceDocumentId, PROTOCOL_VERSION,
-};
+use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BrowserAdmissionSocket, BrowserAdmissionSocketError, BrowserWebRtcRendezvous,
     BROWSER_ADMISSION_PROTOCOL,
 };
 use conduit_std_host::websocket::{NativeWebSocketError, NativeWebSocketError::Transport};
-use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
+use planning::{binding, session_basis};
 use std::io::ErrorKind;
 use std::time::Duration;
 
@@ -93,10 +92,11 @@ fn main() -> Result<(), String> {
             .map_err(debug("set timeout"))?;
     }
 
-    let binding = binding(&peers[0].credential, &peers[1].credential);
+    let initial_binding = binding(&peers[0].credential, &peers[1].credential, 0);
+    let replacement_binding = binding(&peers[0].credential, &peers[1].credential, 1);
     let mut rendezvous = BrowserWebRtcRendezvous::default();
     rendezvous
-        .replace_grants([&binding])
+        .replace_grants([&initial_binding])
         .map_err(debug("install grant"))?;
     println!(
         "ready source_host={} source_boot={} sink_host={} sink_boot={}",
@@ -107,30 +107,19 @@ fn main() -> Result<(), String> {
     );
     println!(
         "session_basis={}",
-        serde_json::json!({
-            "body_id": body_id.as_str(),
-            "source_part_id": peers[0].credential.part_id.as_str(),
-            "sink_part_id": peers[1].credential.part_id.as_str(),
-            "plan_id": binding.plan_id.as_str(),
-            "source_active_play_id": binding.source_active_play_id.as_str(),
-            "sink_active_play_id": binding.sink_active_play_id.as_str(),
-            "connection_id": binding.connection_id.as_str(),
-            "line_id": binding.attachment.line_id.as_str(),
-            "binding_id": binding.attachment.link_binding_id.as_str(),
-            "base": binding.attachment.base,
-            "base_instance_id": binding.attachment.base_instance_id.as_str(),
-            "value_kind": binding.value_kind.as_str(),
-            "session_limits": {
-                "maximum_in_flight_items": binding.limits.maximum_in_flight_items,
-                "maximum_payload_bytes": binding.limits.maximum_payload_bytes,
-                "maximum_buffered_bytes": binding.limits.maximum_buffered_bytes,
-            },
-            "line_limits": binding.attachment.limits,
-        })
+        session_basis(
+            &body_id,
+            &peers[0].credential,
+            &peers[1].credential,
+            &initial_binding,
+            0,
+        )
     );
 
     let mut relayed = 0_u8;
     let mut active = [true, true];
+    let mut grant_generation = 0_u16;
+    let mut stale_rendezvous = None;
     loop {
         for index in 0..peers.len() {
             if !active[index] {
@@ -162,6 +151,7 @@ fn main() -> Result<(), String> {
                     part_id,
                     host_id,
                     boot_id,
+                    generation,
                     index: grant_index,
                     ..
                 } => {
@@ -173,6 +163,34 @@ fn main() -> Result<(), String> {
                         &host_id,
                         &boot_id,
                     )?;
+                    if generation == 1 && grant_generation == 0 {
+                        if grant_index != 0 || relayed != 2 {
+                            return Err(
+                                "replacement grant requested outside the exact replan stage".into(),
+                            );
+                        }
+                        stale_rendezvous = Some(rendezvous.clone());
+                        rendezvous.deactivate_grants();
+                        rendezvous
+                            .replace_grants([&replacement_binding])
+                            .map_err(debug("install replacement grant"))?;
+                        grant_generation = 1;
+                        println!(
+                            "replacement_basis={}",
+                            session_basis(
+                                &body_id,
+                                &peers[0].credential,
+                                &peers[1].credential,
+                                &replacement_binding,
+                                1,
+                            )
+                        );
+                    }
+                    if generation != grant_generation {
+                        return Err(format!(
+                            "stale grant generation requested={generation} current={grant_generation}"
+                        ));
+                    }
                     let (total, grant) = rendezvous.grant_for_endpoint(
                         &peers[index].credential.host_id,
                         &peers[index].credential.boot_id,
@@ -182,6 +200,7 @@ fn main() -> Result<(), String> {
                         .socket
                         .send(&BrowserAdmissionEgress::WebRtcGrant {
                             protocol: BROWSER_ADMISSION_PROTOCOL,
+                            generation,
                             index: grant_index,
                             total,
                             grant,
@@ -236,6 +255,27 @@ fn main() -> Result<(), String> {
                     rendezvous.commit(&routed).map_err(debug("commit signal"))?;
                     relayed = relayed.checked_add(1).ok_or("relay count exhausted")?;
                     println!("relayed stage={relayed}");
+                    if relayed == 4 {
+                        let stale = stale_rendezvous
+                            .as_ref()
+                            .ok_or("replacement signaling completed without retired grants")?;
+                        let (total, grant) = stale.grant_for_endpoint(
+                            &peers[0].credential.host_id,
+                            &peers[0].credential.boot_id,
+                            0,
+                        );
+                        peers[0]
+                            .socket
+                            .send(&BrowserAdmissionEgress::WebRtcGrant {
+                                protocol: BROWSER_ADMISSION_PROTOCOL,
+                                generation: 0,
+                                index: 0,
+                                total,
+                                grant,
+                            })
+                            .map_err(debug("send stale grant callback"))?;
+                        println!("stale-grant-callback generation=0 current=1");
+                    }
                 }
                 BrowserAdmissionIngress::PresenceRenewal { sequence, .. } => {
                     peers[index]
@@ -353,55 +393,6 @@ fn admit(
         session_id: LinkBindingId::from(format!("probe/presence/{index}")),
         credential,
     })
-}
-
-fn binding(source: &MembershipCredential, sink: &MembershipCredential) -> SessionBinding {
-    let plan_id = PlanId::from("plan/browser-webrtc-rendezvous-probe");
-    SessionBinding {
-        protocol_version: PROTOCOL_VERSION,
-        plan_id: plan_id.clone(),
-        source_fragment_id: FragmentId::from("fragment/source"),
-        sink_fragment_id: FragmentId::from("fragment/sink"),
-        source_active_play_id: bind_active_play(&plan_id, &source.host_id, &source.boot_id, 0)
-            .active_play_id,
-        sink_active_play_id: bind_active_play(&plan_id, &sink.host_id, &sink.boot_id, 0)
-            .active_play_id,
-        connection_id: ConnectionId::from("connection/browser-webrtc-rendezvous-probe"),
-        source: SessionEndpointIdentity {
-            host_id: source.host_id.clone(),
-            boot_id: source.boot_id.clone(),
-        },
-        sink: SessionEndpointIdentity {
-            host_id: sink.host_id.clone(),
-            boot_id: sink.boot_id.clone(),
-        },
-        value_kind: KindId::from("value/bounded@1"),
-        limits: SessionLimits {
-            maximum_in_flight_items: 1,
-            maximum_payload_bytes: 16,
-            maximum_buffered_bytes: 16,
-        },
-        attachment: LineAttachment {
-            line_id: LineId::from("line/browser-webrtc-rendezvous-probe"),
-            link_binding_id: LinkBindingId::from("binding/browser-webrtc-rendezvous-probe"),
-            base: ConnectionBase::WebRtcDataChannel,
-            base_instance_id: ConnectionBaseInstanceId::from(
-                "base/browser-webrtc-rendezvous-probe",
-            ),
-            source_host_id: source.host_id.clone(),
-            source_boot_id: source.boot_id.clone(),
-            source_endpoint_id: LinkEndpointId::from("endpoint/source"),
-            sink_host_id: sink.host_id.clone(),
-            sink_boot_id: sink.boot_id.clone(),
-            sink_endpoint_id: LinkEndpointId::from("endpoint/sink"),
-            limits: LinkLimits {
-                maximum_in_flight_items: 1,
-                maximum_payload_bytes: 16,
-                maximum_buffered_bytes: 16,
-                maximum_frame_bytes: 1_024,
-            },
-        },
-    }
 }
 
 fn exact_credential(
