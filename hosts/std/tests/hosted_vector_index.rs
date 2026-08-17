@@ -1,15 +1,17 @@
 use conduit_ai::{
-    exact_vector_search, CompatibleMetrics, Embedding, EmbeddingNormalization, EmbeddingProfile,
-    ExactVectorSearchCandidate, MetadataFilter, SimilarityMetric, SimilarityQuery, TemporalSource,
-    TemporalValidity, VectorIndexAuthority, VectorIndexAuthorization, VectorIndexBounds,
-    VectorIndexContract, VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState,
+    exact_vector_search, ClockBasis, CompatibleMetrics, Embedding, EmbeddingNormalization,
+    EmbeddingProfile, ExactVectorSearchCandidate, MetadataFilter, SimilarityMetric,
+    SimilarityQuery, TemporalProvenance, TemporalRetrievalIntent, TemporalSource, TemporalValidity,
+    VectorIndexAuthority, VectorIndexAuthorization, VectorIndexBounds, VectorIndexContract,
+    VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState, VectorMetadata,
     VectorRecord, VECTOR_INDEX_RESOURCE_CLASS,
 };
 use conduit_core::{ResourceBinding, ResourceClassId, ResourcePoolId};
 use conduit_std_host::hosted_vector_index::{
-    hosted_query_work, HostedHnswProfile, HostedHnswProviderIdentity, HostedHnswRecord,
-    HostedHnswRefusal, HostedHnswVectorIndex, HostedVectorSearchProofClass, HOSTED_HNSW_ALGORITHM,
-    HOSTED_HNSW_IMPLEMENTATION_ID, HOSTED_HNSW_LIBRARY_NAME, HOSTED_HNSW_LIBRARY_VERSION,
+    hosted_query_work, HostedHnswCorpus, HostedHnswProfile, HostedHnswProviderIdentity,
+    HostedHnswRecord, HostedHnswRefusal, HostedHnswVectorIndex, HostedVectorSearchProofClass,
+    HOSTED_HNSW_ALGORITHM, HOSTED_HNSW_IMPLEMENTATION_ID, HOSTED_HNSW_LIBRARY_NAME,
+    HOSTED_HNSW_LIBRARY_VERSION,
 };
 use std::collections::BTreeSet;
 
@@ -87,6 +89,10 @@ fn records() -> Vec<HostedHnswRecord<String>> {
                     metadata: vec![],
                     temporal_provenance: None,
                 },
+                temporal_source: TemporalSource::Event,
+                boundary: None,
+                transition: None,
+                validity: TemporalValidity::Current,
                 stored_bytes: 128,
             }
         })
@@ -314,7 +320,7 @@ fn provider_loss_stale_generation_and_hidden_mutation_refuse_distinctly() {
 }
 
 #[test]
-fn work_authority_binding_and_portable_feature_gaps_fail_closed() {
+fn work_authority_binding_and_empty_portable_filter_are_exact() {
     let (state, mut backend, _) = build(SimilarityMetric::DotProductSimilarity);
     let query_handle = state.handle("authority/query").unwrap();
     let required = hosted_query_work(64, 3).unwrap();
@@ -349,16 +355,83 @@ fn work_authority_binding_and_portable_feature_gaps_fail_closed() {
     filtered.filters.push(MetadataFilter::Present {
         key: "language".into(),
     });
-    assert_eq!(
-        backend.query(
+    assert!(backend
+        .query(
             &state,
             &query_handle,
             &filtered,
             admission(required, 8),
             &binding(required),
-        ),
-        Err(HostedHnswRefusal::PortableFilterUnsupported)
-    );
+        )
+        .unwrap()
+        .hits
+        .is_empty());
+}
+
+#[test]
+fn portable_metadata_and_latest_temporal_intent_filter_real_hnsw_candidates() {
+    let mut state = state();
+    let mut records = records();
+    for (index, entry) in records.iter_mut().enumerate() {
+        if index == 0 {
+            entry.record.metadata.push(VectorMetadata {
+                key: "language".into(),
+                value: "en".into(),
+            });
+        }
+        entry.record.temporal_provenance = Some(TemporalProvenance {
+            event_at: Some(index as u64),
+            valid_from: None,
+            valid_until: None,
+            observed_at: Some(index as u64),
+            recorded_at: Some(index as u64),
+            ingested_at: Some(index as u64),
+            retrieved_at: 100,
+            reference_at: 100,
+            clock_basis: ClockBasis::UnixEpochMilliseconds,
+            uncertainty_millis: None,
+        });
+    }
+    let maintenance = state.handle("authority/maintain").unwrap();
+    let mut backend = HostedHnswVectorIndex::rebuild_with_history(
+        &mut state,
+        &maintenance,
+        "maintenance/filter-temporal".into(),
+        provider("process/filter-temporal"),
+        profile(SimilarityMetric::CosineSimilarity),
+        HostedHnswCorpus {
+            records,
+            earliest_history_complete: true,
+        },
+    )
+    .unwrap();
+    let handle = state.handle("authority/query").unwrap();
+    let work = hosted_query_work(64, 3).unwrap();
+
+    let mut filtered = query(SimilarityMetric::CosineSimilarity, 8);
+    filtered.filters.push(MetadataFilter::Equal {
+        key: "language".into(),
+        value: "en".into(),
+    });
+    let filtered = backend
+        .query(
+            &state,
+            &handle,
+            &filtered,
+            admission(work, 8),
+            &binding(work),
+        )
+        .unwrap();
+    assert_eq!(filtered.hits.len(), 1);
+    assert_eq!(filtered.hits[0].source_identity, "source/00");
+
+    let mut latest = query(SimilarityMetric::CosineSimilarity, 8);
+    latest.temporal_intent = Some(TemporalRetrievalIntent::LatestEvidence);
+    let latest = backend
+        .query(&state, &handle, &latest, admission(work, 8), &binding(work))
+        .unwrap();
+    assert_eq!(latest.hits.len(), 1);
+    assert_eq!(latest.hits[0].source_identity, "source/63");
 }
 
 #[test]

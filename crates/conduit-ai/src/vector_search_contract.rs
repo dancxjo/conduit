@@ -43,6 +43,21 @@ pub enum VectorSearchOfferInvalidity {
     ProcessIdentityTooLarge,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum VectorSearchExecutionProofClass {
+    DeterministicExact,
+    Approximate,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VectorSearchValue<T> {
+    pub proof_class: VectorSearchExecutionProofClass,
+    pub index_generation: u64,
+    pub admitted_work_units: u32,
+    pub candidate_count: u32,
+    pub hits: Vec<crate::SimilarityHit<T>>,
+}
+
 pub fn vector_search_contract() -> VectorSearchContract {
     VectorSearchContract {
         kind_id: kind_id(VECTOR_SEARCH_KIND),

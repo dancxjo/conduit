@@ -26,6 +26,7 @@ mod robotics_conformance;
 mod sound_replanning;
 mod structured_selector_conformance;
 mod timing_conformance;
+mod vector_search_conformance;
 
 struct RecordingTimer {
     waits: Vec<Duration>,
@@ -439,6 +440,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
             midi_output: None,
             keyboard: None,
             local_model: None,
+            vector_search: None,
         },
         &plan.fragments[0],
         0,
@@ -474,6 +476,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
             midi_output: None,
             keyboard: None,
             local_model: None,
+            vector_search: None,
         },
         &substituted,
         1,

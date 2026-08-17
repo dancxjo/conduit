@@ -27,6 +27,7 @@ mod midi_output_operation;
 mod model_host;
 mod operation;
 mod operation_capacity;
+mod operation_kind;
 mod pacing_operations;
 mod presentation_composition;
 mod recurrence_codec;
@@ -73,6 +74,8 @@ mod tick_presentation;
 mod timing_configuration;
 mod timing_operations;
 mod toggle_operation;
+mod vector_search_host;
+mod vector_search_operation;
 
 use self::catalog::factory;
 pub(crate) use self::catalog::supports;
@@ -144,6 +147,8 @@ pub(super) struct InstalledRunHost<'a, 'keyboard, 'model> {
     pub keyboard: Option<&'keyboard mut dyn crate::hosted_keyboard::HostedKeyboardAdapter>,
     pub local_model:
         Option<&'model mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static)>,
+    pub vector_search:
+        Option<&'model mut (dyn crate::hosted_vector_search::HostedVectorSearchAdapter + 'static)>,
 }
 
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
@@ -162,6 +167,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         midi_output,
         keyboard,
         mut local_model,
+        mut vector_search,
     } = host;
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     let active_nodes = lowered.nodes.len();
@@ -448,6 +454,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .collect::<Result<Vec<_>, String>>()?;
     let mut generate_text_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
+    let mut vector_search_output =
+        Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
     let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
     let mut synth_states = fragment
         .placements
@@ -594,6 +602,12 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 midi_input_requests[node] = None;
             } else if cancelled_operation.contract_id == keyboard_contract_id {
                 keyboard_host.cancel();
+            } else if cancelled_operation.contract_id.as_str()
+                == conduit_ai::VECTOR_SEARCH_OPERATION
+            {
+                if let Some(adapter) = &mut vector_search {
+                    adapter.cancel();
+                }
             } else {
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
@@ -943,6 +957,40 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         completion.outcome(output),
                     )
                     .map_err(|error| format!("complete model operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_ai::VECTOR_SEARCH_OPERATION {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "vector-search request has no exact placement".to_string())?;
+                let completion = vector_search_host::execute(
+                    placement,
+                    input,
+                    match &mut vector_search {
+                        Some(adapter) => Some(&mut **adapter),
+                        None => None,
+                    },
+                    &mut vector_search_output,
+                )?;
+                let output = if completion.has_output() {
+                    let value = scheduler
+                        .store_host_value(&vector_search_output)
+                        .map_err(|error| format!("store vector-search output: {error:?}"))?;
+                    Some(
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                            .map_err(|error| format!("bound vector-search output: {error:?}"))?,
+                    )
+                } else {
+                    None
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        completion.outcome(output),
+                    )
+                    .map_err(|error| format!("complete vector-search operation: {error:?}"))?;
                 continue;
             } else if contract
                 .as_str()

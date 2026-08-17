@@ -71,6 +71,7 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
             midi_output: None,
             keyboard: None,
             local_model: None,
+            vector_search: None,
         },
         &plan.fragments[0],
         0,
