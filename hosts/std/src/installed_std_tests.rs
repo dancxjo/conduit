@@ -20,6 +20,7 @@ mod math_conformance;
 mod midi_input_conformance;
 mod midi_output_conformance;
 mod presentation_composition;
+mod rhythm_compare_conformance;
 mod robotics_conformance;
 mod sound_replanning;
 mod structured_selector_conformance;

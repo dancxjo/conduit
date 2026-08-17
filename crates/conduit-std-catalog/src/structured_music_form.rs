@@ -7,10 +7,11 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue, StructuredVariantCase, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
+    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, StructuredVariantCase, MUSIC_CONTROL_INFO_ID,
+    MUSIC_NOTE_INFO_ID,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -27,6 +28,13 @@ pub const BEAT_REFERENCE_TYPE: &str = "BeatReference";
 pub const TIMING_FEEDBACK_TYPE: &str = "TimingFeedback";
 pub const RHYTHM_COMPARE_KIND: &str = "music/rhythm-compare";
 pub const RHYTHM_COMPARE_REVISION: &str = "conduit.std/music-rhythm-compare@1";
+pub const RHYTHM_COMPARE_STD_PROFILE: &str = "std/music-rhythm-compare-kernel-hosted@1";
+pub const RHYTHM_COMPARE_STD_IMPLEMENTATION: &str = "std/kernel-music-rhythm-compare@1";
+pub const RHYTHM_COMPARE_STD_ARTIFACT: &str = "conduit-std-host/music-rhythm-compare@1";
+pub const RHYTHM_PERFORMANCE_HOST_OPERATION: &str = "conduit.host/music-rhythm-performance@1";
+pub const RHYTHM_REFERENCE_HOST_OPERATION: &str = "conduit.host/music-rhythm-reference@1";
+pub const RHYTHM_DRAIN_HOST_OPERATION: &str = "conduit.host/music-rhythm-drain@1";
+pub const RHYTHM_MAXIMUM_PENDING_BEATS: u16 = 16;
 
 pub fn beat_reference_type() -> StructuredInfoType {
     let count = leaf("value/count@1");
@@ -221,6 +229,63 @@ fn rhythm_compare_definition() -> KindDefinition {
                 },
             },
         ],
+    }
+}
+
+pub fn rhythm_compare_std_offer() -> CapabilityOffer {
+    let definition = rhythm_compare_definition();
+    let target_kind = definition.kind_id.clone();
+    CapabilityOffer {
+        startup_parameters: vec![
+            conduit_core::FaceStartupParameter {
+                name: "target-offset-micros".into(),
+                value_type: "Scalar".into(),
+                has_default: true,
+            },
+            conduit_core::FaceStartupParameter {
+                name: "tolerance-micros".into(),
+                value_type: "Count".into(),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        capability_id: CapabilityId::from("music-rhythm-compare"),
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(RHYTHM_COMPARE_STD_PROFILE),
+            implementation_id: ImplementationId::from(RHYTHM_COMPARE_STD_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(RHYTHM_COMPARE_STD_ARTIFACT),
+        },
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        host_operations: [
+            RHYTHM_DRAIN_HOST_OPERATION,
+            RHYTHM_PERFORMANCE_HOST_OPERATION,
+            RHYTHM_REFERENCE_HOST_OPERATION,
+        ]
+        .into_iter()
+        .map(|contract| HostOperationRequirement {
+            contract_id: HostOperationContractId::from(contract),
+            target_kind: Some(target_kind.clone()),
+            maximum_in_flight: 1,
+            maximum_input_bytes: if contract == RHYTHM_DRAIN_HOST_OPERATION {
+                0
+            } else {
+                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+            },
+            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        })
+        .collect(),
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: RHYTHM_MAXIMUM_PENDING_BEATS,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+                * usize::from(RHYTHM_MAXIMUM_PENDING_BEATS)
+                * 3) as u32,
+        },
     }
 }
 

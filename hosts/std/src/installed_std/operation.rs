@@ -23,6 +23,7 @@ use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
 use super::render_demand_operation::AudioRenderDemandOperation;
+use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::structured_selector_operation::StructuredSelectorOperation;
@@ -71,6 +72,7 @@ pub(super) enum InstalledOperation {
     InputKeymap(InputSemanticOperation),
     InputChords(InputSemanticOperation),
     InstrumentMap(InstrumentMapOperation),
+    RhythmCompare(RhythmCompareOperation),
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),
@@ -178,6 +180,7 @@ impl Operation for InstalledOperation {
             Self::KeyEventTee(operation) => operation.start(),
             Self::InputKeymap(operation) | Self::InputChords(operation) => operation.start(),
             Self::InstrumentMap(operation) => operation.start(),
+            Self::RhythmCompare(operation) => operation.start(),
             Self::LogicCompareScalar(operation) => operation.start(),
             Self::LogicNot(operation) => operation.start(),
             Self::LogicSelectScalar(operation) => operation.start(),
@@ -273,6 +276,7 @@ impl Operation for InstalledOperation {
                 operation.resume(input)
             }
             (Self::InstrumentMap(operation), input) => operation.resume(input),
+            (Self::RhythmCompare(operation), input) => operation.resume(input),
             (Self::LogicCompareScalar(operation), input) => operation.resume(input),
             (Self::LogicNot(operation), input) => operation.resume(input),
             (Self::LogicSelectScalar(operation), input) => operation.resume(input),
@@ -404,6 +408,7 @@ impl Operation for InstalledOperation {
             Self::KeyEventTee(operation) => operation.advance(),
             Self::InputKeymap(_) | Self::InputChords(_) => OperationAction::Await,
             Self::InstrumentMap(operation) => operation.advance(),
+            Self::RhythmCompare(operation) => operation.advance(),
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => {
                 OperationAction::Complete
             }
@@ -498,6 +503,7 @@ impl Operation for InstalledOperation {
             Self::KeyEventTee(operation) => operation.cancel(),
             Self::InputKeymap(operation) | Self::InputChords(operation) => operation.cancel(),
             Self::InstrumentMap(operation) => operation.cancel(),
+            Self::RhythmCompare(operation) => operation.cancel(),
             Self::LogicCompareScalar(operation) => operation.cancel(),
             Self::LogicNot(operation) => operation.cancel(),
             Self::LogicSelectScalar(operation) => operation.cancel(),
@@ -567,6 +573,7 @@ impl Operation for InstalledOperation {
     fn retains_resumed_value(&self) -> bool {
         match self {
             Self::StateLatestScalar(operation) => operation.retains_resumed_value(),
+            Self::RhythmCompare(operation) => operation.retains_resumed_value(),
             Self::LogicSelectScalar(operation) => operation.retains_resumed_value(),
             Self::TimeDebounce(operation) => operation.retains_resumed_value(),
             Self::TimeDelay(operation) => operation.retains_resumed_value(),
@@ -578,6 +585,7 @@ impl Operation for InstalledOperation {
     fn take_released_value(&mut self) -> Option<ValueRef> {
         match self {
             Self::StateLatestScalar(operation) => operation.take_released_value(),
+            Self::RhythmCompare(operation) => operation.take_released_value(),
             Self::LogicCompareScalar(operation) => operation.take_released_value(),
             Self::LogicNot(operation) => operation.take_released_value(),
             Self::LogicSelectScalar(operation) => operation.take_released_value(),
