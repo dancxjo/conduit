@@ -23,6 +23,39 @@ pub const INSTRUMENT_MAP_REVISION: &str = "conduit.std/music-instrument-map@1";
 pub const INSTRUMENT_MAP_STD_PROFILE: &str = "std/instrument-map-kernel@1";
 pub const INSTRUMENT_MAP_STD_IMPLEMENTATION: &str = "std/kernel-music-instrument-map@1";
 pub const INSTRUMENT_MAP_STD_ARTIFACT: &str = "conduit-std-host/music-instrument-map@1";
+pub const BEAT_REFERENCE_TYPE: &str = "BeatReference";
+pub const TIMING_FEEDBACK_TYPE: &str = "TimingFeedback";
+pub const RHYTHM_COMPARE_KIND: &str = "music/rhythm-compare";
+pub const RHYTHM_COMPARE_REVISION: &str = "conduit.std/music-rhythm-compare@1";
+
+pub fn beat_reference_type() -> StructuredInfoType {
+    let count = leaf("value/count@1");
+    StructuredInfoType::record(
+        kind_id("music/beat-reference@1"),
+        vec![
+            field("beat", count.clone()),
+            field("expected_time_micros", count),
+        ],
+    )
+    .unwrap()
+}
+
+pub fn timing_feedback_type() -> StructuredInfoType {
+    let count = leaf("value/count@1");
+    StructuredInfoType::record(
+        kind_id("music/timing-feedback@1"),
+        vec![
+            field("beat", count.clone()),
+            field("classification", leaf("music/timing-classification@1")),
+            field("delta_micros", leaf("time/signed-microseconds@1")),
+            field("expected_time_micros", count.clone()),
+            field("observed", leaf("value/boolean@1")),
+            field("observed_time_micros", count),
+            field("recovery_state", leaf("music/recovery-state@1")),
+        ],
+    )
+    .unwrap()
+}
 
 pub fn instrument_mapping_type() -> StructuredInfoType {
     let count = leaf("value/count@1");
@@ -86,6 +119,12 @@ pub fn install_structured_music_form_catalogs(
         .insert_structured_type(INSTRUMENT_CONTROL_TYPE, control.clone())
         .map_err(|error| error.to_string())?;
     startup
+        .insert_structured_type(BEAT_REFERENCE_TYPE, beat_reference_type())
+        .map_err(|error| error.to_string())?;
+    startup
+        .insert_structured_type(TIMING_FEEDBACK_TYPE, timing_feedback_type())
+        .map_err(|error| error.to_string())?;
+    startup
         .insert(KindSignature {
             kind: INSTRUMENT_MAP_KIND.into(),
             startup_parameters: vec![StartupParameterSignature {
@@ -93,6 +132,23 @@ pub fn install_structured_music_form_catalogs(
                 value_type: INSTRUMENT_MAPPING_TYPE.into(),
                 default: None,
             }],
+        })
+        .map_err(|error| error.to_string())?;
+    startup
+        .insert(KindSignature {
+            kind: RHYTHM_COMPARE_KIND.into(),
+            startup_parameters: vec![
+                StartupParameterSignature {
+                    name: "target-offset-micros".into(),
+                    value_type: "Scalar".into(),
+                    default: Some("0".into()),
+                },
+                StartupParameterSignature {
+                    name: "tolerance-micros".into(),
+                    value_type: "Count".into(),
+                    default: Some("30000".into()),
+                },
+            ],
         })
         .map_err(|error| error.to_string())?;
 
@@ -128,7 +184,44 @@ pub fn install_structured_music_form_catalogs(
             }],
         })
         .map_err(|error| error.to_string())?;
+    profile
+        .insert(rhythm_compare_definition())
+        .map_err(|error| error.to_string())?;
     Ok(())
+}
+
+fn rhythm_compare_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(RHYTHM_COMPARE_KIND),
+        kind_contract_revision: KindContractRevision::from(RHYTHM_COMPARE_REVISION),
+        inputs: vec![
+            flow_port("performance", MUSIC_NOTE_INFO_ID, PortDirection::Input),
+            structured_flow_port("reference", &beat_reference_type(), PortDirection::Input),
+        ],
+        outputs: vec![structured_flow_port(
+            "feedback",
+            &timing_feedback_type(),
+            PortDirection::Output,
+        )],
+        configuration: vec![
+            ConfigurationField {
+                key: "target-offset-micros".into(),
+                default_value: ConfigurationValue::I64(0),
+                validation: ConfigurationRule::I64Range {
+                    minimum: -60_000_000,
+                    maximum: 60_000_000,
+                },
+            },
+            ConfigurationField {
+                key: "tolerance-micros".into(),
+                default_value: ConfigurationValue::U64(30_000),
+                validation: ConfigurationRule::U64Range {
+                    minimum: 0,
+                    maximum: 1_000_000,
+                },
+            },
+        ],
+    }
 }
 
 pub fn instrument_map_std_offer() -> CapabilityOffer {
@@ -239,6 +332,19 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
     PortDescriptor {
         port_id: port_id(name),
         value_kind: kind_id(value_kind),
+        direction,
+        temporal: PortTemporal::Flow { closes: true },
+    }
+}
+
+fn structured_flow_port(
+    name: &str,
+    value_type: &StructuredInfoType,
+    direction: PortDirection,
+) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
     }

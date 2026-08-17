@@ -13,12 +13,85 @@ use conduit_std_catalog::{
 };
 
 const SOURCE: &str = include_str!("../../../examples/breadboard-instrument.conduit");
+const LESSON_SOURCE: &str = include_str!("../../../examples/rhythm-lesson.conduit");
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_structured_music_form_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)
+}
+
+#[test]
+fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() {
+    let (startup, profile) = catalogs();
+    let parsed = parse_syntax_document(LESSON_SOURCE);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    let checked = check_syntax_document(&parsed, &startup).unwrap();
+    let authored =
+        expand_canonical_form_for_authoring(&checked, "rhythm-lesson", &profile).unwrap();
+    assert_eq!(authored.expanded.gears.len(), 1);
+    assert_eq!(
+        authored.expanded.gears[0].kind_id.as_str(),
+        conduit_std_catalog::RHYTHM_COMPARE_KIND
+    );
+    assert_eq!(authored.input_bindings.len(), 2);
+    assert_eq!(authored.output_bindings.len(), 1);
+
+    let meaning = LESSON_SOURCE
+        .lines()
+        .filter(|line| !line.trim_start().starts_with('#'))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .to_ascii_lowercase();
+    for forbidden in [
+        "pico",
+        "gpio",
+        "adc",
+        "usb",
+        "midi",
+        "host",
+        "instrument-map",
+    ] {
+        assert!(!meaning.contains(forbidden), "lesson leaked {forbidden}");
+    }
+}
+
+#[test]
+fn lesson_types_and_configuration_refuse_before_any_runtime_exists() {
+    let (startup, profile) = catalogs();
+    let wrong_reference = LESSON_SOURCE.replace("BeatReference", "InstrumentControl");
+    let checked =
+        check_syntax_document(&parse_syntax_document(&wrong_reference), &startup).unwrap();
+    let error =
+        expand_canonical_form_for_authoring(&checked, "rhythm-lesson", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-045");
+    assert!(error.message.contains("runtime face port 'reference'"));
+
+    let excessive_tolerance =
+        LESSON_SOURCE.replace("tolerance-micros = 30000", "tolerance-micros = 1000001");
+    let checked =
+        check_syntax_document(&parse_syntax_document(&excessive_tolerance), &startup).unwrap();
+    let error =
+        expand_canonical_form_for_authoring(&checked, "rhythm-lesson", &profile).unwrap_err();
+    assert!(error.to_string().contains("tolerance-micros"));
+
+    let feedback = conduit_std_catalog::timing_feedback_type();
+    let conduit_core::StructuredInfoTypeShape::Record { fields, .. } = feedback.shape() else {
+        panic!("timing feedback must remain a record")
+    };
+    assert_eq!(
+        fields.iter().map(|field| field.name()).collect::<Vec<_>>(),
+        [
+            "beat",
+            "classification",
+            "delta_micros",
+            "expected_time_micros",
+            "observed",
+            "observed_time_micros",
+            "recovery_state",
+        ]
+    );
 }
 
 #[test]

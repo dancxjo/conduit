@@ -1,0 +1,12 @@
+# Portable rhythm lesson meaning. Performance may come from any compatible
+# musical source; this Form contains no controller, device, transport, or Host facts.
+form rhythm-lesson (
+    > performance: music/note-event@1...|
+    > reference: BeatReference...|
+    feedback: TimingFeedback...| >
+) {
+    compare: music/rhythm-compare(target-offset-micros = 0, tolerance-micros = 30000)
+    performance > compare.performance
+    reference > compare.reference
+    compare.feedback > feedback
+}
