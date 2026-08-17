@@ -14,6 +14,7 @@ r1-control = ["wifi-bootstrap"]
 appliance-hello = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 appliance-hil-client = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 bluetooth-line = ["dep:conduit-bluetooth", "dep:conduit-wire", "dep:embassy-futures", "dep:embassy-sync", "dep:heapless09", "dep:rand_core", "dep:trouble-host", "cyw43/bluetooth"]
+usb-midi-fixture = ["dep:embassy-futures"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
 
 [dependencies]
@@ -65,6 +66,11 @@ serde_json = "1"
 [[bin]]
 name = "conduit-pico-w-signal"
 path = "src/main.rs"
+
+[[bin]]
+name = "conduit-pico-w-midi-fixture"
+path = "src/bin/pico_midi_fixture.rs"
+required-features = ["usb-midi-fixture"]
 
 [profile.release]
 opt-level = "s"

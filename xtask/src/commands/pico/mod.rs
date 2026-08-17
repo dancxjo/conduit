@@ -104,6 +104,10 @@ pub struct PicoArgs {
     #[arg(long, global = true)]
     pub bluetooth_line: bool,
 
+    /// Build the bounded breadboard USB-MIDI fixture image (build only; never flash).
+    #[arg(long, global = true)]
+    pub usb_midi_fixture: bool,
+
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long, global = true)]
     pub refresh_radio_assets: bool,
@@ -148,6 +152,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         + usize::from(args.appliance_hello)
         + usize::from(args.appliance_hil_client)
         + usize::from(args.bluetooth_line)
+        + usize::from(args.usb_midi_fixture)
         > 1
     {
         return Err("select only one remote Pico firmware mode".into());
@@ -175,6 +180,7 @@ pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
         || args.r1_control
         || args.appliance_hello
         || args.bluetooth_line
+        || args.usb_midi_fixture
     {
         return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
     }
