@@ -2,6 +2,11 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::semantic_digest;
+
+pub const QUANTITY_INFO_ID: &str = "value/quantity@1";
+pub const QUANTITY_ENCODED_LEN: usize = 9;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum QuantityDimension {
     Time,
@@ -54,6 +59,12 @@ pub enum QuantityConversionRefusal {
     Overflow,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum QuantityDecodeRefusal {
+    WrongLength { expected: usize, actual: usize },
+    UnknownUnitTag(u8),
+}
+
 impl QuantityUnit {
     pub const fn dimension(self) -> QuantityDimension {
         match self {
@@ -100,6 +111,63 @@ impl QuantityUnit {
             Self::Mebibyte => 1_048_576,
         }
     }
+
+    const fn tag(self) -> u8 {
+        match self {
+            Self::Nanosecond => 0,
+            Self::Microsecond => 1,
+            Self::Millisecond => 2,
+            Self::Second => 3,
+            Self::Millihertz => 4,
+            Self::Hertz => 5,
+            Self::Microvolt => 6,
+            Self::Millivolt => 7,
+            Self::Volt => 8,
+            Self::Micrometer => 9,
+            Self::Millimeter => 10,
+            Self::Centimeter => 11,
+            Self::Meter => 12,
+            Self::Microdegree => 13,
+            Self::Millidegree => 14,
+            Self::Degree => 15,
+            Self::Millionth => 16,
+            Self::Permille => 17,
+            Self::Percent => 18,
+            Self::One => 19,
+            Self::Byte => 20,
+            Self::Kibibyte => 21,
+            Self::Mebibyte => 22,
+        }
+    }
+
+    fn from_tag(tag: u8) -> Result<Self, QuantityDecodeRefusal> {
+        match tag {
+            0 => Ok(Self::Nanosecond),
+            1 => Ok(Self::Microsecond),
+            2 => Ok(Self::Millisecond),
+            3 => Ok(Self::Second),
+            4 => Ok(Self::Millihertz),
+            5 => Ok(Self::Hertz),
+            6 => Ok(Self::Microvolt),
+            7 => Ok(Self::Millivolt),
+            8 => Ok(Self::Volt),
+            9 => Ok(Self::Micrometer),
+            10 => Ok(Self::Millimeter),
+            11 => Ok(Self::Centimeter),
+            12 => Ok(Self::Meter),
+            13 => Ok(Self::Microdegree),
+            14 => Ok(Self::Millidegree),
+            15 => Ok(Self::Degree),
+            16 => Ok(Self::Millionth),
+            17 => Ok(Self::Permille),
+            18 => Ok(Self::Percent),
+            19 => Ok(Self::One),
+            20 => Ok(Self::Byte),
+            21 => Ok(Self::Kibibyte),
+            22 => Ok(Self::Mebibyte),
+            other => Err(QuantityDecodeRefusal::UnknownUnitTag(other)),
+        }
+    }
 }
 
 impl Quantity {
@@ -135,5 +203,40 @@ impl Quantity {
             return Err(QuantityConversionRefusal::Inexact);
         }
         Ok(Self::new(canonical / target_factor, target))
+    }
+
+    pub const fn encode(self) -> [u8; QUANTITY_ENCODED_LEN] {
+        let value = self.value.to_le_bytes();
+        [
+            self.unit.tag(),
+            value[0],
+            value[1],
+            value[2],
+            value[3],
+            value[4],
+            value[5],
+            value[6],
+            value[7],
+        ]
+    }
+
+    pub fn decode(encoded: &[u8]) -> Result<Self, QuantityDecodeRefusal> {
+        if encoded.len() != QUANTITY_ENCODED_LEN {
+            return Err(QuantityDecodeRefusal::WrongLength {
+                expected: QUANTITY_ENCODED_LEN,
+                actual: encoded.len(),
+            });
+        }
+        let unit = QuantityUnit::from_tag(encoded[0])?;
+        let value = i64::from_le_bytes(
+            encoded[1..]
+                .try_into()
+                .expect("quantity length checked before value decode"),
+        );
+        Ok(Self::new(value, unit))
+    }
+
+    pub fn semantic_digest(self) -> [u8; 32] {
+        semantic_digest(QUANTITY_INFO_ID, &self.encode())
     }
 }
