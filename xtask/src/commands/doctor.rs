@@ -207,6 +207,14 @@ fn browser_probes() -> Vec<ProbeSpec> {
             &["playwright", "install", "--dry-run", "chromium"],
             Some("npx playwright install chromium"),
         ),
+        probe(
+            "browser",
+            "doctor.browser.firefox",
+            "pinned Firefox availability",
+            "npx",
+            &["playwright", "install", "--dry-run", "firefox"],
+            Some("npx playwright install firefox"),
+        ),
     ]
 }
 

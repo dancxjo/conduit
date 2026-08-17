@@ -48,8 +48,9 @@ fn dependency_and_profile_installation_drawbridge_is_explicit() {
     assert!(browser_package.contains("\"@playwright/test\": \"1.62.0\""));
     assert!(browser_config.contains("workers: 1"));
     assert!(browser_config.contains("retries: 0"));
-    assert!(browser_config.contains("projects: [{ name: \"chromium\""));
-    assert!(!browser_config.contains("firefox"));
+    assert!(browser_config.contains("name: \"chromium\""));
+    assert!(browser_config.contains("name: \"firefox\""));
+    assert!(browser_config.contains("testMatch: [\"browser-webrtc-body.spec.mjs\"]"));
     assert!(!browser_config.contains("webkit"));
     assert!(justfile.contains("check-browser-s4:"));
     assert!(test_corpus.contains("test:browser-host"));

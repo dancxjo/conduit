@@ -64,10 +64,12 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                             eprintln!("xtask evidence import error after proof failure: {error}");
                         }
                     }
-                    if evidence
-                        .root()
-                        .join("browser-webrtc-session.json")
-                        .is_file()
+                    if [
+                        "browser-webrtc-session.json",
+                        "browser-webrtc-session-firefox.json",
+                    ]
+                    .iter()
+                    .any(|name| evidence.root().join(name).is_file())
                     {
                         if let Err(error) = declare_browser_webrtc_manifest(&mut evidence) {
                             eprintln!(
@@ -404,16 +406,40 @@ fn declare_patchbay_capture_manifest(evidence: &mut EvidenceManifest) -> Result<
 }
 
 fn declare_browser_webrtc_manifest(evidence: &mut EvidenceManifest) -> Result<(), StepError> {
+    declare_browser_webrtc_output(
+        evidence,
+        "browser-host.body-granted-webrtc-session.chromium",
+        "browser-webrtc-session.json",
+        "prove.browser-host.playwright",
+        "chromium",
+    )?;
+    declare_browser_webrtc_output(
+        evidence,
+        "browser-host.body-granted-webrtc-session.firefox",
+        "browser-webrtc-session-firefox.json",
+        "prove.browser-host.playwright",
+        "firefox",
+    )
+}
+
+fn declare_browser_webrtc_output(
+    evidence: &mut EvidenceManifest,
+    id: &str,
+    path: &str,
+    step_id: &str,
+    browser_engine: &str,
+) -> Result<(), StepError> {
     evidence
         .declare(EvidenceOutput {
-            id: "browser-host.body-granted-webrtc-session".into(),
+            id: id.into(),
             kind: EvidenceKind::MachineReadableManifest,
-            path: "browser-webrtc-session.json".into(),
+            path: path.into(),
             media_type: "application/json".into(),
             required: true,
             provenance: EvidenceProvenance {
                 scenario_id: "browser-host.body-granted-webrtc-session@1".into(),
-                step_id: Some("prove.browser-host.playwright".into()),
+                step_id: Some(step_id.into()),
+                browser_engine: Some(browser_engine.into()),
                 asserted_semantic_disposition: Some(
                     "two-admitted-browser-hosts-ready-value-delivery-and-line-loss-asserted".into(),
                 ),
@@ -454,6 +480,8 @@ fn clear_patchbay_capture_outputs(root: &std::path::Path) -> Result<(), StepErro
         "responsive.png",
         "browser-webrtc-session.json",
         "browser-webrtc-session.json.tmp",
+        "browser-webrtc-session-firefox.json",
+        "browser-webrtc-session-firefox.json.tmp",
     ] {
         let path = root.join(name);
         if path.exists() || path.is_symlink() {

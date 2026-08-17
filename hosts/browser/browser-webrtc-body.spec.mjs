@@ -277,7 +277,7 @@ test("two admitted product clients compose Body grants into one exact ready sess
     line_limits: { maximum_in_flight_items: 1, maximum_payload_bytes: 16, maximum_buffered_bytes: 16 },
   });
   const evidenceRoot = process.env.CONDUIT_EVIDENCE_ROOT;
-  if (testInfo.project.name === "chromium" && evidenceRoot) {
+  if (["chromium", "firefox"].includes(testInfo.project.name) && evidenceRoot) {
     const receipt = {
       schema: "conduit.browser-host/body-granted-webrtc-session@1",
       proof_class: "live-browser",
@@ -414,7 +414,12 @@ test("two admitted product clients compose Body grants into one exact ready sess
       },
     };
     await mkdir(evidenceRoot, { recursive: true });
-    const destination = path.join(evidenceRoot, "browser-webrtc-session.json");
+    const destination = path.join(
+      evidenceRoot,
+      testInfo.project.name === "chromium"
+        ? "browser-webrtc-session.json"
+        : `browser-webrtc-session-${testInfo.project.name}.json`,
+    );
     const temporary = `${destination}.tmp`;
     await writeFile(temporary, `${JSON.stringify(receipt, null, 2)}\n`);
     await rename(temporary, destination);
