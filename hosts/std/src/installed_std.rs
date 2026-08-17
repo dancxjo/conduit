@@ -38,7 +38,9 @@ pub(super) mod rhythm_compare_host;
 mod rhythm_compare_operation;
 mod robotics_effect;
 mod robotics_operations;
+mod structured_presentation_host;
 mod structured_selector_operation;
+mod structured_values_operation;
 mod synth_operation;
 mod synth_render;
 mod test_audio_source;
@@ -347,9 +349,22 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         &advertisement.boot_id,
         play_sequence,
     );
-    let mut execution_identity =
-        KernelExecutionIdentityMap::new(&lowered.identity, &active_play, request_capacity, 0, 1)
-            .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
+    let presentation_capacity = fragment
+        .placements
+        .iter()
+        .filter(|placement| {
+            placement.implementation_id.as_str()
+                == conduit_std_catalog::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+        })
+        .count();
+    let mut execution_identity = KernelExecutionIdentityMap::new(
+        &lowered.identity,
+        &active_play,
+        request_capacity,
+        presentation_capacity,
+        presentation_capacity.saturating_add(1),
+    )
+    .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
     let mut requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
     let wait_contract_id = wait_host_operation_requirement().contract_id;
     let deadline_contract_id = conduit_core::HostOperationContractId::from(
@@ -367,6 +382,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let tick_target_kind = kind_id(conduit_std_catalog::TICK_PRESENTATION_TARGET);
     let count_target_kind = kind_id(conduit_std_catalog::COUNT_PRESENTATION_TARGET);
     let bool_target_kind = kind_id(conduit_std_catalog::BOOL_PRESENTATION_STD_TARGET);
+    let structured_presentation_target_kind =
+        kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT,
     );
@@ -425,20 +442,12 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut http_output =
         Vec::with_capacity(conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
     let mut json_host = json_operations::JsonHost::prepare();
-    let mut structured_selector_hosts = fragment
-        .placements
-        .iter()
-        .map(|placement| {
-            if placement.implementation_id.as_str()
-                == conduit_std_catalog::STRUCTURED_SELECTOR_STD_IMPLEMENTATION
-            {
-                structured_selector_operation::StructuredSelectorHost::from_placement(placement)
-                    .map(Some)
-            } else {
-                Ok(None)
-            }
-        })
-        .collect::<Result<Vec<_>, String>>()?;
+    let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
+    let mut structured_presentation_host =
+        structured_presentation_host::StructuredPresentationHost::prepare(
+            fragment,
+            &lowered.identity,
+        )?;
     let mut rhythm_compare_hosts = fragment
         .placements
         .iter()
@@ -1339,6 +1348,10 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     scene.commands().len()
                 )
                 .map_err(|error| error.to_string())?;
+            } else if lowered_operation.target_kind.as_ref()
+                == Some(&structured_presentation_target_kind)
+            {
+                structured_presentation_host.capture(request, input)?;
             } else if lowered_operation.target_kind.as_ref() == Some(&text_target_kind) {
                 let text = std::str::from_utf8(input)
                     .map_err(|_| "text presentation input is not valid UTF-8".to_string())?;
@@ -1560,6 +1573,14 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             )
             .map_err(|error| format!("bind std request identity: {error:?}"))?;
     }
+    let (mut observations, presentation_ids) = structured_presentation_host.project(
+        advertisement,
+        fragment,
+        &active_play,
+        &lowered.identity,
+        &mut execution_identity,
+        next_sign_sequence,
+    )?;
     let terminal_sign = bind_sign(
         &advertisement.host_id,
         &advertisement.boot_id,
@@ -1572,7 +1593,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     execution_identity
         .bind_sign(&terminal_sign, None, None, None)
         .map_err(|error| format!("bind std terminal sign: {error:?}"))?;
-    let observations = vec![Observation {
+    observations.push(Observation {
         sign_id: terminal_sign.sign_id,
         active_play_id: Some(active_play.active_play_id.clone()),
         presentation_id: None,
@@ -1584,7 +1605,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         kind: ObservationKind::PlanTerminal {
             disposition: terminal_disposition,
         },
-    }];
+    });
     let control_receipts = accepted_stop
         .map(|request_id| RunControlReceipt {
             request_id,
@@ -1631,7 +1652,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             kernel_sign: scheduler.signs().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
-            presentation_ids: Vec::new(),
+            presentation_ids,
             playback,
             midi_input,
             midi_output,

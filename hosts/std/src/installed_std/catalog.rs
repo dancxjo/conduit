@@ -45,6 +45,10 @@ use super::robotics_operations::{
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
 use super::structured_selector_operation::FACTORY as STRUCTURED_SELECTOR_FACTORY;
+use super::structured_values_operation::{
+    LITERAL_FACTORY as STRUCTURED_LITERAL_FACTORY,
+    PRESENTATION_FACTORY as STRUCTURED_PRESENTATION_FACTORY,
+};
 use super::synth_operation::MUSIC_SYNTH_FACTORY;
 use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 #[cfg(test)]
@@ -160,6 +164,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &JSON_ENCODE_FACTORY,
     &JSON_DECODE_FACTORY,
     &STRUCTURED_SELECTOR_FACTORY,
+    &STRUCTURED_LITERAL_FACTORY,
+    &STRUCTURED_PRESENTATION_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]

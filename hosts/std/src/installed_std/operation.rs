@@ -54,6 +54,8 @@ impl Operation for InstalledOperation {
             Self::HttpServer(operation) => operation.start(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
+            Self::StructuredLiteral(operation) => operation.start(),
+            Self::StructuredPresentation(operation) => operation.start(),
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
@@ -156,6 +158,8 @@ impl Operation for InstalledOperation {
                 operation.resume(input)
             }
             (Self::StructuredSelector(operation), input) => operation.resume(input),
+            (Self::StructuredLiteral(_), _) => Self::fail(153),
+            (Self::StructuredPresentation(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestTextSource(_), _) => Self::fail(6),
             #[cfg(test)]
@@ -256,6 +260,8 @@ impl Operation for InstalledOperation {
             Self::TextPresentation(_) => OperationAction::Await,
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.advance(),
             Self::StructuredSelector(operation) => operation.advance(),
+            Self::StructuredLiteral(operation) => operation.advance(),
+            Self::StructuredPresentation(_) => OperationAction::Await,
             Self::StateCount(operation) => operation.advance(),
             Self::StateToggle(operation) => operation.advance(),
             Self::CountPresentation(_) => OperationAction::Await,
@@ -391,6 +397,8 @@ impl Operation for InstalledOperation {
             Self::HttpServer(operation) => operation.cancel(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.cancel(),
             Self::StructuredSelector(operation) => operation.cancel(),
+            Self::StructuredLiteral(_) => {}
+            Self::StructuredPresentation(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestTextSource(_) => {}
             #[cfg(test)]
