@@ -50,6 +50,10 @@ fn copy_task_runs_then_reveals_path_free_form_and_exact_plan() {
         .find("Inspect (after the task)")
         .expect("Inspect should follow execution");
     assert!(ready < result && result < inspect, "{stdout}");
+    assert!(
+        stdout.contains("Presentation: type=structured-info/profile-"),
+        "{stdout}"
+    );
     let inspected = &stdout[inspect..];
     assert!(inspected.contains("copy: file/copy"), "{inspected}");
     let plan_line = inspected
@@ -62,7 +66,11 @@ fn copy_task_runs_then_reveals_path_free_form_and_exact_plan() {
         "{inspected}"
     );
     assert!(
-        inspected.contains("gear: copy (face: 0 inputs, 0 outputs)"),
+        inspected.contains("gear: copy (face: 0 inputs, 1 outputs)"),
+        "{inspected}"
+    );
+    assert!(
+        inspected.contains("gear: show (face: 1 inputs, 0 outputs)"),
         "{inspected}"
     );
     assert!(!inspected.contains(source.to_str().unwrap()), "{inspected}");

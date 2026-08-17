@@ -5,7 +5,8 @@ use super::{
 use crate::{StdHost, StdHostConfig};
 use conduit_core::{
     BootId, CapabilityId, ConnectionBase, GearId, HostId, OfferGeneration, ProtectedResourceAccess,
-    ProtectedResourceCommitPolicy, ResourceBindingRoleId, ResourceHandleId,
+    ProtectedResourceCommitPolicy, Quantity, QuantityUnit, ResourceBindingRoleId, ResourceHandleId,
+    StructuredInfoValueShape,
 };
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
@@ -59,8 +60,11 @@ fn planned_copy(
     });
     let mut catalog = conduit_form::ProfileCatalog::new();
     conduit_std_catalog::install_copy_file_catalog(&mut catalog).expect("install copy catalog");
-    let form = conduit_form::parse("form 0\n\ncopy-task {\n    copy: file/copy\n}\n", &catalog)
-        .expect("copy Form checks without resource paths");
+    let form = conduit_form::parse(
+        "form 0\n\ncopy-task {\n    copy: file/copy\n    show: presentation/structured-info\n    copy.result -> show.input\n}\n",
+        &catalog,
+    )
+    .expect("copy Form checks without resource paths");
     let placements = default_placements(&form, std::slice::from_ref(host.advertisement()))
         .expect("copy placement resolves by equal checked face");
     let source_handle = ResourceHandleId::from("handle/source");
@@ -106,7 +110,7 @@ fn planned_copy(
             connection_bases: &overrides,
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: 1,
+            connection_byte_capacity: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             authority_grants: &[],
             protected_resource_grants: &[source_grant, destination_grant],
             line_offers: &[],
@@ -159,6 +163,7 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
     assert_eq!(receipt.source_binding_id, copy.source_handle);
     assert_eq!(receipt.destination_binding_id, copy.destination_handle);
     assert!(receipt.kernel_events > 0);
+    assert_success_presentation(&receipt, bytes.len() as u64);
     assert_eq!(std::fs::read(&destination).unwrap(), bytes);
 
     let replacement = vec![0x33; 19];
@@ -181,7 +186,34 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
         )
         .unwrap();
     assert!(matches!(receipt.result, CopyResult::Success { .. }));
+    assert_success_presentation(&receipt, replacement.len() as u64);
     assert_eq!(std::fs::read(&destination).unwrap(), replacement);
+}
+
+fn assert_success_presentation(receipt: &super::CopyRunReceipt, expected_bytes: u64) {
+    let presented = receipt
+        .presented_result
+        .as_ref()
+        .expect("successful copy reaches the planned presentation Gear");
+    assert_eq!(
+        presented.value_type(),
+        &conduit_std_catalog::copy_result_type()
+    );
+    let StructuredInfoValueShape::Record(fields) = presented.shape() else {
+        panic!("copy result is a record");
+    };
+    assert_eq!(fields.len(), 1);
+    assert_eq!(fields[0].name(), "outcome");
+    let StructuredInfoValueShape::Variant { tag, payload } = fields[0].value().shape() else {
+        panic!("copy outcome is a variant");
+    };
+    assert_eq!(tag, "success");
+    let StructuredInfoValueShape::Leaf(encoded) = payload.shape() else {
+        panic!("successful copy carries a quantity");
+    };
+    let quantity = Quantity::decode(encoded).expect("presented byte quantity is canonical");
+    assert_eq!(quantity.value(), i64::try_from(expected_bytes).unwrap());
+    assert_eq!(quantity.unit(), QuantityUnit::Byte);
 }
 
 #[test]

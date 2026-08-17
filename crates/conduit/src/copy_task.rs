@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{self, TryRecvError};
 use std::time::Duration;
 
-const COPY_FORM_SOURCE: &str = "form 0\n\ncopy-task {\n    copy: file/copy\n}\n";
+const COPY_FORM_SOURCE: &str = "form 0\n\ncopy-task {\n    copy: file/copy\n    show: presentation/structured-info\n    copy.result -> show.input\n}\n";
 const DEFAULT_MAXIMUM_BYTES: u64 = 16 * 1024 * 1024;
 pub(crate) const USAGE: &str = "usage: conduit copy [OPTIONS] SOURCE DESTINATION\n\
        options: --mode create|replace  --max-bytes N  --run  --inspect";
@@ -358,6 +358,22 @@ fn render_result(output: &mut impl Write, receipt: &CopyRunReceipt) -> Result<()
         ),
     };
     writeln!(output, "Result: {message}").map_err(|error| error.to_string())?;
+    if let Some(presented) = &receipt.presented_result {
+        let profile = presented
+            .value_type()
+            .profile()
+            .map_err(|error| format!("inspect presented copy result type: {error:?}"))?;
+        let encoded = presented
+            .canonical_bytes()
+            .map_err(|error| format!("inspect presented copy result value: {error:?}"))?;
+        writeln!(
+            output,
+            "Presentation: type={} canonical-bytes={}",
+            profile.value_kind().as_str(),
+            encoded.len()
+        )
+        .map_err(|error| error.to_string())?;
+    }
     writeln!(
         output,
         "Receipt: request={} run={} plan={} source={} destination={} kernel-events={}",

@@ -53,6 +53,7 @@ pub struct CopyRunReceipt {
     pub destination_binding_id: ResourceHandleId,
     pub result: CopyResult,
     pub kernel_events: usize,
+    pub presented_result: Option<conduit_core::StructuredInfoValue>,
 }
 
 #[derive(Debug, Clone, Default)]
