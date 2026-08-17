@@ -13,14 +13,14 @@ use conduit_presentation::Presentation;
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 
 use crate::{
-    front_door_topology::FrontDoorTopology, FormEditor, PartsView, PatchbayGraph, PatchbayModel,
-    PatchbayPresentation, PatchbayRequestId, PlanDocument, PlayDocument, PortableProjectionError,
-    RendererProjectionError,
+    front_door_topology::FrontDoorTopology, FormEditor, PartsView, PatchbayModel,
+    PatchbayRequestId, PlanDocument, PlayDocument,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalFrontDoorProjection {
     pub presentation: Presentation,
+    pub navigation: crate::PatchbayNavigationProjection,
     pub parts: PartsView,
 }
 
@@ -465,55 +465,6 @@ impl LocalFrontDoor {
         Ok(wake_id)
     }
 
-    pub fn project(&self) -> Result<LocalFrontDoorProjection, String> {
-        let parts = PartsView::project(
-            &self.body,
-            &self.membership,
-            &self.candidates,
-            &self.here,
-            self.plan.as_ref().map(|document| &document.exact),
-            self.active_play.as_ref(),
-            self.wake.is_some(),
-        )
-        .map_err(|error| format!("{error:?}"))?;
-        let snapshot = self.topology.snapshot(
-            self.model.startup_snapshot(),
-            &self.candidates,
-            &self.membership,
-        );
-        let topology = conduit_observatory::build_report(&snapshot)?;
-        let graph = PatchbayGraph::from_expanded(
-            &self
-                .editor
-                .expand_form(&self.form_name)
-                .map_err(|error| error.to_string())?,
-        )
-        .map_err(|error| error.to_string())?;
-        let projection = PatchbayPresentation::new(
-            self.revision,
-            self.editor.view(),
-            self.plan.clone(),
-            self.play.clone(),
-            Some(topology),
-            Vec::new(),
-        )
-        .map_err(display_projection)?
-        .with_graph(graph)
-        .map_err(display_projection)?;
-        let presentation = match &self.wake {
-            Some(wake) => projection
-                .to_portable_front_door(&self.body, wake, &parts)
-                .map_err(display_portable)?,
-            None => projection
-                .to_portable_lulled_front_door(&self.body, &parts)
-                .map_err(display_portable)?,
-        };
-        Ok(LocalFrontDoorProjection {
-            presentation,
-            parts,
-        })
-    }
-
     fn advance(&mut self) -> Result<(), String> {
         self.revision = self
             .revision
@@ -521,12 +472,4 @@ impl LocalFrontDoor {
             .ok_or("front-door presentation revision exhausted")?;
         Ok(())
     }
-}
-
-fn display_projection(error: RendererProjectionError) -> String {
-    error.to_string()
-}
-
-fn display_portable(error: PortableProjectionError) -> String {
-    error.to_string()
 }
