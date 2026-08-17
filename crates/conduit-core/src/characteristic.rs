@@ -1,4 +1,4 @@
-use crate::CharacteristicId;
+use crate::{CharacteristicId, Quantity, QuantityConversionRefusal, QuantityUnit};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -85,6 +85,49 @@ pub enum CharacteristicDefinitionError {
     UnitMismatch,
     QuantityOutOfRange,
     UnknownLabel,
+    UnsupportedQuantityUnit,
+    NegativeQuantity,
+    QuantityConversion(QuantityConversionRefusal),
+}
+
+impl CharacteristicUnit {
+    pub const fn quantity_unit(self) -> Option<QuantityUnit> {
+        match self {
+            Self::Bytes => Some(QuantityUnit::Byte),
+            Self::Hertz => Some(QuantityUnit::Hertz),
+            Self::Millihertz => Some(QuantityUnit::Millihertz),
+            Self::Microseconds => Some(QuantityUnit::Microsecond),
+            Self::Tokens
+            | Self::Microcents
+            | Self::Frames
+            | Self::EventsPerSecond
+            | Self::Items
+            | Self::Identifier => None,
+        }
+    }
+}
+
+impl CharacteristicQuantity {
+    pub fn from_quantity(
+        quantity: Quantity,
+        unit: CharacteristicUnit,
+    ) -> Result<Self, CharacteristicDefinitionError> {
+        let target = unit
+            .quantity_unit()
+            .ok_or(CharacteristicDefinitionError::UnsupportedQuantityUnit)?;
+        let converted = quantity
+            .convert(target)
+            .map_err(CharacteristicDefinitionError::QuantityConversion)?;
+        let value = u64::try_from(converted.value())
+            .map_err(|_| CharacteristicDefinitionError::NegativeQuantity)?;
+        Ok(Self { value, unit })
+    }
+
+    pub fn quantity(self) -> Option<Quantity> {
+        let unit = self.unit.quantity_unit()?;
+        let value = i64::try_from(self.value).ok()?;
+        Some(Quantity::new(value, unit))
+    }
 }
 
 impl CharacteristicDefinition {
@@ -348,6 +391,79 @@ mod tests {
                 unit: CharacteristicUnit::Bytes,
             }),
             Err(CharacteristicDefinitionError::ObservedFactAdvertisedAsStable)
+        );
+    }
+
+    #[test]
+    fn planner_characteristic_quantities_converge_only_for_reviewed_units() {
+        assert_eq!(
+            CharacteristicQuantity::from_quantity(
+                Quantity::new(2, QuantityUnit::Kibibyte),
+                CharacteristicUnit::Bytes,
+            ),
+            Ok(CharacteristicQuantity {
+                value: 2_048,
+                unit: CharacteristicUnit::Bytes,
+            })
+        );
+        assert_eq!(
+            CharacteristicQuantity {
+                value: 2_048,
+                unit: CharacteristicUnit::Bytes,
+            }
+            .quantity(),
+            Some(Quantity::new(2_048, QuantityUnit::Byte))
+        );
+        assert_eq!(
+            CharacteristicQuantity::from_quantity(
+                Quantity::new(440, QuantityUnit::Hertz),
+                CharacteristicUnit::Millihertz,
+            ),
+            Ok(CharacteristicQuantity {
+                value: 440_000,
+                unit: CharacteristicUnit::Millihertz,
+            })
+        );
+        assert_eq!(
+            CharacteristicQuantity {
+                value: 1,
+                unit: CharacteristicUnit::Tokens,
+            }
+            .quantity(),
+            None
+        );
+        assert_eq!(
+            CharacteristicQuantity::from_quantity(
+                Quantity::new(1, QuantityUnit::Millisecond),
+                CharacteristicUnit::Microseconds,
+            ),
+            Ok(CharacteristicQuantity {
+                value: 1_000,
+                unit: CharacteristicUnit::Microseconds,
+            })
+        );
+        assert_eq!(
+            CharacteristicQuantity::from_quantity(
+                Quantity::new(1, QuantityUnit::One),
+                CharacteristicUnit::Tokens,
+            ),
+            Err(CharacteristicDefinitionError::UnsupportedQuantityUnit)
+        );
+        assert_eq!(
+            CharacteristicQuantity::from_quantity(
+                Quantity::new(-1, QuantityUnit::Byte),
+                CharacteristicUnit::Bytes,
+            ),
+            Err(CharacteristicDefinitionError::NegativeQuantity)
+        );
+        assert_eq!(
+            CharacteristicQuantity::from_quantity(
+                Quantity::new(1, QuantityUnit::Second),
+                CharacteristicUnit::Hertz,
+            ),
+            Err(CharacteristicDefinitionError::QuantityConversion(
+                QuantityConversionRefusal::IncompatibleDimensions
+            ))
         );
     }
 
