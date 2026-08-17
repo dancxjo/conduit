@@ -22,6 +22,7 @@ mod offers;
 pub use offers::offers;
 mod operation;
 use operation::NucleusOperation;
+mod structured_execution;
 mod text_execution;
 use offers::{advertisement, fixture_catalog};
 use text_execution::execute_text_form;
@@ -111,12 +112,21 @@ pub struct BrowserNucleusProof {
     pub graphics_plan_id: conduit_core::PlanId,
     pub layout_plan_id: conduit_core::PlanId,
     pub text_plan_id: conduit_core::PlanId,
+    pub structured: conduit_presentation::StructuredSignPresentation,
+    pub structured_plan_id: conduit_core::PlanId,
 }
 
 pub fn execute_browser_nucleus() -> Result<BrowserNucleusProof, String> {
     let (graphics_bytes, graphics_plan_id) = execute_form(GRAPHICS_FORM, FIXTURE_GRAPHICS_KIND)?;
     let (layout_bytes, layout_plan_id) = execute_form(LAYOUT_FORM, FIXTURE_LAYOUT_KIND)?;
     let (text, text_plan_id) = execute_text_form()?;
+    let (structured_sign, structured_plan_id) = structured_execution::execute()?;
+    let structured = conduit_presentation::StructuredSignPresentation::from_sign(
+        1,
+        &structured_sign,
+        &conduit_std_catalog::education_feedback_type(),
+    )
+    .map_err(|error| format!("project browser structured presentation: {error:?}"))?;
     Ok(BrowserNucleusProof {
         graphics: GraphicsScene::decode(&graphics_bytes)
             .map_err(|error| format!("decode browser graphics manifestation: {error:?}"))?,
@@ -126,6 +136,8 @@ pub fn execute_browser_nucleus() -> Result<BrowserNucleusProof, String> {
         graphics_plan_id,
         layout_plan_id,
         text_plan_id,
+        structured,
+        structured_plan_id,
     })
 }
 
@@ -416,5 +428,31 @@ mod tests {
         assert_eq!(proof.text, "Gear Face");
         assert_ne!(proof.graphics_plan_id, proof.layout_plan_id);
         assert_ne!(proof.layout_plan_id, proof.text_plan_id);
+        assert_ne!(proof.text_plan_id, proof.structured_plan_id);
+        assert!(proof.structured.presentation.text.is_empty());
+        assert!(proof
+            .structured
+            .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "record-schema"
+                    && property.value
+                        == conduit_presentation::PresentationPropertyValue::Identity(
+                            "education/feedback@1".into(),
+                        )
+            }));
+        assert!(proof
+            .structured
+            .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "quantity-unit"
+                    && property.value
+                        == conduit_presentation::PresentationPropertyValue::Identity(
+                            "ratio/percent".into(),
+                        )
+            }));
     }
 }
