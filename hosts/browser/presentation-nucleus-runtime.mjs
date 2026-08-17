@@ -7,6 +7,8 @@ const REQUIRED_EXPORTS = [
   "conduit_browser_presentation_nucleus_layout_len",
   "conduit_browser_presentation_nucleus_text_ptr",
   "conduit_browser_presentation_nucleus_text_len",
+  "conduit_browser_presentation_nucleus_structured_ptr",
+  "conduit_browser_presentation_nucleus_structured_len",
 ];
 
 const rect = (view, offset) => ({
@@ -60,6 +62,24 @@ function decodeGraphics(encoded) {
   return commands;
 }
 
+function decodeStructured(encoded) {
+  if (encoded.length < 12 || encoded[0] !== 1) throw new Error("invalid structured presentation frame");
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  const fields = [];
+  let offset = 1;
+  for (let index = 0; index < 3; index += 1) {
+    const length = encoded[offset];
+    offset += 1;
+    const end = offset + length;
+    if (end > encoded.length) throw new Error("truncated structured presentation frame");
+    fields.push(decoder.decode(encoded.slice(offset, end)));
+    offset = end;
+  }
+  if (offset + 8 !== encoded.length) throw new Error("non-canonical structured presentation frame");
+  const quantity = Number(new DataView(encoded.buffer, encoded.byteOffset + offset, 8).getBigInt64(0, true));
+  return Object.freeze({ schema: fields[0], variant: fields[1], quantityUnit: fields[2], quantity });
+}
+
 export async function instantiatePresentationNucleus(wasmBytes) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   for (const name of REQUIRED_EXPORTS) {
@@ -88,6 +108,11 @@ export function manifestPresentationNucleus(api, root) {
     "conduit_browser_presentation_nucleus_text_ptr",
     "conduit_browser_presentation_nucleus_text_len",
   ));
+  const structured = decodeStructured(bytes(
+    api,
+    "conduit_browser_presentation_nucleus_structured_ptr",
+    "conduit_browser_presentation_nucleus_structured_len",
+  ));
 
   root.replaceChildren();
   root.dataset.viewport = `${layout.viewport.width}x${layout.viewport.height}`;
@@ -110,5 +135,13 @@ export function manifestPresentationNucleus(api, root) {
   presentedText.dataset.presentationKind = "text";
   presentedText.textContent = text;
   root.append(presentedText);
-  return Object.freeze({ layout, graphics, text });
+  const structuredPresentation = document.createElement("output");
+  structuredPresentation.dataset.presentationKind = "structured-info";
+  structuredPresentation.dataset.schema = structured.schema;
+  structuredPresentation.dataset.variant = structured.variant;
+  structuredPresentation.dataset.quantityUnit = structured.quantityUnit;
+  structuredPresentation.dataset.quantity = String(structured.quantity);
+  structuredPresentation.setAttribute("aria-label", "Education feedback structured information");
+  root.append(structuredPresentation);
+  return Object.freeze({ layout, graphics, text, structured });
 }
