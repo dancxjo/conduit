@@ -36,6 +36,7 @@ mod sound_info;
 mod structured_info;
 mod temporal;
 mod temporal_clock;
+mod temporal_window;
 
 pub use audio_info::*;
 pub use audio_render_demand::*;
@@ -66,6 +67,7 @@ pub use sound_info::*;
 pub use structured_info::*;
 pub use temporal::*;
 pub use temporal_clock::*;
+pub use temporal_window::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
