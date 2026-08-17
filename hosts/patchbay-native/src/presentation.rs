@@ -2,10 +2,13 @@
 
 use super::PatchbayApplication;
 use conduit_presentation::{
-    render_linear_presentation, Presentation, PresentationActionAvailability,
-    PresentationDisclosureLevel,
+    render_linear_navigation, render_linear_presentation, Presentation,
+    PresentationActionAvailability, ProjectionItem,
 };
-use patchbay_model::{GraphItemKind, PatchbayAction, PatchbayPresentation, RendererSelfInspection};
+use patchbay_model::{
+    GraphItemKind, PatchbayAction, PatchbayNavigationProjection, PatchbayPresentation,
+    RendererSelfInspection,
+};
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
 
@@ -18,28 +21,75 @@ pub(super) fn portable_presentation_lines(
         .map_err(|error| error.to_string())
 }
 
+pub(super) fn portable_navigation_lines(
+    presentation: &Presentation,
+    navigation: &PatchbayNavigationProjection,
+) -> Result<Vec<String>, String> {
+    render_linear_navigation(
+        presentation,
+        &navigation.navigation,
+        &navigation.projection,
+        &navigation.cursor,
+    )
+    .map(|projection| projection.lines)
+    .map_err(|error| error.to_string())
+}
+
 /// Ordinary zero-Body view. Exact identities remain in the deliberate details
 /// view backed by `portable_presentation_lines`.
 pub(super) fn ordinary_front_door_lines(
     presentation: &Presentation,
+    navigation: &PatchbayNavigationProjection,
 ) -> Result<Vec<String>, String> {
     presentation.validate().map_err(|error| error.to_string())?;
-    let mut lines = vec!["THIS COMPUTER  ·  BODY NONE".into()];
-    for disclosure in &presentation.disclosures {
-        if disclosure.level != PresentationDisclosureLevel::Primary {
-            continue;
+    let projected = navigation
+        .projection
+        .project(presentation, &navigation.navigation, &navigation.cursor)
+        .map_err(|error| format!("portable front-door projection: {error:?}"))?;
+    let mut lines = vec![
+        format!(
+            "PLACE {:?}  ·  ASPECT {:?}",
+            navigation.cursor.place, navigation.cursor.aspect
+        ),
+        format!(
+            "FOCUS {}  ·  DEPTH {:?}",
+            navigation.cursor.focus.as_deref().unwrap_or("none"),
+            navigation.cursor.depth
+        ),
+        format!(
+            "PLACES {}",
+            navigation
+                .navigation
+                .places
+                .iter()
+                .map(|place| format!("{:?}", place.place))
+                .collect::<Vec<_>>()
+                .join(" / ")
+        ),
+        "CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT".into(),
+    ];
+    for identity in projected.items.iter().filter_map(|membership| {
+        if let ProjectionItem::Subject(identity) = &membership.item {
+            Some(identity)
+        } else {
+            None
         }
+    }) {
         let subject = presentation
             .subjects
             .iter()
-            .find(|subject| subject.identity == disclosure.subject)
-            .ok_or_else(|| "primary disclosure target is absent".to_string())?;
+            .find(|subject| subject.identity == *identity)
+            .ok_or_else(|| "projected subject is absent".to_string())?;
         lines.push(format!("{:?}  {}", subject.role, subject.label));
-        for action in presentation
-            .actions
-            .iter()
-            .filter(|action| action.target == subject.identity)
-        {
+        for action in projected.items.iter().filter_map(|membership| {
+            let ProjectionItem::Action(identity) = &membership.item else {
+                return None;
+            };
+            presentation
+                .actions
+                .iter()
+                .find(|action| action.identity == *identity && action.target == subject.identity)
+        }) {
             let availability = match &action.availability {
                 PresentationActionAvailability::Available => "AVAILABLE".into(),
                 PresentationActionAvailability::Unavailable { explanation, .. } => {
@@ -62,7 +112,7 @@ pub(super) fn ordinary_front_door_lines(
             ));
         }
     }
-    lines.push("F2 DETAILS  ·  exact identity and provenance".into());
+    lines.push("F2 EXACT  ·  portable depth, exact identity and provenance".into());
     Ok(lines)
 }
 
@@ -272,11 +322,25 @@ impl PatchbayApplication {
         }
         if let Some(execution) = &self.renderer_execution {
             if self.zero_body_front_door.is_some() && !self.linear_view {
-                return ordinary_front_door_lines(&execution.presentation).unwrap_or_else(
-                    |error| vec![format!("PORTABLE PRESENTATION INVALID: {error}")],
-                );
+                let Some(entrance) = &self.entrance else {
+                    return vec!["PORTABLE NAVIGATION ABSENT".into()];
+                };
+                return ordinary_front_door_lines(&execution.presentation, &entrance.navigation)
+                    .unwrap_or_else(|error| {
+                        vec![format!("PORTABLE PRESENTATION INVALID: {error}")]
+                    });
             }
-            let mut lines = portable_presentation_lines(&execution.presentation)
+            let mut lines = self
+                .entrance
+                .as_ref()
+                .map(|entrance| &entrance.navigation)
+                .filter(|navigation| {
+                    navigation.navigation.presentation == execution.presentation.identity
+                })
+                .map_or_else(
+                    || portable_presentation_lines(&execution.presentation),
+                    |navigation| portable_navigation_lines(&execution.presentation, navigation),
+                )
                 .unwrap_or_else(|error| vec![format!("PORTABLE PRESENTATION INVALID: {error}")]);
             let inspection = match execution.self_inspection() {
                 Ok(inspection) => renderer_self_inspection_lines(&inspection)
