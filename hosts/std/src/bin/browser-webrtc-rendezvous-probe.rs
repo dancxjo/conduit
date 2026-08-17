@@ -1,32 +1,30 @@
 //! Bounded two-browser admission and WebRTC rendezvous proof fixture.
 
+#[path = "browser_webrtc_rendezvous_probe/admission.rs"]
+mod admission;
 #[path = "browser_webrtc_rendezvous_probe/planning.rs"]
 mod planning;
+#[path = "browser_webrtc_rendezvous_probe/protocol.rs"]
+mod protocol;
 
+use admission::admit;
 use conduit_body::{
-    AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyMembership,
-    CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceClock,
-    HostPresenceClockScale, HostPresenceTable, MembershipCredential,
+    AdmissionManager, Body, BodyMembership, CandidateInventory, HostPresenceClock,
+    HostPresenceClockScale, HostPresenceTable,
 };
-use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
+use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
-    BrowserAdmissionSocket, BrowserAdmissionSocketError, BrowserWebRtcRendezvous,
-    BROWSER_ADMISSION_PROTOCOL,
+    BrowserAdmissionSocketError, BrowserWebRtcRendezvous, BROWSER_ADMISSION_PROTOCOL,
 };
 use conduit_std_host::websocket::{NativeWebSocketError, NativeWebSocketError::Transport};
 use planning::{binding, session_basis};
+use protocol::{debug, exact_credential, frame_kind};
 use std::io::ErrorKind;
 use std::time::Duration;
 
 const LEASE_MILLIS: u64 = 60_000;
 const RENEW_AFTER_MILLIS: u64 = 30_000;
-
-struct Peer {
-    socket: BrowserAdmissionSocket,
-    credential: MembershipCredential,
-    session_id: LinkBindingId,
-}
 
 fn main() -> Result<(), String> {
     let body = Body::born(
@@ -117,9 +115,11 @@ fn main() -> Result<(), String> {
     );
 
     let mut relayed = 0_u8;
-    let mut active = [true, true];
+    let mut active = vec![true, true];
     let mut grant_generation = 0_u16;
     let mut stale_rendezvous = None;
+    let mut restart_admitted = false;
+    let mut observed_at_millis = 1_u64;
     loop {
         for index in 0..peers.len() {
             if !active[index] {
@@ -138,17 +138,24 @@ fn main() -> Result<(), String> {
                         &peers[index].credential.host_id,
                         &peers[index].credential.boot_id,
                     );
+                    observed_at_millis = observed_at_millis
+                        .checked_add(1)
+                        .ok_or("presence observation clock exhausted")?;
                     presence
                         .lose_session(
                             &mut membership,
                             &peers[index].credential.part_id,
                             &peers[index].session_id,
-                            2,
+                            observed_at_millis,
                             SignId::from(format!(
                                 "sign/browser-webrtc-rendezvous-probe/lost-{index}"
                             )),
                         )
                         .map_err(debug("lose peer presence"))?;
+                    active[index] = false;
+                    if restart_admitted {
+                        continue;
+                    }
                     let survivor_index = usize::from(index == 0);
                     let lost_part = membership
                         .parts
@@ -196,7 +203,93 @@ fn main() -> Result<(), String> {
                             "survivor_grant_present": survivor_grant.is_some(),
                         })
                     );
-                    active[index] = false;
+                    let old_part_id = peers[index].credential.part_id.clone();
+                    let old_host_id = peers[index].credential.host_id.clone();
+                    let old_boot_id = peers[index].credential.boot_id.clone();
+                    let mut fresh = admit(
+                        listener
+                            .accept()
+                            .map_err(debug("accept restarted browser"))?,
+                        2,
+                        &mut candidates,
+                        &mut admission,
+                        &mut membership,
+                    )?;
+                    observed_at_millis = observed_at_millis
+                        .checked_add(1)
+                        .ok_or("presence observation clock exhausted")?;
+                    presence
+                        .start(
+                            &membership,
+                            &fresh.credential.part_id,
+                            fresh.session_id.clone(),
+                            1,
+                            observed_at_millis,
+                            LEASE_MILLIS,
+                            SignId::from("sign/browser-webrtc-rendezvous-probe/present-restart"),
+                        )
+                        .map_err(debug("start restarted presence"))?;
+                    fresh
+                        .socket
+                        .send(&BrowserAdmissionEgress::PresenceAccepted {
+                            protocol: BROWSER_ADMISSION_PROTOCOL,
+                            sequence: 1,
+                            renew_after_millis: RENEW_AFTER_MILLIS,
+                            expires_at_millis: LEASE_MILLIS + observed_at_millis,
+                        })
+                        .map_err(debug("send restarted presence"))?;
+                    fresh
+                        .socket
+                        .set_read_timeout(Some(Duration::from_millis(25)))
+                        .map_err(debug("set restarted timeout"))?;
+                    let old_part = membership
+                        .parts
+                        .iter()
+                        .find(|part| part.part_id == old_part_id)
+                        .ok_or("offline Part disappeared during browser restart")?;
+                    let fresh_part = membership
+                        .parts
+                        .iter()
+                        .find(|part| part.part_id == fresh.credential.part_id)
+                        .ok_or("fresh browser Part was not admitted")?;
+                    let old_presence = presence
+                        .leases
+                        .iter()
+                        .find(|lease| lease.part_id == old_part_id)
+                        .ok_or("offline Part presence disappeared during browser restart")?;
+                    let fresh_presence = presence
+                        .leases
+                        .iter()
+                        .find(|lease| lease.part_id == fresh.credential.part_id)
+                        .ok_or("fresh browser presence was not established")?;
+                    let (old_grant_total, old_grant) =
+                        rendezvous.grant_for_endpoint(&old_host_id, &old_boot_id, 0);
+                    let (fresh_grant_total, fresh_grant) = rendezvous.grant_for_endpoint(
+                        &fresh.credential.host_id,
+                        &fresh.credential.boot_id,
+                        0,
+                    );
+                    println!(
+                        "restart={}",
+                        serde_json::json!({
+                            "old_part": old_part,
+                            "old_presence": old_presence,
+                            "old_host_id": old_host_id,
+                            "old_boot_id": old_boot_id,
+                            "fresh_part": fresh_part,
+                            "fresh_presence": fresh_presence,
+                            "fresh_credential": fresh.credential,
+                            "old_grant_total": old_grant_total,
+                            "old_grant_present": old_grant.is_some(),
+                            "fresh_grant_total": fresh_grant_total,
+                            "fresh_grant_present": fresh_grant.is_some(),
+                            "membership_part_count": membership.parts.len(),
+                            "presence_lease_count": presence.leases.len(),
+                        })
+                    );
+                    peers.push(fresh);
+                    active.push(true);
+                    restart_admitted = true;
                     continue;
                 }
                 Err(error) => return Err(format!("receive peer {index}: {error:?}")),
@@ -221,6 +314,27 @@ fn main() -> Result<(), String> {
                         &host_id,
                         &boot_id,
                     )?;
+                    if index >= 2 {
+                        if generation != 0 {
+                            return Err(
+                                "fresh browser requested a noninitial grant generation".into()
+                            );
+                        }
+                        peers[index]
+                            .socket
+                            .send(&BrowserAdmissionEgress::WebRtcGrant {
+                                protocol: BROWSER_ADMISSION_PROTOCOL,
+                                generation,
+                                index: grant_index,
+                                total: 0,
+                                grant: None,
+                            })
+                            .map_err(debug("send empty restarted grant"))?;
+                        println!(
+                            "restart-grant-empty index={index} generation={generation} grant_index={grant_index}"
+                        );
+                        continue;
+                    }
                     if generation == 1 && grant_generation == 0 {
                         if grant_index != 0 || relayed != 2 {
                             return Err(
@@ -349,139 +463,8 @@ fn main() -> Result<(), String> {
                 _ => return Err(format!("unexpected peer {index} frame")),
             }
         }
-        if !active[0] && !active[1] {
+        if restart_admitted && active.iter().all(|is_active| !is_active) {
             return Ok(());
         }
     }
-}
-
-fn admit(
-    mut socket: BrowserAdmissionSocket,
-    index: usize,
-    candidates: &mut CandidateInventory,
-    admission: &mut AdmissionManager,
-    membership: &mut BodyMembership,
-) -> Result<Peer, String> {
-    let (frame, encoded_bytes) = socket.receive_with_size().map_err(debug("advertise"))?;
-    let BrowserAdmissionIngress::Advertise {
-        advertisement,
-        friendly_label,
-        verifying_key,
-        freshness_sequence,
-        ..
-    } = frame
-    else {
-        return Err("peer did not advertise".into());
-    };
-    let verifying_key = verifying_key
-        .try_into()
-        .map_err(|_| "browser verifying key was not 32 bytes")?;
-    let proof_id = format!("proof/probe/{index}");
-    let candidate = candidates
-        .observe(CandidateObservation {
-            advertisement,
-            friendly_label,
-            observed_binding_id: LinkBindingId::from(format!("probe/admission/{index}")),
-            observation_sign_id: SignId::from(format!("sign/probe/observed/{index}")),
-            proof_id: DiscoveryProofId::bind(&proof_id).map_err(debug("proof id"))?,
-            freshness_sequence,
-            encoded_bytes,
-        })
-        .map_err(debug("observe"))?;
-    let challenge = admission
-        .begin_ambient(
-            candidates,
-            &candidate,
-            verifying_key,
-            [index as u8 + 1; 32],
-            1_000,
-            2_000,
-            SignId::from(format!("sign/probe/requested/{index}")),
-        )
-        .map_err(debug("challenge"))?;
-    socket
-        .send(&BrowserAdmissionEgress::Challenge {
-            protocol: BROWSER_ADMISSION_PROTOCOL,
-            challenge,
-        })
-        .map_err(debug("send challenge"))?;
-    let BrowserAdmissionIngress::AmbientProof {
-        admission_id,
-        body_id,
-        host_id,
-        boot_id,
-        nonce,
-        signature,
-        ..
-    } = socket.receive().map_err(debug("proof"))?
-    else {
-        return Err("peer did not prove admission".into());
-    };
-    let proof = AmbientAdmissionProof {
-        admission_id,
-        body_id,
-        host_id,
-        boot_id,
-        nonce: nonce.try_into().map_err(|_| "invalid proof nonce")?,
-        signature: signature
-            .try_into()
-            .map_err(|_| "invalid proof signature")?,
-    };
-    let credential = admission
-        .complete_ambient(
-            candidates,
-            membership,
-            &proof,
-            1_100,
-            AdmissionSigns {
-                part_admitted: SignId::from(format!("sign/probe/admitted/{index}")),
-                host_attached: SignId::from(format!("sign/probe/attached/{index}")),
-                candidate_admitted: SignId::from(format!("sign/probe/candidate/{index}")),
-            },
-        )
-        .map_err(debug("complete"))?;
-    socket
-        .send(&BrowserAdmissionEgress::Admitted {
-            protocol: BROWSER_ADMISSION_PROTOCOL,
-            credential: credential.clone(),
-        })
-        .map_err(debug("send admitted"))?;
-    Ok(Peer {
-        socket,
-        session_id: LinkBindingId::from(format!("probe/presence/{index}")),
-        credential,
-    })
-}
-
-fn exact_credential(
-    expected: &MembershipCredential,
-    credential_id: &conduit_body::MembershipCredentialId,
-    body_id: &conduit_body::BodyId,
-    part_id: &conduit_body::PartId,
-    host_id: &conduit_core::HostId,
-    boot_id: &conduit_core::BootId,
-) -> Result<(), String> {
-    if credential_id == &expected.credential_id
-        && body_id == &expected.body_id
-        && part_id == &expected.part_id
-        && host_id == &expected.host_id
-        && boot_id == &expected.boot_id
-    {
-        Ok(())
-    } else {
-        Err("stale membership credential".into())
-    }
-}
-
-fn frame_kind(frame: &BrowserAdmissionIngress) -> &'static str {
-    match frame {
-        BrowserAdmissionIngress::PresenceRenewal { .. } => "presence-renewal",
-        BrowserAdmissionIngress::WebRtcGrantRequest { .. } => "web-rtc-grant-request",
-        BrowserAdmissionIngress::WebRtcSignal { .. } => "web-rtc-signal",
-        _ => "unexpected",
-    }
-}
-
-fn debug<T: core::fmt::Debug>(label: &'static str) -> impl FnOnce(T) -> String {
-    move |error| format!("{label}: {error:?}")
 }
