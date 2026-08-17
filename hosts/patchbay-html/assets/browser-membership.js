@@ -360,6 +360,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     pressureNextWebRtcValue: (negotiationId) => webRtcSessions.pressureNextValue(negotiationId),
     deliverWebRtcValue: (negotiationId, sequence) => webRtcSessions.deliverValue(negotiationId, sequence),
     waitWebRtcValueDelivered: (negotiationId, sequence) => webRtcSessions.waitDelivered(negotiationId, sequence),
+    closeWebRtcLine: (negotiationId) => webRtcSessions.closeLine(negotiationId),
     close: () => {
       deliberateClose = true;
       clearTimeout(renewalTimer);
