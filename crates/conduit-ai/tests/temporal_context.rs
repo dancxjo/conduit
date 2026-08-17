@@ -1,7 +1,8 @@
 use conduit_ai::{
-    ClockBasis, EntityBoundary, TemporalContextRefusal, TemporalDirection, TemporalProvenance,
+    ClockBasis, EntityBoundary, TemporalContextRefusal, TemporalProvenance,
     TemporalRetrievalIntent, TemporalSource,
 };
+use conduit_core::TemporalRelation;
 
 fn provenance() -> TemporalProvenance {
     TemporalProvenance {
@@ -35,11 +36,61 @@ fn future_event_is_a_typed_relation_but_not_an_age() {
     let mut fact = provenance();
     fact.event_at = Some(1_250);
     let relation = fact.relation(TemporalSource::Event).unwrap();
-    assert_eq!(relation.direction, TemporalDirection::AfterReference);
-    assert_eq!(relation.distance_millis, 250);
+    assert_eq!(
+        relation,
+        TemporalRelation::Future {
+            minimum_ticks: 250,
+            maximum_ticks: 250,
+        }
+    );
     assert_eq!(
         fact.age(TemporalSource::Event),
         Err(TemporalContextRefusal::SourceAfterReference)
+    );
+}
+
+#[test]
+fn uncertain_age_remains_a_bounded_relation_not_a_scalar_guess() {
+    let mut fact = provenance();
+    fact.uncertainty_millis = Some(25);
+    assert_eq!(
+        fact.relation(TemporalSource::Observed),
+        Ok(TemporalRelation::Past {
+            minimum_ticks: 675,
+            maximum_ticks: 725,
+        })
+    );
+    assert_eq!(
+        fact.age(TemporalSource::Observed),
+        Err(TemporalContextRefusal::UncertainAge)
+    );
+}
+
+#[test]
+fn model_and_human_presentation_consume_the_same_canonical_relation() {
+    let fact = provenance();
+    let source = fact
+        .canonical_source_instant(TemporalSource::Observed)
+        .unwrap();
+    let reference = conduit_presentation::TemporalReference {
+        identity: "model-turn/reference".into(),
+        instant: fact.canonical_reference_instant().unwrap(),
+    };
+    let presented = conduit_presentation::PresentationTemporalFact::new(
+        "retrieved/fact".into(),
+        conduit_presentation::PresentationTemporalRole::Observation,
+        None,
+        source,
+        &reference,
+    )
+    .unwrap();
+    assert_eq!(
+        presented.relation,
+        fact.relation(TemporalSource::Observed).unwrap()
+    );
+    assert_eq!(
+        conduit_presentation::format_relative_time(&presented),
+        "between 0 and 1 second ago"
     );
 }
 

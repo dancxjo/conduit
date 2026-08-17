@@ -447,6 +447,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-signal",
  "conduit-std-catalog",
  "libm",
