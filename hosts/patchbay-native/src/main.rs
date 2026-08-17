@@ -43,6 +43,7 @@ mod forms_navigation;
 #[cfg(test)]
 mod forms_navigation_tests;
 mod front_door;
+mod front_door_keyboard;
 #[cfg(test)]
 mod front_door_tests;
 mod gui;
@@ -209,10 +210,7 @@ impl ApplicationHandler for PatchbayApplication {
                 self.native_keyboard.close();
                 event_loop.exit();
             }
-            WindowEvent::Focused(false) => {
-                self.native_keyboard.focus_lost();
-                self.cancel_transient_gestures("window focus was lost");
-            }
+            WindowEvent::Focused(focused) => self.handle_window_focus(focused),
             WindowEvent::Resized(_) => {
                 if let Some(window) = &self.window {
                     window.request_redraw();

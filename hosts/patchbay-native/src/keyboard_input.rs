@@ -17,6 +17,20 @@ impl PatchbayApplication {
         if !event.state.is_pressed() {
             return;
         }
+        match self.handle_front_door_key(&event.logical_key) {
+            Ok(true) => {
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+                return;
+            }
+            Ok(false) => {}
+            Err(error) => {
+                self.failure = Some(format!("native front-door interaction failed: {error}"));
+                event_loop.exit();
+                return;
+            }
+        }
         let prewake_handled = match self.handle_prewake_key(&event.logical_key) {
             Ok(handled) => handled,
             Err(error) => {
@@ -61,6 +75,18 @@ impl PatchbayApplication {
                 event_loop.exit();
             }
         }
+    }
+
+    pub(super) fn handle_window_focus(&mut self, focused: bool) {
+        if focused {
+            if let Some(window) = &self.window {
+                window.request_redraw();
+            }
+            return;
+        }
+        self.native_keyboard.focus_lost();
+        self.modifiers = winit::keyboard::ModifiersState::empty();
+        self.cancel_transient_gestures("window focus was lost");
     }
 }
 
