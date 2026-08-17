@@ -86,6 +86,27 @@ async function refuseNavigation(page, refusals, operation, request, expected) {
   return after;
 }
 
+async function refuseInvocation(page, refusals, operation, request, expected) {
+  const before = await snapshot(page);
+  const after = await page.evaluate(async body => (await fetch("/api/interaction", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })).json(), request);
+  expect(after.interaction.last_disposition).toBe(`Refused(${expected})`);
+  expect(after.navigation.cursor).toEqual(before.navigation.cursor);
+  expect(after.presentation.identity).toBe(before.presentation.identity);
+  expect(after.presentation.revision).toBe(before.presentation.revision);
+  expect(semanticBasis(after)).toEqual(semanticBasis(before));
+  refusals.push({
+    operation,
+    disposition: after.interaction.last_disposition,
+    cursor: after.navigation.cursor,
+    semantic_basis: semanticBasis(after),
+  });
+  return after;
+}
+
 test("public browser entrance stays unbodied until OPEN then explicit BIRTH", async ({ browser, page }) => {
   const server = startPublicEntrance();
   try {
@@ -115,6 +136,13 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     ]));
 
     await page.goto(url);
+    const navigationRefusals = [];
+    await refuseNavigation(page, navigationRefusals, { kind: "show", aspect: "Plan" }, {
+      presentation_id: initial.presentation.identity,
+      presentation_revision: initial.presentation.revision,
+      navigation_id: initial.navigation.navigation.identity,
+      operation: { kind: "show", aspect: "Plan" },
+    }, "UnknownAspect");
     await expect(page.getByRole("heading", { name: "Entrance choices" })).toBeVisible();
     await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
     await expect(page.locator("#status")).toContainText("Manifestation Available");
@@ -263,7 +291,6 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(playing.parts.parts[0].playing).toBe(true);
 
     const navigationSteps = [];
-    const navigationRefusals = [];
     const journeyStartCursor = playing.navigation.cursor;
     expect(playing.navigation.cursor).toMatchObject({ place: "Program", aspect: "Structure" });
     await page.getByRole("button", { name: "Navigate", exact: true }).click();
@@ -345,7 +372,17 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       navigationRequest({ kind: "follow", relationship: followIdentity }), "UnknownRelationship");
     await refuseNavigation(page, navigationRefusals, { kind: "back" },
       navigationRequest({ kind: "back" }), "HistoryExhausted");
-    expect(navigationRefusals).toHaveLength(4);
+    const currentAction = current.presentation.actions.find(({ availability }) => availability === "Available");
+    expect(currentAction).toBeTruthy();
+    await refuseInvocation(page, navigationRefusals, {
+      kind: "invoke", action_id: currentAction.identity, presentation_revision: current.presentation.revision - 1,
+    }, {
+      presentation_id: current.presentation.identity,
+      presentation_revision: current.presentation.revision - 1,
+      kind: "invoke",
+      action_id: currentAction.identity,
+    }, "StalePresentation");
+    expect(navigationRefusals).toHaveLength(6);
 
     const receiptPath = process.env.CONDUIT_PATCHBAY_FRONT_DOOR_RECEIPT_PATH;
     if (receiptPath) {
@@ -398,7 +435,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
             && navigationSteps.some(step => step.after_cursor.depth === "Exact"),
           returned_to_program_structure: JSON.stringify(navigated.navigation.cursor)
             === JSON.stringify(journeyStartCursor),
-          bounded_explicit_refusals: navigationRefusals.length === 4,
+          bounded_explicit_refusals: navigationRefusals.length === 6,
         },
       };
       await mkdir(dirname(receiptPath), { recursive: true });
