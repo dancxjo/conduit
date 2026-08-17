@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { spawn } from "node:child_process";
+import { mkdir, rename, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 async function startPresenceProbe(extraArguments = []) {
   const process = spawn("target/debug/browser-admission-probe", ["--presence", ...extraArguments], {
@@ -232,7 +234,9 @@ test("same running browser returns after session loss with exact Host and Boot",
   await expect.poll(() => probe.process.exitCode).toBe(0);
 });
 
-test("two admitted product clients compose Body grants into one exact ready session", async ({ context }) => {
+test("two admitted product clients compose Body grants into one exact ready session", async ({
+  browser, context,
+}, testInfo) => {
   const probe = await startWebRtcRendezvousProbe();
   const source = await context.newPage();
   const sink = await context.newPage();
@@ -287,10 +291,11 @@ test("two admitted product clients compose Body grants into one exact ready sess
   )).rejects.toThrow("unknown or stale WebRTC negotiation identity");
 
   await sinkPage.evaluate((id) => globalThis.__browserPresence.pressureNextWebRtcValue(id), negotiationId);
-  expect(await sourcePage.evaluate(
+  const pressured = await sourcePage.evaluate(
     ({ id, bytes }) => globalThis.__browserPresence.offerWebRtcValue(id, bytes),
     { id: negotiationId, bytes: value },
-  )).toEqual({
+  );
+  expect(pressured).toEqual({
     accepted: false,
     retryable: true,
     reason: "peer-pressure",
@@ -314,7 +319,8 @@ test("two admitted product clients compose Body grants into one exact ready sess
     ({ id, bytes }) => globalThis.__browserPresence.offerWebRtcValue(id, bytes),
     { id: negotiationId, bytes: value },
   );
-  expect(await accepted).toEqual({
+  const acceptedOutcome = await accepted;
+  expect(acceptedOutcome).toEqual({
     accepted: true,
     retryable: false,
     reason: null,
@@ -360,6 +366,8 @@ test("two admitted product clients compose Body grants into one exact ready sess
     const session = globalThis.__browserPresence.webRtcSessions().sessions[0];
     return session !== undefined && !session.sessionReady && session.terminalReason !== null;
   })).toBe(true);
+  const sourceAfterLoss = await sourcePage.evaluate(() => globalThis.__browserPresence.webRtcSessions());
+  const sinkAfterLoss = await sinkPage.evaluate(() => globalThis.__browserPresence.webRtcSessions().sessions[0]);
   await expect(sourcePage.evaluate(
     (id) => globalThis.__browserPresence.offerWebRtcValue(id, [1]),
     negotiationId,
@@ -368,4 +376,73 @@ test("two admitted product clients compose Body grants into one exact ready sess
   await expect.poll(probe.output).toContain("peer-lost");
   await sinkPage.evaluate(() => globalThis.__browserPresence.close());
   await expect.poll(() => probe.process.exitCode).toBe(0);
+  const basisMatch = probe.output().match(/^session_basis=(\{.*\})$/m);
+  expect(basisMatch, probe.output()).not.toBeNull();
+  const basis = JSON.parse(basisMatch[1]);
+  expect(basis).toMatchObject({
+    base: "WebRtcDataChannel",
+    session_limits: { maximum_in_flight_items: 1, maximum_payload_bytes: 16, maximum_buffered_bytes: 16 },
+    line_limits: { maximum_in_flight_items: 1, maximum_payload_bytes: 16, maximum_buffered_bytes: 16 },
+  });
+  const evidenceRoot = process.env.CONDUIT_EVIDENCE_ROOT;
+  if (testInfo.project.name === "chromium" && evidenceRoot) {
+    const receipt = {
+      schema: "conduit.browser-host/body-granted-webrtc-session@1",
+      proof_class: "live-browser",
+      browser_engine: testInfo.project.name,
+      browser_version: browser.version(),
+      basis,
+      browser_peers: [
+        { ...sourceIdentity, session: sourceSession },
+        { ...sinkIdentity, session: sinkSession },
+      ],
+      traffic: {
+        value,
+        pressured,
+        accepted: acceptedOutcome,
+        received,
+        delivered: { delivered: true, sequence: received.sequence },
+      },
+      loss: {
+        source_presence: "closed",
+        source_sessions: sourceAfterLoss,
+        sink_session: sinkAfterLoss,
+        line_ready_before: true,
+        line_ready_after: false,
+        probe_observed_peer_loss: probe.output().includes("peer-lost"),
+      },
+      assertions: {
+        distinct_host_boot_peers: sourceIdentity.hostId !== sinkIdentity.hostId
+          && sourceIdentity.bootId !== sinkIdentity.bootId,
+        body_grant_session_exact: sourceSession.negotiationId === basis.binding_id
+          && sinkSession.negotiationId === basis.binding_id
+          && sourceSession.peerHostId === sinkIdentity.hostId
+          && sourceSession.peerBootId === sinkIdentity.bootId
+          && sinkSession.peerHostId === sourceIdentity.hostId
+          && sinkSession.peerBootId === sourceIdentity.bootId,
+        ordinary_cord_value_delivered: received.sequence === 0
+          && received.bytes.join(",") === value.join(",")
+          && acceptedOutcome.accepted
+          && sinkAfterLoss.deliveredSequence === received.sequence,
+        membership_presence_distinct_from_line_readiness:
+          sourceAfterLoss.terminalReason === "presence-closed"
+          && sinkAfterLoss.terminalReason === "line-closed"
+          && sinkAfterLoss.line.readyState === "closed",
+        state_is_finite: basis.session_limits.maximum_in_flight_items === 1
+          && basis.session_limits.maximum_payload_bytes === 16
+          && basis.session_limits.maximum_buffered_bytes === 16
+          && sourceAfterLoss.activeSessions === 0
+          && sourceAfterLoss.creatingSessions === 0
+          && sourceAfterLoss.pendingSignals === 0
+          && sinkAfterLoss.line.bufferedBytes === 0
+          && sinkAfterLoss.line.retainedMessages === 0
+          && sinkAfterLoss.line.retainedBytes === 0,
+      },
+    };
+    await mkdir(evidenceRoot, { recursive: true });
+    const destination = path.join(evidenceRoot, "browser-webrtc-session.json");
+    const temporary = `${destination}.tmp`;
+    await writeFile(temporary, `${JSON.stringify(receipt, null, 2)}\n`);
+    await rename(temporary, destination);
+  }
 });
