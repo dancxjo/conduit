@@ -4,7 +4,7 @@
 //! not imply a sensor, Host, Base, implementation, or physical observation.
 
 use crate::info::semantic_digest;
-use crate::InfoDecodeError;
+use crate::{InfoDecodeError, Quantity, QuantityUnit};
 
 pub const ROBOTICS_RANGE_INFO_ID: &str = "robotics/range-mm-sensor-forward@1";
 pub const ROBOTICS_RANGE_ENCODED_LEN: usize = 8;
@@ -29,6 +29,23 @@ pub struct RangeObservation {
 }
 
 impl RangeObservation {
+    pub fn from_quantities(distance: Quantity, age: Quantity) -> Result<Self, InfoDecodeError> {
+        Self::new(
+            quantity_u32(
+                "distance-mm",
+                distance,
+                QuantityUnit::Millimeter,
+                MAXIMUM_RANGE_MM,
+            )?,
+            quantity_u32(
+                "age-ms",
+                age,
+                QuantityUnit::Millisecond,
+                MAXIMUM_OBSERVATION_AGE_MS,
+            )?,
+        )
+    }
+
     pub fn new(distance_mm: u32, age_ms: u32) -> Result<Self, InfoDecodeError> {
         bounded_u32("distance-mm", distance_mm, MAXIMUM_RANGE_MM)?;
         bounded_u32("age-ms", age_ms, MAXIMUM_OBSERVATION_AGE_MS)?;
@@ -44,6 +61,14 @@ impl RangeObservation {
 
     pub const fn age_ms(self) -> u32 {
         self.age_ms
+    }
+
+    pub const fn distance(self) -> Quantity {
+        Quantity::new(self.distance_mm as i64, QuantityUnit::Millimeter)
+    }
+
+    pub const fn age(self) -> Quantity {
+        Quantity::new(self.age_ms as i64, QuantityUnit::Millisecond)
     }
 
     pub const fn encode(self) -> [u8; ROBOTICS_RANGE_ENCODED_LEN] {
@@ -137,6 +162,18 @@ pub struct BatteryObservation {
 }
 
 impl BatteryObservation {
+    pub fn from_quantities(charge: Quantity, voltage: Quantity) -> Result<Self, InfoDecodeError> {
+        Self::new(
+            quantity_u16("charge-permille", charge, QuantityUnit::Permille, 1_000)?,
+            quantity_u16(
+                "millivolts",
+                voltage,
+                QuantityUnit::Millivolt,
+                MAXIMUM_BATTERY_MILLIVOLTS,
+            )?,
+        )
+    }
+
     pub fn new(charge_permille: u16, millivolts: u16) -> Result<Self, InfoDecodeError> {
         bounded_i64("charge-permille", i64::from(charge_permille), 0, 1_000)?;
         bounded_i64(
@@ -157,6 +194,14 @@ impl BatteryObservation {
 
     pub const fn millivolts(self) -> u16 {
         self.millivolts
+    }
+
+    pub const fn charge(self) -> Quantity {
+        Quantity::new(self.charge_permille as i64, QuantityUnit::Permille)
+    }
+
+    pub const fn voltage(self) -> Quantity {
+        Quantity::new(self.millivolts as i64, QuantityUnit::Millivolt)
     }
 
     pub const fn encode(self) -> [u8; ROBOTICS_BATTERY_ENCODED_LEN] {
@@ -251,6 +296,44 @@ fn exact_len(encoded: &[u8], expected: usize) -> Result<(), InfoDecodeError> {
             actual: encoded.len(),
         })
     }
+}
+
+fn quantity_u32(
+    field: &'static str,
+    quantity: Quantity,
+    unit: QuantityUnit,
+    maximum: u32,
+) -> Result<u32, InfoDecodeError> {
+    let converted = quantity
+        .convert(unit)
+        .map_err(InfoDecodeError::QuantityConversion)?;
+    let value = u32::try_from(converted.value()).map_err(|_| InfoDecodeError::OutOfRange {
+        field,
+        minimum: 0,
+        maximum: i64::from(maximum),
+        actual: converted.value(),
+    })?;
+    bounded_u32(field, value, maximum)?;
+    Ok(value)
+}
+
+fn quantity_u16(
+    field: &'static str,
+    quantity: Quantity,
+    unit: QuantityUnit,
+    maximum: u16,
+) -> Result<u16, InfoDecodeError> {
+    let converted = quantity
+        .convert(unit)
+        .map_err(InfoDecodeError::QuantityConversion)?;
+    let value = u16::try_from(converted.value()).map_err(|_| InfoDecodeError::OutOfRange {
+        field,
+        minimum: 0,
+        maximum: i64::from(maximum),
+        actual: converted.value(),
+    })?;
+    bounded_i64(field, i64::from(value), 0, i64::from(maximum))?;
+    Ok(value)
 }
 
 fn bounded_u32(field: &'static str, value: u32, maximum: u32) -> Result<(), InfoDecodeError> {
