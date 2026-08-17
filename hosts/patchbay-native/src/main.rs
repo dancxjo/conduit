@@ -43,6 +43,7 @@ mod forms_navigation;
 #[cfg(test)]
 mod forms_navigation_tests;
 mod front_door;
+mod front_door_follow;
 mod front_door_keyboard;
 #[cfg(test)]
 mod front_door_tests;
@@ -130,6 +131,7 @@ struct PatchbayApplication {
     modifiers: winit::keyboard::ModifiersState,
     native_keyboard: portable_keyboard::NativeKeyboardInput,
     palette: palette_state::PaletteChooser,
+    selected_follow: Option<String>,
     exact_identity_open: bool,
     parts_open: bool,
     selected_part: Option<conduit_body::PartId>,

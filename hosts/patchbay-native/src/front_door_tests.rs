@@ -45,7 +45,9 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
     }));
     let ordinary = application.presentation_lines().join("\n");
     assert!(ordinary.contains("PLACE Entrance  ·  ASPECT Structure"));
-    assert!(ordinary.contains("CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT"));
+    assert!(ordinary.contains(
+        "CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT  ·  SHIFT-F3 CHOOSE / F3 FOLLOW"
+    ));
     assert!(ordinary.contains("Seed  Patchbay entrance specimen"));
     assert!(ordinary.contains("OPEN [ENTER]  ·  AVAILABLE"));
     assert!(ordinary.contains("BIRTH [F4]  ·  UNAVAILABLE — No admitted authority"));
@@ -166,6 +168,186 @@ fn native_place_and_aspect_keys_mutate_only_the_portable_cursor() {
     assert_eq!(
         application.entrance.as_ref().unwrap().presentation.basis,
         before_basis
+    );
+}
+
+#[test]
+fn native_follow_crosses_exact_documentary_correlation_and_returns() {
+    let mut application = PatchbayApplication::new(Arguments {
+        front_door: true,
+        ..Arguments::default()
+    })
+    .unwrap();
+    let presentation = patchbay_model::portable_demonstration().unwrap();
+    let navigation =
+        patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
+    let state = patchbay_model::PatchbayEntranceState::enter(&presentation).unwrap();
+    application.entrance = Some(
+        crate::front_door::NativeFrontDoorPresentation::new(
+            state,
+            presentation.clone(),
+            navigation,
+        )
+        .unwrap(),
+    );
+    application
+        .navigate_front_door(conduit_presentation::NavigationOperation::Show(
+            conduit_presentation::PresentationAspect::Plan,
+        ))
+        .unwrap();
+    let forward = application
+        .entrance
+        .as_ref()
+        .unwrap()
+        .navigation
+        .navigation
+        .follows[0]
+        .clone();
+    application
+        .navigate_front_door(conduit_presentation::NavigationOperation::Focus(
+            forward.source_subject.clone(),
+        ))
+        .unwrap();
+    let ordinary = crate::presentation::ordinary_front_door_lines(
+        &presentation,
+        &application.entrance.as_ref().unwrap().navigation,
+        application.selected_follow.as_deref(),
+    )
+    .unwrap()
+    .join("\n");
+    let destination = presentation
+        .subjects
+        .iter()
+        .find(|subject| subject.identity == forward.target_subject)
+        .unwrap();
+    assert!(ordinary.contains("FOLLOW Realizes"));
+    assert!(ordinary.contains(&destination.accessibility_name));
+    assert!(ordinary.contains("[F3 SELECTED]"));
+
+    let before = presentation.clone();
+    application
+        .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F3))
+        .unwrap();
+    let followed = &application.entrance.as_ref().unwrap().navigation.cursor;
+    assert_eq!(followed.place, forward.target_place);
+    assert_eq!(followed.aspect, forward.target_aspect);
+    assert_eq!(
+        followed.focus.as_deref(),
+        Some(forward.target_subject.as_str())
+    );
+
+    let reverse = application
+        .entrance
+        .as_ref()
+        .unwrap()
+        .navigation
+        .navigation
+        .follows
+        .iter()
+        .find(|follow| {
+            follow.source_subject == forward.target_subject
+                && follow.target_subject == forward.source_subject
+        })
+        .unwrap()
+        .identity
+        .clone();
+    for _ in 0..application
+        .entrance
+        .as_ref()
+        .unwrap()
+        .navigation
+        .navigation
+        .follows
+        .len()
+    {
+        application.modifiers = winit::keyboard::ModifiersState::SHIFT;
+        application
+            .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F3))
+            .unwrap();
+        if application.selected_follow.as_deref() == Some(reverse.as_str()) {
+            break;
+        }
+    }
+    assert_eq!(
+        application.selected_follow.as_deref(),
+        Some(reverse.as_str())
+    );
+    application.modifiers = winit::keyboard::ModifiersState::empty();
+    application
+        .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F3))
+        .unwrap();
+    let returned = &application.entrance.as_ref().unwrap().navigation.cursor;
+    assert_eq!(
+        returned.place,
+        conduit_presentation::PresentationPlace::Program
+    );
+    assert_eq!(
+        returned.aspect,
+        conduit_presentation::PresentationAspect::Plan
+    );
+    assert_eq!(
+        returned.focus.as_deref(),
+        Some(forward.source_subject.as_str())
+    );
+    assert_eq!(
+        &application.entrance.as_ref().unwrap().presentation,
+        &before
+    );
+}
+
+#[test]
+fn native_follow_refuses_zero_or_ambiguous_correlations_without_motion() {
+    let mut application = PatchbayApplication::new(Arguments {
+        front_door: true,
+        ..Arguments::default()
+    })
+    .unwrap();
+    let before = application
+        .entrance
+        .as_ref()
+        .unwrap()
+        .navigation
+        .cursor
+        .clone();
+    application.follow_front_door().unwrap();
+    assert_eq!(
+        application.entrance.as_ref().unwrap().navigation.cursor,
+        before
+    );
+    assert_eq!(
+        application.interaction_status.current().unwrap().text,
+        "FOLLOW unavailable for the current Focus"
+    );
+
+    let presentation = patchbay_model::portable_demonstration().unwrap();
+    let navigation =
+        patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
+    let forward = &navigation.navigation.follows[0];
+    let focus = &forward.target_subject;
+    let mut cursor = navigation.cursor.clone();
+    cursor.focus = Some(focus.clone());
+    let reverse = navigation
+        .navigation
+        .follows
+        .iter()
+        .find(|follow| {
+            follow.source_subject == forward.target_subject
+                && follow.target_subject == forward.source_subject
+        })
+        .unwrap();
+    assert_eq!(
+        crate::front_door_follow::exact_current_follow(&navigation.navigation, &cursor, None,),
+        Err(crate::front_door_follow::NativeFollowRefusal::Ambiguous)
+    );
+    assert_eq!(
+        crate::front_door_follow::exact_current_follow(
+            &navigation.navigation,
+            &cursor,
+            Some(&reverse.identity),
+        )
+        .unwrap()
+        .identity,
+        reverse.identity
     );
 }
 

@@ -1,6 +1,7 @@
 //! Native consumption of the shared truthful Patchbay entrance state.
 
 use super::PatchbayApplication;
+use crate::front_door_follow::{exact_current_follow, NativeFollowRefusal};
 use conduit_core::SignId;
 use conduit_presentation::{NavigationOperation, NavigationState, Presentation};
 use patchbay_model::{
@@ -16,7 +17,7 @@ pub(super) struct NativeFrontDoorPresentation {
 }
 
 impl NativeFrontDoorPresentation {
-    fn new(
+    pub(super) fn new(
         state: PatchbayEntranceState,
         presentation: Presentation,
         navigation: PatchbayNavigationProjection,
@@ -122,6 +123,7 @@ impl PatchbayApplication {
                     .map_err(|error| format!("front-door selection: {error:?}"))?;
                 entrance.navigation.cursor = cursor;
                 entrance.navigation_state = next_navigation;
+                self.selected_follow = None;
                 Ok(())
             }
             None => Ok(()),
@@ -146,6 +148,75 @@ impl PatchbayApplication {
             )
             .map_err(|error| format!("native front-door navigation refused: {error:?}"))?
             .clone();
+        self.selected_follow = None;
+        Ok(())
+    }
+
+    pub(super) fn follow_front_door(&mut self) -> Result<(), String> {
+        let follow = self
+            .entrance
+            .as_ref()
+            .ok_or("native front-door Presentation is absent")
+            .and_then(|entrance| {
+                exact_current_follow(
+                    &entrance.navigation.navigation,
+                    &entrance.navigation.cursor,
+                    self.selected_follow.as_deref(),
+                )
+                .map(|follow| follow.identity.clone())
+                .map_err(|refusal| match refusal {
+                    NativeFollowRefusal::Unavailable => "FOLLOW unavailable for the current Focus",
+                    NativeFollowRefusal::Ambiguous => {
+                        "FOLLOW requires one exact current correlation"
+                    }
+                })
+            });
+        match follow {
+            Ok(identity) => self.navigate_front_door(NavigationOperation::Follow(identity)),
+            Err(refusal) => {
+                self.publish_refusal(refusal);
+                Ok(())
+            }
+        }
+    }
+
+    pub(super) fn cycle_front_door_follow(&mut self) -> Result<(), String> {
+        let identities = {
+            let entrance = self
+                .entrance
+                .as_ref()
+                .ok_or("native front-door Presentation is absent")?;
+            let Some(focus) = entrance.navigation.cursor.focus.as_deref() else {
+                self.publish_refusal("FOLLOW unavailable for the current Focus");
+                return Ok(());
+            };
+            entrance
+                .navigation
+                .navigation
+                .follows
+                .iter()
+                .filter(|follow| follow.source_subject == focus)
+                .map(|follow| follow.identity.clone())
+                .collect::<Vec<_>>()
+        };
+        if identities.is_empty() {
+            self.publish_refusal("FOLLOW unavailable for the current Focus");
+            return Ok(());
+        }
+        let next = self
+            .selected_follow
+            .as_deref()
+            .and_then(|selected| {
+                identities
+                    .iter()
+                    .position(|identity| identity == selected)
+                    .map(|index| (index + 1) % identities.len())
+            })
+            .unwrap_or(0);
+        self.selected_follow = Some(identities[next].clone());
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
         Ok(())
     }
 
