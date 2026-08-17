@@ -5,7 +5,7 @@ use conduit_presentation::{
     render_linear_presentation, Presentation, PresentationActionAvailability,
     PresentationDisclosureLevel,
 };
-use patchbay_model::{GraphItemKind, PatchbayPresentation, RendererSelfInspection};
+use patchbay_model::{GraphItemKind, PatchbayAction, PatchbayPresentation, RendererSelfInspection};
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
 
@@ -49,8 +49,15 @@ pub(super) fn ordinary_front_door_lines(
                     format!("REFUSED — {explanation}")
                 }
             };
+            let binding = if action.intent == PatchbayAction::OpenBack.presentation_intent() {
+                "ENTER"
+            } else if action.intent == PatchbayAction::Birth.presentation_intent() {
+                "F4"
+            } else {
+                "ACTION"
+            };
             lines.push(format!(
-                "  {}  ·  {availability}",
+                "  {} [{binding}]  ·  {availability}",
                 action.label.to_uppercase()
             ));
         }

@@ -35,10 +35,83 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
     }));
     let ordinary = application.presentation_lines().join("\n");
     assert!(ordinary.contains("Seed  Patchbay entrance specimen"));
-    assert!(ordinary.contains("OPEN  ·  AVAILABLE"));
-    assert!(ordinary.contains("BIRTH  ·  UNAVAILABLE — No admitted authority"));
+    assert!(ordinary.contains("OPEN [ENTER]  ·  AVAILABLE"));
+    assert!(ordinary.contains("BIRTH [F4]  ·  UNAVAILABLE — No admitted authority"));
     assert!(!ordinary.contains(presentation.identity.as_str()));
     assert!(!ordinary.contains("source-document-id"));
+}
+
+#[test]
+fn native_front_door_keys_invoke_current_open_and_disclose_exact_details() {
+    let mut application = PatchbayApplication::new(Arguments {
+        front_door: true,
+        ..Arguments::default()
+    })
+    .unwrap();
+    let original = application.entrance_presentation.as_ref().unwrap().clone();
+
+    assert!(application
+        .handle_front_door_key(&winit::keyboard::Key::Named(
+            winit::keyboard::NamedKey::Enter,
+        ))
+        .unwrap());
+    let opened = application.entrance_presentation.as_ref().unwrap();
+    assert_eq!(opened.revision, original.revision + 1);
+    assert_ne!(opened.identity, original.identity);
+    assert!(opened.properties.iter().any(|property| {
+        property.name == "opened"
+            && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
+    }));
+    let opened_identity = opened.identity.clone();
+
+    assert!(application
+        .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F2,))
+        .unwrap());
+    assert!(application.linear_view);
+    let details = application.presentation_lines().join("\n");
+    assert!(details.contains(opened_identity.as_str()));
+    assert!(details.contains("ACTION id="));
+}
+
+#[test]
+fn unavailable_birth_key_uses_current_action_and_cannot_create_a_body() {
+    let mut application = PatchbayApplication::new(Arguments {
+        front_door: true,
+        ..Arguments::default()
+    })
+    .unwrap();
+
+    assert!(application
+        .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F4,))
+        .unwrap());
+    assert!(application.build_birth.body().is_none());
+    let refusal = application.interaction_status.current().unwrap();
+    assert_eq!(
+        refusal.code,
+        crate::interaction_status::InteractionStatusCode::Refused
+    );
+    assert_eq!(
+        refusal.text,
+        "BIRTH unavailable while FORM_UNAVAILABLE: Open a checked Form to begin"
+    );
+}
+
+#[test]
+fn focus_loss_clears_renderer_modifiers_and_transient_gestures_before_regain() {
+    let mut application = PatchbayApplication::new(Arguments {
+        front_door: true,
+        ..Arguments::default()
+    })
+    .unwrap();
+    application.modifiers = winit::keyboard::ModifiersState::CONTROL;
+    application.canvas_pan_drag = Some((12.0, 34.0));
+
+    application.handle_window_focus(false);
+    assert!(application.modifiers.is_empty());
+    assert!(application.canvas_pan_drag.is_none());
+
+    application.handle_window_focus(true);
+    assert!(application.modifiers.is_empty());
 }
 
 #[test]
