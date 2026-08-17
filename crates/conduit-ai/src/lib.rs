@@ -4,6 +4,8 @@ extern crate alloc;
 
 mod bases;
 pub use bases::*;
+mod effect_proposal;
+pub use effect_proposal::*;
 mod llm_contract;
 pub use llm_contract::*;
 mod local_model;
