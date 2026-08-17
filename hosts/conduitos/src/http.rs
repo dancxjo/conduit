@@ -1,61 +1,9 @@
 //! Fixed-storage, literal-address HTTP/1.1 client boundary for selected Images.
 
-use conduit_core::{
-    ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, kind_id, resource_requirement,
-};
+mod offer;
+pub use offer::*;
 
-pub const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal@1";
-pub const PROFILE: &str = "conduitos/http1-literal-plain-fixed@1";
-pub const ARTIFACT: &str = "conduitos/native-http1-fixed@1";
-pub const HOST_OPERATION: &str = "conduit.host/http-client-exchange@1";
-pub const RESOURCE_CLASS: &str = "conduit.resource/network/http-client@1";
-pub const AUTHORITY: &str = "conduit.authority/http-outbound@1";
-pub const NETWORK_BASE: &str = "network/ipv4-tcp";
-pub const NETWORK_DRIVER: &str = "conduitos/deterministic-ipv4-tcp@1";
-pub const FACILITY: &str = "network/http1-literal-client@1";
-pub const PACKET_BUFFERS: u16 = 4;
-pub const SOCKET_SLOTS: u16 = 1;
-pub const TIMER_SLOTS: u16 = 2;
-pub const SIGN_ITEMS: u16 = 32;
-pub const REQUEST_BYTES: usize = conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES as usize;
-pub const RESPONSE_BYTES: usize = conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize;
-
-pub fn offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::http_client_contract();
-    let operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(HOST_OPERATION),
-        target_kind: Some(kind_id(conduit_std_catalog::HTTP_REQUEST_INFO_ID)),
-        maximum_in_flight: 1,
-        maximum_input_bytes: REQUEST_BYTES as u32,
-        maximum_output_bytes: RESPONSE_BYTES as u32,
-    };
-    CapabilityOffer {
-        startup_parameters: alloc::vec::Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("conduitos-http-client-http1-literal"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::HTTP_CLIENT_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(PROFILE),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from(ARTIFACT),
-        },
-        host_operations: alloc::vec![operation.clone()],
-        resource_requirements: alloc::vec![resource_requirement(RESOURCE_CLASS, 1)],
-        authority_requirements: alloc::vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(AUTHORITY),
-            host_operation_contract_id: operation.contract_id,
-            subject_kind: kind_id(conduit_std_catalog::HTTP_REQUEST_INFO_ID),
-        }],
-        limits: contract.limits,
-    }
-}
+const TYPE_BYTES: usize = 4_096;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u16)]
@@ -124,18 +72,36 @@ pub struct NativeHttpClient {
     pending: Option<HttpTicket>,
     generation: u32,
     signs: u16,
+    request_type: [u8; TYPE_BYTES],
+    request_type_len: usize,
+    response_type: [u8; TYPE_BYTES],
+    response_type_len: usize,
 }
 
 impl NativeHttpClient {
-    pub const fn prepare() -> Self {
-        Self {
+    pub fn prepare() -> Self {
+        let request = conduit_std_catalog::http_request_type()
+            .canonical_bytes()
+            .unwrap();
+        let response = conduit_std_catalog::http_response_type()
+            .canonical_bytes()
+            .unwrap();
+        assert!(request.len() <= TYPE_BYTES && response.len() <= TYPE_BYTES);
+        let mut value = Self {
             request: [0; REQUEST_BYTES],
             request_len: 0,
             response: [0; RESPONSE_BYTES],
             pending: None,
             generation: 1,
             signs: 0,
-        }
+            request_type: [0; TYPE_BYTES],
+            request_type_len: request.len(),
+            response_type: [0; TYPE_BYTES],
+            response_type_len: response.len(),
+        };
+        value.request_type[..request.len()].copy_from_slice(&request);
+        value.response_type[..response.len()].copy_from_slice(&response);
+        value
     }
 
     pub fn begin(
@@ -149,7 +115,11 @@ impl NativeHttpClient {
         if self.pending.is_some() {
             return Err(HttpClientFailure::Pressure);
         }
-        let (transaction, len) = encode_wire_request(input, &mut self.request)?;
+        let (transaction, len) = encode_wire_request(
+            input,
+            &self.request_type[..self.request_type_len],
+            &mut self.request,
+        )?;
         self.request_len = len;
         let ticket = HttpTicket {
             generation: self.generation,
@@ -182,6 +152,7 @@ impl NativeHttpClient {
         let len = encode_info_response(
             ticket.transaction,
             &self.response[..response_len],
+            &self.response_type[..self.response_type_len],
             &mut output.bytes,
         )?;
         output.len = len;
@@ -239,54 +210,106 @@ struct Header<'a> {
     value: &'a [u8],
 }
 
-fn encode_wire_request(input: &[u8], output: &mut [u8]) -> Result<(u64, usize), HttpClientFailure> {
+fn encode_wire_request(
+    input: &[u8],
+    request_type: &[u8],
+    output: &mut [u8],
+) -> Result<(u64, usize), HttpClientFailure> {
     if input.len() > REQUEST_BYTES {
         return Err(HttpClientFailure::RequestOverflow);
     }
-    let mut cursor = Cursor::new(input);
-    if cursor.byte()? != 1 {
-        return Err(HttpClientFailure::MalformedRequest);
+    let encoded = input
+        .strip_prefix(request_type)
+        .ok_or(HttpClientFailure::MalformedRequest)?;
+    let mut cursor = Cursor::new(encoded);
+    cursor.record(5)?;
+    cursor.field("body")?;
+    cursor.variant("inline")?;
+    let body = cursor.leaf()?;
+    cursor.field("headers")?;
+    cursor.collection(conduit_std_catalog::HTTP_MAXIMUM_HEADERS)?;
+    let mut headers = [Header {
+        name: &[],
+        value: &[],
+    }; conduit_std_catalog::HTTP_MAXIMUM_HEADERS];
+    let mut count = 0;
+    let mut unused_seen = false;
+    for _ in 0..conduit_std_catalog::HTTP_MAXIMUM_HEADERS {
+        cursor.tag(3)?;
+        let tag = cursor.bytes()?;
+        match tag {
+            b"header" if !unused_seen => {
+                cursor.record(2)?;
+                cursor.field("name")?;
+                let name = cursor.leaf()?;
+                cursor.field("value")?;
+                let value = cursor.leaf()?;
+                headers[count] = Header { name, value };
+                count += 1;
+            }
+            b"unused" => {
+                unused_seen = true;
+                if !cursor.leaf()?.is_empty() {
+                    return Err(HttpClientFailure::MalformedRequest);
+                }
+            }
+            _ => return Err(HttpClientFailure::MalformedRequest),
+        }
     }
-    let transaction = cursor.u64()?;
-    let method = match cursor.byte()? {
-        0 => b"GET".as_slice(),
-        1 => b"HEAD".as_slice(),
-        2 => b"POST".as_slice(),
-        3 => b"PUT".as_slice(),
-        4 => b"PATCH".as_slice(),
-        5 => b"DELETE".as_slice(),
-        6 => b"OPTIONS".as_slice(),
+    cursor.field("method")?;
+    cursor.tag(3)?;
+    let method = match cursor.bytes()? {
+        b"get" => b"GET".as_slice(),
+        b"head" => b"HEAD".as_slice(),
+        b"post" => b"POST".as_slice(),
+        b"put" => b"PUT".as_slice(),
+        b"patch" => b"PATCH".as_slice(),
+        b"delete" => b"DELETE".as_slice(),
+        b"options" => b"OPTIONS".as_slice(),
         _ => return Err(HttpClientFailure::MalformedRequest),
     };
-    let scheme = cursor.bytes()?;
+    if !cursor.leaf()?.is_empty() {
+        return Err(HttpClientFailure::MalformedRequest);
+    }
+    cursor.field("target")?;
+    cursor.record(3)?;
+    cursor.field("authority")?;
+    let authority = cursor.leaf()?;
+    cursor.field("path_and_query")?;
+    let target = cursor.leaf()?;
+    cursor.field("scheme")?;
+    let scheme = cursor.leaf()?;
+    cursor.field("transaction_id")?;
+    let transaction = u64::from_le_bytes(
+        cursor
+            .leaf()?
+            .try_into()
+            .map_err(|_| HttpClientFailure::MalformedRequest)?,
+    );
+    if !cursor.finished() {
+        return Err(HttpClientFailure::MalformedRequest);
+    }
     if scheme == b"https" {
         return Err(HttpClientFailure::TlsUnsupported);
     }
     if scheme != b"http" {
         return Err(HttpClientFailure::MalformedRequest);
     }
-    let authority = cursor.bytes()?;
     if !literal_authority(authority) {
         return Err(HttpClientFailure::NameResolutionUnsupported);
     }
-    let target = cursor.bytes()?;
     if target.is_empty()
         || target[0] != b'/'
         || target.len() > conduit_std_catalog::HTTP_MAXIMUM_TARGET_BYTES
     {
         return Err(HttpClientFailure::MalformedRequest);
     }
-    let count = usize::from(cursor.u16()?);
     if count > conduit_std_catalog::HTTP_MAXIMUM_HEADERS {
         return Err(HttpClientFailure::RequestOverflow);
     }
-    let mut headers = [Header {
-        name: &[],
-        value: &[],
-    }; conduit_std_catalog::HTTP_MAXIMUM_HEADERS];
-    for slot in headers.iter_mut().take(count) {
-        let name = cursor.bytes()?;
-        let value = cursor.bytes()?;
+    for header in &headers[..count] {
+        let name = header.name;
+        let value = header.value;
         if name.is_empty()
             || name.len() > conduit_std_catalog::HTTP_MAXIMUM_HEADER_NAME_BYTES
             || value.len() > conduit_std_catalog::HTTP_MAXIMUM_HEADER_VALUE_BYTES
@@ -308,10 +331,8 @@ fn encode_wire_request(input: &[u8], output: &mut [u8]) -> Result<(u64, usize), 
         {
             return Err(HttpClientFailure::MalformedRequest);
         }
-        *slot = Header { name, value };
     }
-    let body = cursor.bytes()?;
-    if body.len() > conduit_std_catalog::HTTP_MAXIMUM_REQUEST_BODY_BYTES || !cursor.finished() {
+    if body.len() > conduit_std_catalog::HTTP_MAXIMUM_REQUEST_BODY_BYTES {
         return Err(HttpClientFailure::RequestOverflow);
     }
     let mut writer = Writer::new(output);
@@ -351,6 +372,7 @@ fn literal_authority(value: &[u8]) -> bool {
 fn encode_info_response(
     transaction: u64,
     wire: &[u8],
+    response_type: &[u8],
     output: &mut [u8],
 ) -> Result<usize, HttpClientFailure> {
     let split = find(wire, b"\r\n\r\n").ok_or(HttpClientFailure::MalformedResponse)?;
@@ -410,15 +432,29 @@ fn encode_info_response(
         return Err(HttpClientFailure::ProviderLost);
     }
     let mut writer = Writer::new(output);
-    writer.byte(2)?;
-    writer.put(&transaction.to_be_bytes())?;
-    writer.put(&status.to_be_bytes())?;
-    writer.put(&(count as u16).to_be_bytes())?;
+    writer.put(response_type)?;
+    writer.record(4)?;
+    writer.field("body")?;
+    writer.variant("inline")?;
+    writer.leaf(body)?;
+    writer.field("headers")?;
+    writer.collection(conduit_std_catalog::HTTP_MAXIMUM_HEADERS)?;
     for header in &headers[..count] {
-        writer.sized(header.name)?;
-        writer.sized(header.value)?;
+        writer.variant("header")?;
+        writer.record(2)?;
+        writer.field("name")?;
+        writer.leaf(header.name)?;
+        writer.field("value")?;
+        writer.leaf(header.value)?;
     }
-    writer.sized(body)?;
+    for _ in count..conduit_std_catalog::HTTP_MAXIMUM_HEADERS {
+        writer.variant("unused")?;
+        writer.leaf(&[])?;
+    }
+    writer.field("status")?;
+    writer.leaf(&u64::from(status).to_le_bytes())?;
+    writer.field("transaction_id")?;
+    writer.leaf(&transaction.to_le_bytes())?;
     Ok(writer.len)
 }
 
@@ -459,23 +495,9 @@ impl<'a> Cursor<'a> {
     fn byte(&mut self) -> Result<u8, HttpClientFailure> {
         Ok(self.take(1)?[0])
     }
-    fn u16(&mut self) -> Result<u16, HttpClientFailure> {
-        Ok(u16::from_be_bytes(
-            self.take(2)?
-                .try_into()
-                .map_err(|_| HttpClientFailure::MalformedRequest)?,
-        ))
-    }
     fn u32(&mut self) -> Result<u32, HttpClientFailure> {
-        Ok(u32::from_be_bytes(
+        Ok(u32::from_le_bytes(
             self.take(4)?
-                .try_into()
-                .map_err(|_| HttpClientFailure::MalformedRequest)?,
-        ))
-    }
-    fn u64(&mut self) -> Result<u64, HttpClientFailure> {
-        Ok(u64::from_be_bytes(
-            self.take(8)?
                 .try_into()
                 .map_err(|_| HttpClientFailure::MalformedRequest)?,
         ))
@@ -486,6 +508,44 @@ impl<'a> Cursor<'a> {
     }
     fn finished(&self) -> bool {
         self.offset == self.input.len()
+    }
+    fn tag(&mut self, expected: u8) -> Result<(), HttpClientFailure> {
+        if self.byte()? == expected {
+            Ok(())
+        } else {
+            Err(HttpClientFailure::MalformedRequest)
+        }
+    }
+    fn record(&mut self, fields: usize) -> Result<(), HttpClientFailure> {
+        self.tag(2)?;
+        if self.u32()? as usize == fields {
+            Ok(())
+        } else {
+            Err(HttpClientFailure::MalformedRequest)
+        }
+    }
+    fn collection(&mut self, items: usize) -> Result<(), HttpClientFailure> {
+        self.tag(1)?;
+        if self.u32()? as usize == items {
+            Ok(())
+        } else {
+            Err(HttpClientFailure::MalformedRequest)
+        }
+    }
+    fn field(&mut self, expected: &str) -> Result<(), HttpClientFailure> {
+        if self.bytes()? == expected.as_bytes() {
+            Ok(())
+        } else {
+            Err(HttpClientFailure::MalformedRequest)
+        }
+    }
+    fn variant(&mut self, expected: &str) -> Result<(), HttpClientFailure> {
+        self.tag(3)?;
+        self.field(expected)
+    }
+    fn leaf(&mut self) -> Result<&'a [u8], HttpClientFailure> {
+        self.tag(0)?;
+        self.bytes()
     }
 }
 
@@ -521,10 +581,29 @@ impl<'a> Writer<'a> {
     fn sized(&mut self, value: &[u8]) -> Result<(), HttpClientFailure> {
         let len =
             u32::try_from(value.len()).map_err(|_| HttpClientFailure::ResponseBodyOverflow)?;
-        self.put(&len.to_be_bytes())
+        self.put(&len.to_le_bytes())
             .map_err(|_| HttpClientFailure::ResponseBodyOverflow)?;
         self.put(value)
             .map_err(|_| HttpClientFailure::ResponseBodyOverflow)
+    }
+    fn record(&mut self, fields: usize) -> Result<(), HttpClientFailure> {
+        self.byte(2)?;
+        self.put(&(fields as u32).to_le_bytes())
+    }
+    fn collection(&mut self, items: usize) -> Result<(), HttpClientFailure> {
+        self.byte(1)?;
+        self.put(&(items as u32).to_le_bytes())
+    }
+    fn field(&mut self, name: &str) -> Result<(), HttpClientFailure> {
+        self.sized(name.as_bytes())
+    }
+    fn variant(&mut self, tag: &str) -> Result<(), HttpClientFailure> {
+        self.byte(3)?;
+        self.sized(tag.as_bytes())
+    }
+    fn leaf(&mut self, value: &[u8]) -> Result<(), HttpClientFailure> {
+        self.byte(0)?;
+        self.sized(value)
     }
     fn decimal(&mut self, mut value: usize) -> Result<(), HttpClientFailure> {
         let mut digits = [0_u8; 20];

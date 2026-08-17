@@ -85,7 +85,7 @@ fn portable_face_and_provider_protocol_keep_realization_and_failures_distinct() 
         transaction_id: conduit_std_catalog::HttpTransactionId(7),
         status: 200,
         headers: vec![],
-        body: br#"{"output":"world"}"#.to_vec(),
+        body: conduit_std_catalog::HttpBody::inline(br#"{"output":"world"}"#.to_vec()),
     };
     let decoded =
         conduit_core::JsonValue::decode_text(provider_http_response(&response).unwrap()).unwrap();

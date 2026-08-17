@@ -202,7 +202,7 @@ mod tests {
         let server = thread::spawn(move || {
             let request = listener.accept_request().unwrap();
             assert_eq!(request.method, HttpMethod::Post);
-            assert_eq!(request.body, b"bounded");
+            assert_eq!(request.body.as_inline(), Some(b"bounded".as_slice()));
             listener
                 .send_response(&HttpResponse {
                     transaction_id: request.transaction_id,
@@ -211,7 +211,7 @@ mod tests {
                         name: "content-type".into(),
                         value: b"text/plain".to_vec(),
                     }],
-                    body: b"still HTTP data".to_vec(),
+                    body: conduit_std_catalog::HttpBody::inline(b"still HTTP data".to_vec()),
                 })
                 .unwrap();
         });
@@ -226,13 +226,16 @@ mod tests {
                     path_and_query: "/fixture".into(),
                 },
                 headers: Vec::new(),
-                body: b"bounded".to_vec(),
+                body: conduit_std_catalog::HttpBody::inline(b"bounded".to_vec()),
             })
             .unwrap();
         server.join().unwrap();
         assert_eq!(response.transaction_id, HttpTransactionId(77));
         assert_eq!(response.status, 503);
-        assert_eq!(response.body, b"still HTTP data");
+        assert_eq!(
+            response.body.as_inline(),
+            Some(b"still HTTP data".as_slice())
+        );
     }
 
     #[test]
@@ -247,7 +250,7 @@ mod tests {
                 path_and_query: "/".into(),
             },
             headers: Vec::new(),
-            body: Vec::new(),
+            body: conduit_std_catalog::HttpBody::inline(Vec::new()),
         };
         assert_eq!(
             client.exchange(&request("https", "example.test:443".into())),

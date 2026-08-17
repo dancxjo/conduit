@@ -206,17 +206,31 @@ fn fixture_offer(
 ) -> CapabilityOffer {
     let descriptor = PortDescriptor {
         port_id: port_id("value"),
-        value_kind: kind_id(if direction == PortDirection::Output {
-            conduit_std_catalog::HTTP_REQUEST_INFO_ID
+        value_kind: if direction == PortDirection::Output {
+            conduit_std_catalog::http_request_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone()
         } else {
-            conduit_std_catalog::HTTP_RESPONSE_INFO_ID
-        }),
+            conduit_std_catalog::http_response_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone()
+        },
         direction,
         temporal: PortTemporal::Flow { closes: true },
     };
     let observe = (direction == PortDirection::Input).then(|| HostOperationRequirement {
         contract_id: HostOperationContractId::from(OBSERVE_OPERATION),
-        target_kind: Some(kind_id(conduit_std_catalog::HTTP_RESPONSE_INFO_ID)),
+        target_kind: Some(
+            conduit_std_catalog::http_response_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone(),
+        ),
         maximum_in_flight: 1,
         maximum_input_bytes: RESPONSE_BYTES as u32,
         maximum_output_bytes: 0,
@@ -411,7 +425,7 @@ fn run_ordinary_form() {
             path_and_query: "/ready".into(),
         },
         headers: Vec::new(),
-        body: Vec::new(),
+        body: conduit_std_catalog::HttpBody::inline(Vec::new()),
     })
     .unwrap();
     let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32).unwrap();
@@ -543,6 +557,6 @@ fn run_ordinary_form() {
         conduit_std_catalog::HttpTransactionId(7)
     );
     assert_eq!(response.status, 201);
-    assert_eq!(response.body, b"ready");
+    assert_eq!(response.body.as_inline(), Some(b"ready".as_slice()));
     assert!(kernel.signs().len() > 0);
 }

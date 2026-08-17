@@ -9,8 +9,6 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal,
 };
 
-pub const HTTP_REQUEST_INFO_ID: &str = "http/request@1";
-pub const HTTP_RESPONSE_INFO_ID: &str = "http/response@1";
 pub const HTTP_CLIENT_KIND: &str = "http/client";
 pub const HTTP_SERVER_KIND: &str = "http/server";
 pub const HTTP_CLIENT_REVISION: &str = "conduit.http/client@1";
@@ -21,12 +19,18 @@ pub fn http_contracts() -> Vec<StandardKindContract> {
 }
 
 pub fn http_client_contract() -> StandardKindContract {
+    let request_info = super::http_request_type()
+        .profile()
+        .expect("finite HTTP request profile");
+    let response_info = super::http_response_type()
+        .profile()
+        .expect("finite HTTP response profile");
     StandardKindContract {
         kind_id: kind_id(HTTP_CLIENT_KIND),
         plain_name: "HTTP client".to_string(),
         summary: "Perform finite, explicitly authorized HTTP exchanges without implicit redirects, retries, cookies, caching, credentials, or decompression.".to_string(),
-        inputs: vec![port("request", HTTP_REQUEST_INFO_ID, PortDirection::Input)],
-        outputs: vec![port("response", HTTP_RESPONSE_INFO_ID, PortDirection::Output)],
+        inputs: vec![port("request", request_info.value_kind().as_str(), PortDirection::Input)],
+        outputs: vec![port("response", response_info.value_kind().as_str(), PortDirection::Output)],
         configuration: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: HTTP_MAXIMUM_IN_FLIGHT,
@@ -42,12 +46,18 @@ pub fn http_client_contract() -> StandardKindContract {
 }
 
 pub fn http_server_contract() -> StandardKindContract {
+    let request_info = super::http_request_type()
+        .profile()
+        .expect("finite HTTP request profile");
+    let response_info = super::http_response_type()
+        .profile()
+        .expect("finite HTTP response profile");
     StandardKindContract {
         kind_id: kind_id(HTTP_SERVER_KIND),
         plain_name: "HTTP server".to_string(),
         summary: "Expose finite inbound HTTP requests and accept exactly correlated responses; routing and authentication remain surrounding semantic work.".to_string(),
-        inputs: vec![port("response", HTTP_RESPONSE_INFO_ID, PortDirection::Input)],
-        outputs: vec![port("request", HTTP_REQUEST_INFO_ID, PortDirection::Output)],
+        inputs: vec![port("response", response_info.value_kind().as_str(), PortDirection::Input)],
+        outputs: vec![port("request", request_info.value_kind().as_str(), PortDirection::Output)],
         configuration: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -110,8 +120,22 @@ mod tests {
     fn client_and_server_are_exact_mirrored_semantic_faces() {
         let client = http_client_contract();
         let server = http_server_contract();
-        assert_eq!(client.inputs[0].value_kind.as_str(), HTTP_REQUEST_INFO_ID);
-        assert_eq!(client.outputs[0].value_kind.as_str(), HTTP_RESPONSE_INFO_ID);
+        assert_eq!(
+            client.inputs[0].value_kind,
+            super::super::http_request_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone()
+        );
+        assert_eq!(
+            client.outputs[0].value_kind,
+            super::super::http_response_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone()
+        );
         assert_eq!(server.outputs[0].value_kind, client.inputs[0].value_kind);
         assert_eq!(server.inputs[0].value_kind, client.outputs[0].value_kind);
         assert_eq!(client.limits.max_active_instances, HTTP_MAXIMUM_IN_FLIGHT);

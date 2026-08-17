@@ -2,6 +2,7 @@ use conduit_core::{AuthorityGrant, AuthorityGrantId, BootId, HostId, OfferGenera
 use conduit_std_host::{
     RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHostConfig, ThreadTimer,
 };
+use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc;
@@ -93,9 +94,25 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
         })
         .collect::<Vec<_>>();
     assert!(host.plan_local(&form, None).is_err());
-    let plan = host
-        .plan_local_with_authority(&form, None, &grants)
-        .unwrap();
+    let hosts = [host.advertisement().clone()];
+    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let plan = conduit_planner::plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[conduit_core::ConnectionBase::Local],
+        conduit_planner::PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
+                .max(conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES),
+            authority_grants: &grants,
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .unwrap();
     let fragment = plan.fragments[0].clone();
     assert_eq!(fragment.placements.len(), 2);
     let server = fragment

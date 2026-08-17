@@ -8,9 +8,11 @@
 mod codec;
 mod contracts;
 mod model;
+mod schema;
 mod state;
 
 pub use codec::{decode_request, decode_response, encode_request, encode_response};
 pub use contracts::*;
 pub use model::*;
+pub use schema::{http_request_type, http_response_type};
 pub use state::*;
