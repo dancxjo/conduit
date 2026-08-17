@@ -134,9 +134,67 @@ fn main() -> Result<(), String> {
                     NativeWebSocketError::Disconnected | NativeWebSocketError::Transport(_),
                 )) => {
                     println!("peer-lost index={index} relayed={relayed}");
-                    rendezvous.invalidate(
+                    let invalidated = rendezvous.invalidate(
                         &peers[index].credential.host_id,
                         &peers[index].credential.boot_id,
+                    );
+                    presence
+                        .lose_session(
+                            &mut membership,
+                            &peers[index].credential.part_id,
+                            &peers[index].session_id,
+                            2,
+                            SignId::from(format!(
+                                "sign/browser-webrtc-rendezvous-probe/lost-{index}"
+                            )),
+                        )
+                        .map_err(debug("lose peer presence"))?;
+                    let survivor_index = usize::from(index == 0);
+                    let lost_part = membership
+                        .parts
+                        .iter()
+                        .find(|part| part.part_id == peers[index].credential.part_id)
+                        .ok_or("lost durable Part absent")?;
+                    let survivor_part = membership
+                        .parts
+                        .iter()
+                        .find(|part| part.part_id == peers[survivor_index].credential.part_id)
+                        .ok_or("surviving Part absent")?;
+                    let lost_presence = presence
+                        .leases
+                        .iter()
+                        .find(|lease| lease.part_id == peers[index].credential.part_id)
+                        .ok_or("lost presence lease absent")?;
+                    let survivor_presence = presence
+                        .leases
+                        .iter()
+                        .find(|lease| lease.part_id == peers[survivor_index].credential.part_id)
+                        .ok_or("surviving presence lease absent")?;
+                    let (lost_grant_total, lost_grant) = rendezvous.grant_for_endpoint(
+                        &peers[index].credential.host_id,
+                        &peers[index].credential.boot_id,
+                        0,
+                    );
+                    let (survivor_grant_total, survivor_grant) = rendezvous.grant_for_endpoint(
+                        &peers[survivor_index].credential.host_id,
+                        &peers[survivor_index].credential.boot_id,
+                        0,
+                    );
+                    println!(
+                        "host_loss={}",
+                        serde_json::json!({
+                            "lost_index": index,
+                            "lost_part": lost_part,
+                            "lost_presence": lost_presence,
+                            "survivor_index": survivor_index,
+                            "survivor_part": survivor_part,
+                            "survivor_presence": survivor_presence,
+                            "invalidated_binding_ids": invalidated,
+                            "lost_grant_total": lost_grant_total,
+                            "lost_grant_present": lost_grant.is_some(),
+                            "survivor_grant_total": survivor_grant_total,
+                            "survivor_grant_present": survivor_grant.is_some(),
+                        })
                     );
                     active[index] = false;
                     continue;
