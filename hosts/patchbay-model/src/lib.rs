@@ -24,6 +24,7 @@ mod form_editor;
 mod form_editor_error;
 mod form_edits;
 mod front_door;
+mod front_door_projection;
 mod front_door_session;
 mod front_door_topology;
 mod front_door_transition;
@@ -42,6 +43,7 @@ mod portable_demo;
 mod portable_graph_projection;
 mod portable_graphics;
 mod portable_layout;
+mod portable_navigation;
 mod portable_parts_projection;
 mod portable_projection;
 mod portable_route_projection;
@@ -128,6 +130,7 @@ pub use portable_composition::{
 pub use portable_demo::{portable_demonstration, portable_demonstration_with_parts};
 pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
+pub use portable_navigation::PatchbayNavigationProjection;
 pub use portable_projection::PortableProjectionError;
 pub use presentation_layout::{
     fit_measured_text, LayoutCollision, MeasuredTextFit, PresentationLayoutError,
@@ -184,6 +187,8 @@ mod maker_environment_tests;
 mod parts_view_tests;
 #[cfg(test)]
 mod policy_explanation_tests;
+#[cfg(test)]
+mod portable_navigation_tests;
 #[cfg(test)]
 mod portable_parts_temporal_tests;
 #[cfg(test)]

@@ -154,6 +154,7 @@ pub enum OpenedFrontDoorSubject {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZeroBodyFrontDoorProjection {
     pub presentation: Presentation,
+    pub navigation: crate::PatchbayNavigationProjection,
 }
 
 #[derive(Clone)]

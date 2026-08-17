@@ -48,6 +48,10 @@ impl ZeroBodyFrontDoor {
             subject: host_subject.clone(),
             level: PresentationDisclosureLevel::Context,
         }];
+        let selected_seed = match &self.opened {
+            Some(OpenedFrontDoorSubject::Seed { seed_id, .. }) => Some(seed_id),
+            _ => None,
+        };
         for offer in &host.capabilities {
             let subject = format!(
                 "capability/{}/{}/{}",
@@ -172,7 +176,11 @@ impl ZeroBodyFrontDoor {
             ]);
             disclosures.push(PresentationDisclosure {
                 subject,
-                level: PresentationDisclosureLevel::Primary,
+                level: if selected_seed.is_none() || is_opened {
+                    PresentationDisclosureLevel::Primary
+                } else {
+                    PresentationDisclosureLevel::ExactProvenance
+                },
             });
         }
         if let Some(opened) = &self.opened {
@@ -294,7 +302,13 @@ impl ZeroBodyFrontDoor {
             disclosures,
         )
         .map_err(|error| error.to_string())?;
-        Ok(ZeroBodyFrontDoorProjection { presentation })
+        let selected_seed = selected_seed.is_some();
+        let navigation =
+            crate::PatchbayNavigationProjection::for_zero_body(&presentation, selected_seed)?;
+        Ok(ZeroBodyFrontDoorProjection {
+            presentation,
+            navigation,
+        })
     }
 }
 
