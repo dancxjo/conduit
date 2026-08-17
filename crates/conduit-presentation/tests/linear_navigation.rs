@@ -1,7 +1,8 @@
 use conduit_presentation::{
-    render_linear_navigation, LinearPresentationError, NavigationAspect, NavigationFollow,
-    NavigationOperation, NavigationPlace, NavigationState, Presentation, PresentationAspect,
-    PresentationBasis, PresentationCursor, PresentationDepth, PresentationNavigation,
+    observe_navigation, render_linear_navigation, LinearPresentationError, NavigationAspect,
+    NavigationFollow, NavigationOperation, NavigationPlace, NavigationState, Presentation,
+    PresentationAction, PresentationActionAvailability, PresentationAspect, PresentationBasis,
+    PresentationCursor, PresentationDepth, PresentationDisclosureLevel, PresentationNavigation,
     PresentationPlace, PresentationProjection, PresentationProperty, PresentationPropertyValue,
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
     ProjectionItem, ProjectionMembership, ProjectionRefusal,
@@ -13,7 +14,7 @@ fn fixture() -> (
     PresentationProjection,
     PresentationCursor,
 ) {
-    let presentation = Presentation::new(
+    let presentation = Presentation::new_with_semantics(
         9,
         PresentationBasis {
             seed_id: None,
@@ -49,6 +50,18 @@ fn fixture() -> (
                 value: PresentationPropertyValue::Identity("boot/local".into()),
             },
         ],
+        Vec::new(),
+        vec![PresentationAction {
+            identity: "action/inspect-upper".into(),
+            intent: "conduit.intent/inspect@1".into(),
+            target: "gear/upper".into(),
+            label: "Inspect Uppercase".into(),
+            disclosure: PresentationDisclosureLevel::SelectedDetail,
+            availability: PresentationActionAvailability::Unavailable {
+                reason_code: "authority/not-admitted".into(),
+                explanation: "Inspection authority is not admitted".into(),
+            },
+        }],
         Vec::new(),
     )
     .unwrap();
@@ -109,6 +122,11 @@ fn fixture() -> (
                 PresentationDepth::Detail,
             ),
             membership(
+                PresentationPlace::Program,
+                ProjectionItem::Action("action/inspect-upper".into()),
+                PresentationDepth::Detail,
+            ),
+            membership(
                 PresentationPlace::Body,
                 ProjectionItem::Subject("body".into()),
                 PresentationDepth::Primary,
@@ -141,6 +159,7 @@ fn fixture() -> (
 #[test]
 fn linear_manifestation_is_scoped_and_exposes_portable_navigation() {
     let (presentation, navigation, projection, cursor) = fixture();
+    let observation = observe_navigation(&presentation, &navigation, &projection, &cursor).unwrap();
     let output = render_linear_navigation(&presentation, &navigation, &projection, &cursor)
         .unwrap()
         .lines
@@ -155,6 +174,29 @@ fn linear_manifestation_is_scoped_and_exposes_portable_navigation() {
     assert!(output.contains("name=\"kind-id\""));
     assert!(!output.contains("id=\"host/local\""));
     assert!(!output.contains("name=\"boot-id\""));
+    assert_eq!(observation.cursor, cursor);
+    assert_eq!(observation.available_places, navigation.places);
+    assert_eq!(observation.available_aspects, navigation.places[0].aspects);
+    assert_eq!(
+        observation
+            .projected_subjects
+            .iter()
+            .map(|subject| subject.identity.as_str())
+            .collect::<Vec<_>>(),
+        vec!["gear/upper", "program"]
+    );
+    assert_eq!(observation.current_follows.len(), 1);
+    assert_eq!(observation.projected_actions.len(), 1);
+    assert!(matches!(
+        observation.projected_actions[0].availability,
+        PresentationActionAvailability::Unavailable { .. }
+    ));
+    assert!(output.contains("action/inspect-upper"));
+    assert!(output.contains("authority/not-admitted"));
+    assert!(observation
+        .projected_subjects
+        .iter()
+        .all(|subject| output.contains(&format!("id={:?}", subject.identity))));
 }
 
 #[test]

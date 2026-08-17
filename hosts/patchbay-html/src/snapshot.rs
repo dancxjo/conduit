@@ -41,6 +41,23 @@ impl std::fmt::Display for SnapshotError {
 impl std::error::Error for SnapshotError {}
 
 impl RendererSnapshot {
+    pub fn navigation_observation(
+        &self,
+    ) -> Result<Option<conduit_presentation::NavigationObservation>, SnapshotError> {
+        self.navigation
+            .as_ref()
+            .map(|navigation| {
+                conduit_presentation::observe_navigation(
+                    &self.presentation,
+                    &navigation.navigation,
+                    &navigation.projection,
+                    &navigation.cursor,
+                )
+                .map_err(|_| SnapshotError::InvalidIdentity)
+            })
+            .transpose()
+    }
+
     pub fn from_execution(execution: RendererExecution) -> Result<Self, SnapshotError> {
         execution
             .validate()
@@ -154,17 +171,7 @@ impl RendererSnapshot {
                 || parts.parts.len() > patchbay_model::MAX_PARTS_VIEW_ROWS
                 || parts.wants_to_join.len() > patchbay_model::MAX_WANTS_TO_JOIN_ROWS
         });
-        let invalid_navigation = self.navigation.as_ref().is_some_and(|navigation| {
-            navigation.navigation.validate(&self.presentation).is_err()
-                || navigation
-                    .projection
-                    .project(
-                        &self.presentation,
-                        &navigation.navigation,
-                        &navigation.cursor,
-                    )
-                    .is_err()
-        });
+        let invalid_navigation = self.navigation_observation().is_err();
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }

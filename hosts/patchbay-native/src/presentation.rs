@@ -3,8 +3,8 @@
 use super::PatchbayApplication;
 use crate::front_door_follow::append_follow_lines;
 use conduit_presentation::{
-    render_linear_navigation, render_linear_presentation, Presentation,
-    PresentationActionAvailability, ProjectionItem,
+    observe_navigation, render_linear_navigation, render_linear_presentation, Presentation,
+    PresentationActionAvailability,
 };
 use patchbay_model::{
     GraphItemKind, PatchbayAction, PatchbayNavigationProjection, PatchbayPresentation,
@@ -44,10 +44,13 @@ pub(super) fn ordinary_front_door_lines(
     selected_follow: Option<&str>,
 ) -> Result<Vec<String>, String> {
     presentation.validate().map_err(|error| error.to_string())?;
-    let projected = navigation
-        .projection
-        .project(presentation, &navigation.navigation, &navigation.cursor)
-        .map_err(|error| format!("portable front-door projection: {error:?}"))?;
+    let observation = observe_navigation(
+        presentation,
+        &navigation.navigation,
+        &navigation.projection,
+        &navigation.cursor,
+    )
+    .map_err(|error| format!("portable front-door observation: {error:?}"))?;
     let mut lines = vec![
         format!(
             "PLACE {:?}  ·  ASPECT {:?}",
@@ -60,9 +63,8 @@ pub(super) fn ordinary_front_door_lines(
         ),
         format!(
             "PLACES {}",
-            navigation
-                .navigation
-                .places
+            observation
+                .available_places
                 .iter()
                 .map(|place| format!("{:?}", place.place))
                 .collect::<Vec<_>>()
@@ -70,28 +72,13 @@ pub(super) fn ordinary_front_door_lines(
         ),
         "CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT  ·  SHIFT-F3 CHOOSE / F3 FOLLOW".into(),
     ];
-    for identity in projected.items.iter().filter_map(|membership| {
-        if let ProjectionItem::Subject(identity) = &membership.item {
-            Some(identity)
-        } else {
-            None
-        }
-    }) {
-        let subject = presentation
-            .subjects
-            .iter()
-            .find(|subject| subject.identity == *identity)
-            .ok_or_else(|| "projected subject is absent".to_string())?;
+    for subject in &observation.projected_subjects {
         lines.push(format!("{:?}  {}", subject.role, subject.label));
-        for action in projected.items.iter().filter_map(|membership| {
-            let ProjectionItem::Action(identity) = &membership.item else {
-                return None;
-            };
-            presentation
-                .actions
-                .iter()
-                .find(|action| action.identity == *identity && action.target == subject.identity)
-        }) {
+        for action in observation
+            .projected_actions
+            .iter()
+            .filter(|action| action.target == subject.identity)
+        {
             let availability = match &action.availability {
                 PresentationActionAvailability::Available => "AVAILABLE".into(),
                 PresentationActionAvailability::Unavailable { explanation, .. } => {
@@ -114,13 +101,7 @@ pub(super) fn ordinary_front_door_lines(
             ));
         }
     }
-    append_follow_lines(
-        presentation,
-        &navigation.navigation,
-        &navigation.cursor,
-        selected_follow,
-        &mut lines,
-    )?;
+    append_follow_lines(presentation, &observation, selected_follow, &mut lines)?;
     lines.push("F2 EXACT  ·  portable depth, exact identity and provenance".into());
     Ok(lines)
 }

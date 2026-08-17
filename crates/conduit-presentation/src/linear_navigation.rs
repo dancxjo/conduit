@@ -7,8 +7,8 @@ use crate::linear::{
     push_linear_basis, LinearBuilder,
 };
 use crate::{
-    LinearPresentation, LinearPresentationError, Presentation, PresentationCursor,
-    PresentationNavigation, PresentationProjection, ProjectionItem,
+    observe_navigation, LinearPresentation, LinearPresentationError, Presentation,
+    PresentationCursor, PresentationNavigation, PresentationProjection, ProjectionItem,
 };
 
 /// Render exactly the semantic content admitted by one portable cursor.
@@ -30,6 +30,10 @@ pub fn render_linear_navigation(
     let projected = projection
         .project(presentation, navigation, cursor)
         .map_err(LinearPresentationError::InvalidProjection)?;
+    let observation =
+        observe_navigation(presentation, navigation, projection, cursor).map_err(|_| {
+            LinearPresentationError::InvalidProjection(crate::ProjectionRefusal::InvalidTruth)
+        })?;
 
     let mut builder = LinearBuilder::new();
     push_linear_basis(&mut builder, presentation)?;
@@ -46,40 +50,29 @@ pub fn render_linear_navigation(
         cursor.focus.as_deref().unwrap_or("none"),
         cursor.depth
     ))?;
-    for place in &navigation.places {
+    for place in &observation.available_places {
         builder.push(format!(
             "AVAILABLE PLACE {:?} root={:?} label={:?}",
             place.place, place.root_subject, place.label
         ))?;
     }
-    let current = navigation
-        .places
-        .iter()
-        .find(|place| place.place == cursor.place)
-        .expect("validated cursor always has a current Place");
-    for aspect in &current.aspects {
+    for aspect in &observation.available_aspects {
         builder.push(format!(
             "AVAILABLE ASPECT {:?} focusable={}",
             aspect.aspect,
             aspect.focusable_subjects.len()
         ))?;
     }
-    if let Some(focus) = cursor.focus.as_deref() {
-        for follow in navigation
-            .follows
-            .iter()
-            .filter(|follow| follow.source_subject == focus)
-        {
-            builder.push(format!(
-                "AVAILABLE FOLLOW id={:?} relationship={:?} source={:?} target={:?} place={:?} aspect={:?}",
-                follow.identity,
-                follow.relationship,
-                follow.source_subject,
-                follow.target_subject,
-                follow.target_place,
-                follow.target_aspect
-            ))?;
-        }
+    for follow in &observation.current_follows {
+        builder.push(format!(
+            "AVAILABLE FOLLOW id={:?} relationship={:?} source={:?} target={:?} place={:?} aspect={:?}",
+            follow.identity,
+            follow.relationship,
+            follow.source_subject,
+            follow.target_subject,
+            follow.target_place,
+            follow.target_aspect
+        ))?;
     }
     for membership in projected.items {
         let line = match &membership.item {
