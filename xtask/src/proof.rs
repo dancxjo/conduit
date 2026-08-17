@@ -209,7 +209,12 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         id: "browser.host",
         command: "cargo xtask prove browser-host",
         proof_class: ProofClass::LiveBrowser,
-        required_tools_or_targets: &["wasm32-unknown-unknown", "playwright", "chromium"],
+        required_tools_or_targets: &[
+            "wasm32-unknown-unknown",
+            "playwright",
+            "chromium",
+            "firefox",
+        ],
         named_artifacts: &["hosts/browser/conduit_browser_runtime.wasm"],
         allowed_claims: &["actual browser host executes through the browser/WASM kernel"],
     },
@@ -496,7 +501,9 @@ mod tests {
         let config = include_str!("../../hosts/browser/playwright.config.mjs");
         assert!(config.contains("workers: 1"));
         assert!(config.contains("retries: 0"));
-        assert!(config.contains("projects: [{ name: \"chromium\""));
+        assert!(config.contains("name: \"chromium\""));
+        assert!(config.contains("name: \"firefox\""));
+        assert!(config.contains("testMatch: [\"browser-webrtc-body.spec.mjs\"]"));
     }
 
     #[test]

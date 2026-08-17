@@ -34,5 +34,12 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 10_000,
   },
-  projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    {
+      name: "firefox",
+      testMatch: ["browser-webrtc-body.spec.mjs"],
+      use: { browserName: "firefox" },
+    },
+  ],
 });
