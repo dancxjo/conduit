@@ -79,6 +79,7 @@ impl PatchbayApplication {
 
     pub(super) fn handle_window_focus(&mut self, focused: bool) {
         if focused {
+            self.native_keyboard.focus_gained();
             if let Some(window) = &self.window {
                 window.request_redraw();
             }
