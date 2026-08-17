@@ -171,11 +171,13 @@ function shortId(value){return value&&value!=="unsupported"?`${value.slice(0,10)
 function renderStructuredNavigator(){
   const list=document.querySelector("#structured-navigator ul"),focused=document.activeElement?.dataset?.subject;list.replaceChildren();
   for(const subject of state.projected.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed",String(subject.identity===state.selected));button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}
+  for(const follow of state.projected.follows.filter(candidate=>candidate.source_subject===state.projected.cursor.focus)){const destination=state.snapshot.presentation.subjects.find(subject=>subject.identity===follow.target_subject);if(!destination)throw new Error("portable FOLLOW destination is absent");const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.follow=follow.identity;button.textContent=`Follow ${follow.relationship} to ${destination.role}: ${destination.accessibility_name}`;button.onclick=()=>dispatchNavigation({kind:"follow",relationship:follow.identity});li.append(button);list.append(li);}
   if(focused)list.querySelector(`[data-subject="${CSS.escape(focused)}"]`)?.focus();
 }
 function renderNavigationControls(){
   const bundle=state.snapshot.navigation;if(!bundle)return;
   const cursor=bundle.cursor,places=document.querySelector("#place-controls"),aspects=document.querySelector("#aspect-controls"),current=bundle.navigation.places.find(place=>place.place===cursor.place);places.replaceChildren();aspects.replaceChildren();
+  const back=document.createElement("button");back.type="button";back.textContent="Back";back.dataset.navigationBack="true";back.onclick=()=>dispatchNavigation({kind:"back"});places.append(back);
   for(const place of bundle.navigation.places){const button=document.createElement("button");button.type="button";button.textContent=place.label;button.dataset.place=place.place;button.setAttribute("aria-pressed",String(place.place===cursor.place));button.onclick=()=>dispatchNavigation({kind:"enter",place:place.place});places.append(button);}
   for(const aspect of current.aspects){const button=document.createElement("button");button.type="button";button.textContent=aspect.aspect;button.dataset.aspect=aspect.aspect;button.setAttribute("aria-pressed",String(aspect.aspect===cursor.aspect));button.onclick=()=>dispatchNavigation({kind:"show",aspect:aspect.aspect});aspects.append(button);}
 }

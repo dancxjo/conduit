@@ -10,6 +10,7 @@ use conduit_core::{
     PROTOCOL_VERSION,
 };
 use conduit_presentation::PresentationRole;
+use conduit_presentation::{NavigationOperation, NavigationState, PresentationPlace};
 
 fn browser_advertisement(identity: &BrowserAdmissionIdentity) -> HostAdvertisement {
     HostAdvertisement {
@@ -106,6 +107,79 @@ fn plan_play_restart_and_replan_are_distinct_revisioned_truth() {
         entrance.update(&replanned.presentation).unwrap(),
         EntranceUpdateDisposition::SelectionPreserved
     );
+}
+
+#[test]
+fn planned_gear_and_host_are_exact_bidirectional_cross_place_follows() {
+    let mut session = LocalFrontDoor::with_identity(
+        HostId::from("front-door/follow"),
+        BootId::from("front-door/follow/boot-1"),
+    )
+    .unwrap();
+    session.plan_and_play().unwrap();
+    let projected = session.project().unwrap();
+    let navigation = &projected.navigation.navigation;
+    let forward = navigation
+        .follows
+        .iter()
+        .find(|follow| {
+            follow.source_subject.starts_with("gear/") && follow.target_subject.starts_with("host/")
+        })
+        .unwrap();
+    let reverse = navigation
+        .follows
+        .iter()
+        .find(|follow| {
+            follow.source_subject == forward.target_subject
+                && follow.target_subject == forward.source_subject
+        })
+        .unwrap();
+    assert_eq!(forward.target_place, PresentationPlace::Body);
+    assert_eq!(reverse.target_place, PresentationPlace::Program);
+
+    let before = projected.presentation.clone();
+    let mut state = NavigationState::new(
+        navigation,
+        projected.navigation.cursor.clone(),
+        conduit_presentation::MAX_NAVIGATION_HISTORY,
+    )
+    .unwrap();
+    state
+        .navigate(
+            &projected.presentation,
+            navigation,
+            projected.presentation.revision,
+            NavigationOperation::Focus(forward.source_subject.clone()),
+        )
+        .unwrap();
+    let at_host = state
+        .navigate(
+            &projected.presentation,
+            navigation,
+            projected.presentation.revision,
+            NavigationOperation::Follow(forward.identity.clone()),
+        )
+        .unwrap()
+        .clone();
+    assert_eq!(at_host.place, PresentationPlace::Body);
+    assert_eq!(
+        at_host.focus.as_deref(),
+        Some(forward.target_subject.as_str())
+    );
+    let at_gear = state
+        .navigate(
+            &projected.presentation,
+            navigation,
+            projected.presentation.revision,
+            NavigationOperation::Follow(reverse.identity.clone()),
+        )
+        .unwrap();
+    assert_eq!(at_gear.place, PresentationPlace::Program);
+    assert_eq!(
+        at_gear.focus.as_deref(),
+        Some(forward.source_subject.as_str())
+    );
+    assert_eq!(projected.presentation, before);
 }
 
 #[test]
