@@ -94,6 +94,24 @@ pub(super) struct StructuredSelectorHost {
     output: Vec<u8>,
 }
 
+pub(super) fn prepare_hosts(
+    fragment: &conduit_core::PlanFragment,
+) -> Result<Vec<Option<StructuredSelectorHost>>, String> {
+    fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_catalog::STRUCTURED_SELECTOR_STD_IMPLEMENTATION
+            {
+                StructuredSelectorHost::from_placement(placement).map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect()
+}
+
 impl StructuredSelectorHost {
     pub(super) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
         let selector = selector_from_placement(placement)?;

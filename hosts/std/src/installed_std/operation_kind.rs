@@ -29,6 +29,9 @@ use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
 use super::structured_selector_operation::StructuredSelectorOperation;
+use super::structured_values_operation::{
+    StructuredLiteralOperation, StructuredPresentationOperation,
+};
 use super::synth_operation::MusicSynthOperation;
 #[cfg(test)]
 use super::test_json_codec::{TestJsonSinkOperation, TestJsonSourceOperation};
@@ -102,6 +105,8 @@ pub(super) enum InstalledOperation {
     JsonEncode(JsonOperation),
     JsonDecode(JsonOperation),
     StructuredSelector(StructuredSelectorOperation),
+    StructuredLiteral(StructuredLiteralOperation),
+    StructuredPresentation(StructuredPresentationOperation),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceOperation),
     #[cfg(test)]

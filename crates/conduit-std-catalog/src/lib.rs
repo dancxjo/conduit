@@ -24,6 +24,8 @@ mod json;
 pub use json::*;
 mod structured_selector;
 pub use structured_selector::*;
+mod structured_values;
+pub use structured_values::*;
 mod palette_metadata;
 mod tick;
 use functional_face::startup_face;

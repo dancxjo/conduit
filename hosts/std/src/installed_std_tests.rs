@@ -25,6 +25,7 @@ mod rhythm_compare_conformance;
 mod robotics_conformance;
 mod sound_replanning;
 mod structured_selector_conformance;
+mod structured_values_conformance;
 mod timing_conformance;
 mod vector_search_conformance;
 
