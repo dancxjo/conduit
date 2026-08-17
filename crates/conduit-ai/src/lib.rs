@@ -16,6 +16,8 @@ mod structured_result;
 pub use structured_result::*;
 mod temporal_context;
 pub use temporal_context::*;
+mod temporal_evidence_selection;
+pub use temporal_evidence_selection::*;
 mod vector_retrieval;
 pub use vector_retrieval::*;
 #[cfg(feature = "form-catalog")]
