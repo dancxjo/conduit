@@ -13,6 +13,8 @@ use conduit_std_host::browser_admission::{
 use patchbay_model::{PartPresentationState, PartsView};
 use serde_json::json;
 
+#[path = "browser_parts_capstone/navigation.rs"]
+mod navigation;
 #[path = "browser_parts_capstone/physical_body.rs"]
 mod physical_body;
 #[path = "browser_parts_capstone/physical_pico.rs"]
@@ -30,7 +32,12 @@ struct AdmittedBrowser {
 
 fn main() -> Result<(), String> {
     let mut physical = physical_body::PhysicalBody::prepare()?;
-    let body = physical.birth()?;
+    let browser_basis = physical
+        .plan()
+        .is_none()
+        .then(planning::cross_browser_form_basis)
+        .transpose()?;
+    let body = physical.birth(browser_basis)?;
     let mut membership = BodyMembership::new(body.body_id.clone()).map_err(debug("membership"))?;
     let here = PartId::bind(&body.body_id, "part/here", 1).map_err(debug("Here identity"))?;
     let (here_host, here_boot) = physical.here_identity();
@@ -105,10 +112,22 @@ fn main() -> Result<(), String> {
         &mut manager,
         1,
     )?;
-    let plan = physical.plan().map_or_else(
-        || planning::cross_browser_plan(&first.advertisement, &second.advertisement),
-        |exact| Ok(exact.plan.clone()),
-    )?;
+    let cross_browser = if physical.plan().is_none() {
+        Some(planning::cross_browser_plan(
+            &first.advertisement,
+            &second.advertisement,
+        )?)
+    } else {
+        None
+    };
+    let plan = match &cross_browser {
+        Some(cross) => cross.plan.clone(),
+        None => physical
+            .plan()
+            .ok_or("browser and physical Plan sources are both absent")?
+            .plan
+            .clone(),
+    };
     let stable_plan_id = plan.plan_id.clone();
     let third = admit_spawn(&listener, &mut membership, &mut manager, false, 2)?
         .ok_or("first spawn invitation was unexpectedly refused")?;
@@ -123,7 +142,7 @@ fn main() -> Result<(), String> {
         )?
         .plan
     } else {
-        planning::cross_browser_plan(&second.advertisement, &third.advertisement)?
+        planning::cross_browser_plan(&second.advertisement, &third.advertisement)?.plan
     };
     if replacement.plan_id == stable_plan_id {
         return Err("explicit replan did not produce a distinct Plan".into());
@@ -162,6 +181,20 @@ fn main() -> Result<(), String> {
             "Parts projection did not preserve active-Plan/future-possibility truth".into(),
         );
     }
+    let navigation_receipt = cross_browser
+        .as_ref()
+        .map(|cross| {
+            navigation::cord_line_receipt(
+                &body,
+                &membership,
+                &candidates,
+                &here,
+                cross,
+                &first.advertisement,
+                &second.advertisement,
+            )
+        })
+        .transpose()?;
     println!(
         "ready_for_offline body={} plan={} replacement_plan={} parts={} current_boots_in_plan={} future_possibilities=true pico_parts={}",
         body.body_id.as_str(),
@@ -217,6 +250,7 @@ fn main() -> Result<(), String> {
         &plan,
         &replacement,
         pico.is_some(),
+        navigation_receipt,
     )?;
     receipt::retain_if_requested(&machine_receipt)?;
     println!("{machine_receipt}");

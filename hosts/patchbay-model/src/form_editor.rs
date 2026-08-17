@@ -6,6 +6,8 @@ use conduit_form::{
 };
 use std::path::{Path, PathBuf};
 
+use crate::form_editor_catalogs::standard_catalogs;
+
 pub use crate::form_editor_error::FormEditorError;
 
 const MAX_GRAPH_ITEMS: usize = 512;
@@ -93,13 +95,25 @@ pub struct FormEditor {
     pub(crate) checked: CheckedRevision,
     pub(crate) open_form: String,
     pub(crate) selection: Option<SourceSelection>,
+    startup_catalog: StartupCatalog,
+    profile_catalog: conduit_form::ProfileCatalog,
 }
 
 impl FormEditor {
     pub fn from_source(path: PathBuf, source: String) -> Result<Self, FormEditorError> {
+        let (startup, profile) = standard_catalogs()?;
+        Self::from_source_with_catalogs(path, source, startup, profile)
+    }
+
+    pub fn from_source_with_catalogs(
+        path: PathBuf,
+        source: String,
+        startup_catalog: StartupCatalog,
+        profile_catalog: conduit_form::ProfileCatalog,
+    ) -> Result<Self, FormEditorError> {
         validate_path(&path)?;
         ensure_source_bound(&source)?;
-        let checked = check_revision(0, &source)?;
+        let checked = check_revision_with_catalog(0, &source, &startup_catalog)?;
         let open_form = checked
             .forms
             .first()
@@ -113,6 +127,8 @@ impl FormEditor {
             checked,
             open_form,
             selection: None,
+            startup_catalog,
+            profile_catalog,
         })
     }
 
@@ -126,7 +142,7 @@ impl FormEditor {
 
     /// Computes a result independently so an async host can publish it later.
     pub fn check_current(&self) -> Result<CheckedRevision, FormEditorError> {
-        check_revision(self.revision, &self.source)
+        check_revision_with_catalog(self.revision, &self.source, &self.startup_catalog)
     }
 
     pub fn publish_checked(&mut self, checked: CheckedRevision) -> Result<(), FormEditorError> {
@@ -217,10 +233,9 @@ impl FormEditor {
         name: &str,
     ) -> Result<conduit_form::ExpandedCanonicalForm, FormEditorError> {
         let syntax = parse_syntax_document(&self.source);
-        let (startup, profile) = standard_catalogs()?;
-        let checked = check_syntax_document(&syntax, &startup)
+        let checked = check_syntax_document(&syntax, &self.startup_catalog)
             .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.message))?;
-        conduit_form::expand_canonical_form(&checked, name, &profile)
+        conduit_form::expand_canonical_form(&checked, name, &self.profile_catalog)
             .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.to_string()))
     }
 
@@ -229,10 +244,9 @@ impl FormEditor {
         name: &str,
     ) -> Result<conduit_form::ExpandedAuthoringForm, FormEditorError> {
         let syntax = parse_syntax_document(&self.source);
-        let (startup, profile) = standard_catalogs()?;
-        let checked = check_syntax_document(&syntax, &startup)
+        let checked = check_syntax_document(&syntax, &self.startup_catalog)
             .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.message))?;
-        conduit_form::expand_canonical_form_for_authoring(&checked, name, &profile)
+        conduit_form::expand_canonical_form_for_authoring(&checked, name, &self.profile_catalog)
             .map_err(|diagnostic| FormEditorError::Catalog(diagnostic.to_string()))
     }
 
@@ -352,6 +366,15 @@ pub(crate) fn check_revision(
     revision: u64,
     source: &str,
 ) -> Result<CheckedRevision, FormEditorError> {
+    let (startup, _profile) = standard_catalogs()?;
+    check_revision_with_catalog(revision, source, &startup)
+}
+
+fn check_revision_with_catalog(
+    revision: u64,
+    source: &str,
+    startup: &StartupCatalog,
+) -> Result<CheckedRevision, FormEditorError> {
     let syntax = parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Ok(invalid_revision(
@@ -361,41 +384,10 @@ pub(crate) fn check_revision(
             diagnostic.span,
         ));
     }
-    let (startup, _profile) = standard_catalogs()?;
-    match check_syntax_document(&syntax, &startup) {
+    match check_syntax_document(&syntax, startup) {
         Ok(checked) => graph_revision(revision, &syntax.forms, checked),
         Err(diagnostic) => Ok(check_error_revision(revision, diagnostic)),
     }
-}
-
-fn standard_catalogs() -> Result<(StartupCatalog, conduit_form::ProfileCatalog), FormEditorError> {
-    let mut startup = StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_timing_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_logic_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_math_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profile)
-        .map_err(FormEditorError::Catalog)?;
-    Ok((startup, profile))
 }
 
 fn graph_revision(

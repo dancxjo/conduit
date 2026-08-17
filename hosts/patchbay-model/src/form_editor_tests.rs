@@ -22,6 +22,45 @@ fn checked_examples_share_exact_source_and_graph_identities() {
 }
 
 #[test]
+fn catalog_aware_editor_retains_exact_catalogs_for_recheck_and_expansion() {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    startup
+        .insert(conduit_form::KindSignature {
+            kind: "test/catalog-aware".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    profile
+        .insert(conduit_form::KindDefinition {
+            kind_id: conduit_core::KindId::from("test/catalog-aware"),
+            kind_contract_revision: conduit_core::KindContractRevision::from(
+                "test/catalog-aware@1",
+            ),
+            inputs: vec![],
+            outputs: vec![],
+            configuration: vec![],
+        })
+        .unwrap();
+    let source = "form catalog-aware {\n  specimen: test/catalog-aware\n}\n".to_owned();
+    let mut editor = FormEditor::from_source_with_catalogs(
+        "webchat.conduit".into(),
+        source.clone(),
+        startup,
+        profile,
+    )
+    .unwrap();
+    let first = editor.expand_form("catalog-aware").unwrap();
+    editor.replace_source(source).unwrap();
+    editor.recheck().unwrap();
+    let second = editor.expand_form("catalog-aware").unwrap();
+    assert_eq!(first.source_document_id, second.source_document_id);
+    assert_eq!(first.checked_form_id, second.checked_form_id);
+    assert_eq!(first.expanded_form_id, second.expanded_form_id);
+    assert!(editor.view().checked.diagnostics.is_empty());
+}
+
+#[test]
 fn greet_face_is_collapsed_then_its_checked_back_can_be_opened() {
     let mut editor = FormEditor::from_source("greet.conduit".into(), GREET.into()).unwrap();
     assert_eq!(editor.view().open_form, "default-welcome");
