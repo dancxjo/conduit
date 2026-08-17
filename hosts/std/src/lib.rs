@@ -45,6 +45,7 @@ pub mod hosted_keyboard;
 pub mod hosted_local_model;
 pub mod hosted_midi;
 pub mod hosted_synth;
+pub mod hosted_vector_index;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
