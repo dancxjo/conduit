@@ -9,7 +9,8 @@ use conduit_form::{
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_catalog::{
     install_structured_music_form_catalogs, instrument_map_std_offer, instrument_mapping_type,
-    INSTRUMENT_MAP_KIND, INSTRUMENT_MAP_STD_IMPLEMENTATION,
+    rhythm_compare_std_offer, INSTRUMENT_MAP_KIND, INSTRUMENT_MAP_STD_IMPLEMENTATION,
+    RHYTHM_COMPARE_STD_IMPLEMENTATION,
 };
 
 const SOURCE: &str = include_str!("../../../examples/breadboard-instrument.conduit");
@@ -37,6 +38,24 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
     );
     assert_eq!(authored.input_bindings.len(), 2);
     assert_eq!(authored.output_bindings.len(), 1);
+
+    let mut host = host();
+    host.capabilities = vec![rhythm_compare_std_offer()];
+    let placements =
+        default_expanded_placements(&authored.expanded, core::slice::from_ref(&host)).unwrap();
+    let plan = plan_expanded_canonical(
+        &authored.expanded,
+        &[host],
+        &placements,
+        &[ConnectionBase::Local],
+    )
+    .unwrap();
+    let comparison = &plan.fragments[0].placements[0];
+    assert_eq!(
+        comparison.implementation_id.as_str(),
+        RHYTHM_COMPARE_STD_IMPLEMENTATION
+    );
+    assert_eq!(comparison.host_operations.len(), 3);
 
     let meaning = LESSON_SOURCE
         .lines()

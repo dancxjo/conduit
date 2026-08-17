@@ -74,6 +74,15 @@ impl SinkOperation {
 }
 
 pub(crate) fn offer(value_type: &StructuredInfoType, direction: PortDirection) -> CapabilityOffer {
+    offer_named(value_type, direction, SOURCE_KIND, SINK_KIND)
+}
+
+pub(crate) fn offer_named(
+    value_type: &StructuredInfoType,
+    direction: PortDirection,
+    source_kind: &str,
+    sink_kind: &str,
+) -> CapabilityOffer {
     let profile = value_type.profile().unwrap();
     let source = direction == PortDirection::Output;
     let port = PortDescriptor {
@@ -89,12 +98,8 @@ pub(crate) fn offer(value_type: &StructuredInfoType, direction: PortDirection) -
             has_default: true,
         }],
         shorthand: None,
-        capability_id: CapabilityId::from(if source {
-            "test-structured-source"
-        } else {
-            "test-structured-sink"
-        }),
-        kind_id: KindId::from(if source { SOURCE_KIND } else { SINK_KIND }),
+        capability_id: CapabilityId::from(if source { source_kind } else { sink_kind }),
+        kind_id: KindId::from(if source { source_kind } else { sink_kind }),
         kind_contract_revision: KindContractRevision::from(if source {
             "conduit.test/structured-source@1"
         } else {
@@ -127,18 +132,29 @@ pub(crate) fn offer(value_type: &StructuredInfoType, direction: PortDirection) -
 }
 
 pub(crate) fn configuration(value: &StructuredInfoValue) -> Vec<ConfigurationEntry> {
+    raw_configuration(&value.canonical_bytes().unwrap())
+}
+
+pub(crate) fn raw_source_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
+    let mut offer = offer_named(
+        &StructuredInfoType::leaf(KindId::from("conduit.test/raw-placeholder@1")).unwrap(),
+        PortDirection::Output,
+        kind,
+        SINK_KIND,
+    );
+    offer.outputs[0].value_kind = KindId::from(value_kind);
+    offer
+}
+
+pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "value".into(),
-        value: ConfigurationValue::Text(hex(&value.canonical_bytes().unwrap())),
+        value: ConfigurationValue::Text(hex(value)),
     }]
 }
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    let value = configured_value(placement)?;
-    let maximum = value
-        .canonical_bytes()
-        .map_err(|error| format!("value: {error:?}"))?
-        .len() as u32;
+    let maximum = configured_bytes(placement)?.len() as u32;
     Ok(OperationBudget {
         value_items: 2,
         value_bytes: maximum.saturating_mul(2),
@@ -152,9 +168,7 @@ fn prepare_source(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
 ) -> Result<InstalledOperation, String> {
-    let value = configured_value(placement)?
-        .canonical_bytes()
-        .map_err(|error| format!("value: {error:?}"))?;
+    let value = configured_bytes(placement)?;
     let value = values
         .store(&value)
         .map_err(|error| format!("store fixture: {error:?}"))?;
@@ -177,14 +191,18 @@ fn prepare_sink(
 }
 
 fn configured_value(placement: &PlannedGear) -> Result<StructuredInfoValue, String> {
+    StructuredInfoValue::from_canonical_bytes(&configured_bytes(placement)?)
+        .map_err(|error| format!("structured fixture refusal: {error:?}"))
+}
+
+fn configured_bytes(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     let [entry] = placement.configuration.as_slice() else {
         return Err("structured fixture requires one value".into());
     };
     let ("value", ConfigurationValue::Text(encoded)) = (entry.key.as_str(), &entry.value) else {
         return Err("structured fixture value is malformed".into());
     };
-    StructuredInfoValue::from_canonical_bytes(&unhex(encoded)?)
-        .map_err(|error| format!("structured fixture refusal: {error:?}"))
+    unhex(encoded)
 }
 
 fn hex(bytes: &[u8]) -> String {
