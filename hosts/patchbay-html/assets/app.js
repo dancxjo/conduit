@@ -110,7 +110,7 @@ async function openSeed(identity){
 }
 
 function renderSeedPalette(){
-  const list=document.querySelector("#seed-results"),query=state.seedQuery.trim().toLocaleLowerCase(),all=projectedSubjects("Seed");
+  const list=document.querySelector("#seed-results"),focusedSeed=document.activeElement?.dataset?.seed,query=state.seedQuery.trim().toLocaleLowerCase(),all=projectedSubjects("Seed");
   const visible=all.filter(subject=>[subject.label,subject.accessibility_name,...texts(subject.identity)].join(" ").toLocaleLowerCase().includes(query));
   list.replaceChildren();
   for(const subject of visible){
@@ -119,6 +119,7 @@ function renderSeedPalette(){
     name.textContent=subject.label;summary.textContent=texts(subject.identity)[0]??subject.accessibility_name;button.append(name,summary);button.onclick=()=>openSeed(subject.identity);li.append(button);list.append(li);
   }
   document.querySelector("#seed-results-status").textContent=`${visible.length} of ${all.length} Seeds available`;
+  if(focusedSeed)list.querySelector(`[data-seed="${CSS.escape(focusedSeed)}"]`)?.focus();
 }
 
 function moveSeedFocus(event){

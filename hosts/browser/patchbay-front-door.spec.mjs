@@ -161,6 +161,8 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     const seedButton = page.getByRole("button", { name: "Open Seed Hello" });
     await page.getByRole("searchbox", { name: "Find a Seed" }).press("ArrowDown");
     await expect(seedButton).toBeFocused();
+    await page.evaluate(() => window.patchbayReload());
+    await expect(seedButton).toBeFocused();
     const openResponses = [];
     let resolveOpenSequence;
     const openSequence = new Promise((resolve) => { resolveOpenSequence = resolve; });
