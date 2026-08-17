@@ -19,7 +19,7 @@
   </header>
   <nav aria-label="Patchbay workspace">
     <span class="shell-launchers" role="toolbar" aria-label="Patchbay drawers"><button id="toggle-palette" type="button" aria-expanded="false" aria-controls="palette">Seeds</button><button id="toggle-parts" type="button" aria-expanded="false" aria-controls="parts">Parts</button><button id="toggle-inspector" type="button" aria-expanded="false" aria-controls="inspector">Inspector</button><button id="toggle-truth" type="button" aria-expanded="false" aria-controls="deep-inspection">Exact truth</button><button id="toggle-structured" type="button" aria-expanded="false" aria-controls="structured-navigator">Subjects</button></span>
-    <span class="lens-controls" role="toolbar" aria-label="Patchbay lenses"><button type="button" data-lens="world" aria-pressed="true">World</button><button type="button" data-lens="form" aria-pressed="false">Intent</button><button type="button" data-lens="plan" aria-pressed="false">Realization</button><button type="button" data-lens="play" aria-pressed="false">Play</button><button type="button" data-lens="signs" aria-pressed="false">Signs</button></span><a href="#linear">Linear</a>
+    <span id="place-controls" class="place-controls" role="toolbar" aria-label="Available Places"></span><span id="aspect-controls" class="lens-controls" role="toolbar" aria-label="Available Aspects"></span><a href="#linear">Linear presentation</a>
   </nav>
   <main>
     <div class="workspace" data-layout-regions="finite" data-overflow="scroll-regions">
@@ -38,7 +38,7 @@
       </aside>
       <section id="form" class="canvas-panel" aria-labelledby="canvas-title" data-region="canvas" data-priority="primary-meaning">
         <div class="canvas-heading">
-          <div><p id="lens-label" class="eyebrow">WORLD LENS</p><h2 id="canvas-title">Host and Body possibilities</h2></div>
+          <div><p id="lens-label" class="eyebrow">ENTRANCE · STRUCTURE</p><h2 id="canvas-title">Entrance choices</h2></div>
           <div role="toolbar" aria-label="Renderer-local canvas controls">
             <button id="fit-flow" type="button">Fit</button><button id="center-flow" type="button" disabled>Center selected</button><button id="zoom-in" type="button">Zoom in</button><button id="zoom-out" type="button">Zoom out</button><button id="pan-right" type="button">Pan right</button><button id="arrange" type="button">Arrange</button><button id="theme" type="button" aria-pressed="false">High contrast</button>
           </div>

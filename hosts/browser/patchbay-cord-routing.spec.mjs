@@ -13,6 +13,7 @@ function startServer() {
 async function renderCycleCordFixture(page,snapshot) {
   return page.evaluate(async current=>{
     const fixture=structuredClone(current),presentation=fixture.presentation;
+    fixture.navigation=null;
     fixture.interaction.revision+=1;
     const value=property=>property?.value?.Identity??property?.value?.Text;
     const ports=presentation.subjects.filter(subject=>subject.role==="Port").map(subject=>{

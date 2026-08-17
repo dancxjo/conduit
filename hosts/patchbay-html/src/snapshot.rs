@@ -4,7 +4,9 @@ use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
 use patchbay_model::RendererExecution;
 
 pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-presentation";
-pub const MAX_SNAPSHOT_BYTES: usize = conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES + 16_384;
+pub const MAX_NAVIGATION_SNAPSHOT_BYTES: usize = 512 * 1024;
+pub const MAX_SNAPSHOT_BYTES: usize =
+    conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES + MAX_NAVIGATION_SNAPSHOT_BYTES + 16_384;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SnapshotError {
@@ -52,6 +54,7 @@ impl RendererSnapshot {
                 .self_inspection()
                 .map_err(|_| SnapshotError::InvalidIdentity)?,
             presentation: execution.presentation,
+            navigation: None,
             entrance,
             parts: None,
             interaction: crate::HtmlInteractionState::default(),
@@ -74,6 +77,26 @@ impl RendererSnapshot {
             return Err(SnapshotError::InvalidIdentity);
         }
         self.parts = Some(parts);
+        self.validate()
+    }
+
+    pub fn attach_navigation(
+        &mut self,
+        navigation: patchbay_model::PatchbayNavigationProjection,
+    ) -> Result<(), SnapshotError> {
+        navigation
+            .navigation
+            .validate(&self.presentation)
+            .map_err(|_| SnapshotError::InvalidIdentity)?;
+        navigation
+            .projection
+            .project(
+                &self.presentation,
+                &navigation.navigation,
+                &navigation.cursor,
+            )
+            .map_err(|_| SnapshotError::InvalidIdentity)?;
+        self.navigation = Some(navigation);
         self.validate()
     }
 
@@ -131,6 +154,17 @@ impl RendererSnapshot {
                 || parts.parts.len() > patchbay_model::MAX_PARTS_VIEW_ROWS
                 || parts.wants_to_join.len() > patchbay_model::MAX_WANTS_TO_JOIN_ROWS
         });
+        let invalid_navigation = self.navigation.as_ref().is_some_and(|navigation| {
+            navigation.navigation.validate(&self.presentation).is_err()
+                || navigation
+                    .projection
+                    .project(
+                        &self.presentation,
+                        &navigation.navigation,
+                        &navigation.cursor,
+                    )
+                    .is_err()
+        });
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -141,6 +175,7 @@ impl RendererSnapshot {
             || self.entrance.presentation_id != self.presentation.identity.as_str()
             || self.entrance.presentation_revision != self.presentation.revision
             || invalid_parts
+            || invalid_navigation
         {
             return Err(SnapshotError::InvalidIdentity);
         }

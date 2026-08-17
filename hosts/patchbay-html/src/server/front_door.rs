@@ -63,7 +63,9 @@ impl PatchbayHtmlServer {
             snapshot.entrance = entrance;
             snapshot.interaction = prior_interaction;
             snapshot.interaction.selected_subject = snapshot.entrance.selected_subject.clone();
+            drop(session);
             self.snapshot = snapshot;
+            self.reset_navigation()?;
             self.encoded_snapshot = self.snapshot.encode()?;
             return Ok(());
         }
@@ -100,7 +102,9 @@ impl PatchbayHtmlServer {
         snapshot.entrance = entrance;
         snapshot.interaction = prior_interaction;
         snapshot.interaction.selected_subject = snapshot.entrance.selected_subject.clone();
+        drop(session);
         self.snapshot = snapshot;
+        self.reset_navigation()?;
         self.encoded_snapshot = self.snapshot.encode()?;
         Ok(())
     }

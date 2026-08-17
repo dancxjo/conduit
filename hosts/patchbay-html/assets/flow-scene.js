@@ -1,4 +1,5 @@
 import { layoutFlowScene } from "/assets/flow-layout.js";
+import { projectCurrent } from "/assets/portable-navigation.js";
 
 export const FLOW_PRESENTATION_SCHEMA = "conduit.patchbay.flow-presentation/v1";
 export const MAX_FLOW_SUBJECTS = 512;
@@ -23,7 +24,8 @@ function deterministicPosition(index) {
 
 export function workspaceIdentity(snapshot) {
   const basis = snapshot.presentation.basis;
-  return `${basis.source_document_id}/${basis.checked_form_id}`;
+  const cursor = snapshot.navigation?.cursor;
+  return `${basis.source_document_id}/${basis.checked_form_id}/${cursor?.place??"canonical"}`;
 }
 
 function propertiesBySubject(presentation) {
@@ -44,8 +46,11 @@ function compactClue(role, properties, lens) {
 }
 
 export function projectFlowScene(snapshot, lens = "world") {
-  const presentation = snapshot.presentation;
-  const subjectProperties = propertiesBySubject(presentation);
+  const presentation = projectCurrent(snapshot);
+  // Projection owns which subjects and relationships exist in this scene. The
+  // canonical Presentation still owns the exact typed facts needed to draw
+  // those admitted subjects (for example Port direction and Cord endpoints).
+  const subjectProperties = propertiesBySubject(snapshot.presentation);
   const allSubjects = new Map(presentation.subjects.map((subject) => [subject.identity, subject]));
   const children = new Map();
   for (const relation of presentation.relationships) {
@@ -79,14 +84,14 @@ export function projectFlowScene(snapshot, lens = "world") {
           temporal: properties.get("temporal") || "",
         };
       }).sort((left, right) => left.direction.localeCompare(right.direction) || left.id.localeCompare(right.id)),
-      semanticSelected: snapshot.interaction.selected_subject === subject.identity,
+      semanticSelected: (snapshot.navigation?.cursor.focus ?? snapshot.interaction.selected_subject) === subject.identity,
     },
     className: `flow-subject flow-${subject.role.toLowerCase()}`,
     ariaLabel: subject.accessibility_name,
   })).sort(compareIdentity);
   const nodeIds = new Set(nodes.map((node) => node.id));
   const semanticSubjects = new Map();
-  for (const property of presentation.properties) {
+  for (const property of snapshot.presentation.properties) {
     if (property.name === "semantic-id") semanticSubjects.set(value(property), property.subject);
   }
   const owner = new Map();
@@ -95,7 +100,7 @@ export function projectFlowScene(snapshot, lens = "world") {
   }
   const edges = [];
   for (const cord of presentation.subjects.filter((subject) => subject.role === "Cord")) {
-    const properties = presentation.properties.filter((property) => property.subject === cord.identity);
+    const properties = snapshot.presentation.properties.filter((property) => property.subject === cord.identity);
     const sourcePort = semanticSubjects.get(value(properties.find((property) => property.name === "source-port")));
     const sinkPort = semanticSubjects.get(value(properties.find((property) => property.name === "sink-port")));
     const source = owner.get(sourcePort);
@@ -107,7 +112,7 @@ export function projectFlowScene(snapshot, lens = "world") {
       sourceHandle: sourcePort,
       targetHandle: sinkPort,
       type: "simplebezier",
-      label: lens === "plan" ? `Cord · ${subjectProperties.get(cord.identity)?.get("line-id") ? `Line ${subjectProperties.get(cord.identity).get("line-id")}` : "local; no Line"}` : lens === "play" ? `Cord · ${subjectProperties.get(cord.identity)?.get("play-state") || "not playing"}` : "Cord",
+      label: lens === "plan" ? `Cord · ${subjectProperties.get(cord.identity)?.get("line-id") ? "realized; inspect Line correlation" : "local; no Line"}` : lens === "play" ? `Cord · ${subjectProperties.get(cord.identity)?.get("play-state") || "not playing"}` : "Cord",
       data: {
         semanticIdentity: cord.identity,
         sourcePort,

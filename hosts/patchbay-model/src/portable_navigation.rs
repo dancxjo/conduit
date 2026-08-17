@@ -6,9 +6,10 @@ use conduit_presentation::{
     PresentationProjection, PresentationProperty, PresentationRole, ProjectionItem,
     ProjectionMembership,
 };
+use serde::{Deserialize, Serialize};
 
 /// One immutable navigation/projection/cursor bundle for a Patchbay revision.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchbayNavigationProjection {
     pub navigation: PresentationNavigation,
     pub projection: PresentationProjection,
