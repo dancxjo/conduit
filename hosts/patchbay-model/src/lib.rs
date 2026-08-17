@@ -35,6 +35,8 @@ mod interaction;
 mod layout;
 mod maker_environment;
 mod palette;
+#[cfg(test)]
+mod parts_truth_explanation_tests;
 mod parts_view;
 mod patchbay_backs;
 mod policy_explanation;

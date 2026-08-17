@@ -140,6 +140,22 @@ fn parts_view_derives_here_attached_offline_candidates_and_plan_truth() {
     assert!(view.actions.contains(&PartsAction::SpawnBrowserPart));
     assert!(view.actions.contains(&PartsAction::Replan));
     assert!(view.new_realization_possibilities);
+    assert!(view
+        .truth_explanation
+        .available
+        .contains("does not mean a Line is Ready or selected"));
+    assert!(view
+        .truth_explanation
+        .line_unavailable
+        .contains("Parts may remain AVAILABLE"));
+    assert!(view
+        .truth_explanation
+        .in_plan
+        .contains("does not mean a Play is active"));
+    assert!(view
+        .truth_explanation
+        .playing
+        .contains("does not rewrite that Plan"));
     assert_eq!(membership, retained_membership);
     assert_eq!(candidates, retained_candidates);
 }

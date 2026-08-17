@@ -24,6 +24,21 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
         "awake",
         PresentationPropertyValue::Flag(parts.awake),
     );
+    for (name, explanation) in [
+        ("available-explanation", &parts.truth_explanation.available),
+        (
+            "line-ready-explanation",
+            &parts.truth_explanation.line_ready,
+        ),
+        (
+            "line-unavailable-explanation",
+            &parts.truth_explanation.line_unavailable,
+        ),
+        ("in-plan-explanation", &parts.truth_explanation.in_plan),
+        ("playing-explanation", &parts.truth_explanation.playing),
+    ] {
+        text(content, &body_subject, name, explanation);
+    }
     for row in &parts.parts {
         let part_subject = content.subject_with_identity(
             format!("part/{}", row.details.part_id.as_str()),
