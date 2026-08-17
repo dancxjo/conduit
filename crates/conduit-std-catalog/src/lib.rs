@@ -49,6 +49,14 @@ mod time_every;
 pub use time_every::*;
 mod timing;
 pub use timing::*;
+#[cfg(feature = "form-catalog")]
+mod recurrence_catalog;
+#[cfg(feature = "form-catalog")]
+pub use recurrence_catalog::*;
+#[cfg(feature = "form-catalog")]
+mod recurrence_offer;
+#[cfg(feature = "form-catalog")]
+pub use recurrence_offer::recurrence_std_offer;
 mod text_presentation;
 pub use text_presentation::*;
 mod text_transform;

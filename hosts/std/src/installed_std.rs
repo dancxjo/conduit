@@ -29,6 +29,9 @@ mod operation;
 mod operation_capacity;
 mod pacing_operations;
 mod presentation_composition;
+mod recurrence_codec;
+mod recurrence_encoding;
+mod recurrence_operation;
 mod render_demand_operation;
 pub(super) mod rhythm_compare_host;
 mod rhythm_compare_operation;
@@ -50,6 +53,8 @@ pub(crate) mod test_local_model_io;
 mod test_logic;
 #[cfg(test)]
 mod test_midi_source;
+#[cfg(test)]
+mod test_recurrence_sink;
 #[cfg(test)]
 mod test_scalar_flow;
 #[cfg(test)]
