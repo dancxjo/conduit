@@ -251,7 +251,7 @@ fn run_patchbay_front_door(
                 scenario_id: "patchbay.front-door@1".into(),
                 step_id: Some("prove.patchbay-front-door.browser".into()),
                 asserted_semantic_disposition: Some(
-                    "world-intent-plan-play-selection-and-refusal-asserted".into(),
+                    "world-intent-plan-play-navigation-follow-back-and-refusal-asserted".into(),
                 ),
                 proof_class: Some("live-browser".into()),
                 ..Default::default()

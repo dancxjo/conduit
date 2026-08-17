@@ -225,7 +225,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "target/conduit-evidence/patchbay-front-door/manifest.json",
         ],
         allowed_claims: &[
-            "one world-first Patchbay semantic entrance is equivalent across native and browser manifestations, executes Form to Plan to Play, and observes live browser membership change without mutating an existing Plan",
+            "one world-first Patchbay semantic entrance executes Form to Plan to Play, retains a bounded exact-identity Program-to-Body navigation receipt, and observes live browser membership change without mutating an existing Plan",
         ],
     },
     ProofCommandContract {
