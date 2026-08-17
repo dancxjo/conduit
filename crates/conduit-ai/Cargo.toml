@@ -8,6 +8,7 @@ conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form", optional = true }
 conduit-std-catalog = { path = "../conduit-std-catalog", optional = true, default-features = false, features = ["form-catalog"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
+libm = "0.2"
 
 [features]
 default = []
