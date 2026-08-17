@@ -23,6 +23,14 @@ function semanticIdentity(snapshot) {
   };
 }
 
+async function enactFurnitureControl(page,name,enact) {
+  const navigation=name==="truth"?page.waitForResponse(response=>
+    response.url().endsWith("/api/navigation")&&response.request().method()==="POST",
+  ):null;
+  await enact();
+  if(navigation){expect((await (await navigation).json()).interaction.last_disposition).toBe("Succeeded");await expect(page.locator("#deep-inspection")).not.toHaveAttribute("aria-busy","true");}
+}
+
 test("subordinate furniture is keyboard-operable and presentation-only",async ({page})=>{
   const server=startServer();
   try {
@@ -41,7 +49,7 @@ test("subordinate furniture is keyboard-operable and presentation-only",async ({
     await expect(page.locator("[data-furniture-surface] .furniture-bar")).toHaveCount(surfaces.length);
     for(const [name,selector,launcherSelector] of surfaces) {
       const surface=page.locator(selector),launcher=page.locator(launcherSelector);
-      await launcher.focus();await launcher.press("Enter");
+      await launcher.focus();await enactFurnitureControl(page,name,()=>launcher.press("Enter"));
       await expect(surface).toBeVisible();
       await expect(surface).toHaveAttribute("data-furniture-surface",name);
       await expect(surface).toHaveAttribute("data-furniture-collapsed","false");
@@ -71,14 +79,14 @@ test("subordinate furniture is keyboard-operable and presentation-only",async ({
       expect(moved.x+moved.width).toBeLessThanOrEqual(viewport.width);
       expect(moved.y+moved.height).toBeLessThanOrEqual(viewport.height);
       await surface.locator('[data-furniture-action="close"]').focus();
-      await surface.locator('[data-furniture-action="close"]').press("Enter");
+      await enactFurnitureControl(page,name,()=>surface.locator('[data-furniture-action="close"]').press("Enter"));
       await expect(surface).toBeHidden();await expect(launcher).toBeFocused();
-      await launcher.press("Enter");
+      await enactFurnitureControl(page,name,()=>launcher.press("Enter"));
       await expect(surface).toBeVisible();
       await expect(surface).toHaveAttribute("data-furniture-collapsed","false");
       await expect(surface).toHaveAttribute("data-furniture-dock",movedDock);
       await expect(surface.locator('[data-furniture-action="collapse"]')).toBeFocused();
-      await page.keyboard.press("Escape");
+      await enactFurnitureControl(page,name,()=>page.keyboard.press("Escape"));
       await expect(surface).toBeHidden();await expect(launcher).toBeFocused();
     }
     await page.setViewportSize({width:700,height:900});
