@@ -34,6 +34,7 @@ conduit-wire = { path = "../../crates/conduit-wire" }
 tungstenite = "0.30.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+instant-distance = "=0.6.1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
