@@ -22,6 +22,7 @@ use super::pacing_operations::{DelayOperation, ThrottleOperation};
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
+use super::recurrence_operation::RecurrenceOperation;
 use super::render_demand_operation::AudioRenderDemandOperation;
 use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
@@ -56,6 +57,7 @@ pub(super) enum InstalledOperation {
     TimeTimeout(TimeoutOperation),
     TimeDelay(DelayOperation),
     TimeThrottle(ThrottleOperation),
+    Recurrence(RecurrenceOperation),
     TickPresentation(TickPresentationOperation),
     BoolPresentation(BoolPresentationOperation),
     TextLiteral(TextLiteralOperation),
@@ -103,6 +105,8 @@ pub(super) enum InstalledOperation {
     TestTextSource(super::test_text_source::TestTextSourceOperation),
     #[cfg(test)]
     TestMidiSource(super::test_midi_source::TestMidiSourceOperation),
+    #[cfg(test)]
+    TestRecurrenceSink(super::test_recurrence_sink::TestRecurrenceSinkOperation),
     TestPcmSource(Box<super::test_audio_source::TestPcmSourceOperation>),
     #[cfg(test)]
     TestJsonSource(TestJsonSourceOperation),
@@ -165,6 +169,7 @@ impl Operation for InstalledOperation {
             Self::TimeTimeout(operation) => operation.start(),
             Self::TimeDelay(operation) => operation.start(),
             Self::TimeThrottle(operation) => operation.start(),
+            Self::Recurrence(operation) => operation.start(),
             Self::TickPresentation(operation) => operation.start(),
             Self::BoolPresentation(operation) => operation.start(),
             Self::TextLiteral(operation) => operation.start(),
@@ -210,6 +215,8 @@ impl Operation for InstalledOperation {
             Self::TestTextSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
             Self::TestMidiSource(operation) => operation.emit_or_complete(),
+            #[cfg(test)]
+            Self::TestRecurrenceSink(operation) => operation.start(),
             Self::TestPcmSource(operation) => operation.emit_or_complete(),
             #[cfg(test)]
             Self::TestJsonSource(operation) => operation.emit_or_complete(),
@@ -260,6 +267,7 @@ impl Operation for InstalledOperation {
             (Self::TimeTimeout(operation), input) => operation.resume(input),
             (Self::TimeDelay(operation), input) => operation.resume(input),
             (Self::TimeThrottle(operation), input) => operation.resume(input),
+            (Self::Recurrence(operation), input) => operation.resume(input),
             (Self::TextUpper(operation), input) => operation.resume(input),
             (Self::TextJoin(operation), input) => operation.resume(input),
             (Self::TextPresentation(operation), input) => operation.resume(input),
@@ -308,6 +316,8 @@ impl Operation for InstalledOperation {
             (Self::TestTextSource(_), _) => Self::fail(6),
             #[cfg(test)]
             (Self::TestMidiSource(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestRecurrenceSink(operation), input) => operation.resume(input),
             (Self::TestPcmSource(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestJsonSource(_), _) => Self::fail(104),
@@ -360,6 +370,8 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestChordSink(operation) => operation.resume_value(port, canonical),
             #[cfg(test)]
+            Self::TestRecurrenceSink(operation) => operation.resume_value(port, canonical),
+            #[cfg(test)]
             Self::TestStructuredSink(operation) => operation.resume_value(port, canonical),
             Self::InstrumentMap(operation) => operation.resume_value(port, canonical),
             _ => self.resume(OperationInput::Value { port, value }),
@@ -393,6 +405,7 @@ impl Operation for InstalledOperation {
             Self::TimeTimeout(operation) => operation.advance(),
             Self::TimeDelay(operation) => operation.advance(),
             Self::TimeThrottle(operation) => operation.advance(),
+            Self::Recurrence(operation) => operation.advance(),
             Self::TextLiteral(operation) => operation.advance(),
             Self::TextUpper(_) => OperationAction::Await,
             Self::TextJoin(_) => OperationAction::Await,
@@ -439,6 +452,8 @@ impl Operation for InstalledOperation {
             }
             #[cfg(test)]
             Self::TestMidiSource(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestRecurrenceSink(_) => OperationAction::Await,
             Self::TestPcmSource(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => operation.advance(),
@@ -490,6 +505,7 @@ impl Operation for InstalledOperation {
             Self::TimeTimeout(operation) => operation.cancel(),
             Self::TimeDelay(operation) => operation.cancel(),
             Self::TimeThrottle(operation) => operation.cancel(),
+            Self::Recurrence(_) => {}
             Self::TextLiteral(_) => {}
             Self::TextUpper(operation) => operation.cancel(),
             Self::TextJoin(operation) => operation.cancel(),
@@ -533,6 +549,8 @@ impl Operation for InstalledOperation {
             Self::TestTextSource(_) => {}
             #[cfg(test)]
             Self::TestMidiSource(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestRecurrenceSink(_) => {}
             Self::TestPcmSource(operation) => operation.cancel(),
             #[cfg(test)]
             Self::TestJsonSource(_) => {}

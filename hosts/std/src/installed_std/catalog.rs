@@ -36,6 +36,7 @@ use super::presentation_composition::{
 };
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
+use super::recurrence_operation::FACTORY as RECURRENCE_FACTORY;
 use super::render_demand_operation::AUDIO_RENDER_DEMAND_FACTORY;
 use super::rhythm_compare_operation::FACTORY as RHYTHM_COMPARE_FACTORY;
 use super::robotics_operations::{
@@ -58,6 +59,8 @@ use super::test_local_model_io::{TEST_LOCAL_MODEL_SINK_FACTORY, TEST_LOCAL_MODEL
 use super::test_logic::{TEST_LOGIC_SCRIPT_FACTORY, TEST_LOGIC_SINK_FACTORY};
 #[cfg(test)]
 use super::test_midi_source::FACTORY as TEST_MIDI_SOURCE_FACTORY;
+#[cfg(test)]
+use super::test_recurrence_sink::FACTORY as TEST_RECURRENCE_SINK_FACTORY;
 #[cfg(test)]
 use super::test_scalar_flow::{
     TEST_SCALAR_LITERAL_FACTORY, TEST_SCALAR_SINK_FACTORY, TEST_SCALAR_SOURCE_FACTORY,
@@ -89,6 +92,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TIME_TIMEOUT_FACTORY,
     &TIME_DELAY_FACTORY,
     &TIME_THROTTLE_FACTORY,
+    &RECURRENCE_FACTORY,
     &TICK_PRESENTATION_FACTORY,
     &BOOL_PRESENTATION_FACTORY,
     &TEXT_LITERAL_FACTORY,
@@ -157,6 +161,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_MIDI_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_RECURRENCE_SINK_FACTORY,
     &TEST_PCM_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_SCALAR_SOURCE_FACTORY,
