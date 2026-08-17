@@ -1,7 +1,9 @@
 //! Typed, finite model proposals separated from authority and effects.
 
 use alloc::{format, string::String, vec::Vec};
-use conduit_core::{KindId, PlanId, SignId, StructuredInfoValue};
+use conduit_core::{
+    KindId, PlacementId, Plan, PlanId, SignId, StructuredInfoType, StructuredInfoValue,
+};
 use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_EFFECT_ARGUMENT_BYTES: usize = 4_096;
@@ -53,6 +55,130 @@ pub struct EffectAuthority {
     pub wired_operation_kind: KindId,
     pub argument_type_digest: [u8; 32],
     pub maximum_argument_bytes: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EffectAuthorityDerivationError {
+    InvalidPlan,
+    ProposerMissing,
+    ProposerAmbiguous,
+    NotProposalGear,
+    EffectWiringMissing,
+    EffectWiringAmbiguous,
+    EffectPlacementMissing,
+    HostOperationMissing,
+    HostOperationAmbiguous,
+    AuthorityMissing,
+    AuthorityAmbiguous,
+    InvalidArgumentType,
+    InvalidBound,
+}
+
+impl EffectAuthority {
+    /// Derives effect authority only from exact facts already sealed into a Plan.
+    ///
+    /// The connection's nominal value kind is the argument envelope type. More
+    /// elaborate structured profiles must first be carried by the Plan itself;
+    /// callers cannot supply an out-of-band structural type here.
+    pub fn from_plan(
+        plan: &Plan,
+        proposer_placement_id: &PlacementId,
+        operation_kind: &KindId,
+    ) -> Result<Self, EffectAuthorityDerivationError> {
+        if !conduit_core::verify_plan(plan) {
+            return Err(EffectAuthorityDerivationError::InvalidPlan);
+        }
+        let mut proposers = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .filter(|placement| &placement.placement_id == proposer_placement_id);
+        let proposer = proposers
+            .next()
+            .ok_or(EffectAuthorityDerivationError::ProposerMissing)?;
+        if proposers.next().is_some() {
+            return Err(EffectAuthorityDerivationError::ProposerAmbiguous);
+        }
+        if proposer.kind_id.as_str() != crate::LLM_PROPOSE_KIND {
+            return Err(EffectAuthorityDerivationError::NotProposalGear);
+        }
+
+        let mut wiring = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .filter(|connection| &connection.source_placement_id == proposer_placement_id)
+            .filter(|connection| {
+                proposer.outputs.iter().any(|port| {
+                    port.port_id == connection.source_port_id
+                        && port.value_kind == connection.value_kind
+                })
+            })
+            .filter_map(|connection| {
+                plan.fragments
+                    .iter()
+                    .flat_map(|fragment| &fragment.placements)
+                    .find(|placement| placement.placement_id == connection.sink_placement_id)
+                    .filter(|placement| &placement.kind_id == operation_kind)
+                    .map(|placement| (connection, placement))
+            });
+        let (connection, effect) = wiring
+            .next()
+            .ok_or(EffectAuthorityDerivationError::EffectWiringMissing)?;
+        if wiring.next().is_some() {
+            return Err(EffectAuthorityDerivationError::EffectWiringAmbiguous);
+        }
+        if !effect.inputs.iter().any(|port| {
+            port.port_id == connection.sink_port_id && port.value_kind == connection.value_kind
+        }) {
+            return Err(EffectAuthorityDerivationError::EffectPlacementMissing);
+        }
+
+        let mut operations = effect.host_operations.iter().filter(|requirement| {
+            requirement.target_kind.as_ref() == Some(operation_kind)
+                && requirement.maximum_in_flight > 0
+        });
+        let operation = operations
+            .next()
+            .ok_or(EffectAuthorityDerivationError::HostOperationMissing)?;
+        if operations.next().is_some() {
+            return Err(EffectAuthorityDerivationError::HostOperationAmbiguous);
+        }
+
+        let mut bindings = effect.authority.iter().filter(|binding| {
+            binding.host_operation_contract_id == operation.contract_id
+                && &binding.subject_kind == operation_kind
+                && binding.host_id == effect.host_id
+                && binding.boot_id == effect.boot_id
+                && binding.capability_id == effect.capability_id
+        });
+        let binding = bindings
+            .next()
+            .ok_or(EffectAuthorityDerivationError::AuthorityMissing)?;
+        if bindings.next().is_some() {
+            return Err(EffectAuthorityDerivationError::AuthorityAmbiguous);
+        }
+
+        let maximum_argument_bytes = usize::try_from(operation.maximum_input_bytes)
+            .ok()
+            .map(|bound| bound.min(MAXIMUM_EFFECT_ARGUMENT_BYTES))
+            .filter(|bound| *bound > 0)
+            .ok_or(EffectAuthorityDerivationError::InvalidBound)?;
+        let argument_type_digest = StructuredInfoType::leaf(connection.value_kind.clone())
+            .and_then(|value_type| value_type.semantic_digest())
+            .map_err(|_| EffectAuthorityDerivationError::InvalidArgumentType)?;
+        let authority = Self {
+            authority_id: binding.grant_id.as_str().into(),
+            active_plan_id: plan.plan_id.clone(),
+            wired_operation_kind: operation_kind.clone(),
+            argument_type_digest,
+            maximum_argument_bytes,
+        };
+        if !valid_authority(&authority) {
+            return Err(EffectAuthorityDerivationError::InvalidBound);
+        }
+        Ok(authority)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
