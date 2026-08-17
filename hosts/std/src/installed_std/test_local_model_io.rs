@@ -223,6 +223,11 @@ fn prepare_source(
                 },
             ],
             context: "explain the likely operational boundary without taking action".into(),
+            temporal_reference: conduit_ai::TemporalReference {
+                reference_at: 1_723_456_789_000,
+                clock_basis: conduit_ai::ClockBasis::UnixEpochMilliseconds,
+            },
+            temporal_intent: Some(conduit_ai::TemporalRetrievalIntent::LatestEvidence),
         })
         .map_err(|error| format!("encode local-model interpretation request: {error}"))?
     } else {
