@@ -18,4 +18,5 @@ form-catalog = ["dep:conduit-form", "dep:conduit-std-catalog"]
 conduit-form = { path = "../conduit-form" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-presentation = { path = "../conduit-presentation" }
 serde_json = "1"

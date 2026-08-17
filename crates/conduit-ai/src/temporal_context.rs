@@ -1,4 +1,5 @@
 use alloc::string::String;
+use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError, TemporalScale};
 use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_CLOCK_IDENTITY_BYTES: usize = 128;
@@ -38,19 +39,6 @@ pub enum TemporalSource {
     Recorded,
     Ingested,
     Retrieved,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalDirection {
-    BeforeReference,
-    AtReference,
-    AfterReference,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TemporalRelation {
-    pub direction: TemporalDirection,
-    pub distance_millis: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -117,6 +105,7 @@ pub enum TemporalContextRefusal {
     SourceAfterReference,
     ReversedQueryWindow,
     ArithmeticOverflow,
+    UncertainAge,
 }
 
 impl TemporalProvenance {
@@ -140,8 +129,9 @@ impl TemporalProvenance {
         source: TemporalSource,
     ) -> Result<TemporalRelation, TemporalContextRefusal> {
         self.validate()?;
-        let source_at = self.source_instant(source)?;
-        Ok(relation_between_instants(source_at, self.reference_at))
+        let source = self.canonical_source_instant(source)?;
+        let reference = self.canonical_reference_instant()?;
+        source.relation_to(&reference).map_err(map_relation_error)
     }
 
     pub fn relation_to(
@@ -155,19 +145,23 @@ impl TemporalProvenance {
         if self.clock_basis != other.clock_basis {
             return Err(TemporalContextRefusal::ClockBasisMismatch);
         }
-        Ok(relation_between_instants(
-            self.source_instant(source)?,
-            other.source_instant(other_source)?,
-        ))
+        self.canonical_source_instant(source)?
+            .relation_to(&other.canonical_source_instant(other_source)?)
+            .map_err(map_relation_error)
     }
 
     pub fn age(&self, source: TemporalSource) -> Result<u64, TemporalContextRefusal> {
         let relation = self.relation(source)?;
-        match relation.direction {
-            TemporalDirection::BeforeReference | TemporalDirection::AtReference => {
-                Ok(relation.distance_millis)
+        match relation {
+            TemporalRelation::Past {
+                minimum_ticks,
+                maximum_ticks,
+            } if minimum_ticks == maximum_ticks => Ok(minimum_ticks),
+            TemporalRelation::Present => Ok(0),
+            TemporalRelation::Future { .. } => Err(TemporalContextRefusal::SourceAfterReference),
+            TemporalRelation::Past { .. } | TemporalRelation::Indeterminate => {
+                Err(TemporalContextRefusal::UncertainAge)
             }
-            TemporalDirection::AfterReference => Err(TemporalContextRefusal::SourceAfterReference),
         }
     }
 
@@ -194,6 +188,31 @@ impl TemporalProvenance {
         };
         instant.ok_or(TemporalContextRefusal::SourceUnavailable)
     }
+
+    pub fn canonical_source_instant(
+        &self,
+        source: TemporalSource,
+    ) -> Result<TemporalInstant, TemporalContextRefusal> {
+        self.validate()?;
+        Ok(TemporalInstant {
+            ticks: self.source_instant(source)?,
+            scale: TemporalScale::Milliseconds,
+            clock_basis: canonical_clock_basis(&self.clock_basis),
+            resolution_ticks: 1,
+            uncertainty_ticks: self.uncertainty_millis.unwrap_or(0),
+        })
+    }
+
+    pub fn canonical_reference_instant(&self) -> Result<TemporalInstant, TemporalContextRefusal> {
+        self.validate()?;
+        Ok(TemporalInstant {
+            ticks: self.reference_at,
+            scale: TemporalScale::Milliseconds,
+            clock_basis: canonical_clock_basis(&self.clock_basis),
+            resolution_ticks: 1,
+            uncertainty_ticks: 0,
+        })
+    }
 }
 
 impl TemporalReference {
@@ -214,20 +233,19 @@ fn validate_clock_basis(clock_basis: &ClockBasis) -> Result<(), TemporalContextR
     Ok(())
 }
 
-fn relation_between_instants(source_at: u64, reference_at: u64) -> TemporalRelation {
-    match source_at.cmp(&reference_at) {
-        core::cmp::Ordering::Less => TemporalRelation {
-            direction: TemporalDirection::BeforeReference,
-            distance_millis: reference_at - source_at,
-        },
-        core::cmp::Ordering::Equal => TemporalRelation {
-            direction: TemporalDirection::AtReference,
-            distance_millis: 0,
-        },
-        core::cmp::Ordering::Greater => TemporalRelation {
-            direction: TemporalDirection::AfterReference,
-            distance_millis: source_at - reference_at,
-        },
+fn canonical_clock_basis(clock_basis: &ClockBasis) -> String {
+    match clock_basis {
+        ClockBasis::UnixEpochMilliseconds => String::from(conduit_core::UNIX_UTC_CLOCK_BASIS),
+        ClockBasis::MonotonicMilliseconds { identity } => identity.clone(),
+    }
+}
+
+fn map_relation_error(error: TemporalRelationError) -> TemporalContextRefusal {
+    match error {
+        TemporalRelationError::Incomparable => TemporalContextRefusal::ClockBasisMismatch,
+        TemporalRelationError::InvalidInstant | TemporalRelationError::IntervalOverflow => {
+            TemporalContextRefusal::ArithmeticOverflow
+        }
     }
 }
 
