@@ -24,7 +24,7 @@ function semanticIdentity(snapshot) {
 }
 
 async function enactFurnitureControl(page,name,enact) {
-  const navigation=name==="truth"?page.waitForResponse(response=>
+  const navigation=["truth","inspector"].includes(name)?page.waitForResponse(response=>
     response.url().endsWith("/api/navigation")&&response.request().method()==="POST",
   ):null;
   await enact();
@@ -49,6 +49,24 @@ test("subordinate furniture is keyboard-operable and presentation-only",async ({
     await expect(page.locator("[data-furniture-surface] .furniture-bar")).toHaveCount(surfaces.length);
     for(const [name,selector,launcherSelector] of surfaces) {
       const surface=page.locator(selector),launcher=page.locator(launcherSelector);
+      if(name==="inspector") {
+        let holdNavigation,releaseNavigation;
+        const navigationHeld=new Promise(resolve=>{holdNavigation=resolve;});
+        const navigationReleased=new Promise(resolve=>{releaseNavigation=resolve;});
+        const delayInspectorNavigation=async route=>{
+          if(route.request().method()==="POST") {holdNavigation();await navigationReleased;}
+          await route.continue();
+        };
+        await page.route("**/api/navigation",delayInspectorNavigation);
+        await launcher.focus();await launcher.press("Enter");await navigationHeld;
+        await expect(surface).toHaveAttribute("aria-busy","true");
+        await expect(surface.locator('[data-furniture-action="close"]')).toBeDisabled();
+        await page.keyboard.press("Escape");
+        releaseNavigation();
+        await expect(surface).not.toHaveAttribute("aria-busy","true");
+        await page.unroute("**/api/navigation",delayInspectorNavigation);
+        await expect(surface).toBeHidden();await expect(launcher).toBeFocused();
+      }
       await launcher.focus();await enactFurnitureControl(page,name,()=>launcher.press("Enter"));
       await expect(surface).toBeVisible();
       await expect(surface).toHaveAttribute("data-furniture-surface",name);
@@ -63,10 +81,10 @@ test("subordinate furniture is keyboard-operable and presentation-only",async ({
       if(name==="inspector") {
         const constrainedFlow=await page.locator("#flow-root").boundingBox();
         await surface.locator('[data-furniture-action="close"]').focus();
-        await surface.locator('[data-furniture-action="close"]').press("Enter");
+        await enactFurnitureControl(page,name,()=>surface.locator('[data-furniture-action="close"]').press("Enter"));
         await expect(surface).toBeHidden();
         expect((await page.locator("#flow-root").boundingBox()).width).toBeGreaterThan(constrainedFlow.width);
-        await launcher.press("Enter");
+        await enactFurnitureControl(page,name,()=>launcher.press("Enter"));
         await expect(surface).toBeVisible();
         await expect(surface).toHaveAttribute("data-furniture-collapsed","false");
       }
