@@ -354,7 +354,7 @@ test("Patchbay front door presents one live browser Part through restart and rep
     .filter((line) => line.startsWith("{"))
     .map((line) => JSON.parse(line))
     .at(-1);
-  expect(receipt.schema).toBe("conduit.patchbay/live-front-door-topology@1");
+  expect(receipt.schema).toBe("conduit.patchbay/live-front-door-topology@2");
   expect(receipt.browser_host_id).toBeTruthy();
   expect(receipt.plan_unchanged_by_join_offline_and_restart).toBe(true);
   expect(receipt.replacement_plan_distinct).toBe(true);
@@ -363,6 +363,22 @@ test("Patchbay front door presents one live browser Part through restart and rep
   expect(receipt.line_selection_preserved_on_loss).toBe(true);
   expect(receipt.line_base).toBe("WebSocket");
   expect(receipt.line_availability_transition).toEqual(["Ready", "Unavailable"]);
+  expect(receipt.loss_navigation.schema).toBe("conduit.presentation/loss-navigation-receipt@1");
+  expect(receipt.loss_navigation.before.place).toBe("Body");
+  expect(receipt.loss_navigation.before.aspect).toBe("Plan");
+  expect(receipt.loss_navigation.before.depth).toBe("Exact");
+  expect(receipt.loss_navigation.before.focus).toBe(receipt.loss_navigation.line_subject);
+  expect(receipt.loss_navigation.prior_cursor_refusal).toBe("StalePresentation");
+  expect(receipt.loss_navigation.after.place).toBe("Body");
+  expect(receipt.loss_navigation.after.aspect).toBe("Plan");
+  expect(receipt.loss_navigation.after.depth).toBe("Exact");
+  expect(receipt.loss_navigation.after.focus).toBe(receipt.loss_navigation.line_subject);
+  expect(receipt.loss_navigation.after.presentation)
+    .not.toBe(receipt.loss_navigation.before.presentation);
+  expect(receipt.loss_navigation.line_is_unavailable).toBe(true);
+  expect(receipt.loss_navigation.plan_id_before_and_after).toBe(receipt.first_plan_id);
+  expect(receipt.loss_navigation.play_id_before_and_after).toBe(receipt.first_play_id);
+  expect(receipt.loss_navigation.hidden_replan).toBe(false);
   expect(receipt.renderer_semantics_equivalent).toBe(true);
   expect(receipt.native_manifestation_id).not.toBe(receipt.browser_manifestation_id);
   expect(receipt.final_subjects.some(({ role }) => role === "Part")).toBe(true);
