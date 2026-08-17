@@ -38,6 +38,11 @@ pub(crate) fn test_midi_source_offer() -> conduit_core::CapabilityOffer {
     super::test_midi_source::offer()
 }
 
+#[cfg(test)]
+pub(crate) fn test_recurrence_sink_offer() -> conduit_core::CapabilityOffer {
+    super::test_recurrence_sink::offer()
+}
+
 pub(crate) fn playback_proof_catalog() -> conduit_form::ProfileCatalog {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
