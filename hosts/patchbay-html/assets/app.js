@@ -1,6 +1,7 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
 import { arrangeFlow, fitFlow, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
 import { installPanelFurniture } from "/assets/panel-furniture.js";
+import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 
 const schema = "conduit.patchbay.portable-presentation";
 const bases = new Map([
@@ -8,7 +9,7 @@ const bases = new Map([
   ["FixtureFrame", "fixture frame"], ["FixtureDatagram", "fixture datagram"],
   ["WebSocket", "WebSocket"], ["UsbCdc", "USB CDC"],
 ]);
-const state = { snapshot:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", lens:"world", inspectorOpen:false };
+const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", lens:"world", inspectorOpen:false };
 
 function requireSnapshot(value) {
   const presentation=value?.presentation;
@@ -20,16 +21,18 @@ function requireSnapshot(value) {
     const base=property.value?.ConnectionBase;
     if (base!==undefined && !bases.has(base)) throw new Error("unsupported connection base");
   }
+  projectCurrent(value);
   return value;
 }
 
 function term(dl,name,value,fullValue){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=name;dd.textContent=value??"not present";if(fullValue&&fullValue!==value)dd.title=fullValue;dl.append(dt,dd);}
 function summaryText(value){const full=propertyText(value);return value.Identity!==undefined&&full.length>38?`${full.slice(0,24)}…${full.slice(-8)}`:full;}
 function subjects(role){return state.snapshot.presentation.subjects.filter(subject=>!role||subject.role===role);}
+function projectedSubjects(role){return state.projected.subjects.filter(subject=>!role||subject.role===role);}
 function texts(identity){return state.snapshot.presentation.text.filter(item=>item.subject===identity).map(item=>item.text);}
 function properties(identity){return state.snapshot.presentation.properties.filter(item=>item.subject===identity);}
 function property(identity,name){return properties(identity).find(item=>item.name===name);}
-function semanticActions(identity){return state.snapshot.presentation.actions.filter(action=>action.target===identity);}
+function semanticActions(identity){return state.projected.actions.filter(action=>action.target===identity);}
 function currentPresentationBasis(){return {presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision};}
 function actionAvailability(action){
   if(action.availability==="Available")return {available:true,state:"Available",explanation:null};
@@ -81,11 +84,17 @@ async function dispatchInteraction(input,presentationBasis=currentPresentationBa
   if(!response.ok)throw new Error(`interaction delivery HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
 }
+async function dispatchNavigation(operation){
+  const navigation=state.snapshot.navigation;if(!navigation)throw new Error("portable navigation is unavailable");
+  const response=await fetch("/api/navigation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,navigation_id:navigation.navigation.identity,operation})});
+  if(!response.ok)throw new Error(`navigation delivery HTTP ${response.status}`);
+  const next=requireSnapshot(await response.json());render(next);return next;
+}
 function closeSubordinateSurfaces(except){
   for(const name of ["palette","parts","truth"]){if(name===except)continue;document.body.dataset[`${name}Open`]="false";document.querySelector(`#toggle-${name}`).setAttribute("aria-expanded","false");}
   if(except!=="inspector"){state.inspectorOpen=false;document.querySelector("#toggle-inspector").setAttribute("aria-expanded","false");}
 }
-function select(identity){closeSubordinateSurfaces("inspector");state.inspectorOpen=true;return dispatchInteraction({kind:"select",subject:identity});}
+function select(identity){closeSubordinateSurfaces("inspector");state.inspectorOpen=true;return state.snapshot.navigation?dispatchNavigation({kind:"focus",subject:identity}):dispatchInteraction({kind:"select",subject:identity});}
 function dispatchSemanticAction(action,presentationBasis=currentPresentationBasis()){return dispatchInteraction({kind:"invoke",action_id:action.identity},presentationBasis);}
 
 async function openSeed(identity){
@@ -97,7 +106,7 @@ async function openSeed(identity){
 }
 
 function renderSeedPalette(){
-  const list=document.querySelector("#seed-results"),query=state.seedQuery.trim().toLocaleLowerCase(),all=subjects("Seed");
+  const list=document.querySelector("#seed-results"),query=state.seedQuery.trim().toLocaleLowerCase(),all=projectedSubjects("Seed");
   const visible=all.filter(subject=>[subject.label,subject.accessibility_name,...texts(subject.identity)].join(" ").toLocaleLowerCase().includes(query));
   list.replaceChildren();
   for(const subject of visible){
@@ -161,29 +170,35 @@ function renderParts(){
 function shortId(value){return value&&value!=="unsupported"?`${value.slice(0,10)}…`:"not present";}
 function renderStructuredNavigator(){
   const list=document.querySelector("#structured-navigator ul"),focused=document.activeElement?.dataset?.subject;list.replaceChildren();
-  for(const subject of state.snapshot.presentation.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed",String(subject.identity===state.selected));button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}
+  for(const subject of state.projected.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed",String(subject.identity===state.selected));button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}
   if(focused)list.querySelector(`[data-subject="${CSS.escape(focused)}"]`)?.focus();
 }
-function selectLens(lens){closeSubordinateSurfaces("inspector");state.lens=lens;document.body.dataset.lens=lens;document.querySelector("#lens-label").textContent=`${lens.toUpperCase()} LENS`;document.querySelectorAll("[data-lens]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.lens===lens)));renderFlow(state.snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens});displaySelection(state.selected);}
+function renderNavigationControls(){
+  const bundle=state.snapshot.navigation;if(!bundle)return;
+  const cursor=bundle.cursor,places=document.querySelector("#place-controls"),aspects=document.querySelector("#aspect-controls"),current=bundle.navigation.places.find(place=>place.place===cursor.place);places.replaceChildren();aspects.replaceChildren();
+  for(const place of bundle.navigation.places){const button=document.createElement("button");button.type="button";button.textContent=place.label;button.dataset.place=place.place;button.setAttribute("aria-pressed",String(place.place===cursor.place));button.onclick=()=>dispatchNavigation({kind:"enter",place:place.place});places.append(button);}
+  for(const aspect of current.aspects){const button=document.createElement("button");button.type="button";button.textContent=aspect.aspect;button.dataset.aspect=aspect.aspect;button.setAttribute("aria-pressed",String(aspect.aspect===cursor.aspect));button.onclick=()=>dispatchNavigation({kind:"show",aspect:aspect.aspect});aspects.append(button);}
+}
+function selectLens(lens){const aspect=({world:"Structure",form:"Structure",plan:"Plan",play:"Play",signs:"Signs"})[lens];return state.snapshot.navigation?dispatchNavigation({kind:"show",aspect}):Promise.resolve();}
 
 function fillLines(selector,items){const list=document.querySelector(selector);list.replaceChildren();for(const value of items){const li=document.createElement("li");li.textContent=value;list.append(li);}}
 function renderCards(){const cards=document.querySelector("#route-cards");cards.replaceChildren();for(const route of subjects("Route")){const article=document.createElement("article"),heading=document.createElement("h3");article.className="route-card";heading.textContent=`Route ${route.label}`;article.append(heading);for(const line of texts(route.identity)){const p=document.createElement("p");p.textContent=line;article.append(p);}const children=state.snapshot.presentation.relationships.filter(item=>item.source===route.identity&&item.kind==="Contains").map(item=>item.target);const ul=document.createElement("ul");for(const identity of children){const candidate=state.snapshot.presentation.subjects.find(item=>item.identity===identity);if(!candidate)continue;const li=document.createElement("li");li.textContent=[candidate.label,...properties(identity).map(item=>`${item.name}=${propertyText(item.value)}`)].join(" · ");ul.append(li);}article.append(ul);cards.append(article);}}
 
 function render(snapshot){
-  const entering=state.snapshot===null;if(entering)state.lens=({World:"world",Intent:"form",Realization:"plan"})[snapshot.entrance.layer]??state.lens;state.snapshot=snapshot;const p=snapshot.presentation,b=p.basis,renderer=snapshot.renderer,manifestation=renderer.manifestation;
+  const entering=state.snapshot===null;state.snapshot=snapshot;state.projected=projectCurrent(snapshot);const p=snapshot.presentation,b=p.basis,renderer=snapshot.renderer,manifestation=renderer.manifestation,cursor=snapshot.navigation?.cursor;if(entering&&!cursor)state.lens=({World:"world",Intent:"form",Realization:"plan"})[snapshot.entrance.layer]??state.lens;if(cursor)state.lens=lensForCursor(cursor);document.body.dataset.lens=state.lens;document.body.dataset.place=cursor?.place??"Canonical";document.body.dataset.aspect=cursor?.aspect??"Canonical";document.body.dataset.depth=cursor?.depth??"Canonical";
   document.body.dataset.embodied=String(b.body_id!==null);
-  const unbodied=b.body_id===null;document.querySelector("#toggle-palette").textContent=unbodied?"Seeds":"Navigate";document.querySelector("#palette-title").textContent=unbodied?"Seeds":"Navigate";document.querySelector("#seed-palette").hidden=!unbodied;document.querySelector("#structure-title").textContent=unbodied?"World context":"Program structure";
+  const unbodied=b.body_id===null,atEntrance=cursor?.place==="Entrance";document.querySelector("#toggle-palette").textContent=atEntrance?"Seeds":"Navigate";document.querySelector("#palette-title").textContent=atEntrance?"Seeds":"Navigate";document.querySelector("#seed-palette").hidden=!atEntrance;document.querySelector("#structure-title").textContent=cursor?`${cursor.place} ${cursor.aspect}`:(unbodied?"World context":"Program structure");renderNavigationControls();document.querySelector("#lens-label").textContent=cursor?`${cursor.place.toUpperCase()} · ${cursor.aspect.toUpperCase()}`:`${state.lens.toUpperCase()} LENS`;document.querySelector("#canvas-title").textContent=cursor?.place==="Entrance"?"Entrance choices":cursor?.place==="Body"?"Body topology":"Program structure";
   document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · read-only`;
   document.querySelector("#run-summary").textContent=`Manifestation ${manifestation.lifecycle} · ${b.plan_id===null?"not planned":"Plan ready"} · ${b.active_play_id===null?"not playing":"Play active"}`;
-  document.querySelector("#canvas-title").textContent=b.body_id===null?"Host and Body possibilities":"Live Body topology";document.querySelector("#plan-form").disabled=b.body_id===null||b.plan_id!==null;document.querySelector("#play-plan").disabled=b.body_id===null||b.plan_id===null||b.active_play_id!==null;
+  document.querySelector("#plan-form").disabled=b.body_id===null||b.plan_id!==null;document.querySelector("#play-plan").disabled=b.body_id===null||b.plan_id===null||b.active_play_id!==null;
   const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Seed",b.seed_id);term(facts,"Body",b.body_id);term(facts,"Wake",b.wake_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
-  const list=document.querySelector("#subjects"),navigationSubjects=unbodied?p.subjects.filter(subject=>["Host","Body"].includes(subject.role)):p.subjects;list.replaceChildren();for(const subject of navigationSubjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderSeedPalette();renderParts();renderFlow(snapshot,{onSelect:select,onClear:()=>dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
+  const list=document.querySelector("#subjects"),navigationSubjects=state.projected.subjects;list.replaceChildren();for(const subject of navigationSubjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderSeedPalette();renderParts();renderFlow(snapshot,{onSelect:select,onClear:()=>snapshot.navigation?dispatchNavigation({kind:"focus",subject:snapshot.navigation.navigation.places.find(place=>place.place===cursor.place).root_subject}):dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
   const placements=renderer.plan.fragments.flatMap(fragment=>fragment.placements);const placement=placements.find(item=>item.placement_id===manifestation.placement_id);const connections=[...new Map(renderer.plan.fragments.flatMap(fragment=>fragment.connections).map(connection=>[connection.connection_id,connection])).values()];
   const plan=document.querySelector("#plan dl");plan.replaceChildren();term(plan,"Expanded Form",b.expanded_form_id);term(plan,"Source Plan",b.plan_id);term(plan,"Renderer Face",placement?.kind_id);term(plan,"Renderer Plan",manifestation.plan_id);term(plan,"Renderer Play",manifestation.active_play_id);term(plan,"Manifestation",manifestation.manifestation_id);term(plan,"Lifecycle",manifestation.lifecycle);term(plan,"Placement",placement?.placement_id);term(plan,"Host",placement?.host_id);term(plan,"Boot",placement?.boot_id);term(plan,"Implementation",placement?.implementation_id);term(plan,"Artifact",placement?.artifact_id);term(plan,"Execution profile",placement?.execution_profile_id);term(plan,"Offer generation",placement?.offer_generation);term(plan,"Limits",placement?`active=${placement.limits.max_active_instances} queue-items=${placement.limits.max_queue_items} queue-bytes=${placement.limits.max_queue_bytes}`:undefined);fillLines("#realizations",[...placements.flatMap(item=>[`${item.gear_id} · host ${item.host_id} · boot ${item.boot_id} · implementation ${item.implementation_id} · artifact ${item.artifact_id}`,...item.inputs.concat(item.outputs).map(port=>`Port ${port.port_id} · ${port.direction} · Info ${port.value_kind} · ${port.temporal}`),...item.resources.map(resource=>`Resource ${resource.pool_id} · class ${resource.class_id} · units ${resource.units}`),...item.host_operations.map(operation=>`Base ${operation.contract_id} · target ${operation.target_kind??"not present"} · in-flight ${operation.maximum_in_flight} · input-bytes ${operation.maximum_input_bytes} · output-bytes ${operation.maximum_output_bytes}`)]),...connections.map(connection=>{const line=connection.selected_line,binding=line?.binding;return `Cord ${connection.connection_id} · ${connection.source_port_id} -> ${connection.sink_port_id} · Info ${connection.value_kind} · Line ${line?.line_id??"not present"} · base ${bases.get(binding?.base)??"not present"} · binding ${binding?.binding_id??"not present"} · base-instance ${binding?.base_instance_id??"not present"}`;})]);
   const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#sign",[...subjects("Sign").map(subject=>subject.label),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);
   const interaction=document.querySelector("#interaction-proof");interaction.replaceChildren();term(interaction,"Interaction revision",snapshot.interaction.revision);term(interaction,"Request",snapshot.interaction.last_request_id);term(interaction,"Disposition",snapshot.interaction.last_disposition);term(interaction,"Interaction Plan",snapshot.interaction.interaction_plan_id);term(interaction,"Interaction Play",snapshot.interaction.interaction_play_id);
   const diagnosticLines=subjects("Diagnostic").flatMap(subject=>texts(subject.identity));
-  fillLines("#diagnostics ol",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();fillLines("#topology ul",subjects().filter(subject=>["Seed","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.accessibility_name}`,...texts(subject.identity)]));fillLines("#linear ol",p.text.map(item=>item.text));displaySelection(snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);
+  fillLines("#diagnostics ol",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();fillLines("#topology ul",subjects().filter(subject=>["Seed","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.accessibility_name}`,...texts(subject.identity)]));fillLines("#linear ol",state.projected.text.map(item=>item.text));displaySelection(cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);
 }
 
 async function load(){try{const response=await fetch("/api/snapshot",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){document.querySelector("#status").textContent=state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`;}}
@@ -196,12 +211,12 @@ async function joinCurrentBody(){
   if(!wasm.ok)throw new Error(`browser Host runtime HTTP ${wasm.status}`);
   window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:await wasm.arrayBuffer(),onState:()=>load()});
 }
-document.body.dataset.lens=state.lens;document.querySelectorAll("[data-lens]").forEach(button=>button.onclick=()=>selectLens(button.dataset.lens));load().then(()=>joinCurrentBody()).catch(error=>{document.querySelector("#status").textContent=`Browser Host admission unavailable: ${error.message}`;});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
+document.body.dataset.lens=state.lens;load().then(()=>joinCurrentBody()).catch(error=>{document.querySelector("#status").textContent=`Browser Host admission unavailable: ${error.message}`;});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;
 document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);
 document.querySelector("#plan-form").onclick=()=>dispatchFrontDoorAction("Plan");document.querySelector("#play-plan").onclick=()=>dispatchFrontDoorAction("Play");
-document.querySelector("#clear-selection").onclick=()=>dispatchInteraction({kind:"clear"});
+document.querySelector("#clear-selection").onclick=()=>{const navigation=state.snapshot.navigation,current=navigation?.navigation.places.find(place=>place.place===navigation.cursor.place);return navigation?dispatchNavigation({kind:"focus",subject:current.root_subject}):dispatchInteraction({kind:"clear"});};
 document.querySelector("#seed-query").oninput=event=>{state.seedQuery=event.currentTarget.value;renderSeedPalette();};document.querySelector("#seed-query").addEventListener("keydown",moveSeedFocus);document.querySelector("#seed-results").addEventListener("keydown",moveSeedFocus);
 const furnitureSurface={palette:"palette",parts:"parts",truth:"deep-inspection",structured:"structured-navigator",inspector:"inspector"};
 function focusSurface(name){const surface=document.querySelector(`#${furnitureSurface[name]}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}

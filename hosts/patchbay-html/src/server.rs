@@ -9,6 +9,7 @@ use std::time::Duration;
 mod browser_membership;
 mod front_door;
 mod interaction;
+mod navigation;
 mod parts;
 mod theme;
 mod transition;
@@ -24,6 +25,7 @@ const FLOW_SCENE_SCRIPT: &[u8] = include_bytes!("../assets/flow-scene.js");
 const FLOW_LAYOUT_SCRIPT: &[u8] = include_bytes!("../assets/flow-layout.js");
 const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js");
 const PANEL_FURNITURE_SCRIPT: &[u8] = include_bytes!("../assets/panel-furniture.js");
+const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-navigation.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
 const BODY_WEBRTC_SESSIONS_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-sessions.mjs");
 const BODY_WEBRTC_SESSION_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-session.mjs");
@@ -97,6 +99,7 @@ pub struct PatchbayHtmlServer {
     encoded_snapshot: Vec<u8>,
     theme_css: Vec<u8>,
     interaction: PatchbayInteraction,
+    navigation: Option<conduit_presentation::NavigationState>,
     front_door: Option<std::sync::Arc<std::sync::Mutex<patchbay_model::LocalFrontDoor>>>,
     zero_body_front_door:
         Option<std::sync::Arc<std::sync::Mutex<patchbay_model::ZeroBodyFrontDoor>>>,
@@ -113,6 +116,7 @@ impl PatchbayHtmlServer {
         let mut snapshot = snapshot.clone();
         snapshot.mark_available(SignId::from("patchbay-html/document-ready"))?;
         let encoded_snapshot = snapshot.encode()?;
+        let navigation = navigation_state(&snapshot)?;
         let theme_css = render_theme_css(&PHOSPHOR_THEME);
         if theme_css.len() > MAX_THEME_CSS_BYTES {
             return Err(ServerError::ThemeCssTooLarge);
@@ -126,6 +130,7 @@ impl PatchbayHtmlServer {
                 conduit_core::HostId::from("patchbay-html/interaction-host"),
                 conduit_core::BootId::from("patchbay-html/interaction-boot"),
             ),
+            navigation,
             front_door: None,
             zero_body_front_door: None,
             body_admission: None,
@@ -259,6 +264,26 @@ impl PatchbayHtmlServer {
                 &body,
             );
         }
+        if first == "POST /api/navigation HTTP/1.1" {
+            let body = match self.apply_navigation(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid navigation request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
         if first == "GET /api/snapshot HTTP/1.1"
             && (self.front_door.is_some() || self.zero_body_front_door.is_some())
         {
@@ -289,6 +314,11 @@ impl PatchbayHtmlServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 PANEL_FURNITURE_SCRIPT,
+            ),
+            "GET /assets/portable-navigation.js HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                PORTABLE_NAVIGATION_SCRIPT,
             ),
             "GET /assets/react.min.js HTTP/1.1" => {
                 ("200 OK", "text/javascript; charset=utf-8", REACT)
@@ -369,6 +399,23 @@ impl PatchbayHtmlServer {
         };
         write_response(&mut stream, status, content_type, body)
     }
+}
+
+fn navigation_state(
+    snapshot: &RendererSnapshot,
+) -> Result<Option<conduit_presentation::NavigationState>, ServerError> {
+    snapshot
+        .navigation
+        .as_ref()
+        .map(|navigation| {
+            conduit_presentation::NavigationState::new(
+                &navigation.navigation,
+                navigation.cursor.clone(),
+                conduit_presentation::MAX_NAVIGATION_HISTORY,
+            )
+            .map_err(|error| ServerError::Interaction(format!("{error:?}")))
+        })
+        .transpose()
 }
 
 fn write_response(

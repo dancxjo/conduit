@@ -16,6 +16,7 @@ pub(crate) fn snapshot_for_zero_body_front_door(
     session: &ZeroBodyFrontDoor,
 ) -> Result<RendererSnapshot, String> {
     let projection = session.project()?;
+    let navigation = projection.navigation;
     let execution = RendererExecution::prepare(
         projection.presentation,
         RendererAdapterKind::HtmlDomSvg,
@@ -27,13 +28,19 @@ pub(crate) fn snapshot_for_zero_body_front_door(
         SignId::from("patchbay-html/front-door/prepared"),
     )
     .map_err(|error| error.to_string())?;
-    RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())
+    let mut snapshot =
+        RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
+    snapshot
+        .attach_navigation(navigation)
+        .map_err(|error| error.to_string())?;
+    Ok(snapshot)
 }
 
 pub(crate) fn snapshot_for_front_door(
     session: &LocalFrontDoor,
 ) -> Result<RendererSnapshot, String> {
     let projection = session.project()?;
+    let navigation = projection.navigation;
     let execution = RendererExecution::prepare(
         projection.presentation,
         RendererAdapterKind::HtmlDomSvg,
@@ -49,6 +56,9 @@ pub(crate) fn snapshot_for_front_door(
         RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
     snapshot
         .attach_parts(projection.parts)
+        .map_err(|error| error.to_string())?;
+    snapshot
+        .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
     Ok(snapshot)
 }

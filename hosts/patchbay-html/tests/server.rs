@@ -67,10 +67,13 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     assert!(index.contains("Cache-Control: no-store"));
     assert!(index.contains("X-Content-Type-Options: nosniff"));
     assert!(index.contains("Content-Security-Policy: default-src 'self'"));
-    assert!(index.contains("Host and Body possibilities"));
+    assert!(index.contains("Entrance choices"));
     assert!(index.contains("Here and membership"));
     assert!(index.contains("Wants to join"));
     assert!(index.contains("Exact truth and accessibility"));
+    let navigation = request("/assets/portable-navigation.js", "GET");
+    assert!(navigation.starts_with("HTTP/1.1 200 OK"));
+    assert!(navigation.contains("projectCurrent"));
 
     let response = request("/api/snapshot", "GET");
     let body = response.split("\r\n\r\n").nth(1).unwrap();

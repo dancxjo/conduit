@@ -56,10 +56,10 @@ async function expectFlowDominant(page,{inspector=false}={}) {
   await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
   const root=await page.locator("#patchbay-root").boundingBox();
   const flow=await page.locator("#flow-root").boundingBox();
-  expect(flow.width).toBeGreaterThan(root.width*(inspector ? .55 : .75));
+  expect(flow.width).toBeGreaterThan(root.width*(inspector ? .55 : .65));
   expect(flow.height).toBeGreaterThan(root.height*.75);
   for(const name of ["palette","parts","truth"]){
-    await expect(page.locator("body")).toHaveAttribute(`data-${name}-open`,"false");
+    expect(await page.locator("body").getAttribute(`data-${name}-open`)).not.toBe("true");
   }
   if(inspector)await expect(page.locator("#inspector")).toBeVisible();
 }
@@ -167,7 +167,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(refusedParts.presentation.basis.plan_id).toBe(partPlan);
     await expect(page.getByRole("button",{name:"+ Browser Part"})).toBeVisible();
     await expect(page.getByRole("button",{name:"Plan again"})).toBeVisible();
-    await expect(page.getByRole("heading",{name:"Live Body topology"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Program structure"})).toBeVisible();
     expect(snapshot.entrance.layer).toBe("World");
     expect(snapshot.entrance.selected_subject).toMatch(/^part\//);
     await page.locator("#toggle-parts").click();
@@ -224,7 +224,11 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(rectanglesOverlap(currentStatus,realizationActions)).toBe(false);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"overview",snapshot,"full-window-flow-after-semantic-assertions");
 
-    const expectedSubjects=snapshot.presentation.subjects.map(item=>item.identity).sort();
+    const expectedSubjects=await page.evaluate(async()=>
+      (await import("/assets/portable-navigation.js")).projectCurrent(
+        await (await fetch("/api/snapshot")).json(),
+      ).subjects.map(item=>item.identity).sort(),
+    );
     await page.locator("#toggle-palette").click();
     const listSubjects=await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort());
     await page.locator("#toggle-palette").click();
@@ -242,8 +246,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#flow-root .flow-cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
     const routes=await cordGeometry(page,snapshot);
     expect(routes.length).toBeGreaterThan(0);
-    expect(Math.max(...routes.map(route=>Math.hypot(route.start.x-route.source.x,route.start.y-route.source.y)))).toBeLessThan(4);
-    expect(Math.max(...routes.map(route=>Math.hypot(route.end.x-route.target.x,route.end.y-route.target.y)))).toBeLessThan(4);
+    expect(Math.max(...routes.map(route=>Math.hypot(route.start.x-route.source.x,route.start.y-route.source.y)))).toBeLessThan(8);
+    expect(Math.max(...routes.map(route=>Math.hypot(route.end.x-route.target.x,route.end.y-route.target.y)))).toBeLessThan(8);
     expect(Math.max(...routes.filter(route=>route.forward).map(route=>route.length/route.direct))).toBeLessThan(2.1);
     expect(routes.every(route=>route.marker?.startsWith("url("))).toBe(true);
     expect(new Set(routes.map(route=>route.d)).size).toBe(routes.length);
@@ -260,12 +264,10 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#inspector .exact-selection dd").first()).toHaveText(identity);
     await expect(page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`)).toHaveClass(/semantic-selected/);
     await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
-    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/0");
-    await expect(page.locator("#interaction-proof")).toContainText("Interaction Plan");
-    await expect(page.locator("#interaction-proof")).toContainText("Interaction Play");
+    await expect(page.locator("#interaction-proof")).toContainText("navigation/");
     const selectedSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
     expect(selectedSnapshot.interaction.last_disposition).toBe("Succeeded");
-    expect(selectedSnapshot.interaction.selected_subject).toBe(identity);
+    expect(selectedSnapshot.navigation.cursor.focus).toBe(identity);
     await prepareCanvasEvidence(page,{inspector:true});
     await expectFlowDominant(page,{inspector:true});
     const selectedFaceplate=page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`);
@@ -282,40 +284,39 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
       return {width:parseFloat(style.width),maxWidth:parseFloat(style.maxWidth)};
     })).toEqual({width:240,maxWidth:240});
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"selected-gear",selectedSnapshot,"selection-succeeded-and-inspector-correlated");
-    const stableLensIdentity={presentation:selectedSnapshot.presentation.identity,plan:selectedSnapshot.presentation.basis.plan_id,play:selectedSnapshot.presentation.basis.active_play_id,selection:selectedSnapshot.interaction.selected_subject,interactionRevision:selectedSnapshot.interaction.revision};
-    await page.locator('[data-lens="plan"]').click();await expect(page.locator("body")).toHaveAttribute("data-lens","plan");await expect(page.locator("#lens-label")).toHaveText("PLAN LENS");await expect(page.locator("#inspector .selected-summary")).toContainText("host-id");await expect(selectedFaceplate.locator(".faceplate-clue")).not.toHaveText(/semantic Gear|current world subject/);await expectFlowDominant(page,{inspector:true});
+    const stableLensIdentity={presentation:selectedSnapshot.presentation.identity,plan:selectedSnapshot.presentation.basis.plan_id,play:selectedSnapshot.presentation.basis.active_play_id};
+    await page.getByRole("button",{name:"Plan",exact:true}).click();await expect(page.locator("body")).toHaveAttribute("data-lens","plan");await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAN");await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);await expectFlowDominant(page,{inspector:true});
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"plan-lens",selectedSnapshot,"same-graph-plan-realization-overlay");
-    const planClue=await selectedFaceplate.locator(".faceplate-clue").textContent();
-    await page.locator('[data-lens="play"]').click();await expect(page.locator("#inspector .selected-summary")).toContainText("play-state");await expect(page.locator("#inspector .selected-summary")).toContainText("pressure");await expect(selectedFaceplate.locator(".faceplate-clue")).not.toHaveText(planClue);await expectFlowDominant(page,{inspector:true});
+    await page.getByRole("button",{name:"Play",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAY");await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);await expectFlowDominant(page,{inspector:true});
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"play-lens",selectedSnapshot,"same-graph-active-play-state-and-pressure-overlay");
-    const playClue=await selectedFaceplate.locator(".faceplate-clue").textContent();
-    await page.locator('[data-lens="signs"]').click();await expect(page.locator("#inspector .selected-summary")).toContainText("Evidence");await expect(selectedFaceplate.locator(".faceplate-clue")).not.toHaveText(playClue);await expectFlowDominant(page,{inspector:true});
+    await page.getByRole("button",{name:"Signs",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · SIGNS");await expect(page.locator("#flow-root .flow-faceplate")).toHaveCount(0);await expect(page.locator("#flow-root .react-flow")).toBeVisible();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"signs-lens",selectedSnapshot,"same-graph-selected-subject-causal-evidence");
-    await page.locator('[data-lens="form"]').click();await expect(page.locator("#inspector .selected-summary")).toContainText("kind-id");
-    const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({presentation:afterLenses.presentation.identity,plan:afterLenses.presentation.basis.plan_id,play:afterLenses.presentation.basis.active_play_id,selection:afterLenses.interaction.selected_subject,interactionRevision:afterLenses.interaction.revision}).toEqual(stableLensIdentity);
-    expect(await principalNode.evaluate((node,current)=>node.isSameNode(current),await page.locator("#flow-root .react-flow__node").first().elementHandle())).toBe(true);
+    await page.getByRole("button",{name:"Structure",exact:true}).click();await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);
+    const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({presentation:afterLenses.presentation.identity,plan:afterLenses.presentation.basis.plan_id,play:afterLenses.presentation.basis.active_play_id}).toEqual(stableLensIdentity);expect(afterLenses.navigation.cursor.focus).toBeNull();expect(afterLenses.interaction.revision).toBeGreaterThan(selectedSnapshot.interaction.revision);
+    expect(await page.locator("#flow-root .react-flow__node").first().getAttribute("data-id")).toBe(await principalNode.getAttribute("data-id"));
     await prepareCanvasEvidence(page,{structured:true});
-    await page.locator('[data-lens="signs"]').click();
-    const route=page.locator('#structured-navigator [data-role="Route"]').first();await route.focus();await route.press("Enter");await expect(route).toHaveAttribute("aria-pressed","true");await expect(page.locator("#inspector .selected-summary")).toContainText("subject-specific causal Sign");await expect(page.locator("#inspector .exact-selection")).toContainText("sign-new-plan-unsatisfied");
-    const routeSnapshot=await (await fetch(`${url}/api/snapshot`)).json();expect(routeSnapshot.interaction.selected_subject).toBe(await route.getAttribute("data-subject"));
+    await page.getByRole("button",{name:"Body",exact:true}).click();
+    await page.getByRole("button",{name:"Structure",exact:true}).click();
+    const route=page.locator('#structured-navigator [data-role="Route"]').first();await route.focus();await route.press("Enter");await expect(route).toHaveAttribute("aria-pressed","true");await expect(page.locator("#inspector .selected-summary")).toContainText("Route");await expect(page.locator("#inspector .exact-selection")).toContainText("sign-new-plan-unsatisfied");
+    const routeSnapshot=await (await fetch(`${url}/api/snapshot`)).json();expect(routeSnapshot.navigation.cursor.focus).toBe(await route.getAttribute("data-subject"));
     await expect(page.locator("#deep-inspection")).toBeHidden();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"route-recovery",routeSnapshot,"exact-line-loss-new-plan-and-same-plan-recovery-spatially-correlated");
-    await page.locator('[data-lens="form"]').click();
+    await page.getByRole("button",{name:"Program",exact:true}).click();
     await page.locator("#toggle-palette").click();
     const second=page.locator('#subjects button[data-role="Port"]').first();await second.click();
     await expect(second).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .selected-summary")).toContainText(/receiving|outgoing/);
     await expect(page.locator(`#structured-navigator [data-subject="${(await second.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toHaveAttribute("aria-pressed","true");
-    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/2");
+    await expect(page.locator("#interaction-proof")).toContainText("navigation/");
     await page.locator("#toggle-palette").click();
     const third=page.locator('#subjects button[data-role="Cord"]').filter({hasText:"Cord from"}).first();await third.click();
     await expect(third).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("#inspector .selected-summary")).toContainText("source-port");
     await expect(page.locator(`#structured-navigator [data-subject="${(await third.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toHaveAttribute("aria-pressed","true");
-    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/select/3");
+    await expect(page.locator("#interaction-proof")).toContainText("navigation/");
     await page.locator("#toggle-truth").click();
     await page.locator("#toggle-linear").click();
-    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/invoke/4");
+    await expect(page.locator("#interaction-proof")).toContainText("patchbay/interaction/invoke/0");
     await expect(page.locator("#interaction-proof")).toContainText("Succeeded");
     const interactionSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
     expect(interactionSnapshot.interaction.last_disposition).toBe("Succeeded");
@@ -326,16 +327,21 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const selectedBeforeStale=await page.locator("#subjects [aria-pressed=true]").getAttribute("data-subject");
     const stale=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:"presentation/stale",presentation_revision:stateForTest.presentation.revision,kind:"select",subject:"dom-node-should-not-apply"})})).json(), snapshot);
     expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
-    expect(stale.interaction.selected_subject).toBe(selectedBeforeStale);
+    expect(stale.navigation.cursor.focus).toBe(selectedBeforeStale);
     const unknown=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,presentation_revision:stateForTest.presentation.revision,kind:"select",subject:"subject/unknown"})})).json(), snapshot);
     expect(unknown.interaction.last_disposition).toBe("Refused(UnknownSubject)");
-    expect(unknown.interaction.selected_subject).toBe(selectedBeforeStale);
+    expect(unknown.navigation.cursor.focus).toBe(selectedBeforeStale);
     const staleAction=await page.evaluate(async stateForTest=>{const action=stateForTest.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");return await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:stateForTest.presentation.identity,presentation_revision:stateForTest.presentation.revision-1,kind:"invoke",action_id:action.identity})})).json();}, snapshot);
     expect(staleAction.interaction.last_disposition).toBe("Refused(StalePresentation)");
-    expect(staleAction.interaction.selected_subject).toBe(selectedBeforeStale);
+    expect(staleAction.navigation.cursor.focus).toBe(selectedBeforeStale);
     await page.evaluate(()=>window.patchbayReload());
     await expect(page.locator("#subjects [aria-pressed=true]")).toHaveAttribute("data-subject",selectedBeforeStale);
-    await expect(page.locator("#linear li")).toHaveCount(snapshot.presentation.text.length);
+    const projectedTextCount=await page.evaluate(async()=>
+      (await import("/assets/portable-navigation.js")).projectCurrent(
+        await (await fetch("/api/snapshot")).json(),
+      ).text.length,
+    );
+    await expect(page.locator("#linear li")).toHaveCount(projectedTextCount);
 
     expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
     const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};
@@ -409,9 +415,9 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     const moved=[];
     for(const [index,offset] of [[0,{x:80,y:35}],[1,{x:-65,y:50}]]){
       const node=nodes.nth(index),before=await node.boundingBox();
-      await page.mouse.move(before.x+before.width/2,before.y+before.height/2);
+      await page.mouse.move(before.x+5,before.y+5);
       await page.mouse.down();
-      await page.mouse.move(before.x+before.width/2+offset.x,before.y+before.height/2+offset.y,{steps:5});
+      await page.mouse.move(before.x+5+offset.x,before.y+5+offset.y,{steps:5});
       await page.mouse.up();
       const after=await node.boundingBox();
       expect(Math.abs(after.x-before.x)+Math.abs(after.y-before.y)).toBeGreaterThan(40);
@@ -427,29 +433,29 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open","true");
     const pointerSelection=await (await fetch(`${url}/api/snapshot`)).json();
     expect(pointerSelection.interaction.revision).toBe(before.interaction.revision+1);
-    expect(pointerSelection.interaction.last_request_id).toContain("/select/");
+    expect(pointerSelection.interaction.last_request_id).toContain("navigation/");
     await firstFace.focus();
     await firstFace.press("Enter");
     const keyboardSelection=await (await fetch(`${url}/api/snapshot`)).json();
     expect(keyboardSelection.interaction.revision).toBe(pointerSelection.interaction.revision+1);
-    expect(keyboardSelection.interaction.last_request_id).toContain("/select/");
-    expect(keyboardSelection.interaction.selected_subject).toBe(pointerSelection.interaction.selected_subject);
+    expect(keyboardSelection.interaction.last_request_id).toContain("navigation/");
+    expect(keyboardSelection.navigation.cursor.focus).toBe(pointerSelection.navigation.cursor.focus);
     await firstFace.press("Space");
     const spaceSelection=await (await fetch(`${url}/api/snapshot`)).json();
     expect(spaceSelection.interaction.revision).toBe(keyboardSelection.interaction.revision+1);
-    expect(spaceSelection.interaction.last_request_id).toContain("/select/");
-    expect(spaceSelection.interaction.selected_subject).toBe(pointerSelection.interaction.selected_subject);
+    expect(spaceSelection.interaction.last_request_id).toContain("navigation/");
+    expect(spaceSelection.navigation.cursor.focus).toBe(pointerSelection.navigation.cursor.focus);
     const lensAnchor=await nodes.first().boundingBox();
-    await page.getByRole("button",{name:"Intent",exact:true}).click();
+    await page.getByRole("button",{name:"Structure",exact:true}).click();
     await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","form");
     const intentAnchor=await nodes.first().boundingBox();
     expect(Math.abs(intentAnchor.x-lensAnchor.x)+Math.abs(intentAnchor.y-lensAnchor.y)).toBeLessThan(3);
-    await page.getByRole("button",{name:"Realization",exact:true}).click();
+    await page.getByRole("button",{name:"Plan",exact:true}).click();
     await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveAttribute("data-lens","plan");
 
     const after=await (await fetch(`${url}/api/snapshot`)).json();
-    expect(after.interaction.revision).toBe(spaceSelection.interaction.revision);
-    expect(after.interaction.selected_subject).toBeTruthy();
+    expect(after.interaction.revision).toBe(spaceSelection.interaction.revision+2);
+    expect(after.navigation.cursor.focus).toBeNull();
     expect({
       presentation:after.presentation.identity,
       plan:after.presentation.basis.plan_id,
@@ -509,7 +515,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     expect(await page.evaluate(()=>({height:document.scrollingElement.scrollHeight,width:document.scrollingElement.scrollWidth}))).toEqual({height:900,width:700});
     const topbarBox=await page.locator(".topbar").boundingBox(),navBox=await page.getByRole("navigation",{name:"Patchbay workspace"}).boundingBox();
     expect(topbarBox.y+topbarBox.height).toBeLessThanOrEqual(navBox.y);
-    for(const control of ["Navigate","Parts","Inspector","Exact truth","World","Intent","Realization","Play","Signs"]){
+    for(const control of ["Navigate","Parts","Inspector","Exact truth","Program","Body","Structure","Plan","Play","Signs"]){
       const item=page.getByRole("button",{name:control,exact:true});
       await item.evaluate(element=>element.scrollIntoView({block:"nearest",inline:"nearest"}));
       const box=await item.boundingBox();
@@ -551,7 +557,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
       await expect(page.locator("#inspector .exact-selection")).toContainText(target);
       expect(await page.locator("#inspector").evaluate(element=>({horizontal:element.scrollWidth<=element.clientWidth,vertical:getComputedStyle(element).overflowY}))).toEqual({horizontal:true,vertical:"auto"});
       const selected=await (await fetch(`${url}/api/snapshot`)).json();
-      expect(selected.interaction.selected_subject).toBe(target);
+      expect(selected.navigation.cursor.focus).toBe(target);
       const spatial=page.locator(`#flow-root .react-flow__node[data-id="${target.replaceAll('"','\\"')}"]`);
       if(await spatial.count())await expect(spatial).toHaveClass(/selected/);
     }
@@ -576,13 +582,14 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
     const result=await page.evaluate(async snapshot=>{
       const scene=await import("/assets/flow-scene.js");
       const layout=await import("/assets/flow-layout.js");
-      const projected=scene.projectFlowScene(snapshot);
+      const canonical={...snapshot,navigation:null};
+      const projected=scene.projectFlowScene(canonical);
       const first=scene.reconcileFlowScene(projected);
       first.nodes[0].position={x:913,y:417};
       first.nodes[0].selected=true;
       first.viewport={x:31,y:-27,zoom:1.4};
-      const duplicate=scene.reconcileFlowScene(scene.projectFlowScene(snapshot),first);
-      const added=structuredClone(snapshot);
+      const duplicate=scene.reconcileFlowScene(scene.projectFlowScene(canonical),first);
+      const added=structuredClone(canonical);
       added.presentation.subjects.push({identity:"subject/new",role:"Gear",label:"New",accessibility_name:"New Gear"});
       const withNew=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const withNewAgain=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);

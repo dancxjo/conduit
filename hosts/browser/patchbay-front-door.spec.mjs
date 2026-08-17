@@ -53,11 +53,12 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     ]));
 
     await page.goto(url);
-    await expect(page.getByRole("heading", { name: "Host and Body possibilities" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Entrance choices" })).toBeVisible();
+    await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
     await expect(page.locator("#status")).toContainText("Manifestation Available");
     expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
     expect(await page.locator("#subjects button").evaluateAll((buttons) =>
-      buttons.every((button) => ["Host", "Body"].includes(button.dataset.role)),
+      buttons.every((button) => !["Body", "Part", "Gear", "Port", "Cord", "Line"].includes(button.dataset.role)),
     )).toBe(true);
     const workspaceBox = await page.locator(".workspace").boundingBox();
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
@@ -74,13 +75,17 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     let resolveOpenSequence;
     const openSequence = new Promise((resolve) => { resolveOpenSequence = resolve; });
     page.on("response", (response) => {
-      if(response.url().endsWith("/api/interaction") && response.request().method() === "POST") {
+      if(["/api/navigation", "/api/interaction"].some(path => response.url().endsWith(path)) && response.request().method() === "POST") {
         openResponses.push(response);
         if(openResponses.length === 2) resolveOpenSequence();
       }
     });
     await Promise.all([openSequence, seedButton.press("Enter")]);
     expect(openResponses).toHaveLength(2);
+    expect(openResponses.map(response => new URL(response.url()).pathname).sort()).toEqual([
+      "/api/interaction",
+      "/api/navigation",
+    ]);
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "true");
     const birthButton = page.getByRole("button", { name: "BIRTH" });
     await expect(birthButton).toBeVisible();
@@ -91,11 +96,12 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       ({ intent, target }) => intent === "conduit.intent/open@1" && target === seed.identity,
     );
     const opened = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(opened.interaction.last_request_id).toMatch(/^patchbay\/interaction\/invoke\//);
+    expect(opened.interaction.last_request_id).toMatch(/^navigation\//);
     expect(opened.interaction.last_disposition).toBe("Succeeded");
     expect(openAction.identity).toMatch(/^action\/open\//);
     expect(opened.revision).toBe(initial.revision + 1);
     expect(opened.presentation.basis.body_id).toBeNull();
+    expect(opened.navigation.cursor.place).toBe("Program");
     expect(opened.parts).toBeUndefined();
     expect(opened.presentation.properties).toContainEqual(
       expect.objectContaining({ subject: seed.identity, name: "opened", value: { Flag: true } }),
@@ -132,9 +138,13 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(birthRequest.failure(), server.errors.join("")).toBeNull();
     expect(birthResponse, server.errors.join("")).not.toBeNull();
     expect(birthResponse.ok()).toBe(true);
-    await expect(page.getByRole("heading", { name: "Live Body topology" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Program structure" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Body", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Body", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Body topology" })).toBeVisible();
+    await page.getByRole("button", { name: "Program", exact: true }).click();
     const born = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(born.interaction.last_request_id).toMatch(/^patchbay\/interaction\/invoke\//);
+    expect(born.interaction.last_request_id).toMatch(/^navigation\//);
     expect(born.interaction.last_disposition).toBe("Succeeded");
     expect(born.presentation.basis.body_id).toBeTruthy();
     expect(born.presentation.basis.seed_id).toBeTruthy();
