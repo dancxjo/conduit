@@ -32,23 +32,26 @@ impl PhysicalBody {
         Ok(Self { pending, exact })
     }
 
-    pub(super) fn birth(&self) -> Result<Body, String> {
-        let (source, checked, sign) = self.exact.as_ref().map_or_else(
-            || {
+    pub(super) fn birth(
+        &self,
+        browser_basis: Option<(conduit_core::SourceDocumentId, conduit_core::CheckedFormId)>,
+    ) -> Result<Body, String> {
+        let (source, checked, sign) = match &self.exact {
+            Some(exact) => (
+                exact.plan.source_document_id.clone(),
+                exact.plan.checked_form_id.clone(),
+                SignId::from("r1/physical/body-born"),
+            ),
+            None => {
+                let (source, checked) = browser_basis
+                    .ok_or("canonical browser Form basis is required without a physical Plan")?;
                 (
-                    conduit_core::SourceDocumentId::from("source/browser-parts-capstone"),
-                    conduit_core::CheckedFormId::from("checked/browser-parts-capstone"),
+                    source,
+                    checked,
                     SignId::from("browser-parts-capstone/body-born"),
                 )
-            },
-            |exact| {
-                (
-                    exact.plan.source_document_id.clone(),
-                    exact.plan.checked_form_id.clone(),
-                    SignId::from("r1/physical/body-born"),
-                )
-            },
-        );
+            }
+        };
         Body::born(source, checked, 1, sign).map_err(|error| format!("Body birth: {error:?}"))
     }
 

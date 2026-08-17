@@ -14,6 +14,7 @@ pub(super) fn machine_receipt(
     active_plan: &Plan,
     replacement_plan: &Plan,
     physical_pico: bool,
+    navigation: Option<Value>,
 ) -> Result<String, String> {
     let parts = view
         .parts
@@ -51,6 +52,7 @@ pub(super) fn machine_receipt(
         "future_realization_possibilities": view.new_realization_possibilities,
         "physical_pico_admitted": physical_pico,
         "browser_parts": 3,
+        "cord_line_navigation": navigation,
         "declared_bounds": {
             "body_parts": conduit_body::MAX_BODY_PARTS,
             "membership_events": conduit_body::MAX_MEMBERSHIP_EVENTS,

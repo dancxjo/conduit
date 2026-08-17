@@ -21,6 +21,7 @@ mod cross_host_renderer;
 mod face_configuration;
 mod face_controls;
 mod form_editor;
+mod form_editor_catalogs;
 mod form_editor_error;
 mod form_edits;
 mod front_door;

@@ -296,6 +296,22 @@ test("one native Body presents three mixed browser Parts without mutating its Pl
   expect(receipt.active_plan_unchanged_by_join).toBe(true);
   expect(receipt.replacement_plan_distinct).toBe(true);
   expect(receipt.physical_pico_admitted).toBe(Boolean(picoPort));
+  if (!picoPort) {
+    const navigation = receipt.cord_line_navigation;
+    expect(navigation.schema).toBe("conduit.presentation/live-cord-line-navigation@1");
+    expect(navigation.plan_id).toBe(receipt.active_plan_id);
+    expect(navigation.cord_subject).not.toBe(navigation.line_subject);
+    expect(navigation.program_cursor.place).toBe("Program");
+    expect(navigation.program_cursor.aspect).toBe("Plan");
+    expect(navigation.program_cursor.focus).toBe(navigation.cord_subject);
+    expect(navigation.exact_line_cursor.place).toBe("Body");
+    expect(navigation.exact_line_cursor.aspect).toBe("Plan");
+    expect(navigation.exact_line_cursor.depth).toBe("Exact");
+    expect(navigation.exact_line_cursor.focus).toBe(navigation.line_subject);
+    expect(navigation.returned_cursor).toEqual(navigation.program_cursor);
+    expect(navigation.semantic_basis_preserved).toBe(true);
+    expect(navigation.play_claimed).toBe(false);
+  }
   console.log(JSON.stringify(receipt));
   const identities = await Promise.all([second, third].map((page) => page.evaluate(() => ({
     host: globalThis.__webchat.admissionCandidate.hostId,

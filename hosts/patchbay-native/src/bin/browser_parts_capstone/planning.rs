@@ -13,10 +13,31 @@ use conduit_planner::{
 
 const SOURCE: &str = include_str!("../../../../../examples/webchat.conduit");
 
+pub(super) struct CrossBrowserPlan {
+    pub(super) plan: conduit_core::Plan,
+    pub(super) line: conduit_core::LineOffer,
+}
+
+pub(super) fn cross_browser_form_basis(
+) -> Result<(conduit_core::SourceDocumentId, conduit_core::CheckedFormId), String> {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile)?;
+    conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
+    let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
+        .map_err(|error| format!("canonical webchat check: {error:?}"))?;
+    let form = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "webchat-browser-demo")
+        .ok_or("canonical webchat Form is absent")?;
+    Ok((checked.source_document_id, form.checked_form_id.clone()))
+}
+
 pub(super) fn cross_browser_plan(
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
-) -> Result<conduit_core::Plan, String> {
+) -> Result<CrossBrowserPlan, String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_net::install_external_websocket_catalogs(&mut startup, &mut profile)?;
@@ -74,7 +95,7 @@ pub(super) fn cross_browser_plan(
         (cross.source_gear_id.clone(), cross.sink_gear_id.clone()),
         vec![line.line_id.clone()],
     )]);
-    plan_expanded_canonical_with_options(
+    let plan = plan_expanded_canonical_with_options(
         &expanded,
         &[source.clone(), sink.clone()],
         &PlacementChoices { by_gear },
@@ -86,8 +107,9 @@ pub(super) fn cross_browser_plan(
             connection_byte_capacity: 1_024,
             authority_grants: &[],
             protected_resource_grants: &[],
-            line_offers: &[line],
+            line_offers: core::slice::from_ref(&line),
         },
     )
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string())?;
+    Ok(CrossBrowserPlan { plan, line })
 }
