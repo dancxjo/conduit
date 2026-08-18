@@ -12,6 +12,8 @@ use crate::{
 
 pub const MINIMUM_MOTION_TTL_MS: u32 = conduit_std_catalog::ROBOTICS_MINIMUM_MOTION_TTL_MS as u32;
 pub const MAXIMUM_MOTION_TTL_MS: u32 = conduit_std_catalog::ROBOTICS_MAXIMUM_MOTION_TTL_MS as u32;
+/// The admitted local motion clock is exactly one monotonic tick per millisecond.
+pub const MOTION_CLOCK_TICKS_PER_SECOND: u32 = 1_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalHazard {
@@ -24,6 +26,8 @@ pub enum LocalHazard {
     ControlLost,
     BodyLinkLost,
     WatchdogUnhealthy,
+    SafetyGenerationRegressed,
+    SafetyClockInvalid,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -44,6 +48,9 @@ pub struct SafetyObservation {
 
 impl SafetyObservation {
     pub fn first_hazard(self, now_tick: u64) -> Option<LocalHazard> {
+        if self.observed_at_tick > now_tick {
+            return Some(LocalHazard::SafetyClockInvalid);
+        }
         if now_tick.saturating_sub(self.observed_at_tick) > u64::from(self.maximum_age_ticks) {
             return Some(LocalHazard::BodyLinkLost);
         }
@@ -171,8 +178,12 @@ impl LocalCreateDriveSafety {
         {
             return Err(DriveRefusal::VelocityOutsideRealization);
         }
+        let ttl_ticks = u64::from(request.ttl_ms)
+            .checked_mul(u64::from(MOTION_CLOCK_TICKS_PER_SECOND))
+            .and_then(|ticks| ticks.checked_div(1_000))
+            .ok_or(DriveRefusal::DeadlineOverflow)?;
         let deadline_tick = now_tick
-            .checked_add(u64::from(request.ttl_ms))
+            .checked_add(ttl_ticks)
             .ok_or(DriveRefusal::DeadlineOverflow)?;
         if deadline_tick > authority.valid_until_tick {
             return Err(DriveRefusal::AuthorityExpired);
@@ -192,7 +203,11 @@ impl LocalCreateDriveSafety {
         now_tick: u64,
         safety: SafetyObservation,
     ) -> Option<DriveSafetySign<'static>> {
-        let cause = if let Some(hazard) = safety.first_hazard(now_tick) {
+        let cause = if safety.generation < self.safety_generation {
+            Some(SafeDispositionCause::Hazard(
+                LocalHazard::SafetyGenerationRegressed,
+            ))
+        } else if let Some(hazard) = safety.first_hazard(now_tick) {
             Some(SafeDispositionCause::Hazard(hazard))
         } else if self
             .active_authority_until_tick
@@ -378,5 +393,46 @@ mod tests {
                 safety_generation: 8
             })
         ));
+    }
+
+    #[test]
+    fn future_clock_and_regressed_safety_generation_fail_closed() {
+        let mut provider = Provider {
+            available: true,
+            bytes: vec![],
+        };
+        let mut drive = LocalCreateDriveSafety::new();
+        let request = DifferentialMotionRequest {
+            left_mm_s: 20,
+            right_mm_s: 20,
+            ttl_ms: 100,
+        };
+        let mut future = safe();
+        future.observed_at_tick = 101;
+        assert_eq!(
+            drive.admit_motion(&mut provider, 100, Some(authority()), future, request),
+            DriveSafetySign::Refused(DriveRefusal::SafetyStaleOrInhibited(
+                LocalHazard::SafetyClockInvalid
+            ))
+        );
+        assert!(provider.bytes.is_empty());
+
+        assert!(matches!(
+            drive.admit_motion(&mut provider, 100, Some(authority()), safe(), request),
+            DriveSafetySign::MotionAdmitted { .. }
+        ));
+        let regressed = SafetyObservation {
+            generation: 6,
+            observed_at_tick: 101,
+            ..safe()
+        };
+        assert!(matches!(
+            drive.supervise(&mut provider, 101, regressed),
+            Some(DriveSafetySign::SafeDisposition {
+                cause: SafeDispositionCause::Hazard(LocalHazard::SafetyGenerationRegressed),
+                ..
+            })
+        ));
+        assert_eq!(&provider.bytes[5..], &[145, 0, 0, 0, 0]);
     }
 }
