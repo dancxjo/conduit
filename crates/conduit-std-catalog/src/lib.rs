@@ -81,6 +81,10 @@ mod patchbay_presentation;
 pub use patchbay_presentation::*;
 mod robotics;
 pub use robotics::*;
+mod robotics_hazard;
+pub use robotics_hazard::*;
+mod robotics_input;
+pub use robotics_input::*;
 #[cfg(feature = "form-catalog")]
 mod robotics_catalog;
 #[cfg(feature = "form-catalog")]
@@ -150,6 +154,7 @@ pub enum TerminalBehavior {
     SimulatedCurrentObservationEmitsOnce,
     SimulatedDriveProjectionCompletesWhenInputsClose,
     HostInputEndsOrFailsSource,
+    HostObservationEndsOrFailsSource,
     EmitsInitialAndTogglesUntilInputCloses,
 }
 
@@ -157,6 +162,7 @@ pub enum TerminalBehavior {
 /// installed std implementation. This is discovery truth, not a Host offer.
 pub fn palette_contracts() -> Vec<StandardKindContract> {
     let mut contracts = supported_nucleus_contracts();
+    contracts.extend(robotics_hazard_contracts());
     contracts.push(keyboard_contract());
     contracts.extend(http_contracts());
     contracts
