@@ -13,29 +13,30 @@ use std::collections::BTreeMap;
 pub(super) fn exact_toggle_plan() -> Result<Plan, i32> {
     let source = distributed_toggle_std_source_advertisement();
     let sink = distributed_toggle_browser_sink_advertisement();
-    let form = conduit_form::parse(
-        include_str!("../../../../examples/remote-toggle.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../../fixtures/forms/remote-toggle.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .map_err(|_| ERROR_PREPARE)?;
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("trigger"),
+                GearId::from("remote-toggle/trigger"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("trigger-1"),
                 },
             ),
             (
-                GearId::from("toggle"),
+                GearId::from("remote-toggle/toggle"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-1"),
                 },
             ),
             (
-                GearId::from("show"),
+                GearId::from("remote-toggle/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-dom-show-1"),

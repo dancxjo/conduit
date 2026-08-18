@@ -76,7 +76,7 @@ pub(super) fn lower(manifest: &BuildManifest) -> Result<HttpInputs, ConduitosErr
         if let Some((missing, _)) = present.iter().find(|(_, found)| !found) {
             return Err(refusal(
                 "http-profile-prerequisite-missing",
-                format!("implementation:{IMPLEMENTATION} -> {missing}"),
+                format!("implementation:{IMPLEMENTATION} > {missing}"),
             ));
         }
     } else if let Some((leaked, _)) = present.iter().find(|(_, found)| *found) {

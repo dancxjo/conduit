@@ -428,16 +428,9 @@ The sink's meaning is stable even though the manifestation changes.
 One unchanged form must work with any valid placement:
 
 ```conduit
-form 0
-
-signal-demo {
-    pulse: flow/pulse
+form signal-demo {
+    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
     show: presentation/show
-
-    pulse.count = 16
-    pulse.period-ms = 250
-    pulse.initial = false
-
     pulse > show
 }
 ```
@@ -451,18 +444,11 @@ The form contains no platform facts.
 The decisive planning scope demonstration uses one source and three instances of the same sink kind:
 
 ```conduit
-form 0
-
-triple-signal {
-    pulse: flow/pulse
+form triple-signal {
+    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
     local: presentation/show
     web: presentation/show
     light: presentation/show
-
-    pulse.count = 16
-    pulse.period-ms = 250
-    pulse.initial = false
-
     pulse > local
     pulse > web
     pulse > light

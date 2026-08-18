@@ -55,7 +55,7 @@ pub(super) fn exact_binding(variant: u32) -> Result<SessionBinding, WireError> {
         source_port_id: PortId::from("out"),
         sink_placement_id: PlacementId::from("browser-webrtc/sink-placement"),
         sink_port_id: PortId::from("in"),
-        value_kind: KindId::from("conduit.test/bounded-bytes@1"),
+        value_kind: KindId::from("conduit-test/bounded-bytes@1"),
         temporal: PortTemporal::Value,
         selected_line: Some(line.clone()),
         admitted_lines: vec![line],
@@ -65,7 +65,7 @@ pub(super) fn exact_binding(variant: u32) -> Result<SessionBinding, WireError> {
     match variant {
         0 => {}
         1 => connection.connection_id = ConnectionId::from("browser-webrtc/wrong-connection"),
-        2 => connection.value_kind = KindId::from("conduit.test/wrong-value@1"),
+        2 => connection.value_kind = KindId::from("conduit-test/wrong-value@1"),
         3 => {
             let line = connection.selected_line.as_mut().expect("selected Line");
             line.binding.source.boot_id = BootId::from("browser-webrtc/stale-source-boot");

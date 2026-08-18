@@ -31,7 +31,7 @@ pub enum PlanningRequestAuthority {
     Delegated(AuthorityGrantId),
 }
 
-/// Minimum sign vocabulary for the observation -> planning -> realization
+/// Minimum sign vocabulary for the observation > planning > realization
 /// control loop. These records describe transitions; they do not perform link
 /// retries, invoke a planner, install a fragment, or issue authority.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

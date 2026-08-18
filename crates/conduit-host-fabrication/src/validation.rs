@@ -388,7 +388,7 @@ fn walk_node(
     }
     visiting.push(node.clone());
     paths.insert(
-        format!("{requester} -> {}", node_label(node)),
+        format!("{requester} > {}", node_label(node)),
         visiting.iter().map(node_label).collect(),
     );
     if !profile_satisfies(profile, node) {

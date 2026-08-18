@@ -11,7 +11,8 @@ use conduit_core::{
     TerminalDisposition, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    parse, CheckedForm, CheckedGear, CompositeFaceTerminal, KindDefinition, ProfileCatalog,
+    parse, parse_with_startup, CheckedForm, CheckedGear, CompositeFaceTerminal, KindDefinition,
+    ProfileCatalog,
 };
 use conduit_planner::{plan, plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_runtime::{
@@ -102,7 +103,7 @@ fn multi_catalog() -> ProfileCatalog {
 
 fn multi_internal_form() -> CheckedForm {
     parse(
-            "form 0\nmulti {\n number: test/number-echo\n bytes: test/bytes-echo\n export run: demonstration/multi-echo {\n  input control-in: value/number = number.in terminal independent\n  input data-in: value/bytes = bytes.in terminal independent\n  output control-out: value/number = number.out terminal independent\n  output data-out: value/bytes = bytes.out terminal independent\n }\n}\n",
+            "form demonstration/multi-echo (\n > control-in: value/number\n > data-in: value/bytes\n control-out: value/number >\n data-out: value/bytes >\n) {\n number: test/number-echo\n bytes: test/bytes-echo\n control-in > number.in\n data-in > bytes.in\n number.out > control-out\n bytes.out > data-out\n}\n",
             &multi_catalog(),
         )
         .expect("multi-face internal form checks")
@@ -250,14 +251,14 @@ fn multi_internal_plan() -> conduit_core::Plan {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("number"),
+                GearId::from("demonstration/multi-echo/number"),
                 PlacementChoice {
                     host_id: child.host_id.clone(),
                     capability_id: CapabilityId::from("number-echo"),
                 },
             ),
             (
-                GearId::from("bytes"),
+                GearId::from("demonstration/multi-echo/bytes"),
                 PlacementChoice {
                     host_id: child.host_id.clone(),
                     capability_id: CapabilityId::from("bytes-echo"),
@@ -373,7 +374,7 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
         .insert_export(&multi_internal_form(), &CapabilityId::from("run"))
         .expect("multi export installs in parent catalog");
     let form = parse(
-            "form 0\nparent {\n number-source: test/number-source\n bytes-source: test/bytes-source\n child: demonstration/multi-echo\n number-sink: test/number-sink\n bytes-sink: test/bytes-sink\n number-source.out -> child.control-in\n bytes-source.out -> child.data-in\n child.control-out -> number-sink.in\n child.data-out -> bytes-sink.in\n}\n",
+            "form parent {\n number-source: test/number-source\n bytes-source: test/bytes-source\n child: demonstration/multi-echo\n number-sink: test/number-sink\n bytes-sink: test/bytes-sink\n number-source.out > child.control-in\n bytes-source.out > child.data-in\n child.control-out > number-sink.in\n child.data-out > bytes-sink.in\n}\n",
             &catalog,
         )
         .expect("multi parent checks ordinary faces");
@@ -382,35 +383,35 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("number-source"),
+                GearId::from("parent/number-source"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("number-source"),
                 },
             ),
             (
-                GearId::from("bytes-source"),
+                GearId::from("parent/bytes-source"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("bytes-source"),
                 },
             ),
             (
-                GearId::from("child"),
+                GearId::from("parent/child"),
                 PlacementChoice {
                     host_id: composite.advertisement().host_id.clone(),
                     capability_id: CapabilityId::from("run"),
                 },
             ),
             (
-                GearId::from("number-sink"),
+                GearId::from("parent/number-sink"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("number-sink"),
                 },
             ),
             (
-                GearId::from("bytes-sink"),
+                GearId::from("parent/bytes-sink"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("bytes-sink"),
@@ -457,8 +458,9 @@ fn multi_parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragmen
 }
 
 fn authored_internal_form() -> conduit_form::CheckedForm {
-    parse(
-        include_str!("../../../examples/signal-composite.form"),
+    parse_with_startup(
+        include_str!("../../../fixtures/forms/signal-composite.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .expect("authored composite form parses")
@@ -545,14 +547,14 @@ fn internal_plan(item_capacity: u16, byte_capacity: u32) -> conduit_core::Plan {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("pulse"),
+                GearId::from("demonstration/run-signal/pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
                 },
             ),
             (
-                GearId::from("show"),
+                GearId::from("demonstration/run-signal/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
@@ -583,8 +585,9 @@ fn internal_plan(item_capacity: u16, byte_capacity: u32) -> conduit_core::Plan {
 }
 
 fn three_child_internal_plan() -> conduit_core::Plan {
-    let form = parse(
-            "form 0\n\ninternal {\n pulse: flow/pulse\n show: presentation/show\n auxiliary: flow/pulse\n pulse.count = 1\n pulse.period-ms = 0\n pulse.initial = false\n auxiliary.count = 0\n auxiliary.period-ms = 0\n auxiliary.initial = false\n pulse > show\n export run-signal: demonstration/run-signal {\n  input signal-in: value/signal = show.signal terminal independent\n  output signal: value/signal = pulse.signal terminal independent\n }\n}\n",
+    let form = parse_with_startup(
+            "form demonstration/run-signal (\n > signal-in: value/signal\n signal: value/signal >\n) {\n pulse: flow/pulse(count = 1, period-ms = 0, initial = false)\n show: presentation/show\n auxiliary: flow/pulse(count = 0, period-ms = 0, initial = false)\n pulse > show\n signal-in > show.signal\n pulse.signal > signal\n}\n",
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .expect("three-child internal form parses");
@@ -594,21 +597,21 @@ fn three_child_internal_plan() -> conduit_core::Plan {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("pulse"),
+                GearId::from("demonstration/run-signal/pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
                 },
             ),
             (
-                GearId::from("show"),
+                GearId::from("demonstration/run-signal/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
                 },
             ),
             (
-                GearId::from("auxiliary"),
+                GearId::from("demonstration/run-signal/auxiliary"),
                 PlacementChoice {
                     host_id: auxiliary.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
@@ -709,14 +712,14 @@ fn composite_definition(item_capacity: u16, byte_capacity: u32) -> CompositeDefi
 
 fn parent_fragment(composite: &CompositeHost) -> conduit_core::PlanFragment {
     let form = parse(
-        include_str!("../../../examples/composite-parent.form"),
+        include_str!("../../../fixtures/forms/composite-parent.conduit"),
         &parent_catalog(),
     )
     .expect("authored parent form parses");
     let ordinary = child_advertisement("ordinary-host", "ordinary-boot", true);
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([(
-            GearId::from("run"),
+            GearId::from("composite-parent/run"),
             PlacementChoice {
                 host_id: composite.advertisement().host_id.clone(),
                 capability_id: CapabilityId::from("run-signal"),
@@ -745,21 +748,21 @@ fn authored_parent_consumes_derived_export_through_an_ordinary_planned_cord() {
     let composite = composite(4, 64);
     let sink = child_advertisement("parent-sink", "parent-sink-boot", false);
     let parent = parse(
-            "form 0\nparent {\n child: demonstration/run-signal\n sink: presentation/show\n child.signal -> sink.signal\n}\n",
+            "form parent {\n child: demonstration/run-signal\n sink: presentation/show\n child.signal > sink.signal\n}\n",
             &parent_catalog(),
         )
         .expect("parent consumes the derived output as an ordinary port");
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("child"),
+                GearId::from("parent/child"),
                 PlacementChoice {
                     host_id: composite.advertisement().host_id.clone(),
                     capability_id: CapabilityId::from("run-signal"),
                 },
             ),
             (
-                GearId::from("sink"),
+                GearId::from("parent/sink"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
@@ -966,12 +969,12 @@ fn two_input_two_output_multi_kind_faces_execute_with_exact_pressure_and_closure
 fn input_only_and_output_only_exports_plan_as_ordinary_operations() {
     let catalog = multi_catalog();
     let input_only = parse(
-            "form 0\ninput-only {\n echo: test/number-echo\n export ingest: demonstration/input-only {\n  input value: value/number = echo.in terminal independent\n }\n}\n",
+            "form demonstration/input-only (\n > value: value/number\n) {\n echo: test/number-echo\n value > echo.in\n}\n",
             &catalog,
         )
         .expect("input-only checks");
     let output_only = parse(
-            "form 0\noutput-only {\n echo: test/number-echo\n export produce: demonstration/output-only {\n  output value: value/number = echo.out terminal independent\n }\n}\n",
+            "form demonstration/output-only (\n value: value/number >\n) {\n echo: test/number-echo\n echo.out > value\n}\n",
             &catalog,
         )
         .expect("output-only checks");
@@ -989,7 +992,7 @@ fn input_only_and_output_only_exports_plan_as_ordinary_operations() {
         .insert_export(&output_only, &CapabilityId::from("produce"))
         .expect("output-only installs");
     let parent = parse(
-            "form 0\nparent {\n source: test/number-source\n input-only: demonstration/input-only\n output-only: demonstration/output-only\n sink: test/number-sink\n source.out -> input-only.value\n output-only.value -> sink.in\n}\n",
+            "form parent {\n source: test/number-source\n input-only: demonstration/input-only\n output-only: demonstration/output-only\n sink: test/number-sink\n source.out > input-only.value\n output-only.value > sink.in\n}\n",
             &parent_catalog,
         )
         .expect("zero-sided parent checks");
@@ -1034,28 +1037,28 @@ fn input_only_and_output_only_exports_plan_as_ordinary_operations() {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("source"),
+                GearId::from("parent/source"),
                 PlacementChoice {
                     host_id: advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("number-source"),
                 },
             ),
             (
-                GearId::from("input-only"),
+                GearId::from("parent/input-only"),
                 PlacementChoice {
                     host_id: advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("input-only"),
                 },
             ),
             (
-                GearId::from("output-only"),
+                GearId::from("parent/output-only"),
                 PlacementChoice {
                     host_id: advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("output-only"),
                 },
             ),
             (
-                GearId::from("sink"),
+                GearId::from("parent/sink"),
                 PlacementChoice {
                     host_id: advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("number-sink"),
@@ -1325,7 +1328,7 @@ fn definition_runs_three_plan_used_children_without_new_role_fields() {
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .find(|placement| placement.gear_id.as_str() == "pulse")
+        .find(|placement| placement.gear_id.as_str() == "demonstration/run-signal/pulse")
         .expect("pulse placement exists");
     definition.boundary.output_faces[0].internal_child = output_placement.host_id.clone();
     definition.boundary.output_faces[0].internal_placement_id =
@@ -1335,7 +1338,7 @@ fn definition_runs_three_plan_used_children_without_new_role_fields() {
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .find(|placement| placement.gear_id.as_str() == "show")
+        .find(|placement| placement.gear_id.as_str() == "demonstration/run-signal/show")
         .expect("show placement exists");
     definition.boundary.input_faces[0].internal_child = input_placement.host_id.clone();
     definition.boundary.input_faces[0].internal_placement_id = input_placement.placement_id.clone();

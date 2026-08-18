@@ -107,7 +107,7 @@ pub fn copy_file_contract() -> StandardKindContract {
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
-        example: "copy: file/copy".to_string(),
+        example: "task: file/copy".to_string(),
     }
 }
 

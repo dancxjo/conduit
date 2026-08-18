@@ -1,17 +1,17 @@
 placements 0
 
-pulse:
+triple-signal/pulse:
 	host = "std-host-1"
 	capability = "pulse-1"
 
-local:
+triple-signal/local:
 	host = "std-host-1"
 	capability = "stdout-show-1"
 
-web:
+triple-signal/web:
 	host = "std-host-1"
 	capability = "stdout-show-1"
 
-light:
+triple-signal/light:
 	host = "std-host-1"
 	capability = "stdout-show-1"

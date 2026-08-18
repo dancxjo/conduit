@@ -24,34 +24,20 @@ impl Write for LostGraphicsSurface {
     }
 }
 
-const FORM: &str = r#"form 0
-
-canonical_gear_face {
- icon: presentation/icon
- frame: presentation/frame
- badge: presentation/badge
- rect: graphics/rect
- text: graphics/text
- glyph: graphics/icon
+const FORM: &str = r#"form canonical_gear_face {
+ icon: presentation/icon(icon = "presentation", accessibility-name = "Patchbay")
+ frame: presentation/frame(role = "panel", accessibility-name = "Gear Face")
+ badge: presentation/badge(state = "ready", accessibility-name = "ready")
+ rect: graphics/rect(style = "stroke")
+ text: graphics/text(text = "ready")
+ glyph: graphics/icon(icon = "presentation")
  sink: presentation/graphics
- icon.icon = "presentation"
- icon.accessibility-name = "Patchbay"
- frame.role = "panel"
- frame.accessibility-name = "Gear Face"
- badge.state = "ready"
- badge.accessibility-name = "ready"
- rect.style = "stroke"
- text.text = "ready"
- glyph.icon = "presentation"
- icon.presented -> frame.content
- frame.presented -> badge.content
- badge.presented -> rect.input
- rect.scene -> text.input
- text.scene -> glyph.input
- glyph.scene -> sink.scene
- export face: presentation/gear-face {
-  output graphics: presentation/graphics-scene@1 = glyph.scene terminal independent
- }
+ icon.presented > frame.content
+ frame.presented > badge.content
+ badge.presented > rect.input
+ rect.scene > text.input
+ text.scene > glyph.input
+ glyph.scene > sink.scene
 }
 "#;
 

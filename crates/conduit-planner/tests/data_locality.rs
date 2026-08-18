@@ -14,7 +14,7 @@ fn fixture() -> (
     conduit_core::LineOffer,
 ) {
     let form = conduit_form::parse(
-        "form 0\n\nlocality {\n source: time/tick\n reduction: flow/filter\n analysis: flow/map\n source.count = 10\n source.period-ms = 1\n source.tick -> reduction.in\n reduction > analysis\n}\n",
+        "form locality {\n source: time/tick(count = 10, period-ms = 1)\n reduction: flow/filter\n analysis: flow/map\n source.tick > reduction.in\n reduction > analysis\n}\n",
         &conduit_std_catalog::standard_profile_catalog(),
     ).expect("canonical locality Form checks");
     let source = conduit_std_catalog::standard_host_advertisement(
@@ -58,6 +58,7 @@ fn capability(
     gear: &str,
     host: usize,
 ) -> CapabilityId {
+    let gear = format!("locality/{gear}");
     let gear = form
         .gears
         .iter()
@@ -79,7 +80,7 @@ fn choice(
     host: usize,
 ) -> (GearId, PlacementChoice) {
     (
-        GearId::from(gear),
+        GearId::from(format!("locality/{gear}")),
         PlacementChoice {
             host_id: hosts[host].host_id.clone(),
             capability_id: capability(form, hosts, gear, host),
@@ -101,9 +102,15 @@ fn candidate(
         ]),
     };
     let crossing = if reduction_host == 0 {
-        (GearId::from("reduction"), GearId::from("analysis"))
+        (
+            GearId::from("locality/reduction"),
+            GearId::from("locality/analysis"),
+        )
     } else {
-        (GearId::from("source"), GearId::from("reduction"))
+        (
+            GearId::from("locality/source"),
+            GearId::from("locality/reduction"),
+        )
     };
     LocalityCandidate {
         candidate_id: id.into(),
@@ -125,7 +132,7 @@ fn basis(
         ("analysis", 1, 100),
     ] {
         work.push(RealizationWorkObservation {
-            gear_id: GearId::from(gear),
+            gear_id: GearId::from(format!("locality/{gear}")),
             host_id: hosts[host].host_id.clone(),
             boot_id: hosts[host].boot_id.clone(),
             capability_id: capability(form, hosts, gear, host),
@@ -138,13 +145,13 @@ fn basis(
         horizon_seconds: 10,
         remote_bytes_per_second_ceiling: None,
         data_flow: DataFlowObservation {
-            source_gear_id: GearId::from("source"),
+            source_gear_id: GearId::from("locality/source"),
             items_per_second: 100_000,
             bytes_per_item: 1,
             provenance: provenance("flow/high-rate"),
         },
         reductions: vec![ReductionObservation {
-            gear_id: GearId::from("reduction"),
+            gear_id: GearId::from("locality/reduction"),
             output_items_numerator: 1,
             input_items_denominator: 10,
             output_bytes_numerator: 1,
@@ -171,16 +178,16 @@ fn basis(
         }],
         local_cords: vec![
             LocalCordObservation {
-                source_gear_id: GearId::from("source"),
-                sink_gear_id: GearId::from("reduction"),
+                source_gear_id: GearId::from("locality/source"),
+                sink_gear_id: GearId::from("locality/reduction"),
                 host_id: hosts[0].host_id.clone(),
                 boot_id: hosts[0].boot_id.clone(),
                 work_units: 5,
                 provenance: provenance("cord/source-reduction/local"),
             },
             LocalCordObservation {
-                source_gear_id: GearId::from("reduction"),
-                sink_gear_id: GearId::from("analysis"),
+                source_gear_id: GearId::from("locality/reduction"),
+                sink_gear_id: GearId::from("locality/analysis"),
                 host_id: hosts[1].host_id.clone(),
                 boot_id: hosts[1].boot_id.clone(),
                 work_units: 5,
@@ -302,7 +309,7 @@ fn remote_reduction_wins_when_local_work_is_genuinely_too_expensive() {
     .expect("remote total cost can win");
     assert_eq!(selection.selected.candidate_id, "ship-raw-then-reduce");
     assert_eq!(
-        selection.selected.placements.by_gear[&GearId::from("reduction")].host_id,
+        selection.selected.placements.by_gear[&GearId::from("locality/reduction")].host_id,
         hosts[1].host_id
     );
 }
@@ -416,7 +423,7 @@ fn insufficient_local_resource_observation_moves_reduction_remote() {
                 == form
                     .gears
                     .iter()
-                    .find(|gear| gear.gear_id.as_str() == "source")
+                    .find(|gear| gear.gear_id.as_str() == "locality/source")
                     .unwrap()
                     .checked_face()
         })
@@ -427,7 +434,7 @@ fn insufficient_local_resource_observation_moves_reduction_remote() {
         let reduction = form
             .gears
             .iter()
-            .find(|gear| gear.gear_id.as_str() == "reduction")
+            .find(|gear| gear.gear_id.as_str() == "locality/reduction")
             .unwrap();
         host.capabilities
             .iter_mut()

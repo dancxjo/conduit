@@ -181,8 +181,12 @@ fn plan_from_advertisement(advertisement: &HostAdvertisement) -> PicoResult<Plan
         .into());
     }
     let root = workspace_root()?;
-    let source = std::fs::read_to_string(root.join("examples/signal-demo.form"))?;
-    let checked = conduit_form::parse(&source, &conduit_signal::signal_profile_catalog())?;
+    let source = std::fs::read_to_string(root.join("fixtures/forms/signal-demo.conduit"))?;
+    let checked = conduit_form::parse_with_startup(
+        &source,
+        &conduit_signal::signal_startup_catalog(),
+        &conduit_signal::signal_profile_catalog(),
+    )?;
     let hosts = [advertisement.clone()];
     let placements = conduit_planner::default_placements(&checked, &hosts)?;
     // The provisioned Pico advertises the exact capacity-one kernel image. Seal

@@ -40,14 +40,14 @@ pub fn cross_host_renderer_plan(
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from(CROSS_HOST_SOURCE_GEAR),
+                GearId::from(format!("cross-host-patchbay/{CROSS_HOST_SOURCE_GEAR}")),
                 PlacementChoice {
                     host_id: source_host_id.clone(),
                     capability_id: CapabilityId::from(PRESENTATION_PROJECT_CAPABILITY),
                 },
             ),
             (
-                GearId::from(CROSS_HOST_RENDERER_GEAR),
+                GearId::from(format!("cross-host-patchbay/{CROSS_HOST_RENDERER_GEAR}")),
                 PlacementChoice {
                     host_id: renderer_identity.host_id.clone(),
                     capability_id: CapabilityId::from("renderer-dom-svg"),
@@ -88,7 +88,7 @@ fn renderer_form() -> Result<conduit_form::CheckedForm, String> {
         .insert(renderer_kind_definition())
         .map_err(|error| error.to_string())?;
     parse(
-        "form 0\n\ncross-host-patchbay {\n    project: presentation/patchbay-project\n    renderer: presentation/renderer\n    project.presentation -> renderer.presentation\n}\n",
+        "form cross-host-patchbay {\n    project: presentation/patchbay-project\n    renderer: presentation/renderer\n    project.presentation > renderer.presentation\n}\n",
         &catalog,
     )
     .map_err(|error| error.to_string())

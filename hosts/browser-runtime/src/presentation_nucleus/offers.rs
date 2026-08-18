@@ -171,6 +171,23 @@ pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> 
     Ok(catalog)
 }
 
+pub(super) fn fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, String> {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profiles = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
+    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profiles)?;
+    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
+    for kind in [FIXTURE_GRAPHICS_KIND, FIXTURE_LAYOUT_KIND] {
+        startup
+            .insert(conduit_form::KindSignature {
+                kind: kind.to_string(),
+                startup_parameters: Vec::new(),
+            })
+            .map_err(|error| format!("install browser fixture startup signature: {error}"))?;
+    }
+    Ok(startup)
+}
+
 pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> {
     let mut catalog = conduit_form::ProfileCatalog::new();
     catalog
@@ -203,4 +220,17 @@ pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, Str
         })
         .map_err(|error| format!("install browser text presentation: {error:?}"))?;
     Ok(catalog)
+}
+
+pub(super) fn text_fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, String> {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profiles = conduit_form::ProfileCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
+    startup
+        .insert(conduit_form::KindSignature {
+            kind: FIXTURE_TEXT_KIND.to_string(),
+            startup_parameters: Vec::new(),
+        })
+        .map_err(|error| format!("install browser text fixture startup signature: {error}"))?;
+    Ok(startup)
 }

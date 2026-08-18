@@ -285,7 +285,7 @@ fn requirement(
         id,
         description,
         profile: SoundCompatibilityProfile {
-            profile_id: format!("conduit.conformance/{id}@1"),
+            profile_id: format!("conduit-conformance/{id}@1"),
             seam,
             minimum_pitch_millihertz: 440_000,
             maximum_pitch_millihertz: 660_000,

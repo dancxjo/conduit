@@ -11,14 +11,14 @@ use conduit_kernel::{
 };
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
 
-pub(super) const KIND: &str = "conduit.proof/pcm-specimen-source";
-const REVISION: &str = "conduit.proof/pcm-specimen-source@1";
-const PROFILE: &str = "conduit.proof/pcm-specimen-source-kernel@1";
-pub(super) const IMPLEMENTATION: &str = "conduit.proof/pcm-specimen-source-kernel@1";
+pub(super) const KIND: &str = "conduit-proof/pcm-specimen-source";
+const REVISION: &str = "conduit-proof/pcm-specimen-source@1";
+const PROFILE: &str = "conduit-proof/pcm-specimen-source-kernel@1";
+pub(super) const IMPLEMENTATION: &str = "conduit-proof/pcm-specimen-source-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/proof-pcm-specimen-source@1";
 const BLOCKS: u16 = 96;
 const YIELDS: usize = BLOCKS as usize - 1;
-pub(super) const YIELD_OPERATION: &str = "conduit.proof/audio-source-yield@1";
+pub(super) const YIELD_OPERATION: &str = "conduit-proof/audio-source-yield@1";
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: IMPLEMENTATION,

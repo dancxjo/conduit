@@ -44,19 +44,6 @@ pub(crate) enum Command {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         arguments: Vec<String>,
     },
-    /// Execute the current typed multi-value kernel profile.
-    #[command(hide = true)]
-    KernelMultivalue { form: PathBuf },
-    /// Compatibility spelling for `conduit check`.
-    #[command(hide = true)]
-    DiagnoseForm {
-        form: PathBuf,
-        #[arg(long)]
-        json: bool,
-    },
-    /// Compatibility spelling for `conduit inspect runtime-report`.
-    #[command(hide = true)]
-    ObservatoryReport { report: PathBuf },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
@@ -86,13 +73,13 @@ mod tests {
             }
         ));
         assert!(matches!(
-            Cli::try_parse_from(["conduit", "run", "hello.form"])
+            Cli::try_parse_from(["conduit", "run", "hello.conduit"])
                 .expect("run command parses")
                 .command,
             Command::Run { .. }
         ));
         assert!(matches!(
-            Cli::try_parse_from(["conduit", "check", "hello.form", "--json"])
+            Cli::try_parse_from(["conduit", "check", "hello.conduit", "--json"])
                 .expect("check command parses")
                 .command,
             Command::Check { json: true, .. }

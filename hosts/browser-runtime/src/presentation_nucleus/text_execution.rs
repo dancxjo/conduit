@@ -1,6 +1,6 @@
 use super::{
     debug_error,
-    offers::{text_advertisement, text_fixture_catalog},
+    offers::{text_advertisement, text_fixture_catalog, text_fixture_startup_catalog},
     operation::NucleusOperation,
     FIXTURE_TEXT_KIND, PORTS,
 };
@@ -14,12 +14,10 @@ use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use conduit_runtime::lowering::lower_plan_fragment;
 use std::collections::BTreeMap;
 
-const TEXT_FORM: &str = r#"form 0
-
-browser-text-nucleus {
- source: browser.fixture/text-source
+const TEXT_FORM: &str = r#"form browser-text-nucleus {
+ source: browser-fixture/text-source
  present: presentation/text
- source.text -> present.text
+ source > present
 }"#;
 
 type TextScheduler = FixedScheduler<
@@ -38,7 +36,8 @@ type TextScheduler = FixedScheduler<
 
 pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), String> {
     let catalog = text_fixture_catalog()?;
-    let form = conduit_form::parse(TEXT_FORM, &catalog)
+    let startup = text_fixture_startup_catalog()?;
+    let form = conduit_form::parse_with_startup(TEXT_FORM, &startup, &catalog)
         .map_err(|error| format!("parse browser text Form: {error:?}"))?;
     let advertisement = text_advertisement();
     let hosts = [advertisement.clone()];

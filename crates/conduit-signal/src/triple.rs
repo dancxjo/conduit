@@ -223,36 +223,37 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
         &source_advertisement,
         &pico_advertisement,
     );
-    let form = conduit_form::parse(
-        include_str!("../../../examples/triple-signal.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../fixtures/forms/triple-signal.conduit"),
+        &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("pulse"),
+                GearId::from("triple-signal/pulse"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(PULSE_CAPABILITY_ID),
                 },
             ),
             (
-                GearId::from("local"),
+                GearId::from("triple-signal/local"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(STDOUT_CAPABILITY_ID),
                 },
             ),
             (
-                GearId::from("web"),
+                GearId::from("triple-signal/web"),
                 PlacementChoice {
                     host_id: browser_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(BROWSER_CAPABILITY_ID),
                 },
             ),
             (
-                GearId::from("light"),
+                GearId::from("triple-signal/light"),
                 PlacementChoice {
                     host_id: pico_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(PICO_CAPABILITY_ID),
@@ -323,8 +324,9 @@ mod tests {
     #[test]
     fn missing_capability_and_stale_link_fail_closed() {
         let exact = exact_plan().expect("triple plan resolves");
-        let form = conduit_form::parse(
-            include_str!("../../../examples/triple-signal.form"),
+        let form = conduit_form::parse_with_startup(
+            include_str!("../../../fixtures/forms/triple-signal.conduit"),
+            &crate::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .unwrap();
@@ -342,28 +344,28 @@ mod tests {
         let placements = PlacementChoices {
             by_gear: BTreeMap::from([
                 (
-                    GearId::from("pulse"),
+                    GearId::from("triple-signal/pulse"),
                     PlacementChoice {
                         host_id: exact.source_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(PULSE_CAPABILITY_ID),
                     },
                 ),
                 (
-                    GearId::from("local"),
+                    GearId::from("triple-signal/local"),
                     PlacementChoice {
                         host_id: exact.source_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(STDOUT_CAPABILITY_ID),
                     },
                 ),
                 (
-                    GearId::from("web"),
+                    GearId::from("triple-signal/web"),
                     PlacementChoice {
                         host_id: exact.browser_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(BROWSER_CAPABILITY_ID),
                     },
                 ),
                 (
-                    GearId::from("light"),
+                    GearId::from("triple-signal/light"),
                     PlacementChoice {
                         host_id: exact.pico_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(PICO_CAPABILITY_ID),

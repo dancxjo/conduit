@@ -21,7 +21,7 @@ pub fn verify_receipt(
     let placement = fragment
         .placements
         .iter()
-        .find(|placement| placement.gear_id.as_str() == "show")
+        .find(|placement| placement.gear_id.as_str() == "signal-demo/show")
         .ok_or("R1 Pico fragment has no Show placement")?;
     let planned_play =
         conduit_core::bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
@@ -226,7 +226,7 @@ mod tests {
         let placement = fragment
             .placements
             .iter()
-            .find(|placement| placement.gear_id.as_str() == "show")
+            .find(|placement| placement.gear_id.as_str() == "signal-demo/show")
             .unwrap();
         let planned_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         let runtime_play = bind_active_play(

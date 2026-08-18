@@ -61,7 +61,7 @@ function lineCollector(stream) {
 test("unchanged Signal form runs std kernel to browser WASM kernel over live bounded WebSocket", async ({
   page,
 }) => {
-  const sourceText = readFileSync("examples/signal-demo.form", "utf8");
+  const sourceText = readFileSync("fixtures/forms/signal-demo.conduit", "utf8");
   for (const forbidden of [
     "websocket",
     "127.0.0.1",

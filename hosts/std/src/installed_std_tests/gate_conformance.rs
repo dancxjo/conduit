@@ -1,6 +1,6 @@
 use super::*;
 
-const FORM: &str = "form 0\n\ntyped_gate {\n script: conduit.test/gate-script\n latest: state/latest\n split: flow/tee\n gate: flow/gate\n gated: conduit.test/scalar-sink\n slow: conduit.test/slow-scalar-sink\n gate.maximum-enable-updates = 3\n gated.expected = 1\n script.scalar -> latest.in\n latest.out -> split.in\n split.left -> gate.in\n script.enable -> gate.enable\n gate.out -> gated.in\n split.right -> slow.in\n}\n";
+const FORM: &str = "form typed_gate {\n script: conduit-test/gate-script\n latest: state/latest\n split: flow/tee\n gate: flow/gate(maximum-enable-updates = 3)\n gated: conduit-test/scalar-sink(expected = 1)\n slow: conduit-test/slow-scalar-sink\n script.scalar > latest.in\n latest.out > split.in\n split.left > gate.in\n script.enable > gate.enable\n gate.out > gated.in\n split.right > slow.in\n}\n";
 
 #[test]
 fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure() {
@@ -64,9 +64,9 @@ fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure(
         .expect("latest/tee/gate execute through the production kernel");
     assert_eq!(timer.waits, vec![Duration::ZERO; 9]);
     let output = String::from_utf8(output).expect("gate report is UTF-8");
-    assert!(output.contains("place latest kind=state/latest"));
-    assert!(output.contains("place split kind=flow/tee"));
-    assert!(output.contains("place gate kind=flow/gate"));
+    assert!(output.contains("/latest kind=state/latest"));
+    assert!(output.contains("/split kind=flow/tee"));
+    assert!(output.contains("/gate kind=flow/gate"));
     assert!(output.contains(" complete\n"));
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),

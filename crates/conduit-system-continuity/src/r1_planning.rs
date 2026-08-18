@@ -123,22 +123,23 @@ pub fn exact_r1_signal_plan(
     let source_advertisement = r1_signal_source_advertisement();
     let pico_advertisement = r1_signal_pico_advertisement(pico_boot_id.clone());
     let observed_lines = conduit_net::r1_line_basis(pico_boot_id);
-    let form = conduit_form::parse(
-        include_str!("../../../examples/signal-demo.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("pulse"),
+                GearId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(R1_PULSE_CAPABILITY_ID),
                 },
             ),
             (
-                GearId::from("show"),
+                GearId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: pico_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(R1_LED_CAPABILITY_ID),
@@ -158,7 +159,10 @@ pub fn exact_r1_signal_plan(
         .map(|line| line.binding.base)
         .collect();
     let candidate_order = BTreeMap::from([(
-        (GearId::from("pulse"), GearId::from("show")),
+        (
+            GearId::from("signal-demo/pulse"),
+            GearId::from("signal-demo/show"),
+        ),
         selected_lines
             .iter()
             .map(|line| line.line_id.clone())
@@ -257,22 +261,23 @@ mod tests {
         .unwrap();
         let mut stale = exact.observed_lines[1].clone();
         stale.binding.sink.boot_id = BootId::from("r1/stale-boot");
-        let form = conduit_form::parse(
-            include_str!("../../../examples/signal-demo.form"),
+        let form = conduit_form::parse_with_startup(
+            include_str!("../../../fixtures/forms/signal-demo.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .unwrap();
         let placements = PlacementChoices {
             by_gear: BTreeMap::from([
                 (
-                    GearId::from("pulse"),
+                    GearId::from("signal-demo/pulse"),
                     PlacementChoice {
                         host_id: exact.source_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(R1_PULSE_CAPABILITY_ID),
                     },
                 ),
                 (
-                    GearId::from("show"),
+                    GearId::from("signal-demo/show"),
                     PlacementChoice {
                         host_id: exact.pico_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from(R1_LED_CAPABILITY_ID),
@@ -288,7 +293,10 @@ mod tests {
             PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::from([(
-                    (GearId::from("pulse"), GearId::from("show")),
+                    (
+                        GearId::from("signal-demo/pulse"),
+                        GearId::from("signal-demo/show")
+                    ),
                     vec![stale.line_id.clone()],
                 )]),
                 connection_item_capacity: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,

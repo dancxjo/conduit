@@ -26,9 +26,9 @@ use firmware_mode::firmware_mode;
 #[path = "build/r1_control_images.rs"]
 mod r1_control_images;
 
-const SIGNAL_DEMO_FORM: &str = include_str!("../../examples/signal-demo.form");
-const R1_CONTROL_FORM: &str = include_str!("../../examples/r1-three-peer-control.form");
-const TRIPLE_SIGNAL_FORM: &str = include_str!("../../examples/triple-signal.form");
+const SIGNAL_DEMO_FORM: &str = include_str!("../../fixtures/forms/signal-demo.conduit");
+const R1_CONTROL_FORM: &str = include_str!("../../fixtures/forms/r1-three-peer-control.conduit");
+const TRIPLE_SIGNAL_FORM: &str = include_str!("../../fixtures/forms/triple-signal.conduit");
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const APPLIANCE_IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_APPLIANCE_IDENTITY_SIDECAR";
@@ -74,9 +74,9 @@ fn main() {
     let _ = target;
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=../../examples/signal-demo.form");
-    println!("cargo:rerun-if-changed=../../examples/r1-three-peer-control.form");
-    println!("cargo:rerun-if-changed=../../examples/triple-signal.form");
+    println!("cargo:rerun-if-changed=../../fixtures/forms/signal-demo.conduit");
+    println!("cargo:rerun-if-changed=../../fixtures/forms/r1-three-peer-control.conduit");
+    println!("cargo:rerun-if-changed=../../fixtures/forms/triple-signal.conduit");
     println!("cargo:rerun-if-changed=../../examples/r1-network-bootstrap.conduit");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
     r1_control_images::emit_rerun_directives();
@@ -210,7 +210,7 @@ fn generate_pico_appliance_identity() {
 }
 
 fn generate_r1_recovery_signal_images(out: &Path) {
-    let form = conduit_form::parse(SIGNAL_DEMO_FORM, &signal_profile_catalog())
+    let form = conduit_form::parse_with_startup(SIGNAL_DEMO_FORM, &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("R1 Signal form must check against conduit-signal profile");
     for (stem, routes) in [
         (
@@ -374,7 +374,7 @@ fn generate_pico_signal_image(out: &Path) {
     } else {
         SIGNAL_DEMO_FORM
     };
-    let form = conduit_form::parse(source, &signal_profile_catalog())
+    let form = conduit_form::parse_with_startup(source, &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("selected Signal form must check against conduit-signal profile");
     let (plan, target_host) = if firmware_mode() == "triple-remote" {
         let exact = triple::exact_plan().expect("exact three-host Signal plan must resolve");

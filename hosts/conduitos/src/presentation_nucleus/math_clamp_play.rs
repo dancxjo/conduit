@@ -27,7 +27,7 @@ const SINK_KIND: &str = "conduitos/fixture-clamp-sink";
 const SINK_REVISION: &str = "conduitos/fixture-clamp-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduitos.fixture/clamp-sink@1";
 const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-scalar@1";
-const FORM: &str = "form 0\n\nclamp_play {\n source: conduitos/fixture-clamp-source\n clamp: math/clamp\n clamp.minimum = -1000000\n clamp.maximum = 1000000\n sink: conduitos/fixture-clamp-sink\n source > clamp\n clamp > sink\n}\n";
+const FORM: &str = "form clamp_play {\n source: conduitos/fixture-clamp-source\n clamp: math/clamp(minimum = -1000000, maximum = 1000000)\n sink: conduitos/fixture-clamp-sink\n source > clamp\n clamp > sink\n}\n";
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const NODES: usize = 3;
 const CORDS: usize = 2;

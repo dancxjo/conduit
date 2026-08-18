@@ -89,7 +89,7 @@ fn expand_instance(
         cycle.push(form.name.clone());
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-035",
-            format!("recursive form expansion cycle: {}", cycle.join(" -> ")),
+            format!("recursive form expansion cycle: {}", cycle.join(" > ")),
         ));
     }
     stack.push(form.name.clone());

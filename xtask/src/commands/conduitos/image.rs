@@ -256,7 +256,7 @@ fn copy(source: &Path, destination: &Path) -> Result<(), ConduitosError> {
     fs::copy(source, destination).map(|_| ()).map_err(|error| {
         ConduitosError::refusal(
             "image-staging-failed",
-            format!("{} -> {}: {error}", source.display(), destination.display()),
+            format!("{} > {}: {error}", source.display(), destination.display()),
         )
     })
 }

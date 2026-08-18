@@ -132,7 +132,7 @@ pub fn advertisement() -> HostAdvertisement {
 
 pub fn fragment(advertisement: &HostAdvertisement) -> PlanFragment {
     let form = parse(
-        "form 0\n\ncontract {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
+        "form contract {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
         &profile_catalog(),
     )
     .expect("contract form parses");
@@ -173,7 +173,7 @@ pub fn authority_fragment(
     grants: &[AuthorityGrant],
 ) -> PlanFragment {
     let form = parse(
-        "form 0\n\ncontract {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
+        "form contract {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
         &profile_catalog(),
     )
     .expect("contract form parses");

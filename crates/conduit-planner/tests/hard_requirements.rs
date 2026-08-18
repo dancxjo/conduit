@@ -1,5 +1,5 @@
 use conduit_core::{kind_id, GearId, ResourceClassId, TIMER_RESOURCE_CLASS};
-use conduit_form::parse;
+use conduit_form::parse_with_startup;
 use conduit_planner::{
     default_placements, plan_with_hard_requirements, HardRealizationRequirements, PlannerError,
 };
@@ -7,10 +7,8 @@ use conduit_signal::{pico_local_advertisement, signal_profile_catalog};
 use std::collections::{BTreeMap, BTreeSet};
 
 fn pulse_form() -> conduit_form::CheckedForm {
-    parse(
-        "form 0\n\nrequirements {\n    pulse: flow/pulse\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n}\n",
-        &signal_profile_catalog(),
-    )
+    parse_with_startup(
+        "form requirements {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
     .expect("pulse form checks")
 }
 

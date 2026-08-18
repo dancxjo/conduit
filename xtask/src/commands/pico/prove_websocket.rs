@@ -122,7 +122,7 @@ pub(super) fn verify_new_plan_recovery(
     let source_boot = BootId::from(conduit_net::R1_STD_BOOT_ID);
     let mut recovery = conduit_system_continuity::R1NewPlanRecovery::begin(
         plan_a.clone(),
-        conduit_core::GearId::from("show"),
+        conduit_core::GearId::from("signal-demo/show"),
         1,
         1,
         source_host.clone(),

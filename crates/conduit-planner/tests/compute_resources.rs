@@ -45,8 +45,7 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
 
 #[test]
 fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
-    let checked =
-        form("form 0\n\nanswer {\n first: ai/generate-text\n second: ai/generate-text\n}\n");
+    let checked = form("form answer {\n first: ai/generate-text\n second: ai/generate-text\n}\n");
     let mut fixture = generate_text_base_fixtures()[0].clone();
     fixture.advertisement.capabilities[0]
         .limits
@@ -135,7 +134,7 @@ fn scalable_compute_ranges_share_one_existing_pool_across_operations() {
 
 #[test]
 fn topology_service_and_architecture_base_are_exact_plan_facts() {
-    let checked = form("form 0\n\nanswer {\n generate: ai/generate-text\n}\n");
+    let checked = form("form answer {\n generate: ai/generate-text\n}\n");
     let mut fixture = generate_text_base_fixtures()[0].clone();
     let capability = &mut fixture.advertisement.capabilities[0];
     let requirement = capability
@@ -274,7 +273,7 @@ fn shared_service_or_missing_topology_cannot_satisfy_stronger_requirements() {
 
 #[test]
 fn policy_can_prefer_service_without_conflating_implementation_and_artifact() {
-    let checked = form("form 0\n\nanswer {\n generate: ai/generate-text\n}\n");
+    let checked = form("form answer {\n generate: ai/generate-text\n}\n");
     let fixtures = generate_text_base_fixtures();
     let mut shared = fixtures[0].advertisement.clone();
     let mut exclusive = fixtures[1].advertisement.clone();

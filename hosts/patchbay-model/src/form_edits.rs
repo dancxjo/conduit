@@ -214,7 +214,7 @@ impl FormEditor {
             crate::PatchbayPortCompatibility::UnknownPort
             | crate::PatchbayPortCompatibility::InvalidDirection => {
                 return Err(FormEditorError::UnknownPort(format!(
-                    "{source_port_identity} -> {sink_port_identity}"
+                    "{source_port_identity} > {sink_port_identity}"
                 )))
             }
         }

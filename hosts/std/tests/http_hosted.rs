@@ -64,7 +64,7 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
     let mut catalog = conduit_form::ProfileCatalog::new();
     conduit_std_catalog::install_http_catalogs(&mut startup, &mut catalog).unwrap();
     let form = conduit_form::parse(
-        "form 0\n\nproxy {\n server: http/server\n client: http/client\n server.request -> client.request\n client.response -> server.response\n}\n",
+        "form proxy {\n server: http/server\n client: http/client\n server.request > client.request\n client.response > server.response\n}\n",
         &catalog,
     )
     .unwrap();
@@ -198,7 +198,7 @@ fn operator_cancellation_releases_the_admitted_listener_before_accept() {
     let mut catalog = conduit_form::ProfileCatalog::new();
     conduit_std_catalog::install_http_catalogs(&mut startup, &mut catalog).unwrap();
     let form = conduit_form::parse(
-        "form 0\n\nproxy {\n server: http/server\n client: http/client\n server.request -> client.request\n client.response -> server.response\n}\n",
+        "form proxy {\n server: http/server\n client: http/client\n server.request > client.request\n client.response > server.response\n}\n",
         &catalog,
     )
     .unwrap();

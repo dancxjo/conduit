@@ -70,46 +70,39 @@ door, and the post-transition authenticated live browser Part regression. It
 retains digest-bound JSON for exact Body, Wake, Form, Plan, Play, presentation,
 Part, Host/Boot, Sign, and Manifestation outcomes.
 
-## 1. Run one form on the native std host
+## 1. Run one Form on the native std host
 
-The smallest useful program is the unchanged Signal form:
+The smallest useful program is canonical `hello.conduit`:
 
 ```bash
-cargo xtask demo std
+CARGO_BUILD_JOBS=1 just run examples/hello.conduit
 ```
 
-This parses and checks `examples/signal-demo.form`, plans it onto the actual
+This parses and checks canonical source, expands it, plans it onto the actual
 `StdHost`, lowers the admitted fragment into `conduit-kernel`, and executes the
-pulse source and stdout presentation implementation.
+text pipeline and presentation implementation.
 
 The terminal output names the host and boot, immutable plan identity, selected
 capabilities and implementations, exact connection, sixteen Signal values and
 presentation receipts, and terminal completion.
 
-The form itself says only:
+The Form itself says only:
 
 ```text
-form 0
-
-signal-demo {
-    pulse: flow/pulse
-    show: presentation/show
-
-    pulse.count = 16
-    pulse.period-ms = 250
-    pulse.initial = false
-
-    pulse > show
+form hello {
+    upper: text/upper
+    show: presentation/text
+    "Hello, world." > upper > show
 }
 ```
 
 It does not say `stdout`, `DOM`, `GPIO`, `USB`, or `WebSocket`. Those are host and
 plan facts.
 
-A larger all-local fan-out is available with:
+A repository-only historical Signal demonstration remains available with:
 
 ```bash
-cargo xtask demo triple
+cargo xtask demo std
 ```
 
 ## 2. See an actual browser host
@@ -172,8 +165,7 @@ press keys.
 A native run can emit a neutral runtime-report artifact:
 
 ```bash
-conduit run examples/signal-demo.form \
-  --placements examples/std-local.placements \
+conduit run examples/hello.conduit \
   --report /tmp/conduit-run.json
 ```
 
@@ -268,7 +260,7 @@ cargo xtask prove std-pico-usb
 
 ## 5. Run the final std + browser + Pico proof
 
-The accepted S4 demonstration plans the unchanged `examples/triple-signal.form`
+The accepted S4 demonstration plans the unchanged `fixtures/forms/triple-signal.conduit`
 once and executes one kernel-owned source fan-out to:
 
 - native stdout;

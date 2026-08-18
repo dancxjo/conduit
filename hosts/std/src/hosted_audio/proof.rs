@@ -53,7 +53,7 @@ pub fn run_playback_proof<W: Write>(
     let selected_target = selection.alsa_target();
     let mut host = StdHost::new_with_playback_proof(config, selection)?;
     let form = conduit_form::parse(
-        "form 0\n\nhosted_audio_proof {\n source: conduit.proof/pcm-specimen-source\n output: audio/play\n source.audio -> output.audio\n}\n",
+        "form hosted_audio_proof {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio > output.audio\n}\n",
         &crate::installed_std::playback_proof_catalog(),
     )
     .map_err(|error| format!("parse hosted audio proof: {error}"))?;

@@ -8,10 +8,10 @@ use conduit_core::{
 use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
 
-pub(super) const TEST_TEXT_SOURCE_KIND: &str = "conduit.test/text-source";
-const TEST_TEXT_SOURCE_REVISION: &str = "conduit.test/text-source@1";
-const TEST_TEXT_SOURCE_PROFILE: &str = "conduit.test/text-source-kernel@1";
-pub(super) const TEST_TEXT_SOURCE_IMPLEMENTATION: &str = "conduit.test/text-source-kernel@1";
+pub(super) const TEST_TEXT_SOURCE_KIND: &str = "conduit-test/text-source";
+const TEST_TEXT_SOURCE_REVISION: &str = "conduit-test/text-source@1";
+const TEST_TEXT_SOURCE_PROFILE: &str = "conduit-test/text-source-kernel@1";
+pub(super) const TEST_TEXT_SOURCE_IMPLEMENTATION: &str = "conduit-test/text-source-kernel@1";
 const TEST_TEXT_SOURCE_ARTIFACT: &str = "conduit-std-host/test-text-source@1";
 
 pub(super) static TEST_TEXT_SOURCE_FACTORY: InstalledFactory = InstalledFactory {

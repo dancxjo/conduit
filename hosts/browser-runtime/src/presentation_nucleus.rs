@@ -24,13 +24,13 @@ mod operation;
 use operation::NucleusOperation;
 mod structured_execution;
 mod text_execution;
-use offers::{advertisement, fixture_catalog};
+use offers::{advertisement, fixture_catalog, fixture_startup_catalog};
 use text_execution::execute_text_form;
 
 pub use conduit_std_catalog::{BROWSER_PRESENTATION_ARTIFACT, BROWSER_PRESENTATION_PROFILE};
-const FIXTURE_GRAPHICS_KIND: &str = "browser.fixture/graphics-present";
-const FIXTURE_LAYOUT_KIND: &str = "browser.fixture/layout-present";
-const FIXTURE_TEXT_KIND: &str = "browser.fixture/text-source";
+const FIXTURE_GRAPHICS_KIND: &str = "browser-fixture/graphics-present";
+const FIXTURE_LAYOUT_KIND: &str = "browser-fixture/layout-present";
+const FIXTURE_TEXT_KIND: &str = "browser-fixture/text-source";
 const FIXTURE_PRESENT_OPERATION: &str = "browser.host/presentation-nucleus-present@1";
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const MAX_NODES: usize = 6;
@@ -42,52 +42,24 @@ const MAX_VALUE_BYTES: usize = MAX_PRESENTATION_COMPOSITION_BYTES;
 const VALUE_BYTES: usize = VALUE_SLOTS * MAX_VALUE_BYTES;
 const SIGN_ITEMS: usize = 128;
 
-const GRAPHICS_FORM: &str = r#"form 0
-
-browser-graphics-nucleus {
- icon: presentation/icon
- frame: presentation/frame
- rect: graphics/rect
- text: graphics/text
- glyph: graphics/icon
- present: browser.fixture/graphics-present
- icon.icon = "presentation"
- icon.accessibility-name = "Patchbay"
- frame.role = "panel"
- frame.accessibility-name = "Gear Face"
- rect.style = "stroke"
- text.text = "ready"
- glyph.icon = "presentation"
- icon.presented -> frame.content
- frame.presented -> rect.input
- rect.scene -> text.input
- text.scene -> glyph.input
- glyph.scene -> present.input
+const GRAPHICS_FORM: &str = r#"form browser-graphics-nucleus {
+ icon: presentation/icon(icon = "presentation", accessibility-name = "Patchbay")
+ frame: presentation/frame(role = "panel", accessibility-name = "Gear Face")
+ rect: graphics/rect(style = "stroke")
+ text: graphics/text(text = "ready")
+ glyph: graphics/icon(icon = "presentation")
+ present: browser-fixture/graphics-present
+ icon > frame > rect > text > glyph > present
 }"#;
 
-const LAYOUT_FORM: &str = r#"form 0
-
-browser-layout-nucleus {
- viewport: layout/viewport
- row: layout/row
- column: layout/column
+const LAYOUT_FORM: &str = r#"form browser-layout-nucleus {
+ viewport: layout/viewport(width = 320, height = 200, children = 3, child-width = 40, child-height = 30)
+ row: layout/row(gap = 4)
+ column: layout/column(gap = 3)
  stack: layout/stack
- align: layout/align
- present: browser.fixture/layout-present
- viewport.width = 320
- viewport.height = 200
- viewport.children = 3
- viewport.child-width = 40
- viewport.child-height = 30
- row.gap = 4
- column.gap = 3
- align.horizontal = "center"
- align.vertical = "end"
- viewport.placements -> row.frame
- row.placements -> column.frame
- column.placements -> stack.frame
- stack.placements -> align.frame
- align.placements -> present.input
+ align: layout/align(horizontal = "center", vertical = "end")
+ present: browser-fixture/layout-present
+ viewport > row > column > stack > align > present
 }"#;
 
 type NucleusScheduler = FixedScheduler<
@@ -143,7 +115,8 @@ pub fn execute_browser_nucleus() -> Result<BrowserNucleusProof, String> {
 
 fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core::PlanId), String> {
     let catalog = fixture_catalog()?;
-    let form = conduit_form::parse(source, &catalog)
+    let startup = fixture_startup_catalog()?;
+    let form = conduit_form::parse_with_startup(source, &startup, &catalog)
         .map_err(|error| format!("parse browser presentation Form: {error:?}"))?;
     let advertisement = advertisement();
     let hosts = [advertisement.clone()];

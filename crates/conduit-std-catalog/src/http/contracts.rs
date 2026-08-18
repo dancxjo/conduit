@@ -158,7 +158,7 @@ mod tests {
         let mut profile = conduit_form::ProfileCatalog::new();
         install_http_catalogs(&mut startup, &mut profile).unwrap();
         let checked = conduit_form::parse(
-            "form 0\n\npair {\n client: http/client\n server: http/server\n server.request -> client.request\n client.response -> server.response\n}\n",
+            "form pair {\n client: http/client\n server: http/server\n server.request > client.request\n client.response > server.response\n}\n",
             &profile,
         )
         .unwrap();

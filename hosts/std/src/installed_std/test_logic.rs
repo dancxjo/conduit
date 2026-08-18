@@ -7,15 +7,15 @@ use conduit_core::{
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
 
-const KIND: &str = "conduit.test/logic-script";
-const REVISION: &str = "conduit.test/logic-script@1";
-const PROFILE: &str = "conduit.test/logic-script-kernel@1";
-const IMPLEMENTATION: &str = "conduit.test/logic-script-kernel@1";
+const KIND: &str = "conduit-test/logic-script";
+const REVISION: &str = "conduit-test/logic-script@1";
+const PROFILE: &str = "conduit-test/logic-script-kernel@1";
+const IMPLEMENTATION: &str = "conduit-test/logic-script-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-logic-script@1";
-const SINK_KIND: &str = "conduit.test/logic-sink";
-const SINK_REVISION: &str = "conduit.test/logic-sink@1";
-const SINK_PROFILE: &str = "conduit.test/logic-sink-kernel@1";
-const SINK_IMPLEMENTATION: &str = "conduit.test/logic-sink-kernel@1";
+const SINK_KIND: &str = "conduit-test/logic-sink";
+const SINK_REVISION: &str = "conduit-test/logic-sink@1";
+const SINK_PROFILE: &str = "conduit-test/logic-sink-kernel@1";
+const SINK_IMPLEMENTATION: &str = "conduit-test/logic-sink-kernel@1";
 const SINK_ARTIFACT: &str = "conduit-std-host/test-logic-sink@1";
 
 pub(super) static TEST_LOGIC_SCRIPT_FACTORY: InstalledFactory = InstalledFactory {

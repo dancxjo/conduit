@@ -61,7 +61,7 @@ pub fn prepare_portable_state_input(
             .map_err(|_| PortableStateInputError::Catalog)?;
     }
     let source = format!(
-        "form 0\n\nportable_state_input {{\n count_tick: {TICK_SOURCE_KIND}\n count: state/count\n count.start = {count_start}\n count_sink: {COUNT_SINK_KIND}\n toggle_tick: {TICK_SOURCE_KIND}\n toggle: state/toggle\n toggle.initial = {toggle_initial}\n bool_sink: {BOOL_SINK_KIND}\n key_source: {KEY_SOURCE_KIND}\n split: input/key-tee\n text_sink: {TEXT_KEY_SINK_KIND}\n chord_sink: {CHORD_KEY_SINK_KIND}\n count_tick.tick -> count.bump\n count.value -> count_sink.value\n toggle_tick.tick -> toggle.toggle\n toggle.value -> bool_sink.value\n key_source.key -> split.key\n split.text-keys -> text_sink.key\n split.chord-keys -> chord_sink.key\n}}\n"
+        "form portable_state_input {{\n count_tick: {TICK_SOURCE_KIND}\n count: state/count(start = {count_start})\n count_sink: {COUNT_SINK_KIND}\n toggle_tick: {TICK_SOURCE_KIND}\n toggle: state/toggle(initial = {toggle_initial})\n bool_sink: {BOOL_SINK_KIND}\n key_source: {KEY_SOURCE_KIND}\n split: input/key-tee\n text_sink: {TEXT_KEY_SINK_KIND}\n chord_sink: {CHORD_KEY_SINK_KIND}\n count_tick.tick > count.bump\n count.value > count_sink.value\n toggle_tick.tick > toggle.toggle\n toggle.value > bool_sink.value\n key_source.key > split.key\n split.text-keys > text_sink.key\n split.chord-keys > chord_sink.key\n}}\n"
     );
     let form = parse(&source, &catalog).map_err(|_| PortableStateInputError::Form)?;
     let tick_sequence = 1;

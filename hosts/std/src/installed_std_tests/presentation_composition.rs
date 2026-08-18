@@ -4,25 +4,14 @@ use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
 use conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES;
 
-const FORM: &str = r#"form 0
-
-gear_face_presentation {
- icon: presentation/icon
- frame: presentation/frame
- badge: presentation/badge
- sink: conduit.test/presentation-sink
- icon.icon = "presentation"
- icon.accessibility-name = "Patchbay"
- frame.role = "panel"
- frame.accessibility-name = "Gear Face"
- badge.state = "warning"
- badge.accessibility-name = "Cord pressure"
- icon.presented -> frame.content
- frame.presented -> badge.content
- badge.presented -> sink.in
- export face: presentation/gear-face {
-  output presented: presentation/composition@1 = badge.presented terminal independent
- }
+const FORM: &str = r#"form gear_face_presentation {
+ icon: presentation/icon(icon = "presentation", accessibility-name = "Patchbay")
+ frame: presentation/frame(role = "panel", accessibility-name = "Gear Face")
+ badge: presentation/badge(state = "warning", accessibility-name = "Cord pressure")
+ sink: conduit-test/presentation-sink
+ icon.presented > frame.content
+ frame.presented > badge.content
+ badge.presented > sink.in
 }
 "#;
 

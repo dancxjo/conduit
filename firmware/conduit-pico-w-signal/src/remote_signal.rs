@@ -259,7 +259,7 @@ async fn run_prepared_signal_sink(
         return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
     }
 
-    // Phase 3: Main event loop - full Offered -> Accepted -> Delivered lifecycle
+    // Phase 3: Main event loop - full Offered > Accepted > Delivered lifecycle
     loop {
         let frame = link_session.receive_frame(&mut frame_buf).await?;
 

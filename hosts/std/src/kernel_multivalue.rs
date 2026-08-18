@@ -705,7 +705,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             let placement = &fragment.placements[usize::from(node.node.0)];
             placement.kind_id.as_str() == kind
                 && operation
-                    .map(|name| placement.gear_id.as_str() == name)
+                    .map(|name| placement.gear_id.as_str().ends_with(&format!("/{name}")))
                     .unwrap_or(true)
         })
     };
@@ -1309,7 +1309,7 @@ mod tests {
 
     fn planned_fixture() -> (HostAdvertisement, PlanFragment) {
         let form = parse(
-            include_str!("../../../examples/kernel-multivalue.form"),
+            include_str!("../../../fixtures/forms/kernel-multivalue.conduit"),
             &profile_catalog(),
         )
         .expect("typed multi-value form parses");
@@ -1325,7 +1325,7 @@ mod tests {
     #[test]
     fn exact_multi_value_form_plans_and_lowers_all_numeric_tables() {
         let form = parse(
-            include_str!("../../../examples/kernel-multivalue.form"),
+            include_str!("../../../fixtures/forms/kernel-multivalue.conduit"),
             &profile_catalog(),
         )
         .expect("typed multi-value form parses");

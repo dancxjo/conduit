@@ -12,7 +12,7 @@ use conduit_planner::{default_placements, parse_placements, plan, PlacementChoic
 use conduit_runtime::{HostRuntime, RuntimeOutput};
 #[cfg(feature = "legacy-fixture-driver")]
 use conduit_signal::signal_registry;
-use conduit_signal::{signal_profile_catalog, PULSE_KIND, SHOW_KIND};
+use conduit_signal::{PULSE_KIND, SHOW_KIND};
 use std::fs;
 use std::io::Write;
 use std::thread;
@@ -882,13 +882,6 @@ fn is_installed_kernel_signal_profile(fragment: &PlanFragment) -> bool {
             .all(|connection| connection.selected_line.is_none())
 }
 
-pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::Error>> {
-    Ok(conduit_form::parse(
-        &fs::read_to_string(path)?,
-        &signal_profile_catalog(),
-    )?)
-}
-
 pub fn load_placements(
     path: Option<&str>,
 ) -> Result<Option<PlacementChoices>, Box<dyn std::error::Error>> {
@@ -939,7 +932,7 @@ fn write_operator_report<W: Write>(
     for connection in &fragment.connections {
         writeln!(
             out,
-            "connection {} {}:{} -> {}:{} line={} base={:?} queue={}",
+            "connection {} {}:{} > {}:{} line={} base={:?} queue={}",
             connection.connection_id.as_str(),
             connection.source_placement_id.as_str(),
             connection.source_port_id.as_str(),
@@ -968,7 +961,7 @@ mod tests {
         seal_plan, BootId, ConnectionId, FormIdentity, HostId, OfferGeneration, PortDirection,
         PortId,
     };
-    use conduit_form::parse;
+    use conduit_form::parse_with_startup;
     use conduit_signal::signal_profile_catalog;
     use std::time::Duration;
 
@@ -1020,8 +1013,9 @@ mod tests {
             boot_id: BootId::from("lowering-boot"),
             offer_generation: OfferGeneration(1),
         });
-        let form = parse(
-            include_str!("../../../examples/signal-demo.form"),
+        let form = parse_with_startup(
+            include_str!("../../../fixtures/forms/signal-demo.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .expect("signal form parses");
@@ -1203,10 +1197,8 @@ mod tests {
             boot_id: BootId::from("virtual-clock-boot"),
             offer_generation: OfferGeneration(1),
         });
-        let form = parse(
-            "form 0\n\nvirtual {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 3\n pulse.period-ms = 7\n pulse.initial = false\n pulse > show\n}\n",
-            &signal_profile_catalog(),
-        )
+        let form = parse_with_startup(
+            "form virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: presentation/show\n pulse > show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("virtual-clock form parses");
         let plan = host.plan_local(&form, None).expect("local plan resolves");
         let fragment = plan.fragments[0].clone();
@@ -1319,8 +1311,9 @@ mod tests {
             boot_id: BootId::from("fanout-boot"),
             offer_generation: OfferGeneration(1),
         });
-        let form = parse(
-            include_str!("../../../examples/triple-signal.form"),
+        let form = parse_with_startup(
+            include_str!("../../../fixtures/forms/triple-signal.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .expect("triple signal form parses");
@@ -1354,10 +1347,8 @@ mod tests {
             boot_id: BootId::from("unsupported-form-boot"),
             offer_generation: OfferGeneration(1),
         });
-        let form = parse(
-            "form 0\n\nwider {\n first: flow/pulse\n second: flow/pulse\n left: presentation/show\n right: presentation/show\n first.count = 1\n second.count = 1\n first > left\n second > right\n}\n",
-            &signal_profile_catalog(),
-        )
+        let form = parse_with_startup(
+            "form wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: presentation/show\n right: presentation/show\n first > left\n second > right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("unsupported wider form remains semantically valid");
         let plan = host
             .plan_local(&form, None)

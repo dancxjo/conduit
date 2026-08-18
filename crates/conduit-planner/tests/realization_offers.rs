@@ -1,13 +1,11 @@
 use conduit_core::{ArtifactId, CapabilityId, ImplementationId, ImplementationOffer};
-use conduit_form::parse;
+use conduit_form::parse_with_startup;
 use conduit_planner::{default_placements, plan, PlacementChoice};
 use conduit_signal::{pico_local_advertisement, signal_profile_catalog, PULSE_KIND};
 
 fn pulse_form() -> conduit_form::CheckedForm {
-    parse(
-        "form 0\n\nrealization {\n    pulse: flow/pulse\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n}\n",
-        &signal_profile_catalog(),
-    )
+    parse_with_startup(
+        "form realization {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
     .expect("pulse form checks")
 }
 

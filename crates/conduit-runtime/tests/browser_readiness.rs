@@ -130,7 +130,7 @@ fn readiness_contract_names_the_platform_stop_line() {
         "multiple independent simulated browser instances",
         "wasm32-unknown-unknown",
         "bounded frame relay fixture using `conduit-wire`",
-        "examples/triple-signal.form",
+        "fixtures/forms/triple-signal.conduit",
         "stdout, DOM-state, and onboard-LED-shaped receipts",
         "conduit-pico-sim",
         "thumbv6m-none-eabi",

@@ -22,7 +22,7 @@ pub fn checked_renderer_form() -> conduit_form::CheckedForm {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_definition()).unwrap();
     parse(
-        "form 0\n\npatchbay-show {\n    renderer: presentation/renderer\n}\n",
+        "form patchbay-show {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
     .expect("one ordinary portable renderer Face checks")

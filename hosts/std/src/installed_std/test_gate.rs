@@ -11,16 +11,16 @@ use conduit_kernel::{
     PortId, RequestId, ValueRef, ValueStorage,
 };
 
-const SOURCE_KIND: &str = "conduit.test/gate-script";
-const SOURCE_REVISION: &str = "conduit.test/gate-script@1";
-const SOURCE_PROFILE: &str = "conduit.test/gate-script-kernel@1";
-const SOURCE_IMPLEMENTATION: &str = "conduit.test/gate-script-kernel@1";
+const SOURCE_KIND: &str = "conduit-test/gate-script";
+const SOURCE_REVISION: &str = "conduit-test/gate-script@1";
+const SOURCE_PROFILE: &str = "conduit-test/gate-script-kernel@1";
+const SOURCE_IMPLEMENTATION: &str = "conduit-test/gate-script-kernel@1";
 const SOURCE_ARTIFACT: &str = "conduit-std-host/test-gate-script@1";
 
-const SLOW_SINK_KIND: &str = "conduit.test/slow-scalar-sink";
-const SLOW_SINK_REVISION: &str = "conduit.test/slow-scalar-sink@1";
-const SLOW_SINK_PROFILE: &str = "conduit.test/slow-scalar-sink-kernel@1";
-const SLOW_SINK_IMPLEMENTATION: &str = "conduit.test/slow-scalar-sink-kernel@1";
+const SLOW_SINK_KIND: &str = "conduit-test/slow-scalar-sink";
+const SLOW_SINK_REVISION: &str = "conduit-test/slow-scalar-sink@1";
+const SLOW_SINK_PROFILE: &str = "conduit-test/slow-scalar-sink-kernel@1";
+const SLOW_SINK_IMPLEMENTATION: &str = "conduit-test/slow-scalar-sink-kernel@1";
 const SLOW_SINK_ARTIFACT: &str = "conduit-std-host/test-slow-scalar-sink@1";
 
 const SCRIPT_ITEMS: usize = 6;

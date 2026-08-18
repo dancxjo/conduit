@@ -29,7 +29,7 @@ const NOTE_SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/note-source@1";
 const EMPTY_CONTROL_SOURCE_KIND: &str = "conduitos-fixture/empty-control-source";
 const EMPTY_CONTROL_SOURCE_REVISION: &str = "conduitos.fixture/empty-control-source@1";
 pub const NOTE_SOURCE_HOST_OPERATION: &str = "conduitos.fixture/note-sequence-step@1";
-pub const OPL2_FORM_SOURCE: &str = "form 0\nconduitos-opl2-music {\n source: conduitos-fixture/note-source\n controls: conduitos-fixture/empty-control-source\n output: music/play\n source.notes -> output.notes\n controls.controls -> output.controls\n}\n";
+pub const OPL2_FORM_SOURCE: &str = "form conduitos-opl2-music {\n source: conduitos-fixture/note-source\n controls: conduitos-fixture/empty-control-source\n output: music/play\n source.notes > output.notes\n controls.controls > output.controls\n}\n";
 pub const FIXTURE_EVENT_COUNT: u16 = 24;
 
 pub struct PreparedOpl2Play {
@@ -324,7 +324,7 @@ fn fixture_requirements() -> BTreeMap<GearId, HardRealizationRequirements> {
         CharacteristicId::from(conduit_std_catalog::MUSIC_SUBTRACTIVE_FILTER_CHARACTERISTIC),
         false,
     );
-    requirements.insert(GearId::from("output"), output);
+    requirements.insert(GearId::from("conduitos-opl2-music/output"), output);
     requirements
 }
 

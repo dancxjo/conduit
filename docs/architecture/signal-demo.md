@@ -14,14 +14,14 @@ The checked semantic forms use the portable M1 kind names:
 The std host can run the local pair form:
 
 ```text
-conduit run examples/signal-demo.form --placements examples/std-local.placements
+cargo xtask demo std
 ```
 
 It can also run the final platform-neutral fan-out form against a local std
 fixture:
 
 ```text
-conduit run examples/triple-signal.form --placements examples/triple-local.placements
+cargo xtask demo triple
 ```
 
 The local triple fixture intentionally places all three `presentation/show` sinks on
@@ -89,7 +89,7 @@ the `FixtureDatagram` base, serializes every connection envelope through
 `conduit-wire`, enforces datagram bounds, and compares retained onboard-LED
 receipts against the same sixteen ordered signal values.
 
-The same `examples/triple-signal.form` can be planned across std and both
+The same `fixtures/forms/triple-signal.conduit` can be planned across std and both
 simulations in one deterministic proof:
 
 ```text

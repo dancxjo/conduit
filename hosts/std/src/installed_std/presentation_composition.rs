@@ -37,13 +37,13 @@ pub(super) static GRAPHICS_PRESENTATION_FACTORY: InstalledFactory = InstalledFac
 };
 #[cfg(test)]
 pub(super) static TEST_PRESENTATION_SINK_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: "conduit.test/presentation-sink-implementation@1",
+    implementation_id: "conduit-test/presentation-sink-implementation@1",
     budget: sink_budget,
     prepare: prepare_sink,
 };
 #[cfg(test)]
 pub(super) static TEST_GRAPHICS_SINK_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: "conduit.test/graphics-sink-implementation@1",
+    implementation_id: "conduit-test/graphics-sink-implementation@1",
     budget: sink_budget,
     prepare: prepare_sink,
 };
@@ -336,7 +336,7 @@ fn validate_graphics_presentation(placement: &PlannedGear) -> Result<(), String>
 fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     if !matches!(
         placement.kind_id.as_str(),
-        "conduit.test/presentation-sink" | "conduit.test/graphics-sink"
+        "conduit-test/presentation-sink" | "conduit-test/graphics-sink"
     ) {
         return Err("wrong presentation sink Kind".into());
     }

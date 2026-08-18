@@ -2,7 +2,7 @@
 
 This S4 checkpoint is intentionally browser-local, not a restoration of the
 archived browser subsystem. Each independent Rust/WASM instance parses and
-plans unchanged `examples/signal-demo.form`, lowers its exact local fragment
+plans unchanged `fixtures/forms/signal-demo.conduit`, lowers its exact local fragment
 through the shared lowering contract, and installs the numeric result into the
 same port-aware `conduit-kernel` scheduler model used by production `StdHost`.
 The production browser crate does not construct or execute `HostRuntime`.

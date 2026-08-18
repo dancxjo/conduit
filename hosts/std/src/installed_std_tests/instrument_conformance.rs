@@ -65,7 +65,7 @@ fn plan_fragment(
     observe_render_clock: bool,
 ) -> Result<conduit_core::PlanFragment, conduit_planner::PlannerError> {
     let form = conduit_form::parse(
-        "form 0\n\ninstrument {\n input: music/input\n render: audio/render-demand\n synth: music/synth\n output: audio/play\n input.a4-reference-millihertz = 442000\n input.transpose-semitones = 12\n synth.maximum-voices = 8\n synth.oscillator = \"saw\"\n input.notes -> synth.notes\n input.controls -> synth.controls\n render.demand -> synth.render\n synth.audio -> output.audio\n}\n",
+        "form instrument {\n input: music/input(a4-reference-millihertz = 442000, transpose-semitones = 12)\n render: audio/render-demand\n synth: music/synth(maximum-voices = 8, oscillator = \"saw\")\n output: audio/play\n input.notes > synth.notes\n input.controls > synth.controls\n render.demand > synth.render\n synth.audio > output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .unwrap();

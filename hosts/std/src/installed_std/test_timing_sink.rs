@@ -11,15 +11,15 @@ use conduit_kernel::{
 };
 
 const KIND: &str = "test/timing-bool-sink";
-const REVISION: &str = "conduit.test/timing-bool-sink@1";
-const PROFILE: &str = "conduit.test/timing-bool-sink-kernel@1";
-const IMPLEMENTATION: &str = "conduit.test/timing-bool-sink-kernel@1";
+const REVISION: &str = "conduit-test/timing-bool-sink@1";
+const PROFILE: &str = "conduit-test/timing-bool-sink-kernel@1";
+const IMPLEMENTATION: &str = "conduit-test/timing-bool-sink-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-timing-bool-sink@1";
 const MAXIMUM_VALUES: usize = 16;
 const SOURCE_KIND: &str = "test/timing-bool-source";
-const SOURCE_REVISION: &str = "conduit.test/timing-bool-source@1";
-const SOURCE_PROFILE: &str = "conduit.test/timing-bool-source-kernel@1";
-const SOURCE_IMPLEMENTATION: &str = "conduit.test/timing-bool-source-kernel@1";
+const SOURCE_REVISION: &str = "conduit-test/timing-bool-source@1";
+const SOURCE_PROFILE: &str = "conduit-test/timing-bool-source-kernel@1";
+const SOURCE_IMPLEMENTATION: &str = "conduit-test/timing-bool-source-kernel@1";
 const SOURCE_ARTIFACT: &str = "conduit-std-host/test-timing-bool-source@1";
 
 pub(super) static TEST_TIMING_SINK_FACTORY: InstalledFactory = InstalledFactory {

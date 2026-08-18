@@ -31,7 +31,7 @@ fn fixture() -> (
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_ai::install_generate_text_catalog(&mut startup, &mut profile).unwrap();
     let form = conduit_form::parse(
-        "form 0\n\nanswer {\n    generate: ai/generate-text\n}\n",
+        "form answer {\n    generate: ai/generate-text\n}\n",
         &profile,
     )
     .unwrap();

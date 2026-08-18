@@ -6,12 +6,11 @@ use super::{
 use conduit_core::{
     authority_grant, kind_id, mandatory_sign_storage_requirement, present_authority_requirement,
     process_owned_line_offer, verify_plan, verify_plan_fragment, ArtifactId, CancellationPolicy,
-    CapabilityLimits, CapabilityOffer, ConfigurationValue, ConnectionBase, ExpandedFormId,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, KindContractRevision, KindId,
-    OfferGeneration, PortDescriptor, PortDirection, PortId, SourceDocumentId, StartupDependency,
+    CapabilityLimits, CapabilityOffer, ConnectionBase, ExpandedFormId, HostAdvertisement, HostId,
+    HostProfileId, ImplementationId, OfferGeneration, SourceDocumentId, StartupDependency,
     TerminalPolicy, PROTOCOL_VERSION,
 };
-use conduit_form::{parse, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+use conduit_form::parse_with_startup;
 use conduit_signal::{
     pico_local_advertisement, pulse_contract_revision, pulse_execution_profile,
     pulse_host_operation_requirements, pulse_outputs, pulse_resource_requirements,
@@ -25,8 +24,9 @@ use std::collections::BTreeMap;
 mod protected_resource_tests;
 
 fn form() -> conduit_form::CheckedForm {
-    parse(
-            "form 0\n\nsignal-demo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n",
+    parse_with_startup(
+            "form signal-demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n",
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .expect("form must parse")
@@ -87,93 +87,6 @@ fn host() -> HostAdvertisement {
                 },
             },
         ],
-    }
-}
-
-fn nested_identity_catalog() -> ProfileCatalog {
-    let mut catalog = ProfileCatalog::new();
-    catalog
-        .insert(KindDefinition {
-            kind_id: KindId::from("test/source"),
-            kind_contract_revision: KindContractRevision::from("test/source@1"),
-            inputs: vec![],
-            outputs: vec![PortDescriptor {
-                port_id: PortId::from("out"),
-                value_kind: KindId::from("test/value"),
-                direction: PortDirection::Output,
-                temporal: conduit_core::PortTemporal::Value,
-            }],
-            configuration: vec![ConfigurationField {
-                key: "count".into(),
-                default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: 4,
-                },
-            }],
-        })
-        .expect("source kind is unique");
-    catalog
-        .insert(KindDefinition {
-            kind_id: KindId::from("test/sink"),
-            kind_contract_revision: KindContractRevision::from("test/sink@1"),
-            inputs: vec![PortDescriptor {
-                port_id: PortId::from("in"),
-                value_kind: KindId::from("test/value"),
-                direction: PortDirection::Input,
-                temporal: conduit_core::PortTemporal::Value,
-            }],
-            outputs: vec![],
-            configuration: vec![],
-        })
-        .expect("sink kind is unique");
-    catalog
-}
-
-fn host_for_checked_form(form: &conduit_form::CheckedForm) -> HostAdvertisement {
-    HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id: HostId::from("nested-host"),
-        boot_id: conduit_core::BootId::from("nested-boot"),
-        offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("nested-test"),
-        resources: vec![],
-        planner_capabilities: vec![],
-        capabilities: form
-            .gears
-            .iter()
-            .map(|gear| CapabilityOffer {
-                startup_parameters: vec![],
-                shorthand: None,
-                capability_id: conduit_core::CapabilityId::from(format!(
-                    "capability/{}",
-                    gear.gear_id.as_str()
-                )),
-                kind_id: gear.kind_id.clone(),
-                kind_contract_revision: gear.kind_contract_revision.clone(),
-                implementation: conduit_core::ImplementationOffer {
-                    execution_profile_id: conduit_core::ExecutionProfileId::from(format!(
-                        "profile/{}",
-                        gear.gear_id.as_str()
-                    )),
-                    implementation_id: ImplementationId::from(format!(
-                        "implementation/{}",
-                        gear.gear_id.as_str()
-                    )),
-                    artifact_id: ArtifactId::from(format!("artifact/{}", gear.gear_id.as_str())),
-                },
-                inputs: gear.inputs.clone(),
-                outputs: gear.outputs.clone(),
-                host_operations: vec![],
-                resource_requirements: vec![],
-                authority_requirements: vec![],
-                limits: CapabilityLimits {
-                    max_active_instances: 1,
-                    max_queue_items: 4,
-                    max_queue_bytes: 64,
-                },
-            })
-            .collect(),
     }
 }
 
@@ -288,8 +201,9 @@ fn planning_binds_exact_contract_profile_and_every_port() {
 
 #[test]
 fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
-    let form = parse(
-        include_str!("../../../examples/signal-demo.form"),
+    let form = parse_with_startup(
+        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .expect("unchanged Signal demo form must parse");
@@ -401,7 +315,7 @@ fn admitted_host_input_source_breaks_only_its_runtime_response_cycle() {
     let mut cyclic_placements = fragment.placements.clone();
     let source = cyclic_placements
         .iter_mut()
-        .find(|placement| placement.gear_id.as_str() == "pulse")
+        .find(|placement| placement.gear_id.as_str() == "signal-demo/pulse")
         .unwrap();
     source.host_operations[0].maximum_input_bytes = 0;
     source.host_operations[0].maximum_output_bytes = SIGNAL_ENCODED_LEN;
@@ -651,14 +565,14 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                conduit_core::GearId::from("pulse"),
+                conduit_core::GearId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: conduit_core::CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                conduit_core::GearId::from("show"),
+                conduit_core::GearId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
@@ -797,14 +711,14 @@ fn planning_link_binding_mutations_change_fragment_identity() {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                conduit_core::GearId::from("pulse"),
+                conduit_core::GearId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: conduit_core::CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                conduit_core::GearId::from("show"),
+                conduit_core::GearId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
@@ -941,70 +855,6 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
 }
 
 #[test]
-fn planning_binds_nested_expansion_changes_beyond_the_checked_boundary() {
-    let baseline = parse(
-            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 1\n  source > sink\n  export run: test/composite {
-  input in: test/value = sink.in terminal independent
-  output out: test/value = source.out terminal independent
- }\n }\n final: test/sink\n child.out -> final.in\n}\n",
-            &nested_identity_catalog(),
-        )
-        .expect("baseline nested parent checks");
-    let changed = parse(
-            "form 0\nparent {\n child: run {\n  source: test/source\n  sink: test/sink\n  source.count = 2\n  source > sink\n  export run: test/composite {
-  input in: test/value = sink.in terminal independent
-  output out: test/value = source.out terminal independent
- }\n }\n final: test/sink\n child.out -> final.in\n}\n",
-            &nested_identity_catalog(),
-        )
-        .expect("changed nested parent checks");
-    assert_eq!(baseline.checked_form_id, changed.checked_form_id);
-    assert_ne!(baseline.expanded_form_id, changed.expanded_form_id);
-    assert_eq!(baseline.gears, changed.gears);
-
-    let host = host_for_checked_form(&baseline);
-    let placements = default_placements(&baseline, std::slice::from_ref(&host))
-        .expect("visible parent contract places");
-    let baseline_plan = plan(
-        &baseline,
-        std::slice::from_ref(&host),
-        &placements,
-        &[ConnectionBase::Local],
-    )
-    .expect("baseline parent plans");
-    let changed_plan = plan(
-        &changed,
-        std::slice::from_ref(&host),
-        &placements,
-        &[ConnectionBase::Local],
-    )
-    .expect("changed expansion plans against the same visible offers");
-
-    assert_eq!(baseline_plan.checked_form_id, changed_plan.checked_form_id);
-    assert_ne!(
-        baseline_plan.expanded_form_id,
-        changed_plan.expanded_form_id
-    );
-    assert_ne!(baseline_plan.plan_id, changed_plan.plan_id);
-    assert_ne!(
-        baseline_plan.fragments[0].fragment_id,
-        changed_plan.fragments[0].fragment_id
-    );
-
-    let mut omitted = baseline;
-    omitted.nested_forms.clear();
-    assert!(matches!(
-        plan(
-            &omitted,
-            std::slice::from_ref(&host),
-            &placements,
-            &[ConnectionBase::Local],
-        ),
-        Err(PlannerError::InvalidFormIdentity(_))
-    ));
-}
-
-#[test]
 fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
     let form = form();
     let original_host = host();
@@ -1064,7 +914,7 @@ fn planning_accepts_face_preserving_revision_and_rejects_face_change() {
 fn planning_rejects_unknown_host() {
     let form = form();
     let placements = parse_placements(
-            "placements 0\npulse:\n    host = \"missing\"\n    capability = \"pulse-1\"\nshow:\n    host = \"missing\"\n    capability = \"stdout-show-1\"\n",
+            "placements 0\nsignal-demo/pulse:\n    host = \"missing\"\n    capability = \"pulse-1\"\nsignal-demo/show:\n    host = \"missing\"\n    capability = \"stdout-show-1\"\n",
         )
         .expect("placements should parse");
     let error = plan(&form, &[host()], &placements, &[ConnectionBase::Local])

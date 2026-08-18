@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{self, TryRecvError};
 use std::time::Duration;
 
-const COPY_FORM_SOURCE: &str = "form 0\n\ncopy-task {\n    copy: file/copy\n    show: presentation/structured-info\n    copy.result -> show.input\n}\n";
+const COPY_FORM_SOURCE: &str = "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task > show\n}\n";
 const DEFAULT_MAXIMUM_BYTES: u64 = 16 * 1024 * 1024;
 pub(crate) const USAGE: &str = "usage: conduit copy [OPTIONS] SOURCE DESTINATION\n\
        options: --mode create|replace  --max-bytes N  --run  --inspect";
@@ -247,7 +247,7 @@ fn argument_error(detail: impl AsRef<str>) -> String {
 fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
     let host = StdHost::new();
     let mut registry = ProtectedFileRegistry::default();
-    let gear_id = GearId::from("copy");
+    let gear_id = GearId::from("copy-task/task");
     let capability_id = CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY);
     let source = registry.register(
         ResourceHandleId::from("copy/source-choice"),
@@ -418,14 +418,14 @@ fn render_inspect(
     }
     writeln!(
         output,
-        "  source role -> {} (read, max {} bytes)",
+        "  source role > {} (read, max {} bytes)",
         receipt.source_binding_id.as_str(),
         arguments.maximum_bytes
     )
     .map_err(|error| error.to_string())?;
     writeln!(
         output,
-        "  destination role -> {} ({:?}, max {} bytes)",
+        "  destination role > {} ({:?}, max {} bytes)",
         receipt.destination_binding_id.as_str(),
         arguments.mode,
         arguments.maximum_bytes

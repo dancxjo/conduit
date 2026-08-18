@@ -324,8 +324,9 @@ impl BrowserSession {
             _ => return Err(ERROR_INVALID_HOST),
         };
         let advertisement = build_advertisement(host_id, boot_id);
-        let form = conduit_form::parse(
-            include_str!("../../../examples/signal-demo.form"),
+        let form = conduit_form::parse_with_startup(
+            include_str!("../../../fixtures/forms/signal-demo.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .map_err(|_| ERROR_START)?;

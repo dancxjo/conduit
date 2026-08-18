@@ -261,7 +261,7 @@ mod tests {
             OfferGeneration(1),
         );
         let form = parse(
-            include_str!("../../../examples/kernel-multivalue.form"),
+            include_str!("../../../fixtures/forms/kernel-multivalue.conduit"),
             &profile_catalog(),
         )
         .expect("multi-value form parses");

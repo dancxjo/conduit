@@ -218,7 +218,7 @@ fn append_sound(presentation: &PatchbayPresentation, document: &str, content: &m
                 .iter()
                 .map(|stage| stage.as_str())
                 .collect::<Vec<_>>()
-                .join(" -> "),
+                .join(" > "),
         };
         content.line(
             &sound,

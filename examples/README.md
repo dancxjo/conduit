@@ -11,11 +11,6 @@ Canonical source uses the `.conduit` suffix and the face/back/gear surface:
 - `webchat.conduit` — Program 5's bounded browser client and std listener,
   expressed as canonical face/back/gear Forms.
 
-The `.form` files and `hello.panel` use the older explicit `form 0`
-compatibility parser. They remain byte-for-byte fixtures for accepted kernel,
-browser, firmware, Line, composite, and Sign identities. They are not
-examples of the canonical source surface and must not be silently reinterpreted
-or rewritten under the canonical parser.
-
-Placement files are Plan-side inputs for those retained compatibility proofs;
-they are not semantic Form source.
+`hello.panel` and the placement files are retained proof inputs, not Form
+source. Historical pre-canonical Form bytes live under `fixtures/forms/` so
+they cannot be mistaken for programs users should author or run.

@@ -1,4 +1,4 @@
-//! Operations owned only by the bounded `state/latest -> flow/tee` proof.
+//! Operations owned only by the bounded `state/latest > flow/tee` proof.
 
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,

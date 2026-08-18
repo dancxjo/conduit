@@ -12,7 +12,7 @@ fn protected_grant(handle: &str) -> ProtectedResourceGrant {
     ProtectedResourceGrant {
         role_id: ResourceBindingRoleId::from("source"),
         handle_id: ResourceHandleId::from(handle),
-        gear_id: conduit_core::GearId::from("pulse"),
+        gear_id: conduit_core::GearId::from("signal-demo/pulse"),
         host_id: HostId::from("std-host-1"),
         boot_id: conduit_core::BootId::from("boot-1"),
         capability_id: conduit_core::CapabilityId::from("pulse-1"),

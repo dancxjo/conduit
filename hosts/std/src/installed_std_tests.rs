@@ -51,7 +51,7 @@ fn host(id: &str) -> StdHost {
 fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
     let mut host = host("typed-tick-host");
     let form = parse(
-        "form 0\n\ntyped_tick {\n clock: time/tick\n observe: conduit.test/tick-observer\n clock.count = 3\n clock.period-ms = 7\n clock.tick -> observe.in\n}\n",
+        "form typed_tick {\n clock: time/tick(count = 3, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick > observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed tick fixture parses");
@@ -124,7 +124,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
 fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
     let mut host = host("typed-flow-state-host");
     let form = parse(
-        "form 0\n\ntyped_flow_state {\n source: conduit.test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit.test/scalar-sink\n right: conduit.test/scalar-sink\n source.value -> latest.in\n latest.out -> split.in\n split.left -> left.in\n split.right -> right.in\n}\n",
+        "form typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value > latest.in\n latest.out > split.in\n split.left > left.in\n split.right > right.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed flow/state form parses");
@@ -184,8 +184,8 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
         .run_fragment_to(fragment.clone(), &mut output, &mut timer)
         .expect("typed latest/tee execute through the production kernel");
     let output = String::from_utf8(output).expect("flow/state report is utf8");
-    assert!(output.contains("place latest kind=state/latest"));
-    assert!(output.contains("place split kind=flow/tee"));
+    assert!(output.contains("/latest kind=state/latest"));
+    assert!(output.contains("/split kind=flow/tee"));
     assert!(output.contains(" complete\n"));
     assert_eq!(timer.waits, vec![Duration::ZERO; 3]);
     assert!(matches!(
@@ -206,7 +206,7 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
 fn mutated_typed_tee_identity_fails_before_play() {
     let baseline_host = host("mutated-flow-state-host");
     let form = parse(
-        "form 0\n\ntyped_flow_state {\n source: conduit.test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit.test/scalar-sink\n right: conduit.test/scalar-sink\n source.value -> latest.in\n latest.out -> split.in\n split.left -> left.in\n split.right -> right.in\n}\n",
+        "form typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value > latest.in\n latest.out > split.in\n split.left > left.in\n split.right > right.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed flow/state form parses");
@@ -249,7 +249,7 @@ fn mutated_typed_tee_identity_fails_before_play() {
 fn zero_count_tick_completes_without_wait_or_value_receipt() {
     let mut host = host("zero-tick-host");
     let form = parse(
-        "form 0\n\nzero_tick {\n clock: time/tick\n observe: conduit.test/tick-observer\n clock.count = 0\n clock.period-ms = 99\n clock.tick -> observe.in\n}\n",
+        "form zero_tick {\n clock: time/tick(count = 0, period-ms = 99)\n observe: conduit-test/tick-observer\n clock.tick > observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("zero tick fixture parses");
@@ -277,7 +277,7 @@ fn zero_count_tick_completes_without_wait_or_value_receipt() {
 fn mutated_tick_executable_identity_fails_before_any_wait() {
     let mut host = host("mutated-tick-host");
     let form = parse(
-        "form 0\n\nmutated_tick {\n clock: time/tick\n observe: conduit.test/tick-observer\n clock.count = 1\n clock.period-ms = 7\n clock.tick -> observe.in\n}\n",
+        "form mutated_tick {\n clock: time/tick(count = 1, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick > observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed tick fixture parses");
@@ -304,7 +304,7 @@ fn mutated_tick_executable_identity_fails_before_any_wait() {
 fn text_plan(host: &StdHost, invalid: bool) -> conduit_core::Plan {
     let form = parse(
         &format!(
-            "form 0\n\ntext_demo {{\n source: conduit.test/text-source\n show: presentation/text\n source.invalid = {invalid}\n source.text -> show.text\n}}\n"
+            "form text_demo {{\n source: conduit-test/text-source(invalid = {invalid})\n show: presentation/text\n source.text > show.text\n}}\n"
         ),
         &installed_std::test_catalog(),
     )
@@ -383,7 +383,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
     conduit_ai::install_generate_text_catalog(&mut startup, &mut catalog)
         .expect("generate-text catalog installs");
     let form = parse(
-        "form 0\n\ngenerate_demo {\n source: conduit.test/text-source\n generate: ai/generate-text\n show: presentation/text\n source.invalid = false\n source.text -> generate.prompt\n generate.text -> show.text\n}\n",
+        "form generate_demo {\n source: conduit-test/text-source(invalid = false)\n generate: ai/generate-text\n show: presentation/text\n source.text > generate.prompt\n generate.text > show.text\n}\n",
         &catalog,
     )
     .expect("generate-text execution form parses");

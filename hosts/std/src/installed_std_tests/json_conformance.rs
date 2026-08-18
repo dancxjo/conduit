@@ -1,6 +1,6 @@
 use super::*;
 
-const FORM: &str = "form 0\n\njson_round_trip {\n source: conduit.test/json-text-source\n decode: json/decode\n encode: json/encode\n sink: conduit.test/json-text-sink\n source.value -> decode.value\n decode.value -> encode.value\n encode.value -> sink.value\n}\n";
+const FORM: &str = "form json_round_trip {\n source: conduit-test/json-text-source\n decode: json/decode\n encode: json/encode\n sink: conduit-test/json-text-sink\n source.value > decode.value\n decode.value > encode.value\n encode.value > sink.value\n}\n";
 
 #[test]
 fn ordinary_form_runs_shared_bounded_json_through_the_production_kernel() {

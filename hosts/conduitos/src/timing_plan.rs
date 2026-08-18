@@ -18,7 +18,7 @@ use crate::{
     planned_kernel::PlannedKernel,
 };
 
-const TIMING_FORM_SOURCE: &str = "form 0\n\nconduitos-ordinary {\n    clock: time/tick\n    show: presentation/tick\n\n    clock.count = 1\n    clock.period-ms = 1\n    show.maximum-values = 1\n\n    clock.tick -> show.tick\n}\n";
+const TIMING_FORM_SOURCE: &str = "form conduitos-ordinary {\n    clock: time/tick(count = 1, period-ms = 1)\n    show: presentation/tick(maximum-values = 1)\n\n\n    clock.tick > show.tick\n}\n";
 
 pub struct PreparedTimingPlay {
     pub kernel: PlannedKernel,

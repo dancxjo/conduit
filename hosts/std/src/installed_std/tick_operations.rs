@@ -205,9 +205,9 @@ fn validate_every_placement(placement: &PlannedGear) -> Result<(), String> {
 }
 
 #[cfg(test)]
-pub(super) const TEST_OBSERVER_KIND: &str = "conduit.test/tick-observer";
+pub(super) const TEST_OBSERVER_KIND: &str = "conduit-test/tick-observer";
 #[cfg(test)]
-pub(super) const TEST_OBSERVER_IMPLEMENTATION: &str = "conduit.test/tick-observer@1";
+pub(super) const TEST_OBSERVER_IMPLEMENTATION: &str = "conduit-test/tick-observer@1";
 
 #[cfg(test)]
 pub(super) static TEST_OBSERVER_FACTORY: InstalledFactory = InstalledFactory {

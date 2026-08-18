@@ -10,23 +10,15 @@ fn unique_report_path(name: &str) -> PathBuf {
 }
 
 #[test]
-fn signal_demo_runs_locally() {
+fn canonical_hello_runs_locally() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let form_path = workspace_root.join("examples/signal-demo.form");
-    let placements_path = workspace_root.join("examples/std-local.placements");
+    let form_path = workspace_root.join("examples/hello.conduit");
 
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
-        .args([
-            "run",
-            form_path.to_str().expect("form path must be utf-8"),
-            "--placements",
-            placements_path
-                .to_str()
-                .expect("placements path must be utf-8"),
-        ])
+        .args(["run", form_path.to_str().expect("form path must be utf-8")])
         .output()
         .expect("failed to run conduit binary");
 
@@ -34,7 +26,7 @@ fn signal_demo_runs_locally() {
 
     let stdout = String::from_utf8(output.stdout).expect("stdout must be utf-8");
     let lines: Vec<&str> = stdout.lines().collect();
-    assert!(lines.len() >= 22, "unexpected output: {stdout}");
+    assert!(lines.len() >= 9, "unexpected output: {stdout}");
     assert!(
         lines
             .first()
@@ -43,64 +35,25 @@ fn signal_demo_runs_locally() {
         "missing fresh host/boot report: {stdout}"
     );
     assert!(
-        lines
-            .iter()
-            .any(|line| line.starts_with("place pulse kind=flow/pulse host=std-host-1 boot=boot-")
-                && line.ends_with(" capability=pulse-1 implementation=std/pulse-v1 artifact=conduit-signal/pulse-artifact-v1")),
-        "missing pulse placement line: {stdout}"
+        lines.iter().any(
+            |line| line.contains("kind=text/upper host=std-host-1 boot=boot-")
+                && line.contains(" implementation=std/kernel-text-upper@1 ")
+        ),
+        "missing canonical upper placement: {stdout}"
     );
     assert!(
-        lines
-            .iter()
-            .any(|line| line.starts_with("place show kind=presentation/show host=std-host-1 boot=boot-")
-                && line.ends_with(" capability=stdout-show-1 implementation=std/stdout-show-signal-v1 artifact=conduit-signal/show-artifact-v1")),
-        "missing show placement line: {stdout}"
+        lines.iter().any(
+            |line| line.contains("kind=presentation/text host=std-host-1 boot=boot-")
+                && line.contains(" implementation=std/kernel-presentation-text@1 ")
+        ),
+        "missing canonical presentation placement: {stdout}"
     );
-    let receipt_lines = lines
-        .iter()
-        .filter(|line| line.starts_with("receipt signal placement="))
-        .copied()
-        .collect::<Vec<_>>();
-    assert_eq!(
-        receipt_lines.len(),
-        16,
-        "expected one machine-readable receipt per signal: {stdout}"
-    );
-    assert!(
-        lines.iter().any(|line| line == &"signal 0 off"),
-        "missing first signal line: {stdout}"
-    );
-    assert!(
-        lines.iter().any(|line| line == &"signal 1 on"),
-        "missing second signal line: {stdout}"
-    );
-    assert!(
-        lines.iter().any(|line| line == &"signal 15 on"),
-        "missing last signal line: {stdout}"
-    );
-    assert!(
-        receipt_lines
-            .iter()
-            .any(|line| line.ends_with(" sequence=0 level=false")),
-        "missing first signal receipt: {stdout}"
-    );
-    assert!(
-        receipt_lines
-            .iter()
-            .any(|line| line.ends_with(" sequence=15 level=true")),
-        "missing last signal receipt: {stdout}"
-    );
+    assert!(lines.iter().any(|line| line == &"HELLO, WORLD."));
     assert!(
         lines
             .iter()
             .any(|line| line.starts_with("plan ") && line.ends_with(" complete")),
         "missing plan completion line: {stdout}"
-    );
-    assert!(
-        lines
-            .iter()
-            .any(|line| line == &"receipts 16 first=(0, false) last=(15, true)"),
-        "missing receipt summary: {stdout}"
     );
 }
 
@@ -110,8 +63,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let form_path = workspace_root.join("examples/signal-demo.form");
-    let placements_path = workspace_root.join("examples/std-local.placements");
+    let form_path = workspace_root.join("examples/hello.conduit");
     let report_path = unique_report_path("actual-observatory");
     let _ = std::fs::remove_file(&report_path);
 
@@ -119,10 +71,6 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         .args([
             "run",
             form_path.to_str().expect("form path must be utf-8"),
-            "--placements",
-            placements_path
-                .to_str()
-                .expect("placements path must be utf-8"),
             "--report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
@@ -130,7 +78,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         .expect("failed to run conduit binary");
     assert!(run.status.success(), "actual run failed: {run:?}");
     assert!(
-        String::from_utf8_lossy(&run.stdout).contains("receipt signal placement="),
+        String::from_utf8_lossy(&run.stdout).contains("HELLO, WORLD."),
         "the producing command must be the actual std execution path"
     );
 
@@ -153,10 +101,9 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(sign_ids.len(), observations.len());
     assert!(sign_ids.iter().all(|identity| identity.len() == 64));
-    assert!(observations.iter().any(|observation| {
-        observation["active_play_id"].as_str().is_some()
-            && observation["presentation_id"].as_str().is_some()
-    }));
+    assert!(observations
+        .iter()
+        .any(|observation| observation["active_play_id"].as_str().is_some()));
 
     let inspect = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
@@ -247,104 +194,24 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
 }
 
 #[test]
-fn typed_multi_value_form_runs_through_the_std_kernel() {
+fn product_run_refuses_precanonical_fixture_source() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let form_path = workspace_root.join("examples/kernel-multivalue.form");
-
+    let canonical = workspace_root.join("examples/hello.conduit");
+    let form_path = unique_report_path("noncanonical-source").with_extension("form");
+    std::fs::copy(canonical, &form_path).expect("temporary noncanonical source copies");
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
-        .args([
-            "kernel-multivalue",
-            form_path.to_str().expect("form path must be utf-8"),
-        ])
-        .output()
-        .expect("failed to run conduit multi-value kernel profile");
-
-    assert!(output.status.success(), "process failed: {output:?}");
-    let stdout = String::from_utf8(output.stdout).expect("stdout must be utf-8");
-    let receipt_lines = stdout
-        .lines()
-        .filter(|line| line.starts_with("receipt tick placement="))
-        .collect::<Vec<_>>();
-    assert_eq!(receipt_lines.len(), 3, "unexpected receipts: {stdout}");
-    assert!(stdout.contains("tick even 0"), "{stdout}");
-    assert!(stdout.contains("tick even 2"), "{stdout}");
-    assert!(stdout.contains("tick latest 3"), "{stdout}");
-    assert!(
-        stdout.contains("receipts 3 even=(0, 2) latest=(3)"),
-        "{stdout}"
-    );
-    assert!(stdout.contains("stable_allocations=true"), "{stdout}");
-    assert!(
-        stdout.contains("pressure_items=1 pressure_bytes=8"),
-        "{stdout}"
-    );
-    assert!(
-        stdout.contains("input_closed=5 terminal_order_exact=true"),
-        "{stdout}"
-    );
-    assert!(
-        stdout
-            .lines()
-            .any(|line| line.starts_with("plan ") && line.ends_with(" complete")),
-        "{stdout}"
-    );
-}
-
-#[test]
-fn triple_signal_form_runs_through_local_std_kernel() {
-    let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .canonicalize()
-        .expect("workspace root must exist");
-    let form_path = workspace_root.join("examples/triple-signal.form");
-    let placements_path = workspace_root.join("examples/triple-local.placements");
-
-    let source = std::fs::read_to_string(&form_path).expect("triple form exists");
-    for platform_fact in [
-        "stdout",
-        "DOM",
-        "GPIO",
-        "browser",
-        "Pico",
-        "WebSocket",
-        "TCP",
-        "UDP",
-    ] {
-        assert!(
-            !source.contains(platform_fact),
-            "triple form should not contain platform fact {platform_fact}"
-        );
-    }
-
-    let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
-        .args([
-            "run",
-            form_path.to_str().expect("form path must be utf-8"),
-            "--placements",
-            placements_path
-                .to_str()
-                .expect("placements path must be utf-8"),
-        ])
+        .args(["run", form_path.to_str().expect("form path must be utf-8")])
         .output()
         .expect("failed to run conduit binary");
+    let _ = std::fs::remove_file(&form_path);
 
-    assert!(output.status.success(), "process failed: {output:?}");
-
-    let stdout = String::from_utf8(output.stdout).expect("stdout must be utf-8");
-    let receipt_lines = stdout
-        .lines()
-        .filter(|line| line.starts_with("receipt signal placement="))
-        .collect::<Vec<_>>();
-    assert_eq!(
-        receipt_lines.len(),
-        48,
-        "expected three local show sinks to receipt sixteen signals each: {stdout}"
-    );
+    assert!(!output.status.success(), "fixture source unexpectedly ran");
+    let stderr = String::from_utf8(output.stderr).expect("stderr must be utf-8");
     assert!(
-        stdout.contains("receipts 48 first=(0, false) last=(15, true)"),
-        "missing triple receipt summary: {stdout}"
+        stderr.contains("canonical Form source must use the .conduit suffix"),
+        "unexpected refusal: {stderr}"
     );
 }

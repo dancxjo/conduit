@@ -340,21 +340,21 @@ fn prove_live_delivery(value: StructuredInfoValue) {
     let source_host = advertisement("structured-source-host", true, &value_kind);
     let sink_host = advertisement("structured-sink-host", false, &value_kind);
     let form = parse(
-        "form 0\n\nremote {\n source: test/structured-source\n sink: test/structured-sink\n source > sink\n}\n",
+        "form remote {\n source: test/structured-source\n sink: test/structured-sink\n source > sink\n}\n",
         &catalog(&value_kind),
     )
     .unwrap();
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("source"),
+                GearId::from("remote/source"),
                 PlacementChoice {
                     host_id: source_host.host_id.clone(),
                     capability_id: CapabilityId::from("structured-source"),
                 },
             ),
             (
-                GearId::from("sink"),
+                GearId::from("remote/sink"),
                 PlacementChoice {
                     host_id: sink_host.host_id.clone(),
                     capability_id: CapabilityId::from("structured-sink"),

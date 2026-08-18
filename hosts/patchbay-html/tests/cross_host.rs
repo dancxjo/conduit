@@ -14,20 +14,20 @@ fn one_exact_presentation_crosses_the_planned_line_into_the_html_renderer() {
         .fragments
         .iter()
         .find(|fragment| {
-            fragment
-                .placements
-                .iter()
-                .any(|placement| placement.gear_id.as_str() == CROSS_HOST_SOURCE_GEAR)
+            fragment.placements.iter().any(|placement| {
+                placement.gear_id.as_str()
+                    == format!("cross-host-patchbay/{CROSS_HOST_SOURCE_GEAR}")
+            })
         })
         .unwrap();
     let renderer = plan
         .fragments
         .iter()
         .find(|fragment| {
-            fragment
-                .placements
-                .iter()
-                .any(|placement| placement.gear_id.as_str() == CROSS_HOST_RENDERER_GEAR)
+            fragment.placements.iter().any(|placement| {
+                placement.gear_id.as_str()
+                    == format!("cross-host-patchbay/{CROSS_HOST_RENDERER_GEAR}")
+            })
         })
         .unwrap();
     assert_ne!(source.host_id, renderer.host_id);

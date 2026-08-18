@@ -11,22 +11,22 @@ use conduit_kernel::{
     PortId, RequestId, ValueRef, ValueStorage,
 };
 
-const SOURCE_KIND: &str = "conduit.test/scalar-source";
-const SOURCE_REVISION: &str = "conduit.test/scalar-source@1";
-const SOURCE_PROFILE: &str = "conduit.test/scalar-source-kernel@1";
-const SOURCE_IMPLEMENTATION: &str = "conduit.test/scalar-source-kernel@1";
+const SOURCE_KIND: &str = "conduit-test/scalar-source";
+const SOURCE_REVISION: &str = "conduit-test/scalar-source@1";
+const SOURCE_PROFILE: &str = "conduit-test/scalar-source-kernel@1";
+const SOURCE_IMPLEMENTATION: &str = "conduit-test/scalar-source-kernel@1";
 const SOURCE_ARTIFACT: &str = "conduit-std-host/test-scalar-source@1";
 
-const LITERAL_KIND: &str = "conduit.test/scalar-literal";
-const LITERAL_REVISION: &str = "conduit.test/scalar-literal@1";
-const LITERAL_PROFILE: &str = "conduit.test/scalar-literal-kernel@1";
-const LITERAL_IMPLEMENTATION: &str = "conduit.test/scalar-literal-kernel@1";
+const LITERAL_KIND: &str = "conduit-test/scalar-literal";
+const LITERAL_REVISION: &str = "conduit-test/scalar-literal@1";
+const LITERAL_PROFILE: &str = "conduit-test/scalar-literal-kernel@1";
+const LITERAL_IMPLEMENTATION: &str = "conduit-test/scalar-literal-kernel@1";
 const LITERAL_ARTIFACT: &str = "conduit-std-host/test-scalar-literal@1";
 
-const SINK_KIND: &str = "conduit.test/scalar-sink";
-const SINK_REVISION: &str = "conduit.test/scalar-sink@1";
-const SINK_PROFILE: &str = "conduit.test/scalar-sink-kernel@1";
-const SINK_IMPLEMENTATION: &str = "conduit.test/scalar-sink-kernel@1";
+const SINK_KIND: &str = "conduit-test/scalar-sink";
+const SINK_REVISION: &str = "conduit-test/scalar-sink@1";
+const SINK_PROFILE: &str = "conduit-test/scalar-sink-kernel@1";
+const SINK_IMPLEMENTATION: &str = "conduit-test/scalar-sink-kernel@1";
 const SINK_ARTIFACT: &str = "conduit-std-host/test-scalar-sink@1";
 const EXPECTED_VALUES: u64 = 3;
 

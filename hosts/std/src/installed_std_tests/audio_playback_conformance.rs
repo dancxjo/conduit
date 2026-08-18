@@ -33,7 +33,7 @@ fn host(behavior: FakePlaybackBehavior) -> StdHost {
 
 fn form() -> conduit_form::CheckedForm {
     conduit_form::parse(
-        "form 0\n\naudio_fixture {\n source: conduit.proof/pcm-specimen-source\n output: audio/play\n source.audio -> output.audio\n}\n",
+        "form audio_fixture {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio > output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .expect("audio fixture Form is valid")

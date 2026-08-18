@@ -1,5 +1,3 @@
-form 0
-
-composite-parent {
+form composite-parent {
     run: demonstration/run-signal
 }

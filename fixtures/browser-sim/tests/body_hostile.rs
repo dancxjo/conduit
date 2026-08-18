@@ -6,7 +6,7 @@ use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
 use conduit_core::{
     BootId, CheckedFormId, HostId, LinkBindingId, OfferGeneration, SignId, SourceDocumentId,
 };
-use conduit_form::parse;
+use conduit_form::parse_with_startup;
 use conduit_signal::signal_profile_catalog;
 use ed25519_dalek::{Signer, SigningKey};
 
@@ -27,10 +27,8 @@ fn hostile_reachable_browser_cannot_mutate_form_plan_or_membership_without_exact
     });
     let page = BrowserSimPage::with_hosts(configs);
     let advertisements = page.advertisements();
-    let checked = parse(
-        "form 0\n\nsignal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 4\n pulse.period-ms = 1\n pulse.initial = false\n pulse > show\n}\n",
-        &signal_profile_catalog(),
-    )
+    let checked = parse_with_startup(
+        "form signal-demo {\n pulse: flow/pulse(count = 4, period-ms = 1, initial = false)\n show: presentation/show\n pulse > show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
     .unwrap();
     let plan = page
         .plan_pair(

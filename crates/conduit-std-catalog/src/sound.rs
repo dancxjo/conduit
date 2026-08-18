@@ -546,7 +546,7 @@ mod tests {
         let mut profile = conduit_form::ProfileCatalog::new();
         crate::install_sound_catalogs(&mut startup, &mut profile).unwrap();
         let checked = conduit_form::parse(
-            "form 0\n\npatch {\n synth: music/synth\n synth.maximum-voices = 12\n synth.oscillator = \"triangle\"\n synth.filter-envelope-amount-q16 = -4096\n}\n",
+            "form patch {\n synth: music/synth(maximum-voices = 12, oscillator = \"triangle\", filter-envelope-amount-q16 = -4096)\n}\n",
             &profile,
         )
         .unwrap();

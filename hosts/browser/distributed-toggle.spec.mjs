@@ -43,7 +43,7 @@ function lineCollector(stream) {
 test("unchanged toggle form runs std kernel to browser WASM kernel over live bounded WebSocket", async ({
   page,
 }) => {
-  const sourceText = readFileSync("examples/remote-toggle.form", "utf8");
+  const sourceText = readFileSync("fixtures/forms/remote-toggle.conduit", "utf8");
   for (const forbidden of [
     "websocket",
     "127.0.0.1",

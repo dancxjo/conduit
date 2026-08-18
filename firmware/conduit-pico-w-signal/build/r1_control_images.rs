@@ -27,10 +27,8 @@ pub(super) fn emit_rerun_directives() {
 }
 
 pub(super) fn generate(out: &Path, activate: bool) {
-    let form = conduit_form::parse(
-        R1_CONTROL_FORM,
-        &conduit_signal::signal_profile_catalog(),
-    )
+    let form = conduit_form::parse_with_startup(
+        R1_CONTROL_FORM, &conduit_signal::signal_startup_catalog(), &conduit_signal::signal_profile_catalog())
     .expect("R1 three-peer control Form must check");
     for (stem, routes, identity_env) in [
         (

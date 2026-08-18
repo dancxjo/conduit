@@ -45,7 +45,7 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
 }) => {
   test.skip(process.env.CONDUIT_THREE_HOST_FAILURE === "1", "running the failure proof only");
   test.setTimeout(60_000);
-  const form = readFileSync("examples/triple-signal.form", "utf8").toLowerCase();
+  const form = readFileSync("fixtures/forms/triple-signal.conduit", "utf8").toLowerCase();
   for (const forbidden of [
     "stdout", "dom", "gpio", "transport", "usb", "websocket", "browser", "pico",
     "firmware", "host", "address", "socket",

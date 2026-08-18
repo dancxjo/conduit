@@ -28,8 +28,7 @@ pub const ACTUATOR_ATTEMPT_FORM: &str = r#"form forbidden_drive {
 
 /// Portable canonical Form. It names musical meaning only; Create, OI,
 /// serial, song slots, and speaker resources enter solely through the Plan.
-pub const SIMPLE_MELODY_FORM: &str = r#"form 0
-simple_melody {
+pub const SIMPLE_MELODY_FORM: &str = r#"form simple_melody {
     performance: music/play
 }
 "#;

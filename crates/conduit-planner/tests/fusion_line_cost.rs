@@ -20,7 +20,7 @@ struct Fixture {
 
 fn fixture() -> Fixture {
     let form = conduit_form::parse(
-        "form 0\n\nfusion {\n source: time/tick\n transform: flow/map\n analysis: flow/filter\n source.count = 10\n source.period-ms = 1\n source.tick -> transform.in\n transform > analysis\n}\n",
+        "form fusion {\n source: time/tick(count = 10, period-ms = 1)\n transform: flow/map\n analysis: flow/filter\n source.tick > transform.in\n transform > analysis\n}\n",
         &conduit_std_catalog::standard_profile_catalog(),
     )
     .expect("three-Gear fusion Form checks");
@@ -64,6 +64,7 @@ fn provenance(id: &str) -> ObservationProvenance {
 }
 
 fn capability(fixture: &Fixture, gear: &str, host: usize) -> CapabilityId {
+    let gear = format!("fusion/{gear}");
     let gear = fixture
         .form
         .gears
@@ -86,7 +87,7 @@ fn placements(fixture: &Fixture, remote_split: bool) -> PlacementChoices {
             .map(|gear| {
                 let host = usize::from(remote_split && gear != "source");
                 (
-                    GearId::from(gear),
+                    GearId::from(format!("fusion/{gear}")),
                     PlacementChoice {
                         host_id: fixture.hosts[host].host_id.clone(),
                         capability_id: capability(fixture, gear, host),
@@ -103,7 +104,10 @@ fn locality_candidate(fixture: &Fixture, id: &str, remote_split: bool) -> Locali
         placements: placements(fixture, remote_split),
         lines: if remote_split {
             BTreeMap::from([(
-                (GearId::from("source"), GearId::from("transform")),
+                (
+                    GearId::from("fusion/source"),
+                    GearId::from("fusion/transform"),
+                ),
                 fixture.line.line_id.clone(),
             )])
         } else {
@@ -142,13 +146,19 @@ fn offer(fixture: &Fixture) -> FusionRealizationOffer {
         implementation_id: ImplementationId::from("local/fused-chain@1"),
         artifact_id: ArtifactId::from("local/fused-chain-artifact@1"),
         gear_ids: vec![
-            GearId::from("source"),
-            GearId::from("transform"),
-            GearId::from("analysis"),
+            GearId::from("fusion/source"),
+            GearId::from("fusion/transform"),
+            GearId::from("fusion/analysis"),
         ],
         internal_cords: vec![
-            (GearId::from("source"), GearId::from("transform")),
-            (GearId::from("transform"), GearId::from("analysis")),
+            (
+                GearId::from("fusion/source"),
+                GearId::from("fusion/transform"),
+            ),
+            (
+                GearId::from("fusion/transform"),
+                GearId::from("fusion/analysis"),
+            ),
         ],
         preserves_typed_ports: true,
         preserves_atomic_pressure: true,
@@ -166,7 +176,7 @@ fn basis(fixture: &Fixture, transport_per_kib: u64) -> LocalityPlanningBasis {
     ] {
         for (host, work) in [(0, local), (1, remote)] {
             realization_work.push(RealizationWorkObservation {
-                gear_id: GearId::from(gear),
+                gear_id: GearId::from(format!("fusion/{gear}")),
                 host_id: fixture.hosts[host].host_id.clone(),
                 boot_id: fixture.hosts[host].boot_id.clone(),
                 capability_id: capability(fixture, gear, host),
@@ -180,7 +190,7 @@ fn basis(fixture: &Fixture, transport_per_kib: u64) -> LocalityPlanningBasis {
         horizon_seconds: 10,
         remote_bytes_per_second_ceiling: None,
         data_flow: DataFlowObservation {
-            source_gear_id: GearId::from("source"),
+            source_gear_id: GearId::from("fusion/source"),
             items_per_second: 10_000,
             bytes_per_item: 1,
             provenance: provenance("flow/rate"),
@@ -206,24 +216,24 @@ fn basis(fixture: &Fixture, transport_per_kib: u64) -> LocalityPlanningBasis {
         }],
         local_cords: vec![
             LocalCordObservation {
-                source_gear_id: GearId::from("source"),
-                sink_gear_id: GearId::from("transform"),
+                source_gear_id: GearId::from("fusion/source"),
+                sink_gear_id: GearId::from("fusion/transform"),
                 host_id: fixture.hosts[0].host_id.clone(),
                 boot_id: fixture.hosts[0].boot_id.clone(),
                 work_units: 10,
                 provenance: provenance("cord/source-transform/local"),
             },
             LocalCordObservation {
-                source_gear_id: GearId::from("transform"),
-                sink_gear_id: GearId::from("analysis"),
+                source_gear_id: GearId::from("fusion/transform"),
+                sink_gear_id: GearId::from("fusion/analysis"),
                 host_id: fixture.hosts[0].host_id.clone(),
                 boot_id: fixture.hosts[0].boot_id.clone(),
                 work_units: 10,
                 provenance: provenance("cord/transform-analysis/local"),
             },
             LocalCordObservation {
-                source_gear_id: GearId::from("transform"),
-                sink_gear_id: GearId::from("analysis"),
+                source_gear_id: GearId::from("fusion/transform"),
+                sink_gear_id: GearId::from("fusion/analysis"),
                 host_id: fixture.hosts[1].host_id.clone(),
                 boot_id: fixture.hosts[1].boot_id.clone(),
                 work_units: 10,
@@ -329,8 +339,8 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
             offers: &[offer(&fixture)],
             observations: &[fusion_observation(120)],
             boundaries: &[FusionBoundary {
-                source_gear_id: GearId::from("transform"),
-                sink_gear_id: GearId::from("analysis"),
+                source_gear_id: GearId::from("fusion/transform"),
+                sink_gear_id: GearId::from("fusion/analysis"),
                 requires_observation: true,
                 requires_authority: false,
             }],
@@ -398,14 +408,14 @@ fn observation_authority_and_semantic_preservation_can_forbid_fusion() {
     let fixture = fixture();
     for boundary in [
         FusionBoundary {
-            source_gear_id: GearId::from("transform"),
-            sink_gear_id: GearId::from("analysis"),
+            source_gear_id: GearId::from("fusion/transform"),
+            sink_gear_id: GearId::from("fusion/analysis"),
             requires_observation: true,
             requires_authority: false,
         },
         FusionBoundary {
-            source_gear_id: GearId::from("transform"),
-            sink_gear_id: GearId::from("analysis"),
+            source_gear_id: GearId::from("fusion/transform"),
+            sink_gear_id: GearId::from("fusion/analysis"),
             requires_observation: false,
             requires_authority: true,
         },

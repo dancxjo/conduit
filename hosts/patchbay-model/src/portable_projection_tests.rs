@@ -329,6 +329,6 @@ fn sound_fit_refusal_selection_and_exact_play_reach_the_portable_patchbay() {
     assert!(rendered.contains("SOUND FORM"));
     assert!(rendered.contains("status=compatible route=direct"));
     assert!(rendered.contains("incompatible:polyphony-exceeds-offer"));
-    assert!(rendered.contains("route=music/synth -> audio/play"));
+    assert!(rendered.contains("route=music/synth > audio/play"));
     assert!(rendered.contains(&format!("SOUND PLAY {}", active_play_id.as_str())));
 }

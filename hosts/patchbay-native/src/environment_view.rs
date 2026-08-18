@@ -290,7 +290,7 @@ pub(super) fn draw_environment(
                     &mut canvas,
                     Point::new(184, 518 + index as i32 * 18),
                     &format!(
-                        "{} -> host={} boot={} implementation={}",
+                        "{} > host={} boot={} implementation={}",
                         placement.gear_id.as_str(),
                         placement.host_id.as_str(),
                         placement.boot_id.as_str(),

@@ -434,8 +434,9 @@ mod tests {
     #[test]
     fn planner_cannot_obtain_an_unselected_family_from_a_category_prefix() {
         let host = host(StdHostComposition::minimal().with_text());
-        let form = conduit_form::parse(
-            include_str!("../../../examples/signal-demo.form"),
+        let form = conduit_form::parse_with_startup(
+            include_str!("../../../fixtures/forms/signal-demo.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &conduit_signal::signal_profile_catalog(),
         )
         .expect("Signal form checks independently of host composition");

@@ -10,14 +10,14 @@ use conduit_signal::{
     esp32_wroom_build_fixture_advertisement, signal_profile_catalog,
 };
 
-const SIGNAL_FORM: &str = include_str!("../../examples/signal-demo.form");
+const SIGNAL_FORM: &str = include_str!("../../fixtures/forms/signal-demo.conduit");
 
 fn main() {
-    println!("cargo:rerun-if-changed=../../examples/signal-demo.form");
+    println!("cargo:rerun-if-changed=../../fixtures/forms/signal-demo.conduit");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rustc-link-arg=-Tlinkall.x");
 
-    let form = conduit_form::parse(SIGNAL_FORM, &signal_profile_catalog())
+    let form = conduit_form::parse_with_startup(SIGNAL_FORM, &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("portable Signal form must check");
     let descriptor = hw463_esp_wroom_32_sample();
     validate_esp32_descriptor(&descriptor)

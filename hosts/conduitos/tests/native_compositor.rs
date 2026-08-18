@@ -245,7 +245,7 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_definition()).unwrap();
     let form = parse(
-        "form 0\n\nface {\n    renderer: presentation/renderer\n}\n",
+        "form face {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
     .unwrap();

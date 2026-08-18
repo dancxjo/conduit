@@ -189,8 +189,7 @@ cargo xtask prove std-browser-toggle
 Installed product workflows enter through `conduit`:
 
 ```sh
-conduit run examples/signal-demo.form \
-  --placements examples/std-local.placements \
+conduit run examples/hello.conduit \
   --report /tmp/conduit-run.json
 
 conduit inspect runtime-report /tmp/conduit-run.json
@@ -258,7 +257,9 @@ form hello {
 
 The principal surface marks a Face with `(...)`, a Back with `{...}`, declarative immutable value relationships with `=`, and runtime Cords with `>`.
 
-The `.form` files in `examples/` are retained compatibility fixtures for accepted kernel, browser, firmware, Line, composite, and Sign identities. Canonical examples use `.conduit`; the old fixtures are not silently reinterpreted as the current language.
+Canonical `.conduit` is the only product Form language. Exact pre-canonical
+bytes retained by historical proof identities live under `fixtures/forms/`
+and are not accepted by ordinary product source loading.
 
 Learn more from:
 

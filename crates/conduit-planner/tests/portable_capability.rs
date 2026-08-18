@@ -14,8 +14,9 @@ static EMPTY_ROUTE_CANDIDATES: BTreeMap<(GearId, GearId), Vec<conduit_core::Line
     BTreeMap::new();
 
 fn portable_inputs() -> (conduit_form::CheckedForm, Vec<HostAdvertisement>) {
-    let form = conduit_form::parse(
-        include_str!("../../../examples/signal-demo.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),
     )
     .expect("portable Signal form checks");

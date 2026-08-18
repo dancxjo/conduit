@@ -4,35 +4,20 @@ use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
 use conduit_presentation::MAX_LAYOUT_FRAME_BYTES;
 
-const FORM: &str = r#"form 0
-
-patchbay_shell {
- viewport: layout/viewport
- inset: layout/inset
- row: layout/row
- column: layout/column
+const FORM: &str = r#"form patchbay_shell {
+ viewport: layout/viewport(width = 960, height = 540, children = 3, child-width = 120, child-height = 80)
+ inset: layout/inset(inset = 12)
+ row: layout/row(gap = 8)
+ column: layout/column(gap = 6)
  stack: layout/stack
- face: layout/align
- sink: conduit.test/layout-sink
- viewport.width = 960
- viewport.height = 540
- viewport.children = 3
- viewport.child-width = 120
- viewport.child-height = 80
- inset.inset = 12
- row.gap = 8
- column.gap = 6
- face.horizontal = "center"
- face.vertical = "end"
- viewport.placements -> inset.frame
- inset.placements -> row.frame
- row.placements -> column.frame
- column.placements -> stack.frame
- stack.placements -> face.frame
- face.placements -> sink.in
- export shell-layout: presentation/patchbay-shell {
-  output placements: presentation/layout-frame@1 = face.placements terminal independent
- }
+ face: layout/align(horizontal = "center", vertical = "end")
+ sink: conduit-test/layout-sink
+ viewport.placements > inset.frame
+ inset.placements > row.frame
+ row.placements > column.frame
+ column.placements > stack.frame
+ stack.placements > face.frame
+ face.placements > sink.in
 }
 "#;
 

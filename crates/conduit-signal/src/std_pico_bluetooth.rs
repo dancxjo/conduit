@@ -75,22 +75,23 @@ pub fn exact_std_pico_bluetooth_plan(
         SignId::from("bluetooth/line/pico-offer-ready"),
     )
     .map_err(|error| alloc::format!("Bluetooth Line offer: {error:?}"))?;
-    let form = conduit_form::parse(
-        include_str!("../../../examples/signal-demo.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+        &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("pulse"),
+                GearId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: "std-pico-pulse-1".into(),
                 },
             ),
             (
-                GearId::from("show"),
+                GearId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: "pico-cyw43-show-1".into(),
