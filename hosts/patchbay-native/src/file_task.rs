@@ -174,7 +174,7 @@ impl NativeFileTask {
         let grant = self.registry.register(
             handle.clone(),
             path,
-            GearId::from("copy"),
+            GearId::from("copy-task/task"),
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
             self.config.host_id.clone(),
             self.config.boot_id.clone(),
@@ -227,7 +227,7 @@ impl NativeFileTask {
         let grant = self.registry.register(
             handle.clone(),
             path,
-            GearId::from("copy"),
+            GearId::from("copy-task/task"),
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_DESTINATION_ROLE),
             self.config.host_id.clone(),
             self.config.boot_id.clone(),

@@ -76,7 +76,7 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
     let plan_b = exact_r1_signal_plan(pico_boot.clone(), R1SignalRouteSet::UsbOnly)?.plan;
     let mut recovery = R1NewPlanRecovery::begin(
         plan_a,
-        GearId::from("show"),
+        GearId::from("signal-demo/show"),
         1,
         1,
         HostId::from(conduit_net::R1_STD_HOST_ID),

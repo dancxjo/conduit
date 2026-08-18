@@ -133,14 +133,14 @@ pub fn prove(
     let choices = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("native"),
+                GearId::from("shared-face/native"),
                 PlacementChoice {
                     host_id: advertisements[0].host_id.clone(),
                     capability_id: CapabilityId::from("presenter/native"),
                 },
             ),
             (
-                GearId::from("browser"),
+                GearId::from("shared-face/browser"),
                 PlacementChoice {
                     host_id: advertisements[1].host_id.clone(),
                     capability_id: CapabilityId::from("presenter/browser"),
@@ -452,14 +452,14 @@ fn headless_placement_refuses(
     let choices = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("native"),
+                GearId::from("shared-face/native"),
                 PlacementChoice {
                     host_id: advertisements[2].host_id.clone(),
                     capability_id: CapabilityId::from("presenter/native"),
                 },
             ),
             (
-                GearId::from("browser"),
+                GearId::from("shared-face/browser"),
                 PlacementChoice {
                     host_id: advertisements[1].host_id.clone(),
                     capability_id: CapabilityId::from("presenter/browser"),

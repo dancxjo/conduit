@@ -180,9 +180,16 @@ mod tests {
         )
         .unwrap()
         .plan;
+        let body = conduit_body::Body::born(
+            plan.source_document_id.clone(),
+            plan.checked_form_id.clone(),
+            1,
+            conduit_core::SignId::from("r1/physical/body-born"),
+        )
+        .unwrap();
         serde_json::json!({
             "schema": "conduit.body/mixed-membership-capstone@1",
-            "body_id": "a8fcb18cd76ce0dae75b656ee60ac86a5960cc3a0a0a350f327208ee9d7cb5f1",
+            "body_id": body.body_id.as_str(),
             "active_plan_id": plan.plan_id.as_str(),
             "physical_pico_admitted": true,
             "active_plan_unchanged_by_join": true,
