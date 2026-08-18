@@ -15,6 +15,8 @@ use super::robotics_play::RoboticsError;
 pub(super) const IMU_SINK_KIND: &str = "conduitos/fixture-robotics-imu-sink";
 pub(super) const ODOMETRY_SINK_KIND: &str = "conduitos/fixture-robotics-odometry-sink";
 pub(super) const BATTERY_SINK_KIND: &str = "conduitos/fixture-robotics-battery-sink";
+pub(super) const BUMP_SINK_KIND: &str = "conduitos/fixture-robotics-bump-sink";
+pub(super) const RANGE_SINK_KIND: &str = "conduitos/fixture-robotics-range-sink";
 const SINK_REVISION: &str = "conduitos/fixture-robotics-sink@1";
 
 pub struct PreparedRobotics {
@@ -46,7 +48,7 @@ pub fn prepare_robotics(
     }
     let state = if bumper_pressed { "pressed" } else { "clear" };
     let source = format!(
-        "form prewake {{\n bump: robotics/observe-bump(state = \"{state}\")\n imu: robotics/observe-imu(roll-microradians = 10, pitch-microradians = -20, yaw-microradians = 30)\n range: robotics/observe-range(distance-mm = {distance_mm}, age-ms = {age_ms})\n odometry: robotics/observe-odometry(forward-mm = 40, lateral-mm = -50, yaw-microradians = 60)\n battery: robotics/observe-battery(charge-permille = 750, millivolts = 12000)\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(minimum-clearance-mm = 250, maximum-range-age-ms = 1000)\n imu_sink: {IMU_SINK_KIND}\n odometry_sink: {ODOMETRY_SINK_KIND}\n battery_sink: {BATTERY_SINK_KIND}\n bump.observation > drive.bumper-pressed\n imu.orientation > imu_sink.value\n range.range > drive.forward-range\n odometry.odometry > odometry_sink.value\n battery.battery > battery_sink.value\n intent.linear > drive.linear\n intent.angular > drive.angular\n}}\n"
+        "form prewake {{\n bump: robotics/observe-bump(state = \"{state}\")\n imu: robotics/observe-imu(roll-microradians = 10, pitch-microradians = -20, yaw-microradians = 30)\n range: robotics/observe-range(distance-mm = {distance_mm}, age-ms = {age_ms})\n odometry: robotics/observe-odometry(forward-mm = 40, lateral-mm = -50, yaw-microradians = 60)\n battery: robotics/observe-battery(charge-permille = 750, millivolts = 12000)\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n bump_sink: {BUMP_SINK_KIND}\n range_sink: {RANGE_SINK_KIND}\n imu_sink: {IMU_SINK_KIND}\n odometry_sink: {ODOMETRY_SINK_KIND}\n battery_sink: {BATTERY_SINK_KIND}\n bump.observation > bump_sink.value\n range.range > range_sink.value\n imu.orientation > imu_sink.value\n odometry.odometry > odometry_sink.value\n battery.battery > battery_sink.value\n intent.linear > drive.linear\n intent.angular > drive.angular\n}}\n"
     );
     let form = parse(&source, &catalog).map_err(|_| RoboticsError::Form)?;
     let advertisement = advertisement(host, boot);
@@ -96,8 +98,10 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
     }
 }
 
-fn discard_kinds() -> [(&'static str, &'static str); 3] {
+fn discard_kinds() -> [(&'static str, &'static str); 5] {
     [
+        (BUMP_SINK_KIND, conduit_core::BOOL_INFO_ID),
+        (RANGE_SINK_KIND, conduit_core::ROBOTICS_RANGE_INFO_ID),
         (IMU_SINK_KIND, conduit_core::ROBOTICS_ORIENTATION_INFO_ID),
         (ODOMETRY_SINK_KIND, conduit_core::ROBOTICS_ODOMETRY_INFO_ID),
         (BATTERY_SINK_KIND, conduit_core::ROBOTICS_BATTERY_INFO_ID),

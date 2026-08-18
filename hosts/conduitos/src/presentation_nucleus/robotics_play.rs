@@ -11,11 +11,14 @@ use super::{
     operation::PresentationOperation,
     robotics_operation::RoboticsDiscardOperation,
     robotics_operation::{RoboticsDriveEffect, RoboticsDriveOperation, RoboticsSourceOperation},
-    robotics_plan::{BATTERY_SINK_KIND, IMU_SINK_KIND, ODOMETRY_SINK_KIND, PreparedRobotics},
+    robotics_plan::{
+        BATTERY_SINK_KIND, BUMP_SINK_KIND, IMU_SINK_KIND, ODOMETRY_SINK_KIND, PreparedRobotics,
+        RANGE_SINK_KIND,
+    },
 };
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const NODES: usize = 10;
+const NODES: usize = 12;
 const CORDS: usize = 7;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
@@ -160,17 +163,18 @@ fn scheduler(
         .map(|(index, placement)| {
             let operation = if matches!(
                 placement.kind_id.as_str(),
-                IMU_SINK_KIND | ODOMETRY_SINK_KIND | BATTERY_SINK_KIND
+                BUMP_SINK_KIND
+                    | RANGE_SINK_KIND
+                    | IMU_SINK_KIND
+                    | ODOMETRY_SINK_KIND
+                    | BATTERY_SINK_KIND
             ) {
                 PresentationOperation::RoboticsDiscard(RoboticsDiscardOperation::new())
             } else if placement.kind_id.as_str()
                 == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
             {
                 drive = Some(NodeId(index as u16));
-                PresentationOperation::RoboticsDrive(RoboticsDriveOperation::new(
-                    u32_configuration(&placement.configuration, "minimum-clearance-mm", 250)?,
-                    u32_configuration(&placement.configuration, "maximum-range-age-ms", 1_000)?,
-                ))
+                PresentationOperation::RoboticsDrive(RoboticsDriveOperation::new())
             } else {
                 let encoded = conduit_std_catalog::robotics_simulation_values(
                     placement.kind_id.as_str(),
@@ -207,20 +211,4 @@ fn scheduler(
     )
     .map_err(RoboticsError::Kernel)?;
     Ok((kernel, drive.ok_or(RoboticsError::Shape)?))
-}
-
-fn u32_configuration(
-    entries: &[conduit_core::ConfigurationEntry],
-    key: &str,
-    default: u32,
-) -> Result<u32, RoboticsError> {
-    let Some(entry) = entries.iter().find(|entry| entry.key.as_str() == key) else {
-        return Ok(default);
-    };
-    match entry.value {
-        conduit_core::ConfigurationValue::U64(value) => {
-            u32::try_from(value).map_err(|_| RoboticsError::Configuration)
-        }
-        _ => Err(RoboticsError::Configuration),
-    }
 }

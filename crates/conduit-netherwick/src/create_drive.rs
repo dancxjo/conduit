@@ -10,8 +10,8 @@ use crate::{
     CREATE_OI_MAX_WHEEL_SPEED_MM_S,
 };
 
-pub const MINIMUM_MOTION_TTL_MS: u32 = 10;
-pub const MAXIMUM_MOTION_TTL_MS: u32 = 60_000;
+pub const MINIMUM_MOTION_TTL_MS: u32 = conduit_std_catalog::ROBOTICS_MINIMUM_MOTION_TTL_MS as u32;
+pub const MAXIMUM_MOTION_TTL_MS: u32 = conduit_std_catalog::ROBOTICS_MAXIMUM_MOTION_TTL_MS as u32;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalHazard {
