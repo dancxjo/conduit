@@ -70,6 +70,8 @@ pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
 pub mod sound_recovery;
+#[cfg(all(target_os = "linux", feature = "netherwick-create"))]
+pub mod std_create_uart;
 pub mod triple_signal;
 pub mod usb_cdc;
 pub mod websocket;
