@@ -2,6 +2,7 @@
 
 mod create_drive;
 mod create_oi;
+mod create_sensor_lowering;
 mod create_speaker;
 mod create_speaker_play;
 mod planning;
@@ -10,6 +11,7 @@ mod projection;
 
 pub use create_drive::*;
 pub use create_oi::*;
+pub use create_sensor_lowering::*;
 pub use create_speaker::*;
 pub use create_speaker_play::*;
 pub use planning::*;
