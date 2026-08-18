@@ -1,6 +1,7 @@
 //! Describe-only projection of one pinned Netherwick robot configuration.
 
 mod create_drive;
+mod create_drive_offer;
 mod create_observation_execution_report;
 mod create_observation_kernel_operations;
 mod create_observation_offer;
@@ -16,6 +17,7 @@ mod profile;
 mod projection;
 
 pub use create_drive::*;
+pub use create_drive_offer::*;
 pub use create_observation_execution_report::*;
 pub use create_observation_offer::*;
 pub use create_observation_play::*;
