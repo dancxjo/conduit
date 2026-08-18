@@ -27,13 +27,15 @@ pub const ROBOTICS_OBSERVE_RANGE_REVISION: &str = "conduit.std/robotics-observe-
 pub const ROBOTICS_OBSERVE_ODOMETRY_REVISION: &str = "conduit.std/robotics-observe-odometry@1";
 pub const ROBOTICS_OBSERVE_BATTERY_REVISION: &str = "conduit.std/robotics-observe-battery@1";
 pub const ROBOTICS_VELOCITY_INTENT_REVISION: &str = "conduit.std/robotics-velocity-intent@1";
-pub const ROBOTICS_DRIVE_DIFFERENTIAL_REVISION: &str = "conduit.std/robotics-drive-differential@1";
+pub const ROBOTICS_DRIVE_DIFFERENTIAL_REVISION: &str = "conduit.std/robotics-drive-differential@2";
 
 pub const ROBOTICS_AVAILABILITY_KEY: &str = "availability";
 pub const ROBOTICS_AVAILABILITY_FRESH: &str = "fresh";
 pub const ROBOTICS_AVAILABILITY_MISSING: &str = "missing";
 pub const ROBOTICS_AVAILABILITY_STALE: &str = "stale";
 pub const ROBOTICS_MAXIMUM_VELOCITY_MICROUNITS: i64 = 5_000_000;
+pub const ROBOTICS_MINIMUM_MOTION_TTL_MS: u64 = 10;
+pub const ROBOTICS_MAXIMUM_MOTION_TTL_MS: u64 = 60_000;
 
 pub const ROBOTICS_EXECUTION_PROFILE: &str = "conduit.std/robotics-prewake-sim-kernel@1";
 pub const ROBOTICS_ARTIFACT: &str = "conduit-std-host/robotics-prewake-sim@1";
@@ -48,7 +50,7 @@ pub const ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION: &str =
 pub const ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION: &str =
     "std/kernel-robotics-prewake-velocity-intent@1";
 pub const ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION: &str =
-    "std/kernel-robotics-prewake-drive-differential@1";
+    "std/kernel-robotics-prewake-drive-differential@2";
 pub const CONDUITOS_ROBOTICS_EXECUTION_PROFILE: &str = "conduitos/robotics-prewake-fixed@1";
 pub const CONDUITOS_ROBOTICS_ARTIFACT: &str = "conduitos/robotics-prewake@1";
 const MAXIMUM_VALUE_BYTES: u32 = 12;
@@ -273,31 +275,26 @@ pub fn robotics_velocity_intent_contract() -> StandardKindContract {
 pub fn robotics_drive_differential_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(ROBOTICS_DRIVE_DIFFERENTIAL_KIND),
-        plain_name: "Simulated differential drive".to_string(),
-        summary: "Consume bounded linear/angular intent as a PREWAKE projection only; no physical effect or authority is implied."
+        plain_name: "Differential drive".to_string(),
+        summary: "Consume bounded body-forward linear and angular intent with an exact motion TTL; physical implementations require non-bypassable local safety and authority below this authored face."
             .to_string(),
         inputs: vec![
             current_input("linear", SCALAR_INFO_ID),
             current_input("angular", SCALAR_INFO_ID),
-            current_input("bumper-pressed", BOOL_INFO_ID),
-            current_input("forward-range", ROBOTICS_RANGE_INFO_ID),
         ],
         outputs: Vec::new(),
-        configuration: vec![
-            u64_field("minimum-clearance-mm", 250, 0, u64::from(MAXIMUM_RANGE_MM)),
-            u64_field(
-                "maximum-range-age-ms",
-                1_000,
-                0,
-                u64::from(MAXIMUM_OBSERVATION_AGE_MS),
-            ),
-        ],
+        configuration: vec![u64_field(
+            "ttl-ms",
+            1_000,
+            ROBOTICS_MINIMUM_MOTION_TTL_MS,
+            ROBOTICS_MAXIMUM_MOTION_TTL_MS,
+        )],
         limits: limits(),
-        terminal_behavior: TerminalBehavior::SimulatedDriveProjectionCompletesWhenInputsClose,
+        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
-        example: "drive: robotics/drive-differential(minimum-clearance-mm = 250)".to_string(),
+        example: "drive: robotics/drive-differential(ttl-ms = 1000)".to_string(),
     }
 }
 
@@ -384,8 +381,15 @@ pub fn conduitos_robotics_offers() -> Vec<CapabilityOffer> {
         offer.capability_id = CapabilityId::from(format!("conduitos-robotics-{slug}@1"));
         offer.implementation.execution_profile_id =
             ExecutionProfileId::from(CONDUITOS_ROBOTICS_EXECUTION_PROFILE);
-        offer.implementation.implementation_id =
-            ImplementationId::from(format!("conduitos/kernel-robotics-prewake-{slug}@1"));
+        let implementation_revision = if offer.kind_id.as_str() == ROBOTICS_DRIVE_DIFFERENTIAL_KIND
+        {
+            2
+        } else {
+            1
+        };
+        offer.implementation.implementation_id = ImplementationId::from(format!(
+            "conduitos/kernel-robotics-prewake-{slug}@{implementation_revision}"
+        ));
         offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_ROBOTICS_ARTIFACT);
         offer
     })

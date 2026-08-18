@@ -1,6 +1,6 @@
 //! Fixed-storage operations for the canonical PREWAKE robotics simulation.
 
-use conduit_core::{InfoBool, RangeObservation, Scalar};
+use conduit_core::Scalar;
 use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -61,11 +61,7 @@ impl RoboticsSourceOperation {
 pub(super) struct RoboticsDriveOperation {
     linear: Option<Scalar>,
     angular: Option<Scalar>,
-    bumper_pressed: Option<bool>,
-    forward_range: Option<RangeObservation>,
-    closed: [bool; 4],
-    minimum_clearance_mm: u32,
-    maximum_range_age_ms: u32,
+    closed: [bool; 2],
     effect: Option<RoboticsDriveEffect>,
 }
 
@@ -99,15 +95,11 @@ impl RoboticsDiscardOperation {
 }
 
 impl RoboticsDriveOperation {
-    pub(super) const fn new(minimum_clearance_mm: u32, maximum_range_age_ms: u32) -> Self {
+    pub(super) const fn new() -> Self {
         Self {
             linear: None,
             angular: None,
-            bumper_pressed: None,
-            forward_range: None,
-            closed: [false; 4],
-            minimum_clearance_mm,
-            maximum_range_age_ms,
+            closed: [false; 2],
             effect: None,
         }
     }
@@ -156,37 +148,14 @@ impl RoboticsDriveOperation {
             {
                 Scalar::decode(canonical).map(|decoded| self.angular = Some(decoded))
             }
-            2 if self.bumper_pressed.is_none()
-                && value.byte_len == conduit_core::BOOL_ENCODED_LEN as u32 =>
-            {
-                InfoBool::decode(canonical).map(|decoded| self.bumper_pressed = Some(decoded.get()))
-            }
-            3 if self.forward_range.is_none()
-                && value.byte_len == conduit_core::ROBOTICS_RANGE_ENCODED_LEN as u32 =>
-            {
-                RangeObservation::decode(canonical)
-                    .map(|decoded| self.forward_range = Some(decoded))
-            }
             _ => return fail(FailureCode::InvalidInput, 46),
         };
         if decoded.is_err() {
             return fail(FailureCode::InvalidInput, 46);
         }
-        match (
-            self.linear,
-            self.angular,
-            self.bumper_pressed,
-            self.forward_range,
-        ) {
-            (Some(linear), Some(angular), Some(pressed), Some(range)) => {
-                self.effect = if pressed
-                    || range.distance_mm() < self.minimum_clearance_mm
-                    || range.age_ms() > self.maximum_range_age_ms
-                {
-                    Some(RoboticsDriveEffect::Suppressed)
-                } else {
-                    Some(RoboticsDriveEffect::Projected { linear, angular })
-                };
+        match (self.linear, self.angular) {
+            (Some(linear), Some(angular)) => {
+                self.effect = Some(RoboticsDriveEffect::Projected { linear, angular });
                 OperationAction::Complete
             }
             _ => OperationAction::Await,

@@ -1,7 +1,7 @@
 use super::*;
 use crate::{RunControl, RunControlRequestId};
 
-const CLEAR_FORM: &str = "form prewake_safety {\n bump: robotics/observe-bump(state = \"clear\")\n range: robotics/observe-range(distance-mm = 500, age-ms = 0)\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(minimum-clearance-mm = 250, maximum-range-age-ms = 1000)\n bump.observation > drive.bumper-pressed\n range.range > drive.forward-range\n intent.linear > drive.linear\n intent.angular > drive.angular\n}\n";
+const CLEAR_FORM: &str = "form prewake_drive {\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n intent.linear > drive.linear\n intent.angular > drive.angular\n}\n";
 
 fn plan(source: &str, id: &str) -> (StdHost, conduit_core::PlanFragment) {
     let host = host(id);
@@ -47,10 +47,10 @@ fn run(source: &str, id: &str) -> (crate::StdRunReport, String, conduit_core::Pl
 }
 
 #[test]
-fn clear_and_pressed_bumper_produce_projected_and_suppressed_prewake_drive() {
+fn portable_drive_meaning_has_one_effect_free_prewake_projection() {
     let (clear, clear_output, clear_fragment) = run(CLEAR_FORM, "robot-clear");
-    assert_eq!(clear_fragment.placements.len(), 4);
-    assert_eq!(clear_fragment.connections.len(), 4);
+    assert_eq!(clear_fragment.placements.len(), 2);
+    assert_eq!(clear_fragment.connections.len(), 2);
     assert!(clear_fragment
         .connections
         .iter()
@@ -69,42 +69,21 @@ fn clear_and_pressed_bumper_produce_projected_and_suppressed_prewake_drive() {
         "PREWAKE simulated drive projection linear-microunits=750000 angular-microunits=-250000 physical-effect=false authority-grant=false"
     ));
 
-    let pressed_source = CLEAR_FORM.replace("state = \"clear\"", "state = \"pressed\"");
-    let (pressed, pressed_output, pressed_fragment) = run(&pressed_source, "robot-pressed");
-    assert!(pressed_output.contains(
-        "PREWAKE simulated drive suppressed physical-effect=false authority-grant=false"
+    assert!(matches!(
+        clear
+            .observations
+            .last()
+            .map(|observation| &observation.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
     ));
-    let near_source = CLEAR_FORM.replace("distance-mm = 500", "distance-mm = 249");
-    let (_, near_output, _) = run(&near_source, "robot-near");
-    assert!(near_output.contains(
-        "PREWAKE simulated drive suppressed physical-effect=false authority-grant=false"
-    ));
-    assert_ne!(clear_fragment.plan_id, pressed_fragment.plan_id);
-    assert_ne!(
-        clear.kernel.as_ref().unwrap().active_play_id,
-        pressed.kernel.as_ref().unwrap().active_play_id
+    let kernel = clear.kernel.expect("production kernel report exists");
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
     );
-    assert_ne!(
-        clear.observations[0].sign_id,
-        pressed.observations[0].sign_id
-    );
-    for report in [clear, pressed] {
-        assert!(matches!(
-            report
-                .observations
-                .last()
-                .map(|observation| &observation.kind),
-            Some(ObservationKind::PlanTerminal {
-                disposition: TerminalDisposition::Completed
-            })
-        ));
-        let kernel = report.kernel.expect("production kernel report exists");
-        assert_eq!(
-            kernel.value_allocation_capacity_before,
-            kernel.value_allocation_capacity_after
-        );
-        assert_eq!(kernel.post_play_start_allocations, 0);
-    }
+    assert_eq!(kernel.post_play_start_allocations, 0);
 }
 
 #[test]
@@ -132,12 +111,12 @@ fn every_robotics_observation_contract_plans_with_distinct_exact_info() {
 #[test]
 fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
     let missing_source = CLEAR_FORM.replace(
-        "state = \"clear\"",
-        "state = \"clear\", availability = \"missing\"",
+        "form prewake_drive {",
+        "form prewake_drive {\n bump: robotics/observe-bump(availability = \"missing\")",
     );
     let stale_source = CLEAR_FORM.replace(
-        "state = \"clear\"",
-        "state = \"clear\", availability = \"stale\"",
+        "form prewake_drive {",
+        "form prewake_drive {\n bump: robotics/observe-bump(availability = \"stale\")",
     );
     let missing = run_failure(&missing_source, "robot-missing");
     let stale = run_failure(&stale_source, "robot-stale");
@@ -149,6 +128,8 @@ fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
         "form invalid {\n range: robotics/observe-range(distance-mm = 1000001)\n}\n",
         "form invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
         "form invalid {\n odometry: robotics/observe-odometry(yaw-microradians = 3141594)\n}\n",
+        "form invalid {\n drive: robotics/drive-differential(minimum-clearance-mm = 250)\n}\n",
+        "form invalid {\n drive: robotics/drive-differential(ttl-ms = 9)\n}\n",
     ] {
         assert!(parse(source, &installed_std::test_catalog()).is_err());
     }

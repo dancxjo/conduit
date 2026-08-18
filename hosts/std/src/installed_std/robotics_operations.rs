@@ -3,9 +3,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::robotics_effect::SimulatedDriveEffect;
 use conduit_core::{
-    ConfigurationEntry, ConfigurationValue, InfoBool, PlannedGear, RangeObservation, Scalar,
-    BOOL_ENCODED_LEN, ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_ODOMETRY_ENCODED_LEN,
-    ROBOTICS_ORIENTATION_ENCODED_LEN, ROBOTICS_RANGE_ENCODED_LEN, SCALAR_ENCODED_LEN,
+    ConfigurationEntry, PlannedGear, Scalar, BOOL_ENCODED_LEN, ROBOTICS_BATTERY_ENCODED_LEN,
+    ROBOTICS_ODOMETRY_ENCODED_LEN, ROBOTICS_ORIENTATION_ENCODED_LEN, ROBOTICS_RANGE_ENCODED_LEN,
+    SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{
     Failure, FailureCode, HostedValueStore, OperationAction, OperationInput, PortId, ValueRef,
@@ -93,11 +93,7 @@ impl RoboticsSourceOperation {
 pub(super) struct RoboticsDriveOperation {
     linear: Option<Scalar>,
     angular: Option<Scalar>,
-    bumper_pressed: Option<bool>,
-    forward_range: Option<RangeObservation>,
-    closed: [bool; 4],
-    minimum_clearance_mm: u32,
-    maximum_range_age_ms: u32,
+    closed: [bool; 2],
     effect: Option<SimulatedDriveEffect>,
 }
 
@@ -142,34 +138,14 @@ impl RoboticsDriveOperation {
             1 if self.angular.is_none() && value.byte_len == SCALAR_ENCODED_LEN as u32 => {
                 Scalar::decode(canonical).map(|value| self.angular = Some(value))
             }
-            2 if self.bumper_pressed.is_none() && value.byte_len == BOOL_ENCODED_LEN as u32 => {
-                InfoBool::decode(canonical).map(|value| self.bumper_pressed = Some(value.get()))
-            }
-            3 if self.forward_range.is_none()
-                && value.byte_len == ROBOTICS_RANGE_ENCODED_LEN as u32 =>
-            {
-                RangeObservation::decode(canonical).map(|value| self.forward_range = Some(value))
-            }
             _ => return fail(FailureCode::InvalidInput, 46),
         };
         if decoded.is_err() {
             return fail(FailureCode::InvalidInput, 46);
         }
-        match (
-            self.linear,
-            self.angular,
-            self.bumper_pressed,
-            self.forward_range,
-        ) {
-            (Some(linear), Some(angular), Some(pressed), Some(range)) => {
-                self.effect = if pressed
-                    || range.distance_mm() < self.minimum_clearance_mm
-                    || range.age_ms() > self.maximum_range_age_ms
-                {
-                    Some(SimulatedDriveEffect::Suppressed)
-                } else {
-                    Some(SimulatedDriveEffect::Projected { linear, angular })
-                };
+        match (self.linear, self.angular) {
+            (Some(linear), Some(angular)) => {
+                self.effect = Some(SimulatedDriveEffect::Projected { linear, angular });
                 OperationAction::Complete
             }
             _ => OperationAction::Await,
@@ -221,15 +197,7 @@ fn prepare_robotics(
         return Ok(InstalledOperation::RoboticsDrive(RoboticsDriveOperation {
             linear: None,
             angular: None,
-            bumper_pressed: None,
-            forward_range: None,
-            closed: [false; 4],
-            minimum_clearance_mm: u32_value(&placement.configuration, "minimum-clearance-mm", 250)?,
-            maximum_range_age_ms: u32_value(
-                &placement.configuration,
-                "maximum-range-age-ms",
-                1_000,
-            )?,
+            closed: [false; 2],
             effect: None,
         }));
     }
@@ -360,21 +328,6 @@ fn availability(entries: &[ConfigurationEntry]) -> Result<SimulatedAvailability,
             Ok(SimulatedAvailability::Stale)
         }
     }
-}
-
-fn u64_value(entries: &[ConfigurationEntry], key: &str, default: u64) -> Result<u64, String> {
-    Ok(entries
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::U64(value)) if found == key => Some(*value),
-            _ => None,
-        })
-        .unwrap_or(default))
-}
-
-fn u32_value(entries: &[ConfigurationEntry], key: &str, default: u64) -> Result<u32, String> {
-    u32::try_from(u64_value(entries, key, default)?)
-        .map_err(|_| format!("robotics configuration '{key}' does not fit u32"))
 }
 
 fn fail(code: FailureCode, detail: u16) -> OperationAction {

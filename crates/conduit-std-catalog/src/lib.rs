@@ -152,7 +152,6 @@ pub enum TerminalBehavior {
     DelaysEachValueInOrderAndDrainsOnInputClosure,
     LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses,
     SimulatedCurrentObservationEmitsOnce,
-    SimulatedDriveProjectionCompletesWhenInputsClose,
     HostInputEndsOrFailsSource,
     HostObservationEndsOrFailsSource,
     EmitsInitialAndTogglesUntilInputCloses,

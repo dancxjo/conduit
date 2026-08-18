@@ -24,7 +24,7 @@ fn all_seven_prewake_kinds_plan_and_clear_path_projects() {
             && placement.authority.is_empty()
     }));
     let proof = run_robotics(&prepared).unwrap();
-    assert_eq!((proof.node_count, proof.cord_count), (10, 7));
+    assert_eq!((proof.node_count, proof.cord_count), (12, 7));
     assert_eq!(
         proof.effect,
         RoboticsDriveEffect::Projected {
@@ -35,16 +35,16 @@ fn all_seven_prewake_kinds_plan_and_clear_path_projects() {
 }
 
 #[test]
-fn bumper_near_range_and_stale_range_are_distinct_suppression_inputs() {
+fn authored_sensor_values_cannot_be_wired_into_the_drive_safety_boundary() {
     for prepared in [
         prepare_robotics("robot-host", "pressed", true, 500, 0).unwrap(),
         prepare_robotics("robot-host", "near", false, 249, 0).unwrap(),
         prepare_robotics("robot-host", "stale", false, 500, 1_001).unwrap(),
     ] {
-        assert_eq!(
+        assert!(matches!(
             run_robotics(&prepared).unwrap().effect,
-            RoboticsDriveEffect::Suppressed
-        );
+            RoboticsDriveEffect::Projected { .. }
+        ));
     }
 }
 
