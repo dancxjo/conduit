@@ -174,6 +174,22 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
+        "check.thumb.create-oi",
+        "Create OI mechanism thumb target check",
+        "cargo",
+        &[
+            "check",
+            "-p",
+            "conduit-create-oi",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
+    ),
+    Step::typed(
         "check.thumb.core",
         "Core thumb target check",
         "cargo",

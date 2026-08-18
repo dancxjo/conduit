@@ -1,14 +1,14 @@
 //! One finite correlated Create observation session.
 
 use crate::{
-    encode_mode, encode_pause_stream, encode_start, lower_charging_sources, lower_group_zero,
-    require_provider, write_command, CreateChargingSources, CreateGroupZeroObservation,
-    CreateOiFailure, CreateOiModeRequest, CreateOiPacket, CreateSensorLoweringError,
-    CreateUartProvider, EncodedOiCommand, CREATE_CHARGING_SOURCES_PACKET_ID,
-    CREATE_GROUP_ZERO_PACKET_ID, CREATE_OI_MAX_COMMAND_BYTES, STREAM_HEADER,
+    decode_sensor_packet, encode_mode, encode_pause_stream, encode_sensor_stream_pair,
+    encode_start, lower_charging_sources, lower_group_zero, require_provider, write_command,
+    CreateChargingSources, CreateGroupZeroObservation, CreateOiFailure, CreateOiModeRequest,
+    CreateOiPacket, CreateSensorLoweringError, CreateUartProvider, EncodedOiCommand,
+    CREATE_CHARGING_SOURCES_PACKET_ID, CREATE_GROUP_ZERO_PACKET_ID, CREATE_OI_MAX_COMMAND_BYTES,
+    STREAM_HEADER,
 };
 
-const STREAM_OPCODE: u8 = 148;
 const GROUP_ZERO_BYTES: usize = 26;
 const CHARGING_SOURCE_BYTES: usize = 1;
 const BUNDLE_PAYLOAD_BYTES: usize = 1 + GROUP_ZERO_BYTES + 1 + CHARGING_SOURCE_BYTES;
@@ -158,16 +158,11 @@ impl Default for CreateObservationSession {
 }
 
 pub fn encode_observation_stream() -> EncodedOiCommand {
-    EncodedOiCommand::from_bytes(
-        [
-            STREAM_OPCODE,
-            2,
-            CREATE_GROUP_ZERO_PACKET_ID,
-            CREATE_CHARGING_SOURCES_PACKET_ID,
-            0,
-        ],
-        4,
+    encode_sensor_stream_pair(
+        CREATE_GROUP_ZERO_PACKET_ID,
+        CREATE_CHARGING_SOURCES_PACKET_ID,
     )
+    .expect("the pinned correlated observation packets are supported")
 }
 
 pub fn read_observation_bundle<P: CreateUartProvider>(
@@ -207,11 +202,11 @@ pub fn decode_observation_bundle(
     let group_start = 3;
     let group_end = group_start + GROUP_ZERO_BYTES;
     Ok(CreateObservationPacketBundle {
-        group_zero: CreateOiPacket::checked(
+        group_zero: decode_sensor_packet(
             CREATE_GROUP_ZERO_PACKET_ID,
             &frame[group_start..group_end],
         )?,
-        charging_sources: CreateOiPacket::checked(
+        charging_sources: decode_sensor_packet(
             CREATE_CHARGING_SOURCES_PACKET_ID,
             &frame[group_end + 1..group_end + 2],
         )?,

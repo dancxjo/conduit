@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"crates/conduit-core",
+	"crates/conduit-create-oi",
 	"crates/conduit-embedded-build",
 	"crates/conduit-kernel",
 	"crates/conduit-wire",

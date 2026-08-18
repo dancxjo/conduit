@@ -4,6 +4,7 @@ use crate::process::Step;
 const FOUNDATION_TEST_PACKAGES: &[&str] = &[
     "conduit-bluetooth",
     "conduit-core",
+    "conduit-create-oi",
     "conduit-embedded-build",
     "conduit-kernel",
     "conduit-runtime",
@@ -55,6 +56,8 @@ const FOUNDATION_TEST_STEP: Step = Step::new(
         "conduit-bluetooth",
         "-p",
         "conduit-core",
+        "-p",
+        "conduit-create-oi",
         "-p",
         "conduit-embedded-build",
         "-p",

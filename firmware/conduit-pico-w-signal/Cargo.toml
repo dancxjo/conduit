@@ -42,6 +42,7 @@ embedded-websocket = { version = "0.9.5", default-features = false }
 httparse = { version = "1.10", default-features = false }
 
 conduit-core = { path = "../../crates/conduit-core", default-features = false }
+conduit-create-oi = { path = "../../crates/conduit-create-oi" }
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
 conduit-net = { path = "../../crates/conduit-net", default-features = false, optional = true }
