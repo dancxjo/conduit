@@ -734,6 +734,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",
+ "conduit-netherwick",
  "conduit-pico-sim",
  "conduit-planner",
  "conduit-presentation",
