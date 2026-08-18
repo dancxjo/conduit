@@ -4,7 +4,7 @@ use super::PatchbayApplication;
 use crate::front_door_follow::append_follow_lines;
 use conduit_presentation::{
     observe_navigation, render_linear_navigation, render_linear_presentation, Presentation,
-    PresentationActionAvailability,
+    PresentationAction, PresentationActionAvailability,
 };
 use patchbay_model::{
     GraphItemKind, PatchbayAction, PatchbayNavigationProjection, PatchbayPresentation,
@@ -12,6 +12,68 @@ use patchbay_model::{
 };
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
+
+fn focused_navigation_observation(
+    presentation: &Presentation,
+    navigation: &PatchbayNavigationProjection,
+) -> Result<conduit_presentation::NavigationObservation, String> {
+    observe_navigation(
+        presentation,
+        &navigation.navigation,
+        &navigation.projection,
+        &navigation.cursor,
+    )
+    .map_err(|error| format!("portable front-door observation: {error:?}"))
+}
+
+pub(super) fn focused_action_for_binding(
+    presentation: &Presentation,
+    navigation: &PatchbayNavigationProjection,
+    binding: PatchbayAction,
+) -> Result<Option<PresentationAction>, String> {
+    let observation = focused_navigation_observation(presentation, navigation)?;
+    let focus = observation.cursor.focus.as_deref();
+    if focus.is_none() {
+        return Ok(None);
+    }
+    let binding_intent = binding.presentation_intent();
+    Ok(observation
+        .projected_actions
+        .iter()
+        .find(|action| action.target == focus.unwrap() && action.intent == binding_intent)
+        .cloned())
+}
+
+pub(super) fn focused_action_refusal(
+    binding_label: &str,
+    action: &PresentationAction,
+) -> Option<String> {
+    match &action.availability {
+        PresentationActionAvailability::Available => None,
+        PresentationActionAvailability::Unavailable {
+            reason_code,
+            explanation,
+        } => Some(format!(
+            "{binding_label} unavailable while {reason_code}: {explanation}"
+        )),
+        PresentationActionAvailability::Refused {
+            reason_code,
+            explanation,
+        } => Some(format!(
+            "{binding_label} refused while {reason_code}: {explanation}"
+        )),
+    }
+}
+
+pub(super) fn binding_label(action: &PresentationAction) -> &'static str {
+    if action.intent == PatchbayAction::OpenBack.presentation_intent() {
+        "ENTER"
+    } else if action.intent == PatchbayAction::Birth.presentation_intent() {
+        "F4"
+    } else {
+        "ACTION"
+    }
+}
 
 /// Native text is a renderer-local realization of the shared portable value.
 pub(super) fn portable_presentation_lines(
@@ -44,13 +106,7 @@ pub(super) fn ordinary_front_door_lines(
     selected_follow: Option<&str>,
 ) -> Result<Vec<String>, String> {
     presentation.validate().map_err(|error| error.to_string())?;
-    let observation = observe_navigation(
-        presentation,
-        &navigation.navigation,
-        &navigation.projection,
-        &navigation.cursor,
-    )
-    .map_err(|error| format!("portable front-door observation: {error:?}"))?;
+    let observation = focused_navigation_observation(presentation, navigation)?;
     let mut lines = vec![
         format!(
             "PLACE {:?}  ·  ASPECT {:?}",
@@ -88,13 +144,7 @@ pub(super) fn ordinary_front_door_lines(
                     format!("REFUSED — {explanation}")
                 }
             };
-            let binding = if action.intent == PatchbayAction::OpenBack.presentation_intent() {
-                "ENTER"
-            } else if action.intent == PatchbayAction::Birth.presentation_intent() {
-                "F4"
-            } else {
-                "ACTION"
-            };
+            let binding = binding_label(action);
             lines.push(format!(
                 "  {} [{binding}]  ·  {availability}",
                 action.label.to_uppercase()

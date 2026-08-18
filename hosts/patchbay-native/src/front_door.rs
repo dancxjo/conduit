@@ -117,11 +117,8 @@ impl PatchbayApplication {
                     )
                     .map_err(|error| format!("portable front-door focus: {error:?}"))?
                     .clone();
-                entrance
-                    .state
-                    .select(&entrance.presentation, subject)
-                    .map_err(|error| format!("front-door selection: {error:?}"))?;
                 entrance.navigation.cursor = cursor;
+                entrance.state.selected_subject = entrance.navigation.cursor.focus.clone();
                 entrance.navigation_state = next_navigation;
                 self.selected_follow = None;
                 Ok(())
@@ -148,6 +145,7 @@ impl PatchbayApplication {
             )
             .map_err(|error| format!("native front-door navigation refused: {error:?}"))?
             .clone();
+        entrance.state.selected_subject = entrance.navigation.cursor.focus.clone();
         self.selected_follow = None;
         Ok(())
     }

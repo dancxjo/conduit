@@ -190,10 +190,6 @@ impl PatchbayApplication {
     }
 
     pub(super) fn dispatch_invocation(&mut self, action: PatchbayAction) -> Result<(), String> {
-        if action == PatchbayAction::OpenBack {
-            self.pending_back_selection = self.selected_graphical_subject().is_some();
-            self.pending_back_target = self.selected_back_target();
-        }
         let presentation = self.semantic_invocation_presentation()?;
         let action_id = presentation
             .actions
@@ -201,21 +197,40 @@ impl PatchbayApplication {
             .find(|candidate| candidate.intent == action.presentation_intent())
             .map(|candidate| candidate.identity.clone())
             .ok_or("current Presentation does not expose the requested action")?;
+        self.dispatch_invocation_with_action_id(&action_id)
+    }
+
+    pub(super) fn dispatch_invocation_with_action_id(
+        &mut self,
+        action_id: &str,
+    ) -> Result<(), String> {
+        let presentation = self.semantic_invocation_presentation()?;
+        let is_open_back = presentation
+            .actions
+            .iter()
+            .find(|candidate| candidate.identity == action_id)
+            .is_some_and(|candidate| {
+                candidate.intent == PatchbayAction::OpenBack.presentation_intent()
+            });
+        if is_open_back {
+            self.pending_back_selection = self.selected_graphical_subject().is_some();
+            self.pending_back_target = self.selected_back_target();
+        }
         let mut interaction = self
             .interaction
             .take()
             .expect("interaction state is installed");
         let result = interaction
-            .next_request_id(action.as_str())
+            .next_request_id(action_id)
             .and_then(|request_id| {
-                PatchbayInteractionRequest::invoke(request_id, &presentation, &action_id)
+                PatchbayInteractionRequest::invoke(request_id, &presentation, action_id)
             })
             .and_then(|request| {
                 interaction.execute_presentation(&presentation, request, |request| {
                     self.apply_interaction_request(request)
                 })
             });
-        if action == PatchbayAction::OpenBack {
+        if is_open_back {
             self.pending_back_target = None;
             self.pending_back_selection = false;
         }

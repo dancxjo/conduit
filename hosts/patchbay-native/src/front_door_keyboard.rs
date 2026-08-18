@@ -5,6 +5,8 @@ use conduit_presentation::{NavigationOperation, PresentationDepth};
 use patchbay_model::PatchbayAction;
 use winit::keyboard::{Key, NamedKey};
 
+use crate::presentation::{binding_label, focused_action_for_binding, focused_action_refusal};
+
 impl PatchbayApplication {
     pub(super) fn handle_front_door_key(&mut self, key: &Key) -> Result<bool, String> {
         if self.zero_body_front_door.is_none() || self.entrance.is_none() {
@@ -21,7 +23,7 @@ impl PatchbayApplication {
                 self.cycle_front_door_aspect(1)?
             }
             Key::Named(NamedKey::Enter) => {
-                self.dispatch_invocation(PatchbayAction::OpenBack)?;
+                self.invoke_focused_action(PatchbayAction::OpenBack)?;
             }
             Key::Named(NamedKey::F2) => {
                 if self.linear_view {
@@ -39,12 +41,35 @@ impl PatchbayApplication {
             }
             Key::Named(NamedKey::F3) => self.follow_front_door()?,
             Key::Named(NamedKey::F4) => {
-                // Resolve the exact current advertised action and let the
-                // ordinary invocation boundary enforce its availability.
-                self.dispatch_invocation(PatchbayAction::Birth)?;
+                self.invoke_focused_action(PatchbayAction::Birth)?;
             }
             _ => return Ok(false),
         }
         Ok(true)
+    }
+
+    fn invoke_focused_action(&mut self, binding: PatchbayAction) -> Result<(), String> {
+        let Some(entrance) = self.entrance.as_ref() else {
+            return Err("native front-door presentation is absent".into());
+        };
+        let action =
+            focused_action_for_binding(&entrance.presentation, &entrance.navigation, binding)?;
+        let Some(action) = action else {
+            let label = match binding {
+                PatchbayAction::OpenBack => "ENTER",
+                PatchbayAction::Birth => "F4",
+                _ => "ACTION",
+            };
+            self.publish_refusal(format!(
+                "{label} is unavailable: no current semantic action"
+            ));
+            return Ok(());
+        };
+        if let Some(reason) = focused_action_refusal(binding_label(&action), &action) {
+            self.publish_refusal(reason);
+            return Ok(());
+        }
+        self.dispatch_invocation_with_action_id(&action.identity)
+            .map_err(|error| format!("front-door action failed: {error}"))
     }
 }
