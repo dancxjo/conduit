@@ -5,12 +5,11 @@ use crate::front_door_follow::{exact_current_follow, NativeFollowRefusal};
 use conduit_core::SignId;
 use conduit_presentation::{NavigationOperation, NavigationState, Presentation};
 use patchbay_model::{
-    PatchbayEntranceState, PatchbayNavigationProjection, RendererAdapterIdentity,
-    RendererAdapterKind, RendererExecution, ZeroBodyFrontDoor,
+    PatchbayNavigationProjection, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    ZeroBodyFrontDoor,
 };
 
 pub(super) struct NativeFrontDoorPresentation {
-    pub state: PatchbayEntranceState,
     pub presentation: Presentation,
     pub navigation: PatchbayNavigationProjection,
     navigation_state: NavigationState,
@@ -18,7 +17,6 @@ pub(super) struct NativeFrontDoorPresentation {
 
 impl NativeFrontDoorPresentation {
     pub(super) fn new(
-        state: PatchbayEntranceState,
         presentation: Presentation,
         navigation: PatchbayNavigationProjection,
     ) -> Result<Self, String> {
@@ -29,7 +27,6 @@ impl NativeFrontDoorPresentation {
         )
         .map_err(|error| format!("front-door navigation state: {error:?}"))?;
         Ok(Self {
-            state,
             presentation,
             navigation,
             navigation_state,
@@ -43,15 +40,9 @@ impl PatchbayApplication {
         let projection = session.project()?;
         let presentation = projection.presentation;
         let navigation = projection.navigation;
-        let state = PatchbayEntranceState::enter(&presentation)
-            .map_err(|error| format!("front-door state: {error:?}"))?;
         let execution = self.prepare_front_door_renderer(presentation.clone())?;
         self.zero_body_front_door = Some(session);
-        self.entrance = Some(NativeFrontDoorPresentation::new(
-            state,
-            presentation,
-            navigation,
-        )?);
+        self.entrance = Some(NativeFrontDoorPresentation::new(presentation, navigation)?);
         self.renderer_execution = Some(execution);
         Ok(())
     }
@@ -69,20 +60,19 @@ impl PatchbayApplication {
         }) {
             return Ok(());
         }
-        let mut state = self
+        let prior = &self
             .entrance
             .as_ref()
-            .map(|entrance| entrance.state.clone())
-            .ok_or("native front-door state is absent")?;
-        state
-            .update(&presentation)
-            .map_err(|error| format!("front-door update: {error:?}"))?;
+            .ok_or("native front-door Presentation is absent")?
+            .presentation;
+        if presentation.basis.body_id != prior.basis.body_id {
+            return Err("front-door update: WrongBody".into());
+        }
+        if presentation.revision <= prior.revision {
+            return Err("front-door update: StaleRevision".into());
+        }
         let execution = self.prepare_front_door_renderer(presentation.clone())?;
-        self.entrance = Some(NativeFrontDoorPresentation::new(
-            state,
-            presentation,
-            navigation,
-        )?);
+        self.entrance = Some(NativeFrontDoorPresentation::new(presentation, navigation)?);
         self.renderer_execution = Some(execution);
         Ok(())
     }
@@ -117,10 +107,6 @@ impl PatchbayApplication {
                     )
                     .map_err(|error| format!("portable front-door focus: {error:?}"))?
                     .clone();
-                entrance
-                    .state
-                    .select(&entrance.presentation, subject)
-                    .map_err(|error| format!("front-door selection: {error:?}"))?;
                 entrance.navigation.cursor = cursor;
                 entrance.navigation_state = next_navigation;
                 self.selected_follow = None;
