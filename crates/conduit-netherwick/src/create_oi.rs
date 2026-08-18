@@ -13,7 +13,7 @@ const LEDS_OPCODE: u8 = 139;
 const SEEK_DOCK_OPCODE: u8 = 143;
 const STREAM_OPCODE: u8 = 148;
 const PAUSE_STREAM_OPCODE: u8 = 150;
-const STREAM_HEADER: u8 = 19;
+pub(crate) const STREAM_HEADER: u8 = 19;
 
 pub const CREATE_OI_BAUD: u32 = 57_600;
 pub const CREATE_OI_MAX_PACKET_BYTES: usize = 26;
@@ -85,6 +85,10 @@ impl EncodedOiCommand {
 
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes[..usize::from(self.len)]
+    }
+
+    pub(crate) const fn from_bytes(bytes: [u8; CREATE_OI_MAX_COMMAND_BYTES], len: u8) -> Self {
+        Self { bytes, len }
     }
 }
 
@@ -164,7 +168,7 @@ pub fn write_command<P: CreateUartProvider>(
         .map_err(|_| CreateOiFailure::WriteFailed)
 }
 
-fn require_provider<P: CreateUartProvider>(provider: &P) -> Result<(), CreateOiFailure> {
+pub(crate) fn require_provider<P: CreateUartProvider>(provider: &P) -> Result<(), CreateOiFailure> {
     if !provider.is_available() {
         return Err(CreateOiFailure::ProviderUnavailable);
     }
@@ -185,6 +189,22 @@ pub struct CreateOiPacket {
 impl CreateOiPacket {
     pub fn bytes(&self) -> &[u8] {
         &self.bytes[..usize::from(self.len)]
+    }
+
+    pub(crate) fn checked(packet_id: u8, payload: &[u8]) -> Result<Self, CreateOiFailure> {
+        let expected =
+            sensor_packet_len(packet_id).ok_or(CreateOiFailure::UnsupportedPacket(packet_id))?;
+        if payload.len() != expected {
+            return Err(CreateOiFailure::MalformedFrame);
+        }
+        validate_sensor_payload(packet_id, payload)?;
+        let mut bytes = [0_u8; CREATE_OI_MAX_PACKET_BYTES];
+        bytes[..expected].copy_from_slice(payload);
+        Ok(Self {
+            packet_id,
+            bytes,
+            len: expected as u8,
+        })
     }
 }
 
@@ -225,15 +245,7 @@ pub fn decode_stream_frame(packet_id: u8, frame: &[u8]) -> Result<CreateOiPacket
     {
         return Err(CreateOiFailure::MalformedFrame);
     }
-    let payload = &frame[3..3 + expected];
-    validate_sensor_payload(packet_id, payload)?;
-    let mut bytes = [0_u8; CREATE_OI_MAX_PACKET_BYTES];
-    bytes[..expected].copy_from_slice(payload);
-    Ok(CreateOiPacket {
-        packet_id,
-        bytes,
-        len: expected as u8,
-    })
+    CreateOiPacket::checked(packet_id, &frame[3..3 + expected])
 }
 
 pub fn sensor_packet_len(packet_id: u8) -> Option<usize> {
