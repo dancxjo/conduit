@@ -47,9 +47,44 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
         if view.awake { "AWAKE" } else { "LULLED" },
         theme.focus,
     );
-    text(target, Point::new(left, top + 62), "PARTS", theme.emphasis);
+    text(target, Point::new(left, top + 62), "TRUTH", theme.emphasis);
+    text(
+        target,
+        Point::new(left + 10, top + 78),
+        &format!("AVAILABLE: {}", view.truth_explanation.available),
+        theme.text_secondary,
+    );
+    text(
+        target,
+        Point::new(left + 10, top + 92),
+        &format!("LINE READY: {}", view.truth_explanation.line_ready),
+        theme.text_secondary,
+    );
+    text(
+        target,
+        Point::new(left + 10, top + 106),
+        &format!(
+            "LINE UNAVAILABLE: {}",
+            view.truth_explanation.line_unavailable
+        ),
+        theme.text_secondary,
+    );
+    text(
+        target,
+        Point::new(left + 10, top + 120),
+        &format!("IN PLAN: {}", view.truth_explanation.in_plan),
+        theme.text_secondary,
+    );
+    text(
+        target,
+        Point::new(left + 10, top + 134),
+        &format!("PLAYING: {}", view.truth_explanation.playing),
+        theme.text_secondary,
+    );
+    let parts_y = top + 156;
+    text(target, Point::new(left, parts_y), "PARTS", theme.emphasis);
     for (index, row) in view.parts.iter().enumerate() {
-        let y = top + 88 + index as i32 * 54;
+        let y = parts_y + 26 + index as i32 * 54;
         let bounds = PixelRect {
             x: left,
             y: y - 8,
@@ -104,7 +139,7 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
             shape: HitShape::Rect(bounds),
         });
     }
-    let candidates_y = top + 102 + view.parts.len() as i32 * 54;
+    let candidates_y = parts_y + 50 + view.parts.len() as i32 * 54;
     text(
         target,
         Point::new(left, candidates_y),
