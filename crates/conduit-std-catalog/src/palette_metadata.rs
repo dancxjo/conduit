@@ -15,9 +15,12 @@ use crate::{
     LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
     MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND, PATCHBAY_CORD_KIND,
     PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND,
-    PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND,
-    ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
-    ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_RANGE_KIND,
+    PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND, ROBOTICS_DOCK_KIND,
+    ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_ACCELERATION_KIND,
+    ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BEACON_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
+    ROBOTICS_OBSERVE_BUTTONS_KIND, ROBOTICS_OBSERVE_CHARGING_KIND, ROBOTICS_OBSERVE_CLIFF_KIND,
+    ROBOTICS_OBSERVE_CONTACT_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
+    ROBOTICS_OBSERVE_PROXIMITY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_OBSERVE_WHEEL_DROP_KIND,
     ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND,
     TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND,
     TIME_DEBOUNCE_KIND, TIME_DELAY_KIND, TIME_EVERY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
@@ -285,6 +288,51 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["robot", "drive", "differential", "prewake"],
             PaletteIconKey::Combine,
         ),
+        ROBOTICS_OBSERVE_CONTACT_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "contact", "sector", "safety"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_OBSERVE_CLIFF_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "cliff", "hazard", "safety"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_OBSERVE_WHEEL_DROP_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "wheel", "drop", "safety"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_OBSERVE_CHARGING_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "charging", "battery", "power"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_DOCK_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "dock", "charging", "motion"],
+            PaletteIconKey::Combine,
+        ),
+        ROBOTICS_OBSERVE_PROXIMITY_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "proximity", "wall", "sector"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_OBSERVE_BEACON_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "beacon", "infrared", "virtual-wall"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
+        ROBOTICS_OBSERVE_BUTTONS_KIND => metadata(
+            PaletteCategory::Input,
+            &["robot", "input", "button", "pressed"],
+            PaletteIconKey::Keyboard,
+        ),
+        ROBOTICS_OBSERVE_ACCELERATION_KIND => metadata(
+            PaletteCategory::Robotics,
+            &["robot", "acceleration", "imu", "impact"],
+            PaletteIconKey::ChartColumnsIncreasing,
+        ),
         TICK_PRESENTATION_KIND => metadata(
             PaletteCategory::Presentation,
             &["display", "tick", "indicator"],
@@ -395,7 +443,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 59);
+        assert_eq!(contracts.len(), 64);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

@@ -393,8 +393,8 @@ pub fn conduitos_robotics_offers() -> Vec<CapabilityOffer> {
 }
 
 #[cfg(any(feature = "form-catalog", test))]
-pub(crate) fn robotics_contracts_with_revisions() -> [(StandardKindContract, &'static str); 7] {
-    [
+pub(crate) fn robotics_contracts_with_revisions() -> Vec<(StandardKindContract, &'static str)> {
+    vec![
         (
             robotics_observe_bump_contract(),
             ROBOTICS_OBSERVE_BUMP_REVISION,

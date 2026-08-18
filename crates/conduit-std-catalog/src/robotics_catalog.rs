@@ -1,6 +1,7 @@
 use super::{
-    configuration_type, robotics_contracts_with_revisions, StandardConfigurationField,
-    StandardConfigurationRule,
+    configuration_type, robotics_contracts_with_revisions,
+    robotics_hazard_contracts_with_revisions, robotics_input_contracts_with_revisions,
+    StandardConfigurationField, StandardConfigurationRule,
 };
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -13,7 +14,11 @@ pub fn install_robotics_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    for (contract, revision) in robotics_contracts_with_revisions() {
+    for (contract, revision) in robotics_contracts_with_revisions()
+        .into_iter()
+        .chain(robotics_hazard_contracts_with_revisions())
+        .chain(robotics_input_contracts_with_revisions())
+    {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: contract
