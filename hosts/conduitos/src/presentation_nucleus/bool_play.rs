@@ -25,7 +25,7 @@ use crate::display::{DisplayError, DisplayReceipt, PixelTarget, render_scene};
 const SOURCE_KIND: &str = "conduitos/fixture-bool-source";
 const SOURCE_REVISION: &str = "conduitos/fixture-bool-source@1";
 const SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/bool-source@1";
-const FORM: &str = "form 0\n\nbool_presentation {\n source: conduitos/fixture-bool-source\n show: presentation/bool\n source > show\n}\n";
+const FORM: &str = "form bool_presentation {\n source: conduitos/fixture-bool-source\n show: presentation/bool\n source > show\n}\n";
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const NODES: usize = 2;
 const CORDS: usize = 1;

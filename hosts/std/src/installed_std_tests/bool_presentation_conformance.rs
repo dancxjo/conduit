@@ -1,6 +1,6 @@
 use super::*;
 
-const FORM: &str = "form 0\n\nbool_presentation {\n    source: test/timing-bool-source\n    show: presentation/bool\n    source > show\n}\n";
+const FORM: &str = "form bool_presentation {\n    source: test/timing-bool-source\n    show: presentation/bool\n    source > show\n}\n";
 
 fn plan(host: &StdHost) -> conduit_core::Plan {
     let form =

@@ -434,7 +434,7 @@ pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
             "https://raw.githubusercontent.com/embassy-rs/embassy/{CYW43_COMMIT}/cyw43-firmware/{filename}"
         );
         let destination = asset_dir.join(filename);
-        println!("==> downloading {url} -> {}", destination.display());
+        println!("==> downloading {url} > {}", destination.display());
         if dry_run {
             continue;
         }

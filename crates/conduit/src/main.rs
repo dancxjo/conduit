@@ -1,13 +1,12 @@
 mod cli;
 mod copy_task;
 mod diagnostics;
+mod form_source;
 mod report_artifact;
 
 use clap::Parser;
 use conduit_observatory::{build_report, render_text_report};
-use conduit_std_host::{
-    load_checked_form, load_placements, run_kernel_multivalue_path_to, StdHost, ThreadTimer,
-};
+use conduit_std_host::{load_placements, StdHost, ThreadTimer};
 use std::io;
 use std::path::Path;
 
@@ -42,12 +41,23 @@ fn run_with_placements(
     placements_path: Option<&str>,
     report_path: Option<&Path>,
 ) -> Result<(), String> {
-    let form = load_checked_form(path).map_err(|err| err.to_string())?;
+    let source = form_source::load(Path::new(path))?;
+    let form = source.expand_entry()?;
     let placements = load_placements(placements_path).map_err(|err| err.to_string())?;
     let mut host = StdHost::new();
-    let plan = host
-        .plan_local(&form, placements.as_ref())
-        .map_err(|err| err.to_string())?;
+    let hosts = vec![host.advertisement().clone()];
+    let placements = match placements {
+        Some(placements) => placements,
+        None => conduit_planner::default_expanded_placements(&form, &hosts)
+            .map_err(|error| error.to_string())?,
+    };
+    let plan = conduit_planner::plan_expanded_canonical(
+        &form,
+        &hosts,
+        &placements,
+        &[conduit_core::ConnectionBase::Local],
+    )
+    .map_err(|error| error.to_string())?;
     let fragment = plan
         .fragments
         .iter()
@@ -86,31 +96,17 @@ fn main() {
             placements.as_deref().map(Path::to_string_lossy).as_deref(),
             report.as_deref(),
         ),
-        cli::Command::Check { form, json } | cli::Command::DiagnoseForm { form, json } => {
-            match diagnostics::run(&form, json) {
-                Ok(true) => Ok(()),
-                Ok(false) => std::process::exit(1),
-                Err(error) => Err(error),
-            }
-        }
+        cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
+            Ok(true) => Ok(()),
+            Ok(false) => std::process::exit(1),
+            Err(error) => Err(error),
+        },
         cli::Command::Inspect {
             command: cli::InspectCommand::RuntimeReport { report },
-        }
-        | cli::Command::ObservatoryReport { report } => {
-            render_runtime_report(&report).map(|rendered| {
-                print!("{rendered}");
-            })
-        }
+        } => render_runtime_report(&report).map(|rendered| {
+            print!("{rendered}");
+        }),
         cli::Command::Copy { arguments } => copy_task::run(arguments),
-        cli::Command::KernelMultivalue { form } => {
-            let mut stdout = io::stdout().lock();
-            run_kernel_multivalue_path_to(
-                form.to_string_lossy().as_ref(),
-                &mut stdout,
-                &mut ThreadTimer,
-            )
-            .map(|_| ())
-        }
     };
     if let Err(err) = result {
         eprintln!("error: {err}");

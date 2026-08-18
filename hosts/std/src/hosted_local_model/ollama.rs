@@ -334,7 +334,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
                 let result = ValidatedExtraction {
-                    schema_identity: "conduit.proof/subject@1".into(),
+                    schema_identity: "conduit-proof/subject@1".into(),
                     fields: vec![ExtractedField {
                         key: "subject".into(),
                         value: wire.subject,

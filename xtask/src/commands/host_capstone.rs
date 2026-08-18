@@ -32,7 +32,7 @@ mod manifestations;
 use manifestations::{identity_refusals, manifestation_for, mark_replaced};
 
 const FORM_SOURCE: &str =
-    "form 0\n\nshared-face {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
+    "form shared-face {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
 const NATIVE_PROFILE: &str = include_str!("../../../profiles/hosts/conduitos-native.profile.json");
 const BROWSER_PROFILE: &str = include_str!("../../../profiles/hosts/browser-page.profile.json");
 const HEADLESS_PROFILE: &str =

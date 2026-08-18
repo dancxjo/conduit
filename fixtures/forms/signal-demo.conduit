@@ -1,0 +1,5 @@
+form signal-demo {
+    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
+    show: presentation/show
+    pulse > show
+}

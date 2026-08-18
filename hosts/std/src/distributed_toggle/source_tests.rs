@@ -47,8 +47,9 @@ fn unchanged_toggle_form_prepares_exact_independent_remote_fragments() {
 fn missing_link_binding_fails_toggle_planning() {
     let source = distributed_toggle_std_source_advertisement();
     let sink = distributed_toggle_browser_sink_advertisement();
-    let form = conduit_form::parse(
-        include_str!("../../../../examples/remote-toggle.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../../fixtures/forms/remote-toggle.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .unwrap();

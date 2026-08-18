@@ -1,6 +1,6 @@
 //! Planning for the S4 toggle-demo distributed proof.
 //!
-//! Resolves the `remote-toggle.form` against the std source and browser sink
+//! Resolves the canonical `remote-toggle.conduit` against the std source and browser sink
 //! advertisements and returns the exact two-fragment plan.
 
 use conduit_core::{CapabilityId, ConnectionBase, GearId, HostAdvertisement, Plan};
@@ -22,29 +22,30 @@ pub struct DistributedTogglePlan {
 pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> {
     let source_advertisement = distributed_toggle_std_source_advertisement();
     let sink_advertisement = distributed_toggle_browser_sink_advertisement();
-    let form = conduit_form::parse(
-        include_str!("../../../../examples/remote-toggle.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../../fixtures/forms/remote-toggle.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("trigger"),
+                GearId::from("remote-toggle/trigger"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("trigger-1"),
                 },
             ),
             (
-                GearId::from("toggle"),
+                GearId::from("remote-toggle/toggle"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-1"),
                 },
             ),
             (
-                GearId::from("show"),
+                GearId::from("remote-toggle/show"),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-dom-show-1"),

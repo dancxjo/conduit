@@ -546,12 +546,12 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
     let observer_contract_id = present_host_operation_requirement(
-        kind_id("conduit.test/tick-observation"),
+        kind_id("conduit-test/tick-observation"),
         TICK_ENCODED_LEN,
     )
     .contract_id;
     #[cfg(test)]
-    let observer_target_kind = kind_id("conduit.test/tick-observation");
+    let observer_target_kind = kind_id("conduit-test/tick-observation");
     #[cfg(test)]
     let play_start_probe = crate::allocation_probe::begin();
     let mut accepted_stop = None;

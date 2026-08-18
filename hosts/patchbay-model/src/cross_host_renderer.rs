@@ -88,7 +88,7 @@ fn renderer_form() -> Result<conduit_form::CheckedForm, String> {
         .insert(renderer_kind_definition())
         .map_err(|error| error.to_string())?;
     parse(
-        "form 0\n\ncross-host-patchbay {\n    project: presentation/patchbay-project\n    renderer: presentation/renderer\n    project.presentation -> renderer.presentation\n}\n",
+        "form cross-host-patchbay {\n    project: presentation/patchbay-project\n    renderer: presentation/renderer\n    project.presentation > renderer.presentation\n}\n",
         &catalog,
     )
     .map_err(|error| error.to_string())

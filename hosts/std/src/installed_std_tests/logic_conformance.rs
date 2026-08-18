@@ -3,22 +3,19 @@ use conduit_core::{ArtifactId, ObservationKind, TerminalDisposition, SCALAR_ENCO
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
 
-const FORM: &str = r#"form 0
-
-logic_decision {
- script: conduit.test/logic-script
- compare: logic/compare
+const FORM: &str = r#"form logic_decision {
+ script: conduit-test/logic-script
+ compare: logic/compare(operator = "eq")
  invert: logic/not
  choose: logic/select
- sink: conduit.test/logic-sink
- compare.operator = "eq"
- script.compare-left -> compare.left
- script.compare-right -> compare.right
- compare.out -> invert.in
- invert.out -> choose.selector
- script.when-false -> choose.when-false
- script.when-true -> choose.when-true
- choose.out -> sink.in
+ sink: conduit-test/logic-sink
+ script.compare-left > compare.left
+ script.compare-right > compare.right
+ compare.out > invert.in
+ invert.out > choose.selector
+ script.when-false > choose.when-false
+ script.when-true > choose.when-true
+ choose.out > sink.in
 }
 "#;
 
@@ -107,12 +104,10 @@ fn unsupported_operator_and_incompatible_select_branch_fail_as_authored_forms() 
     let invalid_operator = FORM.replace("\"eq\"", "\"contains\"");
     assert!(parse(&invalid_operator, &installed_std::test_catalog()).is_err());
 
-    let incompatible = r#"form 0
-
-incompatible_select {
+    let incompatible = r#"form incompatible_select {
  invert: logic/not
  choose: logic/select
- invert.out -> choose.when-true
+ invert.out > choose.when-true
 }
 "#;
     assert!(parse(incompatible, &installed_std::test_catalog()).is_err());

@@ -1,6 +1,6 @@
 //! Conduit kernel execution for the generated Signal demo image on Pico W.
 //!
-//! The build script parses `examples/signal-demo.form`, plans it onto the
+//! The build script parses `fixtures/forms/signal-demo.conduit`, plans it onto the
 //! Pico-local advertisement, lowers the exact fragment, and emits the fixed
 //! tables consumed here.
 

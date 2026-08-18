@@ -607,6 +607,7 @@ pub use host_profile::{install_standard_profile, standard_registry};
 #[cfg(test)]
 mod tests {
     use alloc::collections::BTreeMap;
+    use alloc::format;
     use alloc::vec;
     use alloc::vec::Vec;
 
@@ -666,7 +667,7 @@ mod tests {
     fn contracts_convert_to_form_catalog_without_runtime_kind_changes() {
         let catalog = standard_profile_catalog();
         let form = parse(
-            "form 0\n\nstd_catalog {\n pulse: flow/pulse\n show: presentation/show\n pulse > show\n}\n",
+            "form std_catalog {\n pulse: flow/pulse\n show: presentation/show\n pulse > show\n}\n",
             &catalog,
         )
         .expect("existing pulse/show form parses through standard catalog");
@@ -674,7 +675,7 @@ mod tests {
         assert_eq!(form.connections.len(), 1);
 
         let flow_form = parse(
-            "form 0\n\nstd_flow {\n clock: time/tick\n source: flow/map\n filtered: flow/filter\n split: flow/tee\n latest: state/latest\n formatted: text/format\n clock.tick -> source.in\n source > filtered\n filtered > split\n split.left -> latest.in\n split.right -> formatted.in\n}\n",
+            "form std_flow {\n clock: time/tick\n source: flow/map\n filtered: flow/filter\n split: flow/tee\n latest: state/latest\n formatted: text/format\n clock.tick > source.in\n source.out > filtered.in\n filtered.out > split.in\n split.left > latest.in\n split.right > formatted.in\n}\n",
             &catalog,
         )
         .expect("new standard flow form parses");
@@ -686,7 +687,7 @@ mod tests {
     fn conformance_fixture_plans_standard_contracts_without_ui() {
         let catalog = standard_profile_catalog();
         let form = parse(
-            "form 0\n\nstd_conformance {\n clock: time/tick\n source: flow/map\n filter: flow/filter\n split: flow/tee\n latest: state/latest\n format: text/format\n clock.tick -> source.in\n source > filter\n filter > split\n split.left -> latest.in\n split.right -> format.in\n}\n",
+            "form std_conformance {\n clock: time/tick\n source: flow/map\n filter: flow/filter\n split: flow/tee\n latest: state/latest\n format: text/format\n clock.tick > source.in\n source.out > filter.in\n filter.out > split.in\n split.left > latest.in\n split.right > format.in\n}\n",
             &catalog,
         )
         .expect("standard conformance form parses");
@@ -703,7 +704,7 @@ mod tests {
             .into_iter()
             .map(|(operation, capability)| {
                 (
-                    conduit_core::GearId::from(operation),
+                    conduit_core::GearId::from(format!("std_conformance/{operation}")),
                     PlacementChoice {
                         host_id: host.host_id.clone(),
                         capability_id: CapabilityId::from(capability),
@@ -732,7 +733,7 @@ mod tests {
     #[test]
     fn hosted_standard_profile_runs_bounded_flow_form_without_ui() {
         let observations = run_hosted_standard_form(
-            "form 0\n\nstd_exec {\n clock: time/tick\n map: flow/map\n filter: flow/filter\n split: flow/tee\n latest: state/latest\n format: text/format\n show_latest: presentation/show\n show_text: presentation/show\n clock.count = 1\n clock.period-ms = 0\n clock.tick -> map.in\n map > filter\n filter > split\n split.left -> latest.in\n split.right -> format.in\n latest > show_latest\n format.text -> show_text.signal\n}\n",
+            "form std_exec {\n clock: time/tick(count = 1, period-ms = 0)\n map: flow/map\n filter: flow/filter\n split: flow/tee\n latest: state/latest\n format: text/format\n show_latest: presentation/show\n show_text: presentation/show\n clock.tick > map.in\n map.out > filter.in\n filter.out > split.in\n split.left > latest.in\n split.right > format.in\n latest.out > show_latest.signal\n format.text > show_text.signal\n}\n",
             [
                 ("clock", "time-tick"),
                 ("map", "flow-map"),
@@ -761,7 +762,7 @@ mod tests {
     #[test]
     fn hosted_standard_profile_runs_pulse_show_form_without_ui() {
         let observations = run_hosted_standard_form(
-            "form 0\n\nstd_pulse_show {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 1\n pulse.period-ms = 0\n pulse.signal -> show.signal\n}\n",
+            "form std_pulse_show {\n pulse: flow/pulse(count = 1, period-ms = 0)\n show: presentation/show\n pulse.signal > show.signal\n}\n",
             [("pulse", "flow-pulse"), ("show", "presentation-show")],
         );
         assert_completed_plan(&observations);
@@ -771,7 +772,7 @@ mod tests {
     #[test]
     fn hosted_standard_profile_runs_tick_format_show_form_without_ui() {
         let observations = run_hosted_standard_form(
-            "form 0\n\nstd_tick_format {\n clock: time/tick\n format: text/format\n show: presentation/show\n clock.count = 1\n clock.period-ms = 0\n clock.tick -> format.in\n format.text -> show.signal\n}\n",
+            "form std_tick_format {\n clock: time/tick(count = 1, period-ms = 0)\n format: text/format\n show: presentation/show\n clock.tick > format.in\n format.text > show.signal\n}\n",
             [
                 ("clock", "time-tick"),
                 ("format", "text-format"),
@@ -853,6 +854,7 @@ mod tests {
     }
 
     fn placements_for<const N: usize>(
+        form_name: &str,
         host: &HostAdvertisement,
         mappings: [(&str, &str); N],
     ) -> PlacementChoices {
@@ -861,7 +863,7 @@ mod tests {
                 .into_iter()
                 .map(|(operation, capability)| {
                     (
-                        conduit_core::GearId::from(operation),
+                        conduit_core::GearId::from(format!("{form_name}/{operation}")),
                         PlacementChoice {
                             host_id: host.host_id.clone(),
                             capability_id: CapabilityId::from(capability),
@@ -883,7 +885,7 @@ mod tests {
             conduit_core::BootId::from("std-catalog-boot"),
             OfferGeneration(1),
         );
-        let placements = placements_for(&host, mappings);
+        let placements = placements_for(&form.name, &host, mappings);
         let plan = plan(
             &form,
             core::slice::from_ref(&host),

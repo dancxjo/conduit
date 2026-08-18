@@ -1164,7 +1164,7 @@ fn remote_link_plan_fixture() -> (
     conduit_core::LineOffer,
 ) {
     let form = parse(
-        "form 0\n\nlink-runtime {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
+        "form link-runtime {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
         &profile_catalog(),
     )
     .expect("remote link form parses");
@@ -1179,14 +1179,14 @@ fn remote_link_plan_fixture() -> (
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("source"),
+                GearId::from("link-runtime/source"),
                 PlacementChoice {
                     host_id: source.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
                 },
             ),
             (
-                GearId::from("sink"),
+                GearId::from("link-runtime/sink"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
                     capability_id: CapabilityId::from("show"),
@@ -1710,7 +1710,7 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
     }));
 
     let form = parse(
-        "form 0\n\nadapter {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
+        "form adapter {\n source: contract/source\n sink: contract/sink\n source > sink\n}\n",
         &profile_catalog(),
     )
     .expect("adapter form parses");
@@ -1725,14 +1725,14 @@ fn fake_browser_style_adapter_drives_effects_delay_disconnect_and_inspection() {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("source"),
+                GearId::from("adapter/source"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("pulse"),
                 },
             ),
             (
-                GearId::from("sink"),
+                GearId::from("adapter/sink"),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("show"),

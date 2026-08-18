@@ -667,8 +667,9 @@ mod tests {
     fn missing_and_stale_observed_links_fail_planning() {
         let source = distributed_std_source_advertisement();
         let sink = distributed_browser_sink_advertisement();
-        let form = conduit_form::parse(
-            include_str!("../../../examples/signal-demo.form"),
+        let form = conduit_form::parse_with_startup(
+            include_str!("../../../fixtures/forms/signal-demo.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .unwrap();

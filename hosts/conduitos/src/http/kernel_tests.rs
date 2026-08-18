@@ -351,7 +351,7 @@ fn ordinary_form_plans_and_plays_native_http_through_the_production_kernel() {
 
 fn run_ordinary_form() {
     let source = format!(
-        "form 0\n\nhttp-local {{\n source: {SOURCE_KIND}\n client: http/client\n sink: {SINK_KIND}\n source.value -> client.request\n client.response -> sink.value\n}}\n"
+        "form http-local {{\n source: {SOURCE_KIND}\n client: http/client\n sink: {SINK_KIND}\n source.value > client.request\n client.response > sink.value\n}}\n"
     );
     let (_startup, profile) = catalogs();
     let checked = conduit_form::parse(&source, &profile).unwrap();

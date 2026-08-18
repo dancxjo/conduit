@@ -400,7 +400,7 @@ fn append_form_lines(
     }
     for cord in &expanded.connections {
         lines.push(format!(
-            "CORD {}.{} -> {}.{} info={} temporal={:?}",
+            "CORD {}.{} > {}.{} info={} temporal={:?}",
             cord.source_gear_id.as_str(),
             cord.source_port_id.as_str(),
             cord.sink_gear_id.as_str(),

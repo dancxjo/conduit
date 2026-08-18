@@ -8,12 +8,12 @@ use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog
 use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
 
 const SOURCE_KIND: &str = "conduit-test/local-model-request";
-const SOURCE_REVISION: &str = "conduit.test/local-model-request@1";
-const SOURCE_IMPLEMENTATION: &str = "conduit.test/local-model-request-kernel@1";
+const SOURCE_REVISION: &str = "conduit-test/local-model-request@1";
+const SOURCE_IMPLEMENTATION: &str = "conduit-test/local-model-request-kernel@1";
 const SINK_KIND: &str = "conduit-test/local-model-result";
-const SINK_REVISION: &str = "conduit.test/local-model-result@1";
-const SINK_IMPLEMENTATION: &str = "conduit.test/local-model-result-kernel@1";
-const PROFILE: &str = "conduit.test/local-model-io-kernel@1";
+const SINK_REVISION: &str = "conduit-test/local-model-result@1";
+const SINK_IMPLEMENTATION: &str = "conduit-test/local-model-result-kernel@1";
+const PROFILE: &str = "conduit-test/local-model-io-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-local-model-io@1";
 
 pub(super) static TEST_LOCAL_MODEL_SOURCE_FACTORY: InstalledFactory = InstalledFactory {

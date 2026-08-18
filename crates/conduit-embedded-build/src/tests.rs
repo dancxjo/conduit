@@ -123,8 +123,9 @@ fn signed_scalar_configuration_remains_exact_in_a_fixed_image() {
 
 #[test]
 fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
-    let form = conduit_form::parse(
-        include_str!("../../../examples/signal-demo.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .expect("unchanged Signal form checks");

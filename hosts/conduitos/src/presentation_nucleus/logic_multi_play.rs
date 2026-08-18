@@ -1,4 +1,4 @@
-//! Bounded production-kernel execution for `logic/compare -> logic/select`.
+//! Bounded production-kernel execution for `logic/compare > logic/select`.
 
 use alloc::vec::Vec;
 use conduit_core::{InfoBool, Scalar};

@@ -14,7 +14,7 @@ use conduit_core::{
     CapabilityId, ConnectionBase, GearId, HostCommand, HostId, ObservationKind, OfferGeneration,
     TerminalDisposition,
 };
-use conduit_form::parse;
+use conduit_form::parse_with_startup;
 use conduit_pico_sim::{pico_advertisement, PicoSimConfig};
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
 use conduit_signal::{exact_std_pico_usb_plan, signal_profile_catalog};
@@ -71,36 +71,37 @@ fn report_separates_identity_capability_plan_connection_and_sign_tables() {
         pico_ad.clone(),
     ];
 
-    let form = parse(
-        include_str!("../../../examples/triple-signal.form"),
+    let form = parse_with_startup(
+        include_str!("../../../fixtures/forms/triple-signal.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .expect("triple form parses");
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("pulse"),
+                GearId::from("triple-signal/pulse"),
                 PlacementChoice {
                     host_id: HostId::from("std-host-triple"),
                     capability_id: CapabilityId::from("pulse-1"),
                 },
             ),
             (
-                GearId::from("local"),
+                GearId::from("triple-signal/local"),
                 PlacementChoice {
                     host_id: HostId::from("std-host-triple"),
                     capability_id: CapabilityId::from("stdout-show-1"),
                 },
             ),
             (
-                GearId::from("web"),
+                GearId::from("triple-signal/web"),
                 PlacementChoice {
                     host_id: HostId::from("browser-sim-triple"),
                     capability_id: CapabilityId::from("dom-show"),
                 },
             ),
             (
-                GearId::from("light"),
+                GearId::from("triple-signal/light"),
                 PlacementChoice {
                     host_id: HostId::from("pico-sim-triple"),
                     capability_id: CapabilityId::from("onboard-led"),
@@ -110,15 +111,24 @@ fn report_separates_identity_capability_plan_connection_and_sign_tables() {
     };
     let connection_bases = BTreeMap::from([
         (
-            (GearId::from("pulse"), GearId::from("local")),
+            (
+                GearId::from("triple-signal/pulse"),
+                GearId::from("triple-signal/local"),
+            ),
             ConnectionBase::Local,
         ),
         (
-            (GearId::from("pulse"), GearId::from("web")),
+            (
+                GearId::from("triple-signal/pulse"),
+                GearId::from("triple-signal/web"),
+            ),
             ConnectionBase::FixtureFrame,
         ),
         (
-            (GearId::from("pulse"), GearId::from("light")),
+            (
+                GearId::from("triple-signal/pulse"),
+                GearId::from("triple-signal/light"),
+            ),
             ConnectionBase::FixtureDatagram,
         ),
     ]);

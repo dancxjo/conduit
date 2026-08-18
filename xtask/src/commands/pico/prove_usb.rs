@@ -1,4 +1,4 @@
-//! Typed std -> Pico W USB-CDC session proof & interactive console runner.
+//! Typed std > Pico W USB-CDC session proof & interactive console runner.
 
 use std::time::{Duration, Instant};
 
@@ -106,7 +106,7 @@ pub fn run_prove_std_pico_usb(
                     .receive_raw_stream_frame(&mut frame_buf, Duration::from_secs(3))
                     .map_err(|e| format!("Timed out waiting for CDC0 probe reply: {e}"))?;
                 if probe_reply == b"CONDUIT_RAW_CDC0_REPLY" {
-                    println!("==> CDC0 raw Pico -> host reply observed");
+                    println!("==> CDC0 raw Pico > host reply observed");
                 } else {
                     return Err("raw CDC0 probe reply payload mismatch".into());
                 }
@@ -184,7 +184,7 @@ pub fn run_prove_std_pico_usb(
             .admit_outbound(hello)
             .map_err(|e| format!("Source failed to admit outbound Hello: {e:?}"))?;
         line.send_frame(&hello, Duration::from_secs(2))?;
-        println!("==> std  -> pico Hello");
+        println!("==> std  > pico Hello");
 
         // Handshake Step 2 (Source): Inbound Hello
         let mut frame_buf = [0u8; 2048];
@@ -197,7 +197,7 @@ pub fn run_prove_std_pico_usb(
                         source.admit_inbound(res).map_err(|e| {
                             format!("Source failed to admit inbound Hello from Sink: {e:?}")
                         })?;
-                        println!("==> pico -> std  Hello");
+                        println!("==> pico > std  Hello");
                         hello_received = true;
                         break;
                     }
@@ -220,7 +220,7 @@ pub fn run_prove_std_pico_usb(
             .admit_outbound(ready_outbound)
             .map_err(|e| format!("Source failed to admit outbound Ready: {e:?}"))?;
         line.send_frame(&ready_outbound, Duration::from_secs(2))?;
-        println!("==> std  -> pico Ready");
+        println!("==> std  > pico Ready");
 
         // Handshake Step 4 (Source): Inbound Ready
         let start = Instant::now();
@@ -232,7 +232,7 @@ pub fn run_prove_std_pico_usb(
                         source.admit_inbound(res).map_err(|e| {
                             format!("Source failed to admit inbound Ready from Sink: {e:?}")
                         })?;
-                        println!("==> pico -> std  Ready");
+                        println!("==> pico > std  Ready");
                         ready_received = true;
                         break;
                     }
@@ -264,9 +264,9 @@ pub fn run_prove_std_pico_usb(
             println!(" Sign Port: {}", sign_port_path.display());
             println!("===============================================================");
             println!(
-                " [Press ANY KEY]  -> Instant Button Pulse (Key Down -> LED ON -> Key Up -> LED OFF)"
+                " [Press ANY KEY]  > Instant Button Pulse (Key Down > LED ON > Key Up > LED OFF)"
             );
-            println!(" [Press 'q' / ESC] -> Exit interactive session");
+            println!(" [Press 'q' / ESC] > Exit interactive session");
             println!("===============================================================\n");
 
             let mut term = OperatorTerminal::open().map_err(|e| {

@@ -1,7 +1,7 @@
 use super::*;
 use crate::{RunControl, RunControlRequestId};
 
-const CLEAR_FORM: &str = "form 0\n\nprewake_safety {\n bump: robotics/observe-bump\n range: robotics/observe-range\n intent: robotics/velocity-intent\n drive: robotics/drive-differential\n bump.state = \"clear\"\n range.distance-mm = 500\n range.age-ms = 0\n intent.linear-microunits = 750000\n intent.angular-microunits = -250000\n drive.minimum-clearance-mm = 250\n drive.maximum-range-age-ms = 1000\n bump.observation -> drive.bumper-pressed\n range.range -> drive.forward-range\n intent.linear -> drive.linear\n intent.angular -> drive.angular\n}\n";
+const CLEAR_FORM: &str = "form prewake_safety {\n bump: robotics/observe-bump(state = \"clear\")\n range: robotics/observe-range(distance-mm = 500, age-ms = 0)\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(minimum-clearance-mm = 250, maximum-range-age-ms = 1000)\n bump.observation > drive.bumper-pressed\n range.range > drive.forward-range\n intent.linear > drive.linear\n intent.angular > drive.angular\n}\n";
 
 fn plan(source: &str, id: &str) -> (StdHost, conduit_core::PlanFragment) {
     let host = host(id);
@@ -69,12 +69,12 @@ fn clear_and_pressed_bumper_produce_projected_and_suppressed_prewake_drive() {
         "PREWAKE simulated drive projection linear-microunits=750000 angular-microunits=-250000 physical-effect=false authority-grant=false"
     ));
 
-    let pressed_source = CLEAR_FORM.replace("bump.state = \"clear\"", "bump.state = \"pressed\"");
+    let pressed_source = CLEAR_FORM.replace("state = \"clear\"", "state = \"pressed\"");
     let (pressed, pressed_output, pressed_fragment) = run(&pressed_source, "robot-pressed");
     assert!(pressed_output.contains(
         "PREWAKE simulated drive suppressed physical-effect=false authority-grant=false"
     ));
-    let near_source = CLEAR_FORM.replace("range.distance-mm = 500", "range.distance-mm = 249");
+    let near_source = CLEAR_FORM.replace("distance-mm = 500", "distance-mm = 249");
     let (_, near_output, _) = run(&near_source, "robot-near");
     assert!(near_output.contains(
         "PREWAKE simulated drive suppressed physical-effect=false authority-grant=false"
@@ -132,12 +132,12 @@ fn every_robotics_observation_contract_plans_with_distinct_exact_info() {
 #[test]
 fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
     let missing_source = CLEAR_FORM.replace(
-        "bump.state = \"clear\"",
-        "bump.state = \"clear\"\n bump.availability = \"missing\"",
+        "state = \"clear\"",
+        "state = \"clear\", availability = \"missing\"",
     );
     let stale_source = CLEAR_FORM.replace(
-        "bump.state = \"clear\"",
-        "bump.state = \"clear\"\n bump.availability = \"stale\"",
+        "state = \"clear\"",
+        "state = \"clear\", availability = \"stale\"",
     );
     let missing = run_failure(&missing_source, "robot-missing");
     let stale = run_failure(&stale_source, "robot-stale");
@@ -146,9 +146,9 @@ fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
     assert!(stale.contains("OperationFailed(41)"));
 
     for source in [
-        "form 0\n\ninvalid {\n range: robotics/observe-range\n range.distance-mm = 1000001\n}\n",
-        "form 0\n\ninvalid {\n battery: robotics/observe-battery\n battery.charge-permille = 1001\n}\n",
-        "form 0\n\ninvalid {\n odometry: robotics/observe-odometry\n odometry.yaw-microradians = 3141594\n}\n",
+        "form invalid {\n range: robotics/observe-range(distance-mm = 1000001)\n}\n",
+        "form invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
+        "form invalid {\n odometry: robotics/observe-odometry(yaw-microradians = 3141594)\n}\n",
     ] {
         assert!(parse(source, &installed_std::test_catalog()).is_err());
     }

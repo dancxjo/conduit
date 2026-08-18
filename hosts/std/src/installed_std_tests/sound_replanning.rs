@@ -42,7 +42,7 @@ fn host(
 
 fn form() -> conduit_form::CheckedForm {
     conduit_form::parse(
-        "form 0\n\nsound_replan {\n source: conduit.proof/pcm-specimen-source\n output: audio/play\n source.audio -> output.audio\n}\n",
+        "form sound_replan {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio > output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .expect("portable PCM Form is valid")

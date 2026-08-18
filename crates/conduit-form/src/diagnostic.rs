@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{hash_string, FormDiagnostic, Span};
+use crate::{hash_string, Span};
 use alloc::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
@@ -158,30 +158,7 @@ pub fn source_document_identity(source: &str) -> String {
     hash_string(&format!("source-document:{source}"))
 }
 
-pub fn structured_form_diagnostic(
-    source: &str,
-    diagnostic: &FormDiagnostic,
-) -> StructuredDiagnosticV1 {
-    let (summary, truncated) = bounded_text(&diagnostic.message);
-    StructuredDiagnosticV1::new(
-        diagnostic.code,
-        DiagnosticSeverity::Error,
-        summary,
-        source_document_identity(source),
-        Some(hash_string(source)),
-        Some(diagnostic.span.into()),
-        Vec::new(),
-        BTreeMap::new(),
-        Vec::new(),
-        if truncated {
-            vec!["summary was truncated at the public diagnostic byte bound".into()]
-        } else {
-            Vec::new()
-        },
-    )
-    .expect("one form diagnostic is within the fixed schema bounds")
-}
-
+#[cfg(test)]
 fn bounded_text(value: &str) -> (String, bool) {
     if value.len() <= MAXIMUM_DIAGNOSTIC_TEXT_BYTES {
         return (value.to_string(), false);
@@ -196,80 +173,6 @@ fn bounded_text(value: &str) -> (String, bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        parse_document, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
-    };
-    use conduit_core::{kind_id, ConfigurationValue, KindContractRevision};
-
-    #[test]
-    fn malformed_form_human_and_json_share_exact_owned_fact() {
-        let source = "not a form\n";
-        let document = parse_document(source, &ProfileCatalog::new());
-        let diagnostic = structured_form_diagnostic(source, &document.diagnostics[0]);
-        let json = serde_json::to_value(&diagnostic).unwrap();
-
-        assert_eq!(diagnostic.code, "CND-FRM-001");
-        assert_eq!(json["schema_version"], DIAGNOSTIC_SCHEMA_VERSION);
-        assert_eq!(json["source_document_id"], source_document_identity(source));
-        assert_eq!(json["primary_span"]["start"], 0);
-        assert!(diagnostic.render_human().contains(&diagnostic.code));
-        assert!(diagnostic.render_human().contains(&diagnostic.summary));
-    }
-
-    #[test]
-    fn unsupported_kind_and_configuration_keep_stable_codes_and_spans() {
-        let unsupported = "form 0\n\ndemo {\n  x: missing/kind\n}\n";
-        let unsupported_document = parse_document(unsupported, &ProfileCatalog::new());
-        let unsupported_diagnostic =
-            structured_form_diagnostic(unsupported, &unsupported_document.diagnostics[0]);
-        assert_eq!(unsupported_diagnostic.code, "CND-FRM-009");
-        assert!(unsupported_diagnostic.primary_span.is_some());
-
-        let mut catalog = ProfileCatalog::new();
-        catalog
-            .insert(KindDefinition {
-                kind_id: kind_id("test/source"),
-                kind_contract_revision: KindContractRevision::from("test/source@1"),
-                inputs: Vec::new(),
-                outputs: Vec::new(),
-                configuration: vec![ConfigurationField {
-                    key: "count".into(),
-                    default_value: ConfigurationValue::U64(1),
-                    validation: ConfigurationRule::U64Range {
-                        minimum: 1,
-                        maximum: 4,
-                    },
-                }],
-            })
-            .unwrap();
-        let malformed_configuration =
-            "form 0\n\ndemo {\n source: test/source\n source.count = 5\n}\n";
-        let configuration_document = parse_document(malformed_configuration, &catalog);
-        let configuration_diagnostic = structured_form_diagnostic(
-            malformed_configuration,
-            &configuration_document.diagnostics[0],
-        );
-        assert_eq!(configuration_diagnostic.code, "CND-FRM-010");
-        assert!(configuration_diagnostic.primary_span.is_some());
-
-        let port_source = "form 0\n\ndemo {\n source: test/source\n source.missing -> sink.in\n}\n";
-        let port_error = FormDiagnostic {
-            code: "CND-FRM-011",
-            span: Span {
-                start: 43,
-                end: 57,
-                line: 5,
-                column: 2,
-                end_line: 5,
-                end_column: 16,
-            },
-            message: "connection names an unsupported port".into(),
-        };
-        let port_diagnostic = structured_form_diagnostic(port_source, &port_error);
-        assert_eq!(port_diagnostic.code, "CND-FRM-011");
-        assert_eq!(port_diagnostic.primary_span, Some(port_error.span.into()));
-    }
-
     #[test]
     fn unknown_schema_and_unbounded_related_subjects_fail_closed() {
         let mut diagnostic = StructuredDiagnosticV1::new(
@@ -295,24 +198,9 @@ mod tests {
     #[test]
     fn attacker_controlled_message_is_truncated_on_a_utf8_boundary() {
         let message = "é".repeat(MAXIMUM_DIAGNOSTIC_TEXT_BYTES);
-        let source = "invalid";
-        let structured = structured_form_diagnostic(
-            source,
-            &FormDiagnostic {
-                code: "CND-FRM-TEST",
-                span: Span {
-                    start: 0,
-                    end: source.len(),
-                    line: 1,
-                    column: 1,
-                    end_line: 1,
-                    end_column: source.len() + 1,
-                },
-                message,
-            },
-        );
-        assert!(structured.summary.len() <= MAXIMUM_DIAGNOSTIC_TEXT_BYTES);
-        assert_eq!(structured.notes.len(), 1);
-        assert!(structured.validate().is_ok());
+        let (bounded, truncated) = bounded_text(&message);
+        assert!(bounded.len() <= MAXIMUM_DIAGNOSTIC_TEXT_BYTES);
+        assert!(bounded.is_char_boundary(bounded.len()));
+        assert!(truncated);
     }
 }

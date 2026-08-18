@@ -14,7 +14,7 @@ use conduit_presentation::{
 };
 
 const SHARED_FACE_SOURCE: &str =
-    "form 0\n\nshared-face {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
+    "form shared-face {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
 
 fn two_presenter_plan() -> (conduit_form::CheckedForm, conduit_core::Plan) {
     let mut catalog = ProfileCatalog::new();
@@ -41,14 +41,14 @@ fn two_presenter_plan() -> (conduit_form::CheckedForm, conduit_core::Plan) {
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("native"),
+                GearId::from("shared-face/native"),
                 PlacementChoice {
                     host_id: native.host_id.clone(),
                     capability_id: CapabilityId::from("renderer-wayland"),
                 },
             ),
             (
-                GearId::from("browser"),
+                GearId::from("shared-face/browser"),
                 PlacementChoice {
                     host_id: browser.host_id.clone(),
                     capability_id: CapabilityId::from("renderer-dom-svg"),

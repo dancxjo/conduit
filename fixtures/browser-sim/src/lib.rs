@@ -228,14 +228,14 @@ impl BrowserSimPage {
         let placements = PlacementChoices {
             by_gear: BTreeMap::from([
                 (
-                    conduit_core::GearId::from("pulse"),
+                    conduit_core::GearId::from("signal-demo/pulse"),
                     PlacementChoice {
                         host_id: source_host.clone(),
                         capability_id: CapabilityId::from("pulse"),
                     },
                 ),
                 (
-                    conduit_core::GearId::from("show"),
+                    conduit_core::GearId::from("signal-demo/show"),
                     PlacementChoice {
                         host_id: sink_host.clone(),
                         capability_id: CapabilityId::from("dom-show"),
@@ -282,14 +282,14 @@ impl BrowserSimPage {
         let placements = PlacementChoices {
             by_gear: BTreeMap::from([
                 (
-                    conduit_core::GearId::from("pulse"),
+                    conduit_core::GearId::from("signal-demo/pulse"),
                     PlacementChoice {
                         host_id: std_advertisement.host_id.clone(),
                         capability_id: CapabilityId::from("pulse-1"),
                     },
                 ),
                 (
-                    conduit_core::GearId::from("show"),
+                    conduit_core::GearId::from("signal-demo/show"),
                     PlacementChoice {
                         host_id: browser_host.clone(),
                         capability_id: CapabilityId::from("dom-show"),
@@ -571,8 +571,9 @@ pub struct BrowserRunReport {
 }
 
 pub fn load_checked_form(path: &str) -> Result<CheckedForm, Box<dyn std::error::Error>> {
-    Ok(conduit_form::parse(
+    Ok(conduit_form::parse_with_startup(
         &std::fs::read_to_string(path)?,
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )?)
 }
@@ -747,7 +748,7 @@ mod tests {
         HostCommand, HostEvent, HostId, OfferGeneration, PlacementId, PlatformEffect,
         TerminalDisposition,
     };
-    use conduit_form::parse;
+    use conduit_form::parse_with_startup;
     use conduit_pico_sim::{BoundedDatagramRelayFixture, PicoSim, PicoSimConfig};
     use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
     use conduit_runtime::RuntimeOutput;
@@ -771,16 +772,15 @@ mod tests {
     }
 
     fn pair_form() -> conduit_form::CheckedForm {
-        parse(
-            "form 0\n\nsignal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 16\n pulse.period-ms = 250\n pulse.initial = false\n pulse > show\n}\n",
-            &signal_profile_catalog(),
-        )
+        parse_with_startup(
+            "form signal-demo {\n pulse: flow/pulse(count = 16, period-ms = 250, initial = false)\n show: presentation/show\n pulse > show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("browser pair form parses")
     }
 
     fn triple_form() -> conduit_form::CheckedForm {
-        parse(
-            include_str!("../../../examples/triple-signal.form"),
+        parse_with_startup(
+            include_str!("../../../fixtures/forms/triple-signal.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .expect("triple signal form parses")
@@ -1037,28 +1037,28 @@ mod tests {
         let placements = PlacementChoices {
             by_gear: BTreeMap::from([
                 (
-                    conduit_core::GearId::from("pulse"),
+                    conduit_core::GearId::from("triple-signal/pulse"),
                     PlacementChoice {
                         host_id: std_host.advertisement().host_id.clone(),
                         capability_id: conduit_core::CapabilityId::from("pulse-1"),
                     },
                 ),
                 (
-                    conduit_core::GearId::from("local"),
+                    conduit_core::GearId::from("triple-signal/local"),
                     PlacementChoice {
                         host_id: std_host.advertisement().host_id.clone(),
                         capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
                     },
                 ),
                 (
-                    conduit_core::GearId::from("web"),
+                    conduit_core::GearId::from("triple-signal/web"),
                     PlacementChoice {
                         host_id: browser_host.clone(),
                         capability_id: conduit_core::CapabilityId::from("dom-show"),
                     },
                 ),
                 (
-                    conduit_core::GearId::from("light"),
+                    conduit_core::GearId::from("triple-signal/light"),
                     PlacementChoice {
                         host_id: pico.advertisement().host_id.clone(),
                         capability_id: conduit_core::CapabilityId::from("onboard-led"),
@@ -1069,22 +1069,22 @@ mod tests {
         let connection_bases = BTreeMap::from([
             (
                 (
-                    conduit_core::GearId::from("pulse"),
-                    conduit_core::GearId::from("local"),
+                    conduit_core::GearId::from("triple-signal/pulse"),
+                    conduit_core::GearId::from("triple-signal/local"),
                 ),
                 ConnectionBase::Local,
             ),
             (
                 (
-                    conduit_core::GearId::from("pulse"),
-                    conduit_core::GearId::from("web"),
+                    conduit_core::GearId::from("triple-signal/pulse"),
+                    conduit_core::GearId::from("triple-signal/web"),
                 ),
                 ConnectionBase::FixtureFrame,
             ),
             (
                 (
-                    conduit_core::GearId::from("pulse"),
-                    conduit_core::GearId::from("light"),
+                    conduit_core::GearId::from("triple-signal/pulse"),
+                    conduit_core::GearId::from("triple-signal/light"),
                 ),
                 ConnectionBase::FixtureDatagram,
             ),

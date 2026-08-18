@@ -8,7 +8,7 @@ use conduit_core::{
     BootId, CheckedFormId, HostAdvertisement, HostId, LinkBindingId, OfferGeneration, SignId,
     SourceDocumentId,
 };
-use conduit_form::parse;
+use conduit_form::parse_with_startup;
 use conduit_signal::signal_profile_catalog;
 use ed25519_dalek::{Signer, SigningKey};
 
@@ -21,10 +21,8 @@ fn signs(label: &str) -> AdmissionSigns {
 }
 
 fn pair_form() -> conduit_form::CheckedForm {
-    parse(
-        "form 0\n\nsignal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 4\n pulse.period-ms = 1\n pulse.initial = false\n pulse > show\n}\n",
-        &signal_profile_catalog(),
-    )
+    parse_with_startup(
+        "form signal-demo {\n pulse: flow/pulse(count = 4, period-ms = 1, initial = false)\n show: presentation/show\n pulse > show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
     .unwrap()
 }
 

@@ -406,7 +406,7 @@ mod tests {
         let mut profile = conduit_form::ProfileCatalog::new();
         install_math_catalogs(&mut startup, &mut profile).unwrap();
         let checked = conduit_form::parse(
-            "form 0\n\nmath {\n clamp: math/clamp\n clamp.minimum = -7\n clamp.maximum = 9\n}\n",
+            "form math {\n clamp: math/clamp(minimum = -7, maximum = 9)\n}\n",
             &profile,
         )
         .expect("signed scalar configuration checks");
@@ -415,7 +415,7 @@ mod tests {
             ConfigurationValue::I64(-7)
         );
         assert!(conduit_form::parse(
-            "form 0\n\nmath {\n scale: math/scale\n scale.gain = 9223372036854775808\n}\n",
+            "form math {\n scale: math/scale(gain = 9223372036854775808)\n}\n",
             &profile,
         )
         .is_err());

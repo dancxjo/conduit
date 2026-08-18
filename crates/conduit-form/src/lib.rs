@@ -79,31 +79,6 @@ pub struct FormDiagnostic {
     pub message: String,
 }
 
-/// Exact editable source, lossless tokens, and its separately checked meaning.
-/// Invalid documents keep their complete source and CST for editor recovery;
-/// they never manufacture an executable [`CheckedForm`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FormDocument {
-    source: String,
-    pub tokens: Vec<CstToken>,
-    pub checked_form: Option<CheckedForm>,
-    pub diagnostics: Vec<FormDiagnostic>,
-}
-
-impl FormDocument {
-    pub fn round_trip(&self) -> &str {
-        &self.source
-    }
-
-    pub fn checked(&self) -> Result<&CheckedForm, &FormDiagnostic> {
-        self.checked_form.as_ref().ok_or_else(|| {
-            self.diagnostics
-                .first()
-                .expect("an unchecked document always has a diagnostic")
-        })
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedGear {
     pub gear_id: GearId,
@@ -220,17 +195,20 @@ impl CheckedForm {
         &self,
         capability_id: &CapabilityId,
     ) -> Result<CheckedCompositeBoundary, FormError> {
-        let export = self
+        let mut export = self
             .exports
             .iter()
             .find(|export| &export.capability_id == capability_id)
+            .cloned()
+            .or_else(|| (self.exports.len() == 1).then(|| self.exports[0].clone()))
             .ok_or_else(|| {
                 FormError::InvalidExport(format!(
                     "checked form has no authored capability '{}'",
                     capability_id.as_str()
                 ))
             })?;
-        validate_export_faces(export, &self.gears)?;
+        export.capability_id = capability_id.clone();
+        validate_export_faces(&export, &self.gears)?;
         let inputs = export
             .input_faces
             .iter()
@@ -332,37 +310,6 @@ pub enum ConfigurationRule {
     Structured { profile: KindId },
 }
 
-impl ConfigurationRule {
-    fn accepts(&self, value: &ConfigurationValue) -> bool {
-        match (self, value) {
-            (Self::Any, ConfigurationValue::Structured(_)) => false,
-            (Self::Any, _) => true,
-            (Self::U64Range { minimum, maximum }, ConfigurationValue::U64(value)) => {
-                (*minimum..=*maximum).contains(value)
-            }
-            (Self::U64Range { .. }, _) => false,
-            (Self::I64Range { minimum, maximum }, ConfigurationValue::I64(value)) => {
-                (*minimum..=*maximum).contains(value)
-            }
-            (Self::I64Range { .. }, _) => false,
-            (Self::DurationMillis { minimum, maximum }, ConfigurationValue::U64(value)) => {
-                (*minimum..=*maximum).contains(value)
-            }
-            (Self::DurationMillis { .. }, _) => false,
-            (Self::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
-                value.len() <= *maximum as usize
-            }
-            (Self::TextBytes { .. }, _) => false,
-            (Self::TextOneOf { values }, ConfigurationValue::Text(value)) => values.contains(value),
-            (Self::TextOneOf { .. }, _) => false,
-            (Self::Structured { profile }, ConfigurationValue::Structured(value)) => {
-                value.profile() == profile
-            }
-            (Self::Structured { .. }, _) => false,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KindDefinition {
     pub kind_id: KindId,
@@ -396,6 +343,35 @@ impl ProfileCatalog {
         self.kinds.get(kind_id)
     }
 
+    /// Derives the startup names and defaults needed to check canonical source.
+    /// Structured startup types still require an explicitly assembled
+    /// [`StartupCatalog`].
+    pub fn startup_catalog(&self) -> Result<StartupCatalog, String> {
+        let mut startup = StartupCatalog::new();
+        for definition in self.kinds.values() {
+            startup.insert(KindSignature {
+                kind: definition.kind_id.as_str().to_string(),
+                startup_parameters: definition
+                    .configuration
+                    .iter()
+                    .map(|field| StartupParameterSignature {
+                        name: field.key.clone(),
+                        value_type: match &field.default_value {
+                            ConfigurationValue::Bool(_) => "Boolean",
+                            ConfigurationValue::U64(_) => "Count",
+                            ConfigurationValue::I64(_) => "Scalar",
+                            ConfigurationValue::Text(_) => "Text",
+                            ConfigurationValue::Structured(_) => "Structured",
+                        }
+                        .into(),
+                        default: Some(render_value(&field.default_value)),
+                    })
+                    .collect(),
+            })?;
+        }
+        Ok(startup)
+    }
+
     pub fn insert_export(
         &mut self,
         form: &CheckedForm,
@@ -405,36 +381,17 @@ impl ProfileCatalog {
         self.insert(boundary.kind_definition())?;
         Ok(boundary)
     }
-
-    fn supported_kinds(&self) -> String {
-        self.kinds
-            .keys()
-            .map(|kind| kind.as_str())
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FormError {
     SourceLimitExceeded,
     TokenLimitExceeded,
-    NestingLimitExceeded,
-    InvalidNestedForm(String),
-    InvalidHeader,
     IncompleteForm,
-    InvalidBlockStart,
     MissingBlockEnd,
-    EmptyFormName,
     DuplicateKind(String),
-    DuplicateGear(String),
-    UnknownGear(String),
-    UnsupportedKind { kind: String, supported: String },
-    InvalidConfiguration(String),
-    InvalidConnection(String),
     InvalidExport(String),
     InvalidIdentity(String),
-    InvalidStatement(String),
     InvalidSyntax(String),
 }
 
@@ -449,106 +406,17 @@ impl core::fmt::Display for FormError {
                 f,
                 "form source exceeds the {MAXIMUM_FORM_TOKENS}-token limit"
             ),
-            Self::NestingLimitExceeded => write!(
-                f,
-                "form nesting exceeds the {MAXIMUM_FORM_NESTING_DEPTH}-level limit"
-            ),
-            Self::InvalidNestedForm(message) => write!(f, "invalid nested form: {message}"),
-            Self::InvalidHeader => write!(f, "expected first non-comment line to be 'form 0'"),
             Self::IncompleteForm => write!(f, "incomplete form"),
-            Self::InvalidBlockStart => write!(f, "expected form block opener like 'name {{'"),
             Self::MissingBlockEnd => write!(f, "expected closing '}}' at end of form"),
-            Self::EmptyFormName => write!(f, "form name must not be empty"),
             Self::DuplicateKind(kind) => write!(f, "duplicate profile kind '{kind}'"),
-            Self::DuplicateGear(name) => write!(f, "duplicate gear '{name}'"),
-            Self::UnknownGear(name) => write!(f, "unknown gear '{name}'"),
-            Self::UnsupportedKind { kind, supported } => {
-                write!(f, "unsupported kind '{kind}'. supported kinds: {supported}")
-            }
-            Self::InvalidConfiguration(message) => {
-                write!(f, "invalid configuration: {message}")
-            }
-            Self::InvalidConnection(message) => write!(f, "invalid connection: {message}"),
             Self::InvalidExport(message) => write!(f, "invalid export: {message}"),
             Self::InvalidIdentity(message) => write!(f, "invalid form identity: {message}"),
-            Self::InvalidStatement(message) => write!(f, "invalid statement: {message}"),
             Self::InvalidSyntax(message) => write!(f, "invalid canonical form syntax: {message}"),
         }
     }
 }
 
 impl core::error::Error for FormError {}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct GearDraft {
-    definition: KindDefinition,
-    configuration: Vec<ConfigurationEntry>,
-}
-
-impl GearDraft {
-    fn new(kind: &str, catalog: &ProfileCatalog) -> Result<Self, FormError> {
-        let kind_id = KindId::from(kind);
-        let definition =
-            catalog
-                .get(&kind_id)
-                .cloned()
-                .ok_or_else(|| FormError::UnsupportedKind {
-                    kind: kind.to_string(),
-                    supported: catalog.supported_kinds(),
-                })?;
-        let configuration = definition
-            .configuration
-            .iter()
-            .map(|field| ConfigurationEntry {
-                key: field.key.clone(),
-                value: field.default_value.clone(),
-            })
-            .collect();
-        Ok(Self {
-            definition,
-            configuration,
-        })
-    }
-}
-
-pub fn parse_document(source: &str, catalog: &ProfileCatalog) -> FormDocument {
-    if source.len() > MAXIMUM_FORM_SOURCE_BYTES {
-        let error = FormError::SourceLimitExceeded;
-        return FormDocument {
-            source: String::new(),
-            tokens: Vec::new(),
-            checked_form: None,
-            diagnostics: vec![diagnostic(error, whole_source_span(source))],
-        };
-    }
-
-    let tokens = match tokenize_losslessly(source) {
-        Ok(tokens) => tokens,
-        Err(span) => {
-            let error = FormError::TokenLimitExceeded;
-            return FormDocument {
-                source: source.to_string(),
-                tokens: Vec::new(),
-                checked_form: None,
-                diagnostics: vec![diagnostic(error, span)],
-            };
-        }
-    };
-    match parse_checked_with_span(source, catalog) {
-        Ok(checked_form) => FormDocument {
-            source: source.to_string(),
-            tokens,
-            checked_form: Some(checked_form),
-            diagnostics: Vec::new(),
-        },
-        Err((error, span)) => FormDocument {
-            source: source.to_string(),
-            tokens,
-            checked_form: None,
-            diagnostics: vec![diagnostic(error, span)],
-        },
-    }
-}
 
 /// Parses the canonical `form NAME (...) { ... }` surface without performing
 /// catalog lookup or semantic lowering.
@@ -566,316 +434,91 @@ pub fn check_syntax_document(
 }
 
 pub fn parse(source: &str, catalog: &ProfileCatalog) -> Result<CheckedForm, FormError> {
-    if source.len() > MAXIMUM_FORM_SOURCE_BYTES {
-        return Err(FormError::SourceLimitExceeded);
-    }
-    parse_checked_with_span(source, catalog).map_err(|(error, _)| error)
+    let startup = catalog
+        .startup_catalog()
+        .map_err(FormError::InvalidSyntax)?;
+    parse_with_startup(source, &startup, catalog)
 }
 
-#[derive(Debug, Clone, Copy)]
-struct LocatedLine<'a> {
-    text: &'a str,
-    span: Span,
-}
-
-fn parse_checked_with_span(
+pub fn parse_with_startup(
     source: &str,
+    startup: &StartupCatalog,
     catalog: &ProfileCatalog,
-) -> Result<CheckedForm, (FormError, Span)> {
-    let lines = significant_lines(source);
-    let eof = eof_span(source);
-    let first_span = lines.first().map_or(eof, |line| line.span);
-    if lines.first().map_or("", |line| line.text) != "form 0" {
-        return Err((FormError::InvalidHeader, first_span));
+) -> Result<CheckedForm, FormError> {
+    let syntax = parse_syntax_document(source);
+    if let Some(diagnostic) = syntax.diagnostics.first() {
+        return Err(FormError::InvalidSyntax(diagnostic.message.clone()));
     }
-    if lines.len() < 2 {
-        return Err((FormError::IncompleteForm, eof));
-    }
-    let (form, next) = parse_form_block(source, &lines, 1, catalog, 0, Some(source))?;
-    if next != lines.len() {
-        return Err((
-            FormError::InvalidStatement(lines[next].text.to_string()),
-            lines[next].span,
-        ));
-    }
-    Ok(form)
-}
-
-fn parse_form_block(
-    source: &str,
-    lines: &[LocatedLine<'_>],
-    start: usize,
-    catalog: &ProfileCatalog,
-    depth: usize,
-    identity_source: Option<&str>,
-) -> Result<(CheckedForm, usize), (FormError, Span)> {
-    let header = lines
-        .get(start)
-        .copied()
-        .ok_or_else(|| (FormError::IncompleteForm, eof_span(source)))?;
-    if depth > MAXIMUM_FORM_NESTING_DEPTH {
-        return Err((FormError::NestingLimitExceeded, header.span));
-    }
-    if !header.text.ends_with('{') {
-        return Err((FormError::InvalidBlockStart, header.span));
-    }
-    let declaration = header.text.trim_end_matches('{').trim();
-    let name = if identity_source.is_some() {
-        declaration
+    let checked = check_syntax_document(&syntax, startup)
+        .map_err(|diagnostic| FormError::InvalidSyntax(diagnostic.message))?;
+    let entry = checked
+        .forms
+        .last()
+        .ok_or(FormError::IncompleteForm)?
+        .name
+        .clone();
+    let authoring = expand_canonical_form_for_authoring(&checked, &entry, catalog)
+        .map_err(|diagnostic| FormError::InvalidSyntax(diagnostic.message))?;
+    let expanded = authoring.expanded;
+    let input_faces = authoring
+        .input_bindings
+        .iter()
+        .map(|binding| CheckedCompositeFace {
+            external_port: authoring
+                .face
+                .inputs()
+                .iter()
+                .find(|port| port.port_id == binding.face_port_id)
+                .expect("authoring input binding names a checked face port")
+                .clone(),
+            internal_gear_id: binding.gear_id.clone(),
+            internal_port_id: binding.gear_port_id.clone(),
+            terminal: CompositeFaceTerminal::Independent,
+        })
+        .collect::<Vec<_>>();
+    let output_faces = authoring
+        .output_bindings
+        .iter()
+        .map(|binding| CheckedCompositeFace {
+            external_port: authoring
+                .face
+                .outputs()
+                .iter()
+                .find(|port| port.port_id == binding.face_port_id)
+                .expect("authoring output binding names a checked face port")
+                .clone(),
+            internal_gear_id: binding.gear_id.clone(),
+            internal_port_id: binding.gear_port_id.clone(),
+            terminal: CompositeFaceTerminal::Independent,
+        })
+        .collect::<Vec<_>>();
+    let exports = if input_faces.is_empty() && output_faces.is_empty() {
+        Vec::new()
     } else {
-        declaration
-            .split_once(':')
-            .map_or(declaration, |(name, _)| name)
-    }
-    .trim()
-    .to_string();
-    if name.is_empty() {
-        return Err((FormError::EmptyFormName, header.span));
-    }
-
-    let mut gears = BTreeMap::<String, GearDraft>::new();
-    let mut connections = Vec::<CheckedConnection>::new();
-    let mut exports = Vec::<CheckedExport>::new();
-    let mut nested_forms = Vec::<CheckedNestedForm>::new();
-    let mut index = start + 1;
-    while index < lines.len() {
-        let located = lines[index];
-        let line = located.text;
-        if line == "}" {
-            nested_forms.sort_by(|left, right| left.gear_id.cmp(&right.gear_id));
-            let checked_operations = gears
-                .iter()
-                .map(|(operation_name, draft)| CheckedGear {
-                    gear_id: GearId::from(operation_name.as_str()),
-                    kind_id: draft.definition.kind_id.clone(),
-                    kind_contract_revision: draft.definition.kind_contract_revision.clone(),
-                    startup_parameters: draft
-                        .definition
-                        .configuration
-                        .iter()
-                        .map(|field| conduit_core::FaceStartupParameter {
-                            name: field.key.clone(),
-                            value_type: match field.default_value {
-                                ConfigurationValue::Bool(_) => "Boolean",
-                                ConfigurationValue::U64(_) => "Count",
-                                ConfigurationValue::I64(_) => "Scalar",
-                                ConfigurationValue::Text(_) => "Text",
-                                ConfigurationValue::Structured(ref value) => {
-                                    value.profile().as_str()
-                                }
-                            }
-                            .to_string(),
-                            has_default: true,
-                        })
-                        .collect(),
-                    shorthand: match (
-                        draft.definition.inputs.as_slice(),
-                        draft.definition.outputs.as_slice(),
-                    ) {
-                        ([input], [output]) => {
-                            Some((input.port_id.clone(), output.port_id.clone()))
-                        }
-                        _ => None,
-                    },
-                    inputs: draft.definition.inputs.clone(),
-                    outputs: draft.definition.outputs.clone(),
-                    configuration: draft.configuration.clone(),
-                    pool_references: Vec::new(),
-                })
-                .collect::<Vec<_>>();
-            let checked_form_id =
-                checked_form_id(&name, &checked_operations, &connections, &exports);
-            let checked_source =
-                identity_source.unwrap_or_else(|| &source[header.span.start..located.span.end]);
-            let source_document_id =
-                SourceDocumentId::from(hash_string(&format!("source-document:{checked_source}")));
-            let expanded_form_id = expanded_form_id(&checked_form_id, &nested_forms);
-            return Ok((
-                CheckedForm {
-                    source_document_id,
-                    checked_form_id,
-                    expanded_form_id,
-                    name,
-                    gears: checked_operations,
-                    connections,
-                    exports,
-                    nested_forms,
-                },
-                index + 1,
-            ));
-        }
-        if line.starts_with("export ") && line.ends_with('{') {
-            let (export, next) =
-                parse_export_block(lines, index, &gears).map_err(|error| (error, located.span))?;
-            if exports
-                .iter()
-                .any(|checked| checked.capability_id == export.capability_id)
-            {
-                return Err((
-                    FormError::InvalidExport(format!(
-                        "duplicate capability '{}'",
-                        export.capability_id.as_str()
-                    )),
-                    located.span,
-                ));
-            }
-            exports.push(export);
-            index = next;
-            continue;
-        }
-        if line.ends_with('{') {
-            let nested_declaration = line.trim_end_matches('{').trim();
-            let (operation_name, capability_name) =
-                nested_declaration.split_once(':').ok_or_else(|| {
-                    (
-                        FormError::InvalidNestedForm("expected 'kind: capability {'".into()),
-                        located.span,
-                    )
-                })?;
-            let operation_name = operation_name.trim();
-            let capability_name = capability_name.trim();
-            if operation_name.is_empty() || capability_name.is_empty() {
-                return Err((FormError::InvalidBlockStart, located.span));
-            }
-            if gears.contains_key(operation_name) {
-                return Err((
-                    FormError::DuplicateGear(operation_name.to_string()),
-                    located.span,
-                ));
-            }
-            let (nested_form, next) =
-                parse_form_block(source, lines, index, catalog, depth + 1, None)?;
-            let export_capability_id = CapabilityId::from(capability_name);
-            let boundary = nested_form
-                .export_boundary(&export_capability_id)
-                .map_err(|error| (error, located.span))?;
-            gears.insert(
-                operation_name.to_string(),
-                GearDraft {
-                    definition: boundary.kind_definition(),
-                    configuration: Vec::new(),
-                },
-            );
-            nested_forms.push(CheckedNestedForm {
-                gear_id: GearId::from(operation_name),
-                export_capability_id,
-                form: nested_form,
-            });
-            index = next;
-            continue;
-        }
-        if line.starts_with("export ") {
-            return Err((FormError::InvalidExport(line.to_string()), located.span));
-        }
-        if let Some((left, right)) = line.split_once(':') {
-            let gear_id = left.trim().to_string();
-            if gears.contains_key(&gear_id) {
-                return Err((FormError::DuplicateGear(gear_id), located.span));
-            }
-            gears.insert(
-                gear_id,
-                GearDraft::new(right.trim(), catalog).map_err(|error| (error, located.span))?,
-            );
-            index += 1;
-            continue;
-        }
-        if let Some((left, right)) = line.split_once('=') {
-            let (gear_id, key) = left.trim().split_once('.').ok_or_else(|| {
-                (
-                    FormError::InvalidConfiguration(line.to_string()),
-                    located.span,
-                )
-            })?;
-            let gear = gears.get_mut(gear_id.trim()).ok_or_else(|| {
-                (
-                    FormError::UnknownGear(gear_id.trim().to_string()),
-                    located.span,
-                )
-            })?;
-            let entry = gear
-                .configuration
-                .iter_mut()
-                .find(|entry| entry.key == key.trim())
-                .ok_or_else(|| {
-                    (
-                        FormError::InvalidConfiguration(format!(
-                            "unsupported key '{}' for '{}'",
-                            key.trim(),
-                            gear.definition.kind_id.as_str()
-                        )),
-                        located.span,
-                    )
-                })?;
-            let value = parse_configuration_value(right.trim(), &entry.value)
-                .map_err(|error| (error, located.span))?;
-            let field = gear
-                .definition
-                .configuration
-                .iter()
-                .find(|field| field.key == key.trim())
-                .expect("configuration entry came from its catalog field");
-            if !field.validation.accepts(&value) {
-                return Err((
-                    FormError::InvalidConfiguration(format!(
-                        "value for '{}.{}' violates the profile catalog rule",
-                        gear_id.trim(),
-                        key.trim()
-                    )),
-                    located.span,
-                ));
-            }
-            entry.value = value;
-            index += 1;
-            continue;
-        }
-        if let Some((left, right)) = line.split_once("->") {
-            connections.push(
-                parse_connection(left.trim(), right.trim(), &gears)
-                    .map_err(|error| (error, located.span))?,
-            );
-            index += 1;
-            continue;
-        }
-        if let Some((left, right)) = line.split_once('>') {
-            connections.push(
-                parse_shorthand_connection(left.trim(), right.trim(), &gears)
-                    .map_err(|error| (error, located.span))?,
-            );
-            index += 1;
-            continue;
-        }
-        return Err((FormError::InvalidStatement(line.to_string()), located.span));
-    }
-    Err((FormError::MissingBlockEnd, eof_span(source)))
-}
-
-fn significant_lines(source: &str) -> Vec<LocatedLine<'_>> {
-    let mut lines = Vec::new();
-    let mut offset = 0;
-    for (line_index, raw) in source.split_inclusive('\n').enumerate() {
-        let content = raw.strip_suffix('\n').unwrap_or(raw);
-        let trimmed_start = content.trim_start();
-        let leading = content.len() - trimmed_start.len();
-        let leading_columns = content[..leading].chars().count();
-        let text = trimmed_start.trim_end();
-        if !text.is_empty() && !text.starts_with('#') {
-            let start = offset + leading;
-            let end = start + text.len();
-            lines.push(LocatedLine {
-                text,
-                span: Span {
-                    start,
-                    end,
-                    line: line_index + 1,
-                    column: leading_columns + 1,
-                    end_line: line_index + 1,
-                    end_column: leading_columns + text.chars().count() + 1,
-                },
-            });
-        }
-        offset += raw.len();
-    }
-    lines
+        vec![CheckedExport {
+            capability_id: CapabilityId::from(entry.rsplit('/').next().unwrap_or(&entry)),
+            kind_id: KindId::from(entry.as_str()),
+            input_faces,
+            output_faces,
+        }]
+    };
+    let checked_form_id = checked_form_id(
+        &expanded.name,
+        &expanded.gears,
+        &expanded.connections,
+        &exports,
+    );
+    let expanded_form_id = expanded_form_id(&checked_form_id, &[]);
+    Ok(CheckedForm {
+        source_document_id: expanded.source_document_id,
+        checked_form_id,
+        expanded_form_id,
+        name: expanded.name,
+        gears: expanded.gears,
+        connections: expanded.connections,
+        exports,
+        nested_forms: Vec::new(),
+    })
 }
 
 fn tokenize_losslessly(source: &str) -> Result<Vec<CstToken>, Span> {
@@ -1005,23 +648,12 @@ fn eof_span(source: &str) -> Span {
 
 fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
     let code = match error {
-        FormError::InvalidHeader => "CND-FRM-001",
         FormError::IncompleteForm => "CND-FRM-002",
-        FormError::InvalidBlockStart => "CND-FRM-003",
         FormError::MissingBlockEnd => "CND-FRM-004",
-        FormError::EmptyFormName => "CND-FRM-005",
         FormError::DuplicateKind(_) => "CND-FRM-006",
-        FormError::DuplicateGear(_) => "CND-FRM-007",
-        FormError::UnknownGear(_) => "CND-FRM-008",
-        FormError::UnsupportedKind { .. } => "CND-FRM-009",
-        FormError::InvalidConfiguration(_) => "CND-FRM-010",
-        FormError::InvalidConnection(_) => "CND-FRM-011",
         FormError::InvalidExport(_) => "CND-FRM-012",
-        FormError::InvalidStatement(_) => "CND-FRM-013",
         FormError::SourceLimitExceeded => "CND-FRM-014",
         FormError::TokenLimitExceeded => "CND-FRM-015",
-        FormError::NestingLimitExceeded => "CND-FRM-016",
-        FormError::InvalidNestedForm(_) => "CND-FRM-017",
         FormError::InvalidIdentity(_) => "CND-FRM-018",
         FormError::InvalidSyntax(_) => "CND-FRM-019",
     };
@@ -1032,127 +664,7 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
     }
 }
 
-fn parse_export_block(
-    lines: &[LocatedLine<'_>],
-    start: usize,
-    gears: &BTreeMap<String, GearDraft>,
-) -> Result<(CheckedExport, usize), FormError> {
-    let header = lines
-        .get(start)
-        .ok_or_else(|| FormError::InvalidExport("missing export header".into()))?;
-    let declaration = header
-        .text
-        .strip_prefix("export ")
-        .and_then(|value| value.strip_suffix('{'))
-        .map(str::trim)
-        .ok_or_else(|| FormError::InvalidExport(header.text.to_string()))?;
-    let (capability_id, kind_id) = declaration
-        .split_once(':')
-        .ok_or_else(|| FormError::InvalidExport(declaration.to_string()))?;
-    if capability_id.trim().is_empty() || kind_id.trim().is_empty() {
-        return Err(FormError::InvalidExport(declaration.to_string()));
-    }
-    let mut input_faces = Vec::new();
-    let mut output_faces = Vec::new();
-    let mut index = start + 1;
-    while let Some(line) = lines.get(index) {
-        if line.text == "}" {
-            let export = CheckedExport {
-                capability_id: CapabilityId::from(capability_id.trim()),
-                kind_id: KindId::from(kind_id.trim()),
-                input_faces,
-                output_faces,
-            };
-            validate_export_face_names(&export)?;
-            return Ok((export, index + 1));
-        }
-        let face = parse_export_face(line.text, gears)?;
-        match face.external_port.direction {
-            PortDirection::Input => input_faces.push(face),
-            PortDirection::Output => output_faces.push(face),
-        }
-        index += 1;
-    }
-    Err(FormError::MissingBlockEnd)
-}
-
-fn parse_export_face(
-    source: &str,
-    gears: &BTreeMap<String, GearDraft>,
-) -> Result<CheckedCompositeFace, FormError> {
-    let (direction, body) = if let Some(body) = source.strip_prefix("input ") {
-        (PortDirection::Input, body)
-    } else if let Some(body) = source.strip_prefix("output ") {
-        (PortDirection::Output, body)
-    } else {
-        return Err(FormError::InvalidExport(format!(
-            "expected an input or output face in '{source}'"
-        )));
-    };
-    let (mapping, terminal) = body
-        .rsplit_once(" terminal ")
-        .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
-    if terminal.trim() != "independent" {
-        return Err(FormError::InvalidExport(format!(
-            "unsupported terminal contract '{}'",
-            terminal.trim()
-        )));
-    }
-    let (declaration, endpoint) = mapping
-        .split_once('=')
-        .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
-    let (external_port_id, value_kind) = declaration
-        .split_once(':')
-        .ok_or_else(|| FormError::InvalidExport(source.to_string()))?;
-    let external_port_id = external_port_id.trim();
-    let value_kind = value_kind.trim();
-    if external_port_id.is_empty() || value_kind.is_empty() {
-        return Err(FormError::InvalidExport(source.to_string()));
-    }
-    let (gear_id, port_id) = parse_endpoint(endpoint.trim())?;
-    let gear = gear(gears, gear_id.trim())?;
-    let internal_port = match direction {
-        PortDirection::Input => &gear.definition.inputs,
-        PortDirection::Output => &gear.definition.outputs,
-    }
-    .iter()
-    .find(|port| port.port_id.as_str() == port_id.trim())
-    .ok_or_else(|| {
-        FormError::InvalidExport(format!(
-            "{} face endpoint '{}.{}' is not a checked {} port",
-            match direction {
-                PortDirection::Input => "input",
-                PortDirection::Output => "output",
-            },
-            gear_id.trim(),
-            port_id.trim(),
-            match direction {
-                PortDirection::Input => "input",
-                PortDirection::Output => "output",
-            }
-        ))
-    })?;
-    if internal_port.value_kind.as_str() != value_kind {
-        return Err(FormError::InvalidExport(format!(
-            "face kind '{}' differs from endpoint kind '{}'",
-            value_kind,
-            internal_port.value_kind.as_str()
-        )));
-    }
-    Ok(CheckedCompositeFace {
-        external_port: PortDescriptor {
-            port_id: PortId::from(external_port_id),
-            value_kind: KindId::from(value_kind),
-            direction,
-            temporal: conduit_core::PortTemporal::Value,
-        },
-        internal_gear_id: GearId::from(gear_id.trim()),
-        internal_port_id: PortId::from(port_id.trim()),
-        terminal: CompositeFaceTerminal::Independent,
-    })
-}
-
-fn validate_export_face_names(export: &CheckedExport) -> Result<(), FormError> {
+fn validate_export_faces(export: &CheckedExport, gears: &[CheckedGear]) -> Result<(), FormError> {
     let mut names = BTreeSet::new();
     for face in export.input_faces.iter().chain(&export.output_faces) {
         if !names.insert(face.external_port.port_id.clone()) {
@@ -1162,11 +674,6 @@ fn validate_export_face_names(export: &CheckedExport) -> Result<(), FormError> {
             )));
         }
     }
-    Ok(())
-}
-
-fn validate_export_faces(export: &CheckedExport, gears: &[CheckedGear]) -> Result<(), FormError> {
-    validate_export_face_names(export)?;
     for (direction, faces) in [
         (PortDirection::Input, &export.input_faces),
         (PortDirection::Output, &export.output_faces),
@@ -1180,12 +687,7 @@ fn validate_export_faces(export: &CheckedExport, gears: &[CheckedGear]) -> Resul
             let gear = gears
                 .iter()
                 .find(|gear| gear.gear_id == face.internal_gear_id)
-                .ok_or_else(|| {
-                    FormError::InvalidExport(format!(
-                        "face '{}' names a missing internal gear",
-                        face.external_port.port_id.as_str()
-                    ))
-                })?;
+                .ok_or_else(|| FormError::InvalidExport("face names a missing Gear".into()))?;
             let endpoint = match direction {
                 PortDirection::Input => &gear.inputs,
                 PortDirection::Output => &gear.outputs,
@@ -1193,149 +695,18 @@ fn validate_export_faces(export: &CheckedExport, gears: &[CheckedGear]) -> Resul
             .iter()
             .find(|port| port.port_id == face.internal_port_id)
             .ok_or_else(|| {
-                FormError::InvalidExport(format!(
-                    "face '{}' names a missing or wrongly directed internal port",
-                    face.external_port.port_id.as_str()
-                ))
+                FormError::InvalidExport("face names a missing or wrongly directed Port".into())
             })?;
-            if endpoint.value_kind != face.external_port.value_kind {
-                return Err(FormError::InvalidExport(format!(
-                    "face '{}' value kind differs from its internal endpoint",
-                    face.external_port.port_id.as_str()
-                )));
-            }
-            if face.terminal != CompositeFaceTerminal::Independent {
-                return Err(FormError::InvalidExport(format!(
-                    "face '{}' has an unsupported terminal contract",
-                    face.external_port.port_id.as_str()
-                )));
+            if endpoint.value_kind != face.external_port.value_kind
+                || face.terminal != CompositeFaceTerminal::Independent
+            {
+                return Err(FormError::InvalidExport(
+                    "face contract differs from its internal endpoint".into(),
+                ));
             }
         }
     }
     Ok(())
-}
-
-fn parse_configuration_value(
-    source: &str,
-    expected: &ConfigurationValue,
-) -> Result<ConfigurationValue, FormError> {
-    match expected {
-        ConfigurationValue::Bool(_) => match source {
-            "true" => Ok(ConfigurationValue::Bool(true)),
-            "false" => Ok(ConfigurationValue::Bool(false)),
-            _ => Err(FormError::InvalidConfiguration(format!(
-                "invalid boolean '{source}'"
-            ))),
-        },
-        ConfigurationValue::U64(_) => source
-            .parse()
-            .map(ConfigurationValue::U64)
-            .map_err(|_| FormError::InvalidConfiguration(format!("invalid integer '{source}'"))),
-        ConfigurationValue::I64(_) => source
-            .parse()
-            .map(ConfigurationValue::I64)
-            .map_err(|_| FormError::InvalidConfiguration(format!("invalid scalar '{source}'"))),
-        ConfigurationValue::Text(_) => text_value::parse_quoted_text(source)
-            .map(ConfigurationValue::Text)
-            .ok_or_else(|| FormError::InvalidConfiguration(format!("invalid text {source}"))),
-        ConfigurationValue::Structured(_) => Err(FormError::InvalidConfiguration(
-            "structured configuration requires canonical syntax checking".into(),
-        )),
-    }
-}
-
-fn parse_connection(
-    left: &str,
-    right: &str,
-    gears: &BTreeMap<String, GearDraft>,
-) -> Result<CheckedConnection, FormError> {
-    let (source_gear, source_port) = parse_endpoint(left)?;
-    let (sink_gear, sink_port) = parse_endpoint(right)?;
-    connection_from_ports(source_gear, source_port, sink_gear, sink_port, gears)
-}
-
-fn parse_shorthand_connection(
-    source_gear: &str,
-    sink_gear: &str,
-    gears: &BTreeMap<String, GearDraft>,
-) -> Result<CheckedConnection, FormError> {
-    let source = gear(gears, source_gear)?;
-    let sink = gear(gears, sink_gear)?;
-    if source.definition.outputs.len() != 1 || sink.definition.inputs.len() != 1 {
-        return Err(FormError::InvalidConnection(format!(
-            "shorthand requires exactly one output and one input for '{source_gear} > {sink_gear}'"
-        )));
-    }
-    connection_from_ports(
-        source_gear,
-        source.definition.outputs[0].port_id.as_str(),
-        sink_gear,
-        sink.definition.inputs[0].port_id.as_str(),
-        gears,
-    )
-}
-
-fn connection_from_ports(
-    source_gear: &str,
-    source_port: &str,
-    sink_gear: &str,
-    sink_port: &str,
-    gears: &BTreeMap<String, GearDraft>,
-) -> Result<CheckedConnection, FormError> {
-    let source = gear(gears, source_gear)?;
-    let sink = gear(gears, sink_gear)?;
-    let source_descriptor = source
-        .definition
-        .outputs
-        .iter()
-        .find(|port| port.port_id.as_str() == source_port)
-        .ok_or_else(|| {
-            FormError::InvalidConnection(format!(
-                "'{source_gear}' has no output port '{source_port}'"
-            ))
-        })?;
-    let sink_descriptor = sink
-        .definition
-        .inputs
-        .iter()
-        .find(|port| port.port_id.as_str() == sink_port)
-        .ok_or_else(|| {
-            FormError::InvalidConnection(format!("'{sink_gear}' has no input port '{sink_port}'"))
-        })?;
-    if source_descriptor.value_kind != sink_descriptor.value_kind
-        || source_descriptor.temporal != sink_descriptor.temporal
-    {
-        return Err(FormError::InvalidConnection(format!(
-            "runtime contract '{} {}' cannot connect to '{} {}'",
-            source_descriptor.value_kind.as_str(),
-            source_descriptor.temporal.as_str(),
-            sink_descriptor.value_kind.as_str(),
-            sink_descriptor.temporal.as_str()
-        )));
-    }
-    Ok(CheckedConnection {
-        source_gear_id: GearId::from(source_gear),
-        source_port_id: source_descriptor.port_id.clone(),
-        sink_gear_id: GearId::from(sink_gear),
-        sink_port_id: sink_descriptor.port_id.clone(),
-        value_kind: source_descriptor.value_kind.clone(),
-        temporal: source_descriptor.temporal,
-    })
-}
-
-fn gear<'a>(
-    gears: &'a BTreeMap<String, GearDraft>,
-    gear_id: &str,
-) -> Result<&'a GearDraft, FormError> {
-    gears
-        .get(gear_id)
-        .ok_or_else(|| FormError::UnknownGear(gear_id.to_string()))
-}
-
-fn parse_endpoint(endpoint: &str) -> Result<(&str, &str), FormError> {
-    endpoint.split_once('.').ok_or_else(|| {
-        FormError::InvalidConnection(format!("expected explicit port in '{endpoint}'"))
-    })
 }
 
 fn canonical_form_text(
@@ -1498,9 +869,6 @@ fn hex(nibble: u8) -> char {
         _ => unreachable!("nibble out of range"),
     }
 }
-
-#[cfg(test)]
-mod tests;
 
 #[cfg(test)]
 mod surface_tests;

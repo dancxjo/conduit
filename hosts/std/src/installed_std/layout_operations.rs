@@ -23,7 +23,7 @@ factory!(LAYOUT_STACK_FACTORY, LAYOUT_STACK_IMPLEMENTATION);
 factory!(LAYOUT_ALIGN_FACTORY, LAYOUT_ALIGN_IMPLEMENTATION);
 #[cfg(test)]
 pub(super) static TEST_LAYOUT_SINK_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: "conduit.test/layout-sink-implementation@1",
+    implementation_id: "conduit-test/layout-sink-implementation@1",
     budget: sink_budget,
     prepare: prepare_sink,
 };
@@ -178,7 +178,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 }
 #[cfg(test)]
 fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    if placement.kind_id.as_str() != "conduit.test/layout-sink" {
+    if placement.kind_id.as_str() != "conduit-test/layout-sink" {
         return Err("wrong layout sink Kind".into());
     }
     Ok(OperationBudget {

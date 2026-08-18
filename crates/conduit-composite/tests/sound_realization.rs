@@ -83,7 +83,7 @@ fn internal_catalog() -> ProfileCatalog {
 
 fn internal_form() -> conduit_form::CheckedForm {
     parse(
-        "form 0\nrealize-music {\n synth: music/synth\n playback: audio/play\n synth.audio -> playback.audio\n export play: music/play {\n  input notes: music/note-event@1 = synth.notes terminal independent\n  input controls: music/control-event@1 = synth.controls terminal independent\n }\n}\n",
+        "form music/play (\n > notes: music/note-event@1\n > controls: music/control-event@1\n) {\n synth: music/synth\n playback: audio/play\n notes > synth.notes\n controls > synth.controls\n synth.audio > playback.audio\n}\n",
         &internal_catalog(),
     )
     .expect("standard music realization Form checks")
@@ -148,7 +148,7 @@ fn unchanged_authored_music_plans_directly_or_through_recursive_standard_form() 
     parent_catalog
         .insert_export(&realization, &CapabilityId::from("play"))
         .unwrap();
-    let source = "form 0\nperformance {\n notes: test/note-source\n controls: test/control-source\n output: music/play\n notes.out -> output.notes\n controls.out -> output.controls\n}\n";
+    let source = "form performance {\n notes: test/note-source\n controls: test/control-source\n output: music/play\n notes.out > output.notes\n controls.out > output.controls\n}\n";
     let authored = parse(source, &parent_catalog).expect("portable authored music checks");
 
     let note_offer = offer_for_source(&parent_catalog, "test/note-source", "notes");
@@ -200,7 +200,7 @@ fn unchanged_authored_music_plans_directly_or_through_recursive_standard_form() 
             unit: conduit_core::CharacteristicUnit::Items,
         },
     );
-    requirements.insert(GearId::from("output"), output_requirement);
+    requirements.insert(GearId::from("performance/output"), output_requirement);
     let characteristic_plan = plan_selected_realizations_with_characteristics(
         &authored,
         core::slice::from_ref(&direct),
@@ -300,21 +300,21 @@ fn plan_with_host(
     capability: &str,
 ) -> conduit_core::Plan {
     choices.by_gear.insert(
-        GearId::from("notes"),
+        GearId::from("performance/notes"),
         PlacementChoice {
             host_id: HostId::from(host),
             capability_id: CapabilityId::from("notes"),
         },
     );
     choices.by_gear.insert(
-        GearId::from("controls"),
+        GearId::from("performance/controls"),
         PlacementChoice {
             host_id: HostId::from(host),
             capability_id: CapabilityId::from("controls"),
         },
     );
     choices.by_gear.insert(
-        GearId::from("output"),
+        GearId::from("performance/output"),
         PlacementChoice {
             host_id: HostId::from(host),
             capability_id: CapabilityId::from(capability),

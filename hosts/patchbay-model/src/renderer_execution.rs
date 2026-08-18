@@ -187,7 +187,7 @@ fn renderer_form() -> Result<conduit_form::CheckedForm, RendererExecutionError> 
         .insert(renderer_kind_definition())
         .map_err(|_| RendererExecutionError::InvalidRendererForm)?;
     parse(
-        "form 0\n\npatchbay-show {\n    renderer: presentation/renderer\n}\n",
+        "form patchbay-show {\n    renderer: presentation/renderer\n}\n",
         &catalog,
     )
     .map_err(|_| RendererExecutionError::InvalidRendererForm)

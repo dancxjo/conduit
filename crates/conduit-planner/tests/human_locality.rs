@@ -26,7 +26,7 @@ fn form() -> conduit_form::CheckedForm {
     conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
     conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     conduit_form::parse(
-        "form 0\n\ntext_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n presentation: presentation/text\n keyboard.key -> keymap.key\n keymap.text -> uppercase.text\n uppercase.text -> presentation.text\n}\n",
+        "form text_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n presentation: presentation/text\n keyboard.key > keymap.key\n keymap.text > uppercase.text\n uppercase.text > presentation.text\n}\n",
         &profile,
     )
     .expect("the unchanged text-lab Form checks")
@@ -185,7 +185,7 @@ fn lines(hosts: &[conduit_core::HostAdvertisement]) -> Vec<conduit_core::LineOff
 
 fn requirements() -> BTreeMap<GearId, HardRealizationRequirements> {
     BTreeMap::from([(
-        GearId::from("uppercase"),
+        GearId::from("text_lab/uppercase"),
         HardRealizationRequirements {
             predicates: vec![PlannerPredicate::AtLeast {
                 fact: PlannerFactRef::ObservationUnreservedUnits(ResourceClassId::from(CPU)),
@@ -201,8 +201,8 @@ fn requirements() -> BTreeMap<GearId, HardRealizationRequirements> {
 
 fn policies() -> BTreeMap<GearId, RealizationPolicy> {
     BTreeMap::from([
-        (GearId::from("keyboard"), prefer_host(LOCAL)),
-        (GearId::from("presentation"), prefer_host(LOCAL)),
+        (GearId::from("text_lab/keyboard"), prefer_host(LOCAL)),
+        (GearId::from("text_lab/presentation"), prefer_host(LOCAL)),
     ])
 }
 
@@ -214,11 +214,17 @@ fn plan_fixture(
 ) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
     let line_candidates = BTreeMap::from([
         (
-            (GearId::from("keyboard"), GearId::from("keymap")),
+            (
+                GearId::from("text_lab/keyboard"),
+                GearId::from("text_lab/keymap"),
+            ),
             vec![lines[0].line_id.clone()],
         ),
         (
-            (GearId::from("uppercase"), GearId::from("presentation")),
+            (
+                GearId::from("text_lab/uppercase"),
+                GearId::from("text_lab/presentation"),
+            ),
             vec![lines[1].line_id.clone()],
         ),
     ]);
@@ -261,9 +267,9 @@ fn human_facing_gears_stay_local_while_heavy_work_uses_an_ordinary_peer_plan() {
             .host_id
             .as_str()
     };
-    assert_eq!(placement("keyboard"), LOCAL);
-    assert_eq!(placement("uppercase"), REMOTE);
-    assert_eq!(placement("presentation"), LOCAL);
+    assert_eq!(placement("text_lab/keyboard"), LOCAL);
+    assert_eq!(placement("text_lab/uppercase"), REMOTE);
+    assert_eq!(placement("text_lab/presentation"), LOCAL);
     let remote_cords = plan
         .fragments
         .iter()
@@ -319,7 +325,7 @@ fn local_human_preference_retains_its_exact_policy_source() {
     let presentation = form
         .gears
         .iter()
-        .find(|gear| gear.gear_id.as_str() == "presentation")
+        .find(|gear| gear.gear_id.as_str() == "text_lab/presentation")
         .unwrap();
     let semantic = lifecycle::policy_source(
         "checked-form/text-lab",
@@ -370,7 +376,7 @@ fn hard_locality_wins_over_remote_power_and_remote_loss_preserves_local_truth() 
     let presentation = form
         .gears
         .iter()
-        .find(|gear| gear.gear_id.as_str() == "presentation")
+        .find(|gear| gear.gear_id.as_str() == "text_lab/presentation")
         .unwrap();
     let selection = select_realization_with_characteristics_and_signs(
         presentation,
@@ -398,7 +404,7 @@ fn hard_locality_wins_over_remote_power_and_remote_loss_preserves_local_truth() 
     let keyboard = form
         .gears
         .iter()
-        .find(|gear| gear.gear_id.as_str() == "keyboard")
+        .find(|gear| gear.gear_id.as_str() == "text_lab/keyboard")
         .unwrap();
     let still_local = select_realization_with_characteristics_and_signs(
         keyboard,
@@ -414,13 +420,15 @@ fn hard_locality_wins_over_remote_power_and_remote_loss_preserves_local_truth() 
     let heavy = form
         .gears
         .iter()
-        .find(|gear| gear.gear_id.as_str() == "uppercase")
+        .find(|gear| gear.gear_id.as_str() == "text_lab/uppercase")
         .unwrap();
     let refusal = select_realization_with_characteristics_and_signs(
         heavy,
         local_only,
         &[],
-        requirements().get(&GearId::from("uppercase")).unwrap(),
+        requirements()
+            .get(&GearId::from("text_lab/uppercase"))
+            .unwrap(),
         &local_observations,
         &RealizationPolicy::default(),
     )
@@ -453,7 +461,7 @@ fn remote_capacity_cannot_override_authority_or_data_locality_requirements() {
     let heavy = form
         .gears
         .iter()
-        .find(|gear| gear.gear_id.as_str() == "uppercase")
+        .find(|gear| gear.gear_id.as_str() == "text_lab/uppercase")
         .unwrap();
     let refusal = select_realization_with_characteristics_and_signs(
         heavy,

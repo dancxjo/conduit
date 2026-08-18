@@ -1,6 +1,6 @@
 //! Bounded kernel-owned merge for the three exact R1 deliberate-input Gears.
 
-use conduit_core::{GearId, PlanFragment};
+use conduit_core::PlanFragment;
 use conduit_kernel::static_merge::{
     FixedStaticMerge, StaticMergeError, StaticMergeEvent, StaticMergeSource,
 };
@@ -85,7 +85,12 @@ impl R1ControlKernel {
             let placement = fragment
                 .placements
                 .iter()
-                .find(|placement| placement.gear_id == GearId::from(peer.gear()))
+                .find(|placement| {
+                    placement
+                        .gear_id
+                        .as_str()
+                        .ends_with(&format!("/{}", peer.gear()))
+                })
                 .ok_or(R1ControlError::InvalidPlan)?;
             if placement.kind_id.as_str() != conduit_signal::LEVEL_INPUT_KIND {
                 return Err(R1ControlError::InvalidPlan);

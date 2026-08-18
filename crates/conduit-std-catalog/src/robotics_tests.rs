@@ -66,8 +66,8 @@ fn robotics_catalog_rejects_invalid_battery_and_range_configuration() {
     let mut profile = conduit_form::ProfileCatalog::new();
     crate::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
     for source in [
-        "form 0\n\ninvalid {\n battery: robotics/observe-battery\n battery.charge-permille = 1001\n}\n",
-        "form 0\n\ninvalid {\n range: robotics/observe-range\n range.distance-mm = 1000001\n}\n",
+        "form invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
+        "form invalid {\n range: robotics/observe-range(distance-mm = 1000001)\n}\n",
     ] {
         assert!(conduit_form::parse(source, &profile).is_err());
     }

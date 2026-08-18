@@ -155,7 +155,7 @@ pub fn render_sound_inspection(
                 .iter()
                 .map(|stage| stage.as_str())
                 .collect::<Vec<_>>()
-                .join(" -> "),
+                .join(" > "),
         };
         rendered.push_str(&format!(
             "{} | {} | {} | {}\n",
@@ -237,7 +237,7 @@ mod tests {
         let rendered = render_sound_inspection(&inspection).unwrap();
         assert!(rendered.contains("direct | compatible | direct"));
         assert!(rendered.contains("unsupported: polyphony-exceeds-offer"));
-        assert!(rendered.contains("music/synth -> audio/play"));
+        assert!(rendered.contains("music/synth > audio/play"));
         assert!(rendered.contains("missing proof"));
     }
 

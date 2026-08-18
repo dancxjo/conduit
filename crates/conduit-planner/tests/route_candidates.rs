@@ -13,36 +13,37 @@ fn plan_with_policy(
     mutate: impl FnOnce(&mut Vec<conduit_core::LineOffer>),
 ) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
     let exact = triple::exact_plan().expect("baseline triple plan");
-    let form = conduit_form::parse(
-        include_str!("../../../examples/triple-signal.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../fixtures/forms/triple-signal.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .expect("checked form");
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("pulse"),
+                GearId::from("triple-signal/pulse"),
                 PlacementChoice {
                     host_id: exact.source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(triple::PULSE_CAPABILITY_ID),
                 },
             ),
             (
-                GearId::from("local"),
+                GearId::from("triple-signal/local"),
                 PlacementChoice {
                     host_id: exact.source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(triple::STDOUT_CAPABILITY_ID),
                 },
             ),
             (
-                GearId::from("web"),
+                GearId::from("triple-signal/web"),
                 PlacementChoice {
                     host_id: exact.browser_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(triple::BROWSER_CAPABILITY_ID),
                 },
             ),
             (
-                GearId::from("light"),
+                GearId::from("triple-signal/light"),
                 PlacementChoice {
                     host_id: exact.pico_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from(triple::PICO_CAPABILITY_ID),
@@ -64,8 +65,13 @@ fn plan_with_policy(
     usb_alternative.availability.binding_id = usb_alternative.binding.binding_id.clone();
     let mut links = vec![exact.browser_line, usb_alternative, exact.pico_line];
     mutate(&mut links);
-    let line_candidates =
-        BTreeMap::from([((GearId::from("pulse"), GearId::from("web")), ordered_ids)]);
+    let line_candidates = BTreeMap::from([(
+        (
+            GearId::from("triple-signal/pulse"),
+            GearId::from("triple-signal/web"),
+        ),
+        ordered_ids,
+    )]);
     plan_with_options(
         &form,
         &[

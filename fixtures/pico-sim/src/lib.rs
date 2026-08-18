@@ -210,14 +210,14 @@ mod std_fixture {
             let placements = PlacementChoices {
                 by_gear: BTreeMap::from([
                     (
-                        conduit_core::GearId::from("pulse"),
+                        conduit_core::GearId::from("signal-demo/pulse"),
                         PlacementChoice {
                             host_id: self.advertisement().host_id.clone(),
                             capability_id: CapabilityId::from("pico-pulse"),
                         },
                     ),
                     (
-                        conduit_core::GearId::from("show"),
+                        conduit_core::GearId::from("signal-demo/show"),
                         PlacementChoice {
                             host_id: self.advertisement().host_id.clone(),
                             capability_id: CapabilityId::from("onboard-led"),
@@ -241,14 +241,14 @@ mod std_fixture {
             let placements = PlacementChoices {
                 by_gear: BTreeMap::from([
                     (
-                        conduit_core::GearId::from("pulse"),
+                        conduit_core::GearId::from("signal-demo/pulse"),
                         PlacementChoice {
                             host_id: std_advertisement.host_id.clone(),
                             capability_id: CapabilityId::from("pulse-1"),
                         },
                     ),
                     (
-                        conduit_core::GearId::from("show"),
+                        conduit_core::GearId::from("signal-demo/show"),
                         PlacementChoice {
                             host_id: self.advertisement().host_id.clone(),
                             capability_id: CapabilityId::from("onboard-led"),
@@ -409,7 +409,7 @@ mod tests {
         BootId, ConnectionBase, ConnectionId, ConnectionOutcome, HostCommand, HostEvent, HostId,
         OfferGeneration, PlatformEffect, TerminalDisposition,
     };
-    use conduit_form::parse;
+    use conduit_form::parse_with_startup;
     use conduit_runtime::RuntimeOutput;
     use conduit_signal::signal_profile_catalog;
     use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
@@ -436,8 +436,9 @@ mod tests {
 
     #[test]
     fn pico_simulation_runs_pair_form_to_onboard_led_receipts() {
-        let form = parse(
-            include_str!("../../../examples/signal-demo.form"),
+        let form = parse_with_startup(
+            include_str!("../../../fixtures/forms/signal-demo.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .expect("signal form parses");
@@ -478,8 +479,9 @@ mod tests {
 
     #[test]
     fn std_host_sends_signal_to_pico_through_bounded_datagram_fixture() {
-        let form = parse(
-            include_str!("../../../examples/signal-demo.form"),
+        let form = parse_with_startup(
+            include_str!("../../../fixtures/forms/signal-demo.conduit"),
+            &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
         .expect("signal form parses");

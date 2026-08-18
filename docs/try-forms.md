@@ -7,11 +7,9 @@ operation completion, a terminal result, and bounded Sign.
 
 Run commands from the repository root.
 
-The exact canonical sources are checked in under `examples/*.conduit`. The
-acceptance tests below load those files directly, so the documented programs
-cannot drift into test-only string literals. Retained `examples/*.form` files
-belong to the older explicit `form 0` compatibility parser and preserve existing
-accepted source/plan/firmware identities; see `examples/README.md`.
+The exact canonical sources are checked in under `examples/*.conduit` and
+`fixtures/forms/*.conduit`. The acceptance tests below load those files directly,
+so the documented programs cannot drift into test-only string literals.
 
 ## Program 1: text pipeline
 

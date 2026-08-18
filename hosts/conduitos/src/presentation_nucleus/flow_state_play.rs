@@ -1,4 +1,4 @@
-//! Bounded production-kernel execution for `state/latest -> flow/tee`.
+//! Bounded production-kernel execution for `state/latest > flow/tee`.
 
 use alloc::vec::Vec;
 use conduit_core::Scalar;

@@ -2,16 +2,14 @@ mod common;
 
 use common::competing_hosts;
 use conduit_core::{ResourceHealth, ResourceObservation, SignId};
-use conduit_form::parse;
+use conduit_form::parse_with_startup;
 use conduit_planner::{plan_selected_realizations, RealizationPolicy, RealizationPreference};
 use conduit_signal::signal_profile_catalog;
 use std::collections::BTreeMap;
 
 fn two_pulse_form() -> conduit_form::CheckedForm {
-    parse(
-        "form 0\n\nrealization {\n    first: flow/pulse\n    second: flow/pulse\n\n    first.count = 2\n    first.period-ms = 0\n    first.initial = false\n    second.count = 2\n    second.period-ms = 0\n    second.initial = false\n}\n",
-        &signal_profile_catalog(),
-    )
+    parse_with_startup(
+        "form realization {\n    first: flow/pulse(count = 2, period-ms = 0, initial = false)\n    second: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
     .expect("two equal-face gears check")
 }
 

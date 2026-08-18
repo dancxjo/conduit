@@ -39,8 +39,7 @@ framebuffer provenance, and inconsistent retention accounting.
 A normal actual std execution can write its authoritative snapshot:
 
 ```text
-conduit run examples/signal-demo.form \
-  --placements examples/std-local.placements \
+conduit run examples/hello.conduit \
   --report runtime-report.json
 ```
 

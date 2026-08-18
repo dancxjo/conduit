@@ -142,18 +142,18 @@ mod tests {
     }
 
     #[test]
-    fn missing_compatibility_duplicate_and_excess_sources_fail_closed() {
+    fn missing_noncanonical_duplicate_and_excess_sources_fail_closed() {
         let canonical = temporary_source(
             "same.conduit",
             include_str!("../../../examples/hello.conduit"),
         );
-        let compatibility = temporary_source("old.form", "form 0");
+        let noncanonical = temporary_source("old.form", "not a canonical source");
         assert!(matches!(
             load_seed_sources(&[SeedSource::new("Missing", "missing.conduit")]),
             Err(SeedSourceError::MissingOrNonFile(_))
         ));
         assert!(matches!(
-            load_seed_sources(&[SeedSource::new("Old", compatibility)]),
+            load_seed_sources(&[SeedSource::new("Old", noncanonical)]),
             Err(SeedSourceError::NonCanonicalExtension(_))
         ));
         assert!(matches!(

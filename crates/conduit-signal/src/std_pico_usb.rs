@@ -139,22 +139,23 @@ pub fn std_pico_usb_line_offer() -> LineOffer {
 pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::String> {
     let source_advertisement = std_pico_usb_source_advertisement();
     let sink_advertisement = std_pico_usb_sink_advertisement();
-    let form = conduit_form::parse(
-        include_str!("../../../examples/signal-demo.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+        &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .map_err(|error| error.to_string())?;
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("pulse"),
+                GearId::from("signal-demo/pulse"),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("std-pico-pulse-1"),
                 },
             ),
             (
-                GearId::from("show"),
+                GearId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("pico-cyw43-show-1"),

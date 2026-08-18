@@ -9,7 +9,7 @@ use conduit_core::{
 use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId};
 
 const KIND: &str = "conduit-test/recurrence-sink";
-const IMPLEMENTATION: &str = "conduit.test/recurrence-sink@1";
+const IMPLEMENTATION: &str = "conduit-test/recurrence-sink@1";
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: IMPLEMENTATION,
@@ -65,9 +65,9 @@ pub(crate) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(KIND),
         kind_id: conduit_core::kind_id(KIND),
-        kind_contract_revision: KindContractRevision::from("conduit.test/recurrence-sink@1"),
+        kind_contract_revision: KindContractRevision::from("conduit-test/recurrence-sink@1"),
         implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduit.test/recurrence-sink@1"),
+            execution_profile_id: ExecutionProfileId::from("conduit-test/recurrence-sink@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-std-host/test-recurrence-sink@1"),
         },

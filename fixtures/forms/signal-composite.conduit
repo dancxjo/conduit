@@ -1,0 +1,10 @@
+form demonstration/run-signal (
+    > signal-in: value/signal
+    signal: value/signal >
+) {
+    pulse: flow/pulse(count = 3, period-ms = 0, initial = false)
+    show: presentation/show
+    pulse > show
+    signal-in > show.signal
+    pulse.signal > signal
+}

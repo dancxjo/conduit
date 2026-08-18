@@ -1,16 +1,33 @@
-use conduit_form::{parse_document, structured_form_diagnostic};
-use std::fs;
+use conduit_form::{
+    source_document_identity, DiagnosticSeverity, StructuredDiagnosticV1, SyntaxCheckDiagnostic,
+};
+use std::collections::BTreeMap;
 use std::path::Path;
 
 pub(crate) fn run(path: &Path, json: bool) -> Result<bool, String> {
-    let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    let catalog = conduit_std_catalog::standard_profile_catalog();
-    let document = parse_document(&source, &catalog);
-    let diagnostics = document
-        .diagnostics
-        .iter()
-        .map(|diagnostic| structured_form_diagnostic(&source, diagnostic))
-        .collect::<Vec<_>>();
+    let document = crate::form_source::load(path)?;
+    let diagnostics = if document.syntax.diagnostics.is_empty() {
+        conduit_form::check_syntax_document(&document.syntax, &document.startup)
+            .err()
+            .map(|diagnostic| structured(&document.source, &diagnostic))
+            .transpose()?
+            .into_iter()
+            .collect::<Vec<_>>()
+    } else {
+        document
+            .syntax
+            .diagnostics
+            .iter()
+            .map(|diagnostic| {
+                structured_parts(
+                    &document.source,
+                    diagnostic.code,
+                    &diagnostic.message,
+                    diagnostic.span,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?
+    };
     if json {
         println!(
             "{}",
@@ -24,4 +41,37 @@ pub(crate) fn run(path: &Path, json: bool) -> Result<bool, String> {
         }
     }
     Ok(diagnostics.is_empty())
+}
+
+fn structured(
+    source: &str,
+    diagnostic: &SyntaxCheckDiagnostic,
+) -> Result<StructuredDiagnosticV1, String> {
+    structured_parts(
+        source,
+        diagnostic.code,
+        &diagnostic.message,
+        diagnostic.span,
+    )
+}
+
+fn structured_parts(
+    source: &str,
+    code: &'static str,
+    message: &str,
+    span: conduit_form::Span,
+) -> Result<StructuredDiagnosticV1, String> {
+    StructuredDiagnosticV1::new(
+        code,
+        DiagnosticSeverity::Error,
+        message,
+        source_document_identity(source),
+        Some(conduit_form::source_document_identity(source)),
+        Some(span.into()),
+        Vec::new(),
+        BTreeMap::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .map_err(str::to_owned)
 }

@@ -30,7 +30,7 @@ fn dynamic_binding() -> SessionBinding {
             host_id: sink_host_id.clone(),
             boot_id: sink_boot_id.clone(),
         },
-        value_kind: KindId::from("conduit.test/dynamic-bounded-bytes@1"),
+        value_kind: KindId::from("conduit-test/dynamic-bounded-bytes@1"),
         limits: SessionLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: PAYLOAD_CAPACITY,

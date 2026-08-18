@@ -88,7 +88,7 @@ impl TimerAdapter for AdvancingTimer {
 
 fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
     let form = conduit_form::parse(
-        "form 0\n\ninput_loopback {\n input: music/input\n output: music/play\n input.notes -> output.notes\n input.controls -> output.controls\n}\n",
+        "form input_loopback {\n input: music/input\n output: music/play\n input.notes > output.notes\n input.controls > output.controls\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .unwrap();

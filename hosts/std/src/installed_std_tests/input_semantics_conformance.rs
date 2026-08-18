@@ -4,7 +4,7 @@ use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
 
-const SPLIT_FORM: &str = "form 0\n\nportable_input {\n source: conduit.test/key-event-source\n split: input/key-tee\n keymap: input/keymap\n show: presentation/text\n chords: input/chords\n control: conduit.test/chord-sink\n source.key -> split.key\n split.text-keys -> keymap.key\n keymap.text -> show.text\n split.chord-keys -> chords.key\n chords.chord -> control.chord\n}\n";
+const SPLIT_FORM: &str = "form portable_input {\n source: conduit-test/key-event-source\n split: input/key-tee\n keymap: input/keymap\n show: presentation/text\n chords: input/chords\n control: conduit-test/chord-sink\n source.key > split.key\n split.text-keys > keymap.key\n keymap.text > show.text\n split.chord-keys > chords.key\n chords.chord > control.chord\n}\n";
 
 fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
     let host = host("portable-input-host");
@@ -109,7 +109,7 @@ fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
 
 #[test]
 fn keymap_text_flows_directly_into_text_upper_without_an_adapter() {
-    let form = "form 0\n\nupper_input {\n source: conduit.test/key-event-source\n keymap: input/keymap\n upper: text/upper\n show: presentation/text\n source.key -> keymap.key\n keymap.text -> upper.text\n upper.text -> show.text\n}\n";
+    let form = "form upper_input {\n source: conduit-test/key-event-source\n keymap: input/keymap\n upper: text/upper\n show: presentation/text\n source.key > keymap.key\n keymap.text > upper.text\n upper.text > show.text\n}\n";
     let (mut host, fragment) = plan(form);
     let mut output = Vec::with_capacity(16_384);
     let mut timer = RecordingTimer {
@@ -130,6 +130,6 @@ fn unsupported_layout_and_cross_plane_wiring_refuse_before_play() {
     );
     assert!(parse(&unsupported, &installed_std::test_catalog()).is_err());
 
-    let incompatible = SPLIT_FORM.replace("keymap.text -> show.text", "chords.chord -> show.text");
+    let incompatible = SPLIT_FORM.replace("keymap.text > show.text", "chords.chord > show.text");
     assert!(parse(&incompatible, &installed_std::test_catalog()).is_err());
 }

@@ -1,5 +1,5 @@
 use conduit_core::{ArtifactId, CapabilityId, HostId, ImplementationId, KindContractRevision};
-use conduit_form::parse;
+use conduit_form::parse_with_startup;
 use conduit_signal::{pico_local_advertisement, signal_profile_catalog, PULSE_KIND};
 
 #[allow(dead_code)]
@@ -8,8 +8,9 @@ pub fn generate_text_form() -> conduit_form::CheckedForm {
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)
         .expect("catalog installs");
-    conduit_form::parse(
-        "form 0\n\nanswer {\n    generate: ai/generate-text\n}\n",
+    conduit_form::parse_with_startup(
+        "form answer {\n    generate: ai/generate-text\n}\n",
+        &startup,
         &profile,
     )
     .expect("form checks")
@@ -87,10 +88,8 @@ pub fn quantity(
 
 #[allow(dead_code)]
 pub fn pulse_gear() -> conduit_form::CheckedGear {
-    parse(
-        "form 0\n\nrealization {\n    pulse: flow/pulse\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n}\n",
-        &signal_profile_catalog(),
-    )
+    parse_with_startup(
+        "form realization {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
     .expect("pulse form checks")
     .gears
     .remove(0)

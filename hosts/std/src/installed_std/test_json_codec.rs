@@ -10,13 +10,13 @@ use conduit_kernel::{
     PortId, RequestId, ValueRef, ValueStorage,
 };
 
-const SOURCE_KIND: &str = "conduit.test/json-text-source";
-const SOURCE_REVISION: &str = "conduit.test/json-text-source@1";
-const SOURCE_IMPLEMENTATION: &str = "conduit.test/json-text-source-kernel@1";
-const SINK_KIND: &str = "conduit.test/json-text-sink";
-const SINK_REVISION: &str = "conduit.test/json-text-sink@1";
-const SINK_IMPLEMENTATION: &str = "conduit.test/json-text-sink-kernel@1";
-const PROFILE: &str = "conduit.test/json-codec-kernel@1";
+const SOURCE_KIND: &str = "conduit-test/json-text-source";
+const SOURCE_REVISION: &str = "conduit-test/json-text-source@1";
+const SOURCE_IMPLEMENTATION: &str = "conduit-test/json-text-source-kernel@1";
+const SINK_KIND: &str = "conduit-test/json-text-sink";
+const SINK_REVISION: &str = "conduit-test/json-text-sink@1";
+const SINK_IMPLEMENTATION: &str = "conduit-test/json-text-sink-kernel@1";
+const PROFILE: &str = "conduit-test/json-codec-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-json-codec@1";
 
 pub(super) static TEST_JSON_SOURCE_FACTORY: InstalledFactory = InstalledFactory {

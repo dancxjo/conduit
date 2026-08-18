@@ -1,14 +1,8 @@
-form 0
-
-fanout-std {
-    pulse: flow/pulse
+form fanout-std {
+    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
     local: presentation/show
     web: presentation/show
     light: presentation/show
-
-    pulse.count = 16
-    pulse.period-ms = 250
-    pulse.initial = false
 
     pulse > local
     pulse > web

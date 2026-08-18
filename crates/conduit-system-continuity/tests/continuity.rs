@@ -292,7 +292,7 @@ fn exact_roles_bind_to_three_explicit_members_one_plan_and_distinct_plays() {
     assert_eq!(record.sign_ids.len(), 3);
     assert_eq!(record.plan_id, fixture.exact.plan.plan_id);
     assert!(record.assignments.iter().any(|assignment| {
-        assignment.role_id == RoleId::from("light")
+        assignment.role_id == RoleId::from("triple-signal/light")
             && assignment.host == host(&fixture.exact.pico_advertisement)
     }));
 }
@@ -325,7 +325,10 @@ fn reboot_acceptance_termination_replacement_and_replan_remain_distinct() {
         .observe_replacement(available_host(pico.clone()))
         .unwrap()
         .assess(&old);
-    assert_eq!(assessment.stale_roles, vec![RoleId::from("light")]);
+    assert_eq!(
+        assessment.stale_roles,
+        vec![RoleId::from("triple-signal/light")]
+    );
     assert_eq!(assessment.compatible_replacements.len(), 1);
     assert!(assessment.stale_authority.contains(&fixture.grant.grant_id));
 

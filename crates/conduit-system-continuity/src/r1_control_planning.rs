@@ -1,6 +1,7 @@
 //! Exact ordinary-planner output for three deliberate R1 control peers.
 
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
 
@@ -73,15 +74,16 @@ fn plan_r1_control(
     observed_lines: &[conduit_core::LineOffer; 2],
     route_set: R1SignalRouteSet,
 ) -> Result<Plan, String> {
-    let form = conduit_form::parse(
-        include_str!("../../../examples/r1-three-peer-control.form"),
+    let form = conduit_form::parse_with_startup(
+        include_str!("../../../fixtures/forms/r1-three-peer-control.conduit"),
+        &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),
     )
     .map_err(|error| error.to_string())?;
     let mut by_gear = BTreeMap::new();
     for gear in ["terminal", "browser-a", "browser-b"] {
         by_gear.insert(
-            GearId::from(gear),
+            GearId::from(format!("r1-three-peer-control/{gear}")),
             PlacementChoice {
                 host_id: source.host_id.clone(),
                 capability_id: CapabilityId::from(R1_LEVEL_INPUT_CAPABILITY_ID),
@@ -89,14 +91,14 @@ fn plan_r1_control(
         );
     }
     by_gear.insert(
-        GearId::from("merge"),
+        GearId::from("r1-three-peer-control/merge"),
         PlacementChoice {
             host_id: source.host_id.clone(),
             capability_id: CapabilityId::from(R1_MERGE_CAPABILITY_ID),
         },
     );
     by_gear.insert(
-        GearId::from("show"),
+        GearId::from("r1-three-peer-control/show"),
         PlacementChoice {
             host_id: pico.host_id.clone(),
             capability_id: CapabilityId::from(crate::R1_LED_CAPABILITY_ID),
@@ -117,7 +119,10 @@ fn plan_r1_control(
         }
     }
     let line_candidates = BTreeMap::from([(
-        (GearId::from("merge"), GearId::from("show")),
+        (
+            GearId::from("r1-three-peer-control/merge"),
+            GearId::from("r1-three-peer-control/show"),
+        ),
         selected_lines
             .iter()
             .map(|line| line.line_id.clone())
@@ -177,7 +182,14 @@ mod tests {
             .filter(|placement| placement.kind_id.as_str() == conduit_signal::LEVEL_INPUT_KIND)
             .map(|placement| placement.gear_id.as_str())
             .collect::<Vec<_>>();
-        assert_eq!(level_gears, ["browser-a", "browser-b", "terminal"]);
+        assert_eq!(
+            level_gears,
+            [
+                "r1-three-peer-control/browser-a",
+                "r1-three-peer-control/browser-b",
+                "r1-three-peer-control/terminal",
+            ]
+        );
         assert!(source.placements.iter().any(|placement| {
             placement.kind_id.as_str() == conduit_signal::MERGE_THREE_SIGNAL_KIND
         }));

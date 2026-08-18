@@ -51,7 +51,7 @@ pub fn prepare_flow_state(
             .map_err(|_| FlowStateError::Catalog)?;
     }
     let source = format!(
-        "form 0\n\nflow_state {{\n source: {SOURCE_KIND}\n latest: state/latest\n tee: flow/tee\n left: {LEFT_SINK_KIND}\n right: {RIGHT_SINK_KIND}\n source.value -> latest.in\n latest.out -> tee.in\n tee.left -> left.value\n tee.right -> right.value\n}}\n"
+        "form flow_state {{\n source: {SOURCE_KIND}\n latest: state/latest\n tee: flow/tee\n left: {LEFT_SINK_KIND}\n right: {RIGHT_SINK_KIND}\n source.value > latest.in\n latest.out > tee.in\n tee.left > left.value\n tee.right > right.value\n}}\n"
     );
     let form = parse(&source, &catalog).map_err(|_| FlowStateError::Form)?;
     let advertisement = advertisement(host, boot, value);

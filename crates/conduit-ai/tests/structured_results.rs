@@ -27,7 +27,7 @@ fn classification_requires_one_exact_member_of_a_finite_unique_label_set() {
 #[test]
 fn extraction_requires_a_named_schema_and_unique_bounded_fields() {
     let valid = ValidatedExtraction {
-        schema_identity: "conduit.proof/subject@1".into(),
+        schema_identity: "conduit-proof/subject@1".into(),
         fields: vec![ExtractedField {
             key: "subject".into(),
             value: "Conduit".into(),

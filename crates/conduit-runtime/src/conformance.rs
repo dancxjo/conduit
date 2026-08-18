@@ -727,7 +727,7 @@ fn canonical_parameterized_form_expands_plans_and_runs_through_normal_kernel_sig
 
 #[test]
 fn preparation_rejects_stale_boot() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 4, 64);
     let mut runtime = test_runtime(advertisement("boot-2", 1, 4, 64), 128);
     let output = runtime.handle(HostCommand::Prepare(fragment));
     assert!(matches!(
@@ -738,7 +738,7 @@ fn preparation_rejects_stale_boot() {
 
 #[test]
 fn preparation_rejects_stale_offer_generation() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 4, 64);
     let mut runtime = test_runtime(advertisement("boot-1", 2, 4, 64), 128);
     let output = runtime.handle(HostCommand::Prepare(fragment));
     assert!(matches!(
@@ -749,7 +749,7 @@ fn preparation_rejects_stale_offer_generation() {
 
 #[test]
 fn preparation_rejects_too_small_byte_capacity() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 1\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 8);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 1, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 4, 8);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
     let output = runtime.handle(HostCommand::Prepare(fragment));
     assert!(matches!(
@@ -760,7 +760,7 @@ fn preparation_rejects_too_small_byte_capacity() {
 
 #[test]
 fn full_queue_applies_backpressure() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 1, 64);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 3, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 1, 64);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 1, 64), 128);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
     let output = runtime.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
@@ -772,7 +772,7 @@ fn full_queue_applies_backpressure() {
 
 #[test]
 fn byte_capacity_applies_backpressure() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 3\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 9);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 3, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 4, 9);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
     let output = runtime.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
@@ -784,7 +784,7 @@ fn byte_capacity_applies_backpressure() {
 
 #[test]
 fn multiple_sources_remain_independent() {
-    let fragment = demo_fragment("form 0\n\ndouble-demo {\n    pulse-a: flow/pulse\n    show-a: presentation/show\n    pulse-b: flow/pulse\n    show-b: presentation/show\n\n    pulse-a.count = 3\n    pulse-a.period-ms = 0\n    pulse-a.initial = false\n    pulse-b.count = 5\n    pulse-b.period-ms = 0\n    pulse-b.initial = true\n\n    pulse-a > show-a\n    pulse-b > show-b\n}\n", 4, 64);
+    let fragment = demo_fragment("form double-demo {\n    pulse-a: flow/pulse(count = 3, period-ms = 0, initial = false)\n    show-a: presentation/show\n    pulse-b: flow/pulse(count = 5, period-ms = 0, initial = true)\n    show-b: presentation/show\n\n\n    pulse-a > show-a\n    pulse-b > show-b\n}\n", 4, 64);
     let placement_by_gear = fragment
         .placements
         .iter()
@@ -811,10 +811,10 @@ fn multiple_sources_remain_independent() {
     let presented = drive_success(&mut runtime, plan_id.clone());
     assert_eq!(presented.len(), 8);
     let observations = inspect(&mut runtime);
-    let pulse_a = placement_by_gear["pulse-a"].clone();
-    let pulse_b = placement_by_gear["pulse-b"].clone();
-    let show_a = placement_by_gear["show-a"].clone();
-    let show_b = placement_by_gear["show-b"].clone();
+    let pulse_a = placement_by_gear["double-demo/pulse-a"].clone();
+    let pulse_b = placement_by_gear["double-demo/pulse-b"].clone();
+    let show_a = placement_by_gear["double-demo/show-a"].clone();
+    let show_b = placement_by_gear["double-demo/show-b"].clone();
     let conn_a = connection_by_source[&pulse_a].clone();
     let conn_b = connection_by_source[&pulse_b].clone();
     let produced_a = observations
@@ -895,7 +895,7 @@ fn multiple_sources_remain_independent() {
 
 #[test]
 fn cancellation_before_play_start_is_terminal() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 2\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 4, 64);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
     let output = runtime.handle(HostCommand::Cancel(fragment.plan_id.clone()));
@@ -912,7 +912,7 @@ fn cancellation_before_play_start_is_terminal() {
 
 #[test]
 fn late_presentation_completion_after_cancel_is_rejected() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 1\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 1, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 4, 64);
     let show = fragment
         .placements
         .iter()
@@ -957,7 +957,7 @@ fn late_presentation_completion_after_cancel_is_rejected() {
 
 #[test]
 fn repeated_release_is_rejected() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 1\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 1, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 4, 64);
     let plan_id = fragment.plan_id.clone();
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 128);
     runtime.handle(HostCommand::Prepare(fragment));
@@ -979,7 +979,7 @@ fn repeated_release_is_rejected() {
 
 #[test]
 fn observation_overflow_records_gap() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n    pulse: flow/pulse\n    show: presentation/show\n\n    pulse.count = 6\n    pulse.period-ms = 0\n    pulse.initial = false\n\n    pulse > show\n}\n", 4, 64);
+    let fragment = demo_fragment("form demo {\n    pulse: flow/pulse(count = 6, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n", 4, 64);
     let plan_id = fragment.plan_id.clone();
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 4);
     runtime.handle(HostCommand::Prepare(fragment));
@@ -992,11 +992,11 @@ fn observation_overflow_records_gap() {
 
 #[test]
 fn fanout_failure_before_first_manifestation_disposes_every_branch() {
-    let fragment = demo_fragment("form 0\n\nfanout {\n pulse: flow/pulse\n show-a: presentation/show\n show-b: presentation/show\n show-c: presentation/show\n pulse.count = 8\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show-a\n pulse > show-b\n pulse > show-c\n}\n", 4, 64);
+    let fragment = demo_fragment("form fanout {\n pulse: flow/pulse(count = 8, period-ms = 0, initial = false)\n show-a: presentation/show\n show-b: presentation/show\n show-c: presentation/show\n pulse > show-a\n pulse > show-b\n pulse > show-c\n}\n", 4, 64);
     let failed_sink = fragment
         .placements
         .iter()
-        .find(|placement| placement.gear_id.as_str() == "show-b")
+        .find(|placement| placement.gear_id.as_str() == "fanout/show-b")
         .expect("failed sink exists")
         .placement_id
         .clone();
@@ -1068,11 +1068,11 @@ fn fanout_failure_before_first_manifestation_disposes_every_branch() {
 
 #[test]
 fn fanout_failure_after_sequence_seven_retains_last_manifestation() {
-    let fragment = demo_fragment("form 0\n\nfanout {\n pulse: flow/pulse\n show-a: presentation/show\n show-b: presentation/show\n show-c: presentation/show\n pulse.count = 10\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show-a\n pulse > show-b\n pulse > show-c\n}\n", 4, 64);
+    let fragment = demo_fragment("form fanout {\n pulse: flow/pulse(count = 10, period-ms = 0, initial = false)\n show-a: presentation/show\n show-b: presentation/show\n show-c: presentation/show\n pulse > show-a\n pulse > show-b\n pulse > show-c\n}\n", 4, 64);
     let failed_sink = fragment
         .placements
         .iter()
-        .find(|placement| placement.gear_id.as_str() == "show-b")
+        .find(|placement| placement.gear_id.as_str() == "fanout/show-b")
         .expect("failed sink exists")
         .placement_id
         .clone();
@@ -1107,7 +1107,7 @@ fn fanout_failure_after_sequence_seven_retains_last_manifestation() {
 
 #[test]
 fn cancellation_while_waiting_rejects_late_timer_and_is_idempotently_rejected() {
-    let fragment = demo_fragment("form 0\n\ndemo {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 3\n pulse.period-ms = 10\n pulse.initial = false\n pulse > show\n}\n", 4, 64);
+    let fragment = demo_fragment("form demo {\n pulse: flow/pulse(count = 3, period-ms = 10, initial = false)\n show: presentation/show\n pulse > show\n}\n", 4, 64);
     let pulse = fragment
         .placements
         .iter()
@@ -1153,7 +1153,7 @@ fn cancellation_while_waiting_rejects_late_timer_and_is_idempotently_rejected() 
 
 #[test]
 fn fanout_cancellation_releases_all_queued_items() {
-    let fragment = demo_fragment("form 0\n\nfanout {\n pulse: flow/pulse\n show-a: presentation/show\n show-b: presentation/show\n pulse.count = 8\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show-a\n pulse > show-b\n}\n", 4, 64);
+    let fragment = demo_fragment("form fanout {\n pulse: flow/pulse(count = 8, period-ms = 0, initial = false)\n show-a: presentation/show\n show-b: presentation/show\n pulse > show-a\n pulse > show-b\n}\n", 4, 64);
     let mut runtime = test_runtime(advertisement("boot-1", 1, 4, 64), 256);
     runtime.handle(HostCommand::Prepare(fragment.clone()));
     runtime.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
@@ -1180,7 +1180,7 @@ fn fanout_cancellation_releases_all_queued_items() {
 
 #[test]
 fn fanout_accounts_for_each_branches_byte_capacity_independently() {
-    let fragment = demo_fragment("form 0\n\nfanout {\n pulse: flow/pulse\n show-a: presentation/show\n show-b: presentation/show\n show-c: presentation/show\n pulse.count = 3\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show-a\n pulse > show-b\n pulse > show-c\n}\n", 4, 9);
+    let fragment = demo_fragment("form fanout {\n pulse: flow/pulse(count = 3, period-ms = 0, initial = false)\n show-a: presentation/show\n show-b: presentation/show\n show-c: presentation/show\n pulse > show-a\n pulse > show-b\n pulse > show-c\n}\n", 4, 9);
     let connection_ids = fragment
         .connections
         .iter()
@@ -1211,7 +1211,7 @@ fn fanout_accounts_for_each_branches_byte_capacity_independently() {
 #[test]
 fn release_after_failure_and_cancellation_preserves_terminal_sign() {
     for fail in [false, true] {
-        let fragment = demo_fragment("form 0\n\ndemo {\n pulse: flow/pulse\n show: presentation/show\n pulse.count = 2\n pulse.period-ms = 0\n pulse.initial = false\n pulse > show\n}\n", 4, 64);
+        let fragment = demo_fragment("form demo {\n pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n show: presentation/show\n pulse > show\n}\n", 4, 64);
         let plan_id = fragment.plan_id.clone();
         let show = fragment
             .placements

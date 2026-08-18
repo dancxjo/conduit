@@ -858,7 +858,7 @@ fn select_line(
             || !bases.contains(&ConnectionBase::Local)
         {
             return Err(PlannerError::UnavailableConnectionBase(format!(
-                "local base unavailable for '{}' -> '{}'",
+                "local base unavailable for '{}' > '{}'",
                 source.gear_id.as_str(),
                 sink.gear_id.as_str()
             )));
@@ -873,7 +873,7 @@ fn select_line(
 
     if requested == Some(ConnectionBase::Local) {
         return Err(PlannerError::UnavailableConnectionBase(format!(
-            "local base cannot connect '{}' -> '{}'",
+            "local base cannot connect '{}' > '{}'",
             source.gear_id.as_str(),
             sink.gear_id.as_str()
         )));
@@ -892,7 +892,7 @@ fn select_line(
         .collect::<Vec<_>>();
     if exact.is_empty() {
         return Err(PlannerError::LineOfferMissing(format!(
-            "no boot-scoped Line offered for '{}' -> '{}'",
+            "no boot-scoped Line offered for '{}' > '{}'",
             source.gear_id.as_str(),
             sink.gear_id.as_str()
         )));
@@ -910,7 +910,7 @@ fn select_line(
         .collect::<Vec<_>>();
     if ready.is_empty() {
         return Err(PlannerError::LineOfferUnavailable(format!(
-            "offered Line for '{}' -> '{}' is unavailable or below item/byte limits",
+            "offered Line for '{}' > '{}' is unavailable or below item/byte limits",
             source.gear_id.as_str(),
             sink.gear_id.as_str()
         )));
@@ -942,7 +942,7 @@ fn select_line(
     }
     if ready.len() != 1 {
         return Err(PlannerError::LineOfferAmbiguous(format!(
-            "multiple offered Lines satisfy '{}' -> '{}'",
+            "multiple offered Lines satisfy '{}' > '{}'",
             source.gear_id.as_str(),
             sink.gear_id.as_str()
         )));

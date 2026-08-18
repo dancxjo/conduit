@@ -40,7 +40,7 @@ fn host() -> StdHost {
 
 fn form() -> conduit_form::CheckedForm {
     conduit_form::parse(
-        "form 0\n\nmidi_loopback {\n source: conduit.proof/midi-performance-source\n output: music/play\n source.notes -> output.notes\n source.controls -> output.controls\n}\n",
+        "form midi_loopback {\n source: conduit-proof/midi-performance-source\n output: music/play\n source.notes > output.notes\n source.controls > output.controls\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .expect("portable MIDI loopback Form is valid")

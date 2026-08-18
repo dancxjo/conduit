@@ -21,7 +21,7 @@ fn start() -> (R1NewPlanRecovery, conduit_core::Plan, conduit_core::Plan) {
         .plan;
     let recovery = R1NewPlanRecovery::begin(
         plan_a.clone(),
-        GearId::from("show"),
+        GearId::from("signal-demo/show"),
         1,
         1,
         HostId::from(conduit_net::R1_STD_HOST_ID),
@@ -454,7 +454,7 @@ fn replacement_cannot_change_the_pico_realization_subject() {
         .fragments
         .iter_mut()
         .flat_map(|fragment| &mut fragment.placements)
-        .find(|gear| gear.gear_id.as_str() == "show")
+        .find(|gear| gear.gear_id.as_str() == "signal-demo/show")
         .unwrap();
     pico.boot_id = BootId::from("r1/different-boot");
     assert!(matches!(

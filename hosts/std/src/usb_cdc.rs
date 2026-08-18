@@ -847,7 +847,7 @@ mod tests {
         let mut source_machine = SessionMachine::new(binding.clone(), SessionRole::Source).unwrap();
         let mut sink_machine = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
 
-        // 1. Source -> Sink Hello
+        // 1. Source > Sink Hello
         let hello = binding.hello_frame();
         source_machine.admit_outbound(hello).unwrap();
 
@@ -860,7 +860,7 @@ mod tests {
         let f1 = rx1.receive_frame(&mut buf1).unwrap();
         sink_machine.admit_inbound(f1).unwrap();
 
-        // 2. Sink -> Source Hello
+        // 2. Sink > Source Hello
         let sink_hello = binding.hello_frame();
         sink_machine.admit_outbound(sink_hello).unwrap();
         let mut c2 = Vec::new();
@@ -871,7 +871,7 @@ mod tests {
         let f2 = rx2.receive_frame(&mut buf2).unwrap();
         source_machine.admit_inbound(f2).unwrap();
 
-        // 3. Source -> Sink Ready
+        // 3. Source > Sink Ready
         let ready = binding.frame(SessionMessage::Ready);
         source_machine.admit_outbound(ready).unwrap();
         let mut c3 = Vec::new();
@@ -882,7 +882,7 @@ mod tests {
         let f3 = rx3.receive_frame(&mut buf3).unwrap();
         sink_machine.admit_inbound(f3).unwrap();
 
-        // 4. Sink -> Source Ready
+        // 4. Sink > Source Ready
         let sink_ready = binding.frame(SessionMessage::Ready);
         sink_machine.admit_outbound(sink_ready).unwrap();
         let mut c4 = Vec::new();

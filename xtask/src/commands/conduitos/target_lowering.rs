@@ -91,7 +91,7 @@ fn lower_x86_64_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condui
         if let Some((missing, _)) = closure.iter().find(|(_, present)| !present) {
             return Err(refusal(
                 "profile-lowering-prerequisite-missing",
-                format!("presenter:{NATIVE_PRESENTER} -> {missing}"),
+                format!("presenter:{NATIVE_PRESENTER} > {missing}"),
             ));
         }
     } else if let Some((leaked, _)) = closure.iter().find(|(_, present)| *present) {

@@ -264,7 +264,7 @@ fn recursion_and_expansion_depth_fail_with_distinct_diagnostics() {
     let checked = check_syntax_document(&recursive, &startup).unwrap();
     let error = expand_canonical_form(&checked, "a", &profile).unwrap_err();
     assert_eq!(error.code, "CND-FRM-035");
-    assert!(error.message.contains("a -> b -> a"));
+    assert!(error.message.contains("a > b > a"));
 
     let mut source = String::new();
     for index in 0..=crate::MAXIMUM_FORM_NESTING_DEPTH + 1 {

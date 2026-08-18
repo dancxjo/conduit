@@ -20,7 +20,7 @@ pub const CAPABILITY: &str = "conduitos/presenter/linear-serial@1";
 pub const BASE_ID: &str = "conduitos/base/pl011-serial/0";
 const RESOURCE_CLASS: &str = "presentation/linear-slot";
 const RESOURCE_ID: &str = "conduitos/presentation/linear/0";
-const FORM: &str = "form 0\n\nface {\n    renderer: presentation/renderer\n}\n";
+const FORM: &str = "form face {\n    renderer: presentation/renderer\n}\n";
 
 #[derive(Debug, Clone)]
 pub struct LinearReceipt {

@@ -61,7 +61,7 @@ fn planned_copy(
     let mut catalog = conduit_form::ProfileCatalog::new();
     conduit_std_catalog::install_copy_file_catalog(&mut catalog).expect("install copy catalog");
     let form = conduit_form::parse(
-        "form 0\n\ncopy-task {\n    copy: file/copy\n    show: presentation/structured-info\n    copy.result -> show.input\n}\n",
+        "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task > show\n}\n",
         &catalog,
     )
     .expect("copy Form checks without resource paths");
@@ -74,7 +74,7 @@ fn planned_copy(
         .register(
             source_handle.clone(),
             source,
-            GearId::from("copy"),
+            GearId::from("copy-task/task"),
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
             host.advertisement().host_id.clone(),
             host.advertisement().boot_id.clone(),
@@ -89,7 +89,7 @@ fn planned_copy(
         .register(
             destination_handle.clone(),
             destination,
-            GearId::from("copy"),
+            GearId::from("copy-task/task"),
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_DESTINATION_ROLE),
             host.advertisement().host_id.clone(),
             host.advertisement().boot_id.clone(),

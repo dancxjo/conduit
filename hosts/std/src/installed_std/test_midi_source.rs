@@ -11,10 +11,10 @@ use conduit_kernel::{
     PortId, RequestId, ValueRef, ValueStorage,
 };
 
-pub(super) const KIND: &str = "conduit.proof/midi-performance-source";
-const REVISION: &str = "conduit.proof/midi-performance-source@1";
-const PROFILE: &str = "conduit.proof/midi-performance-source-kernel@1";
-pub(super) const IMPLEMENTATION: &str = "conduit.proof/midi-performance-source-kernel@1";
+pub(super) const KIND: &str = "conduit-proof/midi-performance-source";
+const REVISION: &str = "conduit-proof/midi-performance-source@1";
+const PROFILE: &str = "conduit-proof/midi-performance-source-kernel@1";
+pub(super) const IMPLEMENTATION: &str = "conduit-proof/midi-performance-source-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/proof-midi-performance-source@1";
 const EVENT_COUNT: usize = 3;
 const YIELD_COUNT: usize = EVENT_COUNT - 1;

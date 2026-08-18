@@ -12,7 +12,7 @@ use serde::Serialize;
 
 use super::super::CatalogError;
 
-const SOURCE_KIND: &str = "conduit.conformance/note-source";
+const SOURCE_KIND: &str = "conduit-conformance/note-source";
 const ADAPTER_KIND: &str = "music/to-monophonic-tone";
 const SINK_KIND: &str = "sound/tone-play";
 const ADAPTER_IMPLEMENTATION: &str = "conduit.reference/newest-note-to-tone@1";
@@ -24,8 +24,8 @@ const VELOCITY_POLICY: &str = "discard-explicitly";
 const PITCH_POLICY: &str = "preserve-exact";
 const MAXIMUM_ACTIVE_NOTES: usize = 8;
 
-const ADAPTED_FORM: &str = "form 0\n\nexplicit-loss {\n source: conduit.conformance/note-source\n adapt: music/to-monophonic-tone\n output: sound/tone-play\n adapt.polyphony-policy = \"newest-note-priority\"\n adapt.velocity-policy = \"discard-explicitly\"\n adapt.pitch-policy = \"preserve-exact\"\n source.notes -> adapt.notes\n adapt.tone -> output.tone\n}\n";
-const UNADAPTED_FORM: &str = "form 0\n\nimplicit-loss {\n source: conduit.conformance/note-source\n output: sound/tone-play\n source.notes -> output.tone\n}\n";
+const ADAPTED_FORM: &str = "form explicit-loss {\n source: conduit-conformance/note-source\n adapt: music/to-monophonic-tone(polyphony-policy = \"newest-note-priority\", velocity-policy = \"discard-explicitly\", pitch-policy = \"preserve-exact\")\n output: sound/tone-play\n source.notes > adapt.notes\n adapt.tone > output.tone\n}\n";
+const UNADAPTED_FORM: &str = "form implicit-loss {\n source: conduit-conformance/note-source\n output: sound/tone-play\n source.notes > output.tone\n}\n";
 
 #[derive(Debug, Serialize)]
 pub(super) struct LossyAdapterProof {
@@ -204,7 +204,7 @@ fn host(catalog: &ProfileCatalog) -> Result<HostAdvertisement, CatalogError> {
         host_id: HostId::from("sound-adapter-reference-host"),
         boot_id: BootId::from("sound-adapter-reference-boot"),
         offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("conduit.conformance/sound-adapter@1"),
+        profile: HostProfileId::from("conduit-conformance/sound-adapter@1"),
         resources: Vec::new(),
         capabilities,
         planner_capabilities: Vec::new(),

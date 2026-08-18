@@ -526,7 +526,7 @@ fn cord_label(cord: &conduit_form::CheckedCanonicalCord) -> String {
             CheckedCordStage::StructuredSelector { .. } => "structured selector".into(),
         })
         .collect::<Vec<_>>()
-        .join(" -> ")
+        .join(" > ")
 }
 
 fn push_item(

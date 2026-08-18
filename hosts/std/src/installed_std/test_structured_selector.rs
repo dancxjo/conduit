@@ -11,8 +11,8 @@ use conduit_kernel::{
 
 pub(crate) const SOURCE_KIND: &str = "conduit-test/structured-source";
 pub(crate) const SINK_KIND: &str = "conduit-test/structured-sink";
-const SOURCE_IMPLEMENTATION: &str = "conduit.test/structured-source@1";
-const SINK_IMPLEMENTATION: &str = "conduit.test/structured-sink@1";
+const SOURCE_IMPLEMENTATION: &str = "conduit-test/structured-source@1";
+const SINK_IMPLEMENTATION: &str = "conduit-test/structured-sink@1";
 
 pub(super) static SOURCE_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
@@ -101,12 +101,12 @@ pub(crate) fn offer_named(
         capability_id: CapabilityId::from(if source { source_kind } else { sink_kind }),
         kind_id: KindId::from(if source { source_kind } else { sink_kind }),
         kind_contract_revision: KindContractRevision::from(if source {
-            "conduit.test/structured-source@1"
+            "conduit-test/structured-source@1"
         } else {
-            "conduit.test/structured-sink@1"
+            "conduit-test/structured-sink@1"
         }),
         implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduit.test/structured-kernel@1"),
+            execution_profile_id: ExecutionProfileId::from("conduit-test/structured-kernel@1"),
             implementation_id: ImplementationId::from(if source {
                 SOURCE_IMPLEMENTATION
             } else {
@@ -137,7 +137,7 @@ pub(crate) fn configuration(value: &StructuredInfoValue) -> Vec<ConfigurationEnt
 
 pub(crate) fn raw_source_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
     let mut offer = offer_named(
-        &StructuredInfoType::leaf(KindId::from("conduit.test/raw-placeholder@1")).unwrap(),
+        &StructuredInfoType::leaf(KindId::from("conduit-test/raw-placeholder@1")).unwrap(),
         PortDirection::Output,
         kind,
         SINK_KIND,

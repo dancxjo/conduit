@@ -3,22 +3,16 @@ use conduit_core::{ArtifactId, ObservationKind, TerminalDisposition, SCALAR_ENCO
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
 
-const FORM: &str = r#"form 0
-
-math_control {
- source: conduit.test/scalar-literal
- deadband: math/deadband
- scale: math/scale
- clamp: math/clamp
- sink: conduit.test/logic-sink
- deadband.radius = 0
- scale.gain = 1000000
- clamp.minimum = -1
- clamp.maximum = -1
- source.value -> deadband.in
- deadband.out -> scale.in
- scale.out -> clamp.in
- clamp.out -> sink.in
+const FORM: &str = r#"form math_control {
+ source: conduit-test/scalar-literal
+ deadband: math/deadband(radius = 0)
+ scale: math/scale(gain = 1000000)
+ clamp: math/clamp(minimum = -1, maximum = -1)
+ sink: conduit-test/logic-sink
+ source.value > deadband.in
+ deadband.out > scale.in
+ scale.out > clamp.in
+ clamp.out > sink.in
 }
 "#;
 
@@ -101,8 +95,8 @@ fn deadband_scale_and_clamp_execute_together_through_the_production_kernel() {
 #[test]
 fn invalid_clamp_and_mutated_math_implementation_refuse_before_play() {
     let invalid = FORM
-        .replace("clamp.minimum = -1", "clamp.minimum = 2")
-        .replace("clamp.maximum = -1", "clamp.maximum = 1");
+        .replace("minimum = -1", "minimum = 2")
+        .replace("maximum = -1", "maximum = 1");
     let (mut host, invalid_plan) = plan(&invalid);
     let mut output = Vec::new();
     let mut timer = RecordingTimer { waits: Vec::new() };

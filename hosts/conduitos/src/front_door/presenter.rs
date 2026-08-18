@@ -27,7 +27,7 @@ use crate::{
 
 const SURFACE_CLASS: &str = "presentation/surface";
 const SURFACE_ID: &str = "conduitos/front-door/surface/0";
-const RENDERER_FORM: &str = "form 0\n\nface {\n    renderer: presentation/renderer\n}\n";
+const RENDERER_FORM: &str = "form face {\n    renderer: presentation/renderer\n}\n";
 
 pub struct FrontDoorPresenter {
     plan: Plan,

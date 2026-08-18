@@ -12,16 +12,16 @@ use conduit_kernel::{
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
-const SOURCE_KIND: &str = "conduit.test/key-event-source";
-const SOURCE_REVISION: &str = "conduit.test/key-event-source@1";
-const SOURCE_PROFILE: &str = "conduit.test/key-event-source-kernel@1";
-pub(super) const SOURCE_IMPLEMENTATION: &str = "conduit.test/key-event-source-kernel@1";
+const SOURCE_KIND: &str = "conduit-test/key-event-source";
+const SOURCE_REVISION: &str = "conduit-test/key-event-source@1";
+const SOURCE_PROFILE: &str = "conduit-test/key-event-source-kernel@1";
+pub(super) const SOURCE_IMPLEMENTATION: &str = "conduit-test/key-event-source-kernel@1";
 const SOURCE_ARTIFACT: &str = "conduit-std-host/test-key-event-source@1";
 
-const SINK_KIND: &str = "conduit.test/chord-sink";
-const SINK_REVISION: &str = "conduit.test/chord-sink@1";
-const SINK_PROFILE: &str = "conduit.test/chord-sink-kernel@1";
-pub(super) const SINK_IMPLEMENTATION: &str = "conduit.test/chord-sink-kernel@1";
+const SINK_KIND: &str = "conduit-test/chord-sink";
+const SINK_REVISION: &str = "conduit-test/chord-sink@1";
+const SINK_PROFILE: &str = "conduit-test/chord-sink-kernel@1";
+pub(super) const SINK_IMPLEMENTATION: &str = "conduit-test/chord-sink-kernel@1";
 const SINK_ARTIFACT: &str = "conduit-std-host/test-chord-sink@1";
 
 pub(super) static TEST_KEY_EVENT_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
