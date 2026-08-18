@@ -5,7 +5,7 @@ use conduit_presentation::{NavigationOperation, PresentationDepth};
 use patchbay_model::PatchbayAction;
 use winit::keyboard::{Key, NamedKey};
 
-use crate::presentation::{binding_label, focused_action_for_binding, focused_action_refusal};
+use crate::presentation::focused_action_for_binding;
 
 impl PatchbayApplication {
     pub(super) fn handle_front_door_key(&mut self, key: &Key) -> Result<bool, String> {
@@ -65,10 +65,6 @@ impl PatchbayApplication {
             ));
             return Ok(());
         };
-        if let Some(reason) = focused_action_refusal(binding_label(&action), &action) {
-            self.publish_refusal(reason);
-            return Ok(());
-        }
         self.dispatch_invocation_with_action_id(&action.identity)
             .map_err(|error| format!("front-door action failed: {error}"))
     }

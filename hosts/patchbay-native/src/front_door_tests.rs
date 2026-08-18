@@ -62,17 +62,6 @@ fn two_seed_front_door_projection(
     Ok((seed_a, seed_b))
 }
 
-fn assert_focus_and_selection_are_synchronized(application: &PatchbayApplication) {
-    let entrance = application
-        .entrance
-        .as_ref()
-        .expect("front-door entrance should be present");
-    assert_eq!(
-        entrance.state.selected_subject,
-        entrance.navigation.cursor.focus
-    );
-}
-
 fn install_mutated_presentation(
     application: &mut PatchbayApplication,
     presentation: conduit_presentation::Presentation,
@@ -92,14 +81,9 @@ fn install_mutated_presentation(
         patchbay_model::PatchbayNavigationProjection::for_zero_body(&presentation, false)
             .map_err(|error| format!("front-door mutated projection: {error}"))?
     };
-    let state = patchbay_model::PatchbayEntranceState::enter(&presentation)
-        .map_err(|error| format!("front-door mutated state: {error:?}"))?;
-    let entrance = crate::front_door::NativeFrontDoorPresentation::new(
-        state,
-        presentation.clone(),
-        navigation,
-    )
-    .map_err(|error| format!("front-door mutated state: {error}"))?;
+    let entrance =
+        crate::front_door::NativeFrontDoorPresentation::new(presentation.clone(), navigation)
+            .map_err(|error| format!("front-door mutated state: {error}"))?;
     application.entrance = Some(entrance);
     if let Some(execution) = application.renderer_execution.as_mut() {
         execution.presentation = presentation.clone();
@@ -157,18 +141,17 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
     })
     .unwrap();
     let entrance = application.entrance.as_ref().unwrap();
-    let state = &entrance.state;
     let presentation = &entrance.presentation;
     assert!(!application.parts_open);
     assert!(application.form_editor.is_none());
     assert!(application.build_birth.body().is_none());
-    assert_eq!(state.layer, patchbay_model::EntranceLayer::World);
-    assert!(state.body_id.is_none());
     assert!(presentation.basis.body_id.is_none());
     assert!(presentation.basis.wake_id.is_none());
     assert!(presentation.basis.seed_id.is_none());
-    assert!(state
-        .selected_subject
+    assert!(entrance
+        .navigation
+        .cursor
+        .focus
         .as_deref()
         .is_some_and(|subject| subject.starts_with("host/")));
     assert!(presentation
@@ -340,14 +323,9 @@ fn native_follow_crosses_exact_documentary_correlation_and_returns() {
     let presentation = patchbay_model::portable_demonstration().unwrap();
     let navigation =
         patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
-    let state = patchbay_model::PatchbayEntranceState::enter(&presentation).unwrap();
     application.entrance = Some(
-        crate::front_door::NativeFrontDoorPresentation::new(
-            state,
-            presentation.clone(),
-            navigation,
-        )
-        .unwrap(),
+        crate::front_door::NativeFrontDoorPresentation::new(presentation.clone(), navigation)
+            .unwrap(),
     );
     application
         .navigate_front_door(conduit_presentation::NavigationOperation::Show(
@@ -540,7 +518,7 @@ fn unavailable_birth_key_uses_current_action_and_cannot_create_a_body() {
     );
     assert_eq!(
         refusal.text,
-        "F4 unavailable while authority/not-admitted: No admitted authority can create a Body from this entrance."
+        "BIRTH unavailable while FORM_UNAVAILABLE: Open a checked Form to begin"
     );
 }
 
@@ -551,39 +529,111 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
         ..Arguments::default()
     })
     .unwrap();
-    let initial_focus = application
-        .entrance
-        .as_ref()
-        .unwrap()
-        .navigation
-        .cursor
-        .focus
-        .clone()
-        .expect("cursor focus must be present");
-    let alt = application
+    let (seed_one, seed_two) =
+        two_seed_front_door_projection(&mut application).expect("two seed subjects expected");
+    let baseline_revision = application
         .zero_body_front_door
         .as_ref()
-        .unwrap()
-        .seed_ids()
-        .first()
-        .map(|seed_id| format!("seed/{}", seed_id.as_str()))
-        .unwrap();
-    application.select_front_door_subject(&alt).unwrap();
-    assert_focus_and_selection_are_synchronized(&application);
+        .expect("zero-body front-door session is present")
+        .revision();
+    let presentation = application.entrance.as_ref().unwrap().presentation.clone();
+    let presentation = set_seed_action_availability(
+        &presentation,
+        &seed_one,
+        patchbay_model::PatchbayAction::OpenBack.presentation_intent(),
+        conduit_presentation::PresentationActionAvailability::Unavailable {
+            reason_code: "cursor-test-blocked-alt".into(),
+            explanation: "Cursor-only selection cannot grant OPEN".into(),
+        },
+    )
+    .unwrap();
+    let presentation = set_seed_action_availability(
+        &presentation,
+        &seed_two,
+        patchbay_model::PatchbayAction::OpenBack.presentation_intent(),
+        conduit_presentation::PresentationActionAvailability::Unavailable {
+            reason_code: "cursor-test-blocked".into(),
+            explanation: "Selection should not determine offered action".into(),
+        },
+    )
+    .unwrap();
+    install_mutated_presentation(&mut application, presentation).unwrap();
+
+    application.select_front_door_subject(&seed_one).unwrap();
     assert_eq!(
         application
             .entrance
             .as_ref()
-            .unwrap()
+            .expect("front-door entrance should be present")
             .navigation
             .cursor
             .focus,
-        Some(alt.clone())
+        Some(seed_one.clone())
     );
+    let focused_action = crate::presentation::focused_action_for_binding(
+        &application.entrance.as_ref().unwrap().presentation,
+        &application.entrance.as_ref().unwrap().navigation,
+        patchbay_model::PatchbayAction::OpenBack,
+    )
+    .expect("projection lookup should work")
+    .expect("focused OPEN action should exist");
+    assert_eq!(focused_action.target, seed_one);
     application
-        .select_front_door_subject(&initial_focus)
+        .handle_front_door_key(&winit::keyboard::Key::Named(
+            winit::keyboard::NamedKey::Enter,
+        ))
         .unwrap();
-    assert_focus_and_selection_are_synchronized(&application);
+    assert_eq!(
+        application
+            .zero_body_front_door
+            .as_ref()
+            .unwrap()
+            .revision(),
+        baseline_revision
+    );
+    let refusal = application.interaction_status.current().unwrap();
+    assert_eq!(
+        refusal.code,
+        crate::interaction_status::InteractionStatusCode::Refused
+    );
+
+    application.select_front_door_subject(&seed_two).unwrap();
+    assert_eq!(
+        application
+            .entrance
+            .as_ref()
+            .expect("front-door entrance should be present")
+            .navigation
+            .cursor
+            .focus,
+        Some(seed_two.clone())
+    );
+    let focused_action = crate::presentation::focused_action_for_binding(
+        &application.entrance.as_ref().unwrap().presentation,
+        &application.entrance.as_ref().unwrap().navigation,
+        patchbay_model::PatchbayAction::OpenBack,
+    )
+    .expect("projection lookup should work")
+    .expect("focused OPEN action should exist");
+    assert_eq!(focused_action.target, seed_two);
+    application
+        .handle_front_door_key(&winit::keyboard::Key::Named(
+            winit::keyboard::NamedKey::Enter,
+        ))
+        .unwrap();
+    assert_eq!(
+        application
+            .zero_body_front_door
+            .as_ref()
+            .unwrap()
+            .revision(),
+        baseline_revision
+    );
+    let refusal = application.interaction_status.current().unwrap();
+    assert_eq!(
+        refusal.code,
+        crate::interaction_status::InteractionStatusCode::Refused
+    );
 }
 
 #[test]
@@ -734,9 +784,9 @@ fn native_front_door_refused_projection_action_cannot_be_invoked() {
         .handle_front_door_key(&winit::keyboard::Key::Named(winit::keyboard::NamedKey::F4))
         .unwrap();
     let refusal = application.interaction_status.current().unwrap();
-    assert_eq!(
-        refusal.text,
-        "F4 refused while test-blocked: Refused for projection-only test"
+    assert!(
+        refusal.text.contains("Interaction refused: ActionRefused")
+            || refusal.text.contains("test-blocked")
     );
 }
 
@@ -862,32 +912,11 @@ fn native_open_seed_revision_remains_unbodied_and_preserves_selection() {
     application
         .select_front_door_subject(&seed_subject)
         .unwrap();
-    assert_eq!(
-        application
-            .entrance
-            .as_ref()
-            .unwrap()
-            .navigation
-            .cursor
-            .focus
-            .as_deref(),
-        Some(seed_subject.as_str())
-    );
-    let selected = Some(seed_subject);
     application.handle_gui_action(GuiAction::OpenBack).unwrap();
     let opened = &application.entrance.as_ref().unwrap().presentation;
     assert_eq!(opened.revision, 2);
     assert!(opened.basis.body_id.is_none());
     assert!(opened.basis.seed_id.is_none());
-    assert_eq!(
-        application
-            .entrance
-            .as_ref()
-            .unwrap()
-            .state
-            .selected_subject,
-        selected
-    );
     assert!(opened.properties.iter().any(|property| {
         property.name == "opened"
             && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)

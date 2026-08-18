@@ -44,27 +44,6 @@ pub(super) fn focused_action_for_binding(
         .cloned())
 }
 
-pub(super) fn focused_action_refusal(
-    binding_label: &str,
-    action: &PresentationAction,
-) -> Option<String> {
-    match &action.availability {
-        PresentationActionAvailability::Available => None,
-        PresentationActionAvailability::Unavailable {
-            reason_code,
-            explanation,
-        } => Some(format!(
-            "{binding_label} unavailable while {reason_code}: {explanation}"
-        )),
-        PresentationActionAvailability::Refused {
-            reason_code,
-            explanation,
-        } => Some(format!(
-            "{binding_label} refused while {reason_code}: {explanation}"
-        )),
-    }
-}
-
 pub(super) fn binding_label(action: &PresentationAction) -> &'static str {
     if action.intent == PatchbayAction::OpenBack.presentation_intent() {
         "ENTER"
