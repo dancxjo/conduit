@@ -19,6 +19,7 @@ use super::{send_control_frame, InertCdc};
 const RESPONSE_BYTES: usize = 512;
 const QUERY_DEADLINE_MS: u64 = 750;
 const GROUP_ZERO_PACKET: u8 = 0;
+const PREQUERY_DRAIN_LIMIT: usize = 64;
 
 struct Provider {
     uart: Uart<'static, Blocking>,
@@ -77,6 +78,19 @@ async fn read_group_zero(provider: &mut Provider) -> Result<[u8; 26], ProbeFailu
     }
 }
 
+fn drain_prequery_rx(provider: &mut Provider) -> (usize, usize) {
+    let mut bytes = 0;
+    let mut errors = 0;
+    for _ in 0..PREQUERY_DRAIN_LIMIT {
+        match provider.uart.read() {
+            Ok(_) => bytes += 1,
+            Err(nb::Error::WouldBlock) => break,
+            Err(nb::Error::Other(_)) => errors += 1,
+        }
+    }
+    (bytes, errors)
+}
+
 fn protocol_failure_name(failure: CreateOiFailure) -> &'static str {
     match failure {
         CreateOiFailure::ProviderUnavailable => "provider_unavailable",
@@ -127,6 +141,7 @@ pub async fn run(
     };
     translator_oe.set_high();
     Timer::after(Duration::from_millis(10)).await;
+    let (prequery_bytes, prequery_errors) = drain_prequery_rx(&mut provider);
 
     let result = match write_command(&mut provider, &encode_start()) {
         Err(failure) => Err(ProbeFailure::Protocol(failure)),
@@ -154,10 +169,13 @@ pub async fn run(
                     "{{\"schema\":\"conduit.netherwick/create-probe@1\",",
                     "\"success\":true,\"build_id\":\"{}\",",
                     "\"uart\":{{\"controller\":0,\"tx_gpio\":0,\"rx_gpio\":1,\"baud\":57600,\"data_bits\":8,\"stop_bits\":1,\"parity\":\"none\"}},",
+                    "\"prequery_bytes_discarded\":{},\"prequery_errors_discarded\":{},",
                     "\"packet_id\":0,\"packet_bytes\":{},\"bump_wheel_drop_bits\":{},",
                     "\"charging_state\":{},\"translator_final\":\"low\",\"motion_opcode_sent\":false}}"
                 ),
                 env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"),
+                prequery_bytes,
+                prequery_errors,
                 bytes.len(),
                 bytes[0],
                 bytes[16],
@@ -166,9 +184,11 @@ pub async fn run(
         Err(failure) => {
             let _ = write!(
                 response,
-                "{{\"schema\":\"conduit.netherwick/create-probe@1\",\"success\":false,\"build_id\":\"{}\",\"failure\":\"{}\",\"translator_final\":\"low\",\"motion_opcode_sent\":false}}",
+                "{{\"schema\":\"conduit.netherwick/create-probe@1\",\"success\":false,\"build_id\":\"{}\",\"failure\":\"{}\",\"prequery_bytes_discarded\":{},\"prequery_errors_discarded\":{},\"translator_final\":\"low\",\"motion_opcode_sent\":false}}",
                 env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"),
                 failure_name(failure),
+                prequery_bytes,
+                prequery_errors,
             );
         }
     }
