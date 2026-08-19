@@ -7,6 +7,7 @@ static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
 
 struct Pty {
     master: std::fs::File,
+    _slave_guard: std::fs::File,
     slave_path: PathBuf,
 }
 
@@ -32,9 +33,9 @@ impl Pty {
             0
         );
         let path = unsafe { std::ffi::CStr::from_ptr(path.as_ptr()) };
-        unsafe { libc::close(slave) };
         Self {
             master: unsafe { std::fs::File::from_raw_fd(master) },
+            _slave_guard: unsafe { std::fs::File::from_raw_fd(slave) },
             slave_path: PathBuf::from(path.to_str().unwrap()),
         }
     }
