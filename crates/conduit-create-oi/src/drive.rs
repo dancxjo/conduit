@@ -330,3 +330,7 @@ impl Default for LocalCreateDriveSafety {
 #[cfg(test)]
 #[path = "drive_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "drive_physical_tests.rs"]
+mod physical_tests;

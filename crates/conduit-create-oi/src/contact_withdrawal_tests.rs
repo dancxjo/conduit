@@ -52,6 +52,24 @@ fn forward() -> Option<ActiveWheelOutput> {
         right_mm_s: 100,
     })
 }
+
+fn inhibitor(cause: WithdrawalPreemption) -> WithdrawalInhibitors {
+    let mut value = WithdrawalInhibitors::default();
+    match cause {
+        WithdrawalPreemption::EmergencyStop => value.emergency_stop = true,
+        WithdrawalPreemption::WheelDrop => value.wheel_drop = true,
+        WithdrawalPreemption::Cliff => value.cliff = true,
+        WithdrawalPreemption::Charging => value.charging = true,
+        WithdrawalPreemption::ExplicitDisarm => value.explicitly_disarmed = true,
+        WithdrawalPreemption::Tilt => value.tilt = true,
+        WithdrawalPreemption::Impact => value.impact = true,
+        WithdrawalPreemption::MotorFeedbackInvalid => value.motor_feedback_invalid = true,
+        WithdrawalPreemption::CreateFeedbackLost => value.create_feedback_lost = true,
+        WithdrawalPreemption::WatchdogFailed => value.watchdog_failed = true,
+        _ => panic!("not a direct inhibitor"),
+    }
+    value
+}
 #[test]
 fn fresh_forward_edge_reverses_once_then_stops_by_time() {
     let mut provider = Provider::default();
@@ -204,78 +222,18 @@ fn baseline_stationary_reverse_stale_and_level_contacts_never_move() {
 #[test]
 fn host_loss_does_not_cancel_but_every_stronger_invariant_stops() {
     let cases = [
-        (
-            WithdrawalInhibitors {
-                emergency_stop: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::EmergencyStop,
-        ),
-        (
-            WithdrawalInhibitors {
-                wheel_drop: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::WheelDrop,
-        ),
-        (
-            WithdrawalInhibitors {
-                cliff: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::Cliff,
-        ),
-        (
-            WithdrawalInhibitors {
-                charging: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::Charging,
-        ),
-        (
-            WithdrawalInhibitors {
-                explicitly_disarmed: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::ExplicitDisarm,
-        ),
-        (
-            WithdrawalInhibitors {
-                tilt: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::Tilt,
-        ),
-        (
-            WithdrawalInhibitors {
-                impact: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::Impact,
-        ),
-        (
-            WithdrawalInhibitors {
-                motor_feedback_invalid: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::MotorFeedbackInvalid,
-        ),
-        (
-            WithdrawalInhibitors {
-                create_feedback_lost: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::CreateFeedbackLost,
-        ),
-        (
-            WithdrawalInhibitors {
-                watchdog_failed: true,
-                ..Default::default()
-            },
-            WithdrawalPreemption::WatchdogFailed,
-        ),
+        WithdrawalPreemption::EmergencyStop,
+        WithdrawalPreemption::WheelDrop,
+        WithdrawalPreemption::Cliff,
+        WithdrawalPreemption::Charging,
+        WithdrawalPreemption::ExplicitDisarm,
+        WithdrawalPreemption::Tilt,
+        WithdrawalPreemption::Impact,
+        WithdrawalPreemption::MotorFeedbackInvalid,
+        WithdrawalPreemption::CreateFeedbackLost,
+        WithdrawalPreemption::WatchdogFailed,
     ];
-    for (inhibitors, cause) in cases {
+    for cause in cases {
         let mut provider = Provider::default();
         let mut reflex = LocalContactWithdrawal::new();
         reflex.step(
@@ -296,7 +254,7 @@ fn host_loss_does_not_cancel_but_every_stronger_invariant_stops() {
         );
         // No active host output is supplied after trigger: ordinary host/LINE loss is inert.
         assert!(matches!(
-            reflex.step(&mut provider, 3, frame(3, 3, true, false), None, None, inhibitors),
+            reflex.step(&mut provider, 3, frame(3, 3, true, false), None, None, inhibitor(cause)),
             Some(ContactWithdrawalSign::Preempted { cause: observed, stop_confirmed: true, .. }) if observed == cause
         ));
         assert_eq!(provider.writes.last().unwrap(), &[145, 0, 0, 0, 0]);
@@ -389,48 +347,18 @@ fn bilateral_contact_is_straight_and_repeated_level_never_retriggers() {
 #[test]
 fn stronger_truth_prevents_initial_withdrawal() {
     let cases = [
-        WithdrawalInhibitors {
-            emergency_stop: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            wheel_drop: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            cliff: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            charging: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            explicitly_disarmed: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            tilt: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            impact: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            motor_feedback_invalid: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            create_feedback_lost: true,
-            ..Default::default()
-        },
-        WithdrawalInhibitors {
-            watchdog_failed: true,
-            ..Default::default()
-        },
+        WithdrawalPreemption::EmergencyStop,
+        WithdrawalPreemption::WheelDrop,
+        WithdrawalPreemption::Cliff,
+        WithdrawalPreemption::Charging,
+        WithdrawalPreemption::ExplicitDisarm,
+        WithdrawalPreemption::Tilt,
+        WithdrawalPreemption::Impact,
+        WithdrawalPreemption::MotorFeedbackInvalid,
+        WithdrawalPreemption::CreateFeedbackLost,
+        WithdrawalPreemption::WatchdogFailed,
     ];
-    for inhibitors in cases {
+    for cause in cases {
         let mut provider = Provider::default();
         let mut reflex = LocalContactWithdrawal::new();
         reflex.step(
@@ -448,7 +376,7 @@ fn stronger_truth_prevents_initial_withdrawal() {
                 frame(2, 2, true, false),
                 forward(),
                 None,
-                inhibitors
+                inhibitor(cause)
             ),
             None
         );
