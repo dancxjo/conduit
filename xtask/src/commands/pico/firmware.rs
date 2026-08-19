@@ -17,6 +17,7 @@ pub const FIRMWARE_PACKAGE: &str = "conduit-pico-w-signal";
 pub const TARGET: &str = "thumbv6m-none-eabi";
 pub const PROFILE: &str = "release";
 const MIDI_FIXTURE_BINARY: &str = "conduit-pico-w-midi-fixture";
+const NETHERWICK_INERT_BINARY: &str = "conduit-pico-w-netherwick-inert";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FirmwareIdentity {
@@ -148,7 +149,7 @@ pub struct AssetEntry {
 pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     println!("==> pico build: verifying required assets");
     let root = repo_root();
-    if !args.usb_midi_fixture {
+    if !args.usb_midi_fixture && !args.netherwick_inert {
         let asset_dir = root.join(CYW43_ASSET_DIR);
         for (filename, expected) in CYW43_ASSETS {
             let path = asset_dir.join(filename);
@@ -175,7 +176,15 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         TARGET,
         "--release",
     ];
-    if args.usb_midi_fixture {
+    if args.netherwick_inert {
+        build_args.extend([
+            "--bin",
+            NETHERWICK_INERT_BINARY,
+            "--no-default-features",
+            "--features",
+            "netherwick-inert",
+        ]);
+    } else if args.usb_midi_fixture {
         build_args.extend([
             "--bin",
             MIDI_FIXTURE_BINARY,
@@ -208,7 +217,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     let appliance_identity_sidecar = appliance_identity_sidecar_path(&root);
     let appliance_hil_client_identity_sidecar = appliance_hil_client_identity_sidecar_path(&root);
     if args.dry_run {
-        let planned_sidecar = if args.usb_midi_fixture {
+        let planned_sidecar = if args.usb_midi_fixture || args.netherwick_inert {
             None
         } else if args.appliance_hello {
             Some(&appliance_identity_sidecar)
@@ -268,7 +277,9 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
     }
 
-    let elf = if args.usb_midi_fixture {
+    let elf = if args.netherwick_inert {
+        firmware_target_profile_dir(&root).join(NETHERWICK_INERT_BINARY)
+    } else if args.usb_midi_fixture {
         firmware_target_profile_dir(&root).join(MIDI_FIXTURE_BINARY)
     } else {
         firmware_elf_path(&root)
@@ -292,7 +303,25 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
-        if args.usb_midi_fixture {
+        if args.netherwick_inert {
+            let identity = serde_json::json!({
+                "schema": "conduit.netherwick/inert-image@1",
+                "git_revision": git_revision(&root)?,
+                "target": TARGET,
+                "profile": PROFILE,
+                "firmware_mode": "netherwick-inert",
+                "firmware_sha256": sha256_file(&elf)?,
+                "usb_serial": "conduit-pico-w-netherwick-inert",
+                "translator_oe": {"gpio": 19, "level": "low"},
+                "power_toggle": {"gpio": 18, "level": "low"},
+                "create_uart": "uninitialized",
+                "robot_control_ready": false,
+            });
+            std::fs::write(
+                identity_manifest_path(&root),
+                serde_json::to_string_pretty(&identity)?,
+            )?;
+        } else if args.usb_midi_fixture {
             println!("  fixture artifact: build-only; no Conduit Plan identity is claimed");
         } else if args.appliance_hello {
             write_appliance_identity_manifest(&root, &elf, &appliance_identity_sidecar)?;
@@ -314,6 +343,17 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
 
     println!("==> pico build: done — {}", uf2.display());
     Ok(())
+}
+
+fn git_revision(root: &Path) -> PicoResult<String> {
+    let output = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(root)
+        .output()?;
+    if !output.status.success() {
+        return Err("git rev-parse HEAD failed".into());
+    }
+    Ok(String::from_utf8(output.stdout)?.trim().to_owned())
 }
 
 fn write_identity_manifest(
@@ -464,6 +504,12 @@ pub fn refresh_radio_assets(dry_run: bool) -> PicoResult<()> {
 
 pub fn uf2_path(root: &Path) -> PathBuf {
     firmware_elf_path(root).with_extension("uf2")
+}
+
+pub fn netherwick_inert_uf2_path(root: &Path) -> PathBuf {
+    firmware_target_profile_dir(root)
+        .join(NETHERWICK_INERT_BINARY)
+        .with_extension("uf2")
 }
 
 fn firmware_elf_path(root: &Path) -> PathBuf {
