@@ -20,12 +20,15 @@ pub const ROBOTICS_OBSERVE_CLIFF_KIND: &str = "robotics/observe-cliff";
 pub const ROBOTICS_OBSERVE_WHEEL_DROP_KIND: &str = "robotics/observe-wheel-drop";
 pub const ROBOTICS_OBSERVE_CHARGING_KIND: &str = "robotics/observe-charging";
 pub const ROBOTICS_DOCK_KIND: &str = "robotics/dock";
+pub const ROBOTICS_DOCK_DEFAULT_TIMEOUT_MS: u64 = 30_000;
+pub const ROBOTICS_DOCK_MINIMUM_TIMEOUT_MS: u64 = 1_000;
+pub const ROBOTICS_DOCK_MAXIMUM_TIMEOUT_MS: u64 = 120_000;
 
 pub const ROBOTICS_OBSERVE_CONTACT_REVISION: &str = "conduit.std/robotics-observe-contact@1";
 pub const ROBOTICS_OBSERVE_CLIFF_REVISION: &str = "conduit.std/robotics-observe-cliff@1";
 pub const ROBOTICS_OBSERVE_WHEEL_DROP_REVISION: &str = "conduit.std/robotics-observe-wheel-drop@1";
 pub const ROBOTICS_OBSERVE_CHARGING_REVISION: &str = "conduit.std/robotics-observe-charging@1";
-pub const ROBOTICS_DOCK_REVISION: &str = "conduit.std/robotics-dock@1";
+pub const ROBOTICS_DOCK_REVISION: &str = "conduit.std/robotics-dock@2";
 
 pub fn robotics_observe_contact_contract() -> StandardKindContract {
     observation_contract(
@@ -79,13 +82,22 @@ pub fn robotics_dock_contract() -> StandardKindContract {
             PortDirection::Input,
         )],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: vec![crate::StandardConfigurationField {
+            key: "timeout-ms".to_string(),
+            default_value: conduit_core::ConfigurationValue::U64(
+                ROBOTICS_DOCK_DEFAULT_TIMEOUT_MS,
+            ),
+            rule: crate::StandardConfigurationRule::U64Range {
+                minimum: ROBOTICS_DOCK_MINIMUM_TIMEOUT_MS,
+                maximum: ROBOTICS_DOCK_MAXIMUM_TIMEOUT_MS,
+            },
+        }],
         limits: limits(1),
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: TerminalBehavior::CompletesAfterDockedRefusedOrDeadline,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
-        example: "dock: robotics/dock".to_string(),
+        example: "dock: robotics/dock(timeout-ms = 30000)".to_string(),
     }
 }
 

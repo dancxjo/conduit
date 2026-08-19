@@ -1,5 +1,9 @@
 //! Ordinary Conduit realizations for Netherwick's Create hardware.
 
+mod create_dock;
+mod create_dock_kernel_operations;
+mod create_dock_plan_validation;
+mod create_dock_play;
 mod create_drive_kernel_operations;
 mod create_drive_lowering;
 mod create_drive_offer;
@@ -19,6 +23,8 @@ mod planning;
 mod profile;
 
 pub use conduit_create_oi::*;
+pub use create_dock::*;
+pub use create_dock_play::*;
 pub use create_drive_lowering::*;
 pub use create_drive_offer::*;
 pub use create_drive_play::*;

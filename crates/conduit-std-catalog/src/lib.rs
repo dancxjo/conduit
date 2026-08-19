@@ -155,6 +155,7 @@ pub enum TerminalBehavior {
     HostInputEndsOrFailsSource,
     HostObservationEndsOrFailsSource,
     EmitsInitialAndTogglesUntilInputCloses,
+    CompletesAfterDockedRefusedOrDeadline,
 }
 
 /// User-facing semantic contracts, including portable Kinds without a currently

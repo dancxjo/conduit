@@ -1,9 +1,11 @@
 # Netherwick Brainstem migration ledger
 
-Issue [#1521](https://github.com/dancxjo/conduit/issues/1521) owns this ledger. The inventory is pinned to Netherwick commit
-`f43ff13846b47b05e133d0321bdbaafffd1bcdbe`, the revision consumed by
-`conduit-netherwick`. It is historical input, not a second source of current
-Conduit truth.
+Issue [#1521](https://github.com/dancxjo/conduit/issues/1521) owns this ledger.
+The inventory is pinned to Netherwick commit
+`f43ff13846b47b05e133d0321bdbaafffd1bcdbe`, the historical revision from
+which this accounting was derived. `conduit-netherwick` no longer depends on
+or executes it. It is historical input, not a second source of current Conduit
+truth.
 
 The migration rule is:
 
@@ -228,5 +230,18 @@ are recorded:
 6. obsolete Brainstem production RPC/runtime code and product vocabulary are
    removed, leaving only explicitly named historical fixtures.
 
-Until those gates pass, `pete-brainstem` is quarantined design quarry and
-describe-only evidence. It is not an accepted production realization.
+The old `pete-brainstem` describe-only runtime and product demo were removed
+under #1551. Its pinned revision remains only as provenance for this ledger;
+it is not an accepted production realization. Rows whose physical or Pico W
+gates remain open are not promoted merely because the legacy runtime is gone.
+
+## Current replacement evidence
+
+| Slice | Current evidence | Remaining proof class |
+|---|---|---|
+| std Create observation | finite group-0/charging lowering, exact offer/Plan/kernel session, and live non-actuating Create 1 evidence | induced physical failure matrix and two-Host capstone |
+| std speaker | bounded `music/play` Plan/kernel/OI lifecycle plus live machine and human audibility receipts | #837 reconnect/cancellation completion |
+| std indicator | unchanged canonical Signal Form, exact Plan/kernel/OI LED lifecycle, and live machine evidence | optional human visibility receipt only where separately required |
+| std differential motion | exact reduced-safety offer/authority, Plan-bound floor acknowledgement, kernel TTL stop, and deterministic provider-loss proof | live bounded motion after explicit physical setup confirmation |
+| Create docking | portable timed `robotics/dock` contract, exact dock-only authority/offer/Plan, production-kernel lifecycle, charging completion, timeout/cancel/hazard/provider-loss deterministic proof | live physical dock setup and Pico W realization |
+| legacy Brainstem RPC/runtime | production dependency, fake Host/Boot/Base/Line projection, private describe kinds, and product demo removed | remaining semantic/service replacements and Pico W physical cutover |
