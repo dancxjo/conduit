@@ -67,6 +67,7 @@ const BOOTSEL_CHALLENGE_PREFIX: &str = "CONDUIT_BOOTSEL_CHALLENGE@1:";
 const BOOTSEL_REQUEST_PREFIX: &str = "CONDUIT_REBOOT_BOOTSEL@1:";
 const BOOTSEL_ACK: &[u8] = b"CONDUIT_REBOOT_BOOTSEL_ACK@1";
 const CREATE_PROBE_REQUEST_PREFIX: &str = "CONDUIT_CREATE_PROBE@1:";
+const CARRIER_STATUS_REQUEST_PREFIX: &str = "CONDUIT_CARRIER_STATUS@1:";
 const BOOTSEL_FRAME_MAX: usize = 512;
 const WATCHDOG_TIMEOUT_MS: u64 = 2_000;
 const WATCHDOG_FEED_MS: u64 = 250;
@@ -158,6 +159,7 @@ async fn serve_build_bound_services(
     uart0: Peri<'static, UART0>,
     tx: Peri<'static, PIN_0>,
     rx: Peri<'static, PIN_1>,
+    charging_indicator: &Input<'static>,
     translator_oe: &mut Output<'static>,
 ) -> ! {
     let mut create_resources = Some((uart0, tx, rx));
@@ -240,6 +242,34 @@ async fn serve_build_bound_services(
                 )
                 .await;
             }
+            continue;
+        }
+
+        let mut expected_status = String::<BOOTSEL_FRAME_MAX>::new();
+        if write!(
+            expected_status,
+            "{CARRIER_STATUS_REQUEST_PREFIX}{}",
+            env!("CONDUIT_NETHERWICK_INERT_BUILD_ID")
+        )
+        .is_err()
+        {
+            core::future::pending::<()>().await;
+        }
+        if request == expected_status.as_bytes() {
+            let charging_level = if charging_indicator.is_high() {
+                "high"
+            } else {
+                "low"
+            };
+            let mut response = String::<BOOTSEL_FRAME_MAX>::new();
+            let _ = write!(
+                response,
+                "{{\"schema\":\"conduit.netherwick/carrier-status@1\",\"build_id\":\"{}\",\"charging_indicator\":{{\"gpio\":20,\"active_high\":true,\"level\":\"{}\"}},\"translator_oe\":\"low\",\"create_probe_available\":{}}}",
+                env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"),
+                charging_level,
+                create_resources.is_some(),
+            );
+            let _ = send_control_frame(class, response.as_bytes()).await;
         }
     }
 }
@@ -312,7 +342,15 @@ async fn qualification_task(
     }
     write_line(&mut class, &line).await;
     write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-terminal@1\",\"qualification_complete\":true,\"robot_control_ready\":false}\n").await;
-    serve_build_bound_services(&mut class, uart0, tx, rx, &mut translator_oe).await;
+    serve_build_bound_services(
+        &mut class,
+        uart0,
+        tx,
+        rx,
+        &charging_indicator,
+        &mut translator_oe,
+    )
+    .await;
 }
 
 #[cortex_m_rt::entry]
