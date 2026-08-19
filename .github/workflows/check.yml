@@ -102,11 +102,13 @@ jobs:
           trap 'rm -rf "$bundle"' EXIT
           mkdir "$bundle/debs"
           printf 'not a package\n' > "$bundle/debs/example.deb"
+          image_os=$(. /etc/os-release; printf '%s' "$ID")
+          os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")
           printf '%s\n' \
             'schema=conduit.ci.conduitos-tool-bundle/v1' \
-            "image_os=$(. /etc/os-release; printf '%s' \"$ID\")" \
+            "image_os=$image_os" \
             'image_version=deliberately-wrong' \
-            "os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
+            "os_release=$os_release" \
             > "$bundle/identity.env"
           cp scripts/ci/conduitos-tools-packages.txt "$bundle/packages.txt"
           (cd "$bundle" && sha256sum debs/example.deb > SHA256SUMS)
