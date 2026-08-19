@@ -64,6 +64,8 @@ impl CreateUartProvider for Provider {
 fn safety() -> SafetyObservation {
     SafetyObservation {
         generation: 8,
+        latch_generation: 1,
+        latched_hazards: crate::SafetyHazardSet::EMPTY,
         observed_at_tick: 100,
         maximum_age_ticks: 20,
         emergency_stop: SafetyInputObservation::Clear,

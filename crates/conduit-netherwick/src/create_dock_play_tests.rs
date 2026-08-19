@@ -8,6 +8,8 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 fn reduced_safety(generation: u32, observed_at_tick: u64) -> SafetyObservation {
     SafetyObservation {
         generation,
+        latch_generation: 1,
+        latched_hazards: crate::SafetyHazardSet::EMPTY,
         observed_at_tick,
         maximum_age_ticks: 60_000,
         emergency_stop: SafetyInputObservation::Unavailable,

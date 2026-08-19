@@ -17,6 +17,8 @@ const DRIVE_FORM: &str = r#"form move_body {
 fn safety() -> SafetyObservation {
     SafetyObservation {
         generation: 8,
+        latch_generation: 1,
+        latched_hazards: crate::SafetyHazardSet::EMPTY,
         observed_at_tick: 100,
         maximum_age_ticks: 10,
         emergency_stop: SafetyInputObservation::Clear,
@@ -174,6 +176,16 @@ fn absent_stale_and_inhibited_truth_refuse_before_advertisement() {
         Err(CreateDriveOfferRefusal::SafetyStaleOrInhibited(
             LocalHazard::Cliff
         ))
+    );
+}
+
+#[test]
+fn unlatched_raw_safety_truth_cannot_offer_physical_drive() {
+    let mut value = observation();
+    value.safety.latch_generation = 0;
+    assert_eq!(
+        live_create_drive_advertisement(&value, 100),
+        Err(CreateDriveOfferRefusal::MissingSafetyEnvelope)
     );
 }
 

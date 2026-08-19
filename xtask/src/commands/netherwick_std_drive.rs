@@ -6,8 +6,8 @@ use std::time::Duration;
 use clap::{Args, ValueEnum};
 use conduit_core::{BootId, ChargingState, HostId, OfferGeneration, Scalar};
 use conduit_create_oi::{
-    IndependentWatchdogObservation, MotionAuthority, MotionSafetyAuthority, SafetyInputObservation,
-    SafetyObservation, UartProfile,
+    IndependentWatchdogObservation, LocalSafetyEnvelope, MotionAuthority, MotionSafetyAuthority,
+    SafetyInputObservation, SafetyInputs, SafetyObservation, UartProfile,
 };
 use conduit_netherwick::{
     bounded_drive_plan, dispatch_create_drive_execution, prepare_create_drive_execution,
@@ -185,7 +185,7 @@ fn execute(args: &StdDriveArgs) -> Result<Evidence, Box<dyn std::error::Error>> 
     let base = provider.identity().clone();
     let mode = establish_safe(&mut provider, args.read_timeout_ms)?;
     let (pre, pre_at) = observe(&mut provider, args.read_timeout_ms)?;
-    let safety = safety_from(pre, pre_at);
+    let safety = safety_from(pre, pre_at)?;
     let drive_observation = CreateDriveObservation {
         host_id: HostId::from(args.host_id.clone()),
         boot_id: BootId::from(args.boot_id.clone()),
@@ -310,9 +310,12 @@ fn observe(
     Ok((observed, observed_at))
 }
 
-fn safety_from(value: CreatePortableObservation, observed_at_tick: u64) -> SafetyObservation {
+fn safety_from(
+    value: CreatePortableObservation,
+    observed_at_tick: u64,
+) -> Result<SafetyObservation, Box<dyn std::error::Error>> {
     let group = value.group_zero;
-    SafetyObservation {
+    let inputs = SafetyInputs {
         generation: 1,
         observed_at_tick,
         maximum_age_ticks: SAFETY_MAXIMUM_AGE_MS,
@@ -327,7 +330,14 @@ fn safety_from(value: CreatePortableObservation, observed_at_tick: u64) -> Safet
         control_alive: true,
         body_link_alive: true,
         independent_watchdog: IndependentWatchdogObservation::Absent,
-    }
+    };
+    let mut envelope = LocalSafetyEnvelope::new();
+    envelope
+        .observe(inputs, observed_at_tick)
+        .map_err(|error| format!("local safety envelope: {error:?}"))?;
+    envelope
+        .snapshot()
+        .ok_or_else(|| "local safety envelope emitted no observation".into())
 }
 
 fn base_evidence(

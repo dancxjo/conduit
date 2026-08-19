@@ -331,6 +331,8 @@ mod tests {
                 mode: OiMode::Safe,
                 safety: SafetyObservation {
                     generation: 4,
+                    latch_generation: 1,
+                    latched_hazards: crate::SafetyHazardSet::EMPTY,
                     observed_at_tick: 100,
                     maximum_age_ticks: 10,
                     emergency_stop: safety_inputs,

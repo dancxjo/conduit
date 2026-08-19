@@ -80,6 +80,8 @@ fn exact_os_serial_base_carries_generic_create_commands_and_frames() {
     let now = monotonic_millis().unwrap();
     let safety = SafetyObservation {
         generation: 1,
+        latch_generation: 1,
+        latched_hazards: conduit_create_oi::SafetyHazardSet::EMPTY,
         observed_at_tick: now,
         maximum_age_ticks: 100,
         emergency_stop: SafetyInputObservation::Clear,

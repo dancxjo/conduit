@@ -5,6 +5,8 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 pub(super) fn reduced_safety(generation: u32, observed_at_tick: u64) -> SafetyObservation {
     SafetyObservation {
         generation,
+        latch_generation: 1,
+        latched_hazards: crate::SafetyHazardSet::EMPTY,
         observed_at_tick,
         maximum_age_ticks: 1_000,
         emergency_stop: SafetyInputObservation::Unavailable,
@@ -73,6 +75,16 @@ fn dock_offer_requires_verified_fresh_safe_truth_and_is_honestly_reduced() {
         Err(CreateDockOfferRefusal::SafetyStaleOrInhibited(
             LocalHazard::WheelDrop
         ))
+    );
+}
+
+#[test]
+fn dock_offer_requires_the_non_bypassable_latch_envelope() {
+    let mut value = observation();
+    value.safety.latch_generation = 0;
+    assert_eq!(
+        live_create_dock_advertisement(&value, 100),
+        Err(CreateDockOfferRefusal::MissingSafetyEnvelope)
     );
 }
 

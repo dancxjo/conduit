@@ -61,6 +61,7 @@ pub enum CreateDockOfferRefusal {
     UnverifiedIdentity,
     UnsupportedMode,
     InvalidFreshness,
+    MissingSafetyEnvelope,
     SafetyStaleOrInhibited(LocalHazard),
 }
 
@@ -83,6 +84,9 @@ pub fn live_create_dock_advertisement(
     }
     if observation.safety.maximum_age_ticks == 0 {
         return Err(CreateDockOfferRefusal::InvalidFreshness);
+    }
+    if observation.safety.latch_generation == 0 {
+        return Err(CreateDockOfferRefusal::MissingSafetyEnvelope);
     }
     if let Some(hazard) = observation.safety.first_hazard(now_tick) {
         return Err(CreateDockOfferRefusal::SafetyStaleOrInhibited(hazard));
