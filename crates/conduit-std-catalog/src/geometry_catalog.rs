@@ -19,9 +19,9 @@ use conduit_form::{
 };
 
 use crate::{
-    path2_type, point2_type, point2_value, transform2_type, transform2_value, EXTENT2_TYPE,
-    IMAGE_REGION2_TYPE, PATH2_FOUR_TYPE, POINT2_TYPE, POINT3_TYPE, RECT2_TYPE,
-    ROBOTICS_POSE2_TYPE, TRANSFORM2_TYPE, VECTOR2_TYPE, VECTOR3_TYPE,
+    path2_type, point2_type, point2_value, transform2_value, EXTENT2_TYPE, IMAGE_REGION2_TYPE,
+    PATH2_FOUR_TYPE, POINT2_TYPE, POINT3_TYPE, RECT2_TYPE, ROBOTICS_POSE2_TYPE, TRANSFORM2_TYPE,
+    VECTOR2_TYPE, VECTOR3_TYPE,
 };
 
 pub const POINT2_LITERAL_KIND: &str = "geometry/point2";
@@ -142,7 +142,7 @@ fn insert_kind(
             let value_type = value.value_type().clone();
             let profile = value_type.profile().map_err(|error| format!("{error:?}"))?;
             let canonical = value.canonical_bytes().map_err(|error| format!("{error:?}"))?;
-            Ok(ConfigurationField {
+            Ok::<ConfigurationField, String>(ConfigurationField {
                 key: name.into(),
                 default_value: ConfigurationValue::Structured(
                     StructuredConfigurationValue::new(profile.value_kind().clone(), canonical)
