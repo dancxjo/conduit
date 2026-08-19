@@ -8,7 +8,7 @@ use conduit_mpu6050::{
     I2cBaseAvailability, I2cProviderFailure, Mpu6050Failure, Mpu6050I2cProvider,
     Mpu6050Session, ALTERNATE_ADDRESS, DEFAULT_ADDRESS,
 };
-use embassy_executor::Spawner;
+use embassy_executor::Executor;
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output};
 use embassy_rp::i2c::{Blocking, Config as I2cConfig, I2c};
@@ -129,8 +129,8 @@ async fn qualification_task(mut class: InertCdc, i2c1: Peri<'static, I2C1>, sda:
     core::future::pending::<()>().await;
 }
 
-#[embassy_executor::main]
-async fn main(spawner: Spawner) {
+#[cortex_m_rt::entry]
+fn main() -> ! {
     let p = embassy_rp::init(Default::default());
     // These outputs are established before any peripheral probing. Ownership is
     // retained for the lifetime of the image so neither can float or be reused.
@@ -138,7 +138,11 @@ async fn main(spawner: Spawner) {
     let _translator_oe = Output::new(p.PIN_19, Level::Low);
     let driver = usb::Driver::new(p.USB, Irqs);
     let (device, class) = usb_device(driver);
-    spawner.spawn(usb_device_task(device).unwrap());
-    spawner.spawn(qualification_task(class, p.I2C1, p.PIN_2, p.PIN_3).unwrap());
-    core::future::pending::<()>().await;
+    static EXECUTOR: StaticCell<Executor> = StaticCell::new();
+    let executor = EXECUTOR.init(Executor::new());
+    executor.run(|spawner| {
+        spawner.spawn(usb_device_task(device).unwrap());
+        spawner
+            .spawn(qualification_task(class, p.I2C1, p.PIN_2, p.PIN_3).unwrap());
+    });
 }
