@@ -24,6 +24,13 @@ struct Provider {
     uart: Uart<'static, Blocking>,
 }
 
+enum ProbeFailure {
+    Protocol(CreateOiFailure),
+    Uart(embassy_rp::uart::Error),
+    DeviceNoResponse,
+    TruncatedFrame,
+}
+
 impl CreateUartProvider for Provider {
     type Error = embassy_rp::uart::Error;
 
@@ -49,7 +56,7 @@ impl CreateUartProvider for Provider {
     }
 }
 
-async fn read_group_zero(provider: &mut Provider) -> Result<[u8; 26], CreateOiFailure> {
+async fn read_group_zero(provider: &mut Provider) -> Result<[u8; 26], ProbeFailure> {
     let mut payload = [0_u8; 26];
     let mut received = 0;
     let deadline = Instant::now() + Duration::from_millis(QUERY_DEADLINE_MS);
@@ -60,17 +67,17 @@ async fn read_group_zero(provider: &mut Provider) -> Result<[u8; 26], CreateOiFa
                 received += 1;
             }
             Err(nb::Error::WouldBlock) => Timer::after(Duration::from_millis(1)).await,
-            Err(nb::Error::Other(_)) => return Err(CreateOiFailure::ReadFailed),
+            Err(nb::Error::Other(error)) => return Err(ProbeFailure::Uart(error)),
         }
     }
     match received {
-        0 => Err(CreateOiFailure::DeviceNoResponse),
+        0 => Err(ProbeFailure::DeviceNoResponse),
         26 => Ok(payload),
-        _ => Err(CreateOiFailure::TruncatedFrame),
+        _ => Err(ProbeFailure::TruncatedFrame),
     }
 }
 
-fn failure_name(failure: CreateOiFailure) -> &'static str {
+fn protocol_failure_name(failure: CreateOiFailure) -> &'static str {
     match failure {
         CreateOiFailure::ProviderUnavailable => "provider_unavailable",
         CreateOiFailure::WrongUartProfile { .. } => "wrong_uart_profile",
@@ -81,6 +88,19 @@ fn failure_name(failure: CreateOiFailure) -> &'static str {
         CreateOiFailure::UnsupportedPacket(_) => "unsupported_packet",
         CreateOiFailure::TruncatedFrame => "truncated_frame",
         CreateOiFailure::MalformedFrame => "malformed_frame",
+    }
+}
+
+fn failure_name(failure: ProbeFailure) -> &'static str {
+    match failure {
+        ProbeFailure::Protocol(failure) => protocol_failure_name(failure),
+        ProbeFailure::Uart(embassy_rp::uart::Error::Overrun) => "uart_overrun",
+        ProbeFailure::Uart(embassy_rp::uart::Error::Break) => "uart_break",
+        ProbeFailure::Uart(embassy_rp::uart::Error::Parity) => "uart_parity",
+        ProbeFailure::Uart(embassy_rp::uart::Error::Framing) => "uart_framing",
+        ProbeFailure::Uart(_) => "uart_other",
+        ProbeFailure::DeviceNoResponse => "device_no_response",
+        ProbeFailure::TruncatedFrame => "truncated_frame",
     }
 }
 
@@ -109,14 +129,17 @@ pub async fn run(
     Timer::after(Duration::from_millis(10)).await;
 
     let result = match write_command(&mut provider, &encode_start()) {
-        Err(failure) => Err(failure),
+        Err(failure) => Err(ProbeFailure::Protocol(failure)),
         Ok(()) => match encode_query_sensor(GROUP_ZERO_PACKET)
             .and_then(|query| write_command(&mut provider, &query))
         {
-            Err(failure) => Err(failure),
+            Err(failure) => Err(ProbeFailure::Protocol(failure)),
             Ok(()) => read_group_zero(&mut provider)
                 .await
-                .and_then(|payload| decode_sensor_packet(GROUP_ZERO_PACKET, &payload)),
+                .and_then(|payload| {
+                    decode_sensor_packet(GROUP_ZERO_PACKET, &payload)
+                        .map_err(ProbeFailure::Protocol)
+                }),
         },
     };
     translator_oe.set_low();
