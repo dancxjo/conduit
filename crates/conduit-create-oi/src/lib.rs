@@ -10,11 +10,13 @@
 mod device;
 mod drive;
 mod mode;
+mod power;
 mod safety;
 
 pub use device::*;
 pub use drive::*;
 pub use mode::*;
+pub use power::*;
 pub use safety::*;
 
 #[cfg(test)]
