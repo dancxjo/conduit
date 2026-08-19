@@ -26,6 +26,9 @@ mod create_power_service;
 mod create_sensor_lowering;
 mod create_speaker;
 mod create_speaker_play;
+mod imu_calibration_service;
+mod imu_observation;
+mod imu_play;
 mod planning;
 mod profile;
 
@@ -48,6 +51,9 @@ pub use create_power_service::*;
 pub use create_sensor_lowering::*;
 pub use create_speaker::*;
 pub use create_speaker_play::*;
+pub use imu_calibration_service::*;
+pub use imu_observation::*;
+pub use imu_play::*;
 pub use planning::*;
 pub use profile::*;
 

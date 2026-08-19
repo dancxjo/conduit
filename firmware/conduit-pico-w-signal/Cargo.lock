@@ -301,6 +301,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-mpu6050"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-net"
 version = "0.1.0"
 dependencies = [
@@ -331,6 +335,7 @@ dependencies = [
  "conduit-embedded-build",
  "conduit-form",
  "conduit-kernel",
+ "conduit-mpu6050",
  "conduit-net",
  "conduit-planner",
  "conduit-runtime",
