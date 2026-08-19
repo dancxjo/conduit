@@ -204,7 +204,7 @@ pub fn linguistic_annotation_type() -> StructuredInfoType {
     record(
         "language/span-annotation@1",
         vec![
-            field("label", leaf("language/annotation-label@1")),
+            field("label", text_type()),
             field("span", text_span_type()),
         ],
     )

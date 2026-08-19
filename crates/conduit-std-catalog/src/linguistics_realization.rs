@@ -194,7 +194,7 @@ fn annotation_bundle(
                 vec![
                     (
                         "label",
-                        leaf_value("language/annotation-label@1", label.as_bytes()),
+                        leaf_value("value/text@1", label.as_bytes()),
                     ),
                     ("span", record_field(token, "span")?.clone()),
                 ],
