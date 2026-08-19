@@ -241,6 +241,7 @@ gates remain open are not promoted merely because the legacy runtime is gone.
 |---|---|---|
 | std Create observation | finite group-0/charging lowering, exact offer/Plan/kernel session, and live non-actuating Create 1 evidence | induced physical failure matrix and two-Host capstone |
 | Create odometry/reset | deterministic bounded start-local distance/angle integration through `robotics/observe-odometry`; exact frame/sample generations; Host/Boot/frame/authority-bound non-actuating reset; std evidence separates raw deltas from derived value | successful fresh live derived sample, Pico W realization, and two-Host capstone |
+| Create OI mode service | shared allocator-free stop/transition/packet-35 verification transaction; Host/Boot/offer/implementation/device/attachment-bound service authority; exact fresh mode-generation precondition and terminal Sign | live std service evidence, Pico W attachment/HIL, and restart/power services |
 | std speaker | bounded `music/play` Plan/kernel/OI lifecycle plus live machine and human audibility receipts | #837 reconnect/cancellation completion |
 | std indicator | unchanged canonical Signal Form, exact Plan/kernel/OI LED lifecycle, and live machine evidence | optional human visibility receipt only where separately required |
 | std differential motion | exact reduced-safety offer/authority, Plan-bound floor acknowledgement, kernel TTL stop, and deterministic provider-loss proof | live bounded motion after explicit physical setup confirmation |
