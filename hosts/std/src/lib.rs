@@ -38,6 +38,7 @@ pub use deadline_reactor::{
     DeadlineClock, DeadlineClockError, DeadlineHostAdapter, DeadlineHostError, DeadlineKey,
     DeadlineReactor, DeadlineReactorError, DeadlineWake, ThreadMonotonicClock,
 };
+pub mod external_signal;
 pub mod external_websocket;
 pub mod hosted_audio;
 pub mod hosted_http;

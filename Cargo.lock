@@ -620,6 +620,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-observatory",
  "conduit-planner",
+ "conduit-signal",
  "conduit-std-catalog",
  "patchbay-model",
  "pete-brainstem",

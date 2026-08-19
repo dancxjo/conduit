@@ -27,6 +27,27 @@ use std::time::Duration;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const ROUTE_SLOTS: usize = 4 * PORTS;
 
+/// Exact platform manifestation boundary for the installed Signal kernel.
+/// Implementations perform only the selected presentation effect; the kernel
+/// retains sequence, level, Presentation, Sign, and terminal truth.
+pub trait SignalManifestation {
+    fn manifest(&mut self, signal: &Signal, operator_output: &mut dyn Write) -> Result<(), String>;
+}
+
+struct TextSignalManifestation;
+
+impl SignalManifestation for TextSignalManifestation {
+    fn manifest(&mut self, signal: &Signal, operator_output: &mut dyn Write) -> Result<(), String> {
+        writeln!(
+            operator_output,
+            "signal {} {}",
+            signal.sequence,
+            if signal.level { "on" } else { "off" }
+        )
+        .map_err(|error| error.to_string())
+    }
+}
+
 type SignalScheduler<
     const NODES: usize,
     const CORDS: usize,
@@ -229,22 +250,48 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
     output: &mut W,
     timer: &mut T,
 ) -> Result<StdRunReport, String> {
+    run_signal_fragment_with_manifestation(
+        advertisement,
+        fragment,
+        play_sequence,
+        next_sign_sequence,
+        output,
+        timer,
+        &mut TextSignalManifestation,
+    )
+}
+
+pub(super) fn run_signal_fragment_with_manifestation<
+    W: Write,
+    T: TimerAdapter,
+    M: SignalManifestation,
+>(
+    advertisement: &HostAdvertisement,
+    fragment: &PlanFragment,
+    play_sequence: u64,
+    next_sign_sequence: &mut u64,
+    output: &mut W,
+    timer: &mut T,
+    manifestation: &mut M,
+) -> Result<StdRunReport, String> {
     match (fragment.placements.len(), fragment.connections.len()) {
-        (2, 1) => run_signal_profile::<W, T, 2, 1, 4, 1, 2, 2>(
+        (2, 1) => run_signal_profile::<W, T, M, 2, 1, 4, 1, 2, 2>(
             advertisement,
             fragment,
             play_sequence,
             next_sign_sequence,
             output,
             timer,
+            manifestation,
         ),
-        (4, 3) => run_signal_profile::<W, T, 4, 3, 12, 3, 4, 4>(
+        (4, 3) => run_signal_profile::<W, T, M, 4, 3, 12, 3, 4, 4>(
             advertisement,
             fragment,
             play_sequence,
             next_sign_sequence,
             output,
             timer,
+            manifestation,
         ),
         _ => Err("fragment does not match an installed std signal kernel profile".to_string()),
     }
@@ -254,6 +301,7 @@ pub(super) fn run_signal_fragment<W: Write, T: TimerAdapter>(
 fn run_signal_profile<
     W: Write,
     T: TimerAdapter,
+    M: SignalManifestation,
     const NODES: usize,
     const CORDS: usize,
     const QUEUE_SLOTS: usize,
@@ -267,6 +315,7 @@ fn run_signal_profile<
     next_sign_sequence: &mut u64,
     output: &mut W,
     timer: &mut T,
+    manifestation: &mut M,
 ) -> Result<StdRunReport, String> {
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     if lowered.nodes.len() != NODES
@@ -566,13 +615,7 @@ fn run_signal_profile<
                         expected.node.0, expected.signal, request.node.0, signal
                     ));
                 }
-                writeln!(
-                    output,
-                    "signal {} {}",
-                    signal.sequence,
-                    if signal.level { "on" } else { "off" }
-                )
-                .map_err(|error| error.to_string())?;
+                manifestation.manifest(&signal, output)?;
                 writeln!(
                     output,
                     "receipt signal placement={} sequence={} level={}",

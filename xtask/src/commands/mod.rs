@@ -10,6 +10,8 @@ pub mod evidence;
 pub mod host;
 pub mod midi;
 pub mod netherwick;
+pub mod netherwick_std_create;
+pub mod netherwick_std_indicator;
 pub mod netherwick_std_observe;
 pub mod netherwick_std_speaker;
 pub mod palette_icons;
