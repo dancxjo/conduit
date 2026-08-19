@@ -20,10 +20,10 @@ use conduit_form::{
 use crate::{
     annotation_bundle_four_type, dependency_edge_type, linguistic_annotation_type,
     linguistic_annotations_four_type, linguistic_segment_type, linguistic_token_type,
-    linguistic_tokens_four_type, text_span_type, ANNOTATION_BUNDLE_FOUR_TYPE,
-    DEPENDENCY_EDGE_TYPE, LINGUISTIC_ANNOTATIONS_FOUR_TYPE, LINGUISTIC_ANNOTATION_TYPE,
-    LINGUISTIC_SEGMENT_TYPE, LINGUISTIC_TOKENS_FOUR_TYPE, LINGUISTIC_TOKEN_TYPE,
-    MAXIMUM_LINGUISTIC_TEXT_BYTES, TEXT_SPAN_TYPE,
+    linguistic_tokens_four_type, text_span_type, ANNOTATION_BUNDLE_FOUR_TYPE, DEPENDENCY_EDGE_TYPE,
+    LINGUISTIC_ANNOTATIONS_FOUR_TYPE, LINGUISTIC_ANNOTATION_TYPE, LINGUISTIC_SEGMENT_TYPE,
+    LINGUISTIC_TOKENS_FOUR_TYPE, LINGUISTIC_TOKEN_TYPE, MAXIMUM_LINGUISTIC_TEXT_BYTES,
+    TEXT_SPAN_TYPE,
 };
 
 pub const TOKENIZE_FOUR_KIND: &str = "language/tokenize-four";

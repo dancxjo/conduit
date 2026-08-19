@@ -87,7 +87,11 @@ pub fn tokenize_four(
         vec![
             (
                 "provenance",
-                provenance_value("deterministic_rule", "conduit/std-tokenizer", "unicode-scalar@1")?,
+                provenance_value(
+                    "deterministic_rule",
+                    "conduit/std-tokenizer",
+                    "unicode-scalar@1",
+                )?,
             ),
             (
                 "segments",
@@ -133,7 +137,10 @@ fn token_value(
         vec![
             (
                 "category",
-                unit_variant(token_category_type(), if lexeme.word { "word" } else { "punctuation" })?,
+                unit_variant(
+                    token_category_type(),
+                    if lexeme.word { "word" } else { "punctuation" },
+                )?,
             ),
             ("features", collection_value(feature_slot_type(), features)?),
             ("identity", token_identity_value(text_identity, ordinal)?),
@@ -185,7 +192,10 @@ fn annotation_bundle(
             record_value(
                 linguistic_annotation_type(),
                 vec![
-                    ("label", leaf_value("language/annotation-label@1", label.as_bytes())),
+                    (
+                        "label",
+                        leaf_value("language/annotation-label@1", label.as_bytes()),
+                    ),
                     ("span", record_field(token, "span")?.clone()),
                 ],
             )
@@ -223,7 +233,10 @@ fn dependency_value(
         vec![
             ("dependent", dependent),
             ("governor", governor),
-            ("relation", unit_variant(dependency_relation_type(), relation)?),
+            (
+                "relation",
+                unit_variant(dependency_relation_type(), relation)?,
+            ),
         ],
     )
 }
@@ -236,7 +249,10 @@ fn span_value(
     record_value(
         text_span_type(),
         vec![
-            ("basis", unit_variant(offset_basis_type(), "unicode_scalar")?),
+            (
+                "basis",
+                unit_variant(offset_basis_type(), "unicode_scalar")?,
+            ),
             ("end", count_value(end)),
             ("start", count_value(start)),
             ("text_identity", text_value(text_identity)),

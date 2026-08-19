@@ -9,9 +9,9 @@ use conduit_form::{
 };
 use conduit_std_catalog::{
     annotate_with_model_fixture, annotate_with_unicode_library, install_linguistics_catalogs,
-    linguistics_std_offers, linguistic_token_type, linguistic_tokens_four_type, tokenize_four,
-    LinguisticRefusal, ANNOTATE_FOUR_KIND, LINGUISTIC_DEPENDENCY_COUNT,
-    LINGUISTIC_FEATURE_SLOTS, LINGUISTIC_HOST_OPERATION, LINGUISTIC_TOKEN_COUNT,
+    linguistic_token_type, linguistic_tokens_four_type, linguistics_std_offers, tokenize_four,
+    LinguisticRefusal, ANNOTATE_FOUR_KIND, LINGUISTICS_HOST_OPERATION,
+    LINGUISTIC_DEPENDENCY_COUNT, LINGUISTIC_FEATURE_SLOTS, LINGUISTIC_TOKEN_COUNT,
     MAXIMUM_LINGUISTIC_TEXT_BYTES, TOKENIZE_FOUR_KIND,
 };
 
@@ -81,14 +81,17 @@ fn canonical_form_tokenizes_and_projects_annotations_without_json() {
         .unwrap();
     assert_eq!(
         annotation.host_operations[0].contract_id.as_str(),
-        LINGUISTIC_HOST_OPERATION
+        LINGUISTICS_HOST_OPERATION
     );
 }
 
 #[test]
 fn tokenizer_uses_unicode_scalar_spans_and_explicit_optional_fields() {
     let tokens = tokenize_four("text/example", "Élan stars shine.").unwrap();
-    assert_eq!(provenance_tag(record_field(&tokens, "provenance")), "deterministic_rule");
+    assert_eq!(
+        provenance_tag(record_field(&tokens, "provenance")),
+        "deterministic_rule"
+    );
     let tokens = collection_field(&tokens, "tokens");
     assert_eq!(tokens.len(), usize::from(LINGUISTIC_TOKEN_COUNT));
     assert_eq!(leaf_text(record_field(&tokens[0], "surface")), "Élan");
@@ -97,7 +100,9 @@ fn tokenizer_uses_unicode_scalar_spans_and_explicit_optional_fields() {
     assert_eq!(variant_tag(record_field(&tokens[0], "lemma")), "absent");
     let features = collection_field(&tokens[0], "features");
     assert_eq!(features.len(), usize::from(LINGUISTIC_FEATURE_SLOTS));
-    assert!(features.iter().all(|feature| variant_tag(feature) == "unused"));
+    assert!(features
+        .iter()
+        .all(|feature| variant_tag(feature) == "unused"));
 
     let token_type = linguistic_token_type();
     let StructuredInfoTypeShape::Record { fields, .. } = token_type.shape() else {
@@ -111,17 +116,20 @@ fn tokenizer_uses_unicode_scalar_spans_and_explicit_optional_fields() {
 fn library_annotations_and_dependencies_are_finite_and_exact() {
     let tokens = tokenize_four("text/example", "Bright stars shine.").unwrap();
     let annotated = annotate_with_unicode_library(&tokens).unwrap();
-    assert_eq!(provenance_tag(record_field(&annotated, "provenance")), "library");
+    assert_eq!(
+        provenance_tag(record_field(&annotated, "provenance")),
+        "library"
+    );
     assert_eq!(
         collection_field(&annotated, "annotations").len(),
         usize::from(LINGUISTIC_TOKEN_COUNT)
     );
     let dependencies = collection_field(&annotated, "dependencies");
+    assert_eq!(dependencies.len(), usize::from(LINGUISTIC_DEPENDENCY_COUNT));
     assert_eq!(
-        dependencies.len(),
-        usize::from(LINGUISTIC_DEPENDENCY_COUNT)
+        token_ordinal(record_field(&dependencies[0], "dependent")),
+        0
     );
-    assert_eq!(token_ordinal(record_field(&dependencies[0], "dependent")), 0);
     assert_eq!(token_ordinal(record_field(&dependencies[0], "governor")), 1);
     assert_eq!(
         leaf_text(record_field(
@@ -136,11 +144,14 @@ fn library_annotations_and_dependencies_are_finite_and_exact() {
 fn model_provenance_is_distinct_and_provider_token_ids_are_not_semantics() {
     let tokens = tokenize_four("text/example", "Bright stars shine.").unwrap();
     let modeled = annotate_with_model_fixture(&tokens, "model/example@1").unwrap();
-    assert_eq!(provenance_tag(record_field(&modeled, "provenance")), "model");
+    assert_eq!(
+        provenance_tag(record_field(&modeled, "provenance")),
+        "model"
+    );
     let debug = format!("{modeled:?}");
     assert!(!debug.contains("provider-token-91"));
-    let round_trip = StructuredInfoValue::from_canonical_bytes(&modeled.canonical_bytes().unwrap())
-        .unwrap();
+    let round_trip =
+        StructuredInfoValue::from_canonical_bytes(&modeled.canonical_bytes().unwrap()).unwrap();
     assert_eq!(round_trip, modeled);
 }
 

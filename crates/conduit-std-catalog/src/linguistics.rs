@@ -203,7 +203,10 @@ pub fn linguistic_tokens_four_type() -> StructuredInfoType {
 pub fn linguistic_annotation_type() -> StructuredInfoType {
     record(
         "language/span-annotation@1",
-        vec![field("label", leaf("language/annotation-label@1")), field("span", text_span_type())],
+        vec![
+            field("label", leaf("language/annotation-label@1")),
+            field("span", text_span_type()),
+        ],
     )
 }
 
