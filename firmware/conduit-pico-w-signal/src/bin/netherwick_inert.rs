@@ -15,6 +15,7 @@ use embassy_rp::i2c::{Blocking, Config as I2cConfig, I2c};
 use embassy_rp::peripherals::{I2C1, PIN_2, PIN_3, USB};
 use embassy_rp::usb;
 use embassy_rp::Peri;
+use embassy_time::{Duration, Timer};
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
 use embassy_usb::{Builder, Config, UsbDevice};
 use heapless::String;
@@ -130,7 +131,14 @@ async fn qualification_task(mut class: InertCdc, i2c1: Peri<'static, I2C1>, sda:
         let mut session = Mpu6050Session::new(candidate).unwrap();
         result = session.observe(&mut provider, 1);
         address = candidate;
-        if result.is_ok() { break; }
+        if result.is_ok() {
+            // The first transaction proves identity and establishes the exact
+            // configuration. Give the physical device a bounded wake interval,
+            // then retain a distinct fresh frame as qualification evidence.
+            Timer::after(Duration::from_millis(100)).await;
+            result = session.observe(&mut provider, 2);
+            break;
+        }
     }
     write_line(&mut class, concat!("{\"schema\":\"conduit.netherwick/inert-boot@1\",\"build_id\":\"", env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"), "\"}\n")).await;
     write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"uninitialized\",\"i2c\":{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}}\n").await;
