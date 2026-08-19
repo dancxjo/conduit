@@ -222,7 +222,7 @@ fn offer(
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 8,
-            max_queue_items: 1,
+            max_queue_items: 4,
             max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         },
     }
