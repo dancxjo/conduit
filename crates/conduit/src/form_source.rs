@@ -67,6 +67,7 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_std_catalog::install_http_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_json_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_recurrence_catalogs(&mut startup, &mut profiles)?;
+    conduit_std_catalog::install_geometry_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
     Ok((startup, profiles))
