@@ -311,7 +311,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
                 "profile": PROFILE,
                 "firmware_mode": "netherwick-inert",
                 "firmware_sha256": sha256_file(&elf)?,
-                "usb_serial": "conduit-pico-w-netherwick-inert",
+                "usb_serial": "nw-inert",
                 "translator_oe": {"gpio": 19, "level": "low"},
                 "power_toggle": {"gpio": 18, "level": "low"},
                 "create_uart": "uninitialized",

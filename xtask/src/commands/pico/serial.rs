@@ -66,7 +66,7 @@ fn verify_netherwick_inert(args: &PicoArgs) -> PicoResult<()> {
                 entry
                     .file_name()
                     .to_string_lossy()
-                    .contains("conduit-pico-w-netherwick-inert")
+                    .contains("Pico_W_Netherwick_Inert")
             })
             .map(|entry| entry.path())
             .collect::<Vec<_>>();
