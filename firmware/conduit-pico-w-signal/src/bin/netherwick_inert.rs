@@ -13,8 +13,9 @@ use embassy_executor::Executor;
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output};
 use embassy_rp::i2c::{Blocking, Config as I2cConfig, I2c};
-use embassy_rp::peripherals::{I2C1, PIN_0, PIN_1, PIN_2, PIN_3, UART0, USB};
+use embassy_rp::peripherals::{I2C1, PIN_0, PIN_1, PIN_2, PIN_3, UART0, USB, WATCHDOG};
 use embassy_rp::usb;
+use embassy_rp::watchdog::Watchdog;
 use embassy_rp::Peri;
 use embassy_time::{Duration, Timer};
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
@@ -66,6 +67,8 @@ const BOOTSEL_REQUEST_PREFIX: &str = "CONDUIT_REBOOT_BOOTSEL@1:";
 const BOOTSEL_ACK: &[u8] = b"CONDUIT_REBOOT_BOOTSEL_ACK@1";
 const CREATE_PROBE_REQUEST_PREFIX: &str = "CONDUIT_CREATE_PROBE@1:";
 const BOOTSEL_FRAME_MAX: usize = 512;
+const WATCHDOG_TIMEOUT_MS: u64 = 2_000;
+const WATCHDOG_FEED_MS: u64 = 250;
 
 struct Provider(BoardI2c);
 
@@ -229,6 +232,17 @@ async fn usb_device_task(mut device: InertUsbDevice) -> ! {
 }
 
 #[embassy_executor::task]
+async fn watchdog_task(watchdog: Peri<'static, WATCHDOG>) -> ! {
+    let mut watchdog = Watchdog::new(watchdog);
+    watchdog.pause_on_debug(true);
+    watchdog.start(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
+    loop {
+        Timer::after(Duration::from_millis(WATCHDOG_FEED_MS)).await;
+        watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
+    }
+}
+
+#[embassy_executor::task]
 async fn qualification_task(
     mut class: InertCdc,
     i2c1: Peri<'static, I2C1>,
@@ -264,7 +278,7 @@ async fn qualification_task(
         }
     }
     write_line(&mut class, concat!("{\"schema\":\"conduit.netherwick/inert-boot@1\",\"build_id\":\"", env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"), "\"}\n")).await;
-    write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"uninitialized\",\"i2c\":{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}}\n").await;
+    write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"uninitialized\",\"i2c\":{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000},\"watchdog\":{\"timeout_ms\":2000,\"feed_interval_ms\":250}}\n").await;
     let mut line: String<384> = String::new();
     match result {
         Ok(sample) => { let _ = writeln!(line, "{{\"schema\":\"conduit.netherwick/imu-probe@1\",\"success\":true,\"address\":{},\"accel_mm_s2\":[{},{},{}],\"gyro_milliradians_s\":[{},{},{}]}}", address, sample.accel_x_mm_s2, sample.accel_y_mm_s2, sample.accel_z_mm_s2, sample.gyro_x_milliradians_s, sample.gyro_y_milliradians_s, sample.gyro_z_milliradians_s); }
@@ -288,6 +302,7 @@ fn main() -> ! {
     let executor = EXECUTOR.init(Executor::new());
     executor.run(|spawner| {
         spawner.spawn(usb_device_task(device).unwrap());
+        spawner.spawn(watchdog_task(p.WATCHDOG).unwrap());
         spawner
             .spawn(
                 qualification_task(

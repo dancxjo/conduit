@@ -124,6 +124,8 @@ fn validate_netherwick_inert_records(
     if disposition["translator_oe"] != "low"
         || disposition["power_toggle"] != "low"
         || disposition["create_uart"] != "uninitialized"
+        || disposition["watchdog"]["timeout_ms"] != 2_000
+        || disposition["watchdog"]["feed_interval_ms"] != 250
     {
         return Err("inert disposition does not preserve the fail-safe carrier state".into());
     }
@@ -514,7 +516,8 @@ mod tests {
                 "schema": "conduit.netherwick/inert-disposition@1",
                 "translator_oe": "low",
                 "power_toggle": "low",
-                "create_uart": "uninitialized"
+                "create_uart": "uninitialized",
+                "watchdog": {"timeout_ms": 2000, "feed_interval_ms": 250}
             }),
             serde_json::json!({
                 "schema": "conduit.netherwick/imu-probe@1",
