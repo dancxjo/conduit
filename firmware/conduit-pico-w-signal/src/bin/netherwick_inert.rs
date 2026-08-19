@@ -18,7 +18,6 @@ use embassy_rp::Peri;
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
 use embassy_usb::{Builder, Config, UsbDevice};
 use heapless::String;
-use panic_halt as _;
 use static_cell::StaticCell;
 
 struct NoAllocator;
@@ -30,6 +29,19 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
 
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;
+
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
+    // Match the working Brainstem failure disposition: leave both carrier
+    // control outputs low and halt. Create UART is never initialized here.
+    unsafe {
+        core::ptr::write_volatile(0xd000_0018 as *mut u32, (1 << 18) | (1 << 19));
+    }
+    cortex_m::interrupt::disable();
+    loop {
+        cortex_m::asm::wfi();
+    }
+}
 
 bind_interrupts!(struct Irqs { USBCTRL_IRQ => usb::InterruptHandler<USB>; });
 
