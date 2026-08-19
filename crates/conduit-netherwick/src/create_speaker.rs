@@ -30,10 +30,10 @@ pub const MAXIMUM_PLAY_COMMAND_BYTES: usize = 2;
 pub const MAXIMUM_ADMITTED_SERIAL_BYTES: usize =
     MAXIMUM_SONG_COMMAND_BYTES + MAXIMUM_PLAY_COMMAND_BYTES;
 
-pub const SPEAKER_CAPABILITY: &str = "netherwick/pete-create1-music-play@1";
+pub const SPEAKER_CAPABILITY: &str = "netherwick/create1-music-play@1";
 pub const SPEAKER_PROFILE: &str = "netherwick/create1-oi-song-monophonic-64hz@1";
 pub const SPEAKER_IMPLEMENTATION: &str = "netherwick/create1-oi-song-play@1";
-pub const SPEAKER_ARTIFACT: &str = "pete-brainstem/create1-oi-speaker@1";
+pub const SPEAKER_ARTIFACT: &str = "netherwick/create1-oi-speaker@1";
 pub const SPEAKER_OPERATION: &str = "netherwick.host/create1-oi-speaker-song-play@1";
 pub const SPEAKER_AUTHORITY: &str = "netherwick.authority/create1-speaker-only@1";
 pub const SPEAKER_RESOURCE: &str = "netherwick.resource/create1-speaker@1";
@@ -281,13 +281,13 @@ mod tests {
 
     fn observation(mode: OiMode) -> CreateSpeakerObservation {
         CreateSpeakerObservation {
-            host_id: HostId::from("pete-brainstem-live"),
-            boot_id: BootId::from("pete-brainstem-live-boot"),
+            host_id: HostId::from("netherwick-std-live"),
+            boot_id: BootId::from("netherwick-std-live-boot"),
             offer_generation: OfferGeneration(4),
-            serial_base_id: "pete/create1/serial/0".into(),
-            robot_identity: "pete/create1/observed-robot".into(),
+            serial_base_id: "netherwick/create1/serial/0".into(),
+            robot_identity: "netherwick/create1/observed-robot".into(),
             robot_identity_verified: true,
-            speaker_resource_id: "pete/create1/speaker".into(),
+            speaker_resource_id: "netherwick/create1/speaker".into(),
             mode,
             currently_usable: true,
         }
@@ -404,10 +404,6 @@ mod tests {
             live_speaker_advertisement(&unverified),
             Err(SpeakerRefusal::UnverifiedIdentity)
         );
-        assert!(crate::brainstem_advertisement()
-            .capabilities
-            .iter()
-            .all(|offer| offer.capability_id.as_str() != SPEAKER_CAPABILITY));
     }
 
     #[test]

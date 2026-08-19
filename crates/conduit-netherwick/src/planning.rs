@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    brainstem_advertisement, catalogs, live_create_drive_advertisement, live_speaker_advertisement,
+    catalogs, live_create_drive_advertisement, live_speaker_advertisement,
     live_speaker_realization, CreateDriveObservation, CreateSpeakerObservation,
     CREATE_DRIVE_AUTHORITY, CREATE_DRIVE_CAPABILITY, CREATE_DRIVE_OPERATION,
     CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY, SPEAKER_AUTHORITY, SPEAKER_CAPABILITY,
@@ -12,23 +12,10 @@ use conduit_core::{
     HostOperationContractId, ResourceHealth, ResourceObservation, SignId, SCALAR_ENCODED_LEN,
     SCALAR_INFO_ID,
 };
-use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
 use conduit_planner::{
-    default_expanded_placements, plan_expanded_canonical,
     plan_selected_realizations_with_characteristics_and_authority, PlannerError,
     SelectedRealizationPlanning,
 };
-
-pub const OBSERVATION_FORM: &str = r#"form pete_describe_only {
-    bump: robotics/observe-bump
-    imu: robotics/observe-imu
-}
-"#;
-
-pub const ACTUATOR_ATTEMPT_FORM: &str = r#"form forbidden_drive {
-    drive: robotics/drive-differential
-}
-"#;
 
 /// Portable canonical Form. It names musical meaning only; Create, OI,
 /// serial, song slots, and speaker resources enter solely through the Plan.
@@ -44,28 +31,6 @@ pub const BOUNDED_DRIVE_FORM: &str = r#"form bounded_drive {
 }
 "#;
 pub const BOUNDED_DRIVE_GRANT: &str = "grant/netherwick-bounded-drive";
-
-pub fn observation_plan() -> Result<conduit_core::Plan, String> {
-    let (startup, profile) = catalogs()?;
-    let syntax = parse_syntax_document(OBSERVATION_FORM);
-    let checked = check_syntax_document(&syntax, &startup).map_err(|error| format!("{error:?}"))?;
-    let expanded = expand_canonical_form(&checked, "pete_describe_only", &profile)
-        .map_err(|error| error.to_string())?;
-    let host = brainstem_advertisement();
-    let placements = default_expanded_placements(&expanded, std::slice::from_ref(&host))
-        .map_err(|error| error.to_string())?;
-    plan_expanded_canonical(&expanded, &[host], &placements, &[ConnectionBase::Local])
-        .map_err(|error| error.to_string())
-}
-
-pub fn attempt_actuator_plan() -> Result<(), PlannerError> {
-    let (startup, profile) = catalogs().expect("fixed describe catalogs are valid");
-    let syntax = parse_syntax_document(ACTUATOR_ATTEMPT_FORM);
-    let checked = check_syntax_document(&syntax, &startup).expect("actuator meaning is valid");
-    let expanded = expand_canonical_form(&checked, "forbidden_drive", &profile)
-        .expect("actuator meaning expands independently of realization");
-    default_expanded_placements(&expanded, &[brainstem_advertisement()]).map(|_| ())
-}
 
 pub fn simple_melody_plan(
     observation: &CreateSpeakerObservation,
@@ -95,7 +60,7 @@ pub fn simple_melody_plan(
         })
         .collect::<Vec<_>>();
     let grants = authority_granted.then(|| AuthorityGrant {
-        grant_id: AuthorityGrantId::from("grant/pete-create1-speaker-only"),
+        grant_id: AuthorityGrantId::from("grant/netherwick-create1-speaker-only"),
         contract_id: AuthorityContractId::from(SPEAKER_AUTHORITY),
         host_operation_contract_id: HostOperationContractId::from(SPEAKER_OPERATION),
         subject_kind: kind_id(conduit_core::MUSIC_NOTE_INFO_ID),
@@ -180,21 +145,20 @@ mod tests {
     use super::*;
     use crate::{
         CreateDriveObservation, CreateSpeakerObservation, IndependentWatchdogObservation, OiMode,
-        SafetyInputObservation, SafetyObservation, BUMP_KIND, CREATE_DRIVE_IMPLEMENTATION,
-        CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY, CREATE_DRIVE_REDUCED_SAFETY_PROFILE, DRIVE_KIND,
-        IMU_KIND,
+        SafetyInputObservation, SafetyObservation, CREATE_DRIVE_IMPLEMENTATION,
+        CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY, CREATE_DRIVE_REDUCED_SAFETY_PROFILE,
     };
     use conduit_core::{BootId, HostId, OfferGeneration};
 
     fn live_speaker() -> CreateSpeakerObservation {
         CreateSpeakerObservation {
-            host_id: HostId::from("pete-brainstem-live"),
-            boot_id: BootId::from("pete-brainstem-live-boot"),
+            host_id: HostId::from("netherwick-std-live"),
+            boot_id: BootId::from("netherwick-std-live-boot"),
             offer_generation: OfferGeneration(7),
-            serial_base_id: "pete/create1/serial/0".into(),
-            robot_identity: "pete/create1/observed-robot".into(),
+            serial_base_id: "netherwick/create1/serial/0".into(),
+            robot_identity: "netherwick/create1/observed-robot".into(),
             robot_identity_verified: true,
-            speaker_resource_id: "pete/create1/speaker".into(),
+            speaker_resource_id: "netherwick/create1/speaker".into(),
             mode: OiMode::Safe,
             currently_usable: true,
         }
@@ -225,29 +189,6 @@ mod tests {
                 independent_watchdog: IndependentWatchdogObservation::Absent,
             },
         }
-    }
-
-    #[test]
-    fn observation_plan_seals_only_effect_free_sensor_offers() {
-        let plan = observation_plan().unwrap();
-        let placements = &plan.fragments[0].placements;
-        assert_eq!(placements.len(), 2);
-        assert!(placements.iter().all(|placement| {
-            [BUMP_KIND, IMU_KIND].contains(&placement.kind_id.as_str())
-                && placement.host_operations.is_empty()
-                && placement.authority.is_empty()
-        }));
-        assert!(!serde_json::to_string(&plan).unwrap().contains(DRIVE_KIND));
-    }
-
-    #[test]
-    fn valid_actuator_meaning_has_no_describe_only_realization() {
-        assert!(matches!(
-            attempt_actuator_plan(),
-            Err(PlannerError::UnknownCapability(_))
-        ));
-        let profile = crate::pinned_profile();
-        assert!(profile.effect_audit.is_effect_free());
     }
 
     #[test]
@@ -292,6 +233,8 @@ mod tests {
         assert!(serde_json::to_string(&plan)
             .unwrap()
             .contains(SPEAKER_CAPABILITY));
-        assert!(!serde_json::to_string(&plan).unwrap().contains(DRIVE_KIND));
+        assert!(!serde_json::to_string(&plan)
+            .unwrap()
+            .contains(conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND));
     }
 }

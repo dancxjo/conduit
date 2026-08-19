@@ -9,7 +9,6 @@ pub mod doctor;
 pub mod evidence;
 pub mod host;
 pub mod midi;
-pub mod netherwick;
 pub mod netherwick_std_create;
 pub mod netherwick_std_drive;
 pub mod netherwick_std_indicator;
