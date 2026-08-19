@@ -104,7 +104,7 @@ jobs:
           printf 'not a package\n' > "$bundle/debs/example.deb"
           printf '%s\n' \
             'schema=conduit.ci.conduitos-tool-bundle/v1' \
-            "image_os=$ImageOS" \
+            "image_os=$(. /etc/os-release; printf '%s' \"$ID\")" \
             'image_version=deliberately-wrong' \
             "os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
             > "$bundle/identity.env"
@@ -120,7 +120,10 @@ jobs:
           test -e "${bundle}.rejected"
       - name: Capture the exact runner cache identity
         id: runner-image
-        run: printf 'key=%s-%s\n' "$ImageOS" "$ImageVersion" >> "$GITHUB_OUTPUT"
+        run: |
+          os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")
+          architecture=$(dpkg --print-architecture)
+          printf 'key=%s-%s\n' "$os_release" "$architecture" >> "$GITHUB_OUTPUT"
       - name: Restore the exact ConduitOS tool bundle
         id: tool-cache
         uses: actions/cache@v6

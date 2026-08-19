@@ -17,8 +17,23 @@ refuse() {
 }
 
 require_runner_identity() {
-  test -n "${ImageOS:-}" || refuse 'ImageOS is absent'
-  test -n "${ImageVersion:-}" || refuse 'ImageVersion is absent'
+  command -v dpkg >/dev/null || refuse 'dpkg is absent'
+  test -n "$(runner_image_os)" || refuse 'runner image OS is absent'
+  test -n "$(runner_image_version)" || refuse 'runner image version is absent'
+}
+
+runner_image_os() {
+  . /etc/os-release
+  printf '%s' "$ID"
+}
+
+runner_image_version() {
+  . /etc/os-release
+  printf '%s' "$VERSION_ID"
+}
+
+runner_os_release() {
+  printf '%s/%s' "$(runner_image_os)" "$(runner_image_version)"
 }
 
 write_expected_packages() {
@@ -39,9 +54,9 @@ verify_bundle() {
   actual_image_version=$(sed -n 's/^image_version=//p' "$bundle/identity.env")
   actual_os_release=$(sed -n 's/^os_release=//p' "$bundle/identity.env")
   test "$actual_schema" = "$schema" || refuse 'schema mismatch'
-  test "$actual_image_os" = "$ImageOS" || refuse 'runner image OS mismatch'
-  test "$actual_image_version" = "$ImageVersion" || refuse 'runner image version mismatch'
-  test "$actual_os_release" = "$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
+  test "$actual_image_os" = "$(runner_image_os)" || refuse 'runner image OS mismatch'
+  test "$actual_image_version" = "$(runner_image_version)" || refuse 'runner image version mismatch'
+  test "$actual_os_release" = "$(runner_os_release)" \
     || refuse 'runner OS release mismatch'
   diff -u <(write_expected_packages) "$bundle/packages.txt" \
     || refuse 'package manifest mismatch'
@@ -72,9 +87,8 @@ prepare_bundle() {
   install -d -m 0777 "$apt_cache/partial"
   write_expected_packages > "$bundle/packages.txt"
   printf 'schema=%s\nimage_os=%s\nimage_version=%s\nos_release=%s/%s\n' \
-    "$schema" "$ImageOS" "$ImageVersion" \
-    "$(. /etc/os-release; printf '%s' "$ID")" \
-    "$(. /etc/os-release; printf '%s' "$VERSION_ID")" > "$bundle/identity.env"
+    "$schema" "$(runner_image_os)" "$(runner_image_version)" \
+    "$(runner_image_os)" "$(runner_image_version)" > "$bundle/identity.env"
 
   sudo apt-get update
   sudo apt-get install --download-only --reinstall -y --no-install-recommends \
