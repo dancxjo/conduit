@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 use clap::{Args, Subcommand};
 use conduit_core::ChargingState;
 use conduit_netherwick::{
-    CreateObservationFailure, CreateObservationSession, CreatePortableObservation,
-    CreateSensorLoweringError,
+    CreateObservationFailure, CreateObservationSession, CreateOdometryAccumulator,
+    CreateOdometryError, CreatePortableObservation, CreateSensorLoweringError,
 };
 use conduit_std_host::std_create_uart::{
     monotonic_millis, StdCreateUartBase, StdCreateUartObservation, StdCreateUartOpenError,
@@ -21,7 +21,7 @@ use crate::commands::netherwick_std_drive::{self, StdDriveArgs};
 use crate::commands::netherwick_std_indicator::{self, StdIndicatorArgs};
 use crate::commands::netherwick_std_speaker::{self, StdSpeakerArgs};
 
-const EVIDENCE_SCHEMA: &str = "conduit.netherwick/std-create-observation-evidence@1";
+const EVIDENCE_SCHEMA: &str = "conduit.netherwick/std-create-observation-evidence@2";
 const MAXIMUM_ID_BYTES: usize = 128;
 const MAXIMUM_PATH_BYTES: usize = 4_096;
 const MAXIMUM_READ_TIMEOUT_MS: u32 = 5_000;
@@ -129,6 +129,16 @@ struct PortableObservation {
     battery_charge_permille: Option<u16>,
     distance_delta_mm: i16,
     angle_delta_degrees: i16,
+    start_local_odometry: StartLocalOdometry,
+}
+
+#[derive(Serialize)]
+struct StartLocalOdometry {
+    forward_mm: i32,
+    lateral_mm: i32,
+    yaw_microradians: i32,
+    frame_generation: u32,
+    sample_generation: u32,
 }
 
 pub fn run(args: NetherwickArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
@@ -226,12 +236,20 @@ fn observe(provider: &mut StdCreateUartBase, deadline: u64) -> Outcome {
         return failed("session_start", error, None);
     }
     match session.read(provider, deadline) {
-        Ok(observation) => match session.pause(provider) {
-            Ok(()) => Outcome::Observed {
-                observation: portable_observation(observation),
-            },
-            Err(error) => failed("session_pause", error, None),
-        },
+        Ok(observation) => {
+            let portable = portable_observation(observation);
+            match session.pause(provider) {
+                Err(error) => failed("session_pause", error, None),
+                Ok(()) => match portable {
+                    Ok(observation) => Outcome::Observed { observation },
+                    Err(error) => Outcome::Failed {
+                        stage: "odometry_integration",
+                        code: odometry_error_code(error),
+                        cleanup_code: None,
+                    },
+                },
+            }
+        }
         Err(error) => {
             let cleanup = session.pause(provider).err().map(observation_error_code);
             failed("session_read", error, cleanup)
@@ -239,7 +257,9 @@ fn observe(provider: &mut StdCreateUartBase, deadline: u64) -> Outcome {
     }
 }
 
-fn portable_observation(value: CreatePortableObservation) -> PortableObservation {
+fn portable_observation(
+    value: CreatePortableObservation,
+) -> Result<PortableObservation, CreateOdometryError> {
     let group = value.group_zero;
     let charging = group
         .charging
@@ -250,7 +270,10 @@ fn portable_observation(value: CreatePortableObservation) -> PortableObservation
         .battery()
         .expect("session lowering already validated battery consistency");
     let (cliff_signal_available, cliff_signals) = group.cliff.signals();
-    PortableObservation {
+    let mut accumulator = CreateOdometryAccumulator::new();
+    let odometry = accumulator.integrate(group.distance_delta_mm, group.angle_delta_degrees)?;
+    let (forward_mm, lateral_mm, yaw_microradians) = odometry.value.components();
+    Ok(PortableObservation {
         contact_body_sectors: group.contact.active_body_sectors(),
         cliff_body_sectors: group.cliff.active_sectors(),
         cliff_signal_available,
@@ -270,6 +293,21 @@ fn portable_observation(value: CreatePortableObservation) -> PortableObservation
         battery_charge_permille: battery.map(|battery| battery.charge_permille()),
         distance_delta_mm: group.distance_delta_mm,
         angle_delta_degrees: group.angle_delta_degrees,
+        start_local_odometry: StartLocalOdometry {
+            forward_mm,
+            lateral_mm,
+            yaw_microradians,
+            frame_generation: odometry.frame_generation,
+            sample_generation: odometry.sample_generation,
+        },
+    })
+}
+
+fn odometry_error_code(error: CreateOdometryError) -> &'static str {
+    match error {
+        CreateOdometryError::PositionOverflow => "position_overflow",
+        CreateOdometryError::SampleGenerationExhausted => "sample_generation_exhausted",
+        CreateOdometryError::PortableValueOutsideContract => "portable_value_outside_contract",
     }
 }
 

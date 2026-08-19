@@ -51,6 +51,11 @@ fn snapshot() -> CreateObservationSnapshot {
         observed_at_tick: 90,
         maximum_age_ticks: 20,
         observation: observation(),
+        odometry: Some(CreateOdometrySample {
+            value: conduit_core::OdometryObservation::new(-120, 0, 523_599).unwrap(),
+            frame_generation: 1,
+            sample_generation: 4,
+        }),
     }
 }
 

@@ -5,6 +5,8 @@ use crate::{
     encode_create_observation, CreateObservationChannel, CreateObservationDispatchFailure,
     CreateObservationEvidence, CreateObservationExecutionFailure, CreateObservationExecutionReport,
     CreateObservationSession, CreateObservationSnapshot, CreateObservationTerminal,
+    CreateOdometryAccumulator, CreateOdometryResetAuthority, CreateOdometryResetBinding,
+    CreateOdometryResetRefusal, CreateOdometryResetRequest, CreateOdometryResetSign,
     CreateUartProvider,
 };
 use conduit_core::{BootId, HostId, OfferGeneration, Plan};
@@ -36,6 +38,9 @@ pub struct PreparedCreateObservationExecution {
     pub(super) maximum_age_ticks: u32,
     pub(super) next_observation_generation: u32,
     pub(super) dispatched: bool,
+    odometry: CreateOdometryAccumulator,
+    pub(super) odometry_frame_generation: Option<u32>,
+    pub(super) odometry_sample_generation: Option<u32>,
     pending: Option<PendingObservationCompletion>,
 }
 
@@ -53,6 +58,20 @@ pub fn prepare_create_observation_execution(
     plan: &Plan,
     channel: CreateObservationChannel,
     evidence: &CreateObservationEvidence,
+) -> Result<PreparedCreateObservationExecution, &'static str> {
+    prepare_create_observation_execution_with_odometry(
+        plan,
+        channel,
+        evidence,
+        CreateOdometryAccumulator::new(),
+    )
+}
+
+pub fn prepare_create_observation_execution_with_odometry(
+    plan: &Plan,
+    channel: CreateObservationChannel,
+    evidence: &CreateObservationEvidence,
+    odometry: CreateOdometryAccumulator,
 ) -> Result<PreparedCreateObservationExecution, &'static str> {
     crate::create_observation_plan_validation::validate_plan(plan, channel, evidence)?;
     let maximum_output_bytes = plan
@@ -75,8 +94,19 @@ pub fn prepare_create_observation_execution(
         maximum_age_ticks: evidence.maximum_age_ticks,
         next_observation_generation: 1,
         dispatched: false,
+        odometry,
+        odometry_frame_generation: (channel == CreateObservationChannel::Odometry)
+            .then_some(odometry.frame_generation()),
+        odometry_sample_generation: (channel == CreateObservationChannel::Odometry)
+            .then_some(odometry.sample_generation()),
         pending: None,
     })
+}
+
+pub fn create_observation_odometry_state(
+    execution: &PreparedCreateObservationExecution,
+) -> Option<CreateOdometryAccumulator> {
+    (execution.channel == CreateObservationChannel::Odometry).then_some(execution.odometry)
 }
 
 pub fn run_create_observation_execution<P: CreateUartProvider>(
@@ -160,6 +190,32 @@ pub fn dispatch_create_observation_execution<P: CreateUartProvider>(
             observed_at_tick: None,
         });
     }
+    let odometry = if execution.channel == CreateObservationChannel::Odometry {
+        match execution.odometry.integrate(
+            observation.group_zero.distance_delta_mm,
+            observation.group_zero.angle_delta_degrees,
+        ) {
+            Ok(sample) => {
+                execution.odometry_frame_generation = Some(sample.frame_generation);
+                execution.odometry_sample_generation = Some(sample.sample_generation);
+                Some(sample)
+            }
+            Err(failure) => {
+                let terminal =
+                    CreateObservationTerminal::Failed(CreateObservationExecutionFailure::Encoding(
+                        crate::CreateObservationEncodeRefusal::Odometry(failure),
+                    ));
+                fail_request(execution, request, terminal);
+                return Err(CreateObservationDispatchFailure {
+                    terminal,
+                    observation_generation: None,
+                    observed_at_tick: Some(observed_at_tick),
+                });
+            }
+        }
+    } else {
+        None
+    };
     let generation = execution.next_observation_generation;
     execution.next_observation_generation = execution.next_observation_generation.saturating_add(1);
     let snapshot = CreateObservationSnapshot {
@@ -172,6 +228,7 @@ pub fn dispatch_create_observation_execution<P: CreateUartProvider>(
         observed_at_tick,
         maximum_age_ticks: execution.maximum_age_ticks,
         observation,
+        odometry,
     };
     let encoded = match encode_create_observation(&snapshot, execution.channel, now_tick) {
         Ok(Some(encoded)) => encoded,
@@ -224,6 +281,44 @@ pub fn dispatch_create_observation_execution<P: CreateUartProvider>(
         observed_at_tick,
     });
     Ok(())
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CreateObservationOdometryResetRefusal {
+    WrongChannel,
+    ObservationInFlightOrFinished,
+    Reset(CreateOdometryResetRefusal),
+}
+
+pub fn reset_create_observation_odometry(
+    execution: &mut PreparedCreateObservationExecution,
+    request: CreateOdometryResetRequest<'_>,
+    authority: Option<CreateOdometryResetAuthority<'_>>,
+    now_tick: u64,
+) -> Result<CreateOdometryResetSign, CreateObservationOdometryResetRefusal> {
+    if execution.channel != CreateObservationChannel::Odometry {
+        return Err(CreateObservationOdometryResetRefusal::WrongChannel);
+    }
+    if execution.dispatched || execution.pending.is_some() {
+        return Err(CreateObservationOdometryResetRefusal::ObservationInFlightOrFinished);
+    }
+    let sign = execution
+        .odometry
+        .reset(
+            request,
+            authority,
+            CreateOdometryResetBinding {
+                host_id: &execution.host_id,
+                boot_id: &execution.boot_id,
+                offer_generation: execution.offer_generation,
+                implementation_id: execution.channel.implementation_id(),
+            },
+            now_tick,
+        )
+        .map_err(CreateObservationOdometryResetRefusal::Reset)?;
+    execution.odometry_frame_generation = Some(sign.current_frame_generation);
+    execution.odometry_sample_generation = Some(0);
+    Ok(sign)
 }
 
 pub fn finish_create_observation_execution(
