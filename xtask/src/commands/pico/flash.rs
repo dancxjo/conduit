@@ -185,7 +185,7 @@ fn try_headless_mount() -> PicoResult<Option<PathBuf>> {
     }
 
     let output = Command::new("sudo")
-        .args(["-n", HEADLESS_MOUNT_HELPER])
+        .args(["-n", "--", HEADLESS_MOUNT_HELPER])
         .output()?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
