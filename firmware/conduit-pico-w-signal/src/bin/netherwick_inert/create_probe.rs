@@ -3,8 +3,8 @@
 use core::fmt::Write as _;
 
 use conduit_create_oi::{
-    decode_sensor_packet, encode_query_sensor, encode_start, write_command, CreateOiFailure,
-    CreateUartProvider, UartProfile,
+    decode_sensor_packet, encode_pause_stream, encode_query_sensor, encode_start, write_command,
+    CreateOiFailure, CreateUartProvider, UartProfile,
 };
 use embassy_rp::gpio::Output;
 use embassy_rp::peripherals::{PIN_0, PIN_1, UART0};
@@ -141,20 +141,29 @@ pub async fn run(
     };
     translator_oe.set_high();
     Timer::after(Duration::from_millis(10)).await;
-    let (prequery_bytes, prequery_errors) = drain_prequery_rx(&mut provider);
+    let (mut prequery_bytes, mut prequery_errors) = drain_prequery_rx(&mut provider);
 
     let result = match write_command(&mut provider, &encode_start()) {
         Err(failure) => Err(ProbeFailure::Protocol(failure)),
-        Ok(()) => match encode_query_sensor(GROUP_ZERO_PACKET)
-            .and_then(|query| write_command(&mut provider, &query))
-        {
+        Ok(()) => match write_command(&mut provider, &encode_pause_stream()) {
             Err(failure) => Err(ProbeFailure::Protocol(failure)),
-            Ok(()) => read_group_zero(&mut provider)
-                .await
-                .and_then(|payload| {
-                    decode_sensor_packet(GROUP_ZERO_PACKET, &payload)
-                        .map_err(ProbeFailure::Protocol)
-                }),
+            Ok(()) => {
+                Timer::after(Duration::from_millis(20)).await;
+                let (tail_bytes, tail_errors) = drain_prequery_rx(&mut provider);
+                prequery_bytes += tail_bytes;
+                prequery_errors += tail_errors;
+                match encode_query_sensor(GROUP_ZERO_PACKET)
+                    .and_then(|query| write_command(&mut provider, &query))
+                {
+                    Err(failure) => Err(ProbeFailure::Protocol(failure)),
+                    Ok(()) => read_group_zero(&mut provider)
+                        .await
+                        .and_then(|payload| {
+                            decode_sensor_packet(GROUP_ZERO_PACKET, &payload)
+                                .map_err(ProbeFailure::Protocol)
+                        }),
+                }
+            }
         },
     };
     translator_oe.set_low();
