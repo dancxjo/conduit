@@ -1,20 +1,18 @@
 //! Bounded std UART physical entrance for the existing Create speaker Plan.
 
-use std::fs::OpenOptions;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use clap::Args;
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_create_oi::{
-    encode_mode, encode_query_sensor, encode_start, read_query_sensor_packet, write_command,
-    CreateOiFailure, CreateOiModeRequest, CreateUartProvider, UartProfile,
+    encode_query_sensor, read_query_sensor_packet, write_command, CreateOiFailure,
+    CreateUartProvider, UartProfile,
 };
 use conduit_netherwick::{
     encode_song, prepare_speaker_execution, run_speaker_execution, simple_melody_plan,
-    speaker_authority_admits, CreateSpeakerObservation, CreateSpeakerSerial, OiMode, OiPitch,
-    OiSongEvent, SerialFailure, SpeakerPlayReport, SpeakerTerminal, DURATION_TICKS_PER_SECOND,
+    speaker_authority_admits, CreateSpeakerObservation, CreateSpeakerSerial, OiPitch, OiSongEvent,
+    SerialFailure, SpeakerPlayReport, SpeakerTerminal, DURATION_TICKS_PER_SECOND,
     MAXIMUM_ADMITTED_SERIAL_BYTES, SIMPLE_MELODY_FORM, SPEAKER_AUTHORITY, SPEAKER_IMPLEMENTATION,
 };
 use conduit_std_host::std_create_uart::{
@@ -24,6 +22,7 @@ use conduit_std_host::std_create_uart::{
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
+use crate::commands::netherwick_std_create::{establish_safe, write_new_atomic};
 
 const EVIDENCE_SCHEMA: &str = "conduit.netherwick/std-create-speaker-evidence@1";
 const MAXIMUM_ID_BYTES: usize = 128;
@@ -31,7 +30,6 @@ const MAXIMUM_PATH_BYTES: usize = 4_096;
 const MAXIMUM_READ_TIMEOUT_MS: u32 = 5_000;
 const SONG_NUMBER_PACKET: u8 = 36;
 const SONG_PLAYING_PACKET: u8 = 37;
-const OI_MODE_PACKET: u8 = 35;
 
 #[derive(Args, Clone, Debug)]
 pub struct StdSpeakerArgs {
@@ -145,16 +143,7 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
     })
     .map_err(|error| format!("base open: {error:?}"))?;
     let identity = provider.identity().clone();
-    write_command(&mut provider, &encode_start()).map_err(protocol_error)?;
-    write_command(
-        &mut provider,
-        &encode_mode(CreateOiModeRequest::Safe).expect("SAFE has one exact command"),
-    )
-    .map_err(protocol_error)?;
-    let mode = query_mode(&mut provider, args.read_timeout_ms)?;
-    if mode != OiMode::Safe {
-        return Err(format!("device mode after SAFE request was {mode:?}").into());
-    }
+    let mode = establish_safe(&mut provider, args.read_timeout_ms)?;
     let observation = CreateSpeakerObservation {
         host_id: HostId::from(args.host_id.clone()),
         boot_id: BootId::from(args.boot_id.clone()),
@@ -302,27 +291,6 @@ impl CreateSpeakerSerial for StdSpeakerSerial<'_> {
     }
 }
 
-fn query_mode(
-    provider: &mut StdCreateUartBase,
-    read_timeout_ms: u32,
-) -> Result<OiMode, Box<dyn std::error::Error>> {
-    let query = encode_query_sensor(OI_MODE_PACKET).map_err(protocol_error)?;
-    write_command(provider, &query).map_err(protocol_error)?;
-    let deadline = monotonic_millis()
-        .map_err(|error| format!("monotonic clock: {error:?}"))?
-        .checked_add(u64::from(read_timeout_ms))
-        .ok_or("mode deadline overflow")?;
-    let packet = read_query_sensor_packet(provider, OI_MODE_PACKET, deadline)
-        .map_err(|error| format!("mode query: {error:?}"))?;
-    match packet.bytes()[0] {
-        0 => Ok(OiMode::Off),
-        1 => Ok(OiMode::Passive),
-        2 => Ok(OiMode::Safe),
-        3 => Ok(OiMode::Full),
-        _ => Err("invalid OI mode payload".into()),
-    }
-}
-
 fn terminal_outcome(report: SpeakerPlayReport) -> Outcome {
     match report.terminal {
         SpeakerTerminal::Completed => Outcome::Completed,
@@ -345,10 +313,6 @@ fn map_serial_failure(error: CreateOiFailure) -> SerialFailure {
         CreateOiFailure::MalformedFrame => SerialFailure::MalformedResponse,
         _ => SerialFailure::Refused,
     }
-}
-
-fn protocol_error(error: CreateOiFailure) -> String {
-    format!("Create OI protocol: {error:?}")
 }
 
 fn validate(args: &StdSpeakerArgs) -> Result<(), Box<dyn std::error::Error>> {
@@ -377,27 +341,6 @@ fn validate(args: &StdSpeakerArgs) -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("read-timeout-ms must be 1..={MAXIMUM_READ_TIMEOUT_MS}").into());
     }
     Ok(())
-}
-
-fn write_new_atomic(path: &Path, bytes: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
-    if path.exists() {
-        return Err(format!("evidence destination already exists: {}", path.display()).into());
-    }
-    let mut temporary = path.as_os_str().to_os_string();
-    temporary.push(format!(".tmp-{}", std::process::id()));
-    let temporary = PathBuf::from(temporary);
-    let result = (|| -> Result<(), Box<dyn std::error::Error>> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&temporary)?;
-        file.write_all(bytes)?;
-        file.sync_all()?;
-        std::fs::hard_link(&temporary, path)?;
-        Ok(())
-    })();
-    let _ = std::fs::remove_file(&temporary);
-    result
 }
 
 #[cfg(test)]

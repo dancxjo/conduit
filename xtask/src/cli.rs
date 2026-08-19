@@ -585,6 +585,29 @@ mod tests {
         ])
         .expect("explicit std Create speaker entrance parses");
         assert!(matches!(netherwick_speaker.command, Command::Netherwick(_)));
+        let netherwick_indicator = Cli::try_parse_from([
+            "xtask",
+            "netherwick",
+            "std-indicator",
+            "--serial-path",
+            "/dev/ttyUSB0",
+            "--base-id",
+            "std/create-uart/0",
+            "--host-id",
+            "std-host/0",
+            "--boot-id",
+            "std-boot/0",
+            "--robot-id",
+            "robot/create1/0",
+            "--attest-robot-identity",
+            "--evidence-out",
+            "target/netherwick-indicator.json",
+        ])
+        .expect("explicit std Create indicator entrance parses");
+        assert!(matches!(
+            netherwick_indicator.command,
+            Command::Netherwick(_)
+        ));
         assert!(Cli::try_parse_from([
             "xtask",
             "audio",

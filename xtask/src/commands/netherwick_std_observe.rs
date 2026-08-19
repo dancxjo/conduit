@@ -17,6 +17,7 @@ use conduit_std_host::std_create_uart::{
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
+use crate::commands::netherwick_std_indicator::{self, StdIndicatorArgs};
 use crate::commands::netherwick_std_speaker::{self, StdSpeakerArgs};
 
 const EVIDENCE_SCHEMA: &str = "conduit.netherwick/std-create-observation-evidence@1";
@@ -33,9 +34,14 @@ pub struct NetherwickArgs {
 #[derive(Subcommand, Debug)]
 enum NetherwickCommand {
     /// Observe one bounded correlated Create sensor frame without actuation.
-    StdObserve(StdObserveArgs),
+    #[command(name = "std-observe")]
+    Observe(StdObserveArgs),
     /// Play one bounded portable melody through an exact std Create UART Base.
-    StdSpeaker(StdSpeakerArgs),
+    #[command(name = "std-speaker")]
+    Speaker(StdSpeakerArgs),
+    /// Manifest canonical Signal presentation on the Create power indicator.
+    #[command(name = "std-indicator")]
+    Indicator(StdIndicatorArgs),
 }
 
 #[derive(Args, Clone, Debug)]
@@ -123,8 +129,9 @@ struct PortableObservation {
 
 pub fn run(args: NetherwickArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
-        NetherwickCommand::StdObserve(args) => run_std_observe(args, opts),
-        NetherwickCommand::StdSpeaker(args) => netherwick_std_speaker::run(args, opts),
+        NetherwickCommand::Observe(args) => run_std_observe(args, opts),
+        NetherwickCommand::Speaker(args) => netherwick_std_speaker::run(args, opts),
+        NetherwickCommand::Indicator(args) => netherwick_std_indicator::run(args, opts),
     }
 }
 
