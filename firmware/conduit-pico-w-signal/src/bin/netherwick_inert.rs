@@ -10,6 +10,7 @@ use conduit_mpu6050::{
 };
 use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder};
 use embassy_executor::Executor;
+use embassy_futures::select::{select, Either};
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Input, Level, Output, Pull};
 use embassy_rp::i2c::{Blocking, Config as I2cConfig, I2c};
@@ -69,6 +70,7 @@ const CREATE_PROBE_REQUEST_PREFIX: &str = "CONDUIT_CREATE_PROBE@1:";
 const BOOTSEL_FRAME_MAX: usize = 512;
 const WATCHDOG_TIMEOUT_MS: u64 = 2_000;
 const WATCHDOG_FEED_MS: u64 = 250;
+const CONTROL_PACKET_WRITE_TIMEOUT_MS: u64 = 250;
 
 struct Provider(BoardI2c);
 
@@ -127,10 +129,26 @@ async fn send_control_frame(class: &mut InertCdc, payload: &[u8]) -> Result<(), 
     let mut framed = [0_u8; BOOTSEL_FRAME_MAX + 2];
     let length = encode_stream_frame(payload, BOOTSEL_FRAME_MAX, &mut framed).map_err(|_| ())?;
     for chunk in framed[..length].chunks(64) {
-        class.write_packet(chunk).await.map_err(|_| ())?;
+        match select(
+            class.write_packet(chunk),
+            Timer::after(Duration::from_millis(CONTROL_PACKET_WRITE_TIMEOUT_MS)),
+        )
+        .await
+        {
+            Either::First(result) => result.map_err(|_| ())?,
+            Either::Second(()) => return Err(()),
+        }
     }
     if length % 64 == 0 {
-        class.write_packet(&[]).await.map_err(|_| ())?;
+        match select(
+            class.write_packet(&[]),
+            Timer::after(Duration::from_millis(CONTROL_PACKET_WRITE_TIMEOUT_MS)),
+        )
+        .await
+        {
+            Either::First(result) => result.map_err(|_| ())?,
+            Either::Second(()) => return Err(()),
+        }
     }
     Ok(())
 }
