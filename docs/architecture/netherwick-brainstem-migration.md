@@ -62,7 +62,7 @@ and Pico W HIL remain distinct evidence classes.
 | `set_lights` | keep | portable indicator/Presentation output | Bounded light meaning lowers to the Create LED profile |
 | `dock` | keep | portable docking request | Exact authority, refusal, opcode realization, and terminal Sign are proven |
 | `power_state`, `create_power_on`, `create_power_off` | service | power observation and bounded device service action | Unknown/off/on remain distinct; toggle/start/baud actions are authorized |
-| `restart_create` | service | Create device lifecycle operation | Stop-first behavior and fresh device re-observation are proven |
+| `restart_create` | service | exact composed Create device lifecycle transaction | `create_restart_service` accepts only the existing requested-stop, separately verified off/on power-service, fresh device/mode observation, and exact mode-service Signs; it owns no provider, retry, RPC, or palette surface |
 | `reset_odometry` | service | bounded odometry-frame reset | New frame/provenance generation is explicit |
 | `zero_imu_orientation`, `clear_imu_orientation` | service | bounded calibration operation | Calibration identity, frame, freshness, and invalidation are explicit |
 | `calibrate_turn`, `orientation_probe` | service | attended calibration Form/action | Motion authority, duration, safe stop, result, and failure are retained |
