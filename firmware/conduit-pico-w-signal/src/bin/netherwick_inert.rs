@@ -98,23 +98,26 @@ async fn main(_spawner: Spawner) {
     // retained for the lifetime of the image so neither can float or be reused.
     let _power_toggle = Output::new(p.PIN_18, Level::Low);
     let _translator_oe = Output::new(p.PIN_19, Level::Low);
-    // PIN_0, PIN_1 and UART0 are intentionally never taken.
-    let mut i2c_config = I2cConfig::default();
-    i2c_config.frequency = 100_000;
-    let mut provider = Provider(I2c::new_blocking(p.I2C1, p.PIN_3, p.PIN_2, i2c_config));
-    let mut result = Err(Mpu6050Failure::DeviceNoResponse);
-    let mut address = DEFAULT_ADDRESS;
-    for candidate in [DEFAULT_ADDRESS, ALTERNATE_ADDRESS] {
-        let mut session = Mpu6050Session::new(candidate).unwrap();
-        result = session.observe(&mut provider, 1);
-        address = candidate;
-        if result.is_ok() { break; }
-    }
-
     let driver = usb::Driver::new(p.USB, Irqs);
     let (mut device, mut class) = usb_device(driver);
     let report = async {
         class.wait_connection().await;
+        // Keep the USB recovery/qualification entrance live before touching a
+        // potentially absent or electrically held I²C bus.  The probe is
+        // deliberately below this boundary so a bus fault becomes an IMU
+        // receipt rather than preventing CDC enumeration and remote BOOTSEL.
+        // PIN_0, PIN_1 and UART0 are intentionally never taken.
+        let mut i2c_config = I2cConfig::default();
+        i2c_config.frequency = 100_000;
+        let mut provider = Provider(I2c::new_blocking(p.I2C1, p.PIN_3, p.PIN_2, i2c_config));
+        let mut result = Err(Mpu6050Failure::DeviceNoResponse);
+        let mut address = DEFAULT_ADDRESS;
+        for candidate in [DEFAULT_ADDRESS, ALTERNATE_ADDRESS] {
+            let mut session = Mpu6050Session::new(candidate).unwrap();
+            result = session.observe(&mut provider, 1);
+            address = candidate;
+            if result.is_ok() { break; }
+        }
         write_line(&mut class, concat!("{\"schema\":\"conduit.netherwick/inert-boot@1\",\"build_id\":\"", env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"), "\"}\n")).await;
         write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"uninitialized\",\"i2c\":{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}}\n").await;
         let mut line: String<384> = String::new();
