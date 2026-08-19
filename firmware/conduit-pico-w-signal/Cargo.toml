@@ -15,7 +15,7 @@ appliance-hello = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 appliance-hil-client = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 bluetooth-line = ["dep:conduit-bluetooth", "dep:conduit-wire", "dep:embassy-futures", "dep:embassy-sync", "dep:heapless09", "dep:rand_core", "dep:trouble-host", "cyw43/bluetooth"]
 usb-midi-fixture = ["dep:embassy-futures"]
-netherwick-inert = ["dep:embassy-futures"]
+netherwick-inert = ["dep:conduit-wire", "dep:embassy-futures"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
 
 [dependencies]
@@ -36,6 +36,8 @@ cyw43 = "0.7"
 cyw43-pio = "0.10"
 fixed = "=1.29.0"
 heapless = "0.8"
+embedded-hal-nb = "1.0"
+nb = "1.1"
 heapless09 = { package = "heapless", version = "0.9", optional = true }
 rand_core = { version = "0.6", optional = true }
 embassy-net = { version = "0.9", features = ["dhcpv4", "dns", "medium-ethernet", "proto-ipv4", "tcp", "udp"], optional = true }

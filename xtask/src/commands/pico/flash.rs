@@ -221,21 +221,10 @@ fn parse_headless_mount_path(stdout: &str) -> PicoResult<PathBuf> {
 }
 
 fn discover_bootsel_mounts() -> PicoResult<Vec<PathBuf>> {
-    let mut candidates = standard_paths()
-        .into_iter()
-        .filter(|path| path.is_dir())
-        .collect::<Vec<_>>();
-
-    let (mounted, _) = find_rpi_rp2_devices()?;
-    for path in mounted {
-        if !candidates.contains(&path) {
-            candidates.push(path);
-        }
-    }
-
-    candidates.sort();
-    candidates.dedup();
-    Ok(candidates)
+    let (mut mounted, _) = find_rpi_rp2_devices()?;
+    mounted.sort();
+    mounted.dedup();
+    Ok(mounted)
 }
 
 fn try_udisks_mount() -> PicoResult<Option<PathBuf>> {
@@ -253,10 +242,12 @@ fn try_udisks_mount() -> PicoResult<Option<PathBuf>> {
                 }
             }
         }
-        for path in standard_paths() {
-            if path.is_dir() {
-                return Ok(Some(path));
-            }
+        let (mounted, _) = find_rpi_rp2_devices()?;
+        if mounted.len() == 1 {
+            return Ok(mounted.into_iter().next());
+        }
+        if mounted.len() > 1 {
+            return Err("multiple RPI-RP2 volumes detected after udisks mount".into());
         }
     }
     Ok(None)
@@ -301,16 +292,6 @@ fn extract_kv(line: &str, key: &str) -> Option<String> {
     let start = line.find(&needle)? + needle.len();
     let end = line[start..].find('"')? + start;
     Some(line[start..end].to_string())
-}
-
-fn standard_paths() -> Vec<PathBuf> {
-    let user = std::env::var("USER").unwrap_or_default();
-    vec![
-        PathBuf::from(format!("/run/media/{user}/RPI-RP2")),
-        PathBuf::from(format!("/media/{user}/RPI-RP2")),
-        PathBuf::from("/media/RPI-RP2"),
-        PathBuf::from("/Volumes/RPI-RP2"),
-    ]
 }
 
 #[cfg(test)]

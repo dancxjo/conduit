@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use super::doctor::repo_root;
-use super::firmware::{read_identity_manifest, FirmwareIdentity, GeneratedImageIdentity};
+use super::firmware::{
+    identity_manifest_path, read_identity_manifest, FirmwareIdentity, GeneratedImageIdentity,
+};
 use super::{PicoArgs, PicoResult};
 
 const EXPECTED_RECEIPTS: usize = 16;
@@ -56,7 +58,109 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
 }
 
 fn verify_netherwick_inert(args: &PicoArgs) -> PicoResult<()> {
-    let port = if let Some(port) = &args.port {
+    let port = resolve_inert_port(args.port.as_deref())?;
+    println!(
+        "==> pico verify: reading inert qualification from {}",
+        port.display()
+    );
+    let file = std::fs::OpenOptions::new().read(true).open(&port)?;
+    conduit_std_host::usb_cdc::configure_cdc_port(&file, 0, 50)?;
+    let mut reader = BufReader::new(file);
+    let deadline = Instant::now() + Duration::from_secs(8);
+    let mut records = Vec::new();
+    while Instant::now() < deadline
+        && !records.iter().any(|record: &serde_json::Value| {
+            record["schema"] == "conduit.netherwick/inert-terminal@1"
+        })
+    {
+        let mut line = String::new();
+        if reader.read_line(&mut line)? > 0 {
+            let record = serde_json::from_str::<serde_json::Value>(line.trim())?;
+            print!("{line}");
+            records.push(record);
+        }
+    }
+    let identity: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(
+        identity_manifest_path(&repo_root()),
+    )?)?;
+    validate_netherwick_inert_records(&records, &identity)?;
+    println!("==> pico verify: inert qualification transcript complete");
+    Ok(())
+}
+
+fn validate_netherwick_inert_records(
+    records: &[serde_json::Value],
+    identity: &serde_json::Value,
+) -> PicoResult<()> {
+    let expected_schemas = [
+        "conduit.netherwick/inert-boot@1",
+        "conduit.netherwick/inert-disposition@1",
+        "conduit.netherwick/imu-probe@1",
+        "conduit.netherwick/inert-terminal@1",
+    ];
+    if records.len() != expected_schemas.len() {
+        return Err(format!(
+            "inert qualification requires exactly {} records, got {}",
+            expected_schemas.len(),
+            records.len()
+        )
+        .into());
+    }
+    for (record, expected) in records.iter().zip(expected_schemas) {
+        if record["schema"].as_str() != Some(expected) {
+            return Err(
+                format!("expected inert record {expected}, got {}", record["schema"]).into(),
+            );
+        }
+    }
+
+    let expected_build = identity["firmware_build_id"]
+        .as_str()
+        .ok_or("inert image identity missing firmware_build_id; rebuild the image")?;
+    if records[0]["build_id"].as_str() != Some(expected_build) {
+        return Err("running inert firmware does not match the current built image".into());
+    }
+    let disposition = &records[1];
+    if disposition["translator_oe"] != "low"
+        || disposition["power_toggle"] != "low"
+        || disposition["create_uart"] != "uninitialized"
+        || disposition["watchdog"]["timeout_ms"] != 2_000
+        || disposition["watchdog"]["feed_interval_ms"] != 250
+        || disposition["charging_indicator"]["gpio"] != 20
+        || disposition["charging_indicator"]["active_high"] != true
+        || !matches!(
+            disposition["charging_indicator"]["level"].as_str(),
+            Some("low" | "high")
+        )
+    {
+        return Err("inert disposition does not preserve the fail-safe carrier state".into());
+    }
+    let imu = &records[2];
+    if imu["success"] != true || !matches!(imu["address"].as_u64(), Some(104 | 105)) {
+        return Err("inert IMU probe did not report a supported physical MPU-6050".into());
+    }
+    let acceleration = imu["accel_mm_s2"]
+        .as_array()
+        .filter(|values| values.len() == 3)
+        .ok_or("inert IMU probe missing three-axis acceleration")?;
+    let magnitude_squared = acceleration.iter().try_fold(0_i64, |sum, value| {
+        let axis = value
+            .as_i64()
+            .ok_or("inert IMU acceleration axis is not an integer")?;
+        Ok::<i64, Box<dyn std::error::Error>>(sum.saturating_add(axis.saturating_mul(axis)))
+    })?;
+    if magnitude_squared < 1_000_i64.pow(2) {
+        return Err("inert IMU acceleration is below the physical gravity-reference floor".into());
+    }
+    let terminal = &records[3];
+    if terminal["qualification_complete"] != true || terminal["robot_control_ready"] != false {
+        return Err("inert terminal receipt does not preserve the qualification stop line".into());
+    }
+    Ok(())
+}
+
+pub(super) fn resolve_inert_port(explicit: Option<&str>) -> PicoResult<PathBuf> {
+    let port = if let Some(port) = explicit {
         PathBuf::from(port)
     } else {
         let directory = std::fs::read_dir("/dev/serial/by-id")?;
@@ -66,7 +170,7 @@ fn verify_netherwick_inert(args: &PicoArgs) -> PicoResult<()> {
                 entry
                     .file_name()
                     .to_string_lossy()
-                    .contains("conduit-pico-w-netherwick-inert")
+                    .contains("Pico_W_Netherwick_Inert")
             })
             .map(|entry| entry.path())
             .collect::<Vec<_>>();
@@ -79,36 +183,7 @@ fn verify_netherwick_inert(args: &PicoArgs) -> PicoResult<()> {
         }
         candidates[0].clone()
     };
-    println!(
-        "==> pico verify: reading inert qualification from {}",
-        port.display()
-    );
-    let file = std::fs::OpenOptions::new().read(true).open(&port)?;
-    conduit_std_host::usb_cdc::configure_cdc_port(&file, 0, 50)?;
-    let mut reader = BufReader::new(file);
-    let deadline = Instant::now() + Duration::from_secs(8);
-    let mut text = String::new();
-    while Instant::now() < deadline && !text.contains("inert-terminal@1") {
-        let mut line = String::new();
-        if reader.read_line(&mut line)? > 0 {
-            serde_json::from_str::<serde_json::Value>(line.trim())?;
-            print!("{line}");
-            text.push_str(&line);
-        }
-    }
-    for needle in [
-        "inert-boot@1",
-        "inert-disposition@1",
-        "imu-probe@1",
-        "inert-terminal@1",
-        "\"robot_control_ready\":false",
-    ] {
-        if !text.contains(needle) {
-            return Err(format!("inert qualification missing {needle}").into());
-        }
-    }
-    println!("==> pico verify: inert qualification transcript complete");
-    Ok(())
+    Ok(port)
 }
 
 fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoResult<()> {
@@ -432,6 +507,60 @@ pub fn resolve_dual_ports(
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    fn inert_identity() -> serde_json::Value {
+        serde_json::json!({"firmware_build_id": "inert-build"})
+    }
+
+    fn inert_records(acceleration: [i64; 3]) -> Vec<serde_json::Value> {
+        vec![
+            serde_json::json!({
+                "schema": "conduit.netherwick/inert-boot@1",
+                "build_id": "inert-build"
+            }),
+            serde_json::json!({
+                "schema": "conduit.netherwick/inert-disposition@1",
+                "translator_oe": "low",
+                "power_toggle": "low",
+                "create_uart": "uninitialized",
+                "charging_indicator": {"gpio": 20, "active_high": true, "level": "low"},
+                "watchdog": {"timeout_ms": 2000, "feed_interval_ms": 250}
+            }),
+            serde_json::json!({
+                "schema": "conduit.netherwick/imu-probe@1",
+                "success": true,
+                "address": 104,
+                "accel_mm_s2": acceleration,
+                "gyro_milliradians_s": [0, 0, 0]
+            }),
+            serde_json::json!({
+                "schema": "conduit.netherwick/inert-terminal@1",
+                "qualification_complete": true,
+                "robot_control_ready": false
+            }),
+        ]
+    }
+
+    #[test]
+    fn accepts_build_bound_inert_physical_sample() {
+        validate_netherwick_inert_records(&inert_records([0, 0, 9_807]), &inert_identity())
+            .expect("valid inert qualification");
+    }
+
+    #[test]
+    fn rejects_all_zero_inert_imu_sample() {
+        assert!(
+            validate_netherwick_inert_records(&inert_records([0, 0, 0]), &inert_identity())
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn rejects_inert_firmware_from_another_build() {
+        let mut records = inert_records([0, 0, 9_807]);
+        records[0]["build_id"] = "older-build".into();
+        assert!(validate_netherwick_inert_records(&records, &inert_identity()).is_err());
+    }
 
     fn expected_identity() -> GeneratedImageIdentity {
         GeneratedImageIdentity {

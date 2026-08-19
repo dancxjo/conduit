@@ -304,14 +304,19 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
             return Err("elf2uf2-rs conversion failed".into());
         }
         if args.netherwick_inert {
+            let revision = git_revision(&root)?;
+            let tree_state = git_tree_state(&root)?;
             let identity = serde_json::json!({
                 "schema": "conduit.netherwick/inert-image@1",
-                "git_revision": git_revision(&root)?,
+                "git_revision": revision,
+                "firmware_build_id": format!(
+                    "conduit-pico-w-netherwick-inert:{revision}:{tree_state}:{TARGET}:{PROFILE}:qualification@1"
+                ),
                 "target": TARGET,
                 "profile": PROFILE,
                 "firmware_mode": "netherwick-inert",
                 "firmware_sha256": sha256_file(&elf)?,
-                "usb_serial": "conduit-pico-w-netherwick-inert",
+                "usb_serial": "nw-inert",
                 "translator_oe": {"gpio": 19, "level": "low"},
                 "power_toggle": {"gpio": 18, "level": "low"},
                 "create_uart": "uninitialized",
@@ -354,6 +359,14 @@ fn git_revision(root: &Path) -> PicoResult<String> {
         return Err("git rev-parse HEAD failed".into());
     }
     Ok(String::from_utf8(output.stdout)?.trim().to_owned())
+}
+
+fn git_tree_state(root: &Path) -> PicoResult<&'static str> {
+    let status = Command::new("git")
+        .args(["diff", "--quiet", "--ignore-submodules", "--"])
+        .current_dir(root)
+        .status()?;
+    Ok(if status.success() { "clean" } else { "dirty" })
 }
 
 fn write_identity_manifest(

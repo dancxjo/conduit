@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use conduit_std_host::usb_cdc::NativePathCdcLine;
 
-use super::serial::resolve_dual_ports;
+use super::serial::{resolve_dual_ports, resolve_inert_port};
 use super::{PicoArgs, PicoResult};
 
 const QUERY: &[u8] = b"CONDUIT_BOOTSEL_QUERY@1";
@@ -16,16 +16,17 @@ pub fn run_bootsel(args: &PicoArgs) -> PicoResult<()> {
         return Ok(());
     }
 
-    let (link_port, _) = resolve_dual_ports(args.link_port.as_deref(), args.port.as_deref())?;
+    let link_port = if args.netherwick_inert {
+        resolve_inert_port(args.link_port.as_deref().or(args.port.as_deref()))?
+    } else {
+        resolve_dual_ports(args.link_port.as_deref(), args.port.as_deref())?.0
+    };
     println!(
         "==> pico bootsel: requesting reboot from {}",
         link_port.display()
     );
-    let mut line = NativePathCdcLine::open(&link_port, 1024)?;
-    std::thread::sleep(Duration::from_millis(250));
-    line.send_raw_stream_frame(QUERY, Duration::from_secs(2))?;
-    let mut challenge = [0_u8; 1024];
-    let challenge = line.receive_raw_stream_frame(&mut challenge, Duration::from_secs(2))?;
+    let (mut line, challenge, challenge_len) = query_running_build(&link_port)?;
+    let challenge = &challenge[..challenge_len];
     let running_build = challenge
         .strip_prefix(CHALLENGE_PREFIX)
         .ok_or_else(|| format!("unexpected Pico BOOTSEL challenge: {challenge:?}"))?;
@@ -41,6 +42,34 @@ pub fn run_bootsel(args: &PicoArgs) -> PicoResult<()> {
     }
     println!("==> pico bootsel: exact build acknowledged reboot request");
     Ok(())
+}
+
+fn query_running_build(
+    link_port: &std::path::Path,
+) -> PicoResult<(NativePathCdcLine, [u8; 1024], usize)> {
+    let mut first_error = None;
+    for attempt in 0..2 {
+        let mut line = NativePathCdcLine::open(link_port, 1024)?;
+        std::thread::sleep(Duration::from_millis(250));
+        line.send_raw_stream_frame(QUERY, Duration::from_secs(2))?;
+        let mut challenge = [0_u8; 1024];
+        match line.receive_raw_stream_frame(&mut challenge, Duration::from_secs(2)) {
+            Ok(received) => {
+                let length = received.len();
+                return Ok((line, challenge, length));
+            }
+            Err(error) if attempt == 0 => {
+                println!(
+                    "==> pico bootsel: discarded unread startup bytes before control framing ({error})"
+                );
+                first_error = Some(error);
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Err(first_error
+        .expect("two-attempt loop records its first failure")
+        .into())
 }
 
 #[cfg(test)]
