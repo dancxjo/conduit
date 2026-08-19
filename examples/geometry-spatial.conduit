@@ -1,0 +1,8 @@
+form geometry-spatial (
+    moved: Point2 >
+) {
+    source: geometry/point2(value = {frame: "robot/base", x: 1000mm, y: 2000mm})
+    move: geometry/apply-transform2(transform = {from_frame: "robot/base", offset_x: 1m, offset_y: -500mm, to_frame: "map"})
+    source.point > move.point
+    move.point > moved
+}
