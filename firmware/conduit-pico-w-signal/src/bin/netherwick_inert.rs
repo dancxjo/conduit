@@ -35,7 +35,6 @@ bind_interrupts!(struct Irqs { USBCTRL_IRQ => usb::InterruptHandler<USB>; });
 
 static DEVICE: StaticCell<[u8; 256]> = StaticCell::new();
 static CONFIG: StaticCell<[u8; 256]> = StaticCell::new();
-static BOS: StaticCell<[u8; 256]> = StaticCell::new();
 static CONTROL: StaticCell<[u8; 64]> = StaticCell::new();
 static CDC: StaticCell<State> = StaticCell::new();
 
@@ -65,7 +64,7 @@ fn usb_device(driver: usb::Driver<'static, USB>) -> (
     config.max_packet_size_0 = 64;
     let mut builder = Builder::new(
         driver, config, DEVICE.init([0; 256]), CONFIG.init([0; 256]),
-        BOS.init([0; 256]), CONTROL.init([0; 64]),
+        &mut [], CONTROL.init([0; 64]),
     );
     let class = CdcAcmClass::new(&mut builder, CDC.init(State::new()), 64);
     (builder.build(), class)
