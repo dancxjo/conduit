@@ -1,6 +1,6 @@
 //! Live physical Create differential-drive offer and authority-gated planning seam.
 
-use crate::{LocalHazard, OiMode, SafetyObservation};
+use crate::{IndependentWatchdogObservation, LocalHazard, OiMode, SafetyObservation};
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
@@ -10,11 +10,15 @@ use conduit_core::{
 };
 
 pub const CREATE_DRIVE_PROFILE: &str = "netherwick/create1-differential-drive@1";
+pub const CREATE_DRIVE_REDUCED_SAFETY_PROFILE: &str =
+    "netherwick/create1-differential-drive-no-independent-watchdog@1";
 pub const CREATE_DRIVE_CAPABILITY: &str = "netherwick/create1/differential-drive";
 pub const CREATE_DRIVE_IMPLEMENTATION: &str = "netherwick/create1-drive-direct@1";
 pub const CREATE_DRIVE_ARTIFACT: &str = "conduit-netherwick/create1-drive@1";
 pub const CREATE_DRIVE_OPERATION: &str = "netherwick.host/create1-differential-drive@1";
 pub const CREATE_DRIVE_AUTHORITY: &str = "netherwick.authority/create1-motion@1";
+pub const CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY: &str =
+    "netherwick.authority/create1-motion-no-independent-watchdog@1";
 pub const CREATE_DRIVE_RESOURCE: &str = "netherwick.resource/create1-drive@1";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -56,6 +60,17 @@ pub fn live_create_drive_advertisement(
     if let Some(hazard) = observation.safety.first_hazard(now_tick) {
         return Err(CreateDriveOfferRefusal::SafetyStaleOrInhibited(hazard));
     }
+    let (profile, authority_contract) = if observation.safety.has_complete_independent_envelope() {
+        (CREATE_DRIVE_PROFILE, CREATE_DRIVE_AUTHORITY)
+    } else {
+        match observation.safety.independent_watchdog {
+            IndependentWatchdogObservation::Failed => unreachable!("failed watchdog is a hazard"),
+            IndependentWatchdogObservation::Absent | IndependentWatchdogObservation::Healthy => (
+                CREATE_DRIVE_REDUCED_SAFETY_PROFILE,
+                CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY,
+            ),
+        }
+    };
 
     let contract = conduit_std_catalog::robotics_drive_differential_contract();
     let mut resources = vec![
@@ -83,7 +98,7 @@ pub fn live_create_drive_advertisement(
         host_id: observation.host_id.clone(),
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
-        profile: conduit_core::HostProfileId::from(CREATE_DRIVE_PROFILE),
+        profile: conduit_core::HostProfileId::from(profile),
         resources,
         capabilities: vec![CapabilityOffer {
             startup_parameters: vec![FaceStartupParameter {
@@ -98,7 +113,7 @@ pub fn live_create_drive_advertisement(
                 conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
             ),
             implementation: ImplementationOffer {
-                execution_profile_id: ExecutionProfileId::from(CREATE_DRIVE_PROFILE),
+                execution_profile_id: ExecutionProfileId::from(profile),
                 implementation_id: ImplementationId::from(CREATE_DRIVE_IMPLEMENTATION),
                 artifact_id: ArtifactId::from(CREATE_DRIVE_ARTIFACT),
             },
@@ -113,7 +128,7 @@ pub fn live_create_drive_advertisement(
             }],
             resource_requirements: requirements,
             authority_requirements: vec![AuthorityRequirement {
-                contract_id: AuthorityContractId::from(CREATE_DRIVE_AUTHORITY),
+                contract_id: AuthorityContractId::from(authority_contract),
                 host_operation_contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
                 subject_kind: kind_id(SCALAR_INFO_ID),
             }],

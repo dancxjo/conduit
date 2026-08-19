@@ -608,6 +608,27 @@ mod tests {
             netherwick_indicator.command,
             Command::Netherwick(_)
         ));
+        let netherwick_drive = Cli::try_parse_from([
+            "xtask",
+            "netherwick",
+            "std-drive",
+            "--serial-path",
+            "/dev/ttyUSB0",
+            "--base-id",
+            "std/create-uart/0",
+            "--host-id",
+            "std-host/0",
+            "--boot-id",
+            "std-boot/0",
+            "--robot-id",
+            "robot/create1/0",
+            "--attest-robot-identity",
+            "--confirm-wheels-off-floor",
+            "--evidence-out",
+            "target/netherwick-drive.json",
+        ])
+        .expect("explicit std Create bounded drive entrance parses");
+        assert!(matches!(netherwick_drive.command, Command::Netherwick(_)));
         assert!(Cli::try_parse_from([
             "xtask",
             "audio",

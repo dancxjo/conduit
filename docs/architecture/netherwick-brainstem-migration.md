@@ -143,7 +143,12 @@ Pico W HIL must prove the independent watchdog and every installed physical
 input. The std Host must not advertise an independent hardware watchdog or
 auxiliary GPIO/I2C safety input it does not possess. Both must still preserve
 the common non-bypassable safety contract appropriate to their admitted
-physical configuration; missing mandatory inputs make motion unavailable.
+physical configuration. Missing mandatory inputs make the full-safety motion
+profile unavailable. A std Host may instead offer the visibly distinct
+`no-independent-watchdog` reduced-safety profile only through an exact
+authority that records either a current wheels-off-floor attestation or a
+Plan- and attachment-bound operator acknowledgement for floor motion. An
+absent watchdog or auxiliary input is never encoded as healthy or clear.
 
 ## Bases, device protocol, and Host differences
 

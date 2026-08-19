@@ -7,7 +7,7 @@
 
 use crate::{
     encode_drive_direct, encode_stop, write_command, CreateOiFailure, CreateUartProvider,
-    CREATE_OI_MAX_WHEEL_SPEED_MM_S,
+    LocalHazard, SafetyObservation, CREATE_OI_MAX_WHEEL_SPEED_MM_S,
 };
 
 /// The exact portable-profile lower TTL bound accepted by this realization.
@@ -18,64 +18,17 @@ pub const MAXIMUM_MOTION_TTL_MS: u32 = 60_000;
 pub const MOTION_CLOCK_TICKS_PER_SECOND: u32 = 1_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LocalHazard {
-    EmergencyStop,
-    WheelDrop,
-    Cliff,
-    Tilt,
-    Impact,
-    Charging,
-    ControlLost,
-    BodyLinkLost,
-    WatchdogUnhealthy,
-    SafetyGenerationRegressed,
-    SafetyClockInvalid,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct SafetyObservation {
-    pub generation: u32,
-    pub observed_at_tick: u64,
-    pub maximum_age_ticks: u32,
-    pub emergency_stop: bool,
-    pub wheel_drop: bool,
-    pub cliff: bool,
-    pub tilt: bool,
-    pub impact: bool,
-    pub charging: bool,
-    pub control_alive: bool,
-    pub body_link_alive: bool,
-    pub watchdog_healthy: bool,
-}
-
-impl SafetyObservation {
-    pub fn first_hazard(self, now_tick: u64) -> Option<LocalHazard> {
-        if self.observed_at_tick > now_tick {
-            return Some(LocalHazard::SafetyClockInvalid);
-        }
-        if now_tick.saturating_sub(self.observed_at_tick) > u64::from(self.maximum_age_ticks) {
-            return Some(LocalHazard::BodyLinkLost);
-        }
-        [
-            (self.emergency_stop, LocalHazard::EmergencyStop),
-            (self.wheel_drop, LocalHazard::WheelDrop),
-            (self.cliff, LocalHazard::Cliff),
-            (self.tilt, LocalHazard::Tilt),
-            (self.impact, LocalHazard::Impact),
-            (self.charging, LocalHazard::Charging),
-            (!self.control_alive, LocalHazard::ControlLost),
-            (!self.body_link_alive, LocalHazard::BodyLinkLost),
-            (!self.watchdog_healthy, LocalHazard::WatchdogUnhealthy),
-        ]
-        .into_iter()
-        .find_map(|(active, hazard)| active.then_some(hazard))
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct MotionAuthority<'a> {
     pub grant_id: &'a str,
     pub valid_until_tick: u64,
+    pub safety_class: MotionSafetyAuthority,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MotionSafetyAuthority {
+    IndependentWatchdog,
+    ReducedWheelsOffFloor,
+    ReducedFloorAcknowledged,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,6 +42,7 @@ pub struct DifferentialMotionRequest {
 pub enum DriveRefusal {
     MissingAuthority,
     AuthorityExpired,
+    SafetyAuthorityMismatch,
     SafetyStaleOrInhibited(LocalHazard),
     InvalidTtl,
     VelocityOutsideRealization,
@@ -171,6 +125,18 @@ impl LocalCreateDriveSafety {
         }
         if let Some(hazard) = safety.first_hazard(now_tick) {
             return Err(DriveRefusal::SafetyStaleOrInhibited(hazard));
+        }
+        match (
+            safety.has_complete_independent_envelope(),
+            authority.safety_class,
+        ) {
+            (true, MotionSafetyAuthority::IndependentWatchdog)
+            | (
+                false,
+                MotionSafetyAuthority::ReducedWheelsOffFloor
+                | MotionSafetyAuthority::ReducedFloorAcknowledged,
+            ) => {}
+            _ => return Err(DriveRefusal::SafetyAuthorityMismatch),
         }
         if !(MINIMUM_MOTION_TTL_MS..=MAXIMUM_MOTION_TTL_MS).contains(&request.ttl_ms) {
             return Err(DriveRefusal::InvalidTtl);
@@ -270,7 +236,7 @@ impl Default for LocalCreateDriveSafety {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{UartParity, UartProfile};
+    use crate::{IndependentWatchdogObservation, SafetyInputObservation, UartParity, UartProfile};
     use std::vec;
     use std::vec::Vec;
 
@@ -305,21 +271,23 @@ mod tests {
             generation: 7,
             observed_at_tick: 100,
             maximum_age_ticks: 20,
-            emergency_stop: false,
+            emergency_stop: SafetyInputObservation::Clear,
             wheel_drop: false,
             cliff: false,
-            tilt: false,
-            impact: false,
+            contact: false,
+            tilt: SafetyInputObservation::Clear,
+            impact: SafetyInputObservation::Clear,
             charging: false,
             control_alive: true,
             body_link_alive: true,
-            watchdog_healthy: true,
+            independent_watchdog: IndependentWatchdogObservation::Healthy,
         }
     }
     fn authority() -> MotionAuthority<'static> {
         MotionAuthority {
             grant_id: "grant/drive",
             valid_until_tick: 1_000,
+            safety_class: MotionSafetyAuthority::IndependentWatchdog,
         }
     }
 
@@ -348,6 +316,116 @@ mod tests {
                 LocalHazard::BodyLinkLost
             ))
         ));
+        assert!(provider.bytes.is_empty());
+    }
+
+    #[test]
+    fn watchdog_absence_requires_an_exact_reduced_safety_authority() {
+        let mut provider = Provider {
+            available: true,
+            bytes: vec![],
+        };
+        let mut drive = LocalCreateDriveSafety::new();
+        let request = DifferentialMotionRequest {
+            left_mm_s: 20,
+            right_mm_s: 20,
+            ttl_ms: 100,
+        };
+        let absent = SafetyObservation {
+            independent_watchdog: IndependentWatchdogObservation::Absent,
+            ..safe()
+        };
+        assert_eq!(
+            drive.admit_motion(&mut provider, 100, Some(authority()), absent, request),
+            DriveSafetySign::Refused(DriveRefusal::SafetyAuthorityMismatch)
+        );
+        assert!(provider.bytes.is_empty());
+
+        let reduced = MotionAuthority {
+            grant_id: "grant/reduced-drive",
+            valid_until_tick: 1_000,
+            safety_class: MotionSafetyAuthority::ReducedWheelsOffFloor,
+        };
+        assert!(matches!(
+            drive.admit_motion(&mut provider, 100, Some(reduced), absent, request),
+            DriveSafetySign::MotionAdmitted { .. }
+        ));
+        assert_eq!(provider.bytes, [145, 0, 20, 0, 20]);
+    }
+
+    #[test]
+    fn failed_watchdog_is_a_hazard_even_with_reduced_authority() {
+        let mut provider = Provider {
+            available: true,
+            bytes: vec![],
+        };
+        let failed = SafetyObservation {
+            independent_watchdog: IndependentWatchdogObservation::Failed,
+            ..safe()
+        };
+        let reduced = MotionAuthority {
+            grant_id: "grant/reduced-drive",
+            valid_until_tick: 1_000,
+            safety_class: MotionSafetyAuthority::ReducedFloorAcknowledged,
+        };
+        assert_eq!(
+            LocalCreateDriveSafety::new().admit_motion(
+                &mut provider,
+                100,
+                Some(reduced),
+                failed,
+                DifferentialMotionRequest {
+                    left_mm_s: 20,
+                    right_mm_s: 20,
+                    ttl_ms: 100,
+                },
+            ),
+            DriveSafetySign::Refused(DriveRefusal::SafetyStaleOrInhibited(
+                LocalHazard::WatchdogUnhealthy
+            ))
+        );
+        assert!(provider.bytes.is_empty());
+    }
+
+    #[test]
+    fn unavailable_auxiliary_input_and_contact_are_not_reported_as_clear() {
+        let request = DifferentialMotionRequest {
+            left_mm_s: 20,
+            right_mm_s: 20,
+            ttl_ms: 100,
+        };
+        let mut provider = Provider {
+            available: true,
+            bytes: vec![],
+        };
+        let unavailable = SafetyObservation {
+            emergency_stop: SafetyInputObservation::Unavailable,
+            ..safe()
+        };
+        assert_eq!(
+            LocalCreateDriveSafety::new().admit_motion(
+                &mut provider,
+                100,
+                Some(authority()),
+                unavailable,
+                request,
+            ),
+            DriveSafetySign::Refused(DriveRefusal::SafetyAuthorityMismatch)
+        );
+        let contact = SafetyObservation {
+            contact: true,
+            ..safe()
+        };
+        assert_eq!(
+            LocalCreateDriveSafety::new().admit_motion(
+                &mut provider,
+                100,
+                Some(authority()),
+                contact,
+                request,
+            ),
+            DriveSafetySign::Refused(DriveRefusal::SafetyStaleOrInhibited(LocalHazard::Contact))
+        );
         assert!(provider.bytes.is_empty());
     }
 

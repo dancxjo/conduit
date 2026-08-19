@@ -9,9 +9,11 @@
 
 mod device;
 mod drive;
+mod safety;
 
 pub use device::*;
 pub use drive::*;
+pub use safety::*;
 
 #[cfg(test)]
 extern crate std;

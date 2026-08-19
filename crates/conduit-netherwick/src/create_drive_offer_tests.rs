@@ -1,4 +1,5 @@
 use super::*;
+use crate::SafetyInputObservation;
 use conduit_core::{
     AuthorityGrant, AuthorityGrantId, ConnectionBase, ResourceHealth, ResourceObservation, SignId,
 };
@@ -18,15 +19,16 @@ fn safety() -> SafetyObservation {
         generation: 8,
         observed_at_tick: 100,
         maximum_age_ticks: 10,
-        emergency_stop: false,
+        emergency_stop: SafetyInputObservation::Clear,
         wheel_drop: false,
         cliff: false,
-        tilt: false,
-        impact: false,
+        contact: false,
+        tilt: SafetyInputObservation::Clear,
+        impact: SafetyInputObservation::Clear,
         charging: false,
         control_alive: true,
         body_link_alive: true,
-        watchdog_healthy: true,
+        independent_watchdog: IndependentWatchdogObservation::Healthy,
     }
 }
 
@@ -109,6 +111,33 @@ fn live_offer_has_exact_capacity_one_resources_and_motion_authority() {
         offer.kind_contract_revision.as_str(),
         conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION
     );
+}
+
+#[test]
+fn absent_watchdog_selects_the_reduced_profile_and_authority_contract() {
+    let mut value = observation();
+    value.safety.independent_watchdog = IndependentWatchdogObservation::Absent;
+    let host = live_create_drive_advertisement(&value, 105).unwrap();
+    assert_eq!(host.profile.as_str(), CREATE_DRIVE_REDUCED_SAFETY_PROFILE);
+    assert_eq!(
+        host.capabilities[0].authority_requirements[0]
+            .contract_id
+            .as_str(),
+        CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY
+    );
+    assert!(host
+        .resources
+        .iter()
+        .all(|resource| !resource.class_id.as_str().contains("watchdog")));
+
+    let resources = resource_observations(&host);
+    let wrong = [grant(&host, CREATE_DRIVE_AUTHORITY)];
+    assert!(matches!(
+        plan(&host, &resources, &wrong),
+        Err(PlannerError::AuthorityGrantMissing(_))
+    ));
+    let exact = [grant(&host, CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY)];
+    assert!(plan(&host, &resources, &exact).is_ok());
 }
 
 #[test]

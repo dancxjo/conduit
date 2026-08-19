@@ -17,6 +17,7 @@ use conduit_std_host::std_create_uart::{
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
+use crate::commands::netherwick_std_drive::{self, StdDriveArgs};
 use crate::commands::netherwick_std_indicator::{self, StdIndicatorArgs};
 use crate::commands::netherwick_std_speaker::{self, StdSpeakerArgs};
 
@@ -42,6 +43,9 @@ enum NetherwickCommand {
     /// Manifest canonical Signal presentation on the Create power indicator.
     #[command(name = "std-indicator")]
     Indicator(StdIndicatorArgs),
+    /// Run one bounded reduced-safety physical Create drive proof.
+    #[command(name = "std-drive")]
+    Drive(StdDriveArgs),
 }
 
 #[derive(Args, Clone, Debug)]
@@ -132,6 +136,7 @@ pub fn run(args: NetherwickArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         NetherwickCommand::Observe(args) => run_std_observe(args, opts),
         NetherwickCommand::Speaker(args) => netherwick_std_speaker::run(args, opts),
         NetherwickCommand::Indicator(args) => netherwick_std_indicator::run(args, opts),
+        NetherwickCommand::Drive(args) => netherwick_std_drive::run(args, opts),
     }
 }
 

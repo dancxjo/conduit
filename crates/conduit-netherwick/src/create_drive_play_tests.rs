@@ -1,6 +1,7 @@
 use super::*;
 use crate::{
-    live_create_drive_advertisement, CreateOiFailure, LocalHazard, OiMode, UartParity, UartProfile,
+    live_create_drive_advertisement, CreateOiFailure, IndependentWatchdogObservation, LocalHazard,
+    MotionSafetyAuthority, OiMode, SafetyInputObservation, UartParity, UartProfile,
     CREATE_DRIVE_AUTHORITY, CREATE_DRIVE_CAPABILITY, CREATE_DRIVE_OPERATION,
 };
 use conduit_core::{
@@ -65,15 +66,16 @@ fn safety() -> SafetyObservation {
         generation: 8,
         observed_at_tick: 100,
         maximum_age_ticks: 20,
-        emergency_stop: false,
+        emergency_stop: SafetyInputObservation::Clear,
         wheel_drop: false,
         cliff: false,
-        tilt: false,
-        impact: false,
+        contact: false,
+        tilt: SafetyInputObservation::Clear,
+        impact: SafetyInputObservation::Clear,
         charging: false,
         control_alive: true,
         body_link_alive: true,
-        watchdog_healthy: true,
+        independent_watchdog: IndependentWatchdogObservation::Healthy,
     }
 }
 
@@ -141,6 +143,7 @@ fn authority(grant_id: &'static str) -> MotionAuthority<'static> {
     MotionAuthority {
         grant_id,
         valid_until_tick: 1_000,
+        safety_class: MotionSafetyAuthority::IndependentWatchdog,
     }
 }
 
@@ -312,6 +315,7 @@ fn expired_authority_uart_profile_and_provider_failure_remain_distinct() {
             MotionAuthority {
                 grant_id: "grant/create-motion",
                 valid_until_tick: 1_000,
+                safety_class: MotionSafetyAuthority::IndependentWatchdog,
             },
             DriveRefusal::Device(CreateOiFailure::ProviderUnavailable),
         ),
@@ -348,6 +352,7 @@ fn expired_authority_uart_profile_and_provider_failure_remain_distinct() {
             MotionAuthority {
                 grant_id: "grant/create-motion",
                 valid_until_tick: 100,
+                safety_class: MotionSafetyAuthority::IndependentWatchdog,
             },
             DriveRefusal::AuthorityExpired,
         ),
