@@ -221,28 +221,10 @@ fn parse_headless_mount_path(stdout: &str) -> PicoResult<PathBuf> {
 }
 
 fn discover_bootsel_mounts() -> PicoResult<Vec<PathBuf>> {
-    let mut candidates = standard_paths()
-        .into_iter()
-        .filter(|path| is_mountpoint(path))
-        .collect::<Vec<_>>();
-
-    let (mounted, _) = find_rpi_rp2_devices()?;
-    for path in mounted {
-        if !candidates.contains(&path) {
-            candidates.push(path);
-        }
-    }
-
-    candidates.sort();
-    candidates.dedup();
-    Ok(candidates)
-}
-
-fn is_mountpoint(path: &std::path::Path) -> bool {
-    Command::new("mountpoint")
-        .args(["-q", path.to_str().unwrap_or_default()])
-        .status()
-        .is_ok_and(|status| status.success())
+    let (mut mounted, _) = find_rpi_rp2_devices()?;
+    mounted.sort();
+    mounted.dedup();
+    Ok(mounted)
 }
 
 fn try_udisks_mount() -> PicoResult<Option<PathBuf>> {
@@ -260,10 +242,12 @@ fn try_udisks_mount() -> PicoResult<Option<PathBuf>> {
                 }
             }
         }
-        for path in standard_paths() {
-            if path.is_dir() {
-                return Ok(Some(path));
-            }
+        let (mounted, _) = find_rpi_rp2_devices()?;
+        if mounted.len() == 1 {
+            return Ok(mounted.into_iter().next());
+        }
+        if mounted.len() > 1 {
+            return Err("multiple RPI-RP2 volumes detected after udisks mount".into());
         }
     }
     Ok(None)
@@ -310,19 +294,9 @@ fn extract_kv(line: &str, key: &str) -> Option<String> {
     Some(line[start..end].to_string())
 }
 
-fn standard_paths() -> Vec<PathBuf> {
-    let user = std::env::var("USER").unwrap_or_default();
-    vec![
-        PathBuf::from(format!("/run/media/{user}/RPI-RP2")),
-        PathBuf::from(format!("/media/{user}/RPI-RP2")),
-        PathBuf::from("/media/RPI-RP2"),
-        PathBuf::from("/Volumes/RPI-RP2"),
-    ]
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{is_mountpoint, parse_headless_mount_path};
+    use super::parse_headless_mount_path;
 
     #[test]
     fn accepts_only_one_fixed_headless_mount_path() {
@@ -333,14 +307,5 @@ mod tests {
         assert!(parse_headless_mount_path("").is_err());
         assert!(parse_headless_mount_path("/media/RPI-RP2\n").is_err());
         assert!(parse_headless_mount_path("/run/conduit-pico-bootsel/1000\nextra\n").is_err());
-    }
-
-    #[test]
-    fn an_existing_directory_is_not_a_bootsel_mount() {
-        let directory =
-            std::env::temp_dir().join(format!("conduit-pico-stale-mount-{}", std::process::id()));
-        std::fs::create_dir_all(&directory).unwrap();
-        assert!(!is_mountpoint(&directory));
-        std::fs::remove_dir(directory).unwrap();
     }
 }
