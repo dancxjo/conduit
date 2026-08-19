@@ -121,6 +121,7 @@ mod tests {
             offer_generation: OfferGeneration(7),
             serial_base_id: "pete/create1/serial/0".into(),
             robot_identity: "pete/create1/observed-robot".into(),
+            robot_identity_verified: true,
             speaker_resource_id: "pete/create1/speaker".into(),
             mode: OiMode::Safe,
             currently_usable: true,

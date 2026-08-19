@@ -13,6 +13,7 @@ const LEDS_OPCODE: u8 = 139;
 const SEEK_DOCK_OPCODE: u8 = 143;
 const STREAM_OPCODE: u8 = 148;
 const PAUSE_STREAM_OPCODE: u8 = 150;
+const SENSORS_OPCODE: u8 = 142;
 pub const STREAM_HEADER: u8 = 19;
 
 pub const CREATE_OI_BAUD: u32 = 57_600;
@@ -139,6 +140,16 @@ pub fn encode_lights(led_bits: u8, color: u8, intensity: u8) -> EncodedOiCommand
     }
 }
 
+/// Request one allow-listed Create OI sensor packet. Unlike a stream frame,
+/// the device replies with only the packet payload bytes.
+pub fn encode_query_sensor(packet_id: u8) -> Result<EncodedOiCommand, CreateOiFailure> {
+    sensor_packet_len(packet_id).ok_or(CreateOiFailure::UnsupportedPacket(packet_id))?;
+    Ok(EncodedOiCommand {
+        bytes: [SENSORS_OPCODE, packet_id, 0, 0, 0],
+        len: 2,
+    })
+}
+
 pub fn encode_sensor_stream(packet_id: u8) -> Result<EncodedOiCommand, CreateOiFailure> {
     sensor_packet_len(packet_id).ok_or(CreateOiFailure::UnsupportedPacket(packet_id))?;
     Ok(EncodedOiCommand {
@@ -248,6 +259,30 @@ pub fn read_stream_packet<P: CreateUartProvider>(
         };
     }
     decode_stream_frame(packet_id, &frame[..frame_len])
+}
+
+/// Read one raw payload returned by [`encode_query_sensor`]. The caller owns
+/// the finite request deadline and must send exactly one matching query first.
+pub fn read_query_sensor_packet<P: CreateUartProvider>(
+    provider: &mut P,
+    packet_id: u8,
+    deadline_tick: u64,
+) -> Result<CreateOiPacket, CreateOiFailure> {
+    require_provider(provider)?;
+    let expected =
+        sensor_packet_len(packet_id).ok_or(CreateOiFailure::UnsupportedPacket(packet_id))?;
+    let mut payload = [0_u8; CREATE_OI_MAX_PACKET_BYTES];
+    for (index, slot) in payload[..expected].iter_mut().enumerate() {
+        let byte = provider
+            .read_byte(deadline_tick)
+            .map_err(|_| CreateOiFailure::ReadFailed)?;
+        *slot = match byte {
+            Some(byte) => byte,
+            None if index == 0 => return Err(CreateOiFailure::DeviceNoResponse),
+            None => return Err(CreateOiFailure::TruncatedFrame),
+        };
+    }
+    CreateOiPacket::checked(packet_id, &payload[..expected])
 }
 
 pub fn decode_stream_frame(packet_id: u8, frame: &[u8]) -> Result<CreateOiPacket, CreateOiFailure> {
@@ -397,6 +432,30 @@ mod tests {
         assert_eq!(
             read_stream_packet(&mut partial, 35, 10),
             Err(CreateOiFailure::TruncatedFrame)
+        );
+    }
+
+    #[test]
+    fn single_packet_query_is_allow_listed_bounded_and_reads_raw_payload() {
+        let mut queried = provider();
+        write_command(&mut queried, &encode_query_sensor(35).unwrap()).unwrap();
+        assert_eq!(queried.written, [142, 35]);
+        queried.read.push_back(2);
+        assert_eq!(
+            read_query_sensor_packet(&mut queried, 35, 10)
+                .unwrap()
+                .bytes(),
+            [2]
+        );
+        assert_eq!(
+            encode_query_sensor(33),
+            Err(CreateOiFailure::UnsupportedPacket(33))
+        );
+        let mut malformed = provider();
+        malformed.read.push_back(4);
+        assert_eq!(
+            read_query_sensor_packet(&mut malformed, 35, 10),
+            Err(CreateOiFailure::MalformedFrame)
         );
     }
 }

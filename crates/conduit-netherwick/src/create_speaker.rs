@@ -54,6 +54,9 @@ pub struct CreateSpeakerObservation {
     pub offer_generation: OfferGeneration,
     pub serial_base_id: String,
     pub robot_identity: String,
+    /// UART presence is not identity. This may be true only for an explicit
+    /// current physical attestation or a stronger device identity mechanism.
+    pub robot_identity_verified: bool,
     pub speaker_resource_id: String,
     pub mode: OiMode,
     pub currently_usable: bool,
@@ -82,6 +85,7 @@ pub struct EncodedSong {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpeakerRefusal {
     MissingIdentity,
+    UnverifiedIdentity,
     NotCurrentlyUsable,
     UnsupportedMode,
     InvalidSongNumber,
@@ -163,6 +167,9 @@ pub fn live_speaker_advertisement(
         || observation.speaker_resource_id.is_empty()
     {
         return Err(SpeakerRefusal::MissingIdentity);
+    }
+    if !observation.robot_identity_verified {
+        return Err(SpeakerRefusal::UnverifiedIdentity);
     }
     if !observation.currently_usable {
         return Err(SpeakerRefusal::NotCurrentlyUsable);
@@ -279,6 +286,7 @@ mod tests {
             offer_generation: OfferGeneration(4),
             serial_base_id: "pete/create1/serial/0".into(),
             robot_identity: "pete/create1/observed-robot".into(),
+            robot_identity_verified: true,
             speaker_resource_id: "pete/create1/speaker".into(),
             mode,
             currently_usable: true,
@@ -389,6 +397,12 @@ mod tests {
         assert_eq!(
             live_speaker_advertisement(&stale),
             Err(SpeakerRefusal::NotCurrentlyUsable)
+        );
+        let mut unverified = observation(OiMode::Safe);
+        unverified.robot_identity_verified = false;
+        assert_eq!(
+            live_speaker_advertisement(&unverified),
+            Err(SpeakerRefusal::UnverifiedIdentity)
         );
         assert!(crate::brainstem_advertisement()
             .capabilities
