@@ -2,13 +2,11 @@ use super::*;
 use crate::{UartParity, UartProfile};
 use std::vec;
 use std::vec::Vec;
-
 #[derive(Default)]
 struct Provider {
     writes: Vec<Vec<u8>>,
     fail_at: Option<usize>,
 }
-
 impl CreateUartProvider for Provider {
     type Error = ();
 
@@ -38,7 +36,6 @@ impl CreateUartProvider for Provider {
         Ok(None)
     }
 }
-
 fn frame(generation: u32, tick: u64, left: bool, right: bool) -> ContactFrame {
     ContactFrame {
         generation,
@@ -48,7 +45,6 @@ fn frame(generation: u32, tick: u64, left: bool, right: bool) -> ContactFrame {
         right,
     }
 }
-
 fn forward() -> Option<ActiveWheelOutput> {
     Some(ActiveWheelOutput {
         command_generation: 7,
@@ -56,7 +52,6 @@ fn forward() -> Option<ActiveWheelOutput> {
         right_mm_s: 100,
     })
 }
-
 #[test]
 fn fresh_forward_edge_reverses_once_then_stops_by_time() {
     let mut provider = Provider::default();
