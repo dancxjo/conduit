@@ -40,14 +40,33 @@ impl CreateUartProvider for Provider {
     }
 
     fn read_byte(&mut self, deadline_tick: u64) -> Result<Option<u8>, Self::Error> {
-        loop {
-            match self.uart.read() {
-                Ok(byte) => return Ok(Some(byte)),
-                Err(nb::Error::WouldBlock) if Instant::now().as_millis() < deadline_tick => {}
-                Err(nb::Error::WouldBlock) => return Ok(None),
-                Err(nb::Error::Other(error)) => return Err(error),
-            }
+        let _ = deadline_tick;
+        match self.uart.read() {
+            Ok(byte) => Ok(Some(byte)),
+            Err(nb::Error::WouldBlock) => Ok(None),
+            Err(nb::Error::Other(error)) => Err(error),
         }
+    }
+}
+
+async fn read_group_zero(provider: &mut Provider) -> Result<[u8; 26], CreateOiFailure> {
+    let mut payload = [0_u8; 26];
+    let mut received = 0;
+    let deadline = Instant::now() + Duration::from_millis(QUERY_DEADLINE_MS);
+    while received < payload.len() && Instant::now() < deadline {
+        match provider.uart.read() {
+            Ok(byte) => {
+                payload[received] = byte;
+                received += 1;
+            }
+            Err(nb::Error::WouldBlock) => Timer::after(Duration::from_millis(1)).await,
+            Err(nb::Error::Other(_)) => return Err(CreateOiFailure::ReadFailed),
+        }
+    }
+    match received {
+        0 => Err(CreateOiFailure::DeviceNoResponse),
+        26 => Ok(payload),
+        _ => Err(CreateOiFailure::TruncatedFrame),
     }
 }
 
@@ -89,19 +108,17 @@ pub async fn run(
     translator_oe.set_high();
     Timer::after(Duration::from_millis(10)).await;
 
-    let result = write_command(&mut provider, &encode_start()).and_then(|()| {
-        let query = encode_query_sensor(GROUP_ZERO_PACKET)?;
-        write_command(&mut provider, &query)?;
-        let mut payload = [0_u8; conduit_create_oi::CREATE_OI_MAX_PACKET_BYTES];
-        let deadline = Instant::now().as_millis() + QUERY_DEADLINE_MS;
-        for byte in &mut payload {
-            *byte = provider
-                .read_byte(deadline)
-                .map_err(|_| CreateOiFailure::ReadFailed)?
-                .ok_or(CreateOiFailure::DeviceNoResponse)?;
-        }
-        decode_sensor_packet(GROUP_ZERO_PACKET, &payload)
-    });
+    let result = match write_command(&mut provider, &encode_start()) {
+        Err(failure) => Err(failure),
+        Ok(()) => match encode_query_sensor(GROUP_ZERO_PACKET)
+            .and_then(|query| write_command(&mut provider, &query))
+        {
+            Err(failure) => Err(failure),
+            Ok(()) => read_group_zero(&mut provider)
+                .await
+                .and_then(|payload| decode_sensor_packet(GROUP_ZERO_PACKET, &payload)),
+        },
+    };
     translator_oe.set_low();
 
     let mut response = String::<RESPONSE_BYTES>::new();
