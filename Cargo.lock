@@ -610,7 +610,9 @@ dependencies = [
  "conduit-mpu6050",
  "conduit-observatory",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-signal",
+ "conduit-ssd1306",
  "conduit-std-catalog",
  "patchbay-model",
  "serde",
@@ -700,6 +702,10 @@ dependencies = [
  "conduit-wire",
  "serde",
 ]
+
+[[package]]
+name = "conduit-ssd1306"
+version = "0.1.0"
 
 [[package]]
 name = "conduit-std-catalog"

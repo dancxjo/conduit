@@ -340,6 +340,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-ssd1306",
  "conduit-system-continuity",
  "conduit-wire",
  "cortex-m",
@@ -409,6 +410,10 @@ dependencies = [
  "conduit-wire",
  "serde",
 ]
+
+[[package]]
+name = "conduit-ssd1306"
+version = "0.1.0"
 
 [[package]]
 name = "conduit-std-catalog"

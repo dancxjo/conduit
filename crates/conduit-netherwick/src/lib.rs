@@ -31,6 +31,8 @@ mod imu_observation;
 mod imu_play;
 mod planning;
 mod profile;
+mod ssd1306_frame;
+mod ssd1306_presenter;
 
 pub use capstone::*;
 pub use capstone_play::*;
@@ -56,6 +58,8 @@ pub use imu_observation::*;
 pub use imu_play::*;
 pub use planning::*;
 pub use profile::*;
+pub use ssd1306_frame::*;
+pub use ssd1306_presenter::*;
 
 #[cfg(test)]
 mod tests {

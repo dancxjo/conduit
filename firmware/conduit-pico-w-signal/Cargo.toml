@@ -46,6 +46,7 @@ conduit-create-oi = { path = "../../crates/conduit-create-oi" }
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
 conduit-mpu6050 = { path = "../../crates/conduit-mpu6050" }
+conduit-ssd1306 = { path = "../../crates/conduit-ssd1306" }
 conduit-net = { path = "../../crates/conduit-net", default-features = false, optional = true }
 conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
 conduit-wire = { path = "../../crates/conduit-wire", default-features = false, optional = true }
