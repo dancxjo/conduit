@@ -11,7 +11,7 @@ legacy-fixture-driver = [
     "conduit-signal/legacy-fixture-driver",
 ]
 local-model-proof = []
-netherwick-create = ["dep:conduit-netherwick"]
+netherwick-create = ["dep:conduit-create-oi"]
 
 [dependencies]
 conduit-ai = { path = "../../crates/conduit-ai", features = ["form-catalog"] }
@@ -23,7 +23,7 @@ conduit-form = { path = "../../crates/conduit-form" }
 conduit-host-fabrication = { path = "../../crates/conduit-host-fabrication" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-midi = { path = "../../crates/conduit-midi" }
-conduit-netherwick = { path = "../../crates/conduit-netherwick", optional = true }
+conduit-create-oi = { path = "../../crates/conduit-create-oi", optional = true }
 conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog", "r1-planning"] }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }

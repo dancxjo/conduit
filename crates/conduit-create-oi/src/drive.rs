@@ -10,8 +10,10 @@ use crate::{
     CREATE_OI_MAX_WHEEL_SPEED_MM_S,
 };
 
-pub const MINIMUM_MOTION_TTL_MS: u32 = conduit_std_catalog::ROBOTICS_MINIMUM_MOTION_TTL_MS as u32;
-pub const MAXIMUM_MOTION_TTL_MS: u32 = conduit_std_catalog::ROBOTICS_MAXIMUM_MOTION_TTL_MS as u32;
+/// The exact portable-profile lower TTL bound accepted by this realization.
+pub const MINIMUM_MOTION_TTL_MS: u32 = 10;
+/// The exact portable-profile upper TTL bound accepted by this realization.
+pub const MAXIMUM_MOTION_TTL_MS: u32 = 60_000;
 /// The admitted local motion clock is exactly one monotonic tick per millisecond.
 pub const MOTION_CLOCK_TICKS_PER_SECOND: u32 = 1_000;
 
@@ -269,6 +271,8 @@ impl Default for LocalCreateDriveSafety {
 mod tests {
     use super::*;
     use crate::{UartParity, UartProfile};
+    use std::vec;
+    use std::vec::Vec;
 
     struct Provider {
         available: bool,

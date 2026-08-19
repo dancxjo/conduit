@@ -1,5 +1,5 @@
 use super::*;
-use conduit_netherwick::{
+use conduit_create_oi::{
     encode_drive_direct, read_stream_packet, write_command, CreateOiFailure,
     DifferentialMotionRequest, DriveSafetySign, LocalCreateDriveSafety, MotionAuthority,
     SafetyObservation,

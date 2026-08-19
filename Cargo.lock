@@ -544,6 +544,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-create-oi"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-embedded-build"
 version = "0.1.0"
 dependencies = [
@@ -611,6 +615,7 @@ name = "conduit-netherwick"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-create-oi",
  "conduit-form",
  "conduit-kernel",
  "conduit-observatory",
@@ -729,12 +734,12 @@ dependencies = [
  "conduit-body",
  "conduit-chat",
  "conduit-core",
+ "conduit-create-oi",
  "conduit-form",
  "conduit-host-fabrication",
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",
- "conduit-netherwick",
  "conduit-pico-sim",
  "conduit-planner",
  "conduit-presentation",

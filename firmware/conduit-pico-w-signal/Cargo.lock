@@ -268,6 +268,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-create-oi"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-embedded-build"
 version = "0.1.0"
 dependencies = [
@@ -323,6 +327,7 @@ dependencies = [
  "conduit-bluetooth",
  "conduit-body",
  "conduit-core",
+ "conduit-create-oi",
  "conduit-embedded-build",
  "conduit-form",
  "conduit-kernel",

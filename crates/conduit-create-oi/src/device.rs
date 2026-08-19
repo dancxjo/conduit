@@ -13,7 +13,7 @@ const LEDS_OPCODE: u8 = 139;
 const SEEK_DOCK_OPCODE: u8 = 143;
 const STREAM_OPCODE: u8 = 148;
 const PAUSE_STREAM_OPCODE: u8 = 150;
-pub(crate) const STREAM_HEADER: u8 = 19;
+pub const STREAM_HEADER: u8 = 19;
 
 pub const CREATE_OI_BAUD: u32 = 57_600;
 pub const CREATE_OI_MAX_PACKET_BYTES: usize = 26;
@@ -86,10 +86,6 @@ impl EncodedOiCommand {
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes[..usize::from(self.len)]
     }
-
-    pub(crate) const fn from_bytes(bytes: [u8; CREATE_OI_MAX_COMMAND_BYTES], len: u8) -> Self {
-        Self { bytes, len }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -151,6 +147,21 @@ pub fn encode_sensor_stream(packet_id: u8) -> Result<EncodedOiCommand, CreateOiF
     })
 }
 
+/// Encode the exact finite two-packet stream used for correlated observations.
+pub fn encode_sensor_stream_pair(
+    first_packet_id: u8,
+    second_packet_id: u8,
+) -> Result<EncodedOiCommand, CreateOiFailure> {
+    sensor_packet_len(first_packet_id)
+        .ok_or(CreateOiFailure::UnsupportedPacket(first_packet_id))?;
+    sensor_packet_len(second_packet_id)
+        .ok_or(CreateOiFailure::UnsupportedPacket(second_packet_id))?;
+    Ok(EncodedOiCommand {
+        bytes: [STREAM_OPCODE, 2, first_packet_id, second_packet_id, 0],
+        len: 4,
+    })
+}
+
 pub fn encode_pause_stream() -> EncodedOiCommand {
     EncodedOiCommand {
         bytes: [PAUSE_STREAM_OPCODE, 0, 0, 0, 0],
@@ -168,7 +179,7 @@ pub fn write_command<P: CreateUartProvider>(
         .map_err(|_| CreateOiFailure::WriteFailed)
 }
 
-pub(crate) fn require_provider<P: CreateUartProvider>(provider: &P) -> Result<(), CreateOiFailure> {
+pub fn require_provider<P: CreateUartProvider>(provider: &P) -> Result<(), CreateOiFailure> {
     if !provider.is_available() {
         return Err(CreateOiFailure::ProviderUnavailable);
     }
@@ -191,7 +202,7 @@ impl CreateOiPacket {
         &self.bytes[..usize::from(self.len)]
     }
 
-    pub(crate) fn checked(packet_id: u8, payload: &[u8]) -> Result<Self, CreateOiFailure> {
+    fn checked(packet_id: u8, payload: &[u8]) -> Result<Self, CreateOiFailure> {
         let expected =
             sensor_packet_len(packet_id).ok_or(CreateOiFailure::UnsupportedPacket(packet_id))?;
         if payload.len() != expected {
@@ -206,6 +217,14 @@ impl CreateOiPacket {
             len: expected as u8,
         })
     }
+}
+
+/// Validate one packet payload already separated from its stream envelope.
+pub fn decode_sensor_packet(
+    packet_id: u8,
+    payload: &[u8],
+) -> Result<CreateOiPacket, CreateOiFailure> {
+    CreateOiPacket::checked(packet_id, payload)
 }
 
 pub fn read_stream_packet<P: CreateUartProvider>(
@@ -283,6 +302,8 @@ fn valid_group_zero(bytes: &[u8]) -> bool {
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+    use std::vec;
+    use std::vec::Vec;
 
     struct Provider {
         available: bool,

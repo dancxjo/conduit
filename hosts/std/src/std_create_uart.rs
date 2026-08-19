@@ -3,7 +3,7 @@
 //! This is a physical provider below portable robotics meaning. Opening a path
 //! does not advertise a robot capability or prove that a Create responded.
 
-use conduit_netherwick::{CreateUartProvider, UartProfile};
+use conduit_create_oi::{CreateUartProvider, UartProfile};
 use std::ffi::CString;
 use std::io;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};

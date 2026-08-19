@@ -1,6 +1,5 @@
 //! Describe-only projection of one pinned Netherwick robot configuration.
 
-mod create_drive;
 mod create_drive_kernel_operations;
 mod create_drive_lowering;
 mod create_drive_offer;
@@ -12,7 +11,6 @@ mod create_observation_offer;
 mod create_observation_plan_validation;
 mod create_observation_play;
 mod create_observation_session;
-mod create_oi;
 mod create_sensor_lowering;
 mod create_speaker;
 mod create_speaker_play;
@@ -20,7 +18,7 @@ mod planning;
 mod profile;
 mod projection;
 
-pub use create_drive::*;
+pub use conduit_create_oi::*;
 pub use create_drive_lowering::*;
 pub use create_drive_offer::*;
 pub use create_drive_play::*;
@@ -28,7 +26,6 @@ pub use create_observation_execution_report::*;
 pub use create_observation_offer::*;
 pub use create_observation_play::*;
 pub use create_observation_session::*;
-pub use create_oi::*;
 pub use create_sensor_lowering::*;
 pub use create_speaker::*;
 pub use create_speaker_play::*;
@@ -53,5 +50,17 @@ mod tests {
         assert!(report.effect_audit.is_effect_free());
         assert!(report.identities.authority.is_none());
         assert_eq!(report.implementation.source_commit, NETHERWICK_REVISION);
+    }
+
+    #[test]
+    fn shared_realization_ttl_profile_matches_portable_robotics_contract() {
+        assert_eq!(
+            MINIMUM_MOTION_TTL_MS,
+            conduit_std_catalog::ROBOTICS_MINIMUM_MOTION_TTL_MS as u32
+        );
+        assert_eq!(
+            MAXIMUM_MOTION_TTL_MS,
+            conduit_std_catalog::ROBOTICS_MAXIMUM_MOTION_TTL_MS as u32
+        );
     }
 }
