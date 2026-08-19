@@ -10,6 +10,7 @@ pub mod evidence;
 pub mod host;
 pub mod midi;
 pub mod netherwick;
+pub mod netherwick_std_observe;
 pub mod palette_icons;
 pub mod pico;
 pub mod proofs;
