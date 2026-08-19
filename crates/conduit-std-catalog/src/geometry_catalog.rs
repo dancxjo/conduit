@@ -85,16 +85,8 @@ pub fn geometry_std_offers() -> Vec<CapabilityOffer> {
         ),
         offer(
             TRANSFORM_PATH2_FOUR_KIND,
-            vec![port(
-                "path",
-                &path2_type(4).unwrap(),
-                PortDirection::Input,
-            )],
-            vec![port(
-                "path",
-                &path2_type(4).unwrap(),
-                PortDirection::Output,
-            )],
+            vec![port("path", &path2_type(4).unwrap(), PortDirection::Input)],
+            vec![port("path", &path2_type(4).unwrap(), PortDirection::Output)],
             true,
         ),
     ]
@@ -141,7 +133,9 @@ fn insert_kind(
         .map(|(name, _, value)| {
             let value_type = value.value_type().clone();
             let profile = value_type.profile().map_err(|error| format!("{error:?}"))?;
-            let canonical = value.canonical_bytes().map_err(|error| format!("{error:?}"))?;
+            let canonical = value
+                .canonical_bytes()
+                .map_err(|error| format!("{error:?}"))?;
             Ok::<ConfigurationField, String>(ConfigurationField {
                 key: name.into(),
                 default_value: ConfigurationValue::Structured(
@@ -170,7 +164,11 @@ fn insert_kind(
 fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
-        value_kind: value_type.profile().expect("bounded geometry type").value_kind().clone(),
+        value_kind: value_type
+            .profile()
+            .expect("bounded geometry type")
+            .value_kind()
+            .clone(),
         direction,
         temporal: PortTemporal::Value,
     }
@@ -184,8 +182,18 @@ fn offer(
 ) -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![FaceStartupParameter {
-            name: if kind == POINT2_LITERAL_KIND { "value" } else { "transform" }.into(),
-            value_type: if kind == POINT2_LITERAL_KIND { POINT2_TYPE } else { TRANSFORM2_TYPE }.into(),
+            name: if kind == POINT2_LITERAL_KIND {
+                "value"
+            } else {
+                "transform"
+            }
+            .into(),
+            value_type: if kind == POINT2_LITERAL_KIND {
+                POINT2_TYPE
+            } else {
+                TRANSFORM2_TYPE
+            }
+            .into(),
             has_default: false,
         }],
         shorthand: None,

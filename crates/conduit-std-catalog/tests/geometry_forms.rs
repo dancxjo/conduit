@@ -206,7 +206,10 @@ fn robotics_and_vision_reuse_the_same_nominal_geometry_without_renderer_identity
     let rendered = format!("{:?}", image_region2_type()).to_ascii_lowercase();
     assert!(rendered.contains("geometry/rect2@1"));
     for forbidden in ["patchbay", "presenter", "framebuffer", "dom", "css"] {
-        assert!(!rendered.contains(forbidden), "semantic geometry leaked {forbidden}");
+        assert!(
+            !rendered.contains(forbidden),
+            "semantic geometry leaked {forbidden}"
+        );
     }
 }
 

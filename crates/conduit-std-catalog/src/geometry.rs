@@ -188,7 +188,9 @@ pub fn transform2_value(
     )?)
 }
 
-pub fn path2_value(points: Vec<StructuredInfoValue>) -> Result<StructuredInfoValue, GeometryRefusal> {
+pub fn path2_value(
+    points: Vec<StructuredInfoValue>,
+) -> Result<StructuredInfoValue, GeometryRefusal> {
     let count = u16::try_from(points.len()).map_err(|_| GeometryRefusal::TooManyPoints)?;
     let value_type = path2_type(count)?;
     let points_type = StructuredInfoType::collection(point2_type(), Some(count))?;
