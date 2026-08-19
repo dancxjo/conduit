@@ -6,8 +6,7 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
 };
 
 use super::linguistics::*;

@@ -32,7 +32,7 @@ impl From<StructuredInfoRefusal> for LinguisticRefusal {
     }
 }
 
-fn leaf(kind: &str) -> StructuredInfoType {
+pub(crate) fn leaf(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(kind)).expect("reviewed linguistic leaf")
 }
 
@@ -48,7 +48,7 @@ fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
     StructuredInfoType::record(kind_id(kind), fields).expect("reviewed linguistic record")
 }
 
-fn bounded(value_type: StructuredInfoType, length: u16) -> StructuredInfoType {
+pub(crate) fn bounded(value_type: StructuredInfoType, length: u16) -> StructuredInfoType {
     StructuredInfoType::collection(value_type, Some(length))
         .expect("reviewed linguistic collection")
 }
@@ -98,7 +98,7 @@ pub fn token_identity_type() -> StructuredInfoType {
     )
 }
 
-fn optional_text_type() -> StructuredInfoType {
+pub(crate) fn optional_text_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("language/optional-text@1"),
         vec![case("absent", unit_type()), case("present", text_type())],
