@@ -181,7 +181,13 @@ async fn serve_build_bound_services(
             }
             let read = match class.read_packet(&mut packet).await {
                 Ok(read) => read,
-                Err(_) => core::future::pending::<usize>().await,
+                // A host-side CDC close disables the endpoint.  Keep the
+                // bounded service alive and wait for the next DTR-bearing
+                // connection instead of wedging the decoder forever.
+                Err(_) => {
+                    class.wait_connection().await;
+                    continue;
+                }
             };
             if decoder.accept_bytes(&packet[..read]).is_err() {
                 core::future::pending::<()>().await;
