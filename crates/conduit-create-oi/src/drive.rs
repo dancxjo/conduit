@@ -6,8 +6,10 @@
 //! expiry or hazard. It is not an author-wirable safety Gear.
 
 use crate::{
-    encode_drive_direct, encode_stop, write_command, CreateOiFailure, CreateUartProvider,
-    LocalHazard, SafetyObservation, CREATE_OI_MAX_WHEEL_SPEED_MM_S,
+    encode_drive_direct, encode_stop, write_command, ActiveWheelOutput, ContactFrame,
+    ContactWithdrawalSign, CreateOiFailure, CreateUartProvider, IndependentWatchdogObservation,
+    LocalContactWithdrawal, LocalHazard, SafetyInputObservation, SafetyObservation,
+    WithdrawalInhibitors, CREATE_OI_MAX_WHEEL_SPEED_MM_S,
 };
 
 /// The exact portable-profile lower TTL bound accepted by this realization.
@@ -47,6 +49,7 @@ pub enum DriveRefusal {
     InvalidTtl,
     VelocityOutsideRealization,
     DeadlineOverflow,
+    CommandGenerationExhausted,
     Device(CreateOiFailure),
 }
 
@@ -74,10 +77,28 @@ pub enum SafeDispositionCause {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CreateActuatorSupervisionSign<'a> {
+    Drive(DriveSafetySign<'a>),
+    ContactWithdrawal(ContactWithdrawalSign),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PhysicalActuatorObservation {
+    pub safety: SafetyObservation,
+    pub contact: ContactFrame,
+    pub distance_mm: Option<i32>,
+    pub explicitly_disarmed: bool,
+    pub motor_feedback_invalid: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LocalCreateDriveSafety {
     motion_deadline_tick: Option<u64>,
     active_authority_until_tick: Option<u64>,
     safety_generation: u32,
+    command_generation: u64,
+    active_output: Option<ActiveWheelOutput>,
+    contact_withdrawal: LocalContactWithdrawal,
 }
 
 impl LocalCreateDriveSafety {
@@ -86,6 +107,9 @@ impl LocalCreateDriveSafety {
             motion_deadline_tick: None,
             active_authority_until_tick: None,
             safety_generation: 0,
+            command_generation: 0,
+            active_output: None,
+            contact_withdrawal: LocalContactWithdrawal::new(),
         }
     }
 
@@ -158,7 +182,17 @@ impl LocalCreateDriveSafety {
         }
         let command = encode_drive_direct(request.left_mm_s, request.right_mm_s)
             .map_err(|_| DriveRefusal::VelocityOutsideRealization)?;
+        let command_generation = self
+            .command_generation
+            .checked_add(1)
+            .ok_or(DriveRefusal::CommandGenerationExhausted)?;
         write_command(provider, &command).map_err(DriveRefusal::Device)?;
+        self.command_generation = command_generation;
+        self.active_output = Some(ActiveWheelOutput {
+            command_generation,
+            left_mm_s: request.left_mm_s,
+            right_mm_s: request.right_mm_s,
+        });
         self.motion_deadline_tick = Some(deadline_tick);
         self.active_authority_until_tick = Some(authority.valid_until_tick);
         self.safety_generation = safety.generation;
@@ -193,6 +227,65 @@ impl LocalCreateDriveSafety {
         Some(self.stop_with_cause(provider, cause, safety.generation))
     }
 
+    /// Supervises the physical actuator with the mandatory contact reflex.
+    ///
+    /// Embedded realizations call this before ordinary hazard supervision so a
+    /// fresh contact edge can atomically replace toward-contact output. Once
+    /// started, ordinary control loss cannot cancel the reflex; exact stronger
+    /// local truth still preempts it.
+    pub fn supervise_physical<P: CreateUartProvider>(
+        &mut self,
+        provider: &mut P,
+        now_tick: u64,
+        observation: PhysicalActuatorObservation,
+    ) -> Option<CreateActuatorSupervisionSign<'static>> {
+        let PhysicalActuatorObservation {
+            safety,
+            contact,
+            distance_mm,
+            explicitly_disarmed,
+            motor_feedback_invalid,
+        } = observation;
+        let inhibitors = WithdrawalInhibitors {
+            explicitly_disarmed,
+            emergency_stop: safety.emergency_stop == SafetyInputObservation::Active
+                || safety.latched_hazards.contains(LocalHazard::EmergencyStop),
+            wheel_drop: safety.wheel_drop
+                || safety.latched_hazards.contains(LocalHazard::WheelDrop),
+            cliff: safety.cliff || safety.latched_hazards.contains(LocalHazard::Cliff),
+            charging: safety.charging || safety.latched_hazards.contains(LocalHazard::Charging),
+            tilt: safety.tilt == SafetyInputObservation::Active
+                || safety.latched_hazards.contains(LocalHazard::Tilt),
+            impact: safety.impact == SafetyInputObservation::Active
+                || safety.latched_hazards.contains(LocalHazard::Impact),
+            motor_feedback_invalid,
+            create_feedback_lost: !safety.body_link_alive
+                || safety.latched_hazards.contains(LocalHazard::BodyLinkLost),
+            watchdog_failed: safety.independent_watchdog == IndependentWatchdogObservation::Failed
+                || safety
+                    .latched_hazards
+                    .contains(LocalHazard::WatchdogUnhealthy),
+        };
+        if let Some(sign) = self.contact_withdrawal.step(
+            provider,
+            now_tick,
+            contact,
+            self.active_output,
+            distance_mm,
+            inhibitors,
+        ) {
+            self.motion_deadline_tick = None;
+            self.active_authority_until_tick = None;
+            self.active_output = None;
+            return Some(CreateActuatorSupervisionSign::ContactWithdrawal(sign));
+        }
+        if self.contact_withdrawal.is_active() {
+            return None;
+        }
+        self.supervise(provider, now_tick, safety)
+            .map(CreateActuatorSupervisionSign::Drive)
+    }
+
     pub fn stop<P: CreateUartProvider>(
         &mut self,
         provider: &mut P,
@@ -213,6 +306,7 @@ impl LocalCreateDriveSafety {
     ) -> DriveSafetySign<'static> {
         self.motion_deadline_tick = None;
         self.active_authority_until_tick = None;
+        self.active_output = None;
         self.safety_generation = safety_generation;
         match write_command(provider, &encode_stop()) {
             Ok(()) => DriveSafetySign::SafeDisposition {

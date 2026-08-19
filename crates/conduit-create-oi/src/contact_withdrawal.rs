@@ -39,6 +39,7 @@ pub struct WithdrawalInhibitors {
     pub impact: bool,
     pub motor_feedback_invalid: bool,
     pub create_feedback_lost: bool,
+    pub watchdog_failed: bool,
 }
 
 impl WithdrawalInhibitors {
@@ -62,6 +63,7 @@ impl WithdrawalInhibitors {
                 self.create_feedback_lost,
                 WithdrawalPreemption::CreateFeedbackLost,
             ),
+            (self.watchdog_failed, WithdrawalPreemption::WatchdogFailed),
         ]
         .into_iter()
         .find_map(|(active, cause)| active.then_some(cause))
@@ -86,6 +88,7 @@ pub enum WithdrawalPreemption {
     Impact,
     MotorFeedbackInvalid,
     CreateFeedbackLost,
+    WatchdogFailed,
     ObservationGenerationRegressed,
     ObservationClockInvalid,
     ObservationStale,

@@ -267,6 +267,13 @@ fn host_loss_does_not_cancel_but_every_stronger_invariant_stops() {
             },
             WithdrawalPreemption::CreateFeedbackLost,
         ),
+        (
+            WithdrawalInhibitors {
+                watchdog_failed: true,
+                ..Default::default()
+            },
+            WithdrawalPreemption::WatchdogFailed,
+        ),
     ];
     for (inhibitors, cause) in cases {
         let mut provider = Provider::default();
@@ -416,6 +423,10 @@ fn stronger_truth_prevents_initial_withdrawal() {
         },
         WithdrawalInhibitors {
             create_feedback_lost: true,
+            ..Default::default()
+        },
+        WithdrawalInhibitors {
+            watchdog_failed: true,
             ..Default::default()
         },
     ];
