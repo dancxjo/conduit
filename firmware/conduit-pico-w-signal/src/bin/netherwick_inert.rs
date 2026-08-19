@@ -162,7 +162,7 @@ async fn serve_build_bound_services(
     charging_indicator: &Input<'static>,
     translator_oe: &mut Output<'static>,
 ) -> ! {
-    let mut create_resources = Some((uart0, tx, rx));
+    let mut create_resources = create_probe::Resources::new(uart0, tx, rx);
     let mut decoder = match StreamFrameDecoder::<BOOTSEL_FRAME_MAX>::new(BOOTSEL_FRAME_MAX) {
         Ok(decoder) => decoder,
         Err(_) => core::future::pending::<StreamFrameDecoder<BOOTSEL_FRAME_MAX>>().await,
@@ -233,15 +233,7 @@ async fn serve_build_bound_services(
             core::future::pending::<()>().await;
         }
         if request == expected_probe.as_bytes() {
-            if let Some((uart0, tx, rx)) = create_resources.take() {
-                create_probe::run(class, uart0, tx, rx, translator_oe).await;
-            } else {
-                let _ = send_control_frame(
-                    class,
-                    b"{\"schema\":\"conduit.netherwick/create-probe@1\",\"success\":false,\"failure\":\"probe_already_consumed\"}",
-                )
-                .await;
-            }
+            create_probe::run(class, &mut create_resources, translator_oe).await;
             continue;
         }
 
@@ -267,7 +259,7 @@ async fn serve_build_bound_services(
                 "{{\"schema\":\"conduit.netherwick/carrier-status@1\",\"build_id\":\"{}\",\"charging_indicator\":{{\"gpio\":20,\"active_high\":true,\"level\":\"{}\"}},\"translator_oe\":\"low\",\"create_probe_available\":{}}}",
                 env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"),
                 charging_level,
-                create_resources.is_some(),
+                create_resources.is_available(),
             );
             let _ = send_control_frame(class, response.as_bytes()).await;
         }

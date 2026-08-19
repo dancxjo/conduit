@@ -25,6 +25,58 @@ struct Provider {
     uart: Uart<'static, Blocking>,
 }
 
+type UartResources = (
+    Peri<'static, UART0>,
+    Peri<'static, PIN_0>,
+    Peri<'static, PIN_1>,
+);
+
+pub struct Resources {
+    peripherals: Option<UartResources>,
+    provider: Option<Provider>,
+}
+
+impl Resources {
+    pub fn new(
+        uart0: Peri<'static, UART0>,
+        tx: Peri<'static, PIN_0>,
+        rx: Peri<'static, PIN_1>,
+    ) -> Self {
+        Self {
+            peripherals: Some((uart0, tx, rx)),
+            provider: None,
+        }
+    }
+
+    pub fn is_available(&self) -> bool {
+        self.peripherals.is_some() || self.provider.is_some()
+    }
+
+    fn provider(&mut self) -> &mut Provider {
+        if self.provider.is_none() {
+            let (uart0, tx, rx) = self
+                .peripherals
+                .take()
+                .expect("finite UART resources initialize exactly once");
+            let mut config = Config::default();
+            config.baudrate = conduit_create_oi::CREATE_OI_BAUD;
+            config.data_bits = DataBits::DataBits8;
+            config.stop_bits = StopBits::STOP1;
+            config.parity = Parity::ParityNone;
+            rp_pac::PADS_BANK0.gpio(1).modify(|value| {
+                value.set_pue(true);
+                value.set_pde(false);
+            });
+            self.provider = Some(Provider {
+                uart: Uart::new_blocking(uart0, tx, rx, config),
+            });
+        }
+        self.provider
+            .as_mut()
+            .expect("provider was initialized above")
+    }
+}
+
 enum ProbeFailure {
     Protocol(CreateOiFailure),
     Uart(embassy_rp::uart::Error),
@@ -120,43 +172,28 @@ fn failure_name(failure: ProbeFailure) -> &'static str {
 
 pub async fn run(
     class: &mut InertCdc,
-    uart0: Peri<'static, UART0>,
-    tx: Peri<'static, PIN_0>,
-    rx: Peri<'static, PIN_1>,
+    resources: &mut Resources,
     translator_oe: &mut Output<'static>,
 ) {
-    let mut config = Config::default();
-    config.baudrate = conduit_create_oi::CREATE_OI_BAUD;
-    config.data_bits = DataBits::DataBits8;
-    config.stop_bits = StopBits::STOP1;
-    config.parity = Parity::ParityNone;
-    // Create TX idles high. Keep the RP2040 input defined if the Create loses
-    // power while the explicitly admitted translator window is open.
-    rp_pac::PADS_BANK0.gpio(1).modify(|value| {
-        value.set_pue(true);
-        value.set_pde(false);
-    });
-    let mut provider = Provider {
-        uart: Uart::new_blocking(uart0, tx, rx, config),
-    };
+    let provider = resources.provider();
     translator_oe.set_high();
     Timer::after(Duration::from_millis(10)).await;
-    let (mut prequery_bytes, mut prequery_errors) = drain_prequery_rx(&mut provider);
+    let (mut prequery_bytes, mut prequery_errors) = drain_prequery_rx(provider);
 
-    let result = match write_command(&mut provider, &encode_start()) {
+    let result = match write_command(provider, &encode_start()) {
         Err(failure) => Err(ProbeFailure::Protocol(failure)),
-        Ok(()) => match write_command(&mut provider, &encode_pause_stream()) {
+        Ok(()) => match write_command(provider, &encode_pause_stream()) {
             Err(failure) => Err(ProbeFailure::Protocol(failure)),
             Ok(()) => {
                 Timer::after(Duration::from_millis(20)).await;
-                let (tail_bytes, tail_errors) = drain_prequery_rx(&mut provider);
+                let (tail_bytes, tail_errors) = drain_prequery_rx(provider);
                 prequery_bytes += tail_bytes;
                 prequery_errors += tail_errors;
                 match encode_query_sensor(GROUP_ZERO_PACKET)
-                    .and_then(|query| write_command(&mut provider, &query))
+                    .and_then(|query| write_command(provider, &query))
                 {
                     Err(failure) => Err(ProbeFailure::Protocol(failure)),
-                    Ok(()) => read_group_zero(&mut provider)
+                    Ok(()) => read_group_zero(provider)
                         .await
                         .and_then(|payload| {
                             decode_sensor_packet(GROUP_ZERO_PACKET, &payload)
