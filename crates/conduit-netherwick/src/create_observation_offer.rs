@@ -21,7 +21,7 @@ pub const CREATE_OBSERVATION_RESOURCE: &str = "netherwick.resource/create1-obser
 pub const CREATE_UART_BASE_RESOURCE: &str = "netherwick.resource/create1-uart-base@1";
 pub const CREATE_DEVICE_RESOURCE: &str = "netherwick.resource/create1-device@1";
 
-const MAXIMUM_CHANNELS: usize = 10;
+const MAXIMUM_CHANNELS: usize = 11;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CreateObservationChannel {
@@ -35,6 +35,7 @@ pub enum CreateObservationChannel {
     Charging,
     Battery,
     Odometry,
+    BumpAggregate,
 }
 
 impl CreateObservationChannel {
@@ -49,6 +50,7 @@ impl CreateObservationChannel {
         Self::Charging,
         Self::Battery,
         Self::Odometry,
+        Self::BumpAggregate,
     ];
 
     pub const fn implementation_id(self) -> &'static str {
@@ -63,6 +65,7 @@ impl CreateObservationChannel {
             Self::Charging => "netherwick/create1-observe-charging@1",
             Self::Battery => "netherwick/create1-observe-battery@1",
             Self::Odometry => "netherwick/create1-observe-odometry@1",
+            Self::BumpAggregate => "netherwick/create1-observe-bump@1",
         }
     }
 
@@ -78,6 +81,7 @@ impl CreateObservationChannel {
             Self::Charging => "netherwick.host/create1-observe-charging@1",
             Self::Battery => "netherwick.host/create1-observe-battery@1",
             Self::Odometry => "netherwick.host/create1-observe-odometry@1",
+            Self::BumpAggregate => "netherwick.host/create1-observe-bump@1",
         }
     }
 
@@ -93,6 +97,7 @@ impl CreateObservationChannel {
             Self::Charging => "netherwick/create1/charging",
             Self::Battery => "netherwick/create1/battery",
             Self::Odometry => "netherwick/create1/odometry",
+            Self::BumpAggregate => "netherwick/create1/bump",
         }
     }
 }
@@ -160,7 +165,7 @@ pub fn live_create_observation_advertisement(
     })
 }
 
-fn observation_offer(channel: CreateObservationChannel) -> CapabilityOffer {
+pub(crate) fn observation_offer(channel: CreateObservationChannel) -> CapabilityOffer {
     let (contract, revision, maximum_output_bytes) = contract(channel);
     CapabilityOffer {
         startup_parameters: contract
@@ -259,6 +264,11 @@ fn contract(
             conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
             ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
         ),
+        CreateObservationChannel::BumpAggregate => (
+            conduit_std_catalog::robotics_observe_bump_contract(),
+            conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
+            conduit_core::BOOL_ENCODED_LEN as u32,
+        ),
     }
 }
 
@@ -277,6 +287,7 @@ pub enum EncodedCreateObservation {
     Charging([u8; ROBOTICS_CHARGING_ENCODED_LEN]),
     Battery([u8; ROBOTICS_BATTERY_ENCODED_LEN]),
     Odometry([u8; ROBOTICS_ODOMETRY_ENCODED_LEN]),
+    BumpAggregate([u8; conduit_core::BOOL_ENCODED_LEN]),
 }
 
 impl EncodedCreateObservation {
@@ -291,6 +302,7 @@ impl EncodedCreateObservation {
             Self::Charging(value) => value,
             Self::Battery(value) => value,
             Self::Odometry(value) => value,
+            Self::BumpAggregate(value) => value,
         }
     }
 }
@@ -368,6 +380,17 @@ pub fn encode_create_observation(
         CreateObservationChannel::Odometry => snapshot
             .odometry
             .map(|sample| EncodedCreateObservation::Odometry(sample.value.encode())),
+        CreateObservationChannel::BumpAggregate => Some(EncodedCreateObservation::BumpAggregate(
+            conduit_core::InfoBool::new(
+                snapshot
+                    .observation
+                    .group_zero
+                    .contact
+                    .active_body_sectors()
+                    != 0,
+            )
+            .encode(),
+        )),
     })
 }
 

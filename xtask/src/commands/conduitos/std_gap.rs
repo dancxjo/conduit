@@ -203,24 +203,36 @@ mod tests {
     #[test]
     fn compatibility_report_uses_the_authoritative_profile_inventory() {
         let report = build_report().unwrap();
-        assert_eq!(report.catalog_entry_count, 56);
+        assert_eq!(report.catalog_entry_count, 57);
         assert_eq!(
             report.implemented_count + report.missing_count,
             report.catalog_entry_count
         );
         assert_eq!(report.implemented_count, 55);
-        assert_eq!(report.missing_count, 1);
-        let unavailable = report
+        assert_eq!(report.missing_count, 2);
+        let state_select = report
             .entries
             .iter()
-            .find(|entry| entry.classification != catalog::GapClassification::Implemented)
+            .find(|entry| entry.kind_id == "state/select")
             .unwrap();
-        assert_eq!(unavailable.kind_id, "file/copy");
         assert_eq!(
-            unavailable.classification,
+            state_select.classification,
+            catalog::GapClassification::PortableImplementationMissing
+        );
+        assert_eq!(
+            state_select.unsatisfied_prerequisites,
+            ["implementation:portable"]
+        );
+        let file_copy = report
+            .entries
+            .iter()
+            .find(|entry| entry.kind_id == "file/copy")
+            .unwrap();
+        assert_eq!(
+            file_copy.classification,
             catalog::GapClassification::MissingBase
         );
-        assert_eq!(unavailable.unsatisfied_prerequisites, ["base:storage"]);
+        assert_eq!(file_copy.unsatisfied_prerequisites, ["base:storage"]);
         for kind in [
             "layout/inset",
             "presentation/bool",

@@ -28,6 +28,7 @@ use super::render_demand_operation::AudioRenderDemandOperation;
 use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
+use super::state_select_operation::StateSelectScalarOperation;
 use super::structured_selector_operation::StructuredSelectorOperation;
 use super::structured_values_operation::{
     StructuredLiteralOperation, StructuredPresentationOperation,
@@ -72,6 +73,7 @@ pub(super) enum InstalledOperation {
     CountPresentation(CountPresentationOperation),
     StateLatestScalar(StateLatestScalarOperation),
     FlowTeeScalar(FlowTeeScalarOperation),
+    StateSelectScalar(StateSelectScalarOperation),
     FlowGateScalar(FlowGateScalarOperation),
     KeyEventTee(KeyEventTeeOperation),
     InputKeymap(InputSemanticOperation),

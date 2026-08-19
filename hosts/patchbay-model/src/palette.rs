@@ -3,7 +3,7 @@
 use conduit_core::{CapabilityLimits, ConfigurationValue, KindId, PortDescriptor};
 pub use conduit_std_catalog::{PaletteCategory, PaletteIconKey, StandardConfigurationRule};
 
-pub const MAX_PALETTE_ENTRIES: usize = 64;
+pub const MAX_PALETTE_ENTRIES: usize = 65;
 pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -134,6 +134,7 @@ mod tests {
     fn standard_palette_is_exact_bounded_and_searches_contract_truth() {
         let palette = GearPalette::standard().unwrap();
         let supported = conduit_std_catalog::palette_contracts().len();
+        assert_eq!(supported, MAX_PALETTE_ENTRIES);
         assert_eq!(palette.entries().len(), supported);
         assert_eq!(palette.search("").unwrap().len(), supported);
         assert_eq!(
