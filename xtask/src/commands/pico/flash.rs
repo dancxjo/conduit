@@ -184,9 +184,7 @@ fn try_headless_mount() -> PicoResult<Option<PathBuf>> {
         return Ok(None);
     }
 
-    let output = Command::new("sudo")
-        .args(["-n", HEADLESS_MOUNT_HELPER])
-        .output()?;
+    let output = headless_mount_command().output()?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!(
@@ -206,6 +204,14 @@ fn try_headless_mount() -> PicoResult<Option<PathBuf>> {
         .into());
     }
     Ok(Some(path))
+}
+
+fn headless_mount_command() -> Command {
+    let mut command = Command::new("sudo");
+    // `--` is required for sudo to match the installer's explicit no-argument
+    // command rule (`helper ""`). Without it, sudo falls back to authentication.
+    command.args(["-n", "--", HEADLESS_MOUNT_HELPER]);
+    command
 }
 
 fn parse_headless_mount_path(stdout: &str) -> PicoResult<PathBuf> {
@@ -296,7 +302,17 @@ fn extract_kv(line: &str, key: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_headless_mount_path;
+    use super::{headless_mount_command, parse_headless_mount_path, HEADLESS_MOUNT_HELPER};
+
+    #[test]
+    fn headless_mount_matches_the_installed_no_argument_sudo_rule() {
+        let command = headless_mount_command();
+        assert_eq!(command.get_program(), "sudo");
+        assert_eq!(
+            command.get_args().collect::<Vec<_>>(),
+            ["-n", "--", HEADLESS_MOUNT_HELPER]
+        );
+    }
 
     #[test]
     fn accepts_only_one_fixed_headless_mount_path() {
