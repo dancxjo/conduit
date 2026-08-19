@@ -1,7 +1,6 @@
 mod appliance_identity;
 mod body_admission;
 mod bootsel;
-mod carrier_status;
 mod create_probe;
 mod doctor;
 mod firmware;
@@ -133,8 +132,6 @@ pub enum PicoSubcommand {
     Bootsel,
     /// Run one bounded non-motion Create OI UART qualification transaction.
     ProbeCreate,
-    /// Read repeatable inert carrier status without enabling the translator.
-    CarrierStatus,
     /// Prove explicit Body admission against an already-provisioned Pico.
     ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
@@ -180,7 +177,6 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::Verify) => run_verify(&args),
         Some(PicoSubcommand::Bootsel) => run_bootsel(&args),
         Some(PicoSubcommand::ProbeCreate) => create_probe::run(&args),
-        Some(PicoSubcommand::CarrierStatus) => carrier_status::run(&args),
         Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }
 }
