@@ -8,6 +8,7 @@ use conduit_mpu6050::{
     I2cBaseAvailability, I2cProviderFailure, Mpu6050Failure, Mpu6050I2cProvider,
     Mpu6050Session, ALTERNATE_ADDRESS, DEFAULT_ADDRESS,
 };
+use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder};
 use embassy_executor::Executor;
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output};
@@ -55,6 +56,12 @@ type BoardI2c = I2c<'static, I2C1, Blocking>;
 type UsbDriver = usb::Driver<'static, USB>;
 type InertUsbDevice = UsbDevice<'static, UsbDriver>;
 type InertCdc = CdcAcmClass<'static, UsbDriver>;
+
+const BOOTSEL_QUERY: &[u8] = b"CONDUIT_BOOTSEL_QUERY@1";
+const BOOTSEL_CHALLENGE_PREFIX: &str = "CONDUIT_BOOTSEL_CHALLENGE@1:";
+const BOOTSEL_REQUEST_PREFIX: &str = "CONDUIT_REBOOT_BOOTSEL@1:";
+const BOOTSEL_ACK: &[u8] = b"CONDUIT_REBOOT_BOOTSEL_ACK@1";
+const BOOTSEL_FRAME_MAX: usize = 256;
 
 struct Provider(BoardI2c);
 
@@ -109,6 +116,80 @@ async fn write_line(class: &mut CdcAcmClass<'static, usb::Driver<'static, USB>>,
     }
 }
 
+async fn send_control_frame(class: &mut InertCdc, payload: &[u8]) -> Result<(), ()> {
+    let mut framed = [0_u8; BOOTSEL_FRAME_MAX + 2];
+    let length = encode_stream_frame(payload, BOOTSEL_FRAME_MAX, &mut framed).map_err(|_| ())?;
+    for chunk in framed[..length].chunks(64) {
+        class.write_packet(chunk).await.map_err(|_| ())?;
+    }
+    if length % 64 == 0 {
+        class.write_packet(&[]).await.map_err(|_| ())?;
+    }
+    Ok(())
+}
+
+async fn serve_build_bound_bootsel(class: &mut InertCdc) -> ! {
+    let mut decoder = match StreamFrameDecoder::<BOOTSEL_FRAME_MAX>::new(BOOTSEL_FRAME_MAX) {
+        Ok(decoder) => decoder,
+        Err(_) => core::future::pending::<StreamFrameDecoder<BOOTSEL_FRAME_MAX>>().await,
+    };
+    let mut packet = [0_u8; 64];
+    let mut request = [0_u8; BOOTSEL_FRAME_MAX];
+    loop {
+        let request_length = loop {
+            match decoder.next_frame() {
+                Ok(Some(frame)) => {
+                    request[..frame.len()].copy_from_slice(frame);
+                    break frame.len();
+                }
+                Ok(None) => {}
+                Err(_) => core::future::pending::<()>().await,
+            }
+            let read = match class.read_packet(&mut packet).await {
+                Ok(read) => read,
+                Err(_) => core::future::pending::<usize>().await,
+            };
+            if decoder.accept_bytes(&packet[..read]).is_err() {
+                core::future::pending::<()>().await;
+            }
+        };
+        let request = &request[..request_length];
+        if request == BOOTSEL_QUERY {
+            let mut challenge = String::<BOOTSEL_FRAME_MAX>::new();
+            if write!(
+                challenge,
+                "{BOOTSEL_CHALLENGE_PREFIX}{}",
+                env!("CONDUIT_NETHERWICK_INERT_BUILD_ID")
+            )
+            .is_err()
+                || send_control_frame(class, challenge.as_bytes()).await.is_err()
+            {
+                core::future::pending::<()>().await;
+            }
+            continue;
+        }
+
+        let mut expected = String::<BOOTSEL_FRAME_MAX>::new();
+        if write!(
+            expected,
+            "{BOOTSEL_REQUEST_PREFIX}{}",
+            env!("CONDUIT_NETHERWICK_INERT_BUILD_ID")
+        )
+        .is_err()
+        {
+            core::future::pending::<()>().await;
+        }
+        if request == expected.as_bytes() {
+            if send_control_frame(class, BOOTSEL_ACK).await.is_err() {
+                core::future::pending::<()>().await;
+            }
+            Timer::after(Duration::from_millis(100)).await;
+            embassy_rp::rom_data::reset_to_usb_boot(0, 0);
+            core::future::pending::<()>().await;
+        }
+    }
+}
+
 #[embassy_executor::task]
 async fn usb_device_task(mut device: InertUsbDevice) -> ! {
     device.run().await
@@ -149,7 +230,7 @@ async fn qualification_task(mut class: InertCdc, i2c1: Peri<'static, I2C1>, sda:
     }
     write_line(&mut class, &line).await;
     write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-terminal@1\",\"qualification_complete\":true,\"robot_control_ready\":false}\n").await;
-    core::future::pending::<()>().await;
+    serve_build_bound_bootsel(&mut class).await;
 }
 
 #[cortex_m_rt::entry]

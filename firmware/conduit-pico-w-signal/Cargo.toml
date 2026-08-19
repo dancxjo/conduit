@@ -15,7 +15,7 @@ appliance-hello = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 appliance-hil-client = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 bluetooth-line = ["dep:conduit-bluetooth", "dep:conduit-wire", "dep:embassy-futures", "dep:embassy-sync", "dep:heapless09", "dep:rand_core", "dep:trouble-host", "cyw43/bluetooth"]
 usb-midi-fixture = ["dep:embassy-futures"]
-netherwick-inert = ["dep:embassy-futures"]
+netherwick-inert = ["dep:conduit-wire", "dep:embassy-futures"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
 
 [dependencies]

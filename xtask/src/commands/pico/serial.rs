@@ -56,29 +56,7 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
 }
 
 fn verify_netherwick_inert(args: &PicoArgs) -> PicoResult<()> {
-    let port = if let Some(port) = &args.port {
-        PathBuf::from(port)
-    } else {
-        let directory = std::fs::read_dir("/dev/serial/by-id")?;
-        let candidates = directory
-            .filter_map(Result::ok)
-            .filter(|entry| {
-                entry
-                    .file_name()
-                    .to_string_lossy()
-                    .contains("Pico_W_Netherwick_Inert")
-            })
-            .map(|entry| entry.path())
-            .collect::<Vec<_>>();
-        if candidates.len() != 1 {
-            return Err(format!(
-                "expected exactly one inert Netherwick CDC port, found {}",
-                candidates.len()
-            )
-            .into());
-        }
-        candidates[0].clone()
-    };
+    let port = resolve_inert_port(args.port.as_deref())?;
     println!(
         "==> pico verify: reading inert qualification from {}",
         port.display()
@@ -109,6 +87,33 @@ fn verify_netherwick_inert(args: &PicoArgs) -> PicoResult<()> {
     }
     println!("==> pico verify: inert qualification transcript complete");
     Ok(())
+}
+
+pub(super) fn resolve_inert_port(explicit: Option<&str>) -> PicoResult<PathBuf> {
+    let port = if let Some(port) = explicit {
+        PathBuf::from(port)
+    } else {
+        let directory = std::fs::read_dir("/dev/serial/by-id")?;
+        let candidates = directory
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .contains("Pico_W_Netherwick_Inert")
+            })
+            .map(|entry| entry.path())
+            .collect::<Vec<_>>();
+        if candidates.len() != 1 {
+            return Err(format!(
+                "expected exactly one inert Netherwick CDC port, found {}",
+                candidates.len()
+            )
+            .into());
+        }
+        candidates[0].clone()
+    };
+    Ok(port)
 }
 
 fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoResult<()> {
