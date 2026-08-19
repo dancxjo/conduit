@@ -11,7 +11,7 @@ use conduit_mpu6050::{
 use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder};
 use embassy_executor::Executor;
 use embassy_rp::bind_interrupts;
-use embassy_rp::gpio::{Level, Output};
+use embassy_rp::gpio::{Input, Level, Output, Pull};
 use embassy_rp::i2c::{Blocking, Config as I2cConfig, I2c};
 use embassy_rp::peripherals::{I2C1, PIN_0, PIN_1, PIN_2, PIN_3, UART0, USB, WATCHDOG};
 use embassy_rp::usb;
@@ -251,6 +251,7 @@ async fn qualification_task(
     uart0: Peri<'static, UART0>,
     tx: Peri<'static, PIN_0>,
     rx: Peri<'static, PIN_1>,
+    charging_indicator: Input<'static>,
     mut translator_oe: Output<'static>,
 ) {
     class.wait_connection().await;
@@ -278,7 +279,14 @@ async fn qualification_task(
         }
     }
     write_line(&mut class, concat!("{\"schema\":\"conduit.netherwick/inert-boot@1\",\"build_id\":\"", env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"), "\"}\n")).await;
-    write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"uninitialized\",\"i2c\":{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000},\"watchdog\":{\"timeout_ms\":2000,\"feed_interval_ms\":250}}\n").await;
+    let charging_level = if charging_indicator.is_high() { "high" } else { "low" };
+    let mut disposition: String<512> = String::new();
+    let _ = writeln!(
+        disposition,
+        "{{\"schema\":\"conduit.netherwick/inert-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"uninitialized\",\"charging_indicator\":{{\"gpio\":20,\"active_high\":true,\"level\":\"{}\"}},\"i2c\":{{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}},\"watchdog\":{{\"timeout_ms\":2000,\"feed_interval_ms\":250}}}}",
+        charging_level,
+    );
+    write_line(&mut class, &disposition).await;
     let mut line: String<384> = String::new();
     match result {
         Ok(sample) => { let _ = writeln!(line, "{{\"schema\":\"conduit.netherwick/imu-probe@1\",\"success\":true,\"address\":{},\"accel_mm_s2\":[{},{},{}],\"gyro_milliradians_s\":[{},{},{}]}}", address, sample.accel_x_mm_s2, sample.accel_y_mm_s2, sample.accel_z_mm_s2, sample.gyro_x_milliradians_s, sample.gyro_y_milliradians_s, sample.gyro_z_milliradians_s); }
@@ -296,6 +304,7 @@ fn main() -> ! {
     // retained for the lifetime of the image so neither can float or be reused.
     let _power_toggle = Output::new(p.PIN_18, Level::Low);
     let translator_oe = Output::new(p.PIN_19, Level::Low);
+    let charging_indicator = Input::new(p.PIN_20, Pull::Down);
     let driver = usb::Driver::new(p.USB, Irqs);
     let (device, class) = usb_device(driver);
     static EXECUTOR: StaticCell<Executor> = StaticCell::new();
@@ -313,6 +322,7 @@ fn main() -> ! {
                     p.UART0,
                     p.PIN_0,
                     p.PIN_1,
+                    charging_indicator,
                     translator_oe,
                 )
                 .unwrap(),

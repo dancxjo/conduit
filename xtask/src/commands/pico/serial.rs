@@ -126,6 +126,12 @@ fn validate_netherwick_inert_records(
         || disposition["create_uart"] != "uninitialized"
         || disposition["watchdog"]["timeout_ms"] != 2_000
         || disposition["watchdog"]["feed_interval_ms"] != 250
+        || disposition["charging_indicator"]["gpio"] != 20
+        || disposition["charging_indicator"]["active_high"] != true
+        || !matches!(
+            disposition["charging_indicator"]["level"].as_str(),
+            Some("low" | "high")
+        )
     {
         return Err("inert disposition does not preserve the fail-safe carrier state".into());
     }
@@ -517,6 +523,7 @@ mod tests {
                 "translator_oe": "low",
                 "power_toggle": "low",
                 "create_uart": "uninitialized",
+                "charging_indicator": {"gpio": 20, "active_high": true, "level": "low"},
                 "watchdog": {"timeout_ms": 2000, "feed_interval_ms": 250}
             }),
             serde_json::json!({
