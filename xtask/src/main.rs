@@ -45,6 +45,7 @@ fn main() {
         Command::Midi(args) => match args.command {
             MidiCommand::List => commands::midi::list(&opts),
         },
+        Command::Netherwick(args) => commands::netherwick_std_observe::run(args, &opts),
         Command::Demo(args) => match args.command {
             DemoCommand::Std => commands::demo::run_std(&opts),
             DemoCommand::Triple => commands::demo::run_triple(&opts),

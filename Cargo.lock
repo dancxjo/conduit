@@ -4278,6 +4278,7 @@ dependencies = [
  "conduit-wire",
  "conduitos",
  "flate2",
+ "libc",
  "patchbay-model",
  "resvg",
  "serde",

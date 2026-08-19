@@ -32,8 +32,11 @@ conduit-synth = { path = "../crates/conduit-synth" }
 conduit-planner = { path = "../crates/conduit-planner" }
 conduit-presentation = { path = "../crates/conduit-presentation", features = ["form-catalog"] }
 conduit-runtime = { path = "../crates/conduit-runtime", default-features = false }
-conduit-std-host = { path = "../hosts/std", features = ["local-model-proof"] }
+conduit-std-host = { path = "../hosts/std", features = ["local-model-proof", "netherwick-create"] }
 conduit-system-continuity = { path = "../crates/conduit-system-continuity", features = ["r1-recovery"] }
 conduit-tongues = { path = "../crates/conduit-tongues" }
 conduit-wire = { path = "../crates/conduit-wire" }
 patchbay-model = { path = "../hosts/patchbay-model" }
+
+[dev-dependencies]
+libc = "0.2"

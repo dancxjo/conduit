@@ -4,6 +4,7 @@ use crate::commands::catalog::CatalogArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::evidence::EvidenceArgs;
 use crate::commands::host::HostArgs;
+use crate::commands::netherwick_std_observe::NetherwickArgs;
 use crate::commands::pico::PicoArgs;
 
 /// Repository orchestration task runner for Conduit.
@@ -62,6 +63,8 @@ pub enum Command {
     Audio(AudioArgs),
     /// Inspect exact hosted MIDI sequencer endpoints.
     Midi(MidiArgs),
+    /// Exercise explicit Netherwick development and hardware proof entrances.
+    Netherwick(NetherwickArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
     /// Generate the bounded Patchbay GNU Unifont subset.
@@ -545,6 +548,23 @@ mod tests {
         let midi =
             Cli::try_parse_from(["xtask", "midi", "list"]).expect("MIDI discovery command parses");
         assert!(matches!(midi.command, Command::Midi(_)));
+        let netherwick = Cli::try_parse_from([
+            "xtask",
+            "netherwick",
+            "std-observe",
+            "--serial-path",
+            "/dev/ttyUSB0",
+            "--base-id",
+            "std/create-uart/0",
+            "--host-id",
+            "std-host/0",
+            "--boot-id",
+            "std-boot/0",
+            "--evidence-out",
+            "target/netherwick-observation.json",
+        ])
+        .expect("explicit std Create observation entrance parses");
+        assert!(matches!(netherwick.command, Command::Netherwick(_)));
         assert!(Cli::try_parse_from([
             "xtask",
             "audio",
