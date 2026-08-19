@@ -17,6 +17,7 @@ use conduit_std_host::std_create_uart::{
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
+use crate::commands::netherwick_std_speaker::{self, StdSpeakerArgs};
 
 const EVIDENCE_SCHEMA: &str = "conduit.netherwick/std-create-observation-evidence@1";
 const MAXIMUM_ID_BYTES: usize = 128;
@@ -33,6 +34,8 @@ pub struct NetherwickArgs {
 enum NetherwickCommand {
     /// Observe one bounded correlated Create sensor frame without actuation.
     StdObserve(StdObserveArgs),
+    /// Play one bounded portable melody through an exact std Create UART Base.
+    StdSpeaker(StdSpeakerArgs),
 }
 
 #[derive(Args, Clone, Debug)]
@@ -121,6 +124,7 @@ struct PortableObservation {
 pub fn run(args: NetherwickArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         NetherwickCommand::StdObserve(args) => run_std_observe(args, opts),
+        NetherwickCommand::StdSpeaker(args) => netherwick_std_speaker::run(args, opts),
     }
 }
 

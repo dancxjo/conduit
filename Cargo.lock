@@ -4259,6 +4259,7 @@ dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-core",
+ "conduit-create-oi",
  "conduit-form",
  "conduit-host-fabrication",
  "conduit-kernel",

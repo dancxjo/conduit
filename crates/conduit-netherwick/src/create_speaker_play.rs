@@ -171,6 +171,9 @@ pub struct PreparedSpeakerExecution {
 pub enum SerialFailure {
     ProviderLost,
     PartialWrite,
+    DeviceNoResponse,
+    TruncatedResponse,
+    MalformedResponse,
     Refused,
     SongNotObserved,
 }

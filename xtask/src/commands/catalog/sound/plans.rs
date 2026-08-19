@@ -64,6 +64,7 @@ fn create_plan() -> Result<conduit_core::Plan, CatalogError> {
         offer_generation: OfferGeneration(1),
         serial_base_id: "conformance/pete/create1/serial/0".into(),
         robot_identity: "conformance/pete/create1/robot".into(),
+        robot_identity_verified: true,
         speaker_resource_id: "conformance/pete/create1/speaker".into(),
         mode: conduit_netherwick::OiMode::Safe,
         currently_usable: true,

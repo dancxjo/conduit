@@ -18,6 +18,7 @@ sha2 = "0.10"
 conduit-body = { path = "../crates/conduit-body" }
 conduit-ai = { path = "../crates/conduit-ai" }
 conduit-core = { path = "../crates/conduit-core" }
+conduit-create-oi = { path = "../crates/conduit-create-oi" }
 conduit-form = { path = "../crates/conduit-form" }
 conduit-host-fabrication = { path = "../crates/conduit-host-fabrication" }
 conduit-kernel = { path = "../crates/conduit-kernel", features = ["alloc"] }
