@@ -16,7 +16,7 @@ use heapless::String;
 
 use super::{send_control_frame, InertCdc};
 
-const RESPONSE_BYTES: usize = 384;
+const RESPONSE_BYTES: usize = 512;
 const QUERY_DEADLINE_MS: u64 = 750;
 const GROUP_ZERO_PACKET: u8 = 0;
 
