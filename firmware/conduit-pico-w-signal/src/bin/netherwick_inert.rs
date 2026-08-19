@@ -13,7 +13,7 @@ use embassy_executor::Executor;
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output};
 use embassy_rp::i2c::{Blocking, Config as I2cConfig, I2c};
-use embassy_rp::peripherals::{I2C1, PIN_2, PIN_3, USB};
+use embassy_rp::peripherals::{I2C1, PIN_0, PIN_1, PIN_2, PIN_3, UART0, USB};
 use embassy_rp::usb;
 use embassy_rp::Peri;
 use embassy_time::{Duration, Timer};
@@ -21,6 +21,9 @@ use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
 use embassy_usb::{Builder, Config, UsbDevice};
 use heapless::String;
 use static_cell::StaticCell;
+
+#[path = "netherwick_inert/create_probe.rs"]
+mod create_probe;
 
 struct NoAllocator;
 
@@ -61,6 +64,7 @@ const BOOTSEL_QUERY: &[u8] = b"CONDUIT_BOOTSEL_QUERY@1";
 const BOOTSEL_CHALLENGE_PREFIX: &str = "CONDUIT_BOOTSEL_CHALLENGE@1:";
 const BOOTSEL_REQUEST_PREFIX: &str = "CONDUIT_REBOOT_BOOTSEL@1:";
 const BOOTSEL_ACK: &[u8] = b"CONDUIT_REBOOT_BOOTSEL_ACK@1";
+const CREATE_PROBE_REQUEST_PREFIX: &str = "CONDUIT_CREATE_PROBE@1:";
 const BOOTSEL_FRAME_MAX: usize = 256;
 
 struct Provider(BoardI2c);
@@ -128,7 +132,14 @@ async fn send_control_frame(class: &mut InertCdc, payload: &[u8]) -> Result<(), 
     Ok(())
 }
 
-async fn serve_build_bound_bootsel(class: &mut InertCdc) -> ! {
+async fn serve_build_bound_services(
+    class: &mut InertCdc,
+    uart0: Peri<'static, UART0>,
+    tx: Peri<'static, PIN_0>,
+    rx: Peri<'static, PIN_1>,
+    translator_oe: &mut Output<'static>,
+) -> ! {
+    let mut create_resources = Some((uart0, tx, rx));
     let mut decoder = match StreamFrameDecoder::<BOOTSEL_FRAME_MAX>::new(BOOTSEL_FRAME_MAX) {
         Ok(decoder) => decoder,
         Err(_) => core::future::pending::<StreamFrameDecoder<BOOTSEL_FRAME_MAX>>().await,
@@ -187,6 +198,28 @@ async fn serve_build_bound_bootsel(class: &mut InertCdc) -> ! {
             embassy_rp::rom_data::reset_to_usb_boot(0, 0);
             core::future::pending::<()>().await;
         }
+
+        let mut expected_probe = String::<BOOTSEL_FRAME_MAX>::new();
+        if write!(
+            expected_probe,
+            "{CREATE_PROBE_REQUEST_PREFIX}{}",
+            env!("CONDUIT_NETHERWICK_INERT_BUILD_ID")
+        )
+        .is_err()
+        {
+            core::future::pending::<()>().await;
+        }
+        if request == expected_probe.as_bytes() {
+            if let Some((uart0, tx, rx)) = create_resources.take() {
+                create_probe::run(class, uart0, tx, rx, translator_oe).await;
+            } else {
+                let _ = send_control_frame(
+                    class,
+                    b"{\"schema\":\"conduit.netherwick/create-probe@1\",\"success\":false,\"failure\":\"probe_already_consumed\"}",
+                )
+                .await;
+            }
+        }
     }
 }
 
@@ -196,7 +229,16 @@ async fn usb_device_task(mut device: InertUsbDevice) -> ! {
 }
 
 #[embassy_executor::task]
-async fn qualification_task(mut class: InertCdc, i2c1: Peri<'static, I2C1>, sda: Peri<'static, PIN_2>, scl: Peri<'static, PIN_3>) {
+async fn qualification_task(
+    mut class: InertCdc,
+    i2c1: Peri<'static, I2C1>,
+    sda: Peri<'static, PIN_2>,
+    scl: Peri<'static, PIN_3>,
+    uart0: Peri<'static, UART0>,
+    tx: Peri<'static, PIN_0>,
+    rx: Peri<'static, PIN_1>,
+    mut translator_oe: Output<'static>,
+) {
     class.wait_connection().await;
     // Keep the USB recovery/qualification entrance live before touching a
     // potentially absent or electrically held I²C bus. The probe is below
@@ -230,7 +272,7 @@ async fn qualification_task(mut class: InertCdc, i2c1: Peri<'static, I2C1>, sda:
     }
     write_line(&mut class, &line).await;
     write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-terminal@1\",\"qualification_complete\":true,\"robot_control_ready\":false}\n").await;
-    serve_build_bound_bootsel(&mut class).await;
+    serve_build_bound_services(&mut class, uart0, tx, rx, &mut translator_oe).await;
 }
 
 #[cortex_m_rt::entry]
@@ -239,7 +281,7 @@ fn main() -> ! {
     // These outputs are established before any peripheral probing. Ownership is
     // retained for the lifetime of the image so neither can float or be reused.
     let _power_toggle = Output::new(p.PIN_18, Level::Low);
-    let _translator_oe = Output::new(p.PIN_19, Level::Low);
+    let translator_oe = Output::new(p.PIN_19, Level::Low);
     let driver = usb::Driver::new(p.USB, Irqs);
     let (device, class) = usb_device(driver);
     static EXECUTOR: StaticCell<Executor> = StaticCell::new();
@@ -247,6 +289,18 @@ fn main() -> ! {
     executor.run(|spawner| {
         spawner.spawn(usb_device_task(device).unwrap());
         spawner
-            .spawn(qualification_task(class, p.I2C1, p.PIN_2, p.PIN_3).unwrap());
+            .spawn(
+                qualification_task(
+                    class,
+                    p.I2C1,
+                    p.PIN_2,
+                    p.PIN_3,
+                    p.UART0,
+                    p.PIN_0,
+                    p.PIN_1,
+                    translator_oe,
+                )
+                .unwrap(),
+            );
     });
 }
