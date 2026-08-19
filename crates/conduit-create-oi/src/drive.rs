@@ -6,8 +6,10 @@
 //! expiry or hazard. It is not an author-wirable safety Gear.
 
 use crate::{
-    encode_drive_direct, encode_stop, write_command, CreateOiFailure, CreateUartProvider,
-    CREATE_OI_MAX_WHEEL_SPEED_MM_S,
+    encode_drive_direct, encode_stop, write_command, ActiveWheelOutput, ContactFrame,
+    ContactWithdrawalSign, CreateOiFailure, CreateUartProvider, IndependentWatchdogObservation,
+    LocalContactWithdrawal, LocalHazard, SafetyInputObservation, SafetyObservation,
+    WithdrawalInhibitors, CREATE_OI_MAX_WHEEL_SPEED_MM_S,
 };
 
 /// The exact portable-profile lower TTL bound accepted by this realization.
@@ -18,64 +20,17 @@ pub const MAXIMUM_MOTION_TTL_MS: u32 = 60_000;
 pub const MOTION_CLOCK_TICKS_PER_SECOND: u32 = 1_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LocalHazard {
-    EmergencyStop,
-    WheelDrop,
-    Cliff,
-    Tilt,
-    Impact,
-    Charging,
-    ControlLost,
-    BodyLinkLost,
-    WatchdogUnhealthy,
-    SafetyGenerationRegressed,
-    SafetyClockInvalid,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct SafetyObservation {
-    pub generation: u32,
-    pub observed_at_tick: u64,
-    pub maximum_age_ticks: u32,
-    pub emergency_stop: bool,
-    pub wheel_drop: bool,
-    pub cliff: bool,
-    pub tilt: bool,
-    pub impact: bool,
-    pub charging: bool,
-    pub control_alive: bool,
-    pub body_link_alive: bool,
-    pub watchdog_healthy: bool,
-}
-
-impl SafetyObservation {
-    pub fn first_hazard(self, now_tick: u64) -> Option<LocalHazard> {
-        if self.observed_at_tick > now_tick {
-            return Some(LocalHazard::SafetyClockInvalid);
-        }
-        if now_tick.saturating_sub(self.observed_at_tick) > u64::from(self.maximum_age_ticks) {
-            return Some(LocalHazard::BodyLinkLost);
-        }
-        [
-            (self.emergency_stop, LocalHazard::EmergencyStop),
-            (self.wheel_drop, LocalHazard::WheelDrop),
-            (self.cliff, LocalHazard::Cliff),
-            (self.tilt, LocalHazard::Tilt),
-            (self.impact, LocalHazard::Impact),
-            (self.charging, LocalHazard::Charging),
-            (!self.control_alive, LocalHazard::ControlLost),
-            (!self.body_link_alive, LocalHazard::BodyLinkLost),
-            (!self.watchdog_healthy, LocalHazard::WatchdogUnhealthy),
-        ]
-        .into_iter()
-        .find_map(|(active, hazard)| active.then_some(hazard))
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct MotionAuthority<'a> {
     pub grant_id: &'a str,
     pub valid_until_tick: u64,
+    pub safety_class: MotionSafetyAuthority,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MotionSafetyAuthority {
+    IndependentWatchdog,
+    ReducedWheelsOffFloor,
+    ReducedFloorAcknowledged,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,10 +44,12 @@ pub struct DifferentialMotionRequest {
 pub enum DriveRefusal {
     MissingAuthority,
     AuthorityExpired,
+    SafetyAuthorityMismatch,
     SafetyStaleOrInhibited(LocalHazard),
     InvalidTtl,
     VelocityOutsideRealization,
     DeadlineOverflow,
+    CommandGenerationExhausted,
     Device(CreateOiFailure),
 }
 
@@ -120,10 +77,28 @@ pub enum SafeDispositionCause {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CreateActuatorSupervisionSign<'a> {
+    Drive(DriveSafetySign<'a>),
+    ContactWithdrawal(ContactWithdrawalSign),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PhysicalActuatorObservation {
+    pub safety: SafetyObservation,
+    pub contact: ContactFrame,
+    pub distance_mm: Option<i32>,
+    pub explicitly_disarmed: bool,
+    pub motor_feedback_invalid: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LocalCreateDriveSafety {
     motion_deadline_tick: Option<u64>,
     active_authority_until_tick: Option<u64>,
     safety_generation: u32,
+    command_generation: u64,
+    active_output: Option<ActiveWheelOutput>,
+    contact_withdrawal: LocalContactWithdrawal,
 }
 
 impl LocalCreateDriveSafety {
@@ -132,6 +107,9 @@ impl LocalCreateDriveSafety {
             motion_deadline_tick: None,
             active_authority_until_tick: None,
             safety_generation: 0,
+            command_generation: 0,
+            active_output: None,
+            contact_withdrawal: LocalContactWithdrawal::new(),
         }
     }
 
@@ -172,6 +150,18 @@ impl LocalCreateDriveSafety {
         if let Some(hazard) = safety.first_hazard(now_tick) {
             return Err(DriveRefusal::SafetyStaleOrInhibited(hazard));
         }
+        match (
+            safety.has_complete_independent_envelope(),
+            authority.safety_class,
+        ) {
+            (true, MotionSafetyAuthority::IndependentWatchdog)
+            | (
+                false,
+                MotionSafetyAuthority::ReducedWheelsOffFloor
+                | MotionSafetyAuthority::ReducedFloorAcknowledged,
+            ) => {}
+            _ => return Err(DriveRefusal::SafetyAuthorityMismatch),
+        }
         if !(MINIMUM_MOTION_TTL_MS..=MAXIMUM_MOTION_TTL_MS).contains(&request.ttl_ms) {
             return Err(DriveRefusal::InvalidTtl);
         }
@@ -192,7 +182,17 @@ impl LocalCreateDriveSafety {
         }
         let command = encode_drive_direct(request.left_mm_s, request.right_mm_s)
             .map_err(|_| DriveRefusal::VelocityOutsideRealization)?;
+        let command_generation = self
+            .command_generation
+            .checked_add(1)
+            .ok_or(DriveRefusal::CommandGenerationExhausted)?;
         write_command(provider, &command).map_err(DriveRefusal::Device)?;
+        self.command_generation = command_generation;
+        self.active_output = Some(ActiveWheelOutput {
+            command_generation,
+            left_mm_s: request.left_mm_s,
+            right_mm_s: request.right_mm_s,
+        });
         self.motion_deadline_tick = Some(deadline_tick);
         self.active_authority_until_tick = Some(authority.valid_until_tick);
         self.safety_generation = safety.generation;
@@ -227,6 +227,65 @@ impl LocalCreateDriveSafety {
         Some(self.stop_with_cause(provider, cause, safety.generation))
     }
 
+    /// Supervises the physical actuator with the mandatory contact reflex.
+    ///
+    /// Embedded realizations call this before ordinary hazard supervision so a
+    /// fresh contact edge can atomically replace toward-contact output. Once
+    /// started, ordinary control loss cannot cancel the reflex; exact stronger
+    /// local truth still preempts it.
+    pub fn supervise_physical<P: CreateUartProvider>(
+        &mut self,
+        provider: &mut P,
+        now_tick: u64,
+        observation: PhysicalActuatorObservation,
+    ) -> Option<CreateActuatorSupervisionSign<'static>> {
+        let PhysicalActuatorObservation {
+            safety,
+            contact,
+            distance_mm,
+            explicitly_disarmed,
+            motor_feedback_invalid,
+        } = observation;
+        let inhibitors = WithdrawalInhibitors {
+            explicitly_disarmed,
+            emergency_stop: safety.emergency_stop == SafetyInputObservation::Active
+                || safety.latched_hazards.contains(LocalHazard::EmergencyStop),
+            wheel_drop: safety.wheel_drop
+                || safety.latched_hazards.contains(LocalHazard::WheelDrop),
+            cliff: safety.cliff || safety.latched_hazards.contains(LocalHazard::Cliff),
+            charging: safety.charging || safety.latched_hazards.contains(LocalHazard::Charging),
+            tilt: safety.tilt == SafetyInputObservation::Active
+                || safety.latched_hazards.contains(LocalHazard::Tilt),
+            impact: safety.impact == SafetyInputObservation::Active
+                || safety.latched_hazards.contains(LocalHazard::Impact),
+            motor_feedback_invalid,
+            create_feedback_lost: !safety.body_link_alive
+                || safety.latched_hazards.contains(LocalHazard::BodyLinkLost),
+            watchdog_failed: safety.independent_watchdog == IndependentWatchdogObservation::Failed
+                || safety
+                    .latched_hazards
+                    .contains(LocalHazard::WatchdogUnhealthy),
+        };
+        if let Some(sign) = self.contact_withdrawal.step(
+            provider,
+            now_tick,
+            contact,
+            self.active_output,
+            distance_mm,
+            inhibitors,
+        ) {
+            self.motion_deadline_tick = None;
+            self.active_authority_until_tick = None;
+            self.active_output = None;
+            return Some(CreateActuatorSupervisionSign::ContactWithdrawal(sign));
+        }
+        if self.contact_withdrawal.is_active() {
+            return None;
+        }
+        self.supervise(provider, now_tick, safety)
+            .map(CreateActuatorSupervisionSign::Drive)
+    }
+
     pub fn stop<P: CreateUartProvider>(
         &mut self,
         provider: &mut P,
@@ -247,6 +306,7 @@ impl LocalCreateDriveSafety {
     ) -> DriveSafetySign<'static> {
         self.motion_deadline_tick = None;
         self.active_authority_until_tick = None;
+        self.active_output = None;
         self.safety_generation = safety_generation;
         match write_command(provider, &encode_stop()) {
             Ok(()) => DriveSafetySign::SafeDisposition {
@@ -268,175 +328,9 @@ impl Default for LocalCreateDriveSafety {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{UartParity, UartProfile};
-    use std::vec;
-    use std::vec::Vec;
+#[path = "drive_tests.rs"]
+mod tests;
 
-    struct Provider {
-        available: bool,
-        bytes: Vec<u8>,
-    }
-    impl CreateUartProvider for Provider {
-        type Error = ();
-
-        fn is_available(&self) -> bool {
-            self.available
-        }
-        fn profile(&self) -> UartProfile {
-            UartProfile {
-                baud: 57_600,
-                data_bits: 8,
-                stop_bits: 1,
-                parity: UartParity::None,
-            }
-        }
-        fn write_all(&mut self, bytes: &[u8]) -> Result<(), ()> {
-            self.bytes.extend_from_slice(bytes);
-            Ok(())
-        }
-        fn read_byte(&mut self, _: u64) -> Result<Option<u8>, ()> {
-            Ok(None)
-        }
-    }
-    fn safe() -> SafetyObservation {
-        SafetyObservation {
-            generation: 7,
-            observed_at_tick: 100,
-            maximum_age_ticks: 20,
-            emergency_stop: false,
-            wheel_drop: false,
-            cliff: false,
-            tilt: false,
-            impact: false,
-            charging: false,
-            control_alive: true,
-            body_link_alive: true,
-            watchdog_healthy: true,
-        }
-    }
-    fn authority() -> MotionAuthority<'static> {
-        MotionAuthority {
-            grant_id: "grant/drive",
-            valid_until_tick: 1_000,
-        }
-    }
-
-    #[test]
-    fn authority_and_fresh_safety_are_mandatory_before_any_motion_byte() {
-        let mut provider = Provider {
-            available: true,
-            bytes: vec![],
-        };
-        let mut drive = LocalCreateDriveSafety::new();
-        let request = DifferentialMotionRequest {
-            left_mm_s: 20,
-            right_mm_s: 20,
-            ttl_ms: 100,
-        };
-        assert_eq!(
-            drive.admit_motion(&mut provider, 100, None, safe(), request),
-            DriveSafetySign::Refused(DriveRefusal::MissingAuthority)
-        );
-        assert!(provider.bytes.is_empty());
-        let mut stale = safe();
-        stale.observed_at_tick = 0;
-        assert!(matches!(
-            drive.admit_motion(&mut provider, 100, Some(authority()), stale, request),
-            DriveSafetySign::Refused(DriveRefusal::SafetyStaleOrInhibited(
-                LocalHazard::BodyLinkLost
-            ))
-        ));
-        assert!(provider.bytes.is_empty());
-    }
-
-    #[test]
-    fn ttl_expiry_and_hazard_force_exact_zero_wheel_command() {
-        let mut provider = Provider {
-            available: true,
-            bytes: vec![],
-        };
-        let mut drive = LocalCreateDriveSafety::new();
-        let request = DifferentialMotionRequest {
-            left_mm_s: 20,
-            right_mm_s: -20,
-            ttl_ms: 100,
-        };
-        assert!(matches!(
-            drive.admit_motion(&mut provider, 100, Some(authority()), safe(), request),
-            DriveSafetySign::MotionAdmitted {
-                deadline_tick: 200,
-                ..
-            }
-        ));
-        assert!(matches!(
-            drive.supervise(
-                &mut provider,
-                200,
-                SafetyObservation {
-                    observed_at_tick: 200,
-                    ..safe()
-                }
-            ),
-            Some(DriveSafetySign::SafeDisposition {
-                cause: SafeDispositionCause::DeadlineExpired,
-                ..
-            })
-        ));
-        assert_eq!(&provider.bytes[5..], &[145, 0, 0, 0, 0]);
-
-        let mut hazard = safe();
-        hazard.observed_at_tick = 210;
-        hazard.wheel_drop = true;
-        hazard.generation = 8;
-        assert!(matches!(
-            drive.supervise(&mut provider, 210, hazard),
-            Some(DriveSafetySign::SafeDisposition {
-                cause: SafeDispositionCause::Hazard(LocalHazard::WheelDrop),
-                safety_generation: 8
-            })
-        ));
-    }
-
-    #[test]
-    fn future_clock_and_regressed_safety_generation_fail_closed() {
-        let mut provider = Provider {
-            available: true,
-            bytes: vec![],
-        };
-        let mut drive = LocalCreateDriveSafety::new();
-        let request = DifferentialMotionRequest {
-            left_mm_s: 20,
-            right_mm_s: 20,
-            ttl_ms: 100,
-        };
-        let mut future = safe();
-        future.observed_at_tick = 101;
-        assert_eq!(
-            drive.admit_motion(&mut provider, 100, Some(authority()), future, request),
-            DriveSafetySign::Refused(DriveRefusal::SafetyStaleOrInhibited(
-                LocalHazard::SafetyClockInvalid
-            ))
-        );
-        assert!(provider.bytes.is_empty());
-
-        assert!(matches!(
-            drive.admit_motion(&mut provider, 100, Some(authority()), safe(), request),
-            DriveSafetySign::MotionAdmitted { .. }
-        ));
-        let regressed = SafetyObservation {
-            generation: 6,
-            observed_at_tick: 101,
-            ..safe()
-        };
-        assert!(matches!(
-            drive.supervise(&mut provider, 101, regressed),
-            Some(DriveSafetySign::SafeDisposition {
-                cause: SafeDispositionCause::Hazard(LocalHazard::SafetyGenerationRegressed),
-                ..
-            })
-        ));
-        assert_eq!(&provider.bytes[5..], &[145, 0, 0, 0, 0]);
-    }
-}
+#[cfg(test)]
+#[path = "drive_physical_tests.rs"]
+mod physical_tests;

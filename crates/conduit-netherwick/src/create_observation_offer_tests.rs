@@ -51,6 +51,11 @@ fn snapshot() -> CreateObservationSnapshot {
         observed_at_tick: 90,
         maximum_age_ticks: 20,
         observation: observation(),
+        odometry: Some(CreateOdometrySample {
+            value: conduit_core::OdometryObservation::new(-120, 0, 523_599).unwrap(),
+            frame_generation: 1,
+            sample_generation: 4,
+        }),
     }
 }
 
@@ -117,6 +122,21 @@ fn one_correlated_observation_encodes_each_portable_channel_exactly() {
             .unwrap()
             .unwrap()
     );
+    let bump = encode_create_observation(&snapshot, CreateObservationChannel::BumpAggregate, 100)
+        .unwrap()
+        .unwrap();
+    assert!(conduit_core::InfoBool::decode(bump.as_bytes())
+        .unwrap()
+        .get());
+    let mut clear = snapshot.clone();
+    clear.observation.group_zero.contact = conduit_core::ContactObservation::new(0).unwrap();
+    let clear_bump =
+        encode_create_observation(&clear, CreateObservationChannel::BumpAggregate, 100)
+            .unwrap()
+            .unwrap();
+    assert!(!conduit_core::InfoBool::decode(clear_bump.as_bytes())
+        .unwrap()
+        .get());
     assert_eq!(
         encode_create_observation(&snapshot, CreateObservationChannel::Contact, 111),
         Err(CreateObservationEncodeRefusal::StaleObservation)

@@ -40,10 +40,17 @@ const WAIT_VALUE_BYTES: u32 = 8;
 const RUNTIME_SIGN_EVENTS: usize = 256;
 
 fn main() {
-    let target = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     let appliance_build_id = appliance_build_id();
     println!("cargo:rustc-env=CONDUIT_PICO_APPLIANCE_BUILD_ID={appliance_build_id}");
+    println!(
+        "cargo:rustc-env=CONDUIT_NETHERWICK_INERT_BUILD_ID={}",
+        netherwick_inert_build_id()
+    );
+    if firmware_mode() == "netherwick-inert" {
+        emit_linker_contract(&out);
+        return;
+    }
     generate_body_advertisement(&out, firmware_mode());
 
     if firmware_mode() == "appliance-hello" {
@@ -62,6 +69,10 @@ fn main() {
         generate_pico_signal_image(&out);
     }
 
+    emit_linker_contract(&out);
+}
+
+fn emit_linker_contract(out: &Path) {
     // Only emit the RP2040-specific linker flags for thumbv6m
     if env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default() == "arm"
         && env::var("TARGET").unwrap_or_default() == "thumbv6m-none-eabi"
@@ -71,7 +82,6 @@ fn main() {
         println!("cargo:rustc-link-search={}", out.display());
         println!("cargo:rustc-link-arg=-Tlink.x");
     }
-    let _ = target;
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../../fixtures/forms/signal-demo.conduit");
@@ -121,6 +131,16 @@ fn appliance_build_id() -> String {
         env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
         firmware_mode(),
         artifact,
+    )
+}
+
+fn netherwick_inert_build_id() -> String {
+    format!(
+        "conduit-pico-w-netherwick-inert:{}:{}:{}:{}:qualification@1",
+        git_revision(),
+        git_tree_state(),
+        env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
+        env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
     )
 }
 

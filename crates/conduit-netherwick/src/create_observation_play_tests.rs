@@ -1,13 +1,14 @@
 use super::*;
 use crate::{
     live_create_observation_advertisement, CreateObservationEncodeRefusal,
-    CreateObservationFailure, OiMode, UartProfile,
+    CreateObservationFailure, OiMode, UartProfile, CREATE_ODOMETRY_RESET_AUTHORITY,
 };
 use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration};
 use std::collections::VecDeque;
 
 const FORM: &str = "form contact_sample {\n contact: robotics/observe-contact\n}\n";
 const BEACON_FORM: &str = "form beacon_sample {\n beacon: robotics/observe-beacon\n}\n";
+const ODOMETRY_FORM: &str = "form odometry_sample {\n odometry: robotics/observe-odometry\n}\n";
 
 struct Provider {
     available: bool,
@@ -70,9 +71,20 @@ fn plan() -> Plan {
 }
 
 fn frame(contact: u8, include_virtual_wall: bool) -> Vec<u8> {
+    frame_with_delta(contact, include_virtual_wall, 0, 0)
+}
+
+fn frame_with_delta(
+    contact: u8,
+    include_virtual_wall: bool,
+    distance_delta_mm: i16,
+    angle_delta_degrees: i16,
+) -> Vec<u8> {
     let mut group = [0_u8; 26];
     group[0] = contact;
     group[6] = u8::from(include_virtual_wall);
+    group[12..14].copy_from_slice(&distance_delta_mm.to_be_bytes());
+    group[14..16].copy_from_slice(&angle_delta_degrees.to_be_bytes());
     group[16] = 3;
     group[17..19].copy_from_slice(&14_000_u16.to_be_bytes());
     group[19..21].copy_from_slice(&100_i16.to_be_bytes());
@@ -243,5 +255,117 @@ fn malformed_truncated_and_lost_provider_keep_exact_protocol_failures() {
         CreateObservationTerminal::Failed(CreateObservationExecutionFailure::Session(
             CreateObservationFailure::Protocol(crate::CreateOiFailure::ProviderUnavailable)
         ))
+    );
+}
+
+#[test]
+fn odometry_state_crosses_sessions_and_reset_advances_the_exact_frame() {
+    let evidence = evidence();
+    let plan = plan_for(ODOMETRY_FORM, "odometry_sample");
+    let mut first =
+        prepare_create_observation_execution(&plan, CreateObservationChannel::Odometry, &evidence)
+            .unwrap();
+    let mut first_provider = provider(&frame_with_delta(0, false, 100, 90));
+    let first_report =
+        run_create_observation_execution(&mut first, &mut first_provider, 105, 100, 100);
+    assert_eq!(first_report.terminal, CreateObservationTerminal::Completed);
+    assert_eq!(first_report.odometry_frame_generation, Some(1));
+    assert_eq!(first_report.odometry_sample_generation, Some(1));
+    assert_eq!(
+        conduit_core::OdometryObservation::decode(
+            &first_report.canonical_value[..usize::from(first_report.canonical_value_len)]
+        )
+        .unwrap()
+        .components(),
+        (71, 71, 1_570_797)
+    );
+
+    let retained = create_observation_odometry_state(&first).unwrap();
+    let mut second = prepare_create_observation_execution_with_odometry(
+        &plan,
+        CreateObservationChannel::Odometry,
+        &evidence,
+        retained,
+    )
+    .unwrap();
+    let mut second_provider = provider(&frame_with_delta(0, false, 100, 0));
+    let second_report =
+        run_create_observation_execution(&mut second, &mut second_provider, 115, 110, 110);
+    assert_eq!(second_report.odometry_sample_generation, Some(2));
+    assert_eq!(
+        conduit_core::OdometryObservation::decode(
+            &second_report.canonical_value[..usize::from(second_report.canonical_value_len)]
+        )
+        .unwrap()
+        .components(),
+        (71, 171, 1_570_797)
+    );
+
+    let retained = create_observation_odometry_state(&second).unwrap();
+    let mut reset_execution = prepare_create_observation_execution_with_odometry(
+        &plan,
+        CreateObservationChannel::Odometry,
+        &evidence,
+        retained,
+    )
+    .unwrap();
+    let sign = reset_create_observation_odometry(
+        &mut reset_execution,
+        CreateOdometryResetRequest {
+            request_id: "reset/std-odometry-1",
+            expected_frame_generation: 1,
+        },
+        Some(CreateOdometryResetAuthority {
+            grant_id: CREATE_ODOMETRY_RESET_AUTHORITY,
+            host_id: &evidence.host_id,
+            boot_id: &evidence.boot_id,
+            offer_generation: evidence.offer_generation,
+            implementation_id: CreateObservationChannel::Odometry.implementation_id(),
+            valid_until_tick: 200,
+        }),
+        120,
+    )
+    .unwrap();
+    assert_eq!(sign.current_frame_generation, 2);
+    let mut reset_provider = provider(&frame_with_delta(0, false, 10, 0));
+    let reset_report =
+        run_create_observation_execution(&mut reset_execution, &mut reset_provider, 130, 125, 125);
+    assert_eq!(reset_report.odometry_frame_generation, Some(2));
+    assert_eq!(reset_report.odometry_sample_generation, Some(1));
+    assert_eq!(
+        conduit_core::OdometryObservation::decode(
+            &reset_report.canonical_value[..usize::from(reset_report.canonical_value_len)]
+        )
+        .unwrap()
+        .components(),
+        (10, 0, 0)
+    );
+}
+
+#[test]
+fn odometry_reset_refuses_wrong_channel_and_dispatched_execution() {
+    let evidence = evidence();
+    let mut contact =
+        prepare_create_observation_execution(&plan(), CreateObservationChannel::Contact, &evidence)
+            .unwrap();
+    let request = CreateOdometryResetRequest {
+        request_id: "reset/wrong-channel",
+        expected_frame_generation: 1,
+    };
+    assert_eq!(
+        reset_create_observation_odometry(&mut contact, request, None, 100),
+        Err(CreateObservationOdometryResetRefusal::WrongChannel)
+    );
+
+    let plan = plan_for(ODOMETRY_FORM, "odometry_sample");
+    let mut odometry =
+        prepare_create_observation_execution(&plan, CreateObservationChannel::Odometry, &evidence)
+            .unwrap();
+    let mut provider = provider(&frame_with_delta(0, false, 1, 0));
+    let report = run_create_observation_execution(&mut odometry, &mut provider, 105, 100, 100);
+    assert_eq!(report.terminal, CreateObservationTerminal::Completed);
+    assert_eq!(
+        reset_create_observation_odometry(&mut odometry, request, None, 101),
+        Err(CreateObservationOdometryResetRefusal::ObservationInFlightOrFinished)
     );
 }

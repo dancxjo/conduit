@@ -27,13 +27,13 @@ impl CreateSpeakerSerial for FakeSerial {
 
 fn observation() -> CreateSpeakerObservation {
     CreateSpeakerObservation {
-        host_id: HostId::from("pete-brainstem-live"),
-        boot_id: BootId::from("pete-brainstem-live-boot"),
+        host_id: HostId::from("netherwick-std-live"),
+        boot_id: BootId::from("netherwick-std-live-boot"),
         offer_generation: OfferGeneration(9),
-        serial_base_id: "pete/create1/serial/0".into(),
-        robot_identity: "pete/create1/observed-robot".into(),
+        serial_base_id: "netherwick/create1/serial/0".into(),
+        robot_identity: "netherwick/create1/observed-robot".into(),
         robot_identity_verified: true,
-        speaker_resource_id: "pete/create1/speaker".into(),
+        speaker_resource_id: "netherwick/create1/speaker".into(),
         mode: OiMode::Safe,
         currently_usable: true,
     }

@@ -1,6 +1,7 @@
 use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
-    ENABLE_PORT, GATE_KIND, IN_PORT, LATEST_KIND, LEFT_PORT, OUT_PORT, RIGHT_PORT, TEE_KIND,
+    ENABLE_PORT, GATE_KIND, IN_PORT, LATEST_KIND, LEFT_PORT, OUT_PORT, RIGHT_PORT,
+    STATE_SELECT_KIND, TEE_KIND,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
@@ -43,6 +44,12 @@ pub const FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT: &str = "conduit.host/decode-bo
 pub const FLOW_GATE_BOOL_HOST_OPERATION_TARGET: &str = "value/decode-bool";
 pub const CONDUITOS_FLOW_GATE_SCALAR_CAPABILITY: &str = "conduitos-flow-gate-scalar-v1";
 pub const CONDUITOS_FLOW_GATE_SCALAR_IMPLEMENTATION: &str = "conduitos/kernel-flow-gate-scalar@1";
+
+pub const STATE_SELECT_SCALAR_CONTRACT_REVISION: &str = "conduit.std/state-select-scalar@1";
+pub const STATE_SELECT_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-select-scalar-kernel@1";
+pub const STATE_SELECT_SCALAR_IMPLEMENTATION: &str = "std/kernel-state-select-scalar@1";
+pub const STATE_SELECT_SCALAR_ARTIFACT: &str = "conduit-std-host/state-select-scalar@1";
+pub const STATE_SELECT_SCALAR_CAPABILITY: &str = "state-select-scalar-v1";
 
 pub const FLOW_STATE_MAXIMUM_VALUES: u16 = 16;
 
@@ -133,6 +140,48 @@ pub fn flow_gate_scalar_contract() -> StandardKindContract {
     }
 }
 
+pub fn state_select_scalar_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(STATE_SELECT_KIND),
+        plain_name: "Select scalar state".to_string(),
+        summary: "Select one of two exact current Scalars using one exact current Boolean."
+            .to_string(),
+        inputs: vec![
+            info_port(
+                super::logic::SELECT_SELECTOR_PORT,
+                BOOL_INFO_ID,
+                PortDirection::Input,
+                PortTemporal::Current,
+            ),
+            info_port(
+                super::logic::SELECT_FALSE_PORT,
+                SCALAR_INFO_ID,
+                PortDirection::Input,
+                PortTemporal::Current,
+            ),
+            info_port(
+                super::logic::SELECT_TRUE_PORT,
+                SCALAR_INFO_ID,
+                PortDirection::Input,
+                PortTemporal::Current,
+            ),
+        ],
+        outputs: vec![info_port(
+            OUT_PORT,
+            SCALAR_INFO_ID,
+            PortDirection::Output,
+            PortTemporal::Current,
+        )],
+        configuration: Vec::new(),
+        limits: limits(),
+        terminal_behavior: TerminalBehavior::CurrentScalarSelectorCompletesWhenInputsClose,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "choice: state/select".to_string(),
+    }
+}
+
 pub fn state_latest_scalar_offer() -> CapabilityOffer {
     offer(
         state_latest_scalar_contract(),
@@ -208,6 +257,17 @@ pub fn flow_gate_scalar_offer() -> CapabilityOffer {
         maximum_output_bytes: 1,
     });
     offer
+}
+
+pub fn state_select_scalar_offer() -> CapabilityOffer {
+    offer(
+        state_select_scalar_contract(),
+        STATE_SELECT_SCALAR_CAPABILITY,
+        STATE_SELECT_SCALAR_CONTRACT_REVISION,
+        STATE_SELECT_SCALAR_EXECUTION_PROFILE,
+        STATE_SELECT_SCALAR_IMPLEMENTATION,
+        STATE_SELECT_SCALAR_ARTIFACT,
+    )
 }
 
 pub fn conduitos_flow_gate_scalar_offer() -> CapabilityOffer {
@@ -291,6 +351,10 @@ pub fn install_flow_state_catalogs(
             flow_gate_scalar_contract(),
             FLOW_GATE_SCALAR_CONTRACT_REVISION,
         ),
+        (
+            state_select_scalar_contract(),
+            STATE_SELECT_SCALAR_CONTRACT_REVISION,
+        ),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -346,6 +410,17 @@ mod tests {
         assert_eq!(gate.outputs[0].value_kind.as_str(), SCALAR_INFO_ID);
         assert_eq!(gate.configuration.len(), 1);
         assert_eq!(flow_gate_scalar_offer().host_operations.len(), 1);
+        let select = state_select_scalar_contract();
+        assert!(select
+            .inputs
+            .iter()
+            .chain(select.outputs.iter())
+            .all(|port| port.temporal == PortTemporal::Current));
+        assert_eq!(select.inputs[0].value_kind.as_str(), BOOL_INFO_ID);
+        assert!(select.inputs[1..]
+            .iter()
+            .chain(select.outputs.iter())
+            .all(|port| port.value_kind.as_str() == SCALAR_INFO_ID));
 
         for port in latest
             .inputs
@@ -370,6 +445,7 @@ mod tests {
         let latest = profile.get(&kind_id(LATEST_KIND)).unwrap();
         let tee = profile.get(&kind_id(TEE_KIND)).unwrap();
         let gate = profile.get(&kind_id(GATE_KIND)).unwrap();
+        let select = profile.get(&kind_id(STATE_SELECT_KIND)).unwrap();
         assert_eq!(
             latest.kind_contract_revision.as_str(),
             STATE_LATEST_SCALAR_CONTRACT_REVISION
@@ -381,6 +457,10 @@ mod tests {
         assert_eq!(
             gate.kind_contract_revision.as_str(),
             FLOW_GATE_SCALAR_CONTRACT_REVISION
+        );
+        assert_eq!(
+            select.kind_contract_revision.as_str(),
+            STATE_SELECT_SCALAR_CONTRACT_REVISION
         );
     }
 }

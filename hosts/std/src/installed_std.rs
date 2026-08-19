@@ -38,6 +38,7 @@ pub(super) mod rhythm_compare_host;
 mod rhythm_compare_operation;
 mod robotics_effect;
 mod robotics_operations;
+mod state_select_operation;
 mod structured_presentation_host;
 mod structured_selector_operation;
 mod structured_values_operation;

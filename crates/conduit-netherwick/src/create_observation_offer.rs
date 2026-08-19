@@ -1,13 +1,17 @@
 //! Live Create observation offers over one exact correlated session resource.
 
-use crate::{CreatePortableObservation, CreateSensorLoweringError, OiMode};
+use crate::{
+    CreateOdometryError, CreateOdometrySample, CreatePortableObservation,
+    CreateSensorLoweringError, OiMode,
+};
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, BatteryObservation, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, ROBOTICS_BATTERY_ENCODED_LEN,
-    ROBOTICS_BEACON_ENCODED_LEN, ROBOTICS_BUTTONS_ENCODED_LEN, ROBOTICS_CHARGING_ENCODED_LEN,
-    ROBOTICS_CLIFF_ENCODED_LEN, ROBOTICS_CONTACT_ENCODED_LEN, ROBOTICS_PROXIMITY_ENCODED_LEN,
+    CapabilityLimits, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
+    FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    OfferGeneration, PROTOCOL_VERSION, ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_BEACON_ENCODED_LEN,
+    ROBOTICS_BUTTONS_ENCODED_LEN, ROBOTICS_CHARGING_ENCODED_LEN, ROBOTICS_CLIFF_ENCODED_LEN,
+    ROBOTICS_CONTACT_ENCODED_LEN, ROBOTICS_ODOMETRY_ENCODED_LEN, ROBOTICS_PROXIMITY_ENCODED_LEN,
     ROBOTICS_WHEEL_DROP_ENCODED_LEN,
 };
 
@@ -17,7 +21,7 @@ pub const CREATE_OBSERVATION_RESOURCE: &str = "netherwick.resource/create1-obser
 pub const CREATE_UART_BASE_RESOURCE: &str = "netherwick.resource/create1-uart-base@1";
 pub const CREATE_DEVICE_RESOURCE: &str = "netherwick.resource/create1-device@1";
 
-const MAXIMUM_CHANNELS: usize = 9;
+const MAXIMUM_CHANNELS: usize = 11;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CreateObservationChannel {
@@ -30,6 +34,8 @@ pub enum CreateObservationChannel {
     Buttons,
     Charging,
     Battery,
+    Odometry,
+    BumpAggregate,
 }
 
 impl CreateObservationChannel {
@@ -43,6 +49,8 @@ impl CreateObservationChannel {
         Self::Buttons,
         Self::Charging,
         Self::Battery,
+        Self::Odometry,
+        Self::BumpAggregate,
     ];
 
     pub const fn implementation_id(self) -> &'static str {
@@ -56,6 +64,8 @@ impl CreateObservationChannel {
             Self::Buttons => "netherwick/create1-observe-buttons@1",
             Self::Charging => "netherwick/create1-observe-charging@1",
             Self::Battery => "netherwick/create1-observe-battery@1",
+            Self::Odometry => "netherwick/create1-observe-odometry@1",
+            Self::BumpAggregate => "netherwick/create1-observe-bump@1",
         }
     }
 
@@ -70,6 +80,8 @@ impl CreateObservationChannel {
             Self::Buttons => "netherwick.host/create1-observe-buttons@1",
             Self::Charging => "netherwick.host/create1-observe-charging@1",
             Self::Battery => "netherwick.host/create1-observe-battery@1",
+            Self::Odometry => "netherwick.host/create1-observe-odometry@1",
+            Self::BumpAggregate => "netherwick.host/create1-observe-bump@1",
         }
     }
 
@@ -84,6 +96,8 @@ impl CreateObservationChannel {
             Self::Buttons => "netherwick/create1/buttons",
             Self::Charging => "netherwick/create1/charging",
             Self::Battery => "netherwick/create1/battery",
+            Self::Odometry => "netherwick/create1/odometry",
+            Self::BumpAggregate => "netherwick/create1/bump",
         }
     }
 }
@@ -151,10 +165,24 @@ pub fn live_create_observation_advertisement(
     })
 }
 
-fn observation_offer(channel: CreateObservationChannel) -> CapabilityOffer {
+pub(crate) fn observation_offer(channel: CreateObservationChannel) -> CapabilityOffer {
     let (contract, revision, maximum_output_bytes) = contract(channel);
     CapabilityOffer {
-        startup_parameters: Vec::new(),
+        startup_parameters: contract
+            .configuration
+            .iter()
+            .map(|field| FaceStartupParameter {
+                name: field.key.clone(),
+                value_type: match field.default_value {
+                    ConfigurationValue::Text(_) => "Text",
+                    ConfigurationValue::U64(_) => "Count",
+                    ConfigurationValue::I64(_) => "Scalar",
+                    _ => unreachable!("robotics configuration is finite text/integer"),
+                }
+                .into(),
+                has_default: true,
+            })
+            .collect(),
         shorthand: None,
         capability_id: CapabilityId::from(channel.capability_id()),
         kind_id: contract.kind_id,
@@ -231,6 +259,16 @@ fn contract(
             conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
             ROBOTICS_BATTERY_ENCODED_LEN as u32,
         ),
+        CreateObservationChannel::Odometry => (
+            conduit_std_catalog::robotics_observe_odometry_contract(),
+            conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
+            ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
+        ),
+        CreateObservationChannel::BumpAggregate => (
+            conduit_std_catalog::robotics_observe_bump_contract(),
+            conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
+            conduit_core::BOOL_ENCODED_LEN as u32,
+        ),
     }
 }
 
@@ -248,6 +286,8 @@ pub enum EncodedCreateObservation {
     Buttons([u8; ROBOTICS_BUTTONS_ENCODED_LEN]),
     Charging([u8; ROBOTICS_CHARGING_ENCODED_LEN]),
     Battery([u8; ROBOTICS_BATTERY_ENCODED_LEN]),
+    Odometry([u8; ROBOTICS_ODOMETRY_ENCODED_LEN]),
+    BumpAggregate([u8; conduit_core::BOOL_ENCODED_LEN]),
 }
 
 impl EncodedCreateObservation {
@@ -261,6 +301,8 @@ impl EncodedCreateObservation {
             Self::Buttons(value) => value,
             Self::Charging(value) => value,
             Self::Battery(value) => value,
+            Self::Odometry(value) => value,
+            Self::BumpAggregate(value) => value,
         }
     }
 }
@@ -270,6 +312,7 @@ pub enum CreateObservationEncodeRefusal {
     InvalidFreshness,
     StaleObservation,
     InvalidObservation(CreateSensorLoweringError),
+    Odometry(CreateOdometryError),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -283,6 +326,7 @@ pub struct CreateObservationSnapshot {
     pub observed_at_tick: u64,
     pub maximum_age_ticks: u32,
     pub observation: CreatePortableObservation,
+    pub odometry: Option<CreateOdometrySample>,
 }
 
 pub fn encode_create_observation(
@@ -333,6 +377,20 @@ pub fn encode_create_observation(
             .map_err(CreateObservationEncodeRefusal::InvalidObservation)?
             .map(BatteryObservation::encode)
             .map(EncodedCreateObservation::Battery),
+        CreateObservationChannel::Odometry => snapshot
+            .odometry
+            .map(|sample| EncodedCreateObservation::Odometry(sample.value.encode())),
+        CreateObservationChannel::BumpAggregate => Some(EncodedCreateObservation::BumpAggregate(
+            conduit_core::InfoBool::new(
+                snapshot
+                    .observation
+                    .group_zero
+                    .contact
+                    .active_body_sectors()
+                    != 0,
+            )
+            .encode(),
+        )),
     })
 }
 

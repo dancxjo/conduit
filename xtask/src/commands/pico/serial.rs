@@ -10,6 +10,9 @@ const EXPECTED_RECEIPTS: usize = 16;
 const DEVICE_ID_NEEDLE: &str = "conduit-pico-w-signal";
 
 pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
+    if args.netherwick_inert {
+        return verify_netherwick_inert(args);
+    }
     if args.dry_run {
         println!("==> pico verify (dry-run)");
         println!(
@@ -50,6 +53,62 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
         )
     })?;
     verify_receipts(BufReader::new(file), &identity)
+}
+
+fn verify_netherwick_inert(args: &PicoArgs) -> PicoResult<()> {
+    let port = if let Some(port) = &args.port {
+        PathBuf::from(port)
+    } else {
+        let directory = std::fs::read_dir("/dev/serial/by-id")?;
+        let candidates = directory
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .contains("conduit-pico-w-netherwick-inert")
+            })
+            .map(|entry| entry.path())
+            .collect::<Vec<_>>();
+        if candidates.len() != 1 {
+            return Err(format!(
+                "expected exactly one inert Netherwick CDC port, found {}",
+                candidates.len()
+            )
+            .into());
+        }
+        candidates[0].clone()
+    };
+    println!(
+        "==> pico verify: reading inert qualification from {}",
+        port.display()
+    );
+    let file = std::fs::OpenOptions::new().read(true).open(&port)?;
+    conduit_std_host::usb_cdc::configure_cdc_port(&file, 0, 50)?;
+    let mut reader = BufReader::new(file);
+    let deadline = Instant::now() + Duration::from_secs(8);
+    let mut text = String::new();
+    while Instant::now() < deadline && !text.contains("inert-terminal@1") {
+        let mut line = String::new();
+        if reader.read_line(&mut line)? > 0 {
+            serde_json::from_str::<serde_json::Value>(line.trim())?;
+            print!("{line}");
+            text.push_str(&line);
+        }
+    }
+    for needle in [
+        "inert-boot@1",
+        "inert-disposition@1",
+        "imu-probe@1",
+        "inert-terminal@1",
+        "\"robot_control_ready\":false",
+    ] {
+        if !text.contains(needle) {
+            return Err(format!("inert qualification missing {needle}").into());
+        }
+    }
+    println!("==> pico verify: inert qualification transcript complete");
+    Ok(())
 }
 
 fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoResult<()> {

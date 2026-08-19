@@ -121,6 +121,7 @@ pub const GATE_KIND: &str = "flow/gate";
 pub const FORMAT_KIND: &str = "text/format";
 pub const TICK_KIND: &str = "time/tick";
 pub const LATEST_KIND: &str = "state/latest";
+pub const STATE_SELECT_KIND: &str = "state/select";
 
 pub const SIGNAL_VALUE_KIND: &str = "value/signal";
 pub const GENERIC_VALUE_KIND: &str = "value/any";
@@ -146,6 +147,7 @@ pub enum TerminalBehavior {
     EmitsCurrentAndCompletesWhenInputCloses,
     CoupledAtomicFanoutAndMirrorsInputTerminal,
     CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
+    CurrentScalarSelectorCompletesWhenInputsClose,
     EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
     TrailingDebounceFlushesPendingValueThenCompletesWhenInputCloses,
     InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
@@ -155,6 +157,7 @@ pub enum TerminalBehavior {
     HostInputEndsOrFailsSource,
     HostObservationEndsOrFailsSource,
     EmitsInitialAndTogglesUntilInputCloses,
+    CompletesAfterDockedRefusedOrDeadline,
 }
 
 /// User-facing semantic contracts, including portable Kinds without a currently
@@ -337,7 +340,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 56);
+        assert_eq!(contracts.len(), 57);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts

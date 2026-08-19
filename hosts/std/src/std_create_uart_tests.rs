@@ -1,7 +1,8 @@
 use super::*;
 use conduit_create_oi::{
     encode_drive_direct, read_stream_packet, write_command, CreateOiFailure,
-    DifferentialMotionRequest, DriveSafetySign, LocalCreateDriveSafety, MotionAuthority,
+    DifferentialMotionRequest, DriveSafetySign, IndependentWatchdogObservation,
+    LocalCreateDriveSafety, MotionAuthority, MotionSafetyAuthority, SafetyInputObservation,
     SafetyObservation,
 };
 use std::io::{Read, Write};
@@ -79,17 +80,20 @@ fn exact_os_serial_base_carries_generic_create_commands_and_frames() {
     let now = monotonic_millis().unwrap();
     let safety = SafetyObservation {
         generation: 1,
+        latch_generation: 1,
+        latched_hazards: conduit_create_oi::SafetyHazardSet::EMPTY,
         observed_at_tick: now,
         maximum_age_ticks: 100,
-        emergency_stop: false,
+        emergency_stop: SafetyInputObservation::Clear,
         wheel_drop: false,
         cliff: false,
-        tilt: false,
-        impact: false,
+        contact: false,
+        tilt: SafetyInputObservation::Clear,
+        impact: SafetyInputObservation::Clear,
         charging: false,
         control_alive: true,
         body_link_alive: true,
-        watchdog_healthy: true,
+        independent_watchdog: IndependentWatchdogObservation::Healthy,
     };
     let mut drive = LocalCreateDriveSafety::new();
     assert!(matches!(
@@ -99,6 +103,7 @@ fn exact_os_serial_base_carries_generic_create_commands_and_frames() {
             Some(MotionAuthority {
                 grant_id: "test/std-drive",
                 valid_until_tick: now + 1_000,
+                safety_class: MotionSafetyAuthority::IndependentWatchdog,
             }),
             safety,
             DifferentialMotionRequest {

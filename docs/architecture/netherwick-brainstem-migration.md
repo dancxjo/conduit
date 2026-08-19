@@ -1,9 +1,11 @@
 # Netherwick Brainstem migration ledger
 
-Issue [#1521](https://github.com/dancxjo/conduit/issues/1521) owns this ledger. The inventory is pinned to Netherwick commit
-`f43ff13846b47b05e133d0321bdbaafffd1bcdbe`, the revision consumed by
-`conduit-netherwick`. It is historical input, not a second source of current
-Conduit truth.
+Issue [#1521](https://github.com/dancxjo/conduit/issues/1521) owns this ledger.
+The inventory is pinned to Netherwick commit
+`f43ff13846b47b05e133d0321bdbaafffd1bcdbe`, the historical revision from
+which this accounting was derived. `conduit-netherwick` no longer depends on
+or executes it. It is historical input, not a second source of current Conduit
+truth.
 
 The migration rule is:
 
@@ -47,8 +49,8 @@ and Pico W HIL remain distinct evidence classes.
 | `stop` | keep | cancellation plus mandatory actuator safe disposition | Stop is bounded, observable, and cannot be rejected by ordinary backpressure |
 | `estop`, `clear_estop` | keep/service | mandatory local safety; authorized conditional clear | E-stop is local and non-bypassable; clear proves the same current safe condition |
 | `clear_safety_latch` | service | hazard-generation-scoped authorized safety action | Wrong/stale hazard generation is refused distinctly |
-| `careful_mode` | service | narrow attended authority/policy profile | Finite TTL and the invariants that remain absolute are enumerated and tested |
-| `escape_motion` | keep | hazard-generation-scoped motion admission | Exact hazard, direction, bounds, TTL, and terminal safe disposition are proven |
+| `careful_mode` | delete | no safety-bypass product seam | The historical broad sensor-gate suppression is not migrated; reduced-safety physical motion instead requires the existing conspicuous, finite, Plan- and attachment-bound operator authority and never suppresses a current or latched hazard |
+| `escape_motion` | delete | no host-commanded motion through a current latch | The historical verb is not restored. The mandatory local `contact-withdrawal@1` actuator reflex is a separate fixed realization invariant: only a fresh located contact edge during toward-contact output triggers one bounded straight reverse, stronger safety preempts it, and it always ends stopped |
 | `heartbeat_stop` | replace | authority/control-liveness fence | Control loss independently stops motion without depending on LINE recovery |
 | `clear_motion_queue` | replace | cancellation of admitted finite work | Cancellation identifies affected work and preserves terminal Signs |
 | `cmd_vel` | keep | body-forward linear/angular velocity intent | One portable velocity contract lowers through each selected drive realization |
@@ -60,7 +62,7 @@ and Pico W HIL remain distinct evidence classes.
 | `set_lights` | keep | portable indicator/Presentation output | Bounded light meaning lowers to the Create LED profile |
 | `dock` | keep | portable docking request | Exact authority, refusal, opcode realization, and terminal Sign are proven |
 | `power_state`, `create_power_on`, `create_power_off` | service | power observation and bounded device service action | Unknown/off/on remain distinct; toggle/start/baud actions are authorized |
-| `restart_create` | service | Create device lifecycle operation | Stop-first behavior and fresh device re-observation are proven |
+| `restart_create` | service | exact composed Create device lifecycle transaction | `create_restart_service` accepts only the existing requested-stop, separately verified off/on power-service, fresh device/mode observation, and exact mode-service Signs; it owns no provider, retry, RPC, or palette surface |
 | `reset_odometry` | service | bounded odometry-frame reset | New frame/provenance generation is explicit |
 | `zero_imu_orientation`, `clear_imu_orientation` | service | bounded calibration operation | Calibration identity, frame, freshness, and invalidation are explicit |
 | `calibrate_turn`, `orientation_probe` | service | attended calibration Form/action | Motion authority, duration, safe stop, result, and failure are retained |
@@ -131,7 +133,7 @@ around it. The envelope owns finite stop work and safe output disposition.
 | E-stop | local asserted input/state inhibits motion | asserted, latched, refused, conditional-clear Signs |
 | wheel drop | any applicable drop inhibits motion | sensor generation and latch generation retained |
 | cliff | applicable cliff inhibits motion | exact detector/location and latch generation retained |
-| bump/contact withdrawal | stop, then only bounded direction-safe withdrawal if retained | contact generation scopes the reflex; no general escape authority |
+| bump/contact withdrawal | fresh edge during toward-contact output preempts into one fixed straight bounded reverse, then stop | contact side/generation and preempted command identity scope the authority-independent local reflex; stronger invariants preempt; no turn, retry, or general escape authority |
 | authority/control loss | revoke and stop | authority identity and stop terminal Sign |
 | Create UART/device loss | stop and mark actuator unavailable | UART-provider loss differs from device no-response |
 | watchdog starvation | hardware reset/safe output | watchdog capability and last terminal evidence are not fabricated afterward |
@@ -143,7 +145,12 @@ Pico W HIL must prove the independent watchdog and every installed physical
 input. The std Host must not advertise an independent hardware watchdog or
 auxiliary GPIO/I2C safety input it does not possess. Both must still preserve
 the common non-bypassable safety contract appropriate to their admitted
-physical configuration; missing mandatory inputs make motion unavailable.
+physical configuration. Missing mandatory inputs make the full-safety motion
+profile unavailable. A std Host may instead offer the visibly distinct
+`no-independent-watchdog` reduced-safety profile only through an exact
+authority that records either a current wheels-off-floor attestation or a
+Plan- and attachment-bound operator acknowledgement for floor motion. An
+absent watchdog or auxiliary input is never encoded as healthy or clear.
 
 ## Bases, device protocol, and Host differences
 
@@ -198,7 +205,7 @@ The exact advertised event inventory has these dispositions:
 | `buttons_changed`, `ir_changed` | typed input and IR/beacon observations |
 | `heartbeat_expired`, `estop_latched`, `estop_cleared` | authority/control-liveness and E-stop safety Signs |
 | `imu_frame_received`, `imu_fault`, `tilt_changed`, `imu_calibration_changed`, `impact_detected` | typed inertial observations, calibration identity changes, and safety Signs |
-| `contact_withdrawal_started`, `contact_withdrawal_completed` | hazard-generation-scoped reflex lifecycle Signs |
+| `contact_withdrawal_started`, `contact_withdrawal_completed` | delete with the unretained reflex; contact produces exact observation, latch, stop, and clear-service Signs instead |
 | `audio_state_changed` | sound policy/Presentation observation; delete private global state |
 | `error` | delete generic bucket; retain the narrow typed Base/device/protocol/safety/action failure |
 
@@ -223,5 +230,25 @@ are recorded:
 6. obsolete Brainstem production RPC/runtime code and product vocabulary are
    removed, leaving only explicitly named historical fixtures.
 
-Until those gates pass, `pete-brainstem` is quarantined design quarry and
-describe-only evidence. It is not an accepted production realization.
+The old `pete-brainstem` describe-only runtime and product demo were removed
+under #1551. Its pinned revision remains only as provenance for this ledger;
+it is not an accepted production realization. Rows whose physical or Pico W
+gates remain open are not promoted merely because the legacy runtime is gone.
+
+## Current replacement evidence
+
+| Slice | Current evidence | Remaining proof class |
+|---|---|---|
+| std Create observation | finite group-0/charging lowering, exact offer/Plan/kernel session, and live non-actuating Create 1 evidence | induced physical failure matrix and two-Host capstone |
+| Create odometry/reset | deterministic bounded start-local distance/angle integration through `robotics/observe-odometry`; exact frame/sample generations; Host/Boot/frame/authority-bound non-actuating reset; std evidence separates raw deltas from derived value | successful fresh live derived sample, Pico W realization, and two-Host capstone |
+| Create OI mode service | shared allocator-free stop/transition/packet-35 verification transaction; Host/Boot/offer/implementation/device/attachment-bound service authority; exact fresh mode-generation precondition and terminal Sign | live std service evidence, Pico W attachment/HIL, and restart/power services |
+| Create power toggle service | explicit Unknown/Off/On observation; exact translated attachment and safe-disposition admission; shared finite low-high-low pulse state machine; at-most-one state-aware pulse; fresh identity-bound post-pulse verification | carrier #135 qualification, exact Pico GPIO/timer integration, and physical HIL |
+| Create restart service | finite attended coordinator over the existing requested-stop, separately verified off/on power transitions, fresh mode observation, and exact mode-restoration Signs; no direct UART/GPIO provider, retry, RPC, or Gear surface | carrier #135 qualification, Pico power/mode integration, and physical HIL |
+| local safety latch/clear and contact withdrawal | allocator-free persistent multi-hazard envelope with monotonic observation/latch generations; exact conditional clear; plus `contact-withdrawal@1`, which triggers only from a fresh located edge during toward-contact output, retains the preempted command, survives ordinary host/LINE loss, is bounded by 250 ticks/20 mm, is preempted by every stronger invariant, never turns/retries, and stops on every terminal path | integrate exact Pico inputs/watchdog/provider and the reflex ahead of contact-latch settling; wheels-off-floor physical edge/held/stationary/host-loss/stronger-hazard HIL |
+| MPU-6050 orientation/calibration | allocator-free exact I2C identity/configuration/frame protocol; raw acceleration/gyro retained beside calibrated body-frame `robotics/observe-imu`; exact attachment/offer/Plan and production-kernel execution; tilt/impact derivation; Host/Boot/offer/attachment/generation/authority-bound zero-orientation service | exact Pico I2C integration, carrier #135 physical mounting/threshold qualification, safety-envelope coupling, and HIL |
+| SSD1306 local Presenter | allocator-free exact 128x32 I2C initialization/frame protocol; bounded two-line projection of ordinary portable Presentation text; exact renderer offer/Plan/Manifestation identities; device delivery failure remains a failed manifestation without changing Host or motion-safety truth | exact Pico I2C integration, carrier #135 attachment qualification, and physical display HIL |
+| std speaker | bounded `music/play` Plan/kernel/OI lifecycle plus live machine and human audibility receipts | #837 reconnect/cancellation completion |
+| std indicator | unchanged canonical Signal Form, exact Plan/kernel/OI LED lifecycle, and live machine evidence | optional human visibility receipt only where separately required |
+| std differential motion | exact reduced-safety offer/authority, Plan-bound floor acknowledgement, kernel TTL stop, and deterministic provider-loss proof | live bounded motion after explicit physical setup confirmation |
+| Create docking | portable timed `robotics/dock` contract, exact dock-only authority/offer/Plan, production-kernel lifecycle, charging completion, timeout/cancel/hazard/provider-loss deterministic proof | live physical dock setup and Pico W realization |
+| legacy Brainstem RPC/runtime | production dependency, fake Host/Boot/Base/Line projection, private describe kinds, and product demo removed | remaining semantic/service replacements and Pico W physical cutover |

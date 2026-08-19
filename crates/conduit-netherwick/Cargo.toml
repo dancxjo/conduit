@@ -9,11 +9,13 @@ conduit-create-oi = { path = "../conduit-create-oi" }
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
 conduit-kernel = { path = "../conduit-kernel" }
+conduit-mpu6050 = { path = "../conduit-mpu6050" }
+conduit-presentation = { path = "../conduit-presentation" }
+conduit-ssd1306 = { path = "../conduit-ssd1306" }
 conduit-observatory = { path = "../conduit-observatory" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-std-catalog = { path = "../conduit-std-catalog", features = ["form-catalog"] }
-pete-brainstem = { git = "https://github.com/dancxjo/netherwick.git", rev = "f43ff13846b47b05e133d0321bdbaafffd1bcdbe", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

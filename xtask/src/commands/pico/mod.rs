@@ -108,6 +108,10 @@ pub struct PicoArgs {
     #[arg(long, global = true)]
     pub usb_midi_fixture: bool,
 
+    /// Build, flash, or verify the inert Netherwick carrier qualification image.
+    #[arg(long, global = true)]
+    pub netherwick_inert: bool,
+
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long, global = true)]
     pub refresh_radio_assets: bool,
@@ -153,6 +157,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         + usize::from(args.appliance_hil_client)
         + usize::from(args.bluetooth_line)
         + usize::from(args.usb_midi_fixture)
+        + usize::from(args.netherwick_inert)
         > 1
     {
         return Err("select only one remote Pico firmware mode".into());
@@ -181,6 +186,7 @@ pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
         || args.appliance_hello
         || args.bluetooth_line
         || args.usb_midi_fixture
+        || args.netherwick_inert
     {
         return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
     }

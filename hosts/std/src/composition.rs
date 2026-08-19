@@ -201,6 +201,7 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::state_latest_scalar_offer(),
             conduit_std_catalog::flow_tee_scalar_offer(),
             conduit_std_catalog::flow_gate_scalar_offer(),
+            conduit_std_catalog::state_select_scalar_offer(),
         ]);
     }
     if composition.logic {
@@ -414,6 +415,7 @@ mod tests {
             "state/latest",
             "flow/tee",
             "flow/gate",
+            "state/select",
             "robotics/observe-bump",
             "robotics/observe-imu",
             "robotics/observe-range",

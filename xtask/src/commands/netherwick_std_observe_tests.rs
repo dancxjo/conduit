@@ -107,6 +107,11 @@ fn pseudo_terminal_executes_exact_non_actuating_session_without_identity_claim()
             assert_eq!(observation.charging_sources, 2);
             assert_eq!(observation.battery_charge_permille, Some(500));
             assert_eq!(observation.distance_delta_mm, 12);
+            assert_eq!(observation.start_local_odometry.frame_generation, 1);
+            assert_eq!(observation.start_local_odometry.sample_generation, 1);
+            assert_eq!(observation.start_local_odometry.forward_mm, 12);
+            assert_eq!(observation.start_local_odometry.lateral_mm, 0);
+            assert_eq!(observation.start_local_odometry.yaw_microradians, -52_360);
         }
         Outcome::Failed { .. } => panic!("pseudo-terminal observation failed"),
     }

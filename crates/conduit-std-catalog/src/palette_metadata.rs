@@ -21,9 +21,10 @@ use crate::{
     ROBOTICS_OBSERVE_BUTTONS_KIND, ROBOTICS_OBSERVE_CHARGING_KIND, ROBOTICS_OBSERVE_CLIFF_KIND,
     ROBOTICS_OBSERVE_CONTACT_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
     ROBOTICS_OBSERVE_PROXIMITY_KIND, ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_OBSERVE_WHEEL_DROP_KIND,
-    ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_JOIN_KIND,
-    TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND, TICK_KIND, TICK_PRESENTATION_KIND,
-    TIME_DEBOUNCE_KIND, TIME_DELAY_KIND, TIME_EVERY_KIND, TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
+    ROBOTICS_VELOCITY_INTENT_KIND, STATE_COUNT_KIND, STATE_SELECT_KIND, STATE_TOGGLE_KIND,
+    TEE_KIND, TEXT_JOIN_KIND, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND,
+    TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_DELAY_KIND, TIME_EVERY_KIND,
+    TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -176,6 +177,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
         GATE_KIND => metadata(
             PaletteCategory::TimeAndFlow,
             &["gate", "enable", "conditional"],
+            PaletteIconKey::Combine,
+        ),
+        STATE_SELECT_KIND => metadata(
+            PaletteCategory::State,
+            &["select", "current", "choice"],
             PaletteIconKey::Combine,
         ),
         LOGIC_COMPARE_KIND => metadata(
@@ -443,7 +449,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 64);
+        assert_eq!(contracts.len(), 65);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

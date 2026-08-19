@@ -7,11 +7,21 @@
 
 #![no_std]
 
+mod contact_withdrawal;
 mod device;
 mod drive;
+mod mode;
+mod power;
+mod safety;
+mod safety_latch;
 
+pub use contact_withdrawal::*;
 pub use device::*;
 pub use drive::*;
+pub use mode::*;
+pub use power::*;
+pub use safety::*;
+pub use safety_latch::*;
 
 #[cfg(test)]
 extern crate std;
