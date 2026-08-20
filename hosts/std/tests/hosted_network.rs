@@ -17,6 +17,7 @@ fn std_resolver_emits_typed_candidates_without_inventing_ttl() {
         name: "localhost".to_string(),
         port: 80,
         record_kind: DnsRecordKind::Address,
+        transport: NetworkTransport::Tcp,
     });
     let DnsResult::Current(resolution) = result else {
         panic!("localhost should resolve")
@@ -105,6 +106,7 @@ fn stale_lost_and_refused_remain_distinct() {
                 name: "localhost".to_string(),
                 port: 80,
                 record_kind: DnsRecordKind::Address,
+                transport: NetworkTransport::Tcp,
             },
             NetworkProviderAvailability::Lost,
         ),

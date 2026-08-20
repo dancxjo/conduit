@@ -48,6 +48,7 @@ pub struct DnsQuery {
     pub name: String,
     pub port: u16,
     pub record_kind: DnsRecordKind,
+    pub transport: NetworkTransport,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -311,6 +312,7 @@ pub fn dns_query_type() -> StructuredInfoType {
             field("name", text_type()),
             field("port", leaf("net/port@1")),
             field("record_kind", dns_record_kind_type()),
+            field("transport", network_transport_type()),
         ],
     )
 }
@@ -479,6 +481,7 @@ pub fn deterministic_network_fixture() -> (DnsQuery, DnsResult, NetworkEndpoint)
             name: "fixture.local".into(),
             port: 7,
             record_kind: DnsRecordKind::Address,
+            transport: NetworkTransport::Tcp,
         },
         DnsResult::Stale {
             resolution,

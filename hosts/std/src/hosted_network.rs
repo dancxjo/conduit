@@ -39,7 +39,7 @@ pub fn resolve_dns(query: &DnsQuery) -> DnsResult {
         if !record_matches(query.record_kind, address.ip()) {
             continue;
         }
-        let endpoint = socket_endpoint(address, NetworkTransport::Tcp);
+        let endpoint = socket_endpoint(address, query.transport);
         if !candidates.contains(&endpoint) {
             candidates.push(endpoint);
         }
