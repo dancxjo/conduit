@@ -1,6 +1,11 @@
 //! Canonical Form catalog for finite schedule and workflow-state Info.
 
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
