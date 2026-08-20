@@ -121,7 +121,10 @@ fn cross_currency_requires_one_explicit_exact_rate_observation() {
             right: Currency::Usd,
         })
     );
-    assert_eq!(Currency::from_tag("EURUSD"), Err(FinanceRefusal::MalformedInfo));
+    assert_eq!(
+        Currency::from_tag("EURUSD"),
+        Err(FinanceRefusal::MalformedInfo)
+    );
     let rate = deterministic_rate_observation().unwrap();
     assert_eq!(rate.source, "fixture/ecb-reference");
     assert_eq!(rate.profile, "finance/exact-decimal-rate@1");
