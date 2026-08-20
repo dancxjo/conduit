@@ -4,7 +4,7 @@ form robotics-diversity (
     motion: RoboticsMotionRequest >
     pose: RoboticsPoseSample >
     power: RoboticsPowerTelemetry >
-    range: RoboticsRangeSample >
+    range: RoboticsRangeObservation >
 ) {
     observations: robotics/deterministic-observations
     intent: robotics/deterministic-intent

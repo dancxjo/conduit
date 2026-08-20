@@ -13,7 +13,7 @@ use crate::{robotics_pose2_type, vector2_type};
 pub const ROBOTICS_SAMPLE_CONTEXT_TYPE: &str = "RoboticsSampleContext";
 pub const ROBOTICS_POSE_SAMPLE_TYPE: &str = "RoboticsPoseSample";
 pub const ROBOTICS_TWIST_INTERVAL_TYPE: &str = "RoboticsTwistInterval";
-pub const ROBOTICS_RANGE_SAMPLE_TYPE: &str = "RoboticsRangeSample";
+pub const ROBOTICS_RANGE_OBSERVATION_TYPE: &str = "RoboticsRangeObservation";
 pub const ROBOTICS_CONTACT_EVENT_TYPE: &str = "RoboticsContactEvent";
 pub const ROBOTICS_POWER_TELEMETRY_TYPE: &str = "RoboticsPowerTelemetry";
 pub const ROBOTICS_MOTION_REQUEST_TYPE: &str = "RoboticsMotionRequest";
@@ -88,14 +88,12 @@ pub fn robotics_twist_interval_type() -> StructuredInfoType {
     )
 }
 
-pub fn robotics_range_sample_type() -> StructuredInfoType {
+pub fn robotics_range_observation_type() -> StructuredInfoType {
     record(
-        "robotics/range-sample@1",
+        "robotics/range-observation@1",
         vec![
-            field("distance", quantity_type()),
-            field("frame", text_type()),
+            field("measurement", crate::robotics_range_sample_type()),
             field("sample", robotics_sample_context_type()),
-            field("uncertainty", quantity_type()),
         ],
     )
 }
@@ -147,7 +145,10 @@ pub fn robotics_structured_registered_types() -> Vec<(&'static str, StructuredIn
         (ROBOTICS_SAMPLE_CONTEXT_TYPE, robotics_sample_context_type()),
         (ROBOTICS_POSE_SAMPLE_TYPE, robotics_pose_sample_type()),
         (ROBOTICS_TWIST_INTERVAL_TYPE, robotics_twist_interval_type()),
-        (ROBOTICS_RANGE_SAMPLE_TYPE, robotics_range_sample_type()),
+        (
+            ROBOTICS_RANGE_OBSERVATION_TYPE,
+            robotics_range_observation_type(),
+        ),
         (ROBOTICS_CONTACT_EVENT_TYPE, robotics_contact_event_type()),
         (
             ROBOTICS_POWER_TELEMETRY_TYPE,

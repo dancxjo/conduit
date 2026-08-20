@@ -1,6 +1,11 @@
 //! Form catalog, deterministic offers, and the explicit physical-motion seam.
 
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use conduit_core::{
     kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId,
     CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
@@ -12,7 +17,7 @@ use conduit_form::{KindDefinition, KindSignature};
 
 use crate::{
     robotics_contact_event_type, robotics_motion_request_type, robotics_pose_sample_type,
-    robotics_power_telemetry_type, robotics_range_sample_type,
+    robotics_power_telemetry_type, robotics_range_observation_type,
     robotics_structured_registered_types,
 };
 
@@ -135,7 +140,7 @@ fn observation_outputs() -> Vec<PortDescriptor> {
         ),
         port(
             "range",
-            &robotics_range_sample_type(),
+            &robotics_range_observation_type(),
             PortDirection::Output,
         ),
     ]

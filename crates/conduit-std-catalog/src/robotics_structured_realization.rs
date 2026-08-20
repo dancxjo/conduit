@@ -7,9 +7,10 @@ use conduit_core::{
 };
 
 use crate::{
-    point2_type, point2_value, robotics_contact_event_type, robotics_contact_phase_type,
+    point2_value, robotics_contact_event_type, robotics_contact_phase_type,
     robotics_motion_request_type, robotics_pose2_type, robotics_pose_sample_type,
-    robotics_power_telemetry_type, robotics_range_sample_type, robotics_sample_context_type,
+    robotics_power_telemetry_type, robotics_range_observation_type, robotics_range_sample_type,
+    robotics_sample_context_type,
     robotics_twist_interval_type, vector2_type, GeometryRefusal, MAXIMUM_ROBOTICS_IDENTITY_BYTES,
 };
 
@@ -163,13 +164,22 @@ pub fn range_sample_value(
         QuantityUnit::Millimeter,
         "uncertainty",
     )?;
-    record_value(
+    let measurement = record_value(
         robotics_range_sample_type(),
         vec![
             ("distance", quantity_value(distance)?),
             ("frame", text_value(frame)?),
-            ("sample", sample_context_value(source_identity, sample_sequence, sample_time_since_boot)?),
             ("uncertainty", quantity_value(uncertainty)?),
+        ],
+    )?;
+    record_value(
+        robotics_range_observation_type(),
+        vec![
+            ("measurement", measurement),
+            (
+                "sample",
+                sample_context_value(source_identity, sample_sequence, sample_time_since_boot)?,
+            ),
         ],
     )
 }

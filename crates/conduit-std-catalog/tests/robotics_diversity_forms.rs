@@ -12,7 +12,7 @@ use conduit_std_catalog::{
     install_robotics_structured_catalogs, pose_sample_value, range_sample_value,
     robotics_motion_request_type,
     robotics_physical_motion_offer, robotics_pose2_type, robotics_pose_sample_type,
-    robotics_range_sample_type, robotics_structured_deterministic_offers,
+    robotics_range_observation_type, robotics_structured_deterministic_offers,
     robotics_twist_interval_type, twist_interval_value, RoboticsStructuredRefusal,
     ROBOTICS_BODY_FRAME, ROBOTICS_PHYSICAL_MOTION_AUTHORITY,
     ROBOTICS_PHYSICAL_MOTION_HOST_OPERATION,
@@ -75,8 +75,9 @@ fn geometry_quantity_sample_and_uncertainty_remain_individually_selectable() {
 
     let sample = record_field(&fixture.range, "sample");
     assert_eq!(leaf_text(record_field(sample, "source_identity")), "sim/front-range");
+    let measurement = record_field(&fixture.range, "measurement");
     assert_eq!(
-        quantity(record_field(&fixture.range, "uncertainty")),
+        quantity(record_field(measurement, "uncertainty")),
         Quantity::new(5, QuantityUnit::Millimeter)
     );
 }
@@ -182,7 +183,7 @@ fn structured_robotics_schema_does_not_leak_robot_protocols() {
     let rendered = format!(
         "{:?}{:?}{:?}",
         robotics_pose_sample_type(),
-        robotics_range_sample_type(),
+        robotics_range_observation_type(),
         robotics_twist_interval_type()
     )
     .to_ascii_lowercase();
