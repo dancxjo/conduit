@@ -13,6 +13,7 @@ impl Operation for InstalledOperation {
             Self::TimeThrottle(operation) => operation.start(),
             Self::Recurrence(operation) => operation.start(),
             Self::CalendarProposal(operation) => operation.start(),
+            Self::CalendarProvider(operation) => operation.start(),
             Self::TickPresentation(operation) => operation.start(),
             Self::BoolPresentation(operation) => operation.start(),
             Self::TextLiteral(operation) => operation.start(),
@@ -116,6 +117,7 @@ impl Operation for InstalledOperation {
             (Self::TimeThrottle(operation), input) => operation.resume(input),
             (Self::Recurrence(operation), input) => operation.resume(input),
             (Self::CalendarProposal(operation), input) => operation.resume(input),
+            (Self::CalendarProvider(operation), input) => operation.resume(input),
             (Self::TextUpper(operation), input) => operation.resume(input),
             (Self::TextJoin(operation), input) => operation.resume(input),
             (Self::TextPresentation(operation), input) => operation.resume(input),
@@ -260,6 +262,7 @@ impl Operation for InstalledOperation {
             Self::TimeThrottle(operation) => operation.advance(),
             Self::Recurrence(operation) => operation.advance(),
             Self::CalendarProposal(operation) => operation.advance(),
+            Self::CalendarProvider(operation) => operation.advance(),
             Self::TextLiteral(operation) => operation.advance(),
             Self::TextUpper(_) => OperationAction::Await,
             Self::TextJoin(_) => OperationAction::Await,
@@ -365,6 +368,7 @@ impl Operation for InstalledOperation {
             Self::TimeThrottle(operation) => operation.cancel(),
             Self::Recurrence(_) => {}
             Self::CalendarProposal(_) => {}
+            Self::CalendarProvider(operation) => operation.cancel(),
             Self::TextLiteral(_) => {}
             Self::TextUpper(operation) => operation.cancel(),
             Self::TextJoin(operation) => operation.cancel(),

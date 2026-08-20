@@ -29,7 +29,11 @@ impl GoogleCalendarTransport for RecordingTransport {
         } else {
             b"{}".to_vec()
         };
-        Ok(GoogleCalendarResponse { status, body })
+        Ok(GoogleCalendarResponse {
+            status,
+            body,
+            observed_unix_seconds: 1_777_000_000,
+        })
     }
 }
 

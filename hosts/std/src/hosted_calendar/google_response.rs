@@ -20,6 +20,7 @@ pub struct GoogleEventPage {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GoogleFreeBusyPage {
     pub calendars: BTreeMap<String, Vec<GoogleWireBusyInterval>>,
+    pub observed_unix_seconds: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,6 +73,7 @@ pub(super) fn decode_event_page(
 pub(super) fn decode_free_busy(
     body: &[u8],
     requested_calendars: &[String],
+    observed_unix_seconds: u64,
 ) -> Result<GoogleFreeBusyPage, GoogleCalendarRefusal> {
     bounded(body)?;
     let response: FreeBusyEnvelope = serde_json::from_slice(body)
@@ -100,7 +102,10 @@ pub(super) fn decode_free_busy(
         }
         calendars.insert(calendar, observed.busy);
     }
-    Ok(GoogleFreeBusyPage { calendars })
+    Ok(GoogleFreeBusyPage {
+        calendars,
+        observed_unix_seconds,
+    })
 }
 
 pub(super) fn decode_write_receipt(

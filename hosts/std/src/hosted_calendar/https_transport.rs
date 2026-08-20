@@ -1,6 +1,6 @@
 //! HTTPS-only Google Calendar transport with fixed authority and finite I/O.
 
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::{
     GoogleBearerToken, GoogleCalendarExchange, GoogleCalendarMethod, GoogleCalendarRefusal,
@@ -86,6 +86,14 @@ impl GoogleCalendarTransport for GoogleHttpsTransport {
         if body.len() > GOOGLE_CALENDAR_MAXIMUM_BODY_BYTES {
             return Err(GoogleCalendarRefusal::ProviderResponseTooLarge);
         }
-        Ok(GoogleCalendarResponse { status, body })
+        let observed_unix_seconds = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| GoogleCalendarRefusal::ProviderLost)?
+            .as_secs();
+        Ok(GoogleCalendarResponse {
+            status,
+            body,
+            observed_unix_seconds,
+        })
     }
 }
