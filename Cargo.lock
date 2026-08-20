@@ -2280,6 +2280,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-presentation",
  "conduit-runtime",
+ "conduit-std-catalog",
  "conduit-std-host",
  "conduit-wire",
  "patchbay-model",

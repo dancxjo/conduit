@@ -63,7 +63,7 @@ function presentEdges(edges) {
   }));
 }
 
-function Workspace({ snapshot, onSelect, onClear, lens }) {
+function Workspace({ snapshot, onSelect, onConnect, onClear, lens }) {
   const projected = projectFlowScene(snapshot, lens);
   const initial = React.useMemo(() => {
     const restored = restore(projected);
@@ -118,6 +118,9 @@ function Workspace({ snapshot, onSelect, onClear, lens }) {
         return nextNodes;
       }),
       onPaneClick: onClear,
+      onConnect: (connection) => {
+        if (connection.sourceHandle && connection.targetHandle) onConnect(connection.sourceHandle, connection.targetHandle);
+      },
       onNodeDragStop: (_event, node) => {
         const next = { ...projected, nodes: nodes.map((current) => current.id === node.id ? { ...current, position: { ...node.position } } : current), edges, viewport: instance?.getViewport() || initial.viewport };
         persist(next);
@@ -129,7 +132,7 @@ function Workspace({ snapshot, onSelect, onClear, lens }) {
         currentScene = { ...projected, nodes, edges, viewport: initial.viewport };
       },
       nodesDraggable: true,
-      nodesConnectable: false,
+      nodesConnectable: Boolean(snapshot.authoring),
       elementsSelectable: true,
       panOnDrag: true,
       zoomOnScroll: true,

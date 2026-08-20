@@ -6,7 +6,7 @@ use patchbay_model::RendererExecution;
 pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-presentation";
 pub const MAX_NAVIGATION_SNAPSHOT_BYTES: usize = 512 * 1024;
 pub const MAX_SNAPSHOT_BYTES: usize =
-    conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES + MAX_NAVIGATION_SNAPSHOT_BYTES + 16_384;
+    conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES + MAX_NAVIGATION_SNAPSHOT_BYTES + 131_072;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SnapshotError {
@@ -74,6 +74,7 @@ impl RendererSnapshot {
             navigation: None,
             entrance,
             parts: None,
+            authoring: None,
             interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
@@ -114,6 +115,20 @@ impl RendererSnapshot {
             )
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         self.navigation = Some(navigation);
+        self.validate()
+    }
+
+    pub fn attach_authoring(
+        &mut self,
+        authoring: crate::transport_types::BrowserAuthoring,
+    ) -> Result<(), SnapshotError> {
+        if authoring.palette.len() > crate::transport_types::MAX_BROWSER_PALETTE_ENTRIES
+            || authoring.source_document_id.is_empty()
+            || authoring.expanded_form_id.is_empty()
+        {
+            return Err(SnapshotError::InvalidIdentity);
+        }
+        self.authoring = Some(authoring);
         self.validate()
     }
 
@@ -172,6 +187,11 @@ impl RendererSnapshot {
                 || parts.wants_to_join.len() > patchbay_model::MAX_WANTS_TO_JOIN_ROWS
         });
         let invalid_navigation = self.navigation_observation().is_err();
+        let invalid_authoring = self.authoring.as_ref().is_some_and(|authoring| {
+            authoring.palette.len() > crate::transport_types::MAX_BROWSER_PALETTE_ENTRIES
+                || authoring.source_document_id.is_empty()
+                || authoring.expanded_form_id.is_empty()
+        });
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -183,6 +203,7 @@ impl RendererSnapshot {
             || self.entrance.presentation_revision != self.presentation.revision
             || invalid_parts
             || invalid_navigation
+            || invalid_authoring
         {
             return Err(SnapshotError::InvalidIdentity);
         }

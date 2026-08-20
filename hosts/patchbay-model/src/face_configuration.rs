@@ -139,7 +139,10 @@ fn configuration_refusal(rule: &StandardConfigurationRule) -> String {
     }
 }
 
-fn configuration_spelling(rule: &StandardConfigurationRule, value: &ConfigurationValue) -> String {
+pub(crate) fn configuration_spelling(
+    rule: &StandardConfigurationRule,
+    value: &ConfigurationValue,
+) -> String {
     match (rule, value) {
         (StandardConfigurationRule::DurationMillis { .. }, ConfigurationValue::U64(value)) => {
             format!("{value}ms")

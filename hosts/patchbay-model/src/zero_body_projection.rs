@@ -242,6 +242,14 @@ impl ZeroBodyFrontDoor {
                     None,
                     &mut content,
                 );
+                actions.push(PresentationAction {
+                    identity: format!("action/save/{form_subject}"),
+                    intent: "conduit.intent/save@1".into(),
+                    target: form_subject,
+                    label: "Save".into(),
+                    disclosure: PresentationDisclosureLevel::CurrentAction,
+                    availability: PresentationActionAvailability::Available,
+                });
                 subjects = content.subjects;
                 relationships = content.relationships;
                 properties = content.properties;

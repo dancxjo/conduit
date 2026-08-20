@@ -22,9 +22,9 @@ impl FormEditor {
         }
         let palette = crate::GearPalette::standard()
             .map_err(|error| FormEditorError::Catalog(format!("{error:?}")))?;
-        if palette.find(kind_id).is_none() {
+        let Some(entry) = palette.find(kind_id) else {
             return Err(FormEditorError::UnknownPaletteKind(kind_id.as_str().into()));
-        }
+        };
         let form = self
             .checked
             .forms
@@ -52,7 +52,23 @@ impl FormEditor {
             .map(|offset| form.source_span.start + offset)
             .ok_or_else(|| FormEditorError::UnknownForm(self.open_form.clone()))?;
         let mut candidate = self.source.clone();
-        candidate.insert_str(close, &format!("    {name}: {}\n", kind_id.as_str()));
+        let invocation = if entry.configuration.is_empty() {
+            kind_id.as_str().to_owned()
+        } else {
+            let arguments = entry
+                .configuration
+                .iter()
+                .map(|field| {
+                    crate::face_configuration::configuration_spelling(
+                        &field.rule,
+                        &field.default_value,
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{}({arguments})", kind_id.as_str())
+        };
+        candidate.insert_str(close, &format!("    {name}: {invocation}\n"));
         ensure_source_bound(&candidate)?;
         let next_revision = self.revision.saturating_add(1);
         let checked = check_revision(next_revision, &candidate)?;

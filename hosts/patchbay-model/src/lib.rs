@@ -66,6 +66,7 @@ mod route_demo;
 mod route_presentation;
 mod theme;
 mod topology;
+mod zero_body_authoring;
 mod zero_body_front_door;
 mod zero_body_projection;
 
