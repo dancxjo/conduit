@@ -104,11 +104,12 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
 #[test]
 fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
     let variants = [
-        (999, true, 3, "stale availability"),
-        (2_000, false, 3, "missing participant"),
-        (2_000, true, 4, "over-profile result count"),
+        (999, true, 3, false, "stale availability"),
+        (2_000, false, 3, false, "missing participant"),
+        (2_000, true, 4, false, "over-profile result count"),
+        (2_000, true, 3, true, "malformed temporal scale"),
     ];
-    for (usable_until, include_bob, maximum_results, label) in variants {
+    for (usable_until, include_bob, maximum_results, malformed_scale, label) in variants {
         let mut fixture = fixture();
         let baseline = fixture
             .request
@@ -122,7 +123,10 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
         if !include_bob {
             fixture.availability.pop();
         }
-        let source = source(&fixture, &hex(&expected));
+        let mut source = source(&fixture, &hex(&expected));
+        if malformed_scale {
+            source = source.replacen("start_scale: \"seconds\"", "start_scale: \"fortnights\"", 1);
+        }
         let (startup, profile, sink_offer) = catalogs();
         let syntax = parse_syntax_document(&source);
         assert!(
@@ -179,7 +183,7 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
         );
         let error = result.expect_err(&format!("{label} unexpectedly reached Play"));
         assert!(
-            error.contains("calendar proposal"),
+            error.contains("calendar"),
             "{label} failed through an unrelated operation: {error}"
         );
         assert!(output.is_empty(), "{label} emitted partial output");
