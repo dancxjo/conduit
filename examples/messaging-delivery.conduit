@@ -1,0 +1,15 @@
+# Portable message construction and deterministic delivery admission.
+form messaging-delivery (
+    message: PortableMessage >
+    notification: NotificationEvent >
+    request: DeliveryRequest >
+    update: DeliveryUpdate >
+) {
+    fixture: messaging/deterministic-message
+    provider: messaging/deterministic-provider
+    fixture.request > provider.request
+    fixture.message > message
+    fixture.request > request
+    provider.notification > notification
+    provider.update > update
+}
