@@ -148,12 +148,16 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
     assert!(presentation.basis.body_id.is_none());
     assert!(presentation.basis.wake_id.is_none());
     assert!(presentation.basis.seed_id.is_none());
-    assert!(entrance
+    let initial_focus = entrance
         .navigation
         .cursor
         .focus
         .as_deref()
-        .is_some_and(|subject| subject.starts_with("host/")));
+        .expect("zero-Body front door has an exact initial Focus");
+    assert!(presentation.subjects.iter().any(|subject| {
+        subject.identity == initial_focus
+            && subject.role == conduit_presentation::PresentationRole::Seed
+    }));
     assert!(presentation
         .subjects
         .iter()
@@ -182,6 +186,14 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
     assert!(ordinary.contains("Seed  Patchbay entrance specimen"));
     assert!(ordinary.contains("OPEN [ENTER]  ·  AVAILABLE"));
     assert!(ordinary.contains("BIRTH [F4]  ·  UNAVAILABLE — No admitted authority"));
+    let focused_open = crate::presentation::focused_action_for_binding(
+        presentation,
+        &entrance.navigation,
+        patchbay_model::PatchbayAction::OpenBack,
+    )
+    .expect("initial binding projection is valid")
+    .expect("initial Seed Focus resolves the advertised OPEN binding");
+    assert_eq!(focused_open.target, initial_focus);
     assert!(!ordinary.contains(presentation.identity.as_str()));
     assert!(!ordinary.contains("source-document-id"));
 }
@@ -202,9 +214,17 @@ fn native_front_door_keys_invoke_current_open_and_disclose_exact_details() {
         .first()
         .map(|seed_id| format!("seed/{}", seed_id.as_str()))
         .unwrap();
-    application
-        .select_front_door_subject(&seed_subject)
-        .unwrap();
+    assert_eq!(
+        application
+            .entrance
+            .as_ref()
+            .unwrap()
+            .navigation
+            .cursor
+            .focus
+            .as_deref(),
+        Some(seed_subject.as_str())
+    );
 
     assert!(application
         .handle_front_door_key(&winit::keyboard::Key::Named(
@@ -692,6 +712,26 @@ fn native_front_door_focuses_and_invokes_actions_only_on_current_projection_subj
     assert!(!focused_actions
         .iter()
         .any(|line| line.contains("OPEN [ENTER]  ·  AVAILABLE")));
+    let seed_one_label = application
+        .entrance
+        .as_ref()
+        .expect("front-door entrance is present")
+        .presentation
+        .subjects
+        .iter()
+        .find(|subject| subject.identity == seed_one)
+        .expect("other seed subject should exist")
+        .label
+        .as_str()
+        .to_string();
+    let unfocused_actions = action_lines_for_seed_label(&projected_lines, &seed_one_label)
+        .expect("unfocused seed action block must exist");
+    assert!(unfocused_actions
+        .iter()
+        .any(|line| line == "  OPEN  ·  AVAILABLE"));
+    assert!(!unfocused_actions
+        .iter()
+        .any(|line| line.contains("OPEN [ENTER]")));
     application
         .handle_front_door_key(&winit::keyboard::Key::Named(
             winit::keyboard::NamedKey::Enter,
