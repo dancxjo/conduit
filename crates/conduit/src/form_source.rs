@@ -76,6 +76,7 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_std_catalog::install_job_catalogs(&mut startup, &mut profiles)?;
     conduit_net::install_application_network_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut profiles)?;
+    conduit_std_catalog::install_robotics_structured_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_education_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_messaging_catalogs(&mut startup, &mut profiles)?;

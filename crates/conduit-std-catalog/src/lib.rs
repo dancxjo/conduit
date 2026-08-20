@@ -169,10 +169,18 @@ mod robotics_hazard;
 pub use robotics_hazard::*;
 mod robotics_input;
 pub use robotics_input::*;
+mod robotics_structured;
+pub use robotics_structured::*;
+mod robotics_structured_realization;
+pub use robotics_structured_realization::*;
 #[cfg(feature = "form-catalog")]
 mod robotics_catalog;
 #[cfg(feature = "form-catalog")]
 pub use robotics_catalog::install_robotics_catalogs;
+#[cfg(feature = "form-catalog")]
+mod robotics_structured_catalog;
+#[cfg(feature = "form-catalog")]
+pub use robotics_structured_catalog::*;
 mod copy_file;
 pub use copy_file::*;
 mod sound;
