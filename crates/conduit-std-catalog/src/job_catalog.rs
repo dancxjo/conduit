@@ -7,10 +7,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
@@ -69,7 +69,11 @@ pub fn job_std_offers() -> Vec<CapabilityOffer> {
             JOB_RUN_KIND,
             JOB_RUN_OPERATION,
             vec![port("request", &job_request_type(), PortDirection::Input)],
-            vec![port("lifecycle", &job_lifecycle_type(), PortDirection::Output)],
+            vec![port(
+                "lifecycle",
+                &job_lifecycle_type(),
+                PortDirection::Output,
+            )],
             true,
         ),
     ]
@@ -83,7 +87,10 @@ fn insert_kind(
     outputs: Vec<PortDescriptor>,
 ) -> Result<(), String> {
     startup
-        .insert(KindSignature { kind: kind.into(), startup_parameters: vec![] })
+        .insert(KindSignature {
+            kind: kind.into(),
+            startup_parameters: vec![],
+        })
         .map_err(|error| error.to_string())?;
     profile
         .insert(KindDefinition {
@@ -99,7 +106,11 @@ fn insert_kind(
 fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
-        value_kind: value_type.profile().expect("reviewed job profile").value_kind().clone(),
+        value_kind: value_type
+            .profile()
+            .expect("reviewed job profile")
+            .value_kind()
+            .clone(),
         direction,
         temporal: PortTemporal::Value,
     }

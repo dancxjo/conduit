@@ -5,8 +5,8 @@
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, BoundedResourceRef, StructuredFieldType, StructuredInfoType,
-    StructuredVariantCase, RESOURCE_REFERENCE_INFO_ID,
+    kind_id, BoundedResourceRef, StructuredFieldType, StructuredInfoType, StructuredVariantCase,
+    RESOURCE_REFERENCE_INFO_ID,
 };
 
 pub const JOB_REQUEST_TYPE: &str = "JobRequest";
@@ -86,11 +86,23 @@ pub enum JobExitDisposition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JobTerminalOutcome {
-    Completed { disposition: JobExitDisposition },
-    Failed { disposition: JobExitDisposition, message: String },
-    Cancelled { message: String },
-    TimedOut { timeout_millis: u64, message: String },
-    ProviderLost { message: String },
+    Completed {
+        disposition: JobExitDisposition,
+    },
+    Failed {
+        disposition: JobExitDisposition,
+        message: String,
+    },
+    Cancelled {
+        message: String,
+    },
+    TimedOut {
+        timeout_millis: u64,
+        message: String,
+    },
+    ProviderLost {
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -214,8 +226,11 @@ pub fn job_request_type() -> StructuredInfoType {
         vec![
             field(
                 "arguments",
-                StructuredInfoType::collection(optional_text_type(), Some(JOB_ARGUMENT_SLOTS as u16))
-                    .expect("bounded argument slots"),
+                StructuredInfoType::collection(
+                    optional_text_type(),
+                    Some(JOB_ARGUMENT_SLOTS as u16),
+                )
+                .expect("bounded argument slots"),
             ),
             field(
                 "environment",
@@ -238,12 +253,18 @@ pub fn job_request_type() -> StructuredInfoType {
 pub fn job_output_type() -> StructuredInfoType {
     let artifact = StructuredInfoType::variant(
         kind_id("process/optional-output-artifact@1"),
-        vec![case("absent", unit_type()), case("resource", leaf(RESOURCE_REFERENCE_INFO_ID))],
+        vec![
+            case("absent", unit_type()),
+            case("resource", leaf(RESOURCE_REFERENCE_INFO_ID)),
+        ],
     )
     .expect("reviewed output artifact");
     let pressure = StructuredInfoType::variant(
         kind_id("process/stream-pressure@1"),
-        vec![case("truncated", count_type()), case("within_limit", unit_type())],
+        vec![
+            case("truncated", count_type()),
+            case("within_limit", unit_type()),
+        ],
     )
     .expect("reviewed stream pressure");
     record(
@@ -271,13 +292,19 @@ pub fn job_usage_type() -> StructuredInfoType {
 fn exit_disposition_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("process/exit-disposition@1"),
-        vec![case("exit_code", leaf("value/integer@1")), case("signal", unit_type())],
+        vec![
+            case("exit_code", leaf("value/integer@1")),
+            case("signal", unit_type()),
+        ],
     )
     .expect("reviewed exit disposition")
 }
 
 fn terminal_detail_type(kind: &str, timed: bool) -> StructuredInfoType {
-    let mut fields = vec![field("message", text_type()), field("usage", job_usage_type())];
+    let mut fields = vec![
+        field("message", text_type()),
+        field("usage", job_usage_type()),
+    ];
     if timed {
         fields.push(field("timeout_millis", count_type()));
     }
@@ -307,13 +334,22 @@ pub fn job_lifecycle_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("process/job-lifecycle@1"),
         vec![
-            case("cancelled", terminal_detail_type("process/job-cancelled@1", false)),
+            case(
+                "cancelled",
+                terminal_detail_type("process/job-cancelled@1", false),
+            ),
             case("completed", completed),
             case("failed", failed),
-            case("provider_lost", terminal_detail_type("process/job-provider-lost@1", false)),
+            case(
+                "provider_lost",
+                terminal_detail_type("process/job-provider-lost@1", false),
+            ),
             case("running", unit_type()),
             case("started", unit_type()),
-            case("timed_out", terminal_detail_type("process/job-timed-out@1", true)),
+            case(
+                "timed_out",
+                terminal_detail_type("process/job-timed-out@1", true),
+            ),
         ],
     )
     .expect("reviewed job lifecycle")

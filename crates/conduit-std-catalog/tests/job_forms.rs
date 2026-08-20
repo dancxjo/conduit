@@ -7,9 +7,9 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_std_catalog::{
-    install_job_catalogs, job_lifecycle_type, job_request_type, job_std_offers,
-    JOB_ARGUMENT_SLOTS, JOB_ENVIRONMENT_SLOTS, JOB_EXECUTABLE_AUTHORITY,
-    JOB_EXECUTABLE_RESOURCE_CLASS, JOB_RUN_KIND, JOB_RUN_OPERATION,
+    install_job_catalogs, job_lifecycle_type, job_request_type, job_std_offers, JOB_ARGUMENT_SLOTS,
+    JOB_ENVIRONMENT_SLOTS, JOB_EXECUTABLE_AUTHORITY, JOB_EXECUTABLE_RESOURCE_CLASS, JOB_RUN_KIND,
+    JOB_RUN_OPERATION,
 };
 
 const SOURCE: &str = include_str!("../../../examples/bounded-job.conduit");
@@ -41,7 +41,10 @@ fn ordinary_form_plans_one_bounded_admitted_job() {
         .iter()
         .find(|placement| placement.kind_id.as_str() == JOB_RUN_KIND)
         .unwrap();
-    assert_eq!(run.host_operations[0].contract_id.as_str(), JOB_RUN_OPERATION);
+    assert_eq!(
+        run.host_operations[0].contract_id.as_str(),
+        JOB_RUN_OPERATION
+    );
 
     let offer = job_std_offers()
         .into_iter()
@@ -62,11 +65,18 @@ fn ordinary_form_plans_one_bounded_admitted_job() {
 
 #[test]
 fn schemas_make_all_collections_and_terminal_outcomes_finite() {
-    let StructuredInfoTypeShape::Record { fields, .. } = job_request_type().shape() else {
+    let request_type = job_request_type();
+    let StructuredInfoTypeShape::Record { fields, .. } = request_type.shape() else {
         panic!("expected request record")
     };
-    let arguments = fields.iter().find(|field| field.name() == "arguments").unwrap();
-    let environment = fields.iter().find(|field| field.name() == "environment").unwrap();
+    let arguments = fields
+        .iter()
+        .find(|field| field.name() == "arguments")
+        .unwrap();
+    let environment = fields
+        .iter()
+        .find(|field| field.name() == "environment")
+        .unwrap();
     assert!(matches!(
         arguments.value_type().shape(),
         StructuredInfoTypeShape::Collection { length, .. } if usize::from(length) == JOB_ARGUMENT_SLOTS
@@ -76,7 +86,8 @@ fn schemas_make_all_collections_and_terminal_outcomes_finite() {
         StructuredInfoTypeShape::Collection { length, .. } if usize::from(length) == JOB_ENVIRONMENT_SLOTS
     ));
 
-    let StructuredInfoTypeShape::Variant { cases, .. } = job_lifecycle_type().shape() else {
+    let lifecycle_type = job_lifecycle_type();
+    let StructuredInfoTypeShape::Variant { cases, .. } = lifecycle_type.shape() else {
         panic!("expected lifecycle variant")
     };
     let tags: Vec<_> = cases.iter().map(|case| case.tag()).collect();

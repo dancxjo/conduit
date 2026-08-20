@@ -236,7 +236,6 @@ fn elapsed_millis(started: Instant) -> u64 {
 
 #[cfg(unix)]
 fn exit_disposition(status: std::process::ExitStatus) -> JobExitDisposition {
-    use std::os::unix::process::ExitStatusExt;
     status
         .code()
         .map(JobExitDisposition::ExitCode)
@@ -284,7 +283,9 @@ fn drain_bounded(mut reader: impl Read, limit: usize) -> DrainedOutput {
             Ok(read) => {
                 result.observed_bytes = result.observed_bytes.saturating_add(read as u64);
                 let remaining = limit.saturating_sub(result.retained.len());
-                result.retained.extend_from_slice(&buffer[..read.min(remaining)]);
+                result
+                    .retained
+                    .extend_from_slice(&buffer[..read.min(remaining)]);
             }
             Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
             Err(_) => break,
