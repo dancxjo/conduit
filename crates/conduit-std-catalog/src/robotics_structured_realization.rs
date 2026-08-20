@@ -10,8 +10,8 @@ use crate::{
     point2_value, robotics_contact_event_type, robotics_contact_phase_type,
     robotics_motion_request_type, robotics_pose2_type, robotics_pose_sample_type,
     robotics_power_telemetry_type, robotics_range_observation_type, robotics_range_sample_type,
-    robotics_sample_context_type,
-    robotics_twist_interval_type, vector2_type, GeometryRefusal, MAXIMUM_ROBOTICS_IDENTITY_BYTES,
+    robotics_sample_context_type, robotics_twist_interval_type, vector2_type, GeometryRefusal,
+    MAXIMUM_ROBOTICS_IDENTITY_BYTES,
 };
 
 pub const ROBOTICS_BODY_FRAME: &str = "body";
@@ -121,21 +121,45 @@ pub fn pose_sample_value(
     heading_uncertainty: Quantity,
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
     require_identity(frame)?;
-    require_exact(heading, QuantityDimension::Angle, QuantityUnit::Microdegree, "heading")?;
-    require_uncertainty(position_uncertainty, QuantityDimension::Length, QuantityUnit::Micrometer, "position_uncertainty")?;
-    require_uncertainty(heading_uncertainty, QuantityDimension::Angle, QuantityUnit::Microdegree, "heading_uncertainty")?;
+    require_exact(
+        heading,
+        QuantityDimension::Angle,
+        QuantityUnit::Microdegree,
+        "heading",
+    )?;
+    require_uncertainty(
+        position_uncertainty,
+        QuantityDimension::Length,
+        QuantityUnit::Micrometer,
+        "position_uncertainty",
+    )?;
+    require_uncertainty(
+        heading_uncertainty,
+        QuantityDimension::Angle,
+        QuantityUnit::Microdegree,
+        "heading_uncertainty",
+    )?;
     let position = point2_value(frame, x, y)?;
     let pose = record_value(
         robotics_pose2_type(),
-        vec![("heading", quantity_value(heading)?), ("position", position)],
+        vec![
+            ("heading", quantity_value(heading)?),
+            ("position", position),
+        ],
     )?;
     record_value(
         robotics_pose_sample_type(),
         vec![
             ("heading_uncertainty", quantity_value(heading_uncertainty)?),
             ("pose", pose),
-            ("position_uncertainty", quantity_value(position_uncertainty)?),
-            ("sample", sample_context_value(source_identity, sample_sequence, sample_time_since_boot)?),
+            (
+                "position_uncertainty",
+                quantity_value(position_uncertainty)?,
+            ),
+            (
+                "sample",
+                sample_context_value(source_identity, sample_sequence, sample_time_since_boot)?,
+            ),
         ],
     )
 }
@@ -196,7 +220,10 @@ pub fn contact_event_value(
         vec![
             ("contact_identity", text_value(contact_identity)?),
             ("phase", unit_variant(robotics_contact_phase_type(), phase)?),
-            ("sample", sample_context_value(source_identity, sample_sequence, sample_time_since_boot)?),
+            (
+                "sample",
+                sample_context_value(source_identity, sample_sequence, sample_time_since_boot)?,
+            ),
         ],
     )
 }
@@ -209,17 +236,40 @@ pub fn power_telemetry_value(
     voltage: Quantity,
     voltage_uncertainty: Quantity,
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    require_nonnegative(charge, QuantityDimension::Ratio, QuantityUnit::Millionth, "charge")?;
-    if charge.convert(QuantityUnit::Millionth).map_err(|_| RoboticsStructuredRefusal::InexactPrecision { field: "charge" })?.value() > 1_000_000 {
+    require_nonnegative(
+        charge,
+        QuantityDimension::Ratio,
+        QuantityUnit::Millionth,
+        "charge",
+    )?;
+    if charge
+        .convert(QuantityUnit::Millionth)
+        .map_err(|_| RoboticsStructuredRefusal::InexactPrecision { field: "charge" })?
+        .value()
+        > 1_000_000
+    {
         return Err(RoboticsStructuredRefusal::IncompatibleDimension { field: "charge" });
     }
-    require_nonnegative(voltage, QuantityDimension::Voltage, QuantityUnit::Microvolt, "voltage")?;
-    require_uncertainty(voltage_uncertainty, QuantityDimension::Voltage, QuantityUnit::Microvolt, "voltage_uncertainty")?;
+    require_nonnegative(
+        voltage,
+        QuantityDimension::Voltage,
+        QuantityUnit::Microvolt,
+        "voltage",
+    )?;
+    require_uncertainty(
+        voltage_uncertainty,
+        QuantityDimension::Voltage,
+        QuantityUnit::Microvolt,
+        "voltage_uncertainty",
+    )?;
     record_value(
         robotics_power_telemetry_type(),
         vec![
             ("charge", quantity_value(charge)?),
-            ("sample", sample_context_value(source_identity, sample_sequence, sample_time_since_boot)?),
+            (
+                "sample",
+                sample_context_value(source_identity, sample_sequence, sample_time_since_boot)?,
+            ),
             ("voltage", quantity_value(voltage)?),
             ("voltage_uncertainty", quantity_value(voltage_uncertainty)?),
         ],
@@ -248,7 +298,12 @@ pub fn twist_interval_value(
     if converted <= 0 {
         return Err(RoboticsStructuredRefusal::NonPositiveInterval);
     }
-    require_exact(angular_delta, QuantityDimension::Angle, QuantityUnit::Microdegree, "angular_delta")?;
+    require_exact(
+        angular_delta,
+        QuantityDimension::Angle,
+        QuantityUnit::Microdegree,
+        "angular_delta",
+    )?;
     let linear_delta = coordinate_value(vector2_type(), frame, linear_x, linear_y)?;
     record_value(
         robotics_twist_interval_type(),
@@ -302,7 +357,10 @@ fn sample_context_value(
         robotics_sample_context_type(),
         vec![
             ("sample_sequence", count_value(sample_sequence)?),
-            ("sample_time_since_boot", quantity_value(sample_time_since_boot)?),
+            (
+                "sample_time_since_boot",
+                quantity_value(sample_time_since_boot)?,
+            ),
             ("source_identity", text_value(source_identity)?),
         ],
     )
@@ -314,8 +372,18 @@ fn coordinate_value(
     x: Quantity,
     y: Quantity,
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    require_exact(x, QuantityDimension::Length, QuantityUnit::Micrometer, "linear_x")?;
-    require_exact(y, QuantityDimension::Length, QuantityUnit::Micrometer, "linear_y")?;
+    require_exact(
+        x,
+        QuantityDimension::Length,
+        QuantityUnit::Micrometer,
+        "linear_x",
+    )?;
+    require_exact(
+        y,
+        QuantityDimension::Length,
+        QuantityUnit::Micrometer,
+        "linear_y",
+    )?;
     record_value(
         value_type,
         vec![

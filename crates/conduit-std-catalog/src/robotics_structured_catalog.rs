@@ -21,8 +21,7 @@ use crate::{
     robotics_structured_registered_types,
 };
 
-pub const DETERMINISTIC_ROBOTICS_OBSERVATIONS_KIND: &str =
-    "robotics/deterministic-observations";
+pub const DETERMINISTIC_ROBOTICS_OBSERVATIONS_KIND: &str = "robotics/deterministic-observations";
 pub const DETERMINISTIC_ROBOTICS_INTENT_KIND: &str = "robotics/deterministic-intent";
 pub const ROBOTICS_EXECUTE_MOTION_KIND: &str = "robotics/execute-motion";
 pub const ROBOTICS_STRUCTURED_REVISION: &str = "conduit.std/robotics-structured@1";
@@ -128,11 +127,7 @@ fn observation_outputs() -> Vec<PortDescriptor> {
             &robotics_contact_event_type(),
             PortDirection::Output,
         ),
-        port(
-            "pose",
-            &robotics_pose_sample_type(),
-            PortDirection::Output,
-        ),
+        port("pose", &robotics_pose_sample_type(), PortDirection::Output),
         port(
             "power",
             &robotics_power_telemetry_type(),

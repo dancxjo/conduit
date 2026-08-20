@@ -10,11 +10,10 @@ use conduit_form::{
 use conduit_std_catalog::{
     deterministic_robotics_structured_fixture, install_geometry_catalogs,
     install_robotics_structured_catalogs, pose_sample_value, range_sample_value,
-    robotics_motion_request_type,
-    robotics_physical_motion_offer, robotics_pose2_type, robotics_pose_sample_type,
-    robotics_range_observation_type, robotics_structured_deterministic_offers,
-    robotics_twist_interval_type, twist_interval_value, RoboticsStructuredRefusal,
-    ROBOTICS_BODY_FRAME, ROBOTICS_PHYSICAL_MOTION_AUTHORITY,
+    robotics_motion_request_type, robotics_physical_motion_offer, robotics_pose2_type,
+    robotics_pose_sample_type, robotics_range_observation_type,
+    robotics_structured_deterministic_offers, robotics_twist_interval_type, twist_interval_value,
+    RoboticsStructuredRefusal, ROBOTICS_BODY_FRAME, ROBOTICS_PHYSICAL_MOTION_AUTHORITY,
     ROBOTICS_PHYSICAL_MOTION_HOST_OPERATION,
 };
 
@@ -74,7 +73,10 @@ fn geometry_quantity_sample_and_uncertainty_remain_individually_selectable() {
     );
 
     let sample = record_field(&fixture.range, "sample");
-    assert_eq!(leaf_text(record_field(sample, "source_identity")), "sim/front-range");
+    assert_eq!(
+        leaf_text(record_field(sample, "source_identity")),
+        "sim/front-range"
+    );
     let measurement = record_field(&fixture.range, "measurement");
     assert_eq!(
         quantity(record_field(measurement, "uncertainty")),
@@ -162,7 +164,14 @@ fn physical_motion_authority_is_narrower_than_observation_capability() {
         .iter()
         .all(|offer| offer.authority_requirements.is_empty()));
     let motion = robotics_physical_motion_offer();
-    assert_eq!(motion.inputs[0].value_kind, robotics_motion_request_type().profile().unwrap().value_kind().clone());
+    assert_eq!(
+        motion.inputs[0].value_kind,
+        robotics_motion_request_type()
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
+    );
     assert_eq!(motion.authority_requirements.len(), 1);
     assert_eq!(
         motion.authority_requirements[0].contract_id.as_str(),
@@ -188,7 +197,10 @@ fn structured_robotics_schema_does_not_leak_robot_protocols() {
     )
     .to_ascii_lowercase();
     for forbidden in ["create-oi", "gpio", "i2c", "spi", "uart", "ros", "packet"] {
-        assert!(!rendered.contains(forbidden), "robotics schema leaked {forbidden}");
+        assert!(
+            !rendered.contains(forbidden),
+            "robotics schema leaked {forbidden}"
+        );
     }
 }
 
