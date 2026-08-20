@@ -27,6 +27,7 @@ pub enum CapstoneExecutionRefusal {
     KernelLifecycle,
     ObservationProviderLost,
     DriveProviderLost,
+    TtlExpired,
     AuthorityLost,
     Pressure,
 }
@@ -36,6 +37,7 @@ pub enum CapstoneDeterministicFault {
     None,
     ObservationProviderLost,
     DriveProviderLost,
+    TtlExpired,
     AuthorityLost,
     Pressure,
 }
@@ -159,6 +161,10 @@ pub fn run_capstone_deterministic_vector(
         CapstoneDeterministicFault::DriveProviderLost => {
             fail_request(&mut execution.scheduler, drive, 2)?;
             return Err(CapstoneExecutionRefusal::DriveProviderLost);
+        }
+        CapstoneDeterministicFault::TtlExpired => {
+            fail_request(&mut execution.scheduler, drive, 3)?;
+            return Err(CapstoneExecutionRefusal::TtlExpired);
         }
         CapstoneDeterministicFault::AuthorityLost => {
             execution
@@ -416,7 +422,7 @@ mod tests {
     }
 
     #[test]
-    fn provider_authority_pressure_stale_and_plan_failures_remain_distinct() {
+    fn ttl_provider_authority_pressure_stale_and_plan_failures_remain_distinct() {
         let evidence = evidence();
         let plan = capstone_plan(&evidence, 105).unwrap();
         for (fault, expected) in [
@@ -427,6 +433,10 @@ mod tests {
             (
                 CapstoneDeterministicFault::DriveProviderLost,
                 CapstoneExecutionRefusal::DriveProviderLost,
+            ),
+            (
+                CapstoneDeterministicFault::TtlExpired,
+                CapstoneExecutionRefusal::TtlExpired,
             ),
             (
                 CapstoneDeterministicFault::AuthorityLost,
