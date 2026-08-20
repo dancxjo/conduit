@@ -1,6 +1,8 @@
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration, Quantity,
-    QuantityUnit, StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
+    kind_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    ImplementationOffer, OfferGeneration, Quantity, QuantityUnit, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -10,9 +12,8 @@ use conduit_form::{
 use conduit_std_catalog::{
     assess_schedule_values, assess_workflow_timing, deterministic_schedule_fixture,
     install_recurrence_catalogs, install_schedule_catalogs, recurrence_occurrence_type,
-    recurrence_std_offer, schedule_std_offers, scheduled_intent_type, ScheduleRefusal,
-    ScheduleWindowPosition, WorkflowLifecycle, WorkflowTimingOutcome, SCHEDULE_ASSESS_KIND,
-    SCHEDULE_FIXTURE_KIND, SCHEDULE_HOST_OPERATION,
+    recurrence_std_offer, scheduled_intent_type, ScheduleRefusal, ScheduleWindowPosition,
+    WorkflowLifecycle, WorkflowTimingOutcome, SCHEDULE_ASSESS_KIND, SCHEDULE_FIXTURE_KIND,
 };
 
 const SOURCE: &str = include_str!("../../../examples/scheduling-workflow.conduit");
@@ -49,7 +50,7 @@ fn canonical_forms_reuse_bounded_recurrence_and_consume_workflow_info() {
         expand_canonical_form_for_authoring(&checked, "workflow-state", &profile).unwrap();
     assert_eq!(workflow.expanded.gears.len(), 2);
     assert_eq!(workflow.output_bindings.len(), 1);
-    let workflow_host = host(schedule_std_offers());
+    let workflow_host = host(schedule_conformance_offers(&profile));
     let placements = conduit_planner::default_expanded_placements(
         &workflow.expanded,
         core::slice::from_ref(&workflow_host),
@@ -68,10 +69,7 @@ fn canonical_forms_reuse_bounded_recurrence_and_consume_workflow_info() {
             .iter()
             .find(|placement| placement.kind_id.as_str() == kind)
             .unwrap();
-        assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
-            SCHEDULE_HOST_OPERATION
-        );
+        assert!(placement.host_operations.is_empty());
         assert!(placement.resources.is_empty());
         assert!(placement.authority.is_empty());
     }
@@ -216,13 +214,46 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     (startup, profile)
 }
 
+fn schedule_conformance_offers(profile: &ProfileCatalog) -> Vec<CapabilityOffer> {
+    [SCHEDULE_FIXTURE_KIND, SCHEDULE_ASSESS_KIND]
+        .into_iter()
+        .map(|kind| {
+            let definition = profile.get(&kind_id(kind)).unwrap();
+            CapabilityOffer {
+                startup_parameters: vec![],
+                shorthand: None,
+                capability_id: CapabilityId::from(format!("test/schedule-contract/{kind}@1")),
+                kind_id: definition.kind_id.clone(),
+                kind_contract_revision: definition.kind_contract_revision.clone(),
+                implementation: ImplementationOffer {
+                    execution_profile_id: ExecutionProfileId::from(
+                        "test/schedule-contract-fixture@1",
+                    ),
+                    implementation_id: ImplementationId::from(format!("test/{kind}@1")),
+                    artifact_id: ArtifactId::from("conduit-std-catalog/test-schedule-contract@1"),
+                },
+                inputs: definition.inputs.clone(),
+                outputs: definition.outputs.clone(),
+                host_operations: vec![],
+                resource_requirements: vec![],
+                authority_requirements: vec![],
+                limits: CapabilityLimits {
+                    max_active_instances: 4,
+                    max_queue_items: 4,
+                    max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+                },
+            }
+        })
+        .collect()
+}
+
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/schedule-proof"),
         boot_id: BootId::from("boot/schedule-proof"),
         offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("std/schedule-proof@1"),
+        profile: HostProfileId::from("test/schedule-contract-fixture@1"),
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,
