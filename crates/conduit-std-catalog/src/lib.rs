@@ -34,6 +34,14 @@ pub use geometry::*;
 mod geometry_catalog;
 #[cfg(feature = "form-catalog")]
 pub use geometry_catalog::*;
+mod linguistics;
+pub use linguistics::*;
+mod linguistics_realization;
+pub use linguistics_realization::*;
+#[cfg(feature = "form-catalog")]
+mod linguistics_catalog;
+#[cfg(feature = "form-catalog")]
+pub use linguistics_catalog::*;
 mod palette_metadata;
 mod tick;
 use functional_face::startup_face;

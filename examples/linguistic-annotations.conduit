@@ -1,0 +1,8 @@
+form linguistic-annotations (
+    label: LinguisticLabel >
+) {
+    tokenize: language/tokenize-four(text = "Bright stars shine.")
+    annotate: language/annotate-four
+    tokenize.tokens > annotate.tokens
+    annotate.annotations > project(AnnotationBundleFour.annotations) > index(LinguisticAnnotationsFour[0]) > project(LinguisticAnnotation.label) > label
+}
