@@ -70,6 +70,7 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_std_catalog::install_geometry_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_linguistics_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_tabular_catalogs(&mut startup, &mut profiles)?;
+    conduit_std_catalog::install_finance_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
     Ok((startup, profiles))
