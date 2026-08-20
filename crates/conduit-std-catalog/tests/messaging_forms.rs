@@ -12,9 +12,9 @@ use conduit_std_catalog::{
     deterministic_messaging_fixture, deterministic_provider_acknowledgement, deterministic_submit,
     install_messaging_catalogs, message_attachments_type, message_metadata_type,
     message_recipients_type, messaging_std_offers, notification_event_type, presence_event_type,
-    MESSAGING_HOST_OPERATION, MESSAGE_ATTACHMENT_ACCESS_CLASS, MESSAGE_ATTACHMENT_PROFILE,
     MAXIMUM_DELIVERY_ATTEMPTS, MAXIMUM_MESSAGE_ATTACHMENTS, MAXIMUM_MESSAGE_METADATA,
-    MAXIMUM_MESSAGE_RECIPIENTS,
+    MAXIMUM_MESSAGE_RECIPIENTS, MESSAGE_ATTACHMENT_ACCESS_CLASS, MESSAGE_ATTACHMENT_PROFILE,
+    MESSAGING_HOST_OPERATION,
 };
 
 const SOURCE: &str = include_str!("../../../examples/messaging-delivery.conduit");
@@ -63,9 +63,12 @@ fn attachment_is_an_exact_bounded_resource_not_inline_content() {
     assert_eq!(variant_tag(&attachments[0]), "attachment");
     assert_eq!(variant_tag(&attachments[1]), "unused");
     let attachment = variant_payload(&attachments[0]);
-    let reference = BoundedResourceRef::decode(leaf_bytes(record_field(attachment, "content")))
-        .unwrap();
-    assert_eq!(reference.content_profile.as_str(), MESSAGE_ATTACHMENT_PROFILE);
+    let reference =
+        BoundedResourceRef::decode(leaf_bytes(record_field(attachment, "content"))).unwrap();
+    assert_eq!(
+        reference.content_profile.as_str(),
+        MESSAGE_ATTACHMENT_PROFILE
+    );
     assert_eq!(
         reference.access_class.as_str(),
         MESSAGE_ATTACHMENT_ACCESS_CLASS
@@ -138,10 +141,7 @@ fn duplicate_cancel_authority_refusal_and_retry_limit_are_explicit() {
     )
     .unwrap();
     let failed = deterministic_submit(&exhausted, false).unwrap();
-    assert_eq!(
-        variant_tag(record_field(&failed.update, "state")),
-        "failed"
-    );
+    assert_eq!(variant_tag(record_field(&failed.update, "state")), "failed");
 }
 
 #[test]

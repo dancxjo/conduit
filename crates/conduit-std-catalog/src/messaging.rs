@@ -107,11 +107,8 @@ pub fn message_metadata_slot_type() -> StructuredInfoType {
 }
 
 pub fn message_metadata_type() -> StructuredInfoType {
-    StructuredInfoType::collection(
-        message_metadata_slot_type(),
-        Some(MAXIMUM_MESSAGE_METADATA),
-    )
-    .expect("fixed metadata slots")
+    StructuredInfoType::collection(message_metadata_slot_type(), Some(MAXIMUM_MESSAGE_METADATA))
+        .expect("fixed metadata slots")
 }
 
 pub fn message_attachment_type() -> StructuredInfoType {

@@ -118,11 +118,7 @@ fn insert_kind(
         .map_err(|error| error.to_string())
 }
 
-fn port(
-    name: &str,
-    value_type: &StructuredInfoType,
-    direction: PortDirection,
-) -> PortDescriptor {
+fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
         value_kind: value_type
