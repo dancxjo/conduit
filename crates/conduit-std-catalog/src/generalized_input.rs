@@ -116,11 +116,8 @@ pub fn input_button_slot_type() -> StructuredInfoType {
 }
 
 pub fn input_button_slots_type() -> StructuredInfoType {
-    StructuredInfoType::collection(
-        input_button_slot_type(),
-        Some(MAXIMUM_INPUT_BUTTONS),
-    )
-    .expect("fixed input button slots")
+    StructuredInfoType::collection(input_button_slot_type(), Some(MAXIMUM_INPUT_BUTTONS))
+        .expect("fixed input button slots")
 }
 
 pub fn input_axis_state_type() -> StructuredInfoType {
@@ -199,11 +196,8 @@ pub fn touch_contact_slot_type() -> StructuredInfoType {
 }
 
 pub fn touch_contacts_type() -> StructuredInfoType {
-    StructuredInfoType::collection(
-        touch_contact_slot_type(),
-        Some(MAXIMUM_TOUCH_CONTACTS),
-    )
-    .expect("fixed touch contact slots")
+    StructuredInfoType::collection(touch_contact_slot_type(), Some(MAXIMUM_TOUCH_CONTACTS))
+        .expect("fixed touch contact slots")
 }
 
 pub fn touch_frame_type() -> StructuredInfoType {

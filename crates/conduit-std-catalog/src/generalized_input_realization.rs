@@ -116,7 +116,10 @@ pub fn deterministic_generalized_input_fixture(
         vec![
             ("buttons", pointer_buttons),
             ("delta", coordinate_value(vector2_type(), 25_000, -10_000)?),
-            ("position", coordinate_value(point2_type(), 400_000, 600_000)?),
+            (
+                "position",
+                coordinate_value(point2_type(), 400_000, 600_000)?,
+            ),
             (
                 "pressure",
                 pressure_value("coalesce_latest_state", 2, 1, 8)?,
@@ -129,11 +132,11 @@ pub fn deterministic_generalized_input_fixture(
         touch_contact_type(),
         vec![
             ("contact_identity", text_value("contact/1")),
+            ("phase", unit_variant(touch_contact_phase_type(), "move")?),
             (
-                "phase",
-                unit_variant(touch_contact_phase_type(), "move")?,
+                "position",
+                coordinate_value(point2_type(), 200_000, 300_000)?,
             ),
-            ("position", coordinate_value(point2_type(), 200_000, 300_000)?),
             ("pressure", pressure_quantity_value(650_000)?),
         ],
     )?;
@@ -225,7 +228,10 @@ fn pressure_value(
         vec![
             ("coalesced", count_value(coalesced)),
             ("dropped", count_value(dropped)),
-            ("policy", unit_variant(input_pressure_policy_type(), policy)?),
+            (
+                "policy",
+                unit_variant(input_pressure_policy_type(), policy)?,
+            ),
             ("queue_capacity", count_value(queue_capacity)),
         ],
     )
@@ -313,10 +319,7 @@ fn count_value(value: u64) -> StructuredInfoValue {
     .expect("bounded deterministic input count")
 }
 
-fn leaf_value(
-    kind: &str,
-    bytes: Vec<u8>,
-) -> Result<StructuredInfoValue, GeneralizedInputRefusal> {
+fn leaf_value(kind: &str, bytes: Vec<u8>) -> Result<StructuredInfoValue, GeneralizedInputRefusal> {
     Ok(StructuredInfoValue::leaf(
         StructuredInfoType::leaf(conduit_core::kind_id(kind))?,
         bytes,
