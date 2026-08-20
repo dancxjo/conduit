@@ -123,11 +123,13 @@ pub(super) fn ordinary_front_door_lines(
                     format!("REFUSED — {explanation}")
                 }
             };
-            let binding = binding_label(action);
-            lines.push(format!(
-                "  {} [{binding}]  ·  {availability}",
-                action.label.to_uppercase()
-            ));
+            let binding = if observation.cursor.focus.as_deref() == Some(action.target.as_str()) {
+                format!(" [{}]", binding_label(action))
+            } else {
+                String::new()
+            };
+            let label = action.label.to_uppercase();
+            lines.push(format!("  {label}{binding}  ·  {availability}"));
         }
     }
     append_follow_lines(presentation, &observation, selected_follow, &mut lines)?;

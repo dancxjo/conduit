@@ -30,6 +30,8 @@ impl PatchbayNavigationProjection {
         let program_root = selected_seed
             .then(|| first_subject(presentation, PresentationRole::Form))
             .flatten();
+        let entrance_focus = first_subject(presentation, PresentationRole::Seed)
+            .unwrap_or_else(|| entrance_root.clone());
         let mut places = vec![place(
             presentation,
             PresentationPlace::Entrance,
@@ -47,7 +49,10 @@ impl PatchbayNavigationProjection {
         Self::build(
             presentation,
             places,
-            program_root.map_or(PresentationPlace::Entrance, |_| PresentationPlace::Program),
+            program_root
+                .as_ref()
+                .map_or(PresentationPlace::Entrance, |_| PresentationPlace::Program),
+            program_root.unwrap_or(entrance_focus),
         )
     }
 
@@ -62,12 +67,13 @@ impl PatchbayNavigationProjection {
                 place(
                     presentation,
                     PresentationPlace::Program,
-                    program_root,
+                    program_root.clone(),
                     "Program",
                 ),
                 place(presentation, PresentationPlace::Body, body_root, "Body"),
             ],
             PresentationPlace::Program,
+            program_root,
         )
     }
 
@@ -75,6 +81,7 @@ impl PatchbayNavigationProjection {
         presentation: &Presentation,
         places: Vec<NavigationPlace>,
         current_place: PresentationPlace,
+        initial_focus: String,
     ) -> Result<Self, String> {
         let follows = follows(presentation, &places)?;
         let navigation = PresentationNavigation::new(presentation, places, follows)
@@ -93,7 +100,7 @@ impl PatchbayNavigationProjection {
             revision: presentation.revision,
             place: current_place,
             aspect: current.aspects[0].aspect,
-            focus: Some(current.root_subject.clone()),
+            focus: Some(initial_focus),
             depth: PresentationDepth::Primary,
         };
         projection
