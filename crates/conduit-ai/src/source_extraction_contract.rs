@@ -169,6 +169,7 @@ pub fn install_source_extraction_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
+    use alloc::string::ToString;
     use conduit_form::{
         ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
         StartupParameterSignature,
