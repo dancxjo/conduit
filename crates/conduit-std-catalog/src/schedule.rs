@@ -5,13 +5,17 @@
 //! finite scheduled intent and to observed workflow state. It never schedules
 //! or executes an effect.
 
+#[cfg(feature = "form-catalog")]
 use alloc::{vec, vec::Vec};
+use conduit_core::{Quantity, QuantityDimension};
+#[cfg(feature = "form-catalog")]
 use conduit_core::{
-    kind_id, Quantity, QuantityDimension, StructuredFieldType, StructuredInfoType,
-    StructuredVariantCase, QUANTITY_INFO_ID,
+    kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase, QUANTITY_INFO_ID,
 };
 
+#[cfg(feature = "form-catalog")]
 use crate::recurrence_occurrence_instant_type;
+#[cfg(feature = "form-catalog")]
 use crate::recurrence_occurrence_type;
 
 pub const SCHEDULED_INTENT_TYPE: &str = "ScheduledIntent";
@@ -97,9 +101,7 @@ pub fn assess_workflow_timing(
         ) => Err(ScheduleRefusal::InconsistentLifecycle),
         (_, ScheduleWindowPosition::Indeterminate) => unreachable!("handled above"),
         (
-            WorkflowLifecycle::Failed
-            | WorkflowLifecycle::Cancelled
-            | WorkflowLifecycle::Expired,
+            WorkflowLifecycle::Failed | WorkflowLifecycle::Cancelled | WorkflowLifecycle::Expired,
             _,
         ) => unreachable!("terminal state handled above"),
     }
@@ -115,30 +117,37 @@ fn validate_duration(value: Quantity) -> Result<(), ScheduleRefusal> {
     Ok(())
 }
 
+#[cfg(feature = "form-catalog")]
 fn leaf(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(kind)).expect("reviewed schedule leaf")
 }
 
+#[cfg(feature = "form-catalog")]
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
     StructuredFieldType::new(name, value_type).expect("reviewed schedule field")
 }
 
+#[cfg(feature = "form-catalog")]
 fn case(name: &str, payload_type: StructuredInfoType) -> StructuredVariantCase {
     StructuredVariantCase::new(name, payload_type).expect("reviewed schedule case")
 }
 
+#[cfg(feature = "form-catalog")]
 fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
     StructuredInfoType::record(kind_id(kind), fields).expect("reviewed schedule record")
 }
 
+#[cfg(feature = "form-catalog")]
 fn unit_type() -> StructuredInfoType {
     leaf("value/unit@1")
 }
 
+#[cfg(feature = "form-catalog")]
 fn text_type() -> StructuredInfoType {
     leaf("value/text@1")
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn schedule_effect_intent_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("schedule/effect-intent@1"),
@@ -150,6 +159,7 @@ pub fn schedule_effect_intent_type() -> StructuredInfoType {
     .expect("reviewed effect proposal")
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn schedule_constraint_type() -> StructuredInfoType {
     let instant = recurrence_occurrence_instant_type();
     let window = record(
@@ -166,6 +176,7 @@ pub fn schedule_constraint_type() -> StructuredInfoType {
     .expect("reviewed schedule constraint")
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn scheduled_intent_type() -> StructuredInfoType {
     record(
         "schedule/scheduled-intent@1",
@@ -178,6 +189,7 @@ pub fn scheduled_intent_type() -> StructuredInfoType {
     )
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn workflow_lifecycle_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("schedule/workflow-lifecycle@1"),
@@ -193,6 +205,7 @@ pub fn workflow_lifecycle_type() -> StructuredInfoType {
     .expect("reviewed workflow lifecycle")
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn schedule_window_position_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("schedule/window-position@1"),
@@ -206,6 +219,7 @@ pub fn schedule_window_position_type() -> StructuredInfoType {
     .expect("reviewed schedule position")
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn schedule_observation_type() -> StructuredInfoType {
     record(
         "schedule/observation@1",
@@ -218,6 +232,7 @@ pub fn schedule_observation_type() -> StructuredInfoType {
     )
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn workflow_timing_outcome_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("schedule/workflow-timing-outcome@1"),
@@ -235,6 +250,7 @@ pub fn workflow_timing_outcome_type() -> StructuredInfoType {
     .expect("reviewed workflow timing outcome")
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn schedule_assessment_type() -> StructuredInfoType {
     record(
         "schedule/assessment@1",
@@ -245,6 +261,7 @@ pub fn schedule_assessment_type() -> StructuredInfoType {
     )
 }
 
+#[cfg(feature = "form-catalog")]
 pub fn schedule_registered_types() -> Vec<(&'static str, StructuredInfoType)> {
     vec![
         (SCHEDULED_INTENT_TYPE, scheduled_intent_type()),
