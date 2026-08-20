@@ -247,7 +247,13 @@ fn subject_in_place(
         | PresentationRole::Gear
         | PresentationRole::Port
         | PresentationRole::Cord
-        | PresentationRole::Info => Some(PresentationPlace::Program),
+        | PresentationRole::Info
+        | PresentationRole::Region
+        | PresentationRole::Collection
+        | PresentationRole::Item
+        | PresentationRole::TextEntry
+        | PresentationRole::Status
+        | PresentationRole::Action => Some(PresentationPlace::Program),
         PresentationRole::Body
         | PresentationRole::Part
         | PresentationRole::Candidate

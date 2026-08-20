@@ -5,37 +5,51 @@ use conduit_form::{
     StartupCatalog,
 };
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore,
+    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     NodeId, PortId, ValueStorage,
 };
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
+use conduit_presentation::{Manifestation, Presentation, PresentationInteractionLedger};
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, KernelIdentityMap,
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
+use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
+#[derive(Deserialize)]
+pub(super) struct InteractionFrame {
+    pub(super) presentation_id: String,
+    pub(super) presentation_revision: u64,
+    pub(super) manifestation_id: String,
+    pub(super) input_id: String,
+    pub(super) action_id: String,
+    pub(super) target: String,
+    pub(super) value_kind: String,
+    pub(super) sequence: u64,
+    pub(super) value: String,
+}
+
 const SOURCE: &str = include_str!("../../../../examples/webchat.conduit");
-const NODES: usize = 3;
-const CORDS: usize = 2;
+const NODES: usize = 6;
+const CORDS: usize = 8;
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
-const QUEUE_SLOTS: usize = 8;
+const QUEUE_SLOTS: usize = 32;
 const ROUTE_SLOTS: usize = NODES * PORTS;
-const ROUTE_TARGETS: usize = 2;
-const ACTIVE_HOST_OPERATIONS: usize = 6;
+const ROUTE_TARGETS: usize = CORDS;
+const ACTIVE_HOST_OPERATIONS: usize = 9;
 const HOST_BINDINGS: usize = NODES * 4;
-const PENDING_REQUESTS: usize = 3;
-const VALUE_ITEMS: u16 = 32;
-const VALUE_BYTES: u32 = 8_192;
+const PENDING_REQUESTS: usize = 6;
+const VALUE_ITEMS: u16 = 64;
+const VALUE_BYTES: u32 = 512 * 1024;
 const SIGN_ITEMS: u16 = 1_024;
 const REQUEST_IDENTITIES: usize = 64;
 
-type ChatScheduler = FixedScheduler<
+pub(super) type ChatScheduler = FixedScheduler<
     OperationDriver<BrowserChatOperation, PORTS>,
     HostedValueStore,
     HostedSignLog,
@@ -57,26 +71,45 @@ pub(crate) enum BrowserChatEffect {
     SocketReceive,
     SocketSend,
     SocketClose,
-    ListAppend,
+    Present,
 }
 
 pub(crate) struct BrowserChatSession {
-    scheduler: ChatScheduler,
-    lowered_identity: KernelIdentityMap,
-    identity: KernelExecutionIdentityMap,
-    current: Option<HostOperationRequest>,
-    parked_input: Option<HostOperationRequest>,
-    parked_receive: Option<HostOperationRequest>,
-    complete: bool,
-    disconnected: bool,
-    error: i32,
-    identity_text: Vec<u8>,
-    value_capacity: (usize, usize),
-    identity_capacity: (usize, usize, usize),
+    pub(super) scheduler: ChatScheduler,
+    pub(super) lowered_identity: KernelIdentityMap,
+    pub(super) identity: KernelExecutionIdentityMap,
+    pub(super) current: Option<HostOperationRequest>,
+    pub(super) parked_input: Option<HostOperationRequest>,
+    pub(super) parked_receive: Option<HostOperationRequest>,
+    pub(super) complete: bool,
+    pub(super) disconnected: bool,
+    pub(super) error: i32,
+    pub(super) identity_text: Vec<u8>,
+    pub(super) value_capacity: (usize, usize),
+    pub(super) identity_capacity: (usize, usize, usize),
+    pub(super) chat_state: conduit_chat::ChatPresentationState,
+    pub(super) plan: conduit_core::Plan,
+    pub(super) active_play: conduit_core::ActivePlayIdentity,
+    pub(super) renderer_placement: conduit_core::PlacementId,
+    pub(super) presentation: Presentation,
+    pub(super) manifestation: Option<Manifestation>,
+    pub(super) interaction_ledger: PresentationInteractionLedger,
+    pub(super) interaction_text: Vec<u8>,
+    pub(super) evidence_text: Vec<u8>,
 }
 
 impl BrowserChatSession {
+    #[cfg(test)]
     pub(crate) fn prepare(url: &str, host_id: HostId, boot_id: BootId) -> Result<Self, i32> {
+        Self::prepare_form(url, "webchat-browser-demo", host_id, boot_id)
+    }
+
+    pub(crate) fn prepare_form(
+        url: &str,
+        form_name: &str,
+        host_id: HostId,
+        boot_id: BootId,
+    ) -> Result<Self, i32> {
         if url.len() > 256 || !url.starts_with("ws://") {
             return Err(-201);
         }
@@ -96,8 +129,7 @@ impl BrowserChatSession {
             .map_err(|_| -202)?;
         let checked =
             check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|_| -203)?;
-        let expanded =
-            expand_canonical_form(&checked, "webchat-browser-demo", &profile).map_err(|_| -204)?;
+        let expanded = expand_canonical_form(&checked, form_name, &profile).map_err(|_| -204)?;
         let advertisement = super::catalog::advertisement(host_id, boot_id);
         let hosts = [advertisement.clone()];
         let placements =
@@ -113,13 +145,14 @@ impl BrowserChatSession {
                 connection_bases: &connection_bases,
                 line_candidates: &line_candidates,
                 connection_item_capacity: 4,
-                connection_byte_capacity: 1_024,
+                connection_byte_capacity: 16 * 1024,
                 authority_grants: &[],
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
         )
         .map_err(|_| -206)?;
+        let plan_record = plan.clone();
         let fragment = plan.fragments.into_iter().next().ok_or(-207)?;
         let lowered = lower_plan_fragment(&fragment).map_err(|_| -208)?;
         if lowered.nodes.len() != NODES
@@ -130,24 +163,63 @@ impl BrowserChatSession {
             return Err(-209);
         }
 
-        let mut values = HostedValueStore::new(
-            VALUE_ITEMS,
-            conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-            VALUE_BYTES,
-        )
-        .map_err(|_| -210)?;
+        let mut values =
+            HostedValueStore::new(VALUE_ITEMS, 64 * 1024, VALUE_BYTES).map_err(|_| -210)?;
+        let state_placement = fragment
+            .placements
+            .iter()
+            .find(|placement| placement.kind_id.as_str() == conduit_chat::CHAT_STATE_KIND)
+            .ok_or(-212)?;
+        let text = |key: &str| {
+            state_placement
+                .configuration
+                .iter()
+                .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+                    (name, conduit_core::ConfigurationValue::Text(value)) if name == key => {
+                        Some(value.clone())
+                    }
+                    _ => None,
+                })
+                .ok_or(-212)
+        };
+        let count = |key: &str| {
+            state_placement
+                .configuration
+                .iter()
+                .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+                    (name, conduit_core::ConfigurationValue::U64(value)) if name == key => {
+                        Some(*value)
+                    }
+                    _ => None,
+                })
+                .ok_or(-212)
+        };
+        let chat_state =
+            conduit_chat::ChatPresentationState::new(conduit_chat::ChatPresentationConfiguration {
+                title: text("title")?,
+                history_label: text("history-label")?,
+                input_label: text("input-label")?,
+                submit_label: text("submit-label")?,
+                status_label: text("status-label")?,
+                maximum_history_items: count("maximum-history-items")? as usize,
+                maximum_message_bytes: count("maximum-message-bytes")? as u32,
+            })
+            .map_err(|_| -212)?;
+        let presentation = chat_state.presentation().map_err(|_| -212)?;
+        let initial_presentation = serde_json::to_vec(&presentation).map_err(|_| -212)?;
         let mut operations = Vec::with_capacity(NODES);
         for node in &lowered.nodes {
             let placement = &fragment.placements[usize::from(node.node.0)];
             let operation = match placement.kind_id.as_str() {
-                conduit_chat::WEB_TEXT_INPUT_KIND => {
-                    let mut tokens =
-                        Vec::with_capacity(conduit_chat::MAXIMUM_CHAT_INPUT_ITEMS.into());
-                    for _ in 0..conduit_chat::MAXIMUM_CHAT_INPUT_ITEMS {
-                        tokens.push(values.store(&[0]).map_err(|_| -211)?);
-                    }
-                    BrowserChatOperation::text_input(tokens)
+                conduit_chat::CHAT_STATE_KIND => BrowserChatOperation::state(
+                    values.store(&initial_presentation).map_err(|_| -211)?,
+                ),
+                conduit_presentation::PRESENTATION_TEE_KIND => BrowserChatOperation::tee(),
+                conduit_presentation::RENDERER_KIND => BrowserChatOperation::renderer(),
+                conduit_presentation::INTERACTION_KIND => {
+                    BrowserChatOperation::interaction(values.store(&[]).map_err(|_| -211)?)
                 }
+                conduit_chat::CHAT_SUBMIT_KIND => BrowserChatOperation::submit(),
                 conduit_net::EXTERNAL_WEBSOCKET_CLIENT_KIND => {
                     let url = placement
                         .configuration
@@ -163,9 +235,9 @@ impl BrowserChatSession {
                         values.store(url).map_err(|_| -211)?,
                         values.store(&[0]).map_err(|_| -211)?,
                         values.store(&[0]).map_err(|_| -211)?,
+                        values.store(&[1]).map_err(|_| -211)?,
                     )
                 }
-                conduit_chat::WEB_LIST_KIND => BrowserChatOperation::list(),
                 _ => return Err(-213),
             };
             operations.push(operation);
@@ -224,6 +296,12 @@ impl BrowserChatSession {
         .map_err(|_| -218)?;
         let active_play =
             bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+        let renderer_placement = fragment
+            .placements
+            .iter()
+            .find(|placement| placement.kind_id.as_str() == conduit_presentation::RENDERER_KIND)
+            .map(|placement| placement.placement_id.clone())
+            .ok_or(-219)?;
         let identity = KernelExecutionIdentityMap::new(
             &lowered.identity,
             &active_play,
@@ -277,224 +355,17 @@ impl BrowserChatSession {
             identity_text,
             value_capacity,
             identity_capacity,
+            chat_state,
+            plan: plan_record,
+            active_play,
+            renderer_placement,
+            presentation,
+            manifestation: None,
+            interaction_ledger: PresentationInteractionLedger::new(8, 32).map_err(|_| -219)?,
+            interaction_text: Vec::with_capacity(16 * 1024),
+            evidence_text: Vec::with_capacity(16 * 1024),
         };
         session.drive()?;
         Ok(session)
-    }
-
-    pub(crate) fn effect(&self) -> BrowserChatEffect {
-        self.current
-            .and_then(|request| self.contract(request).ok())
-            .map_or(BrowserChatEffect::None, |contract| match contract {
-                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION => {
-                    BrowserChatEffect::SocketOpen
-                }
-                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION => {
-                    BrowserChatEffect::SocketReceive
-                }
-                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION => {
-                    BrowserChatEffect::SocketSend
-                }
-                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION => {
-                    BrowserChatEffect::SocketClose
-                }
-                conduit_chat::WEB_LIST_HOST_OPERATION => BrowserChatEffect::ListAppend,
-                _ => BrowserChatEffect::None,
-            })
-    }
-
-    pub(crate) fn effect_bytes(&self) -> &[u8] {
-        self.current
-            .and_then(|request| self.scheduler.host_value(request.input.value).ok())
-            .unwrap_or(&[])
-    }
-
-    pub(crate) fn identity_text(&self) -> &[u8] {
-        &self.identity_text
-    }
-
-    pub(crate) fn status(&self) -> i32 {
-        if self.error < 0 {
-            self.error
-        } else if self.complete {
-            1
-        } else {
-            0
-        }
-    }
-
-    pub(crate) fn disconnected(&self) -> bool {
-        self.disconnected
-    }
-
-    pub(crate) fn capacity_stable(&self) -> bool {
-        self.scheduler.values().allocation_capacities() == self.value_capacity
-            && self.identity.allocation_capacities() == self.identity_capacity
-    }
-
-    pub(crate) fn request_count(&self) -> usize {
-        self.identity.lengths().0
-    }
-
-    pub(crate) fn complete_simple(&mut self, effect: BrowserChatEffect) -> Result<(), i32> {
-        if self.effect() != effect {
-            return Err(-220);
-        }
-        let request = self.current.take().ok_or(-220)?;
-        let output = (effect == BrowserChatEffect::SocketSend).then_some(request.input);
-        self.complete_request(request, HostOperationDisposition::Completed, output, None)?;
-        self.drive()
-    }
-
-    pub(crate) fn receive(&mut self, bytes: &[u8]) -> Result<(), i32> {
-        if self.effect() != BrowserChatEffect::SocketReceive
-            || bytes.len() > conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize
-        {
-            return Err(-221);
-        }
-        let value = self.scheduler.store_host_value(bytes).map_err(|_| -222)?;
-        let output =
-            BoundedValueRef::new(value, conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES)
-                .map_err(|_| -222)?;
-        let request = self.current.take().ok_or(-221)?;
-        self.complete_request(
-            request,
-            HostOperationDisposition::Completed,
-            Some(output),
-            None,
-        )?;
-        self.drive()
-    }
-
-    pub(crate) fn submit(&mut self, bytes: &[u8]) -> Result<(), i32> {
-        if bytes.is_empty()
-            || bytes.len() > conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize
-            || self.effect() != BrowserChatEffect::SocketReceive
-        {
-            return Err(-223);
-        }
-        let input_request = self.parked_input.take().ok_or(-224)?;
-        let value = self.scheduler.store_host_value(bytes).map_err(|_| -225)?;
-        let output =
-            BoundedValueRef::new(value, conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES)
-                .map_err(|_| -225)?;
-        self.complete_request(
-            input_request,
-            HostOperationDisposition::Completed,
-            Some(output),
-            None,
-        )?;
-        let receive = self.current.take().ok_or(-223)?;
-        self.complete_request(
-            receive,
-            HostOperationDisposition::Cancelled,
-            None,
-            Some(Failure {
-                code: FailureCode::Cancelled,
-                detail: 1,
-            }),
-        )?;
-        self.drive()
-    }
-
-    pub(crate) fn disconnect(&mut self) -> Result<(), i32> {
-        if self.effect() != BrowserChatEffect::SocketReceive {
-            return Err(-226);
-        }
-        let receive = self.current.take().ok_or(-226)?;
-        self.complete_request(
-            receive,
-            HostOperationDisposition::Cancelled,
-            None,
-            Some(Failure {
-                code: FailureCode::Cancelled,
-                detail: 2,
-            }),
-        )?;
-        if let Some(input) = self.parked_input.take() {
-            self.complete_request(
-                input,
-                HostOperationDisposition::Cancelled,
-                None,
-                Some(Failure {
-                    code: FailureCode::Cancelled,
-                    detail: 2,
-                }),
-            )?;
-        }
-        self.disconnected = true;
-        self.drive()
-    }
-
-    fn drive(&mut self) -> Result<(), i32> {
-        loop {
-            while let Some(request) = self.scheduler.next_host_request() {
-                self.identity
-                    .bind_request(
-                        &self.lowered_identity,
-                        request.node,
-                        request.request,
-                        request.operation,
-                    )
-                    .map_err(|_| -227)?;
-                if self.contract(request)? == conduit_chat::WEB_TEXT_INPUT_HOST_OPERATION {
-                    if self.parked_input.replace(request).is_some() {
-                        return Err(-228);
-                    }
-                    continue;
-                }
-                if self.contract(request)?
-                    == conduit_net::EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION
-                {
-                    if self.parked_receive.replace(request).is_some() {
-                        return Err(-233);
-                    }
-                    continue;
-                }
-                self.current = Some(request);
-                return Ok(());
-            }
-            match self.scheduler.step().map_err(|_| -229)? {
-                SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Idle => {
-                    if let Some(receive) = self.parked_receive.take() {
-                        self.current = Some(receive);
-                    }
-                    return Ok(());
-                }
-                SchedulerStatus::Complete => {
-                    self.complete = true;
-                    return Ok(());
-                }
-                SchedulerStatus::Cancelled => return Err(-230),
-            }
-        }
-    }
-
-    fn contract(&self, request: HostOperationRequest) -> Result<&str, i32> {
-        self.lowered_identity
-            .host_operation_contract(request.node, request.operation)
-            .map(|contract| contract.as_str())
-            .ok_or(-231)
-    }
-
-    fn complete_request(
-        &mut self,
-        request: HostOperationRequest,
-        disposition: HostOperationDisposition,
-        output: Option<BoundedValueRef>,
-        failure: Option<Failure>,
-    ) -> Result<(), i32> {
-        self.scheduler
-            .complete_host_operation(
-                request.node,
-                request.request,
-                HostOperationOutcome {
-                    disposition,
-                    output,
-                    failure,
-                },
-            )
-            .map_err(|_| -232)
     }
 }

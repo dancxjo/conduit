@@ -7,10 +7,16 @@ edition = "2021"
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form", optional = true }
 conduit-net = { path = "../conduit-net" }
+conduit-presentation = { path = "../conduit-presentation", default-features = false }
 
 [features]
 default = []
-form-catalog = ["dep:conduit-form", "conduit-net/form-catalog"]
+form-catalog = [
+    "dep:conduit-form",
+    "conduit-net/form-catalog",
+    "conduit-presentation/form-catalog",
+]
 
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }
+conduit-planner = { path = "../conduit-planner" }

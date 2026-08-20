@@ -180,7 +180,7 @@ fn prepare(
         )
         .expect("fixture PCM header is exact");
         let mut payload = vec![0_u8; usize::try_from(header.payload_bytes).unwrap()];
-        for (sample_index, encoded) in payload.chunks_exact_mut(2).enumerate() {
+        for (sample_index, encoded) in payload.as_chunks_mut::<2>().0.iter_mut().enumerate() {
             let phase = (sample_index / 2 + index * usize::from(frame_count)) % 48;
             let sample = if phase < 24 { 2_000_i16 } else { -2_000_i16 };
             encoded.copy_from_slice(&sample.to_le_bytes());

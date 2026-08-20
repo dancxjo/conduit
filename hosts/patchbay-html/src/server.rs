@@ -37,7 +37,7 @@ const REACT: &[u8] = include_bytes!("../assets/react.min.js");
 const REACT_DOM: &[u8] = include_bytes!("../assets/react-dom.min.js");
 const REACT_FLOW: &[u8] = include_bytes!("../assets/react-flow.min.js");
 const REACT_FLOW_STYLE: &[u8] = include_bytes!("../assets/react-flow.css");
-const MAX_BROWSER_WASM_BYTES: usize = 2 * 1024 * 1024;
+const MAX_BROWSER_WASM_BYTES: usize = 3 * 1024 * 1024;
 
 #[derive(Debug)]
 pub enum ServerError {

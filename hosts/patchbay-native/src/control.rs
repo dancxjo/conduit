@@ -437,7 +437,7 @@ impl NativeControl {
                 return None;
             }
             decoded.clear();
-            for pair in encoded.as_bytes().chunks_exact(2) {
+            for pair in encoded.as_bytes().as_chunks::<2>().0 {
                 let high = hex_value(pair[0])?;
                 let low = hex_value(pair[1])?;
                 decoded.push((high << 4) | low);

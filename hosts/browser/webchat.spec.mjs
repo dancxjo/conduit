@@ -103,7 +103,7 @@ test("two native browser clients exchange bounded chat through planned kernels",
   await expect(pageB.getByRole("listitem")).toHaveText(["hello from A"]);
 
   await pageB.getByLabel("Message").fill("hello from B");
-  await pageB.getByRole("button", { name: "Send" }).click();
+  await pageB.getByLabel("Message").press("Enter");
   await expect(pageA.getByRole("listitem")).toHaveText(["hello from A", "hello from B"]);
   await expect(pageB.getByRole("listitem")).toHaveText(["hello from A", "hello from B"]);
 
@@ -129,6 +129,8 @@ test("two native browser clients exchange bounded chat through planned kernels",
       expect(proof.identity).toContain(identity);
     }
     expect(proof.identity).not.toContain("hello from");
+    expect(proof.interactionEvidence.value_bytes).toBeGreaterThan(0);
+    expect(JSON.stringify(proof.interactionEvidence)).not.toContain("hello from");
   }
   const identityField = (proof, name) => proof.identity.match(new RegExp(`${name}=([^ ]+)`))?.[1];
   expect(identityField(proofA, "host")).toBeTruthy();
@@ -149,8 +151,8 @@ test("two native browser clients exchange bounded chat through planned kernels",
     expect(candidate.advertisement.host_id).toBe(candidate.hostId);
     expect(candidate.advertisement.boot_id).toBe(candidate.bootId);
     expect(candidate.advertisement.offer_generation).toBe(1);
-    expect(candidate.advertisement.capabilities).toHaveLength(3);
-    expect(candidate.advertisement.resources).toHaveLength(2);
+    expect(candidate.advertisement.capabilities).toHaveLength(6);
+    expect(candidate.advertisement.resources).toHaveLength(3);
   }
   const challengeFor = (candidate, suffix) => ({
     admission_id: `admission/browser-${suffix}`,
@@ -187,6 +189,28 @@ test("two native browser clients exchange bounded chat through planned kernels",
   expect(serverOutput).not.toContain("hello from");
   expect(serverOutput).not.toContain("remaining peer continues");
   await context.close();
+});
+
+test("authored Presentation labels change the generic host without JavaScript changes", async ({ page }) => {
+  const oracleServer = await startWebchatServer();
+  const target = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(oracleServer.url)}&form=webchat-browser-label-oracle`;
+  await page.goto(target);
+  await expect(page.getByRole("status")).toHaveText("connected");
+  await expect(page.getByLabel("Say something")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Transmit" })).toBeEnabled();
+  const proof = await page.evaluate(() => globalThis.__webchat.proof());
+  expect(proof.presentationId).toBeTruthy();
+  expect(proof.manifestationId).toBeTruthy();
+  expect(proof.presentationRevision).toBeGreaterThan(0);
+  const refusals = await page.evaluate(() => ({
+    stale: globalThis.__webchat.refusal({ presentation_revision: 0 }),
+    oversize: globalThis.__webchat.refusal({ value: "x".repeat(257) }),
+  }));
+  expect(refusals.stale).toBe(-251);
+  expect(refusals.oversize).toBe(-261);
+  await page.evaluate(() => globalThis.__webchat.disconnect());
+  await expect(page.getByRole("status")).toHaveText("disconnected");
+  if (oracleServer.process.exitCode === null) oracleServer.process.kill("SIGTERM");
 });
 
 test("Body-directed fragment admits exactly one browser and replay stays refused", async ({ browser }) => {

@@ -32,14 +32,47 @@ form webchat-server-demo {
 form chat/browser-client (
     url: Url
 ) {
-    input: web/text-input("Message")
+    state: chat/state(title = "Conduit Webchat", history-label = "Chat history", input-label = "Message", submit-label = "Send", status-label = "Connection", maximum-history-items = 16, maximum-message-bytes = 256)
+    spread: presentation/tee
+    render: presentation/renderer
+    human: presentation/interaction
+    submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
     socket: net/websocket(url)
-    history: web/list(16)
 
-    input.message > socket.send
-    socket.recv > history.message
+    socket.recv > state.message
+    socket.live > state.live
+    state.presentation > spread.presentation
+    spread.presentation > render.presentation
+    spread.presentation > human.presentation
+    render.manifestation > human.manifestation
+    human.interaction > submit.interaction
+    submit.message > socket.send
 }
 
 form webchat-browser-demo {
     client: chat/browser-client("ws://127.0.0.1:4178")
+}
+
+form chat/browser-client-label-oracle (
+    url: Url
+) {
+    state: chat/state(title = "Conduit Webchat", history-label = "Chat history", input-label = "Say something", submit-label = "Transmit", status-label = "Connection", maximum-history-items = 16, maximum-message-bytes = 256)
+    spread: presentation/tee
+    render: presentation/renderer
+    human: presentation/interaction
+    submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
+    socket: net/websocket(url)
+
+    socket.recv > state.message
+    socket.live > state.live
+    state.presentation > spread.presentation
+    spread.presentation > render.presentation
+    spread.presentation > human.presentation
+    render.manifestation > human.manifestation
+    human.interaction > submit.interaction
+    submit.message > socket.send
+}
+
+form webchat-browser-label-oracle {
+    client: chat/browser-client-label-oracle("ws://127.0.0.1:4178")
 }

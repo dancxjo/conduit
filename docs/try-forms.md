@@ -139,13 +139,18 @@ operations. The checked client face uses `WebSocketMessage`, not a generic byte
 stream, so #522 compatibility remains exact face equality without relying on
 the operation name to carry protocol meaning.
 
-The browser plan selects native WebSocket open/receive/send/close host
-operations and bounded `web/text-input` and `web/list` operations. The std plan
-selects the separately installed bounded listener. Both execute through fixed
-kernels; JavaScript and tungstenite remain platform adapters. Two Chromium
-pages prove A then B delivery, one-page disconnect, and continued delivery to
-the remaining page. Form, checked, expanded, Plan, fragment, Play, placement,
-and host-operation identities are retained without recording message content.
+The browser plan combines portable `chat/state`, `presentation/tee`,
+`presentation/renderer`, `presentation/interaction`, and `chat/submit` with
+the native WebSocket capability. Authored labels, action availability, input
+type and byte bound, connection status, and the sixteen-item history bound are
+Presentation truth. JavaScript is only a generic semantic renderer and human
+input adapter; it does not own chat policy. The std plan selects the separately
+installed bounded listener. Both execute through fixed kernels. Two Chromium
+pages prove click and Enter gestures, A then B delivery, one-page disconnect,
+continued delivery to the remaining page, and a source-only label oracle.
+Presentation, Manifestation, interaction, Form, checked, expanded, Plan,
+fragment, Play, placement, and host-operation identities are retained without
+recording message content.
 
 This is mechanically distinct from `ConnectionBase::WebSocket`, which
 transports Conduit sessions between Hosts. No Line, link binding, or session

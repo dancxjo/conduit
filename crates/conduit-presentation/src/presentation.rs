@@ -9,8 +9,8 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    PresentationAction, PresentationActionAvailability, PresentationActionRefusal,
-    PresentationDisclosure, PresentationTemporalFact, TemporalReference,
+    PresentationAction, PresentationDisclosure, PresentationInput, PresentationTemporalFact,
+    TemporalReference,
 };
 
 pub const MAX_PRESENTATION_SUBJECTS: usize = 1_024;
@@ -64,6 +64,12 @@ pub enum PresentationRole {
     Sign,
     Seed,
     Info,
+    Region,
+    Collection,
+    Item,
+    TextEntry,
+    Status,
+    Action,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -127,6 +133,8 @@ pub struct Presentation {
     pub properties: Vec<PresentationProperty>,
     pub text: Vec<PresentationText>,
     pub actions: Vec<PresentationAction>,
+    #[serde(default)]
+    pub inputs: Vec<PresentationInput>,
     pub disclosures: Vec<PresentationDisclosure>,
     #[serde(default)]
     pub temporal_references: Vec<TemporalReference>,
@@ -143,6 +151,7 @@ pub enum PresentationError {
     TooManyProperties,
     TooManySigns,
     TooManyActions,
+    TooManyInputs,
     TooManyDisclosures,
     EmptyIdentity,
     IdentityTooLong,
@@ -156,6 +165,10 @@ pub enum PresentationError {
     DuplicateAction,
     DuplicateDisclosure,
     UnknownActionTarget,
+    DuplicateInput,
+    UnknownInputTarget,
+    UnknownInputAction,
+    InvalidInputLimit,
     UnknownDisclosureSubject,
     ReasonTooLong,
     NonCanonicalSign,
@@ -180,86 +193,12 @@ impl core::fmt::Display for PresentationError {
     }
 }
 impl Presentation {
-    pub fn new(
-        revision: u64,
-        basis: PresentationBasis,
-        subjects: Vec<PresentationSubject>,
-        relationships: Vec<PresentationRelationship>,
-        properties: Vec<PresentationProperty>,
-        text: Vec<PresentationText>,
-    ) -> Result<Self, PresentationError> {
-        Self::new_with_semantics(
-            revision,
-            basis,
-            subjects,
-            relationships,
-            properties,
-            text,
-            Vec::new(),
-            Vec::new(),
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn new_with_semantics(
-        revision: u64,
-        basis: PresentationBasis,
-        subjects: Vec<PresentationSubject>,
-        relationships: Vec<PresentationRelationship>,
-        properties: Vec<PresentationProperty>,
-        text: Vec<PresentationText>,
-        actions: Vec<PresentationAction>,
-        disclosures: Vec<PresentationDisclosure>,
-    ) -> Result<Self, PresentationError> {
-        Self::new_with_semantics_and_temporal(
-            revision,
-            basis,
-            subjects,
-            relationships,
-            properties,
-            text,
-            actions,
-            disclosures,
-            Vec::new(),
-            Vec::new(),
-        )
-    }
-
     pub fn validate(&self) -> Result<(), PresentationError> {
         self.validate_content()?;
         if self.identity.0 != self.content_digest() {
             return Err(PresentationError::InvalidIdentity);
         }
         Ok(())
-    }
-
-    /// Resolve an action description at an exact revision without invoking it.
-    pub fn resolve_action(
-        &self,
-        revision: u64,
-        identity: &str,
-    ) -> Result<&PresentationAction, PresentationActionRefusal> {
-        if revision != self.revision {
-            return Err(PresentationActionRefusal::StaleRevision);
-        }
-        let action = self
-            .actions
-            .iter()
-            .find(|action| action.identity == identity)
-            .ok_or(PresentationActionRefusal::UnknownAction)?;
-        match &action.availability {
-            PresentationActionAvailability::Available => Ok(action),
-            PresentationActionAvailability::Unavailable { reason_code, .. } => {
-                Err(PresentationActionRefusal::Unavailable {
-                    reason_code: reason_code.clone(),
-                })
-            }
-            PresentationActionAvailability::Refused { reason_code, .. } => {
-                Err(PresentationActionRefusal::Refused {
-                    reason_code: reason_code.clone(),
-                })
-            }
-        }
     }
 
     pub(crate) fn validate_content(&self) -> Result<(), PresentationError> {
@@ -372,6 +311,7 @@ impl Presentation {
             }
         }
         self.validate_semantics()?;
+        self.validate_inputs()?;
         self.validate_temporal()?;
         let total_bytes = self
             .basis
@@ -452,6 +392,7 @@ impl Presentation {
                     .sum::<usize>(),
             )
             .saturating_add(self.semantics_len())
+            .saturating_add(self.inputs_len())
             .saturating_add(self.temporal_len());
         if total_bytes > MAX_PRESENTATION_TOTAL_BYTES {
             return Err(PresentationError::TooManyBytes);

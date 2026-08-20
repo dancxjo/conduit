@@ -57,7 +57,7 @@ mod tests {
             Some(UppercaseError::MalformedUtf8)
         );
         let mut input = [0_u8; MAXIMUM_BYTES];
-        for chunk in input.chunks_exact_mut(2) {
+        for chunk in input.as_chunks_mut::<2>().0 {
             chunk.copy_from_slice("ǰ".as_bytes());
         }
         assert_eq!(

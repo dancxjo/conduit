@@ -41,13 +41,18 @@ pub extern "C" fn conduit_browser_webchat_start(url_len: u32) -> i32 {
             return ERROR_INPUT;
         };
         let mut fields = frame.split('\n');
-        let (Some(url), Some(host_id), Some(boot_id), None) =
-            (fields.next(), fields.next(), fields.next(), fields.next())
+        let (Some(url), Some(host_id), Some(boot_id)) =
+            (fields.next(), fields.next(), fields.next())
         else {
             return ERROR_INPUT;
         };
-        match BrowserChatSession::prepare(
+        let form_name = fields.next().unwrap_or("webchat-browser-demo");
+        if fields.next().is_some() {
+            return ERROR_INPUT;
+        }
+        match BrowserChatSession::prepare_form(
             url,
+            form_name,
             conduit_core::HostId::from(host_id),
             conduit_core::BootId::from(boot_id),
         ) {
@@ -109,7 +114,7 @@ pub extern "C" fn conduit_browser_webchat_complete_effect() -> i32 {
             BrowserChatEffect::SocketOpen
                 | BrowserChatEffect::SocketSend
                 | BrowserChatEffect::SocketClose
-                | BrowserChatEffect::ListAppend
+                | BrowserChatEffect::Present
         ) {
             return Err(ERROR_INPUT);
         }
@@ -168,6 +173,46 @@ pub extern "C" fn conduit_browser_webchat_identity_len() -> u32 {
         slot.borrow()
             .as_ref()
             .map(|session| session.identity_text().len() as u32)
+            .unwrap_or(0)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webchat_interaction_ptr() -> *const u8 {
+    SESSION.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|session| session.interaction_text().as_ptr())
+            .unwrap_or(core::ptr::null())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webchat_interaction_len() -> u32 {
+    SESSION.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|session| session.interaction_text().len() as u32)
+            .unwrap_or(0)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webchat_evidence_ptr() -> *const u8 {
+    SESSION.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|session| session.evidence_text().as_ptr())
+            .unwrap_or(core::ptr::null())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_webchat_evidence_len() -> u32 {
+    SESSION.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|session| session.evidence_text().len() as u32)
             .unwrap_or(0)
     })
 }

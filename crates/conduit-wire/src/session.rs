@@ -291,9 +291,14 @@ fn active_play_id_matches(
     let digest = active_play_digest(plan_id.as_str(), host_id.as_str(), boot_id.as_str(), 0);
     let found = found.as_str().as_bytes();
     found.len() == digest.len() * 2
-        && found.chunks_exact(2).zip(digest).all(|(encoded, byte)| {
-            encoded[0] == hex_digit(byte >> 4) && encoded[1] == hex_digit(byte & 0x0f)
-        })
+        && found
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .zip(digest)
+            .all(|(encoded, byte)| {
+                encoded[0] == hex_digit(byte >> 4) && encoded[1] == hex_digit(byte & 0x0f)
+            })
 }
 
 const fn hex_digit(value: u8) -> u8 {

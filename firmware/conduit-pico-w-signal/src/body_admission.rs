@@ -32,7 +32,7 @@ impl PicoBodyAdmission {
     pub(crate) fn new(runtime: &RuntimeTranscriptIdentity) -> Self {
         let mut seed = [0u8; 32];
         let mut rng = RoscRng;
-        for chunk in seed.chunks_exact_mut(8) {
+        for chunk in seed.as_chunks_mut::<8>().0 {
             chunk.copy_from_slice(&rng.next_u64().to_le_bytes());
         }
         if seed == [0; 32] {

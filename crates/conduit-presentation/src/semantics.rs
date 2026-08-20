@@ -70,6 +70,35 @@ pub enum PresentationActionRefusal {
 }
 
 impl Presentation {
+    /// Resolve an action description at an exact revision without invoking it.
+    pub fn resolve_action(
+        &self,
+        revision: u64,
+        identity: &str,
+    ) -> Result<&PresentationAction, PresentationActionRefusal> {
+        if revision != self.revision {
+            return Err(PresentationActionRefusal::StaleRevision);
+        }
+        let action = self
+            .actions
+            .iter()
+            .find(|action| action.identity == identity)
+            .ok_or(PresentationActionRefusal::UnknownAction)?;
+        match &action.availability {
+            PresentationActionAvailability::Available => Ok(action),
+            PresentationActionAvailability::Unavailable { reason_code, .. } => {
+                Err(PresentationActionRefusal::Unavailable {
+                    reason_code: reason_code.clone(),
+                })
+            }
+            PresentationActionAvailability::Refused { reason_code, .. } => {
+                Err(PresentationActionRefusal::Refused {
+                    reason_code: reason_code.clone(),
+                })
+            }
+        }
+    }
+
     pub(crate) fn validate_semantics(&self) -> Result<(), PresentationError> {
         if self.actions.len() > MAX_PRESENTATION_ACTIONS {
             return Err(PresentationError::TooManyActions);

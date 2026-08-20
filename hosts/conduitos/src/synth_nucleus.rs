@@ -84,7 +84,9 @@ impl SynthNucleus {
             .copy_from_slice(&header.encode());
         for (encoded, sample) in output.bytes
             [conduit_core::PCM_FRAME_HEADER_ENCODED_LEN..output.len]
-            .chunks_exact_mut(4)
+            .as_chunks_mut::<4>()
+            .0
+            .iter_mut()
             .zip(samples.iter())
         {
             let sample = sample.to_le_bytes();

@@ -5,15 +5,21 @@ use conduit_core::{
 use conduit_planner::BROWSER_PLANNER_PROFILE;
 
 pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
-    let socket = conduit_net::browser_external_websocket_family();
+    let mut socket = conduit_net::browser_external_websocket_family();
+    socket.capability.limits.max_queue_items = 4;
+    socket.capability.limits.max_queue_bytes = 16 * 1024;
     let chat = conduit_chat::browser_chat_family();
+    let mut resources: Vec<_> = core::iter::once(socket.resource)
+        .chain(chat.resources)
+        .collect();
+    resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id,
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-webchat"),
-        resources: vec![socket.resource, chat.resource],
+        resources,
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
             limits: PlannerLimits {
@@ -25,10 +31,8 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
                 maximum_line_offers: 128,
             },
         }],
-        capabilities: vec![
-            socket.capability,
-            chat.capabilities[0].clone(),
-            chat.capabilities[1].clone(),
-        ],
+        capabilities: core::iter::once(socket.capability)
+            .chain(chat.capabilities)
+            .collect(),
     }
 }
