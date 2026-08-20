@@ -34,6 +34,14 @@ pub use geometry::*;
 mod geometry_catalog;
 #[cfg(feature = "form-catalog")]
 pub use geometry_catalog::*;
+mod vision;
+pub use vision::*;
+mod vision_realization;
+pub use vision_realization::*;
+#[cfg(feature = "form-catalog")]
+mod vision_catalog;
+#[cfg(feature = "form-catalog")]
+pub use vision_catalog::*;
 mod linguistics;
 pub use linguistics::*;
 mod linguistics_realization;
