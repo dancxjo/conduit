@@ -5,7 +5,7 @@ use conduit_core::{
     StructuredInfoValue, TemporalInstant, TemporalScale, TemporalWindow,
 };
 
-pub(super) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
+pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
     let value_type = conduit_std_catalog::calendar_proposal_result_type();
     let value = conduit_std_catalog::record_value(
         value_type.clone(),
