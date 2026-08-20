@@ -1,11 +1,16 @@
 //! Form catalog and hosted offer boundary for application networking.
 
-use alloc::{format, string::{String, ToString}, vec, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use conduit_core::{
-    kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
@@ -99,11 +104,19 @@ fn definitions() -> Vec<(&'static str, Vec<PortDescriptor>, Vec<PortDescriptor>)
         (
             ENDPOINT_FIXTURE_KIND,
             vec![],
-            vec![port("endpoint", &network_endpoint_type(), PortDirection::Output)],
+            vec![port(
+                "endpoint",
+                &network_endpoint_type(),
+                PortDirection::Output,
+            )],
         ),
         (
             NETWORK_CONNECT_KIND,
-            vec![port("endpoint", &network_endpoint_type(), PortDirection::Input)],
+            vec![port(
+                "endpoint",
+                &network_endpoint_type(),
+                PortDirection::Input,
+            )],
             vec![port(
                 "state",
                 &network_connection_state_type(),

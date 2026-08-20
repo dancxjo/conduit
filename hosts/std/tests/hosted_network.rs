@@ -24,7 +24,7 @@ fn std_resolver_emits_typed_candidates_without_inventing_ttl() {
     assert!(!resolution.candidates.is_empty());
     assert_eq!(resolution.ttl, DnsTtl::Unavailable);
     assert!(resolution.candidates.iter().all(|candidate| matches!(
-        candidate.address,
+        &candidate.address,
         NetworkAddress::Ipv4(_) | NetworkAddress::Ipv6(_)
     )));
 }
@@ -46,9 +46,18 @@ fn std_connection_lifecycle_uses_endpoints_not_socket_integers() {
         Duration::from_secs(1),
     );
     let _ = accept.join().unwrap();
-    assert!(matches!(lifecycle[0], NetworkConnectionState::Requested { .. }));
-    assert!(matches!(lifecycle[1], NetworkConnectionState::Connecting { .. }));
-    assert!(matches!(lifecycle[2], NetworkConnectionState::Connected { .. }));
+    assert!(matches!(
+        lifecycle[0],
+        NetworkConnectionState::Requested { .. }
+    ));
+    assert!(matches!(
+        lifecycle[1],
+        NetworkConnectionState::Connecting { .. }
+    ));
+    assert!(matches!(
+        lifecycle[2],
+        NetworkConnectionState::Connected { .. }
+    ));
     assert_eq!(lifecycle.last(), Some(&NetworkConnectionState::Closed));
 }
 

@@ -2,8 +2,8 @@
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, BoundedResourceRef, StructuredFieldType, StructuredInfoType,
-    StructuredVariantCase, RESOURCE_REFERENCE_INFO_ID,
+    kind_id, BoundedResourceRef, StructuredFieldType, StructuredInfoType, StructuredVariantCase,
+    RESOURCE_REFERENCE_INFO_ID,
 };
 
 pub const NETWORK_ENDPOINT_TYPE: &str = "NetworkEndpoint";
@@ -70,22 +70,38 @@ pub enum DnsResult {
         resolution: DnsResolution,
         age_seconds: u64,
     },
-    Refused { reason: String },
-    ProviderLost { reason: String },
+    Refused {
+        reason: String,
+    },
+    ProviderLost {
+        reason: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NetworkConnectionState {
-    Requested { endpoint: NetworkEndpoint },
-    Resolving { name: String },
-    Connecting { endpoint: NetworkEndpoint },
+    Requested {
+        endpoint: NetworkEndpoint,
+    },
+    Resolving {
+        name: String,
+    },
+    Connecting {
+        endpoint: NetworkEndpoint,
+    },
     Connected {
         local: NetworkEndpoint,
         peer: NetworkEndpoint,
     },
-    StaleEndpoint { endpoint: NetworkEndpoint },
-    Refused { reason: String },
-    Lost { reason: String },
+    StaleEndpoint {
+        endpoint: NetworkEndpoint,
+    },
+    Refused {
+        reason: String,
+    },
+    Lost {
+        reason: String,
+    },
     Closed,
 }
 
@@ -170,7 +186,10 @@ impl DnsResolution {
         }
         for candidate in &self.candidates {
             candidate.validate()?;
-            if !matches!(candidate.address, NetworkAddress::Ipv4(_) | NetworkAddress::Ipv6(_)) {
+            if !matches!(
+                &candidate.address,
+                NetworkAddress::Ipv4(_) | NetworkAddress::Ipv6(_)
+            ) {
                 return Err(ApplicationNetworkRefusal::CandidateTransportMismatch);
             }
         }
@@ -276,7 +295,11 @@ pub fn network_endpoint_type() -> StructuredInfoType {
 fn dns_record_kind_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("net/dns-record-kind@1"),
-        vec![case("a", unit_type()), case("aaaa", unit_type()), case("address", unit_type())],
+        vec![
+            case("a", unit_type()),
+            case("aaaa", unit_type()),
+            case("address", unit_type()),
+        ],
     )
     .expect("reviewed DNS record kind")
 }
@@ -295,18 +318,28 @@ pub fn dns_query_type() -> StructuredInfoType {
 fn dns_resolution_type() -> StructuredInfoType {
     let candidate = StructuredInfoType::variant(
         kind_id("net/optional-endpoint@1"),
-        vec![case("absent", unit_type()), case("endpoint", network_endpoint_type())],
+        vec![
+            case("absent", unit_type()),
+            case("endpoint", network_endpoint_type()),
+        ],
     )
     .expect("reviewed optional endpoint");
     let ttl = StructuredInfoType::variant(
         kind_id("net/dns-ttl@1"),
-        vec![case("known_seconds", count_type()), case("unavailable", unit_type())],
+        vec![
+            case("known_seconds", count_type()),
+            case("unavailable", unit_type()),
+        ],
     )
-    .expect("reviewed DNS TTL") ;
+    .expect("reviewed DNS TTL");
     record(
         "net/dns-resolution@1",
         vec![
-            field("candidates", StructuredInfoType::collection(candidate, Some(NETWORK_MAXIMUM_CANDIDATES as u16)).expect("bounded DNS candidates")),
+            field(
+                "candidates",
+                StructuredInfoType::collection(candidate, Some(NETWORK_MAXIMUM_CANDIDATES as u16))
+                    .expect("bounded DNS candidates"),
+            ),
             field("canonical_name", text_type()),
             field("ttl", ttl),
         ],
@@ -317,7 +350,10 @@ pub fn dns_result_type() -> StructuredInfoType {
     let reason = record("net/network-refusal@1", vec![field("reason", text_type())]);
     let stale = record(
         "net/stale-dns-resolution@1",
-        vec![field("age_seconds", count_type()), field("resolution", dns_resolution_type())],
+        vec![
+            field("age_seconds", count_type()),
+            field("resolution", dns_resolution_type()),
+        ],
     );
     StructuredInfoType::variant(
         kind_id("net/dns-result@1"),
@@ -332,10 +368,16 @@ pub fn dns_result_type() -> StructuredInfoType {
 }
 
 pub fn network_connection_state_type() -> StructuredInfoType {
-    let reason = record("net/connection-reason@1", vec![field("reason", text_type())]);
+    let reason = record(
+        "net/connection-reason@1",
+        vec![field("reason", text_type())],
+    );
     let connected = record(
         "net/connected-endpoints@1",
-        vec![field("local", network_endpoint_type()), field("peer", network_endpoint_type())],
+        vec![
+            field("local", network_endpoint_type()),
+            field("peer", network_endpoint_type()),
+        ],
     );
     StructuredInfoType::variant(
         kind_id("net/connection-state@1"),
@@ -369,7 +411,10 @@ pub fn network_frame_type() -> StructuredInfoType {
     .expect("reviewed frame protocol");
     let payload = StructuredInfoType::variant(
         kind_id("net/frame-payload@1"),
-        vec![case("inline", leaf("value/bytes@1")), case("resource", leaf(RESOURCE_REFERENCE_INFO_ID))],
+        vec![
+            case("inline", leaf("value/bytes@1")),
+            case("resource", leaf(RESOURCE_REFERENCE_INFO_ID)),
+        ],
     )
     .expect("reviewed frame payload");
     record(
@@ -386,7 +431,10 @@ pub fn network_frame_type() -> StructuredInfoType {
 pub fn network_chunk_metadata_type() -> StructuredInfoType {
     let shape = StructuredInfoType::variant(
         kind_id("net/chunk-shape@1"),
-        vec![case("datagram", unit_type()), case("stream_chunk", unit_type())],
+        vec![
+            case("datagram", unit_type()),
+            case("stream_chunk", unit_type()),
+        ],
     )
     .expect("reviewed chunk shape");
     record(
@@ -406,7 +454,10 @@ pub fn application_network_registered_types() -> Vec<(&'static str, StructuredIn
         (NETWORK_ENDPOINT_TYPE, network_endpoint_type()),
         (DNS_QUERY_TYPE, dns_query_type()),
         (DNS_RESULT_TYPE, dns_result_type()),
-        (NETWORK_CONNECTION_STATE_TYPE, network_connection_state_type()),
+        (
+            NETWORK_CONNECTION_STATE_TYPE,
+            network_connection_state_type(),
+        ),
         (NETWORK_CHUNK_METADATA_TYPE, network_chunk_metadata_type()),
         (NETWORK_FRAME_TYPE, network_frame_type()),
     ]
@@ -424,8 +475,15 @@ pub fn deterministic_network_fixture() -> (DnsQuery, DnsResult, NetworkEndpoint)
         ttl: DnsTtl::KnownSeconds(30),
     };
     (
-        DnsQuery { name: "fixture.local".into(), port: 7, record_kind: DnsRecordKind::Address },
-        DnsResult::Stale { resolution, age_seconds: 31 },
+        DnsQuery {
+            name: "fixture.local".into(),
+            port: 7,
+            record_kind: DnsRecordKind::Address,
+        },
+        DnsResult::Stale {
+            resolution,
+            age_seconds: 31,
+        },
         endpoint,
     )
 }
