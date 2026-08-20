@@ -1,6 +1,6 @@
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    StructuredInfoTypeShape, PROTOCOL_VERSION,
+    resource_offer, BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
+    OfferGeneration, StructuredInfoTypeShape, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -111,7 +111,11 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/job-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/job-proof@1"),
-        resources: vec![],
+        resources: vec![resource_offer(
+            "pool/job-executable",
+            JOB_EXECUTABLE_RESOURCE_CLASS,
+            1,
+        )],
         planner_capabilities: vec![],
         capabilities,
     }
