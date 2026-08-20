@@ -42,6 +42,20 @@ pub use vision_realization::*;
 mod vision_catalog;
 #[cfg(feature = "form-catalog")]
 pub use vision_catalog::*;
+#[cfg(feature = "form-catalog")]
+mod education;
+#[cfg(feature = "form-catalog")]
+pub use education::*;
+#[cfg(feature = "form-catalog")]
+mod education_realization;
+#[cfg(feature = "form-catalog")]
+mod education_value;
+#[cfg(feature = "form-catalog")]
+pub use education_realization::*;
+#[cfg(feature = "form-catalog")]
+mod education_catalog;
+#[cfg(feature = "form-catalog")]
+pub use education_catalog::*;
 mod linguistics;
 pub use linguistics::*;
 mod linguistics_realization;
