@@ -47,7 +47,8 @@ pub fn calendar_proposal_std_offer() -> CapabilityOffer {
             max_active_instances: 4,
             max_queue_items: CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
             max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-                * usize::from(CALENDAR_PROPOSAL_MAXIMUM_RESULTS)) as u32,
+                * usize::from(CALENDAR_PROPOSAL_MAXIMUM_RESULTS))
+                as u32,
         },
     }
 }

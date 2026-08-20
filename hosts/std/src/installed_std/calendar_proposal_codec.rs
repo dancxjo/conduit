@@ -17,12 +17,10 @@ pub(super) fn decode(value: &StructuredInfoValue) -> Result<DecodedCalendarPropo
         return Err("calendar proposal request differs from installed contract".into());
     }
     let fields = record(value)?;
-    let participant_identities = active_slots(
-        field(fields, "participant_identities")?,
-        "participant",
-    )?
-    .map(|value| text(value.1))
-    .collect::<Result<Vec<_>, _>>()?;
+    let participant_identities =
+        active_slots(field(fields, "participant_identities")?, "participant")?
+            .map(|value| text(value.1))
+            .collect::<Result<Vec<_>, _>>()?;
     let candidates = active_slots(field(fields, "candidates")?, "candidate")?
         .map(|value| candidate(value.1))
         .collect::<Result<Vec<_>, _>>()?;
@@ -78,7 +76,13 @@ fn availability_interval(value: &StructuredInfoValue) -> Result<AvailabilityInte
     let fields = record(value)?;
     Ok(AvailabilityInterval {
         participant_identity: text(field(fields, "participant_identity")?)?,
-        interval: window(field(fields, "interval")?)?,
+        interval: TemporalWindow::new(
+            prefixed_instant(fields, "start")?,
+            boundary(field(fields, "start_boundary")?)?,
+            prefixed_instant(fields, "end")?,
+            boundary(field(fields, "end_boundary")?)?,
+        )
+        .map_err(|error| format!("calendar availability window refusal: {error:?}"))?,
         state: match text(field(fields, "state")?)?.as_str() {
             "free" => AvailabilityState::Free,
             "tentative" => AvailabilityState::Tentative,
@@ -87,6 +91,31 @@ fn availability_interval(value: &StructuredInfoValue) -> Result<AvailabilityInte
             _ => return Err("unknown calendar availability state".into()),
         },
     })
+}
+
+fn prefixed_instant(
+    fields: &[StructuredFieldValue],
+    prefix: &str,
+) -> Result<TemporalInstant, String> {
+    let value = TemporalInstant {
+        ticks: count(field(fields, &format!("{prefix}_ticks"))?)?,
+        scale: scale(field(fields, &format!("{prefix}_scale"))?)?,
+        clock_basis: text(field(fields, &format!("{prefix}_basis"))?)?,
+        resolution_ticks: count(field(fields, &format!("{prefix}_resolution_ticks"))?)?,
+        uncertainty_ticks: count(field(fields, &format!("{prefix}_uncertainty_ticks"))?)?,
+    };
+    value
+        .validate()
+        .map_err(|error| format!("calendar instant refusal: {error:?}"))?;
+    Ok(value)
+}
+
+fn boundary(value: &StructuredInfoValue) -> Result<TemporalBoundary, String> {
+    match text(value)?.as_str() {
+        "inclusive" => Ok(TemporalBoundary::Inclusive),
+        "exclusive" => Ok(TemporalBoundary::Exclusive),
+        _ => Err("unknown calendar temporal boundary".into()),
+    }
 }
 
 fn window(value: &StructuredInfoValue) -> Result<TemporalWindow, String> {
@@ -104,13 +133,7 @@ fn instant(value: &StructuredInfoValue) -> Result<TemporalInstant, String> {
     let fields = record(value)?;
     let value = TemporalInstant {
         ticks: count(field(fields, "ticks")?)?,
-        scale: match text(field(fields, "scale")?)?.as_str() {
-            "seconds" => TemporalScale::Seconds,
-            "milliseconds" => TemporalScale::Milliseconds,
-            "microseconds" => TemporalScale::Microseconds,
-            "nanoseconds" => TemporalScale::Nanoseconds,
-            _ => return Err("unknown calendar temporal scale".into()),
-        },
+        scale: scale(field(fields, "scale")?)?,
         clock_basis: text(field(fields, "basis")?)?,
         resolution_ticks: count(field(fields, "resolution_ticks")?)?,
         uncertainty_ticks: count(field(fields, "uncertainty_ticks")?)?,
@@ -119,6 +142,17 @@ fn instant(value: &StructuredInfoValue) -> Result<TemporalInstant, String> {
         .validate()
         .map_err(|error| format!("calendar instant refusal: {error:?}"))?;
     Ok(value)
+}
+
+fn scale(value: &StructuredInfoValue) -> Result<TemporalScale, String> {
+    let scale = text(value)?;
+    match scale.as_str() {
+        "seconds" => Ok(TemporalScale::Seconds),
+        "milliseconds" => Ok(TemporalScale::Milliseconds),
+        "microseconds" => Ok(TemporalScale::Microseconds),
+        "nanoseconds" => Ok(TemporalScale::Nanoseconds),
+        _ => Err(format!("unknown calendar temporal scale '{scale}'")),
+    }
 }
 
 fn active_slots<'a>(
@@ -173,9 +207,12 @@ fn text(value: &StructuredInfoValue) -> Result<String, String> {
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err("calendar text is not a leaf".into());
     };
-    core::str::from_utf8(bytes)
-        .map(str::to_owned)
-        .map_err(|_| "calendar text is not UTF-8".into())
+    let raw = core::str::from_utf8(bytes).map_err(|_| "calendar text is not UTF-8")?;
+    if raw.starts_with('"') {
+        serde_json::from_str(raw).map_err(|_| "calendar quoted leaf is malformed".into())
+    } else {
+        Ok(raw.to_owned())
+    }
 }
 
 fn count(value: &StructuredInfoValue) -> Result<u64, String> {

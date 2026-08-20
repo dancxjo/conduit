@@ -52,14 +52,10 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
                                 .conflicts
                                 .iter()
                                 .map(|conflict| {
-                                    let conflict_collection = record_field_type(
-                                        &rejected_type,
-                                        "conflicts",
-                                    )?;
-                                    let conflict_type = collection_payload_type(
-                                        &conflict_collection,
-                                        "conflict",
-                                    )?;
+                                    let conflict_collection =
+                                        record_field_type(&rejected_type, "conflicts")?;
+                                    let conflict_type =
+                                        collection_payload_type(&conflict_collection, "conflict")?;
                                     conduit_std_catalog::record_value(
                                         conflict_type,
                                         vec![
@@ -143,7 +139,10 @@ fn proposed_slot(value: &conduit_core::ProposedMeetingSlot) -> Result<Structured
 fn window(value: &TemporalWindow) -> Result<StructuredInfoValue, String> {
     conduit_std_catalog::record_value(
         conduit_std_catalog::calendar_window_type(),
-        vec![("end", instant(value.end())?), ("start", instant(value.start())?)],
+        vec![
+            ("end", instant(value.end())?),
+            ("start", instant(value.start())?),
+        ],
     )
 }
 

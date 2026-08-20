@@ -1,9 +1,8 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
-    AvailabilityBasis, AvailabilityInterval, AvailabilityState, ConfigurationValue,
-    ConnectionBase, MeetingCandidate, MeetingProposalRequest, NamedTimeZone,
-    ParticipantAvailability, PortDirection, PortTemporal, TemporalBoundary, TemporalInstant,
-    TemporalScale, TemporalWindow,
+    AvailabilityBasis, AvailabilityInterval, AvailabilityState, ConfigurationValue, ConnectionBase,
+    MeetingCandidate, MeetingProposalRequest, NamedTimeZone, ParticipantAvailability,
+    PortDirection, PortTemporal, TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
@@ -12,7 +11,7 @@ use conduit_form::{
 };
 use std::collections::BTreeMap;
 
-const SINK: &str = "conduit-test/calendar-proposal-sink";
+const SINK: &str = installed_std::test_structured_selector::SINK_KIND;
 
 #[test]
 fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
@@ -37,8 +36,8 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).expect("calendar Form checks");
-    let expanded = expand_canonical_form(&checked, "calendar-proof", &profile)
-        .expect("calendar Form expands");
+    let expanded =
+        expand_canonical_form(&checked, "calendar-proof", &profile).expect("calendar Form expands");
 
     let mut advertisement = host("calendar-proposal-host").advertisement().clone();
     advertisement.capabilities.push(sink_offer);
@@ -66,9 +65,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
     let planned = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| {
-            placement.kind_id.as_str() == conduit_std_catalog::CALENDAR_PROPOSAL_KIND
-        })
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::CALENDAR_PROPOSAL_KIND)
         .unwrap();
     assert!(matches!(
         planned.configuration[0].value,
@@ -113,6 +110,11 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
     ];
     for (usable_until, include_bob, maximum_results, label) in variants {
         let mut fixture = fixture();
+        let baseline = fixture
+            .request
+            .propose(&fixture.availability)
+            .expect("baseline fixture has common availability");
+        let expected = installed_std::calendar_proposal_encoding::encode(&baseline).unwrap();
         fixture.request.maximum_results = maximum_results;
         for availability in &mut fixture.availability {
             availability.basis.usable_until = instant(usable_until);
@@ -120,10 +122,14 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
         if !include_bob {
             fixture.availability.pop();
         }
-        let source = source(&fixture, "00");
+        let source = source(&fixture, &hex(&expected));
         let (startup, profile, sink_offer) = catalogs();
         let syntax = parse_syntax_document(&source);
-        assert!(syntax.diagnostics.is_empty(), "{label}: {:?}", syntax.diagnostics);
+        assert!(
+            syntax.diagnostics.is_empty(),
+            "{label}: {:?}",
+            syntax.diagnostics
+        );
         let checked = check_syntax_document(&syntax, &startup).unwrap();
         let expanded = expand_canonical_form(&checked, "calendar-proof", &profile).unwrap();
         let mut advertisement = host(&format!("calendar-refusal-{maximum_results}"))
@@ -171,7 +177,11 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
             &mut timer,
             &crate::RunControl::default(),
         );
-        assert!(result.is_err(), "{label} unexpectedly reached Play");
+        let error = result.expect_err(&format!("{label} unexpectedly reached Play"));
+        assert!(
+            error.contains("calendar proposal"),
+            "{label} failed through an unrelated operation: {error}"
+        );
         assert!(output.is_empty(), "{label} emitted partial output");
         assert!(timer.waits.is_empty(), "{label} performed timed work");
     }
@@ -194,10 +204,10 @@ fn fixture() -> Fixture {
         candidate("candidate/three", 1_300),
         candidate("candidate/conflict", 1_400),
     ];
-    let participant = |identity: &str, zone: &str, states: [AvailabilityState; 4]| {
-        ParticipantAvailability {
+    let participant =
+        |identity: &str, zone: &str, states: [AvailabilityState; 4]| ParticipantAvailability {
             participant_identity: identity.into(),
-            zone: NamedTimeZone::new(zone, "tzdb/2026a").unwrap(),
+            zone: NamedTimeZone::new(zone.to_string(), "tzdb/2026a".to_string()).unwrap(),
             basis: AvailabilityBasis {
                 identity: format!("availability/{identity}"),
                 observed_at: instant(900),
@@ -212,8 +222,7 @@ fn fixture() -> Fixture {
                     state,
                 })
                 .collect(),
-        }
-    };
+        };
     let availability = vec![
         participant(
             "participant/alice",
@@ -300,8 +309,8 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
                         .iter()
                         .map(|interval| {
                             format!(
-                                "interval({{ interval: {}, participant_identity: \"{}\", state: \"{}\" }})",
-                                window_source(&interval.interval),
+                                "interval({{ {}, participant_identity: \"{}\", state: \"{}\" }})",
+                                flattened_window_source(&interval.interval),
                                 interval.participant_identity,
                                 state_name(interval.state)
                             )
@@ -353,6 +362,40 @@ fn window_source(value: &TemporalWindow) -> String {
     )
 }
 
+fn flattened_window_source(value: &TemporalWindow) -> String {
+    format!(
+        "end_basis: \"{}\", end_boundary: \"{}\", end_resolution_ticks: {}, end_scale: \"{}\", end_ticks: {}, end_uncertainty_ticks: {}, start_basis: \"{}\", start_boundary: \"{}\", start_resolution_ticks: {}, start_scale: \"{}\", start_ticks: {}, start_uncertainty_ticks: {}",
+        value.end().clock_basis,
+        boundary_name(value.end_boundary()),
+        value.end().resolution_ticks,
+        scale_name(value.end().scale),
+        value.end().ticks,
+        value.end().uncertainty_ticks,
+        value.start().clock_basis,
+        boundary_name(value.start_boundary()),
+        value.start().resolution_ticks,
+        scale_name(value.start().scale),
+        value.start().ticks,
+        value.start().uncertainty_ticks,
+    )
+}
+
+fn boundary_name(value: TemporalBoundary) -> &'static str {
+    match value {
+        TemporalBoundary::Inclusive => "inclusive",
+        TemporalBoundary::Exclusive => "exclusive",
+    }
+}
+
+fn scale_name(value: TemporalScale) -> &'static str {
+    match value {
+        TemporalScale::Seconds => "seconds",
+        TemporalScale::Milliseconds => "milliseconds",
+        TemporalScale::Microseconds => "microseconds",
+        TemporalScale::Nanoseconds => "nanoseconds",
+    }
+}
+
 fn state_name(value: AvailabilityState) -> &'static str {
     match value {
         AvailabilityState::Free => "free",
@@ -362,17 +405,17 @@ fn state_name(value: AvailabilityState) -> &'static str {
     }
 }
 
-fn catalogs() -> (StartupCatalog, ProfileCatalog, conduit_core::CapabilityOffer) {
+fn catalogs() -> (
+    StartupCatalog,
+    ProfileCatalog,
+    conduit_core::CapabilityOffer,
+) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_std_catalog::install_calendar_proposal_catalogs(&mut startup, &mut profile).unwrap();
     let value_type = conduit_std_catalog::calendar_proposal_result_type();
-    let mut sink_offer = installed_std::test_structured_selector::offer(
-        &value_type,
-        PortDirection::Input,
-    );
-    sink_offer.kind_id = SINK.into();
-    sink_offer.capability_id = SINK.into();
+    let mut sink_offer =
+        installed_std::test_structured_selector::offer(&value_type, PortDirection::Input);
     sink_offer.inputs[0].temporal = PortTemporal::Value;
     startup
         .insert(KindSignature {
@@ -380,7 +423,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, conduit_core::CapabilityOffer)
             startup_parameters: vec![StartupParameterSignature {
                 name: "value".into(),
                 value_type: "Text".into(),
-                default: None,
+                default: Some("\"\"".into()),
             }],
         })
         .unwrap();
@@ -393,7 +436,9 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, conduit_core::CapabilityOffer)
             configuration: vec![ConfigurationField {
                 key: "value".into(),
                 default_value: ConfigurationValue::Text(String::new()),
-                validation: ConfigurationRule::AnyText,
+                validation: ConfigurationRule::TextBytes {
+                    maximum: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+                },
             }],
         })
         .unwrap();

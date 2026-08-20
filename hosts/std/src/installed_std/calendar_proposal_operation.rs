@@ -39,7 +39,9 @@ impl CalendarProposalOperation {
     }
 }
 
-fn request(placement: &PlannedGear) -> Result<calendar_proposal_codec::DecodedCalendarProposal, String> {
+fn request(
+    placement: &PlannedGear,
+) -> Result<calendar_proposal_codec::DecodedCalendarProposal, String> {
     let [entry] = placement.configuration.as_slice() else {
         return Err("calendar proposal requires one exact planned request".into());
     };
@@ -87,15 +89,11 @@ fn validate(
             > usize::from(conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES)
         || decoded.availability.len()
             > usize::from(conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS)
-        || decoded
-            .availability
-            .iter()
-            .any(|participant| {
-                participant.intervals.len()
-                    > usize::from(conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_INTERVALS)
-            })
-        || decoded.request.maximum_results
-            > conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_RESULTS
+        || decoded.availability.iter().any(|participant| {
+            participant.intervals.len()
+                > usize::from(conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_INTERVALS)
+        })
+        || decoded.request.maximum_results > conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_RESULTS
     {
         return Err("calendar proposal exceeds installed profile".into());
     }

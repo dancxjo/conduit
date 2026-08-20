@@ -39,7 +39,12 @@ fn case(name: &str, value_type: StructuredInfoType) -> StructuredVariantCase {
     StructuredVariantCase::new(name, value_type).expect("reviewed calendar case")
 }
 
-fn slots(kind: &str, active: &str, payload: StructuredInfoType, maximum: u16) -> StructuredInfoType {
+fn slots(
+    kind: &str,
+    active: &str,
+    payload: StructuredInfoType,
+    maximum: u16,
+) -> StructuredInfoType {
     let slot = StructuredInfoType::variant(
         kind_id(kind),
         vec![case(active, payload), case("unused", leaf("value/unit@1"))],
@@ -86,8 +91,19 @@ pub fn calendar_availability_interval_type() -> StructuredInfoType {
     record(
         "calendar/availability-interval@1",
         vec![
-            field("interval", calendar_window_type()),
+            field("end_basis", leaf("value/text@1")),
+            field("end_boundary", leaf("value/text@1")),
+            field("end_resolution_ticks", leaf("value/count@1")),
+            field("end_scale", leaf("value/text@1")),
+            field("end_ticks", leaf("value/count@1")),
+            field("end_uncertainty_ticks", leaf("value/count@1")),
             field("participant_identity", leaf("value/text@1")),
+            field("start_basis", leaf("value/text@1")),
+            field("start_boundary", leaf("value/text@1")),
+            field("start_resolution_ticks", leaf("value/count@1")),
+            field("start_scale", leaf("value/text@1")),
+            field("start_ticks", leaf("value/count@1")),
+            field("start_uncertainty_ticks", leaf("value/count@1")),
             field("state", leaf("calendar/availability-state@1")),
         ],
     )
@@ -298,7 +314,10 @@ pub fn default_calendar_proposal_request() -> Result<StructuredInfoValue, String
                 "availability",
                 unused_collection(&request_type, "availability")?,
             ),
-            ("candidates", unused_collection(&request_type, "candidates")?),
+            (
+                "candidates",
+                unused_collection(&request_type, "candidates")?,
+            ),
             ("identity", leaf_value("value/text@1", "proposal/default")?),
             ("maximum_results", leaf_value("value/count@1", "1")?),
             (
@@ -359,12 +378,8 @@ pub fn unused_collection(
     };
     let values = (0..length)
         .map(|_| {
-            StructuredInfoValue::variant(
-                element.clone(),
-                "unused",
-                leaf_value("value/unit@1", "")?,
-            )
-            .map_err(value_error)
+            StructuredInfoValue::variant(element.clone(), "unused", leaf_value("value/unit@1", "")?)
+                .map_err(value_error)
         })
         .collect::<Result<Vec<_>, String>>()?;
     StructuredInfoValue::collection(collection_type, values).map_err(value_error)

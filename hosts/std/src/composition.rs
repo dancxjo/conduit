@@ -173,6 +173,7 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::time_delay_offer(),
             conduit_std_catalog::time_throttle_offer(),
             conduit_std_catalog::recurrence_std_offer(),
+            conduit_std_catalog::calendar_proposal_std_offer(),
             conduit_std_catalog::tick_presentation_offer(),
             conduit_std_catalog::bool_presentation_std_offer(),
         ]);
