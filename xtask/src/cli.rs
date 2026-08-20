@@ -170,6 +170,10 @@ pub struct ProveArgs {
     #[arg(long)]
     pub credential_env: Option<String>,
 
+    /// Environment variable containing bounded calendar proof configuration JSON.
+    #[arg(long)]
+    pub calendar_config_env: Option<String>,
+
     /// Exact Wi-Fi client interface used for the physical Pico appliance proof.
     #[arg(long)]
     pub client_interface: Option<String>,
@@ -241,6 +245,7 @@ pub enum ProveTarget {
     StdBrowserS4,
     StdBrowserToggle,
     BrowserHost,
+    CalendarGoogle,
     PatchbayFrontDoor,
     StdPicoUsb,
     PicoWifiBootstrap,
@@ -483,6 +488,24 @@ mod tests {
         let prove = Cli::try_parse_from(["xtask", "prove", "std-browser-s4"])
             .expect("prove command parses");
         assert!(matches!(prove.command, Command::Prove(_)));
+
+        let calendar = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "calendar-google",
+            "--credential-env",
+            "GOOGLE_TOKEN",
+            "--calendar-config-env",
+            "CALENDAR_CONFIG",
+        ])
+        .expect("calendar live proof command parses");
+        assert!(matches!(
+            calendar.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::CalendarGoogle,
+                ..
+            })
+        ));
 
         let capture_restart = Cli::try_parse_from([
             "xtask",
