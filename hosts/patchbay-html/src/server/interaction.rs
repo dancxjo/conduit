@@ -190,8 +190,48 @@ impl PatchbayHtmlServer {
                     },
                 )
             }
+            Some(PatchbayAction::Save) if !stale_presentation => {
+                self.zero_body_front_door.as_ref().map_or(
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
+                    |session| {
+                        let Ok(session) = session.lock() else {
+                            return PatchbayInvocationOutcome::Failed;
+                        };
+                        let mut candidate = session.clone();
+                        match save_opened_seed(&mut candidate) {
+                            Ok(()) => {
+                                prepared_zero_body = Some(candidate);
+                                PatchbayInvocationOutcome::Succeeded
+                            }
+                            Err(_) => PatchbayInvocationOutcome::Failed,
+                        }
+                    },
+                )
+            }
+            None if !stale_presentation
+                && matches!(&request, PatchbayInteractionRequest::Edit { .. })
+                && self.zero_body_front_door.is_some() =>
+            {
+                let session = self.zero_body_front_door.as_ref().expect("guarded above");
+                let Ok(session) = session.lock() else {
+                    return Err(ServerError::Interaction(
+                        "front-door session lock failed".into(),
+                    ));
+                };
+                let mut candidate = session.clone();
+                let PatchbayInteractionRequest::Edit { edit, .. } = &request else {
+                    unreachable!("guard restricts request")
+                };
+                let outcome = candidate.apply_opened_seed_edit(edit);
+                if outcome == PatchbayInvocationOutcome::Succeeded {
+                    prepared_zero_body = Some(candidate);
+                }
+                outcome
+            }
             _ => PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationUnavailable),
         };
+        let zero_body_edit_prepared = matches!(&request, PatchbayInteractionRequest::Edit { .. })
+            && self.zero_body_front_door.is_some();
         let presentation = self.snapshot.presentation.clone();
         let receipt = self
             .interaction
@@ -212,14 +252,20 @@ impl PatchbayHtmlServer {
                             | PatchbayAction::Wake
                             | PatchbayAction::Plan
                             | PatchbayAction::Play
+                            | PatchbayAction::Save
                     ) =>
                 {
                     prepared_outcome
                 }
+                PatchbayInteractionRequest::Edit { .. } if stale_presentation => {
+                    PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+                }
+                PatchbayInteractionRequest::Edit { .. } if zero_body_edit_prepared => {
+                    prepared_outcome
+                }
                 PatchbayInteractionRequest::Edit { edit, .. }
-                    if stale_presentation
-                        || Some(edit.basis().expanded_form_id.as_str())
-                            != expected_form_target.as_deref() =>
+                    if Some(edit.basis().expanded_form_id.as_str())
+                        != expected_form_target.as_deref() =>
                 {
                     PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
                 }
@@ -270,6 +316,31 @@ impl PatchbayHtmlServer {
         self.encoded_snapshot = self.snapshot.encode()?;
         Ok(self.encoded_snapshot.clone())
     }
+}
+
+fn save_opened_seed(session: &mut patchbay_model::ZeroBodyFrontDoor) -> Result<(), String> {
+    let document = session
+        .opened_seed_document()
+        .ok_or("SAVE requires an opened Seed")?;
+    let parent = document
+        .path
+        .parent()
+        .ok_or("Seed source has no parent directory")?;
+    let file_name = document
+        .path
+        .file_name()
+        .ok_or("Seed source has no file name")?;
+    let temporary = parent.join(format!(
+        ".{}.patchbay-html-save",
+        file_name.to_string_lossy()
+    ));
+    std::fs::write(&temporary, document.source.as_bytes())
+        .map_err(|error| format!("write temporary canonical Form: {error}"))?;
+    if let Err(error) = std::fs::rename(&temporary, &document.path) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(format!("replace canonical Form: {error}"));
+    }
+    session.mark_opened_seed_saved(document.revision)
 }
 
 #[derive(Deserialize)]

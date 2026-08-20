@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    compare_entrances, EntranceAction, PatchbayEntranceState, RendererAdapterIdentity,
-    RendererAdapterKind, RendererExecution,
+    compare_entrances, EntranceAction, PatchbayEntranceState, PatchbayInvocationOutcome,
+    PatchbayRefusal, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
 };
 use conduit_body::{AuthenticatedHostObservation, BodyMembership, MembershipProofId, PartId};
 use conduit_core::{BootId, HostId, OfferGeneration};
@@ -244,4 +244,112 @@ fn zero_body_sources_are_finite_and_duplicates_fail_closed() {
     let candidate = living_body_candidate();
     session.observe_body_candidate(candidate.clone()).unwrap();
     assert!(session.observe_body_candidate(candidate).is_err());
+}
+
+#[test]
+fn opened_seed_edits_canonical_source_and_stale_edits_are_atomic() {
+    let mut session =
+        ZeroBodyFrontDoor::with_identity(HostId::from("edit/host"), BootId::from("edit/boot"))
+            .unwrap();
+    let seed = SeedCandidate::from_source(
+        "Empty",
+        "empty.conduit",
+        "form making {\n}\n",
+        "test source",
+        SignId::from("edit/seed"),
+        9,
+    )
+    .unwrap();
+    let seed_id = seed.seed_id.clone();
+    session.add_seed(seed).unwrap();
+    let revision = session.revision();
+    session.open_seed(&seed_id, revision).unwrap();
+    let document = session.opened_seed_document().unwrap();
+    let graph = session
+        .seeds
+        .last()
+        .unwrap()
+        .editor()
+        .unwrap()
+        .patchbay_graph_for_authoring("making")
+        .unwrap();
+    let basis = crate::PatchbayEditBasis::new(
+        document.checked.source_document_id.clone().unwrap(),
+        document.revision,
+        graph.expanded_form_id,
+    )
+    .unwrap();
+    let first = crate::PatchbayEdit::PlaceGear {
+        basis: basis.clone(),
+        kind_id: "text/literal".into(),
+    };
+    assert_eq!(
+        session.apply_opened_seed_edit(&first),
+        PatchbayInvocationOutcome::Succeeded
+    );
+    let after_first = session.opened_seed_document().unwrap();
+    assert!(after_first.source.contains("literal: text/literal(\"\")"));
+    let unchanged = after_first.source.clone();
+    assert_eq!(
+        session.apply_opened_seed_edit(&first),
+        PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+    );
+    assert_eq!(session.opened_seed_document().unwrap().source, unchanged);
+
+    let seed = session
+        .seeds
+        .iter()
+        .find(|seed| seed.source_name == "empty.conduit")
+        .unwrap();
+    let document = seed.editor().unwrap().view();
+    let graph = seed
+        .editor()
+        .unwrap()
+        .patchbay_graph_for_authoring("making")
+        .unwrap();
+    let second = crate::PatchbayEdit::PlaceGear {
+        basis: crate::PatchbayEditBasis::new(
+            document.checked.source_document_id.clone().unwrap(),
+            document.revision,
+            graph.expanded_form_id,
+        )
+        .unwrap(),
+        kind_id: "text/literal".into(),
+    };
+    assert_eq!(
+        session.apply_opened_seed_edit(&second),
+        PatchbayInvocationOutcome::Succeeded
+    );
+    let final_source = session.opened_seed_document().unwrap().source;
+    assert!(final_source.contains("literal: text/literal(\"\")"));
+    assert!(final_source.contains("literal-2: text/literal(\"\")"));
+
+    let seed = session
+        .seeds
+        .iter()
+        .find(|seed| seed.source_name == "empty.conduit")
+        .unwrap();
+    let document = seed.editor().unwrap().view();
+    let graph = seed
+        .editor()
+        .unwrap()
+        .patchbay_graph_for_authoring("making")
+        .unwrap();
+    let invalid = crate::PatchbayEdit::ConfigureGear {
+        basis: crate::PatchbayEditBasis::new(
+            document.checked.source_document_id.clone().unwrap(),
+            document.revision,
+            graph.expanded_form_id,
+        )
+        .unwrap(),
+        subject_identity: "gear/making/literal".into(),
+        key: "value".into(),
+        value: conduit_core::ConfigurationValue::U64(7),
+    };
+    let unchanged = document.source;
+    assert_eq!(
+        session.apply_opened_seed_edit(&invalid),
+        PatchbayInvocationOutcome::Refused(PatchbayRefusal::InvalidConfiguration)
+    );
+    assert_eq!(session.opened_seed_document().unwrap().source, unchanged);
 }

@@ -85,6 +85,7 @@ pub struct SeedCandidate {
     pub provenance: String,
     pub evidence_sign: SignId,
     pub freshness_sequence: u64,
+    pub(super) editor: FormEditor,
 }
 
 impl SeedCandidate {
@@ -130,12 +131,12 @@ impl SeedCandidate {
             provenance,
             evidence_sign,
             freshness_sequence,
+            editor,
         })
     }
 
     pub(super) fn editor(&self) -> Result<FormEditor, String> {
-        FormEditor::from_source(self.source_name.clone().into(), self.source.clone())
-            .map_err(|error| error.to_string())
+        Ok(self.editor.clone())
     }
 }
 
@@ -366,7 +367,7 @@ impl ZeroBodyFrontDoor {
         }
     }
 
-    fn advance(&mut self) -> Result<(), String> {
+    pub(super) fn advance(&mut self) -> Result<(), String> {
         self.revision = self
             .revision
             .checked_add(1)

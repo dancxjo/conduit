@@ -3,8 +3,12 @@
 use crate::RendererSnapshot;
 use conduit_core::{BootId, HostId, SignId};
 use patchbay_model::{
-    LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    GearPalette, LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
     ZeroBodyFrontDoor,
+};
+
+use crate::transport_types::{
+    BrowserAuthoring, BrowserPaletteConfiguration, BrowserPaletteEntry, BrowserPalettePort,
 };
 
 pub fn front_door_snapshot() -> Result<RendererSnapshot, String> {
@@ -33,6 +37,11 @@ pub(crate) fn snapshot_for_zero_body_front_door(
     snapshot
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
+    if let Some(document) = session.opened_seed_document() {
+        snapshot
+            .attach_authoring(browser_authoring(&document)?)
+            .map_err(|error| error.to_string())?;
+    }
     Ok(snapshot)
 }
 
@@ -61,6 +70,61 @@ pub(crate) fn snapshot_for_front_door(
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
     Ok(snapshot)
+}
+
+fn browser_authoring(
+    document: &patchbay_model::FormDocumentView,
+) -> Result<BrowserAuthoring, String> {
+    let source_document_id = document
+        .checked
+        .source_document_id
+        .as_ref()
+        .ok_or("opened Seed source is unchecked")?;
+    let graph =
+        patchbay_model::FormEditor::from_source(document.path.clone(), document.source.clone())
+            .map_err(|error| error.to_string())?
+            .patchbay_graph_for_authoring(&document.open_form)
+            .map_err(|error| error.to_string())?;
+    let palette = GearPalette::standard()
+        .map_err(|error| format!("Gear palette: {error:?}"))?
+        .entries()
+        .iter()
+        .map(|entry| BrowserPaletteEntry {
+            kind_id: entry.kind_id.as_str().into(),
+            name: entry.plain_name.clone(),
+            summary: entry.summary.clone(),
+            category: entry.category.label().into(),
+            tags: entry.tags.iter().map(|tag| (*tag).into()).collect(),
+            icon: format!("{:?}", entry.icon),
+            inputs: entry.inputs.iter().map(browser_palette_port).collect(),
+            outputs: entry.outputs.iter().map(browser_palette_port).collect(),
+            configuration: entry
+                .configuration
+                .iter()
+                .map(|field| BrowserPaletteConfiguration {
+                    key: field.key.clone(),
+                    default_value: field.default_value.clone(),
+                    rule: field.rule.clone(),
+                })
+                .collect(),
+        })
+        .collect();
+    Ok(BrowserAuthoring {
+        source_document_id: source_document_id.as_str().into(),
+        source_revision: document.revision,
+        saved_revision: document.saved_revision,
+        expanded_form_id: graph.expanded_form_id.as_str().into(),
+        source_path: document.path.display().to_string(),
+        palette,
+    })
+}
+
+fn browser_palette_port(port: &conduit_core::PortDescriptor) -> BrowserPalettePort {
+    BrowserPalettePort {
+        identity: port.port_id.as_str().into(),
+        info: port.value_kind.as_str().into(),
+        temporal: format!("{:?}", port.temporal),
+    }
 }
 
 #[cfg(test)]
