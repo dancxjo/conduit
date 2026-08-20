@@ -107,6 +107,7 @@ fn filter_keeps_active_rows_without_string_coercion() {
 fn errors_oversize_and_materialization_remain_distinct() {
     let error = deterministic_query_error("provider/refused", "query refused").unwrap();
     assert_eq!(variant_tag(record_field(&error, "status")), "error");
+    assert_eq!(filter_active_rows(&error).unwrap(), error);
     let rows = vec![
         PersonRow {
             id: 1,

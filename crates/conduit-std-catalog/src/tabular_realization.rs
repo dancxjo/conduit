@@ -95,6 +95,16 @@ pub fn filter_active_rows(
     if result.value_type() != &tabular_query_result_type() {
         return Err(TabularRefusal::MalformedInfo);
     }
+    let status = record_field(result, "status")?;
+    let StructuredInfoValueShape::Variant { tag, .. } = status.shape() else {
+        return Err(TabularRefusal::MalformedInfo);
+    };
+    if tag == "error" {
+        return Ok(result.clone());
+    }
+    if tag != "complete" {
+        return Err(TabularRefusal::MalformedInfo);
+    }
     let rows = collection_field(result, "rows")?;
     let mut kept = Vec::new();
     for slot in rows {
