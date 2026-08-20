@@ -1,0 +1,14 @@
+form bounded-schedule {
+    expand: time/expand-recurrence({ excluded_ordinals: [unused(""), unused(""), unused(""), unused("")], fold_policy: "refuse", gap_policy: "refuse", identity: "recurrence/report", maximum_occurrences: 1, maximum_results: 1, resolutions: [unused(""), unused(""), unused(""), unused(""), unused(""), unused(""), unused(""), unused("")], rule: one_shot({ at: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 } }), until: none(""), window: wall({ end: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 }, start: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 } }) })
+}
+
+form workflow-state (
+    assessment: ScheduleAssessment >
+) {
+    fixture: schedule/deterministic-fixture
+    assess: schedule/assess-workflow
+    fixture.intent > assess.intent
+    fixture.lifecycle > assess.lifecycle
+    fixture.observation > assess.observation
+    assess.assessment > assessment
+}
