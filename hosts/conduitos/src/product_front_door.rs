@@ -13,17 +13,12 @@ use crate::{
     local_rescue::LocalRescueMatcher,
     offer::CAPABILITY_COUNT,
     offer_fabrication::ImageBoundHostOffer,
+    product_bindings::binding_for_usage,
     product_journey::{JourneyAction, JourneyProjection, JourneyStatus, ProductJourney},
     rescue_guest,
 };
 
 const ENTER: u8 = 40;
-const F3: u8 = 60;
-const F4: u8 = 61;
-const F5: u8 = 62;
-const F6: u8 = 63;
-const F7: u8 = 64;
-const F8: u8 = 65;
 
 #[allow(clippy::too_many_arguments)]
 pub fn run(
@@ -157,26 +152,23 @@ fn action_for(
     front_door: &FrontDoor,
     journey: &ProductJourney,
 ) -> Option<JourneyAction> {
-    match usage {
-        ENTER if !front_door.exact_details_open() => Some(JourneyAction::OpenBack),
-        F3 => Some(JourneyAction::Birth),
-        F4 => Some(JourneyAction::Wake),
-        F5 => Some(JourneyAction::Plan),
-        F6 => Some(JourneyAction::Play),
-        F7 => Some(JourneyAction::Lull),
-        F8 if matches!(
+    if usage == ENTER && !front_door.exact_details_open() {
+        return Some(JourneyAction::OpenBack);
+    }
+    let action = binding_for_usage(usage)?.action;
+    if action == JourneyAction::Stop
+        && !matches!(
             journey.status(),
             JourneyStatus::Playing | JourneyStatus::ResultVisible
-        ) =>
-        {
-            Some(JourneyAction::Stop)
-        }
-        _ => None,
+        )
+    {
+        return None;
     }
+    Some(action)
 }
 
 fn is_control_transition(transition: HidKeyTransition) -> bool {
-    matches!(transition.usage(), F3 | F4 | F5 | F6 | F7 | F8)
+    binding_for_usage(transition.usage()).is_some()
 }
 
 fn refresh(

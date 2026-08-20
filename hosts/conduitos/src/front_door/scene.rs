@@ -4,7 +4,9 @@ use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
 };
 
-use crate::{display::PixelTarget, product_journey::JourneyProjection};
+use crate::{
+    display::PixelTarget, product_bindings::binding_for_intent, product_journey::JourneyProjection,
+};
 
 use super::{Error, FrontDoor};
 
@@ -175,15 +177,7 @@ impl FrontDoor {
 }
 
 fn local_action_label(action: &conduit_presentation::PresentationAction) -> String {
-    let binding = match action.intent.as_str() {
-        "conduit.intent/birth@1" => "F3",
-        "conduit.intent/wake@1" => "F4",
-        "conduit.intent/plan@1" => "F5",
-        "conduit.intent/play@1" => "F6",
-        "conduit.intent/lull@1" => "F7",
-        "conduit.intent/stop@1" => "F8",
-        _ => "ENTER",
-    };
+    let binding = binding_for_intent(action.intent.as_str()).map_or("ENTER", |value| value.label);
     let availability = match &action.availability {
         conduit_presentation::PresentationActionAvailability::Available => String::new(),
         conduit_presentation::PresentationActionAvailability::Unavailable {
