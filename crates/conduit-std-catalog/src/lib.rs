@@ -99,7 +99,9 @@ mod recurrence_offer;
 pub use recurrence_offer::recurrence_std_offer;
 mod schedule;
 pub use schedule::*;
+#[cfg(feature = "form-catalog")]
 mod schedule_realization;
+#[cfg(feature = "form-catalog")]
 pub use schedule_realization::*;
 #[cfg(feature = "form-catalog")]
 mod schedule_catalog;
