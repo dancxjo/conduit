@@ -32,6 +32,14 @@
           <p id="seed-results-status" role="status" aria-live="polite"></p>
           <ul id="seed-results" aria-label="Available Seeds"></ul>
         </section>
+        <section id="gear-palette" aria-labelledby="gear-palette-title" hidden>
+          <h3 id="gear-palette-title">Gears · reusable Kinds</h3>
+          <p>Place semantic Kinds into the opened canonical Form.</p>
+          <label for="gear-query">Find a Gear</label>
+          <input id="gear-query" type="search" maxlength="96" autocomplete="off" aria-controls="gear-results" aria-describedby="gear-results-status">
+          <p id="gear-results-status" role="status" aria-live="polite"></p>
+          <ul id="gear-results" aria-label="Available Gear Kinds"></ul>
+        </section>
         <details><summary>Exact Form identity</summary><dl id="form-facts"></dl></details>
         <h3 id="structure-title">World context</h3>
         <ul id="subjects" aria-label="Form graph subjects"></ul>
@@ -47,7 +55,7 @@
         <section id="structured-navigator" aria-label="Structured subject navigator"><p>Linear keyboard access to the subjects shown by the principal spatial canvas and its related Presentation.</p><ul aria-label="Canonical Presentation subjects"></ul></section>
       </section>
       <aside id="inspector" class="side-panel inspector" aria-live="polite" data-region="inspector" data-priority="selected-detail" data-overflow="disclose">
-        <h2>Inspector</h2><button id="clear-selection" type="button" hidden>Clear selection</button><p class="inspector-hint">Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.</p><dl class="selected-summary"></dl><div id="semantic-actions" role="toolbar" aria-label="Selected subject actions"></div><details class="exact-selection"><summary>Exact identity and provenance</summary><dl></dl></details>
+        <h2>Inspector</h2><button id="clear-selection" type="button" hidden>Clear selection</button><p class="inspector-hint">Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.</p><dl class="selected-summary"></dl><div id="authoring-actions" aria-label="Canonical Form edits"></div><div id="semantic-actions" role="toolbar" aria-label="Selected subject actions"></div><details class="exact-selection"><summary>Exact identity and provenance</summary><dl></dl></details>
       </aside>
     </div>
     <section id="parts" class="parts-panel" aria-labelledby="parts-title" hidden>

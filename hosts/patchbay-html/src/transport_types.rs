@@ -6,6 +6,49 @@ use patchbay_model::{
 };
 use serde::{Deserialize, Serialize};
 
+pub const MAX_BROWSER_PALETTE_ENTRIES: usize = patchbay_model::MAX_PALETTE_ENTRIES;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrowserPalettePort {
+    pub identity: String,
+    pub info: String,
+    pub temporal: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrowserPaletteConfiguration {
+    pub key: String,
+    pub default_value: conduit_core::ConfigurationValue,
+    pub rule: conduit_std_catalog::StandardConfigurationRule,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrowserPaletteEntry {
+    pub kind_id: String,
+    pub name: String,
+    pub summary: String,
+    pub category: String,
+    pub tags: Vec<String>,
+    pub icon: String,
+    pub inputs: Vec<BrowserPalettePort>,
+    pub outputs: Vec<BrowserPalettePort>,
+    pub configuration: Vec<BrowserPaletteConfiguration>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrowserAuthoring {
+    pub source_document_id: String,
+    pub source_revision: u64,
+    pub saved_revision: u64,
+    pub expanded_form_id: String,
+    pub source_path: String,
+    pub palette: Vec<BrowserPaletteEntry>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RendererSnapshot {
@@ -18,6 +61,8 @@ pub struct RendererSnapshot {
     pub entrance: PatchbayEntranceState,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parts: Option<PartsView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authoring: Option<BrowserAuthoring>,
     pub interaction: HtmlInteractionState,
 }
 
