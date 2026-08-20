@@ -46,13 +46,7 @@ fn std_host_executes_without_a_shell_and_keeps_environment_exact() {
 #[test]
 fn stdout_is_drained_but_retained_only_to_the_declared_bound() {
     let output = "bounded-output".repeat(12);
-    let request = request(
-        "/usr/bin/printf",
-        vec![output.clone()],
-        vec![],
-        37,
-        1_000,
-    );
+    let request = request("/usr/bin/printf", vec![output.clone()], vec![], 37, 1_000);
     let report = run_bounded_job(
         &request,
         &executable(&request, "/usr/bin/printf"),
