@@ -174,7 +174,9 @@ fn render_demand(
     let payload_start = output.len();
     output.resize(payload_start + usize::from(demand.frame_count) * 4, 0);
     for (encoded, sample) in output[payload_start..]
-        .chunks_exact_mut(4)
+        .as_chunks_mut::<4>()
+        .0
+        .iter_mut()
         .zip(samples.iter())
     {
         let sample = sample.to_le_bytes();
@@ -223,7 +225,9 @@ mod tests {
         assert_eq!(header.start_frame, 0);
         assert_eq!(payload.len(), 960);
         assert!(payload
-            .chunks_exact(4)
+            .as_chunks::<4>()
+            .0
+            .iter()
             .all(|frame| frame[..2] == frame[2..]));
         assert!(payload.iter().any(|byte| *byte != 0));
         assert!(output.len() <= conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);

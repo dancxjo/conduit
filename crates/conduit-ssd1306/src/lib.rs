@@ -92,7 +92,12 @@ impl Ssd1306Session {
         }
         write_commands(provider, self.address, FRAME_WINDOW)
             .map_err(|_| Ssd1306Failure::FrameWindowFailed)?;
-        for (index, chunk) in framebuffer.chunks_exact(DATA_CHUNK_BYTES).enumerate() {
+        for (index, chunk) in framebuffer
+            .as_chunks::<DATA_CHUNK_BYTES>()
+            .0
+            .iter()
+            .enumerate()
+        {
             let mut transaction = [0_u8; DATA_CHUNK_BYTES + 1];
             transaction[0] = DATA_CONTROL;
             transaction[1..].copy_from_slice(chunk);

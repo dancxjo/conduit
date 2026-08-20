@@ -149,7 +149,7 @@ impl StructuredSelector {
             return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding);
         }
         let mut canonical = Vec::with_capacity(encoded.len() / 2);
-        for pair in encoded.as_bytes().chunks_exact(2) {
+        for pair in encoded.as_bytes().as_chunks::<2>().0 {
             let high = decode_hex(pair[0])?;
             let low = decode_hex(pair[1])?;
             canonical.push((high << 4) | low);
