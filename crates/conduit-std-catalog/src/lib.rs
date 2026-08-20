@@ -135,6 +135,14 @@ pub use recurrence_catalog::*;
 mod recurrence_offer;
 #[cfg(feature = "form-catalog")]
 pub use recurrence_offer::recurrence_std_offer;
+#[cfg(feature = "form-catalog")]
+mod calendar_proposal_catalog;
+#[cfg(feature = "form-catalog")]
+pub use calendar_proposal_catalog::*;
+#[cfg(feature = "form-catalog")]
+mod calendar_proposal_offer;
+#[cfg(feature = "form-catalog")]
+pub use calendar_proposal_offer::*;
 mod schedule;
 pub use schedule::*;
 #[cfg(feature = "form-catalog")]

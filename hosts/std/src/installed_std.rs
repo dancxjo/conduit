@@ -1,5 +1,8 @@
 mod audio_play_operation;
 mod bool_presentation;
+mod calendar_proposal_codec;
+pub(super) mod calendar_proposal_encoding;
+mod calendar_proposal_operation;
 mod catalog;
 pub(super) mod contract;
 mod count_operations;

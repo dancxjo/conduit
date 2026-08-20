@@ -2,6 +2,7 @@
 
 use super::audio_play_operation::AUDIO_PLAY_FACTORY;
 use super::bool_presentation::BOOL_PRESENTATION_FACTORY;
+use super::calendar_proposal_operation::FACTORY as CALENDAR_PROPOSAL_FACTORY;
 use super::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
 use super::flow_gate_operation::FLOW_GATE_SCALAR_FACTORY;
@@ -99,6 +100,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TIME_DELAY_FACTORY,
     &TIME_THROTTLE_FACTORY,
     &RECURRENCE_FACTORY,
+    &CALENDAR_PROPOSAL_FACTORY,
     &TICK_PRESENTATION_FACTORY,
     &BOOL_PRESENTATION_FACTORY,
     &TEXT_LITERAL_FACTORY,
