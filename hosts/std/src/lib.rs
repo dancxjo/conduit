@@ -44,6 +44,7 @@ pub mod hosted_audio;
 pub mod hosted_http;
 pub mod hosted_keyboard;
 pub mod hosted_local_model;
+pub mod hosted_job;
 pub mod hosted_midi;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
