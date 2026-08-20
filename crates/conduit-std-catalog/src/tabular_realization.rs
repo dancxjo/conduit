@@ -178,11 +178,9 @@ fn schema_value() -> Result<StructuredInfoValue, TabularRefusal> {
 
 fn person_row_slot(row: &PersonRow<'_>) -> Result<StructuredInfoValue, TabularRefusal> {
     let nickname = match row.nickname {
-        Some(value) => StructuredInfoValue::variant(
-            tabular_optional_text_type(),
-            "value",
-            text_value(value),
-        )?,
+        Some(value) => {
+            StructuredInfoValue::variant(tabular_optional_text_type(), "value", text_value(value))?
+        }
         None => unit_variant(tabular_optional_text_type(), "null")?,
     };
     let value = record_value(
@@ -263,11 +261,8 @@ fn count_value(value: u64) -> StructuredInfoValue {
 }
 
 fn bool_value(value: bool) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        tabular_bool_type(),
-        InfoBool::new(value).encode().to_vec(),
-    )
-    .expect("bounded provider Boolean")
+    StructuredInfoValue::leaf(tabular_bool_type(), InfoBool::new(value).encode().to_vec())
+        .expect("bounded provider Boolean")
 }
 
 fn record_field<'a>(

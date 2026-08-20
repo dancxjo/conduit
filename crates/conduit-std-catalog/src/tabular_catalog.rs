@@ -16,10 +16,9 @@ use conduit_form::{KindDefinition, KindSignature};
 
 use crate::{
     tabular_person_row_type, tabular_query_outcome_type, tabular_query_result_type,
-    tabular_row_slot_type, tabular_rows_four_type, tabular_schema_type,
-    tabular_selected_text_type, TABULAR_PERSON_ROW_TYPE, TABULAR_QUERY_OUTCOME_TYPE,
-    TABULAR_QUERY_RESULT_TYPE, TABULAR_ROWS_FOUR_TYPE, TABULAR_ROW_SLOT_TYPE,
-    TABULAR_SCHEMA_TYPE, TABULAR_SELECTED_TEXT_TYPE,
+    tabular_row_slot_type, tabular_rows_four_type, tabular_schema_type, tabular_selected_text_type,
+    TABULAR_PERSON_ROW_TYPE, TABULAR_QUERY_OUTCOME_TYPE, TABULAR_QUERY_RESULT_TYPE,
+    TABULAR_ROWS_FOUR_TYPE, TABULAR_ROW_SLOT_TYPE, TABULAR_SCHEMA_TYPE, TABULAR_SELECTED_TEXT_TYPE,
 };
 
 pub const TABULAR_PROVIDER_KIND: &str = "tabular/person-query-four";
@@ -104,11 +103,7 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
     }
 }
 
-fn offer(
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
-) -> CapabilityOffer {
+fn offer(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![],
         shorthand: None,

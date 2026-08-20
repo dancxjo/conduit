@@ -2,8 +2,8 @@
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, StructuredFieldType, StructuredInfoRefusal, StructuredInfoType,
-    StructuredVariantCase, RESOURCE_REFERENCE_INFO_ID,
+    kind_id, StructuredFieldType, StructuredInfoRefusal, StructuredInfoType, StructuredVariantCase,
+    RESOURCE_REFERENCE_INFO_ID,
 };
 
 pub const TABULAR_SCHEMA_TYPE: &str = "TabularPersonSchema";

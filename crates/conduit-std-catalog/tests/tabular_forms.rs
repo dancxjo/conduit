@@ -1,8 +1,8 @@
 use conduit_core::{
     kind_id, BootId, BoundedResourceRef, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, PortTemporal, ResourceClassId, ResourceExtent, ResourceLifetime,
-    ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoValue, StructuredInfoValueShape,
-    PROTOCOL_VERSION,
+    ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoValue,
+    StructuredInfoValueShape, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -45,7 +45,8 @@ fn canonical_form_filters_and_projects_rows_without_sql_or_json() {
         }
     }
     assert_eq!(selector_offers.len(), 4);
-    let authored = expand_canonical_form_for_authoring(&checked, "tabular-query", &profile).unwrap();
+    let authored =
+        expand_canonical_form_for_authoring(&checked, "tabular-query", &profile).unwrap();
     let mut offers = tabular_std_offers();
     offers.extend(selector_offers);
     let host = host(offers);
@@ -159,7 +160,11 @@ fn record_field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a Structure
     let StructuredInfoValueShape::Record(fields) = value.shape() else {
         panic!("expected record")
     };
-    fields.iter().find(|field| field.name() == name).unwrap().value()
+    fields
+        .iter()
+        .find(|field| field.name() == name)
+        .unwrap()
+        .value()
 }
 
 fn collection_field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a [StructuredInfoValue] {
