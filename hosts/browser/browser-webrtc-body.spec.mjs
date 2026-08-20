@@ -129,6 +129,9 @@ test("two admitted product clients compose Body grants into one exact ready sess
     (id) => globalThis.__browserPresence.receiveWebRtcValue(id),
     negotiationId,
   )).rejects.toThrow(/closed|traffic|Line/);
+  await expect.poll(() => sinkPage.evaluate(
+    () => globalThis.__browserPresence.webRtcSessions().sessions[0].receivePending,
+  )).toBe(true);
   await sourcePage.evaluate(
     (id) => globalThis.__browserPresence.closeWebRtcLine(id),
     negotiationId,
