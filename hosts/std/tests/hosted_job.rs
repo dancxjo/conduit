@@ -45,15 +45,16 @@ fn std_host_executes_without_a_shell_and_keeps_environment_exact() {
 
 #[test]
 fn stdout_is_drained_but_retained_only_to_the_declared_bound() {
-    let request = request("/usr/bin/yes", vec!["bounded".to_string()], vec![], 37, 20);
+    let output = "bounded-output".repeat(12);
+    let request = request("/usr/bin/printf", vec![output.clone()], vec![], 37, 1_000);
     let report = run_bounded_job(
         &request,
-        &executable(&request, "/usr/bin/yes"),
+        &executable(&request, "/usr/bin/printf"),
         &JobCancellation::default(),
     )
     .unwrap();
     assert_eq!(report.stdout.bytes.len(), 37);
-    assert!(report.usage.stdout_observed_bytes >= 37);
+    assert_eq!(report.usage.stdout_observed_bytes, output.len() as u64);
     assert!(matches!(
         report.stdout.pressure,
         JobStreamPressure::Truncated { .. }
@@ -61,7 +62,7 @@ fn stdout_is_drained_but_retained_only_to_the_declared_bound() {
     assert!(matches!(
         report.lifecycle.last(),
         Some(JobLifecycleEvent::Terminal(
-            JobTerminalOutcome::TimedOut { .. }
+            JobTerminalOutcome::Completed { .. }
         ))
     ));
 }
