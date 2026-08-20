@@ -15,6 +15,8 @@ mod interpretation;
 pub use interpretation::*;
 mod model_result;
 pub use model_result::*;
+mod rag_semantics;
+pub use rag_semantics::*;
 mod structured_result;
 pub use structured_result::*;
 mod temporal_context;
