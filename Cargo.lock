@@ -513,6 +513,8 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-net",
+ "conduit-planner",
+ "conduit-presentation",
 ]
 
 [[package]]

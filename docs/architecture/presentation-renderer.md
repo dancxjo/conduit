@@ -28,6 +28,16 @@ per-field bounds. Its content identity is derived from all semantic content.
 Changing a label, relationship, exact identity, or revision changes the
 content identity; reordering or duplicating canonical Sign is rejected.
 
+An optional finite `PresentationInput` collection binds a semantic target,
+typed value Kind, byte ceiling, empty-value policy, accessible label, and
+submit action. Human gestures cross the portable
+`presentation/interaction` Face only after an Available Manifestation binds
+the exact Presentation revision. Accepted interactions carry exact
+Presentation, Manifestation, input, action, target, type, sequence, and
+payload identities; retained evidence records payload length but never its
+plaintext. Stale, unavailable, malformed, duplicate, pressured, cancelled,
+and adapter-failed cases remain distinct.
+
 Coordinates, viewport, focus mechanics, toolkit objects, DOM identity, native
 handles, pixel buffers, and base resources do not occur in this contract.
 Those are renderer-local or planned realization state.

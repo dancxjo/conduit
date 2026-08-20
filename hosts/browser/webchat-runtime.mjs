@@ -2,10 +2,8 @@ const EFFECT_OPEN = 1;
 const EFFECT_RECEIVE = 2;
 const EFFECT_SEND = 3;
 const EFFECT_CLOSE = 4;
-const EFFECT_APPEND = 5;
+const EFFECT_PRESENT = 5;
 const STATUS_COMPLETE = 1;
-const MAXIMUM_MESSAGE_BYTES = 256;
-const MAXIMUM_HISTORY_ITEMS = 16;
 const INPUT_CAPACITY = 4096;
 const MAXIMUM_MEMBERSHIP_OUTPUT_BYTES = 9216;
 
@@ -28,6 +26,10 @@ function requireApi(api) {
     "conduit_browser_webchat_disconnected",
     "conduit_browser_webchat_capacity_stable",
     "conduit_browser_webchat_request_count",
+    "conduit_browser_webchat_interaction_ptr",
+    "conduit_browser_webchat_interaction_len",
+    "conduit_browser_webchat_evidence_ptr",
+    "conduit_browser_webchat_evidence_len",
     "conduit_browser_membership_input_ptr",
     "conduit_browser_membership_input_capacity",
     "conduit_browser_membership_output_ptr",
@@ -66,7 +68,7 @@ function requireStatus(status, action) {
   if (status < 0) throw new Error(`CND-CHAT-004 ${action} failed ${status}`);
 }
 
-export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spawn = null, list, input, button, status }) {
+export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-browser-demo", bodyUrl = null, spawn = null, root }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   requireApi(api);
@@ -109,7 +111,7 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
     api.conduit_browser_membership_output_ptr(),
     api.conduit_browser_membership_output_len(),
   )));
-  const startFrame = encoder.encode(`${url}\n${hostId}\n${bootId}`);
+  const startFrame = encoder.encode(`${url}\n${hostId}\n${bootId}\n${form}`);
   writeInput(api, startFrame);
   requireStatus(api.conduit_browser_webchat_start(startFrame.length), "start");
 
@@ -117,11 +119,13 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
   let bodySocket = null;
   let bodyState = bodyUrl ? "connecting" : "not-configured";
   let closed = false;
+  let currentPresentation = null;
+  let currentManifestation = null;
+  let interactionSequence = 0;
   let chain = Promise.resolve();
   const enqueue = (action) => {
     chain = chain.then(action).catch((error) => {
-      status.textContent = `error:${error.stack ?? error}`;
-      button.disabled = true;
+      root.replaceChildren(document.createTextNode(`error:${error.stack ?? error}`));
       throw error;
     });
     return chain;
@@ -132,12 +136,70 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
     api.conduit_browser_webchat_effect_len(),
   );
 
+  const contained = (presentation, source) => presentation.relationships
+    .filter((relationship) => relationship.kind === "Contains" && relationship.source === source)
+    .map((relationship) => relationship.target);
+  const subjectById = (presentation, identity) => presentation.subjects.find((subject) => subject.identity === identity);
+  const textById = (presentation, identity) => presentation.text.find((entry) => entry.subject === identity)?.text ?? "";
+
+  function renderPresentation(presentation) {
+    const documentSubject = presentation.subjects.find((subject) => subject.role === "Document");
+    if (!documentSubject) throw new Error("CND-CHAT-015 Presentation has no document subject");
+    const fragment = document.createDocumentFragment();
+    const heading = document.createElement("h1");
+    heading.textContent = documentSubject.label;
+    fragment.append(heading);
+    const renderSubject = (identity) => {
+      const subject = subjectById(presentation, identity);
+      if (!subject) return null;
+      if (subject.role === "Collection") {
+        const list = document.createElement("ol");
+        list.setAttribute("aria-label", subject.accessibility_name);
+        for (const child of contained(presentation, identity)) {
+          const rendered = renderSubject(child);
+          if (rendered) list.append(rendered);
+        }
+        return list;
+      }
+      if (subject.role === "Item") {
+        const item = document.createElement("li"); item.textContent = textById(presentation, identity); return item;
+      }
+      if (subject.role === "Status") {
+        const status = document.createElement("p"); status.setAttribute("role", "status"); status.textContent = textById(presentation, identity).toLowerCase(); return status;
+      }
+      if (subject.role === "TextEntry") {
+        const contract = presentation.inputs.find((input) => input.target === identity);
+        if (!contract) return null;
+        const label = document.createElement("label"); label.textContent = contract.label;
+        const input = document.createElement("input");
+        input.setAttribute("aria-label", contract.accessibility_name);
+        input.maxLength = contract.maximum_bytes;
+        input.dataset.inputId = contract.identity;
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") enqueue(() => submitInteraction(input, contract));
+        });
+        label.append(input);
+        const action = presentation.actions.find((candidate) => candidate.identity === contract.submit_action);
+        if (action) {
+          const button = document.createElement("button"); button.type = "button"; button.textContent = action.label;
+          button.disabled = action.availability !== "Available";
+          button.addEventListener("click", () => enqueue(() => submitInteraction(input, contract)));
+          label.append(button);
+        }
+        return label;
+      }
+      return null;
+    };
+    for (const child of contained(presentation, documentSubject.identity)) {
+      const rendered = renderSubject(child); if (rendered) fragment.append(rendered);
+    }
+    root.replaceChildren(fragment);
+  }
+
   async function pump() {
     for (;;) {
       const effect = api.conduit_browser_webchat_effect_kind();
       if (effect === EFFECT_RECEIVE || api.conduit_browser_webchat_status() === STATUS_COMPLETE) {
-        button.disabled = effect !== EFFECT_RECEIVE;
-        status.textContent = effect === EFFECT_RECEIVE ? "connected" : "disconnected";
         return;
       }
       if (effect === EFFECT_OPEN) {
@@ -150,9 +212,6 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
         });
         socket.addEventListener("message", (event) => enqueue(async () => {
           const bytes = new Uint8Array(event.data);
-          if (bytes.length > MAXIMUM_MESSAGE_BYTES) {
-            throw new Error("CND-CHAT-006 oversized inbound message");
-          }
           writeInput(api, bytes);
           requireStatus(api.conduit_browser_webchat_receive(bytes.length), "receive");
           await pump();
@@ -176,13 +235,13 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
         requireStatus(api.conduit_browser_webchat_complete_effect(), "send completion");
         continue;
       }
-      if (effect === EFFECT_APPEND) {
-        const text = decoder.decode(effectBytes());
-        const item = document.createElement("li");
-        item.textContent = text;
-        list.append(item);
-        while (list.children.length > MAXIMUM_HISTORY_ITEMS) list.firstElementChild.remove();
-        requireStatus(api.conduit_browser_webchat_complete_effect(), "append completion");
+      if (effect === EFFECT_PRESENT) {
+        currentPresentation = JSON.parse(decoder.decode(effectBytes()));
+        renderPresentation(currentPresentation);
+        requireStatus(api.conduit_browser_webchat_complete_effect(), "presentation completion");
+        currentManifestation = JSON.parse(decoder.decode(readBytes(
+          api, api.conduit_browser_webchat_interaction_ptr(), api.conduit_browser_webchat_interaction_len(),
+        )));
         continue;
       }
       if (effect === EFFECT_CLOSE) {
@@ -194,13 +253,20 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
     }
   }
 
-  async function submit() {
-    const bytes = encoder.encode(input.value);
-    if (bytes.length === 0 || bytes.length > MAXIMUM_MESSAGE_BYTES) {
-      throw new Error("CND-CHAT-009 message must contain 1..256 bytes");
-    }
-    writeInput(api, bytes);
-    requireStatus(api.conduit_browser_webchat_submit(bytes.length), "submit");
+  async function submitInteraction(input, contract) {
+    const frame = encoder.encode(JSON.stringify({
+      presentation_id: currentPresentation.identity,
+      presentation_revision: currentPresentation.revision,
+      manifestation_id: currentManifestation.manifestation_id,
+      input_id: contract.identity,
+      action_id: contract.submit_action,
+      target: contract.target,
+      value_kind: contract.value_kind,
+      sequence: interactionSequence++,
+      value: input.value,
+    }));
+    writeInput(api, frame);
+    requireStatus(api.conduit_browser_webchat_submit(frame.length), "interaction");
     input.value = "";
     await pump();
   }
@@ -214,10 +280,6 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
     }
   }
 
-  button.addEventListener("click", () => enqueue(submit));
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") enqueue(submit);
-  });
   await pump();
   const identity = decoder.decode(readBytes(
     api,
@@ -322,8 +384,30 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
     });
   }
   return Object.freeze({
-    submit: (text) => enqueue(async () => { input.value = text; await submit(); }),
+    submit: (text) => enqueue(async () => {
+      const contract = currentPresentation.inputs[0];
+      const input = root.querySelector(`[data-input-id="${contract.identity}"]`);
+      input.value = text;
+      await submitInteraction(input, contract);
+    }),
     disconnect: () => enqueue(disconnect),
+    refusal: (overrides = {}) => {
+      const contract = currentPresentation.inputs[0];
+      const frame = encoder.encode(JSON.stringify({
+        presentation_id: currentPresentation.identity,
+        presentation_revision: currentPresentation.revision,
+        manifestation_id: currentManifestation.manifestation_id,
+        input_id: contract.identity,
+        action_id: contract.submit_action,
+        target: contract.target,
+        value_kind: contract.value_kind,
+        sequence: interactionSequence,
+        value: "refusal-probe",
+        ...overrides,
+      }));
+      writeInput(api, frame);
+      return api.conduit_browser_webchat_submit(frame.length);
+    },
     admissionCandidate: Object.freeze({
       hostId,
       bootId,
@@ -336,7 +420,13 @@ export async function createWebchatRuntime({ wasmBytes, url, bodyUrl = null, spa
     }),
     proof: () => Object.freeze({
       identity,
-      history: Object.freeze([...list.children].map((item) => item.textContent)),
+      history: Object.freeze([...root.querySelectorAll("li")].map((item) => item.textContent)),
+      presentationId: currentPresentation?.identity,
+      presentationRevision: currentPresentation?.revision,
+      manifestationId: currentManifestation?.manifestation_id,
+      interactionEvidence: api.conduit_browser_webchat_evidence_len() === 0 ? null : JSON.parse(decoder.decode(readBytes(
+        api, api.conduit_browser_webchat_evidence_ptr(), api.conduit_browser_webchat_evidence_len(),
+      ))),
       requestCount: api.conduit_browser_webchat_request_count(),
       capacityStable: api.conduit_browser_webchat_capacity_stable() === 1,
       disconnected: api.conduit_browser_webchat_disconnected() === 1,

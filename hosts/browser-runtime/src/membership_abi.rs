@@ -350,8 +350,8 @@ mod tests {
             serde_json::from_slice(&encoded).unwrap();
         assert_eq!(advertisement.host_id, challenge.host_id);
         assert_eq!(advertisement.boot_id, challenge.boot_id);
-        assert_eq!(advertisement.capabilities.len(), 3);
-        assert_eq!(advertisement.resources.len(), 2);
+        assert_eq!(advertisement.capabilities.len(), 6);
+        assert_eq!(advertisement.resources.len(), 3);
     }
 
     #[test]

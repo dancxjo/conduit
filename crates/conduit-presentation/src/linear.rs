@@ -67,6 +67,9 @@ pub fn render_linear_presentation(
     for action in &presentation.actions {
         builder.push(linear_action(action))?;
     }
+    for input in &presentation.inputs {
+        builder.push(crate::linear_input(input))?;
+    }
     for disclosure in &presentation.disclosures {
         builder.push(linear_disclosure(disclosure))?;
     }

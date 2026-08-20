@@ -1,17 +1,12 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Conduit explicit WebSocket webchat</title>
-<main>
-  <h1>Conduit Webchat</h1>
-  <p id="status" role="status">starting</p>
-  <ol id="history" aria-label="chat history"></ol>
-  <label>Message <input id="message" maxlength="256"></label>
-  <button id="send" type="button" disabled>Send</button>
-</main>
+<title>Conduit Presentation host</title>
+<main id="conduit-host" aria-live="polite"></main>
 <script type="module">
 import { createWebchatRuntime } from "./webchat-runtime.mjs";
 
 const url = new URLSearchParams(location.search).get("ws");
+const form = new URLSearchParams(location.search).get("form") ?? "webchat-browser-demo";
 if (!url) throw new Error("webchat requires ?ws=ws://127.0.0.1:port");
 const fragment = new URLSearchParams(location.hash.slice(1));
 const bodyUrl = new URLSearchParams(location.search).get("body") ?? fragment.get("body");
@@ -38,11 +33,9 @@ const wasmBytes = await fetch(
 globalThis.__webchat = await createWebchatRuntime({
   wasmBytes,
   url,
+  form,
   bodyUrl,
   spawn,
-  list: document.querySelector("#history"),
-  input: document.querySelector("#message"),
-  button: document.querySelector("#send"),
-  status: document.querySelector("#status"),
+  root: document.querySelector("#conduit-host"),
 });
 </script>

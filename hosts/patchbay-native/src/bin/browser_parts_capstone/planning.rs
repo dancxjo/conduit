@@ -48,7 +48,7 @@ pub(super) fn cross_browser_plan(
         .map_err(|error| format!("canonical webchat expansion: {error:?}"))?;
     let mut by_gear = BTreeMap::new();
     for gear in &expanded.gears {
-        let target = if gear.kind_id.as_str() == conduit_chat::WEB_TEXT_INPUT_KIND {
+        let target = if gear.kind_id.as_str() == conduit_presentation::INTERACTION_KIND {
             source
         } else {
             sink
@@ -66,17 +66,6 @@ pub(super) fn cross_browser_plan(
             },
         );
     }
-    let cross = expanded
-        .connections
-        .iter()
-        .find(|connection| {
-            expanded
-                .gears
-                .iter()
-                .find(|gear| gear.gear_id == connection.source_gear_id)
-                .is_some_and(|gear| gear.kind_id.as_str() == conduit_chat::WEB_TEXT_INPUT_KIND)
-        })
-        .ok_or("expanded webchat has no text-to-socket connection")?;
     let line = conduit_core::process_owned_line_offer_with_limits(
         "browser/capstone/websocket-line",
         "browser/capstone/websocket-binding",
@@ -91,10 +80,46 @@ pub(super) fn cross_browser_plan(
             maximum_frame_bytes: 8_192,
         },
     );
-    let line_candidates = BTreeMap::from([(
-        (cross.source_gear_id.clone(), cross.sink_gear_id.clone()),
-        vec![line.line_id.clone()],
-    )]);
+    let reverse_line = conduit_core::process_owned_line_offer_with_limits(
+        "browser/capstone/websocket-return-line",
+        "browser/capstone/websocket-return-binding",
+        ConnectionBase::WebSocket,
+        "browser/capstone/websocket-return-instance",
+        sink,
+        source,
+        LinkLimits {
+            maximum_in_flight_items: 4,
+            maximum_payload_bytes: 16 * 1024,
+            maximum_buffered_bytes: 64 * 1024,
+            maximum_frame_bytes: 32 * 1024,
+        },
+    );
+    let line_candidates = expanded
+        .connections
+        .iter()
+        .filter(|connection| {
+            by_gear
+                .get(&connection.source_gear_id)
+                .map(|choice| &choice.host_id)
+                != by_gear
+                    .get(&connection.sink_gear_id)
+                    .map(|choice| &choice.host_id)
+        })
+        .map(|connection| {
+            let line_id = if by_gear[&connection.source_gear_id].host_id == source.host_id {
+                line.line_id.clone()
+            } else {
+                reverse_line.line_id.clone()
+            };
+            (
+                (
+                    connection.source_gear_id.clone(),
+                    connection.sink_gear_id.clone(),
+                ),
+                vec![line_id],
+            )
+        })
+        .collect();
     let plan = plan_expanded_canonical_with_options(
         &expanded,
         &[source.clone(), sink.clone()],
@@ -107,7 +132,7 @@ pub(super) fn cross_browser_plan(
             connection_byte_capacity: 1_024,
             authority_grants: &[],
             protected_resource_grants: &[],
-            line_offers: core::slice::from_ref(&line),
+            line_offers: &[line.clone(), reverse_line],
         },
     )
     .map_err(|error| error.to_string())?;

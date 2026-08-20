@@ -2,6 +2,7 @@ mod abi;
 mod catalog;
 mod operation;
 mod session;
+mod session_runtime;
 #[cfg(test)]
 mod tests;
 
