@@ -48,10 +48,7 @@ pub fn deterministic_schedule_fixture() -> Result<ScheduleFixture, ScheduleInfoR
     let constraint = StructuredInfoValue::variant(
         constraint_type,
         "window",
-        record_value(
-            window_type,
-            vec![("end", end), ("start", start.clone())],
-        )?,
+        record_value(window_type, vec![("end", end), ("start", start.clone())])?,
     )?;
     let effect = StructuredInfoValue::variant(
         schedule_effect_intent_type(),
@@ -64,10 +61,7 @@ pub fn deterministic_schedule_fixture() -> Result<ScheduleFixture, ScheduleInfoR
             ("identity", text_value("recurrence/report#0")),
             ("instant", start),
             ("ordinal", count_value(0)),
-            (
-                "recurrence_identity",
-                text_value("recurrence/report"),
-            ),
+            ("recurrence_identity", text_value("recurrence/report")),
         ],
     )?;
     let intent = record_value(
@@ -84,7 +78,10 @@ pub fn deterministic_schedule_fixture() -> Result<ScheduleFixture, ScheduleInfoR
         schedule_observation_type(),
         vec![
             ("observed_at", observed),
-            ("offset_from_boundary", quantity_value(2, QuantityUnit::Second)?),
+            (
+                "offset_from_boundary",
+                quantity_value(2, QuantityUnit::Second)?,
+            ),
             (
                 "position",
                 unit_variant(schedule_window_position_type(), "after")?,
@@ -223,7 +220,11 @@ fn unit_variant(
     value_type: StructuredInfoType,
     tag: &str,
 ) -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
-    Ok(StructuredInfoValue::variant(value_type, tag, unit_value()?)?)
+    Ok(StructuredInfoValue::variant(
+        value_type,
+        tag,
+        unit_value()?,
+    )?)
 }
 
 fn unit_value() -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
@@ -246,10 +247,7 @@ fn count_value(value: u64) -> StructuredInfoValue {
     .expect("bounded deterministic count")
 }
 
-fn leaf_value(
-    kind: &str,
-    bytes: Vec<u8>,
-) -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
+fn leaf_value(kind: &str, bytes: Vec<u8>) -> Result<StructuredInfoValue, ScheduleInfoRefusal> {
     Ok(StructuredInfoValue::leaf(
         StructuredInfoType::leaf(conduit_core::kind_id(kind))?,
         bytes,
