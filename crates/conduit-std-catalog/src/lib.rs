@@ -58,6 +58,12 @@ pub use finance_realization::*;
 mod finance_catalog;
 #[cfg(feature = "form-catalog")]
 pub use finance_catalog::*;
+mod job;
+pub use job::*;
+#[cfg(feature = "form-catalog")]
+mod job_catalog;
+#[cfg(feature = "form-catalog")]
+pub use job_catalog::*;
 mod palette_metadata;
 mod tick;
 use functional_face::startup_face;

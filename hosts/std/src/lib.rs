@@ -42,6 +42,7 @@ pub mod external_signal;
 pub mod external_websocket;
 pub mod hosted_audio;
 pub mod hosted_http;
+pub mod hosted_job;
 pub mod hosted_keyboard;
 pub mod hosted_local_model;
 pub mod hosted_midi;

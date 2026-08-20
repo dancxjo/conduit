@@ -1,0 +1,8 @@
+form bounded-job (
+    lifecycle: JobLifecycle >
+) {
+    request: process/deterministic-request
+    run: process/run-bounded
+    request.request > run.request
+    run.lifecycle > lifecycle
+}
