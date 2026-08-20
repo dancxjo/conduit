@@ -68,6 +68,8 @@ pub mod planned_kernel;
 pub mod linear_presenter;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod presentation_nucleus;
+#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+mod product_bindings;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 pub mod product_front_door;
 #[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
