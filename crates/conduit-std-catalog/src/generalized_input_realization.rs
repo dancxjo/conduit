@@ -27,10 +27,24 @@ pub struct GeneralizedInputFixture {
     pub touch: StructuredInfoValue,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NormalizedPointerSample {
+    pub position_x: i64,
+    pub position_y: i64,
+    pub delta_x: i64,
+    pub delta_y: i64,
+    pub primary_pressed: bool,
+    pub coalesced: u64,
+    pub dropped: u64,
+    pub queue_capacity: u64,
+    pub sequence: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GeneralizedInputRefusal {
     NonRatio,
     OutsideNormalizedRange,
+    InvalidPressureBound,
     Structured(StructuredInfoRefusal),
 }
 
@@ -46,6 +60,54 @@ pub fn validate_normalized_axis(value: Quantity) -> Result<(), GeneralizedInputR
 
 pub fn validate_normalized_pressure(value: Quantity) -> Result<(), GeneralizedInputRefusal> {
     validate_ratio(value, 0, 1_000_000)
+}
+
+pub fn normalized_pointer_value(
+    sample: NormalizedPointerSample,
+) -> Result<StructuredInfoValue, GeneralizedInputRefusal> {
+    for coordinate in [sample.position_x, sample.position_y] {
+        validate_normalized_pressure(Quantity::new(coordinate, QuantityUnit::Millionth))?;
+    }
+    for delta in [sample.delta_x, sample.delta_y] {
+        validate_normalized_axis(Quantity::new(delta, QuantityUnit::Millionth))?;
+    }
+    if sample.queue_capacity == 0 {
+        return Err(GeneralizedInputRefusal::InvalidPressureBound);
+    }
+    let buttons = fixed_slots(
+        input_button_slots_type(),
+        input_button_slot_type(),
+        "button",
+        vec![button_state_value(
+            "button/primary",
+            sample.primary_pressed,
+        )?],
+        usize::from(MAXIMUM_INPUT_BUTTONS),
+    )?;
+    record_value(
+        pointer_event_type(),
+        vec![
+            ("buttons", buttons),
+            (
+                "delta",
+                coordinate_value(vector2_type(), sample.delta_x, sample.delta_y)?,
+            ),
+            (
+                "position",
+                coordinate_value(point2_type(), sample.position_x, sample.position_y)?,
+            ),
+            (
+                "pressure",
+                pressure_value(
+                    "coalesce_latest_state",
+                    sample.coalesced,
+                    sample.dropped,
+                    sample.queue_capacity,
+                )?,
+            ),
+            ("sequence", count_value(sample.sequence)),
+        ],
+    )
 }
 
 fn validate_ratio(
@@ -104,29 +166,17 @@ pub fn deterministic_generalized_input_fixture(
         ],
     )?;
 
-    let pointer_buttons = fixed_slots(
-        input_button_slots_type(),
-        input_button_slot_type(),
-        "button",
-        vec![button_state_value("button/primary", true)?],
-        usize::from(MAXIMUM_INPUT_BUTTONS),
-    )?;
-    let pointer = record_value(
-        pointer_event_type(),
-        vec![
-            ("buttons", pointer_buttons),
-            ("delta", coordinate_value(vector2_type(), 25_000, -10_000)?),
-            (
-                "position",
-                coordinate_value(point2_type(), 400_000, 600_000)?,
-            ),
-            (
-                "pressure",
-                pressure_value("coalesce_latest_state", 2, 1, 8)?,
-            ),
-            ("sequence", count_value(11)),
-        ],
-    )?;
+    let pointer = normalized_pointer_value(NormalizedPointerSample {
+        position_x: 400_000,
+        position_y: 600_000,
+        delta_x: 25_000,
+        delta_y: -10_000,
+        primary_pressed: true,
+        coalesced: 2,
+        dropped: 1,
+        queue_capacity: 8,
+        sequence: 11,
+    })?;
 
     let contact = record_value(
         touch_contact_type(),
