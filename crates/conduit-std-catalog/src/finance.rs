@@ -1,11 +1,11 @@
 //! Exact finite monetary semantics without floats or provider symbols.
 
 use alloc::{vec, vec::Vec};
-use core::cmp::Ordering;
 use conduit_core::{
-    kind_id, StructuredFieldType, StructuredInfoRefusal, StructuredInfoType,
-    StructuredVariantCase, QUANTITY_INFO_ID,
+    kind_id, StructuredFieldType, StructuredInfoRefusal, StructuredInfoType, StructuredVariantCase,
+    QUANTITY_INFO_ID,
 };
+use core::cmp::Ordering;
 
 pub const FINANCE_FIXED_DECIMAL_TYPE: &str = "FinanceFixedDecimal";
 pub const FINANCE_CURRENCY_TYPE: &str = "FinanceCurrency";

@@ -1,4 +1,3 @@
-use core::cmp::Ordering;
 use conduit_core::{
     BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PortTemporal, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
@@ -9,11 +8,13 @@ use conduit_form::{
 };
 use conduit_std_catalog::{
     add_money, add_money_values, compare_money, compare_money_values, convert_money,
-    convert_money_values, decode_money_value, deterministic_finance_fixture, deterministic_rate_observation,
-    finance_std_offers, install_finance_catalogs, Currency, FinanceRefusal, FixedDecimal, Money,
-    FINANCE_ADD_KIND, FINANCE_COMPARE_KIND, FINANCE_CONVERT_KIND, FINANCE_FIXED_DECIMAL_INFO_ID,
-    FINANCE_FIXTURE_KIND, FINANCE_HOST_OPERATION, FINANCE_MAXIMUM_DECIMAL_SCALE,
+    convert_money_values, decode_money_value, deterministic_finance_fixture,
+    deterministic_rate_observation, finance_std_offers, install_finance_catalogs, Currency,
+    FinanceRefusal, FixedDecimal, Money, FINANCE_ADD_KIND, FINANCE_COMPARE_KIND,
+    FINANCE_CONVERT_KIND, FINANCE_FIXED_DECIMAL_INFO_ID, FINANCE_FIXTURE_KIND,
+    FINANCE_HOST_OPERATION, FINANCE_MAXIMUM_DECIMAL_SCALE,
 };
+use core::cmp::Ordering;
 
 const SOURCE: &str = include_str!("../../../examples/money-quote.conduit");
 
@@ -45,8 +46,7 @@ fn canonical_form_flows_money_quotes_events_and_exact_comparison() {
         }
     }
     assert_eq!(selector_offers.len(), 1);
-    let authored =
-        expand_canonical_form_for_authoring(&checked, "money-quote", &profile).unwrap();
+    let authored = expand_canonical_form_for_authoring(&checked, "money-quote", &profile).unwrap();
     let mut offers = finance_std_offers();
     offers.extend(selector_offers);
     let host = host(offers);
@@ -144,7 +144,10 @@ fn deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible(
             currency: Currency::Usd,
         }
     );
-    assert_eq!(variant_tag(&compare_money_values(&fixture.left, &fixture.right).unwrap()), "greater");
+    assert_eq!(
+        variant_tag(&compare_money_values(&fixture.left, &fixture.right).unwrap()),
+        "greater"
+    );
     assert_eq!(
         decode_money_value(&convert_money_values(&fixture.convertible, &fixture.rate).unwrap())
             .unwrap(),
@@ -153,8 +156,14 @@ fn deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible(
             currency: Currency::Usd,
         }
     );
-    assert_eq!(variant_tag(record_field(&fixture.quote, "freshness")), "stale");
-    assert_eq!(leaf_text(record_field(&fixture.quote, "source")), "fixture/eur-usd");
+    assert_eq!(
+        variant_tag(record_field(&fixture.quote, "freshness")),
+        "stale"
+    );
+    assert_eq!(
+        leaf_text(record_field(&fixture.quote, "source")),
+        "fixture/eur-usd"
+    );
     let events = collection(&fixture.events);
     assert_eq!(events.len(), 3);
     assert_eq!(variant_tag(&events[0]), "placed");
@@ -164,7 +173,10 @@ fn deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible(
         let StructuredInfoValueShape::Variant { payload, .. } = event.shape() else {
             panic!("expected transaction variant")
         };
-        assert!(record_field(payload, "observed_at").value_type().profile().is_ok());
+        assert!(record_field(payload, "observed_at")
+            .value_type()
+            .profile()
+            .is_ok());
     }
 }
 
@@ -185,7 +197,11 @@ fn record_field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a Structure
     let StructuredInfoValueShape::Record(fields) = value.shape() else {
         panic!("expected record")
     };
-    fields.iter().find(|field| field.name() == name).unwrap().value()
+    fields
+        .iter()
+        .find(|field| field.name() == name)
+        .unwrap()
+        .value()
 }
 
 fn collection(value: &StructuredInfoValue) -> &[StructuredInfoValue] {

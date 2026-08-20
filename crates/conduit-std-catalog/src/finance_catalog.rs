@@ -193,11 +193,7 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
     }
 }
 
-fn offer(
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
-) -> CapabilityOffer {
+fn offer(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![],
         shorthand: None,

@@ -1,11 +1,11 @@
 //! Deterministic finance fixtures and structured exact-money operations.
 
 use alloc::{string::ToString, vec, vec::Vec};
-use core::cmp::Ordering;
 use conduit_core::{
     Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
     StructuredInfoValue, StructuredInfoValueShape,
 };
+use core::cmp::Ordering;
 
 use super::finance::*;
 
@@ -44,7 +44,10 @@ pub fn add_money_values(
     left: &StructuredInfoValue,
     right: &StructuredInfoValue,
 ) -> Result<StructuredInfoValue, FinanceRefusal> {
-    money_value(add_money(decode_money_value(left)?, decode_money_value(right)?)?)
+    money_value(add_money(
+        decode_money_value(left)?,
+        decode_money_value(right)?,
+    )?)
 }
 
 pub fn compare_money_values(
@@ -252,15 +255,15 @@ fn money_value(money: Money) -> Result<StructuredInfoValue, FinanceRefusal> {
     )
 }
 
-fn instrument_value(base: Currency, quote: Currency) -> Result<StructuredInfoValue, FinanceRefusal> {
+fn instrument_value(
+    base: Currency,
+    quote: Currency,
+) -> Result<StructuredInfoValue, FinanceRefusal> {
     record_value(
         finance_instrument_type(),
         vec![
             ("base", unit_variant(finance_currency_type(), base.tag())?),
-            (
-                "quote",
-                unit_variant(finance_currency_type(), quote.tag())?,
-            ),
+            ("quote", unit_variant(finance_currency_type(), quote.tag())?),
         ],
     )
 }
