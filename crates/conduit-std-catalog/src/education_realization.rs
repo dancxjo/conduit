@@ -1,6 +1,6 @@
 //! Deterministic arithmetic and rhythm-feedback realizations for education Info.
 
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 use conduit_core::{StructuredInfoRefusal, StructuredInfoValue, StructuredInfoValueShape};
 
 use crate::education_value::{
