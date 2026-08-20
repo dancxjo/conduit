@@ -7,11 +7,11 @@
 
 #[cfg(feature = "form-catalog")]
 use alloc::{vec, vec::Vec};
-use conduit_core::{Quantity, QuantityDimension};
 #[cfg(feature = "form-catalog")]
 use conduit_core::{
     kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase, QUANTITY_INFO_ID,
 };
+use conduit_core::{Quantity, QuantityDimension};
 
 #[cfg(feature = "form-catalog")]
 use crate::recurrence_occurrence_instant_type;
