@@ -117,6 +117,16 @@ fn unsupported_dimensions_precision_and_frames_refuse_explicitly() {
         ),
         Err(RoboticsStructuredRefusal::InexactPrecision { field: "interval" })
     ));
+    assert_eq!(
+        twist_interval_value(
+            ROBOTICS_BODY_FRAME,
+            Quantity::new(60_001, QuantityUnit::Millisecond),
+            Quantity::new(1, QuantityUnit::Millimeter),
+            Quantity::new(0, QuantityUnit::Millimeter),
+            Quantity::new(0, QuantityUnit::Degree),
+        ),
+        Err(RoboticsStructuredRefusal::OutsideRange { field: "interval" })
+    );
     assert!(matches!(
         pose_sample_value(
             "sim/pose",

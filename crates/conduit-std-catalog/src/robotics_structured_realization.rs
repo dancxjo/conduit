@@ -15,6 +15,7 @@ use crate::{
 };
 
 pub const ROBOTICS_BODY_FRAME: &str = "body";
+pub const MAXIMUM_STRUCTURED_MOTION_INTERVAL_MS: i64 = 60_000;
 
 pub struct RoboticsStructuredFixture {
     pub contact: StructuredInfoValue,
@@ -248,7 +249,7 @@ pub fn power_telemetry_value(
         .value()
         > 1_000_000
     {
-        return Err(RoboticsStructuredRefusal::IncompatibleDimension { field: "charge" });
+        return Err(RoboticsStructuredRefusal::OutsideRange { field: "charge" });
     }
     require_nonnegative(
         voltage,
@@ -298,6 +299,9 @@ pub fn twist_interval_value(
     if converted <= 0 {
         return Err(RoboticsStructuredRefusal::NonPositiveInterval);
     }
+    if converted > MAXIMUM_STRUCTURED_MOTION_INTERVAL_MS {
+        return Err(RoboticsStructuredRefusal::OutsideRange { field: "interval" });
+    }
     require_exact(
         angular_delta,
         QuantityDimension::Angle,
@@ -330,6 +334,11 @@ pub fn motion_request_value(
     )?;
     if converted <= 0 {
         return Err(RoboticsStructuredRefusal::NonPositiveInterval);
+    }
+    if converted > MAXIMUM_STRUCTURED_MOTION_INTERVAL_MS {
+        return Err(RoboticsStructuredRefusal::OutsideRange {
+            field: "expires_after",
+        });
     }
     record_value(
         robotics_motion_request_type(),
