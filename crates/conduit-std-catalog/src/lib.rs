@@ -42,6 +42,14 @@ pub use linguistics_realization::*;
 mod linguistics_catalog;
 #[cfg(feature = "form-catalog")]
 pub use linguistics_catalog::*;
+mod tabular;
+pub use tabular::*;
+mod tabular_realization;
+pub use tabular_realization::*;
+#[cfg(feature = "form-catalog")]
+mod tabular_catalog;
+#[cfg(feature = "form-catalog")]
+pub use tabular_catalog::*;
 mod palette_metadata;
 mod tick;
 use functional_face::startup_face;
