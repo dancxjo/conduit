@@ -395,6 +395,14 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "one exact Body links local std, at least two browser Parts, and one explicitly admitted physical Pico to the same immutable R1 Plan and production Play evidence",
         ],
     },
+    ProofCommandContract {
+        id: "calendar.google-live",
+        command: "cargo xtask prove calendar-google --credential-env <name> --calendar-config-env <name>",
+        proof_class: ProofClass::LiveTransport,
+        required_tools_or_targets: &["cargo", "Google Calendar API", "OAuth bearer credential"],
+        named_artifacts: &["target/calendar-google-live.json"],
+        allowed_claims: &["one explicitly selected Google Calendar resource performs read, free-busy, create, update, and cancel through ordinary Plan/Play with separately granted authority and exact hashed receipts"],
+    },
 ];
 
 #[derive(Debug, Serialize)]
@@ -492,6 +500,7 @@ mod tests {
             "freestanding-emulator"
         );
         assert_eq!(proof_class("browser.host"), "live-browser");
+        assert_eq!(proof_class("calendar.google-live"), "live-transport");
         assert_eq!(proof_class("pico.firmware-build"), "firmware-build");
         assert_eq!(proof_class("pico.cross-host-usb"), "physical-cross-host");
     }
