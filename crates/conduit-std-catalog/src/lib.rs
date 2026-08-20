@@ -56,6 +56,14 @@ pub use education_realization::*;
 mod education_catalog;
 #[cfg(feature = "form-catalog")]
 pub use education_catalog::*;
+mod messaging;
+pub use messaging::*;
+mod messaging_realization;
+pub use messaging_realization::*;
+#[cfg(feature = "form-catalog")]
+mod messaging_catalog;
+#[cfg(feature = "form-catalog")]
+pub use messaging_catalog::*;
 mod linguistics;
 pub use linguistics::*;
 mod linguistics_realization;
