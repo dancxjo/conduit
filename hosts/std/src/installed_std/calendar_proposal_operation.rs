@@ -77,6 +77,8 @@ fn validate(
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_operations != offer.host_operations
+        || !placement.resources.is_empty()
+        || !placement.authority.is_empty()
         || !offer.resource_requirements.is_empty()
         || !offer.authority_requirements.is_empty()
     {
