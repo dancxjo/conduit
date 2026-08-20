@@ -1,6 +1,7 @@
 use conduit_core::{
-    resource_offer, BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, StructuredInfoTypeShape, PROTOCOL_VERSION,
+    authority_grant, resource_offer, BootId, ConnectionBase, HostAdvertisement, HostId,
+    HostProfileId, OfferGeneration, StructuredInfoTypeShape, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    DEFAULT_CONNECTION_ITEM_CAPACITY, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -24,16 +25,39 @@ fn ordinary_form_plans_one_bounded_admitted_job() {
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let authored = expand_canonical_form_for_authoring(&checked, "bounded-job", &profile).unwrap();
     let host = host(job_std_offers());
+    let run_offer = host
+        .capabilities
+        .iter()
+        .find(|offer| offer.kind_id.as_str() == JOB_RUN_KIND)
+        .unwrap();
+    let grant = authority_grant(
+        "grant/job-execute",
+        &run_offer.authority_requirements[0],
+        host.host_id.clone(),
+        host.boot_id.clone(),
+        run_offer.capability_id.clone(),
+    );
     let placements = conduit_planner::default_expanded_placements(
         &authored.expanded,
         core::slice::from_ref(&host),
     )
     .unwrap();
-    let plan = conduit_planner::plan_expanded_canonical(
+    let connection_bases = std::collections::BTreeMap::new();
+    let line_candidates = std::collections::BTreeMap::new();
+    let plan = conduit_planner::plan_expanded_canonical_with_options(
         &authored.expanded,
-        &[host],
+        core::slice::from_ref(&host),
         &placements,
         &[ConnectionBase::Local],
+        conduit_planner::PlanningOptions {
+            connection_bases: &connection_bases,
+            line_candidates: &line_candidates,
+            connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
+            connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
+            authority_grants: &[grant],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
     )
     .unwrap();
     let run = plan.fragments[0]
