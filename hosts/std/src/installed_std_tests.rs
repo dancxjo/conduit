@@ -10,6 +10,7 @@ use std::time::Duration;
 mod audio_playback_conformance;
 mod bool_presentation_conformance;
 mod calendar_proposal_conformance;
+mod calendar_provider_conformance;
 mod gate_conformance;
 mod graphics_conformance;
 mod input_semantics_conformance;
@@ -443,6 +444,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            calendar: None,
         },
         &plan.fragments[0],
         0,
@@ -479,6 +481,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            calendar: None,
         },
         &substituted,
         1,

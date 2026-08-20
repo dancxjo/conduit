@@ -3,6 +3,7 @@
 use super::audio_play_operation::AudioPlayOperation;
 use super::bool_presentation::BoolPresentationOperation;
 use super::calendar_proposal_operation::CalendarProposalOperation;
+use super::calendar_provider_operation::CalendarProviderOperation;
 use super::count_operations::{CountPresentationOperation, StateCountOperation};
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
@@ -64,6 +65,7 @@ pub(super) enum InstalledOperation {
     TimeThrottle(ThrottleOperation),
     Recurrence(RecurrenceOperation),
     CalendarProposal(CalendarProposalOperation),
+    CalendarProvider(CalendarProviderOperation),
     TickPresentation(TickPresentationOperation),
     BoolPresentation(BoolPresentationOperation),
     TextLiteral(TextLiteralOperation),

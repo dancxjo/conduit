@@ -336,6 +336,7 @@ mod tests {
                 keyboard: None,
                 local_model: Some(&mut adapter),
                 vector_search: None,
+                calendar: None,
             },
             &plan.fragments[0],
             1,

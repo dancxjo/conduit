@@ -3,6 +3,8 @@ mod bool_presentation;
 mod calendar_proposal_codec;
 pub(super) mod calendar_proposal_encoding;
 mod calendar_proposal_operation;
+mod calendar_provider_host;
+mod calendar_provider_operation;
 mod catalog;
 pub(super) mod contract;
 mod count_operations;
@@ -155,6 +157,7 @@ pub(super) struct InstalledRunHost<'a, 'keyboard, 'model> {
         Option<&'model mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static)>,
     pub vector_search:
         Option<&'model mut (dyn crate::hosted_vector_search::HostedVectorSearchAdapter + 'static)>,
+    pub calendar: Option<&'model mut (dyn crate::hosted_calendar::HostedCalendarAdapter + 'static)>,
 }
 
 pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
@@ -174,6 +177,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         keyboard,
         mut local_model,
         mut vector_search,
+        mut calendar,
     } = host;
     let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
     let active_nodes = lowered.nodes.len();
@@ -318,6 +322,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .map_err(|error| format!("installed sign store: {error:?}"))?;
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
+    let mut calendar_host = calendar_provider_host::CalendarProviderHost::prepare(fragment)?;
     if let Some(listener) = &external_listener {
         writeln!(
             _output,
@@ -731,6 +736,59 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| {
                         format!("complete bounded structured selector operation: {error:?}")
+                    })?;
+                continue;
+            }
+            if let Some(calendar_operation) =
+                crate::hosted_calendar::CalendarHostedOperation::from_contract(contract.as_str())
+            {
+                let completion = calendar_host.execute(
+                    usize::from(request.node.0),
+                    calendar_operation,
+                    input,
+                    calendar.as_deref_mut(),
+                );
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler.store_host_value(&encoded).map_err(|error| {
+                            format!("store calendar provider output: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound calendar provider output: {error:?}")
+                                })?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: calendar_provider_host::refusal_detail(refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete calendar provider host operation: {error:?}")
                     })?;
                 continue;
             }

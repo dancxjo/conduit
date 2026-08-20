@@ -193,6 +193,7 @@ fn execute_case(
             keyboard: None,
             local_model: None,
             vector_search: None,
+            calendar: None,
         },
         &plan.fragments[0],
         0,

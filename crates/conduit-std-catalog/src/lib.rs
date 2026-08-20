@@ -143,6 +143,10 @@ pub use calendar_proposal_catalog::*;
 mod calendar_proposal_offer;
 #[cfg(feature = "form-catalog")]
 pub use calendar_proposal_offer::*;
+#[cfg(feature = "form-catalog")]
+mod calendar_provider_catalog;
+#[cfg(feature = "form-catalog")]
+pub use calendar_provider_catalog::*;
 mod schedule;
 pub use schedule::*;
 #[cfg(feature = "form-catalog")]

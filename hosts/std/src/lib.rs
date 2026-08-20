@@ -319,6 +319,7 @@ pub struct StdHost {
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
+    calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -356,6 +357,7 @@ impl StdHost {
             midi_output: None,
             local_model: None,
             vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -398,6 +400,7 @@ impl StdHost {
             midi_output: None,
             local_model: Some(adapter),
             vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -432,6 +435,42 @@ impl StdHost {
             midi_output: None,
             local_model: None,
             vector_search: Some(adapter),
+            calendar: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
+    }
+
+    pub fn new_with_calendar(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_calendar::HostedCalendarAdapter>,
+    ) -> Result<Self, String> {
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement
+            .resources
+            .push(hosted_calendar::google_calendar_resource_offer());
+        advertisement
+            .capabilities
+            .extend(hosted_calendar::google_calendar_offers());
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            vector_search: None,
+            calendar: Some(adapter),
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -451,6 +490,7 @@ impl StdHost {
             midi_output: None,
             local_model: None,
             vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -486,6 +526,7 @@ impl StdHost {
             midi_output: None,
             local_model: None,
             vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -524,6 +565,7 @@ impl StdHost {
             midi_output: Some(midi_output),
             local_model: None,
             vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -551,6 +593,7 @@ impl StdHost {
             midi_output: None,
             local_model: None,
             vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -591,6 +634,7 @@ impl StdHost {
             midi_output: None,
             local_model: None,
             vector_search: None,
+            calendar: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -713,6 +757,38 @@ impl StdHost {
             .collect())
     }
 
+    pub fn calendar_authority_grants(
+        &self,
+        operation: hosted_calendar::CalendarHostedOperation,
+        grant_prefix: &str,
+    ) -> Result<Vec<conduit_core::AuthorityGrant>, String> {
+        if self.calendar.is_none() {
+            return Err("std Host has no selected calendar resource".into());
+        }
+        let capability = self
+            .advertisement
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str() == operation.implementation()
+            })
+            .ok_or_else(|| "selected calendar capability is not advertised".to_string())?;
+        capability
+            .authority_requirements
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                hosted_calendar::google_calendar_authority_grant(
+                    capability,
+                    index,
+                    &format!("{grant_prefix}-{index}"),
+                    &self.advertisement.host_id,
+                    &self.advertisement.boot_id,
+                )
+            })
+            .collect()
+    }
+
     pub fn plan_expanded_local(
         &self,
         form: &conduit_form::ExpandedCanonicalForm,
@@ -780,6 +856,7 @@ impl StdHost {
                         keyboard,
                         local_model: self.local_model.as_deref_mut(),
                         vector_search: self.vector_search.as_deref_mut(),
+                        calendar: self.calendar.as_deref_mut(),
                     },
                     &fragment,
                     play_sequence,

@@ -2,7 +2,6 @@
 //!
 //! These types are realization facts. They do not belong in authored Forms or
 //! portable calendar Info, and this module owns no scheduling or retry policy.
-
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -13,7 +12,6 @@ pub const GOOGLE_CALENDAR_MAXIMUM_EVENTS: usize = 64;
 pub const GOOGLE_CALENDAR_MAXIMUM_CALENDARS: usize = 16;
 pub const GOOGLE_CALENDAR_MAXIMUM_RECURRENCE_RULES: usize = 16;
 pub const GOOGLE_CALENDAR_MAXIMUM_BODY_BYTES: usize = 256 * 1_024;
-
 #[derive(Clone, PartialEq, Eq)]
 pub struct GoogleBearerToken(Vec<u8>);
 
@@ -93,9 +91,10 @@ impl GoogleCalendarExchange {
 pub struct GoogleCalendarResponse {
     pub status: u16,
     pub body: Vec<u8>,
+    pub observed_unix_seconds: u64,
 }
 
-pub trait GoogleCalendarTransport {
+pub trait GoogleCalendarTransport: Send {
     fn exchange(
         &mut self,
         credential: &GoogleBearerToken,
@@ -214,6 +213,7 @@ pub enum GoogleCalendarRefusal {
     ProviderResponseTooLarge,
     TimezoneMismatch,
     RecurrenceMismatch,
+    StaleFreeBusy,
 }
 
 pub struct GoogleCalendarClient<T> {
@@ -299,7 +299,11 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
             body,
             if_match: None,
         })?;
-        super::google_response::decode_free_busy(&response.body, &request.calendar_ids)
+        super::google_response::decode_free_busy(
+            &response.body,
+            &request.calendar_ids,
+            response.observed_unix_seconds,
+        )
     }
 
     pub fn create_event(
@@ -365,6 +369,10 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
 
     pub fn into_transport(self) -> T {
         self.transport
+    }
+
+    pub fn resource(&self) -> &GoogleCalendarResource {
+        &self.resource
     }
 
     fn perform(
