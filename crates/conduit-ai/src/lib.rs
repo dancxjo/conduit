@@ -19,6 +19,8 @@ mod structured_result;
 pub use structured_result::*;
 mod temporal_context;
 pub use temporal_context::*;
+mod temporal_follow_up;
+pub use temporal_follow_up::*;
 mod temporal_evidence_selection;
 pub use temporal_evidence_selection::*;
 mod vector_index_lifecycle;

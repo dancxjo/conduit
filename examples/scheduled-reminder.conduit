@@ -1,0 +1,5 @@
+form scheduled-reminder {
+    source: notification/deterministic-reminder
+    deliver: notification/deliver-reminder
+    source.reminder > deliver.reminder
+}

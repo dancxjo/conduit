@@ -70,6 +70,16 @@ pub struct ReminderSpecification {
     pub delivery_kind: String,
 }
 
+/// One firing of a reminder, distinct from the calendar event it references.
+/// Delivery remains a downstream effect with its own authority.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReminderOccurrence {
+    pub identity: String,
+    pub reminder_identity: String,
+    pub event_identity: String,
+    pub delivery_kind: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CalendarEvent {
     pub identity: String,
@@ -234,6 +244,15 @@ impl ReminderSpecification {
         (self.before_start_ticks > 0)
             .then_some(())
             .ok_or(CalendarRefusal::InvalidReminder)
+    }
+}
+
+impl ReminderOccurrence {
+    pub fn validate(&self) -> Result<(), CalendarRefusal> {
+        identity(&self.identity).map_err(|_| CalendarRefusal::InvalidReminder)?;
+        identity(&self.reminder_identity).map_err(|_| CalendarRefusal::InvalidReminder)?;
+        identity(&self.event_identity).map_err(|_| CalendarRefusal::InvalidReminder)?;
+        identity(&self.delivery_kind).map_err(|_| CalendarRefusal::InvalidReminder)
     }
 }
 
