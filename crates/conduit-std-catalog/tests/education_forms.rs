@@ -177,8 +177,7 @@ fn lesson_state_and_hints_are_bounded_without_retained_learner_history() {
         .find(|field| field.name() == "hints")
         .unwrap()
         .value_type();
-    let StructuredInfoTypeShape::Collection { length, .. } = hints.shape()
-    else {
+    let StructuredInfoTypeShape::Collection { length, .. } = hints.shape() else {
         panic!("hints must be a collection")
     };
     assert_eq!(length, MAXIMUM_EDUCATION_HINTS);
@@ -232,7 +231,10 @@ fn timing_value(classification: &str, delta_micros: i64) -> StructuredInfoValue 
             ("expected_time_micros", leaf("value/count@1", b"3000000")),
             ("observed", leaf("value/boolean@1", b"true")),
             ("observed_time_micros", leaf("value/count@1", b"3045000")),
-            ("recovery_state", leaf("music/recovery-state@1", b"improving")),
+            (
+                "recovery_state",
+                leaf("music/recovery-state@1", b"improving"),
+            ),
         ],
     )
 }

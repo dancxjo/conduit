@@ -8,9 +8,7 @@ use conduit_core::{
 
 use super::education_realization::EducationInfoRefusal;
 
-pub(super) fn ratio_value(
-    value: i64,
-) -> Result<StructuredInfoValue, EducationInfoRefusal> {
+pub(super) fn ratio_value(value: i64) -> Result<StructuredInfoValue, EducationInfoRefusal> {
     leaf_value(
         conduit_core::QUANTITY_INFO_ID,
         Quantity::new(value, QuantityUnit::Millionth)
@@ -39,10 +37,7 @@ pub(super) fn count_value(value: u64) -> StructuredInfoValue {
     .expect("bounded deterministic education count")
 }
 
-fn leaf_value(
-    kind: &str,
-    bytes: Vec<u8>,
-) -> Result<StructuredInfoValue, EducationInfoRefusal> {
+fn leaf_value(kind: &str, bytes: Vec<u8>) -> Result<StructuredInfoValue, EducationInfoRefusal> {
     Ok(StructuredInfoValue::leaf(
         StructuredInfoType::leaf(conduit_core::kind_id(kind))?,
         bytes,
@@ -76,9 +71,7 @@ pub(super) fn record_field<'a>(
         .ok_or(EducationInfoRefusal::MalformedInfo)
 }
 
-pub(super) fn leaf_text(
-    value: &StructuredInfoValue,
-) -> Result<&str, EducationInfoRefusal> {
+pub(super) fn leaf_text(value: &StructuredInfoValue) -> Result<&str, EducationInfoRefusal> {
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(EducationInfoRefusal::MalformedInfo);
     };

@@ -60,16 +60,8 @@ pub fn install_education_catalogs(
         profile,
         EDUCATION_EVALUATE_ARITHMETIC_KIND,
         vec![
-            value_port(
-                "question",
-                &education_question_type(),
-                PortDirection::Input,
-            ),
-            value_port(
-                "response",
-                &education_response_type(),
-                PortDirection::Input,
-            ),
+            value_port("question", &education_question_type(), PortDirection::Input),
+            value_port("response", &education_response_type(), PortDirection::Input),
         ],
         vec![
             value_port(
@@ -127,16 +119,8 @@ pub fn education_std_offers() -> Vec<CapabilityOffer> {
         offer(
             EDUCATION_EVALUATE_ARITHMETIC_KIND,
             vec![
-                value_port(
-                    "question",
-                    &education_question_type(),
-                    PortDirection::Input,
-                ),
-                value_port(
-                    "response",
-                    &education_response_type(),
-                    PortDirection::Input,
-                ),
+                value_port("question", &education_question_type(), PortDirection::Input),
+                value_port("response", &education_response_type(), PortDirection::Input),
             ],
             vec![
                 value_port(

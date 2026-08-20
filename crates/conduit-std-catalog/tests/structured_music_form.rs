@@ -67,9 +67,7 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
     let comparison = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| {
-            placement.kind_id.as_str() == conduit_std_catalog::RHYTHM_COMPARE_KIND
-        })
+        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::RHYTHM_COMPARE_KIND)
         .unwrap();
     assert_eq!(
         comparison.implementation_id.as_str(),

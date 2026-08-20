@@ -3,6 +3,10 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoValue, StructuredInfoValueShape};
 
+use crate::education_value::{
+    count_value, leaf_text, ratio_value, record_field, record_value, text_value, unit_value,
+    variant_payload_type,
+};
 use crate::{
     education_answer_type, education_assessment_outcome_type, education_assessment_type,
     education_evidence_class_type, education_feedback_provenance_type, education_hint_type,
@@ -10,10 +14,6 @@ use crate::{
     education_progress_state_type, education_progress_type, education_question_type,
     education_refused_response_type, education_response_type, education_rhythm_feedback_type,
     timing_feedback_type, MAXIMUM_EDUCATION_HINTS,
-};
-use crate::education_value::{
-    count_value, leaf_text, ratio_value, record_field, record_value, text_value, unit_value,
-    variant_payload_type,
 };
 
 pub const ARITHMETIC_RESPONSE_PROFILE: &str = "education/response/integer-text@1";
@@ -78,10 +78,7 @@ pub fn deterministic_arithmetic_fixture() -> Result<EducationFixture, EducationI
             ),
             ("prompt", text_value("What is 7 + 5?")),
             ("question_identity", text_value(question_identity)),
-            (
-                "response_profile",
-                text_value(ARITHMETIC_RESPONSE_PROFILE),
-            ),
+            ("response_profile", text_value(ARITHMETIC_RESPONSE_PROFILE)),
         ],
     )?;
     let answer = record_value(
@@ -101,21 +98,13 @@ pub fn deterministic_arithmetic_fixture() -> Result<EducationFixture, EducationI
 pub fn deterministic_hint_request(
     question_identity: &str,
 ) -> Result<StructuredInfoValue, EducationInfoRefusal> {
-    response_event(
-        "hint_request",
-        question_identity,
-        "response/hint-request/1",
-    )
+    response_event("hint_request", question_identity, "response/hint-request/1")
 }
 
 pub fn deterministic_timeout(
     question_identity: &str,
 ) -> Result<StructuredInfoValue, EducationInfoRefusal> {
-    response_event(
-        "timeout",
-        question_identity,
-        "response/timeout/1",
-    )
+    response_event("timeout", question_identity, "response/timeout/1")
 }
 
 pub fn deterministic_refused_response(
@@ -373,16 +362,12 @@ fn feedback_value(
     source: &str,
 ) -> Result<StructuredInfoValue, EducationInfoRefusal> {
     let optional_hint = match hint {
-        Some(value) => StructuredInfoValue::variant(
-            education_optional_hint_type(),
-            "provided",
-            value,
-        )?,
-        None => StructuredInfoValue::variant(
-            education_optional_hint_type(),
-            "absent",
-            unit_value()?,
-        )?,
+        Some(value) => {
+            StructuredInfoValue::variant(education_optional_hint_type(), "provided", value)?
+        }
+        None => {
+            StructuredInfoValue::variant(education_optional_hint_type(), "absent", unit_value()?)?
+        }
     };
     let evidence = StructuredInfoValue::variant(
         education_evidence_class_type(),
