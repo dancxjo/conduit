@@ -1,0 +1,13 @@
+form network-resolution (
+    connection: NetworkConnectionState >
+    dns: DnsResult >
+) {
+    endpoint: net/deterministic-endpoint
+    query: net/deterministic-dns-query
+    connect: net/connect
+    resolve: net/resolve-dns
+    endpoint.endpoint > connect.endpoint
+    query.query > resolve.query
+    connect.state > connection
+    resolve.result > dns
+}
