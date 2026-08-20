@@ -1,0 +1,8 @@
+form tabular-query (
+    name: TabularSelectedText >
+) {
+    query: tabular/person-query-four
+    filter: tabular/filter-active-four
+    query.result > filter.result
+    filter.result > project(TabularQueryResultFour.rows) > index(TabularPersonRowsFour[0]) > select(TabularPersonRowSlot.row, unmatched=refuse) > project(TabularPersonRow.name) > name
+}
