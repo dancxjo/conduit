@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit browser pointer source proof</title>
+<style>
+  body { margin: 0; }
+  #surface { width: 400px; height: 200px; background: #234; touch-action: none; }
+</style>
+<p id="result">running</p>
+<div id="surface" aria-label="Portable pointer surface"></div>
+<output id="receipt"></output>
+<script type="module">
+import { installBrowserPointerSource } from "./browser-pointer-runtime.mjs";
+
+try {
+  const wasmBytes = await fetch(
+    "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+  ).then((response) => {
+    if (!response.ok) throw new Error("browser runtime WASM artifact did not load");
+    return response.arrayBuffer();
+  });
+  const output = document.querySelector("#receipt");
+  const source = await installBrowserPointerSource(
+    wasmBytes,
+    document.querySelector("#surface"),
+    (receipt) => {
+      globalThis.__conduitBrowserPointerReceipt = receipt;
+      output.textContent = JSON.stringify(receipt);
+    },
+  );
+  globalThis.__conduitBrowserPointerSource = source;
+  document.querySelector("#result").textContent = "ready";
+} catch (error) {
+  document.querySelector("#result").textContent = `failed: ${error.message}`;
+  throw error;
+}
+</script>

@@ -15,6 +15,7 @@ export default defineConfig({
     "r1-three-peer-input.spec.mjs",
     "triple-signal.spec.mjs",
     "presentation-nucleus.spec.mjs",
+    "browser-pointer.spec.mjs",
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",
     "webrtc-datachannel-line.spec.mjs",

@@ -21,6 +21,7 @@ use crate::{
 
 pub const DETERMINISTIC_GAMEPAD_KIND: &str = "input/deterministic-gamepad";
 pub const DETERMINISTIC_POINTER_TOUCH_KIND: &str = "input/deterministic-pointer-touch";
+pub const POINTER_SOURCE_KIND: &str = "input/pointer-source";
 pub const GENERALIZED_INPUT_REVISION: &str = "conduit.std/generalized-input@1";
 pub const GENERALIZED_INPUT_PROFILE: &str = "std/generalized-input-deterministic@1";
 pub const GENERALIZED_INPUT_ARTIFACT: &str = "conduit-std-host/generalized-input@1";
@@ -35,6 +36,16 @@ pub fn install_generalized_input_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
+    insert_kind(
+        startup,
+        profile,
+        POINTER_SOURCE_KIND,
+        vec![port(
+            "pointer",
+            &pointer_event_type(),
+            PortDirection::Output,
+        )],
+    )?;
     insert_kind(
         startup,
         profile,
