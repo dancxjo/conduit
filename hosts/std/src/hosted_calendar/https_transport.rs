@@ -79,7 +79,10 @@ impl GoogleCalendarTransport for GoogleHttpsTransport {
             .with_config()
             .limit(GOOGLE_CALENDAR_MAXIMUM_BODY_BYTES as u64 + 1)
             .read_to_vec()
-            .map_err(|_| GoogleCalendarRefusal::ProviderLost)?;
+            .map_err(|error| match error {
+                ureq::Error::BodyExceedsLimit(_) => GoogleCalendarRefusal::ProviderResponseTooLarge,
+                _ => GoogleCalendarRefusal::ProviderLost,
+            })?;
         if body.len() > GOOGLE_CALENDAR_MAXIMUM_BODY_BYTES {
             return Err(GoogleCalendarRefusal::ProviderResponseTooLarge);
         }

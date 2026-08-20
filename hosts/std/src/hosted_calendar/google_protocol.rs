@@ -239,7 +239,7 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
     pub fn list_events(
         &mut self,
         request: &GoogleListEventsRequest,
-    ) -> Result<GoogleCalendarResponse, GoogleCalendarRefusal> {
+    ) -> Result<super::GoogleEventPage, GoogleCalendarRefusal> {
         if request.maximum_results == 0
             || usize::from(request.maximum_results) > GOOGLE_CALENDAR_MAXIMUM_EVENTS
         {
@@ -263,18 +263,19 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
             path.push_str("&pageToken=");
             path.push_str(&percent_encode(page_token));
         }
-        self.perform(GoogleCalendarExchange {
+        let response = self.perform(GoogleCalendarExchange {
             method: GoogleCalendarMethod::Get,
             path_and_query: path,
             body: Vec::new(),
             if_match: None,
-        })
+        })?;
+        super::google_response::decode_event_page(&response.body, request.maximum_results)
     }
 
     pub fn query_free_busy(
         &mut self,
         request: &GoogleFreeBusyRequest,
-    ) -> Result<GoogleCalendarResponse, GoogleCalendarRefusal> {
+    ) -> Result<super::GoogleFreeBusyPage, GoogleCalendarRefusal> {
         if request.calendar_ids.is_empty()
             || request.calendar_ids.len() > GOOGLE_CALENDAR_MAXIMUM_CALENDARS
             || request
@@ -292,21 +293,22 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
             "items": request.calendar_ids.iter().map(|id| serde_json::json!({"id": id})).collect::<Vec<_>>(),
         }))
         .map_err(|_| GoogleCalendarRefusal::InvalidRequest)?;
-        self.perform(GoogleCalendarExchange {
+        let response = self.perform(GoogleCalendarExchange {
             method: GoogleCalendarMethod::Post,
             path_and_query: "/calendar/v3/freeBusy".into(),
             body,
             if_match: None,
-        })
+        })?;
+        super::google_response::decode_free_busy(&response.body, &request.calendar_ids)
     }
 
     pub fn create_event(
         &mut self,
         request: &GoogleEventWriteRequest,
-    ) -> Result<GoogleCalendarResponse, GoogleCalendarRefusal> {
+    ) -> Result<super::GoogleWriteReceipt, GoogleCalendarRefusal> {
         validate_event(&request.event, false)?;
         let updates = if request.send_updates { "all" } else { "none" };
-        self.perform(GoogleCalendarExchange {
+        let response = self.perform(GoogleCalendarExchange {
             method: GoogleCalendarMethod::Post,
             path_and_query: format!(
                 "/calendar/v3/calendars/{}/events?sendUpdates={updates}",
@@ -315,18 +317,19 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
             body: serde_json::to_vec(&request.event)
                 .map_err(|_| GoogleCalendarRefusal::InvalidRequest)?,
             if_match: None,
-        })
+        })?;
+        super::google_response::decode_write_receipt(&response.body, &request.event)
     }
 
     pub fn update_event(
         &mut self,
         exact: &GoogleExactEvent,
         request: &GoogleEventWriteRequest,
-    ) -> Result<GoogleCalendarResponse, GoogleCalendarRefusal> {
+    ) -> Result<super::GoogleWriteReceipt, GoogleCalendarRefusal> {
         validate_exact_event(exact)?;
         validate_event(&request.event, false)?;
         let updates = if request.send_updates { "all" } else { "none" };
-        self.perform(GoogleCalendarExchange {
+        let response = self.perform(GoogleCalendarExchange {
             method: GoogleCalendarMethod::Put,
             path_and_query: format!(
                 "/calendar/v3/calendars/{}/events/{}?sendUpdates={updates}",
@@ -336,7 +339,8 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
             body: serde_json::to_vec(&request.event)
                 .map_err(|_| GoogleCalendarRefusal::InvalidRequest)?,
             if_match: Some(exact.revision.clone()),
-        })
+        })?;
+        super::google_response::decode_write_receipt(&response.body, &request.event)
     }
 
     pub fn cancel_event(
@@ -374,7 +378,11 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
         }
         match response.status {
             200..=299 => Ok(response),
-            401 | 403 => Err(GoogleCalendarRefusal::AuthorityDenied),
+            401 => Err(GoogleCalendarRefusal::AuthorityDenied),
+            403 if request.path_and_query.contains("sendUpdates=all") => {
+                Err(GoogleCalendarRefusal::AttendeeWriteDenied)
+            }
+            403 => Err(GoogleCalendarRefusal::AuthorityDenied),
             404 if request.path_and_query.contains("/events/") => {
                 Err(GoogleCalendarRefusal::EventDeleted)
             }
@@ -387,7 +395,7 @@ impl<T: GoogleCalendarTransport> GoogleCalendarClient<T> {
     }
 }
 
-fn validate_event(
+pub(super) fn validate_event(
     event: &GoogleWireEvent,
     requires_provider_identity: bool,
 ) -> Result<(), GoogleCalendarRefusal> {
