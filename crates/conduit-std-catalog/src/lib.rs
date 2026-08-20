@@ -64,6 +64,14 @@ pub use messaging_realization::*;
 mod messaging_catalog;
 #[cfg(feature = "form-catalog")]
 pub use messaging_catalog::*;
+mod generalized_input;
+pub use generalized_input::*;
+mod generalized_input_realization;
+pub use generalized_input_realization::*;
+#[cfg(feature = "form-catalog")]
+mod generalized_input_catalog;
+#[cfg(feature = "form-catalog")]
+pub use generalized_input_catalog::*;
 mod linguistics;
 pub use linguistics::*;
 mod linguistics_realization;

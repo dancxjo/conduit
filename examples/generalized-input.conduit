@@ -1,0 +1,16 @@
+# Deterministic portable input families with no device report or platform facts.
+form generalized-input (
+    button: InputButtonTransition >
+    gamepad: GamepadState >
+    pointer: PointerEvent >
+    rotary: RotaryStep >
+    touch: TouchFrame >
+) {
+    controls: input/deterministic-gamepad
+    surface: input/deterministic-pointer-touch
+    controls.button > button
+    controls.gamepad > gamepad
+    controls.rotary > rotary
+    surface.pointer > pointer
+    surface.touch > touch
+}
