@@ -360,6 +360,36 @@ impl RecurrenceExpansion {
     }
 }
 
+impl RecurrenceOccurrence {
+    pub fn validate(&self) -> Result<(), RecurrenceRefusal> {
+        validate_identity(&self.identity)?;
+        validate_identity(&self.recurrence_identity)?;
+        match &self.at {
+            OccurrenceInstant::Wall(instant) => instant
+                .validate()
+                .map_err(|_| RecurrenceRefusal::InvalidRule),
+            OccurrenceInstant::Monotonic(instant) => instant
+                .validate()
+                .map_err(|_| RecurrenceRefusal::InvalidRule),
+            OccurrenceInstant::Civil {
+                local,
+                zone,
+                instant,
+                ..
+            } => {
+                local
+                    .validate()
+                    .map_err(|_| RecurrenceRefusal::InvalidCivilResolution)?;
+                zone.validate()
+                    .map_err(|_| RecurrenceRefusal::InvalidCivilResolution)?;
+                instant
+                    .validate()
+                    .map_err(|_| RecurrenceRefusal::InvalidCivilResolution)
+            }
+        }
+    }
+}
+
 fn wall_in_window(
     at: &TemporalInstant,
     start: &TemporalInstant,

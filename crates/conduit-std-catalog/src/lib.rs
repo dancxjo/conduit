@@ -149,6 +149,12 @@ mod calendar_provider_catalog;
 pub use calendar_provider_catalog::*;
 mod schedule;
 pub use schedule::*;
+mod scheduled_job;
+pub use scheduled_job::*;
+#[cfg(feature = "form-catalog")]
+mod reminder_catalog;
+#[cfg(feature = "form-catalog")]
+pub use reminder_catalog::*;
 #[cfg(feature = "form-catalog")]
 mod schedule_realization;
 #[cfg(feature = "form-catalog")]
