@@ -1,0 +1,16 @@
+# Deterministic structured robotics values. This Form does not actuate.
+form robotics-diversity (
+    contact: RoboticsContactEvent >
+    motion: RoboticsMotionRequest >
+    pose: RoboticsPoseSample >
+    power: RoboticsPowerTelemetry >
+    range: RoboticsRangeObservation >
+) {
+    observations: robotics/deterministic-observations
+    intent: robotics/deterministic-intent
+    observations.contact > contact
+    intent.request > motion
+    observations.pose > pose
+    observations.power > power
+    observations.range > range
+}
