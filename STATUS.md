@@ -32,7 +32,7 @@ adapter or physical proof.
 | Browser manifestation | local and remote-ingress Signal profiles | yes, `conduit-browser-sim` | actual Rust/WASM planner plus exact-plan-lowered `conduit-kernel` execution for local and distributed sink fragments | thin DOM adapter with exact fixed-frame completion correlation and sixteen receipts | no | actual loopback WebSocket to the std kernel source | included in the accepted three-host physical run with matching cross-host receipts |
 | Interactive Play start/toggle | typed `interaction/start -> state/toggle -> presentation/show` contract with admitted input and exact remote planning | deterministic Play start/toggle lifecycle and identity negatives | native std source services one admitted stdin Play start through the kernel before realizing the corresponding remote offer | pinned Chromium proves the first Enter causes exactly one sequence-0 DOM update before later inputs, then completes sixteen exact presentations with one real pressure retry | no | actual bounded loopback WebSocket with structured link-break failure | no |
 | Native Patchbay presentation and interaction | checked/expanded Forms project exact Gear/Port/Cord subjects; finite platform-neutral `interaction/select` and `interaction/invoke` requests cross exact typed Ports and one admitted host-operation boundary through the production kernel | deterministic geometry/hit, pointer/keyboard convergence, Plan/Play/Sign inspection, bounded-value, stale/unknown/oversized identity, request-restoration, and distinct success/refusal/failure vectors | the actual native Patchbay window renders the bounded canvas and routes pointer selection, graphical keyboard traversal, open/save/view actions, and Body lifecycle controls through ordinary interaction Plays before shared inspector or control state changes | HTML consumes the same semantic request types without DOM identity; no interactive HTML realization is claimed | no firmware or framebuffer interaction claim | no new transport | no physical/HIL claim |
-| Explicit external WebSocket chat | opt-in `net/websocket` client/listener faces encode complete-message RFC 6455 semantics structurally; equal checked faces remain compatible across nominal names/revisions, while a generic byte-stream face does not | deterministic checked-face, canonical expansion, bounded planning/kernel execution, malformed/oversize, and disconnect vectors | bounded two-peer std listener executes exact accept/receive/send operations through the ordinary fixed scheduler and host-operation boundary | two independent planned browser/WASM kernels use native browser WebSocket plus bounded text-input/list adapters; pinned Chromium proves A/B exchange and truthful one-peer continuation | no | actual binary loopback external WebSocket messages, mechanically distinct from `ConnectionBase::WebSocket` Conduit-session carriage | no physical/HIL claim |
+| Explicit external WebSocket chat | opt-in `net/websocket` client/listener faces encode complete-message RFC 6455 semantics structurally; the authored client describes semantic Presentation regions, collection/items, text entry, status, and action meaning without host or DOM facts | deterministic checked-face, canonical expansion, exact finite interaction offers, bounded planning/kernel execution, stale Presentation/Manifestation, unknown input/action, wrong target/kind, empty/oversize/malformed value, duplicate sequence, pressure, cancellation, platform failure, missing-offer, and disconnect vectors | bounded two-peer std listener executes exact accept/receive/send operations through the ordinary fixed scheduler and host-operation boundary | two independent planned browser/WASM kernels use native browser WebSocket plus a generic semantic Presentation renderer and exact typed interaction source; pinned Chromium proves click/Enter convergence, authored-label changes without JavaScript changes, A/B exchange, content-minimizing evidence, and truthful one-peer continuation | no | actual binary loopback external WebSocket messages, mechanically distinct from `ConnectionBase::WebSocket` Conduit-session carriage | no physical/HIL claim |
 | Bounded shared pools and explicit dynamic flow | checked Forms carry exact scoped pool references and hard member bounds; Plans seal equal-face member contracts, host/boot/capability/resource envelopes, per-member queue/Sign limits, admission authority, and explicit consumers | allocator-free keyed membership, stale occupation epochs, deterministic membership snapshots, per-branch fan pressure/outcomes, and source-tagged bounded merge vectors | the existing kernel owns fixed pool/fan/merge state; the std proof host plans and lowers one 32-peer chat pool without adding a scheduler or ambient registry | two Chromium pages dynamically join, exchange addressed broadcasts, one leaves, and the remaining peer continues; the authored Form names only pool, room, fan, merge, and peer semantics | no | the proof host selects a bounded binary loopback WebSocket Line below authored semantics; no socket/address/Base fact enters source identity | no physical/HIL claim |
 | Pico-shaped manifestation | exact Pico-local and remote-ingress advertisements with reviewed fixed-image bounds | yes, `conduit-pico-sim` | host-side unchanged-form planning/lowering/image generation, exact std source, and verifier tests | no | RP2040 images generated from exact local/remote fragments, CYW43 GPIO 0 LED driver, pinned radio assets, clean firmware-build identity, runtime boot/play receipt identity, and bounded dual CDC | exact bounded std↔Pico USB CDC and final three-host sessions | recorded local, exact std↔Pico success/failure, and final three-host success/broken-link runs |
 | Retired membership prototype | historical only | deterministic table tests | no production Body model | no | no | no | no |
@@ -1995,3 +1995,38 @@ inspection-only exact identities understandable. Automated browser evidence
 and coding-agent inspection do not satisfy that human claim. This slice adds
 no gesture binding, layout, action execution engine, authority source, Text
 Lab, physical execution, or HIL claim.
+
+The executable interactive-Presentation and webchat migration from #1597
+merged through PR #1599 as exact main
+`5d0a9f84530906e1e60aa406b456b6fc28eb1458`. Its final implementation head
+`2dd15fb6d6abf02cec5ff9d89443e127787b0a80` passed every PR check. Exact-main
+workflow `32409065376` then passed the complete required matrix, including the
+Rust 1.98 locked workspace lint/test shards and `browser-host`. A separate
+exact-main `cargo xtask prove browser-host` run passed 32 pinned-Chromium tests
+with two optional Firefox cases skipped and all 11 Patchbay HTML tests.
+
+Portable `Presentation` values can now carry finite exact text-entry input
+descriptions and produce an exact typed `presentation/interaction` value bound
+to Presentation, revision, Manifestation, input, action, target, kind, and
+sequence identities. A bounded interaction ledger retains accepted, refused,
+failed, cancelled, and platform evidence without retaining submitted plaintext.
+Stale Presentation and Manifestation, unknown input or action, wrong target or
+kind, empty, oversized, malformed, duplicate, pressure, evidence exhaustion,
+cancellation, adapter loss, and delivery failure remain distinct. Planning
+refuses when the exact finite interaction offer is absent.
+
+The authored webchat Form now names only chat and Presentation meaning. Its
+explicit six-operation graph realizes state, atomic tee fan-out, renderer,
+interaction, submit, and external WebSocket operations through the existing
+planner and production kernel. The browser page contains no authored chat
+controls, and the generic JavaScript renderer derives controls, labels,
+availability, bounds, and targets from each Presentation. Click and Enter
+converge on the same typed interaction path. Two actual Chromium clients
+exchange bounded messages, a surviving client continues after peer loss, and
+an authored label oracle changes the visible text without a JavaScript change.
+The retired `web/text-input` and `web/list` compatibility meanings are absent.
+
+This acceptance proves deterministic contracts, hosted execution, live
+loopback transport, and pinned browser execution. It adds no native text-input
+control, public network/TLS/auth service, renderer-owned policy or runtime
+truth, browser scheduler, firmware execution, physical device, or HIL claim.
