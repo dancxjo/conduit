@@ -1,0 +1,10 @@
+form vision-metadata (
+    detections: VisionDetectionsFour >
+    image: ImageResource >
+) {
+    fixture: vision/deterministic-image
+    detect: vision/deterministic-detector
+    fixture.image > detect.image
+    detect.detections > detections
+    fixture.image > image
+}
