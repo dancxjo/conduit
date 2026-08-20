@@ -82,7 +82,10 @@ fn deterministic_fixture_produces_exact_late_assessment_without_executing() {
     let fixture = deterministic_schedule_fixture().unwrap();
     let assessment =
         assess_schedule_values(&fixture.intent, &fixture.lifecycle, &fixture.observation).unwrap();
-    assert_eq!(leaf_text(record_field(&assessment, "intent_identity")), "schedule/report#0");
+    assert_eq!(
+        leaf_text(record_field(&assessment, "intent_identity")),
+        "schedule/report#0"
+    );
     let outcome = record_field(&assessment, "outcome");
     assert_eq!(variant_tag(outcome), "late");
     let StructuredInfoValueShape::Variant { payload, .. } = outcome.shape() else {
@@ -190,7 +193,14 @@ fn scheduled_intent_reuses_t1_occurrence_and_contains_no_authority_identity() {
         &recurrence_occurrence_type()
     );
     let rendered = format!("{intent:?}").to_ascii_lowercase();
-    for forbidden in ["authority", "resource", "host/", "boot/", "socket", "execute-now"] {
+    for forbidden in [
+        "authority",
+        "resource",
+        "host/",
+        "boot/",
+        "socket",
+        "execute-now",
+    ] {
         assert!(
             !rendered.contains(forbidden),
             "scheduled observation leaked {forbidden}"
