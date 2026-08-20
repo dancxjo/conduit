@@ -1,5 +1,5 @@
 form linguistic-annotations (
-    label: Text >
+    label: LinguisticLabel >
 ) {
     tokenize: language/tokenize-four(text = "Bright stars shine.")
     annotate: language/annotate-four

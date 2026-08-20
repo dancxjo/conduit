@@ -192,10 +192,7 @@ fn annotation_bundle(
             record_value(
                 linguistic_annotation_type(),
                 vec![
-                    (
-                        "label",
-                        leaf_value("value/text@1", label.as_bytes()),
-                    ),
+                    ("label", leaf_value("value/text@1", label.as_bytes())),
                     ("span", record_field(token, "span")?.clone()),
                 ],
             )

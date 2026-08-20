@@ -11,6 +11,7 @@ pub const LINGUISTIC_TOKENS_FOUR_TYPE: &str = "LinguisticTokensFour";
 pub const LINGUISTIC_SEGMENT_TYPE: &str = "LinguisticSegment";
 pub const LINGUISTIC_ANNOTATION_TYPE: &str = "LinguisticAnnotation";
 pub const LINGUISTIC_ANNOTATIONS_FOUR_TYPE: &str = "LinguisticAnnotationsFour";
+pub const LINGUISTIC_LABEL_TYPE: &str = "LinguisticLabel";
 pub const DEPENDENCY_EDGE_TYPE: &str = "LinguisticDependencyEdge";
 pub const ANNOTATION_BUNDLE_FOUR_TYPE: &str = "AnnotationBundleFour";
 pub const LINGUISTIC_TOKEN_COUNT: u16 = 4;
@@ -203,11 +204,12 @@ pub fn linguistic_tokens_four_type() -> StructuredInfoType {
 pub fn linguistic_annotation_type() -> StructuredInfoType {
     record(
         "language/span-annotation@1",
-        vec![
-            field("label", text_type()),
-            field("span", text_span_type()),
-        ],
+        vec![field("label", text_type()), field("span", text_span_type())],
     )
+}
+
+pub fn linguistic_label_type() -> StructuredInfoType {
+    text_type()
 }
 
 pub(crate) fn dependency_relation_type() -> StructuredInfoType {
