@@ -8,8 +8,9 @@ use conduit_form::{
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_catalog::{
-    install_structured_music_form_catalogs, instrument_map_std_offer, instrument_mapping_type,
-    rhythm_compare_std_offer, INSTRUMENT_MAP_KIND, INSTRUMENT_MAP_STD_IMPLEMENTATION,
+    education_std_offers, install_education_catalogs, install_structured_music_form_catalogs,
+    instrument_map_std_offer, instrument_mapping_type, rhythm_compare_std_offer,
+    EDUCATION_RHYTHM_FEEDBACK_KIND, INSTRUMENT_MAP_KIND, INSTRUMENT_MAP_STD_IMPLEMENTATION,
     RHYTHM_COMPARE_STD_IMPLEMENTATION,
 };
 
@@ -20,6 +21,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_structured_music_form_catalogs(&mut startup, &mut profile).unwrap();
+    install_education_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }
 
@@ -31,16 +33,28 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
     let checked = check_syntax_document(&parsed, &startup).unwrap();
     let authored =
         expand_canonical_form_for_authoring(&checked, "rhythm-lesson", &profile).unwrap();
-    assert_eq!(authored.expanded.gears.len(), 1);
-    assert_eq!(
-        authored.expanded.gears[0].kind_id.as_str(),
-        conduit_std_catalog::RHYTHM_COMPARE_KIND
-    );
+    assert_eq!(authored.expanded.gears.len(), 2);
+    assert!(authored
+        .expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == conduit_std_catalog::RHYTHM_COMPARE_KIND));
+    assert!(authored
+        .expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == EDUCATION_RHYTHM_FEEDBACK_KIND));
     assert_eq!(authored.input_bindings.len(), 2);
-    assert_eq!(authored.output_bindings.len(), 1);
+    assert_eq!(authored.output_bindings.len(), 2);
 
     let mut host = host();
-    host.capabilities = vec![rhythm_compare_std_offer()];
+    host.capabilities = vec![
+        rhythm_compare_std_offer(),
+        education_std_offers()
+            .into_iter()
+            .find(|offer| offer.kind_id.as_str() == EDUCATION_RHYTHM_FEEDBACK_KIND)
+            .unwrap(),
+    ];
     let placements =
         default_expanded_placements(&authored.expanded, core::slice::from_ref(&host)).unwrap();
     let plan = plan_expanded_canonical(
@@ -50,7 +64,13 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
         &[ConnectionBase::Local],
     )
     .unwrap();
-    let comparison = &plan.fragments[0].placements[0];
+    let comparison = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_std_catalog::RHYTHM_COMPARE_KIND
+        })
+        .unwrap();
     assert_eq!(
         comparison.implementation_id.as_str(),
         RHYTHM_COMPARE_STD_IMPLEMENTATION

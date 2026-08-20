@@ -3,10 +3,14 @@
 form rhythm-lesson (
     > performance: music/note-event@1...|
     > reference: BeatReference...|
-    feedback: TimingFeedback...| >
+    feedback: EducationRhythmFeedback...| >
+    timing_feedback: TimingFeedback...| >
 ) {
     compare: music/rhythm-compare(target-offset-micros = 0, tolerance-micros = 30000)
+    educate: education/rhythm-feedback
     performance > compare.performance
     reference > compare.reference
-    compare.feedback > feedback
+    compare.feedback > timing_feedback
+    compare.feedback > educate.timing
+    educate.feedback > feedback
 }

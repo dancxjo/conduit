@@ -1,0 +1,16 @@
+# Deterministic non-music lesson using the reusable education substrate.
+form arithmetic-lesson (
+    assessment: EducationAssessment >
+    feedback: EducationLessonFeedback >
+    progress: EducationProgress >
+    question: EducationQuestion >
+) {
+    fixture: education/arithmetic-fixture
+    evaluate: education/evaluate-arithmetic
+    fixture.question > evaluate.question
+    fixture.response > evaluate.response
+    evaluate.assessment > assessment
+    evaluate.feedback > feedback
+    evaluate.progress > progress
+    fixture.question > question
+}
