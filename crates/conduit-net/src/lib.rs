@@ -24,6 +24,12 @@ mod pico_appliance_protocol;
 pub use pico_appliance_protocol::*;
 mod network_info;
 pub use network_info::*;
+mod application_info;
+pub use application_info::*;
+#[cfg(feature = "form-catalog")]
+mod application_catalog;
+#[cfg(feature = "form-catalog")]
+pub use application_catalog::*;
 mod r1_route;
 pub use r1_route::*;
 #[cfg(feature = "r1-planning")]

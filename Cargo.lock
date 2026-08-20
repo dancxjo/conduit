@@ -415,6 +415,7 @@ dependencies = [
  "conduit-browser-sim",
  "conduit-core",
  "conduit-form",
+ "conduit-net",
  "conduit-observatory",
  "conduit-pico-sim",
  "conduit-planner",
