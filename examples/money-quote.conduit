@@ -1,0 +1,23 @@
+form money-quote (
+    amount: FinanceFixedDecimal >
+    comparison: FinanceMoneyComparison >
+    converted: FinanceMoney >
+    events: FinanceTransactionEventsThree >
+    quote: FinanceQuote >
+) {
+    fixture: finance/deterministic-fixture
+    add: finance/add-money
+    compare: finance/compare-money
+    convert: finance/convert-money
+    fixture.left > add.left
+    fixture.left > compare.left
+    fixture.right > add.right
+    fixture.right > compare.right
+    fixture.convertible > convert.money
+    fixture.rate > convert.rate
+    add.sum > project(FinanceMoney.amount) > amount
+    compare.result > comparison
+    convert.converted > converted
+    fixture.events > events
+    fixture.quote > quote
+}
