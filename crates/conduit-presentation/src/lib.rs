@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+mod calendar_time;
 mod composition;
 mod contract;
 mod graphics;
@@ -21,6 +22,7 @@ mod temporal;
 mod temporal_model;
 mod temporal_wording;
 
+pub use calendar_time::*;
 pub use composition::*;
 pub use contract::*;
 pub use graphics::*;
