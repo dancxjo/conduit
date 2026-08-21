@@ -32,6 +32,7 @@ mod characteristics;
 mod compute_admission;
 mod contract;
 mod decision_evidence;
+mod degradation;
 mod diagnostic;
 mod fact_policy;
 mod functional_compatibility;
@@ -82,6 +83,11 @@ pub use contract::{
 pub use decision_evidence::{
     RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection,
     RealizationSelection, MAXIMUM_REALIZATION_DECISION_RECORDS,
+};
+pub use degradation::{
+    assess_scoped_degradation, DegradationAssessment, DegradationFragment,
+    DegradationFragmentDisposition, DegradationInput, MAXIMUM_DEGRADATION_FRAGMENTS,
+    MAXIMUM_DEGRADATION_FRAGMENT_ID_BYTES, MAXIMUM_DEGRADATION_REFUSAL_BYTES,
 };
 pub use diagnostic::structured_planner_diagnostic;
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
