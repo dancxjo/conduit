@@ -614,6 +614,7 @@ dependencies = [
 name = "conduit-netherwick"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-core",
  "conduit-create-oi",
  "conduit-form",
