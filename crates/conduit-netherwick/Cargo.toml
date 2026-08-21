@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
+conduit-ai = { path = "../conduit-ai" }
 conduit-create-oi = { path = "../conduit-create-oi" }
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
