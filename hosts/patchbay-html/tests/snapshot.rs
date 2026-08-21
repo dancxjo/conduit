@@ -32,6 +32,14 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
         .renderer
         .validate_against(&decoded.presentation)
         .is_ok());
+    assert_eq!(decoded.temporal_context.len(), 1);
+    assert!(decoded.temporal_context[0]
+        .relative_time
+        .ends_with("seconds ago"));
+    assert_eq!(
+        decoded.temporal_context[0].source,
+        decoded.presentation.temporal_facts[0].source
+    );
 }
 
 #[test]
@@ -119,6 +127,12 @@ fn stale_malformed_unknown_oversized_and_drifted_snapshots_fail_closed() {
     ));
     value = serde_json::from_slice(&bytes).unwrap();
     value["renderer"]["manifestation"]["presentation_revision"] = 99.into();
+    assert_eq!(
+        RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
+        Err(SnapshotError::InvalidIdentity)
+    );
+    value = serde_json::from_slice(&bytes).unwrap();
+    value["temporal_context"][0]["relative_time"] = "invented age".into();
     assert_eq!(
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::InvalidIdentity)

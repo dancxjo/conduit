@@ -109,6 +109,7 @@ pub(super) fn ordinary_front_door_lines(
     ];
     for subject in &observation.projected_subjects {
         lines.push(format!("{:?}  {}", subject.role, subject.label));
+        crate::temporal_presentation::append_subject_age_lines(presentation, subject, &mut lines);
         for action in observation
             .projected_actions
             .iter()

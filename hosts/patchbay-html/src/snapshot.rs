@@ -1,12 +1,15 @@
 use crate::transport_types::RendererSnapshot;
 use conduit_core::SignId;
-use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
+use conduit_presentation::{
+    project_model_temporal_context, ManifestationFailure, ManifestationLifecycle,
+};
 use patchbay_model::RendererExecution;
 
 pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-presentation";
 pub const MAX_NAVIGATION_SNAPSHOT_BYTES: usize = 512 * 1024;
-pub const MAX_SNAPSHOT_BYTES: usize =
-    conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES + MAX_NAVIGATION_SNAPSHOT_BYTES + 131_072;
+pub const MAX_SNAPSHOT_BYTES: usize = 2 * conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES
+    + MAX_NAVIGATION_SNAPSHOT_BYTES
+    + 131_072;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SnapshotError {
@@ -64,6 +67,8 @@ impl RendererSnapshot {
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         let entrance = patchbay_model::PatchbayEntranceState::enter(&execution.presentation)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
+        let temporal_context = project_model_temporal_context(&execution.presentation)
+            .map_err(|_| SnapshotError::InvalidIdentity)?;
         let value = Self {
             schema: SNAPSHOT_SCHEMA.into(),
             revision: execution.presentation.revision,
@@ -71,6 +76,7 @@ impl RendererSnapshot {
                 .self_inspection()
                 .map_err(|_| SnapshotError::InvalidIdentity)?,
             presentation: execution.presentation,
+            temporal_context,
             navigation: None,
             entrance,
             parts: None,
@@ -192,6 +198,8 @@ impl RendererSnapshot {
                 || authoring.source_document_id.is_empty()
                 || authoring.expanded_form_id.is_empty()
         });
+        let invalid_temporal_context = project_model_temporal_context(&self.presentation)
+            .map_or(true, |expected| expected != self.temporal_context);
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -204,6 +212,7 @@ impl RendererSnapshot {
             || invalid_parts
             || invalid_navigation
             || invalid_authoring
+            || invalid_temporal_context
         {
             return Err(SnapshotError::InvalidIdentity);
         }

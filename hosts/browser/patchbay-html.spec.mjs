@@ -138,6 +138,16 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.goto(url);
     await expect(page.locator("#status")).toContainText("Presentation revision 1");
     await expect(page.locator("#status")).toContainText("Manifestation Available");
+    expect(snapshot.temporal_context).toHaveLength(1);
+    expect(snapshot.temporal_context[0].subject).toMatch(/^part\//);
+    expect(snapshot.temporal_context[0].relative_time).toMatch(/seconds ago$/);
+    await expect(page.locator("#temporal-context")).toContainText(snapshot.temporal_context[0].relative_time);
+    await expect(page.locator("#temporal-context")).toContainText("observation");
+    await expect(page.locator("#temporal-context details")).not.toHaveAttribute("open", "");
+    await page.locator("#temporal-context summary").click();
+    await expect(page.locator("#temporal-context details")).toHaveAttribute("open", "");
+    await expect(page.locator("#temporal-context details")).toContainText(snapshot.temporal_context[0].source.clock_basis);
+    await expect(page.locator("#temporal-context details")).toContainText(snapshot.temporal_context[0].reference.identity);
     await expect(page.locator("#flow-root")).toHaveAttribute("data-renderer","react-flow");
     await expect(page.locator("#flow-root .react-flow")).toBeVisible();
     expect(await page.evaluate(()=>({innerHeight,innerWidth,scrollHeight:document.documentElement.scrollHeight,scrollWidth:document.documentElement.scrollWidth}))).toEqual({innerHeight:768,innerWidth:1366,scrollHeight:768,scrollWidth:1366});
@@ -225,7 +235,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expectFlowDominant(page);
     const structuredSummary=await page.locator("#toggle-structured").boundingBox();
     const realizationActions=await page.locator("#front-door-actions").boundingBox();
-    const currentStatus=await page.locator(".status-strip:not(#front-door-actions)").boundingBox();
+    const currentStatus=await page.locator("#current-status").boundingBox();
     expect(rectanglesOverlap(structuredSummary,realizationActions)).toBe(false);
     expect(rectanglesOverlap(currentStatus,realizationActions)).toBe(false);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"overview",snapshot,"full-window-flow-after-semantic-assertions");

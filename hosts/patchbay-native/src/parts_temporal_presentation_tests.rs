@@ -91,6 +91,23 @@ fn live_parts_linear_presentation_orders_age_before_exact_provenance() {
         .unwrap();
     assert!(relative < exact);
 
+    let mut navigation =
+        patchbay_model::PatchbayNavigationProjection::for_embodied(&later).unwrap();
+    let body_place = navigation
+        .navigation
+        .places
+        .iter()
+        .find(|place| place.place == conduit_presentation::PresentationPlace::Body)
+        .unwrap();
+    navigation.cursor.place = body_place.place;
+    navigation.cursor.aspect = body_place.aspects[0].aspect;
+    navigation.cursor.focus = Some(later.temporal_facts[0].subject.clone());
+    let ordinary =
+        super::presentation::ordinary_front_door_lines(&later, &navigation, None).unwrap();
+    assert!(ordinary.iter().any(|line| {
+        line.contains("ago") && line.contains("Observation") && line.contains("exact time in F2")
+    }));
+
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();
 }
