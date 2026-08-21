@@ -2,6 +2,7 @@ mod appliance_identity;
 mod body_admission;
 mod bootsel;
 mod carrier_status;
+mod create_power_pulse;
 mod create_probe;
 mod doctor;
 mod firmware;
@@ -135,6 +136,8 @@ pub enum PicoSubcommand {
     ProbeCreate,
     /// Read repeatable inert carrier status without enabling the translator.
     CarrierStatus,
+    /// Request one explicit bounded Create power-toggle pulse.
+    PowerCreate,
     /// Prove explicit Body admission against an already-provisioned Pico.
     ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
@@ -181,6 +184,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::Bootsel) => run_bootsel(&args),
         Some(PicoSubcommand::ProbeCreate) => create_probe::run(&args),
         Some(PicoSubcommand::CarrierStatus) => carrier_status::run(&args),
+        Some(PicoSubcommand::PowerCreate) => create_power_pulse::run(&args),
         Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }
 }

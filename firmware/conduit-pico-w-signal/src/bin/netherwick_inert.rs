@@ -67,6 +67,7 @@ const BOOTSEL_CHALLENGE_PREFIX: &str = "CONDUIT_BOOTSEL_CHALLENGE@1:";
 const BOOTSEL_REQUEST_PREFIX: &str = "CONDUIT_REBOOT_BOOTSEL@1:";
 const BOOTSEL_ACK: &[u8] = b"CONDUIT_REBOOT_BOOTSEL_ACK@1";
 const CREATE_PROBE_REQUEST_PREFIX: &str = "CONDUIT_CREATE_PROBE@1:";
+const CREATE_POWER_PULSE_REQUEST_PREFIX: &str = "CONDUIT_CREATE_POWER_PULSE@1:";
 const CARRIER_STATUS_REQUEST_PREFIX: &str = "CONDUIT_CARRIER_STATUS@1:";
 const BOOTSEL_FRAME_MAX: usize = 512;
 const WATCHDOG_TIMEOUT_MS: u64 = 2_000;
@@ -160,6 +161,7 @@ async fn serve_build_bound_services(
     tx: Peri<'static, PIN_0>,
     rx: Peri<'static, PIN_1>,
     charging_indicator: &Input<'static>,
+    mut power_toggle: Output<'static>,
     translator_oe: &mut Output<'static>,
 ) -> ! {
     let mut create_resources = create_probe::Resources::new(uart0, tx, rx);
@@ -170,28 +172,29 @@ async fn serve_build_bound_services(
     let mut packet = [0_u8; 64];
     let mut request = [0_u8; BOOTSEL_FRAME_MAX];
     loop {
-        let request_length = loop {
+        // Scope the decoder read to one DTR-bearing CDC connection.  A host
+        // close disables the endpoint; leave this scope and wait for the next
+        // connection rather than trying to reuse a disabled endpoint.
+        class.wait_connection().await;
+        let request_length = 'connection: loop {
             match decoder.next_frame() {
                 Ok(Some(frame)) => {
                     request[..frame.len()].copy_from_slice(frame);
-                    break frame.len();
+                    break 'connection Some(frame.len());
                 }
                 Ok(None) => {}
                 Err(_) => core::future::pending::<()>().await,
             }
             let read = match class.read_packet(&mut packet).await {
                 Ok(read) => read,
-                // A host-side CDC close disables the endpoint.  Keep the
-                // bounded service alive and wait for the next DTR-bearing
-                // connection instead of wedging the decoder forever.
-                Err(_) => {
-                    class.wait_connection().await;
-                    continue;
-                }
+                Err(_) => break 'connection None,
             };
             if decoder.accept_bytes(&packet[..read]).is_err() {
                 core::future::pending::<()>().await;
             }
+        };
+        let Some(request_length) = request_length else {
+            continue;
         };
         let request = &request[..request_length];
         if request == BOOTSEL_QUERY {
@@ -240,6 +243,43 @@ async fn serve_build_bound_services(
         }
         if request == expected_probe.as_bytes() {
             create_probe::run(class, &mut create_resources, translator_oe).await;
+            continue;
+        }
+
+        let mut expected_power_pulse = String::<BOOTSEL_FRAME_MAX>::new();
+        if write!(
+            expected_power_pulse,
+            "{CREATE_POWER_PULSE_REQUEST_PREFIX}{}",
+            env!("CONDUIT_NETHERWICK_INERT_BUILD_ID")
+        )
+        .is_err()
+        {
+            core::future::pending::<()>().await;
+        }
+        if request == expected_power_pulse.as_bytes() {
+            // Create DB-25 pin 3 is a toggle, not an on/off level.  Admit one
+            // finite low-high-low pulse only, and restore the translator and
+            // power control outputs to their safe low disposition before the
+            // response is emitted.  This service never writes Create UART or
+            // any motion opcode.
+            translator_oe.set_high();
+            Timer::after(Duration::from_millis(10)).await;
+            power_toggle.set_low();
+            power_toggle.set_high();
+            Timer::after(Duration::from_millis(500)).await;
+            power_toggle.set_low();
+            translator_oe.set_low();
+            let response = concat!(
+                "{\"schema\":\"conduit.netherwick/create-power-pulse@1\",",
+                "\"build_id\":\"",
+                env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"),
+                "\",\"success\":true,\"pulse_ms\":500,",
+                "\"translator_final\":\"low\",\"power_toggle_final\":\"low\",",
+                "\"motion_opcode_sent\":false}"
+            );
+            if send_control_frame(class, response.as_bytes()).await.is_err() {
+                core::future::pending::<()>().await;
+            }
             continue;
         }
 
@@ -298,6 +338,7 @@ async fn qualification_task(
     tx: Peri<'static, PIN_0>,
     rx: Peri<'static, PIN_1>,
     charging_indicator: Input<'static>,
+    power_toggle: Output<'static>,
     mut translator_oe: Output<'static>,
 ) {
     class.wait_connection().await;
@@ -346,6 +387,7 @@ async fn qualification_task(
         tx,
         rx,
         &charging_indicator,
+        power_toggle,
         &mut translator_oe,
     )
     .await;
@@ -356,7 +398,7 @@ fn main() -> ! {
     let p = embassy_rp::init(Default::default());
     // These outputs are established before any peripheral probing. Ownership is
     // retained for the lifetime of the image so neither can float or be reused.
-    let _power_toggle = Output::new(p.PIN_18, Level::Low);
+    let power_toggle = Output::new(p.PIN_18, Level::Low);
     let translator_oe = Output::new(p.PIN_19, Level::Low);
     let charging_indicator = Input::new(p.PIN_20, Pull::Down);
     let driver = usb::Driver::new(p.USB, Irqs);
@@ -377,6 +419,7 @@ fn main() -> ! {
                     p.PIN_0,
                     p.PIN_1,
                     charging_indicator,
+                    power_toggle,
                     translator_oe,
                 )
                 .unwrap(),
