@@ -9,6 +9,7 @@ conduit-midi = { path = "../conduit-midi" }
 conduit-presentation = { path = "../conduit-presentation" }
 conduit-form = { path = "../conduit-form", optional = true }
 conduit-runtime = { path = "../conduit-runtime", optional = true, default-features = false }
+conduit-planner = { path = "../conduit-planner", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [dev-dependencies]
@@ -18,3 +19,4 @@ conduit-planner = { path = "../conduit-planner" }
 default = ["form-catalog", "compatibility-fixture"]
 form-catalog = ["dep:conduit-form"]
 compatibility-fixture = ["dep:conduit-runtime", "conduit-runtime/compatibility-executor"]
+text-lab-plan = ["form-catalog", "dep:conduit-planner"]

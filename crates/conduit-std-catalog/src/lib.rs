@@ -167,6 +167,10 @@ mod text_presentation;
 pub use text_presentation::*;
 mod text_transform;
 pub use text_transform::*;
+#[cfg(feature = "text-lab-plan")]
+mod text_lab_plan;
+#[cfg(feature = "text-lab-plan")]
+pub use text_lab_plan::*;
 mod state_count;
 pub use state_count::*;
 mod state_toggle;
