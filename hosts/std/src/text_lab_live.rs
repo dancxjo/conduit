@@ -16,6 +16,26 @@ use std::io::Write;
 
 pub const TEXT_LAB_LIVE_FRAME_BYTES: u32 = 1_024;
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TextLabLineLossReceipt {
+    pub schema: String,
+    pub code: String,
+    pub phase: String,
+    pub sequence: u64,
+    pub line_id: String,
+    pub plan_id: String,
+    pub source_document_id: String,
+    pub checked_form_id: String,
+    pub active_play_id: String,
+    pub sign_id: String,
+    pub old_plan_disposition: String,
+    pub fresh_planning: String,
+    pub form_unchanged: bool,
+    pub refusal: String,
+    pub transport_failure: String,
+}
+
 fn return_line_loss(
     plan: &Plan,
     base: &str,
@@ -37,24 +57,24 @@ fn return_line_loss(
     let boot = conduit_core::BootId::from(TEXT_LAB_NATIVE_BOOT);
     let active = conduit_core::bind_active_play(&plan.plan_id, &host, &boot, 0);
     let sign = conduit_core::bind_sign(&host, &boot, Some(&active.active_play_id), sequence);
-    serde_json::json!({
-        "schema": "conduit.text-lab/line-loss@1",
-        "code": "CND-TEXT-LIVE-301",
-        "phase": phase,
-        "sequence": sequence,
-        "line_id": outcome.unavailable_line_id.as_str(),
-        "plan_id": outcome.immutable_plan_id.as_str(),
-        "source_document_id": outcome.source_document_id.as_str(),
-        "checked_form_id": outcome.checked_form_id.as_str(),
-        "active_play_id": active.active_play_id.as_str(),
-        "sign_id": sign.sign_id.as_str(),
-        "old_plan_disposition": "immutable",
-        "fresh_planning": "unrealizable",
-        "form_unchanged": true,
-        "refusal": outcome.refusal,
-        "transport_failure": transport_failure,
+    serde_json::to_string(&TextLabLineLossReceipt {
+        schema: "conduit.text-lab/line-loss@1".into(),
+        code: "CND-TEXT-LIVE-301".into(),
+        phase: phase.into(),
+        sequence,
+        line_id: outcome.unavailable_line_id.as_str().into(),
+        plan_id: outcome.immutable_plan_id.as_str().into(),
+        source_document_id: outcome.source_document_id.as_str().into(),
+        checked_form_id: outcome.checked_form_id.as_str().into(),
+        active_play_id: active.active_play_id.as_str().into(),
+        sign_id: sign.sign_id.as_str().into(),
+        old_plan_disposition: "immutable".into(),
+        fresh_planning: "unrealizable".into(),
+        form_unchanged: true,
+        refusal: outcome.refusal,
+        transport_failure: transport_failure.into(),
     })
-    .to_string()
+    .expect("bounded Text Lab loss receipt is serializable")
 }
 
 struct LiveSession {

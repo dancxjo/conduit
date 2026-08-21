@@ -3,6 +3,44 @@ use crate::{
 };
 use conduit_core::{BootId, HostId, SignId};
 use conduit_presentation::{PresentationDepth, PresentationPlace, PresentationRole};
+use conduit_std_catalog::{
+    exact_text_lab_line_loss_outcome, exact_text_lab_split_plan, TEXT_LAB_RETURN_LINE,
+};
+use conduit_std_host::text_lab_live::TextLabLineLossReceipt;
+
+fn loss_receipt(base: &str) -> TextLabLineLossReceipt {
+    let exact = exact_text_lab_split_plan(base).unwrap();
+    let outcome = exact_text_lab_line_loss_outcome(base, TEXT_LAB_RETURN_LINE).unwrap();
+    let active = conduit_core::bind_active_play(
+        &exact.plan.plan_id,
+        &exact.native.host_id,
+        &exact.native.boot_id,
+        0,
+    );
+    let sign = conduit_core::bind_sign(
+        &exact.native.host_id,
+        &exact.native.boot_id,
+        Some(&active.active_play_id),
+        2,
+    );
+    TextLabLineLossReceipt {
+        schema: "conduit.text-lab/line-loss@1".into(),
+        code: "CND-TEXT-LIVE-301".into(),
+        phase: "return-offer".into(),
+        sequence: 2,
+        line_id: TEXT_LAB_RETURN_LINE.into(),
+        plan_id: exact.plan.plan_id.as_str().into(),
+        source_document_id: exact.plan.source_document_id.as_str().into(),
+        checked_form_id: exact.plan.checked_form_id.as_str().into(),
+        active_play_id: active.active_play_id.as_str().into(),
+        sign_id: sign.sign_id.as_str().into(),
+        old_plan_disposition: "immutable".into(),
+        fresh_planning: "unrealizable".into(),
+        form_unchanged: true,
+        refusal: outcome.refusal,
+        transport_failure: "Transport(Disconnected)".into(),
+    }
+}
 
 #[test]
 fn unchanged_text_lab_explains_split_program_and_body_without_mixing_domains() {
@@ -100,4 +138,29 @@ fn native_and_html_adapters_consume_the_same_text_lab_presentation_vocabulary() 
         .text
         .iter()
         .any(|line| { line.text == "keyboard here -> uppercase there -> presentation here" }));
+}
+
+#[test]
+fn native_loss_receipt_rebuilds_signed_unavailable_truth_and_mutation_refuses() {
+    let base = "ws://127.0.0.1:1/conduit";
+    let receipt = loss_receipt(base);
+    let explanation = crate::text_lab_split_loss_explanation(base, &receipt).unwrap();
+    assert_eq!(explanation.presentation.revision, 2);
+    assert_eq!(
+        explanation.ordinary_path,
+        "browser Part unavailable -> unchanged Form currently unrealizable"
+    );
+    assert!(explanation
+        .presentation
+        .basis
+        .sign_ids
+        .iter()
+        .any(|sign| sign.as_str() == receipt.sign_id));
+    assert!(explanation.presentation.text.iter().any(|line| {
+        line.text.contains("fresh-planning=unrealizable")
+            && line.text.contains("old-plan=immutable")
+    }));
+    let mut mutated = receipt;
+    mutated.plan_id.push_str("-forged");
+    assert!(crate::text_lab_split_loss_explanation(base, &mutated).is_err());
 }

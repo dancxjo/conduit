@@ -11,13 +11,16 @@ use conduit_observatory::{
     SNAPSHOT_SCHEMA,
 };
 use conduit_presentation::{
-    NavigationOperation, NavigationState, Presentation, PresentationAspect, PresentationCursor,
-    PresentationDepth, PresentationPropertyValue, PresentationRelationshipKind, PresentationRole,
-    MAX_NAVIGATION_HISTORY,
+    NavigationOperation, NavigationState, Presentation, PresentationAction,
+    PresentationActionAvailability, PresentationAspect, PresentationCursor, PresentationDepth,
+    PresentationDisclosureLevel, PresentationPropertyValue, PresentationRelationshipKind,
+    PresentationRole, MAX_NAVIGATION_HISTORY,
 };
 use conduit_std_catalog::{exact_text_lab_split_plan, TEXT_LAB_BROWSER_HOST, TEXT_LAB_RETURN_LINE};
+use conduit_std_host::text_lab_live::TextLabLineLossReceipt;
 use serde::{Deserialize, Serialize};
 
+use crate::text_lab_explanation_loss::validate_loss;
 use crate::{
     portable_content::ContentBuilder, FormEditor, PartsView, PatchbayGraph,
     PatchbayNavigationProjection, PatchbayPresentation, PatchbayRequestId, PlanDocument,
@@ -37,7 +40,24 @@ pub struct TextLabSplitExplanation {
 }
 
 pub fn text_lab_split_explanation(base: &str) -> Result<TextLabSplitExplanation, String> {
+    text_lab_explanation(base, None)
+}
+
+pub fn text_lab_split_loss_explanation(
+    base: &str,
+    receipt: &TextLabLineLossReceipt,
+) -> Result<TextLabSplitExplanation, String> {
+    text_lab_explanation(base, Some(receipt))
+}
+
+fn text_lab_explanation(
+    base: &str,
+    loss: Option<&TextLabLineLossReceipt>,
+) -> Result<TextLabSplitExplanation, String> {
     let exact = exact_text_lab_split_plan(base)?;
+    if let Some(receipt) = loss {
+        validate_loss(base, &exact.plan, receipt)?;
+    }
     let editor = FormEditor::from_source("examples/text-lab.conduit".into(), SOURCE.into())
         .map_err(|error| error.to_string())?;
     let expanded = editor
@@ -100,7 +120,11 @@ pub fn text_lab_split_explanation(base: &str) -> Result<TextLabSplitExplanation,
             },
             LineReport {
                 offer: exact.return_line,
-                state: OperationalState::Available,
+                state: if loss.is_some() {
+                    OperationalState::Unreachable
+                } else {
+                    OperationalState::Available
+                },
             },
         ],
         plans: vec![exact.plan.clone()],
@@ -128,7 +152,7 @@ pub fn text_lab_split_explanation(base: &str) -> Result<TextLabSplitExplanation,
     let presentation = projection
         .to_portable_front_door(&body, &wake, &parts)
         .map_err(|error| error.to_string())?;
-    let presentation = append_ordinary_path(presentation)?;
+    let presentation = append_ordinary_path(presentation, loss)?;
     let navigation = PatchbayNavigationProjection::for_embodied(&presentation)?;
     let upper = subject_with_identity_property(
         &presentation,
@@ -219,7 +243,10 @@ pub fn text_lab_split_explanation(base: &str) -> Result<TextLabSplitExplanation,
     let returned_program_cursor = state.cursor().clone();
 
     Ok(TextLabSplitExplanation {
-        ordinary_path: "keyboard here -> uppercase there -> presentation here".into(),
+        ordinary_path: loss.map_or_else(
+            || "keyboard here -> uppercase there -> presentation here".into(),
+            |_| "browser Part unavailable -> unchanged Form currently unrealizable".into(),
+        ),
         presentation,
         navigation,
         upper_program_cursor,
@@ -229,7 +256,10 @@ pub fn text_lab_split_explanation(base: &str) -> Result<TextLabSplitExplanation,
     })
 }
 
-fn append_ordinary_path(presentation: Presentation) -> Result<Presentation, String> {
+fn append_ordinary_path(
+    mut presentation: Presentation,
+    loss: Option<&TextLabLineLossReceipt>,
+) -> Result<Presentation, String> {
     let mut content = ContentBuilder::from_parts(
         presentation.subjects,
         presentation.relationships,
@@ -253,14 +283,67 @@ fn append_ordinary_path(presentation: Presentation) -> Result<Presentation, Stri
         .map(|subject| subject.identity.clone())
         .ok_or("Text Lab explanation lacks its Program Form")?;
     content.contains(&form, &path);
+    if let Some(receipt) = loss {
+        let unavailable = content.subject_with_identity(
+            "text-lab/unavailable",
+            PresentationRole::Info,
+            "browser Part unavailable -> unchanged Form currently unrealizable",
+            "Text Lab unavailable: browser Part lost; unchanged Form currently unrealizable",
+        );
+        content.line(
+            &unavailable,
+            "browser Part unavailable -> unchanged Form currently unrealizable",
+        );
+        content.contains(&form, &unavailable);
+        let sign = content.subject_with_identity(
+            format!("sign/{}", receipt.sign_id),
+            PresentationRole::Sign,
+            receipt.code.clone(),
+            format!("Causal Text Lab Line-loss Sign {}", receipt.sign_id),
+        );
+        content.line(
+            &sign,
+            format!(
+                "code={} line={} plan={} active-play={} sequence={} old-plan={} fresh-planning={} refusal={}",
+                receipt.code,
+                receipt.line_id,
+                receipt.plan_id,
+                receipt.active_play_id,
+                receipt.sequence,
+                receipt.old_plan_disposition,
+                receipt.fresh_planning,
+                receipt.refusal
+            ),
+        );
+        presentation
+            .basis
+            .sign_ids
+            .push(conduit_core::SignId::from(receipt.sign_id.clone()));
+    }
+    let mut actions = presentation.actions;
+    actions.push(PresentationAction {
+        identity: "action/text-lab/observe-return-line-loss".into(),
+        intent: "conduit.intent/observe-line-loss@1".into(),
+        target: path,
+        label: "Observe browser loss".into(),
+        disclosure: PresentationDisclosureLevel::CurrentAction,
+        availability: if loss.is_some() {
+            PresentationActionAvailability::Unavailable {
+                reason_code: "line/already-unavailable".into(),
+                explanation: "The exact return Line is already unavailable.".into(),
+            }
+        } else {
+            PresentationActionAvailability::Available
+        },
+    });
     Presentation::new_with_semantics_and_temporal(
-        presentation.revision,
+        presentation.revision + u64::from(loss.is_some()),
         presentation.basis,
         content.subjects,
         content.relationships,
         content.properties,
         content.text,
-        presentation.actions,
+        actions,
         presentation.disclosures,
         presentation.temporal_references,
         presentation.temporal_facts,

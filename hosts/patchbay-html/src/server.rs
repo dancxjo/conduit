@@ -2,19 +2,21 @@ use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::SignId;
 use conduit_presentation::ManifestationFailure;
 use patchbay_model::{PatchbayInteraction, PHOSPHOR_THEME};
-use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
 mod browser_membership;
 mod front_door;
+mod http;
 mod interaction;
 mod navigation;
 mod observation;
 mod parts;
+mod text_lab_loss;
 mod theme;
 mod transition;
 
+use http::{read_request, write_response};
 use theme::render_theme_css;
 
 pub const MAX_HTTP_REQUEST_BYTES: usize = 8 * 1024;
@@ -28,6 +30,8 @@ const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js
 const PANEL_FURNITURE_SCRIPT: &[u8] = include_bytes!("../assets/panel-furniture.js");
 const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-navigation.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
+const TEXT_LAB_RUNTIME_SCRIPT: &[u8] = include_bytes!("../../browser/text-lab-live-runtime.mjs");
+const WEBSOCKET_LINE_SCRIPT: &[u8] = include_bytes!("../../browser/websocket-line.mjs");
 const BODY_WEBRTC_SESSIONS_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-sessions.mjs");
 const BODY_WEBRTC_SESSION_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-session.mjs");
 const WEBRTC_LINE_SCRIPT: &[u8] = include_bytes!("../assets/webrtc-datachannel-line.mjs");
@@ -110,6 +114,7 @@ pub struct PatchbayHtmlServer {
         Option<std::sync::Arc<std::sync::Mutex<patchbay_model::ZeroBodyFrontDoor>>>,
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
+    text_lab_base: Option<String>,
 }
 
 impl PatchbayHtmlServer {
@@ -140,6 +145,7 @@ impl PatchbayHtmlServer {
             zero_body_front_door: None,
             body_admission: None,
             browser_wasm: None,
+            text_lab_base: None,
         })
     }
 
@@ -220,6 +226,40 @@ impl PatchbayHtmlServer {
             Err(error) => return Err(error),
         };
         let first = request.head.split("\r\n").next().unwrap_or_default();
+        if first == "POST /api/text-lab-loss HTTP/1.1" {
+            let body = match self.apply_text_lab_loss(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest | ServerError::Interaction(_)) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid Text Lab loss receipt",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
+        if first == "GET /api/text-lab-base HTTP/1.1" {
+            let base = self
+                .text_lab_base
+                .as_ref()
+                .ok_or(ServerError::InvalidRequest)?;
+            let body = serde_json::to_vec(&serde_json::json!({ "base": base }))
+                .map_err(|error| ServerError::Interaction(error.to_string()))?;
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
         if first == "POST /api/parts-interaction HTTP/1.1" {
             let body = match self.apply_parts_interaction(&request.body) {
                 Ok(body) => body,
@@ -344,6 +384,16 @@ impl PatchbayHtmlServer {
                 "text/javascript; charset=utf-8",
                 MEMBERSHIP_SCRIPT,
             ),
+            "GET /assets/text-lab-live-runtime.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                TEXT_LAB_RUNTIME_SCRIPT,
+            ),
+            "GET /assets/websocket-line.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                WEBSOCKET_LINE_SCRIPT,
+            ),
             "GET /assets/body-webrtc-sessions.mjs HTTP/1.1" => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
@@ -411,88 +461,4 @@ impl PatchbayHtmlServer {
     }
 }
 
-fn navigation_state(
-    snapshot: &RendererSnapshot,
-) -> Result<Option<conduit_presentation::NavigationState>, ServerError> {
-    snapshot
-        .navigation
-        .as_ref()
-        .map(|navigation| {
-            conduit_presentation::NavigationState::new(
-                &navigation.navigation,
-                navigation.cursor.clone(),
-                conduit_presentation::MAX_NAVIGATION_HISTORY,
-            )
-            .map_err(|error| ServerError::Interaction(format!("{error:?}")))
-        })
-        .transpose()
-}
-
-fn write_response(
-    stream: &mut TcpStream,
-    status: &str,
-    content_type: &str,
-    body: &[u8],
-) -> Result<(), ServerError> {
-    write!(
-            stream,
-            "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nContent-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self' ws://127.0.0.1:*; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n",
-            body.len()
-        )?;
-    stream.write_all(body)?;
-    Ok(())
-}
-
-struct HttpRequest {
-    head: String,
-    body: Vec<u8>,
-}
-
-fn read_request(stream: &mut TcpStream) -> Result<HttpRequest, ServerError> {
-    let mut bytes = Vec::with_capacity(1024);
-    let mut chunk = [0u8; 512];
-    loop {
-        let count = stream.read(&mut chunk)?;
-        if count == 0 {
-            break;
-        }
-        bytes.extend_from_slice(&chunk[..count]);
-        if bytes.len() > MAX_HTTP_REQUEST_BYTES {
-            return Err(ServerError::RequestTooLarge);
-        }
-        if let Some(header_end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
-            let head_end = header_end + 4;
-            let head = std::str::from_utf8(&bytes[..head_end])
-                .map_err(|_| ServerError::InvalidRequest)?
-                .to_owned();
-            let content_length = head
-                .lines()
-                .find_map(|line| {
-                    line.strip_prefix("Content-Length: ")
-                        .or_else(|| line.strip_prefix("content-length: "))
-                })
-                .map(|value| value.parse::<usize>())
-                .transpose()
-                .map_err(|_| ServerError::InvalidRequest)?
-                .unwrap_or(0);
-            if head_end
-                .checked_add(content_length)
-                .is_none_or(|total| total > MAX_HTTP_REQUEST_BYTES)
-            {
-                return Err(ServerError::RequestTooLarge);
-            }
-            while bytes.len() < head_end + content_length {
-                let count = stream.read(&mut chunk)?;
-                if count == 0 {
-                    return Err(ServerError::InvalidRequest);
-                }
-                bytes.extend_from_slice(&chunk[..count]);
-            }
-            return Ok(HttpRequest {
-                head,
-                body: bytes[head_end..head_end + content_length].to_vec(),
-            });
-        }
-    }
-    Err(ServerError::InvalidRequest)
-}
+use navigation::navigation_state;

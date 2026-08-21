@@ -1,10 +1,27 @@
 //! Stale-fenced portable navigation over the current exact Presentation.
 
-use super::{navigation_state, PatchbayHtmlServer, ServerError};
+use super::{PatchbayHtmlServer, ServerError};
 use conduit_presentation::{
     NavigationOperation, PresentationAspect, PresentationDepth, PresentationPlace,
 };
 use serde::Deserialize;
+
+pub(super) fn navigation_state(
+    snapshot: &crate::RendererSnapshot,
+) -> Result<Option<conduit_presentation::NavigationState>, ServerError> {
+    snapshot
+        .navigation
+        .as_ref()
+        .map(|navigation| {
+            conduit_presentation::NavigationState::new(
+                &navigation.navigation,
+                navigation.cursor.clone(),
+                conduit_presentation::MAX_NAVIGATION_HISTORY,
+            )
+            .map_err(|error| ServerError::Interaction(format!("{error:?}")))
+        })
+        .transpose()
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

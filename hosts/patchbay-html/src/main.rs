@@ -55,7 +55,10 @@ fn main() -> Result<(), String> {
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else if let Some(base) = arguments.text_lab_split {
         let snapshot = text_lab_split_snapshot(&base)?;
-        PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
+        PatchbayHtmlServer::bind_ephemeral(&snapshot)
+            .map_err(|error| error.to_string())?
+            .with_text_lab_loss_updates(base)
+            .map_err(|error| error.to_string())?
     } else {
         let seeds = load_seed_sources(&arguments.seeds).map_err(|error| error.to_string())?;
         PatchbayHtmlServer::bind_browser_front_door_with_seeds_ephemeral(seeds)
