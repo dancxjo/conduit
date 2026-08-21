@@ -1,6 +1,34 @@
 use super::*;
 
 impl NativeTextLabFragment {
+    pub fn finish_forward(&mut self) -> Result<(), String> {
+        let (endpoint, cord) = self.endpoint(RemoteCordDirection::Egress);
+        loop {
+            if self
+                .scheduler
+                .remote_egress_terminal(endpoint, cord)
+                .map_err(|error| format!("{error:?}"))?
+            {
+                return Ok(());
+            }
+            if self.complete_host_request()? {
+                continue;
+            }
+            match self
+                .scheduler
+                .step()
+                .map_err(|error| format!("{error:?}"))?
+            {
+                SchedulerStatus::Progress { .. } => {}
+                SchedulerStatus::Idle => return Err("native forward Cord became idle".into()),
+                SchedulerStatus::Complete => {
+                    return Err("native Text Lab completed too early".into())
+                }
+                SchedulerStatus::Cancelled => return Err("native Text Lab cancelled".into()),
+            }
+        }
+    }
+
     pub fn drive_presentation(&mut self, expected_bytes: usize) -> Result<(), String> {
         while self.presented.len() < expected_bytes {
             if !self.complete_host_request()? {
