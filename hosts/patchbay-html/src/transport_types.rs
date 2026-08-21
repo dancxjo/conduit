@@ -1,6 +1,6 @@
 //! Finite delivery envelope for one portable Conduit Presentation.
 
-use conduit_presentation::Presentation;
+use conduit_presentation::{ModelTemporalContextFact, Presentation};
 use patchbay_model::{
     PartsView, PatchbayEntranceState, PatchbayNavigationProjection, RendererSelfInspection,
 };
@@ -55,6 +55,8 @@ pub struct RendererSnapshot {
     pub schema: String,
     pub revision: u64,
     pub presentation: Presentation,
+    #[serde(default)]
+    pub temporal_context: Vec<ModelTemporalContextFact>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub navigation: Option<PatchbayNavigationProjection>,
     pub renderer: RendererSelfInspection,

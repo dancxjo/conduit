@@ -2,10 +2,11 @@
 
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory, CandidateObservation,
-    DiscoveryProofId, MembershipProofId, PartId,
+    DiscoveryProofId, HostPresenceClock, HostPresenceClockScale, HostPresenceTable,
+    MembershipProofId, PartId,
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
-use conduit_presentation::Presentation;
+use conduit_presentation::{Presentation, TemporalInstant, TemporalReference, TemporalScale};
 use conduit_std_host::{StdHost, StdHostConfig, ThreadTimer};
 
 use crate::{
@@ -93,7 +94,7 @@ pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), 
         Some((&host_id, &boot_id, OfferGeneration(1))),
         0,
     )?;
-    admit_demo_part(
+    let browser = admit_demo_part(
         &mut membership,
         &body,
         "browser-tab-2",
@@ -122,7 +123,39 @@ pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), 
             encoded_bytes: 512,
         })
         .map_err(|error| format!("{error:?}"))?;
-    let parts = PartsView::project(
+    let presence_clock = HostPresenceClock::new(
+        "clock/patchbay-documentary".into(),
+        HostPresenceClockScale::Milliseconds,
+        1,
+        1,
+    )
+    .map_err(|error| format!("{error:?}"))?;
+    let mut presence = HostPresenceTable::new(body.body_id.clone(), presence_clock, 30_000)
+        .map_err(|error| format!("{error:?}"))?;
+    let browser_session = LinkBindingId::from("patchbay/browser-tab-2/presence");
+    presence
+        .start(
+            &membership,
+            &browser,
+            browser_session.clone(),
+            1,
+            1_000,
+            20_000,
+            SignId::from("patchbay/browser-tab-2/presence-started"),
+        )
+        .map_err(|error| format!("{error:?}"))?;
+    presence
+        .renew(
+            &membership,
+            &browser,
+            &browser_session,
+            2,
+            12_000,
+            30_000,
+            SignId::from("patchbay/browser-tab-2/presence-renewed"),
+        )
+        .map_err(|error| format!("{error:?}"))?;
+    let parts = PartsView::project_with_presence(
         &body,
         &membership,
         &candidates,
@@ -130,10 +163,25 @@ pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), 
         Some(&plan),
         Some(&active_play),
         true,
+        Some(&presence),
     )
     .map_err(|error| format!("{error:?}"))?;
     let presentation = projection
-        .to_portable_front_door(&body, &wake, &parts)
+        .to_portable_front_door_with_temporal_reference(
+            &body,
+            &wake,
+            &parts,
+            TemporalReference {
+                identity: "reference/patchbay-documentary".into(),
+                instant: TemporalInstant {
+                    ticks: 17_000,
+                    scale: TemporalScale::Milliseconds,
+                    clock_basis: "clock/patchbay-documentary".into(),
+                    resolution_ticks: 1,
+                    uncertainty_ticks: 0,
+                },
+            },
+        )
         .map_err(|error| error.to_string())?;
     Ok((presentation, parts))
 }
