@@ -64,6 +64,7 @@ mod renderer_inspection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
+mod text_lab_explanation;
 mod theme;
 mod topology;
 mod zero_body_authoring;
@@ -164,6 +165,7 @@ pub use route_presentation::{
     DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
     RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
 };
+pub use text_lab_explanation::{text_lab_split_explanation, TextLabSplitExplanation};
 pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub use zero_body_front_door::{
@@ -205,6 +207,8 @@ mod portable_vector_search_projection_tests;
 mod prewake_tests;
 #[cfg(test)]
 mod renderer_execution_tests;
+#[cfg(test)]
+mod text_lab_explanation_tests;
 #[cfg(test)]
 mod theme_tests;
 

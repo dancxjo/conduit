@@ -28,3 +28,24 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
         .map_err(|error| error.to_string())?;
     Ok(snapshot)
 }
+
+pub fn text_lab_split_snapshot(base: &str) -> Result<RendererSnapshot, String> {
+    let explanation = patchbay_model::text_lab_split_explanation(base)?;
+    let execution = RendererExecution::prepare(
+        explanation.presentation,
+        RendererAdapterKind::HtmlDomSvg,
+        RendererAdapterIdentity {
+            host_id: HostId::from("patchbay-html/text-lab"),
+            boot_id: BootId::from("patchbay-html/text-lab/boot"),
+            target_subject: "patchbay-html/text-lab/document".into(),
+        },
+        SignId::from("patchbay-html/text-lab/prepared"),
+    )
+    .map_err(|error| error.to_string())?;
+    let mut snapshot =
+        RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
+    snapshot
+        .attach_navigation(explanation.navigation)
+        .map_err(|error| error.to_string())?;
+    Ok(snapshot)
+}

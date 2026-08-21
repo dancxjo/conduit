@@ -12,7 +12,7 @@ mod snapshot;
 mod transport_types;
 
 pub use cross_host::{cross_host_demonstration_snapshot, CrossHostRendererError};
-pub use demo::demonstration_snapshot;
+pub use demo::{demonstration_snapshot, text_lab_split_snapshot};
 pub use front_door::front_door_snapshot;
 pub use seed_sources::{
     load_seed_sources, SeedSource, SeedSourceError, MAX_ADDITIONAL_SEEDS, MAX_SEED_LABEL_BYTES,
