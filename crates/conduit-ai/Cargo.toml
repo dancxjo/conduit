@@ -17,6 +17,7 @@ form-catalog = ["dep:conduit-form", "dep:conduit-std-catalog"]
 
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }
+conduit-kernel = { path = "../conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-presentation = { path = "../conduit-presentation" }
