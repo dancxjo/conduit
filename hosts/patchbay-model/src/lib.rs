@@ -65,6 +65,7 @@ mod renderer_projection;
 mod route_demo;
 mod route_presentation;
 mod text_lab_explanation;
+mod text_lab_explanation_loss;
 mod theme;
 mod topology;
 mod zero_body_authoring;
@@ -165,7 +166,9 @@ pub use route_presentation::{
     DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
     RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
 };
-pub use text_lab_explanation::{text_lab_split_explanation, TextLabSplitExplanation};
+pub use text_lab_explanation::{
+    text_lab_split_explanation, text_lab_split_loss_explanation, TextLabSplitExplanation,
+};
 pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub use zero_body_front_door::{

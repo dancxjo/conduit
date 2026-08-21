@@ -31,6 +31,21 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
 
 pub fn text_lab_split_snapshot(base: &str) -> Result<RendererSnapshot, String> {
     let explanation = patchbay_model::text_lab_split_explanation(base)?;
+    text_lab_snapshot(explanation)
+}
+
+pub fn text_lab_split_loss_snapshot(
+    base: &str,
+    receipt: &conduit_std_host::text_lab_live::TextLabLineLossReceipt,
+) -> Result<RendererSnapshot, String> {
+    text_lab_snapshot(patchbay_model::text_lab_split_loss_explanation(
+        base, receipt,
+    )?)
+}
+
+fn text_lab_snapshot(
+    explanation: patchbay_model::TextLabSplitExplanation,
+) -> Result<RendererSnapshot, String> {
     let execution = RendererExecution::prepare(
         explanation.presentation,
         RendererAdapterKind::HtmlDomSvg,
