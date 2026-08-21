@@ -15,6 +15,8 @@ mod interpretation;
 pub use interpretation::*;
 mod hybrid_retrieval;
 pub use hybrid_retrieval::*;
+mod hybrid_retrieval_codec;
+pub use hybrid_retrieval_codec::*;
 mod hybrid_retrieval_contract;
 pub use hybrid_retrieval_contract::*;
 mod model_result;

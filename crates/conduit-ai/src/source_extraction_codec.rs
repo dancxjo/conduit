@@ -207,6 +207,31 @@ fn decode_chunk(
     Ok(chunk)
 }
 
+pub(crate) fn encode_transport_chunk(
+    encoded: &mut Vec<u8>,
+    chunk: &Chunk<ExtractedSourceValue>,
+) -> Result<(), SourceExtractionCodecRefusal> {
+    let source_bytes = chunk
+        .lineage
+        .source
+        .resource
+        .encode()
+        .map_err(|_| SourceExtractionCodecRefusal::InvalidSource)?;
+    push_u16_len(encoded, source_bytes.len())?;
+    encoded.extend_from_slice(&source_bytes);
+    encode_chunk(encoded, &chunk.lineage.source, chunk)
+}
+
+pub(crate) fn decode_transport_chunk(
+    cursor: &mut Cursor<'_>,
+) -> Result<Chunk<ExtractedSourceValue>, SourceExtractionCodecRefusal> {
+    let source = SourceRef {
+        resource: conduit_core::BoundedResourceRef::decode(cursor.bytes_u16()?)
+            .map_err(|_| SourceExtractionCodecRefusal::InvalidSource)?,
+    };
+    decode_chunk(cursor, &source)
+}
+
 fn validate_accounting(
     receipt: &SourceExtractionReceipt,
     source: &SourceRef,
@@ -304,17 +329,17 @@ fn u32_len(length: usize) -> Result<u32, SourceExtractionCodecRefusal> {
         .map_err(|_| SourceExtractionCodecRefusal::ArithmeticOverflow)
 }
 
-struct Cursor<'a> {
+pub(crate) struct Cursor<'a> {
     encoded: &'a [u8],
     offset: usize,
 }
 
 impl<'a> Cursor<'a> {
-    const fn new(encoded: &'a [u8]) -> Self {
+    pub(crate) const fn new(encoded: &'a [u8]) -> Self {
         Self { encoded, offset: 0 }
     }
 
-    fn take(&mut self, count: usize) -> Result<&'a [u8], SourceExtractionCodecRefusal> {
+    pub(crate) fn take(&mut self, count: usize) -> Result<&'a [u8], SourceExtractionCodecRefusal> {
         let end = self
             .offset
             .checked_add(count)
@@ -327,23 +352,23 @@ impl<'a> Cursor<'a> {
         Ok(value)
     }
 
-    fn u8(&mut self) -> Result<u8, SourceExtractionCodecRefusal> {
+    pub(crate) fn u8(&mut self) -> Result<u8, SourceExtractionCodecRefusal> {
         Ok(self.take(1)?[0])
     }
 
-    fn u16(&mut self) -> Result<u16, SourceExtractionCodecRefusal> {
+    pub(crate) fn u16(&mut self) -> Result<u16, SourceExtractionCodecRefusal> {
         Ok(u16::from_le_bytes(
             self.take(2)?.try_into().expect("exact cursor width"),
         ))
     }
 
-    fn u32(&mut self) -> Result<u32, SourceExtractionCodecRefusal> {
+    pub(crate) fn u32(&mut self) -> Result<u32, SourceExtractionCodecRefusal> {
         Ok(u32::from_le_bytes(
             self.take(4)?.try_into().expect("exact cursor width"),
         ))
     }
 
-    fn u64(&mut self) -> Result<u64, SourceExtractionCodecRefusal> {
+    pub(crate) fn u64(&mut self) -> Result<u64, SourceExtractionCodecRefusal> {
         Ok(u64::from_le_bytes(
             self.take(8)?.try_into().expect("exact cursor width"),
         ))
@@ -353,7 +378,7 @@ impl<'a> Cursor<'a> {
         Ok(self.take(32)?.try_into().expect("exact digest width"))
     }
 
-    fn bytes_u16(&mut self) -> Result<&'a [u8], SourceExtractionCodecRefusal> {
+    pub(crate) fn bytes_u16(&mut self) -> Result<&'a [u8], SourceExtractionCodecRefusal> {
         let length = usize::from(self.u16()?);
         self.take(length)
     }
@@ -389,7 +414,7 @@ impl<'a> Cursor<'a> {
         Ok(count)
     }
 
-    fn finished(&self) -> bool {
+    pub(crate) fn finished(&self) -> bool {
         self.offset == self.encoded.len()
     }
 }
