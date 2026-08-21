@@ -21,6 +21,8 @@ mod source_extraction_contract;
 pub use source_extraction_contract::*;
 mod source_extraction;
 pub use source_extraction::*;
+mod source_extraction_codec;
+pub use source_extraction_codec::*;
 mod structured_result;
 pub use structured_result::*;
 mod temporal_context;

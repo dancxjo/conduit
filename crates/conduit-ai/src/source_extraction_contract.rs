@@ -23,6 +23,7 @@ pub const DETERMINISTIC_EXTRACTION_IMPLEMENTATION: &str =
     "portable/deterministic-source-extraction@1";
 pub const DETERMINISTIC_EXTRACTION_ARTIFACT: &str = "conduit-ai/deterministic-source-extraction@1";
 pub const MAXIMUM_EXTRACTION_SOURCE_BYTES: u32 = 1_048_576;
+pub const MAXIMUM_EXTRACTION_SOURCE_ITEMS: u32 = 65_536;
 pub const MAXIMUM_EXTRACTION_OUTPUT_BYTES: u32 = 1_048_576;
 pub const MAXIMUM_EXTRACTION_CHUNK_BYTES: u32 = 65_536;
 pub const MAXIMUM_EXTRACTION_CHUNKS: u32 = 1_024;
@@ -36,6 +37,7 @@ pub struct SourceExtractionContract {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_source_bytes: u32,
+    pub maximum_source_items: u32,
     pub maximum_output_bytes: u32,
     pub maximum_chunk_bytes: u32,
     pub maximum_chunks: u32,
@@ -64,6 +66,7 @@ pub fn source_extraction_contract() -> SourceExtractionContract {
             PortDirection::Output,
         )],
         maximum_source_bytes: MAXIMUM_EXTRACTION_SOURCE_BYTES,
+        maximum_source_items: MAXIMUM_EXTRACTION_SOURCE_ITEMS,
         maximum_output_bytes: MAXIMUM_EXTRACTION_OUTPUT_BYTES,
         maximum_chunk_bytes: MAXIMUM_EXTRACTION_CHUNK_BYTES,
         maximum_chunks: MAXIMUM_EXTRACTION_CHUNKS,
@@ -80,6 +83,7 @@ pub fn source_extraction_startup_parameters() -> Vec<FaceStartupParameter> {
     [
         "profile",
         "maximum-source-bytes",
+        "maximum-source-items",
         "maximum-output-bytes",
         "maximum-chunk-bytes",
         "maximum-chunks",
@@ -185,6 +189,7 @@ pub fn install_source_extraction_catalog(
                 default: Some("text-utf8".into()),
             },
             count_parameter("maximum-source-bytes", contract.maximum_source_bytes),
+            count_parameter("maximum-source-items", contract.maximum_source_items),
             count_parameter("maximum-output-bytes", contract.maximum_output_bytes),
             count_parameter("maximum-chunk-bytes", contract.maximum_chunk_bytes),
             count_parameter("maximum-chunks", contract.maximum_chunks),
@@ -210,6 +215,7 @@ pub fn install_source_extraction_catalog(
                     },
                 },
                 count_field("maximum-source-bytes", contract.maximum_source_bytes),
+                count_field("maximum-source-items", contract.maximum_source_items),
                 count_field("maximum-output-bytes", contract.maximum_output_bytes),
                 count_field("maximum-chunk-bytes", contract.maximum_chunk_bytes),
                 count_field("maximum-chunks", contract.maximum_chunks),

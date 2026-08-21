@@ -1,7 +1,8 @@
 use conduit_ai::{
     deterministic_source_extraction_offer, extract_source, ExtractedSourceValue,
-    ResourceMetadataEntry, SourceExtractionLimits, SourceExtractionProfile,
-    SourceExtractionRefusal, SourcePayload, SourceRef,
+    ResourceMetadataEntry, SourceExtractionCodecRefusal, SourceExtractionLimits,
+    SourceExtractionProfile, SourceExtractionReceipt, SourceExtractionRefusal, SourcePayload,
+    SourceRef,
 };
 use conduit_core::{
     AuthorityContractId, AuthorityGrantId, BoundedResourceRef, KindId,
@@ -125,6 +126,37 @@ fn utf8_text_extraction_is_deterministic_bounded_and_lineage_exact() {
         };
         assert!(core::str::from_utf8(value).is_ok());
     }
+}
+
+#[test]
+fn extraction_receipt_codec_is_canonical_bounded_and_fail_closed() {
+    let source = source("document/text-utf8@1", 7, 3, 17, None);
+    let receipt = extract_source(
+        &source,
+        &requirement(&source),
+        &binding(&source),
+        SourceExtractionProfile::TextUtf8 { overlap_bytes: 2 },
+        limits(8),
+        &SourcePayload::Text("alpha βeta gamma".as_bytes().to_vec()),
+    )
+    .unwrap();
+    let encoded = receipt.encode().unwrap();
+    assert_eq!(SourceExtractionReceipt::decode(&encoded).unwrap(), receipt);
+    assert_eq!(receipt.encode().unwrap(), encoded);
+
+    let mut malformed = encoded.clone();
+    malformed.push(0);
+    assert_eq!(
+        SourceExtractionReceipt::decode(&malformed),
+        Err(SourceExtractionCodecRefusal::Malformed)
+    );
+
+    let mut wrong_accounting = receipt.clone();
+    wrong_accounting.output_bytes += 1;
+    assert_eq!(
+        wrong_accounting.encode(),
+        Err(SourceExtractionCodecRefusal::AccountingMismatch)
+    );
 }
 
 #[test]
@@ -339,7 +371,7 @@ fn ordinary_authored_form_checks_and_expands_without_realization_facts() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_ai::install_source_extraction_catalog(&mut startup, &mut profile).unwrap();
-    let source = "form chunk {\n extract: retrieval/extract-source(\"text-utf8\", 4096, 8192, 512, 16, 16384)\n}\n";
+    let source = "form chunk {\n extract: retrieval/extract-source(\"text-utf8\", 4096, 32, 8192, 512, 16, 16384)\n}\n";
     let checked =
         conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
             .unwrap();
