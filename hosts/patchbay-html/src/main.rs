@@ -1,10 +1,12 @@
 use patchbay_html::{
-    cross_host_demonstration_snapshot, load_seed_sources, PatchbayHtmlServer, SeedSource,
+    cross_host_demonstration_snapshot, load_seed_sources, text_lab_split_snapshot,
+    PatchbayHtmlServer, SeedSource,
 };
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Arguments {
     documentary_fixture: bool,
+    text_lab_split: Option<String>,
     seeds: Vec<SeedSource>,
 }
 
@@ -16,7 +18,18 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             "--documentary-fixture" if !parsed.documentary_fixture && parsed.seeds.is_empty() => {
                 parsed.documentary_fixture = true;
             }
-            "--seed" if !parsed.documentary_fixture => {
+            "--text-lab-split"
+                if !parsed.documentary_fixture
+                    && parsed.text_lab_split.is_none()
+                    && parsed.seeds.is_empty() =>
+            {
+                parsed.text_lab_split = Some(
+                    arguments
+                        .next()
+                        .ok_or("--text-lab-split requires one loopback WebSocket base")?,
+                );
+            }
+            "--seed" if !parsed.documentary_fixture && parsed.text_lab_split.is_none() => {
                 let label = arguments
                     .next()
                     .ok_or("--seed requires a label and canonical .conduit path")?;
@@ -39,6 +52,9 @@ fn main() -> Result<(), String> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
     let server = if arguments.documentary_fixture {
         let snapshot = cross_host_demonstration_snapshot().map_err(|error| error.to_string())?;
+        PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
+    } else if let Some(base) = arguments.text_lab_split {
+        let snapshot = text_lab_split_snapshot(&base)?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else {
         let seeds = load_seed_sources(&arguments.seeds).map_err(|error| error.to_string())?;
@@ -93,5 +109,16 @@ mod tests {
             .map(str::to_owned)
         )
         .is_err());
+        assert_eq!(
+            parse_arguments(
+                ["--text-lab-split", "ws://127.0.0.1:1/conduit"]
+                    .into_iter()
+                    .map(str::to_owned)
+            )
+            .unwrap()
+            .text_lab_split
+            .as_deref(),
+            Some("ws://127.0.0.1:1/conduit")
+        );
     }
 }
