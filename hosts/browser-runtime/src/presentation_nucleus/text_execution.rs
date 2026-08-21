@@ -16,22 +16,23 @@ use std::collections::BTreeMap;
 
 const TEXT_FORM: &str = r#"form browser-text-nucleus {
  source: browser-fixture/text-source
+ upper: text/upper
  present: presentation/text
- source > present
+ source > upper > present
 }"#;
 
 type TextScheduler = FixedScheduler<
     OperationDriver<NucleusOperation, PORTS>,
-    FixedValueStore<4, { conduit_std_catalog::MAX_TEXT_BYTES as usize }>,
+    FixedValueStore<6, { conduit_std_catalog::MAX_TEXT_BYTES as usize }>,
     FixedSignLog<32>,
+    3,
     2,
-    1,
     PORTS,
-    1,
-    { 2 * PORTS },
-    1,
-    4,
     2,
+    { 3 * PORTS },
+    2,
+    4,
+    3,
 >;
 
 pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), String> {
@@ -65,10 +66,10 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
         .ok_or_else(|| "browser text Plan has no fragment".to_string())?;
     let lowered = lower_plan_fragment(fragment)
         .map_err(|error| format!("lower browser text Plan: {error:?}"))?;
-    if fragment.placements.len() != 2
-        || fragment.connections.len() != 1
-        || lowered.nodes.len() != 2
-        || lowered.cords.len() != 1
+    if fragment.placements.len() != 3
+        || fragment.connections.len() != 2
+        || lowered.nodes.len() != 3
+        || lowered.cords.len() != 2
     {
         return Err("browser text Plan has an unexpected finite shape".into());
     }
@@ -77,8 +78,8 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
         .as_slice()
         .try_into()
         .map_err(|_| "browser text node table has the wrong size".to_string())?;
-    let cords = [lowered.cords[0].spec];
-    let mut routes = FixedRoutes::<{ 2 * PORTS }, 1>::new(PORTS as u16);
+    let cords = [lowered.cords[0].spec, lowered.cords[1].spec];
+    let mut routes = FixedRoutes::<{ 3 * PORTS }, 2>::new(PORTS as u16);
     for route in &lowered.routes {
         routes
             .install(
@@ -90,39 +91,45 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
             .map_err(debug_error)?;
     }
     routes.seal().map_err(debug_error)?;
-    let mut bindings = FixedHostOperationBindings::<4>::new(2);
+    let mut bindings = FixedHostOperationBindings::<4>::new(1);
     for operation in &lowered.host_operations {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug_error)?;
     }
     bindings.seal().map_err(debug_error)?;
-    let mut values = FixedValueStore::<4, { conduit_std_catalog::MAX_TEXT_BYTES as usize }>::new(
-        conduit_std_catalog::MAX_TEXT_BYTES * 4,
+    let mut values = FixedValueStore::<6, { conduit_std_catalog::MAX_TEXT_BYTES as usize }>::new(
+        conduit_std_catalog::MAX_TEXT_BYTES * 6,
     )
     .map_err(debug_error)?;
-    let source = values.store(b"Gear Face").map_err(debug_error)?;
-    let mut drivers = [None, None];
+    let source = values.store("Straße".as_bytes()).map_err(debug_error)?;
+    let mut drivers = Vec::with_capacity(3);
     for (index, placement) in fragment.placements.iter().enumerate() {
-        let operation = if placement.kind_id.as_str() == FIXTURE_TEXT_KIND {
-            NucleusOperation::Source {
+        let operation = match placement.kind_id.as_str() {
+            FIXTURE_TEXT_KIND => NucleusOperation::Source {
                 value: source,
                 emitted: false,
-            }
-        } else if placement.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND {
-            NucleusOperation::Sink {
+            },
+            conduit_std_catalog::TEXT_UPPER_KIND => NucleusOperation::Transform {
+                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
+                pending: false,
+                emitted: false,
+            },
+            conduit_std_catalog::TEXT_PRESENTATION_KIND => NucleusOperation::Sink {
                 maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
                 pending: false,
                 complete: false,
-            }
-        } else {
-            return Err("browser text Plan selected an unsupported Kind".into());
+            },
+            _ => return Err("browser text Plan selected an unsupported Kind".into()),
         };
-        drivers[index] = Some(OperationDriver::new(operation).map_err(debug_error)?);
+        if index != drivers.len() {
+            return Err("browser text placements are not in lowered node order".into());
+        }
+        drivers.push(OperationDriver::new(operation).map_err(debug_error)?);
     }
-    let [Some(first), Some(second)] = drivers else {
-        return Err("browser text driver table is incomplete".into());
-    };
+    let drivers = drivers
+        .try_into()
+        .map_err(|_| "browser text driver table is incomplete".to_string())?;
     let signs = FixedSignLog::<32>::new(
         lowered
             .sign_bytes
@@ -130,13 +137,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
     )
     .map_err(debug_error)?;
     let mut scheduler = TextScheduler::new_with_host_operations(
-        nodes,
-        cords,
-        routes,
-        bindings,
-        [first, second],
-        values,
-        signs,
+        nodes, cords, routes, bindings, drivers, values, signs,
     )
     .map_err(debug_error)?;
     let mut manifested = None;
@@ -146,16 +147,32 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
                 .host_value(request.input.value)
                 .map_err(debug_error)?
                 .to_vec();
-            if manifested.replace(input).is_some() {
-                return Err("browser text manifested more than once".into());
-            }
+            let placement = &fragment.placements[usize::from(request.node.0)];
+            let outcome = if placement.kind_id.as_str() == conduit_std_catalog::TEXT_UPPER_KIND {
+                let output = uppercase_utf8(&input)?;
+                let value = scheduler.store_host_value(&output).map_err(debug_error)?;
+                Some(
+                    conduit_kernel::BoundedValueRef::new(
+                        value,
+                        placement.host_operations[0].maximum_output_bytes,
+                    )
+                    .map_err(|_| "uppercase output exceeded its planned bound")?,
+                )
+            } else if placement.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND {
+                if manifested.replace(input).is_some() {
+                    return Err("browser text manifested more than once".into());
+                }
+                None
+            } else {
+                return Err("browser text host request has an unsupported Kind".into());
+            };
             scheduler
                 .complete_host_operation(
                     request.node,
                     request.request,
                     HostOperationOutcome {
                         disposition: HostOperationDisposition::Completed,
-                        output: None,
+                        output: outcome,
                         failure: None,
                     },
                 )
@@ -173,4 +190,33 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
     let text = String::from_utf8(encoded)
         .map_err(|_| "browser text manifestation is not UTF-8".to_string())?;
     Ok((text, plan.plan_id))
+}
+
+fn uppercase_utf8(input: &[u8]) -> Result<Vec<u8>, String> {
+    let text = core::str::from_utf8(input)
+        .map_err(|_| "browser text/upper input is not valid UTF-8".to_string())?;
+    let mut output = Vec::with_capacity(input.len());
+    for character in text.chars().flat_map(char::to_uppercase) {
+        let mut encoded = [0_u8; 4];
+        let bytes = character.encode_utf8(&mut encoded).as_bytes();
+        if output.len() + bytes.len() > conduit_std_catalog::MAX_TEXT_BYTES as usize {
+            return Err("browser text/upper output exceeds its admitted bound".into());
+        }
+        output.extend_from_slice(bytes);
+    }
+    Ok(output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::uppercase_utf8;
+
+    #[test]
+    fn uppercase_is_utf8_exact_and_rejects_invalid_input() {
+        assert_eq!(uppercase_utf8("Straße".as_bytes()).unwrap(), b"STRASSE");
+        assert_eq!(
+            uppercase_utf8(&[0xff]),
+            Err("browser text/upper input is not valid UTF-8".into())
+        );
+    }
 }

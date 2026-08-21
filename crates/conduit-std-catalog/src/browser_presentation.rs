@@ -3,14 +3,29 @@ use conduit_core::{ArtifactId, CapabilityOffer, ExecutionProfileId, Implementati
 
 use crate::{
     graphics_offer_for, layout_offer_for, presentation_composition_offer_for,
-    text_presentation_offer, GRAPHICS_ICON_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND,
-    LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
-    LAYOUT_VIEWPORT_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND,
-    TEXT_PRESENTATION_KIND,
+    text_presentation_offer, text_upper_offer, GRAPHICS_ICON_KIND, GRAPHICS_RECT_KIND,
+    GRAPHICS_TEXT_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND,
+    LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND,
+    PRESENTATION_ICON_KIND, TEXT_PRESENTATION_KIND,
 };
 
 pub const BROWSER_PRESENTATION_PROFILE: &str = "browser/presentation-nucleus-kernel@1";
 pub const BROWSER_PRESENTATION_ARTIFACT: &str = "conduit-browser-runtime/presentation-nucleus@1";
+pub const BROWSER_TEXT_UPPER_PROFILE: &str = "browser/text-upper-kernel@1";
+pub const BROWSER_TEXT_UPPER_ARTIFACT: &str = "conduit-browser-runtime/text-upper@1";
+pub const BROWSER_TEXT_UPPER_IMPLEMENTATION: &str = "browser/text-upper@1";
+pub const BROWSER_TEXT_UPPER_CAPABILITY: &str = "browser-text-upper-v1";
+
+pub fn browser_text_upper_offer() -> CapabilityOffer {
+    let mut offer = text_upper_offer();
+    offer.capability_id = conduit_core::CapabilityId::from(BROWSER_TEXT_UPPER_CAPABILITY);
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from(BROWSER_TEXT_UPPER_PROFILE);
+    offer.implementation.implementation_id =
+        ImplementationId::from(BROWSER_TEXT_UPPER_IMPLEMENTATION);
+    offer.implementation.artifact_id = ArtifactId::from(BROWSER_TEXT_UPPER_ARTIFACT);
+    offer
+}
 
 pub fn browser_presentation_nucleus_offers() -> Vec<CapabilityOffer> {
     [

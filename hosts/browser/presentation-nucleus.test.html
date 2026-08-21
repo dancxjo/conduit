@@ -28,7 +28,7 @@ try {
   assert(proof.graphics.map((command) => command.kind).join(",") === "1,2,3", "graphics order is exact");
   assert(proof.graphics[1].payload === "ready", "resolved text remains exact");
   assert(proof.graphics[2].payload === "presentation", "canonical icon remains exact");
-  assert(proof.text === "Gear Face", "presentation/text reaches the browser");
+  assert(proof.text === "STRASSE", "text/upper reaches presentation/text in the browser");
   assert(proof.structured.schema === "education/feedback@1", "education schema reaches the browser");
   assert(proof.structured.variant === "passed", "assessment outcome remains a typed variant");
   assert(proof.structured.quantityUnit === "ratio/percent", "score retains its quantity unit");

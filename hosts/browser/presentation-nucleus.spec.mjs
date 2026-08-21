@@ -13,7 +13,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   await expect(page.locator("#nucleus [data-graphics-kind]")).toHaveCount(3);
   await expect(page.locator("#nucleus [data-graphics-kind=text]")).toHaveText("ready");
   await expect(page.locator("#nucleus [data-graphics-kind=icon]")).toHaveAttribute("role", "img");
-  await expect(page.locator("#nucleus [data-presentation-kind=text]")).toHaveText("Gear Face");
+  await expect(page.locator("#nucleus [data-presentation-kind=text]")).toHaveText("STRASSE");
   const structured = page.locator("#nucleus [data-presentation-kind=structured-info]");
   await expect(structured).toHaveAttribute("data-schema", "education/feedback@1");
   await expect(structured).toHaveAttribute("data-variant", "passed");
@@ -23,7 +23,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   expect(await page.evaluate(() => globalThis.__conduitPresentationNucleus)).toEqual({
     layoutChildren: 3,
     graphicsKinds: [1, 2, 3],
-    text: "Gear Face",
+    text: "STRASSE",
     structured: {
       schema: "education/feedback@1",
       variant: "passed",
