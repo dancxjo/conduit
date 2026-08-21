@@ -172,28 +172,29 @@ async fn serve_build_bound_services(
     let mut packet = [0_u8; 64];
     let mut request = [0_u8; BOOTSEL_FRAME_MAX];
     loop {
-        let request_length = loop {
+        // Scope the decoder read to one DTR-bearing CDC connection.  A host
+        // close disables the endpoint; leave this scope and wait for the next
+        // connection rather than trying to reuse a disabled endpoint.
+        class.wait_connection().await;
+        let request_length = 'connection: loop {
             match decoder.next_frame() {
                 Ok(Some(frame)) => {
                     request[..frame.len()].copy_from_slice(frame);
-                    break frame.len();
+                    break 'connection Some(frame.len());
                 }
                 Ok(None) => {}
                 Err(_) => core::future::pending::<()>().await,
             }
             let read = match class.read_packet(&mut packet).await {
                 Ok(read) => read,
-                // A host-side CDC close disables the endpoint.  Keep the
-                // bounded service alive and wait for the next DTR-bearing
-                // connection instead of wedging the decoder forever.
-                Err(_) => {
-                    class.wait_connection().await;
-                    continue;
-                }
+                Err(_) => break 'connection None,
             };
             if decoder.accept_bytes(&packet[..read]).is_err() {
                 core::future::pending::<()>().await;
             }
+        };
+        let Some(request_length) = request_length else {
+            continue;
         };
         let request = &request[..request_length];
         if request == BOOTSEL_QUERY {
