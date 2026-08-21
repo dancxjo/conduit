@@ -26,6 +26,8 @@ mod structured_execution;
 mod text_execution;
 use offers::{advertisement, fixture_catalog, fixture_startup_catalog};
 use text_execution::execute_text_form;
+#[cfg(test)]
+mod text_lab_tests;
 
 pub use conduit_std_catalog::{BROWSER_PRESENTATION_ARTIFACT, BROWSER_PRESENTATION_PROFILE};
 const FIXTURE_GRAPHICS_KIND: &str = "browser-fixture/graphics-present";
@@ -391,6 +393,27 @@ mod tests {
                 BROWSER_PRESENTATION_ARTIFACT
             );
         }
+        let browser_upper = conduit_std_catalog::browser_text_upper_offer();
+        let canonical_upper = conduit_std_catalog::text_upper_offer();
+        assert_eq!(
+            browser_upper.kind_contract_revision,
+            canonical_upper.kind_contract_revision
+        );
+        assert_eq!(browser_upper.inputs, canonical_upper.inputs);
+        assert_eq!(browser_upper.outputs, canonical_upper.outputs);
+        assert_eq!(
+            browser_upper.host_operations,
+            canonical_upper.host_operations
+        );
+        assert_eq!(browser_upper.limits, canonical_upper.limits);
+        assert_eq!(
+            browser_upper.implementation.execution_profile_id.as_str(),
+            conduit_std_catalog::BROWSER_TEXT_UPPER_PROFILE
+        );
+        assert_eq!(
+            browser_upper.implementation.artifact_id.as_str(),
+            conduit_std_catalog::BROWSER_TEXT_UPPER_ARTIFACT
+        );
     }
 
     #[test]
@@ -398,7 +421,7 @@ mod tests {
         let proof = execute_browser_nucleus().expect("browser nucleus executes");
         assert_eq!(proof.graphics.commands().len(), 3);
         assert_eq!(proof.layout.child_count, 3);
-        assert_eq!(proof.text, "Gear Face");
+        assert_eq!(proof.text, "STRASSE");
         assert_ne!(proof.graphics_plan_id, proof.layout_plan_id);
         assert_ne!(proof.layout_plan_id, proof.text_plan_id);
         assert_ne!(proof.text_plan_id, proof.structured_plan_id);

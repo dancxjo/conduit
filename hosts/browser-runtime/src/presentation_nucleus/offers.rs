@@ -25,6 +25,10 @@ pub(super) fn canonical_offer(kind: &str) -> Option<CapabilityOffer> {
             (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND)
                 .then(conduit_std_catalog::text_presentation_offer)
         })
+        .or_else(|| {
+            (kind == conduit_std_catalog::TEXT_UPPER_KIND)
+                .then(conduit_std_catalog::text_upper_offer)
+        })
 }
 
 pub(super) fn advertisement() -> HostAdvertisement {
@@ -52,10 +56,10 @@ pub(super) fn advertisement() -> HostAdvertisement {
 }
 
 pub(super) fn text_advertisement() -> HostAdvertisement {
-    let text_offer = offers()
+    let text_presentation = offers()
         .into_iter()
         .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND)
-        .expect("browser text offer is installed");
+        .expect("browser text presentation offer is installed");
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser-presentation-host"),
@@ -68,7 +72,11 @@ pub(super) fn text_advertisement() -> HostAdvertisement {
             1,
         )],
         planner_capabilities: Vec::new(),
-        capabilities: vec![text_source_offer(), text_offer],
+        capabilities: vec![
+            conduit_std_catalog::browser_text_upper_offer(),
+            text_presentation,
+            text_source_offer(),
+        ],
     }
 }
 
@@ -190,6 +198,8 @@ pub(super) fn fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, 
 
 pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> {
     let mut catalog = conduit_form::ProfileCatalog::new();
+    let mut startup = conduit_form::StartupCatalog::new();
+    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)?;
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(FIXTURE_TEXT_KIND),
@@ -199,26 +209,6 @@ pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, Str
             configuration: Vec::new(),
         })
         .map_err(|error| format!("install browser text source: {error:?}"))?;
-    catalog
-        .insert(conduit_form::KindDefinition {
-            kind_id: kind_id(conduit_std_catalog::TEXT_PRESENTATION_KIND),
-            kind_contract_revision: KindContractRevision::from(
-                conduit_std_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
-            ),
-            inputs: conduit_std_catalog::text_presentation_inputs(),
-            outputs: Vec::new(),
-            configuration: vec![conduit_form::ConfigurationField {
-                key: "maximum-values".into(),
-                default_value: conduit_core::ConfigurationValue::U64(
-                    conduit_std_catalog::MAX_TEXT_VALUES,
-                ),
-                validation: conduit_form::ConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: conduit_std_catalog::MAX_TEXT_VALUES,
-                },
-            }],
-        })
-        .map_err(|error| format!("install browser text presentation: {error:?}"))?;
     Ok(catalog)
 }
 
