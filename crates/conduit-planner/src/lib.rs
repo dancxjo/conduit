@@ -38,6 +38,7 @@ mod fact_policy;
 mod functional_compatibility;
 mod fusion;
 mod generic_selection;
+mod heterogeneous_capstone;
 mod incremental;
 mod locality;
 mod observations;
@@ -96,6 +97,13 @@ pub use fusion::{
     FusionCandidateEvidence, FusionDecisionGroup, FusionPlanningInputs, FusionPlanningObservation,
     FusionRealizationOffer, FusionSelection, OptimizedPlan, MAXIMUM_FUSION_CANDIDATES,
     MAXIMUM_FUSION_GROUPS, MAXIMUM_FUSION_MEMBERS, MAXIMUM_FUSION_OFFERS,
+};
+pub use heterogeneous_capstone::{
+    evaluate_heterogeneous_capstone, CapstoneDecision, CapstoneDeviceClass,
+    CapstoneDeviceDisposition, CapstoneGainDimension, CapstoneMeasurement,
+    HeterogeneousCapstoneEvidence, HeterogeneousCapstoneReport, SchedulerProofClass,
+    SchedulerStrategy, MAXIMUM_CAPSTONE_DECISIONS, MAXIMUM_CAPSTONE_DEVICE_CLASSES,
+    MAXIMUM_CAPSTONE_ID_BYTES, MAXIMUM_CAPSTONE_REASON_BYTES,
 };
 pub use incremental::{
     plan_cold, CandidateEvaluation, CandidateEvaluationDisposition, CandidateStructure, FactDomain,

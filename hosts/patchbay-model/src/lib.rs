@@ -32,6 +32,7 @@ mod front_door_topology;
 mod front_door_transition;
 mod gear_realization;
 mod graphical_patchbay;
+mod heterogeneous_capstone_explanation;
 mod interaction;
 mod layout;
 mod maker_environment;
@@ -110,6 +111,10 @@ pub use graphical_patchbay::{
     PatchbayFacePort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
     PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
     MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
+};
+pub use heterogeneous_capstone_explanation::{
+    PatchbayCapstoneBaseline, PatchbayHeterogeneousCapstoneExplanation,
+    MAX_CAPSTONE_EXPLANATION_BYTES,
 };
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
@@ -197,6 +202,8 @@ mod front_door_tests;
 mod gear_realization_tests;
 #[cfg(test)]
 mod graphical_patchbay_tests;
+#[cfg(test)]
+mod heterogeneous_capstone_explanation_tests;
 #[cfg(test)]
 mod interaction_tests;
 #[cfg(test)]
