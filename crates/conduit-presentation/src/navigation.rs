@@ -116,7 +116,7 @@ pub enum NavigationOperation {
     Back,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NavigationRefusal {
     StalePresentation,
     UnknownPlace,
