@@ -192,10 +192,10 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
     Ok((text, plan.plan_id))
 }
 
-fn uppercase_utf8(input: &[u8]) -> Result<Vec<u8>, String> {
+pub(crate) fn uppercase_utf8(input: &[u8]) -> Result<Vec<u8>, String> {
     let text = core::str::from_utf8(input)
         .map_err(|_| "browser text/upper input is not valid UTF-8".to_string())?;
-    let mut output = Vec::with_capacity(input.len());
+    let mut output = Vec::with_capacity(conduit_std_catalog::MAX_TEXT_BYTES as usize);
     for character in text.chars().flat_map(char::to_uppercase) {
         let mut encoded = [0_u8; 4];
         let bytes = character.encode_utf8(&mut encoded).as_bytes();

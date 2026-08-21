@@ -31,7 +31,7 @@ conduit-runtime = { path = "../../crates/conduit-runtime", default-features = fa
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }
 conduit-synth = { path = "../../crates/conduit-synth" }
-conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
+conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog", "text-lab-plan"] }
 conduit-wire = { path = "../../crates/conduit-wire" }
 tungstenite = "0.30.0"
 serde = { version = "1", features = ["derive"] }
