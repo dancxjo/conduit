@@ -26,6 +26,7 @@ mod structured_execution;
 mod text_execution;
 use offers::{advertisement, fixture_catalog, fixture_startup_catalog};
 use text_execution::execute_text_form;
+pub(crate) use text_execution::uppercase_utf8;
 #[cfg(test)]
 mod text_lab_tests;
 

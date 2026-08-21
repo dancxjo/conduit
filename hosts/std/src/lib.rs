@@ -29,6 +29,7 @@ mod copy_task;
 mod deadline_reactor;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+pub mod text_lab_split;
 pub use composition::StdHostComposition;
 pub use copy_task::{
     prepare_copy_task, CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, PreparedCopyTask,

@@ -37,6 +37,7 @@ mod distributed_toggle;
 pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
+pub mod text_lab_split;
 mod webchat;
 mod webrtc_session;
 
