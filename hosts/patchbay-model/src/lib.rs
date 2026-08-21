@@ -18,6 +18,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod build_birth;
 mod control;
 mod cross_host_renderer;
+mod degradation_explanation;
 mod face_configuration;
 mod face_controls;
 mod form_editor;
@@ -72,6 +73,9 @@ mod zero_body_authoring;
 mod zero_body_front_door;
 mod zero_body_projection;
 
+#[cfg(test)]
+mod degradation_explanation_tests;
+
 pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
     PatchbayMode, MAX_BUILD_DOCUMENT_LINES,
@@ -82,6 +86,9 @@ pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
     PRESENTATION_PROJECT_KIND,
+};
+pub use degradation_explanation::{
+    PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,
 };
 pub use face_controls::{FaceControl, FaceControlKind, MAX_FACE_CONTROLS};
 pub use form_editor::{
