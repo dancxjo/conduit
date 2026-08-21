@@ -1,12 +1,26 @@
 use std::io::Write;
+use std::process::ExitCode;
 
 use conduit_std_host::text_lab_live::TextLabLiveServer;
 
-fn main() -> Result<(), String> {
-    let server = TextLabLiveServer::bind()?;
+fn main() -> ExitCode {
+    let server = match TextLabLiveServer::bind() {
+        Ok(server) => server,
+        Err(error) => {
+            eprintln!("{error}");
+            return ExitCode::FAILURE;
+        }
+    };
     println!("{}", server.url());
-    std::io::stdout()
-        .flush()
-        .map_err(|error| error.to_string())?;
-    server.run(&mut std::io::stdout())
+    if let Err(error) = std::io::stdout().flush() {
+        eprintln!("{error}");
+        return ExitCode::FAILURE;
+    }
+    match server.run(&mut std::io::stdout()) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("{error}");
+            ExitCode::FAILURE
+        }
+    }
 }

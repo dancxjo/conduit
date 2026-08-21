@@ -35,6 +35,13 @@ function processExit(child) {
   });
 }
 
+function processOutcome(child) {
+  return new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("exit", (code, signal) => resolve({ code, signal }));
+  });
+}
+
 test("unchanged Text Lab executes both exact Lines through browser WASM", async ({ page }) => {
   const sourceText = readFileSync("examples/text-lab.conduit", "utf8").toLowerCase();
   for (const forbidden of ["browser", "websocket", "127.0.0.1", "host", "line", "address"]) {
@@ -98,6 +105,95 @@ test("unchanged Text Lab executes both exact Lines through browser WASM", async 
     expect(result.forwardClosed).toEqual({ ok: true, code: 1000, reason: "conduit-terminal" });
     expect(result.returnClosed).toEqual({ ok: true, code: 1000, reason: "conduit-terminal" });
     await expect(page.locator("#result")).toHaveText("complete");
+  } finally {
+    lines.close();
+    if (server.exitCode === null) server.kill("SIGTERM");
+  }
+});
+
+test("return Line loss preserves the accepted Plan and makes fresh planning unrealizable", async ({
+  page,
+}) => {
+  const server = spawn(
+    "cargo",
+    ["run", "--quiet", "-p", "conduit-std-host", "--bin", "text-lab-live-server"],
+    { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const stderr = [];
+  server.stderr.setEncoding("utf8");
+  server.stderr.on("data", (chunk) => stderr.push(chunk));
+  const lines = lineCollector(server.stdout);
+  const outcome = processOutcome(server);
+  try {
+    const url = await lines.line(0);
+    const browser = await page.goto("/hosts/browser/text-lab-live.test.html");
+    expect(browser.ok()).toBe(true);
+    const result = await page.evaluate(async ({ url }) => {
+      const { BrowserWebSocketLine } = await import("/hosts/browser/websocket-line.mjs");
+      const { instantiateTextLabLive, runTextLabLive } = await import(
+        "/hosts/browser/text-lab-live-runtime.mjs"
+      );
+      const wasmBytes = await fetch(
+        "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+      ).then((response) => response.arrayBuffer());
+      const openLine = () => new BrowserWebSocketLine({
+        url,
+        maximumMessageBytes: 1024,
+        maximumBufferedBytes: 4096,
+      }).open();
+      const forward = await openLine();
+      const runtime = await instantiateTextLabLive(wasmBytes, url);
+      let injected = false;
+      let failure = null;
+      try {
+        await runTextLabLive(runtime, forward, openLine, async ({ deliveredValues, returned }) => {
+          if (!injected && deliveredValues === 2) {
+            injected = true;
+            void returned.close(4001, "injected-return-line-loss");
+          }
+        });
+      } catch (error) {
+        failure = { code: error.code, message: error.message };
+      }
+      const forwardClosed = await forward.closed();
+      document.querySelector("#result").textContent = "line unavailable";
+      return {
+        deliveredValues: runtime.api.conduit_browser_text_lab_delivered_values(),
+        failure,
+        forwardClosed,
+        injected,
+      };
+    }, { url });
+    const exited = await outcome;
+    expect(exited.code).not.toBe(0);
+    expect(exited.signal).toBeNull();
+    expect(result.injected).toBe(true);
+    expect(result.deliveredValues).toBe(2);
+    expect(result.failure.message).toContain("CND-WS-S4-007");
+    expect(result.forwardClosed).toEqual({ ok: false, code: 1006, reason: "" });
+    await expect(page.locator("#result")).toHaveText("line unavailable");
+
+    const loss = JSON.parse(stderr.join("").trim());
+    expect(loss).toMatchObject({
+      schema: "conduit.text-lab/line-loss@1",
+      code: "CND-TEXT-LIVE-301",
+      sequence: 2,
+      line_id: "text-lab/browser-to-native",
+      old_plan_disposition: "immutable",
+      fresh_planning: "unrealizable",
+      form_unchanged: true,
+    });
+    for (const identity of [
+      "plan_id",
+      "source_document_id",
+      "checked_form_id",
+      "active_play_id",
+      "sign_id",
+    ]) {
+      expect(loss[identity]).toBeTruthy();
+    }
+    expect(loss.refusal).toContain("unavailable");
+    expect(loss.transport_failure).toContain("Disconnected");
   } finally {
     lines.close();
     if (server.exitCode === null) server.kill("SIGTERM");

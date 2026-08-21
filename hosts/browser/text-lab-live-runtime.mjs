@@ -33,6 +33,7 @@ export async function instantiateTextLabLive(wasmBytes, url) {
     "conduit_browser_text_lab_output_ptr",
     "conduit_browser_text_lab_output_len",
     "conduit_browser_text_lab_status",
+    "conduit_browser_text_lab_delivered_values",
   ];
   if (required.some((name) => !(name in api)) ||
       api.conduit_browser_text_lab_input_capacity() !== FRAME_BYTES) {
@@ -44,7 +45,7 @@ export async function instantiateTextLabLive(wasmBytes, url) {
   return Object.freeze({ api });
 }
 
-export async function runTextLabLive(runtime, forward, openReturn) {
+export async function runTextLabLive(runtime, forward, openReturn, afterProgress = null) {
   const { api } = runtime;
   let returned = null;
   let sentFrames = 0;
@@ -79,6 +80,13 @@ export async function runTextLabLive(runtime, forward, openReturn) {
     writeInput(api, bytes);
     requireStatus(api.conduit_browser_text_lab_ingest(expectedLine, bytes.length), "ingest");
     receivedFrames += 1;
+    if (afterProgress !== null) {
+      await afterProgress(Object.freeze({
+        deliveredValues: api.conduit_browser_text_lab_delivered_values(),
+        forward,
+        returned,
+      }));
+    }
   }
   return Object.freeze({ returned, sentFrames, receivedFrames });
 }

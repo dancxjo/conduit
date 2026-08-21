@@ -48,6 +48,7 @@ struct TextLabBrowserLive {
     output_line: i32,
     expected_line: i32,
     sent_action: SentAction,
+    delivered_values: u32,
     complete: bool,
 }
 
@@ -116,6 +117,7 @@ impl TextLabBrowserLive {
             output_line: LINE_NONE,
             expected_line: LINE_FORWARD,
             sent_action: SentAction::None,
+            delivered_values: 0,
             complete: false,
         };
         let hello_binding = live.forward_binding.clone();
@@ -232,6 +234,7 @@ impl TextLabBrowserLive {
                 self.fragment
                     .deliver_upper(sequence)
                     .map_err(|_| ERROR_KERNEL)?;
+                self.delivered_values = self.delivered_values.checked_add(1).ok_or(ERROR_KERNEL)?;
                 self.expected_line = LINE_FORWARD;
                 Ok(())
             }
@@ -402,5 +405,14 @@ pub extern "C" fn conduit_browser_text_lab_status() -> i32 {
                 STATUS_RUNNING
             }
         })
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_text_lab_delivered_values() -> u32 {
+    LIVE.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |live| live.delivered_values)
     })
 }

@@ -38,7 +38,50 @@ pub struct TextLabSplitPlan {
     pub return_line: LineOffer,
 }
 
+pub struct TextLabLineLossOutcome {
+    pub source_document_id: conduit_core::SourceDocumentId,
+    pub checked_form_id: conduit_core::CheckedFormId,
+    pub immutable_plan_id: conduit_core::PlanId,
+    pub unavailable_line_id: conduit_core::LineId,
+    pub refusal: String,
+}
+
 pub fn exact_text_lab_split_plan(base_instance: &str) -> Result<TextLabSplitPlan, String> {
+    exact_text_lab_split_plan_with_loss(base_instance, None)
+}
+
+pub fn exact_text_lab_line_loss_outcome(
+    base_instance: &str,
+    unavailable_line: &str,
+) -> Result<TextLabLineLossOutcome, String> {
+    if !matches!(
+        unavailable_line,
+        TEXT_LAB_FORWARD_LINE | TEXT_LAB_RETURN_LINE
+    ) {
+        return Err("unknown Text Lab Line loss target".into());
+    }
+    let accepted = exact_text_lab_split_plan_with_loss(base_instance, None)?;
+    let immutable_plan_id = accepted.plan.plan_id.clone();
+    let refusal = match exact_text_lab_split_plan_with_loss(base_instance, Some(unavailable_line)) {
+        Ok(_) => return Err("lost selected Text Lab Line still produced a Plan".into()),
+        Err(refusal) => refusal,
+    };
+    if accepted.plan.plan_id != immutable_plan_id || !conduit_core::verify_plan(&accepted.plan) {
+        return Err("Text Lab Line loss mutated the accepted Plan".into());
+    }
+    Ok(TextLabLineLossOutcome {
+        source_document_id: accepted.plan.source_document_id,
+        checked_form_id: accepted.plan.checked_form_id,
+        immutable_plan_id,
+        unavailable_line_id: conduit_core::LineId::from(unavailable_line),
+        refusal,
+    })
+}
+
+fn exact_text_lab_split_plan_with_loss(
+    base_instance: &str,
+    unavailable_line: Option<&str>,
+) -> Result<TextLabSplitPlan, String> {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     install_keyboard_catalogs(&mut startup, &mut profile)?;
@@ -90,7 +133,7 @@ pub fn exact_text_lab_split_plan(base_instance: &str) -> Result<TextLabSplitPlan
         maximum_buffered_bytes: MAX_TEXT_BYTES,
         maximum_frame_bytes: 1_024,
     };
-    let forward_line = process_owned_line_offer_with_limits(
+    let mut forward_line = process_owned_line_offer_with_limits(
         TEXT_LAB_FORWARD_LINE,
         "text-lab/native-to-browser-binding",
         ConnectionBase::WebSocket,
@@ -99,7 +142,7 @@ pub fn exact_text_lab_split_plan(base_instance: &str) -> Result<TextLabSplitPlan
         &browser,
         limits,
     );
-    let return_line = process_owned_line_offer_with_limits(
+    let mut return_line = process_owned_line_offer_with_limits(
         TEXT_LAB_RETURN_LINE,
         "text-lab/browser-to-native-binding",
         ConnectionBase::WebSocket,
@@ -108,6 +151,16 @@ pub fn exact_text_lab_split_plan(base_instance: &str) -> Result<TextLabSplitPlan
         &native,
         limits,
     );
+    match unavailable_line {
+        Some(TEXT_LAB_FORWARD_LINE) => {
+            forward_line.availability.availability = conduit_core::LineAvailability::Unavailable;
+        }
+        Some(TEXT_LAB_RETURN_LINE) => {
+            return_line.availability.availability = conduit_core::LineAvailability::Unavailable;
+        }
+        Some(_) => return Err("unknown Text Lab Line loss target".into()),
+        None => {}
+    }
     let capability = |host: &HostAdvertisement, kind: &str| {
         host.capabilities
             .iter()
@@ -209,5 +262,19 @@ mod tests {
             exact.return_line.binding.source.host_id,
             exact.browser.host_id
         );
+    }
+
+    #[test]
+    fn either_selected_line_loss_preserves_the_old_plan_and_refuses_fresh_planning() {
+        let base = "ws://127.0.0.1:1/conduit";
+        let accepted = exact_text_lab_split_plan(base).unwrap();
+        for line in [TEXT_LAB_FORWARD_LINE, TEXT_LAB_RETURN_LINE] {
+            let loss = exact_text_lab_line_loss_outcome(base, line).unwrap();
+            assert_eq!(loss.source_document_id, accepted.plan.source_document_id);
+            assert_eq!(loss.checked_form_id, accepted.plan.checked_form_id);
+            assert_eq!(loss.immutable_plan_id, accepted.plan.plan_id);
+            assert_eq!(loss.unavailable_line_id.as_str(), line);
+            assert!(loss.refusal.contains("unavailable"));
+        }
     }
 }
