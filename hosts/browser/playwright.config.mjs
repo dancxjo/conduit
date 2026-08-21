@@ -8,6 +8,7 @@ export default defineConfig({
     "signal-dom-host.spec.mjs",
     "websocket-line.spec.mjs",
     "distributed-signal.spec.mjs",
+    "text-lab-live.spec.mjs",
     "distributed-toggle.spec.mjs",
     "conduit-site.spec.mjs",
     "webchat.spec.mjs",
