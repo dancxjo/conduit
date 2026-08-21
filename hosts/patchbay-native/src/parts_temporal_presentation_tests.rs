@@ -65,7 +65,9 @@ fn live_parts_linear_presentation_orders_age_before_exact_provenance() {
     application.browser_parts = Some(browser_parts);
 
     let first = application.parts_portable_presentation().unwrap().unwrap();
-    std::thread::sleep(Duration::from_millis(2));
+    // Source and reference each declare one millisecond of uncertainty. Keep
+    // their intervals disjoint so this proof deterministically exercises Past.
+    std::thread::sleep(Duration::from_millis(4));
     let later = application.parts_portable_presentation().unwrap().unwrap();
     assert_eq!(
         first.temporal_facts[0].source,
