@@ -97,6 +97,11 @@ pub struct BrowserTextLabFragment {
     lowered: LoweredPlanFragment,
 }
 
+pub struct BrowserTextOffer {
+    pub sequence: u64,
+    pub bytes: Vec<u8>,
+}
+
 impl BrowserTextLabFragment {
     pub fn prepare(base_instance: &str) -> Result<Self, String> {
         let exact = exact_text_lab_split_plan(base_instance)?;
@@ -190,11 +195,15 @@ impl BrowserTextLabFragment {
         (endpoint.endpoint, endpoint.cord)
     }
 
-    pub fn execute_value(&mut self, sequence: u64, input: &[u8]) -> Result<Vec<u8>, String> {
+    pub fn admit_text(&mut self, sequence: u64, input: &[u8]) -> Result<(), String> {
         let (ingress, ingress_cord) = self.endpoint(RemoteCordDirection::Ingress);
         self.scheduler
             .admit_remote_input(ingress, ingress_cord, sequence, input)
-            .map_err(|error| format!("{error:?}"))?;
+            .map(|_| ())
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    pub fn next_upper_offer(&mut self) -> Result<BrowserTextOffer, String> {
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
                 let input = self
@@ -229,18 +238,15 @@ impl BrowserTextLabFragment {
                 .remote_egress_offer(egress, egress_cord)
                 .map_err(|error| format!("{error:?}"))?
             {
-                let output = self
+                let bytes = self
                     .scheduler
                     .host_value(offer.value)
                     .map_err(|error| format!("{error:?}"))?
                     .to_vec();
-                self.scheduler
-                    .remote_egress_accept(egress, egress_cord, offer.sequence)
-                    .map_err(|error| format!("{error:?}"))?;
-                self.scheduler
-                    .remote_egress_delivered(egress, egress_cord, offer.sequence)
-                    .map_err(|error| format!("{error:?}"))?;
-                return Ok(output);
+                return Ok(BrowserTextOffer {
+                    sequence: offer.sequence,
+                    bytes,
+                });
             }
             match self
                 .scheduler
@@ -259,6 +265,61 @@ impl BrowserTextLabFragment {
                 }
             }
         }
+    }
+
+    pub fn accept_upper(&mut self, sequence: u64) -> Result<(), String> {
+        let (endpoint, cord) = self.endpoint(RemoteCordDirection::Egress);
+        self.scheduler
+            .remote_egress_accept(endpoint, cord, sequence)
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    pub fn deliver_upper(&mut self, sequence: u64) -> Result<(), String> {
+        let (endpoint, cord) = self.endpoint(RemoteCordDirection::Egress);
+        self.scheduler
+            .remote_egress_delivered(endpoint, cord, sequence)
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    pub fn execute_value(&mut self, sequence: u64, input: &[u8]) -> Result<Vec<u8>, String> {
+        self.admit_text(sequence, input)?;
+        let offer = self.next_upper_offer()?;
+        self.accept_upper(offer.sequence)?;
+        self.deliver_upper(offer.sequence)?;
+        Ok(offer.bytes)
+    }
+
+    pub fn close_text_input(&mut self) -> Result<(), String> {
+        let (endpoint, cord) = self.endpoint(RemoteCordDirection::Ingress);
+        self.scheduler
+            .close_remote_input(endpoint, cord)
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    pub fn finish(&mut self) -> Result<(), String> {
+        loop {
+            match self
+                .scheduler
+                .step()
+                .map_err(|error| format!("{error:?}"))?
+            {
+                SchedulerStatus::Progress { .. } => {}
+                SchedulerStatus::Idle => {
+                    return Err("split Text Lab browser became idle at finish".into())
+                }
+                SchedulerStatus::Complete => break,
+                SchedulerStatus::Cancelled => return Err("split Text Lab browser cancelled".into()),
+            }
+        }
+        let (endpoint, cord) = self.endpoint(RemoteCordDirection::Egress);
+        if !self
+            .scheduler
+            .remote_egress_terminal(endpoint, cord)
+            .map_err(|error| format!("{error:?}"))?
+        {
+            return Err("split Text Lab browser return Cord is not terminal".into());
+        }
+        Ok(())
     }
 }
 

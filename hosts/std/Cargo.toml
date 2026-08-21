@@ -55,5 +55,6 @@ path = "src/bin/bluetooth-line-probe.rs"
 required-features = ["bluetooth-bluez"]
 
 [dev-dependencies]
+conduit-browser-runtime = { path = "../browser-runtime" }
 conduit-pico-sim = { path = "../../fixtures/pico-sim", features = ["compatibility-fixture"] }
 ed25519-dalek = "2.2"
