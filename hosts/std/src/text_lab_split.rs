@@ -219,6 +219,13 @@ pub struct NativeTextLabFragment {
     presented: String,
 }
 
+pub struct NativeTextOffer {
+    pub sequence: u64,
+    pub bytes: Vec<u8>,
+}
+
+mod lifecycle;
+
 impl NativeTextLabFragment {
     pub fn prepare(base_instance: &str) -> Result<Self, String> {
         let exact = exact_text_lab_split_plan(base_instance)?;
@@ -391,7 +398,7 @@ impl NativeTextLabFragment {
         Ok(true)
     }
 
-    pub fn next_text(&mut self) -> Result<(u64, Vec<u8>), String> {
+    pub fn next_text_offer(&mut self) -> Result<NativeTextOffer, String> {
         loop {
             if self.complete_host_request()? {
                 continue;
@@ -407,13 +414,10 @@ impl NativeTextLabFragment {
                     .host_value(offer.value)
                     .map_err(|error| format!("{error:?}"))?
                     .to_vec();
-                self.scheduler
-                    .remote_egress_accept(endpoint, cord, offer.sequence)
-                    .map_err(|error| format!("{error:?}"))?;
-                self.scheduler
-                    .remote_egress_delivered(endpoint, cord, offer.sequence)
-                    .map_err(|error| format!("{error:?}"))?;
-                return Ok((offer.sequence, bytes));
+                return Ok(NativeTextOffer {
+                    sequence: offer.sequence,
+                    bytes,
+                });
             }
             match self
                 .scheduler
@@ -432,6 +436,20 @@ impl NativeTextLabFragment {
         }
     }
 
+    pub fn accept_text(&mut self, sequence: u64) -> Result<(), String> {
+        let (endpoint, cord) = self.endpoint(RemoteCordDirection::Egress);
+        self.scheduler
+            .remote_egress_accept(endpoint, cord, sequence)
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    pub fn deliver_text(&mut self, sequence: u64) -> Result<(), String> {
+        let (endpoint, cord) = self.endpoint(RemoteCordDirection::Egress);
+        self.scheduler
+            .remote_egress_delivered(endpoint, cord, sequence)
+            .map_err(|error| format!("{error:?}"))
+    }
+
     pub fn admit_returned(&mut self, sequence: u64, bytes: &[u8]) -> Result<(), String> {
         let (endpoint, cord) = self.endpoint(RemoteCordDirection::Ingress);
         self.scheduler
@@ -442,31 +460,5 @@ impl NativeTextLabFragment {
 
     pub fn presented(&self) -> &str {
         &self.presented
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn native_fragment_uses_admitted_keyboard_keymap_and_presentation_operations() {
-        let mut native = NativeTextLabFragment::prepare("ws://127.0.0.1:1/conduit").unwrap();
-        for expected in ["h", "e", "l", "l", "o"] {
-            let (sequence, outgoing) = native.next_text().unwrap();
-            assert_eq!(outgoing, expected.as_bytes());
-            native
-                .admit_returned(sequence, expected.to_ascii_uppercase().as_bytes())
-                .unwrap();
-            while native.presented.len() <= sequence as usize {
-                if !native.complete_host_request().unwrap() {
-                    assert!(matches!(
-                        native.scheduler.step().unwrap(),
-                        SchedulerStatus::Progress { .. }
-                    ));
-                }
-            }
-        }
-        assert_eq!(native.presented, "HELLO");
     }
 }

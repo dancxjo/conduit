@@ -739,6 +739,7 @@ dependencies = [
  "conduit-ai",
  "conduit-bluetooth",
  "conduit-body",
+ "conduit-browser-runtime",
  "conduit-chat",
  "conduit-core",
  "conduit-create-oi",
