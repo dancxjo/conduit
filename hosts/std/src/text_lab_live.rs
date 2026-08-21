@@ -4,8 +4,9 @@ use crate::text_lab_split::NativeTextLabFragment;
 use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_core::{Plan, PlanFragment};
 use conduit_std_catalog::{
-    exact_text_lab_split_plan, MAX_TEXT_BYTES, TEXT_LAB_BROWSER_HOST, TEXT_LAB_FORWARD_LINE,
-    TEXT_LAB_MAXIMUM_VALUES, TEXT_LAB_NATIVE_HOST, TEXT_LAB_RETURN_LINE,
+    exact_text_lab_line_loss_outcome, exact_text_lab_split_plan, MAX_TEXT_BYTES,
+    TEXT_LAB_BROWSER_HOST, TEXT_LAB_FORWARD_LINE, TEXT_LAB_MAXIMUM_VALUES, TEXT_LAB_NATIVE_BOOT,
+    TEXT_LAB_NATIVE_HOST, TEXT_LAB_RETURN_LINE,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
@@ -14,6 +15,47 @@ use conduit_wire::{
 use std::io::Write;
 
 pub const TEXT_LAB_LIVE_FRAME_BYTES: u32 = 1_024;
+
+fn return_line_loss(
+    plan: &Plan,
+    base: &str,
+    phase: &str,
+    sequence: u64,
+    transport_failure: &str,
+) -> String {
+    let outcome = match exact_text_lab_line_loss_outcome(base, TEXT_LAB_RETURN_LINE) {
+        Ok(outcome) => outcome,
+        Err(error) => return format!("CND-TEXT-LIVE-302 loss reconciliation failed: {error}"),
+    };
+    if outcome.immutable_plan_id != plan.plan_id
+        || outcome.source_document_id != plan.source_document_id
+        || outcome.checked_form_id != plan.checked_form_id
+    {
+        return "CND-TEXT-LIVE-302 loss reconciliation changed accepted identity".into();
+    }
+    let host = conduit_core::HostId::from(TEXT_LAB_NATIVE_HOST);
+    let boot = conduit_core::BootId::from(TEXT_LAB_NATIVE_BOOT);
+    let active = conduit_core::bind_active_play(&plan.plan_id, &host, &boot, 0);
+    let sign = conduit_core::bind_sign(&host, &boot, Some(&active.active_play_id), sequence);
+    serde_json::json!({
+        "schema": "conduit.text-lab/line-loss@1",
+        "code": "CND-TEXT-LIVE-301",
+        "phase": phase,
+        "sequence": sequence,
+        "line_id": outcome.unavailable_line_id.as_str(),
+        "plan_id": outcome.immutable_plan_id.as_str(),
+        "source_document_id": outcome.source_document_id.as_str(),
+        "checked_form_id": outcome.checked_form_id.as_str(),
+        "active_play_id": active.active_play_id.as_str(),
+        "sign_id": sign.sign_id.as_str(),
+        "old_plan_disposition": "immutable",
+        "fresh_planning": "unrealizable",
+        "form_unchanged": true,
+        "refusal": outcome.refusal,
+        "transport_failure": transport_failure,
+    })
+    .to_string()
+}
 
 struct LiveSession {
     binding: SessionBinding,
@@ -185,7 +227,15 @@ impl TextLabLiveServer {
                 }
                 other => return Err(format!("unexpected forward delivery {other:?}")),
             }
-            let (sequence, payload) = match returned.receive()? {
+            let (sequence, payload) = match returned.receive().map_err(|detail| {
+                return_line_loss(
+                    &exact.plan,
+                    &self.url,
+                    "return-offer",
+                    offer.sequence,
+                    &detail,
+                )
+            })? {
                 SessionMessage::Offered { sequence, payload } => (sequence, payload.to_vec()),
                 other => return Err(format!("unexpected return offer {other:?}")),
             };
@@ -193,9 +243,23 @@ impl TextLabLiveServer {
                 return Err("browser returned the wrong Text Lab value".into());
             }
             native.admit_returned(sequence, &payload)?;
-            returned.send(SessionMessage::Accepted { sequence })?;
+            returned
+                .send(SessionMessage::Accepted { sequence })
+                .map_err(|detail| {
+                    return_line_loss(&exact.plan, &self.url, "return-accepted", sequence, &detail)
+                })?;
             native.drive_presentation((sequence + 1) as usize)?;
-            returned.send(SessionMessage::Delivered { sequence })?;
+            returned
+                .send(SessionMessage::Delivered { sequence })
+                .map_err(|detail| {
+                    return_line_loss(
+                        &exact.plan,
+                        &self.url,
+                        "return-delivered",
+                        sequence,
+                        &detail,
+                    )
+                })?;
         }
         native.finish_forward()?;
         let final_sequence = TEXT_LAB_MAXIMUM_VALUES as u64;
