@@ -64,7 +64,7 @@ fn validate_records(records: &[serde_json::Value], identity: &serde_json::Value)
 
     if identity["schema"] != "conduit.pete/capstone-image@1"
         || identity["firmware_mode"] != "pete-capstone"
-        || identity["usb_serial"] != "nw-capstone"
+        || identity["usb_serial"] != "pete-capstone"
         || identity["robot_control_capable"] != true
         || identity["form"] != "pete-capstone"
         || identity["kernel"] != "conduit-kernel"
@@ -165,7 +165,7 @@ mod tests {
             "schema": "conduit.pete/capstone-image@1",
             "firmware_build_id": "capstone-build",
             "firmware_mode": "pete-capstone",
-            "usb_serial": "nw-capstone",
+            "usb_serial": "pete-capstone",
             "robot_control_capable": true,
             "form": "pete-capstone",
             "kernel": "conduit-kernel",
