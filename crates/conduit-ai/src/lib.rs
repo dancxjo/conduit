@@ -8,6 +8,10 @@ mod context_selection;
 pub use context_selection::*;
 mod context_selection_contract;
 pub use context_selection_contract::*;
+#[cfg(feature = "form-catalog")]
+mod form_composition;
+#[cfg(feature = "form-catalog")]
+pub use form_composition::*;
 mod effect_proposal;
 pub use effect_proposal::*;
 mod effect_runtime;
