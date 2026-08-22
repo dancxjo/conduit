@@ -240,7 +240,9 @@ fn sign_log() -> Result<HostedSignLog, CrossHostRendererError> {
     let bytes = u32::from(SIGN_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
         .ok_or_else(|| CrossHostRendererError::Kernel("Sign budget overflow".into()))?;
-    HostedSignLog::new(SIGN_ITEMS, bytes)
+    let remote_bytes = conduit_kernel::remote_sign_storage_bytes(SIGN_ITEMS)
+        .ok_or_else(|| CrossHostRendererError::Kernel("remote Sign budget overflow".into()))?;
+    HostedSignLog::new_with_remote_storage(SIGN_ITEMS, bytes, SIGN_ITEMS, remote_bytes)
         .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))
 }
 

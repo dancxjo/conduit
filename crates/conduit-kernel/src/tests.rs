@@ -2,8 +2,8 @@ use super::{
     BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
     FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
     HostOperationOutcome, KernelEvent, KernelEventKind, NodeId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, RouteRange, RouteTarget, SignError, SignSink, StorageError,
-    ValueStorage,
+    OperationInput, PortId, RequestId, RouteRange, RouteTarget, SignError, SignQuery, SignSink,
+    StorageError, ValueStorage,
 };
 
 #[test]
@@ -300,6 +300,58 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
     assert_eq!(events.next().unwrap().sequence, 0);
     assert_eq!(events.next().unwrap().sequence, 1);
     assert_eq!(events.next(), None);
+}
+
+#[test]
+fn remote_sign_identity_requires_separate_admission_and_fails_atomically() {
+    assert_eq!(core::mem::size_of::<KernelEvent>(), 16);
+    let event_charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
+    let remote_charge = super::remote_sign_storage_bytes(1).unwrap();
+    let identity = super::RemoteLifecycleIdentity {
+        endpoint: super::RemoteEndpointId(2),
+        cord: CordId(3),
+        direction: super::RemoteCordDirection::Egress,
+        sequence: 5,
+    };
+
+    let mut absent = FixedSignLog::<2>::new(event_charge * 2).unwrap();
+    assert_eq!(
+        absent.record_remote(
+            NodeId(0),
+            PortId(1),
+            KernelEventKind::RemoteValueOffered,
+            identity,
+        ),
+        Err(SignError::RemoteItemCapacityExceeded)
+    );
+    assert_eq!(absent.len(), 0);
+    assert_eq!(absent.used_bytes(), 0);
+
+    let mut admitted =
+        FixedSignLog::<2>::new_with_remote_storage(event_charge * 2, 1, remote_charge).unwrap();
+    let event = admitted
+        .record_remote(
+            NodeId(0),
+            PortId(1),
+            KernelEventKind::RemoteValueOffered,
+            identity,
+        )
+        .unwrap();
+    assert_eq!(admitted.remote_identity(event.sequence), Some(identity));
+    assert_eq!(admitted.remote_len(), 1);
+    assert_eq!(admitted.remote_used_bytes(), remote_charge);
+    assert_eq!(
+        admitted.record_remote(
+            NodeId(0),
+            PortId(1),
+            KernelEventKind::RemoteValueAccepted,
+            identity,
+        ),
+        Err(SignError::RemoteItemCapacityExceeded)
+    );
+    assert_eq!(admitted.len(), 1);
+    assert_eq!(admitted.used_bytes(), event_charge);
+    assert_eq!(admitted.remote_len(), 1);
 }
 
 #[cfg(feature = "alloc")]

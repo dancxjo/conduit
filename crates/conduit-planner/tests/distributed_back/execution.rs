@@ -212,8 +212,12 @@ fn kernel_a(
         routes::<{ 5 * PORTS }, 5>(lowered),
         drivers,
         values,
-        FixedSignLog::new((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32)
-            .unwrap(),
+        FixedSignLog::new_with_remote_storage(
+            (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
+            SIGNS as u16,
+            conduit_kernel::remote_sign_storage_bytes(SIGNS as u16).unwrap(),
+        )
+        .unwrap(),
     )
     .unwrap();
     (kernel, source)
@@ -238,8 +242,12 @@ fn kernel_b(fragment: &conduit_core::PlanFragment, lowered: &LoweredPlanFragment
         routes::<{ 2 * PORTS }, 3>(lowered),
         drivers,
         FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32).unwrap(),
-        FixedSignLog::new((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32)
-            .unwrap(),
+        FixedSignLog::new_with_remote_storage(
+            (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
+            SIGNS as u16,
+            conduit_kernel::remote_sign_storage_bytes(SIGNS as u16).unwrap(),
+        )
+        .unwrap(),
     )
     .unwrap()
 }

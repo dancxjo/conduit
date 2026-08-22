@@ -38,3 +38,42 @@ fn malformed_normalized_browser_values_refuse_before_play() {
     invalid.queue_capacity = 0;
     assert!(execute_browser_pointer(invalid).is_err());
 }
+
+#[test]
+fn pointer_scheduler_refuses_an_underadmitted_physical_sign_budget_before_play() {
+    let value = normalized_pointer_value(sample()).unwrap();
+    let (startup, profile) = catalogs(&value).unwrap();
+    let syntax = conduit_form::parse_syntax_document(FORM_SOURCE);
+    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded =
+        conduit_form::expand_canonical_form(&checked, "browser-pointer", &profile).unwrap();
+    let host = advertisement();
+    let hosts = [host];
+    let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
+    let plan = plan_expanded_canonical_with_options(
+        &expanded,
+        &hosts,
+        &placements,
+        &[ConnectionBase::Local],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .unwrap();
+    let fragment = plan.fragments.first().unwrap();
+    let mut lowered = lower_plan_fragment(fragment).unwrap();
+    lowered.sign_bytes = u32::from(lowered.sign_items)
+        * u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>()).unwrap()
+        - 1;
+
+    assert_eq!(
+        scheduler(fragment, &lowered).err().unwrap(),
+        "browser pointer Plan underadmits physical Signs"
+    );
+}

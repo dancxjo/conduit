@@ -2020,8 +2020,12 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
         )
         .unwrap();
     source_routes.seal().unwrap();
-    let source_sign =
-        FixedSignLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let source_sign = FixedSignLog::<64>::new_with_remote_storage(
+        (64 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        64,
+        crate::remote_sign_storage_bytes(64).unwrap(),
+    )
+    .unwrap();
     let mut source = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([None; PORTS])],
         [CordSpec::remote_egress(
@@ -2046,8 +2050,12 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
 
     let mut sink_routes = FixedRoutes::<2, 1>::new(PORTS as u16);
     sink_routes.seal().unwrap();
-    let sink_sign =
-        FixedSignLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let sink_sign = FixedSignLog::<64>::new_with_remote_storage(
+        (64 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        64,
+        crate::remote_sign_storage_bytes(64).unwrap(),
+    )
+    .unwrap();
     let mut sink = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([Some(CordId(0)), None])],
         [CordSpec::remote_ingress(
@@ -2175,7 +2183,12 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     assert!(source
         .signs()
         .events()
-        .filter_map(|event| event.remote.map(|remote| (event.kind, remote)))
+        .filter_map(|event| {
+            source
+                .signs()
+                .remote_identity(event.sequence)
+                .map(|remote| (event.kind, remote))
+        })
         .eq([
             (
                 KernelEventKind::RemoteValueOffered,
@@ -2244,7 +2257,11 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     assert!(sink
         .signs()
         .events()
-        .filter_map(|event| event.remote.map(|remote| (event.kind, remote)))
+        .filter_map(|event| {
+            sink.signs()
+                .remote_identity(event.sequence)
+                .map(|remote| (event.kind, remote))
+        })
         .eq([
             (
                 KernelEventKind::RemoteInputAdmitted,
@@ -2277,7 +2294,7 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     let remote_sign_count = source
         .signs()
         .events()
-        .filter(|event| event.remote.is_some())
+        .filter(|event| source.signs().remote_identity(event.sequence).is_some())
         .count();
     source.cancel().unwrap();
     assert_eq!(
@@ -2292,7 +2309,7 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
         source
             .signs()
             .events()
-            .filter(|event| event.remote.is_some())
+            .filter(|event| source.signs().remote_identity(event.sequence).is_some())
             .count(),
         remote_sign_count
     );
@@ -2316,8 +2333,12 @@ fn remote_delivery_sign_exhaustion_preserves_the_in_flight_value() {
         )
         .unwrap();
     routes.seal().unwrap();
-    let signs =
-        FixedSignLog::<4>::new((4 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let signs = FixedSignLog::<4>::new_with_remote_storage(
+        (4 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        4,
+        crate::remote_sign_storage_bytes(4).unwrap(),
+    )
+    .unwrap();
     let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([None; PORTS])],
         [CordSpec::remote_egress(
