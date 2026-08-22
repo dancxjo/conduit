@@ -91,7 +91,7 @@ fn usb_device(
     // Keep the USB serial descriptor short.  RP2040 CDC configuration on the
     // target host fails after long static serial strings; this identifier is
     // still stable and product-specific while fitting the working path.
-    config.serial_number = Some("nw-capstone");
+    config.serial_number = Some("pete-capstone");
     config.max_power = 100;
     config.max_packet_size_0 = 64;
     let mut builder = Builder::new(

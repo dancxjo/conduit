@@ -316,7 +316,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
                 "profile": PROFILE,
                 "firmware_mode": "pete-capstone",
                 "firmware_sha256": sha256_file(&elf)?,
-                "usb_serial": "nw-capstone",
+                "usb_serial": "pete-capstone",
                 "translator_oe": {"gpio": 19, "level": "high"},
                 "power_toggle": {"gpio": 18, "level": "low"},
                 "create_uart": "supervised_57600_8n1",
