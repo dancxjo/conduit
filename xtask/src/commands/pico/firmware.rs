@@ -17,7 +17,7 @@ pub const FIRMWARE_PACKAGE: &str = "conduit-pico-w-signal";
 pub const TARGET: &str = "thumbv6m-none-eabi";
 pub const PROFILE: &str = "release";
 const MIDI_FIXTURE_BINARY: &str = "conduit-pico-w-midi-fixture";
-const NETHERWICK_INERT_BINARY: &str = "conduit-pico-w-netherwick-inert";
+const PETE_CAPSTONE_BINARY: &str = "conduit-pico-w-pete-capstone";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FirmwareIdentity {
@@ -149,7 +149,7 @@ pub struct AssetEntry {
 pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     println!("==> pico build: verifying required assets");
     let root = repo_root();
-    if !args.usb_midi_fixture && !args.netherwick_inert {
+    if !args.usb_midi_fixture && !args.pete_capstone {
         let asset_dir = root.join(CYW43_ASSET_DIR);
         for (filename, expected) in CYW43_ASSETS {
             let path = asset_dir.join(filename);
@@ -176,13 +176,13 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         TARGET,
         "--release",
     ];
-    if args.netherwick_inert {
+    if args.pete_capstone {
         build_args.extend([
             "--bin",
-            NETHERWICK_INERT_BINARY,
+            PETE_CAPSTONE_BINARY,
             "--no-default-features",
             "--features",
-            "netherwick-inert",
+            "pete-capstone",
         ]);
     } else if args.usb_midi_fixture {
         build_args.extend([
@@ -217,7 +217,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     let appliance_identity_sidecar = appliance_identity_sidecar_path(&root);
     let appliance_hil_client_identity_sidecar = appliance_hil_client_identity_sidecar_path(&root);
     if args.dry_run {
-        let planned_sidecar = if args.usb_midi_fixture || args.netherwick_inert {
+        let planned_sidecar = if args.usb_midi_fixture || args.pete_capstone {
             None
         } else if args.appliance_hello {
             Some(&appliance_identity_sidecar)
@@ -277,8 +277,8 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
     }
 
-    let elf = if args.netherwick_inert {
-        firmware_target_profile_dir(&root).join(NETHERWICK_INERT_BINARY)
+    let elf = if args.pete_capstone {
+        firmware_target_profile_dir(&root).join(PETE_CAPSTONE_BINARY)
     } else if args.usb_midi_fixture {
         firmware_target_profile_dir(&root).join(MIDI_FIXTURE_BINARY)
     } else {
@@ -303,24 +303,27 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         if !status.success() {
             return Err("elf2uf2-rs conversion failed".into());
         }
-        if args.netherwick_inert {
+        if args.pete_capstone {
             let revision = git_revision(&root)?;
             let tree_state = git_tree_state(&root)?;
             let identity = serde_json::json!({
-                "schema": "conduit.netherwick/inert-image@1",
+                "schema": "conduit.pete/capstone-image@1",
                 "git_revision": revision,
                 "firmware_build_id": format!(
-                    "conduit-pico-w-netherwick-inert:{revision}:{tree_state}:{TARGET}:{PROFILE}:qualification@1"
+                    "conduit-pico-w-pete-capstone:{revision}:{tree_state}:{TARGET}:{PROFILE}:physical-play@1"
                 ),
                 "target": TARGET,
                 "profile": PROFILE,
-                "firmware_mode": "netherwick-inert",
+                "firmware_mode": "pete-capstone",
                 "firmware_sha256": sha256_file(&elf)?,
-                "usb_serial": "nw-inert",
-                "translator_oe": {"gpio": 19, "level": "low"},
+                "usb_serial": "nw-capstone",
+                "translator_oe": {"gpio": 19, "level": "high"},
                 "power_toggle": {"gpio": 18, "level": "low"},
-                "create_uart": "uninitialized",
-                "robot_control_ready": false,
+                "create_uart": "supervised_57600_8n1",
+                "robot_control_capable": true,
+                "form": "pete-capstone",
+                "kernel": "conduit-kernel",
+                "oi_exposed": false,
             });
             std::fs::write(
                 identity_manifest_path(&root),
@@ -519,9 +522,9 @@ pub fn uf2_path(root: &Path) -> PathBuf {
     firmware_elf_path(root).with_extension("uf2")
 }
 
-pub fn netherwick_inert_uf2_path(root: &Path) -> PathBuf {
+pub fn pete_capstone_uf2_path(root: &Path) -> PathBuf {
     firmware_target_profile_dir(root)
-        .join(NETHERWICK_INERT_BINARY)
+        .join(PETE_CAPSTONE_BINARY)
         .with_extension("uf2")
 }
 

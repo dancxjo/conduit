@@ -26,7 +26,7 @@ struct PlanSpecimen {
 }
 
 pub(super) fn build() -> Result<PlanComparison, CatalogError> {
-    let (_, catalog) = conduit_netherwick::catalogs()
+    let (_, catalog) = conduit_pete::catalogs()
         .map_err(|error| CatalogError::new("sound-plan-catalog-invalid", error))?;
     let form = conduit_form::parse(forms::SIMPLE_FORM, &catalog)
         .map_err(|error| CatalogError::new("sound-plan-form-invalid", error.to_string()))?;
@@ -58,7 +58,7 @@ pub(super) fn build() -> Result<PlanComparison, CatalogError> {
 }
 
 fn create_plan() -> Result<conduit_core::Plan, CatalogError> {
-    let observation = conduit_netherwick::CreateSpeakerObservation {
+    let observation = conduit_pete::CreateSpeakerObservation {
         host_id: HostId::from("conformance-pete"),
         boot_id: BootId::from("conformance-pete-boot"),
         offer_generation: OfferGeneration(1),
@@ -66,10 +66,10 @@ fn create_plan() -> Result<conduit_core::Plan, CatalogError> {
         robot_identity: "conformance/pete/create1/robot".into(),
         robot_identity_verified: true,
         speaker_resource_id: "conformance/pete/create1/speaker".into(),
-        mode: conduit_netherwick::OiMode::Safe,
+        mode: conduit_pete::OiMode::Safe,
         currently_usable: true,
     };
-    conduit_netherwick::simple_melody_plan(&observation, true)
+    conduit_pete::simple_melody_plan(&observation, true)
         .map_err(|error| CatalogError::new("create-plan-failed", error.to_string()))
 }
 

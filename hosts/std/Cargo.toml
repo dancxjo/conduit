@@ -11,7 +11,7 @@ legacy-fixture-driver = [
     "conduit-signal/legacy-fixture-driver",
 ]
 local-model-proof = []
-netherwick-create = ["dep:conduit-create-oi"]
+pete-create = ["dep:conduit-create-oi"]
 
 [dependencies]
 conduit-ai = { path = "../../crates/conduit-ai", features = ["form-catalog"] }

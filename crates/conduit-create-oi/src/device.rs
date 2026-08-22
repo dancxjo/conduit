@@ -173,6 +173,31 @@ pub fn encode_sensor_stream_pair(
     })
 }
 
+/// Encode the finite three-packet stream used by the embedded Create
+/// supervisor. Its callers choose only allow-listed packet identities.
+pub fn encode_sensor_stream_triplet(
+    first_packet_id: u8,
+    second_packet_id: u8,
+    third_packet_id: u8,
+) -> Result<EncodedOiCommand, CreateOiFailure> {
+    sensor_packet_len(first_packet_id)
+        .ok_or(CreateOiFailure::UnsupportedPacket(first_packet_id))?;
+    sensor_packet_len(second_packet_id)
+        .ok_or(CreateOiFailure::UnsupportedPacket(second_packet_id))?;
+    sensor_packet_len(third_packet_id)
+        .ok_or(CreateOiFailure::UnsupportedPacket(third_packet_id))?;
+    Ok(EncodedOiCommand {
+        bytes: [
+            STREAM_OPCODE,
+            3,
+            first_packet_id,
+            second_packet_id,
+            third_packet_id,
+        ],
+        len: 5,
+    })
+}
+
 pub fn encode_pause_stream() -> EncodedOiCommand {
     EncodedOiCommand {
         bytes: [PAUSE_STREAM_OPCODE, 0, 0, 0, 0],
@@ -305,6 +330,7 @@ pub fn decode_stream_frame(packet_id: u8, frame: &[u8]) -> Result<CreateOiPacket
 pub fn sensor_packet_len(packet_id: u8) -> Option<usize> {
     match packet_id {
         0 => Some(26),
+        1 => Some(10),
         7..=18 | 21 | 24 | 32 | 34..=38 => Some(1),
         19 | 20 | 22 | 23 | 25..=31 => Some(2),
         _ => None,
@@ -314,9 +340,13 @@ pub fn sensor_packet_len(packet_id: u8) -> Option<usize> {
 fn validate_sensor_payload(packet_id: u8, bytes: &[u8]) -> Result<(), CreateOiFailure> {
     let valid = match packet_id {
         0 => valid_group_zero(bytes),
+        1 => valid_group_one(bytes),
         7 => bytes[0] & !0x1f == 0,
         8..=13 => bytes[0] <= 1,
-        18 => bytes[0] & !0x0f == 0,
+        // Create 1 exposes Play on bit 0 and Advance on bit 2. Bits 1 and 3
+        // are reserved, despite the packet's broad numeric range in the quick
+        // reference, and must not make corrupt UART data look valid.
+        18 => bytes[0] & !0x05 == 0,
         21 => bytes[0] <= 5,
         34 => bytes[0] & !0x03 == 0,
         35 => bytes[0] <= 3,
@@ -325,137 +355,18 @@ fn validate_sensor_payload(packet_id: u8, bytes: &[u8]) -> Result<(), CreateOiFa
     valid.then_some(()).ok_or(CreateOiFailure::MalformedFrame)
 }
 
+fn valid_group_one(bytes: &[u8]) -> bool {
+    bytes.len() == 10 && bytes[0] & !0x1f == 0 && bytes[1..=6].iter().all(|value| *value <= 1)
+}
+
 fn valid_group_zero(bytes: &[u8]) -> bool {
     bytes.len() == 26
         && bytes[0] & !0x1f == 0
         && bytes[1..=6].iter().all(|value| *value <= 1)
-        && bytes[11] & !0x0f == 0
+        && bytes[11] & !0x05 == 0
         && bytes[16] <= 5
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::VecDeque;
-    use std::vec;
-    use std::vec::Vec;
-
-    struct Provider {
-        available: bool,
-        profile: UartProfile,
-        written: Vec<u8>,
-        read: VecDeque<u8>,
-    }
-
-    impl CreateUartProvider for Provider {
-        type Error = ();
-
-        fn is_available(&self) -> bool {
-            self.available
-        }
-        fn profile(&self) -> UartProfile {
-            self.profile
-        }
-        fn write_all(&mut self, bytes: &[u8]) -> Result<(), ()> {
-            self.written.extend_from_slice(bytes);
-            Ok(())
-        }
-        fn read_byte(&mut self, _: u64) -> Result<Option<u8>, ()> {
-            Ok(self.read.pop_front())
-        }
-    }
-
-    fn provider() -> Provider {
-        Provider {
-            available: true,
-            profile: UartProfile::CREATE_OI,
-            written: vec![],
-            read: VecDeque::new(),
-        }
-    }
-
-    fn frame(packet_id: u8, payload: &[u8]) -> Vec<u8> {
-        let mut frame = vec![STREAM_HEADER, payload.len() as u8 + 1, packet_id];
-        frame.extend_from_slice(payload);
-        let sum = frame.iter().fold(0_u8, |sum, byte| sum.wrapping_add(*byte));
-        frame.push(0_u8.wrapping_sub(sum));
-        frame
-    }
-
-    #[test]
-    fn exact_profile_and_wheel_order_are_enforced() {
-        let mut provider = provider();
-        write_command(&mut provider, &encode_drive_direct(-100, 250).unwrap()).unwrap();
-        assert_eq!(provider.written, [145, 0, 250, 255, 156]);
-        provider.profile.baud = 115_200;
-        assert!(matches!(
-            write_command(&mut provider, &encode_stop()),
-            Err(CreateOiFailure::WrongUartProfile { .. })
-        ));
-    }
-
-    #[test]
-    fn frames_are_finite_checked_and_not_promoted_when_corrupt() {
-        let valid = frame(7, &[0b0000_0011]);
-        assert_eq!(decode_stream_frame(7, &valid).unwrap().bytes(), &[3]);
-        assert_eq!(
-            decode_stream_frame(7, &valid[..valid.len() - 1]),
-            Err(CreateOiFailure::TruncatedFrame)
-        );
-        let mut corrupt = valid;
-        corrupt[3] = 0xff;
-        assert_eq!(
-            decode_stream_frame(7, &corrupt),
-            Err(CreateOiFailure::MalformedFrame)
-        );
-        assert_eq!(
-            encode_sensor_stream(33),
-            Err(CreateOiFailure::UnsupportedPacket(33))
-        );
-    }
-
-    #[test]
-    fn absent_provider_and_no_bytes_remain_distinct() {
-        let mut absent = provider();
-        absent.available = false;
-        assert_eq!(
-            write_command(&mut absent, &encode_start()),
-            Err(CreateOiFailure::ProviderUnavailable)
-        );
-        let mut silent = provider();
-        assert_eq!(
-            read_stream_packet(&mut silent, 35, 10),
-            Err(CreateOiFailure::DeviceNoResponse)
-        );
-        let mut partial = provider();
-        partial.read.push_back(STREAM_HEADER);
-        assert_eq!(
-            read_stream_packet(&mut partial, 35, 10),
-            Err(CreateOiFailure::TruncatedFrame)
-        );
-    }
-
-    #[test]
-    fn single_packet_query_is_allow_listed_bounded_and_reads_raw_payload() {
-        let mut queried = provider();
-        write_command(&mut queried, &encode_query_sensor(35).unwrap()).unwrap();
-        assert_eq!(queried.written, [142, 35]);
-        queried.read.push_back(2);
-        assert_eq!(
-            read_query_sensor_packet(&mut queried, 35, 10)
-                .unwrap()
-                .bytes(),
-            [2]
-        );
-        assert_eq!(
-            encode_query_sensor(33),
-            Err(CreateOiFailure::UnsupportedPacket(33))
-        );
-        let mut malformed = provider();
-        malformed.read.push_back(4);
-        assert_eq!(
-            read_query_sensor_packet(&mut malformed, 35, 10),
-            Err(CreateOiFailure::MalformedFrame)
-        );
-    }
-}
+#[path = "device_tests.rs"]
+mod tests;

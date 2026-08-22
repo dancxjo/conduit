@@ -44,10 +44,10 @@ fn main() {
     let appliance_build_id = appliance_build_id();
     println!("cargo:rustc-env=CONDUIT_PICO_APPLIANCE_BUILD_ID={appliance_build_id}");
     println!(
-        "cargo:rustc-env=CONDUIT_NETHERWICK_INERT_BUILD_ID={}",
-        netherwick_inert_build_id()
+        "cargo:rustc-env=CONDUIT_PETE_CAPSTONE_BUILD_ID={}",
+        pete_capstone_build_id()
     );
-    if firmware_mode() == "netherwick-inert" {
+    if firmware_mode() == "pete-capstone" {
         emit_linker_contract(&out);
         return;
     }
@@ -134,9 +134,9 @@ fn appliance_build_id() -> String {
     )
 }
 
-fn netherwick_inert_build_id() -> String {
+fn pete_capstone_build_id() -> String {
     format!(
-        "conduit-pico-w-netherwick-inert:{}:{}:{}:{}:qualification@1",
+        "conduit-pico-w-pete-capstone:{}:{}:{}:{}:physical-play@1",
         git_revision(),
         git_tree_state(),
         env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),

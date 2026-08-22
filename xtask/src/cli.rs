@@ -4,7 +4,7 @@ use crate::commands::catalog::CatalogArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::evidence::EvidenceArgs;
 use crate::commands::host::HostArgs;
-use crate::commands::netherwick_std_observe::NetherwickArgs;
+use crate::commands::pete_std_observe::PeteArgs;
 use crate::commands::pico::PicoArgs;
 
 /// Repository orchestration task runner for Conduit.
@@ -63,8 +63,8 @@ pub enum Command {
     Audio(AudioArgs),
     /// Inspect exact hosted MIDI sequencer endpoints.
     Midi(MidiArgs),
-    /// Exercise explicit Netherwick development and hardware proof entrances.
-    Netherwick(NetherwickArgs),
+    /// Exercise explicit Pete development and hardware proof entrances.
+    Pete(PeteArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
     /// Generate the bounded Patchbay GNU Unifont subset.
@@ -569,9 +569,9 @@ mod tests {
         let midi =
             Cli::try_parse_from(["xtask", "midi", "list"]).expect("MIDI discovery command parses");
         assert!(matches!(midi.command, Command::Midi(_)));
-        let netherwick = Cli::try_parse_from([
+        let pete = Cli::try_parse_from([
             "xtask",
-            "netherwick",
+            "pete",
             "std-observe",
             "--serial-path",
             "/dev/ttyUSB0",
@@ -582,13 +582,13 @@ mod tests {
             "--boot-id",
             "std-boot/0",
             "--evidence-out",
-            "target/netherwick-observation.json",
+            "target/pete-observation.json",
         ])
         .expect("explicit std Create observation entrance parses");
-        assert!(matches!(netherwick.command, Command::Netherwick(_)));
-        let netherwick_speaker = Cli::try_parse_from([
+        assert!(matches!(pete.command, Command::Pete(_)));
+        let pete_speaker = Cli::try_parse_from([
             "xtask",
-            "netherwick",
+            "pete",
             "std-speaker",
             "--serial-path",
             "/dev/ttyUSB0",
@@ -602,13 +602,13 @@ mod tests {
             "robot/create1/0",
             "--attest-robot-identity",
             "--evidence-out",
-            "target/netherwick-speaker.json",
+            "target/pete-speaker.json",
         ])
         .expect("explicit std Create speaker entrance parses");
-        assert!(matches!(netherwick_speaker.command, Command::Netherwick(_)));
-        let netherwick_indicator = Cli::try_parse_from([
+        assert!(matches!(pete_speaker.command, Command::Pete(_)));
+        let pete_indicator = Cli::try_parse_from([
             "xtask",
-            "netherwick",
+            "pete",
             "std-indicator",
             "--serial-path",
             "/dev/ttyUSB0",
@@ -622,16 +622,13 @@ mod tests {
             "robot/create1/0",
             "--attest-robot-identity",
             "--evidence-out",
-            "target/netherwick-indicator.json",
+            "target/pete-indicator.json",
         ])
         .expect("explicit std Create indicator entrance parses");
-        assert!(matches!(
-            netherwick_indicator.command,
-            Command::Netherwick(_)
-        ));
-        let netherwick_drive = Cli::try_parse_from([
+        assert!(matches!(pete_indicator.command, Command::Pete(_)));
+        let pete_drive = Cli::try_parse_from([
             "xtask",
-            "netherwick",
+            "pete",
             "std-drive",
             "--serial-path",
             "/dev/ttyUSB0",
@@ -646,10 +643,10 @@ mod tests {
             "--attest-robot-identity",
             "--confirm-wheels-off-floor",
             "--evidence-out",
-            "target/netherwick-drive.json",
+            "target/pete-drive.json",
         ])
         .expect("explicit std Create bounded drive entrance parses");
-        assert!(matches!(netherwick_drive.command, Command::Netherwick(_)));
+        assert!(matches!(pete_drive.command, Command::Pete(_)));
         assert!(Cli::try_parse_from([
             "xtask",
             "audio",

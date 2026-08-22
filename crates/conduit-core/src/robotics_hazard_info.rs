@@ -1,7 +1,7 @@
 //! Portable robotics hazard and charging observations.
 //!
 //! These values describe meaning only. Their identities contain no Create OI
-//! packet, Host, GPIO, UART, or Netherwick facts. Observation freshness,
+//! packet, Host, GPIO, UART, or Pete facts. Observation freshness,
 //! producing Host/Boot, clock, and Sign provenance remain in the enclosing
 //! observation/Port evidence rather than being invented inside the value.
 
