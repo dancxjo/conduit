@@ -2172,6 +2172,113 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     assert!(sink
         .signs()
         .contains_kind(KernelEventKind::RemoteInputClosed));
+    assert!(source
+        .signs()
+        .events()
+        .filter_map(|event| event.remote.map(|remote| (event.kind, remote)))
+        .eq([
+            (
+                KernelEventKind::RemoteValueOffered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 0,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueAccepted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 0,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueDelivered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 0,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueOffered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 1,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueAccepted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 1,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueDelivered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 1,
+                },
+            ),
+            (
+                KernelEventKind::RemoteOutputClosed,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 2,
+                },
+            ),
+        ]));
+    assert!(sink
+        .signs()
+        .events()
+        .filter_map(|event| event.remote.map(|remote| (event.kind, remote)))
+        .eq([
+            (
+                KernelEventKind::RemoteInputAdmitted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Ingress,
+                    sequence: 0,
+                },
+            ),
+            (
+                KernelEventKind::RemoteInputAdmitted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Ingress,
+                    sequence: 1,
+                },
+            ),
+            (
+                KernelEventKind::RemoteInputClosed,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Ingress,
+                    sequence: 2,
+                },
+            ),
+        ]));
+    let remote_sign_count = source
+        .signs()
+        .events()
+        .filter(|event| event.remote.is_some())
+        .count();
     source.cancel().unwrap();
     assert_eq!(
         source.remote_egress_accept(endpoint, CordId(0), 1),
@@ -2180,6 +2287,14 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     assert_eq!(
         source.remote_egress_delivered(endpoint, CordId(0), 1),
         Err(SchedulerError::RemoteDeliveryRejected)
+    );
+    assert_eq!(
+        source
+            .signs()
+            .events()
+            .filter(|event| event.remote.is_some())
+            .count(),
+        remote_sign_count
     );
 }
 

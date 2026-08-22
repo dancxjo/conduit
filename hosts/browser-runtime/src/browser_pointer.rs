@@ -474,7 +474,11 @@ fn scheduler(
         drivers.push(OperationDriver::new(operation).map_err(debug)?);
     }
     let drivers = drivers.try_into().map_err(|_| "pointer drivers")?;
-    let signs = FixedSignLog::<SIGNS>::new(lowered.sign_bytes).map_err(debug)?;
+    let sign_bytes = SIGNS
+        .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>())
+        .and_then(|bytes| u32::try_from(bytes).ok())
+        .ok_or("browser pointer Sign capacity overflow")?;
+    let signs = FixedSignLog::<SIGNS>::new(sign_bytes).map_err(debug)?;
     PointerScheduler::new_with_host_operations(
         nodes, cords, routes, bindings, drivers, values, signs,
     )

@@ -695,6 +695,9 @@ mod hosted;
 #[cfg(feature = "alloc")]
 pub use hosted::Store as HostedValueStore;
 
+mod remote_sign;
+pub use remote_sign::{RemoteCordDirection, RemoteLifecycleIdentity};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KernelEventKind {
     Decision,
@@ -724,6 +727,7 @@ pub struct KernelEvent {
     pub port: Option<PortId>,
     pub request: Option<RequestId>,
     pub kind: KernelEventKind,
+    pub remote: Option<RemoteLifecycleIdentity>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -748,6 +752,14 @@ pub trait SignSink {
         port: Option<PortId>,
         request: Option<RequestId>,
         kind: KernelEventKind,
+    ) -> Result<KernelEvent, SignError>;
+
+    fn record_remote(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        kind: KernelEventKind,
+        remote: RemoteLifecycleIdentity,
     ) -> Result<KernelEvent, SignError>;
 }
 
@@ -835,11 +847,48 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
             port,
             request,
             kind,
+            remote: None,
         };
         self.entries[usize::from(self.len)] = Some(event);
         self.len += 1;
         self.used_bytes += charge;
         self.next_sequence = next_sequence;
+        Ok(event)
+    }
+
+    fn record_remote(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        kind: KernelEventKind,
+        remote: RemoteLifecycleIdentity,
+    ) -> Result<KernelEvent, SignError> {
+        let charge =
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
+        if usize::from(self.len) >= EVENTS {
+            return Err(SignError::ItemCapacityExceeded);
+        }
+        if self
+            .used_bytes
+            .checked_add(charge)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(SignError::ByteCapacityExceeded);
+        }
+        let sequence = self.next_sequence;
+        self.next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
+        let event = KernelEvent {
+            sequence,
+            node,
+            port: Some(port),
+            request: None,
+            kind,
+            remote: Some(remote),
+        };
+        self.entries[usize::from(self.len)] = Some(event);
+        self.len += 1;
+        self.used_bytes += charge;
         Ok(event)
     }
 }
@@ -935,11 +984,48 @@ impl SignSink for HostedSignLog {
             port,
             request,
             kind,
+            remote: None,
         };
         self.entries[usize::from(self.len)] = Some(event);
         self.len += 1;
         self.used_bytes += charge;
         self.next_sequence = next_sequence;
+        Ok(event)
+    }
+
+    fn record_remote(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        kind: KernelEventKind,
+        remote: RemoteLifecycleIdentity,
+    ) -> Result<KernelEvent, SignError> {
+        let charge =
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
+        if usize::from(self.len) >= self.entries.len() {
+            return Err(SignError::ItemCapacityExceeded);
+        }
+        if self
+            .used_bytes
+            .checked_add(charge)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(SignError::ByteCapacityExceeded);
+        }
+        let sequence = self.next_sequence;
+        self.next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
+        let event = KernelEvent {
+            sequence,
+            node,
+            port: Some(port),
+            request: None,
+            kind,
+            remote: Some(remote),
+        };
+        self.entries[usize::from(self.len)] = Some(event);
+        self.len += 1;
+        self.used_bytes += charge;
         Ok(event)
     }
 }

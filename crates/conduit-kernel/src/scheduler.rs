@@ -1189,11 +1189,16 @@ where
         if existing.is_none() {
             self.ensure_sign_capacity(1)?;
             self.cords[cord_index].offered_remote_sequence = Some(sequence);
-            self.signs.record(
+            self.signs.record_remote(
                 source_node,
-                Some(source_port),
-                None,
+                source_port,
                 KernelEventKind::RemoteValueOffered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord,
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence,
+                },
             )?;
         }
         Ok(Some(RemoteValueOffer {
@@ -1241,11 +1246,16 @@ where
         }
         self.ensure_sign_capacity(1)?;
         self.cords[cord_index].remote_accepted = true;
-        self.signs.record(
+        self.signs.record_remote(
             source_node,
-            Some(source_port),
-            None,
+            source_port,
             KernelEventKind::RemoteValueAccepted,
+            crate::RemoteLifecycleIdentity {
+                endpoint,
+                cord,
+                direction: crate::RemoteCordDirection::Egress,
+                sequence,
+            },
         )?;
         Ok(())
     }
@@ -1296,11 +1306,16 @@ where
         state.offered_remote_sequence = None;
         state.remote_accepted = false;
         self.ready[usize::from(source_node.0)] = true;
-        self.signs.record(
+        self.signs.record_remote(
             source_node,
-            Some(source_port),
-            None,
+            source_port,
             KernelEventKind::RemoteValueDelivered,
+            crate::RemoteLifecycleIdentity {
+                endpoint,
+                cord,
+                direction: crate::RemoteCordDirection::Egress,
+                sequence,
+            },
         )?;
         Ok(())
     }
@@ -1359,11 +1374,16 @@ where
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
         self.ready[usize::from(sink_node.0)] = true;
-        self.signs.record(
+        self.signs.record_remote(
             sink_node,
-            Some(sink_port),
-            None,
+            sink_port,
             KernelEventKind::RemoteInputAdmitted,
+            crate::RemoteLifecycleIdentity {
+                endpoint,
+                cord,
+                direction: crate::RemoteCordDirection::Ingress,
+                sequence,
+            },
         )?;
         Ok(RemoteIngressOutcome::Accepted { sequence })
     }
@@ -1398,11 +1418,16 @@ where
         self.ensure_sign_capacity(1)?;
         self.cords[cord_index].producer_closed = true;
         self.ready[usize::from(sink_node.0)] = true;
-        self.signs.record(
+        self.signs.record_remote(
             sink_node,
-            Some(sink_port),
-            None,
+            sink_port,
             KernelEventKind::RemoteInputClosed,
+            crate::RemoteLifecycleIdentity {
+                endpoint,
+                cord,
+                direction: crate::RemoteCordDirection::Ingress,
+                sequence: self.cords[cord_index].next_remote_sequence,
+            },
         )?;
         Ok(())
     }
@@ -2368,11 +2393,19 @@ where
                 if let CordEndpoint::Local { node, .. } = target.sink {
                     self.ready[usize::from(node.0)] = true;
                 } else {
-                    self.signs.record(
+                    let CordEndpoint::Remote(endpoint) = target.sink else {
+                        unreachable!("remote output closure has remote sink")
+                    };
+                    self.signs.record_remote(
                         NodeId(as_u16(node)?),
-                        Some(PortId(as_u16(port)?)),
-                        None,
+                        PortId(as_u16(port)?),
                         KernelEventKind::RemoteOutputClosed,
+                        crate::RemoteLifecycleIdentity {
+                            endpoint,
+                            cord: target.cord,
+                            direction: crate::RemoteCordDirection::Egress,
+                            sequence: self.cords[cord].next_remote_sequence,
+                        },
                     )?;
                 }
             }
