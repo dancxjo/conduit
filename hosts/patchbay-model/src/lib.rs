@@ -16,6 +16,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 mod build_birth;
+mod candidate_form;
 mod control;
 mod cross_host_renderer;
 mod degradation_explanation;
@@ -81,6 +82,7 @@ pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
     PatchbayMode, MAX_BUILD_DOCUMENT_LINES,
 };
+pub use candidate_form::PatchbayCandidateForm;
 pub use conduit_body::WakeLifecycle;
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use cross_host_renderer::{
