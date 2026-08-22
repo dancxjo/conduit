@@ -1188,6 +1188,7 @@ where
         let sequence = existing.unwrap_or(self.cords[cord_index].next_remote_sequence);
         if existing.is_none() {
             self.ensure_sign_capacity(1)?;
+            self.ensure_remote_sign_capacity(1)?;
             self.cords[cord_index].offered_remote_sequence = Some(sequence);
             self.signs.record_remote(
                 source_node,
@@ -1245,6 +1246,7 @@ where
             return Ok(());
         }
         self.ensure_sign_capacity(1)?;
+        self.ensure_remote_sign_capacity(1)?;
         self.cords[cord_index].remote_accepted = true;
         self.signs.record_remote(
             source_node,
@@ -1299,6 +1301,7 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         self.ensure_sign_capacity(1)?;
+        self.ensure_remote_sign_capacity(1)?;
         let value = self.pop(cord_index)?;
         self.values.release(value)?;
         let state = &mut self.cords[cord_index];
@@ -1367,6 +1370,7 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         self.ensure_sign_capacity(1)?;
+        self.ensure_remote_sign_capacity(1)?;
         let value = self.values.store(bytes)?;
         if let Err(error) = self.push(cord_index, value) {
             self.values.release(value)?;
@@ -1416,6 +1420,7 @@ where
             return Ok(());
         }
         self.ensure_sign_capacity(1)?;
+        self.ensure_remote_sign_capacity(1)?;
         self.cords[cord_index].producer_closed = true;
         self.ready[usize::from(sink_node.0)] = true;
         self.signs.record_remote(
@@ -2342,6 +2347,12 @@ where
         Ok(())
     }
 
+    fn ensure_remote_sign_capacity(&self, additional: usize) -> Result<(), SchedulerError> {
+        let additional = u16::try_from(additional).map_err(|_| SchedulerError::InvalidPlan)?;
+        self.signs.ensure_remote_capacity(additional)?;
+        Ok(())
+    }
+
     fn step_target_count(
         &self,
         node: usize,
@@ -2379,6 +2390,23 @@ where
     }
 
     fn close_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
+        let mut remote_closures = 0_usize;
+        for port in 0..PORTS {
+            let Ok(targets) = self
+                .routes
+                .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))
+            else {
+                continue;
+            };
+            remote_closures = remote_closures
+                .checked_add(
+                    targets
+                        .filter(|target| matches!(target.sink, CordEndpoint::Remote(_)))
+                        .count(),
+                )
+                .ok_or(SchedulerError::InvalidPlan)?;
+        }
+        self.ensure_remote_sign_capacity(remote_closures)?;
         for port in 0..PORTS {
             let Ok(targets) = self
                 .routes

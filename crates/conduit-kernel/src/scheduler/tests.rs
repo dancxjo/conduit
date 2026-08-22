@@ -2333,10 +2333,10 @@ fn remote_delivery_sign_exhaustion_preserves_the_in_flight_value() {
         )
         .unwrap();
     routes.seal().unwrap();
-    let signs = FixedSignLog::<4>::new_with_remote_storage(
-        (4 * core::mem::size_of::<crate::KernelEvent>()) as u32,
-        4,
-        crate::remote_sign_storage_bytes(4).unwrap(),
+    let signs = FixedSignLog::<8>::new_with_remote_storage(
+        (8 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        2,
+        crate::remote_sign_storage_bytes(2).unwrap(),
     )
     .unwrap();
     let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
@@ -2371,13 +2371,70 @@ fn remote_delivery_sign_exhaustion_preserves_the_in_flight_value() {
         .unwrap();
     assert_eq!(
         scheduler.remote_egress_delivered(endpoint, CordId(0), offer.sequence),
-        Err(SchedulerError::Sign(crate::SignError::ItemCapacityExceeded))
+        Err(SchedulerError::Sign(
+            crate::SignError::RemoteItemCapacityExceeded
+        ))
     );
     assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (1, 4));
     assert_eq!(scheduler.values().reference_count(value).unwrap(), 1);
     assert_eq!(
         scheduler.remote_egress_offer(endpoint, CordId(0)).unwrap(),
         Some(offer)
+    );
+}
+
+#[test]
+fn remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state() {
+    let endpoint = RemoteEndpointId(0);
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<8>::new((8 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
+        [node([Some(CordId(0)), None])],
+        [CordSpec::remote_ingress(
+            CordId(0),
+            endpoint,
+            (NodeId(0), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 4,
+            },
+        )],
+        routes,
+        [Driver::Sink {
+            seen: [None; 4],
+            len: 0,
+            stall: false,
+        }],
+        FixedValueStore::<1, 4>::new(4).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 0, b"data"),
+        Err(SchedulerError::Sign(
+            crate::SignError::RemoteItemCapacityExceeded
+        ))
+    );
+    assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (0, 0));
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 1, b"data"),
+        Err(SchedulerError::RemoteSequenceRejected)
+    );
+    assert_eq!(
+        scheduler.close_remote_input(endpoint, CordId(0)),
+        Err(SchedulerError::Sign(
+            crate::SignError::RemoteItemCapacityExceeded
+        ))
+    );
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 0, b"data"),
+        Err(SchedulerError::Sign(
+            crate::SignError::RemoteItemCapacityExceeded
+        ))
     );
 }
 
