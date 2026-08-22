@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+use crate::commands::body_coordination::BodyCoordinationArgs;
 use crate::commands::catalog::CatalogArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::evidence::EvidenceArgs;
@@ -39,6 +40,8 @@ pub struct GlobalOpts {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
+    /// Prove bounded Pete forebrain-motherbrain coordination.
+    BodyCoordination(BodyCoordinationArgs),
     /// Inspect mechanically derived portable Kind coverage by Host profile.
     Catalog(CatalogArgs),
     /// Execute repository validation check suites.

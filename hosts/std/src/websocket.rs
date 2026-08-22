@@ -1,5 +1,5 @@
 use std::io::ErrorKind;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
 use tungstenite::client::client_with_config;
@@ -25,6 +25,7 @@ pub enum NativeWebSocketError {
 pub struct NativeWebSocketListener {
     listener: TcpListener,
     maximum_message_bytes: usize,
+    expected_peer: IpAddr,
 }
 
 impl NativeWebSocketListener {
@@ -39,6 +40,34 @@ impl NativeWebSocketListener {
         Ok(Self {
             listener,
             maximum_message_bytes,
+            expected_peer: IpAddr::V4(Ipv4Addr::LOCALHOST),
+        })
+    }
+
+    /// Bind one exact planned non-loopback endpoint and admit only the planned
+    /// peer address. Host/Boot/session identity is still established above
+    /// this transport check; an IP match grants no membership or authority.
+    pub fn bind_planned(
+        address: SocketAddr,
+        expected_peer: IpAddr,
+        maximum_message_bytes: u32,
+    ) -> Result<Self, NativeWebSocketError> {
+        let maximum_message_bytes = usize::try_from(maximum_message_bytes)
+            .map_err(|_| NativeWebSocketError::InvalidLimit)?;
+        if maximum_message_bytes == 0
+            || address.ip().is_unspecified()
+            || address.port() == 0
+            || expected_peer.is_unspecified()
+            || expected_peer.is_multicast()
+        {
+            return Err(NativeWebSocketError::InvalidLimit);
+        }
+        let listener =
+            TcpListener::bind(address).map_err(|error| NativeWebSocketError::Bind(error.kind()))?;
+        Ok(Self {
+            listener,
+            maximum_message_bytes,
+            expected_peer,
         })
     }
 
@@ -50,9 +79,6 @@ impl NativeWebSocketListener {
 
     pub fn url(&self) -> Result<String, NativeWebSocketError> {
         let address = self.local_addr()?;
-        if address.ip() != Ipv4Addr::LOCALHOST {
-            return Err(NativeWebSocketError::InvalidLimit);
-        }
         Ok(format!("ws://{address}/conduit"))
     }
 
@@ -61,7 +87,7 @@ impl NativeWebSocketListener {
             .listener
             .accept()
             .map_err(|error| NativeWebSocketError::Accept(error.kind()))?;
-        if !peer.ip().is_loopback() {
+        if peer.ip() != self.expected_peer {
             return Err(NativeWebSocketError::Protocol);
         }
         stream
@@ -207,7 +233,7 @@ fn map_socket_error(error: TungsteniteError) -> NativeWebSocketError {
 #[cfg(test)]
 mod tests {
     use super::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
-    use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
     use std::thread;
     use tungstenite::protocol::Message;
 
@@ -226,6 +252,20 @@ mod tests {
         assert!(matches!(
             NativeWebSocketLine::connect(address, &format!("ws://{address}/conduit"), 16),
             Err(NativeWebSocketError::Transport(_))
+        ));
+    }
+
+    #[test]
+    fn planned_listener_rejects_unspecified_bind_and_peer_facts() {
+        let unspecified = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 8765));
+        assert!(matches!(
+            NativeWebSocketListener::bind_planned(unspecified, IpAddr::V4(Ipv4Addr::LOCALHOST), 16),
+            Err(NativeWebSocketError::InvalidLimit)
+        ));
+        let exact = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 8765));
+        assert!(matches!(
+            NativeWebSocketListener::bind_planned(exact, IpAddr::V4(Ipv4Addr::UNSPECIFIED), 16),
+            Err(NativeWebSocketError::InvalidLimit)
         ));
     }
 
