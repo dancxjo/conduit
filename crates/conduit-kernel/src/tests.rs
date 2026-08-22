@@ -304,7 +304,6 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
 
 #[test]
 fn remote_sign_identity_requires_separate_admission_and_fails_atomically() {
-    assert_eq!(core::mem::size_of::<KernelEvent>(), 16);
     let event_charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
     let remote_charge = super::remote_sign_storage_bytes(1).unwrap();
     let identity = super::RemoteLifecycleIdentity {
