@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use conduit_std_host::usb_cdc::NativePathCdcLine;
 
-use super::serial::{resolve_dual_ports, resolve_inert_port};
+use super::capstone_serial::resolve_port as resolve_capstone_port;
+use super::serial::resolve_dual_ports;
 use super::{PicoArgs, PicoResult};
 
 const QUERY: &[u8] = b"CONDUIT_BOOTSEL_QUERY@1";
@@ -16,8 +17,8 @@ pub fn run_bootsel(args: &PicoArgs) -> PicoResult<()> {
         return Ok(());
     }
 
-    let link_port = if args.netherwick_inert {
-        resolve_inert_port(args.link_port.as_deref().or(args.port.as_deref()))?
+    let link_port = if args.pete_capstone {
+        resolve_capstone_port(args.link_port.as_deref().or(args.port.as_deref()))?
     } else {
         resolve_dual_ports(args.link_port.as_deref(), args.port.as_deref())?.0
     };

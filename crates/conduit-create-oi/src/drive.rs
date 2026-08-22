@@ -307,6 +307,10 @@ impl LocalCreateDriveSafety {
         self.motion_deadline_tick = None;
         self.active_authority_until_tick = None;
         self.active_output = None;
+        // An explicit outer stop, provider-loss disposition, or authority
+        // stop supersedes the finite contact action too. Keep one zero write
+        // and prevent a stale withdrawal from surviving into a later command.
+        self.contact_withdrawal.clear_after_outer_stop();
         self.safety_generation = safety_generation;
         match write_command(provider, &encode_stop()) {
             Ok(()) => DriveSafetySign::SafeDisposition {

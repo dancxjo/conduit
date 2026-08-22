@@ -1,9 +1,8 @@
 mod appliance_identity;
 mod body_admission;
 mod bootsel;
-mod carrier_status;
-mod create_power_pulse;
-mod create_probe;
+mod capstone_serial;
+mod create_motion;
 mod doctor;
 mod firmware;
 #[cfg(test)]
@@ -111,9 +110,9 @@ pub struct PicoArgs {
     #[arg(long, global = true)]
     pub usb_midi_fixture: bool,
 
-    /// Build, flash, or verify the inert Netherwick carrier qualification image.
-    #[arg(long, global = true)]
-    pub netherwick_inert: bool,
+    /// Build, flash, or verify the Pete capstone physical Play image.
+    #[arg(long = "pete-capstone", alias = "pete-inert", global = true)]
+    pub pete_capstone: bool,
 
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long, global = true)]
@@ -132,12 +131,12 @@ pub enum PicoSubcommand {
     Verify,
     /// Ask the exact running firmware to reboot into BOOTSEL over CDC 0.
     Bootsel,
-    /// Run one bounded non-motion Create OI UART qualification transaction.
-    ProbeCreate,
-    /// Read repeatable inert carrier status without enabling the translator.
-    CarrierStatus,
-    /// Request one explicit bounded Create power-toggle pulse.
-    PowerCreate,
+    /// Run one attended 250 ms wheels-off-floor semantic motion proof.
+    DriveCreate {
+        /// Confirm that every drive wheel is securely off the floor.
+        #[arg(long)]
+        wheels_off_floor: bool,
+    },
     /// Prove explicit Body admission against an already-provisioned Pico.
     ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
@@ -166,7 +165,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         + usize::from(args.appliance_hil_client)
         + usize::from(args.bluetooth_line)
         + usize::from(args.usb_midi_fixture)
-        + usize::from(args.netherwick_inert)
+        + usize::from(args.pete_capstone)
         > 1
     {
         return Err("select only one remote Pico firmware mode".into());
@@ -182,9 +181,9 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::Flash) => run_flash(&args),
         Some(PicoSubcommand::Verify) => run_verify(&args),
         Some(PicoSubcommand::Bootsel) => run_bootsel(&args),
-        Some(PicoSubcommand::ProbeCreate) => create_probe::run(&args),
-        Some(PicoSubcommand::CarrierStatus) => carrier_status::run(&args),
-        Some(PicoSubcommand::PowerCreate) => create_power_pulse::run(&args),
+        Some(PicoSubcommand::DriveCreate { wheels_off_floor }) => {
+            create_motion::run(&args, *wheels_off_floor)
+        }
         Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }
 }
@@ -198,7 +197,7 @@ pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
         || args.appliance_hello
         || args.bluetooth_line
         || args.usb_midi_fixture
-        || args.netherwick_inert
+        || args.pete_capstone
     {
         return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
     }

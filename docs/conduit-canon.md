@@ -255,7 +255,7 @@ The salvage sequence is intentionally layered:
 5. a small executable `conduit.std` catalog;
 6. BODY, PART, CAPABILITY, ROLE, CAST, LINK, and SOUL;
 7. Observatory over real reports, then useful tasks and Workbench;
-8. domain proofs such as Tongues and Netherwick;
+8. domain proofs such as Tongues and the historical Netherwick project;
 9. deadline-bounded regions and ConduitOS only after the bounded execution image is mature.
 
 A later layer may inspire interfaces in an earlier one, but it may not bypass the earlier layer's acceptance gate.
@@ -294,7 +294,8 @@ These are valuable directions waiting on named prerequisites:
 - test receipts and resumable CI;
 - the Pico W AP, DHCP, DNS, and HTTP appliance after the smaller Pico proof;
 - Tongues as a speech/audio brownfield profile;
-- Netherwick and Pete as describe-only, then HIL-safe robotics profiles;
+- the historical Netherwick robotics experiment as provenance for Pete's
+  describe-only, then HIL-safe robotics profiles;
 - deadline-bounded regions and static ConduitOS execution images;
 - package and artifact distribution once exact installation and authority contracts are ready.
 

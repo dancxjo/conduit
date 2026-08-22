@@ -189,8 +189,8 @@ fn realizations() -> Result<Vec<Realization>, CatalogError> {
         ),
         realization(
             "pete-create-oi",
-            conduit_netherwick::SPEAKER_IMPLEMENTATION,
-            conduit_netherwick::compatibility_profile(),
+            conduit_pete::SPEAKER_IMPLEMENTATION,
+            conduit_pete::compatibility_profile(),
             ProofClass::DeterministicReference,
             ProofClass::PhysicalPeteCreateHil,
             EvidenceStatus::MissingRequiredProof,

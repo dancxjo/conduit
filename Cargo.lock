@@ -611,7 +611,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-netherwick"
+name = "conduit-observatory"
+version = "0.1.0"
+dependencies = [
+ "conduit-browser-sim",
+ "conduit-core",
+ "conduit-form",
+ "conduit-pico-sim",
+ "conduit-planner",
+ "conduit-signal",
+ "conduit-std-host",
+ "serde",
+]
+
+[[package]]
+name = "conduit-pete"
 version = "0.1.0"
 dependencies = [
  "conduit-ai",
@@ -629,20 +643,6 @@ dependencies = [
  "patchbay-model",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "conduit-observatory"
-version = "0.1.0"
-dependencies = [
- "conduit-browser-sim",
- "conduit-core",
- "conduit-form",
- "conduit-pico-sim",
- "conduit-planner",
- "conduit-signal",
- "conduit-std-host",
- "serde",
 ]
 
 [[package]]
@@ -4078,8 +4078,8 @@ dependencies = [
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",
- "conduit-netherwick",
  "conduit-observatory",
+ "conduit-pete",
  "conduit-planner",
  "conduit-presentation",
  "conduit-runtime",

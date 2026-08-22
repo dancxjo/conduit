@@ -15,7 +15,7 @@ appliance-hello = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 appliance-hil-client = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 bluetooth-line = ["dep:conduit-bluetooth", "dep:conduit-wire", "dep:embassy-futures", "dep:embassy-sync", "dep:heapless09", "dep:rand_core", "dep:trouble-host", "cyw43/bluetooth"]
 usb-midi-fixture = ["dep:embassy-futures"]
-netherwick-inert = ["dep:conduit-wire", "dep:embassy-futures"]
+pete-capstone = ["dep:conduit-wire", "dep:embassy-futures"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
 
 [dependencies]
@@ -79,9 +79,9 @@ path = "src/bin/pico_midi_fixture.rs"
 required-features = ["usb-midi-fixture"]
 
 [[bin]]
-name = "conduit-pico-w-netherwick-inert"
-path = "src/bin/netherwick_inert.rs"
-required-features = ["netherwick-inert"]
+name = "conduit-pico-w-pete-capstone"
+path = "src/bin/pete_inert.rs"
+required-features = ["pete-capstone"]
 
 [profile.release]
 opt-level = "s"

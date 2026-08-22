@@ -149,6 +149,13 @@ impl LocalContactWithdrawal {
         self.active.is_some()
     }
 
+    /// Clears the finite local action after an outer actuator stop has taken
+    /// ownership of the exact zero disposition. The caller must issue that
+    /// zero before treating the withdrawal as cancelled.
+    pub(crate) fn clear_after_outer_stop(&mut self) {
+        self.active = None;
+    }
+
     pub fn step<P: CreateUartProvider>(
         &mut self,
         provider: &mut P,

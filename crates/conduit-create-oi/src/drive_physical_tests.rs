@@ -178,3 +178,55 @@ fn physical_supervisor_preempts_active_withdrawal_on_stronger_truth() {
         ))
     ));
 }
+
+#[test]
+fn explicit_outer_stop_clears_an_active_withdrawal_before_reuse() {
+    let mut provider = Provider(Vec::new());
+    let mut drive = LocalCreateDriveSafety::new();
+    admit_forward(&mut drive, &mut provider);
+    assert!(drive
+        .supervise_physical(
+            &mut provider,
+            101,
+            observation(safety(), 1, 101, false, None)
+        )
+        .is_none());
+    let mut contact = safety();
+    contact.generation = 8;
+    contact.observed_at_tick = 102;
+    contact.contact = true;
+    assert!(matches!(
+        drive.supervise_physical(&mut provider, 102, observation(contact, 2, 102, true, None)),
+        Some(CreateActuatorSupervisionSign::ContactWithdrawal(
+            ContactWithdrawalSign::Started { .. }
+        ))
+    ));
+    let stopped = drive.stop(&mut provider, 8);
+    assert!(matches!(
+        stopped,
+        DriveSafetySign::SafeDisposition {
+            cause: SafeDispositionCause::RequestedStop,
+            ..
+        }
+    ));
+    assert!(provider.0.ends_with(&[145, 0, 0, 0, 0]));
+
+    admit_forward(&mut drive, &mut provider);
+    let mut clear = safety();
+    clear.generation = 9;
+    clear.observed_at_tick = 103;
+    assert!(drive
+        .supervise_physical(&mut provider, 103, observation(clear, 3, 103, false, None))
+        .is_none());
+    contact.generation = 10;
+    contact.observed_at_tick = 104;
+    assert!(matches!(
+        drive.supervise_physical(&mut provider, 104, observation(contact, 4, 104, true, None)),
+        Some(CreateActuatorSupervisionSign::ContactWithdrawal(
+            ContactWithdrawalSign::Started {
+                preempted_command_generation: 2,
+                ..
+            }
+        ))
+    ));
+}

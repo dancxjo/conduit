@@ -372,6 +372,60 @@ impl NativePathCdcLine {
         Ok(())
     }
 
+    /// Discard bytes already queued by a device before a framed control
+    /// exchange begins. This is intentionally bounded and non-blocking; it is
+    /// used for devices whose first CDC connection emits a finite diagnostic
+    /// transcript before switching to length-prefixed service frames.
+    pub fn discard_pending_raw_bytes(&mut self) -> Result<usize, NativeUsbCdcError> {
+        const MAXIMUM_DISCARD_BYTES: usize = 4096;
+        const QUIET_MILLIS: libc::c_int = 100;
+        const MAXIMUM_WAIT: Duration = Duration::from_secs(2);
+        let mut discarded = 0_usize;
+        let mut chunk = [0_u8; 64];
+        let deadline = Instant::now() + MAXIMUM_WAIT;
+        loop {
+            let mut pfd = libc::pollfd {
+                fd: self.fd.0,
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            let now = Instant::now();
+            if now >= deadline {
+                return Ok(discarded);
+            }
+            let remaining_millis = (deadline - now).as_millis().min(QUIET_MILLIS as u128);
+            let ready = unsafe { libc::poll(&mut pfd, 1, remaining_millis as libc::c_int) };
+            if ready < 0 {
+                return Err(NativeUsbCdcError::Read(
+                    std::io::Error::last_os_error().kind(),
+                ));
+            }
+            if ready == 0 {
+                return Ok(discarded);
+            }
+            if pfd.revents & libc::POLLIN == 0 {
+                continue;
+            }
+            let remaining = MAXIMUM_DISCARD_BYTES.saturating_sub(discarded);
+            if remaining == 0 {
+                return Err(NativeUsbCdcError::InvalidLimit);
+            }
+            let length = remaining.min(chunk.len());
+            let read = unsafe { libc::read(self.fd.0, chunk.as_mut_ptr() as *mut _, length) };
+            if read > 0 {
+                discarded += read as usize;
+            } else if read == 0 {
+                return Err(NativeUsbCdcError::Disconnected);
+            } else {
+                let error = std::io::Error::last_os_error();
+                if error.kind() == std::io::ErrorKind::WouldBlock {
+                    return Ok(discarded);
+                }
+                return Err(NativeUsbCdcError::Read(error.kind()));
+            }
+        }
+    }
+
     pub fn receive_frame<'a>(
         &mut self,
         frame_buf: &'a mut [u8],

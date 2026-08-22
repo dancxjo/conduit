@@ -3,7 +3,7 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 
 use super::doctor::repo_root;
-use super::firmware::{netherwick_inert_uf2_path, read_firmware_mode, uf2_path};
+use super::firmware::{pete_capstone_uf2_path, read_firmware_mode, uf2_path};
 use super::run_bootsel;
 use super::{PicoArgs, PicoResult};
 
@@ -15,8 +15,8 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
         return Err("the USB-MIDI fixture checkpoint is build-only; flashing requires an explicit wiring and physical-acceptance slice".into());
     }
     let root = repo_root();
-    let uf2 = if args.netherwick_inert {
-        netherwick_inert_uf2_path(&root)
+    let uf2 = if args.pete_capstone {
+        pete_capstone_uf2_path(&root)
     } else {
         uf2_path(&root)
     };
@@ -40,8 +40,8 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     }
 
     let actual_mode = read_firmware_mode(&root)?;
-    let expected_mode = if args.netherwick_inert {
-        "netherwick-inert"
+    let expected_mode = if args.pete_capstone {
+        "pete-capstone"
     } else if args.bluetooth_line {
         "bluetooth-line"
     } else if args.appliance_hello {
@@ -185,7 +185,7 @@ fn try_headless_mount() -> PicoResult<Option<PathBuf>> {
     }
 
     let output = Command::new("sudo")
-        .args(["-n", "--", HEADLESS_MOUNT_HELPER])
+        .args(["-n", HEADLESS_MOUNT_HELPER])
         .output()?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);

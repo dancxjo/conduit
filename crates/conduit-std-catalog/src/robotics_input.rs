@@ -141,7 +141,7 @@ mod tests {
             assert_eq!(contract.limits.max_queue_items, 1);
             assert!(contract.limits.max_queue_bytes <= 12);
             let debug = format!("{contract:?}").to_ascii_lowercase();
-            for forbidden in ["create", "uart", "gpio", "netherwick"] {
+            for forbidden in ["create", "uart", "gpio", "pete"] {
                 assert!(!debug.contains(forbidden));
             }
         }

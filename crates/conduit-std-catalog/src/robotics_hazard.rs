@@ -198,7 +198,7 @@ mod tests {
             assert!(contract.limits.max_queue_items <= 1);
             assert!(contract.limits.max_queue_bytes <= 12);
             let serialized = format!("{contract:?}").to_ascii_lowercase();
-            for forbidden in ["create", "uart", "serial", "gpio", "netherwick"] {
+            for forbidden in ["create", "uart", "serial", "gpio", "pete"] {
                 assert!(
                     !serialized.contains(forbidden),
                     "{forbidden} leaked into {serialized}"
@@ -219,7 +219,7 @@ mod tests {
         let expanded =
             conduit_form::expand_canonical_form(&checked, "robot_hazards", &profile).unwrap();
         assert_eq!(expanded.gears.len(), 5);
-        for forbidden in ["create", "uart", "serial", "gpio", "netherwick"] {
+        for forbidden in ["create", "uart", "serial", "gpio", "pete"] {
             assert!(!source.contains(forbidden));
         }
     }
