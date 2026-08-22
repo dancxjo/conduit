@@ -34,13 +34,18 @@ pub(super) fn verify(args: &PicoArgs) -> PicoResult<()> {
     let identity: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(
         identity_manifest_path(&repo_root()),
     )?)?;
-    validate_records(&records, &identity)?;
+    let qualification = validate_records(&records, &identity);
     drop(reader);
     let expected_build = identity["firmware_build_id"]
         .as_str()
         .ok_or("capstone image identity missing firmware_build_id")?;
     let diagnostics = collect_uart_diagnostics(&port, expected_build, 8)?;
     validate_diagnostics(&diagnostics, expected_build)?;
+    // A failed physical qualification must remain a failure, but it must not
+    // hide the UART evidence needed to diagnose that failure. In particular,
+    // an intentionally absent Create still proves bounded CDC reopen behavior
+    // and produces typed zero-RX/timeout counters before this error returns.
+    qualification?;
     println!("==> pico verify: Pete capstone qualification complete");
     Ok(())
 }
