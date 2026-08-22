@@ -23,6 +23,8 @@ mod create_control;
 mod create_play;
 #[path = "pete_inert/create_motion.rs"]
 mod create_motion;
+#[path = "pete_inert/uart_diagnostic.rs"]
+mod uart_diagnostic;
 #[path = "pete_inert/imu_control.rs"]
 mod imu_control;
 // Compile the exact sealed capstone operations and fixed production-kernel
@@ -75,7 +77,8 @@ const BOOTSEL_QUERY: &[u8] = b"CONDUIT_BOOTSEL_QUERY@1";
 const BOOTSEL_CHALLENGE_PREFIX: &str = "CONDUIT_BOOTSEL_CHALLENGE@1:";
 const BOOTSEL_REQUEST_PREFIX: &str = "CONDUIT_REBOOT_BOOTSEL@1:";
 const BOOTSEL_ACK: &[u8] = b"CONDUIT_REBOOT_BOOTSEL_ACK@1";
-pub(crate) const BOOTSEL_FRAME_MAX: usize = 512;
+const UART_DIAGNOSTIC_PREFIX: &str = "CONDUIT_UART_DIAGNOSTIC@1:";
+pub(crate) const BOOTSEL_FRAME_MAX: usize = 768;
 const CONTROL_PACKET_WRITE_TIMEOUT_MS: u64 = 250;
 const CAPSTONE_READY_WAIT_STEPS: usize = 200;
 
@@ -218,6 +221,30 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
 
         if create_play::request_matches(request) {
             create_play::serve(class).await;
+            continue;
+        }
+
+        let mut diagnostic_request = String::<BOOTSEL_FRAME_MAX>::new();
+        if write!(
+            diagnostic_request,
+            "{UART_DIAGNOSTIC_PREFIX}{}",
+            env!("CONDUIT_PETE_CAPSTONE_BUILD_ID")
+        )
+        .is_err()
+        {
+            core::future::pending::<()>().await;
+        }
+        if request == diagnostic_request.as_bytes() {
+            let snapshot = uart_diagnostic::snapshot();
+            let mut last_frame_hex = String::<60>::new();
+            for byte in &snapshot.last_corrupt_frame[..snapshot.last_corrupt_frame_len] {
+                let _ = write!(last_frame_hex, "{byte:02x}");
+            }
+            let first_byte_ms = snapshot.first_byte_ms.map(i64::from).unwrap_or(-1);
+            let mut receipt = String::<768>::new();
+            if write!(receipt, "{{\"schema\":\"conduit.pete/uart-diagnostic@1\",\"build_id\":\"{}\",\"window_start_ms\":{},\"window_end_ms\":{},\"oe_sequence\":\"low_during_uart_init_then_high_after_rx_pullup\",\"uart\":{{\"controller\":0,\"tx_gpio\":0,\"rx_gpio\":1,\"baud\":57600,\"data_bits\":8,\"stop_bits\":1,\"parity\":\"none\"}},\"rx_bytes\":{},\"tx_bytes\":{},\"valid_frames\":{},\"corrupt_frames\":{},\"resync_discarded_bytes\":{},\"timeouts\":{},\"errors\":{{\"overrun\":{},\"break\":{},\"parity\":{},\"framing\":{},\"other\":{}}},\"first_byte_after_boot_ms\":{},\"last_corrupt_frame\":{{\"present\":{},\"packet_id\":{},\"observed_len\":{},\"hex\":\"{}\"}}}}", env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"), snapshot.window_start_ms, embassy_time::Instant::now().as_millis() as u32, snapshot.rx_bytes, snapshot.tx_bytes, snapshot.valid_frames, snapshot.corrupt_frames, snapshot.resync_discarded_bytes, snapshot.timeouts, snapshot.overruns, snapshot.breaks, snapshot.parity_errors, snapshot.framing_errors, snapshot.other_errors, first_byte_ms, snapshot.corrupt_frames != 0, snapshot.last_corrupt_packet_id, snapshot.last_corrupt_frame_len, last_frame_hex).is_ok() {
+                let _ = send_control_frame(class, receipt.as_bytes()).await;
+            }
             continue;
         }
     }

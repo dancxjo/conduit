@@ -14,6 +14,8 @@ use embassy_time::{Duration, Instant, Timer};
 use embedded_hal_nb::serial::Read as _;
 use portable_atomic::{AtomicBool, AtomicU32, AtomicU8, Ordering};
 
+use crate::uart_diagnostic;
+
 const START_SETTLE_MS: u64 = 250;
 const MODE_SETTLE_MS: u64 = 100;
 const LINK_FRESHNESS_MS: u64 = 1_000;
@@ -24,7 +26,7 @@ const WATCHDOG_FEED_MS: u64 = 250;
 const READY_CUE_DEFINE: [u8; 9] = [140, 2, 3, 65, 6, 67, 6, 71, 10];
 const READY_CUE_PLAY: [u8; 2] = [141, 2];
 const MODE_FRAME_BYTES: usize = 5;
-const MAX_STREAM_FRAME_BYTES: usize = 30;
+const MAX_STREAM_FRAME_BYTES: usize = uart_diagnostic::MAX_FRAME_BYTES;
 const SAFETY_POLL_MS: u64 = 20;
 const CHARGING_POLL_MS: u64 = 250;
 const MODE_POLL_MS: u64 = 250;
@@ -102,7 +104,9 @@ impl CreateUartProvider for Provider {
 
     fn write_all(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
         self.uart.blocking_write(bytes)?;
-        self.uart.blocking_flush()
+        self.uart.blocking_flush()?;
+        uart_diagnostic::record_tx(bytes.len());
+        Ok(())
     }
 
     fn read_byte(&mut self, _deadline_tick: u64) -> Result<Option<u8>, Self::Error> {
@@ -131,9 +135,12 @@ async fn watchdog_delay(watchdog: &mut Watchdog, millis: u64) {
 fn discard_uart(provider: &mut Provider) {
     for _ in 0..128 {
         match provider.uart.read() {
-            Ok(_) => {}
+            Ok(_) => {
+                uart_diagnostic::record_rx(now_ms());
+                uart_diagnostic::record_discard();
+            }
             Err(nb::Error::WouldBlock) => break,
-            Err(nb::Error::Other(_)) => {}
+            Err(nb::Error::Other(error)) => uart_diagnostic::record_error(error),
         }
     }
 }
@@ -180,6 +187,7 @@ async fn confirm_full_mode(
     while Instant::now() < deadline {
         match provider.uart.read() {
             Ok(byte) => {
+                uart_diagnostic::record_rx(now_ms());
                 watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
                 let accepted = match received {
                     0 => byte == STREAM_HEADER,
@@ -188,6 +196,7 @@ async fn confirm_full_mode(
                     _ => true,
                 };
                 if !accepted {
+                    uart_diagnostic::record_discard();
                     received = usize::from(byte == STREAM_HEADER);
                     if received == 1 {
                         frame[0] = byte;
@@ -202,12 +211,14 @@ async fn confirm_full_mode(
                             .map(|packet| packet.bytes()[0] == 3)
                             .unwrap_or(false)
                     {
+                        uart_diagnostic::record_frame(35, &frame, true);
                         // Each framed Stream probe is one finite transaction;
                         // pause it before another packet request can begin.
                         write_command(provider, &encode_pause_stream()).map_err(|_| ())?;
                         OI_MODE.store(3, Ordering::Release);
                         return Ok(());
                     }
+                    uart_diagnostic::record_frame(35, &frame, false);
                     received = 0;
                 }
             }
@@ -216,13 +227,14 @@ async fn confirm_full_mode(
                 watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
             }
             Err(nb::Error::Other(error)) => {
-                let _ = error;
+                uart_diagnostic::record_error(error);
                 received = 0;
                 Timer::after(Duration::from_millis(1)).await;
                 watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
             }
         }
     }
+    uart_diagnostic::record_timeout();
     Err(())
 }
 
@@ -246,6 +258,7 @@ async fn transact_sensor_packet(
     while Instant::now() < deadline {
         match provider.uart.read() {
             Ok(byte) => {
+                uart_diagnostic::record_rx(now_ms());
                 watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
                 let accepted = match received {
                     0 => byte == STREAM_HEADER,
@@ -254,6 +267,7 @@ async fn transact_sensor_packet(
                     _ => true,
                 };
                 if !accepted {
+                    uart_diagnostic::record_discard();
                     received = usize::from(byte == STREAM_HEADER);
                     if received == 1 {
                         frame[0] = byte;
@@ -268,9 +282,11 @@ async fn transact_sensor_packet(
                         .fold(0_u8, |sum, value| sum.wrapping_add(*value))
                         != 0
                     {
+                        uart_diagnostic::record_frame(packet_id, &frame[..frame_len], false);
                         received = 0;
                         continue;
                     }
+                    uart_diagnostic::record_frame(packet_id, &frame[..frame_len], true);
                     write_command(provider, &encode_pause_stream()).map_err(|_| ())?;
                     let data = &frame[3..3 + data_len];
                     let decoded = decode_sensor_packet(packet_id, data).map_err(|_| ())?;
@@ -310,13 +326,14 @@ async fn transact_sensor_packet(
                 watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
             }
             Err(nb::Error::Other(error)) => {
-                let _ = error;
+                uart_diagnostic::record_error(error);
                 received = 0;
                 Timer::after(Duration::from_millis(1)).await;
                 watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
             }
         }
     }
+    uart_diagnostic::record_timeout();
     Err(())
 }
 
@@ -344,6 +361,7 @@ pub async fn task(
     let mut watchdog = Watchdog::new(watchdog);
     watchdog.pause_on_debug(true);
     watchdog.start(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
+    uart_diagnostic::start(now_ms());
     translator_oe.set_high();
     watchdog_delay(&mut watchdog, 10).await;
     let mut motion = crate::create_motion::Runtime::new();
