@@ -1,0 +1,9 @@
+form body-coordination {
+    message: text/literal("coordinate issue 1633; evidence follows")
+    receive-message: presentation/text
+    reply: text/literal("received issue 1633; evidence acknowledged")
+    receive-reply: presentation/text
+
+    message.text > receive-message.text
+    reply.text > receive-reply.text
+}
