@@ -152,6 +152,18 @@ fn assert_dtr_fd(fd: libc::c_int) -> Result<(), NativeUsbCdcError> {
     Ok(())
 }
 
+#[cfg(unix)]
+fn clear_dtr_fd(fd: libc::c_int) {
+    let mut clear_flags: libc::c_int = libc::TIOCM_DTR;
+    unsafe {
+        // Closing a CDC ACM descriptor does not reliably lower DTR on every
+        // kernel/device combination. This is best-effort during Drop: the
+        // endpoint close still follows, while a successful ioctl gives the
+        // device an observable connection boundary before that close.
+        libc::ioctl(fd, libc::TIOCMBIC, &mut clear_flags);
+    }
+}
+
 /// Owned `/dev/tty` operator terminal abstraction for interactive key input.
 #[cfg(unix)]
 pub struct OperatorTerminal {
@@ -224,6 +236,13 @@ pub struct NativePathCdcLine {
     fd: FdGuard,
     maximum_frame_bytes: usize,
     decoder: StreamFrameDecoder<4096>,
+}
+
+#[cfg(unix)]
+impl Drop for NativePathCdcLine {
+    fn drop(&mut self) {
+        clear_dtr_fd(self.fd.0);
+    }
 }
 
 #[cfg(unix)]
