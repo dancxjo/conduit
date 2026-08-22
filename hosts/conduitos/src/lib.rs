@@ -13,7 +13,12 @@ pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
-#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "aarch64-product",
+    feature = "hosted-tools"
+))]
 pub mod fabrication;
 #[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod front_door;
@@ -47,7 +52,7 @@ pub mod observatory;
 pub mod offer;
 #[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod offer_fabrication;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod opl2_offer;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_plan;
@@ -55,7 +60,11 @@ pub mod opl2_plan;
 pub mod opl2_play;
 mod ordinary_form;
 pub mod ordinary_plan;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", feature = "hosted-tools"))]
+#[cfg_attr(
+    all(feature = "hosted-tools", not(target_arch = "x86_64")),
+    allow(dead_code)
+)]
 pub mod pc_speaker_offer;
 #[cfg(target_arch = "x86_64")]
 pub mod pc_speaker_plan;
@@ -66,7 +75,7 @@ pub mod planned_kernel;
 // these modules only through its distinct PROFILE-selected product feature.
 #[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod linear_presenter;
-#[cfg(any(test, target_arch = "x86_64"))]
+#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod presentation_nucleus;
 #[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 mod product_bindings;

@@ -118,6 +118,9 @@ required-features = ["loongarch64-a4"]
 
 [features]
 default = []
+# Compile pure ConduitOS description and planning surfaces for hosted repository
+# tooling without enabling any target's runtime or physical device support.
+hosted-tools = []
 hotplug-proof = []
 scripted-keyboard-proof = []
 native-compositor = []
