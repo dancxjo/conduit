@@ -18,11 +18,13 @@ use super::{send_control_frame, InertCdc};
 
 const RESPONSE_BYTES: usize = 512;
 const QUERY_DEADLINE_MS: u64 = 750;
+const CREATE_FALLBACK_BAUD: u32 = 19_200;
 const GROUP_ZERO_PACKET: u8 = 0;
 const PREQUERY_DRAIN_LIMIT: usize = 64;
 
 struct Provider {
     uart: Uart<'static, Blocking>,
+    baud: u32,
 }
 
 type UartResources = (
@@ -69,11 +71,19 @@ impl Resources {
             });
             self.provider = Some(Provider {
                 uart: Uart::new_blocking(uart0, tx, rx, config),
+                baud: conduit_create_oi::CREATE_OI_BAUD,
             });
         }
         self.provider
             .as_mut()
             .expect("provider was initialized above")
+    }
+}
+
+impl Provider {
+    fn set_baud(&mut self, baud: u32) {
+        self.uart.set_baudrate(baud);
+        self.baud = baud;
     }
 }
 
@@ -130,6 +140,18 @@ async fn read_group_zero(provider: &mut Provider) -> Result<[u8; 26], ProbeFailu
     }
 }
 
+async fn query_group_zero(
+    provider: &mut Provider,
+) -> Result<conduit_create_oi::CreateOiPacket, ProbeFailure> {
+    write_command(provider, &encode_start()).map_err(ProbeFailure::Protocol)?;
+    write_command(provider, &encode_pause_stream()).map_err(ProbeFailure::Protocol)?;
+    Timer::after(Duration::from_millis(20)).await;
+    let query = encode_query_sensor(GROUP_ZERO_PACKET).map_err(ProbeFailure::Protocol)?;
+    write_command(provider, &query).map_err(ProbeFailure::Protocol)?;
+    let payload = read_group_zero(provider).await?;
+    decode_sensor_packet(GROUP_ZERO_PACKET, &payload).map_err(ProbeFailure::Protocol)
+}
+
 fn drain_prequery_rx(provider: &mut Provider) -> (usize, usize) {
     let mut bytes = 0;
     let mut errors = 0;
@@ -176,33 +198,23 @@ pub async fn run(
     translator_oe: &mut Output<'static>,
 ) {
     let provider = resources.provider();
+    // Every request starts from Create 1's documented power-up default. A
+    // previous fallback probe must not silently make 19,200 the next probe's
+    // first assumption.
+    provider.set_baud(conduit_create_oi::CREATE_OI_BAUD);
     translator_oe.set_high();
     Timer::after(Duration::from_millis(10)).await;
     let (mut prequery_bytes, mut prequery_errors) = drain_prequery_rx(provider);
 
-    let result = match write_command(provider, &encode_start()) {
-        Err(failure) => Err(ProbeFailure::Protocol(failure)),
-        Ok(()) => match write_command(provider, &encode_pause_stream()) {
-            Err(failure) => Err(ProbeFailure::Protocol(failure)),
-            Ok(()) => {
-                Timer::after(Duration::from_millis(20)).await;
-                let (tail_bytes, tail_errors) = drain_prequery_rx(provider);
-                prequery_bytes += tail_bytes;
-                prequery_errors += tail_errors;
-                match encode_query_sensor(GROUP_ZERO_PACKET)
-                    .and_then(|query| write_command(provider, &query))
-                {
-                    Err(failure) => Err(ProbeFailure::Protocol(failure)),
-                    Ok(()) => read_group_zero(provider)
-                        .await
-                        .and_then(|payload| {
-                            decode_sensor_packet(GROUP_ZERO_PACKET, &payload)
-                                .map_err(ProbeFailure::Protocol)
-                        }),
-                }
-            }
-        },
-    };
+    let mut result = query_group_zero(provider).await;
+    if result.is_err() {
+        provider.set_baud(CREATE_FALLBACK_BAUD);
+        Timer::after(Duration::from_millis(100)).await;
+        let (tail_bytes, tail_errors) = drain_prequery_rx(provider);
+        prequery_bytes += tail_bytes;
+        prequery_errors += tail_errors;
+        result = query_group_zero(provider).await;
+    }
     translator_oe.set_low();
 
     let mut response = String::<RESPONSE_BYTES>::new();
@@ -214,12 +226,13 @@ pub async fn run(
                 concat!(
                     "{{\"schema\":\"conduit.netherwick/create-probe@1\",",
                     "\"success\":true,\"build_id\":\"{}\",",
-                    "\"uart\":{{\"controller\":0,\"tx_gpio\":0,\"rx_gpio\":1,\"baud\":57600,\"data_bits\":8,\"stop_bits\":1,\"parity\":\"none\"}},",
+                    "\"uart\":{{\"controller\":0,\"tx_gpio\":0,\"rx_gpio\":1,\"baud\":{},\"data_bits\":8,\"stop_bits\":1,\"parity\":\"none\"}},",
                     "\"prequery_bytes_discarded\":{},\"prequery_errors_discarded\":{},",
                     "\"packet_id\":0,\"packet_bytes\":{},\"bump_wheel_drop_bits\":{},",
                     "\"charging_state\":{},\"translator_final\":\"low\",\"motion_opcode_sent\":false}}"
                 ),
                 env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"),
+                provider.baud,
                 prequery_bytes,
                 prequery_errors,
                 bytes.len(),

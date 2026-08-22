@@ -5,8 +5,8 @@
 use core::fmt::Write as _;
 
 use conduit_mpu6050::{
-    I2cBaseAvailability, I2cProviderFailure, Mpu6050Failure, Mpu6050I2cProvider,
-    Mpu6050Session, ALTERNATE_ADDRESS, DEFAULT_ADDRESS,
+    I2cBaseAvailability, I2cProviderFailure, Mpu6050Failure, Mpu6050I2cProvider, Mpu6050Session,
+    ALTERNATE_ADDRESS, DEFAULT_ADDRESS,
 };
 use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder};
 use embassy_executor::Executor;
@@ -30,7 +30,9 @@ mod create_probe;
 struct NoAllocator;
 
 unsafe impl core::alloc::GlobalAlloc for NoAllocator {
-    unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 { core::ptr::null_mut() }
+    unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
+        core::ptr::null_mut()
+    }
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: core::alloc::Layout) {}
 }
 
@@ -77,16 +79,29 @@ const CONTROL_PACKET_WRITE_TIMEOUT_MS: u64 = 250;
 struct Provider(BoardI2c);
 
 impl Mpu6050I2cProvider for Provider {
-    fn availability(&self) -> I2cBaseAvailability { I2cBaseAvailability::Available }
-    fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), I2cProviderFailure> {
-        self.0.blocking_write(address, bytes).map_err(|_| I2cProviderFailure::Write)
+    fn availability(&self) -> I2cBaseAvailability {
+        I2cBaseAvailability::Available
     }
-    fn write_read(&mut self, address: u8, write: &[u8], read: &mut [u8]) -> Result<(), I2cProviderFailure> {
-        self.0.blocking_write_read(address, write, read).map_err(|_| I2cProviderFailure::Read)
+    fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), I2cProviderFailure> {
+        self.0
+            .blocking_write(address, bytes)
+            .map_err(|_| I2cProviderFailure::Write)
+    }
+    fn write_read(
+        &mut self,
+        address: u8,
+        write: &[u8],
+        read: &mut [u8],
+    ) -> Result<(), I2cProviderFailure> {
+        self.0
+            .blocking_write_read(address, write, read)
+            .map_err(|_| I2cProviderFailure::Read)
     }
 }
 
-fn usb_device(driver: usb::Driver<'static, USB>) -> (
+fn usb_device(
+    driver: usb::Driver<'static, USB>,
+) -> (
     UsbDevice<'static, usb::Driver<'static, USB>>,
     CdcAcmClass<'static, usb::Driver<'static, USB>>,
 ) {
@@ -100,8 +115,12 @@ fn usb_device(driver: usb::Driver<'static, USB>) -> (
     config.max_power = 100;
     config.max_packet_size_0 = 64;
     let mut builder = Builder::new(
-        driver, config, DEVICE.init([0; 256]), CONFIG.init([0; 256]),
-        &mut [], CONTROL.init([0; 64]),
+        driver,
+        config,
+        DEVICE.init([0; 256]),
+        CONFIG.init([0; 256]),
+        &mut [],
+        CONTROL.init([0; 64]),
     );
     let class = CdcAcmClass::new(&mut builder, CDC.init(State::new()), 64);
     (builder.build(), class)
@@ -165,10 +184,6 @@ async fn serve_build_bound_services(
     translator_oe: &mut Output<'static>,
 ) -> ! {
     let mut create_resources = create_probe::Resources::new(uart0, tx, rx);
-    let mut decoder = match StreamFrameDecoder::<BOOTSEL_FRAME_MAX>::new(BOOTSEL_FRAME_MAX) {
-        Ok(decoder) => decoder,
-        Err(_) => core::future::pending::<StreamFrameDecoder<BOOTSEL_FRAME_MAX>>().await,
-    };
     let mut packet = [0_u8; 64];
     let mut request = [0_u8; BOOTSEL_FRAME_MAX];
     loop {
@@ -176,6 +191,10 @@ async fn serve_build_bound_services(
         // close disables the endpoint; leave this scope and wait for the next
         // connection rather than trying to reuse a disabled endpoint.
         class.wait_connection().await;
+        let mut decoder = match StreamFrameDecoder::<BOOTSEL_FRAME_MAX>::new(BOOTSEL_FRAME_MAX) {
+            Ok(decoder) => decoder,
+            Err(_) => core::future::pending::<StreamFrameDecoder<BOOTSEL_FRAME_MAX>>().await,
+        };
         let request_length = 'connection: loop {
             match decoder.next_frame() {
                 Ok(Some(frame)) => {
@@ -185,9 +204,16 @@ async fn serve_build_bound_services(
                 Ok(None) => {}
                 Err(_) => core::future::pending::<()>().await,
             }
-            let read = match class.read_packet(&mut packet).await {
-                Ok(read) => read,
-                Err(_) => break 'connection None,
+            let read = match select(
+                class.read_packet(&mut packet),
+                Timer::after(Duration::from_millis(50)),
+            )
+            .await
+            {
+                Either::First(Ok(read)) => read,
+                Either::First(Err(_)) => break 'connection None,
+                Either::Second(()) if !class.dtr() => break 'connection None,
+                Either::Second(()) => continue,
             };
             if decoder.accept_bytes(&packet[..read]).is_err() {
                 core::future::pending::<()>().await;
@@ -205,7 +231,9 @@ async fn serve_build_bound_services(
                 env!("CONDUIT_NETHERWICK_INERT_BUILD_ID")
             )
             .is_err()
-                || send_control_frame(class, challenge.as_bytes()).await.is_err()
+                || send_control_frame(class, challenge.as_bytes())
+                    .await
+                    .is_err()
             {
                 core::future::pending::<()>().await;
             }
@@ -277,7 +305,10 @@ async fn serve_build_bound_services(
                 "\"translator_final\":\"low\",\"power_toggle_final\":\"low\",",
                 "\"motion_opcode_sent\":false}"
             );
-            if send_control_frame(class, response.as_bytes()).await.is_err() {
+            if send_control_frame(class, response.as_bytes())
+                .await
+                .is_err()
+            {
                 core::future::pending::<()>().await;
             }
             continue;
@@ -365,8 +396,20 @@ async fn qualification_task(
             break;
         }
     }
-    write_line(&mut class, concat!("{\"schema\":\"conduit.netherwick/inert-boot@1\",\"build_id\":\"", env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"), "\"}\n")).await;
-    let charging_level = if charging_indicator.is_high() { "high" } else { "low" };
+    write_line(
+        &mut class,
+        concat!(
+            "{\"schema\":\"conduit.netherwick/inert-boot@1\",\"build_id\":\"",
+            env!("CONDUIT_NETHERWICK_INERT_BUILD_ID"),
+            "\"}\n"
+        ),
+    )
+    .await;
+    let charging_level = if charging_indicator.is_high() {
+        "high"
+    } else {
+        "low"
+    };
     let mut disposition: String<512> = String::new();
     let _ = writeln!(
         disposition,
@@ -376,8 +419,12 @@ async fn qualification_task(
     write_line(&mut class, &disposition).await;
     let mut line: String<384> = String::new();
     match result {
-        Ok(sample) => { let _ = writeln!(line, "{{\"schema\":\"conduit.netherwick/imu-probe@1\",\"success\":true,\"address\":{},\"accel_mm_s2\":[{},{},{}],\"gyro_milliradians_s\":[{},{},{}]}}", address, sample.accel_x_mm_s2, sample.accel_y_mm_s2, sample.accel_z_mm_s2, sample.gyro_x_milliradians_s, sample.gyro_y_milliradians_s, sample.gyro_z_milliradians_s); }
-        Err(failure) => { let _ = writeln!(line, "{{\"schema\":\"conduit.netherwick/imu-probe@1\",\"success\":false,\"address\":{},\"failure\":\"{}\"}}", address, failure_name(failure)); }
+        Ok(sample) => {
+            let _ = writeln!(line, "{{\"schema\":\"conduit.netherwick/imu-probe@1\",\"success\":true,\"address\":{},\"accel_mm_s2\":[{},{},{}],\"gyro_milliradians_s\":[{},{},{}]}}", address, sample.accel_x_mm_s2, sample.accel_y_mm_s2, sample.accel_z_mm_s2, sample.gyro_x_milliradians_s, sample.gyro_y_milliradians_s, sample.gyro_z_milliradians_s);
+        }
+        Err(failure) => {
+            let _ = writeln!(line, "{{\"schema\":\"conduit.netherwick/imu-probe@1\",\"success\":false,\"address\":{},\"failure\":\"{}\"}}", address, failure_name(failure));
+        }
     }
     write_line(&mut class, &line).await;
     write_line(&mut class, "{\"schema\":\"conduit.netherwick/inert-terminal@1\",\"qualification_complete\":true,\"robot_control_ready\":false}\n").await;
@@ -408,21 +455,20 @@ fn main() -> ! {
     executor.run(|spawner| {
         spawner.spawn(usb_device_task(device).unwrap());
         spawner.spawn(watchdog_task(p.WATCHDOG).unwrap());
-        spawner
-            .spawn(
-                qualification_task(
-                    class,
-                    p.I2C1,
-                    p.PIN_2,
-                    p.PIN_3,
-                    p.UART0,
-                    p.PIN_0,
-                    p.PIN_1,
-                    charging_indicator,
-                    power_toggle,
-                    translator_oe,
-                )
-                .unwrap(),
-            );
+        spawner.spawn(
+            qualification_task(
+                class,
+                p.I2C1,
+                p.PIN_2,
+                p.PIN_3,
+                p.UART0,
+                p.PIN_0,
+                p.PIN_1,
+                charging_indicator,
+                power_toggle,
+                translator_oe,
+            )
+            .unwrap(),
+        );
     });
 }

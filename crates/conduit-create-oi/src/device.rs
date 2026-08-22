@@ -316,7 +316,10 @@ fn validate_sensor_payload(packet_id: u8, bytes: &[u8]) -> Result<(), CreateOiFa
         0 => valid_group_zero(bytes),
         7 => bytes[0] & !0x1f == 0,
         8..=13 => bytes[0] <= 1,
-        18 => bytes[0] & !0x0f == 0,
+        // Create 1 exposes Play on bit 0 and Advance on bit 2. Bits 1 and 3
+        // are reserved, despite the packet's broad numeric range in the quick
+        // reference, and must not make corrupt UART data look valid.
+        18 => bytes[0] & !0x05 == 0,
         21 => bytes[0] <= 5,
         34 => bytes[0] & !0x03 == 0,
         35 => bytes[0] <= 3,
@@ -329,7 +332,7 @@ fn valid_group_zero(bytes: &[u8]) -> bool {
     bytes.len() == 26
         && bytes[0] & !0x1f == 0
         && bytes[1..=6].iter().all(|value| *value <= 1)
-        && bytes[11] & !0x0f == 0
+        && bytes[11] & !0x05 == 0
         && bytes[16] <= 5
 }
 
@@ -412,6 +415,18 @@ mod tests {
             encode_sensor_stream(33),
             Err(CreateOiFailure::UnsupportedPacket(33))
         );
+        for reserved_button_bit in [0x02, 0x08] {
+            assert_eq!(
+                decode_sensor_packet(18, &[reserved_button_bit]),
+                Err(CreateOiFailure::MalformedFrame)
+            );
+        }
+        for valid_buttons in [0x00, 0x01, 0x04, 0x05] {
+            assert_eq!(
+                decode_sensor_packet(18, &[valid_buttons]).unwrap().bytes(),
+                [valid_buttons]
+            );
+        }
     }
 
     #[test]
