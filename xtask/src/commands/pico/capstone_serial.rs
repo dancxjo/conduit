@@ -2,6 +2,8 @@ use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use conduit_std_host::usb_cdc::NativePathCdcLine;
+
 use super::doctor::repo_root;
 use super::firmware::identity_manifest_path;
 use super::{PicoArgs, PicoResult};
@@ -33,6 +35,12 @@ pub(super) fn verify(args: &PicoArgs) -> PicoResult<()> {
         identity_manifest_path(&repo_root()),
     )?)?;
     validate_records(&records, &identity)?;
+    drop(reader);
+    let expected_build = identity["firmware_build_id"]
+        .as_str()
+        .ok_or("capstone image identity missing firmware_build_id")?;
+    let diagnostics = collect_uart_diagnostics(&port, expected_build, 8)?;
+    validate_diagnostics(&diagnostics, expected_build)?;
     println!("==> pico verify: Pete capstone qualification complete");
     Ok(())
 }
@@ -129,6 +137,140 @@ fn validate_records(records: &[serde_json::Value], identity: &serde_json::Value)
     Ok(())
 }
 
+fn collect_uart_diagnostics(
+    port: &std::path::Path,
+    expected_build: &str,
+    trials: usize,
+) -> PicoResult<Vec<serde_json::Value>> {
+    let request = format!("CONDUIT_UART_DIAGNOSTIC@1:{expected_build}");
+    let mut records = Vec::with_capacity(trials);
+    for trial in 0..trials {
+        let mut line = NativePathCdcLine::open(port, 1024)?;
+        std::thread::sleep(Duration::from_millis(250));
+        line.send_raw_stream_frame(request.as_bytes(), Duration::from_secs(2))?;
+        let mut raw = [0_u8; 1024];
+        let response = line.receive_raw_stream_frame(&mut raw, Duration::from_secs(2))?;
+        let record: serde_json::Value = serde_json::from_slice(response)?;
+        println!("{}", serde_json::to_string(&record)?);
+        records.push(record);
+        drop(line);
+        if trial + 1 < trials {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    }
+    Ok(records)
+}
+
+fn validate_diagnostics(diagnostics: &[serde_json::Value], expected_build: &str) -> PicoResult<()> {
+    if diagnostics.len() != 8 {
+        return Err("UART diagnosis requires exactly eight separate CDC-open receipts".into());
+    }
+    let mut prior_counters: Option<[u64; 11]> = None;
+    let mut expected_window_start = None;
+    let mut prior_window_end = None;
+    for diagnostic in diagnostics {
+        if diagnostic["schema"] != "conduit.pete/uart-diagnostic@1" {
+            return Err("UART diagnostic response has the wrong schema".into());
+        }
+        let window_start = diagnostic["window_start_ms"]
+            .as_u64()
+            .ok_or("UART diagnostic window start is missing")?;
+        let window_end = diagnostic["window_end_ms"]
+            .as_u64()
+            .ok_or("UART diagnostic window end is missing")?;
+        if expected_window_start
+            .replace(window_start)
+            .is_some_and(|start| start != window_start)
+        {
+            return Err("UART diagnostic window changed across CDC reopen".into());
+        }
+        if prior_window_end
+            .replace(window_end)
+            .is_some_and(|end| window_end < end)
+        {
+            return Err("UART diagnostic window end moved backward across CDC reopen".into());
+        }
+        if diagnostic["build_id"].as_str() != Some(expected_build)
+            || window_end < window_start
+            || diagnostic["oe_sequence"] != "low_during_uart_init_then_high_after_rx_pullup"
+            || diagnostic["uart"]["controller"] != 0
+            || diagnostic["uart"]["tx_gpio"] != 0
+            || diagnostic["uart"]["rx_gpio"] != 1
+            || diagnostic["uart"]["baud"] != 57_600
+            || diagnostic["uart"]["data_bits"] != 8
+            || diagnostic["uart"]["stop_bits"] != 1
+            || diagnostic["uart"]["parity"] != "none"
+        {
+            return Err(
+                "UART diagnostic receipt has the wrong build, profile, pins, or OE sequence".into(),
+            );
+        }
+        let mut counters = [0_u64; 11];
+        for (index, field) in [
+            "rx_bytes",
+            "tx_bytes",
+            "valid_frames",
+            "corrupt_frames",
+            "resync_discarded_bytes",
+            "timeouts",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let Some(value) = diagnostic[field].as_u64() else {
+                return Err(
+                    format!("UART diagnostic field {field} is not a finite counter").into(),
+                );
+            };
+            counters[index] = value;
+        }
+        for (index, field) in ["overrun", "break", "parity", "framing", "other"]
+            .into_iter()
+            .enumerate()
+        {
+            let Some(value) = diagnostic["errors"][field].as_u64() else {
+                return Err(
+                    format!("UART diagnostic error field {field} is not a finite counter").into(),
+                );
+            };
+            counters[6 + index] = value;
+        }
+        let first_byte_ms = diagnostic["first_byte_after_boot_ms"]
+            .as_i64()
+            .filter(|value| *value >= -1)
+            .ok_or("UART diagnostic first-byte timing is not -1 or a nonnegative integer")?;
+        if (counters[0] == 0) != (first_byte_ms == -1) {
+            return Err("UART diagnostic first-byte timing disagrees with RX byte count".into());
+        }
+        let observed_len = diagnostic["last_corrupt_frame"]["observed_len"]
+            .as_u64()
+            .ok_or("UART diagnostic last-frame length is missing")?;
+        let observed_hex = diagnostic["last_corrupt_frame"]["hex"]
+            .as_str()
+            .ok_or("UART diagnostic last-frame hex is missing")?;
+        if observed_len > 30 || observed_hex.len() != observed_len as usize * 2 {
+            return Err(
+                "UART diagnostic last-frame sample exceeds its bound or has inconsistent hex"
+                    .into(),
+            );
+        }
+        if diagnostic["last_corrupt_frame"]["present"] != (counters[3] != 0) {
+            return Err("UART diagnostic corrupt-frame presence disagrees with its counter".into());
+        }
+        if let Some(prior) = prior_counters {
+            if counters
+                .iter()
+                .zip(prior)
+                .any(|(current, prior)| *current < prior)
+            {
+                return Err("UART diagnostic counters moved backward across CDC reopen".into());
+            }
+        }
+        prior_counters = Some(counters);
+    }
+    Ok(())
+}
+
 pub(super) fn resolve_port(explicit: Option<&str>) -> PicoResult<PathBuf> {
     let port = if let Some(port) = explicit {
         PathBuf::from(port)
@@ -208,6 +350,26 @@ mod tests {
         ]
     }
 
+    fn diagnostic(rx_bytes: u64) -> serde_json::Value {
+        serde_json::json!({
+            "schema": "conduit.pete/uart-diagnostic@1",
+            "build_id": "capstone-build",
+            "window_start_ms": 10,
+            "window_end_ms": 100,
+            "oe_sequence": "low_during_uart_init_then_high_after_rx_pullup",
+            "uart": {"controller": 0, "tx_gpio": 0, "rx_gpio": 1, "baud": 57600, "data_bits": 8, "stop_bits": 1, "parity": "none"},
+            "rx_bytes": rx_bytes,
+            "tx_bytes": 12,
+            "valid_frames": 3,
+            "corrupt_frames": 0,
+            "resync_discarded_bytes": 0,
+            "timeouts": 0,
+            "errors": {"overrun": 0, "break": 0, "parity": 0, "framing": 0, "other": 0},
+            "first_byte_after_boot_ms": 25,
+            "last_corrupt_frame": {"present": false, "packet_id": 0, "observed_len": 0, "hex": ""}
+        })
+    }
+
     #[test]
     fn accepts_build_bound_physical_sample() {
         validate_records(&records([0, 0, 9_807]), &identity())
@@ -224,5 +386,46 @@ mod tests {
         let mut records = records([0, 0, 9_807]);
         records[0]["build_id"] = "older-build".into();
         assert!(validate_records(&records, &identity()).is_err());
+    }
+
+    #[test]
+    fn accepts_eight_monotonic_reopen_receipts() {
+        let diagnostics = (0..8).map(|step| diagnostic(90 + step)).collect::<Vec<_>>();
+        validate_diagnostics(&diagnostics, "capstone-build").expect("bounded diagnostics");
+    }
+
+    #[test]
+    fn rejects_counter_rollback_across_reopen() {
+        let mut diagnostics = vec![diagnostic(90); 8];
+        diagnostics[4]["rx_bytes"] = 89.into();
+        assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
+    }
+
+    #[test]
+    fn rejects_unbounded_corrupt_frame_sample() {
+        let mut diagnostics = vec![diagnostic(90); 8];
+        diagnostics[0]["corrupt_frames"] = 1.into();
+        diagnostics[0]["last_corrupt_frame"] = serde_json::json!({
+            "present": true,
+            "packet_id": 35,
+            "observed_len": 31,
+            "hex": "00".repeat(31)
+        });
+        assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
+    }
+
+    #[test]
+    fn rejects_window_end_rollback_across_reopen() {
+        let mut diagnostics = vec![diagnostic(90); 8];
+        diagnostics[4]["window_end_ms"] = 99.into();
+        diagnostics[3]["window_end_ms"] = 100.into();
+        assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
+    }
+
+    #[test]
+    fn rejects_first_byte_timing_that_disagrees_with_rx_count() {
+        let mut diagnostics = vec![diagnostic(90); 8];
+        diagnostics[0]["first_byte_after_boot_ms"] = (-1).into();
+        assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
     }
 }
