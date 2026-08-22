@@ -8,6 +8,9 @@ use conduit_wire::{
     WireError,
 };
 use std::net::SocketAddr;
+use std::time::Duration;
+
+const PEER_ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CoordinationLineError {
@@ -52,7 +55,9 @@ pub fn run_forebrain(
     outbound_listener: NativeWebSocketListener,
     motherbrain_return: SocketAddr,
 ) -> Result<(), CoordinationLineError> {
-    let mut outbound = outbound_listener.accept().map_err(peer_absent)?;
+    let mut outbound = outbound_listener
+        .accept_with_timeout(PEER_ADMISSION_TIMEOUT)
+        .map_err(peer_absent)?;
     let mut returned = NativeWebSocketLine::connect(
         motherbrain_return,
         &format!("ws://{motherbrain_return}/conduit"),
@@ -81,7 +86,9 @@ pub fn run_motherbrain(
         BODY_COORDINATION_MAXIMUM_FRAME_BYTES,
     )
     .map_err(peer_absent)?;
-    let mut returned = return_listener.accept().map_err(peer_absent)?;
+    let mut returned = return_listener
+        .accept_with_timeout(PEER_ADMISSION_TIMEOUT)
+        .map_err(peer_absent)?;
     sink_handshake(endpoint, &mut inbound)?;
     source_handshake(endpoint, &mut returned)?;
     receive_offer(endpoint, &mut inbound)?;
@@ -360,6 +367,9 @@ fn peer_absent(error: NativeWebSocketError) -> CoordinationLineError {
     match error {
         NativeWebSocketError::Protocol | NativeWebSocketError::Handshake => {
             CoordinationLineError::Classified(CoordinationFailure::WrongBoot)
+        }
+        NativeWebSocketError::AcceptDeadline => {
+            CoordinationLineError::Classified(CoordinationFailure::PeerAbsent)
         }
         _ => CoordinationLineError::Classified(CoordinationFailure::PeerAbsent),
     }
