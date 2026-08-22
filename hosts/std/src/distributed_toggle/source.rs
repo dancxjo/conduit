@@ -212,8 +212,15 @@ impl DistributedToggleSource {
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "source sign budget overflow".to_string())?;
-        let sign =
-            HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|error| format!("{error:?}"))?;
+        let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(SIGN_ITEMS)
+            .ok_or_else(|| "source remote sign budget overflow".to_string())?;
+        let sign = HostedSignLog::new_with_remote_storage(
+            SIGN_ITEMS,
+            sign_bytes,
+            SIGN_ITEMS,
+            remote_sign_bytes,
+        )
+        .map_err(|error| format!("{error:?}"))?;
 
         let remote = &lowered.remote_endpoints[0];
         let connection = fragment

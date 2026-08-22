@@ -2020,8 +2020,12 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
         )
         .unwrap();
     source_routes.seal().unwrap();
-    let source_sign =
-        FixedSignLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let source_sign = FixedSignLog::<64>::new_with_remote_storage(
+        (64 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        64,
+        crate::remote_sign_storage_bytes(64).unwrap(),
+    )
+    .unwrap();
     let mut source = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([None; PORTS])],
         [CordSpec::remote_egress(
@@ -2046,8 +2050,12 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
 
     let mut sink_routes = FixedRoutes::<2, 1>::new(PORTS as u16);
     sink_routes.seal().unwrap();
-    let sink_sign =
-        FixedSignLog::<64>::new((64 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let sink_sign = FixedSignLog::<64>::new_with_remote_storage(
+        (64 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        64,
+        crate::remote_sign_storage_bytes(64).unwrap(),
+    )
+    .unwrap();
     let mut sink = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([Some(CordId(0)), None])],
         [CordSpec::remote_ingress(
@@ -2172,6 +2180,122 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     assert!(sink
         .signs()
         .contains_kind(KernelEventKind::RemoteInputClosed));
+    assert!(source
+        .signs()
+        .events()
+        .filter_map(|event| {
+            source
+                .signs()
+                .remote_identity(event.sequence)
+                .map(|remote| (event.kind, remote))
+        })
+        .eq([
+            (
+                KernelEventKind::RemoteValueOffered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 0,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueAccepted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 0,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueDelivered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 0,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueOffered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 1,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueAccepted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 1,
+                },
+            ),
+            (
+                KernelEventKind::RemoteValueDelivered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 1,
+                },
+            ),
+            (
+                KernelEventKind::RemoteOutputClosed,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence: 2,
+                },
+            ),
+        ]));
+    assert!(sink
+        .signs()
+        .events()
+        .filter_map(|event| {
+            sink.signs()
+                .remote_identity(event.sequence)
+                .map(|remote| (event.kind, remote))
+        })
+        .eq([
+            (
+                KernelEventKind::RemoteInputAdmitted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Ingress,
+                    sequence: 0,
+                },
+            ),
+            (
+                KernelEventKind::RemoteInputAdmitted,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Ingress,
+                    sequence: 1,
+                },
+            ),
+            (
+                KernelEventKind::RemoteInputClosed,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord: CordId(0),
+                    direction: crate::RemoteCordDirection::Ingress,
+                    sequence: 2,
+                },
+            ),
+        ]));
+    let remote_sign_count = source
+        .signs()
+        .events()
+        .filter(|event| source.signs().remote_identity(event.sequence).is_some())
+        .count();
     source.cancel().unwrap();
     assert_eq!(
         source.remote_egress_accept(endpoint, CordId(0), 1),
@@ -2180,6 +2304,14 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     assert_eq!(
         source.remote_egress_delivered(endpoint, CordId(0), 1),
         Err(SchedulerError::RemoteDeliveryRejected)
+    );
+    assert_eq!(
+        source
+            .signs()
+            .events()
+            .filter(|event| source.signs().remote_identity(event.sequence).is_some())
+            .count(),
+        remote_sign_count
     );
 }
 
@@ -2201,8 +2333,12 @@ fn remote_delivery_sign_exhaustion_preserves_the_in_flight_value() {
         )
         .unwrap();
     routes.seal().unwrap();
-    let signs =
-        FixedSignLog::<4>::new((4 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let signs = FixedSignLog::<8>::new_with_remote_storage(
+        (8 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        2,
+        crate::remote_sign_storage_bytes(2).unwrap(),
+    )
+    .unwrap();
     let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
         [node([None; PORTS])],
         [CordSpec::remote_egress(
@@ -2235,13 +2371,70 @@ fn remote_delivery_sign_exhaustion_preserves_the_in_flight_value() {
         .unwrap();
     assert_eq!(
         scheduler.remote_egress_delivered(endpoint, CordId(0), offer.sequence),
-        Err(SchedulerError::Sign(crate::SignError::ItemCapacityExceeded))
+        Err(SchedulerError::Sign(
+            crate::SignError::RemoteItemCapacityExceeded
+        ))
     );
     assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (1, 4));
     assert_eq!(scheduler.values().reference_count(value).unwrap(), 1);
     assert_eq!(
         scheduler.remote_egress_offer(endpoint, CordId(0)).unwrap(),
         Some(offer)
+    );
+}
+
+#[test]
+fn remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state() {
+    let endpoint = RemoteEndpointId(0);
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<8>::new((8 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 2, 1>::new(
+        [node([Some(CordId(0)), None])],
+        [CordSpec::remote_ingress(
+            CordId(0),
+            endpoint,
+            (NodeId(0), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 4,
+            },
+        )],
+        routes,
+        [Driver::Sink {
+            seen: [None; 4],
+            len: 0,
+            stall: false,
+        }],
+        FixedValueStore::<1, 4>::new(4).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 0, b"data"),
+        Err(SchedulerError::Sign(
+            crate::SignError::RemoteItemCapacityExceeded
+        ))
+    );
+    assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (0, 0));
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 1, b"data"),
+        Err(SchedulerError::RemoteSequenceRejected)
+    );
+    assert_eq!(
+        scheduler.close_remote_input(endpoint, CordId(0)),
+        Err(SchedulerError::Sign(
+            crate::SignError::RemoteItemCapacityExceeded
+        ))
+    );
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 0, b"data"),
+        Err(SchedulerError::Sign(
+            crate::SignError::RemoteItemCapacityExceeded
+        ))
     );
 }
 

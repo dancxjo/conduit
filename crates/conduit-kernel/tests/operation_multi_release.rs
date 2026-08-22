@@ -373,5 +373,8 @@ fn inactive_cord() -> CordSpec {
 
 fn sign<const EVENTS: usize>() -> FixedSignLog<EVENTS> {
     let bytes = u32::try_from(EVENTS * core::mem::size_of::<KernelEvent>()).unwrap();
-    FixedSignLog::new(bytes).unwrap()
+    let remote_bytes =
+        conduit_kernel::remote_sign_storage_bytes(u16::try_from(EVENTS).unwrap()).unwrap();
+    FixedSignLog::new_with_remote_storage(bytes, u16::try_from(EVENTS).unwrap(), remote_bytes)
+        .unwrap()
 }

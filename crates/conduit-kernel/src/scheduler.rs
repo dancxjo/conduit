@@ -1188,12 +1188,18 @@ where
         let sequence = existing.unwrap_or(self.cords[cord_index].next_remote_sequence);
         if existing.is_none() {
             self.ensure_sign_capacity(1)?;
+            self.ensure_remote_sign_capacity(1)?;
             self.cords[cord_index].offered_remote_sequence = Some(sequence);
-            self.signs.record(
+            self.signs.record_remote(
                 source_node,
-                Some(source_port),
-                None,
+                source_port,
                 KernelEventKind::RemoteValueOffered,
+                crate::RemoteLifecycleIdentity {
+                    endpoint,
+                    cord,
+                    direction: crate::RemoteCordDirection::Egress,
+                    sequence,
+                },
             )?;
         }
         Ok(Some(RemoteValueOffer {
@@ -1240,12 +1246,18 @@ where
             return Ok(());
         }
         self.ensure_sign_capacity(1)?;
+        self.ensure_remote_sign_capacity(1)?;
         self.cords[cord_index].remote_accepted = true;
-        self.signs.record(
+        self.signs.record_remote(
             source_node,
-            Some(source_port),
-            None,
+            source_port,
             KernelEventKind::RemoteValueAccepted,
+            crate::RemoteLifecycleIdentity {
+                endpoint,
+                cord,
+                direction: crate::RemoteCordDirection::Egress,
+                sequence,
+            },
         )?;
         Ok(())
     }
@@ -1289,6 +1301,7 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         self.ensure_sign_capacity(1)?;
+        self.ensure_remote_sign_capacity(1)?;
         let value = self.pop(cord_index)?;
         self.values.release(value)?;
         let state = &mut self.cords[cord_index];
@@ -1296,11 +1309,16 @@ where
         state.offered_remote_sequence = None;
         state.remote_accepted = false;
         self.ready[usize::from(source_node.0)] = true;
-        self.signs.record(
+        self.signs.record_remote(
             source_node,
-            Some(source_port),
-            None,
+            source_port,
             KernelEventKind::RemoteValueDelivered,
+            crate::RemoteLifecycleIdentity {
+                endpoint,
+                cord,
+                direction: crate::RemoteCordDirection::Egress,
+                sequence,
+            },
         )?;
         Ok(())
     }
@@ -1352,6 +1370,7 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         self.ensure_sign_capacity(1)?;
+        self.ensure_remote_sign_capacity(1)?;
         let value = self.values.store(bytes)?;
         if let Err(error) = self.push(cord_index, value) {
             self.values.release(value)?;
@@ -1359,11 +1378,16 @@ where
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
         self.ready[usize::from(sink_node.0)] = true;
-        self.signs.record(
+        self.signs.record_remote(
             sink_node,
-            Some(sink_port),
-            None,
+            sink_port,
             KernelEventKind::RemoteInputAdmitted,
+            crate::RemoteLifecycleIdentity {
+                endpoint,
+                cord,
+                direction: crate::RemoteCordDirection::Ingress,
+                sequence,
+            },
         )?;
         Ok(RemoteIngressOutcome::Accepted { sequence })
     }
@@ -1396,13 +1420,19 @@ where
             return Ok(());
         }
         self.ensure_sign_capacity(1)?;
+        self.ensure_remote_sign_capacity(1)?;
         self.cords[cord_index].producer_closed = true;
         self.ready[usize::from(sink_node.0)] = true;
-        self.signs.record(
+        self.signs.record_remote(
             sink_node,
-            Some(sink_port),
-            None,
+            sink_port,
             KernelEventKind::RemoteInputClosed,
+            crate::RemoteLifecycleIdentity {
+                endpoint,
+                cord,
+                direction: crate::RemoteCordDirection::Ingress,
+                sequence: self.cords[cord_index].next_remote_sequence,
+            },
         )?;
         Ok(())
     }
@@ -2317,6 +2347,12 @@ where
         Ok(())
     }
 
+    fn ensure_remote_sign_capacity(&self, additional: usize) -> Result<(), SchedulerError> {
+        let additional = u16::try_from(additional).map_err(|_| SchedulerError::InvalidPlan)?;
+        self.signs.ensure_remote_capacity(additional)?;
+        Ok(())
+    }
+
     fn step_target_count(
         &self,
         node: usize,
@@ -2354,6 +2390,23 @@ where
     }
 
     fn close_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
+        let mut remote_closures = 0_usize;
+        for port in 0..PORTS {
+            let Ok(targets) = self
+                .routes
+                .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))
+            else {
+                continue;
+            };
+            remote_closures = remote_closures
+                .checked_add(
+                    targets
+                        .filter(|target| matches!(target.sink, CordEndpoint::Remote(_)))
+                        .count(),
+                )
+                .ok_or(SchedulerError::InvalidPlan)?;
+        }
+        self.ensure_remote_sign_capacity(remote_closures)?;
         for port in 0..PORTS {
             let Ok(targets) = self
                 .routes
@@ -2368,11 +2421,19 @@ where
                 if let CordEndpoint::Local { node, .. } = target.sink {
                     self.ready[usize::from(node.0)] = true;
                 } else {
-                    self.signs.record(
+                    let CordEndpoint::Remote(endpoint) = target.sink else {
+                        unreachable!("remote output closure has remote sink")
+                    };
+                    self.signs.record_remote(
                         NodeId(as_u16(node)?),
-                        Some(PortId(as_u16(port)?)),
-                        None,
+                        PortId(as_u16(port)?),
                         KernelEventKind::RemoteOutputClosed,
+                        crate::RemoteLifecycleIdentity {
+                            endpoint,
+                            cord: target.cord,
+                            direction: crate::RemoteCordDirection::Egress,
+                            sequence: self.cords[cord].next_remote_sequence,
+                        },
                     )?;
                 }
             }

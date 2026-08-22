@@ -226,7 +226,14 @@ impl CoordinationEndpoint {
                 .try_into()
                 .map_err(|_| "coordination driver width")?,
             values,
-            HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|error| format!("{error:?}"))?,
+            HostedSignLog::new_with_remote_storage(
+                SIGN_ITEMS,
+                sign_bytes,
+                SIGN_ITEMS,
+                conduit_kernel::remote_sign_storage_bytes(SIGN_ITEMS)
+                    .ok_or("coordination remote Sign byte overflow")?,
+            )
+            .map_err(|error| format!("{error:?}"))?,
         )
         .map_err(|error| format!("{error:?}"))?;
         let active_play =

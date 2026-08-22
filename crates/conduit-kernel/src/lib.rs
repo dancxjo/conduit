@@ -695,6 +695,10 @@ mod hosted;
 #[cfg(feature = "alloc")]
 pub use hosted::Store as HostedValueStore;
 
+mod remote_sign;
+use remote_sign::RemoteLifecycleSign;
+pub use remote_sign::{remote_sign_storage_bytes, RemoteCordDirection, RemoteLifecycleIdentity};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KernelEventKind {
     Decision,
@@ -731,6 +735,8 @@ pub enum SignError {
     InvalidBudget,
     ItemCapacityExceeded,
     ByteCapacityExceeded,
+    RemoteItemCapacityExceeded,
+    RemoteByteCapacityExceeded,
     SequenceOverflow,
 }
 
@@ -749,10 +755,21 @@ pub trait SignSink {
         request: Option<RequestId>,
         kind: KernelEventKind,
     ) -> Result<KernelEvent, SignError>;
+
+    fn record_remote(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        kind: KernelEventKind,
+        remote: RemoteLifecycleIdentity,
+    ) -> Result<KernelEvent, SignError>;
+
+    fn ensure_remote_capacity(&self, additional: u16) -> Result<(), SignError>;
 }
 
 pub trait SignQuery {
     fn contains_kind(&self, kind: KernelEventKind) -> bool;
+    fn remote_identity(&self, event_sequence: u32) -> Option<RemoteLifecycleIdentity>;
 }
 
 pub struct FixedSignLog<const EVENTS: usize> {
@@ -761,18 +778,37 @@ pub struct FixedSignLog<const EVENTS: usize> {
     byte_capacity: u32,
     used_bytes: u32,
     next_sequence: u32,
+    remote_entries: [Option<RemoteLifecycleSign>; EVENTS],
+    remote_item_capacity: u16,
+    remote_byte_capacity: u32,
+    remote_len: u16,
+    remote_used_bytes: u32,
 }
 
 impl<const EVENTS: usize> FixedSignLog<EVENTS> {
     pub fn new(byte_capacity: u32) -> Result<Self, SignError> {
+        Self::new_with_remote_storage(byte_capacity, 0, 0)
+    }
+
+    pub fn new_with_remote_storage(
+        byte_capacity: u32,
+        remote_item_capacity: u16,
+        remote_byte_capacity: u32,
+    ) -> Result<Self, SignError> {
         let physical_bytes = EVENTS
             .checked_mul(size_of::<KernelEvent>())
             .and_then(|value| u32::try_from(value).ok())
             .ok_or(SignError::InvalidBudget)?;
+        let remote_physical_bytes =
+            remote_sign_storage_bytes(remote_item_capacity).ok_or(SignError::InvalidBudget)?;
         if EVENTS == 0
             || EVENTS > usize::from(u16::MAX)
             || byte_capacity == 0
             || byte_capacity > physical_bytes
+            || usize::from(remote_item_capacity) > EVENTS
+            || (remote_item_capacity == 0 && remote_byte_capacity != 0)
+            || (remote_item_capacity != 0
+                && (remote_byte_capacity == 0 || remote_byte_capacity > remote_physical_bytes))
         {
             return Err(SignError::InvalidBudget);
         }
@@ -782,11 +818,32 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
             byte_capacity,
             used_bytes: 0,
             next_sequence: 0,
+            remote_entries: [None; EVENTS],
+            remote_item_capacity,
+            remote_byte_capacity,
+            remote_len: 0,
+            remote_used_bytes: 0,
         })
     }
 
     pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
         self.entries.iter().copied().flatten()
+    }
+
+    pub fn remote_item_capacity(&self) -> u16 {
+        self.remote_item_capacity
+    }
+
+    pub fn remote_byte_capacity(&self) -> u32 {
+        self.remote_byte_capacity
+    }
+
+    pub fn remote_len(&self) -> u16 {
+        self.remote_len
+    }
+
+    pub fn remote_used_bytes(&self) -> u32 {
+        self.remote_used_bytes
     }
 }
 
@@ -842,11 +899,90 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         self.next_sequence = next_sequence;
         Ok(event)
     }
+
+    fn record_remote(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        kind: KernelEventKind,
+        remote: RemoteLifecycleIdentity,
+    ) -> Result<KernelEvent, SignError> {
+        let charge =
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
+        let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
+            .map_err(|_| SignError::InvalidBudget)?;
+        if usize::from(self.len) >= EVENTS {
+            return Err(SignError::ItemCapacityExceeded);
+        }
+        if self
+            .used_bytes
+            .checked_add(charge)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(SignError::ByteCapacityExceeded);
+        }
+        self.ensure_remote_capacity(1)?;
+        let sequence = self.next_sequence;
+        let next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
+        let event = KernelEvent {
+            sequence,
+            node,
+            port: Some(port),
+            request: None,
+            kind,
+        };
+        let index = usize::from(self.len);
+        self.entries[index] = Some(event);
+        self.remote_entries[usize::from(self.remote_len)] = Some(RemoteLifecycleSign {
+            event_sequence: sequence,
+            identity: remote,
+        });
+        self.len += 1;
+        self.used_bytes += charge;
+        self.remote_len += 1;
+        self.remote_used_bytes += remote_charge;
+        self.next_sequence = next_sequence;
+        Ok(event)
+    }
+
+    fn ensure_remote_capacity(&self, additional: u16) -> Result<(), SignError> {
+        if self
+            .remote_len
+            .checked_add(additional)
+            .filter(|len| *len <= self.remote_item_capacity)
+            .is_none()
+        {
+            return Err(SignError::RemoteItemCapacityExceeded);
+        }
+        let charge = u32::try_from(size_of::<RemoteLifecycleSign>())
+            .map_err(|_| SignError::InvalidBudget)?
+            .checked_mul(u32::from(additional))
+            .ok_or(SignError::InvalidBudget)?;
+        if self
+            .remote_used_bytes
+            .checked_add(charge)
+            .filter(|used| *used <= self.remote_byte_capacity)
+            .is_none()
+        {
+            return Err(SignError::RemoteByteCapacityExceeded);
+        }
+        Ok(())
+    }
 }
 
 impl<const EVENTS: usize> SignQuery for FixedSignLog<EVENTS> {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.events().any(|event| event.kind == kind)
+    }
+
+    fn remote_identity(&self, event_sequence: u32) -> Option<RemoteLifecycleIdentity> {
+        self.remote_entries
+            .iter()
+            .copied()
+            .flatten()
+            .find(|entry| entry.event_sequence == event_sequence)
+            .map(|entry| entry.identity)
     }
 }
 
@@ -857,26 +993,56 @@ pub struct HostedSignLog {
     byte_capacity: u32,
     used_bytes: u32,
     next_sequence: u32,
+    remote_entries: alloc::vec::Vec<Option<RemoteLifecycleSign>>,
+    remote_item_capacity: u16,
+    remote_byte_capacity: u32,
+    remote_len: u16,
+    remote_used_bytes: u32,
 }
 
 #[cfg(feature = "alloc")]
 impl HostedSignLog {
     pub fn new(item_capacity: u16, byte_capacity: u32) -> Result<Self, SignError> {
+        Self::new_with_remote_storage(item_capacity, byte_capacity, 0, 0)
+    }
+
+    pub fn new_with_remote_storage(
+        item_capacity: u16,
+        byte_capacity: u32,
+        remote_item_capacity: u16,
+        remote_byte_capacity: u32,
+    ) -> Result<Self, SignError> {
         let physical_bytes = usize::from(item_capacity)
             .checked_mul(size_of::<KernelEvent>())
             .and_then(|value| u32::try_from(value).ok())
             .ok_or(SignError::InvalidBudget)?;
-        if item_capacity == 0 || byte_capacity == 0 || byte_capacity > physical_bytes {
+        let remote_physical_bytes =
+            remote_sign_storage_bytes(remote_item_capacity).ok_or(SignError::InvalidBudget)?;
+        if item_capacity == 0
+            || byte_capacity == 0
+            || byte_capacity > physical_bytes
+            || remote_item_capacity > item_capacity
+            || (remote_item_capacity == 0 && remote_byte_capacity != 0)
+            || (remote_item_capacity != 0
+                && (remote_byte_capacity == 0 || remote_byte_capacity > remote_physical_bytes))
+        {
             return Err(SignError::InvalidBudget);
         }
         let mut entries = alloc::vec::Vec::with_capacity(usize::from(item_capacity));
         entries.resize(usize::from(item_capacity), None);
+        let mut remote_entries = alloc::vec::Vec::with_capacity(usize::from(remote_item_capacity));
+        remote_entries.resize(usize::from(remote_item_capacity), None);
         Ok(Self {
             entries,
             len: 0,
             byte_capacity,
             used_bytes: 0,
             next_sequence: 0,
+            remote_entries,
+            remote_item_capacity,
+            remote_byte_capacity,
+            remote_len: 0,
+            remote_used_bytes: 0,
         })
     }
 
@@ -885,7 +1051,7 @@ impl HostedSignLog {
     }
 
     pub fn allocation_capacity(&self) -> usize {
-        self.entries.capacity()
+        self.entries.capacity() + self.remote_entries.capacity()
     }
 }
 
@@ -942,12 +1108,91 @@ impl SignSink for HostedSignLog {
         self.next_sequence = next_sequence;
         Ok(event)
     }
+
+    fn record_remote(
+        &mut self,
+        node: NodeId,
+        port: PortId,
+        kind: KernelEventKind,
+        remote: RemoteLifecycleIdentity,
+    ) -> Result<KernelEvent, SignError> {
+        let charge =
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
+        let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
+            .map_err(|_| SignError::InvalidBudget)?;
+        if usize::from(self.len) >= self.entries.len() {
+            return Err(SignError::ItemCapacityExceeded);
+        }
+        if self
+            .used_bytes
+            .checked_add(charge)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(SignError::ByteCapacityExceeded);
+        }
+        self.ensure_remote_capacity(1)?;
+        let sequence = self.next_sequence;
+        let next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
+        let event = KernelEvent {
+            sequence,
+            node,
+            port: Some(port),
+            request: None,
+            kind,
+        };
+        let index = usize::from(self.len);
+        self.entries[index] = Some(event);
+        self.remote_entries[usize::from(self.remote_len)] = Some(RemoteLifecycleSign {
+            event_sequence: sequence,
+            identity: remote,
+        });
+        self.len += 1;
+        self.used_bytes += charge;
+        self.remote_len += 1;
+        self.remote_used_bytes += remote_charge;
+        self.next_sequence = next_sequence;
+        Ok(event)
+    }
+
+    fn ensure_remote_capacity(&self, additional: u16) -> Result<(), SignError> {
+        if self
+            .remote_len
+            .checked_add(additional)
+            .filter(|len| *len <= self.remote_item_capacity)
+            .is_none()
+        {
+            return Err(SignError::RemoteItemCapacityExceeded);
+        }
+        let charge = u32::try_from(size_of::<RemoteLifecycleSign>())
+            .map_err(|_| SignError::InvalidBudget)?
+            .checked_mul(u32::from(additional))
+            .ok_or(SignError::InvalidBudget)?;
+        if self
+            .remote_used_bytes
+            .checked_add(charge)
+            .filter(|used| *used <= self.remote_byte_capacity)
+            .is_none()
+        {
+            return Err(SignError::RemoteByteCapacityExceeded);
+        }
+        Ok(())
+    }
 }
 
 #[cfg(feature = "alloc")]
 impl SignQuery for HostedSignLog {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.events().any(|event| event.kind == kind)
+    }
+
+    fn remote_identity(&self, event_sequence: u32) -> Option<RemoteLifecycleIdentity> {
+        self.remote_entries
+            .iter()
+            .copied()
+            .flatten()
+            .find(|entry| entry.event_sequence == event_sequence)
+            .map(|entry| entry.identity)
     }
 }
 

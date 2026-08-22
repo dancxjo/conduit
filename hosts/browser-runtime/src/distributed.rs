@@ -225,7 +225,15 @@ impl DistributedSink {
         let sign_bytes = u32::from(sign_items)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or(ERROR_PREPARE)?;
-        let sign = HostedSignLog::new(sign_items, sign_bytes.max(1)).map_err(|_| ERROR_PREPARE)?;
+        let remote_sign_bytes =
+            conduit_kernel::remote_sign_storage_bytes(sign_items).ok_or(ERROR_PREPARE)?;
+        let sign = HostedSignLog::new_with_remote_storage(
+            sign_items,
+            sign_bytes.max(1),
+            sign_items,
+            remote_sign_bytes,
+        )
+        .map_err(|_| ERROR_PREPARE)?;
         let driver = OperationDriver::new(ShowOperation {
             next: 0,
             pending: None,

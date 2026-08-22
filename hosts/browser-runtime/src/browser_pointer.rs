@@ -474,6 +474,13 @@ fn scheduler(
         drivers.push(OperationDriver::new(operation).map_err(debug)?);
     }
     let drivers = drivers.try_into().map_err(|_| "pointer drivers")?;
+    let required_sign_bytes = usize::from(lowered.sign_items)
+        .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>())
+        .and_then(|bytes| u32::try_from(bytes).ok())
+        .ok_or("browser pointer Sign requirement overflow")?;
+    if lowered.sign_bytes < required_sign_bytes {
+        return Err("browser pointer Plan underadmits physical Signs".into());
+    }
     let signs = FixedSignLog::<SIGNS>::new(lowered.sign_bytes).map_err(debug)?;
     PointerScheduler::new_with_host_operations(
         nodes, cords, routes, bindings, drivers, values, signs,
