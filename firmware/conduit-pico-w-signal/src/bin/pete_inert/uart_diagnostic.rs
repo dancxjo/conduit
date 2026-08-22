@@ -56,8 +56,29 @@ pub fn record_rx(now_ms: u32) {
     let _ = FIRST_BYTE_MS.compare_exchange(u32::MAX, now_ms, Ordering::AcqRel, Ordering::Acquire);
 }
 
-pub fn record_discard() {
-    RESYNC_DISCARDED_BYTES.fetch_add(1, Ordering::Relaxed);
+pub fn record_discard(bytes: usize) {
+    RESYNC_DISCARDED_BYTES.fetch_add(bytes as u32, Ordering::Relaxed);
+}
+
+/// Bytes abandoned when a shape mismatch either drops the current byte or
+/// retains it as the header of the next candidate frame.
+pub fn discarded_on_mismatch(received: usize, byte: u8, stream_header: u8) -> usize {
+    received + usize::from(byte != stream_header)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::discarded_on_mismatch;
+
+    #[test]
+    fn retained_header_discards_only_the_abandoned_prefix() {
+        assert_eq!(discarded_on_mismatch(2, 19, 19), 2);
+    }
+
+    #[test]
+    fn non_header_discards_prefix_and_current_byte() {
+        assert_eq!(discarded_on_mismatch(2, 0xff, 19), 3);
+    }
 }
 
 pub fn record_timeout() {

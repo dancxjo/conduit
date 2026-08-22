@@ -137,7 +137,7 @@ fn discard_uart(provider: &mut Provider) {
         match provider.uart.read() {
             Ok(_) => {
                 uart_diagnostic::record_rx(now_ms());
-                uart_diagnostic::record_discard();
+                uart_diagnostic::record_discard(1);
             }
             Err(nb::Error::WouldBlock) => break,
             Err(nb::Error::Other(error)) => uart_diagnostic::record_error(error),
@@ -196,7 +196,9 @@ async fn confirm_full_mode(
                     _ => true,
                 };
                 if !accepted {
-                    uart_diagnostic::record_discard();
+                    uart_diagnostic::record_discard(
+                        uart_diagnostic::discarded_on_mismatch(received, byte, STREAM_HEADER),
+                    );
                     received = usize::from(byte == STREAM_HEADER);
                     if received == 1 {
                         frame[0] = byte;
@@ -228,6 +230,7 @@ async fn confirm_full_mode(
             }
             Err(nb::Error::Other(error)) => {
                 uart_diagnostic::record_error(error);
+                uart_diagnostic::record_discard(received);
                 received = 0;
                 Timer::after(Duration::from_millis(1)).await;
                 watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
@@ -267,7 +270,9 @@ async fn transact_sensor_packet(
                     _ => true,
                 };
                 if !accepted {
-                    uart_diagnostic::record_discard();
+                    uart_diagnostic::record_discard(
+                        uart_diagnostic::discarded_on_mismatch(received, byte, STREAM_HEADER),
+                    );
                     received = usize::from(byte == STREAM_HEADER);
                     if received == 1 {
                         frame[0] = byte;
@@ -327,6 +332,7 @@ async fn transact_sensor_packet(
             }
             Err(nb::Error::Other(error)) => {
                 uart_diagnostic::record_error(error);
+                uart_diagnostic::record_discard(received);
                 received = 0;
                 Timer::after(Duration::from_millis(1)).await;
                 watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));

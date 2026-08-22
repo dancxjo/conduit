@@ -167,6 +167,7 @@ fn validate_diagnostics(diagnostics: &[serde_json::Value], expected_build: &str)
     }
     let mut prior_counters: Option<[u64; 11]> = None;
     let mut expected_window_start = None;
+    let mut prior_window_end = None;
     for diagnostic in diagnostics {
         if diagnostic["schema"] != "conduit.pete/uart-diagnostic@1" {
             return Err("UART diagnostic response has the wrong schema".into());
@@ -182,6 +183,12 @@ fn validate_diagnostics(diagnostics: &[serde_json::Value], expected_build: &str)
             .is_some_and(|start| start != window_start)
         {
             return Err("UART diagnostic window changed across CDC reopen".into());
+        }
+        if prior_window_end
+            .replace(window_end)
+            .is_some_and(|end| window_end < end)
+        {
+            return Err("UART diagnostic window end moved backward across CDC reopen".into());
         }
         if diagnostic["build_id"].as_str() != Some(expected_build)
             || window_end < window_start
@@ -227,6 +234,13 @@ fn validate_diagnostics(diagnostics: &[serde_json::Value], expected_build: &str)
                 );
             };
             counters[6 + index] = value;
+        }
+        let first_byte_ms = diagnostic["first_byte_after_boot_ms"]
+            .as_i64()
+            .filter(|value| *value >= -1)
+            .ok_or("UART diagnostic first-byte timing is not -1 or a nonnegative integer")?;
+        if (counters[0] == 0) != (first_byte_ms == -1) {
+            return Err("UART diagnostic first-byte timing disagrees with RX byte count".into());
         }
         let observed_len = diagnostic["last_corrupt_frame"]["observed_len"]
             .as_u64()
@@ -397,6 +411,21 @@ mod tests {
             "observed_len": 31,
             "hex": "00".repeat(31)
         });
+        assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
+    }
+
+    #[test]
+    fn rejects_window_end_rollback_across_reopen() {
+        let mut diagnostics = vec![diagnostic(90); 8];
+        diagnostics[4]["window_end_ms"] = 99.into();
+        diagnostics[3]["window_end_ms"] = 100.into();
+        assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
+    }
+
+    #[test]
+    fn rejects_first_byte_timing_that_disagrees_with_rx_count() {
+        let mut diagnostics = vec![diagnostic(90); 8];
+        diagnostics[0]["first_byte_after_boot_ms"] = (-1).into();
         assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
     }
 }
