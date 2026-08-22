@@ -36,6 +36,10 @@ pub(super) fn verify(args: &PicoArgs) -> PicoResult<()> {
     )?)?;
     let qualification = validate_records(&records, &identity);
     drop(reader);
+    // Give the device one explicit close interval to leave the unframed
+    // startup connection before trial 1 opens the framed service channel.
+    // Subsequent trials already preserve the same close/reopen interval.
+    std::thread::sleep(Duration::from_millis(100));
     let expected_build = identity["firmware_build_id"]
         .as_str()
         .ok_or("capstone image identity missing firmware_build_id")?;
