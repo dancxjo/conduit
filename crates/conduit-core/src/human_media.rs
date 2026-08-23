@@ -6,7 +6,7 @@
 
 use crate::{
     AuthorityContractId, AuthorityGrantId, BootId, HostId, HostOperationContractId,
-    HostOperationId, ImplementationId, KindId, OfferGeneration, PlanId, ResourceClassId,
+    HostOperationId, ImplementationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId,
     ResourceHandleId,
 };
 use serde::{Deserialize, Serialize};
@@ -194,6 +194,7 @@ pub enum MediaAcquisitionResult {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaUseRequirement {
     pub kind: HumanMediaKind,
+    pub output_port: PortId,
     pub class_id: ResourceClassId,
     pub value_kind: KindId,
     pub flow_bounds: MediaFlowBounds,
@@ -201,6 +202,7 @@ pub struct MediaUseRequirement {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SelectedMediaResource {
+    pub output_port: PortId,
     pub handle_id: ResourceHandleId,
     pub use_authority_grant: AuthorityGrantId,
     pub host_id: HostId,
