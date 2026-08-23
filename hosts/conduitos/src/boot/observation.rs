@@ -10,6 +10,7 @@ pub enum Firmware {
     Uefi32,
     Uefi64,
     Sbi,
+    RaspberryPiVideoCore,
 }
 
 impl Firmware {
@@ -19,6 +20,7 @@ impl Firmware {
             Self::Uefi32 => "uefi32",
             Self::Uefi64 => "uefi64",
             Self::Sbi => "sbi",
+            Self::RaspberryPiVideoCore => "raspberry-pi-videocore",
         }
     }
 }

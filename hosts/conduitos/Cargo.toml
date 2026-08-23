@@ -47,6 +47,20 @@ bench = false
 required-features = ["armv6-rpi-b-plus-a0"]
 
 [[bin]]
+name = "conduitos-armv6-rpi-b-plus-a2"
+path = "src/bin/armv6_rpi_b_plus_a2.rs"
+test = false
+bench = false
+required-features = ["armv6-rpi-b-plus-a2"]
+
+[[bin]]
+name = "conduitos-armv6-rpi-b-plus-a3"
+path = "src/bin/armv6_rpi_b_plus_a3.rs"
+test = false
+bench = false
+required-features = ["armv6-rpi-b-plus-a3"]
+
+[[bin]]
 name = "conduitos-ia32-a0"
 path = "src/bin/ia32_a0.rs"
 test = false
@@ -137,6 +151,8 @@ aarch64-a2 = []
 aarch64-a3 = []
 aarch64-product = []
 armv6-rpi-b-plus-a0 = []
+armv6-rpi-b-plus-a2 = []
+armv6-rpi-b-plus-a3 = []
 ia32-a0 = []
 ia32-a2 = []
 ia32-a3 = []

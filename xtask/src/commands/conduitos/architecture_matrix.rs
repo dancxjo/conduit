@@ -115,6 +115,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::Ia32
             | ConduitosArch::X86_64
             | ConduitosArch::Aarch64
+            | ConduitosArch::Armv6
             | ConduitosArch::Riscv64
             | ConduitosArch::Loongarch64
     );
@@ -122,7 +123,10 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
     let ordinary_form_accepted = full_spine_accepted
         || matches!(
             arch,
-            ConduitosArch::Ia32 | ConduitosArch::Aarch64 | ConduitosArch::Riscv64
+            ConduitosArch::Ia32
+                | ConduitosArch::Aarch64
+                | ConduitosArch::Armv6
+                | ConduitosArch::Riscv64
         );
     let observatory_patchbay_accepted = full_spine_accepted
         || matches!(
@@ -132,7 +136,10 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
     let machine_wake_accepted = full_spine_accepted
         || matches!(
             arch,
-            ConduitosArch::Ia32 | ConduitosArch::Aarch64 | ConduitosArch::Riscv64
+            ConduitosArch::Ia32
+                | ConduitosArch::Aarch64
+                | ConduitosArch::Armv6
+                | ConduitosArch::Riscv64
         );
     let compile_link_accepted = true;
     let (boot_mechanism, boot_artifact, limine_artifact, target, blocker) = match arch {
@@ -269,7 +276,10 @@ mod tests {
         assert!(armv6.a0_compile_link);
         assert!(!armv6.in_pinned_limine_matrix);
         assert_eq!(armv6.boot_artifact, "kernel.img");
-        assert!(!armv6.a1_boot);
+        assert!(armv6.a1_boot);
+        assert!(armv6.a2_machine_wake);
+        assert!(armv6.a3_ordinary_form);
+        assert!(!armv6.a4_observatory_patchbay);
         assert_eq!(
             armv6.blocker,
             Some("armv6-rpi-b-plus-physical-boot-unproven")

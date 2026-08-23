@@ -11,8 +11,8 @@ use super::{
 };
 
 pub const TARGET: &str = "armv6-none-eabi";
-const BINARY: &str = "conduitos-armv6-rpi-b-plus-a0";
-const ENTRY: &str = "conduitos_armv6_rpi_b_plus_entry";
+const BINARY: &str = "conduitos-armv6-rpi-b-plus-a3";
+const ENTRY: &str = "conduitos_armv6_rpi_b_plus_product_entry";
 const LOAD_ADDRESS: u32 = 0x8000;
 const ELF_HEADER_BYTES: usize = 52;
 const PROGRAM_HEADER_BYTES: usize = 32;
@@ -49,12 +49,13 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     let paths = Paths::new(ConduitosArch::Armv6)?;
     if opts.dry_run {
         println!(
-            "cargo build -Zbuild-std=core,alloc -p conduitos --bin {BINARY} --features armv6-rpi-b-plus-a0 --target {TARGET} --release"
+            "cargo build -Zbuild-std=core,alloc -p conduitos --bin {BINARY} --features armv6-rpi-b-plus-a3 --target {TARGET} --release"
         );
         return record(&paths, "dry-run".into());
     }
     fs::create_dir_all(&paths.target)
         .map_err(|error| refusal("build-output-unavailable", error))?;
+    let base_commit = git_head(&paths.root)?;
     let mut command = Command::new("cargo");
     command
         .args([
@@ -65,7 +66,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
             "--bin",
             BINARY,
             "--features",
-            "armv6-rpi-b-plus-a0",
+            "armv6-rpi-b-plus-a3",
             "--target",
             TARGET,
             "--release",
@@ -73,8 +74,16 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         .current_dir(&paths.root)
         .env("RUSTC_BOOTSTRAP", "1")
         .env(
+            "CONDUITOS_BUILD_ID",
+            format!("conduitos-build/{base_commit}/armv6-rpi-b-plus/v1"),
+        )
+        .env(
+            "CONDUITOS_IMAGE_ID",
+            format!("conduitos-image/{base_commit}/armv6-rpi-b-plus/v1"),
+        )
+        .env(
             "RUSTFLAGS",
-            "-C relocation-model=static -C panic=abort -C opt-level=z -C codegen-units=1",
+            "-C relocation-model=static -C panic=abort -C opt-level=3 -C codegen-units=1",
         );
     if opts.locked {
         command.arg("--locked");
