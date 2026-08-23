@@ -387,6 +387,16 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["hosts/browser/conduit_browser_runtime.wasm"],
     ),
     Step::typed(
+        "prove.browser-host.entrance-build",
+        "Build the standalone browser Host entrance",
+        "cargo",
+        &["build", "-p", "conduit-browser-host"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/conduit-browser-host"],
+    ),
+    Step::typed(
         "prove.browser-host.patchbay-native-build",
         "Build native Patchbay distributed source artifact",
         "cargo",
