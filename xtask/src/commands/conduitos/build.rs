@@ -185,7 +185,7 @@ fn execute_with_features(
         return aarch64_a0::execute(opts);
     }
     if arch == ConduitosArch::Armv6 {
-        return armv6_rpi_b_plus_a0::execute(opts);
+        return armv6_rpi_b_plus_a0::execute(Default::default(), opts);
     }
     if arch == ConduitosArch::Riscv64 {
         return riscv64_a0::execute(opts);

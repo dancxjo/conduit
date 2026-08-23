@@ -11,6 +11,7 @@ use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, 
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
+const BOARD_ID: &str = env!("CONDUITOS_BOARD_ID");
 const ARENA_BYTES: usize = 4 * 1024 * 1024;
 
 #[repr(C, align(64))]
@@ -66,7 +67,9 @@ __conduitos_exception_stack_end:
 #[unsafe(no_mangle)]
 pub extern "C" fn conduitos_armv6_rpi_b_plus_a3_start() -> ! {
     arch::initialize_machine();
-    arch::present(b"CONDUIT_ARMV6_RPI_ENTRY_SIGN {\"schema\":\"conduit.conduitos.armv6-rpi-entry/v1\",\"status\":\"entered\",\"architecture\":\"armv6\",\"machine\":\"BCM2835/ARM1176JZF-S\",\"board_target\":\"raspberry-pi-model-b-plus-v1.2\",\"boot_mechanism\":\"direct-kernel\",\"runtime_bases_available\":true}\n");
+    arch::present(b"CONDUIT_ARMV6_RPI_ENTRY_SIGN {\"schema\":\"conduit.conduitos.armv6-rpi-entry/v1\",\"status\":\"entered\",\"architecture\":\"armv6\",\"machine\":\"BCM2835/ARM1176JZF-S\",\"board_target\":\"");
+    arch::present(BOARD_ID.as_bytes());
+    arch::present(b"\",\"boot_mechanism\":\"direct-kernel\",\"runtime_bases_available\":true}\n");
     let nonce = arch::read_counter();
     let record = boot_record(nonce).unwrap_or_else(|error| refuse(error.as_str()));
     stage("boot-record");

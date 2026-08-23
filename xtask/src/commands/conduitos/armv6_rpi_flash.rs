@@ -11,6 +11,7 @@ use crate::cli::GlobalOpts;
 
 use super::{
     armv6_rpi_b_plus_image,
+    armv6_rpi_board::Armv6RpiBoard,
     profile::Paths,
     report::{git_head, sha256_file},
     ConduitosArch, ConduitosError,
@@ -33,6 +34,7 @@ struct FlashRecord {
 }
 
 pub fn execute(
+    board: Armv6RpiBoard,
     requested: &Path,
     confirmed: &Path,
     opts: &GlobalOpts,
@@ -55,9 +57,9 @@ pub fn execute(
         );
         return Ok(());
     }
-    armv6_rpi_b_plus_image::execute(opts)?;
+    armv6_rpi_b_plus_image::execute(board, opts)?;
     let paths = Paths::new(ConduitosArch::Armv6)?;
-    let image = armv6_rpi_b_plus_image::image_path(&paths);
+    let image = armv6_rpi_b_plus_image::image_path(&paths, board);
     let image_bytes = fs::metadata(&image)
         .map_err(|error| refusal("flash-image-unavailable", error))?
         .len();
@@ -91,10 +93,10 @@ pub fn execute(
         "flash-byte-verification-failed",
     )?;
     let record = FlashRecord {
-        schema: "conduit.conduitos.armv6-rpi-b-plus-flash/v1",
+        schema: "conduit.conduitos.armv6-rpi-flash/v1",
         base_commit: git_head(&paths.root)?,
         architecture: "armv6",
-        board: "raspberry-pi-model-b-plus-v1.2",
+        board: board.id(),
         device: device.path.display().to_string(),
         removable: true,
         device_bytes: device.bytes,
@@ -106,8 +108,13 @@ pub fn execute(
     };
     let encoded = serde_json::to_vec_pretty(&record)
         .map_err(|error| refusal("flash-record-failed", error))?;
-    fs::write(paths.target.join("flash.json"), &encoded)
-        .map_err(|error| refusal("flash-record-failed", error))?;
+    fs::write(
+        paths
+            .target
+            .join(format!("{}-flash.json", board.artifact_slug())),
+        &encoded,
+    )
+    .map_err(|error| refusal("flash-record-failed", error))?;
     if opts.json {
         println!(
             "{}",
@@ -240,6 +247,7 @@ mod tests {
     #[test]
     fn mismatched_confirmation_refuses_before_device_inspection() {
         let error = execute(
+            Armv6RpiBoard::BPlusV1_2,
             Path::new("/dev/sda"),
             Path::new("/dev/sdb"),
             &GlobalOpts::default(),

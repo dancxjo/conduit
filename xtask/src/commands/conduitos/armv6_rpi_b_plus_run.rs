@@ -12,13 +12,14 @@ use crate::cli::GlobalOpts;
 
 use super::{
     armv6_rpi_b_plus_a0,
+    armv6_rpi_board::Armv6RpiBoard,
     profile::Paths,
     report::{git_head, sha256_file},
     ConduitosArch, ConduitosError,
 };
 
 const MACHINE: &str = "raspi0";
-const ENTRY_SIGN: &str = "CONDUIT_ARMV6_RPI_ENTRY_SIGN {\"schema\":\"conduit.conduitos.armv6-rpi-entry/v1\",\"status\":\"entered\",\"architecture\":\"armv6\",\"machine\":\"BCM2835/ARM1176JZF-S\",\"board_target\":\"raspberry-pi-model-b-plus-v1.2\",\"boot_mechanism\":\"direct-kernel\",\"runtime_bases_available\":true}";
+const ENTRY_SIGN_PREFIX: &str = "CONDUIT_ARMV6_RPI_ENTRY_SIGN ";
 const KERNEL_SIGN_PREFIX: &str = "CONDUIT_KERNEL_SIGN ";
 const IDENTITY_SIGN_PREFIX: &str = "CONDUIT_ARMV6_RPI_A3_IDENTITY ";
 const MAXIMUM_TRANSCRIPT_BYTES: usize = 8192;
@@ -30,11 +31,12 @@ struct RunRecord {
     base_commit: String,
     architecture: &'static str,
     machine_target: &'static str,
+    board_target: &'static str,
     emulator_machine: &'static str,
     qemu_version: String,
     kernel_image_sha256: String,
     load_address: u32,
-    entry_sign: &'static str,
+    entry_sign: String,
     kernel_sign: String,
     identity_sign: String,
     transcript_bytes: usize,
@@ -42,15 +44,15 @@ struct RunRecord {
     physical_boot_claimed: bool,
 }
 
-pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
-        armv6_rpi_b_plus_a0::execute(opts)?;
+        armv6_rpi_b_plus_a0::execute(board, opts)?;
         println!(
             "qemu-system-arm -M {MACHINE} -device loader,file=kernel.img,addr=0x8000,cpu-num=0,force-raw=on -serial stdio -display none -no-reboot"
         );
         return Ok(());
     }
-    armv6_rpi_b_plus_a0::execute(opts)?;
+    armv6_rpi_b_plus_a0::execute(board, opts)?;
     let paths = Paths::new(ConduitosArch::Armv6)?;
     let kernel_path = paths.target.join("kernel.img");
     let qemu_version = command_text(
@@ -118,24 +120,13 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
     let transcript_text = String::from_utf8(transcript)
         .map_err(|error| refusal("armv6-emulator-transcript-invalid", error))?;
-    if transcript_text
-        .lines()
-        .filter(|line| *line == ENTRY_SIGN)
-        .count()
-        != 1
-    {
-        return Err(refusal("armv6-entry-sign-missing", transcript_text.trim()));
-    }
-    let kernel_sign = transcript_text
-        .lines()
-        .find(|line| line.starts_with(KERNEL_SIGN_PREFIX))
-        .ok_or_else(|| refusal("armv6-kernel-sign-missing", transcript_text.trim()))?;
+    let entry_sign = one_sign(&transcript_text, ENTRY_SIGN_PREFIX, "entry")?;
+    let entry: serde_json::Value = serde_json::from_str(&entry_sign[ENTRY_SIGN_PREFIX.len()..])
+        .map_err(|error| refusal("armv6-entry-sign-invalid", error))?;
+    let kernel_sign = one_sign(&transcript_text, KERNEL_SIGN_PREFIX, "kernel")?;
     let kernel: serde_json::Value = serde_json::from_str(&kernel_sign[KERNEL_SIGN_PREFIX.len()..])
         .map_err(|error| refusal("armv6-kernel-sign-invalid", error))?;
-    let identity_sign = transcript_text
-        .lines()
-        .find(|line| line.starts_with(IDENTITY_SIGN_PREFIX))
-        .ok_or_else(|| refusal("armv6-identity-sign-missing", transcript_text.trim()))?;
+    let identity_sign = one_sign(&transcript_text, IDENTITY_SIGN_PREFIX, "identity")?;
     let identity: serde_json::Value =
         serde_json::from_str(&identity_sign[IDENTITY_SIGN_PREFIX.len()..])
             .map_err(|error| refusal("armv6-identity-sign-invalid", error))?;
@@ -143,13 +134,20 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if kernel["schema"] != "conduit.conduitos.kernel-sign/v2"
         || kernel["status"] != "accepted"
         || kernel["arch"] != "armv6"
-        || kernel["build_id"] != format!("conduitos-build/{commit}/armv6-rpi-b-plus/v1")
+        || entry["schema"] != "conduit.conduitos.armv6-rpi-entry/v1"
+        || entry["status"] != "entered"
+        || entry["architecture"] != "armv6"
+        || entry["machine"] != "BCM2835/ARM1176JZF-S"
+        || entry["board_target"] != board.id()
+        || entry["boot_mechanism"] != "direct-kernel"
+        || entry["runtime_bases_available"] != true
+        || kernel["build_id"] != format!("conduitos-build/{commit}/{}/v1", board.identity_slug())
         || kernel["pipeline"] != "check-plan-lower-kernel"
         || kernel["semantic_result"] != "HELLO, CONDUITOS"
         || kernel["allocation_stable_during_play"] != true
         || kernel["timer_irq_wakes"] != 1
         || kernel["pending_host_operations"] != 0
-        || identity["image_id"] != format!("conduitos-image/{commit}/armv6-rpi-b-plus/v1")
+        || identity["image_id"] != format!("conduitos-image/{commit}/{}/v1", board.identity_slug())
         || identity["wake_source"] != "bcm2835-system-timer-compare-1"
         || identity["wake_irq"] != 1
         || identity["a3_ordinary_form_claimed"] != true
@@ -157,16 +155,17 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         return Err(refusal("armv6-a3-sign-invalid", kernel));
     }
     let record = RunRecord {
-        schema: "conduit.conduitos.armv6-rpi-b-plus-emulator-run/v1",
+        schema: "conduit.conduitos.armv6-rpi-emulator-run/v1",
         proof_class: "freestanding-emulator-ordinary-form-plan-play",
         base_commit: commit,
         architecture: "armv6",
-        machine_target: "BCM2835/ARM1176JZF-S Raspberry Pi Model B+ v1.2",
+        machine_target: "BCM2835/ARM1176JZF-S",
+        board_target: board.id(),
         emulator_machine: MACHINE,
         qemu_version: qemu_version.lines().next().unwrap_or_default().to_owned(),
         kernel_image_sha256: sha256_file(&kernel_path)?,
         load_address: 0x8000,
-        entry_sign: ENTRY_SIGN,
+        entry_sign: entry_sign.to_owned(),
         kernel_sign: kernel_sign.to_owned(),
         identity_sign: identity_sign.to_owned(),
         transcript_bytes: transcript_text.len(),
@@ -174,7 +173,9 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         physical_boot_claimed: false,
     };
     fs::write(
-        paths.target.join("emulator-run.json"),
+        paths
+            .target
+            .join(format!("{}-emulator-run.json", board.artifact_slug())),
         serde_json::to_vec_pretty(&record).map_err(|error| refusal("run-record-failed", error))?,
     )
     .map_err(|error| refusal("run-record-failed", error))?;
@@ -185,11 +186,25 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
                 .map_err(|error| refusal("run-record-failed", error))?
         );
     } else if !opts.quiet {
-        println!("{ENTRY_SIGN}");
+        println!("{entry_sign}");
         println!("{kernel_sign}");
         println!("{identity_sign}");
     }
     Ok(())
+}
+
+fn one_sign<'a>(transcript: &'a str, prefix: &str, name: &str) -> Result<&'a str, ConduitosError> {
+    let signs = transcript
+        .lines()
+        .filter(|line| line.starts_with(prefix))
+        .collect::<Vec<_>>();
+    if signs.len() != 1 {
+        return Err(refusal(
+            "armv6-sign-cardinality-invalid",
+            format!("expected one {name} Sign, found {}", signs.len()),
+        ));
+    }
+    Ok(signs[0])
 }
 
 fn command_text(
@@ -209,4 +224,16 @@ fn command_text(
 
 fn refusal(reason: &'static str, detail: impl std::fmt::Display) -> ConduitosError {
     ConduitosError::refusal(reason, detail.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_and_duplicate_signs_refuse() {
+        assert!(one_sign("", KERNEL_SIGN_PREFIX, "kernel").is_err());
+        let duplicate = format!("{KERNEL_SIGN_PREFIX}{{}}\n{KERNEL_SIGN_PREFIX}{{}}\n");
+        assert!(one_sign(&duplicate, KERNEL_SIGN_PREFIX, "kernel").is_err());
+    }
 }

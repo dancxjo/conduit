@@ -5,6 +5,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 use super::{
+    armv6_rpi_board::Armv6RpiBoard,
     profile::Paths,
     report::{git_head, sha256_file, BuildRecord},
     ConduitosArch, ConduitosError,
@@ -45,7 +46,7 @@ struct Inspection {
     kernel_image_bytes: usize,
 }
 
-pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     let paths = Paths::new(ConduitosArch::Armv6)?;
     if opts.dry_run {
         println!(
@@ -75,12 +76,13 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         .env("RUSTC_BOOTSTRAP", "1")
         .env(
             "CONDUITOS_BUILD_ID",
-            format!("conduitos-build/{base_commit}/armv6-rpi-b-plus/v1"),
+            format!("conduitos-build/{base_commit}/{}/v1", board.identity_slug()),
         )
         .env(
             "CONDUITOS_IMAGE_ID",
-            format!("conduitos-image/{base_commit}/armv6-rpi-b-plus/v1"),
+            format!("conduitos-image/{base_commit}/{}/v1", board.identity_slug()),
         )
+        .env("CONDUITOS_BOARD_ID", board.id())
         .env(
             "RUSTFLAGS",
             "-C relocation-model=static -C panic=abort -C opt-level=3 -C codegen-units=1",
@@ -108,11 +110,11 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     let elf_digest = sha256_file(&paths.kernel)?;
     let image_digest = sha256_file(&kernel_image)?;
     let inspection = Inspection {
-        schema: "conduit.conduitos.armv6-rpi-b-plus-a0/v1",
+        schema: "conduit.conduitos.armv6-rpi-a0/v1",
         proof_class: "compile-link-artifact-only",
         architecture: "armv6",
         machine: "BCM2835/ARM1176JZF-S",
-        board: "raspberry-pi-model-b-plus-v1.2",
+        board: board.id(),
         rust_target: TARGET,
         boot_path: "raspberry-pi-videocore-firmware-direct-kernel",
         entry_symbol: ENTRY,
@@ -131,14 +133,18 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         kernel_image_bytes: image.len(),
     };
     fs::write(
-        paths.target.join("a0-inspection.json"),
+        paths
+            .target
+            .join(format!("{}-a0-inspection.json", board.artifact_slug())),
         serde_json::to_vec_pretty(&inspection)
             .map_err(|error| refusal("build-record-failed", error))?,
     )
     .map_err(|error| refusal("build-record-failed", error))?;
     let record = record(&paths, elf_digest)?;
     fs::write(
-        paths.target.join("build.json"),
+        paths
+            .target
+            .join(format!("{}-build.json", board.artifact_slug())),
         serde_json::to_vec_pretty(&record)
             .map_err(|error| refusal("build-record-failed", error))?,
     )
@@ -233,11 +239,14 @@ fn inspect_elf(bytes: &[u8]) -> Result<ElfFacts, ConduitosError> {
 
 fn flatten_load_image(bytes: &[u8], segments: &[LoadSegment]) -> Result<Vec<u8>, ConduitosError> {
     let end = segments.iter().try_fold(LOAD_ADDRESS, |end, segment| {
+        if segment.file_bytes > segment.memory_bytes {
+            return Err(invalid("load segment file size exceeds memory size"));
+        }
         let segment_end = segment
             .address
             .checked_add(
                 segment
-                    .memory_bytes
+                    .file_bytes
                     .try_into()
                     .map_err(|_| invalid("segment exceeds ARM address space"))?,
             )
@@ -335,5 +344,19 @@ mod tests {
             memory_bytes: 2,
         };
         assert!(flatten_load_image(&[0; 5], &[segment]).is_err());
+    }
+
+    #[test]
+    fn flattening_omits_zero_initialized_memory_tail() {
+        let segment = LoadSegment {
+            offset: 0,
+            address: LOAD_ADDRESS,
+            file_bytes: 4,
+            memory_bytes: 4096,
+        };
+        assert_eq!(
+            flatten_load_image(&[1, 2, 3, 4], &[segment]).unwrap().len(),
+            4
+        );
     }
 }

@@ -95,10 +95,16 @@ conduitos *args:
     cargo xtask conduitos {{args}}
 
 rpi-b-plus-image:
-    cargo xtask conduitos image --arch armv6 --locked
+    cargo xtask conduitos image --arch armv6 --board rpi-b-plus-v1.2 --locked
 
 rpi-b-plus-flash device:
-    cargo xtask conduitos flash --arch armv6 --device {{device}} --confirm-device {{device}} --locked
+    cargo xtask conduitos flash --arch armv6 --board rpi-b-plus-v1.2 --device {{device}} --confirm-device {{device}} --locked
+
+rpi-zero-image:
+    cargo xtask conduitos image --arch armv6 --board rpi-zero-v1 --locked
+
+rpi-zero-flash device:
+    cargo xtask conduitos flash --arch armv6 --board rpi-zero-v1 --device {{device}} --confirm-device {{device}} --locked
 
 # One live loopback std-kernel to browser-WASM-kernel Signal proof.
 prove-std-browser-s4:

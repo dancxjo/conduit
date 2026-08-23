@@ -5,6 +5,7 @@ mod architecture_matrix;
 mod armv6_rpi_b_plus_a0;
 mod armv6_rpi_b_plus_image;
 mod armv6_rpi_b_plus_run;
+mod armv6_rpi_board;
 mod armv6_rpi_flash;
 mod build;
 mod demo;
@@ -115,6 +116,10 @@ struct TargetArgs {
     /// Architecture backend selected explicitly from the pinned Limine matrix.
     #[arg(long, value_enum, default_value_t = ConduitosArch::X86_64)]
     arch: ConduitosArch,
+
+    /// Exact BCM2835 board profile for ARMv6 image and build commands.
+    #[arg(long, value_enum)]
+    board: Option<armv6_rpi_board::Armv6RpiBoard>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -122,6 +127,10 @@ struct FlashArgs {
     /// Architecture image to write; ARMv6 Raspberry Pi is currently supported.
     #[arg(long, value_enum)]
     arch: ConduitosArch,
+
+    /// Exact BCM2835 board profile to image and write.
+    #[arg(long, value_enum)]
+    board: Option<armv6_rpi_board::Armv6RpiBoard>,
 
     /// Exact whole removable block device to erase and write.
     #[arg(long)]
@@ -279,19 +288,30 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::ProductReadinessMatrix => product_readiness_matrix::execute(opts),
         ConduitosCommand::Build(target) => {
             target.arch.require_compile_link_backend()?;
-            build::execute(target.arch, opts).map(|_| ())
+            if target.arch == ConduitosArch::Armv6 {
+                armv6_rpi_b_plus_a0::execute(target.board.unwrap_or_default(), opts).map(|_| ())
+            } else {
+                reject_board_for_non_armv6(target.arch, target.board)?;
+                build::execute(target.arch, opts).map(|_| ())
+            }
         }
         ConduitosCommand::Image(target) => {
             target.arch.require_boot_backend()?;
             if target.arch == ConduitosArch::Armv6 {
-                armv6_rpi_b_plus_image::execute(opts)
+                armv6_rpi_b_plus_image::execute(target.board.unwrap_or_default(), opts)
             } else {
+                reject_board_for_non_armv6(target.arch, target.board)?;
                 image::execute(target.arch, opts).map(|_| ())
             }
         }
         ConduitosCommand::Flash(flash) => {
             if flash.arch == ConduitosArch::Armv6 {
-                armv6_rpi_flash::execute(&flash.device, &flash.confirm_device, opts)
+                armv6_rpi_flash::execute(
+                    flash.board.unwrap_or_default(),
+                    &flash.device,
+                    &flash.confirm_device,
+                    opts,
+                )
             } else {
                 Err(ConduitosError::refusal(
                     "unsupported-flash-target",
@@ -307,9 +327,12 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
+            reject_board_for_non_armv6(target.arch, target.board)?;
             match target.arch {
                 ConduitosArch::Aarch64 => aarch64_a1::run(opts),
-                ConduitosArch::Armv6 => armv6_rpi_b_plus_run::execute(opts),
+                ConduitosArch::Armv6 => {
+                    armv6_rpi_b_plus_run::execute(target.board.unwrap_or_default(), opts)
+                }
                 ConduitosArch::Ia32 => ia32_a1::run(opts),
                 ConduitosArch::Riscv64 => riscv64_a4::run(opts),
                 ConduitosArch::Loongarch64 => loongarch64_a4::run(opts),
@@ -343,6 +366,19 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::RescueProof => rescue_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
     }
+}
+
+fn reject_board_for_non_armv6(
+    arch: ConduitosArch,
+    board: Option<armv6_rpi_board::Armv6RpiBoard>,
+) -> Result<(), ConduitosError> {
+    if board.is_some() && arch != ConduitosArch::Armv6 {
+        return Err(ConduitosError::refusal(
+            "board-architecture-mismatch",
+            format!("--board is not valid for {}", arch.as_str()),
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
