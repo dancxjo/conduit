@@ -20,6 +20,7 @@ mod deadline;
 mod execution;
 mod execution_fusion;
 mod face;
+mod human_interaction;
 mod implementation;
 mod info;
 mod input_chord;
@@ -61,6 +62,7 @@ pub use deadline::*;
 pub use execution::*;
 pub use execution_fusion::*;
 pub use face::{CheckedFace, FaceStartupParameter};
+pub use human_interaction::*;
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };
