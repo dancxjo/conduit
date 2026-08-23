@@ -9,6 +9,8 @@ pub const MAX_PROFILE_ID_BYTES: usize = 160;
 pub struct HostProfile {
     pub schema: String,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_configuration_id: Option<String>,
     pub target: TargetSelection,
     pub host_core: String,
     #[serde(default)]

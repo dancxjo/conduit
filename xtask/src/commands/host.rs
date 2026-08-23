@@ -2,13 +2,16 @@ use std::{fs, path::PathBuf};
 
 use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
-    build_host_image, BuildInputs, FabricationCatalog, HostBounds, HostProfile,
+    build_host_image, check_host_configuration, parse_host_configuration, BuildInputs,
+    FabricationCatalog, HostBounds, HostProfile,
 };
 
 use crate::cli::GlobalOpts;
 
 #[path = "host_capstone.rs"]
 mod host_capstone;
+#[path = "host_configurator.rs"]
+mod host_configurator;
 #[path = "host_esp32_inspection.rs"]
 mod host_esp32_inspection;
 #[cfg(test)]
@@ -27,15 +30,27 @@ pub struct HostArgs {
 
 #[derive(Subcommand, Debug)]
 enum HostCommand {
+    /// Create or revise one durable Host configuration TOML interactively.
+    Configure {
+        /// Existing configuration to edit, or destination offered when creating.
+        path: Option<PathBuf>,
+    },
+    /// Check or display one durable Host configuration TOML.
+    Config {
+        #[command(subcommand)]
+        command: HostConfigCommand,
+    },
     /// Resolve one PROFILE and emit its exact IMAGE and build manifest.
     Build {
         profile: PathBuf,
-        #[arg(long)]
+        #[arg(long, default_value = "target/host-build")]
         output: PathBuf,
+        /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
-        source_identity: String,
+        source_identity: Option<String>,
+        /// Exact toolchain identity; defaults to `rustc --version --verbose`.
         #[arg(long)]
-        toolchain_identity: String,
+        toolchain_identity: Option<String>,
     },
     /// Verify one final target IMAGE and its exact BUILD closure.
     Verify {
@@ -90,16 +105,67 @@ enum HostCommand {
     },
 }
 
+#[derive(Subcommand, Debug)]
+enum HostConfigCommand {
+    /// Validate without saving or fabricating an IMAGE.
+    Check { path: PathBuf },
+    /// Print the resolved target, Bases, variants, limits, and identity.
+    Show { path: PathBuf },
+}
+
 pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
+        HostCommand::Configure { path } => host_configurator::run(path.as_deref(), opts),
+        HostCommand::Config { command } => {
+            let path = match &command {
+                HostConfigCommand::Check { path } | HostConfigCommand::Show { path } => path,
+            };
+            let checked = load_configuration(path)?;
+            match command {
+                HostConfigCommand::Check { .. } => {
+                    if opts.json {
+                        println!(
+                            "{{\"configuration_id\":{:?},\"valid\":true}}",
+                            checked.configuration_id()
+                        );
+                    } else if !opts.quiet {
+                        println!(
+                            "CHECKED {} ({})",
+                            path.display(),
+                            checked.configuration_id()
+                        );
+                    }
+                }
+                HostConfigCommand::Show { .. } => host_configurator::print_summary(&checked, opts)?,
+            }
+            Ok(())
+        }
         HostCommand::Build {
             profile: profile_path,
             output,
             source_identity,
             toolchain_identity,
         } => {
-            let source = fs::read(&profile_path)?;
-            let profile: HostProfile = serde_json::from_slice(&source)?;
+            let source_identity = source_identity
+                .map(Ok)
+                .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
+            let toolchain_identity = toolchain_identity
+                .map(Ok)
+                .unwrap_or_else(|| command_identity("rustc", &["--version", "--verbose"]))?;
+            let source = fs::read_to_string(&profile_path)?;
+            let profile = if profile_path
+                .extension()
+                .is_some_and(|extension| extension == "toml")
+            {
+                let configuration = parse_host_configuration(&source).map_err(|diagnostic| {
+                    format!("Host configuration decode refused: {diagnostic:?}")
+                })?;
+                check_host_configuration(configuration, &FabricationCatalog::canonical())
+                    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
+                    .into_profile()
+            } else {
+                serde_json::from_str::<HostProfile>(&source)?
+            };
             let maxima = repository_target_maxima(&profile)?;
             let inputs = BuildInputs {
                 source_identity,
@@ -188,6 +254,37 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             Ok(())
         }
     }
+}
+
+fn command_identity(
+    program: &str,
+    arguments: &[&str],
+) -> Result<String, Box<dyn std::error::Error>> {
+    let output = std::process::Command::new(program)
+        .args(arguments)
+        .output()?;
+    if !output.status.success() {
+        return Err(format!(
+            "cannot derive exact identity from {program}: {}",
+            output.status
+        )
+        .into());
+    }
+    let identity = String::from_utf8(output.stdout)?.trim().to_owned();
+    if identity.is_empty() {
+        return Err(format!("{program} returned an empty identity").into());
+    }
+    Ok(identity)
+}
+
+fn load_configuration(
+    path: &std::path::Path,
+) -> Result<conduit_host_fabrication::CheckedHostConfiguration, Box<dyn std::error::Error>> {
+    let source = fs::read_to_string(path)?;
+    let configuration = parse_host_configuration(&source)
+        .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
+    check_host_configuration(configuration, &FabricationCatalog::canonical())
+        .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}").into())
 }
 
 fn repository_target_maxima(
