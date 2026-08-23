@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 use super::{
-    aarch64_a0, image, loongarch64_a0,
+    aarch64_a0, armv6_rpi_b_plus_a0, image, loongarch64_a0,
     profile::{Paths, LIMINE_ARCHIVE_SHA256, LIMINE_ARCHIVE_URL, LIMINE_VERSION},
     riscv64_a0, ConduitosArch, ConduitosError,
 };
@@ -16,7 +16,9 @@ const MAXIMUM_ARCHITECTURES: usize = 8;
 #[derive(Serialize)]
 struct ArchitectureRow {
     architecture: &'static str,
-    limine_artifact: &'static str,
+    boot_mechanism: &'static str,
+    boot_artifact: &'static str,
+    limine_artifact: Option<&'static str>,
     in_pinned_limine_matrix: bool,
     shared_backbone_target: &'static str,
     shared_backbone_profile_known: bool,
@@ -87,7 +89,7 @@ fn build_matrix(artifacts: &BTreeSet<String>) -> Result<ArchitectureMatrix, Cond
     let architectures: Vec<_> = ConduitosArch::ALL.into_iter().map(row).collect();
     let expected: BTreeSet<_> = architectures
         .iter()
-        .map(|row| row.limine_artifact.to_owned())
+        .filter_map(|row| row.limine_artifact.map(str::to_owned))
         .collect();
     if artifacts != &expected {
         return Err(ConduitosError::refusal(
@@ -101,7 +103,8 @@ fn build_matrix(artifacts: &BTreeSet<String>) -> Result<ArchitectureMatrix, Cond
         limine_version: LIMINE_VERSION,
         limine_archive_url: LIMINE_ARCHIVE_URL,
         limine_archive_sha256: LIMINE_ARCHIVE_SHA256,
-        matrix_basis: "digest-verified top-level BOOT*.EFI artifacts",
+        matrix_basis:
+            "digest-verified Limine EFI artifacts plus explicit non-Limine platform targets",
         architectures,
     })
 }
@@ -112,6 +115,7 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
         ConduitosArch::Ia32
             | ConduitosArch::X86_64
             | ConduitosArch::Aarch64
+            | ConduitosArch::Armv6
             | ConduitosArch::Riscv64
             | ConduitosArch::Loongarch64
     );
@@ -119,7 +123,10 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
     let ordinary_form_accepted = full_spine_accepted
         || matches!(
             arch,
-            ConduitosArch::Ia32 | ConduitosArch::Aarch64 | ConduitosArch::Riscv64
+            ConduitosArch::Ia32
+                | ConduitosArch::Aarch64
+                | ConduitosArch::Armv6
+                | ConduitosArch::Riscv64
         );
     let observatory_patchbay_accepted = full_spine_accepted
         || matches!(
@@ -129,27 +136,62 @@ fn row(arch: ConduitosArch) -> ArchitectureRow {
     let machine_wake_accepted = full_spine_accepted
         || matches!(
             arch,
-            ConduitosArch::Ia32 | ConduitosArch::Aarch64 | ConduitosArch::Riscv64
-        );
-    let compile_link_accepted = boot_accepted
-        || matches!(
-            arch,
             ConduitosArch::Ia32
                 | ConduitosArch::Aarch64
+                | ConduitosArch::Armv6
                 | ConduitosArch::Riscv64
-                | ConduitosArch::Loongarch64
         );
-    let (artifact, target, blocker) = match arch {
-        ConduitosArch::Ia32 => ("BOOTIA32.EFI", "i686-unknown-uefi", ""),
-        ConduitosArch::X86_64 => ("BOOTX64.EFI", "x86_64-unknown-none", ""),
-        ConduitosArch::Aarch64 => ("BOOTAA64.EFI", aarch64_a0::TARGET, ""),
-        ConduitosArch::Riscv64 => ("BOOTRISCV64.EFI", riscv64_a0::TARGET, ""),
-        ConduitosArch::Loongarch64 => ("BOOTLOONGARCH64.EFI", loongarch64_a0::TARGET, ""),
+    let compile_link_accepted = true;
+    let (boot_mechanism, boot_artifact, limine_artifact, target, blocker) = match arch {
+        ConduitosArch::Ia32 => (
+            "limine-uefi",
+            "BOOTIA32.EFI",
+            Some("BOOTIA32.EFI"),
+            "i686-unknown-uefi",
+            "",
+        ),
+        ConduitosArch::X86_64 => (
+            "limine-bios-uefi",
+            "BOOTX64.EFI",
+            Some("BOOTX64.EFI"),
+            "x86_64-unknown-none",
+            "",
+        ),
+        ConduitosArch::Aarch64 => (
+            "limine-uefi",
+            "BOOTAA64.EFI",
+            Some("BOOTAA64.EFI"),
+            aarch64_a0::TARGET,
+            "",
+        ),
+        ConduitosArch::Armv6 => (
+            "raspberry-pi-videocore-firmware-direct-kernel",
+            "kernel.img",
+            None,
+            armv6_rpi_b_plus_a0::TARGET,
+            "armv6-rpi-b-plus-physical-boot-unproven",
+        ),
+        ConduitosArch::Riscv64 => (
+            "limine-uefi",
+            "BOOTRISCV64.EFI",
+            Some("BOOTRISCV64.EFI"),
+            riscv64_a0::TARGET,
+            "",
+        ),
+        ConduitosArch::Loongarch64 => (
+            "limine-uefi",
+            "BOOTLOONGARCH64.EFI",
+            Some("BOOTLOONGARCH64.EFI"),
+            loongarch64_a0::TARGET,
+            "",
+        ),
     };
     ArchitectureRow {
         architecture: arch.as_str(),
-        limine_artifact: artifact,
-        in_pinned_limine_matrix: true,
+        boot_mechanism,
+        boot_artifact,
+        limine_artifact,
+        in_pinned_limine_matrix: limine_artifact.is_some(),
         shared_backbone_target: target,
         shared_backbone_profile_known: true,
         executable_backend_present: compile_link_accepted,
@@ -171,17 +213,17 @@ mod tests {
         let artifacts = ConduitosArch::ALL
             .into_iter()
             .map(row)
-            .map(|row| row.limine_artifact.to_owned())
+            .filter_map(|row| row.limine_artifact.map(str::to_owned))
             .collect();
         let matrix = build_matrix(&artifacts).unwrap();
-        assert_eq!(matrix.architectures.len(), 5);
+        assert_eq!(matrix.architectures.len(), 6);
         assert_eq!(
             matrix
                 .architectures
                 .iter()
                 .filter(|row| row.executable_backend_present)
                 .count(),
-            5
+            6
         );
         let aarch64 = matrix
             .architectures
@@ -226,6 +268,22 @@ mod tests {
         assert!(loongarch64.a2_machine_wake);
         assert!(loongarch64.a3_ordinary_form);
         assert!(loongarch64.a4_observatory_patchbay);
+        let armv6 = matrix
+            .architectures
+            .iter()
+            .find(|row| row.architecture == "armv6")
+            .unwrap();
+        assert!(armv6.a0_compile_link);
+        assert!(!armv6.in_pinned_limine_matrix);
+        assert_eq!(armv6.boot_artifact, "kernel.img");
+        assert!(armv6.a1_boot);
+        assert!(armv6.a2_machine_wake);
+        assert!(armv6.a3_ordinary_form);
+        assert!(!armv6.a4_observatory_patchbay);
+        assert_eq!(
+            armv6.blocker,
+            Some("armv6-rpi-b-plus-physical-boot-unproven")
+        );
     }
 
     #[test]
@@ -233,7 +291,7 @@ mod tests {
         let mut artifacts: BTreeSet<_> = ConduitosArch::ALL
             .into_iter()
             .map(row)
-            .map(|row| row.limine_artifact.to_owned())
+            .filter_map(|row| row.limine_artifact.map(str::to_owned))
             .collect();
         artifacts.remove("BOOTAA64.EFI");
         artifacts.insert("BOOTUNKNOWN.EFI".to_owned());

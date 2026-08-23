@@ -2,6 +2,12 @@ mod aarch64_a0;
 mod aarch64_a1;
 mod active_rescue_proof;
 mod architecture_matrix;
+mod armv6_rpi_b_plus_a0;
+mod armv6_rpi_b_plus_image;
+mod armv6_rpi_b_plus_run;
+mod armv6_rpi_board;
+mod armv6_rpi_flash;
+mod armv6_rpi_physical;
 mod build;
 mod demo;
 mod front_door_proof;
@@ -72,6 +78,10 @@ enum ConduitosCommand {
     Build(TargetArgs),
     /// Create the tiny pinned-Limine hybrid ISO image.
     Image(TargetArgs),
+    /// Erase, write, and byte-verify one explicitly confirmed removable device.
+    Flash(FlashArgs),
+    /// Capture and validate one exact physical BCM2835 Raspberry Pi UART boot.
+    RpiPhysicalProof(RpiPhysicalProofArgs),
     /// Open a visible interactive QEMU session without making proof claims.
     Demo(DemoArgs),
     /// Prove the normal IMAGE zero-Body front door and long-lived interaction.
@@ -109,6 +119,44 @@ struct TargetArgs {
     /// Architecture backend selected explicitly from the pinned Limine matrix.
     #[arg(long, value_enum, default_value_t = ConduitosArch::X86_64)]
     arch: ConduitosArch,
+
+    /// Exact BCM2835 board profile for ARMv6 image and build commands.
+    #[arg(long, value_enum)]
+    board: Option<armv6_rpi_board::Armv6RpiBoard>,
+}
+
+#[derive(Args, Debug, Clone)]
+struct FlashArgs {
+    /// Architecture image to write; ARMv6 Raspberry Pi is currently supported.
+    #[arg(long, value_enum)]
+    arch: ConduitosArch,
+
+    /// Exact BCM2835 board profile to image and write.
+    #[arg(long, value_enum)]
+    board: Option<armv6_rpi_board::Armv6RpiBoard>,
+
+    /// Exact whole removable block device to erase and write.
+    #[arg(long)]
+    device: PathBuf,
+
+    /// Repeat the exact device path to acknowledge destructive erasure.
+    #[arg(long)]
+    confirm_device: PathBuf,
+}
+
+#[derive(Args, Debug, Clone)]
+struct RpiPhysicalProofArgs {
+    /// Exact BCM2835 board expected on the UART attachment.
+    #[arg(long, value_enum)]
+    board: armv6_rpi_board::Armv6RpiBoard,
+
+    /// Exact UART character device connected to GPIO 14/15 through 3.3V TTL.
+    #[arg(long)]
+    serial_device: PathBuf,
+
+    /// Finite capture deadline in seconds.
+    #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
+    timeout_seconds: u64,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -147,6 +195,7 @@ pub enum ConduitosArch {
     Ia32,
     X86_64,
     Aarch64,
+    Armv6,
     Riscv64,
     Loongarch64,
 }
@@ -154,10 +203,11 @@ pub enum ConduitosArch {
 pub(crate) use target_build::{build_profile_image, ProfileBuiltImage};
 
 impl ConduitosArch {
-    const ALL: [Self; 5] = [
+    const ALL: [Self; 6] = [
         Self::Ia32,
         Self::X86_64,
         Self::Aarch64,
+        Self::Armv6,
         Self::Riscv64,
         Self::Loongarch64,
     ];
@@ -167,6 +217,7 @@ impl ConduitosArch {
             Self::Ia32 => "ia32",
             Self::X86_64 => "x86_64",
             Self::Aarch64 => "aarch64",
+            Self::Armv6 => "armv6",
             Self::Riscv64 => "riscv64",
             Self::Loongarch64 => "loongarch64",
         }
@@ -175,7 +226,12 @@ impl ConduitosArch {
     fn require_compile_link_backend(self) -> Result<(), ConduitosError> {
         if matches!(
             self,
-            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64 | Self::Loongarch64
+            Self::Ia32
+                | Self::X86_64
+                | Self::Aarch64
+                | Self::Armv6
+                | Self::Riscv64
+                | Self::Loongarch64
         ) {
             Ok(())
         } else {
@@ -192,7 +248,12 @@ impl ConduitosArch {
     fn require_boot_backend(self) -> Result<(), ConduitosError> {
         if matches!(
             self,
-            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64 | Self::Loongarch64
+            Self::Ia32
+                | Self::X86_64
+                | Self::Aarch64
+                | Self::Armv6
+                | Self::Riscv64
+                | Self::Loongarch64
         ) {
             Ok(())
         } else {
@@ -245,19 +306,57 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::ProductReadinessMatrix => product_readiness_matrix::execute(opts),
         ConduitosCommand::Build(target) => {
             target.arch.require_compile_link_backend()?;
-            build::execute(target.arch, opts).map(|_| ())
+            if target.arch == ConduitosArch::Armv6 {
+                armv6_rpi_b_plus_a0::execute(target.board.unwrap_or_default(), opts).map(|_| ())
+            } else {
+                reject_board_for_non_armv6(target.arch, target.board)?;
+                build::execute(target.arch, opts).map(|_| ())
+            }
         }
         ConduitosCommand::Image(target) => {
             target.arch.require_boot_backend()?;
-            image::execute(target.arch, opts).map(|_| ())
+            if target.arch == ConduitosArch::Armv6 {
+                armv6_rpi_b_plus_image::execute(target.board.unwrap_or_default(), opts)
+            } else {
+                reject_board_for_non_armv6(target.arch, target.board)?;
+                image::execute(target.arch, opts).map(|_| ())
+            }
         }
+        ConduitosCommand::Flash(flash) => {
+            if flash.arch == ConduitosArch::Armv6 {
+                armv6_rpi_flash::execute(
+                    flash.board.unwrap_or_default(),
+                    &flash.device,
+                    &flash.confirm_device,
+                    opts,
+                )
+            } else {
+                Err(ConduitosError::refusal(
+                    "unsupported-flash-target",
+                    format!(
+                        "{} has no guarded physical flash backend",
+                        flash.arch.as_str()
+                    ),
+                ))
+            }
+        }
+        ConduitosCommand::RpiPhysicalProof(proof) => armv6_rpi_physical::execute(
+            proof.board,
+            &proof.serial_device,
+            proof.timeout_seconds,
+            opts,
+        ),
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
+            reject_board_for_non_armv6(target.arch, target.board)?;
             match target.arch {
                 ConduitosArch::Aarch64 => aarch64_a1::run(opts),
+                ConduitosArch::Armv6 => {
+                    armv6_rpi_b_plus_run::execute(target.board.unwrap_or_default(), opts)
+                }
                 ConduitosArch::Ia32 => ia32_a1::run(opts),
                 ConduitosArch::Riscv64 => riscv64_a4::run(opts),
                 ConduitosArch::Loongarch64 => loongarch64_a4::run(opts),
@@ -291,6 +390,19 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::RescueProof => rescue_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
     }
+}
+
+fn reject_board_for_non_armv6(
+    arch: ConduitosArch,
+    board: Option<armv6_rpi_board::Armv6RpiBoard>,
+) -> Result<(), ConduitosError> {
+    if board.is_some() && arch != ConduitosArch::Armv6 {
+        return Err(ConduitosError::refusal(
+            "board-architecture-mismatch",
+            format!("--board is not valid for {}", arch.as_str()),
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

@@ -7,7 +7,7 @@ use conduit_host_fabrication::{
 use crate::cli::GlobalOpts;
 
 use super::{
-    aarch64_a0, ia32_a2, loongarch64_a0,
+    aarch64_a0, armv6_rpi_b_plus_a0, ia32_a2, loongarch64_a0,
     profile::{Paths, COMMON_BACKBONE_TARGETS},
     report::{git_head, sha256_file, BuildRecord},
     riscv64_a0, target_lowering, ConduitosArch, ConduitosError,
@@ -183,6 +183,9 @@ fn execute_with_features(
     }
     if arch == ConduitosArch::Aarch64 && fabrication.is_none() {
         return aarch64_a0::execute(opts);
+    }
+    if arch == ConduitosArch::Armv6 {
+        return armv6_rpi_b_plus_a0::execute(Default::default(), opts);
     }
     if arch == ConduitosArch::Riscv64 {
         return riscv64_a0::execute(opts);

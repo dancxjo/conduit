@@ -87,6 +87,7 @@ fn row(arch: ConduitosArch) -> ProductRow {
             blocker: Some("aarch64-local-input-base-unavailable"),
         },
         ConduitosArch::Ia32 => absent("ia32", "ia32-product-profile-unimplemented"),
+        ConduitosArch::Armv6 => absent("armv6", "armv6-rpi-b-plus-physical-boot-unproven"),
         ConduitosArch::Riscv64 => absent("riscv64", "riscv64-product-profile-unimplemented"),
         ConduitosArch::Loongarch64 => {
             absent("loongarch64", "loongarch64-product-profile-unimplemented")

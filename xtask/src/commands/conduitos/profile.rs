@@ -16,6 +16,7 @@ pub const COMMON_BACKBONE_TARGETS: &[&str] = &[
     "i686-unknown-uefi",
     "x86_64-unknown-none",
     "aarch64-unknown-none",
+    "armv6-none-eabi",
     "riscv64gc-unknown-none-elf",
     "loongarch64-unknown-none",
 ];

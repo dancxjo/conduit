@@ -6,6 +6,9 @@ fn main() {
     println!("cargo:rerun-if-changed=linker/aarch64_a2.ld");
     println!("cargo:rerun-if-changed=linker/aarch64_a3.ld");
     println!("cargo:rerun-if-changed=linker/aarch64_product.ld");
+    println!("cargo:rerun-if-changed=linker/armv6_rpi_b_plus_a0.ld");
+    println!("cargo:rerun-if-changed=linker/armv6_rpi_b_plus_a2.ld");
+    println!("cargo:rerun-if-changed=linker/armv6_rpi_b_plus_a3.ld");
     println!("cargo:rerun-if-env-changed=CONDUITOS_BUILD_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_FABRICATION_RECORD");
@@ -46,6 +49,27 @@ fn main() {
         println!("cargo:rustc-link-arg-bin=conduitos-aarch64-a3=-T{manifest}/linker/aarch64_a3.ld");
         println!(
             "cargo:rustc-link-arg-bin=conduitos-aarch64-product=-T{manifest}/linker/aarch64_product.ld"
+        );
+    }
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("arm")
+        && std::env::var_os("CARGO_FEATURE_ARMV6_RPI_B_PLUS_A0").is_some()
+    {
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-armv6-rpi-b-plus-a0=-T{manifest}/linker/armv6_rpi_b_plus_a0.ld"
+        );
+    }
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("arm")
+        && std::env::var_os("CARGO_FEATURE_ARMV6_RPI_B_PLUS_A2").is_some()
+    {
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-armv6-rpi-b-plus-a2=-T{manifest}/linker/armv6_rpi_b_plus_a2.ld"
+        );
+    }
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("arm")
+        && std::env::var_os("CARGO_FEATURE_ARMV6_RPI_B_PLUS_A3").is_some()
+    {
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-armv6-rpi-b-plus-a3=-T{manifest}/linker/armv6_rpi_b_plus_a3.ld"
         );
     }
 }

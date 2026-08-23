@@ -1,0 +1,242 @@
+use std::{
+    fs,
+    io::Read,
+    process::{Command, Stdio},
+    thread,
+    time::{Duration, Instant},
+};
+
+use serde::Serialize;
+
+use crate::cli::GlobalOpts;
+
+use super::{
+    armv6_rpi_b_plus_a0,
+    armv6_rpi_board::Armv6RpiBoard,
+    profile::Paths,
+    report::{git_head, sha256_file},
+    ConduitosArch, ConduitosError,
+};
+
+const MACHINE: &str = "raspi0";
+const ENTRY_SIGN_PREFIX: &str = "CONDUIT_ARMV6_RPI_ENTRY_SIGN ";
+const KERNEL_SIGN_PREFIX: &str = "CONDUIT_KERNEL_SIGN ";
+const IDENTITY_SIGN_PREFIX: &str = "CONDUIT_ARMV6_RPI_A3_IDENTITY ";
+const MAXIMUM_TRANSCRIPT_BYTES: usize = 8192;
+
+#[derive(Serialize)]
+struct RunRecord {
+    schema: &'static str,
+    proof_class: &'static str,
+    base_commit: String,
+    architecture: &'static str,
+    machine_target: &'static str,
+    board_target: &'static str,
+    emulator_firmware_board_revision: String,
+    emulator_machine: &'static str,
+    qemu_version: String,
+    kernel_image_sha256: String,
+    load_address: u32,
+    entry_sign: String,
+    kernel_sign: String,
+    identity_sign: String,
+    transcript_bytes: usize,
+    runtime_bases_available: bool,
+    physical_boot_claimed: bool,
+}
+
+pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    if opts.dry_run {
+        armv6_rpi_b_plus_a0::execute(board, opts)?;
+        println!(
+            "qemu-system-arm -M {MACHINE} -device loader,file=kernel.img,addr=0x8000,cpu-num=0,force-raw=on -serial stdio -display none -no-reboot"
+        );
+        return Ok(());
+    }
+    armv6_rpi_b_plus_a0::execute(board, opts)?;
+    let paths = Paths::new(ConduitosArch::Armv6)?;
+    let kernel_path = paths.target.join("kernel.img");
+    let qemu_version = command_text(
+        "qemu-system-arm",
+        &["--version"],
+        "armv6-emulator-unavailable",
+    )?;
+    let mut child = Command::new("qemu-system-arm")
+        .args(["-M", MACHINE, "-device"])
+        .arg(format!(
+            "loader,file={},addr=0x8000,cpu-num=0,force-raw=on",
+            kernel_path.display()
+        ))
+        .args([
+            "-serial",
+            "stdio",
+            "-monitor",
+            "none",
+            "-display",
+            "none",
+            "-no-reboot",
+        ])
+        .current_dir(&paths.root)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| refusal("armv6-emulator-unavailable", error))?;
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while Instant::now() < deadline {
+        if child
+            .try_wait()
+            .map_err(|error| refusal("armv6-emulator-failed", error))?
+            .is_some()
+        {
+            break;
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    if child
+        .try_wait()
+        .map_err(|error| refusal("armv6-emulator-failed", error))?
+        .is_none()
+    {
+        child
+            .kill()
+            .map_err(|error| refusal("armv6-emulator-failed", error))?;
+    }
+    let mut transcript = Vec::new();
+    child
+        .stdout
+        .take()
+        .ok_or_else(|| refusal("armv6-emulator-failed", "stdout pipe missing"))?
+        .take(MAXIMUM_TRANSCRIPT_BYTES as u64 + 1)
+        .read_to_end(&mut transcript)
+        .map_err(|error| refusal("armv6-emulator-failed", error))?;
+    let output = child
+        .wait_with_output()
+        .map_err(|error| refusal("armv6-emulator-failed", error))?;
+    transcript.extend_from_slice(&output.stderr);
+    if transcript.len() > MAXIMUM_TRANSCRIPT_BYTES {
+        return Err(refusal(
+            "armv6-emulator-transcript-pressure",
+            transcript.len(),
+        ));
+    }
+    let transcript_text = String::from_utf8(transcript)
+        .map_err(|error| refusal("armv6-emulator-transcript-invalid", error))?;
+    let entry_sign = one_sign(&transcript_text, ENTRY_SIGN_PREFIX, "entry")?;
+    let entry: serde_json::Value = serde_json::from_str(&entry_sign[ENTRY_SIGN_PREFIX.len()..])
+        .map_err(|error| refusal("armv6-entry-sign-invalid", error))?;
+    let kernel_sign = one_sign(&transcript_text, KERNEL_SIGN_PREFIX, "kernel")?;
+    let kernel: serde_json::Value = serde_json::from_str(&kernel_sign[KERNEL_SIGN_PREFIX.len()..])
+        .map_err(|error| refusal("armv6-kernel-sign-invalid", error))?;
+    let identity_sign = one_sign(&transcript_text, IDENTITY_SIGN_PREFIX, "identity")?;
+    let identity: serde_json::Value =
+        serde_json::from_str(&identity_sign[IDENTITY_SIGN_PREFIX.len()..])
+            .map_err(|error| refusal("armv6-identity-sign-invalid", error))?;
+    let commit = git_head(&paths.root)?;
+    if kernel["schema"] != "conduit.conduitos.kernel-sign/v2"
+        || kernel["status"] != "accepted"
+        || kernel["arch"] != "armv6"
+        || entry["schema"] != "conduit.conduitos.armv6-rpi-entry/v1"
+        || entry["status"] != "entered"
+        || entry["architecture"] != "armv6"
+        || entry["machine"] != "BCM2835/ARM1176JZF-S"
+        || entry["board_target"] != board.id()
+        || entry["firmware_board_revision"] != "00920092"
+        || entry["boot_mechanism"] != "direct-kernel"
+        || entry["runtime_bases_available"] != true
+        || kernel["build_id"] != format!("conduitos-build/{commit}/{}/v1", board.identity_slug())
+        || kernel["pipeline"] != "check-plan-lower-kernel"
+        || kernel["semantic_result"] != "HELLO, CONDUITOS"
+        || kernel["allocation_stable_during_play"] != true
+        || kernel["timer_irq_wakes"] != 1
+        || kernel["pending_host_operations"] != 0
+        || identity["image_id"] != format!("conduitos-image/{commit}/{}/v1", board.identity_slug())
+        || identity["wake_source"] != "bcm2835-system-timer-compare-1"
+        || identity["wake_irq"] != 1
+        || identity["a3_ordinary_form_claimed"] != true
+    {
+        return Err(refusal("armv6-a3-sign-invalid", kernel));
+    }
+    let record = RunRecord {
+        schema: "conduit.conduitos.armv6-rpi-emulator-run/v1",
+        proof_class: "freestanding-emulator-ordinary-form-plan-play",
+        base_commit: commit,
+        architecture: "armv6",
+        machine_target: "BCM2835/ARM1176JZF-S",
+        board_target: board.id(),
+        emulator_firmware_board_revision: "00920092".to_owned(),
+        emulator_machine: MACHINE,
+        qemu_version: qemu_version.lines().next().unwrap_or_default().to_owned(),
+        kernel_image_sha256: sha256_file(&kernel_path)?,
+        load_address: 0x8000,
+        entry_sign: entry_sign.to_owned(),
+        kernel_sign: kernel_sign.to_owned(),
+        identity_sign: identity_sign.to_owned(),
+        transcript_bytes: transcript_text.len(),
+        runtime_bases_available: true,
+        physical_boot_claimed: false,
+    };
+    fs::write(
+        paths
+            .target
+            .join(format!("{}-emulator-run.json", board.artifact_slug())),
+        serde_json::to_vec_pretty(&record).map_err(|error| refusal("run-record-failed", error))?,
+    )
+    .map_err(|error| refusal("run-record-failed", error))?;
+    if opts.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&record)
+                .map_err(|error| refusal("run-record-failed", error))?
+        );
+    } else if !opts.quiet {
+        println!("{entry_sign}");
+        println!("{kernel_sign}");
+        println!("{identity_sign}");
+    }
+    Ok(())
+}
+
+fn one_sign<'a>(transcript: &'a str, prefix: &str, name: &str) -> Result<&'a str, ConduitosError> {
+    let signs = transcript
+        .lines()
+        .filter(|line| line.starts_with(prefix))
+        .collect::<Vec<_>>();
+    if signs.len() != 1 {
+        return Err(refusal(
+            "armv6-sign-cardinality-invalid",
+            format!("expected one {name} Sign, found {}", signs.len()),
+        ));
+    }
+    Ok(signs[0])
+}
+
+fn command_text(
+    program: &str,
+    args: &[&str],
+    reason: &'static str,
+) -> Result<String, ConduitosError> {
+    let output = Command::new(program)
+        .args(args)
+        .output()
+        .map_err(|error| refusal(reason, error))?;
+    if !output.status.success() {
+        return Err(refusal(reason, output.status));
+    }
+    String::from_utf8(output.stdout).map_err(|error| refusal(reason, error))
+}
+
+fn refusal(reason: &'static str, detail: impl std::fmt::Display) -> ConduitosError {
+    ConduitosError::refusal(reason, detail.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_and_duplicate_signs_refuse() {
+        assert!(one_sign("", KERNEL_SIGN_PREFIX, "kernel").is_err());
+        let duplicate = format!("{KERNEL_SIGN_PREFIX}{{}}\n{KERNEL_SIGN_PREFIX}{{}}\n");
+        assert!(one_sign(&duplicate, KERNEL_SIGN_PREFIX, "kernel").is_err());
+    }
+}

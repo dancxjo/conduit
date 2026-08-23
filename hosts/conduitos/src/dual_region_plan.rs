@@ -118,21 +118,36 @@ fn stage(name: &[u8]) {
     crate::arch::early_write(b"\n");
 }
 
-#[cfg(not(all(target_os = "none", target_arch = "x86_64")))]
+#[cfg(all(target_os = "none", target_arch = "arm"))]
+fn stage(name: &[u8]) {
+    crate::arch::present(b"CONDUIT_PLAN_STAGE ");
+    crate::arch::present(name);
+    crate::arch::present(b"\n");
+}
+
+#[cfg(not(any(
+    all(target_os = "none", target_arch = "x86_64"),
+    all(target_os = "none", target_arch = "arm")
+)))]
 fn stage(_name: &[u8]) {}
 
 fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
     let syntax = conduit_form::parse_syntax_document(FORM_SOURCE);
+    stage(b"syntax");
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
     conduit_std_catalog::install_tick_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
+    stage(b"catalogs");
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|_| PreparationError::FormRejected)?;
-    conduit_form::expand_canonical_form(&checked, "conduitos-two-regions", &profile)
-        .map_err(|_| PreparationError::FormRejected)
+    stage(b"checked");
+    let expanded = conduit_form::expand_canonical_form(&checked, "conduitos-two-regions", &profile)
+        .map_err(|_| PreparationError::FormRejected)?;
+    stage(b"expanded");
+    Ok(expanded)
 }
 
 fn advertisement(

@@ -58,3 +58,16 @@ pub use loongarch64::{
 };
 #[cfg(target_arch = "loongarch64")]
 pub const ARCHITECTURE: &str = "loongarch64";
+
+// ARMv6 owns the BCM2835 machine implementation; emulator evidence remains
+// distinct from physical board proof.
+#[cfg(target_arch = "arm")]
+mod armv6;
+#[cfg(target_arch = "arm")]
+pub use armv6::{
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
+    firmware_board_revision, initialize_machine, interruptible_idle, pop_interrupt, present,
+    read_counter, timer_arm,
+};
+#[cfg(target_arch = "arm")]
+pub const ARCHITECTURE: &str = "armv6";
