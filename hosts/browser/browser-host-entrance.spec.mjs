@@ -61,7 +61,7 @@ test("independent entrances and reload own fresh page WASM Host truth", async ({
   await expect(secondPage.getByText("None", { exact: true })).toBeVisible();
 
   await firstPage.reload();
-  await expect(firstPage.getByRole("status")).toHaveText("Current and independently initialized");
+  await expect(firstPage.locator("#status")).toHaveText("Current and independently initialized");
   const replacementIdentity = await identity(firstPage);
   expect(replacementIdentity.hostId).not.toBe(firstIdentity.hostId);
   expect(replacementIdentity.bootId).not.toBe(firstIdentity.bootId);
