@@ -401,6 +401,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
+          components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
@@ -453,6 +454,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
+          components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
@@ -490,6 +492,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
+          components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
