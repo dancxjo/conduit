@@ -8,9 +8,12 @@ use alloc::{collections::VecDeque, string::String, vec::Vec};
 
 #[path = "human_interaction/canonical.rs"]
 mod canonical;
+#[path = "human_interaction/flow.rs"]
+mod flow;
 #[path = "human_interaction/validation.rs"]
 mod validation;
 use canonical::{encode_domain, encode_family, encode_value, field, identity, values};
+pub use flow::*;
 use validation::{
     validate_family, validate_identity, validate_outcome, validate_proposal, validate_state,
 };
@@ -35,6 +38,8 @@ pub enum InteractionRefusal {
     RemovedOption,
     UnavailableOption,
     InvalidCardinality,
+    InvalidCombination,
+    ConcurrentStateChange,
     OutOfRange,
     UnsupportedGranularity,
     DuplicateProposal,
