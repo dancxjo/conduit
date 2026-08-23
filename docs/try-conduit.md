@@ -98,18 +98,22 @@ form hello {
 It does not say `stdout`, `DOM`, `GPIO`, `USB`, or `WebSocket`. Those are host and
 plan facts.
 
-A repository-only historical Signal demonstration remains available with:
+Launch the ordinary std Host with the canonical Hello Form:
 
 ```bash
-cargo xtask demo std
+cargo xtask host
+# equivalently: cargo xtask host std
 ```
+
+The earlier `cargo xtask demo std` spelling remains a compatibility façade for
+the same lifecycle.
 
 ## 2. Start an actual browser Host
 
 Start one independent page/WASM Host with:
 
 ```bash
-cargo xtask browser
+cargo xtask host browser
 ```
 
 This is a Host lifecycle entrance, not a Patchbay or demo entrance. The command:
@@ -121,7 +125,8 @@ This is a Host lifecycle entrance, not a Patchbay or demo entrance. The command:
 
 Repeated `just browser` invocations create independent browser Hosts. Opening a
 page establishes neither Body membership nor permission to use ambient browser
-resources. The interactive distributed toggle remains available separately:
+resources. The earlier `cargo xtask browser` spelling remains a compatibility
+façade. The interactive distributed toggle remains available separately:
 
 ```bash
 cargo xtask demo toggle

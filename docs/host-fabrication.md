@@ -55,11 +55,22 @@ application pin meaning, current presence, or authority truth.
 The repository entrances are:
 
 ```text
+cargo xtask host                         # launch the default std Host
+cargo xtask host std                     # explicit spelling of the default
+cargo xtask host browser                 # launch an independent browser Host
+cargo xtask host rpi [--board <board>]   # build an exact Raspberry Pi SD IMAGE
 cargo xtask host configure [path]
 cargo xtask host config check path/to/config.host.toml
 cargo xtask host config show path/to/config.host.toml
 cargo xtask host build path/to/config.host.toml
 ```
+
+The lifecycle targets delegate to the existing authoritative implementations.
+For currently supported Raspberry Pi boards, `host rpi flash` retains the exact
+whole-device confirmation and removable-media checks, while `host rpi
+physical-proof` retains the bounded UART verifier. Image fabrication never
+implies that an IMAGE was flashed, booted, or physically proven. Pi 4 and Pi 5
+remain unsupported until their exact machine backends exist.
 
 The configurator creates or edits the TOML source itself. Its target and Base
 choices come from the same descriptors and `FabricationCatalog` metadata used

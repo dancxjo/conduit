@@ -25,11 +25,17 @@ mod host_target;
 #[derive(Args, Debug)]
 pub struct HostArgs {
     #[command(subcommand)]
-    command: HostCommand,
+    command: Option<HostCommand>,
 }
 
 #[derive(Subcommand, Debug)]
 enum HostCommand {
+    /// Launch the ordinary std Host (the default Host target).
+    Std,
+    /// Build and launch one independent browser page/WASM Host.
+    Browser,
+    /// Build, flash, or physically verify an exact Raspberry Pi Host IMAGE.
+    Rpi(RpiHostArgs),
     /// Create or revise one durable Host configuration TOML interactively.
     Configure {
         /// Existing configuration to edit, or destination offered when creating.
@@ -105,6 +111,40 @@ enum HostCommand {
     },
 }
 
+#[derive(Args, Debug)]
+struct RpiHostArgs {
+    /// Exact currently supported Raspberry Pi board profile.
+    #[arg(long, value_enum, default_value_t = super::conduitos::Armv6RpiBoard::default())]
+    board: super::conduitos::Armv6RpiBoard,
+
+    #[command(subcommand)]
+    action: Option<RpiHostAction>,
+}
+
+#[derive(Subcommand, Debug)]
+enum RpiHostAction {
+    /// Generate and independently verify the exact SD-card IMAGE (default).
+    Image,
+    /// Erase, write, and byte-verify one explicitly confirmed removable device.
+    Flash {
+        /// Exact whole removable block device to erase and write.
+        #[arg(long)]
+        device: PathBuf,
+        /// Repeat the exact device path to acknowledge destructive erasure.
+        #[arg(long)]
+        confirm_device: PathBuf,
+    },
+    /// Capture and validate one exact physical Raspberry Pi UART boot.
+    PhysicalProof {
+        /// Exact UART character device connected through a 3.3 V TTL adapter.
+        #[arg(long)]
+        serial_device: PathBuf,
+        /// Finite capture deadline in seconds.
+        #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
+        timeout_seconds: u64,
+    },
+}
+
 #[derive(Subcommand, Debug)]
 enum HostConfigCommand {
     /// Validate without saving or fabricating an IMAGE.
@@ -114,7 +154,29 @@ enum HostConfigCommand {
 }
 
 pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    match args.command {
+    match args.command.unwrap_or(HostCommand::Std) {
+        HostCommand::Std => super::demo::run_std(opts),
+        HostCommand::Browser => super::browser::run(opts),
+        HostCommand::Rpi(args) => match args.action.unwrap_or(RpiHostAction::Image) {
+            RpiHostAction::Image => {
+                super::conduitos::build_rpi_image(args.board, opts).map_err(Into::into)
+            }
+            RpiHostAction::Flash {
+                device,
+                confirm_device,
+            } => super::conduitos::flash_rpi_image(args.board, &device, &confirm_device, opts)
+                .map_err(Into::into),
+            RpiHostAction::PhysicalProof {
+                serial_device,
+                timeout_seconds,
+            } => super::conduitos::prove_physical_rpi(
+                args.board,
+                &serial_device,
+                timeout_seconds,
+                opts,
+            )
+            .map_err(Into::into),
+        },
         HostCommand::Configure { path } => host_configurator::run(path.as_deref(), opts),
         HostCommand::Config { command } => {
             let path = match &command {
