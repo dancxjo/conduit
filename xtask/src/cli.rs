@@ -40,6 +40,8 @@ pub struct GlobalOpts {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
+    /// Build and launch one independent browser page/WASM Host.
+    Browser,
     /// Prove bounded Pete forebrain-motherbrain coordination.
     BodyCoordination(BodyCoordinationArgs),
     /// Inspect mechanically derived portable Kind coverage by Host profile.
@@ -283,8 +285,6 @@ pub enum DemoCommand {
     Prewake,
     /// Open the golden native Text Lab in effect-free PREWAKE, ready for the ordinary lifecycle.
     TextLab,
-    /// Alias for the actual-browser distributed toggle demonstration.
-    Browser,
     /// Run the S4 distributed toggle proof interactively.
     Toggle,
     /// Run the Conduit-driven project homepage interactively.
@@ -456,10 +456,13 @@ mod tests {
             })
         ));
 
-        for command in ["std", "triple", "patchbay", "body-membership", "browser"] {
+        for command in ["std", "triple", "patchbay", "body-membership"] {
             Cli::try_parse_from(["xtask", "demo", command])
                 .unwrap_or_else(|error| panic!("demo {command} must parse: {error}"));
         }
+        let browser = Cli::try_parse_from(["xtask", "browser"]).expect("browser Host parses");
+        assert!(matches!(browser.command, Command::Browser));
+        assert!(Cli::try_parse_from(["xtask", "demo", "browser"]).is_err());
 
         let site =
             Cli::try_parse_from(["xtask", "demo", "site"]).expect("demo site command parses");

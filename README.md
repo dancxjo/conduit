@@ -21,11 +21,10 @@ conduit patchbay --on native
 conduit patchbay --on browser
 ```
 
-From a source checkout, repository demonstrations and proofs enter through `cargo xtask`. These friendly recipes delegate directly to it:
+From a source checkout, the friendly Patchbay recipe delegates to its repository entrance:
 
 ```sh
 just patchbay  # cargo xtask demo patchbay --on native
-just browser   # cargo xtask demo patchbay --on browser
 ```
 
 Both Patchbay realizations begin from the same world-first truth: this Host is present and its current Body may be `NONE`. Opening a discovered Body or repository Seed is inspection-only. Explicit `JOIN` or `BIRTH` establishes membership or births a Body. From there, Patchbay exposes the checked meaning, Parts, truthful Lines, immutable Plan, active Play, and bounded Signs.
@@ -172,10 +171,19 @@ The first runs the Signal example through the std Host. The second runs a larger
 
 ```sh
 cargo xtask doctor browser
-cargo xtask demo browser
+cargo xtask browser
 ```
 
-The browser demo builds the Rust/WASM runtime, starts the native side of a bounded loopback WebSocket Line, and prints a local URL. Open it in a normal browser and follow the terminal prompt. The browser executes its admitted fragment through the same kernel before a thin DOM presentation adapter renders receipts.
+The browser Host entrance builds the Rust/WASM runtime, binds an independent
+ephemeral loopback server, opens its exact URL, and initializes one fresh
+page/WASM Host and Boot. Repeating the command creates another independent
+Host; it does not launch Patchbay or silently admit either page into a Body.
+
+The interactive distributed toggle remains a separate demonstration:
+
+```sh
+cargo xtask demo toggle
+```
 
 For non-interactive accepted browser proofs:
 

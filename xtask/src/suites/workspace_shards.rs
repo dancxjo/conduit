@@ -27,6 +27,7 @@ const FOUNDATION_TEST_PACKAGES: &[&str] = &[
 #[cfg(test)]
 const HOST_TEST_PACKAGES: &[&str] = &[
     "conduit-browser-sim",
+    "conduit-browser-host",
     "conduit-pico-sim",
     "conduit-std-host",
     "conduit-browser-runtime",
@@ -105,6 +106,8 @@ const HOST_TEST_STEP: Step = Step::new(
         "test",
         "-p",
         "conduit-browser-sim",
+        "-p",
+        "conduit-browser-host",
         "-p",
         "conduit-pico-sim",
         "-p",

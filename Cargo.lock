@@ -471,6 +471,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-browser-host"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-browser-runtime"
 version = "0.1.0"
 dependencies = [

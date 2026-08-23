@@ -41,15 +41,14 @@ conduit patchbay --on native
 conduit patchbay --on browser
 ```
 
-From a checkout, use the two thin friendly recipes:
+From a checkout, use the thin friendly Patchbay recipe:
 
 ```bash
 just patchbay  # cargo xtask demo patchbay --on native
-just browser   # cargo xtask demo patchbay --on browser
 ```
 
-The native command opens a real window. The browser command prints the URL of
-the loopback HTML entrance. Both begin with this Host and `BODY: NONE`, then
+The native command opens a real window. Both installed Patchbay renderers begin
+with this Host and `BODY: NONE`, then
 show bounded Body candidates and openable Seeds without granting membership or
 birthing anything. `OPEN` is inspection-only; explicit `JOIN` or `BIRTH`
 establishes the current Body. The embodied view then exposes canonical Parts,
@@ -105,21 +104,31 @@ A repository-only historical Signal demonstration remains available with:
 cargo xtask demo std
 ```
 
-## 2. See an actual browser host
+## 2. Start an actual browser Host
 
-The most immediate visual demonstration is the interactive distributed toggle:
+Start one independent page/WASM Host with:
 
 ```bash
-cargo xtask demo browser
+cargo xtask browser
 ```
 
-This is not the browser simulation. The command:
+This is a Host lifecycle entrance, not a Patchbay or demo entrance. The command:
 
 1. builds the real Rust browser runtime for `wasm32-unknown-unknown`;
-2. starts the repository's static HTTP server;
-3. starts the native std-side distributed toggle source;
-4. creates the bounded loopback WebSocket Line; and
-5. prints an HTTP URL for a real browser page.
+2. binds one independent ephemeral IPv4 loopback server;
+3. invokes the supported platform URL opener;
+4. initializes a fresh HostId, BootId, and bounded WASM instance in the page.
+
+Repeated `just browser` invocations create independent browser Hosts. Opening a
+page establishes neither Body membership nor permission to use ambient browser
+resources. The interactive distributed toggle remains available separately:
+
+```bash
+cargo xtask demo toggle
+```
+
+That demonstration creates the bounded loopback WebSocket Line and prints an
+HTTP URL for a real browser page.
 
 Open the exact URL printed by the command in a normal browser. It looks like:
 
@@ -330,7 +339,8 @@ reason to blur the difference between installed code and user-facing programs.
 These commands intentionally represent different levels of Sign:
 
 - `cargo xtask demo std` and `cargo xtask demo triple`: executable native programs;
-- `cargo xtask demo browser`: interactive hosted browser demonstration;
+- `cargo xtask browser`: browser Host lifecycle entrance;
+- `cargo xtask demo toggle`: interactive hosted browser demonstration;
 - `cargo xtask prove std-browser-*`: deterministic actual-browser proofs;
 - `conduit inspect runtime-report`: read-only inspection of a recorded runtime artifact;
 - `cargo xtask prove std-pico-usb`: attached-board physical transport proof;

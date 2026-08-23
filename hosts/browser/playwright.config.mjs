@@ -17,6 +17,7 @@ export default defineConfig({
     "triple-signal.spec.mjs",
     "presentation-nucleus.spec.mjs",
     "browser-pointer.spec.mjs",
+    "browser-host-entrance.spec.mjs",
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",
     "human-interaction-presenter.spec.mjs",

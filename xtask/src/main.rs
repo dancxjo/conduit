@@ -19,6 +19,7 @@ fn main() {
     let cli = Cli::parse();
     let opts = cli.global;
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
+        Command::Browser => commands::browser::run(&opts),
         Command::BodyCoordination(args) => commands::body_coordination::run(args, &opts),
         Command::Catalog(args) => commands::catalog::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
@@ -55,7 +56,6 @@ fn main() {
             DemoCommand::Environment => commands::demo::run_environment(&opts),
             DemoCommand::Prewake => commands::demo::run_prewake(&opts),
             DemoCommand::TextLab => commands::demo::run_text_lab(&opts),
-            DemoCommand::Browser => commands::toggle::run(),
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::Site => commands::toggle::run_site(),
             DemoCommand::Tongues => commands::tongues::run(&opts),
