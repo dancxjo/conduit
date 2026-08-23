@@ -3,8 +3,8 @@ use conduit_core::{
     HostOperationContractId, HostOperationId, HumanMediaKind, KindId, KnownPermissionState,
     MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionRequest,
     MediaAcquisitionResult, MediaConstraints, MediaFlowBounds, MediaPlanningRefusal,
-    MediaResourceAvailability, MediaUseRequirement, OfferGeneration, PlanId, ResourceClassId,
-    ResourceHandleId,
+    MediaResourceAvailability, MediaUseRequirement, OfferGeneration, PlanId, PortId,
+    ResourceClassId, ResourceHandleId,
 };
 use conduit_planner::{plan_media_acquisition, select_acquired_media};
 
@@ -89,6 +89,7 @@ fn acquisition_plan_is_immutable_evidence_and_use_requires_new_resource_truth() 
 
     let requirement = MediaUseRequirement {
         kind: HumanMediaKind::Camera,
+        output_port: PortId::from("frame"),
         class_id: resource.class_id.clone(),
         value_kind: resource.value_kind.clone(),
         flow_bounds: bounds(),
@@ -101,7 +102,18 @@ fn acquisition_plan_is_immutable_evidence_and_use_requires_new_resource_truth() 
         select_acquired_media(&requirement, &resource, Some(&resource.use_authority_grant))
             .unwrap();
     assert_eq!(selected.handle_id, ResourceHandleId::from("opaque-track/7"));
+    assert_eq!(selected.output_port, PortId::from("frame"));
     assert_eq!(selected.use_authority_grant, resource.use_authority_grant);
+    let mut missing_port = requirement;
+    missing_port.output_port = PortId::from("");
+    assert_eq!(
+        select_acquired_media(
+            &missing_port,
+            &resource,
+            Some(&resource.use_authority_grant)
+        ),
+        Err(MediaPlanningRefusal::WrongResourceKind)
+    );
 }
 
 #[test]
@@ -152,6 +164,7 @@ fn later_loss_and_closure_are_not_generic_unavailability() {
     };
     let requirement = MediaUseRequirement {
         kind: HumanMediaKind::Camera,
+        output_port: PortId::from("frame"),
         class_id: resource.class_id.clone(),
         value_kind: resource.value_kind.clone(),
         flow_bounds: bounds(),

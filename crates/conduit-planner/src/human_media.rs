@@ -63,6 +63,7 @@ pub fn select_acquired_media(
         return Err(MediaPlanningRefusal::UseAuthorityMissing);
     }
     if requirement.kind != resource.settings.kind()
+        || requirement.output_port.as_str().is_empty()
         || requirement.class_id != resource.class_id
         || requirement.value_kind != resource.value_kind
     {
@@ -76,6 +77,7 @@ pub fn select_acquired_media(
         return Err(MediaPlanningRefusal::BoundsUnsatisfied);
     }
     Ok(SelectedMediaResource {
+        output_port: requirement.output_port.clone(),
         handle_id: resource.handle_id.clone(),
         use_authority_grant: grant.clone(),
         host_id: resource.host_id.clone(),
