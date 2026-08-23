@@ -40,6 +40,13 @@ bench = false
 required-features = ["aarch64-product"]
 
 [[bin]]
+name = "conduitos-armv6-rpi-b-plus-a0"
+path = "src/bin/armv6_rpi_b_plus_a0.rs"
+test = false
+bench = false
+required-features = ["armv6-rpi-b-plus-a0"]
+
+[[bin]]
 name = "conduitos-ia32-a0"
 path = "src/bin/ia32_a0.rs"
 test = false
@@ -129,6 +136,7 @@ aarch64-a0 = []
 aarch64-a2 = []
 aarch64-a3 = []
 aarch64-product = []
+armv6-rpi-b-plus-a0 = []
 ia32-a0 = []
 ia32-a2 = []
 ia32-a3 = []
@@ -155,7 +163,7 @@ conduit-synth = { path = "../../crates/conduit-synth" }
 sha2 = { version = "=0.10.9", default-features = false }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 
-[target.'cfg(not(target_arch = "x86"))'.dependencies]
+[target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "riscv64", target_arch = "loongarch64"))'.dependencies]
 limine = "=0.5.0"
 
 [dev-dependencies]

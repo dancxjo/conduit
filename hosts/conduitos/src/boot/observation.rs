@@ -251,6 +251,7 @@ impl BootNormalizer {
 }
 
 #[cfg(not(target_arch = "x86"))]
+#[cfg(not(target_arch = "arm"))]
 pub fn hhdm_to_physical(address: u64, offset: u64) -> Result<u64, BootError> {
     address
         .checked_sub(offset)
@@ -258,6 +259,7 @@ pub fn hhdm_to_physical(address: u64, offset: u64) -> Result<u64, BootError> {
 }
 
 #[cfg(not(target_arch = "x86"))]
+#[cfg(not(target_arch = "arm"))]
 pub fn stable_hash(bytes: &[u8]) -> u64 {
     let mut hash = 0xcbf29ce484222325u64;
     for byte in bytes {

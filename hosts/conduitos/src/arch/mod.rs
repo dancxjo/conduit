@@ -58,3 +58,8 @@ pub use loongarch64::{
 };
 #[cfg(target_arch = "loongarch64")]
 pub const ARCHITECTURE: &str = "loongarch64";
+
+// ARMv6 currently owns only an A0 compile/link artifact. Adding this exact
+// identity does not imply that machine operations or a physical boot exist.
+#[cfg(target_arch = "arm")]
+pub const ARCHITECTURE: &str = "armv6";

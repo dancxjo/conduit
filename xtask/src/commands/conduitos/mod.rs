@@ -2,6 +2,10 @@ mod aarch64_a0;
 mod aarch64_a1;
 mod active_rescue_proof;
 mod architecture_matrix;
+mod armv6_rpi_b_plus_a0;
+mod armv6_rpi_b_plus_image;
+mod armv6_rpi_b_plus_run;
+mod armv6_rpi_flash;
 mod build;
 mod demo;
 mod front_door_proof;
@@ -72,6 +76,8 @@ enum ConduitosCommand {
     Build(TargetArgs),
     /// Create the tiny pinned-Limine hybrid ISO image.
     Image(TargetArgs),
+    /// Erase, write, and byte-verify one explicitly confirmed removable device.
+    Flash(FlashArgs),
     /// Open a visible interactive QEMU session without making proof claims.
     Demo(DemoArgs),
     /// Prove the normal IMAGE zero-Body front door and long-lived interaction.
@@ -111,6 +117,21 @@ struct TargetArgs {
     arch: ConduitosArch,
 }
 
+#[derive(Args, Debug, Clone)]
+struct FlashArgs {
+    /// Architecture image to write; ARMv6 Raspberry Pi is currently supported.
+    #[arg(long, value_enum)]
+    arch: ConduitosArch,
+
+    /// Exact whole removable block device to erase and write.
+    #[arg(long)]
+    device: PathBuf,
+
+    /// Repeat the exact device path to acknowledge destructive erasure.
+    #[arg(long)]
+    confirm_device: PathBuf,
+}
+
 #[derive(Args, Debug, Clone, Copy)]
 struct DemoArgs {
     /// Architecture with an implemented visible display and input entrance.
@@ -147,6 +168,7 @@ pub enum ConduitosArch {
     Ia32,
     X86_64,
     Aarch64,
+    Armv6,
     Riscv64,
     Loongarch64,
 }
@@ -154,10 +176,11 @@ pub enum ConduitosArch {
 pub(crate) use target_build::{build_profile_image, ProfileBuiltImage};
 
 impl ConduitosArch {
-    const ALL: [Self; 5] = [
+    const ALL: [Self; 6] = [
         Self::Ia32,
         Self::X86_64,
         Self::Aarch64,
+        Self::Armv6,
         Self::Riscv64,
         Self::Loongarch64,
     ];
@@ -167,6 +190,7 @@ impl ConduitosArch {
             Self::Ia32 => "ia32",
             Self::X86_64 => "x86_64",
             Self::Aarch64 => "aarch64",
+            Self::Armv6 => "armv6",
             Self::Riscv64 => "riscv64",
             Self::Loongarch64 => "loongarch64",
         }
@@ -175,7 +199,12 @@ impl ConduitosArch {
     fn require_compile_link_backend(self) -> Result<(), ConduitosError> {
         if matches!(
             self,
-            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64 | Self::Loongarch64
+            Self::Ia32
+                | Self::X86_64
+                | Self::Aarch64
+                | Self::Armv6
+                | Self::Riscv64
+                | Self::Loongarch64
         ) {
             Ok(())
         } else {
@@ -192,7 +221,12 @@ impl ConduitosArch {
     fn require_boot_backend(self) -> Result<(), ConduitosError> {
         if matches!(
             self,
-            Self::Ia32 | Self::X86_64 | Self::Aarch64 | Self::Riscv64 | Self::Loongarch64
+            Self::Ia32
+                | Self::X86_64
+                | Self::Aarch64
+                | Self::Armv6
+                | Self::Riscv64
+                | Self::Loongarch64
         ) {
             Ok(())
         } else {
@@ -249,7 +283,24 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::Image(target) => {
             target.arch.require_boot_backend()?;
-            image::execute(target.arch, opts).map(|_| ())
+            if target.arch == ConduitosArch::Armv6 {
+                armv6_rpi_b_plus_image::execute(opts)
+            } else {
+                image::execute(target.arch, opts).map(|_| ())
+            }
+        }
+        ConduitosCommand::Flash(flash) => {
+            if flash.arch == ConduitosArch::Armv6 {
+                armv6_rpi_flash::execute(&flash.device, &flash.confirm_device, opts)
+            } else {
+                Err(ConduitosError::refusal(
+                    "unsupported-flash-target",
+                    format!(
+                        "{} has no guarded physical flash backend",
+                        flash.arch.as_str()
+                    ),
+                ))
+            }
         }
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
@@ -258,6 +309,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             target.arch.require_boot_backend()?;
             match target.arch {
                 ConduitosArch::Aarch64 => aarch64_a1::run(opts),
+                ConduitosArch::Armv6 => armv6_rpi_b_plus_run::execute(opts),
                 ConduitosArch::Ia32 => ia32_a1::run(opts),
                 ConduitosArch::Riscv64 => riscv64_a4::run(opts),
                 ConduitosArch::Loongarch64 => loongarch64_a4::run(opts),
