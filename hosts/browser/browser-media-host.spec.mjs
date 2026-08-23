@@ -43,8 +43,12 @@ test("two independent Hosts acquire and consume bounded camera and microphone va
     expect(cameraProof.identity.bootId).not.toBe(microphoneProof.identity.bootId);
     expect(cameraProof.evidence.observed_values).toBe(1);
     expect(microphoneProof.evidence.observed_values).toBe(1);
-    expect(cameraProof.evidence.last_value_checksum).not.toBe(0);
-    expect(microphoneProof.evidence.last_value_checksum).not.toBe(0);
+    expect(cameraProof.evidence.output_port).toBe("frame");
+    expect(microphoneProof.evidence.output_port).toBe("chunk");
+    expect(cameraProof.evidence.last_value_bytes).toBeGreaterThan(0);
+    expect(microphoneProof.evidence.last_value_bytes).toBeGreaterThan(0);
+    expect(cameraProof.evidence.last_value_bytes).toBeLessThanOrEqual(64 * 1024);
+    expect(microphoneProof.evidence.last_value_bytes).toBeLessThanOrEqual(64 * 1024);
   } finally { await browser.close(); }
 });
 

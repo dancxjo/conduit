@@ -7,7 +7,7 @@ use conduit_core::{
     HostOperationContractId, HostOperationId, HumanMediaKind, KindId, KnownPermissionState,
     MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionRequest,
     MediaAcquisitionResult, MediaConstraints, MediaFlowBounds, MediaResourceAvailability,
-    MediaUseRequirement, OfferGeneration, PlanId, ResourceClassId, ResourceHandleId,
+    MediaUseRequirement, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
 };
 use std::cell::RefCell;
 
@@ -26,10 +26,12 @@ struct AbiState {
     bounds: MediaFlowBounds,
     evidence: [u8; EVIDENCE_BYTES],
     evidence_len: usize,
+    last_value_bytes: usize,
     last_value_checksum: u32,
     stages: u16,
     resource_handle: Option<ResourceHandleId>,
     use_authority_grant: Option<AuthorityGrantId>,
+    output_port: PortId,
 }
 
 thread_local! {
@@ -152,6 +154,10 @@ pub extern "C" fn conduit_browser_media_start_acquisition(
     {
         return -5;
     }
+    let output_port = PortId::from(match kind {
+        HumanMediaKind::Camera => "frame",
+        HumanMediaKind::Microphone => "chunk",
+    });
     let mut state = AbiState {
         host_id,
         boot_id,
@@ -162,10 +168,12 @@ pub extern "C" fn conduit_browser_media_start_acquisition(
         bounds,
         evidence: [0; EVIDENCE_BYTES],
         evidence_len: 0,
+        last_value_bytes: 0,
         last_value_checksum: 0,
         stages: 0b0000_0111,
         resource_handle: None,
         use_authority_grant: None,
+        output_port,
     };
     refresh_evidence(&mut state);
     STATE.with(|slot| *slot.borrow_mut() = Some(state));
@@ -306,6 +314,7 @@ pub extern "C" fn conduit_browser_media_start_use(use_authority: i32) -> i32 {
         let grant = resource.use_authority_grant.clone();
         let requirement = MediaUseRequirement {
             kind: state.kind,
+            output_port: state.output_port.clone(),
             class_id: resource.class_id.clone(),
             value_kind: resource.value_kind.clone(),
             flow_bounds: state.bounds,
@@ -341,6 +350,7 @@ pub extern "C" fn conduit_browser_media_submit_value(value_len: usize) -> i32 {
         if state.session.admit_value(value_len).is_err() {
             return -3;
         }
+        state.last_value_bytes = value_len;
         state.last_value_checksum = INPUT.with(|input| {
             input.borrow()[..value_len].iter().fold(0_u32, |sum, byte| {
                 sum.wrapping_mul(16777619) ^ u32::from(*byte)
@@ -429,11 +439,13 @@ fn refresh_evidence(state: &mut AbiState) {
         "host_id": state.host_id.as_str(), "boot_id": state.boot_id.as_str(),
         "operation_id": state.operation_id.as_str(), "phase": phase, "terminal": terminal,
         "observed_values": state.session.observed_values(), "retained_bytes": state.session.retained_bytes(),
+        "last_value_bytes": state.last_value_bytes,
         "last_value_checksum": state.last_value_checksum,
         "constraints": format!("{:?}", state.constraints),
         "stages": stages,
         "resource_handle": state.resource_handle.as_ref().map(ResourceHandleId::as_str),
         "use_authority_grant": state.use_authority_grant.as_ref().map(AuthorityGrantId::as_str),
+        "output_port": state.output_port.as_str(),
     });
     if let Ok(encoded) = serde_json::to_vec(&value) {
         if encoded.len() <= EVIDENCE_BYTES {

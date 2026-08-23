@@ -95,6 +95,7 @@ fn playing() -> BrowserMediaSession {
     ));
     let requirement = MediaUseRequirement {
         kind: HumanMediaKind::Camera,
+        output_port: conduit_core::PortId::from("frame"),
         class_id: ResourceClassId::from("camera"),
         value_kind: KindId::from("frame"),
         flow_bounds: bounds(),
@@ -113,9 +114,11 @@ fn playing() -> BrowserMediaSession {
 #[test]
 fn successful_sequence_requires_two_plans_and_observes_one_bounded_value() {
     let mut session = playing();
-    assert!(
-        matches!(session.phase(), BrowserMediaPhase::UsePlaying { plan_id, .. } if plan_id.as_str() == "use-plan")
-    );
+    assert!(matches!(
+        session.phase(),
+        BrowserMediaPhase::UsePlaying { plan_id, selection, .. }
+            if plan_id.as_str() == "use-plan" && selection.output_port.as_str() == "frame"
+    ));
     session.admit_value(4096).unwrap();
     assert_eq!(
         (session.retained_bytes(), session.observed_values()),
