@@ -64,6 +64,8 @@ pub enum Reproducibility {
 pub struct BuildManifest {
     pub schema: String,
     pub profile_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_configuration_id: Option<String>,
     pub build_id: String,
     pub image_id: String,
     pub source_identity: String,
@@ -94,6 +96,8 @@ pub struct ImagePayload {
     pub schema: String,
     pub build_id: String,
     pub profile_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_configuration_id: Option<String>,
     pub target: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fabrication_descriptor: Option<String>,
@@ -209,6 +213,7 @@ pub fn build_host_image(
         schema: IMAGE_SCHEMA.into(),
         build_id: build_id.clone(),
         profile_id: validated.profile_id().as_str().into(),
+        source_configuration_id: profile.source_configuration_id.clone(),
         target: target.clone(),
         fabrication_descriptor: profile.target.fabrication_descriptor.clone(),
         profile_fragments: sorted(profile.fragments.clone()),
@@ -240,6 +245,7 @@ pub fn build_host_image(
     let manifest = BuildManifest {
         schema: BUILD_MANIFEST_SCHEMA.into(),
         profile_id: validated.profile_id().as_str().into(),
+        source_configuration_id: profile.source_configuration_id.clone(),
         build_id: build_id.clone(),
         image_id: image_id.clone(),
         source_identity: inputs.source_identity.clone(),

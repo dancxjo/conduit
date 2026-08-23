@@ -44,6 +44,35 @@ not introduce a generic installed-IMAGE state.
 no Host, Boot, offer, Body, Plan, Play, membership, or authority. BUILD emits a
 build receipt and IMAGE evidence; it never emits a Born Sign.
 
+## Authored Host configurations
+
+A versioned `*.host.toml` configuration is the small structural recipe from
+which the checked PROFILE is derived. It names one target, a finite set of
+Bases, an explicit implementation (or finite ordered preferences) for each
+Base, resource budgets, and complete finite Host limits. It contains no Form,
+application pin meaning, current presence, or authority truth.
+
+The repository entrances are:
+
+```text
+cargo xtask host configure [path]
+cargo xtask host config check path/to/config.host.toml
+cargo xtask host config show path/to/config.host.toml
+cargo xtask host build path/to/config.host.toml
+```
+
+The configurator creates or edits the TOML source itself. Its target and Base
+choices come from the same descriptors and `FabricationCatalog` metadata used
+by validation and BUILD; it owns no private catalog. `check` and interactive
+validation write nothing. Canonicalization sorts declaration order before
+deriving the configuration identity, so equivalent structural meaning lowers
+to the same existing `HostProfile` identity.
+
+Checked examples live in `profiles/host-configurations/` for hosted Linux,
+Pico W, and a browser page. BUILD manifests and IMAGE payloads retain the exact
+source-configuration identity together with the resolved target, Base/driver
+selections, resource budgets, and limits.
+
 ## Exact identities
 
 The following identities never substitute for one another:
