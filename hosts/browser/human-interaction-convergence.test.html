@@ -1,0 +1,45 @@
+<!doctype html><meta charset="utf-8"><title>Human interaction convergence</title>
+<main id="browser"></main><output id="physical"></output>
+<script type="module">
+import {BrowserInteractionPresenter} from "./human-interaction-presenter.mjs";
+
+const waveformValues={
+  sine:{value_kind:"music/waveform@1",canonical_bytes:[...new TextEncoder().encode("sine")]},
+  triangle:{value_kind:"music/waveform@1",canonical_bytes:[...new TextEncoder().encode("triangle")]},
+  saw:{value_kind:"music/waveform@1",canonical_bytes:[...new TextEncoder().encode("saw")]},
+  pulse:{value_kind:"music/waveform@1",canonical_bytes:[...new TextEncoder().encode("pulse")]},
+};
+const options=Object.entries(waveformValues).map(([name,value])=>({identity:`waveform/${name}`,label:name,value,availability:"available"}));
+const quantity=value=>({value_kind:"value/quantity@1",canonical_bytes:[3,...new Uint8Array(new BigInt64Array([BigInt(value)]).buffer)]});
+const state={waveform:"sine",volume:50,sustain:false,name:"Conduit",revision:1,panicCount:0};
+const evidence=[];let browserAttached=true,physicalAttached=true;
+
+function interaction(semantic_id,family,current,extra={}){return {semantic_id,label:semantic_id,contract_identity:`contract/${semantic_id}`,state_identity:`state/${semantic_id}/${state.revision}`,state_revision:state.revision,next_sequence:state.revision,family,current,availability:"available",accessibility_name:semantic_id,...extra};}
+function snapshot(){return {presentation_id:"presentation/instrument",presentation_revision:state.revision,manifestation_id:"manifestation/browser/instrument",interactions:[
+  interaction("waveform",{kind:"choose-one"},{identities:[`waveform/${state.waveform}`]},{options}),
+  interaction("volume",{kind:"scalar",unit_tag:3,minimum:0,maximum:100,granularity:1},{quantity:state.volume},{manifestation:{scalar:"range"}}),
+  interaction("panic",{kind:"activate"},{},{action_label:"Panic"}),
+  interaction("sustain",{kind:"boolean"},{boolean:state.sustain}),
+  interaction("name",{kind:"text",maximum_bytes:32,allow_empty:false},{},{submit_label:"Set name"}),
+]};}
+function decodeText(value){return new TextDecoder().decode(new Uint8Array(value.canonical_bytes));}
+function decodeQuantity(value){return Number(new DataView(new Uint8Array(value.canonical_bytes).buffer).getBigInt64(1,true));}
+function apply(source,semantic,payload,mapping_identity=null){
+  if(semantic==="waveform")state.waveform=decodeText(payload.values[0]);
+  else if(semantic==="volume")state.volume=decodeQuantity(payload.values[0]);
+  else if(semantic==="panic")state.panicCount++;
+  else if(semantic==="sustain")state.sustain=payload.values[0].canonical_bytes[0]===1;
+  else if(semantic==="name")state.name=decodeText(payload.values[0]);
+  state.revision++;
+  evidence.push({source_document_id:"cb0dcd832852f396cb3ea376beb888a6b9991660d98de65da3f06bc9c0040693",checked_form_id:"ebffdd1f07a8fe360ea35f948ff1f63ecd3bc816d8aa1322b96dfa0162410d60",expanded_form_id:"3887b339771251500403daa481137280964bbcdb86a98fdce76b655f0631e681",body_id:"body/human-interaction-capstone@1",plan_id:"plan/human-interaction-capstone@1",play_id:"play/human-interaction-capstone@1",source,semantic,resulting_revision:state.revision,mapping_identity});
+  render();return {disposition:"accepted"};
+}
+const presenter=new BrowserInteractionPresenter(document.querySelector("#browser"),{submit:proposal=>apply("browser",proposal.contract_identity.slice(9),proposal.payload)});
+function render(){
+  if(browserAttached)presenter.render(snapshot());
+  const physical=document.querySelector("#physical");
+  physical.textContent=physicalAttached?JSON.stringify({waveform:state.waveform,volume:state.volume,sustain:state.sustain,panicCount:state.panicCount,textEntry:false,revision:state.revision}):"detached";
+}
+window.capstone={state,evidence,physicalChoice:name=>apply("physical","waveform",{kind:"values",values:[waveformValues[name]]}),physicalScalar:sample=>{if(sample<200||sample>3800)throw new Error("OutOfCalibration");const mapped=Math.round((sample-200)*100/3600);return apply("physical","volume",{kind:"values",values:[quantity(mapped)]},"mapping/pico-adc12-percent");},physicalPanic:()=>apply("physical","panic",{kind:"activate"}),detachBrowser:()=>{browserAttached=false;document.querySelector("#browser").replaceChildren();},attachBrowser:()=>{browserAttached=true;render();},detachPhysical:()=>{physicalAttached=false;render();},attachPhysical:()=>{physicalAttached=true;render();},physicalCapabilities:{action:true,choice:true,scalar:true,presentation:true,textEntry:false}};
+render();
+</script>
