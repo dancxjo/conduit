@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conduit browser Host</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { max-width: 48rem; margin: 4rem auto; padding: 0 1.5rem; }
+  dt { font-weight: 650; margin-top: 1rem; }
+  dd { margin: .25rem 0; overflow-wrap: anywhere; }
+</style>
+<main>
+  <h1>Conduit browser Host</h1>
+  <p id="status" role="status">Initializing one independent page/WASM incarnation…</p>
+  <dl hidden id="identity">
+    <dt>Host</dt><dd id="host-id"></dd>
+    <dt>Boot</dt><dd id="boot-id"></dd>
+    <dt>Body membership</dt><dd>None</dd>
+    <dt>Runtime</dt><dd>Independent bounded WebAssembly instance</dd>
+  </dl>
+</main>
+<script type="module" src="/host.mjs"></script>

@@ -283,7 +283,7 @@ pub enum DemoCommand {
     Prewake,
     /// Open the golden native Text Lab in effect-free PREWAKE, ready for the ordinary lifecycle.
     TextLab,
-    /// Alias for the actual-browser distributed toggle demonstration.
+    /// Build and launch one independent browser page/WASM Host.
     Browser,
     /// Run the S4 distributed toggle proof interactively.
     Toggle,

@@ -55,7 +55,7 @@ fn main() {
             DemoCommand::Environment => commands::demo::run_environment(&opts),
             DemoCommand::Prewake => commands::demo::run_prewake(&opts),
             DemoCommand::TextLab => commands::demo::run_text_lab(&opts),
-            DemoCommand::Browser => commands::toggle::run(),
+            DemoCommand::Browser => commands::demo::run_browser(&opts),
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::Site => commands::toggle::run_site(),
             DemoCommand::Tongues => commands::tongues::run(&opts),

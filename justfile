@@ -23,7 +23,7 @@ patchbay:
     cargo xtask demo patchbay --on native
 
 browser:
-    cargo xtask demo patchbay --on browser
+    cargo xtask demo browser
 
 std-host:
     cargo xtask demo std

@@ -793,6 +793,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &[],
     ),
     Step::new(
+        "check.browser.host-entrance-build",
+        "Build the standalone browser Host entrance",
+        "cargo",
+        &["build", "-p", "conduit-browser-host"],
+    ),
+    Step::new(
         "check.browser.webchat-server-build",
         "Build bounded WebSocket chat server",
         "cargo",
