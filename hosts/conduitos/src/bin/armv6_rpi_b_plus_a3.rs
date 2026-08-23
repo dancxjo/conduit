@@ -69,7 +69,15 @@ pub extern "C" fn conduitos_armv6_rpi_b_plus_a3_start() -> ! {
     arch::initialize_machine();
     arch::present(b"CONDUIT_ARMV6_RPI_ENTRY_SIGN {\"schema\":\"conduit.conduitos.armv6-rpi-entry/v1\",\"status\":\"entered\",\"architecture\":\"armv6\",\"machine\":\"BCM2835/ARM1176JZF-S\",\"board_target\":\"");
     arch::present(BOARD_ID.as_bytes());
-    arch::present(b"\",\"boot_mechanism\":\"direct-kernel\",\"runtime_bases_available\":true}\n");
+    arch::present(b"\",\"firmware_board_revision\":");
+    if let Some(revision) = arch::firmware_board_revision() {
+        arch::present(b"\"");
+        present_hex(revision);
+        arch::present(b"\"");
+    } else {
+        arch::present(b"null");
+    }
+    arch::present(b",\"boot_mechanism\":\"direct-kernel\",\"runtime_bases_available\":true}\n");
     let nonce = arch::read_counter();
     let record = boot_record(nonce).unwrap_or_else(|error| refuse(error.as_str()));
     stage("boot-record");
@@ -164,6 +172,14 @@ fn decimal(value: u32) {
         }
     }
     arch::present(&digits[cursor..]);
+}
+
+fn present_hex(value: u32) {
+    let mut bytes = [0_u8; 8];
+    for (index, byte) in bytes.iter_mut().enumerate() {
+        *byte = b"0123456789abcdef"[((value >> ((7 - index) * 4)) & 0xf) as usize];
+    }
+    arch::present(&bytes);
 }
 
 fn boot_record(nonce: u64) -> Result<boot::BootRecord, boot::BootError> {

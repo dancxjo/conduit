@@ -32,6 +32,7 @@ struct RunRecord {
     architecture: &'static str,
     machine_target: &'static str,
     board_target: &'static str,
+    emulator_firmware_board_revision: String,
     emulator_machine: &'static str,
     qemu_version: String,
     kernel_image_sha256: String,
@@ -139,6 +140,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         || entry["architecture"] != "armv6"
         || entry["machine"] != "BCM2835/ARM1176JZF-S"
         || entry["board_target"] != board.id()
+        || entry["firmware_board_revision"] != "00920092"
         || entry["boot_mechanism"] != "direct-kernel"
         || entry["runtime_bases_available"] != true
         || kernel["build_id"] != format!("conduitos-build/{commit}/{}/v1", board.identity_slug())
@@ -161,6 +163,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         architecture: "armv6",
         machine_target: "BCM2835/ARM1176JZF-S",
         board_target: board.id(),
+        emulator_firmware_board_revision: "00920092".to_owned(),
         emulator_machine: MACHINE,
         qemu_version: qemu_version.lines().next().unwrap_or_default().to_owned(),
         kernel_image_sha256: sha256_file(&kernel_path)?,

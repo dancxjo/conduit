@@ -1,6 +1,9 @@
 //! BCM2835 machine mechanisms for the ARMv6 Raspberry Pi target.
 
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::{
+    cell::UnsafeCell,
+    sync::atomic::{AtomicBool, Ordering, compiler_fence},
+};
 
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
@@ -9,11 +12,23 @@ const GPIO_BASE: usize = 0x2020_0000;
 const UART0_BASE: usize = 0x2020_1000;
 const SYSTEM_TIMER_BASE: usize = 0x2000_3000;
 const INTERRUPT_BASE: usize = 0x2000_b000;
+const MAILBOX_BASE: usize = 0x2000_b880;
+const MAILBOX_PROPERTY_CHANNEL: u32 = 8;
+const MAILBOX_EMPTY: u32 = 1 << 30;
+const MAILBOX_FULL: u32 = 1 << 31;
+const MAILBOX_POLL_LIMIT: usize = 1_000_000;
 const SYSTEM_TIMER_COMPARE_1: u32 = 1 << 1;
 const FACT_CAPACITY: usize = 1;
 
 static FACT_PRESENT: AtomicBool = AtomicBool::new(false);
 static FACT_OVERFLOW: AtomicBool = AtomicBool::new(false);
+
+#[repr(C, align(16))]
+struct MailboxMessage(UnsafeCell<[u32; 7]>);
+
+unsafe impl Sync for MailboxMessage {}
+
+static BOARD_REVISION_MESSAGE: MailboxMessage = MailboxMessage(UnsafeCell::new([0; 7]));
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InterruptFact {
@@ -80,6 +95,47 @@ pub fn present(bytes: &[u8]) {
 
 pub fn read_counter() -> u64 {
     u64::from(unsafe { read32(SYSTEM_TIMER_BASE + 0x04) })
+}
+
+/// Returns the VideoCore firmware's board-revision observation when the
+/// bounded property-mailbox exchange completes successfully.
+pub fn firmware_board_revision() -> Option<u32> {
+    let message = BOARD_REVISION_MESSAGE.0.get();
+    unsafe {
+        *message = [28, 0, 0x0001_0002, 4, 0, 0, 0];
+    }
+    compiler_fence(Ordering::SeqCst);
+    let address = message as usize;
+    if address >= 0x4000_0000 || address & 0xf != 0 {
+        return None;
+    }
+    for _ in 0..MAILBOX_POLL_LIMIT {
+        if unsafe { read32(MAILBOX_BASE + 0x18) } & MAILBOX_FULL == 0 {
+            unsafe {
+                write32(
+                    MAILBOX_BASE + 0x20,
+                    (address as u32 | 0x4000_0000) | MAILBOX_PROPERTY_CHANNEL,
+                )
+            };
+            for _ in 0..MAILBOX_POLL_LIMIT {
+                if unsafe { read32(MAILBOX_BASE + 0x18) } & MAILBOX_EMPTY != 0 {
+                    continue;
+                }
+                let response = unsafe { read32(MAILBOX_BASE) };
+                if response & 0xf != MAILBOX_PROPERTY_CHANNEL
+                    || response & !0xf != (address as u32 | 0x4000_0000)
+                {
+                    continue;
+                }
+                compiler_fence(Ordering::SeqCst);
+                let words = unsafe { &*message };
+                return (words[1] == 0x8000_0000 && words[4] & 0x8000_0000 != 0)
+                    .then_some(words[5]);
+            }
+            return None;
+        }
+    }
+    None
 }
 
 fn initialize_pl011() {

@@ -7,6 +7,7 @@ mod armv6_rpi_b_plus_image;
 mod armv6_rpi_b_plus_run;
 mod armv6_rpi_board;
 mod armv6_rpi_flash;
+mod armv6_rpi_physical;
 mod build;
 mod demo;
 mod front_door_proof;
@@ -79,6 +80,8 @@ enum ConduitosCommand {
     Image(TargetArgs),
     /// Erase, write, and byte-verify one explicitly confirmed removable device.
     Flash(FlashArgs),
+    /// Capture and validate one exact physical BCM2835 Raspberry Pi UART boot.
+    RpiPhysicalProof(RpiPhysicalProofArgs),
     /// Open a visible interactive QEMU session without making proof claims.
     Demo(DemoArgs),
     /// Prove the normal IMAGE zero-Body front door and long-lived interaction.
@@ -139,6 +142,21 @@ struct FlashArgs {
     /// Repeat the exact device path to acknowledge destructive erasure.
     #[arg(long)]
     confirm_device: PathBuf,
+}
+
+#[derive(Args, Debug, Clone)]
+struct RpiPhysicalProofArgs {
+    /// Exact BCM2835 board expected on the UART attachment.
+    #[arg(long, value_enum)]
+    board: armv6_rpi_board::Armv6RpiBoard,
+
+    /// Exact UART character device connected to GPIO 14/15 through 3.3V TTL.
+    #[arg(long)]
+    serial_device: PathBuf,
+
+    /// Finite capture deadline in seconds.
+    #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
+    timeout_seconds: u64,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -322,6 +340,12 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 ))
             }
         }
+        ConduitosCommand::RpiPhysicalProof(proof) => armv6_rpi_physical::execute(
+            proof.board,
+            &proof.serial_device,
+            proof.timeout_seconds,
+            opts,
+        ),
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof => journey_proof::execute(opts),

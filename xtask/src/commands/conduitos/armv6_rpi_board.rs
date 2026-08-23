@@ -37,4 +37,11 @@ impl Armv6RpiBoard {
             Self::ZeroV1 => "# ConduitOS original Raspberry Pi Zero v1\n",
         }
     }
+
+    pub const fn accepts_revision(self, revision: u32) -> bool {
+        match self {
+            Self::BPlusV1_2 => matches!(revision, 0x000010 | 0x000013 | 0x900032),
+            Self::ZeroV1 => matches!(revision, 0x900092 | 0x920092 | 0x900093 | 0x920093),
+        }
+    }
 }
