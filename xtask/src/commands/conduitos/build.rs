@@ -284,8 +284,14 @@ struct ProfileFabrication<'a> {
 fn check_common_backbone(paths: &Paths, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     for target in COMMON_BACKBONE_TARGETS {
         let mut command = Command::new("cargo");
+        command.arg("check");
+        if *target == armv6_rpi_b_plus_a0::TARGET {
+            command
+                .arg("-Zbuild-std=core,alloc")
+                .env("RUSTC_BOOTSTRAP", "1");
+        }
         command
-            .args(["check", "-p", "conduitos", "--lib", "--target", target])
+            .args(["-p", "conduitos", "--lib", "--target", target])
             .current_dir(&paths.root);
         if opts.locked {
             command.arg("--locked");
