@@ -46,8 +46,8 @@ test("independent entrances and reload own fresh page WASM Host truth", async ({
   const secondPage = await browser.newPage();
   await Promise.all([firstPage.goto(firstEntrance.url), secondPage.goto(secondEntrance.url)]);
   await Promise.all([
-    expect(firstPage.getByRole("status")).toHaveText("Current and independently initialized"),
-    expect(secondPage.getByRole("status")).toHaveText("Current and independently initialized"),
+    expect(firstPage.locator("#status")).toHaveText("Current and independently initialized"),
+    expect(secondPage.locator("#status")).toHaveText("Current and independently initialized"),
   ]);
   const identity = (page) => page.evaluate(() => ({
     hostId: globalThis.__conduitBrowserHost.hostId,

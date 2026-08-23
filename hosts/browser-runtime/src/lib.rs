@@ -34,6 +34,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 pub mod browser_pointer;
 mod distributed;
 mod distributed_toggle;
+pub mod human_media;
 pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
