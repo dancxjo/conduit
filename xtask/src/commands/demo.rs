@@ -40,38 +40,6 @@ pub fn run_triple(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     )
 }
 
-pub fn run_browser(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    let root = workspace_root()?;
-    run_step(
-        &Step::new(
-            "demo.browser.runtime",
-            "Build the bounded browser Host runtime",
-            "cargo",
-            &[
-                "build",
-                "-p",
-                "conduit-browser-runtime",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
-            ],
-        ),
-        &root,
-        opts,
-    )?;
-    run_step(
-        &Step::new(
-            "demo.browser.host",
-            "Launch one independent browser page/WASM Host",
-            "cargo",
-            &["run", "-p", "conduit-browser-host"],
-        ),
-        &root,
-        opts,
-    )?;
-    Ok(())
-}
-
 fn run(
     id: &'static str,
     description: &'static str,
