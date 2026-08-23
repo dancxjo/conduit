@@ -20,6 +20,8 @@ use static_cell::StaticCell;
 
 #[path = "pete_inert/create_control.rs"]
 mod create_control;
+#[path = "pete_inert/create_link_gate.rs"]
+mod create_link_gate;
 #[path = "pete_inert/create_play.rs"]
 mod create_play;
 #[path = "pete_inert/create_motion.rs"]
@@ -240,13 +242,19 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
         }
         if request == diagnostic_request.as_bytes() {
             let snapshot = uart_diagnostic::snapshot();
+            let create = create_control::snapshot();
+            let translator_oe = if create.translator_enabled {
+                "high"
+            } else {
+                "low"
+            };
             let mut last_frame_hex = String::<60>::new();
             for byte in &snapshot.last_corrupt_frame[..snapshot.last_corrupt_frame_len] {
                 let _ = write!(last_frame_hex, "{byte:02x}");
             }
             let first_byte_ms = snapshot.first_byte_ms.map(i64::from).unwrap_or(-1);
             let mut receipt = String::<768>::new();
-            if write!(receipt, "{{\"schema\":\"conduit.pete/uart-diagnostic@1\",\"build_id\":\"{}\",\"window_start_ms\":{},\"window_end_ms\":{},\"oe_sequence\":\"low_during_uart_init_then_high_after_rx_pullup\",\"uart\":{{\"controller\":0,\"tx_gpio\":0,\"rx_gpio\":1,\"baud\":57600,\"data_bits\":8,\"stop_bits\":1,\"parity\":\"none\"}},\"rx_bytes\":{},\"tx_bytes\":{},\"valid_frames\":{},\"corrupt_frames\":{},\"resync_discarded_bytes\":{},\"timeouts\":{},\"errors\":{{\"overrun\":{},\"break\":{},\"parity\":{},\"framing\":{},\"other\":{}}},\"first_byte_after_boot_ms\":{},\"last_corrupt_frame\":{{\"present\":{},\"packet_id\":{},\"observed_len\":{},\"hex\":\"{}\"}}}}", env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"), snapshot.window_start_ms, embassy_time::Instant::now().as_millis() as u32, snapshot.rx_bytes, snapshot.tx_bytes, snapshot.valid_frames, snapshot.corrupt_frames, snapshot.resync_discarded_bytes, snapshot.timeouts, snapshot.overruns, snapshot.breaks, snapshot.parity_errors, snapshot.framing_errors, snapshot.other_errors, first_byte_ms, snapshot.corrupt_frames != 0, snapshot.last_corrupt_packet_id, snapshot.last_corrupt_frame_len, last_frame_hex).is_ok() {
+            if write!(receipt, "{{\"schema\":\"conduit.pete/uart-diagnostic@1\",\"build_id\":\"{}\",\"window_start_ms\":{},\"window_end_ms\":{},\"oe_sequence\":\"low_until_attended_play\",\"translator_oe\":\"{}\",\"uart\":{{\"controller\":0,\"tx_gpio\":0,\"rx_gpio\":1,\"baud\":57600,\"data_bits\":8,\"stop_bits\":1,\"parity\":\"none\"}},\"rx_bytes\":{},\"tx_bytes\":{},\"valid_frames\":{},\"corrupt_frames\":{},\"resync_discarded_bytes\":{},\"timeouts\":{},\"errors\":{{\"overrun\":{},\"break\":{},\"parity\":{},\"framing\":{},\"other\":{}}},\"first_byte_after_boot_ms\":{},\"last_corrupt_frame\":{{\"present\":{},\"packet_id\":{},\"observed_len\":{},\"hex\":\"{}\"}}}}", env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"), snapshot.window_start_ms, embassy_time::Instant::now().as_millis() as u32, translator_oe, snapshot.rx_bytes, snapshot.tx_bytes, snapshot.valid_frames, snapshot.corrupt_frames, snapshot.resync_discarded_bytes, snapshot.timeouts, snapshot.overruns, snapshot.breaks, snapshot.parity_errors, snapshot.framing_errors, snapshot.other_errors, first_byte_ms, snapshot.corrupt_frames != 0, snapshot.last_corrupt_packet_id, snapshot.last_corrupt_frame_len, last_frame_hex).is_ok() {
                 let _ = send_control_frame(class, receipt.as_bytes()).await;
             }
             continue;
@@ -304,7 +312,7 @@ async fn qualification_task(
     let mut disposition: String<512> = String::new();
     let _ = writeln!(
         disposition,
-        "{{\"schema\":\"conduit.pete/capstone-disposition@1\",\"translator_oe\":\"high\",\"power_toggle\":\"low\",\"create_uart\":\"supervised_57600_8n1\",\"charging_indicator\":{{\"gpio\":20,\"active_high\":true,\"level\":\"{}\"}},\"i2c\":{{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}},\"watchdog\":{{\"timeout_ms\":2000,\"feed_interval_ms\":250}}}}",
+        "{{\"schema\":\"conduit.pete/capstone-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"isolated_until_attended_play\",\"charging_indicator\":{{\"gpio\":20,\"active_high\":true,\"level\":\"{}\"}},\"i2c\":{{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}},\"watchdog\":{{\"timeout_ms\":2000,\"feed_interval_ms\":250}}}}",
         charging_level,
     );
     write_line(&mut class, &disposition).await;
