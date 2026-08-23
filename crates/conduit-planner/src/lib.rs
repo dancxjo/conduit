@@ -39,6 +39,7 @@ mod functional_compatibility;
 mod fusion;
 mod generic_selection;
 mod heterogeneous_capstone;
+mod human_media;
 mod incremental;
 mod locality;
 mod observations;
@@ -105,6 +106,7 @@ pub use heterogeneous_capstone::{
     SchedulerStrategy, MAXIMUM_CAPSTONE_DECISIONS, MAXIMUM_CAPSTONE_DEVICE_CLASSES,
     MAXIMUM_CAPSTONE_ID_BYTES, MAXIMUM_CAPSTONE_REASON_BYTES,
 };
+pub use human_media::{plan_media_acquisition, select_acquired_media};
 pub use incremental::{
     plan_cold, CandidateEvaluation, CandidateEvaluationDisposition, CandidateStructure, FactDomain,
     IncrementalCandidateEvidence, IncrementalPlan, IncrementalPlanner, IncrementalPlannerMetrics,

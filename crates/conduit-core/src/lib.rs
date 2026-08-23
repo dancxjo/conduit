@@ -21,6 +21,7 @@ mod execution;
 mod execution_fusion;
 mod face;
 mod human_interaction;
+mod human_media;
 mod implementation;
 mod info;
 mod input_chord;
@@ -63,6 +64,7 @@ pub use execution::*;
 pub use execution_fusion::*;
 pub use face::{CheckedFace, FaceStartupParameter};
 pub use human_interaction::*;
+pub use human_media::*;
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };
@@ -179,6 +181,7 @@ identity_type!(GearId);
 identity_type!(HostProfileId);
 // Immutable identity of one host-operation boundary contract.
 identity_type!(HostOperationContractId);
+identity_type!(HostOperationId);
 // Semantic identity of a countable host resource contract.
 identity_type!(ResourceClassId);
 // Boot-scoped identity of one concrete host resource pool.
