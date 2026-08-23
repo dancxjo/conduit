@@ -200,7 +200,33 @@ pub enum ConduitosArch {
     Loongarch64,
 }
 
+pub(crate) use armv6_rpi_board::Armv6RpiBoard;
 pub(crate) use target_build::{build_profile_image, ProfileBuiltImage};
+
+pub(crate) fn build_rpi_image(
+    board: Armv6RpiBoard,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    armv6_rpi_b_plus_image::execute(board, opts)
+}
+
+pub(crate) fn flash_rpi_image(
+    board: Armv6RpiBoard,
+    device: &std::path::Path,
+    confirm_device: &std::path::Path,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    armv6_rpi_flash::execute(board, device, confirm_device, opts)
+}
+
+pub(crate) fn prove_physical_rpi(
+    board: Armv6RpiBoard,
+    serial_device: &std::path::Path,
+    timeout_seconds: u64,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    armv6_rpi_physical::execute(board, serial_device, timeout_seconds, opts)
+}
 
 impl ConduitosArch {
     const ALL: [Self; 6] = [

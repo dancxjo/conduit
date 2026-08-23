@@ -161,17 +161,19 @@ cargo xtask doctor
 ### Run locally
 
 ```sh
-cargo xtask demo std
+cargo xtask host
 cargo xtask demo triple
 ```
 
-The first runs the Signal example through the std Host. The second runs a larger local fan-out. Both use the ordinary checker, planner, lowering path, and production kernel.
+The first runs the canonical Hello Form through the std Host. The second runs a
+larger local fan-out. Both use the ordinary checker, planner, lowering path, and
+production kernel.
 
 ### Run in a real browser
 
 ```sh
 cargo xtask doctor browser
-cargo xtask browser
+cargo xtask host browser
 ```
 
 The browser Host entrance builds the Rust/WASM runtime, binds an independent

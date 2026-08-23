@@ -7,16 +7,14 @@ use crate::workspace::workspace_root;
 pub fn run_std(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run(
         "demo.std",
-        "Run the native Signal Form",
+        "Launch the ordinary std Host with the canonical Hello Form",
         &[
             "run",
             "-p",
             "conduit",
             "--",
             "run",
-            "fixtures/forms/signal-demo.conduit",
-            "--placements",
-            "examples/std-local.placements",
+            "examples/hello.conduit",
         ],
         opts,
     )

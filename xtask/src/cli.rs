@@ -58,7 +58,7 @@ pub enum Command {
     Doctor(DoctorArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
     Pico(PicoArgs),
-    /// Resolve and BUILD an exact Host IMAGE from a checked PROFILE.
+    /// Target one Host lifecycle or manage exact Host configuration and fabrication.
     Host(HostArgs),
     /// Run the complete Pico W local workflow.
     PicoLocal(PicoArgs),
@@ -406,6 +406,41 @@ mod tests {
         ])
         .expect("host BUILD command parses");
         assert!(matches!(host.command, Command::Host(_)));
+
+        for command in [
+            vec!["xtask", "host"],
+            vec!["xtask", "host", "std"],
+            vec!["xtask", "host", "browser"],
+            vec!["xtask", "host", "rpi"],
+            vec!["xtask", "host", "rpi", "--board", "rpi-zero-v1", "image"],
+            vec![
+                "xtask",
+                "host",
+                "rpi",
+                "flash",
+                "--device",
+                "/dev/sda",
+                "--confirm-device",
+                "/dev/sda",
+            ],
+            vec![
+                "xtask",
+                "host",
+                "rpi",
+                "physical-proof",
+                "--serial-device",
+                "/dev/ttyUSB0",
+            ],
+        ] {
+            let parsed = Cli::try_parse_from(command.clone())
+                .unwrap_or_else(|error| panic!("host command {command:?} must parse: {error}"));
+            assert!(matches!(parsed.command, Command::Host(_)));
+        }
+        assert!(
+            Cli::try_parse_from(["xtask", "host", "rpi", "flash", "--device", "/dev/sda",])
+                .is_err()
+        );
+        assert!(Cli::try_parse_from(["xtask", "host", "rpi", "--board", "rpi-5",]).is_err());
 
         let pico_body = Cli::try_parse_from([
             "xtask",
