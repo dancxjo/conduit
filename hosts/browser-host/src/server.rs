@@ -6,6 +6,7 @@ use std::path::Path;
 
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const BOOTSTRAP: &[u8] = include_bytes!("../assets/host.mjs");
+const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const MAX_RUNTIME_BYTES: usize = 4 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
@@ -90,6 +91,9 @@ impl BrowserHostServer {
             Some("GET / HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", INDEX),
             Some("GET /host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOTSTRAP)
+            }
+            Some("GET /media-host.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", MEDIA_HOST)
             }
             Some("GET /runtime.wasm HTTP/1.1") => {
                 ("200 OK", "application/wasm", self.runtime.as_slice())

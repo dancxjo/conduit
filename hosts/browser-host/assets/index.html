@@ -7,6 +7,7 @@
   body { max-width: 48rem; margin: 4rem auto; padding: 0 1.5rem; }
   dt { font-weight: 650; margin-top: 1rem; }
   dd { margin: .25rem 0; overflow-wrap: anywhere; }
+  button { margin: .5rem .5rem .5rem 0; padding: .6rem 1rem; }
 </style>
 <main>
   <h1>Conduit browser Host</h1>
@@ -17,5 +18,13 @@
     <dt>Body membership</dt><dd>None</dd>
     <dt>Runtime</dt><dd>Independent bounded WebAssembly instance</dd>
   </dl>
+  <section hidden id="media">
+    <h2>Human media offers</h2>
+    <p>Access is requested only after an explicit action and an admitted acquisition Play.</p>
+    <button id="camera" type="button">Acquire camera</button>
+    <button id="microphone" type="button">Acquire microphone</button>
+    <p id="media-status" role="status">Camera and microphone offers available</p>
+    <output id="media-evidence"></output>
+  </section>
 </main>
 <script type="module" src="/host.mjs"></script>
