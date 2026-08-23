@@ -9,7 +9,8 @@ use embassy_executor::Executor;
 use embassy_futures::select::{select, Either};
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Input, Level, Output, Pull};
-use embassy_rp::peripherals::USB;
+use embassy_rp::i2c::InterruptHandler as I2cInterruptHandler;
+use embassy_rp::peripherals::{I2C1, USB};
 use embassy_rp::usb;
 use embassy_time::{Duration, Timer};
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
@@ -62,7 +63,10 @@ fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
     }
 }
 
-bind_interrupts!(struct Irqs { USBCTRL_IRQ => usb::InterruptHandler<USB>; });
+bind_interrupts!(struct Irqs {
+    I2C1_IRQ => I2cInterruptHandler<I2C1>;
+    USBCTRL_IRQ => usb::InterruptHandler<USB>;
+});
 
 static DEVICE: StaticCell<[u8; 256]> = StaticCell::new();
 static CONFIG: StaticCell<[u8; 256]> = StaticCell::new();

@@ -32,6 +32,23 @@ pub trait Mpu6050I2cProvider {
     ) -> Result<(), I2cProviderFailure>;
 }
 
+/// Asynchronous realization of the same finite MPU-6050 transaction surface.
+///
+/// Embedded hosts use this form when a peripheral transaction must yield to
+/// unrelated admitted work such as USB. The provider remains responsible for
+/// imposing its platform-specific operation deadline.
+#[allow(async_fn_in_trait)]
+pub trait AsyncMpu6050I2cProvider {
+    fn availability(&self) -> I2cBaseAvailability;
+    async fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), I2cProviderFailure>;
+    async fn write_read(
+        &mut self,
+        address: u8,
+        write: &[u8],
+        read: &mut [u8],
+    ) -> Result<(), I2cProviderFailure>;
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mpu6050Failure {
     InvalidAddress,
@@ -113,6 +130,31 @@ impl Mpu6050Session {
         Ok(sample)
     }
 
+    pub async fn observe_async<P: AsyncMpu6050I2cProvider>(
+        &mut self,
+        provider: &mut P,
+        now_tick: u64,
+    ) -> Result<RawImuSample, Mpu6050Failure> {
+        require_async_base(provider)?;
+        if self
+            .last_observed_at_tick
+            .is_some_and(|previous| now_tick < previous)
+        {
+            return Err(Mpu6050Failure::ClockRegressed);
+        }
+        if !self.initialized {
+            self.initialize_async(provider).await?;
+        }
+        let mut bytes = [0_u8; FRAME_BYTES];
+        provider
+            .write_read(self.address, &[ACCEL_XOUT_H], &mut bytes)
+            .await
+            .map_err(|_| Mpu6050Failure::FrameReadFailed)?;
+        let sample = decode_sample(now_tick, &bytes);
+        self.last_observed_at_tick = Some(now_tick);
+        Ok(sample)
+    }
+
     fn initialize<P: Mpu6050I2cProvider>(
         &mut self,
         provider: &mut P,
@@ -135,9 +177,43 @@ impl Mpu6050Session {
         self.initialized = true;
         Ok(())
     }
+
+    async fn initialize_async<P: AsyncMpu6050I2cProvider>(
+        &mut self,
+        provider: &mut P,
+    ) -> Result<(), Mpu6050Failure> {
+        let mut identity = [0_u8; 1];
+        provider
+            .write_read(self.address, &[WHO_AM_I], &mut identity)
+            .await
+            .map_err(|_| Mpu6050Failure::DeviceNoResponse)?;
+        if identity[0] != WHO_AM_I_VALUE {
+            return Err(Mpu6050Failure::IdentityMismatch {
+                observed: identity[0],
+            });
+        }
+        write_register_async(provider, self.address, PWR_MGMT_1, 0)
+            .await
+            .map_err(|_| Mpu6050Failure::WakeWriteFailed)?;
+        write_register_async(provider, self.address, GYRO_CONFIG, 0)
+            .await
+            .map_err(|_| Mpu6050Failure::GyroConfigWriteFailed)?;
+        write_register_async(provider, self.address, ACCEL_CONFIG, 0)
+            .await
+            .map_err(|_| Mpu6050Failure::AccelConfigWriteFailed)?;
+        self.initialized = true;
+        Ok(())
+    }
 }
 
 fn require_base<P: Mpu6050I2cProvider>(provider: &P) -> Result<(), Mpu6050Failure> {
+    match provider.availability() {
+        I2cBaseAvailability::Available => Ok(()),
+        I2cBaseAvailability::Unavailable => Err(Mpu6050Failure::I2cBaseUnavailable),
+    }
+}
+
+fn require_async_base<P: AsyncMpu6050I2cProvider>(provider: &P) -> Result<(), Mpu6050Failure> {
     match provider.availability() {
         I2cBaseAvailability::Available => Ok(()),
         I2cBaseAvailability::Unavailable => Err(Mpu6050Failure::I2cBaseUnavailable),
@@ -151,6 +227,15 @@ fn write_register<P: Mpu6050I2cProvider>(
     value: u8,
 ) -> Result<(), I2cProviderFailure> {
     provider.write(address, &[register, value])
+}
+
+async fn write_register_async<P: AsyncMpu6050I2cProvider>(
+    provider: &mut P,
+    address: u8,
+    register: u8,
+    value: u8,
+) -> Result<(), I2cProviderFailure> {
+    provider.write(address, &[register, value]).await
 }
 
 pub fn decode_sample(observed_at_tick: u64, bytes: &[u8; FRAME_BYTES]) -> RawImuSample {
@@ -184,6 +269,8 @@ fn clamp_i16(value: i32) -> i16 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::future::Future;
+    use std::task::{Context, Poll, Waker};
     use std::vec::Vec;
 
     struct Provider {
@@ -229,6 +316,38 @@ mod tests {
         }
     }
 
+    impl AsyncMpu6050I2cProvider for Provider {
+        fn availability(&self) -> I2cBaseAvailability {
+            if self.available {
+                I2cBaseAvailability::Available
+            } else {
+                I2cBaseAvailability::Unavailable
+            }
+        }
+
+        async fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), I2cProviderFailure> {
+            Mpu6050I2cProvider::write(self, address, bytes)
+        }
+
+        async fn write_read(
+            &mut self,
+            address: u8,
+            write: &[u8],
+            read: &mut [u8],
+        ) -> Result<(), I2cProviderFailure> {
+            Mpu6050I2cProvider::write_read(self, address, write, read)
+        }
+    }
+
+    fn run_ready<F: Future>(future: F) -> F::Output {
+        let mut context = Context::from_waker(Waker::noop());
+        let mut future = std::pin::pin!(future);
+        match future.as_mut().poll(&mut context) {
+            Poll::Ready(output) => output,
+            Poll::Pending => panic!("test provider unexpectedly yielded"),
+        }
+    }
+
     fn provider() -> Provider {
         let mut frame = [0_u8; FRAME_BYTES];
         frame[4..6].copy_from_slice(&16_384_i16.to_be_bytes());
@@ -252,6 +371,20 @@ mod tests {
             [[PWR_MGMT_1, 0], [GYRO_CONFIG, 0], [ACCEL_CONFIG, 0]]
         );
         session.observe(&mut provider, 20).unwrap();
+        assert_eq!(provider.writes.len(), 3);
+    }
+
+    #[test]
+    fn async_provider_preserves_exact_initialization_and_frame() {
+        let mut provider = provider();
+        let mut session = Mpu6050Session::new(DEFAULT_ADDRESS).unwrap();
+        let sample = run_ready(session.observe_async(&mut provider, 10)).unwrap();
+        assert_eq!(sample, RawImuSample::stationary(10));
+        assert_eq!(
+            provider.writes,
+            [[PWR_MGMT_1, 0], [GYRO_CONFIG, 0], [ACCEL_CONFIG, 0]]
+        );
+        run_ready(session.observe_async(&mut provider, 20)).unwrap();
         assert_eq!(provider.writes.len(), 3);
     }
 

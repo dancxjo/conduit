@@ -1,11 +1,12 @@
 //! Continuous, bounded MPU-6050 ownership for the Pete carrier.
 
 use conduit_mpu6050::{
-    GravityCalibration, I2cBaseAvailability, I2cProviderFailure, ImuDeriver, ImuThresholds,
-    Mpu6050Failure, Mpu6050I2cProvider, Mpu6050Session, RawImuSample, ALTERNATE_ADDRESS,
-    DEFAULT_ADDRESS,
+    AsyncMpu6050I2cProvider, GravityCalibration, I2cBaseAvailability, I2cProviderFailure,
+    ImuDeriver, ImuThresholds, Mpu6050Failure, Mpu6050Session, RawImuSample,
+    ALTERNATE_ADDRESS, DEFAULT_ADDRESS,
 };
-use embassy_rp::i2c::{Blocking, Config as I2cConfig, I2c};
+use embassy_futures::select::{select, Either};
+use embassy_rp::i2c::{Async, Config as I2cConfig, I2c};
 use embassy_rp::peripherals::{I2C1, PIN_2, PIN_3};
 use embassy_rp::Peri;
 use embassy_time::{Duration, Instant, Timer};
@@ -13,6 +14,7 @@ use portable_atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicU8, Ordering};
 
 const POLL_MS: u64 = 20;
 const RETRY_MS: u64 = 250;
+const I2C_OPERATION_TIMEOUT_MS: u64 = 25;
 const CALIBRATION_SAMPLES: u32 = 50;
 const MINIMUM_GRAVITY_MM_S2: u16 = 7_000;
 const MAXIMUM_GRAVITY_MM_S2: u16 = 13_000;
@@ -23,30 +25,43 @@ const THRESHOLDS: ImuThresholds = ImuThresholds {
     maximum_sample_age_ticks: 100,
 };
 
-type BoardI2c = I2c<'static, I2C1, Blocking>;
+type BoardI2c = I2c<'static, I2C1, Async>;
 
 struct Provider(BoardI2c);
 
-impl Mpu6050I2cProvider for Provider {
+impl AsyncMpu6050I2cProvider for Provider {
     fn availability(&self) -> I2cBaseAvailability {
         I2cBaseAvailability::Available
     }
 
-    fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), I2cProviderFailure> {
-        self.0
-            .blocking_write(address, bytes)
-            .map_err(|_| I2cProviderFailure::Write)
+    async fn write(&mut self, address: u8, bytes: &[u8]) -> Result<(), I2cProviderFailure> {
+        match select(
+            self.0.write_async(address, bytes.iter().copied()),
+            Timer::after(Duration::from_millis(I2C_OPERATION_TIMEOUT_MS)),
+        )
+        .await
+        {
+            Either::First(Ok(())) => Ok(()),
+            Either::First(Err(_)) | Either::Second(()) => Err(I2cProviderFailure::Write),
+        }
     }
 
-    fn write_read(
+    async fn write_read(
         &mut self,
         address: u8,
         write: &[u8],
         read: &mut [u8],
     ) -> Result<(), I2cProviderFailure> {
-        self.0
-            .blocking_write_read(address, write, read)
-            .map_err(|_| I2cProviderFailure::Read)
+        match select(
+            self.0
+                .write_read_async(address, write.iter().copied(), read),
+            Timer::after(Duration::from_millis(I2C_OPERATION_TIMEOUT_MS)),
+        )
+        .await
+        {
+            Either::First(Ok(())) => Ok(()),
+            Either::First(Err(_)) | Either::Second(()) => Err(I2cProviderFailure::Read),
+        }
     }
 }
 
@@ -233,25 +248,26 @@ pub async fn task(
     sda: Peri<'static, PIN_2>,
     scl: Peri<'static, PIN_3>,
 ) {
-    // Embassy's blocking RP2040 I2C implementation waits without a software
-    // deadline when a physical bus is held. Keep that work off the shared
-    // executor until USB has enumerated and emitted the build-bound boot
-    // record. A bad auxiliary attachment can still fail its own qualification,
-    // but it can no longer make the running image anonymous to the host.
+    // Preserve USB-first identity, then keep every physical I2C operation
+    // asynchronous and deadline-bounded. A held or absent auxiliary bus must
+    // remain its own typed failure without starving the shared USB executor.
     while !USB_CONNECTION_READY.load(Ordering::Acquire) {
         Timer::after(Duration::from_millis(POLL_MS)).await;
     }
 
     let mut config = I2cConfig::default();
     config.frequency = 100_000;
-    let mut provider = Provider(I2c::new_blocking(i2c1, scl, sda, config));
+    let mut provider = Provider(I2c::new_async(i2c1, scl, sda, crate::Irqs, config));
 
     loop {
         STATE.store(State::Probing as u8, Ordering::Release);
         let mut selected = None;
         for address in [DEFAULT_ADDRESS, ALTERNATE_ADDRESS] {
             let mut session = Mpu6050Session::new(address).expect("fixed address is valid");
-            match session.observe(&mut provider, Instant::now().as_millis()) {
+            match session
+                .observe_async(&mut provider, Instant::now().as_millis())
+                .await
+            {
                 Ok(sample) => {
                     ADDRESS.store(address, Ordering::Release);
                     FAILURE.store(0, Ordering::Release);
@@ -303,7 +319,10 @@ pub async fn task(
                 }
             }
             Timer::after(Duration::from_millis(POLL_MS)).await;
-            match session.observe(&mut provider, Instant::now().as_millis()) {
+            match session
+                .observe_async(&mut provider, Instant::now().as_millis())
+                .await
+            {
                 Ok(next) => {
                     sample = next;
                     publish_sample(sample);
@@ -327,7 +346,7 @@ pub async fn task(
         loop {
             Timer::after(Duration::from_millis(POLL_MS)).await;
             let now = Instant::now().as_millis();
-            match session.observe(&mut provider, now) {
+            match session.observe_async(&mut provider, now).await {
                 Ok(sample) => {
                     publish_sample(sample);
                     match deriver.derive(sample, now, THRESHOLDS) {
