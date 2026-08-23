@@ -50,7 +50,7 @@ pub(super) fn verify(args: &PicoArgs) -> PicoResult<()> {
     // an intentionally absent Create still proves bounded CDC reopen behavior
     // and produces typed zero-RX/timeout counters before this error returns.
     qualification?;
-    println!("==> pico verify: Pete capstone qualification complete");
+    println!("==> pico verify: Pete capstone safe-idle verification complete");
     Ok(())
 }
 
@@ -96,9 +96,9 @@ fn validate_records(records: &[serde_json::Value], identity: &serde_json::Value)
         return Err("running capstone firmware does not match the current built image".into());
     }
     let disposition = &records[1];
-    if disposition["translator_oe"] != "high"
+    if disposition["translator_oe"] != "low"
         || disposition["power_toggle"] != "low"
-        || disposition["create_uart"] != "supervised_57600_8n1"
+        || disposition["create_uart"] != "isolated_until_attended_play"
         || disposition["watchdog"]["timeout_ms"] != 2_000
         || disposition["watchdog"]["feed_interval_ms"] != 250
         || disposition["charging_indicator"]["gpio"] != 20
@@ -128,19 +128,17 @@ fn validate_records(records: &[serde_json::Value], identity: &serde_json::Value)
         return Err("IMU acceleration is below the physical gravity-reference floor".into());
     }
     let terminal = &records[3];
-    if terminal["qualification_complete"] != true
-        || terminal["robot_control_ready"] != true
-        || terminal["create_link_fresh"] != true
-        || terminal["create_packets"]
-            .as_u64()
-            .is_none_or(|value| value == 0)
-        || terminal["ready_cue_command_sent"] != true
+    if terminal["qualification_complete"] != false
+        || terminal["robot_control_ready"] != false
+        || terminal["create_link_fresh"] != false
+        || terminal["create_packets"] != 0
+        || terminal["ready_cue_command_sent"] != false
         || terminal["form"] != "pete-capstone"
         || terminal["kernel"] != "conduit-kernel"
         || terminal["oi_exposed"] != false
     {
         return Err(
-            "capstone ready receipt does not establish the intended control boundary".into(),
+            "capstone ready receipt does not preserve the fail-closed idle boundary".into(),
         );
     }
     Ok(())
@@ -201,7 +199,8 @@ fn validate_diagnostics(diagnostics: &[serde_json::Value], expected_build: &str)
         }
         if diagnostic["build_id"].as_str() != Some(expected_build)
             || window_end < window_start
-            || diagnostic["oe_sequence"] != "low_during_uart_init_then_high_after_rx_pullup"
+            || diagnostic["oe_sequence"] != "low_until_attended_play"
+            || diagnostic["translator_oe"] != "low"
             || diagnostic["uart"]["controller"] != 0
             || diagnostic["uart"]["tx_gpio"] != 0
             || diagnostic["uart"]["rx_gpio"] != 1
@@ -233,6 +232,9 @@ fn validate_diagnostics(diagnostics: &[serde_json::Value], expected_build: &str)
             };
             counters[index] = value;
         }
+        if counters[..6] != [0; 6] {
+            return Err("safe-idle UART diagnostic recorded traffic or protocol work".into());
+        }
         for (index, field) in ["overrun", "break", "parity", "framing", "other"]
             .into_iter()
             .enumerate()
@@ -243,6 +245,9 @@ fn validate_diagnostics(diagnostics: &[serde_json::Value], expected_build: &str)
                 );
             };
             counters[6 + index] = value;
+        }
+        if counters[6..] != [0; 5] {
+            return Err("safe-idle UART diagnostic recorded a hardware error".into());
         }
         let first_byte_ms = diagnostic["first_byte_after_boot_ms"]
             .as_i64()
@@ -332,9 +337,9 @@ mod tests {
             }),
             serde_json::json!({
                 "schema": "conduit.pete/capstone-disposition@1",
-                "translator_oe": "high",
+                "translator_oe": "low",
                 "power_toggle": "low",
-                "create_uart": "supervised_57600_8n1",
+                "create_uart": "isolated_until_attended_play",
                 "charging_indicator": {"gpio": 20, "active_high": true, "level": "low"},
                 "watchdog": {"timeout_ms": 2000, "feed_interval_ms": 250}
             }),
@@ -347,11 +352,11 @@ mod tests {
             }),
             serde_json::json!({
                 "schema": "conduit.pete/capstone-ready@1",
-                "qualification_complete": true,
-                "robot_control_ready": true,
-                "create_link_fresh": true,
-                "create_packets": 3,
-                "ready_cue_command_sent": true,
+                "qualification_complete": false,
+                "robot_control_ready": false,
+                "create_link_fresh": false,
+                "create_packets": 0,
+                "ready_cue_command_sent": false,
                 "form": "pete-capstone",
                 "kernel": "conduit-kernel",
                 "oi_exposed": false
@@ -359,22 +364,23 @@ mod tests {
         ]
     }
 
-    fn diagnostic(rx_bytes: u64) -> serde_json::Value {
+    fn diagnostic() -> serde_json::Value {
         serde_json::json!({
             "schema": "conduit.pete/uart-diagnostic@1",
             "build_id": "capstone-build",
             "window_start_ms": 10,
             "window_end_ms": 100,
-            "oe_sequence": "low_during_uart_init_then_high_after_rx_pullup",
+            "oe_sequence": "low_until_attended_play",
+            "translator_oe": "low",
             "uart": {"controller": 0, "tx_gpio": 0, "rx_gpio": 1, "baud": 57600, "data_bits": 8, "stop_bits": 1, "parity": "none"},
-            "rx_bytes": rx_bytes,
-            "tx_bytes": 12,
-            "valid_frames": 3,
+            "rx_bytes": 0,
+            "tx_bytes": 0,
+            "valid_frames": 0,
             "corrupt_frames": 0,
             "resync_discarded_bytes": 0,
             "timeouts": 0,
             "errors": {"overrun": 0, "break": 0, "parity": 0, "framing": 0, "other": 0},
-            "first_byte_after_boot_ms": 25,
+            "first_byte_after_boot_ms": -1,
             "last_corrupt_frame": {"present": false, "packet_id": 0, "observed_len": 0, "hex": ""}
         })
     }
@@ -399,20 +405,20 @@ mod tests {
 
     #[test]
     fn accepts_eight_monotonic_reopen_receipts() {
-        let diagnostics = (0..8).map(|step| diagnostic(90 + step)).collect::<Vec<_>>();
+        let diagnostics = (0..8).map(|_| diagnostic()).collect::<Vec<_>>();
         validate_diagnostics(&diagnostics, "capstone-build").expect("bounded diagnostics");
     }
 
     #[test]
     fn rejects_counter_rollback_across_reopen() {
-        let mut diagnostics = vec![diagnostic(90); 8];
-        diagnostics[4]["rx_bytes"] = 89.into();
+        let mut diagnostics = vec![diagnostic(); 8];
+        diagnostics[4]["rx_bytes"] = 1.into();
         assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
     }
 
     #[test]
     fn rejects_unbounded_corrupt_frame_sample() {
-        let mut diagnostics = vec![diagnostic(90); 8];
+        let mut diagnostics = vec![diagnostic(); 8];
         diagnostics[0]["corrupt_frames"] = 1.into();
         diagnostics[0]["last_corrupt_frame"] = serde_json::json!({
             "present": true,
@@ -425,7 +431,7 @@ mod tests {
 
     #[test]
     fn rejects_window_end_rollback_across_reopen() {
-        let mut diagnostics = vec![diagnostic(90); 8];
+        let mut diagnostics = vec![diagnostic(); 8];
         diagnostics[4]["window_end_ms"] = 99.into();
         diagnostics[3]["window_end_ms"] = 100.into();
         assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
@@ -433,8 +439,15 @@ mod tests {
 
     #[test]
     fn rejects_first_byte_timing_that_disagrees_with_rx_count() {
-        let mut diagnostics = vec![diagnostic(90); 8];
-        diagnostics[0]["first_byte_after_boot_ms"] = (-1).into();
+        let mut diagnostics = vec![diagnostic(); 8];
+        diagnostics[0]["first_byte_after_boot_ms"] = 25.into();
+        assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
+    }
+
+    #[test]
+    fn rejects_idle_uart_transmission() {
+        let mut diagnostics = vec![diagnostic(); 8];
+        diagnostics[0]["tx_bytes"] = 1.into();
         assert!(validate_diagnostics(&diagnostics, "capstone-build").is_err());
     }
 }
