@@ -262,6 +262,19 @@ async fn qualification_task(
     _power_toggle: Output<'static>,
 ) {
     class.wait_connection().await;
+    // Emit immutable image identity before permitting any blocking peripheral
+    // probe. A physically held I2C bus must not prevent this firmware from
+    // enumerating and describing its exact running image.
+    write_line(
+        &mut class,
+        concat!(
+            "{\"schema\":\"conduit.pete/capstone-boot@1\",\"build_id\":\"",
+            env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"),
+            "\"}\n"
+        ),
+    )
+    .await;
+    imu_control::permit_probe_after_usb_identity();
     // Both physical providers run independently of USB. Wait a bounded interval
     // for fresh evidence from each; the terminal receipt remains false if
     // either attachment is absent or unhealthy.
@@ -279,15 +292,6 @@ async fn qualification_task(
         }
         Timer::after(Duration::from_millis(20)).await;
     }
-    write_line(
-        &mut class,
-        concat!(
-            "{\"schema\":\"conduit.pete/capstone-boot@1\",\"build_id\":\"",
-            env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"),
-            "\"}\n"
-        ),
-    )
-    .await;
     let charging_level = if charging_indicator.is_high() {
         "high"
     } else {

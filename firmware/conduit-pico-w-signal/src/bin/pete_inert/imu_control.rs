@@ -109,8 +109,15 @@ static GYRO_Y: AtomicI32 = AtomicI32::new(0);
 static GYRO_Z: AtomicI32 = AtomicI32::new(0);
 static TILT_ACTIVE: AtomicBool = AtomicBool::new(false);
 static IMPACT_ACTIVE: AtomicBool = AtomicBool::new(false);
+static USB_CONNECTION_READY: AtomicBool = AtomicBool::new(false);
 static CALIBRATION_GENERATION: AtomicU32 = AtomicU32::new(0);
 static FAILURE: AtomicU8 = AtomicU8::new(0);
+
+/// Allow the potentially blocking physical I2C probe only after USB has
+/// enumerated and the exact firmware identity has crossed CDC.
+pub fn permit_probe_after_usb_identity() {
+    USB_CONNECTION_READY.store(true, Ordering::Release);
+}
 
 pub fn snapshot() -> Snapshot {
     Snapshot {
@@ -226,6 +233,15 @@ pub async fn task(
     sda: Peri<'static, PIN_2>,
     scl: Peri<'static, PIN_3>,
 ) {
+    // Embassy's blocking RP2040 I2C implementation waits without a software
+    // deadline when a physical bus is held. Keep that work off the shared
+    // executor until USB has enumerated and emitted the build-bound boot
+    // record. A bad auxiliary attachment can still fail its own qualification,
+    // but it can no longer make the running image anonymous to the host.
+    while !USB_CONNECTION_READY.load(Ordering::Acquire) {
+        Timer::after(Duration::from_millis(POLL_MS)).await;
+    }
+
     let mut config = I2cConfig::default();
     config.frequency = 100_000;
     let mut provider = Provider(I2c::new_blocking(i2c1, scl, sda, config));
