@@ -19,6 +19,7 @@ export default defineConfig({
     "browser-pointer.spec.mjs",
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",
+    "human-interaction-presenter.spec.mjs",
     "webrtc-datachannel-line.spec.mjs",
   ],
   fullyParallel: false,

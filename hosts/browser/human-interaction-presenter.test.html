@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Conduit generic interaction Presenter</title><body><main id="interactions"></main><script type="module">
+import {BrowserInteractionPresenter} from "./human-interaction-presenter.mjs";
+const typed=(kind,text)=>({value_kind:kind,canonical_bytes:[...new TextEncoder().encode(text)]});
+const option=(id,label)=>({identity:`waveform/${id}`,label,value:typed("music/waveform@1",id),availability:"available"});
+const snapshot=()=>({presentation_id:"presentation/control-surface",presentation_revision:7,manifestation_id:"manifestation/browser/7",interactions:[
+ {semantic_id:"interaction/panic",contract_identity:"contract/panic",state_identity:"state/panic",state_revision:1,next_sequence:1,label:"Emergency action",action_label:"Panic",accessibility_name:"Panic",availability:"available",family:{kind:"activate"}},
+ {semantic_id:"interaction/sustain",contract_identity:"contract/sustain",state_identity:"state/sustain",state_revision:1,next_sequence:2,label:"Sustain",accessibility_name:"Sustain",availability:"available",current:{boolean:false},family:{kind:"boolean"}},
+ {semantic_id:"interaction/waveform",contract_identity:"contract/waveform",state_identity:"state/waveform",state_revision:3,next_sequence:3,label:globalThis.TEST_WAVEFORM_LABEL??"Waveform",accessibility_name:"Waveform selection",availability:"available",current:{identities:["waveform/sine"]},options:[option("pulse","Pulse"),option("sine","Sine"),option("triangle",globalThis.TEST_TRIANGLE_LABEL??"Triangle")],family:{kind:"choose-one"}},
+ {semantic_id:"interaction/layers",contract_identity:"contract/layers",state_identity:"state/layers",state_revision:2,next_sequence:4,label:"Layers",accessibility_name:"Active layers",submit_label:"Apply layers",availability:"available",current:{identities:["waveform/sine"]},options:[option("sine","Sine layer"),option("triangle","Triangle layer"),option("pulse","Pulse layer")],family:{kind:"choose-many",minimum_selections:1,maximum_selections:2}},
+ {semantic_id:"interaction/volume",contract_identity:"contract/volume",state_identity:"state/volume",state_revision:5,next_sequence:5,label:"Volume",accessibility_name:"Volume",availability:"available",manifestation:{scalar:globalThis.TEST_SCALAR_MECHANISM??"range"},current:{quantity:500000},family:{kind:"scalar",unit_tag:16,minimum:0,maximum:1000000,granularity:1000}},
+ {semantic_id:"interaction/transpose",contract_identity:"contract/transpose",state_identity:"state/transpose",state_revision:1,next_sequence:6,label:"Transpose",accessibility_name:"Transpose",availability:"available",family:{kind:"relative",unit_tag:19,minimum:-12,maximum:12,granularity:1}},
+ {semantic_id:"interaction/name",contract_identity:"contract/name",state_identity:"state/name",state_revision:1,next_sequence:7,label:"Name",accessibility_name:"Instrument name",submit_label:"Submit name",availability:"available",family:{kind:"text",maximum_bytes:32,allow_empty:false}}
+]});
+globalThis.proposals=[];globalThis.authoritativeSnapshot=snapshot();
+globalThis.presenter=new BrowserInteractionPresenter(document.querySelector("#interactions"),{submit:async proposal=>{globalThis.proposals.push(proposal);return {disposition:"Accepted"};}});
+globalThis.renderAuthoritative=()=>globalThis.presenter.render(globalThis.authoritativeSnapshot);globalThis.renderAuthoritative();
+</script></body></html>
