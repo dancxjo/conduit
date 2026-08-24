@@ -87,6 +87,9 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             }
         }
         ProveTarget::CalendarGoogle => crate::commands::calendar_google::run(&args, &root, opts),
+        ProveTarget::LlmPlanningAdvice => {
+            crate::commands::ollama_planning_advice::run(&args, &root, opts)
+        }
         ProveTarget::PatchbayFrontDoor => run_patchbay_front_door(&args, &root, opts),
         ProveTarget::StdPicoUsb => {
             let pico_args = crate::commands::pico::PicoArgs {

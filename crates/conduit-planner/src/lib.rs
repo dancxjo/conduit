@@ -24,6 +24,7 @@ use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
 
 mod accelerator;
+mod advice;
 mod body_envelope;
 mod canonical;
 mod characteristic_policy;
@@ -66,6 +67,11 @@ pub use accelerator::{
     AcceleratorOffer, AcceleratorPlanningBasis, AcceleratorReservation, AcceleratorSelection,
     ExecutionMechanism, MAXIMUM_ACCELERATOR_CANDIDATES, MAXIMUM_ACCELERATOR_DEMANDS,
     MAXIMUM_ACCELERATOR_DIMENSIONS, MAXIMUM_ACCELERATOR_OFFERS,
+};
+pub use advice::{
+    seed_planning_from_advice, AdvisedPlanningInputs, PlanningAdvice, PlanningAdviceEvidence,
+    PlanningAdviceRefusal, SuggestedLine, SuggestedPlacement, MAXIMUM_ADVICE_ID_BYTES,
+    MAXIMUM_ADVICE_LINES, MAXIMUM_ADVICE_PLACEMENTS,
 };
 pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
