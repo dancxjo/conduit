@@ -7,6 +7,7 @@ mod cli;
 mod commands;
 mod evidence;
 mod obligation;
+mod output;
 mod process;
 mod proof;
 mod suites;
@@ -75,11 +76,8 @@ fn run_pico(
     args: &mut commands::pico::PicoArgs,
     local_alias: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if opts.json {
-        return Err("--json is not yet supported by Pico hardware commands".into());
-    }
-    if opts.quiet {
-        return Err("--quiet is not yet supported by Pico hardware commands".into());
+    if !commands::pico::prepare_output(opts, args)? {
+        return Ok(());
     }
     args.dry_run = opts.dry_run;
     let owned = args.clone();

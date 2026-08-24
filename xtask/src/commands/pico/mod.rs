@@ -38,7 +38,10 @@ mod transcript;
 mod usb_continuity;
 mod wifi_secrets;
 
+use crate::cli::GlobalOpts;
+use crate::output::{OutputMode, RepositoryOutput};
 use clap::{Args, Subcommand};
+use serde::Serialize;
 
 pub type PicoResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -182,6 +185,85 @@ pub enum PicoSubcommand {
     ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
     Local,
+}
+
+impl PicoSubcommand {
+    const fn command_name(&self) -> &'static str {
+        match self {
+            Self::Doctor => "pico doctor",
+            Self::Build => "pico build",
+            Self::Flash => "pico flash",
+            Self::Verify => "pico verify",
+            Self::Bootsel => "pico bootsel",
+            Self::HelloCreate => "pico hello-create",
+            Self::FullCreate { .. } => "pico full-create",
+            Self::LightsCreate { .. } => "pico lights-create",
+            Self::ListenCreate => "pico listen-create",
+            Self::DriveCreate { .. } => "pico drive-create",
+            Self::WakeCreate { .. } => "pico wake-create",
+            Self::PresentCreate { .. } => "pico present-create",
+            Self::ReadCreateBattery { .. } => "pico read-create-battery",
+            Self::ProveBodyAdmission => "pico prove-body-admission",
+            Self::Local => "pico local",
+        }
+    }
+
+    const fn attended(&self) -> bool {
+        matches!(
+            self,
+            Self::HelloCreate
+                | Self::FullCreate { .. }
+                | Self::LightsCreate { .. }
+                | Self::ListenCreate
+                | Self::DriveCreate { .. }
+                | Self::WakeCreate { .. }
+                | Self::PresentCreate { .. }
+                | Self::ReadCreateBattery { .. }
+                | Self::ProveBodyAdmission
+        )
+    }
+}
+
+#[derive(Serialize)]
+struct PicoDryRunReport {
+    schema: &'static str,
+    command: &'static str,
+    disposition: &'static str,
+    effects_performed: bool,
+    attended: bool,
+}
+
+pub fn prepare_output(opts: &GlobalOpts, args: &PicoArgs) -> PicoResult<bool> {
+    let output = RepositoryOutput::from_opts(opts);
+    if output.mode() == OutputMode::Human {
+        return Ok(true);
+    }
+    let subcommand = args.subcommand.as_ref().unwrap_or(&PicoSubcommand::Local);
+    if output.dry_run() {
+        output.emit_json(&PicoDryRunReport {
+            schema: "conduit.xtask/pico-dry-run@1",
+            command: subcommand.command_name(),
+            disposition: "planned-not-dispatched",
+            effects_performed: false,
+            attended: subcommand.attended(),
+        })?;
+        return Ok(false);
+    }
+    let reason = if subcommand.attended() {
+        "attended interaction requires visible prompts and physical distinctions"
+    } else {
+        "the command has not declared bounded structured or quiet live output"
+    };
+    output.refusal(
+        subcommand.command_name(),
+        match output.mode() {
+            OutputMode::Json => "json",
+            OutputMode::Quiet => "quiet",
+            OutputMode::Human => unreachable!(),
+        },
+        reason,
+    )?;
+    Ok(true)
 }
 
 pub fn apply_environment_defaults(args: &mut PicoArgs) {
