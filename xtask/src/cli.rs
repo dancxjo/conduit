@@ -179,6 +179,14 @@ pub struct ProveArgs {
     #[arg(long)]
     pub calendar_config_env: Option<String>,
 
+    /// Explicit Ollama HTTP endpoint used by the live planning-advice proof.
+    #[arg(long)]
+    pub ollama_url: Option<String>,
+
+    /// Exact installed Ollama model used by the live planning-advice proof.
+    #[arg(long)]
+    pub ollama_model: Option<String>,
+
     /// Exact Wi-Fi client interface used for the physical Pico appliance proof.
     #[arg(long)]
     pub client_interface: Option<String>,
@@ -251,6 +259,7 @@ pub enum ProveTarget {
     StdBrowserToggle,
     BrowserHost,
     CalendarGoogle,
+    LlmPlanningAdvice,
     PatchbayFrontDoor,
     StdPicoUsb,
     PicoWifiBootstrap,
@@ -544,6 +553,24 @@ mod tests {
             calendar.command,
             Command::Prove(ProveArgs {
                 proof: ProveTarget::CalendarGoogle,
+                ..
+            })
+        ));
+
+        let planning_advice = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "llm-planning-advice",
+            "--ollama-url",
+            "http://forebrain.local:11434",
+            "--ollama-model",
+            "gpt-oss:20b",
+        ])
+        .expect("live Ollama planning-advice command parses");
+        assert!(matches!(
+            planning_advice.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::LlmPlanningAdvice,
                 ..
             })
         ));

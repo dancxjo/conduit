@@ -403,6 +403,14 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         named_artifacts: &["target/calendar-google-live.json"],
         allowed_claims: &["one explicitly selected Google Calendar resource performs read, free-busy, create, update, and cancel through ordinary Plan/Play with separately granted authority and exact hashed receipts"],
     },
+    ProofCommandContract {
+        id: "llm.planning-advice-live",
+        command: "cargo xtask prove llm-planning-advice --ollama-url <url> --ollama-model <model>",
+        proof_class: ProofClass::LiveTransport,
+        required_tools_or_targets: &["cargo", "curl", "Ollama", "installed local model"],
+        named_artifacts: &["target/ollama-planning-advice-live.json"],
+        allowed_claims: &["one bounded live model-derived placement proposal is revalidated against exact current candidate truth and submitted to the ordinary planner, which alone seals a distinct immutable Plan"],
+    },
 ];
 
 #[derive(Debug, Serialize)]

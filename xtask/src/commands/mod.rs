@@ -12,6 +12,7 @@ pub mod doctor;
 pub mod evidence;
 pub mod host;
 pub mod midi;
+pub mod ollama_planning_advice;
 pub mod palette_icons;
 pub mod pete_std_create;
 pub mod pete_std_drive;
