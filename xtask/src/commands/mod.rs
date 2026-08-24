@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod bluetooth;
+pub mod body;
 pub mod body_coordination;
 mod body_membership_demo;
 pub mod browser;

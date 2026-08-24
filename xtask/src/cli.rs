@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+use crate::commands::body::BodyArgs;
 use crate::commands::body_coordination::BodyCoordinationArgs;
 use crate::commands::catalog::CatalogArgs;
 use crate::commands::conduitos::ConduitosArgs;
@@ -43,6 +44,8 @@ pub struct GlobalOpts {
 pub enum Command {
     /// Build and launch one independent browser page/WASM Host.
     Browser,
+    /// Check, show, build, or deploy one whole Body description.
+    Body(BodyArgs),
     /// Prove bounded Pete forebrain-motherbrain coordination.
     BodyCoordination(BodyCoordinationArgs),
     /// Inspect mechanically derived portable Kind coverage by Host profile.
