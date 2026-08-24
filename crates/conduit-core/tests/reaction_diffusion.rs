@@ -36,6 +36,31 @@ fn initialized_field_has_stable_encoding_digest_and_golden_generations() {
 }
 
 #[test]
+fn three_distinct_seeds_have_byte_exact_multi_generation_goldens() {
+    let vectors = [
+        (0, "434e44464c443031315053470300030003000000000000006669656c642d61302d70726f6f6630310071020080380100b8880000e8fd000040420f0009000000af530700af2f05007a0e070084d605001cac060057af06008e290700d1a1050076420700ca66050060f00600b11e06007c5607001f360500a00a07007feb0500f620070074ad0500"),
+        (17, "434e44464c443031315053470300030003000000000000006669656c642d61302d70726f6f6630310071020080380100b8880000e8fd000040420f00090000003a1f07003f1806006ca1070004f00400d820070004150600f99b0600ec2d07006a3d070033ce0500e39d0600282a0700d1d30600d5bc0600c7680700647305002cd606000cb80600"),
+        (99, "434e44464c443031315053470300030003000000000000006669656c642d61302d70726f6f6630310071020080380100b8880000e8fd000040420f0009000000344b0700509005006f380700cfc60500cf4c0700f28c0500521b0700fbfe0500116d070052480500911d070036fa050063950600161807001aff0600523406002198060068120700"),
+    ];
+    for (seed, expected) in vectors {
+        let evolved = state(3, 3, seed)
+            .evolve_reference(request(0, 3, 27))
+            .unwrap();
+        assert_eq!(hex_vec(&evolved.encode().unwrap()), expected);
+        assert_eq!(
+            evolved.encode().unwrap(),
+            state(3, 3, seed)
+                .evolve_reference(request(0, 1, 9))
+                .unwrap()
+                .evolve_reference(request(1, 2, 18))
+                .unwrap()
+                .encode()
+                .unwrap()
+        );
+    }
+}
+
+#[test]
 fn malformed_profile_dimensions_parameters_and_cells_refuse_distinctly() {
     assert_eq!(
         ReactionDiffusionFieldState::initialized(FIELD_ID, 2, 8, GrayScottParameters::REFERENCE, 1,),
@@ -175,5 +200,9 @@ fn request(
 }
 
 fn hex(bytes: [u8; 32]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn hex_vec(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
