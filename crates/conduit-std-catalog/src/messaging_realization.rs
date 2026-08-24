@@ -1,6 +1,6 @@
 //! Deterministic message fixture and evidence-honest delivery lifecycle.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
     BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, StructuredFieldValue, StructuredInfoRefusal,
@@ -25,6 +25,7 @@ pub struct MessagingFixture {
     pub request: StructuredInfoValue,
 }
 
+#[derive(Debug)]
 pub struct DeliveryResult {
     pub notification: StructuredInfoValue,
     pub update: StructuredInfoValue,
@@ -219,11 +220,18 @@ pub fn deterministic_submit(
 pub fn deterministic_provider_acknowledgement(
     request: &StructuredInfoValue,
 ) -> Result<DeliveryResult, MessagingInfoRefusal> {
+    provider_acknowledgement(request, "fixture/provider-ack/1")
+}
+
+pub fn provider_acknowledgement(
+    request: &StructuredInfoValue,
+    evidence_identity: &str,
+) -> Result<DeliveryResult, MessagingInfoRefusal> {
     validate_request(request)?;
     delivery_result(
         leaf_text(record_field(request, "request_identity")?)?,
         "sent",
-        evidence_value("provider_acknowledgement", "fixture/provider-ack/1")?,
+        evidence_value("provider_acknowledgement", evidence_identity)?,
         "Provider acknowledged the request; recipient delivery is not claimed.",
     )
 }
@@ -240,7 +248,7 @@ pub fn deterministic_cancel(
     )
 }
 
-fn validate_request(request: &StructuredInfoValue) -> Result<(), MessagingInfoRefusal> {
+pub(crate) fn validate_request(request: &StructuredInfoValue) -> Result<(), MessagingInfoRefusal> {
     if request.value_type() != &delivery_request_type() {
         return Err(MessagingInfoRefusal::MalformedInfo);
     }
@@ -292,7 +300,7 @@ fn delivery_result(
         vec![
             (
                 "notification_identity",
-                text_value("notification/delivery/fixture"),
+                text_value(&format!("notification/{request_identity}")),
             ),
             ("source_request_identity", text_value(request_identity)),
             ("summary", text_value(summary)),
@@ -393,7 +401,7 @@ fn record_value(
     )?)
 }
 
-fn record_field<'a>(
+pub(crate) fn record_field<'a>(
     value: &'a StructuredInfoValue,
     name: &str,
 ) -> Result<&'a StructuredInfoValue, MessagingInfoRefusal> {
@@ -414,7 +422,7 @@ fn variant_tag(value: &StructuredInfoValue) -> Result<&str, MessagingInfoRefusal
     Ok(tag)
 }
 
-fn leaf_text(value: &StructuredInfoValue) -> Result<&str, MessagingInfoRefusal> {
+pub(crate) fn leaf_text(value: &StructuredInfoValue) -> Result<&str, MessagingInfoRefusal> {
     core::str::from_utf8(leaf_bytes(value)?).map_err(|_| MessagingInfoRefusal::MalformedInfo)
 }
 

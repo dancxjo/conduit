@@ -49,7 +49,7 @@ pub enum Command {
     /// Execute repository validation check suites.
     Check(CheckArgs),
     /// Execute platform and protocol proof suites.
-    Prove(ProveArgs),
+    Prove(Box<ProveArgs>),
     /// Print the versioned machine-readable proof command contract.
     Proofs(ProofsArgs),
     /// Verify bounded proof evidence before transport or review.
@@ -179,6 +179,10 @@ pub struct ProveArgs {
     #[arg(long)]
     pub calendar_config_env: Option<String>,
 
+    /// Environment variable containing bounded GitHub messaging proof configuration JSON.
+    #[arg(long)]
+    pub messaging_config_env: Option<String>,
+
     /// Explicit Ollama HTTP endpoint used by the live planning-advice proof.
     #[arg(long)]
     pub ollama_url: Option<String>,
@@ -266,6 +270,7 @@ pub enum ProveTarget {
     LlmEmbodiment,
     LlmCrossHost,
     LlmPlanningAdvice,
+    MessagingGithub,
     PatchbayFrontDoor,
     StdPicoUsb,
     PicoWifiBootstrap,
@@ -557,10 +562,22 @@ mod tests {
         .expect("calendar live proof command parses");
         assert!(matches!(
             calendar.command,
-            Command::Prove(ProveArgs {
-                proof: ProveTarget::CalendarGoogle,
-                ..
-            })
+            Command::Prove(args) if args.proof == ProveTarget::CalendarGoogle
+        ));
+
+        let messaging = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "messaging-github",
+            "--credential-env",
+            "GITHUB_TOKEN",
+            "--messaging-config-env",
+            "MESSAGING_CONFIG",
+        ])
+        .expect("GitHub messaging live proof command parses");
+        assert!(matches!(
+            messaging.command,
+            Command::Prove(args) if args.proof == ProveTarget::MessagingGithub
         ));
 
         let planning_advice = Cli::try_parse_from([
@@ -575,10 +592,7 @@ mod tests {
         .expect("live Ollama planning-advice command parses");
         assert!(matches!(
             planning_advice.command,
-            Command::Prove(ProveArgs {
-                proof: ProveTarget::LlmPlanningAdvice,
-                ..
-            })
+            Command::Prove(args) if args.proof == ProveTarget::LlmPlanningAdvice
         ));
 
         let embodiment = Cli::try_parse_from([
@@ -593,50 +607,35 @@ mod tests {
         .expect("live Ollama embodiment command parses");
         assert!(matches!(
             embodiment.command,
-            Command::Prove(ProveArgs {
-                proof: ProveTarget::LlmEmbodiment,
-                ..
-            })
+            Command::Prove(args) if args.proof == ProveTarget::LlmEmbodiment
         ));
 
         let cross_host = Cli::try_parse_from(["xtask", "prove", "llm-cross-host"])
             .expect("cross-Host LLM proof command parses");
         assert!(matches!(
             cross_host.command,
-            Command::Prove(ProveArgs {
-                proof: ProveTarget::LlmCrossHost,
-                ..
-            })
+            Command::Prove(args) if args.proof == ProveTarget::LlmCrossHost
         ));
 
         let degraded = Cli::try_parse_from(["xtask", "prove", "degraded-profiles"])
             .expect("degraded-profile proof command parses");
         assert!(matches!(
             degraded.command,
-            Command::Prove(ProveArgs {
-                proof: ProveTarget::DegradedProfiles,
-                ..
-            })
+            Command::Prove(args) if args.proof == ProveTarget::DegradedProfiles
         ));
 
         let diversity =
             Cli::try_parse_from(["xtask", "prove", "diversity"]).expect("diversity proof parses");
         assert!(matches!(
             diversity.command,
-            Command::Prove(ProveArgs {
-                proof: ProveTarget::Diversity,
-                ..
-            })
+            Command::Prove(args) if args.proof == ProveTarget::Diversity
         ));
 
         let dormant = Cli::try_parse_from(["xtask", "prove", "dormant-readmission"])
             .expect("dormant-readmission proof parses");
         assert!(matches!(
             dormant.command,
-            Command::Prove(ProveArgs {
-                proof: ProveTarget::DormantReadmission,
-                ..
-            })
+            Command::Prove(args) if args.proof == ProveTarget::DormantReadmission
         ));
 
         let capture_restart = Cli::try_parse_from([
@@ -648,10 +647,7 @@ mod tests {
         .expect("browser capture restart proof parses");
         assert!(matches!(
             capture_restart.command,
-            Command::Prove(ProveArgs {
-                induce_capture_restart_failure: true,
-                ..
-            })
+            Command::Prove(args) if args.induce_capture_restart_failure
         ));
 
         let pre_capture = Cli::try_parse_from([
@@ -663,10 +659,7 @@ mod tests {
         .expect("browser pre-capture failure proof parses");
         assert!(matches!(
             pre_capture.command,
-            Command::Prove(ProveArgs {
-                induce_pre_capture_failure: true,
-                ..
-            })
+            Command::Prove(args) if args.induce_pre_capture_failure
         ));
 
         let proofs = Cli::try_parse_from(["xtask", "--json", "proofs"])

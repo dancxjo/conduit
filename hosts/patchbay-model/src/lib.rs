@@ -74,10 +74,12 @@ mod renderer_inspection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
+mod survival_policy_explanation;
 mod text_lab_explanation;
 mod text_lab_explanation_loss;
 mod theme;
 mod topology;
+mod voyager_capstone_explanation;
 mod zero_body_authoring;
 mod zero_body_front_door;
 mod zero_body_projection;
@@ -213,11 +215,19 @@ pub use route_presentation::{
     DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
     RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
 };
+pub use survival_policy_explanation::{
+    explain_survival_plan_selection, SurvivalPolicyExplanation, SurvivalPolicyExplanationError,
+    MAX_SURVIVAL_POLICY_EXPLANATION_BYTES,
+};
 pub use text_lab_explanation::{
     text_lab_split_explanation, text_lab_split_loss_explanation, TextLabSplitExplanation,
 };
 pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
+pub use voyager_capstone_explanation::{
+    explain_voyager_capstone, VoyagerCapstoneExplanation, VoyagerCapstoneExplanationError,
+    VoyagerScarStageExplanation, MAX_VOYAGER_CAPSTONE_EXPLANATION_BYTES,
+};
 pub use zero_body_front_door::{
     BodyJoinCandidate, OpenedFrontDoorSubject, SeedCandidate, ZeroBodyFrontDoor,
     ZeroBodyFrontDoorProjection, MAX_FRONT_DOOR_BODY_CANDIDATES, MAX_FRONT_DOOR_REFUSAL_SIGNS,

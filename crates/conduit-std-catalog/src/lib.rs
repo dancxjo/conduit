@@ -58,8 +58,12 @@ mod education_catalog;
 pub use education_catalog::*;
 mod messaging;
 pub use messaging::*;
+mod messaging_fixture;
+pub use messaging_fixture::*;
 mod messaging_realization;
 pub use messaging_realization::*;
+mod messaging_view;
+pub use messaging_view::*;
 #[cfg(feature = "form-catalog")]
 mod messaging_catalog;
 #[cfg(feature = "form-catalog")]
@@ -98,6 +102,12 @@ mod finance_catalog;
 pub use finance_catalog::*;
 mod job;
 pub use job::*;
+mod reaction_diffusion;
+pub use reaction_diffusion::*;
+#[cfg(feature = "form-catalog")]
+mod reaction_diffusion_catalog;
+#[cfg(feature = "form-catalog")]
+pub use reaction_diffusion_catalog::*;
 #[cfg(feature = "form-catalog")]
 mod job_catalog;
 #[cfg(feature = "form-catalog")]
