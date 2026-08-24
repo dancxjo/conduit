@@ -1,11 +1,12 @@
 use patchbay_html::{
-    cross_host_demonstration_snapshot, load_seed_sources, text_lab_split_snapshot,
-    PatchbayHtmlServer, SeedSource,
+    cross_host_demonstration_snapshot, llm_documentary_snapshot, load_seed_sources,
+    text_lab_split_snapshot, PatchbayHtmlServer, SeedSource,
 };
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Arguments {
     documentary_fixture: bool,
+    llm_documentary_fixture: bool,
     text_lab_split: Option<String>,
     seeds: Vec<SeedSource>,
 }
@@ -15,11 +16,25 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
     let mut parsed = Arguments::default();
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
-            "--documentary-fixture" if !parsed.documentary_fixture && parsed.seeds.is_empty() => {
+            "--documentary-fixture"
+                if !parsed.documentary_fixture
+                    && !parsed.llm_documentary_fixture
+                    && parsed.text_lab_split.is_none()
+                    && parsed.seeds.is_empty() =>
+            {
                 parsed.documentary_fixture = true;
+            }
+            "--llm-documentary-fixture"
+                if !parsed.documentary_fixture
+                    && !parsed.llm_documentary_fixture
+                    && parsed.text_lab_split.is_none()
+                    && parsed.seeds.is_empty() =>
+            {
+                parsed.llm_documentary_fixture = true;
             }
             "--text-lab-split"
                 if !parsed.documentary_fixture
+                    && !parsed.llm_documentary_fixture
                     && parsed.text_lab_split.is_none()
                     && parsed.seeds.is_empty() =>
             {
@@ -29,7 +44,11 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                         .ok_or("--text-lab-split requires one loopback WebSocket base")?,
                 );
             }
-            "--seed" if !parsed.documentary_fixture && parsed.text_lab_split.is_none() => {
+            "--seed"
+                if !parsed.documentary_fixture
+                    && !parsed.llm_documentary_fixture
+                    && parsed.text_lab_split.is_none() =>
+            {
                 let label = arguments
                     .next()
                     .ok_or("--seed requires a label and canonical .conduit path")?;
@@ -52,6 +71,9 @@ fn main() -> Result<(), String> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
     let server = if arguments.documentary_fixture {
         let snapshot = cross_host_demonstration_snapshot().map_err(|error| error.to_string())?;
+        PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
+    } else if arguments.llm_documentary_fixture {
+        let snapshot = llm_documentary_snapshot()?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else if let Some(base) = arguments.text_lab_split {
         let snapshot = text_lab_split_snapshot(&base)?;
@@ -104,6 +126,23 @@ mod tests {
         assert!(parse_arguments(
             [
                 "--documentary-fixture",
+                "--seed",
+                "Hello",
+                "examples/hello.conduit"
+            ]
+            .into_iter()
+            .map(str::to_owned)
+        )
+        .is_err());
+        assert!(parse_arguments(
+            ["--llm-documentary-fixture", "--documentary-fixture"]
+                .into_iter()
+                .map(str::to_owned)
+        )
+        .is_err());
+        assert!(parse_arguments(
+            [
+                "--llm-documentary-fixture",
                 "--seed",
                 "Hello",
                 "examples/hello.conduit"

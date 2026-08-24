@@ -462,6 +462,9 @@ fn property_belongs_to_aspect(
     aspect: PresentationAspect,
     role: Option<PresentationRole>,
 ) -> bool {
+    if role == Some(PresentationRole::Sign) {
+        return aspect == PresentationAspect::Signs;
+    }
     if !matches!(role, Some(PresentationRole::Gear | PresentationRole::Cord)) {
         return aspect == PresentationAspect::Structure;
     }
@@ -478,6 +481,12 @@ fn property_belongs_to_aspect(
             | "execution-profile-id"
             | "implementation-id"
             | "artifact-id"
+            | "runtime-name"
+            | "runtime-version"
+            | "model-name"
+            | "model-content-id"
+            | "quantization"
+            | "offer-generation"
             | "admitted-capacity"
             | "vector-search-proof-class"
             | "vector-index-resource"
