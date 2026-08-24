@@ -4,6 +4,7 @@ mod bootsel;
 mod capstone_serial;
 mod create_full_stage;
 mod create_hello;
+mod create_lights_stage;
 mod create_listen;
 mod create_motion;
 mod create_power;
@@ -144,6 +145,12 @@ pub enum PicoSubcommand {
         #[arg(long)]
         wheels_clear: bool,
     },
+    /// Run only the Netherwick Create-light pattern, then restore Safe.
+    LightsCreate {
+        /// Confirm that the robot is stopped and physically clear for the attended test.
+        #[arg(long)]
+        wheels_clear: bool,
+    },
     /// Observe Create RX for one second with OE high and UART TX exactly zero.
     ListenCreate,
     /// Run one attended 250 ms wheels-off-floor semantic motion proof.
@@ -211,6 +218,9 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::HelloCreate) => create_hello::run(&args),
         Some(PicoSubcommand::FullCreate { wheels_clear }) => {
             create_full_stage::run(&args, *wheels_clear)
+        }
+        Some(PicoSubcommand::LightsCreate { wheels_clear }) => {
+            create_lights_stage::run(&args, *wheels_clear)
         }
         Some(PicoSubcommand::ListenCreate) => create_listen::run(&args),
         Some(PicoSubcommand::DriveCreate { wheels_off_floor }) => {
