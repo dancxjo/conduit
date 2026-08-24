@@ -12,6 +12,7 @@ mod device;
 mod drive;
 mod mode;
 mod power;
+mod presentation;
 mod safety;
 mod safety_latch;
 
@@ -20,6 +21,7 @@ pub use device::*;
 pub use drive::*;
 pub use mode::*;
 pub use power::*;
+pub use presentation::*;
 pub use safety::*;
 pub use safety_latch::*;
 

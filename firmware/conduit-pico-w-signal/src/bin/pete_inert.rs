@@ -32,6 +32,8 @@ mod create_play;
 mod create_motion;
 #[path = "pete_inert/create_power.rs"]
 mod create_power;
+#[path = "pete_inert/create_presentation.rs"]
+mod create_presentation;
 #[path = "pete_inert/uart_diagnostic.rs"]
 mod uart_diagnostic;
 #[path = "pete_inert/imu_control.rs"]
@@ -238,6 +240,11 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
 
         if create_play::hello_request_matches(request) {
             create_play::serve_hello(class).await;
+            continue;
+        }
+
+        if create_presentation::request_matches(request) {
+            create_presentation::serve(class).await;
             continue;
         }
 

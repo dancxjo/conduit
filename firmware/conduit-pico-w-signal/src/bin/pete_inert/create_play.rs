@@ -21,6 +21,7 @@ pub enum RequestKind {
     None = 0,
     Motion = 1,
     Hello = 2,
+    Presentation = 3,
 }
 
 impl RequestKind {
@@ -28,6 +29,7 @@ impl RequestKind {
         match value {
             1 => Self::Motion,
             2 => Self::Hello,
+            3 => Self::Presentation,
             _ => Self::None,
         }
     }
@@ -285,14 +287,14 @@ pub fn set_kernel_metrics(decisions: u32, signs: u32) {
     KERNEL_SIGNS.store(signs, Ordering::Release);
 }
 
-fn release(generation: u32) {
+pub(crate) fn release(generation: u32) {
     if REQUEST_GENERATION.load(Ordering::Acquire) == generation && snapshot().state.terminal() {
         set_state(RequestState::Idle);
         REQUEST_KIND.store(RequestKind::None as u8, Ordering::Release);
     }
 }
 
-fn timeout(generation: u32) {
+pub(crate) fn timeout(generation: u32) {
     if REQUEST_GENERATION.load(Ordering::Acquire) == generation
         && matches!(snapshot().state, RequestState::Preparing | RequestState::Pending)
     {
