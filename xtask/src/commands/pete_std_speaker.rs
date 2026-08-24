@@ -187,34 +187,36 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
     .expect("fixed melody is within the pinned Create 1 profile");
     let mut execution = prepare_speaker_execution(&plan, &song)
         .map_err(|error| format!("speaker preparation: {error}"))?;
-    let mut speaker = StdSpeakerSerial {
-        provider: &mut provider,
-        read_timeout_ms: args.read_timeout_ms,
-    };
-    let report = run_speaker_execution(&mut execution, &mut speaker);
-    let mut outcome = terminal_outcome(report);
-    let mut post_bound = None;
-    if matches!(report.terminal, SpeakerTerminal::Completed) {
-        let millis = u64::from(song.maximum_completion_ticks)
-            .saturating_mul(1_000)
-            .div_ceil(u64::from(DURATION_TICKS_PER_SECOND))
-            .saturating_add(100);
-        std::thread::sleep(Duration::from_millis(millis));
-        let still_playing = speaker
-            .query_boolean(SONG_PLAYING_PACKET)
-            .map_err(|error| format!("post-bound song observation: {error:?}"))?;
-        post_bound = Some(still_playing);
-        if still_playing {
-            outcome = Outcome::Failed {
-                stage: "post_bound_cleanup",
-                code: "song_still_playing".into(),
-            };
+    let (report, mut outcome, post_bound) = {
+        let mut speaker = StdSpeakerSerial {
+            provider: &mut provider,
+            read_timeout_ms: args.read_timeout_ms,
+        };
+        let report = run_speaker_execution(&mut execution, &mut speaker);
+        let mut outcome = terminal_outcome(report);
+        let mut post_bound = None;
+        if matches!(report.terminal, SpeakerTerminal::Completed) {
+            let millis = u64::from(song.maximum_completion_ticks)
+                .saturating_mul(1_000)
+                .div_ceil(u64::from(DURATION_TICKS_PER_SECOND))
+                .saturating_add(100);
+            std::thread::sleep(Duration::from_millis(millis));
+            let still_playing = speaker
+                .query_boolean(SONG_PLAYING_PACKET)
+                .map_err(|error| format!("post-bound song observation: {error:?}"))?;
+            post_bound = Some(still_playing);
+            if still_playing {
+                outcome = Outcome::Failed {
+                    stage: "post_bound_cleanup",
+                    code: "song_still_playing".into(),
+                };
+            }
         }
-    }
+        (report, outcome, post_bound)
+    };
     // FULL is required to sound Pete's physical Create 1 speaker, but it must
     // never outlive this narrow operation. Restore and observe SAFE even when
     // dispatch, observation, or post-bound cleanup failed.
-    drop(speaker);
     let safe_cleanup = establish_safe(&mut provider, args.read_timeout_ms);
     if let Err(ref error) = safe_cleanup {
         outcome = Outcome::Failed {
