@@ -7,8 +7,9 @@ use std::path::{Path, PathBuf};
 use clap::{Args, Subcommand};
 use conduit_core::ChargingState;
 use conduit_pete::{
-    CreateObservationFailure, CreateObservationSession, CreateOdometryAccumulator,
-    CreateOdometryError, CreatePortableObservation, CreateSensorLoweringError,
+    Create1BatteryNormalizationDisposition, CreateObservationFailure, CreateObservationSession,
+    CreateOdometryAccumulator, CreateOdometryError, CreatePortableObservation,
+    CreateSensorLoweringError,
 };
 use conduit_std_host::std_create_uart::{
     monotonic_millis, StdCreateUartBase, StdCreateUartObservation, StdCreateUartOpenError,
@@ -21,7 +22,7 @@ use crate::commands::pete_std_drive::{self, StdDriveArgs};
 use crate::commands::pete_std_indicator::{self, StdIndicatorArgs};
 use crate::commands::pete_std_speaker::{self, StdSpeakerArgs};
 
-const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-observation-evidence@2";
+const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-observation-evidence@3";
 const MAXIMUM_ID_BYTES: usize = 128;
 const MAXIMUM_PATH_BYTES: usize = 4_096;
 const MAXIMUM_READ_TIMEOUT_MS: u32 = 5_000;
@@ -124,8 +125,11 @@ struct PortableObservation {
     millivolts: u16,
     milliamps: i16,
     temperature_celsius: i8,
-    charge_mah: u16,
-    capacity_mah: u16,
+    reported_charge_mah: u16,
+    reported_capacity_mah: u16,
+    portable_charge_mah: u16,
+    portable_capacity_mah: u16,
+    battery_normalization: &'static str,
     battery_charge_permille: Option<u16>,
     distance_delta_mm: i16,
     angle_delta_degrees: i16,
@@ -268,7 +272,8 @@ fn portable_observation(
     let battery = group
         .charging
         .battery()
-        .expect("session lowering already validated battery consistency");
+        .expect("Create 1 normalization produces a bounded portable battery value");
+    let normalized_battery = group.charging.normalized_battery();
     let (cliff_signal_available, cliff_signals) = group.cliff.signals();
     let mut accumulator = CreateOdometryAccumulator::new();
     let odometry = accumulator.integrate(group.distance_delta_mm, group.angle_delta_degrees)?;
@@ -288,8 +293,11 @@ fn portable_observation(
         millivolts: charging.millivolts,
         milliamps: charging.milliamps,
         temperature_celsius: charging.temperature_celsius,
-        charge_mah: charging.charge_mah,
-        capacity_mah: charging.capacity_mah,
+        reported_charge_mah: normalized_battery.reported.reported_charge_mah,
+        reported_capacity_mah: normalized_battery.reported.reported_capacity_mah,
+        portable_charge_mah: charging.charge_mah,
+        portable_capacity_mah: charging.capacity_mah,
+        battery_normalization: battery_normalization(normalized_battery.disposition),
         battery_charge_permille: battery.map(|battery| battery.charge_permille()),
         distance_delta_mm: group.distance_delta_mm,
         angle_delta_degrees: group.angle_delta_degrees,
@@ -323,6 +331,18 @@ fn failed(
     }
 }
 
+fn battery_normalization(value: Create1BatteryNormalizationDisposition) -> &'static str {
+    match value {
+        Create1BatteryNormalizationDisposition::Exact => "exact",
+        Create1BatteryNormalizationDisposition::ChargeSaturatedToEstimatedCapacity => {
+            "charge_saturated_to_estimated_capacity"
+        }
+        Create1BatteryNormalizationDisposition::EstimatedCapacityUnavailable => {
+            "estimated_capacity_unavailable"
+        }
+    }
+}
+
 fn observation_error_code(error: CreateObservationFailure) -> &'static str {
     use conduit_pete::CreateOiFailure as Protocol;
     match error {
@@ -332,9 +352,6 @@ fn observation_error_code(error: CreateObservationFailure) -> &'static str {
         }
         CreateObservationFailure::Lowering(CreateSensorLoweringError::Semantic(_)) => {
             "semantic_value_invalid"
-        }
-        CreateObservationFailure::Lowering(CreateSensorLoweringError::InconsistentCharge) => {
-            "inconsistent_charge"
         }
         CreateObservationFailure::Protocol(Protocol::ProviderUnavailable) => "provider_unavailable",
         CreateObservationFailure::Protocol(Protocol::WrongUartProfile { .. }) => {

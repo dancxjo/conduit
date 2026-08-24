@@ -7,6 +7,7 @@
 
 #![no_std]
 
+mod battery;
 mod contact_withdrawal;
 mod device;
 mod drive;
@@ -16,6 +17,7 @@ mod presentation;
 mod safety;
 mod safety_latch;
 
+pub use battery::*;
 pub use contact_withdrawal::*;
 pub use device::*;
 pub use drive::*;

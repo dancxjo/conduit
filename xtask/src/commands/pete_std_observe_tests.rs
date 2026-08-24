@@ -36,6 +36,19 @@ fn frame() -> Vec<u8> {
     frame
 }
 
+fn battery_estimate_frame(charge_mah: u16, capacity_mah: u16) -> Vec<u8> {
+    let mut response = frame();
+    response[25..27].copy_from_slice(&charge_mah.to_be_bytes());
+    response[27..29].copy_from_slice(&capacity_mah.to_be_bytes());
+    let checksum = response.len() - 1;
+    response[checksum] = 0;
+    let sum = response
+        .iter()
+        .fold(0_u8, |sum, byte| sum.wrapping_add(*byte));
+    response[checksum] = 0_u8.wrapping_sub(sum);
+    response
+}
+
 fn temp_path(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!(
         "conduit-pete-{name}-{}-{}",
@@ -104,6 +117,46 @@ fn silent_character_device_is_device_no_response_and_still_pauses() {
             cleanup_code: None
         }
     ));
+}
+
+#[test]
+fn create_1_battery_estimate_quirks_are_normalized_and_still_pause() {
+    for (charge_mah, capacity_mah, normalized_charge, normalized_capacity, disposition) in [
+        (
+            2_001,
+            2_000,
+            2_000,
+            2_000,
+            "charge_saturated_to_estimated_capacity",
+        ),
+        (1_000, 0, 0, 0, "estimated_capacity_unavailable"),
+    ] {
+        let mut pty = Pty::open();
+        let path = pty.slave_path.clone();
+        let response = battery_estimate_frame(charge_mah, capacity_mah);
+        let responder = std::thread::spawn(move || {
+            let mut start = [0_u8; 6];
+            pty.master.read_exact(&mut start).unwrap();
+            assert_eq!(start, [128, 131, 148, 2, 0, 34]);
+            pty.master.write_all(&response).unwrap();
+            let mut pause = [0_u8; 2];
+            pty.master.read_exact(&mut pause).unwrap();
+            assert_eq!(pause, [150, 0]);
+        });
+
+        let evidence = execute(&args(path, temp_path("unused"))).unwrap();
+        responder.join().unwrap();
+        match evidence.outcome {
+            Outcome::Observed { observation } => {
+                assert_eq!(observation.reported_charge_mah, charge_mah);
+                assert_eq!(observation.reported_capacity_mah, capacity_mah);
+                assert_eq!(observation.portable_charge_mah, normalized_charge);
+                assert_eq!(observation.portable_capacity_mah, normalized_capacity);
+                assert_eq!(observation.battery_normalization, disposition);
+            }
+            Outcome::Failed { .. } => panic!("canonical Create 1 estimate was refused"),
+        }
+    }
 }
 
 #[test]
