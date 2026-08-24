@@ -9,7 +9,7 @@ use embassy_rp::usb;
 use embassy_usb::class::cdc_acm::CdcAcmClass;
 
 use super::usb::PicoUsbCdcLine;
-pub use crate::remote_error::{RemoteError as UsbLinkError, RemoteResult as UsbLinkResult};
+pub use crate::remote_error::RemoteError as UsbLinkError;
 
 pub struct UsbLinkSession {
     class: CdcAcmClass<'static, usb::Driver<'static, USB>>,

@@ -46,7 +46,9 @@ pub fn init_composite_usb(
 
     let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
     config.manufacturer = Some("Conduit");
-    let (product, serial_number) = if cfg!(feature = "appliance-hil-client") {
+    let (product, serial_number) = if cfg!(feature = "bluetooth-line") {
+        ("Pico W Bluetooth Line", "conduit-pico-w-bluetooth-line")
+    } else if cfg!(feature = "appliance-hil-client") {
         (
             "Pico W Appliance HIL Client",
             "conduit-pico-hil-client",
@@ -101,13 +103,8 @@ pub fn init_sign_usb(
 
     let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
     config.manufacturer = Some("Conduit");
-    if cfg!(feature = "bluetooth-line") {
-        config.product = Some("Pico W Bluetooth Line");
-        config.serial_number = Some("conduit-pico-w-bluetooth-line");
-    } else {
-        config.product = Some("Pico W Signal Minimal");
-        config.serial_number = Some("conduit-pico-w-signal-minimal");
-    }
+    config.product = Some("Pico W Signal Minimal");
+    config.serial_number = Some("conduit-pico-w-signal-minimal");
     config.max_power = 100;
     config.max_packet_size_0 = MAX_PACKET_SIZE;
 

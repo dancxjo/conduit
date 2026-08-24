@@ -177,6 +177,15 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;
 
+#[cfg(feature = "bluetooth-line")]
+#[embassy_executor::task]
+async fn bluetooth_bootsel_task(session_line: usb::PicoUsbCdcLine) -> ! {
+    let mut link_session = usb_link::UsbLinkSession::new(session_line).unwrap();
+    loop {
+        let _ = bootsel::wait_for_request(&mut link_session).await;
+    }
+}
+
 // Vendored CYW43 firmware assets — checked at build time via xtask doctor.
 static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0.bin"
@@ -405,6 +414,7 @@ async fn main(spawner: Spawner) {
 
     #[cfg(feature = "bluetooth-line")]
     {
+        spawner.spawn(bluetooth_bootsel_task(session_line).unwrap());
         cdc.wait_dtr().await;
         bluetooth_line::run(
             &spawner,

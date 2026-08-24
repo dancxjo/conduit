@@ -90,6 +90,7 @@ pub async fn run(
     address_bytes[5] = (address_bytes[5] & 0x3f) | 0xc0;
     let stack = trouble_host::new(controller, &mut resources)
         .set_random_address(Address::random(address_bytes))
+        .set_io_capabilities(IoCapabilities::NoInputNoOutput)
         .build();
     let mut peripheral = stack.peripheral();
     let runner = stack.runner();

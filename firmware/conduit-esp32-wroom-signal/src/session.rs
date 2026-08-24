@@ -10,7 +10,8 @@ use conduit_core::{
 };
 use conduit_wire::{
     LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
-    SessionMessage, SessionRole, decode_session_frame, encode_session_frame_into,
+    SessionMessage, SessionRole, SessionTerminalDisposition, decode_session_frame,
+    encode_session_frame_into,
 };
 use heapless::Vec;
 
@@ -72,6 +73,22 @@ impl ConduitBleSession {
                 )?;
                 self.push_frame(
                     binding.frame(SessionMessage::Delivered { sequence }),
+                    &mut replies,
+                )?;
+            }
+            SessionMessage::InputClosed { .. } => {}
+            SessionMessage::Terminal {
+                disposition,
+                final_sequence,
+            } => {
+                if disposition != SessionTerminalDisposition::Completed {
+                    return Err("unexpected-source-terminal");
+                }
+                self.push_frame(
+                    binding.frame(SessionMessage::Terminal {
+                        disposition,
+                        final_sequence,
+                    }),
                     &mut replies,
                 )?;
             }

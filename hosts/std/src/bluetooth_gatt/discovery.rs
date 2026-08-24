@@ -30,36 +30,35 @@ pub async fn discover_ble_gatt_candidate(
     require_powered(&adapter).await?;
     let service_uuid = configure_discovery(&adapter).await?;
     let expected = Address(expected_address);
-    let expected_device = adapter
-        .device(expected)
-        .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-    if expected_device
-        .is_connected()
-        .await
-        .map_err(|_| BluezBleGattError::DeviceUnavailable)?
-    {
-        let uuids = expected_device
-            .uuids()
-            .await
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?
-            .unwrap_or_default();
-        if !uuids.contains(&service_uuid) {
-            return Err(BluezBleGattError::IncompatibleProfile);
-        }
-        return Ok(BluezBleGattCandidate {
-            address: expected_address,
-            paired: expected_device
-                .is_paired()
-                .await
-                .map_err(|_| BluezBleGattError::DeviceUnavailable)?,
-        });
-    }
-    if adapter
+    let cached = adapter
         .device_addresses()
         .await
-        .map_err(|_| BluezBleGattError::DeviceUnavailable)?
-        .contains(&expected)
-    {
+        .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+    if cached.contains(&expected) {
+        let expected_device = adapter
+            .device(expected)
+            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+        if expected_device
+            .is_connected()
+            .await
+            .map_err(|_| BluezBleGattError::DeviceUnavailable)?
+        {
+            let uuids = expected_device
+                .uuids()
+                .await
+                .map_err(|_| BluezBleGattError::DeviceUnavailable)?
+                .unwrap_or_default();
+            if !uuids.contains(&service_uuid) {
+                return Err(BluezBleGattError::IncompatibleProfile);
+            }
+            return Ok(BluezBleGattCandidate {
+                address: expected_address,
+                paired: expected_device
+                    .is_paired()
+                    .await
+                    .map_err(|_| BluezBleGattError::DeviceUnavailable)?,
+            });
+        }
         if let Some(candidate) = inspect_candidate(&adapter, expected, service_uuid).await? {
             return Ok(candidate);
         }

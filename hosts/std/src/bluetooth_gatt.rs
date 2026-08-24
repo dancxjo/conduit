@@ -69,10 +69,20 @@ pub struct BluezBleGattCandidate {
 pub struct BluezBleGattLine {
     address: Address,
     profile: BleGattProfile,
-    write: CharacteristicWriter,
-    indicate: CharacteristicReader,
+    write: BleGattWrite,
+    indicate: BleGattIndicate,
     send_sequence: u8,
     reassembler: BleReassembler,
+}
+
+enum BleGattWrite {
+    Remote(Characteristic),
+    Local(CharacteristicWriter),
+}
+
+enum BleGattIndicate {
+    Remote(Pin<Box<dyn futures::Stream<Item = Vec<u8>> + Send>>),
+    Local(CharacteristicReader),
 }
 
 pub struct BluezBleGattListener {
@@ -212,8 +222,8 @@ impl BluezBleGattListener {
         Ok(BluezBleGattLine {
             address: expected_address,
             profile: self.profile,
-            write: writer.expect("checked finite writer slot"),
-            indicate: reader.expect("checked finite reader slot"),
+            write: BleGattWrite::Local(writer.expect("checked finite writer slot")),
+            indicate: BleGattIndicate::Local(reader.expect("checked finite reader slot")),
             send_sequence: 0,
             reassembler: BleReassembler::new(self.profile),
         })
@@ -361,24 +371,30 @@ impl BluezBleGattLine {
             indicate_characteristic.ok_or(BluezBleGattError::MissingIndicateCharacteristic)?;
         validate_characteristics(&write_characteristic, &indicate_characteristic).await?;
 
-        let write = write_characteristic
-            .write_io()
+        let write_mtu = write_characteristic
+            .mtu()
             .await
-            .map_err(|_| BluezBleGattError::CharacteristicContractMismatch)?;
-        let indicate = indicate_characteristic
-            .notify_io()
+            .map_err(|_| BluezBleGattError::MtuMismatch)?;
+        let indicate_mtu = indicate_characteristic
+            .mtu()
             .await
-            .map_err(|_| BluezBleGattError::CharacteristicContractMismatch)?;
+            .map_err(|_| BluezBleGattError::MtuMismatch)?;
         let required_mtu = usize::from(profile.maximum_gatt_packet_bytes);
-        if write.mtu() < required_mtu || indicate.mtu() < required_mtu {
+        if write_mtu < required_mtu || indicate_mtu < required_mtu {
             return Err(BluezBleGattError::MtuMismatch);
         }
+        let indicate = Box::pin(
+            indicate_characteristic
+                .notify()
+                .await
+                .map_err(|_| BluezBleGattError::CharacteristicContractMismatch)?,
+        );
 
         Ok(Self {
             address,
             profile,
-            write,
-            indicate,
+            write: BleGattWrite::Remote(write_characteristic),
+            indicate: BleGattIndicate::Remote(indicate),
             send_sequence: 0,
             reassembler: BleReassembler::new(profile),
         })
@@ -400,10 +416,15 @@ impl BluezBleGattLine {
             let length =
                 encode_fragment(frame, self.send_sequence, index, self.profile, &mut packet)
                     .map_err(|_| BluezBleGattError::OversizedFrame)?;
-            self.write
-                .send(&packet[..length])
-                .await
-                .map_err(map_io_error)?;
+            match &mut self.write {
+                BleGattWrite::Remote(write) => write
+                    .write(&packet[..length])
+                    .await
+                    .map_err(|_| BluezBleGattError::Transport)?,
+                BleGattWrite::Local(write) => {
+                    write.send(&packet[..length]).await.map_err(map_io_error)?
+                }
+            }
         }
         self.send_sequence = self.send_sequence.wrapping_add(1);
         Ok(())
@@ -413,25 +434,44 @@ impl BluezBleGattLine {
         if output.len() < usize::try_from(self.profile.maximum_frame_bytes).unwrap_or(usize::MAX) {
             return Err(BluezBleGattError::OutputTooSmall);
         }
-        let mut packet = [0_u8; 517];
         loop {
-            let count = self
-                .indicate
-                .read(&mut packet)
-                .await
-                .map_err(map_io_error)?;
-            if count == 0 {
-                return Err(BluezBleGattError::Disconnected);
-            }
+            let mut local_packet = [0_u8; 517];
+            let packet = match &mut self.indicate {
+                BleGattIndicate::Remote(indicate) => indicate
+                    .next()
+                    .await
+                    .ok_or(BluezBleGattError::Disconnected)?,
+                BleGattIndicate::Local(indicate) => {
+                    let count = indicate
+                        .read(&mut local_packet)
+                        .await
+                        .map_err(map_io_error)?;
+                    if count == 0 {
+                        return Err(BluezBleGattError::Disconnected);
+                    }
+                    local_packet[..count].to_vec()
+                }
+            };
             let completed = self
                 .reassembler
-                .admit(&packet[..count])
+                .admit(&packet)
                 .map_err(|_| BluezBleGattError::Transport)?;
             if let Some(frame) = completed {
                 output[..frame.len()].copy_from_slice(frame);
                 return Ok(frame.len());
             }
         }
+    }
+}
+
+fn map_io_error(error: std::io::Error) -> BluezBleGattError {
+    match error.kind() {
+        std::io::ErrorKind::BrokenPipe
+        | std::io::ErrorKind::ConnectionAborted
+        | std::io::ErrorKind::ConnectionReset
+        | std::io::ErrorKind::NotConnected
+        | std::io::ErrorKind::UnexpectedEof => BluezBleGattError::Disconnected,
+        _ => BluezBleGattError::Transport,
     }
 }
 
@@ -451,15 +491,4 @@ async fn validate_characteristics(
         return Err(BluezBleGattError::CharacteristicContractMismatch);
     }
     Ok(())
-}
-
-fn map_io_error(error: std::io::Error) -> BluezBleGattError {
-    match error.kind() {
-        std::io::ErrorKind::BrokenPipe
-        | std::io::ErrorKind::ConnectionAborted
-        | std::io::ErrorKind::ConnectionReset
-        | std::io::ErrorKind::NotConnected
-        | std::io::ErrorKind::UnexpectedEof => BluezBleGattError::Disconnected,
-        _ => BluezBleGattError::Transport,
-    }
 }
