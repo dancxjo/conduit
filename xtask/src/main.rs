@@ -35,6 +35,7 @@ fn main() {
         Command::Evidence(args) => commands::evidence::run(args),
         Command::Doctor(args) => commands::doctor::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        Command::Esp32Firmware(args) => commands::esp32_firmware::run(args, &opts),
         Command::Pico(mut args) => run_pico(&opts, &mut args, false),
         Command::Host(args) => commands::host::run(args, &opts),
         Command::PicoLocal(mut args) => run_pico(&opts, &mut args, true),

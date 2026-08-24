@@ -187,8 +187,39 @@ jobs:
       - name: Run ${{ matrix.shard }} workspace check shard
         run: cargo xtask check workspace-${{ matrix.shard }} --locked
 
+  esp32-firmware:
+    needs: classify
+    if: always() && needs.classify.outputs.docs_only != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install the pinned Xtensa Rust toolchain
+        uses: esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4
+        with:
+          buildtargets: esp32
+          default: false
+          ldproxy: false
+          version: "1.91.1.0"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: firmware/conduit-esp32-wroom-signal
+          shared-key: esp32-wroom-v1
+      - name: Check the locked standalone architecture package
+        run: cargo xtask esp32-firmware check --locked
+      - name: Retain the machine-only check receipt
+        uses: actions/upload-artifact@v7
+        with:
+          name: esp32-firmware-check-${{ github.sha }}
+          path: target/esp32-firmware/check-receipt.json
+          if-no-files-found: error
+          retention-days: 14
+
   check:
-    needs: [classify, workspace-check]
+    needs: [classify, workspace-check, esp32-firmware]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -197,10 +228,12 @@ jobs:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
           WORKSPACE_RESULT: ${{ needs.workspace-check.result }}
+          ESP32_RESULT: ${{ needs.esp32-firmware.result }}
         run: |
           test "$CLASSIFY_RESULT" = success
           if test "$DOCS_ONLY" != true; then
             test "$WORKSPACE_RESULT" = success
+            test "$ESP32_RESULT" = success
           fi
 
   browser-tools:
