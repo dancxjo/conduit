@@ -19,7 +19,8 @@ use crate::{create_link_gate, uart_diagnostic};
 const START_SETTLE_MS: u64 = 250;
 const MODE_SETTLE_MS: u64 = 100;
 const LINK_FRESHNESS_MS: u64 = 1_000;
-const REACQUIRE_COOLDOWN_MS: u64 = 500;
+const ACQUISITION_CONFIRM_MS: u64 = 200;
+const REACQUIRE_COOLDOWN_MS: u64 = 50;
 const FULL_REFRESH_MS: u64 = 1_000;
 const WATCHDOG_TIMEOUT_MS: u64 = 2_000;
 const WATCHDOG_FEED_MS: u64 = 250;
@@ -156,9 +157,6 @@ async fn play_ready_cue(provider: &mut Provider, watchdog: &mut Watchdog) -> Res
     if !create_link_gate::authorized() {
         return Err(());
     }
-    if READY_CUE_PLAYED.load(Ordering::Acquire) {
-        return Ok(());
-    }
     provider.write_all(&READY_CUE_DEFINE).map_err(|_| ())?;
     watchdog_delay(watchdog, 20).await;
     provider.write_all(&READY_CUE_PLAY).map_err(|_| ())?;
@@ -187,6 +185,10 @@ async fn acquire(provider: &mut Provider, watchdog: &mut Watchdog) -> Result<(),
     if !create_link_gate::authorized() {
         return Err(());
     }
+    // This bounded diagnostic cue is deliberately sent after each Full
+    // assertion, before RX verification. Hearing it proves the Create accepted
+    // the TX-side mode transition; it never grants motion authority.
+    play_ready_cue(provider, watchdog).await?;
     let stream = encode_sensor_stream(35).map_err(|_| ())?;
     write_command(provider, &stream).map_err(|_| ())
 }
@@ -415,7 +417,7 @@ pub async fn task(
         if confirm_full_mode(
             &mut provider,
             &mut watchdog,
-            Instant::now() + Duration::from_millis(LINK_FRESHNESS_MS),
+            Instant::now() + Duration::from_millis(ACQUISITION_CONFIRM_MS),
         )
         .await
         .is_err()
@@ -425,11 +427,6 @@ pub async fn task(
             if !create_link_gate::authorized() {
                 create_link_gate::set_translator(&mut translator_oe, false);
             }
-            watchdog_delay(&mut watchdog, REACQUIRE_COOLDOWN_MS).await;
-            continue;
-        }
-        if play_ready_cue(&mut provider, &mut watchdog).await.is_err() {
-            STATE.store(State::UartFault as u8, Ordering::Release);
             watchdog_delay(&mut watchdog, REACQUIRE_COOLDOWN_MS).await;
             continue;
         }
