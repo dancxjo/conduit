@@ -61,6 +61,19 @@ fn exact_profile_and_wheel_order_are_enforced() {
 }
 
 #[test]
+fn create_1_v2_profile_and_led_bits_are_exact() {
+    assert_eq!(CREATE_1_OI_PROTOCOL_VERSION, 2);
+    assert_eq!(CREATE_OI_BAUD, 57_600);
+    assert_eq!(CREATE_1_PLAY_LED_MASK, 0x02);
+    assert_eq!(CREATE_1_ADVANCE_LED_MASK, 0x08);
+    assert_eq!(CREATE_1_LED_MASK, 0x0a);
+    assert_eq!(
+        encode_lights(0xff, 128, 255).as_bytes(),
+        &[139, 0x0a, 128, 255]
+    );
+}
+
+#[test]
 fn frames_are_finite_checked_and_not_promoted_when_corrupt() {
     let valid = frame(7, &[0b0000_0011]);
     assert_eq!(decode_stream_frame(7, &valid).unwrap().bytes(), &[3]);

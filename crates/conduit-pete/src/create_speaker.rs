@@ -12,9 +12,6 @@ use conduit_core::{
     OfferGeneration, RealizationAdvertisement, PROTOCOL_VERSION,
 };
 
-pub const CREATE_1_OI_SPECIFICATION: &str = "iRobot Create Open Interface v2";
-pub const CREATE_1_OI_SPECIFICATION_URL: &str =
-    "https://ptolemy.berkeley.edu/projects/chess/eecs124/iRobotDocs/CreateOpenInterface_v2.pdf";
 pub const SONG_OPCODE: u8 = 140;
 pub const PLAY_SONG_OPCODE: u8 = 141;
 pub const DRIVE_OPCODE: u8 = 137;

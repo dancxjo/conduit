@@ -117,7 +117,10 @@ const BRINGUP_STAGE_IMU: u8 = 2;
 const BRINGUP_STAGE_CREATE_FULL: u8 = 3;
 const BRINGUP_STAGE_LIGHTS: u8 = 4;
 const BRINGUP_STAGE_PRESENTATION: u8 = 5;
-const BRINGUP_STAGE: u8 = BRINGUP_STAGE_LIGHTS;
+// Unexpected physical rotation during the attended light-only stage invalidated
+// further Create actuation. Keep future builds below every Create UART stage
+// until the translated link has a separately reviewed recovery issue.
+const BRINGUP_STAGE: u8 = BRINGUP_STAGE_IMU;
 
 fn usb_device(
     driver: usb::Driver<'static, USB>,

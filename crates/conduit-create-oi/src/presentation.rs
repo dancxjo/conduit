@@ -1,4 +1,4 @@
-//! Exact bounded Create OI music and indicator presentation.
+//! Exact bounded Create 1 OI v2 music and indicator presentation.
 //!
 //! This mechanism program is intentionally motion-free even if UART command
 //! alignment is lost: neither Create drive opcode occurs anywhere in any
@@ -23,7 +23,13 @@ pub const PRESENTATION_DEFINE_SONG: [u8; 35] = [
 /// Match Netherwick's healthy Brainstem presentation: alternate PLAY and
 /// ADVANCE while keeping the POWER LED at color 128 and full intensity.
 pub const fn presentation_lights(step: u8) -> [u8; 4] {
-    let led_bits = if step & 1 == 0 { 1 << 1 } else { 1 << 3 };
+    // These are Create 1 LED-command bits. The Create 1 button sensor packet
+    // uses different bit positions and must not be used as an LED reference.
+    let led_bits = if step & 1 == 0 {
+        crate::CREATE_1_PLAY_LED_MASK
+    } else {
+        crate::CREATE_1_ADVANCE_LED_MASK
+    };
     [139, led_bits, 128, 255]
 }
 
@@ -88,6 +94,14 @@ mod tests {
         assert_eq!(presentation_lights(6), [139, 2, 128, 255]);
         assert_eq!(presentation_lights(7), [139, 8, 128, 255]);
         assert_eq!(PRESENTATION_LIGHT_STEP_MS, 800);
+    }
+
+    #[test]
+    fn program_is_pinned_to_create_1_oi_v2() {
+        assert_eq!(crate::CREATE_1_OI_PROTOCOL_VERSION, 2);
+        assert_eq!(crate::CREATE_OI_BAUD, 57_600);
+        assert_eq!(crate::CREATE_1_PLAY_LED_MASK, 0x02);
+        assert_eq!(crate::CREATE_1_ADVANCE_LED_MASK, 0x08);
     }
 
     #[test]

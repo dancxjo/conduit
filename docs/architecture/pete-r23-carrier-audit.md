@@ -20,7 +20,7 @@ carrier is R23. R24 does not exist yet; any future R24 is outside this audit.
 | IMU SCL | GP3, physical pin 5 | `IMU_SCL` -> GY-521 pad 3 and OLED pad 3 |
 | Create power toggle | GP18, physical pin 24 | TXS0108E LV7/HV7 -> cargo-bay pin 3 |
 | Translator enable | GP19, physical pin 25 | `TXS_OE_CTRL` -> TXS0108E OE, with 10 kohm pull-down to ground |
-| Charging indication | GP17, physical pin 22 | cargo-bay pin 13 -> TXS0108E HV8/LV8 -> `CHARGING_3V3` |
+| Charging indication | GP20, physical pin 26 | cargo-bay pin 13 -> TXS0108E HV8/LV8 -> `CHARGING_3V3` |
 
 The R23 GY-521 socket routes pad 1 to `+3V3`, pad 2 to ground, pad 3 to
 SCL, pad 4 to SDA, and pad 7 (AD0) to ground. If the installed module follows
@@ -28,8 +28,39 @@ the footprint, its selected I2C address is therefore `0x68`.
 
 The current Conduit firmware uses the same R23 GPIO assignments: UART0 on
 GP0/GP1, I2C1 on GP2/GP3, power toggle on GP18, translator OE on GP19, and the
-active-high charging input on GP17. A pin-number mismatch does not explain the
-observed symptoms on the installed R23 carrier.
+active-high charging input on GP20. The earlier GP17 documentation was wrong;
+the supplied R23 PCB and current firmware both use Pico physical pin 26, GP20.
+A pin-number mismatch does not explain the Create UART event recorded below.
+
+## Create model and OI version
+
+Pete's installed robot is the original **Create 1**. Its protocol contract is
+**iRobot Create Open Interface v2**, at 57,600 baud, 8 data bits, no parity, and
+one stop bit. This is not the later Create 2 contract.
+
+The presentation bytes were cross-checked against both the iRobot Create 1 OI
+v2 specification and AutonomyLab's independent `CREATE_1` model in `libcreate`
+at commit `116be443e7970de1574b5dc5f91e414828854c08`:
+
+| Operation | Create 1 OI v2 encoding |
+|---|---|
+| Start | opcode 128 |
+| Safe | opcode 131 |
+| Full | opcode 132 |
+| LEDs | opcode 139 plus three data bytes |
+| Song / Play | opcodes 140 / 141 |
+| Drive / Drive Direct | opcodes 137 / 145 |
+| Play LED | LED-command mask `0x02` (bit 1) |
+| Advance LED | LED-command mask `0x08` (bit 3) |
+
+Create 1's button sensor packet uses Play bit 0 and Advance bit 2. Those button
+positions are not the LED-command positions. AutonomyLab names the same generic
+LED mask values after Create 2 panel labels, but its Create 1 model is protocol
+V2 at 57,600 baud and emits the same opcode-139 four-byte command.
+
+The shared Conduit codec now pins these Create 1 identities and strips LED bits
+outside `0x0a`, preventing a later Create/Roomba LED layout from entering this
+Create 1 path.
 
 ## Findings and risks
 
@@ -132,6 +163,26 @@ The pull-up removed the earlier framing-error storm but did not recover the
 Create response. The evidence now separates a working outbound command path
 from an unresolved translated return path.
 
+### Unexpected rotation during the light-only stage
+
+Later in the attended session, exact build
+`c7118f9c5f70409b478a8eb233c180bda9777daa` requested Start, Full, eight bounded
+opcode-139 light commands, lights off, then Start and Safe. The reviewed
+program contained neither drive opcode 137 nor Drive Direct opcode 145 at any
+byte position. The attending user nevertheless observed physical rotation.
+
+That observation invalidates the stage as a no-motion HIL proof. It does not
+prove an OI-version mismatch: the transmitted opcodes, 57,600 baud profile, and
+LED masks match Create 1 OI v2 and AutonomyLab's Create 1 model. It does prove
+that nominal byte review is insufficient on the unresolved translated UART
+boundary. Corrupt framing, electrical mutation, and unobserved robot state
+remain hypotheses rather than conclusions.
+
+Transmission stopped, the robot was physically isolated, and no music stage
+was attempted. The firmware build default is returned to the IMU-only stage;
+the Create Full, light, and presentation entrances are not authorized for
+another physical run by this note.
+
 ## Required checks before another design conclusion
 
 1. Preserve the exact R23 KiCad PCB and schematic in the hardware-design
@@ -156,5 +207,10 @@ from an unresolved translated return path.
 
 ## Component references
 
+- [iRobot Create Open Interface v2 specification](https://ptolemy.berkeley.edu/projects/chess/eecs124/iRobotDocs/CreateOpenInterface_v2.pdf)
+- [AutonomyLab libcreate Create 1 model](https://github.com/AutonomyLab/libcreate/blob/116be443e7970de1574b5dc5f91e414828854c08/src/types.cpp)
+- [AutonomyLab libcreate LED masks](https://github.com/AutonomyLab/libcreate/blob/116be443e7970de1574b5dc5f91e414828854c08/include/create/create.h)
+- [AutonomyLab libcreate LED encoder](https://github.com/AutonomyLab/libcreate/blob/116be443e7970de1574b5dc5f91e414828854c08/src/create.cpp)
+- [AutonomyLab Create 1 launch selection](https://github.com/AutonomyLab/create_robot/blob/5e2215bda34b15e2d5d5ea4ede8bb9d2cf9003f0/create_bringup/launch/create_1.launch)
 - [TI TXS0108E product page and data sheet](https://www.ti.com/product/TXS0108E)
 - [TDK InvenSense MPU-6000/MPU-6050 product specification](https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf)
