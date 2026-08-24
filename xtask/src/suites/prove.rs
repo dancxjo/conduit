@@ -1,5 +1,16 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_DIVERSITY_STEPS: &[Step] = &[Step::typed(
+    "prove.diversity.mechanism-and-line-path",
+    "Prove exact mechanism and Line-path diversity through immutable ordinary Plans",
+    "cargo",
+    &["test", "-p", "conduit-planner", "--test", "diversity"],
+    None,
+    None,
+    Some(ProofClass::DeterministicUnit),
+    &[],
+)];
+
 pub const PROVE_DEGRADED_PROFILES_STEPS: &[Step] = &[
     Step::typed(
         "prove.degraded-profiles.admission",

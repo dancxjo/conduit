@@ -260,6 +260,7 @@ pub enum ProveTarget {
     BrowserHost,
     CalendarGoogle,
     DegradedProfiles,
+    Diversity,
     LlmEmbodiment,
     LlmCrossHost,
     LlmPlanningAdvice,
@@ -612,6 +613,16 @@ mod tests {
             degraded.command,
             Command::Prove(ProveArgs {
                 proof: ProveTarget::DegradedProfiles,
+                ..
+            })
+        ));
+
+        let diversity =
+            Cli::try_parse_from(["xtask", "prove", "diversity"]).expect("diversity proof parses");
+        assert!(matches!(
+            diversity.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::Diversity,
                 ..
             })
         ));
