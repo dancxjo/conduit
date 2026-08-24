@@ -41,11 +41,11 @@ pub(super) async fn connect(
     } else {
         false
     };
+    let address = Address(address);
+    let device = adapter
+        .device(address)
+        .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
     let result = async {
-        let address = Address(address);
-        let device = adapter
-            .device(address)
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
         // Install the exact headless pairing policy before the first physical
         // connection. Service resolution may itself encounter an encrypted
         // characteristic and must never race ahead of this process's agent.
@@ -160,6 +160,12 @@ pub(super) async fn connect(
         })
     }
     .await;
+    if allow_pairing && result.is_err() {
+        // A failed Pair call can leave BlueZ's physical connection alive even
+        // after the D-Bus operation is canceled. Release only this exact peer
+        // within a finite cleanup bound so the peripheral can close honestly.
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(5), device.disconnect()).await;
+    }
     if restore_pairable {
         adapter
             .set_pairable(false)
