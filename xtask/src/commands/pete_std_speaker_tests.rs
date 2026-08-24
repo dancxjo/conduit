@@ -50,6 +50,10 @@ fn exact_std_path_runs_portable_plan_and_only_speaker_bytes() {
         pty.master.write_all(&[1]).unwrap();
         read_exact(&mut pty.master, &[142, 37]);
         pty.master.write_all(&[0]).unwrap();
+        read_exact(&mut pty.master, &[128]);
+        read_exact(&mut pty.master, &[131]);
+        read_exact(&mut pty.master, &[142, 35]);
+        pty.master.write_all(&[2]).unwrap();
         // Keep both PTY ends alive until the command has consumed the final
         // byte. Closing the master immediately after writing can surface HUP
         // before the slave drains the response on Linux.
@@ -60,6 +64,8 @@ fn exact_std_path_runs_portable_plan_and_only_speaker_bytes() {
     responder.join().unwrap();
     assert!(matches!(evidence.outcome, Outcome::Completed));
     assert_eq!(evidence.post_bound_song_playing, Some(false));
+    assert_eq!(evidence.final_oi_mode, "safe");
+    assert!(evidence.safe_cleanup_completed);
     assert!(!evidence.motion_authority_granted);
     assert!(evidence.kernel_decisions > 0);
     assert!(evidence.kernel_signs > 0);
@@ -70,6 +76,42 @@ fn exact_std_path_runs_portable_plan_and_only_speaker_bytes() {
             .to_ascii_lowercase()
             .contains(forbidden));
     }
+}
+
+#[test]
+fn failed_safe_cleanup_is_never_reported_as_completed() {
+    let mut pty = Pty::open();
+    let path = pty.slave_path.clone();
+    let responder = std::thread::spawn(move || {
+        read_exact(&mut pty.master, &[128]);
+        read_exact(&mut pty.master, &[132]);
+        read_exact(&mut pty.master, &[142, 35]);
+        pty.master.write_all(&[3]).unwrap();
+        read_exact(&mut pty.master, &[140, 2, 4, 60, 32, 64, 32, 0, 12, 67, 40]);
+        read_exact(&mut pty.master, &[141, 2]);
+        read_exact(&mut pty.master, &[142, 36]);
+        pty.master.write_all(&[2]).unwrap();
+        read_exact(&mut pty.master, &[142, 37]);
+        pty.master.write_all(&[1]).unwrap();
+        read_exact(&mut pty.master, &[142, 37]);
+        pty.master.write_all(&[0]).unwrap();
+        read_exact(&mut pty.master, &[128]);
+        read_exact(&mut pty.master, &[131]);
+        read_exact(&mut pty.master, &[142, 35]);
+        // The device claims it remained FULL after the mandatory SAFE request.
+        pty.master.write_all(&[3]).unwrap();
+    });
+    let evidence = execute(&args(path, temp_path("unused-cleanup-failure"))).unwrap();
+    responder.join().unwrap();
+    assert!(matches!(
+        evidence.outcome,
+        Outcome::Failed {
+            stage: "restore_safe",
+            ..
+        }
+    ));
+    assert_eq!(evidence.final_oi_mode, "unknown");
+    assert!(!evidence.safe_cleanup_completed);
 }
 
 #[test]

@@ -22,7 +22,7 @@ use conduit_std_host::std_create_uart::{
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
-use crate::commands::pete_std_create::{establish_full, write_new_atomic};
+use crate::commands::pete_std_create::{establish_full, establish_safe, write_new_atomic};
 
 const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-speaker-evidence@1";
 const MAXIMUM_ID_BYTES: usize = 128;
@@ -70,6 +70,8 @@ struct Evidence {
     robot_identity: RobotIdentityEvidence,
     base: BaseEvidence,
     observed_oi_mode: &'static str,
+    final_oi_mode: &'static str,
+    safe_cleanup_completed: bool,
     speaker_authority: &'static str,
     speaker_implementation: &'static str,
     motion_authority_granted: bool,
@@ -113,7 +115,7 @@ pub fn run(args: StdSpeakerArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would attest robot {}, establish FULL OI over {}, and play one bounded portable melody",
+                "would attest robot {}, establish FULL OI over {}, play one bounded portable melody, and verify SAFE cleanup",
                 args.robot_id,
                 args.serial_path.display()
             );
@@ -209,6 +211,17 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
             };
         }
     }
+    // FULL is required to sound Pete's physical Create 1 speaker, but it must
+    // never outlive this narrow operation. Restore and observe SAFE even when
+    // dispatch, observation, or post-bound cleanup failed.
+    drop(speaker);
+    let safe_cleanup = establish_safe(&mut provider, args.read_timeout_ms);
+    if let Err(ref error) = safe_cleanup {
+        outcome = Outcome::Failed {
+            stage: "restore_safe",
+            code: error.clone(),
+        };
+    }
     Ok(Evidence {
         schema: EVIDENCE_SCHEMA,
         proof_class: "live_std_create_speaker_machine_evidence",
@@ -231,6 +244,12 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
             parity: "none",
         },
         observed_oi_mode: "full",
+        final_oi_mode: if safe_cleanup.is_ok() {
+            "safe"
+        } else {
+            "unknown"
+        },
+        safe_cleanup_completed: safe_cleanup.is_ok(),
         speaker_authority: SPEAKER_AUTHORITY,
         speaker_implementation: SPEAKER_IMPLEMENTATION,
         motion_authority_granted: false,
