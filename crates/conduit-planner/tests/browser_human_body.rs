@@ -165,7 +165,7 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
             line_candidates: &line_candidates,
             connection_item_capacity: 1,
             connection_byte_capacity: 64 * 1024,
-            authority_grants: &[use_grant.clone()],
+            authority_grants: std::slice::from_ref(&use_grant),
             protected_resource_grants: &[],
             line_offers: &[line],
         },
