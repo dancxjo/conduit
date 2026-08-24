@@ -1,3 +1,7 @@
+use crate::protected_task::{
+    PreparedProtectedTask, ProtectedTaskAdapter, ProtectedTaskIdentity, ProtectedTaskReceipt,
+    StopRequest, TaskProgress,
+};
 use conduit_core::{
     CapabilityId, GearId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ResourceBindingRoleId, ResourceHandleId,
@@ -8,7 +12,6 @@ use conduit_std_host::{
 };
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
-use std::sync::mpsc::{self, TryRecvError};
 use std::time::Duration;
 
 const COPY_FORM_SOURCE: &str = "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task > show\n}\n";
@@ -31,13 +34,51 @@ struct Arguments {
     inspect: bool,
 }
 
-struct PreparedTask {
+struct CopyTaskAdapter {
     host: StdHost,
-    form: conduit_form::CheckedForm,
-    plan: conduit_core::Plan,
     fragment: conduit_core::PlanFragment,
     registry: ProtectedFileRegistry,
     stop: CopyStopToken,
+}
+
+type PreparedTask = PreparedProtectedTask<CopyTaskAdapter>;
+
+impl ProtectedTaskReceipt for CopyRunReceipt {
+    fn request_id(&self) -> &str {
+        self.request_id.as_str()
+    }
+
+    fn plan_id(&self) -> &conduit_core::PlanId {
+        &self.plan_id
+    }
+
+    fn play_id(&self) -> &conduit_core::ActivePlayId {
+        &self.run_id
+    }
+}
+
+impl StopRequest for CopyStopToken {
+    fn request_stop(&self) {
+        CopyStopToken::request_stop(self);
+    }
+}
+
+impl ProtectedTaskAdapter for CopyTaskAdapter {
+    type Receipt = CopyRunReceipt;
+    type Stop = CopyStopToken;
+
+    fn stop(&self) -> Self::Stop {
+        self.stop.clone()
+    }
+
+    fn execute(mut self, identity: &ProtectedTaskIdentity) -> Result<Self::Receipt, String> {
+        self.host.run_copy_fragment(
+            CopyRequestId::new(identity.request_id.clone())?,
+            self.fragment,
+            &mut self.registry,
+            &self.stop,
+        )
+    }
 }
 
 pub(crate) fn run(raw_arguments: Vec<String>) -> Result<(), String> {
@@ -47,8 +88,8 @@ pub(crate) fn run(raw_arguments: Vec<String>) -> Result<(), String> {
     render_readiness(&mut stdout, &arguments, &task)?;
 
     if arguments.run_without_prompt {
-        let inspect_form = task.form.clone();
-        let inspect_plan = task.plan.clone();
+        let inspect_form = task.form().clone();
+        let inspect_plan = task.plan().clone();
         writeln!(stdout, "Running now.").map_err(|error| error.to_string())?;
         let receipt = execute(task)?;
         render_result(&mut stdout, &receipt)?;
@@ -79,17 +120,13 @@ pub(crate) fn run(raw_arguments: Vec<String>) -> Result<(), String> {
         return Ok(());
     }
 
-    let inspect_form = task.form.clone();
-    let inspect_plan = task.plan.clone();
-    let stop = task.stop.clone();
+    let inspect_form = task.form().clone();
+    let inspect_plan = task.plan().clone();
     writeln!(stdout, "Running. Type 'stop' and press Enter to Stop.")
         .map_err(|error| error.to_string())?;
     stdout.flush().map_err(|error| error.to_string())?;
-    let (result_sender, result_receiver) = mpsc::sync_channel(1);
-    std::thread::spawn(move || {
-        let _ = result_sender.send(execute(task));
-    });
-    let (input_sender, input_receiver) = mpsc::sync_channel(1);
+    let running = task.spawn();
+    let (input_sender, input_receiver) = std::sync::mpsc::sync_channel(1);
     std::thread::spawn(move || {
         let stdin = io::stdin();
         for line in stdin.lock().lines() {
@@ -99,16 +136,13 @@ pub(crate) fn run(raw_arguments: Vec<String>) -> Result<(), String> {
         }
     });
     let receipt = loop {
-        match result_receiver.try_recv() {
-            Ok(result) => break result?,
-            Err(TryRecvError::Disconnected) => {
-                return Err("copy worker ended without a result".to_string());
-            }
-            Err(TryRecvError::Empty) => {}
+        match running.try_receipt()? {
+            TaskProgress::Complete(receipt) => break receipt,
+            TaskProgress::Running => {}
         }
         if let Ok(input) = input_receiver.try_recv() {
             if input.trim().eq_ignore_ascii_case("stop") {
-                stop.request_stop();
+                running.request_stop();
                 writeln!(
                     stdout,
                     "Stop requested; finishing the current bounded step."
@@ -286,23 +320,25 @@ fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
         ProtectedFileAvailability::Available,
     )?;
     let prepared = prepare_copy_task(&host, &[source, destination])?;
-    Ok(PreparedTask {
-        host,
-        form: prepared.form,
-        plan: prepared.plan,
-        fragment: prepared.fragment,
-        registry,
-        stop: CopyStopToken::default(),
-    })
+    PreparedTask::new(
+        "copy/request-1",
+        vec![
+            ResourceHandleId::from("copy/source-choice"),
+            ResourceHandleId::from("copy/destination-choice"),
+        ],
+        prepared.form,
+        prepared.plan,
+        CopyTaskAdapter {
+            host,
+            fragment: prepared.fragment,
+            registry,
+            stop: CopyStopToken::default(),
+        },
+    )
 }
 
-fn execute(mut task: PreparedTask) -> Result<CopyRunReceipt, String> {
-    task.host.run_copy_fragment(
-        CopyRequestId::new("copy/request-1")?,
-        task.fragment,
-        &mut task.registry,
-        &task.stop,
-    )
+fn execute(task: PreparedTask) -> Result<CopyRunReceipt, String> {
+    task.run()
 }
 
 fn render_readiness(
@@ -326,37 +362,13 @@ fn render_readiness(
     writeln!(
         output,
         "Ready: yes — choices are protected and Plan {} is prepared.",
-        task.plan.plan_id.as_str()
+        task.identity().plan_id.as_str()
     )
     .map_err(|error| error.to_string())
 }
 
 fn render_result(output: &mut impl Write, receipt: &CopyRunReceipt) -> Result<(), String> {
-    let message = match receipt.result {
-        CopyResult::Success { bytes_copied } => {
-            format!("Copied {bytes_copied} bytes successfully.")
-        }
-        CopyResult::DestinationExists => "Not copied: destination already exists.".to_string(),
-        CopyResult::Denied => "Not copied: access was denied.".to_string(),
-        CopyResult::StaleHandle => "Not copied: a selected resource is stale.".to_string(),
-        CopyResult::Oversized {
-            source_bytes,
-            maximum_bytes,
-        } => format!(
-            "Not copied: source is {source_bytes} bytes, above the {maximum_bytes}-byte limit."
-        ),
-        CopyResult::Partial { bytes_copied } => {
-            format!(
-                "Copy failed after {bytes_copied} temporary bytes; destination was not committed."
-            )
-        }
-        CopyResult::Cancelled { bytes_copied } => {
-            format!("Stopped after {bytes_copied} temporary bytes; destination was not committed.")
-        }
-        CopyResult::CleanupFailed { bytes_copied } => format!(
-            "Copy stopped after {bytes_copied} temporary bytes, but temporary cleanup failed."
-        ),
-    };
+    let message = result_message(&receipt.result);
     writeln!(output, "Result: {message}").map_err(|error| error.to_string())?;
     if let Some(presented) = &receipt.presented_result {
         let profile = presented
@@ -385,6 +397,34 @@ fn render_result(output: &mut impl Write, receipt: &CopyRunReceipt) -> Result<()
         receipt.kernel_events
     )
     .map_err(|error| error.to_string())
+}
+
+pub(crate) fn result_message(result: &CopyResult) -> String {
+    match result {
+        CopyResult::Success { bytes_copied } => {
+            format!("Copied {bytes_copied} bytes successfully.")
+        }
+        CopyResult::DestinationExists => "Not copied: destination already exists.".to_string(),
+        CopyResult::Denied => "Not copied: access was denied.".to_string(),
+        CopyResult::StaleHandle => "Not copied: a selected resource is stale.".to_string(),
+        CopyResult::Oversized {
+            source_bytes,
+            maximum_bytes,
+        } => format!(
+            "Not copied: source is {source_bytes} bytes, above the {maximum_bytes}-byte limit."
+        ),
+        CopyResult::Partial { bytes_copied } => {
+            format!(
+                "Copy failed after {bytes_copied} temporary bytes; destination was not committed."
+            )
+        }
+        CopyResult::Cancelled { bytes_copied } => {
+            format!("Stopped after {bytes_copied} temporary bytes; destination was not committed.")
+        }
+        CopyResult::CleanupFailed { bytes_copied } => format!(
+            "Copy stopped after {bytes_copied} temporary bytes, but temporary cleanup failed."
+        ),
+    }
 }
 
 fn render_inspect(
