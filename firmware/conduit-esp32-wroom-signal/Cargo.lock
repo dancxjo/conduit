@@ -212,6 +212,7 @@ dependencies = [
  "critical-section",
  "embassy-executor",
  "embassy-futures",
+ "embassy-sync 0.7.2",
  "esp-alloc",
  "esp-backtrace",
  "esp-bootloader-esp-idf",
@@ -221,6 +222,7 @@ dependencies = [
  "esp-rtos",
  "heapless 0.9.3",
  "log",
+ "static_cell",
  "trouble-host",
 ]
 

@@ -11,8 +11,10 @@ default = ["bluetooth"]
 bluetooth = [
 	"dep:conduit-bluetooth",
 	"dep:embassy-futures",
+	"dep:embassy-sync",
 	"dep:esp-radio",
 	"dep:heapless",
+	"dep:static_cell",
 	"dep:trouble-host",
 ]
 
@@ -28,6 +30,7 @@ conduit-wire = { path = "../../crates/conduit-wire", default-features = false }
 critical-section = "1.2.0"
 embassy-executor = "0.10.0"
 embassy-futures = { version = "0.1", optional = true }
+embassy-sync = { version = "0.7.2", optional = true }
 esp-alloc = { version = "0.10.0", features = ["esp32"] }
 esp-backtrace = { version = "0.19.0", features = ["esp32", "panic-handler", "println"] }
 esp-bootloader-esp-idf = { version = "0.5.0", features = ["esp32"] }
@@ -37,6 +40,7 @@ esp-radio = { version = "0.18.0", features = ["ble", "esp32", "log-04", "unstabl
 esp-rtos = { version = "0.3.0", features = ["embassy", "esp-radio", "esp32", "log-04"] }
 heapless = { version = "0.9.1", optional = true }
 log = "0.4.27"
+static_cell = { version = "2.1.1", optional = true }
 trouble-host = { version = "0.6.0", default-features = false, features = ["default-packet-pool-mtu-255", "derive", "gatt", "peripheral", "security"], optional = true }
 
 [build-dependencies]
