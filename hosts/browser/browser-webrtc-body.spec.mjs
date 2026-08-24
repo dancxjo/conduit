@@ -18,9 +18,21 @@ test("two admitted product clients compose Body grants into one exact ready sess
     sink.goto(`/hosts/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`),
   ]);
   for (const page of [source, sink]) {
-    await expect.poll(() => page.evaluate(() => globalThis.__browserPresence?.presenceState()))
+    await expect.poll(
+      () => page.evaluate(() => globalThis.__browserPresence?.presenceState()),
+      {
+        message: `browser entrance did not establish presence; browser errors=${browserErrors.join(" | ")} probe=${probe.output()}`,
+        timeout: 15_000,
+      },
+    )
       .toBe("available");
-    await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.webRtcSessions()))
+    await expect.poll(
+      () => page.evaluate(() => globalThis.__browserPresence.webRtcSessions()),
+      {
+        message: `granted WebRTC session did not finish creation; browser errors=${browserErrors.join(" | ")} probe=${probe.output()}`,
+        timeout: 15_000,
+      },
+    )
       .toMatchObject({ activeSessions: 1, creatingSessions: 0, pendingSignals: 0, failure: null });
   }
   await expect.poll(async () => JSON.stringify(await Promise.all([source, sink].map(
