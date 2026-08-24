@@ -297,6 +297,7 @@ pub async fn task(
             .await
             .is_err()
         {
+            let _ = create_acquisition::request_safe_unverified(&mut provider);
             let kind = create_play::request_kind();
             if kind != create_play::RequestKind::None && create_play::claim_pending(kind) {
                 create_play::set_result(7);

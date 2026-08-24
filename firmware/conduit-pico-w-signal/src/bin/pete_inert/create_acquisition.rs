@@ -82,19 +82,27 @@ pub async fn establish_full(
             return Err(());
         }
         discard_uart(provider);
-        write_command(provider, &encode_start()).map_err(|_| ())?;
+        if write_command(provider, &encode_start()).is_err() {
+            break;
+        }
         watchdog_delay(watchdog, START_SETTLE_MS).await;
-        write_command(
+        if write_command(
             provider,
             &encode_mode(CreateOiModeRequest::Full).expect("Full has one exact command"),
         )
-        .map_err(|_| ())?;
+        .is_err()
+        {
+            break;
+        }
         watchdog_delay(watchdog, MODE_SETTLE_MS).await;
-        write_command(
+        if write_command(
             provider,
             &encode_query_sensor(35).expect("mode packet is allow-listed"),
         )
-        .map_err(|_| ())?;
+        .is_err()
+        {
+            break;
+        }
         if read_packet(
             provider,
             watchdog,
@@ -108,7 +116,17 @@ pub async fn establish_full(
         }
         watchdog_delay(watchdog, REACQUIRE_COOLDOWN_MS).await;
     }
+    let _ = request_safe_unverified(provider);
     Err(())
+}
+
+pub fn request_safe_unverified(provider: &mut Provider) -> Result<(), ()> {
+    write_command(provider, &encode_start()).map_err(|_| ())?;
+    write_command(
+        provider,
+        &encode_mode(CreateOiModeRequest::Safe).expect("Safe has one exact command"),
+    )
+    .map_err(|_| ())
 }
 
 pub async fn play_ready_cue(
