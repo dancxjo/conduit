@@ -678,6 +678,7 @@ dependencies = [
  "conduit-runtime",
  "conduit-signal",
  "conduit-std-catalog",
+ "conduit-wire",
  "serde_json",
  "sha2 0.10.9",
 ]
