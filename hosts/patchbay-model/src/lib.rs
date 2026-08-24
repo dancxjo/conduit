@@ -20,6 +20,7 @@ mod candidate_form;
 mod control;
 mod cross_host_renderer;
 mod degradation_explanation;
+mod degraded_profile_explanation;
 mod face_configuration;
 mod face_controls;
 mod form_editor;
@@ -96,6 +97,11 @@ pub use cross_host_renderer::{
 };
 pub use degradation_explanation::{
     PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,
+};
+pub use degraded_profile_explanation::{
+    explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
+    DegradedProfileExplanationError, DegradedProfileState, ProfileDimensionExplanation,
+    MAX_DEGRADED_PROFILE_EXPLANATION_BYTES,
 };
 pub use face_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use form_editor::{

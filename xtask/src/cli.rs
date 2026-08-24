@@ -259,6 +259,7 @@ pub enum ProveTarget {
     StdBrowserToggle,
     BrowserHost,
     CalendarGoogle,
+    DegradedProfiles,
     LlmEmbodiment,
     LlmCrossHost,
     LlmPlanningAdvice,
@@ -601,6 +602,16 @@ mod tests {
             cross_host.command,
             Command::Prove(ProveArgs {
                 proof: ProveTarget::LlmCrossHost,
+                ..
+            })
+        ));
+
+        let degraded = Cli::try_parse_from(["xtask", "prove", "degraded-profiles"])
+            .expect("degraded-profile proof command parses");
+        assert!(matches!(
+            degraded.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::DegradedProfiles,
                 ..
             })
         ));
