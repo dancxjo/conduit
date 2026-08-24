@@ -51,6 +51,32 @@ pub fn llm_documentary_snapshot() -> Result<RendererSnapshot, String> {
     Ok(snapshot)
 }
 
+pub fn llm_embodiment_snapshot(stage: usize) -> Result<RendererSnapshot, String> {
+    let presentation = patchbay_model::llm_embodiment_documentary_presentations()
+        .map_err(|error| format!("{error:?}"))?
+        .into_iter()
+        .nth(stage)
+        .ok_or("LLM embodiment stage must be 0, 1, or 2")?;
+    let execution = RendererExecution::prepare(
+        presentation,
+        RendererAdapterKind::HtmlDomSvg,
+        RendererAdapterIdentity {
+            host_id: HostId::from("patchbay-html/llm-embodiment"),
+            boot_id: BootId::from("patchbay-html/llm-embodiment/boot"),
+            target_subject: format!("patchbay-html/llm-embodiment/{stage}"),
+        },
+        SignId::from(format!("patchbay-html/llm-embodiment/{stage}/prepared")),
+    )
+    .map_err(|error| error.to_string())?;
+    let mut snapshot =
+        RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
+    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)?;
+    snapshot
+        .attach_navigation(navigation)
+        .map_err(|error| error.to_string())?;
+    Ok(snapshot)
+}
+
 pub fn text_lab_split_snapshot(base: &str) -> Result<RendererSnapshot, String> {
     let explanation = patchbay_model::text_lab_split_explanation(base)?;
     text_lab_snapshot(explanation)

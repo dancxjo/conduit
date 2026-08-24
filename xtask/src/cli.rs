@@ -259,6 +259,7 @@ pub enum ProveTarget {
     StdBrowserToggle,
     BrowserHost,
     CalendarGoogle,
+    LlmEmbodiment,
     LlmPlanningAdvice,
     PatchbayFrontDoor,
     StdPicoUsb,
@@ -571,6 +572,24 @@ mod tests {
             planning_advice.command,
             Command::Prove(ProveArgs {
                 proof: ProveTarget::LlmPlanningAdvice,
+                ..
+            })
+        ));
+
+        let embodiment = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "llm-embodiment",
+            "--ollama-url",
+            "http://forebrain.local:11434",
+            "--ollama-model",
+            "gpt-oss:20b",
+        ])
+        .expect("live Ollama embodiment command parses");
+        assert!(matches!(
+            embodiment.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::LlmEmbodiment,
                 ..
             })
         ));
