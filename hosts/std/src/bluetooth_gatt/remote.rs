@@ -46,27 +46,18 @@ pub(super) async fn connect(
         .device(address)
         .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
     let result = async {
-        // Install the exact headless pairing policy before the first physical
-        // connection. Service resolution may itself encounter an encrypted
-        // characteristic and must never race ahead of this process's agent.
+        // Install the exact headless pairing policy before any operation that
+        // can establish the physical connection. For an unpaired peer,
+        // Device.Pair owns connect + pairing + service discovery and binds
+        // BlueZ to this application's agent. Calling Device.Connect first can
+        // let a peripheral security request start outside that Pair operation.
         let agent = pairing::prepare_agent(&session, allow_pairing).await?;
-        if !allow_pairing
-            && !device
-                .is_paired()
-                .await
-                .map_err(|_| BluezBleGattError::DeviceUnavailable)?
-        {
-            return Err(BluezBleGattError::NotPaired);
-        }
-        if !device
-            .is_connected()
+        let paired = device
+            .is_paired()
             .await
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?
-        {
-            tokio::time::timeout(std::time::Duration::from_secs(20), device.connect())
-                .await
-                .map_err(|_| BluezBleGattError::ConnectFailed("BlueZ connect timed out".into()))?
-                .map_err(|error| BluezBleGattError::ConnectFailed(error.to_string()))?;
+            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+        if !allow_pairing && !paired {
+            return Err(BluezBleGattError::NotPaired);
         }
 
         let service_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_SERVICE_UUID);
