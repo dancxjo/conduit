@@ -19,6 +19,8 @@ pub mod pete_std_drive;
 pub mod pete_std_indicator;
 pub mod pete_std_observe;
 pub mod pete_std_speaker;
+#[cfg(test)]
+mod pete_std_test_support;
 pub mod pico;
 pub mod proofs;
 pub mod prove;
