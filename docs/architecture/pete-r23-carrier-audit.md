@@ -67,14 +67,19 @@ oscillation. The R23 route plus connectors and external wiring is therefore a
 material signal-integrity risk even though UART is a supported logical use.
 
 R23 also provides no external idle bias on `PICO_RX_3V3`. The historical
-Netherwick firmware enabled the GP1 pull-up because UART idles high; current
-Conduit firmware disables both GP1 pulls. That is a firmware/configuration
-difference worth testing on R23. It may explain errors
-around OE transitions or an undriven interval, but it cannot by itself prove
-the cause of errors while the Create is actively driving.
+Netherwick firmware enabled the GP1 pull-up because UART idles high. Conduit
+commit `c010837a` disabled both GP1 pulls; follow-up commit `b15316cf` restored
+the pull-up for the experiment recorded below. It may prevent errors around OE
+transitions or an undriven interval, but it cannot repair a response waveform
+that does not cross the translated receiver threshold.
 
-The OE circuit itself is fail-safe in R23: GP19 drives OE and a 10 kohm
-pull-down keeps the TXS0108E disabled while the Pico is reset or undriven.
+The OE circuit itself is fail-safe in R23: GP19 actively drives OE high for an
+attended Create session, and a 10 kohm pull-down keeps the TXS0108E disabled
+while the Pico is reset or undriven. The firmware raises OE once, waits 10 ms,
+and leaves it high throughout START/FULL and the mode responses. It does not
+drop OE between request and response. Permanently tying OE high would remove
+the reset-time electrical isolation and is not equivalent to this supervised
+session behavior.
 
 ## 2026-08-23 physical evidence
 
@@ -103,6 +108,30 @@ The IMU boot receipt independently reported zero samples and
 `device_no_response`. The firmware continues bounded retries, but no successful
 probe was observed in this session.
 
+### GP1 idle-high follow-up
+
+Commit `b15316cf464e083f92dee43c338d40d9702240ef` restored the GP1 pull-up. Its
+clean UF2 SHA-256 was
+`8914295fae258a11a6927f29a41c2cba6040fb1a0a93426d433451d0cf16ea1d`.
+Before the attended test, its receipt again proved OE low, power toggle low,
+zero UART traffic, zero UART errors, and no motion authority.
+
+During one bounded hello attempt, the attending user reported hearing the
+Create enter Full mode. That physical observation is evidence that the R23
+outbound path and START/FULL sequence worked; it is not machine-readable proof
+of the final OI mode. Firmware received no acceptable mode response, withheld
+the ready cue and motion authority, requested Safe, and returned OE low. The
+post-test receipt showed:
+
+- 27 transmitted bytes and 4 received bytes;
+- zero framing, break, overrun, parity, or other UART hardware errors;
+- three discarded bytes and one corrupt packet-35 frame containing `ff`;
+- six response timeouts and zero valid frames.
+
+The pull-up removed the earlier framing-error storm but did not recover the
+Create response. The evidence now separates a working outbound command path
+from an unresolved translated return path.
+
 ## Required checks before another design conclusion
 
 1. Preserve the exact R23 KiCad PCB and schematic in the hardware-design
@@ -113,12 +142,13 @@ probe was observed in this session.
 3. With power applied and no Create UART authority, measure SDA and SCL idle
    voltage and rise time, then measure the MPU-side VDD after any module
    regulator. Confirm VDD is at least 2.375 V.
-4. Scope Create TX at cargo-bay pin 2, TXS HV5, TXS LV5, and Pico GP1 during
-   one attended sensor response. Correlate the first malformed edge with OE
-   assertion and Pico framing status.
-5. Test the smallest firmware-only UART change on the confirmed R23 mapping:
-   restore the GP1 idle-high pull-up used by Netherwick. Keep OE fail-closed
-   and use only the bounded no-motion hello entrance.
+4. Scope GP19/TXS OE, Create TX at cargo-bay pin 2, TXS HV5, TXS LV5, and Pico
+   GP1 during one attended sensor response. Confirm OE remains high throughout
+   the response, then locate where the waveform stops crossing valid UART
+   thresholds.
+5. Treat the GP1 pull-up experiment as diagnostic evidence, not a completed
+   UART fix: it cleared hardware framing errors but did not recover a valid
+   mode response. Keep OE fail-closed outside an attended session.
 6. Treat replacement of the auto-direction UART translation with explicit
    unidirectional buffers, suitable level shifting, local decoupling, and
    reviewed termination as a possible future carrier-revision decision, not
