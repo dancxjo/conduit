@@ -9,7 +9,7 @@ use conduit_core::ChargingState;
 use conduit_pete::{
     Create1BatteryNormalizationDisposition, CreateObservationFailure, CreateObservationSession,
     CreateOdometryAccumulator, CreateOdometryError, CreatePortableObservation,
-    CreateSensorLoweringError,
+    CreateSensorLoweringError, CREATE_OBSERVATION_MAXIMUM_DISCARDED_BYTES,
 };
 use conduit_std_host::std_create_uart::{
     monotonic_millis, StdCreateUartBase, StdCreateUartObservation, StdCreateUartOpenError,
@@ -22,7 +22,7 @@ use crate::commands::pete_std_drive::{self, StdDriveArgs};
 use crate::commands::pete_std_indicator::{self, StdIndicatorArgs};
 use crate::commands::pete_std_speaker::{self, StdSpeakerArgs};
 
-const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-observation-evidence@3";
+const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-observation-evidence@4";
 const MAXIMUM_ID_BYTES: usize = 128;
 const MAXIMUM_PATH_BYTES: usize = 4_096;
 const MAXIMUM_READ_TIMEOUT_MS: u32 = 5_000;
@@ -80,6 +80,7 @@ struct Evidence {
     base: BaseEvidence,
     started_monotonic_ms: u64,
     read_deadline_monotonic_ms: u64,
+    stream_maximum_discarded_bytes: u16,
     completed_monotonic_ms: u64,
     intended_robot_identity_verified: bool,
     outcome: Outcome,
@@ -111,6 +112,7 @@ enum Outcome {
 
 #[derive(Serialize)]
 struct PortableObservation {
+    stream_discarded_bytes: u16,
     contact_body_sectors: u8,
     cliff_body_sectors: u8,
     cliff_signal_available: u8,
@@ -228,6 +230,7 @@ fn execute(args: &StdObserveArgs) -> Result<Evidence, Box<dyn std::error::Error>
         base,
         started_monotonic_ms: started,
         read_deadline_monotonic_ms: deadline,
+        stream_maximum_discarded_bytes: CREATE_OBSERVATION_MAXIMUM_DISCARDED_BYTES,
         completed_monotonic_ms: completed,
         intended_robot_identity_verified: false,
         outcome,
@@ -241,7 +244,10 @@ fn observe(provider: &mut StdCreateUartBase, deadline: u64) -> Outcome {
     }
     match session.read(provider, deadline) {
         Ok(observation) => {
-            let portable = portable_observation(observation);
+            let stream_discarded_bytes = session
+                .last_stream_discarded_bytes()
+                .expect("a successful session read retains synchronization evidence");
+            let portable = portable_observation(observation, stream_discarded_bytes);
             match session.pause(provider) {
                 Err(error) => failed("session_pause", error, None),
                 Ok(()) => match portable {
@@ -263,6 +269,7 @@ fn observe(provider: &mut StdCreateUartBase, deadline: u64) -> Outcome {
 
 fn portable_observation(
     value: CreatePortableObservation,
+    stream_discarded_bytes: u16,
 ) -> Result<PortableObservation, CreateOdometryError> {
     let group = value.group_zero;
     let charging = group
@@ -279,6 +286,7 @@ fn portable_observation(
     let odometry = accumulator.integrate(group.distance_delta_mm, group.angle_delta_degrees)?;
     let (forward_mm, lateral_mm, yaw_microradians) = odometry.value.components();
     Ok(PortableObservation {
+        stream_discarded_bytes,
         contact_body_sectors: group.contact.active_body_sectors(),
         cliff_body_sectors: group.cliff.active_sectors(),
         cliff_signal_available,
@@ -364,6 +372,9 @@ fn observation_error_code(error: CreateObservationFailure) -> &'static str {
         CreateObservationFailure::Protocol(Protocol::UnsupportedPacket(_)) => "unsupported_packet",
         CreateObservationFailure::Protocol(Protocol::TruncatedFrame) => "truncated_frame",
         CreateObservationFailure::Protocol(Protocol::MalformedFrame) => "malformed_frame",
+        CreateObservationFailure::Protocol(Protocol::SynchronizationLimit { .. }) => {
+            "stream_synchronization_limit"
+        }
     }
 }
 

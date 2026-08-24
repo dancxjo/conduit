@@ -67,6 +67,7 @@ pub enum CreateOiFailure {
     UnsupportedPacket(u8),
     TruncatedFrame,
     MalformedFrame,
+    SynchronizationLimit { maximum_discarded_bytes: u16 },
 }
 
 /// Exact physical UART provider boundary. Implementations must not retry or

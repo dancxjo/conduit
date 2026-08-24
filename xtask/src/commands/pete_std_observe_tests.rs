@@ -58,7 +58,7 @@ fn temp_path(name: &str) -> PathBuf {
 }
 
 #[test]
-fn pseudo_terminal_executes_exact_non_actuating_session_without_identity_claim() {
+fn pseudo_terminal_resynchronizes_exact_non_actuating_session_without_identity_claim() {
     let mut pty = Pty::open();
     let path = pty.slave_path.clone();
     let response = frame();
@@ -66,6 +66,7 @@ fn pseudo_terminal_executes_exact_non_actuating_session_without_identity_claim()
         let mut start = [0_u8; 6];
         pty.master.read_exact(&mut start).unwrap();
         assert_eq!(start, [128, 131, 148, 2, 0, 34]);
+        pty.master.write_all(&[0xaa, 0xbb, 0xcc]).unwrap();
         pty.master.write_all(&response).unwrap();
         let mut pause = [0_u8; 2];
         pty.master.read_exact(&mut pause).unwrap();
@@ -75,11 +76,17 @@ fn pseudo_terminal_executes_exact_non_actuating_session_without_identity_claim()
     responder.join().unwrap();
     assert!(!evidence.intended_robot_identity_verified);
     assert_eq!(
+        evidence.schema,
+        "conduit.pete/std-create-observation-evidence@4"
+    );
+    assert_eq!(evidence.stream_maximum_discarded_bytes, 64);
+    assert_eq!(
         evidence.proof_class,
         "live_host_boundary_unverified_robot_identity"
     );
     match evidence.outcome {
         Outcome::Observed { observation } => {
+            assert_eq!(observation.stream_discarded_bytes, 3);
             assert_eq!(observation.contact_body_sectors, 2);
             assert_eq!(observation.charging_sources, 2);
             assert_eq!(observation.battery_charge_permille, Some(500));

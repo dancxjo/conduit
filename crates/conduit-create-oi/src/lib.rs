@@ -16,6 +16,7 @@ mod power;
 mod presentation;
 mod safety;
 mod safety_latch;
+mod stream;
 
 pub use battery::*;
 pub use contact_withdrawal::*;
@@ -26,6 +27,7 @@ pub use power::*;
 pub use presentation::*;
 pub use safety::*;
 pub use safety_latch::*;
+pub use stream::*;
 
 #[cfg(test)]
 extern crate std;

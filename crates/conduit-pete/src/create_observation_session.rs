@@ -2,17 +2,18 @@
 
 use crate::{
     decode_sensor_packet, encode_mode, encode_pause_stream, encode_sensor_stream_pair,
-    encode_start, lower_charging_sources, lower_group_zero, require_provider, write_command,
-    CreateChargingSources, CreateGroupZeroObservation, CreateOiFailure, CreateOiModeRequest,
-    CreateOiPacket, CreateSensorLoweringError, CreateUartProvider, EncodedOiCommand,
-    CREATE_CHARGING_SOURCES_PACKET_ID, CREATE_GROUP_ZERO_PACKET_ID, CREATE_OI_MAX_COMMAND_BYTES,
-    STREAM_HEADER,
+    encode_start, lower_charging_sources, lower_group_zero, read_expected_stream_frame,
+    write_command, CreateChargingSources, CreateGroupZeroObservation, CreateOiFailure,
+    CreateOiModeRequest, CreateOiPacket, CreateSensorLoweringError, CreateUartProvider,
+    EncodedOiCommand, CREATE_CHARGING_SOURCES_PACKET_ID, CREATE_GROUP_ZERO_PACKET_ID,
+    CREATE_OI_MAX_COMMAND_BYTES, STREAM_HEADER,
 };
 
 const GROUP_ZERO_BYTES: usize = 26;
 const CHARGING_SOURCE_BYTES: usize = 1;
 const BUNDLE_PAYLOAD_BYTES: usize = 1 + GROUP_ZERO_BYTES + 1 + CHARGING_SOURCE_BYTES;
 pub const CREATE_OBSERVATION_FRAME_BYTES: usize = BUNDLE_PAYLOAD_BYTES + 3;
+pub const CREATE_OBSERVATION_MAXIMUM_DISCARDED_BYTES: u16 = 64;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CreateObservationPacketBundle {
@@ -58,17 +59,23 @@ pub enum CreateObservationSessionState {
 
 pub struct CreateObservationSession {
     state: CreateObservationSessionState,
+    last_stream_discarded_bytes: Option<u16>,
 }
 
 impl CreateObservationSession {
     pub const fn new() -> Self {
         Self {
             state: CreateObservationSessionState::New,
+            last_stream_discarded_bytes: None,
         }
     }
 
     pub const fn state(&self) -> CreateObservationSessionState {
         self.state
+    }
+
+    pub const fn last_stream_discarded_bytes(&self) -> Option<u16> {
+        self.last_stream_discarded_bytes
     }
 
     pub fn start<P: CreateUartProvider>(
@@ -106,14 +113,19 @@ impl CreateObservationSession {
         if self.state != CreateObservationSessionState::Streaming {
             return Err(CreateObservationFailure::InvalidState);
         }
-        let result = read_observation_bundle(provider, deadline_tick)
-            .map_err(CreateObservationFailure::Protocol)
-            .and_then(|bundle| {
-                Ok(CreatePortableObservation {
-                    group_zero: lower_group_zero(&bundle.group_zero)?,
-                    charging_sources: lower_charging_sources(&bundle.charging_sources)?,
-                })
-            });
+        let result = read_synchronized_observation_bundle(
+            provider,
+            deadline_tick,
+            CREATE_OBSERVATION_MAXIMUM_DISCARDED_BYTES,
+        )
+        .map_err(CreateObservationFailure::Protocol)
+        .and_then(|read| {
+            self.last_stream_discarded_bytes = Some(read.discarded_bytes);
+            Ok(CreatePortableObservation {
+                group_zero: lower_group_zero(&read.bundle.group_zero)?,
+                charging_sources: lower_charging_sources(&read.bundle.charging_sources)?,
+            })
+        });
         match result {
             Ok(observation) => {
                 self.state = CreateObservationSessionState::ObservationReady;
@@ -169,19 +181,40 @@ pub fn read_observation_bundle<P: CreateUartProvider>(
     provider: &mut P,
     deadline_tick: u64,
 ) -> Result<CreateObservationPacketBundle, CreateOiFailure> {
-    require_provider(provider)?;
+    read_synchronized_observation_bundle(
+        provider,
+        deadline_tick,
+        CREATE_OBSERVATION_MAXIMUM_DISCARDED_BYTES,
+    )
+    .map(|read| read.bundle)
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SynchronizedCreateObservationPacketBundle {
+    pub bundle: CreateObservationPacketBundle,
+    pub discarded_bytes: u16,
+}
+
+pub fn read_synchronized_observation_bundle<P: CreateUartProvider>(
+    provider: &mut P,
+    deadline_tick: u64,
+    maximum_discarded_bytes: u16,
+) -> Result<SynchronizedCreateObservationPacketBundle, CreateOiFailure> {
     let mut frame = [0_u8; CREATE_OBSERVATION_FRAME_BYTES];
-    for (index, byte) in frame.iter_mut().enumerate() {
-        *byte = match provider
-            .read_byte(deadline_tick)
-            .map_err(|_| CreateOiFailure::ReadFailed)?
-        {
-            Some(byte) => byte,
-            None if index == 0 => return Err(CreateOiFailure::DeviceNoResponse),
-            None => return Err(CreateOiFailure::TruncatedFrame),
-        };
-    }
-    decode_observation_bundle(&frame)
+    let read = read_expected_stream_frame(
+        provider,
+        &[
+            CREATE_GROUP_ZERO_PACKET_ID,
+            CREATE_CHARGING_SOURCES_PACKET_ID,
+        ],
+        deadline_tick,
+        maximum_discarded_bytes,
+        &mut frame,
+    )?;
+    Ok(SynchronizedCreateObservationPacketBundle {
+        bundle: decode_observation_bundle(&frame)?,
+        discarded_bytes: read.discarded_bytes,
+    })
 }
 
 pub fn decode_observation_bundle(
@@ -284,6 +317,7 @@ mod tests {
         session.start(&mut provider).unwrap();
         assert_eq!(provider.writes, [vec![128], vec![131], vec![148, 2, 0, 34]]);
         let observation = session.read(&mut provider, 10).unwrap();
+        assert_eq!(session.last_stream_discarded_bytes(), Some(0));
         assert_eq!(observation.charging_sources.bits(), 2);
         assert_eq!(
             observation
@@ -302,6 +336,18 @@ mod tests {
             session.read(&mut provider, 10),
             Err(CreateObservationFailure::InvalidState)
         );
+    }
+
+    #[test]
+    fn session_uses_bounded_create_stream_synchronization() {
+        let mut bytes = vec![0xaa, 0xbb, 0xcc];
+        bytes.extend_from_slice(&frame());
+        let mut provider = provider(&bytes);
+        let mut session = CreateObservationSession::new();
+        session.start(&mut provider).unwrap();
+        let observation = session.read(&mut provider, 10).unwrap();
+        assert_eq!(observation.charging_sources.bits(), 2);
+        assert_eq!(session.last_stream_discarded_bytes(), Some(3));
     }
 
     #[test]
