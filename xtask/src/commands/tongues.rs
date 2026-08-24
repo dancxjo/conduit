@@ -1,5 +1,5 @@
 use crate::cli::GlobalOpts;
-use conduit_tongues::{run_speech, OutputCondition, SpeechFault};
+use std::process::Command;
 
 pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
@@ -8,19 +8,29 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
-    let receipt = run_speech(OutputCondition::DegradedWavArtifact, SpeechFault::None)?;
+    let mut command = Command::new("cargo");
+    command.args([
+        "run",
+        "--package",
+        "conduit-tongues",
+        "--features",
+        "speech",
+        "--bin",
+        "conduit-tongues-demo",
+    ]);
+    if opts.locked {
+        command.arg("--locked");
+    }
+    command.arg("--");
     if opts.json {
-        println!("{}", serde_json::to_string_pretty(&receipt)?);
-    } else if !opts.quiet {
-        println!(
-            "Tongues starter completed: plan={} condition={:?} outcome={:?} signs={} kernel-events={} sign-digest={}",
-            receipt.plan_id,
-            receipt.condition,
-            receipt.outcome,
-            receipt.sign_count,
-            receipt.kernel_event_count,
-            receipt.sign_digest
-        );
+        command.arg("--json");
+    }
+    if opts.quiet {
+        command.arg("--quiet");
+    }
+    let status = command.status()?;
+    if !status.success() {
+        return Err(format!("conduit-tongues demo exited with {status}").into());
     }
     Ok(())
 }

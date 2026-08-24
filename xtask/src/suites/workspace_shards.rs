@@ -147,6 +147,8 @@ const PRODUCT_TEST_STEP: Step = Step::new(
         "conduit",
         "-p",
         "xtask",
+        "--features",
+        "conduit-tongues/speech",
     ],
 );
 

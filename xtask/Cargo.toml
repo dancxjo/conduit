@@ -35,7 +35,6 @@ conduit-presentation = { path = "../crates/conduit-presentation", features = ["f
 conduit-runtime = { path = "../crates/conduit-runtime", default-features = false }
 conduit-std-host = { path = "../hosts/std", features = ["local-model-proof", "pete-create"] }
 conduit-system-continuity = { path = "../crates/conduit-system-continuity", features = ["r1-recovery"] }
-conduit-tongues = { path = "../crates/conduit-tongues" }
 conduit-wire = { path = "../crates/conduit-wire" }
 patchbay-model = { path = "../hosts/patchbay-model" }
 

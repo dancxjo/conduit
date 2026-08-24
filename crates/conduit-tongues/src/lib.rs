@@ -1,5 +1,7 @@
 //! Bounded brownfield adaptation of one exact Tongues starter.
 
+#![cfg(feature = "speech")]
+
 mod contract;
 mod execution;
 mod pcm;
