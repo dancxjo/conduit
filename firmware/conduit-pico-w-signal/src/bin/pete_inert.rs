@@ -8,7 +8,7 @@ use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder};
 use embassy_executor::Executor;
 use embassy_futures::select::{select, Either};
 use embassy_rp::bind_interrupts;
-use embassy_rp::gpio::{Input, Level, Output, Pull};
+use embassy_rp::gpio::{Input, Level, Output, OutputOpenDrain, Pull};
 use embassy_rp::i2c::InterruptHandler as I2cInterruptHandler;
 use embassy_rp::peripherals::{I2C1, USB};
 use embassy_rp::usb;
@@ -278,6 +278,8 @@ async fn usb_device_task(mut device: InertUsbDevice) -> ! {
 async fn qualification_task(
     mut class: InertCdc,
     charging_indicator: Input<'static>,
+    _brc: OutputOpenDrain<'static>,
+    _status_led: Output<'static>,
 ) {
     class.wait_connection().await;
     // Emit immutable image identity before permitting any blocking peripheral
@@ -318,7 +320,7 @@ async fn qualification_task(
     let mut disposition: String<512> = String::new();
     let _ = writeln!(
         disposition,
-        "{{\"schema\":\"conduit.pete/capstone-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"isolated_until_attended_play\",\"charging_indicator\":{{\"gpio\":20,\"active_high\":true,\"level\":\"{}\"}},\"i2c\":{{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}},\"watchdog\":{{\"timeout_ms\":2000,\"feed_interval_ms\":250}}}}",
+        "{{\"schema\":\"conduit.pete/capstone-disposition@1\",\"uart_authority\":\"idle\",\"brc\":\"released_high\",\"power_toggle\":\"low\",\"create_uart\":\"writes_only_during_attended_play\",\"charging_indicator\":{{\"gpio\":17,\"active_high\":true,\"level\":\"{}\"}},\"status_led\":{{\"gpio\":20,\"level\":\"low\"}},\"i2c\":{{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}},\"watchdog\":{{\"timeout_ms\":2000,\"feed_interval_ms\":250}}}}",
         charging_level,
     );
     write_line(&mut class, &disposition).await;
@@ -361,8 +363,10 @@ fn main() -> ! {
     // These outputs are established before any peripheral probing. Ownership is
     // retained for the lifetime of the image so neither can float or be reused.
     let power_toggle = Output::new(p.PIN_18, Level::Low);
-    let translator_oe = Output::new(p.PIN_19, Level::Low);
-    let charging_indicator = Input::new(p.PIN_20, Pull::Down);
+    let mut brc = OutputOpenDrain::new(p.PIN_19, Level::High);
+    brc.set_pullup(false);
+    let charging_indicator = Input::new(p.PIN_17, Pull::Down);
+    let status_led = Output::new(p.PIN_20, Level::Low);
     let driver = usb::Driver::new(p.USB, Irqs);
     let (device, class) = usb_device(driver);
     static EXECUTOR: StaticCell<Executor> = StaticCell::new();
@@ -375,12 +379,11 @@ fn main() -> ! {
                 p.PIN_0,
                 p.PIN_1,
                 power_toggle,
-                translator_oe,
                 p.WATCHDOG,
             )
             .unwrap(),
         );
         spawner.spawn(imu_control::task(p.I2C1, p.PIN_2, p.PIN_3).unwrap());
-        spawner.spawn(qualification_task(class, charging_indicator).unwrap());
+        spawner.spawn(qualification_task(class, charging_indicator, brc, status_led).unwrap());
     });
 }
