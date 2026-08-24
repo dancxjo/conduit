@@ -36,7 +36,8 @@ fn offered(binding: &SessionBinding, sequence: u64) -> Vec<u8> {
 
 #[test]
 fn browser_reconstructs_the_exact_sink_fragment_and_session() {
-    let sink = DistributedSink::prepare(None, PlanKind::StdBrowser, None).expect("sink prepares");
+    let sink =
+        DistributedSink::prepare(None, PlanKind::StdBrowser, None, None).expect("sink prepares");
     assert_eq!(sink.fragment.placements.len(), 1);
     assert_eq!(sink.lowered.remote_endpoints.len(), 1);
     assert_eq!(sink.binding.plan_id, sink.fragment.plan_id);
@@ -52,6 +53,7 @@ fn browser_reconstructs_a_dynamically_identified_native_source() {
         None,
         PlanKind::StdBrowser,
         Some((host.clone(), boot.clone())),
+        None,
     )
     .expect("sink prepares");
     assert_eq!(sink.binding.source.host_id, host);
@@ -65,9 +67,86 @@ fn browser_reconstructs_a_dynamically_identified_native_source() {
 }
 
 #[test]
+fn launched_browser_boot_is_plan_truth_and_wrong_session_refuses() {
+    let source = (
+        HostId::from("product/std/7"),
+        BootId::from("product/std/7/boot"),
+    );
+    let browser = (
+        HostId::from("product/browser/7"),
+        BootId::from("product/browser/7/boot"),
+    );
+    let mut sink = DistributedSink::prepare(
+        None,
+        PlanKind::StdBrowser,
+        Some(source),
+        Some(browser.clone()),
+    )
+    .expect("fresh browser sink prepares");
+    assert_eq!(sink.binding.sink.host_id, browser.0);
+    assert_eq!(sink.binding.sink.boot_id, browser.1);
+    let mut wrong = sink.binding.clone();
+    wrong.plan_id = "stale-browser-session".into();
+    assert_eq!(
+        sink.session.admit_inbound(wrong.hello_frame()),
+        Err(conduit_wire::WireError::PlanMismatch)
+    );
+}
+
+#[test]
+fn stale_completion_from_replaced_browser_boot_refuses_current_truth() {
+    let source = (
+        HostId::from("product/std/7"),
+        BootId::from("product/std/7/boot"),
+    );
+    let mut old = DistributedSink::prepare(
+        None,
+        PlanKind::StdBrowser,
+        Some(source.clone()),
+        Some((
+            HostId::from("product/browser/old"),
+            BootId::from("product/browser/old/boot"),
+        )),
+    )
+    .expect("old browser sink prepares");
+    trigger(&mut old);
+    let old_binding = old.binding.clone();
+    old.ingest(&offered(&old_binding, 0))
+        .expect("old value admits");
+    old.advance().expect("old value delivered");
+    old.hold_first_value = false;
+    old.advance().expect("old presentation prepares");
+    let old_completion = old.expected_completion[..old.expected_completion_len].to_vec();
+
+    let mut current = DistributedSink::prepare(
+        None,
+        PlanKind::StdBrowser,
+        Some(source),
+        Some((
+            HostId::from("product/browser/current"),
+            BootId::from("product/browser/current/boot"),
+        )),
+    )
+    .expect("replacement browser sink prepares");
+    trigger(&mut current);
+    let current_binding = current.binding.clone();
+    current
+        .ingest(&offered(&current_binding, 0))
+        .expect("current value admits");
+    current.advance().expect("current value delivered");
+    current.hold_first_value = false;
+    current.advance().expect("current presentation prepares");
+
+    assert_eq!(
+        current.complete_presentation(&old_completion),
+        Err(ERROR_PRESENTATION)
+    );
+}
+
+#[test]
 fn triple_browser_reconstructs_its_fragment_from_the_same_three_host_plan() {
     let sink =
-        DistributedSink::prepare(None, PlanKind::Triple, None).expect("triple sink prepares");
+        DistributedSink::prepare(None, PlanKind::Triple, None, None).expect("triple sink prepares");
     let exact = conduit_signal::triple::exact_plan().expect("triple plan resolves");
     assert_eq!(sink.fragment.host_id, exact.browser_advertisement.host_id);
     assert_eq!(sink.binding.plan_id, exact.plan.plan_id);
@@ -85,7 +164,7 @@ fn triple_browser_reconstructs_its_fragment_from_the_same_three_host_plan() {
 
 #[test]
 fn sign_exhaustion_is_structured_before_remote_admission_changes_sequence() {
-    let mut sink = DistributedSink::prepare(Some(1), PlanKind::StdBrowser, None)
+    let mut sink = DistributedSink::prepare(Some(1), PlanKind::StdBrowser, None, None)
         .expect("small sign sink prepares");
     trigger(&mut sink);
     let binding = sink.binding.clone();
@@ -107,7 +186,8 @@ fn sign_exhaustion_is_structured_before_remote_admission_changes_sequence() {
 
 #[test]
 fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
-    let mut failed = DistributedSink::prepare(None, PlanKind::Triple, None).expect("sink prepares");
+    let mut failed =
+        DistributedSink::prepare(None, PlanKind::Triple, None, None).expect("sink prepares");
     trigger(&mut failed);
     let binding = failed.binding.clone();
     failed.ingest(&offered(&binding, 0)).expect("value admits");
@@ -126,7 +206,7 @@ fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
     assert_eq!(failed.scheduler.values().used_items(), 0);
 
     let mut cancelled =
-        DistributedSink::prepare(None, PlanKind::Triple, None).expect("sink prepares");
+        DistributedSink::prepare(None, PlanKind::Triple, None, None).expect("sink prepares");
     trigger(&mut cancelled);
     assert_eq!(cancelled.cancel(), Err(ERROR_CANCELLED));
     assert_eq!(cancelled.output[5], 7, "cancelled frame");
@@ -137,7 +217,8 @@ fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
 
 #[test]
 fn triple_browser_rejects_a_malformed_live_frame_without_admission() {
-    let mut sink = DistributedSink::prepare(None, PlanKind::Triple, None).expect("sink prepares");
+    let mut sink =
+        DistributedSink::prepare(None, PlanKind::Triple, None, None).expect("sink prepares");
     trigger(&mut sink);
     assert_eq!(sink.ingest(&[0_u8; 8]), Err(ERROR_SESSION));
     assert_eq!(sink.session.next_sequence(), 0);
@@ -147,7 +228,7 @@ fn triple_browser_rejects_a_malformed_live_frame_without_admission() {
 #[test]
 fn wrong_remote_completion_identity_fails_closed() {
     let mut sink =
-        DistributedSink::prepare(None, PlanKind::StdBrowser, None).expect("sink prepares");
+        DistributedSink::prepare(None, PlanKind::StdBrowser, None, None).expect("sink prepares");
     trigger(&mut sink);
     let binding = sink.binding.clone();
     sink.ingest(&offered(&binding, 0)).expect("value admits");

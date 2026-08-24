@@ -1,3 +1,6 @@
+mod browser_product;
+#[cfg(test)]
+mod browser_product_tests;
 mod cli;
 mod copy_task;
 mod diagnostics;
@@ -49,12 +52,14 @@ fn run_with_placements(
 ) -> Result<(), String> {
     let source = match execution_fixture {
         Some(cli::ExecutionFixture::TwoStdLine) => form_source::load_signal(Path::new(path))?,
+        Some(cli::ExecutionFixture::StdBrowserLine) => form_source::load_signal(Path::new(path))?,
         None => form_source::load(Path::new(path))?,
     };
     let form = source.expand_entry()?;
     let mut context = match execution_fixture {
         None => product_execution::ProductExecutionContext::local_std()?,
         Some(cli::ExecutionFixture::TwoStdLine) => two_std_line::context()?,
+        Some(cli::ExecutionFixture::StdBrowserLine) => browser_product::context()?,
     };
     let plan = match execution_fixture {
         None => context.plan(&form, placements_path)?,
@@ -63,6 +68,12 @@ fn run_with_placements(
                 return Err("the two-std-line fixture owns its exact machine placement".into());
             }
             context.plan_with_placements(&form, &two_std_line::placements(&form)?)?
+        }
+        Some(cli::ExecutionFixture::StdBrowserLine) => {
+            if placements_path.is_some() {
+                return Err("the std-browser-line fixture owns its exact machine placement".into());
+            }
+            context.plan_with_placements(&form, &browser_product::placements(&form)?)?
         }
     };
     let mut stdout = io::stdout().lock();
@@ -79,14 +90,26 @@ fn run_with_placements(
             .map_err(|error| error.to_string())?;
             product_execution::ProductExecution {
                 advertisements: context.advertisements().to_vec(),
+                line_offers: context.line_offers().to_vec(),
                 plan,
                 observations: Vec::new(),
+            }
+        }
+        Some(cli::ExecutionFixture::StdBrowserLine) => {
+            context.validate_plan(&plan)?;
+            let observations = browser_product::execute(&plan, &mut stdout)?;
+            product_execution::ProductExecution {
+                advertisements: context.advertisements().to_vec(),
+                line_offers: context.line_offers().to_vec(),
+                plan,
+                observations,
             }
         }
     };
     if let Some(report_path) = report_path {
         let snapshot = snapshot_from_execution(
             execution.advertisements,
+            execution.line_offers,
             vec![execution.plan],
             execution.observations,
         );

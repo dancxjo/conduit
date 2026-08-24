@@ -18,10 +18,10 @@ use conduit_kernel::{
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
+#[cfg(test)]
+use conduit_signal::exact_distributed_signal_plan_for;
 use conduit_signal::{
-    decode_signal_bytes, distributed_browser_sink_advertisement, exact_distributed_signal_plan,
-    exact_distributed_signal_plan_for, triple, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SHOW_KIND,
-    SIGNAL_ENCODED_LEN,
+    decode_signal_bytes, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SHOW_KIND, SIGNAL_ENCODED_LEN,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
@@ -63,6 +63,8 @@ thread_local! {
     static DISTRIBUTED: RefCell<Option<DistributedSink>> = const { RefCell::new(None) };
     static DISTRIBUTED_INPUT: RefCell<[u8; FRAME_CAPACITY]> = const { RefCell::new([0; FRAME_CAPACITY]) };
 }
+
+mod identity;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct CapacitySeal {
@@ -168,19 +170,11 @@ impl DistributedSink {
         sign_override: Option<u16>,
         kind: PlanKind,
         source_identity: Option<(HostId, BootId)>,
+        sink_identity: Option<(HostId, BootId)>,
     ) -> Result<Self, i32> {
-        let advertisement = match kind {
-            PlanKind::StdBrowser => distributed_browser_sink_advertisement(),
-            PlanKind::Triple => triple::browser_advertisement(),
-        };
-        let plan = match (kind, source_identity) {
-            (PlanKind::Triple, _) => triple::exact_plan().map(|exact| exact.plan),
-            (PlanKind::StdBrowser, Some((host_id, boot_id))) => {
-                exact_distributed_signal_plan_for(host_id, boot_id).map(|exact| exact.plan)
-            }
-            (PlanKind::StdBrowser, None) => exact_distributed_signal_plan().map(|exact| exact.plan),
-        }
-        .map_err(|_| ERROR_PREPARE)?;
+        let (advertisement, plan) =
+            identity::advertisement_and_plan(kind, source_identity, sink_identity)
+                .map_err(|_| ERROR_PREPARE)?;
         let fragment = plan
             .fragments
             .into_iter()

@@ -58,6 +58,7 @@ pub(crate) enum PatchbayHost {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
 pub(crate) enum ExecutionFixture {
     TwoStdLine,
+    StdBrowserLine,
 }
 
 #[derive(Debug, Subcommand)]
@@ -78,6 +79,21 @@ mod tests {
                 .command,
             Command::Patchbay {
                 on: PatchbayHost::Browser
+            }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "run",
+                "signal.conduit",
+                "--execution-fixture",
+                "std-browser-line"
+            ])
+            .expect("std-browser product fixture parses")
+            .command,
+            Command::Run {
+                execution_fixture: Some(ExecutionFixture::StdBrowserLine),
+                ..
             }
         ));
         assert!(matches!(

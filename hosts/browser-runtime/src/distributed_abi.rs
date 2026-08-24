@@ -4,6 +4,7 @@ const MAXIMUM_SOURCE_ID_BYTES: usize = 128;
 
 thread_local! {
     static DISTRIBUTED_SOURCE_IDENTITY: RefCell<Option<(HostId, BootId)>> = const { RefCell::new(None) };
+    static DISTRIBUTED_SINK_IDENTITY: RefCell<Option<(HostId, BootId)>> = const { RefCell::new(None) };
 }
 
 fn with_sink<T>(action: impl FnOnce(&mut DistributedSink) -> Result<T, i32>) -> Result<T, i32> {
@@ -15,13 +16,53 @@ fn with_sink<T>(action: impl FnOnce(&mut DistributedSink) -> Result<T, i32>) -> 
 
 fn start(kind: PlanKind) -> i32 {
     let source_identity = DISTRIBUTED_SOURCE_IDENTITY.with(|identity| identity.borrow_mut().take());
-    match DistributedSink::prepare(None, kind, source_identity) {
+    let sink_identity = DISTRIBUTED_SINK_IDENTITY.with(|identity| identity.borrow_mut().take());
+    match DistributedSink::prepare(None, kind, source_identity, sink_identity) {
         Ok(sink) => {
             DISTRIBUTED.with(|slot| *slot.borrow_mut() = Some(sink));
             STATUS_RUNNING
         }
         Err(code) => code,
     }
+}
+
+/// Configures the freshly launched browser page Host/Boot identity before
+/// reconstructing its exact fragment from the product Plan facts.
+#[no_mangle]
+pub extern "C" fn conduit_browser_distributed_configure_sink(
+    host_length: u32,
+    boot_length: u32,
+) -> i32 {
+    DISTRIBUTED_SINK_IDENTITY.with(|identity| {
+        identity.borrow_mut().take();
+    });
+    let host_length = host_length as usize;
+    let boot_length = boot_length as usize;
+    let Some(total_length) = host_length.checked_add(boot_length) else {
+        return ERROR_PREPARE;
+    };
+    if host_length == 0
+        || boot_length == 0
+        || host_length > MAXIMUM_SOURCE_ID_BYTES
+        || boot_length > MAXIMUM_SOURCE_ID_BYTES
+        || total_length > FRAME_CAPACITY
+    {
+        return ERROR_PREPARE;
+    }
+    DISTRIBUTED_INPUT.with(|input| {
+        let input = input.borrow();
+        let host = core::str::from_utf8(&input[..host_length]);
+        let boot = core::str::from_utf8(&input[host_length..total_length]);
+        match (host, boot) {
+            (Ok(host), Ok(boot)) => {
+                DISTRIBUTED_SINK_IDENTITY.with(|identity| {
+                    *identity.borrow_mut() = Some((HostId::from(host), BootId::from(boot)));
+                });
+                STATUS_RUNNING
+            }
+            _ => ERROR_PREPARE,
+        }
+    })
 }
 
 /// Configures the exact native source host/boot identity before starting the

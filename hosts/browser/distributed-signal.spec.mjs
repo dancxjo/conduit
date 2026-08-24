@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
 
@@ -61,6 +61,7 @@ function lineCollector(stream) {
 test("unchanged Signal form runs std kernel to browser WASM kernel over live bounded WebSocket", async ({
   page,
 }) => {
+  const reportPath = `/tmp/conduit-browser-product-${process.pid}.json`;
   const sourceText = readFileSync("fixtures/forms/signal-demo.conduit", "utf8");
   for (const forbidden of [
     "websocket",
@@ -75,8 +76,15 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
   }
 
   const source = spawn(
-    "cargo",
-    ["run", "--quiet", "-p", "conduit-std-host", "--bin", "distributed-signal-server"],
+    "target/debug/conduit",
+    [
+      "run",
+      "fixtures/forms/signal-demo.conduit",
+      "--execution-fixture",
+      "std-browser-line",
+      "--report",
+      reportPath,
+    ],
     { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
   );
   const stderr = [];
@@ -85,11 +93,19 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
   const lines = lineCollector(source.stdout);
   const exited = processExit(source);
   try {
-    const url = await lines.line(0);
-    expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
+    const bootstrap = await lines.line(0);
+    const bootstrapMatch = bootstrap.match(
+      /^browser_product url=(ws:\/\/127\.0\.0\.1:\d+\/conduit) source_host=(\S+) source_boot=(\S+) browser_host=(\S+) browser_boot=(\S+) plan=(\S+)$/,
+    );
+    expect(bootstrapMatch).not.toBeNull();
+    const [
+      , url, expectedSourceHostId, expectedSourceBootId, browserHostId, browserBootId,
+    ] = bootstrapMatch;
     process.stdout.write(`distributed Signal URL ${url}\n`);
     await page.goto("/hosts/browser/distributed-signal.test.html");
-    const result = await page.evaluate(async ({ url }) => {
+    const result = await page.evaluate(async ({
+      url, expectedSourceHostId, expectedSourceBootId, browserHostId, browserBootId,
+    }) => {
       const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
         "/hosts/browser/websocket-line.mjs"
@@ -110,13 +126,16 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
         maximumBufferedBytes: 8192,
       }).open();
       const domHost = new BrowserDomHost({
-        hostId: "s4/browser-sink",
-        bootId: "s4/browser-sink-boot",
+        hostId: browserHostId,
+        bootId: browserBootId,
         root: document.querySelector("#browser-sink"),
         maximumReceiptItems: 16,
         maximumReceiptBytes: 144,
       });
-      const runtime = await instantiateDistributedBrowserRuntime(wasmBytes);
+      const runtime = await instantiateDistributedBrowserRuntime(wasmBytes, {
+        sourceIdentity: { hostId: expectedSourceHostId, bootId: expectedSourceBootId },
+        sinkIdentity: { hostId: browserHostId, bootId: browserBootId },
+      });
       const run = await runDistributedBrowserRuntime(runtime, line, domHost);
       const closed = await line.closed();
       const receipts = domHost.receipts();
@@ -135,13 +154,20 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
         receipts,
         closed,
       };
-    }, { url });
+    }, {
+      url,
+      expectedSourceHostId,
+      expectedSourceBootId,
+      browserHostId,
+      browserBootId,
+    });
     process.stdout.write(
       `browser receipts=${result.receiptCount} pressure_retries=${result.pressureRetries} ` +
       `retained=${result.retainedValues} in_flight=${result.inFlightItems} ` +
       `capacity_stable=${result.capacityStable}\n`,
     );
     await exited;
+    const report = JSON.parse(readFileSync(reportPath, "utf8"));
     const summary = await lines.line(1);
     process.stdout.write(`${summary}\n`);
     expect(stderr).toEqual([]);
@@ -151,6 +177,20 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
     expect(result.status).toBe(1);
     expect(result.receiptCount).toBe(16);
     expect(result.receipts).toHaveLength(16);
+    expect(report.hosts.map(({ advertisement }) => advertisement.host_id).sort()).toEqual(
+      [expectedSourceHostId, browserHostId].sort(),
+    );
+    expect(report.lines).toHaveLength(1);
+    expect(report.lines[0].offer.line_id).toBe("s4/line/distributed-websocket");
+    expect(report.plans).toHaveLength(1);
+    expect(report.plays).toHaveLength(1);
+    expect(report.plays[0].host_id).toBe(browserHostId);
+    expect(report.plays[0].lifecycle).toBe("Completed");
+    expect(report.observations.filter(({ kind }) => "ValuePresented" in kind)).toHaveLength(16);
+    expect(report.observations.every(({ host_id }) => host_id === browserHostId)).toBe(true);
+    expect(new Set(report.observations.filter(({ presentation_id }) => presentation_id)
+      .map(({ presentation_id }) => presentation_id)).size).toBe(16);
+    expect(new Set(report.observations.map(({ sign_id }) => sign_id)).size).toBe(17);
     expect(result.pressureRetries).toBe(1);
     expect(result.capacityStable).toBe(true);
     expect(result.retainedValues).toBe(0);
@@ -196,12 +236,12 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
       expect(receipt.encoded).toEqual(presentation.encoded);
     }
     expect(result.receipts.every(({ sourceHostId }) =>
-      sourceHostId === "s4/std-source")).toBe(true);
+      sourceHostId === expectedSourceHostId)).toBe(true);
     expect(result.receipts.every(({ sourceBootId }) =>
-      sourceBootId === "s4/std-source-boot")).toBe(true);
-    expect(result.receipts.every(({ hostId }) => hostId === "s4/browser-sink")).toBe(true);
+      sourceBootId === expectedSourceBootId)).toBe(true);
+    expect(result.receipts.every(({ hostId }) => hostId === browserHostId)).toBe(true);
     expect(result.receipts.every(({ bootId }) =>
-      bootId === "s4/browser-sink-boot")).toBe(true);
+      bootId === browserBootId)).toBe(true);
     expect(result.receipts.every(({ linkBindingId }) =>
       linkBindingId === "s4/std-browser-link")).toBe(true);
     expect(result.receipts.every(({ baseInstanceId }) =>
@@ -225,6 +265,7 @@ test("unchanged Signal form runs std kernel to browser WASM kernel over live bou
       "15",
     );
   } finally {
+    rmSync(reportPath, { force: true });
     lines.close();
     if (source.exitCode === null) source.kill("SIGTERM");
   }
@@ -321,8 +362,13 @@ test("a broken live link after four delivered values fails with retained exact r
   page,
 }) => {
   const source = spawn(
-    "cargo",
-    ["run", "--quiet", "-p", "conduit-std-host", "--bin", "distributed-signal-server"],
+    "target/debug/conduit",
+    [
+      "run",
+      "fixtures/forms/signal-demo.conduit",
+      "--execution-fixture",
+      "std-browser-line",
+    ],
     { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
   );
   const stderr = [];
@@ -334,10 +380,16 @@ test("a broken live link after four delivered values fails with retained exact r
     (error) => ({ ok: false, detail: error.message }),
   );
   try {
-    const url = await lines.line(0);
-    expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
+    const bootstrap = await lines.line(0);
+    const match = bootstrap.match(
+      /^browser_product url=(ws:\/\/127\.0\.0\.1:\d+\/conduit) source_host=(\S+) source_boot=(\S+) browser_host=(\S+) browser_boot=(\S+) plan=(\S+)$/,
+    );
+    expect(match).not.toBeNull();
+    const [, url, sourceHostId, sourceBootId, browserHostId, browserBootId] = match;
     await page.goto("/hosts/browser/distributed-signal.test.html");
-    const result = await page.evaluate(async ({ url }) => {
+    const result = await page.evaluate(async ({
+      url, sourceHostId, sourceBootId, browserHostId, browserBootId,
+    }) => {
       const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
         "/hosts/browser/websocket-line.mjs"
@@ -355,13 +407,16 @@ test("a broken live link after four delivered values fails with retained exact r
         maximumBufferedBytes: 8192,
       }).open();
       const domHost = new BrowserDomHost({
-        hostId: "s4/browser-sink",
-        bootId: "s4/browser-sink-boot",
+        hostId: browserHostId,
+        bootId: browserBootId,
         root: document.querySelector("#browser-sink"),
         maximumReceiptItems: 16,
         maximumReceiptBytes: 144,
       });
-      const runtime = await instantiateDistributedBrowserRuntime(wasmBytes);
+      const runtime = await instantiateDistributedBrowserRuntime(wasmBytes, {
+        sourceIdentity: { hostId: sourceHostId, bootId: sourceBootId },
+        sinkIdentity: { hostId: browserHostId, bootId: browserBootId },
+      });
       const breakingDomHost = {
         completePresentation(effect) {
           const result = domHost.completePresentation(effect);
@@ -382,7 +437,7 @@ test("a broken live link after four delivered values fails with retained exact r
         closed: await line.closed(),
         receipts: domHost.receipts(),
       };
-    }, { url });
+    }, { url, sourceHostId, sourceBootId, browserHostId, browserBootId });
     const exit = await exitOutcome;
     expect(exit.ok).toBe(false);
     expect(exit.detail).toContain("distributed source exit code=1");
@@ -391,6 +446,41 @@ test("a broken live link after four delivered values fails with retained exact r
     expect(result.closed).toEqual({ ok: false, code: 1006, reason: "" });
     expect(result.receipts).toHaveLength(4);
     expect(result.receipts.map(({ sequence }) => Number(sequence))).toEqual([0, 1, 2, 3]);
+  } finally {
+    lines.close();
+    if (source.exitCode === null) source.kill("SIGTERM");
+  }
+});
+
+test("browser page loss before Play reaches the bounded product readiness refusal", async ({
+  page,
+}) => {
+  const source = spawn(
+    "target/debug/conduit",
+    [
+      "run",
+      "fixtures/forms/signal-demo.conduit",
+      "--execution-fixture",
+      "std-browser-line",
+    ],
+    { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const stderr = [];
+  source.stderr.setEncoding("utf8");
+  source.stderr.on("data", (chunk) => stderr.push(chunk));
+  const lines = lineCollector(source.stdout);
+  const exitOutcome = processExit(source).then(
+    () => ({ ok: true }),
+    (error) => ({ ok: false, detail: error.message }),
+  );
+  try {
+    expect(await lines.line(0)).toMatch(/^browser_product url=ws:\/\/127\.0\.0\.1:/);
+    await page.goto("/hosts/browser/distributed-signal.test.html");
+    await page.close();
+    const exit = await exitOutcome;
+    expect(exit.ok).toBe(false);
+    expect(exit.detail).toContain("distributed source exit code=1");
+    expect(stderr.join("")).toContain("peer-before-Play: AcceptDeadline");
   } finally {
     lines.close();
     if (source.exitCode === null) source.kill("SIGTERM");

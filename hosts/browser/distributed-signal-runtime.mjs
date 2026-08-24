@@ -24,7 +24,7 @@ function writeInput(runtime, bytes) {
 
 export async function instantiateDistributedBrowserRuntime(
   wasmBytes,
-  { triple = false, sourceIdentity = null } = {},
+  { triple = false, sourceIdentity = null, sinkIdentity = null } = {},
 ) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
@@ -32,6 +32,7 @@ export async function instantiateDistributedBrowserRuntime(
     "memory",
     "conduit_browser_distributed_start",
     "conduit_browser_distributed_configure_source",
+    "conduit_browser_distributed_configure_sink",
     "conduit_browser_distributed_status",
     "conduit_browser_distributed_output_kind",
     "conduit_browser_distributed_output_ptr",
@@ -69,6 +70,23 @@ export async function instantiateDistributedBrowserRuntime(
     input.set(boot, host.length);
     if (api.conduit_browser_distributed_configure_source(host.length, boot.length) !== 0) {
       throw new Error("CND-DST-S4-009 distributed source identity rejected");
+    }
+  }
+  if (sinkIdentity !== null) {
+    const host = new TextEncoder().encode(sinkIdentity.hostId);
+    const boot = new TextEncoder().encode(sinkIdentity.bootId);
+    if (host.length === 0 || boot.length === 0 || host.length + boot.length > FRAME_CAPACITY) {
+      throw new Error("CND-DST-S4-010 invalid distributed sink identity");
+    }
+    const input = new Uint8Array(
+      api.memory.buffer,
+      api.conduit_browser_distributed_input_ptr(),
+      host.length + boot.length,
+    );
+    input.set(host, 0);
+    input.set(boot, host.length);
+    if (api.conduit_browser_distributed_configure_sink(host.length, boot.length) !== 0) {
+      throw new Error("CND-DST-S4-011 distributed sink identity rejected");
     }
   }
   const status = triple

@@ -19,13 +19,15 @@ pub use canonical::signal_startup_catalog;
 mod distributed_identity;
 #[cfg(feature = "host-profile")]
 pub use distributed_identity::{
-    distributed_source_advertisement_for, distributed_websocket_line_offer_for,
+    distributed_browser_advertisement_for, distributed_source_advertisement_for,
+    distributed_websocket_line_offer_for, distributed_websocket_line_offer_for_endpoints,
 };
 #[cfg(feature = "host-profile")]
 mod distributed_plan;
 #[cfg(feature = "host-profile")]
 pub use distributed_plan::{
-    exact_distributed_signal_plan, exact_distributed_signal_plan_for, DistributedSignalPlan,
+    exact_distributed_signal_plan, exact_distributed_signal_plan_for,
+    exact_distributed_signal_plan_for_endpoints, DistributedSignalPlan,
 };
 #[cfg(feature = "host-profile")]
 mod esp32_wroom;
