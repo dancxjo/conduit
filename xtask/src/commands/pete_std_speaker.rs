@@ -22,7 +22,7 @@ use conduit_std_host::std_create_uart::{
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
-use crate::commands::pete_std_create::{establish_safe, write_new_atomic};
+use crate::commands::pete_std_create::{establish_full, establish_safe, write_new_atomic};
 
 const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-speaker-evidence@1";
 const MAXIMUM_ID_BYTES: usize = 128;
@@ -70,6 +70,8 @@ struct Evidence {
     robot_identity: RobotIdentityEvidence,
     base: BaseEvidence,
     observed_oi_mode: &'static str,
+    final_oi_mode: &'static str,
+    safe_cleanup_completed: bool,
     speaker_authority: &'static str,
     speaker_implementation: &'static str,
     motion_authority_granted: bool,
@@ -113,7 +115,7 @@ pub fn run(args: StdSpeakerArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would attest robot {}, establish SAFE OI over {}, and play one bounded portable melody",
+                "would attest robot {}, establish FULL OI over {}, play one bounded portable melody, and verify SAFE cleanup",
                 args.robot_id,
                 args.serial_path.display()
             );
@@ -143,7 +145,10 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
     })
     .map_err(|error| format!("base open: {error:?}"))?;
     let identity = provider.identity().clone();
-    let mode = establish_safe(&mut provider, args.read_timeout_ms)?;
+    // Pete's physical Create 1 retains a queued song without sounding it in
+    // SAFE. FULL is therefore an exact mechanism requirement of this speaker
+    // implementation, while the admitted operation remains speaker-only.
+    let mode = establish_full(&mut provider, args.read_timeout_ms)?;
     let observation = CreateSpeakerObservation {
         host_id: HostId::from(args.host_id.clone()),
         boot_id: BootId::from(args.boot_id.clone()),
@@ -182,29 +187,42 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
     .expect("fixed melody is within the pinned Create 1 profile");
     let mut execution = prepare_speaker_execution(&plan, &song)
         .map_err(|error| format!("speaker preparation: {error}"))?;
-    let mut speaker = StdSpeakerSerial {
-        provider: &mut provider,
-        read_timeout_ms: args.read_timeout_ms,
-    };
-    let report = run_speaker_execution(&mut execution, &mut speaker);
-    let mut outcome = terminal_outcome(report);
-    let mut post_bound = None;
-    if matches!(report.terminal, SpeakerTerminal::Completed) {
-        let millis = u64::from(song.maximum_completion_ticks)
-            .saturating_mul(1_000)
-            .div_ceil(u64::from(DURATION_TICKS_PER_SECOND))
-            .saturating_add(100);
-        std::thread::sleep(Duration::from_millis(millis));
-        let still_playing = speaker
-            .query_boolean(SONG_PLAYING_PACKET)
-            .map_err(|error| format!("post-bound song observation: {error:?}"))?;
-        post_bound = Some(still_playing);
-        if still_playing {
-            outcome = Outcome::Failed {
-                stage: "post_bound_cleanup",
-                code: "song_still_playing".into(),
-            };
+    let (report, mut outcome, post_bound) = {
+        let mut speaker = StdSpeakerSerial {
+            provider: &mut provider,
+            read_timeout_ms: args.read_timeout_ms,
+        };
+        let report = run_speaker_execution(&mut execution, &mut speaker);
+        let mut outcome = terminal_outcome(report);
+        let mut post_bound = None;
+        if matches!(report.terminal, SpeakerTerminal::Completed) {
+            let millis = u64::from(song.maximum_completion_ticks)
+                .saturating_mul(1_000)
+                .div_ceil(u64::from(DURATION_TICKS_PER_SECOND))
+                .saturating_add(100);
+            std::thread::sleep(Duration::from_millis(millis));
+            let still_playing = speaker
+                .query_boolean(SONG_PLAYING_PACKET)
+                .map_err(|error| format!("post-bound song observation: {error:?}"))?;
+            post_bound = Some(still_playing);
+            if still_playing {
+                outcome = Outcome::Failed {
+                    stage: "post_bound_cleanup",
+                    code: "song_still_playing".into(),
+                };
+            }
         }
+        (report, outcome, post_bound)
+    };
+    // FULL is required to sound Pete's physical Create 1 speaker, but it must
+    // never outlive this narrow operation. Restore and observe SAFE even when
+    // dispatch, observation, or post-bound cleanup failed.
+    let safe_cleanup = establish_safe(&mut provider, args.read_timeout_ms);
+    if let Err(ref error) = safe_cleanup {
+        outcome = Outcome::Failed {
+            stage: "restore_safe",
+            code: error.clone(),
+        };
     }
     Ok(Evidence {
         schema: EVIDENCE_SCHEMA,
@@ -227,7 +245,13 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
             stop_bits: identity.profile.stop_bits,
             parity: "none",
         },
-        observed_oi_mode: "safe",
+        observed_oi_mode: "full",
+        final_oi_mode: if safe_cleanup.is_ok() {
+            "safe"
+        } else {
+            "unknown"
+        },
+        safe_cleanup_completed: safe_cleanup.is_ok(),
         speaker_authority: SPEAKER_AUTHORITY,
         speaker_implementation: SPEAKER_IMPLEMENTATION,
         motion_authority_granted: false,
