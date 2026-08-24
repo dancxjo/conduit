@@ -1,9 +1,6 @@
 //! Bounded BlueZ discovery, pairing, and explicit transport-loss operations.
 
-use std::{
-    collections::{HashSet, VecDeque},
-    time::Duration,
-};
+use std::{collections::HashSet, time::Duration};
 
 use bluer::{AdapterEvent, Address, DiscoveryFilter, DiscoveryTransport, Session};
 use conduit_bluetooth::CONDUIT_BLE_SERVICE_UUID;
@@ -59,32 +56,33 @@ pub async fn discover_ble_gatt_candidate(
                     .map_err(|_| BluezBleGattError::DeviceUnavailable)?,
             });
         }
-        if let Some(candidate) = inspect_candidate(&adapter, expected, service_uuid).await? {
-            return Ok(candidate);
-        }
     }
+    let mut initially_known = cached
+        .into_iter()
+        .filter(|address| *address == expected)
+        .collect::<HashSet<_>>();
     let scan = async {
         let events = adapter
             .discover_devices_with_changes()
             .await
             .map_err(|error| BluezBleGattError::DiscoveryUnavailable(error.to_string()))?;
         futures::pin_mut!(events);
-        let mut inspection = tokio::time::interval(Duration::from_millis(100));
         let mut inspected_events = 0;
         while inspected_events < MAXIMUM_DISCOVERY_EVENTS_INSPECTED {
-            tokio::select! {
-                event = events.next() => match event {
-                    Some(_) => inspected_events += 1,
-                    None => return Err(BluezBleGattError::CandidateUnavailable),
-                },
-                _ = inspection.tick() => {}
-            }
-            // BlueZ can publish DeviceAdded before RSSI and UUID properties are
-            // populated, or auto-connect a cached device without an adapter
-            // add/remove event. Reinspect the one selected address after each
-            // bounded event or timer tick instead of treating either as final.
-            if let Some(candidate) = inspect_candidate(&adapter, expected, service_uuid).await? {
-                return Ok(candidate);
+            match events.next().await {
+                Some(AdapterEvent::DeviceAdded(address)) => {
+                    inspected_events += 1;
+                    if address != expected || !is_fresh_observation(&mut initially_known, address) {
+                        continue;
+                    }
+                    if let Some(candidate) =
+                        inspect_candidate(&adapter, expected, service_uuid).await?
+                    {
+                        return Ok(candidate);
+                    }
+                }
+                Some(_) => inspected_events += 1,
+                None => return Err(BluezBleGattError::CandidateUnavailable),
             }
         }
         Err(BluezBleGattError::CandidateUnavailable)
@@ -107,68 +105,74 @@ pub async fn discover_one_ble_gatt_candidate(
         .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
     require_powered(&adapter).await?;
     let service_uuid = configure_discovery(&adapter).await?;
-    let mut candidate = None;
-    for address in adapter
+    let initially_known = adapter
         .device_addresses()
         .await
-        .map_err(|_| BluezBleGattError::DeviceUnavailable)?
+        .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+    if initially_known.len() > MAXIMUM_CACHED_DEVICES_INSPECTED {
+        return Err(BluezBleGattError::CandidateUnavailable);
+    }
+    let mut connected_candidate = None;
+    for address in initially_known
+        .iter()
+        .copied()
         .into_iter()
         .take(MAXIMUM_CACHED_DEVICES_INSPECTED)
     {
+        let device = adapter
+            .device(address)
+            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+        if !device
+            .is_connected()
+            .await
+            .map_err(|_| BluezBleGattError::DeviceUnavailable)?
+        {
+            continue;
+        }
         let Some(observed) = inspect_candidate(&adapter, address, service_uuid).await? else {
             continue;
         };
-        if candidate.replace(observed).is_some() {
+        if connected_candidate.replace(observed).is_some() {
             return Err(BluezBleGattError::MultipleCandidates);
         }
     }
-    if let Some(candidate) = candidate {
+    if let Some(candidate) = connected_candidate {
         return Ok(candidate);
     }
+    let mut initially_known = initially_known
+        .into_iter()
+        .take(MAXIMUM_CACHED_DEVICES_INSPECTED)
+        .collect::<HashSet<_>>();
     let events = adapter
         .discover_devices_with_changes()
         .await
         .map_err(|error| BluezBleGattError::DiscoveryUnavailable(error.to_string()))?;
     futures::pin_mut!(events);
     let deadline = tokio::time::Instant::now() + DISCOVERY_TIMEOUT;
-    let mut candidate = None;
-    let mut recent = VecDeque::with_capacity(MAXIMUM_CACHED_DEVICES_INSPECTED);
     for _ in 0..MAXIMUM_DISCOVERY_EVENTS_INSPECTED {
         let event = match tokio::time::timeout_at(deadline, events.next()).await {
             Ok(Some(event)) => event,
             Ok(None) | Err(_) => break,
         };
         if let AdapterEvent::DeviceAdded(address) = event {
-            if recent.len() == MAXIMUM_CACHED_DEVICES_INSPECTED {
-                recent.pop_front();
+            if !is_fresh_observation(&mut initially_known, address) {
+                continue;
             }
-            recent.push_back(address);
-        }
-        candidate = None;
-        let mut addresses = recent.iter().copied().collect::<HashSet<_>>();
-        for address in adapter
-            .device_addresses()
-            .await
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?
-        {
-            if addresses.len() == MAXIMUM_CACHED_DEVICES_INSPECTED {
-                break;
-            }
-            addresses.insert(address);
-        }
-        for address in addresses {
             let Some(observed) = inspect_candidate(&adapter, address, service_uuid).await? else {
                 continue;
             };
-            if candidate.replace(observed).is_some() {
-                return Err(BluezBleGattError::MultipleCandidates);
-            }
-        }
-        if candidate.is_some() {
-            break;
+            return Ok(observed);
         }
     }
-    candidate.ok_or(BluezBleGattError::CandidateUnavailable)
+    Err(BluezBleGattError::CandidateUnavailable)
+}
+
+/// `discover_devices_with_changes` first replays every known BlueZ device,
+/// including peers that are no longer in range. A second event for a known
+/// address (or the first event for a new address) is the finite evidence that
+/// this discovery session observed it.
+fn is_fresh_observation(initially_known: &mut HashSet<Address>, address: Address) -> bool {
+    !initially_known.remove(&address)
 }
 
 async fn inspect_candidate(
@@ -293,4 +297,28 @@ async fn configure_discovery(adapter: &bluer::Adapter) -> Result<uuid::Uuid, Blu
         .await
         .map_err(|error| BluezBleGattError::DiscoveryUnavailable(error.to_string()))?;
     Ok(service_uuid)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cached_replay_is_not_current_reachability() {
+        let address = Address([1, 2, 3, 4, 5, 6]);
+        let mut initially_known = HashSet::from([address]);
+
+        assert!(!is_fresh_observation(&mut initially_known, address));
+        assert!(is_fresh_observation(&mut initially_known, address));
+    }
+
+    #[test]
+    fn first_observation_of_new_address_is_current() {
+        let mut initially_known = HashSet::new();
+
+        assert!(is_fresh_observation(
+            &mut initially_known,
+            Address([6, 5, 4, 3, 2, 1])
+        ));
+    }
 }
