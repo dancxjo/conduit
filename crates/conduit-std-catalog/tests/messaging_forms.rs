@@ -1,6 +1,7 @@
 use conduit_core::{
-    BootId, BoundedResourceRef, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
+    authority_grant, BootId, BoundedResourceRef, ConnectionBase, HostAdvertisement, HostId,
+    HostProfileId, OfferGeneration, StructuredInfoTypeShape, StructuredInfoValue,
+    StructuredInfoValueShape, DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
     PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -11,7 +12,8 @@ use conduit_std_catalog::{
     delivery_state_type, deterministic_cancel, deterministic_delivery_request,
     deterministic_messaging_fixture, deterministic_provider_acknowledgement, deterministic_submit,
     install_messaging_catalogs, message_attachments_type, message_metadata_type,
-    message_recipients_type, messaging_std_offers, notification_event_type, presence_event_type,
+    message_recipients_type, messaging_delivery_request_view, messaging_std_offers,
+    notification_event_type, presence_event_type, text_messaging_fixture, TextMessagingFixtureSpec,
     MAXIMUM_DELIVERY_ATTEMPTS, MAXIMUM_MESSAGE_ATTACHMENTS, MAXIMUM_MESSAGE_METADATA,
     MAXIMUM_MESSAGE_RECIPIENTS, MESSAGE_ATTACHMENT_ACCESS_CLASS, MESSAGE_ATTACHMENT_PROFILE,
     MESSAGING_HOST_OPERATION,
@@ -38,11 +40,34 @@ fn canonical_form_constructs_and_routes_one_structured_message() {
         core::slice::from_ref(&host),
     )
     .unwrap();
-    let plan = conduit_planner::plan_expanded_canonical(
+    let delivery_offer = host
+        .capabilities
+        .iter()
+        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::MESSAGING_DELIVERY_KIND)
+        .unwrap();
+    let grant = authority_grant(
+        "grant/messaging-delivery",
+        &delivery_offer.authority_requirements[0],
+        host.host_id.clone(),
+        host.boot_id.clone(),
+        delivery_offer.capability_id.clone(),
+    );
+    let connection_bases = std::collections::BTreeMap::new();
+    let line_candidates = std::collections::BTreeMap::new();
+    let plan = conduit_planner::plan_expanded_canonical_with_options(
         &authored.expanded,
         &[host],
         &placements,
         &[ConnectionBase::Local],
+        conduit_planner::PlanningOptions {
+            connection_bases: &connection_bases,
+            line_candidates: &line_candidates,
+            connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
+            connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
+            authority_grants: &[grant],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
     )
     .unwrap();
     for placement in &plan.fragments[0].placements {
@@ -51,7 +76,11 @@ fn canonical_form_constructs_and_routes_one_structured_message() {
             MESSAGING_HOST_OPERATION
         );
         assert!(placement.resources.is_empty());
-        assert!(placement.authority.is_empty());
+        if placement.kind_id.as_str() == conduit_std_catalog::MESSAGING_DELIVERY_KIND {
+            assert_eq!(placement.authority.len(), 1);
+        } else {
+            assert!(placement.authority.is_empty());
+        }
     }
 }
 
@@ -175,6 +204,33 @@ fn lifecycle_and_separate_notification_presence_families_are_finite() {
         };
         assert_eq!(length, exact_length);
     }
+}
+
+#[test]
+fn provider_neutral_text_fixture_exposes_exact_authorized_request_without_attachment() {
+    let fixture = text_messaging_fixture(TextMessagingFixtureSpec {
+        message_identity: "message/live/1",
+        request_identity: "delivery/live/1",
+        correlation_identity: "correlation/live/1",
+        authority_identity: "authority/live/1",
+        recipient_address: "issue/1404",
+        recipient_address_profile: "messaging/conduit-issue@1",
+        body: "Live provider proof.",
+    })
+    .unwrap();
+    let view = messaging_delivery_request_view(&fixture.request).unwrap();
+    assert_eq!(view.request_identity, "delivery/live/1");
+    assert_eq!(view.correlation_identity, "correlation/live/1");
+    assert_eq!(view.authority_identity.as_deref(), Some("authority/live/1"));
+    assert_eq!(view.attempt, 1);
+    assert_eq!(view.body, "Live provider proof.");
+    assert_eq!(view.recipients.len(), 1);
+    assert_eq!(view.recipients[0].address, "issue/1404");
+    assert_eq!(
+        view.recipients[0].address_profile,
+        "messaging/conduit-issue@1"
+    );
+    assert_eq!(view.attachment_count, 0);
 }
 
 fn host() -> HostAdvertisement {

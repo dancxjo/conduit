@@ -101,6 +101,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             crate::commands::ollama_embodiment::run(&args, &root, opts)
         }
         ProveTarget::LlmCrossHost => run_suite(PROVE_LLM_CROSS_HOST_STEPS, &root, opts),
+        ProveTarget::MessagingGithub => crate::commands::messaging_github::run(&args, &root, opts),
         ProveTarget::PatchbayFrontDoor => run_patchbay_front_door(&args, &root, opts),
         ProveTarget::StdPicoUsb => {
             let pico_args = crate::commands::pico::PicoArgs {

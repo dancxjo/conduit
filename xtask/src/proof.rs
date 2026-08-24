@@ -429,6 +429,14 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         named_artifacts: &["target/ollama-planning-advice-live.json"],
         allowed_claims: &["one bounded live model-derived placement proposal is revalidated against exact current candidate truth and submitted to the ordinary planner, which alone seals a distinct immutable Plan"],
     },
+    ProofCommandContract {
+        id: "messaging.github-issue-comment-live",
+        command: "cargo xtask prove messaging-github --credential-env <name> --messaging-config-env <name>",
+        proof_class: ProofClass::LiveTransport,
+        required_tools_or_targets: &["cargo", "GitHub Issues API", "named bearer credential"],
+        named_artifacts: &["target/messaging-github-live.json"],
+        allowed_claims: &["one explicitly authorized portable message is acknowledged by the bounded GitHub issue-comment provider profile as sent without claiming end-recipient delivery"],
+    },
 ];
 
 #[derive(Debug, Serialize)]

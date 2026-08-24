@@ -7,10 +7,11 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -19,12 +20,13 @@ use crate::{
     notification_event_type, portable_message_type,
 };
 
-pub const MESSAGING_FIXTURE_KIND: &str = "messaging/deterministic-message";
-pub const MESSAGING_PROVIDER_KIND: &str = "messaging/deterministic-provider";
-pub const MESSAGING_REVISION: &str = "conduit.std/messaging-delivery@1";
+pub const MESSAGING_MESSAGE_KIND: &str = "messaging/message";
+pub const MESSAGING_DELIVERY_KIND: &str = "messaging/deliver";
+pub const MESSAGING_REVISION: &str = "conduit.std/messaging-delivery@2";
 pub const MESSAGING_PROFILE: &str = "std/messaging-deterministic-hosted@1";
 pub const MESSAGING_ARTIFACT: &str = "conduit-std-host/messaging-deterministic@1";
 pub const MESSAGING_HOST_OPERATION: &str = "conduit.host/messaging-deterministic@1";
+pub const MESSAGING_DELIVERY_AUTHORITY: &str = "conduit.authority/messaging-deliver@1";
 
 pub fn install_messaging_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -38,7 +40,7 @@ pub fn install_messaging_catalogs(
     insert_kind(
         startup,
         profile,
-        MESSAGING_FIXTURE_KIND,
+        MESSAGING_MESSAGE_KIND,
         vec![],
         vec![
             port("message", &portable_message_type(), PortDirection::Output),
@@ -48,7 +50,7 @@ pub fn install_messaging_catalogs(
     insert_kind(
         startup,
         profile,
-        MESSAGING_PROVIDER_KIND,
+        MESSAGING_DELIVERY_KIND,
         vec![port(
             "request",
             &delivery_request_type(),
@@ -68,7 +70,7 @@ pub fn install_messaging_catalogs(
 pub fn messaging_std_offers() -> Vec<CapabilityOffer> {
     vec![
         offer(
-            MESSAGING_FIXTURE_KIND,
+            MESSAGING_MESSAGE_KIND,
             vec![],
             vec![
                 port("message", &portable_message_type(), PortDirection::Output),
@@ -76,7 +78,7 @@ pub fn messaging_std_offers() -> Vec<CapabilityOffer> {
             ],
         ),
         offer(
-            MESSAGING_PROVIDER_KIND,
+            MESSAGING_DELIVERY_KIND,
             vec![port(
                 "request",
                 &delivery_request_type(),
@@ -132,6 +134,15 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
 }
 
 fn offer(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> CapabilityOffer {
+    let operation_target = if kind == MESSAGING_DELIVERY_KIND {
+        delivery_request_type()
+            .profile()
+            .expect("reviewed delivery request profile")
+            .value_kind()
+            .clone()
+    } else {
+        kind_id(kind)
+    };
     CapabilityOffer {
         startup_parameters: vec![],
         shorthand: None,
@@ -147,13 +158,20 @@ fn offer(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) 
         outputs,
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(MESSAGING_HOST_OPERATION),
-            target_kind: Some(kind_id(kind)),
+            target_kind: Some(operation_target.clone()),
             maximum_in_flight: 1,
             maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         }],
         resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
+        authority_requirements: (kind == MESSAGING_DELIVERY_KIND)
+            .then(|| AuthorityRequirement {
+                contract_id: AuthorityContractId::from(MESSAGING_DELIVERY_AUTHORITY),
+                host_operation_contract_id: HostOperationContractId::from(MESSAGING_HOST_OPERATION),
+                subject_kind: operation_target,
+            })
+            .into_iter()
+            .collect(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 4,

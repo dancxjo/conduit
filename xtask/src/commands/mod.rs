@@ -11,6 +11,7 @@ pub mod demo;
 pub mod doctor;
 pub mod evidence;
 pub mod host;
+pub mod messaging_github;
 pub mod midi;
 pub mod ollama_embodiment;
 pub mod ollama_planning_advice;
