@@ -61,6 +61,7 @@ mod startup;
 #[cfg(test)]
 use startup::startup_order;
 mod style;
+mod survival_policy;
 
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
@@ -183,6 +184,14 @@ pub use style::{
     PresentationStyleFacts, StyleId, StylePreferenceEvidence, StylePreferenceOutcome,
     StyleSelection, DOS_SHELL_STYLE_ID, PRESENTATION_DENSITY, PRESENTATION_FRAMING,
     PRESENTATION_KEYBOARD_VISIBLE, PRESENTATION_PALETTE_CLASS, PRESENTATION_TEXT_LAYOUT,
+};
+pub use survival_policy::{
+    select_plan_with_survival_policy, triage_scarce_resource, ExplicitCriticality,
+    ScarceResourceDecision, ScarceResourceDisposition, ScarceResourceTriage, SurvivalCandidate,
+    SurvivalCandidateDisposition, SurvivalCandidateEvidence, SurvivalPlanSelection,
+    SurvivalPlanningMode, SurvivalPlanningPolicy, SurvivalPolicyRefusal, SurvivalTradeoff,
+    WorkloadResourceRequest, MAXIMUM_SCARCE_RESOURCE_REQUESTS, MAXIMUM_SURVIVAL_CANDIDATES,
+    MAXIMUM_SURVIVAL_POLICY_ID_BYTES, MAXIMUM_SURVIVAL_TRADEOFFS,
 };
 
 pub fn default_placements(

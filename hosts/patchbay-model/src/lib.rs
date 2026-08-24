@@ -74,6 +74,7 @@ mod renderer_inspection;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
+mod survival_policy_explanation;
 mod text_lab_explanation;
 mod text_lab_explanation_loss;
 mod theme;
@@ -212,6 +213,10 @@ pub use route_demo::{DistributedRouteDemo, RouteDemoError};
 pub use route_presentation::{
     DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
     RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
+};
+pub use survival_policy_explanation::{
+    explain_survival_plan_selection, SurvivalPolicyExplanation, SurvivalPolicyExplanationError,
+    MAX_SURVIVAL_POLICY_EXPLANATION_BYTES,
 };
 pub use text_lab_explanation::{
     text_lab_split_explanation, text_lab_split_loss_explanation, TextLabSplitExplanation,

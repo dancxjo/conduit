@@ -20,6 +20,8 @@ use conduit_planner::{
 mod execution;
 #[path = "distributed_back/recovery.rs"]
 mod recovery;
+#[path = "distributed_back/survival_policy.rs"]
+mod survival_policy;
 
 const VALUES: [&str; 6] = [
     "test/provider-prompt",
