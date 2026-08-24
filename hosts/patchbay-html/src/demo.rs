@@ -29,6 +29,28 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
     Ok(snapshot)
 }
 
+pub fn llm_documentary_snapshot() -> Result<RendererSnapshot, String> {
+    let presentation = patchbay_model::llm_documentary_presentation()?;
+    let execution = RendererExecution::prepare(
+        presentation,
+        RendererAdapterKind::HtmlDomSvg,
+        RendererAdapterIdentity {
+            host_id: HostId::from("patchbay-html/llm-documentary"),
+            boot_id: BootId::from("patchbay-html/llm-documentary/boot"),
+            target_subject: "patchbay-html/llm-documentary/document".into(),
+        },
+        SignId::from("patchbay-html/llm-documentary/prepared"),
+    )
+    .map_err(|error| error.to_string())?;
+    let mut snapshot =
+        RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
+    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)?;
+    snapshot
+        .attach_navigation(navigation)
+        .map_err(|error| error.to_string())?;
+    Ok(snapshot)
+}
+
 pub fn text_lab_split_snapshot(base: &str) -> Result<RendererSnapshot, String> {
     let explanation = patchbay_model::text_lab_split_explanation(base)?;
     text_lab_snapshot(explanation)

@@ -36,6 +36,8 @@ mod graphical_patchbay;
 mod heterogeneous_capstone_explanation;
 mod interaction;
 mod layout;
+mod llm_documentary;
+mod llm_presentation;
 mod maker_environment;
 mod palette;
 #[cfg(test)]
@@ -127,6 +129,11 @@ pub use interaction::{
 pub use layout::{
     CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
     MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
+};
+pub use llm_documentary::llm_documentary_presentation;
+pub use llm_presentation::{
+    project_llm_patchbay, CandidateFormInspection, LlmGearActivity, LlmPatchbayTruth,
+    LlmPresentationError, MAXIMUM_LLM_PRESENTATION_STAGES,
 };
 pub use maker_environment::{
     AuthoredEnvironment, AuthoredEnvironmentError, AuthoredLink, AuthoredPart, ConnectivityKind,
