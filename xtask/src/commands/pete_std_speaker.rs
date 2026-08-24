@@ -352,7 +352,9 @@ fn map_serial_failure(error: CreateOiFailure) -> SerialFailure {
             SerialFailure::DeviceNoResponse
         }
         CreateOiFailure::TruncatedFrame => SerialFailure::TruncatedResponse,
-        CreateOiFailure::MalformedFrame => SerialFailure::MalformedResponse,
+        CreateOiFailure::MalformedFrame | CreateOiFailure::SynchronizationLimit { .. } => {
+            SerialFailure::MalformedResponse
+        }
         _ => SerialFailure::Refused,
     }
 }
