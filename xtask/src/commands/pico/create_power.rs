@@ -9,6 +9,7 @@ use super::{PicoArgs, PicoResult};
 
 const REQUEST_PREFIX: &str = "CONDUIT_WAKE_CREATE@1:";
 const AUTHORITY_GRANT: &str = "grant/pete-pico-confirmed-off-wake-hil";
+const ACCEPTED_SCHEMA: &str = "conduit.pete/create-power-pulse-accepted@1";
 const RESPONSE_SCHEMA: &str = "conduit.pete/create-power-pulse@1";
 
 pub fn run(args: &PicoArgs, confirmed_off: bool) -> PicoResult<()> {
@@ -41,11 +42,33 @@ pub fn run(args: &PicoArgs, confirmed_off: bool) -> PicoResult<()> {
     let _ = line.discard_pending_raw_bytes()?;
     let request = format!("{REQUEST_PREFIX}{expected_build}:{AUTHORITY_GRANT}");
     line.send_raw_stream_frame(request.as_bytes(), Duration::from_secs(2))?;
+    let mut accepted = [0_u8; 1024];
+    let accepted = line.receive_raw_stream_frame(&mut accepted, Duration::from_secs(2))?;
+    let accepted: serde_json::Value = serde_json::from_slice(accepted)?;
+    validate_accepted(&accepted, expected_build)?;
+    println!("{}", serde_json::to_string(&accepted)?);
     let mut response = [0_u8; 1024];
-    let response = line.receive_raw_stream_frame(&mut response, Duration::from_secs(3))?;
+    let response = line.receive_raw_stream_frame(&mut response, Duration::from_secs(2))?;
     let record: serde_json::Value = serde_json::from_slice(response)?;
     println!("{}", serde_json::to_string(&record)?);
     validate_receipt(&record, expected_build).map_err(Into::into)
+}
+
+fn validate_accepted(record: &serde_json::Value, expected_build: &str) -> Result<(), String> {
+    if record["schema"] != ACCEPTED_SCHEMA
+        || record["build_id"] != expected_build
+        || record["state"] != "accepted_low"
+        || record["authority_grant_id"] != AUTHORITY_GRANT
+        || record["gpio"] != 18
+        || record["current_level"] != "low"
+        || record["uart_enabled"] != false
+        || record["motion_commanded"] != false
+    {
+        return Err(format!(
+            "Create power pulse was not safely accepted: {record}"
+        ));
+    }
+    Ok(())
 }
 
 fn validate_receipt(record: &serde_json::Value, expected_build: &str) -> Result<(), String> {
@@ -91,8 +114,22 @@ mod tests {
         })
     }
 
+    fn accepted() -> serde_json::Value {
+        serde_json::json!({
+            "schema": ACCEPTED_SCHEMA,
+            "build_id": "build",
+            "state": "accepted_low",
+            "authority_grant_id": AUTHORITY_GRANT,
+            "gpio": 18,
+            "current_level": "low",
+            "uart_enabled": false,
+            "motion_commanded": false,
+        })
+    }
+
     #[test]
     fn exact_completed_low_receipt_is_accepted() {
+        validate_accepted(&accepted(), "build").unwrap();
         validate_receipt(&receipt(), "build").unwrap();
     }
 

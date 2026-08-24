@@ -54,6 +54,24 @@ pub async fn serve(class: &mut InertCdc, output: &mut Output<'static>) {
     // This entrance is reachable only through the exact build-bound request
     // containing the confirmed-off physical authority. It never enables the
     // UART translator and cannot command an actuator.
+    output.set_low();
+    let mut accepted = String::<BOOTSEL_FRAME_MAX>::new();
+    let _ = write!(
+        accepted,
+        concat!(
+            "{{\"schema\":\"conduit.pete/create-power-pulse-accepted@1\",",
+            "\"build_id\":\"{}\",\"state\":\"accepted_low\",",
+            "\"authority_grant_id\":\"{}\",\"gpio\":18,",
+            "\"current_level\":\"low\",\"uart_enabled\":false,",
+            "\"motion_commanded\":false}}"
+        ),
+        env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"),
+        AUTHORITY_GRANT,
+    );
+    if send_control_frame(class, accepted.as_bytes()).await.is_err() {
+        return;
+    }
+
     let mut provider = Provider { output };
     let mut toggle = CreatePowerToggle::new(CreatePowerPulseProfile {
         low_settle_ticks: LOW_SETTLE_MS,
