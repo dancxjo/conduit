@@ -398,7 +398,7 @@ test("shared session machine refuses mismatched planned and finite wire facts", 
     () => window.conduitSessionIngest([1, 2, 3]),
   )).toBe(-219);
   expect(await malformed.right.evaluate(
-    () => window.conduitSessionIngest(new Array(1025).fill(0)),
+    () => window.conduitSessionIngest(new Array((128 * 1024) + 1).fill(0)),
   )).toBe(-215);
 });
 
@@ -423,7 +423,7 @@ test("ordinary bounded Cord value crosses canonical pressure and delivery states
   expect(await left.evaluate((bytes) => window.conduitSessionOffer(bytes), [55])).toBe(-217);
   expect(await left.evaluate(
     (bytes) => window.conduitSessionOffer(bytes),
-    new Array(17).fill(1),
+    new Array((64 * 1024) + 1).fill(1),
   )).toBe(-215);
 
   const accepted = await right.evaluate(() => window.conduitSessionOutput());
