@@ -61,7 +61,8 @@ fn validate_accepted(record: &serde_json::Value, expected_build: &str) -> Result
         || record["authority_grant_id"] != AUTHORITY_GRANT
         || record["gpio"] != 18
         || record["current_level"] != "low"
-        || record["uart_enabled"] != false
+        || record["translator_enabled"] != false
+        || record["uart_commands"] != 0
         || record["motion_commanded"] != false
     {
         return Err(format!(
@@ -83,7 +84,9 @@ fn validate_receipt(record: &serde_json::Value, expected_build: &str) -> Result<
         || record["low_settle_ms"] != 5
         || record["high_pulse_ms"] != 500
         || record["final_level"] != "low"
-        || record["uart_enabled"] != false
+        || record["translator_final_level"] != "low"
+        || record["translator_enabled_during_pulse"] != true
+        || record["uart_commands"] != 0
         || record["motion_commanded"] != false
     {
         return Err(format!("Create power pulse refused or failed: {record}"));
@@ -109,7 +112,9 @@ mod tests {
             "low_settle_ms": 5,
             "high_pulse_ms": 500,
             "final_level": "low",
-            "uart_enabled": false,
+            "translator_final_level": "low",
+            "translator_enabled_during_pulse": true,
+            "uart_commands": 0,
             "motion_commanded": false,
         })
     }
@@ -122,7 +127,8 @@ mod tests {
             "authority_grant_id": AUTHORITY_GRANT,
             "gpio": 18,
             "current_level": "low",
-            "uart_enabled": false,
+            "translator_enabled": false,
+            "uart_commands": 0,
             "motion_commanded": false,
         })
     }

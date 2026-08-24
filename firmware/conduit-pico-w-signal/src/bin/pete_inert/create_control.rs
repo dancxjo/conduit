@@ -362,6 +362,7 @@ pub async fn task(
     uart0: Peri<'static, UART0>,
     tx: Peri<'static, PIN_0>,
     rx: Peri<'static, PIN_1>,
+    mut power_toggle: Output<'static>,
     mut translator_oe: Output<'static>,
     watchdog: Peri<'static, WATCHDOG>,
 ) {
@@ -390,6 +391,15 @@ pub async fn task(
             create_link_gate::set_translator(&mut translator_oe, false);
             STATE.store(State::Initializing as u8, Ordering::Release);
             OI_MODE.store(0, Ordering::Release);
+            if crate::create_power::claim_pending() {
+                crate::create_power::execute(
+                    &mut power_toggle,
+                    &mut translator_oe,
+                    &mut watchdog,
+                )
+                .await;
+                continue;
+            }
             watchdog_delay(&mut watchdog, 20).await;
         }
         create_link_gate::set_translator(&mut translator_oe, true);

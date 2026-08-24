@@ -151,10 +151,7 @@ pub(crate) async fn send_control_frame(class: &mut InertCdc, payload: &[u8]) -> 
     Ok(())
 }
 
-async fn serve_conduit_services(
-    class: &mut InertCdc,
-    power_toggle: &mut Output<'static>,
-) -> ! {
+async fn serve_conduit_services(class: &mut InertCdc) -> ! {
     let mut packet = [0_u8; 64];
     let mut request = [0_u8; BOOTSEL_FRAME_MAX];
     loop {
@@ -236,7 +233,7 @@ async fn serve_conduit_services(
         }
 
         if create_power::request_matches(request) {
-            create_power::serve(class, power_toggle).await;
+            create_power::serve(class).await;
             continue;
         }
 
@@ -281,7 +278,6 @@ async fn usb_device_task(mut device: InertUsbDevice) -> ! {
 async fn qualification_task(
     mut class: InertCdc,
     charging_indicator: Input<'static>,
-    mut power_toggle: Output<'static>,
 ) {
     class.wait_connection().await;
     // Emit immutable image identity before permitting any blocking peripheral
@@ -356,7 +352,7 @@ async fn qualification_task(
         create_control::ready_cue_command_sent(),
     );
     write_line(&mut class, &ready).await;
-    serve_conduit_services(&mut class, &mut power_toggle).await;
+    serve_conduit_services(&mut class).await;
 }
 
 #[cortex_m_rt::entry]
@@ -378,19 +374,13 @@ fn main() -> ! {
                 p.UART0,
                 p.PIN_0,
                 p.PIN_1,
+                power_toggle,
                 translator_oe,
                 p.WATCHDOG,
             )
             .unwrap(),
         );
         spawner.spawn(imu_control::task(p.I2C1, p.PIN_2, p.PIN_3).unwrap());
-        spawner.spawn(
-            qualification_task(
-                class,
-                charging_indicator,
-                power_toggle,
-            )
-            .unwrap(),
-        );
+        spawner.spawn(qualification_task(class, charging_indicator).unwrap());
     });
 }
