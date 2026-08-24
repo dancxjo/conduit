@@ -27,6 +27,9 @@ pub(crate) enum Command {
         /// Write a neutral runtime report after execution.
         #[arg(long)]
         report: Option<PathBuf>,
+        /// Select a bounded machine-only product execution fixture.
+        #[arg(long, value_enum)]
+        execution_fixture: Option<ExecutionFixture>,
     },
     /// Check a Form and render owned diagnostics without executing it.
     Check {
@@ -50,6 +53,11 @@ pub(crate) enum Command {
 pub(crate) enum PatchbayHost {
     Native,
     Browser,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
+pub(crate) enum ExecutionFixture {
+    TwoStdLine,
 }
 
 #[derive(Debug, Subcommand)]
@@ -77,6 +85,21 @@ mod tests {
                 .expect("run command parses")
                 .command,
             Command::Run { .. }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "run",
+                "signal.conduit",
+                "--execution-fixture",
+                "two-std-line"
+            ])
+            .expect("two-std product fixture parses")
+            .command,
+            Command::Run {
+                execution_fixture: Some(ExecutionFixture::TwoStdLine),
+                ..
+            }
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "check", "hello.conduit", "--json"])

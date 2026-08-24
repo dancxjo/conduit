@@ -34,6 +34,7 @@ fn two_advertisement_context_reaches_ordinary_planner_placement() {
         advertisements,
         vec![ProductRuntime::std(first), ProductRuntime::std(second)],
         vec![ConnectionBase::Local, ConnectionBase::WebSocket],
+        Vec::new(),
     )
     .expect("two Hosts and two product Bases are finite context truth");
     let form = hello_form();
@@ -82,6 +83,7 @@ fn duplicate_host_id_is_refused_before_planning() {
         vec![first.advertisement().clone(), duplicate],
         vec![ProductRuntime::std(first)],
         vec![ConnectionBase::Local],
+        Vec::new(),
     )
     .err()
     .expect("duplicate HostId must refuse");
@@ -95,9 +97,13 @@ fn duplicate_host_id_is_refused_before_planning() {
 fn planned_local_fragment_without_runtime_is_refused() {
     let advertised_only = host("advertised-only");
     let advertisement = advertised_only.advertisement().clone();
-    let mut context =
-        ProductExecutionContext::new(vec![advertisement], Vec::new(), vec![ConnectionBase::Local])
-            .expect("remote advertisements need not imply local runtime authority");
+    let mut context = ProductExecutionContext::new(
+        vec![advertisement],
+        Vec::new(),
+        vec![ConnectionBase::Local],
+        Vec::new(),
+    )
+    .expect("remote advertisements need not imply local runtime authority");
     let plan = context
         .plan(&hello_form(), None)
         .expect("ordinary planning uses advertised truth");
@@ -115,6 +121,7 @@ fn fixture_only_connection_base_is_not_product_admission() {
         vec![host.advertisement().clone()],
         vec![ProductRuntime::std(host)],
         vec![ConnectionBase::FixtureFrame],
+        Vec::new(),
     )
     .err()
     .expect("fixture Base must not become installed product truth");

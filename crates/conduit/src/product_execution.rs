@@ -1,7 +1,8 @@
-use conduit_core::{ConnectionBase, HostAdvertisement, Observation, Plan, PlanFragment};
+use conduit_core::{ConnectionBase, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment};
 use conduit_form::ExpandedCanonicalForm;
-use conduit_planner::PlacementChoices;
+use conduit_planner::{PlacementChoices, PlanningOptions};
 use conduit_std_host::{load_placements, StdHost, ThreadTimer};
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::io::Write;
 
@@ -51,9 +52,13 @@ pub(crate) struct ProductExecutionContext {
     advertisements: Vec<HostAdvertisement>,
     runtimes: Vec<ProductRuntime>,
     connection_bases: Vec<ConnectionBase>,
+    line_offers: Vec<LineOffer>,
 }
 
 impl ProductExecutionContext {
+    pub(crate) fn advertisements(&self) -> &[HostAdvertisement] {
+        &self.advertisements
+    }
     pub(crate) fn local_std() -> Result<Self, String> {
         let host = StdHost::new();
         let advertisement = host.advertisement().clone();
@@ -61,6 +66,7 @@ impl ProductExecutionContext {
             vec![advertisement],
             vec![ProductRuntime::std(host)],
             vec![ConnectionBase::Local],
+            Vec::new(),
         )
     }
 
@@ -68,6 +74,7 @@ impl ProductExecutionContext {
         advertisements: Vec<HostAdvertisement>,
         runtimes: Vec<ProductRuntime>,
         connection_bases: Vec<ConnectionBase>,
+        line_offers: Vec<LineOffer>,
     ) -> Result<Self, String> {
         if advertisements.is_empty() {
             return Err(
@@ -145,6 +152,7 @@ impl ProductExecutionContext {
             advertisements,
             runtimes,
             connection_bases,
+            line_offers,
         })
     }
 
@@ -174,11 +182,30 @@ impl ProductExecutionContext {
         form: &ExpandedCanonicalForm,
         placements: &PlacementChoices,
     ) -> Result<Plan, String> {
-        conduit_planner::plan_expanded_canonical(
+        let (item_capacity, byte_capacity) = self
+            .line_offers
+            .first()
+            .map(|offer| {
+                (
+                    offer.binding.limits.maximum_in_flight_items,
+                    offer.binding.limits.maximum_buffered_bytes,
+                )
+            })
+            .unwrap_or((1, 64));
+        conduit_planner::plan_expanded_canonical_with_options(
             form,
             &self.advertisements,
             placements,
             &self.connection_bases,
+            PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: item_capacity,
+                connection_byte_capacity: byte_capacity,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &self.line_offers,
+            },
         )
         .map_err(|error| error.to_string())
     }
@@ -188,7 +215,25 @@ impl ProductExecutionContext {
         plan: Plan,
         output: &mut W,
     ) -> Result<ProductExecution, String> {
-        if !conduit_core::verify_plan(&plan) {
+        self.validate_plan(&plan)?;
+        let mut observations = Vec::new();
+        for fragment in plan.fragments.iter().cloned() {
+            let runtime = self
+                .runtimes
+                .iter_mut()
+                .find(|runtime| runtime.advertisement().host_id == fragment.host_id)
+                .expect("every runtime was admitted before execution");
+            observations.extend(runtime.execute(fragment, output)?);
+        }
+        Ok(ProductExecution {
+            advertisements: self.advertisements.clone(),
+            plan,
+            observations,
+        })
+    }
+
+    pub(crate) fn validate_plan(&self, plan: &Plan) -> Result<(), String> {
+        if !conduit_core::verify_plan(plan) {
             return Err("product execution refused an invalid sealed Plan".into());
         }
         for line in plan
@@ -207,20 +252,7 @@ impl ProductExecutionContext {
         for fragment in &plan.fragments {
             self.validate_fragment_runtime(fragment)?;
         }
-        let mut observations = Vec::new();
-        for fragment in plan.fragments.iter().cloned() {
-            let runtime = self
-                .runtimes
-                .iter_mut()
-                .find(|runtime| runtime.advertisement().host_id == fragment.host_id)
-                .expect("every runtime was admitted before execution");
-            observations.extend(runtime.execute(fragment, output)?);
-        }
-        Ok(ProductExecution {
-            advertisements: self.advertisements.clone(),
-            plan,
-            observations,
-        })
+        Ok(())
     }
 
     fn validate_fragment_runtime(&self, fragment: &PlanFragment) -> Result<(), String> {
