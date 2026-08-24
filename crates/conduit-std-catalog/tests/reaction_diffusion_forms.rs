@@ -14,11 +14,7 @@ use conduit_std_catalog::{
     REACTION_DIFFUSION_HOST_OPERATION,
 };
 
-const SOURCE: &str = r#"
-form field-step {
-    evolve: field/evolve
-}
-"#;
+const SOURCE: &str = include_str!("../../../fixtures/forms/reaction-diffusion.conduit");
 const FIELD_ID: ReactionDiffusionFieldId = ReactionDiffusionFieldId(*b"field-a0-hosted1");
 
 #[test]
