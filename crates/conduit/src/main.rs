@@ -3,11 +3,14 @@ mod browser_product;
 mod browser_product_tests;
 mod cli;
 mod copy_task;
+#[cfg(test)]
+mod copy_task_tests;
 mod diagnostics;
 mod form_source;
 mod product_execution;
 #[cfg(test)]
 mod product_execution_tests;
+mod protected_task;
 mod report_artifact;
 mod two_std_line;
 #[cfg(test)]
