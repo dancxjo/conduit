@@ -25,7 +25,7 @@ fn main() {
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Check(args) => commands::check::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
-        Command::Prove(args) => commands::prove::run(args, &opts)
+        Command::Prove(args) => commands::prove::run(*args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Proofs(args) => commands::proofs::run(args, opts.json),
         Command::Evidence(args) => commands::evidence::run(args),

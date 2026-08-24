@@ -49,6 +49,7 @@ pub mod hosted_http;
 pub mod hosted_job;
 pub mod hosted_keyboard;
 pub mod hosted_local_model;
+pub mod hosted_messaging;
 pub mod hosted_midi;
 pub mod hosted_network;
 pub mod hosted_reminder;
