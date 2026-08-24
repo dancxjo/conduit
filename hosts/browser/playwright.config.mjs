@@ -19,6 +19,7 @@ export default defineConfig({
     "browser-pointer.spec.mjs",
     "browser-host-entrance.spec.mjs",
     "browser-media-host.spec.mjs",
+    "browser-human-body.spec.mjs",
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",
     "human-interaction-presenter.spec.mjs",

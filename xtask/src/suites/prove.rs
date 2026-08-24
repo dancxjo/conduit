@@ -486,6 +486,22 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["target/debug/r1-three-peer-input-server"],
     ),
     Step::typed(
+        "prove.browser-host.human-body-capstone-build",
+        "Build the two-browser-Host human Body coordinator",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "browser-human-body-capstone",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/browser-human-body-capstone"],
+    ),
+    Step::typed(
         "prove.browser-host.playwright",
         "Run browser host test suite",
         "npm",

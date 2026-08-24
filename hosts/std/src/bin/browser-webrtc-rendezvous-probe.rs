@@ -97,11 +97,13 @@ fn main() -> Result<(), String> {
         .replace_grants([&initial_binding])
         .map_err(debug("install grant"))?;
     println!(
-        "ready source_host={} source_boot={} sink_host={} sink_boot={}",
+        "ready source_host={} source_boot={} sink_host={} sink_boot={} source_profile={} sink_profile={}",
         peers[0].credential.host_id.as_str(),
         peers[0].credential.boot_id.as_str(),
         peers[1].credential.host_id.as_str(),
-        peers[1].credential.boot_id.as_str()
+        peers[1].credential.boot_id.as_str(),
+        peers[0].advertisement.profile.as_str(),
+        peers[1].advertisement.profile.as_str()
     );
     println!(
         "session_basis={}",

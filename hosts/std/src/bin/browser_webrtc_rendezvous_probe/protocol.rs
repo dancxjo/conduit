@@ -24,6 +24,7 @@ pub(super) fn exact_credential(
 pub(super) fn frame_kind(frame: &BrowserAdmissionIngress) -> &'static str {
     match frame {
         BrowserAdmissionIngress::PresenceRenewal { .. } => "presence-renewal",
+        BrowserAdmissionIngress::MediaResourceTruth { .. } => "media-resource-truth",
         BrowserAdmissionIngress::WebRtcGrantRequest { .. } => "web-rtc-grant-request",
         BrowserAdmissionIngress::WebRtcSignal { .. } => "web-rtc-signal",
         _ => "unexpected",

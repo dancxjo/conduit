@@ -2,6 +2,12 @@
 <meta charset="utf-8">
 <title>Conduit browser Host presence proof</title>
 <p role="status">starting</p>
+<section aria-label="Camera resource" hidden id="camera-resource">
+  <button id="acquire-camera" type="button">Acquire camera resource</button>
+  <button id="use-camera" type="button" disabled>Use planned camera resource</button>
+  <p id="media-status">Camera offer available</p>
+  <output id="media-evidence"></output>
+</section>
 <script type="module">
 import {
   immutableWebRtcGrantFrame,
@@ -9,6 +15,7 @@ import {
   joinBrowserBody,
 } from "/hosts/patchbay-html/assets/browser-membership.js";
 import { BodyWebRtcSessions } from "/hosts/patchbay-html/assets/body-webrtc-sessions.mjs";
+import { createBrowserMediaHost } from "/hosts/browser-host/assets/media-host.mjs";
 
 const parameters = new URLSearchParams(location.search);
 const bodyUrl = parameters.get("body");
@@ -122,12 +129,61 @@ globalThis.__probeConcurrentGrantStage = async () => {
     generationState: generationController.state(),
   };
 };
+let media;
+let acquiredMedia;
+let mediaPlan;
+let mediaTraffic = null;
 globalThis.__browserPresence = await joinBrowserBody({
   bodyUrl,
   wasmBytes,
   renewPresence: parameters.get("renew") !== "false",
   reconnectPresence: parameters.get("reconnect") !== "false",
+  configureHost: ({ api, hostId, bootId }) => {
+    media = createBrowserMediaHost({
+      api,
+      hostId,
+      bootId,
+      status: document.querySelector("#media-status"),
+      output: document.querySelector("#media-evidence"),
+    });
+  },
   onWebRtcGrant: (grant) => { globalThis.__browserWebRtcGrants.push(grant); },
   onState: (state) => { status.textContent = state; },
+});
+const cameraSection = document.querySelector("#camera-resource");
+const acquireCamera = document.querySelector("#acquire-camera");
+const useCamera = document.querySelector("#use-camera");
+cameraSection.hidden = false;
+acquireCamera.addEventListener("click", async () => {
+  acquireCamera.disabled = true;
+  acquiredMedia = await media.acquireResource("camera");
+  mediaPlan = await globalThis.__browserPresence.publishMediaResource(acquiredMedia.resourceTruth);
+  useCamera.disabled = false;
+});
+useCamera.addEventListener("click", async () => {
+  useCamera.disabled = true;
+  await acquiredMedia.use({
+    planId: mediaPlan.planId,
+    onValue: async (bytes, valueEvidence) => {
+      const sessions = globalThis.__browserPresence.webRtcSessions().sessions
+        .filter((session) => session.role === "source" && session.sessionReady);
+      if (sessions.length !== 1) throw new Error("camera output has no exact ready source Cord");
+      const accepted = await globalThis.__browserPresence.offerWebRtcValue(
+        sessions[0].negotiationId,
+        bytes,
+      );
+      if (!accepted.accepted) throw new Error(`camera Cord refused ${accepted.reason}`);
+      mediaTraffic = Object.freeze({
+        negotiationId: sessions[0].negotiationId,
+        accepted,
+        valueEvidence,
+      });
+    },
+  });
+});
+globalThis.__browserHumanMedia = Object.freeze({
+  evidence: () => media.evidence(),
+  plan: () => mediaPlan,
+  traffic: () => mediaTraffic,
 });
 </script>

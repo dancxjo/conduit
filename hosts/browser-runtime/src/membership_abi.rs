@@ -10,7 +10,7 @@ use serde::Deserialize;
 use std::cell::RefCell;
 
 const INPUT_CAPACITY: usize = 4_096;
-const OUTPUT_CAPACITY: usize = 9_216;
+const OUTPUT_CAPACITY: usize = conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
 const KEY_BYTES: usize = 32;
 const MAX_IDENTITY_BYTES: usize = 128;
 const STATUS_READY: i32 = 0;
@@ -350,7 +350,7 @@ mod tests {
             serde_json::from_slice(&encoded).unwrap();
         assert_eq!(advertisement.host_id, challenge.host_id);
         assert_eq!(advertisement.boot_id, challenge.boot_id);
-        assert_eq!(advertisement.capabilities.len(), 6);
+        assert_eq!(advertisement.capabilities.len(), 13);
         assert_eq!(advertisement.resources.len(), 3);
     }
 

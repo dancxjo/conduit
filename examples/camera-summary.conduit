@@ -1,0 +1,7 @@
+# Summarize a semantic camera frame stream.
+form camera-summary {
+    camera: media/camera
+    sink: media/frame-sink
+
+    camera.frame > sink.frame
+}
