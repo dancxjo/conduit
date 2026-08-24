@@ -80,7 +80,7 @@ required-features = ["usb-midi-fixture"]
 
 [[bin]]
 name = "conduit-pico-w-pete-capstone"
-path = "src/bin/pete_inert.rs"
+path = "src/bin/pete_capstone.rs"
 required-features = ["pete-capstone"]
 
 [profile.release]

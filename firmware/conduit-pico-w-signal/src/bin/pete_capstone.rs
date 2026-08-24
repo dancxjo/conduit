@@ -19,31 +19,31 @@ use embassy_usb::{Builder, Config, UsbDevice};
 use heapless::String;
 use static_cell::StaticCell;
 
-#[path = "pete_inert/create_control.rs"]
+#[path = "pete_capstone/create_control.rs"]
 mod create_control;
-#[path = "pete_inert/create_acquisition.rs"]
+#[path = "pete_capstone/create_acquisition.rs"]
 mod create_acquisition;
-#[path = "pete_inert/create_listen.rs"]
+#[path = "pete_capstone/create_listen.rs"]
 mod create_listen;
-#[path = "pete_inert/create_link_gate.rs"]
+#[path = "pete_capstone/create_link_gate.rs"]
 mod create_link_gate;
-#[path = "pete_inert/create_play.rs"]
+#[path = "pete_capstone/create_play.rs"]
 mod create_play;
-#[path = "pete_inert/create_motion.rs"]
+#[path = "pete_capstone/create_motion.rs"]
 mod create_motion;
-#[path = "pete_inert/create_power.rs"]
+#[path = "pete_capstone/create_power.rs"]
 mod create_power;
-#[path = "pete_inert/create_presentation.rs"]
+#[path = "pete_capstone/create_presentation.rs"]
 mod create_presentation;
-#[path = "pete_inert/create_full_stage.rs"]
+#[path = "pete_capstone/create_full_stage.rs"]
 mod create_full_stage;
-#[path = "pete_inert/create_lights_stage.rs"]
+#[path = "pete_capstone/create_lights_stage.rs"]
 mod create_lights_stage;
-#[path = "pete_inert/uart_diagnostic.rs"]
+#[path = "pete_capstone/uart_diagnostic.rs"]
 mod uart_diagnostic;
-#[path = "pete_inert/imu_control.rs"]
+#[path = "pete_capstone/imu_control.rs"]
 mod imu_control;
-#[path = "pete_inert/pico_heartbeat.rs"]
+#[path = "pete_capstone/pico_heartbeat.rs"]
 mod pico_heartbeat;
 #[path = "../radio.rs"]
 mod radio;
@@ -117,10 +117,11 @@ const BRINGUP_STAGE_IMU: u8 = 2;
 const BRINGUP_STAGE_CREATE_FULL: u8 = 3;
 const BRINGUP_STAGE_LIGHTS: u8 = 4;
 const BRINGUP_STAGE_PRESENTATION: u8 = 5;
-// Unexpected physical rotation during the attended light-only stage invalidated
-// further Create actuation. Keep future builds below every Create UART stage
-// until the translated link has a separately reviewed recovery issue.
-const BRINGUP_STAGE: u8 = BRINGUP_STAGE_IMU;
+const BRINGUP_STAGE_MOTION: u8 = 6;
+// This attended image admits only the bounded Create 1 music/light presentation
+// and the lower no-motion diagnostic stages. Motion remains a distinct higher
+// build stage and cannot be requested from this artifact.
+const BRINGUP_STAGE: u8 = BRINGUP_STAGE_PRESENTATION;
 
 fn usb_device(
     driver: usb::Driver<'static, USB>,
@@ -259,7 +260,7 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             core::future::pending::<()>().await;
         }
 
-        if BRINGUP_STAGE >= BRINGUP_STAGE_PRESENTATION
+        if BRINGUP_STAGE >= BRINGUP_STAGE_MOTION
             && create_play::motion_request_matches(request)
         {
             create_play::serve_motion(class).await;

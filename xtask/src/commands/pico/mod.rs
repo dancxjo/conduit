@@ -117,7 +117,7 @@ pub struct PicoArgs {
     pub usb_midi_fixture: bool,
 
     /// Build, flash, or verify the Pete capstone physical Play image.
-    #[arg(long = "pete-capstone", alias = "pete-inert", global = true)]
+    #[arg(long = "pete-capstone", global = true)]
     pub pete_capstone: bool,
 
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
