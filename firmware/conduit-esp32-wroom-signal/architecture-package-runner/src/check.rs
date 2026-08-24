@@ -5,7 +5,10 @@ use serde::Serialize;
 use crate::{
     cli::Args,
     descriptor::{ArchitecturePackageDescriptor, PACKAGE_RELATIVE_PATH},
-    process::{cargo_build, cargo_check, cargo_fmt, cargo_tree, run_capture, ExecutedCommand},
+    process::{
+        cargo_build, cargo_check, cargo_fmt, cargo_tree, run_capture, rustc_version,
+        ExecutedCommand,
+    },
     provenance::{self, InputProvenance},
     receipt::{CheckReceipt, EXCLUDED_TRUTH},
     selection::{checked_feature_projection, FeatureProjection},
@@ -27,7 +30,8 @@ pub fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
     let mut commands = Vec::new();
     let inputs = provenance::inspect(&args.repo_root, args.allow_dirty, &mut commands)?;
-    let observed_toolchain = observe_toolchain(&args.repo_root, &mut commands)?;
+    let observed_toolchain =
+        observe_toolchain(&args.repo_root, &descriptor.toolchain_name, &mut commands)?;
     validate_observed_toolchain(&observed_toolchain)?;
     run_format_checks(&args.repo_root, &mut commands)?;
 
@@ -49,11 +53,19 @@ pub fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         None
     } else {
         run_capture(
-            cargo_check(&package_root, &projection.minimal_features),
+            cargo_check(
+                &package_root,
+                &descriptor.toolchain_name,
+                &projection.minimal_features,
+            ),
             &mut commands,
         )?;
         run_capture(
-            cargo_build(&package_root, &projection.full_features),
+            cargo_build(
+                &package_root,
+                &descriptor.toolchain_name,
+                &projection.full_features,
+            ),
             &mut commands,
         )?;
         Some(provenance::sha256(&fs::read(
@@ -159,17 +171,10 @@ fn run_format_checks(
 
 fn observe_toolchain(
     repo_root: &Path,
+    toolchain_name: &str,
     commands: &mut Vec<ExecutedCommand>,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let bytes = run_capture(
-        ExecutedCommand::new(
-            "observe-esp-rust-toolchain",
-            repo_root,
-            "rustc",
-            ["+esp", "-Vv"],
-        ),
-        commands,
-    )?;
+    let bytes = run_capture(rustc_version(repo_root, toolchain_name), commands)?;
     Ok(String::from_utf8(bytes)?.trim().to_owned())
 }
 
@@ -177,7 +182,7 @@ fn validate_observed_toolchain(text: &str) -> Result<(), Box<dyn std::error::Err
     let release = text
         .lines()
         .find_map(|line| line.strip_prefix("release: "))
-        .ok_or("`rustc +esp -Vv` omitted its release identity")?;
+        .ok_or("named ESP rustc omitted its release identity")?;
     if release != EXPECTED_ESP_RELEASE {
         return Err(format!(
             "ESP Rust toolchain mismatch: expected {EXPECTED_ESP_RELEASE}, observed {release}"
@@ -185,7 +190,7 @@ fn validate_observed_toolchain(text: &str) -> Result<(), Box<dyn std::error::Err
         .into());
     }
     if !text.lines().any(|line| line.starts_with("commit-hash: ")) {
-        return Err("`rustc +esp -Vv` omitted its commit hash".into());
+        return Err("named ESP rustc omitted its commit hash".into());
     }
     Ok(())
 }
@@ -270,6 +275,7 @@ fn make_receipt(
         architecture_revision: descriptor.revision,
         builder_adapter: descriptor.builder_adapter,
         declared_toolchain: descriptor.toolchain,
+        toolchain_name: descriptor.toolchain_name,
         observed_toolchain,
         observed_toolchain_sha256,
         target: descriptor.target,
@@ -332,6 +338,7 @@ mod tests {
             board_descriptor: "observed/hw-463-esp-wroom-32@1".into(),
             target: "xtensa-esp32-none-elf".into(),
             toolchain: "esp-rs/rust-build@v1.91.1.0".into(),
+            toolchain_name: "esp-conduit-1.91.1".into(),
             toolchain_action: "esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4"
                 .into(),
             builder_adapter: "esp32-firmware/architecture-package-runner@2".into(),

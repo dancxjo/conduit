@@ -81,13 +81,26 @@ pub fn cargo_fmt(repo_root: &Path, manifest: &Path, purpose: &str) -> ExecutedCo
     )
 }
 
-pub fn cargo_check(package_root: &Path, features: &[String]) -> ExecutedCommand {
+pub fn rustc_version(repo_root: &Path, toolchain_name: &str) -> ExecutedCommand {
+    ExecutedCommand::new(
+        "observe-esp-rust-toolchain",
+        repo_root,
+        "rustc",
+        [format!("+{toolchain_name}"), "-Vv".to_owned()],
+    )
+}
+
+pub fn cargo_check(
+    package_root: &Path,
+    toolchain_name: &str,
+    features: &[String],
+) -> ExecutedCommand {
     ExecutedCommand::new(
         "compile-minimal-feature-closure",
         package_root,
         "cargo",
         [
-            "+esp".to_owned(),
+            format!("+{toolchain_name}"),
             "check".to_owned(),
             "--release".to_owned(),
             "--locked".to_owned(),
@@ -98,13 +111,17 @@ pub fn cargo_check(package_root: &Path, features: &[String]) -> ExecutedCommand 
     )
 }
 
-pub fn cargo_build(package_root: &Path, features: &[String]) -> ExecutedCommand {
+pub fn cargo_build(
+    package_root: &Path,
+    toolchain_name: &str,
+    features: &[String],
+) -> ExecutedCommand {
     ExecutedCommand::new(
         "build-full-feature-artifact",
         package_root,
         "cargo",
         [
-            "+esp".to_owned(),
+            format!("+{toolchain_name}"),
             "build".to_owned(),
             "--release".to_owned(),
             "--locked".to_owned(),
@@ -135,9 +152,13 @@ mod tests {
     fn compile_commands_are_locked_explicit_and_feature_derived() {
         let root = Path::new("/repo/firmware/esp32");
         let features = vec!["bluetooth".into(), "kernel-signal".into()];
-        for command in [cargo_check(root, &features), cargo_build(root, &features)] {
+        for command in [
+            cargo_check(root, "esp-conduit-1.91.1", &features),
+            cargo_build(root, "esp-conduit-1.91.1", &features),
+        ] {
             assert_eq!(command.program, "cargo");
-            assert_eq!(command.args[0], "+esp");
+            assert_eq!(command.args[0], "+esp-conduit-1.91.1");
+            assert!(!command.args.iter().any(|arg| arg == "+esp"));
             assert!(command.args.contains(&"--locked".into()));
             assert!(command.args.contains(&"--no-default-features".into()));
             assert_eq!(command.args.last().unwrap(), "bluetooth,kernel-signal");
@@ -165,5 +186,12 @@ mod tests {
                 "--check",
             ]
         );
+    }
+
+    #[test]
+    fn compiler_observation_uses_only_the_named_toolchain() {
+        let command = rustc_version(Path::new("/repo"), "esp-conduit-1.91.1");
+        assert_eq!(command.program, "rustc");
+        assert_eq!(command.args, ["+esp-conduit-1.91.1", "-Vv"]);
     }
 }

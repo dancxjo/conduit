@@ -18,6 +18,7 @@ pub struct ArchitecturePackageDescriptor {
     pub board_descriptor: String,
     pub target: String,
     pub toolchain: String,
+    pub toolchain_name: String,
     pub toolchain_action: String,
     pub builder_adapter: String,
     pub minimal_features: Vec<String>,
@@ -45,6 +46,7 @@ impl ArchitecturePackageDescriptor {
             || self.board_descriptor != "observed/hw-463-esp-wroom-32@1"
             || self.target != "xtensa-esp32-none-elf"
             || self.toolchain != "esp-rs/rust-build@v1.91.1.0"
+            || self.toolchain_name != "esp-conduit-1.91.1"
             || self.toolchain_action
                 != "esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4"
             || self.builder_adapter != "esp32-firmware/architecture-package-runner@2"
@@ -80,6 +82,7 @@ mod tests {
             board_descriptor: "observed/hw-463-esp-wroom-32@1".into(),
             target: "xtensa-esp32-none-elf".into(),
             toolchain: "esp-rs/rust-build@v1.91.1.0".into(),
+            toolchain_name: "esp-conduit-1.91.1".into(),
             toolchain_action: "esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4"
                 .into(),
             builder_adapter: "esp32-firmware/architecture-package-runner@2".into(),
@@ -112,5 +115,9 @@ mod tests {
         let mut wrong_builder = descriptor();
         wrong_builder.builder_adapter = "generic-xtask".into();
         assert!(wrong_builder.validate(&projection).is_err());
+
+        let mut ambient_toolchain = descriptor();
+        ambient_toolchain.toolchain_name = "esp".into();
+        assert!(ambient_toolchain.validate(&projection).is_err());
     }
 }

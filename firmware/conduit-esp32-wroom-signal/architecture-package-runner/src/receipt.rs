@@ -21,6 +21,7 @@ pub struct CheckReceipt {
     pub architecture_revision: u32,
     pub builder_adapter: String,
     pub declared_toolchain: String,
+    pub toolchain_name: String,
     pub observed_toolchain: String,
     pub observed_toolchain_sha256: String,
     pub target: String,
