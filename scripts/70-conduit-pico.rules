@@ -1,0 +1,4 @@
+# Grant the repository's hardware-development group access to Conduit Pico CDC
+# interfaces. The manufacturer match keeps the Raspberry Pi vendor/product pair
+# from broadening access to unrelated firmware using the same development PID.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000a", ATTRS{manufacturer}=="Conduit", GROUP="plugdev", MODE="0660", TAG+="uaccess"

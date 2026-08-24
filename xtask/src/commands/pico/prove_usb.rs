@@ -7,7 +7,7 @@ use conduit_signal::decode_signal_bytes;
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 #[cfg(unix)]
 use conduit_std_host::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader, OperatorTerminal};
-use conduit_wire::{SessionBinding, SessionMessage};
+use conduit_wire::{SessionBinding, SessionMessage, SessionTerminalDisposition};
 
 use super::doctor::repo_root;
 use super::firmware::read_identity_manifest;
@@ -452,6 +452,49 @@ fn send_and_verify_item(
                         }
                         retry = true;
                         break;
+                    }
+                    if let SessionMessage::Failed { code } = res.message {
+                        source
+                            .admit_inbound(res)
+                            .map_err(|e| format!("Source failed to admit inbound Failed: {e:?}"))?;
+                        source.cancel()?;
+                        let reciprocal = context.binding.frame(SessionMessage::Failed { code });
+                        source.admit_outbound(reciprocal).map_err(|e| {
+                            format!("Source failed to admit outbound Failed: {e:?}")
+                        })?;
+                        context
+                            .line
+                            .send_frame(&reciprocal, Duration::from_secs(2))?;
+
+                        let terminal = context
+                            .line
+                            .receive_frame(&mut frame_buf, Duration::from_secs(2))?;
+                        let final_sequence = match terminal.message {
+                            SessionMessage::Terminal {
+                                disposition: SessionTerminalDisposition::Failed,
+                                final_sequence,
+                            } => final_sequence,
+                            other => {
+                                return Err(format!(
+                                    "expected Pico failed terminal after admission rejection, received {other:?}"
+                                )
+                                .into());
+                            }
+                        };
+                        source.admit_inbound(terminal)?;
+                        let terminal_response = context.binding.frame(SessionMessage::Terminal {
+                            disposition: SessionTerminalDisposition::Failed,
+                            final_sequence,
+                        });
+                        source.admit_outbound(terminal_response)?;
+                        context
+                            .line
+                            .send_frame(&terminal_response, Duration::from_secs(2))?;
+
+                        return Err(format!(
+                            "Pico rejected Offered sequence {sequence} before Accepted with failure code {code}"
+                        )
+                        .into());
                     }
                 }
                 Err(conduit_std_host::usb_cdc::NativeUsbCdcError::WouldBlock) => {}

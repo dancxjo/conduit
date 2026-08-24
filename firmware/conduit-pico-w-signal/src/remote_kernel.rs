@@ -4,9 +4,9 @@ use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, SignQuery, Failure, FailureCode, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, Operation, OperationAction, OperationInput,
-    PortId, RequestId, ValueStorage,
+    remote_sign_storage_bytes, BoundedValueRef, SignQuery, Failure, FailureCode, FixedSignLog,
+    FixedValueStore, HostOperationDisposition, HostOperationOutcome, Operation, OperationAction,
+    OperationInput, PortId, RequestId, ValueStorage,
 };
 use conduit_signal::{decode_signal_bytes, Signal, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN_USIZE};
 use cyw43::Control;
@@ -17,8 +17,9 @@ use crate::signal_execution_identity::SignalExecutionIdentity;
 use crate::signal_image::generated_remote_endpoint;
 use crate::signal_image::{
     generated_cords, generated_host_bindings, generated_nodes, generated_routes,
-    remote_signal_layout, CORDS, HOST_BINDING_SLOTS, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS,
-    ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES, RUNTIME_SIGN_EVENTS,
+    remote_signal_layout, CORDS, HOST_BINDING_SLOTS, MAX_STORED_SIGNAL_VALUES, NODES,
+    PENDING_REQUESTS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES,
+    RUNTIME_SIGN_EVENTS,
 };
 use crate::remote_error::{RemoteError as UsbLinkError, RemoteResult as UsbLinkResult};
 
@@ -119,8 +120,19 @@ impl RemoteSignalKernel {
             SIGNAL_ENCODED_LEN,
         )
         .map_err(UsbLinkError::Storage)?;
-        let sign = FixedSignLog::<RUNTIME_SIGN_EVENTS>::new(RUNTIME_SIGN_BYTES)
-            .map_err(UsbLinkError::SignStorage)?;
+        // Every admitted remote Signal retains one exact lifecycle identity;
+        // closing the remote Cord retains one more. Admit both fixed budgets
+        // before the scheduler starts for the image's bounded session.
+        let remote_sign_items = u16::try_from(MAX_STORED_SIGNAL_VALUES + 1)
+            .map_err(|_| UsbLinkError::SignStorage(conduit_kernel::SignError::InvalidBudget))?;
+        let remote_sign_bytes = remote_sign_storage_bytes(remote_sign_items)
+            .ok_or(UsbLinkError::SignStorage(conduit_kernel::SignError::InvalidBudget))?;
+        let sign = FixedSignLog::<RUNTIME_SIGN_EVENTS>::new_with_remote_storage(
+            RUNTIME_SIGN_BYTES,
+            remote_sign_items,
+            remote_sign_bytes,
+        )
+        .map_err(UsbLinkError::SignStorage)?;
         let driver = OperationDriver::new(ShowOperation {
             input_port: layout.show_input_port,
             present_operation: layout.present_operation,
