@@ -118,7 +118,6 @@ pub async fn run(
             }
         };
         let _ = sign.write_marker("CONDUIT_BLE_LINE_CONNECTED").await;
-        let _ = sign.write_marker("CONDUIT_BLE_SECURITY_REQUESTED").await;
         let result = serve_connection(
             &stack,
             &server,
@@ -177,11 +176,10 @@ async fn advertise<'values, 'server, C: Controller>(
         .await?
         .accept()
         .await?;
-    // Establish the security contract before BlueZ can race ahead from the
-    // connection fact. This encrypted profile is always bondable and requests
-    // security explicitly; the central still owns whether pairing is admitted.
+    // Establish bondability before the central starts SMP. The selected BlueZ
+    // Device.Pair operation is the sole pairing initiator; a peripheral-side
+    // security request here races that transaction and BlueZ cancels it.
     connection.set_bondable(true)?;
-    connection.request_security()?;
     Ok(connection.with_attribute_server(server)?)
 }
 
