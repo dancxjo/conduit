@@ -39,6 +39,8 @@ mod create_presentation;
 mod create_full_stage;
 #[path = "pete_capstone/create_lights_stage.rs"]
 mod create_lights_stage;
+#[path = "pete_capstone/create_single_led.rs"]
+mod create_single_led;
 #[path = "pete_capstone/uart_diagnostic.rs"]
 mod uart_diagnostic;
 #[path = "pete_capstone/imu_control.rs"]
@@ -285,6 +287,13 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             && create_lights_stage::request_matches(request)
         {
             create_lights_stage::serve(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_LIGHTS
+            && create_single_led::request_matches(request)
+        {
+            create_single_led::serve(class).await;
             continue;
         }
 

@@ -15,7 +15,7 @@ use portable_atomic::{AtomicU32, AtomicU8, Ordering};
 
 use crate::{
     create_acquisition, create_full_stage, create_lights_stage, create_link_gate, create_play,
-    create_presentation, uart_diagnostic,
+    create_presentation, create_single_led, uart_diagnostic,
 };
 
 const LINK_FRESHNESS_MS: u64 = 1_000;
@@ -295,6 +295,28 @@ pub async fn task(
         }
         create_link_gate::set_translator(&mut translator_oe, true);
         watchdog_delay(&mut watchdog, 10).await;
+        if create_play::request_kind() == create_play::RequestKind::SingleLed {
+            if create_play::claim_pending(create_play::RequestKind::SingleLed) {
+                let completed = create_single_led::execute(
+                    &mut provider,
+                    &mut translator_oe,
+                    &mut watchdog,
+                )
+                .await;
+                create_link_gate::set_translator(&mut translator_oe, false);
+                STATE.store(State::Initializing as u8, Ordering::Release);
+                OI_MODE.store(0, Ordering::Release);
+                create_play::set_result(if completed { 0 } else { 7 });
+                create_play::set_state(if completed {
+                    create_play::RequestState::Completed
+                } else {
+                    create_play::RequestState::Refused
+                });
+            } else {
+                create_link_gate::set_translator(&mut translator_oe, false);
+            }
+            continue;
+        }
         if create_play::request_kind() == create_play::RequestKind::FullStage {
             if create_play::claim_pending(create_play::RequestKind::FullStage) {
                 let completed = create_full_stage::execute(&mut provider, &mut watchdog).await;

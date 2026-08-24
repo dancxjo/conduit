@@ -9,6 +9,7 @@ mod create_listen;
 mod create_motion;
 mod create_power;
 mod create_presentation;
+mod create_single_led;
 mod doctor;
 mod firmware;
 #[cfg(test)]
@@ -171,6 +172,12 @@ pub enum PicoSubcommand {
         #[arg(long)]
         wheels_clear: bool,
     },
+    /// Set only the Create PLAY LED, isolate for 60 seconds, then restore Safe.
+    ProbeCreateLed {
+        /// Confirm that the robot is stopped, attended, and unable to propel itself.
+        #[arg(long)]
+        wheels_clear: bool,
+    },
     /// Prove explicit Body admission against an already-provisioned Pico.
     ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
@@ -231,6 +238,9 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         }
         Some(PicoSubcommand::PresentCreate { wheels_clear }) => {
             create_presentation::run(&args, *wheels_clear)
+        }
+        Some(PicoSubcommand::ProbeCreateLed { wheels_clear }) => {
+            create_single_led::run(&args, *wheels_clear)
         }
         Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }
