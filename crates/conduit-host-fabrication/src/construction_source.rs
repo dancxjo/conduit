@@ -478,6 +478,7 @@ mod tests {
     #[test]
     fn user_facing_commands_name_only_the_canonical_source_family() {
         for document in [
+            include_str!("../../../README.md"),
             include_str!("../../../docs/host-fabrication.md"),
             include_str!("../../../docs/body-building.md"),
         ] {

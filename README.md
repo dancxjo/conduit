@@ -112,7 +112,7 @@ Host configuration
     IMAGE
 ```
 
-The currently implemented authoring surface is `*.host.toml`. The active language-convergence work in [#1752](https://github.com/dancxjo/conduit/issues/1752) is moving this source role to the canonical Conduit grammar, conceptually:
+Host construction is authored in the same canonical Conduit grammar as Forms, using a distinct document role:
 
 ```text
 forebrain.host.conduit
@@ -556,12 +556,12 @@ cargo xtask prove std-browser-toggle
 Current Host construction tooling includes entrances equivalent to:
 
 ```sh
-cargo xtask host config check profiles/host-configurations/linux-workstation.host.toml
-cargo xtask host config show  profiles/host-configurations/linux-workstation.host.toml
-cargo xtask host build        profiles/host-configurations/linux-workstation.host.toml
+cargo xtask host config check profiles/host-configurations/linux-workstation.host.conduit
+cargo xtask host config show  profiles/host-configurations/linux-workstation.host.conduit
+cargo xtask host build        profiles/host-configurations/linux-workstation.host.conduit
 ```
 
-TOML is the current implemented authoring representation. The checked model and build path are the durable architecture; [#1752](https://github.com/dancxjo/conduit/issues/1752) owns source convergence to `.host.conduit`.
+Historical `*.host.toml` files remain migration fixtures only. Both source representations lower to the same checked model during migration, while ordinary authoring uses `.host.conduit`.
 
 ### See ConduitOS
 
