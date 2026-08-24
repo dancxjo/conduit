@@ -1,5 +1,60 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.recursive-recovery.vertical",
+        "Prove bounded full-profile recovery from a lost direct implementation through an exact cross-Host Back",
+        "cargo",
+        &["test", "-p", "conduit-planner", "--test", "distributed_back"],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.recursive-recovery.cycle-bounds",
+        "Prove recursive canonical expansion refuses cycles and depth overflow",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-form",
+            "canonical_expansion_tests::recursion_and_expansion_depth_fail_with_distinct_diagnostics",
+        ],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
+        "prove.recursive-recovery.patchbay",
+        "Prove Patchbay reveals exact scarred realization truth without fallback flattening",
+        "cargo",
+        &["test", "-p", "patchbay-model", "--test", "recursive_recovery"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
+        "prove.recursive-recovery.stale-completion",
+        "Prove an interrupted old Play cannot complete after its fresh replacement starts",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-ai",
+            "--features",
+            "form-catalog",
+            "provider::tests::unchanged_form_selects_direct_face_or_distributed_provider_back_exactly",
+        ],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+];
+
 pub const PROVE_DIVERSITY_STEPS: &[Step] = &[Step::typed(
     "prove.diversity.mechanism-and-line-path",
     "Prove exact mechanism and Line-path diversity through immutable ordinary Plans",
