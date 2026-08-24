@@ -35,6 +35,8 @@ mod create_motion;
 mod create_power;
 #[path = "pete_inert/create_presentation.rs"]
 mod create_presentation;
+#[path = "pete_inert/create_full_stage.rs"]
+mod create_full_stage;
 #[path = "pete_inert/uart_diagnostic.rs"]
 mod uart_diagnostic;
 #[path = "pete_inert/imu_control.rs"]
@@ -112,7 +114,7 @@ const CAPSTONE_READY_WAIT_STEPS: usize = 200;
 const BRINGUP_STAGE_IMU: u8 = 2;
 const BRINGUP_STAGE_CREATE_FULL: u8 = 3;
 const BRINGUP_STAGE_PRESENTATION: u8 = 5;
-const BRINGUP_STAGE: u8 = BRINGUP_STAGE_IMU;
+const BRINGUP_STAGE: u8 = BRINGUP_STAGE_CREATE_FULL;
 
 fn usb_device(
     driver: usb::Driver<'static, USB>,
@@ -262,6 +264,13 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             && create_play::hello_request_matches(request)
         {
             create_play::serve_hello(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
+            && create_full_stage::request_matches(request)
+        {
+            create_full_stage::serve(class).await;
             continue;
         }
 

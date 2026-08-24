@@ -22,6 +22,7 @@ pub enum RequestKind {
     Motion = 1,
     Hello = 2,
     Presentation = 3,
+    FullStage = 4,
 }
 
 impl RequestKind {
@@ -30,6 +31,7 @@ impl RequestKind {
             1 => Self::Motion,
             2 => Self::Hello,
             3 => Self::Presentation,
+            4 => Self::FullStage,
             _ => Self::None,
         }
     }
