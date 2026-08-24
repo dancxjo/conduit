@@ -87,6 +87,11 @@ pub async fn run<C>(
             .raw()
             .set_bondable(true)
             .expect("the fresh connection security policy must be configurable");
+        // Repeat the exact physical identity at the accepted-session boundary.
+        // The UART proof reader may attach after boot; acceptance must not rely
+        // on ambient serial backlog to bind this session to its Host and Boot.
+        boot.print_boot();
+        boot.print_host_offer(address);
         esp_println::println!("CONDUIT_ESP32_BLE_CONNECTED");
         let _ = serve_connection(&server, &connection, boot, &stack, kernel).await;
         esp_println::println!("CONDUIT_ESP32_BLE_LOST");

@@ -1,13 +1,13 @@
 use std::{
-    io::{BufRead, BufReader, ErrorKind},
     path::Path,
     process::{Command, Output},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    time::{Duration, Instant},
 };
+
+mod transcript;
 
 use crate::{
     cli::{BluetoothProofRole, GlobalOpts, ProveArgs},
@@ -118,9 +118,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         let capture_stop = Arc::clone(&stop);
         Some((
             stop,
-            std::thread::spawn(move || {
-                capture_bluetooth_transcript(port, terminal_marker, capture_stop)
-            }),
+            std::thread::spawn(move || transcript::capture(port, terminal_marker, capture_stop)),
         ))
     } else {
         None
@@ -146,34 +144,43 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     let output = command
         .output()
         .map_err(|error| StepError::prereq("prove.bluetooth-line.launch", error.to_string()))?;
-    if !output.status.success() {
-        if let Some((stop, capture)) = capture {
+    let transcript = if let Some((stop, capture)) = capture {
+        if !output.status.success() {
             stop.store(true, Ordering::Release);
-            let _ = capture.join();
         }
+        let lines = capture
+            .join()
+            .map_err(|_| StepError::prereq("prove.bluetooth-line.sign", "capture thread panicked"))?
+            .map_err(|error| StepError::prereq("prove.bluetooth-line.sign", error))?;
+        let path = evidence_root.join("bluetooth-line-esp32-transcript.jsonl");
+        std::fs::write(&path, format!("{}\n", lines.join("\n"))).map_err(|error| {
+            StepError::prereq("prove.bluetooth-line.evidence", error.to_string())
+        })?;
+        if output.status.success() {
+            let (expected_host, expected_boot) =
+                peer_identity.expect("ESP32 capture requires identity");
+            transcript::verify_esp32(
+                &lines,
+                args.induce_transport_loss,
+                expected_host,
+                expected_boot,
+                peer,
+            )
+            .map_err(|error| StepError::prereq("prove.bluetooth-line.transcript", error))?;
+        }
+        Some(path)
+    } else {
+        None
+    };
+    if !output.status.success() {
         eprint!("{}", String::from_utf8_lossy(&output.stderr));
         return Err(StepError {
             id: "prove.bluetooth-line".into(),
             command_line: displayed.join(" "),
             status: Some(output.status),
-            message: String::new(),
+            message: "retained partial ESP32 transcript after hosted probe failure".into(),
         });
     }
-    let transcript = if let Some((_, capture)) = capture {
-        let lines = capture
-            .join()
-            .map_err(|_| StepError::prereq("prove.bluetooth-line.sign", "capture thread panicked"))?
-            .map_err(|error| StepError::prereq("prove.bluetooth-line.sign", error))?;
-        verify_esp32_transcript(&lines, args.induce_transport_loss)
-            .map_err(|error| StepError::prereq("prove.bluetooth-line.transcript", error))?;
-        let path = evidence_root.join("bluetooth-line-esp32-transcript.jsonl");
-        std::fs::write(&path, format!("{}\n", lines.join("\n"))).map_err(|error| {
-            StepError::prereq("prove.bluetooth-line.evidence", error.to_string())
-        })?;
-        Some(path)
-    } else {
-        None
-    };
     let receipt = evidence_root.join(format!("bluetooth-line-{operation}.json"));
     std::fs::write(&receipt, &output.stdout)
         .map_err(|error| StepError::prereq("prove.bluetooth-line.evidence", error.to_string()))?;
@@ -257,9 +264,8 @@ pub fn run_pico(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), 
     };
     let stop = Arc::new(AtomicBool::new(false));
     let capture_stop = Arc::clone(&stop);
-    let capture = std::thread::spawn(move || {
-        capture_bluetooth_transcript(port, terminal_marker, capture_stop)
-    });
+    let capture =
+        std::thread::spawn(move || transcript::capture(port, terminal_marker, capture_stop));
 
     let operation = if loss { "loss" } else { "source" };
     let hosted = run_probe(root, opts.locked, &[operation, adapter, peer])?;
@@ -388,95 +394,4 @@ fn parse_probe_record(output: &Output, operation: &str) -> Result<serde_json::Va
         ));
     }
     Ok(record)
-}
-
-fn capture_bluetooth_transcript(
-    file: std::fs::File,
-    terminal_marker: &'static str,
-    stop: Arc<AtomicBool>,
-) -> Result<Vec<String>, String> {
-    let mut reader = BufReader::new(file);
-    let deadline = Instant::now() + Duration::from_secs(180);
-    let mut lines = Vec::new();
-    loop {
-        let mut line = String::new();
-        match reader.read_line(&mut line) {
-            Ok(0) => {}
-            Ok(_) => {
-                let line = line.trim().to_owned();
-                if !line.is_empty() {
-                    let complete = line.starts_with(terminal_marker);
-                    lines.push(line);
-                    if complete {
-                        return Ok(lines);
-                    }
-                }
-            }
-            Err(error) if matches!(error.kind(), ErrorKind::TimedOut | ErrorKind::WouldBlock) => {}
-            Err(error) => return Err(format!("serial capture failed: {error}")),
-        }
-        if Instant::now() >= deadline {
-            return Err("timed out waiting for Pico BLE terminal transcript".into());
-        }
-        if stop.load(Ordering::Acquire) {
-            return Ok(lines);
-        }
-    }
-}
-
-fn verify_esp32_transcript(lines: &[String], loss: bool) -> Result<(), String> {
-    if loss {
-        return if lines.iter().any(|line| line == "CONDUIT_ESP32_BLE_LOST") {
-            Ok(())
-        } else {
-            Err("expected exact ESP32 transport-loss terminal".into())
-        };
-    }
-    let presented = lines
-        .iter()
-        .filter(|line| line.starts_with("CONDUIT_ESP32_PRESENT "))
-        .count();
-    if presented == 16
-        && lines
-            .iter()
-            .any(|line| line == "CONDUIT_ESP32_LINE_COMPLETE final-sequence=16")
-    {
-        Ok(())
-    } else {
-        Err(format!(
-            "expected 16 presentations and exact terminal, found {presented}"
-        ))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::verify_esp32_transcript;
-
-    #[test]
-    fn esp32_completion_requires_exact_finite_presentation_and_terminal() {
-        let mut lines = (0..16)
-            .map(|sequence| format!("CONDUIT_ESP32_PRESENT sequence={sequence} level=true"))
-            .collect::<Vec<_>>();
-        lines.push("CONDUIT_ESP32_LINE_COMPLETE final-sequence=16".into());
-        assert!(verify_esp32_transcript(&lines, false).is_ok());
-
-        lines.pop();
-        assert!(verify_esp32_transcript(&lines, false).is_err());
-        lines.push("CONDUIT_ESP32_LINE_COMPLETE final-sequence=15".into());
-        assert!(verify_esp32_transcript(&lines, false).is_err());
-        lines.insert(0, "CONDUIT_ESP32_PRESENT sequence=99 level=false".into());
-        assert!(verify_esp32_transcript(&lines, false).is_err());
-    }
-
-    #[test]
-    fn esp32_loss_requires_the_exact_distinct_terminal() {
-        assert!(verify_esp32_transcript(&["CONDUIT_ESP32_BLE_LOST".into()], true).is_ok());
-        assert!(verify_esp32_transcript(
-            &["CONDUIT_ESP32_LINE_COMPLETE final-sequence=16".into()],
-            true
-        )
-        .is_err());
-        assert!(verify_esp32_transcript(&["CONDUIT_ESP32_BLE_LOST stale".into()], true).is_err());
-    }
 }
