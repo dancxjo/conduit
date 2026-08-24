@@ -1,12 +1,13 @@
 use patchbay_html::{
-    cross_host_demonstration_snapshot, llm_documentary_snapshot, load_seed_sources,
-    text_lab_split_snapshot, PatchbayHtmlServer, SeedSource,
+    cross_host_demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot,
+    load_seed_sources, text_lab_split_snapshot, PatchbayHtmlServer, SeedSource,
 };
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Arguments {
     documentary_fixture: bool,
     llm_documentary_fixture: bool,
+    llm_embodiment_fixture: Option<usize>,
     text_lab_split: Option<String>,
     seeds: Vec<SeedSource>,
 }
@@ -19,6 +20,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             "--documentary-fixture"
                 if !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
+                    && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
                     && parsed.seeds.is_empty() =>
             {
@@ -27,14 +29,31 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             "--llm-documentary-fixture"
                 if !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
+                    && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
                     && parsed.seeds.is_empty() =>
             {
                 parsed.llm_documentary_fixture = true;
             }
+            "--llm-embodiment-fixture"
+                if !parsed.documentary_fixture
+                    && !parsed.llm_documentary_fixture
+                    && parsed.llm_embodiment_fixture.is_none()
+                    && parsed.text_lab_split.is_none()
+                    && parsed.seeds.is_empty() =>
+            {
+                parsed.llm_embodiment_fixture = Some(
+                    arguments
+                        .next()
+                        .ok_or("--llm-embodiment-fixture requires stage 0, 1, or 2")?
+                        .parse()
+                        .map_err(|_| "--llm-embodiment-fixture requires stage 0, 1, or 2")?,
+                );
+            }
             "--text-lab-split"
                 if !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
+                    && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
                     && parsed.seeds.is_empty() =>
             {
@@ -47,6 +66,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             "--seed"
                 if !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
+                    && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none() =>
             {
                 let label = arguments
@@ -74,6 +94,9 @@ fn main() -> Result<(), String> {
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else if arguments.llm_documentary_fixture {
         let snapshot = llm_documentary_snapshot()?;
+        PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
+    } else if let Some(stage) = arguments.llm_embodiment_fixture {
+        let snapshot = llm_embodiment_snapshot(stage)?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else if let Some(base) = arguments.text_lab_split {
         let snapshot = text_lab_split_snapshot(&base)?;

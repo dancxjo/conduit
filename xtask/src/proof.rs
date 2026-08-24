@@ -404,6 +404,24 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         allowed_claims: &["one explicitly selected Google Calendar resource performs read, free-busy, create, update, and cancel through ordinary Plan/Play with separately granted authority and exact hashed receipts"],
     },
     ProofCommandContract {
+        id: "llm.embodiment-live",
+        command: "cargo xtask prove llm-embodiment --ollama-url <url> --ollama-model <model>",
+        proof_class: ProofClass::LiveTransport,
+        required_tools_or_targets: &[
+            "cargo",
+            "curl",
+            "Ollama",
+            "installed local model",
+            "playwright",
+            "pinned Chromium",
+        ],
+        named_artifacts: &[
+            "target/ollama-planning-advice-live.json",
+            "target/ollama-embodiment-live.json",
+        ],
+        allowed_claims: &["three exact Forms give the same local model distinct graph-defined perception, expression, and narrowly authorized effect power; ordinary proposal admission and runtime Signs remain separate from model output"],
+    },
+    ProofCommandContract {
         id: "llm.planning-advice-live",
         command: "cargo xtask prove llm-planning-advice --ollama-url <url> --ollama-model <model>",
         proof_class: ProofClass::LiveTransport,
