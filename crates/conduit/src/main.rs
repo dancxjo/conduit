@@ -6,10 +6,13 @@ mod product_execution;
 #[cfg(test)]
 mod product_execution_tests;
 mod report_artifact;
+mod two_std_line;
+#[cfg(test)]
+mod two_std_line_tests;
 
 use clap::Parser;
 use conduit_observatory::{build_report, render_text_report};
-use std::io;
+use std::io::{self, Write};
 use std::path::Path;
 
 fn enter_patchbay(host: cli::PatchbayHost) -> Result<(), String> {
@@ -42,13 +45,45 @@ fn run_with_placements(
     path: &str,
     placements_path: Option<&str>,
     report_path: Option<&Path>,
+    execution_fixture: Option<cli::ExecutionFixture>,
 ) -> Result<(), String> {
-    let source = form_source::load(Path::new(path))?;
+    let source = match execution_fixture {
+        Some(cli::ExecutionFixture::TwoStdLine) => form_source::load_signal(Path::new(path))?,
+        None => form_source::load(Path::new(path))?,
+    };
     let form = source.expand_entry()?;
-    let mut context = product_execution::ProductExecutionContext::local_std()?;
-    let plan = context.plan(&form, placements_path)?;
+    let mut context = match execution_fixture {
+        None => product_execution::ProductExecutionContext::local_std()?,
+        Some(cli::ExecutionFixture::TwoStdLine) => two_std_line::context()?,
+    };
+    let plan = match execution_fixture {
+        None => context.plan(&form, placements_path)?,
+        Some(cli::ExecutionFixture::TwoStdLine) => {
+            if placements_path.is_some() {
+                return Err("the two-std-line fixture owns its exact machine placement".into());
+            }
+            context.plan_with_placements(&form, &two_std_line::placements(&form)?)?
+        }
+    };
     let mut stdout = io::stdout().lock();
-    let execution = context.execute(plan, &mut stdout)?;
+    let execution = match execution_fixture {
+        None => context.execute(plan, &mut stdout)?,
+        Some(cli::ExecutionFixture::TwoStdLine) => {
+            context.validate_plan(&plan)?;
+            let evidence = two_std_line::execute(&plan)?;
+            writeln!(
+                stdout,
+                "two-std Line complete values={} pressure_retries={}",
+                evidence.received, evidence.pressure_retries
+            )
+            .map_err(|error| error.to_string())?;
+            product_execution::ProductExecution {
+                advertisements: context.advertisements().to_vec(),
+                plan,
+                observations: Vec::new(),
+            }
+        }
+    };
     if let Some(report_path) = report_path {
         let snapshot = snapshot_from_execution(
             execution.advertisements,
@@ -74,10 +109,12 @@ fn main() {
             form,
             placements,
             report,
+            execution_fixture,
         } => run_with_placements(
             &form.to_string_lossy(),
             placements.as_deref().map(Path::to_string_lossy).as_deref(),
             report.as_deref(),
+            execution_fixture,
         ),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
