@@ -4,15 +4,24 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["compatibility-fixture"]
-compatibility-fixture = ["conduit-runtime/compatibility-executor"]
+default = []
+compatibility-fixture = [
+    "conduit-runtime/compatibility-executor",
+    "conduit-signal/legacy-fixture-driver",
+    "conduit-std-catalog/compatibility-fixture",
+]
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
+conduit-kernel = { path = "../conduit-kernel", features = ["alloc"] }
 conduit-runtime = { path = "../conduit-runtime", default-features = false }
 
 [dev-dependencies]
 conduit-planner = { path = "../conduit-planner" }
-conduit-signal = { path = "../conduit-signal", features = ["legacy-fixture-driver"] }
-conduit-std-catalog = { path = "../conduit-std-catalog" }
+conduit-signal = { path = "../conduit-signal", default-features = false, features = ["host-profile"] }
+conduit-std-catalog = { path = "../conduit-std-catalog", default-features = false, features = ["form-catalog"] }
+
+[[test]]
+name = "sound_realization"
+required-features = ["compatibility-fixture"]
