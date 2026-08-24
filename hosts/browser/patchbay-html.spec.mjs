@@ -260,6 +260,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#flow-root .flow-gear")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Gear").length);
     await expect(page.locator("#flow-root .faceplate-port")).toHaveCount(snapshot.presentation.subjects.filter(item=>item.role==="Port").length);
     await expect(page.locator("#flow-root .flow-cord")).toHaveCount(snapshot.presentation.properties.filter(item=>item.name==="source-port").length);
+    await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).not.toHaveText("Cord");
     const routes=await cordGeometry(page,snapshot);
     expect(routes.length).toBeGreaterThan(0);
     expect(Math.max(...routes.map(route=>Math.hypot(route.start.x-route.source.x,route.start.y-route.source.y)))).toBeLessThan(8);
@@ -302,8 +303,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"selected-gear",selectedSnapshot,"selection-succeeded-and-inspector-correlated");
     const stableLensIdentity={presentation:selectedSnapshot.presentation.identity,plan:selectedSnapshot.presentation.basis.plan_id,play:selectedSnapshot.presentation.basis.active_play_id};
     await page.getByRole("button",{name:"Plan",exact:true}).click();await expect(page.locator("body")).toHaveAttribute("data-lens","plan");await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAN");await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);await expectFlowDominant(page,{inspector:true});
+    await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText(/item/);
+    expect(await page.locator("#flow-root .flow-cord").evaluateAll(edges=>edges.every(edge=>parseFloat(getComputedStyle(edge.querySelector(".react-flow__edge-path")).strokeWidth)>=2))).toBe(true);
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"plan-lens",selectedSnapshot,"same-graph-plan-realization-overlay");
     await page.getByRole("button",{name:"Play",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAY");await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);await expectFlowDominant(page,{inspector:true});
+    await expect(page.locator("#flow-root .flow-cord.animated")).toHaveCount(0);
+    await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText("Completed");
+    await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText("pressure unavailable");
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"play-lens",selectedSnapshot,"same-graph-active-play-state-and-pressure-overlay");
     await page.getByRole("button",{name:"Signs",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · SIGNS");await expect(page.locator("#flow-root .flow-faceplate")).toHaveCount(0);await expect(page.locator("#flow-root .react-flow")).toBeVisible();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"signs-lens",selectedSnapshot,"same-graph-selected-subject-causal-evidence");

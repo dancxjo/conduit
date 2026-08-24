@@ -45,6 +45,58 @@ function compactClue(role, properties, lens) {
   return properties.get("operational-state") || properties.get("availability") || (role === "Gear" ? "semantic Gear" : "current world subject");
 }
 
+function cordCapacity(properties) {
+  const admitted = properties.get("admitted-capacity");
+  const match = typeof admitted === "string"
+    ? /^items=(\d+) bytes=(\d+)$/.exec(admitted)
+    : null;
+  if (!match) return { items: null, bytes: null, label: "capacity not admitted", strokeWidth: 2 };
+  const items = Number(match[1]);
+  const bytes = Number(match[2]);
+  return {
+    items,
+    bytes,
+    label: `${items} ${items === 1 ? "item" : "items"} · ${bytes} B`,
+    // Keep large admitted queues legible without allowing their presentation
+    // to obscure the graph. The exact capacity remains in the label.
+    strokeWidth: Math.min(7, 2 + Math.log2(Math.max(1, items) + 1)),
+  };
+}
+
+function cordVisual(properties, lens) {
+  const capacity = cordCapacity(properties);
+  const valueKind = properties.get("value-kind") || "typed Info";
+  const playState = properties.get("play-state");
+  const pressure = properties.get("pressure");
+  const hasLine = Boolean(properties.get("line-id"));
+  if (lens === "play") {
+    const pressureKnown = pressure && pressure !== "not exposed by this Play";
+    const pressureLabel = pressureKnown ? pressure : "pressure unavailable";
+    const terminal = /^(Completed|Failed|Cancelled)/.test(playState || "");
+    return {
+      label: [playState || "not playing", pressureLabel, capacity.label].join(" · "),
+      className: `cord-play ${pressureKnown ? "cord-pressure-known" : "cord-pressure-unknown"}`,
+      // Motion means a non-terminal Play, never inferred Info delivery. The
+      // pressure label remains visible so status animation cannot pose as a
+      // measurement the Play did not expose.
+      animated: Boolean(properties.get("active-play-id")) && !terminal,
+      strokeWidth: capacity.strokeWidth,
+    };
+  }
+  if (lens === "plan") return {
+    label: `${capacity.label} · ${hasLine ? "external Line" : "local"}`,
+    className: hasLine ? "cord-line" : "cord-local",
+    animated: false,
+    strokeWidth: capacity.strokeWidth,
+  };
+  return {
+    label: valueKind,
+    className: "cord-semantic",
+    animated: false,
+    strokeWidth: capacity.items === null ? 3 : capacity.strokeWidth,
+  };
+}
+
 export function projectFlowScene(snapshot, lens = "world") {
   const presentation = projectCurrent(snapshot);
   // Projection owns which subjects and relationships exist in this scene. The
@@ -105,6 +157,8 @@ export function projectFlowScene(snapshot, lens = "world") {
     const sinkPort = semanticSubjects.get(value(properties.find((property) => property.name === "sink-port")));
     const source = owner.get(sourcePort);
     const target = owner.get(sinkPort);
+    const propertiesMap = subjectProperties.get(cord.identity) || new Map();
+    const visual = cordVisual(propertiesMap, lens);
     if (source && target) edges.push({
       id: cord.identity,
       source,
@@ -112,7 +166,10 @@ export function projectFlowScene(snapshot, lens = "world") {
       sourceHandle: sourcePort,
       targetHandle: sinkPort,
       type: "simplebezier",
-      label: lens === "plan" ? `Cord · ${subjectProperties.get(cord.identity)?.get("line-id") ? "realized; inspect Line correlation" : "local; no Line"}` : lens === "play" ? `Cord · ${subjectProperties.get(cord.identity)?.get("play-state") || "not playing"}` : "Cord",
+      label: visual.label,
+      className: visual.className,
+      animated: visual.animated,
+      style: { strokeWidth: visual.strokeWidth },
       data: {
         semanticIdentity: cord.identity,
         sourcePort,
