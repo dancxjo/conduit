@@ -21,7 +21,7 @@ use conduit_wire::{
 };
 use cyw43::Control;
 use embassy_executor::Spawner;
-use embassy_futures::join::join;
+use embassy_futures::select::{select, Either};
 use embassy_rp::{
     peripherals::{DMA_CH0, DMA_CH1, PIN_23, PIN_24, PIN_25, PIN_29, PIO0},
     Peri,
@@ -102,7 +102,7 @@ pub async fn run(
     let identity = SignalExecutionIdentity::plan_a();
     let _ = sign.write_boot_identity(identity.boot(), runtime).await;
     let _ = sign.write_marker("CONDUIT_BLE_CONTROLLER_READY").await;
-    join(run_host(runner), async {
+    let line = async {
         let mut consecutive_advertise_failures = 0_u8;
         let connection = loop {
             match advertise(&mut peripheral, &server).await {
@@ -134,17 +134,26 @@ pub async fn run(
         };
         let _ = sign.write_marker(marker).await;
         core::future::pending::<()>().await
-    })
-    .await;
-    core::future::pending().await
-}
-
-async fn run_host<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) -> ! {
-    loop {
-        if runner.run().await.is_err() {
-            core::future::pending::<()>().await;
+    };
+    match select(run_host_until_stopped(runner), line).await {
+        Either::First(host_failed) => {
+            let marker = if host_failed {
+                "CONDUIT_BLE_HOST_FAILED"
+            } else {
+                "CONDUIT_BLE_HOST_RETURNED"
+            };
+            let _ = sign.write_marker(marker).await;
+            core::future::pending().await
+        }
+        Either::Second(()) => {
+            let _ = sign.write_marker("CONDUIT_BLE_LINE_STOPPED").await;
+            core::future::pending().await
         }
     }
+}
+
+async fn run_host_until_stopped<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) -> bool {
+    runner.run().await.is_err()
 }
 
 async fn advertise<'values, 'server, C: Controller>(
