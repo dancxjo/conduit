@@ -16,4 +16,5 @@ conduit-kernel = { path = "../conduit-kernel" }
 conduit-runtime = { path = "../conduit-runtime", default-features = false, features = ["compatibility-executor"] }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-std-catalog = { path = "../conduit-std-catalog", features = ["form-catalog"] }
+conduit-wire = { path = "../conduit-wire" }
 serde_json = "1"
