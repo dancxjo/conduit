@@ -34,6 +34,9 @@ pub const CONDUITOS_STATE_LATEST_SCALAR_IMPLEMENTATION: &str =
 pub const CONDUITOS_STATE_LATEST_SCALAR_CAPABILITY: &str = "conduitos-state-latest-scalar-v1";
 pub const CONDUITOS_FLOW_TEE_SCALAR_IMPLEMENTATION: &str = "conduitos/kernel-flow-tee-scalar@1";
 pub const CONDUITOS_FLOW_TEE_SCALAR_CAPABILITY: &str = "conduitos-flow-tee-scalar-v1";
+pub const CONDUITOS_STATE_SELECT_SCALAR_IMPLEMENTATION: &str =
+    "conduitos/kernel-state-select-scalar@1";
+pub const CONDUITOS_STATE_SELECT_SCALAR_CAPABILITY: &str = "conduitos-state-select-scalar-v1";
 
 pub const FLOW_GATE_SCALAR_CONTRACT_REVISION: &str = "conduit.std/flow-gate-scalar@1";
 pub const FLOW_GATE_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/flow-gate-scalar-kernel@1";
@@ -267,6 +270,14 @@ pub fn state_select_scalar_offer() -> CapabilityOffer {
         STATE_SELECT_SCALAR_EXECUTION_PROFILE,
         STATE_SELECT_SCALAR_IMPLEMENTATION,
         STATE_SELECT_SCALAR_ARTIFACT,
+    )
+}
+
+pub fn conduitos_state_select_scalar_offer() -> CapabilityOffer {
+    conduitos_offer(
+        state_select_scalar_offer(),
+        CONDUITOS_STATE_SELECT_SCALAR_CAPABILITY,
+        CONDUITOS_STATE_SELECT_SCALAR_IMPLEMENTATION,
     )
 }
 
