@@ -142,7 +142,7 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
 
     let mut step = 0;
     while completed && step < PRESENTATION_LIGHT_STEPS {
-        if step % 2 == 0 {
+        if step & 1 == 0 {
             completed = write_exact(provider, &PRESENTATION_PLAY_SONG);
             if completed {
                 SONG_PLAYS.fetch_add(1, Ordering::AcqRel);

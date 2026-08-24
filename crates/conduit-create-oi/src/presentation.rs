@@ -23,7 +23,7 @@ pub const PRESENTATION_DEFINE_SONG: [u8; 35] = [
 /// Match Netherwick's healthy Brainstem presentation: alternate PLAY and
 /// ADVANCE while keeping the POWER LED at color 128 and full intensity.
 pub const fn presentation_lights(step: u8) -> [u8; 4] {
-    let led_bits = if step % 2 == 0 { 1 << 1 } else { 1 << 3 };
+    let led_bits = if step & 1 == 0 { 1 << 1 } else { 1 << 3 };
     [139, led_bits, 128, 255]
 }
 
@@ -68,7 +68,7 @@ mod tests {
         bytes.extend_from_slice(&PRESENTATION_FULL);
         bytes.extend_from_slice(&PRESENTATION_DEFINE_SONG);
         for step in 0..PRESENTATION_LIGHT_STEPS {
-            if step % 2 == 0 {
+            if step & 1 == 0 {
                 bytes.extend_from_slice(&PRESENTATION_PLAY_SONG);
             }
             bytes.extend_from_slice(&presentation_lights(step));
