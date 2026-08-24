@@ -18,34 +18,7 @@ Conduit is not a visual node editor with a runtime bolted underneath it. It is n
 
 A useful mental model is:
 
-```text
-AUTHOR
-  Form: what should happen
-  Host construction: what machinery should exist
-  Body construction: which intended Parts make up one Body
-
-        ↓
-
-BUILD
-  Host configuration -> PROFILE -> BUILD -> IMAGE
-  Body construction   -> IMAGE + Body binding -> SPORE
-
-        ↓ boot / join
-
-OBSERVE
-  Hosts, Boots, offers, resources, Lines, Signs
-
-        ↓
-
-REALIZE
-  candidate implementation
-      -> NEED
-      -> OFFER + current OBSERVE
-      -> ADMIT or REFUSE
-      -> exact resource BINDINGS
-      -> immutable PLAN
-      -> PLAY
-```
+![A useful mental model for Conduit: authored Form, Host construction, and Body construction flow through fabrication, observed current truth, resource admission, immutable Plan, and Play](assets/readme/useful-mental-model.svg)
 
 The project is converging on **one Conduit source language** for those authored roles. Different files may describe different things, but they should not become different little languages. Today canonical Forms are already `.conduit`; Host construction currently has a working TOML authoring path while [#1752](https://github.com/dancxjo/conduit/issues/1752) moves Host and Body construction onto the same canonical Conduit grammar.
 
