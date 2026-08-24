@@ -1,22 +1,99 @@
 use crate::cli::GlobalOpts;
+use crate::output::{RepositoryOutput, MAXIMUM_OUTPUT_ITEMS};
 use conduit_core::{BootId, OfferGeneration};
 use conduit_std_host::hosted_audio::{
     discover_alsa_playback, run_playback_proof, ExplicitPlaybackAuthorization,
     HostedPlaybackSelection,
 };
+use serde::Serialize;
 use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+const AUDIO_LIST_SCHEMA: &str = "conduit.xtask/hosted-audio-list@1";
+const AUDIO_PROOF_SCHEMA: &str = "conduit.xtask/hosted-audio-proof@1";
+
+#[derive(Serialize)]
+struct AudioListReport<'a> {
+    schema: &'static str,
+    dry_run: bool,
+    effects_performed: bool,
+    observations: Vec<AudioObservationReport<'a>>,
+}
+
+#[derive(Serialize)]
+struct AudioObservationReport<'a> {
+    card_id: &'a str,
+    card_index: u16,
+    device: u16,
+    base_identity: &'a str,
+    card_name: &'a str,
+    device_name: &'a str,
+}
+
+#[derive(Serialize)]
+struct AudioProofReport<'a> {
+    schema: &'static str,
+    dry_run: bool,
+    effects_performed: bool,
+    card_id: &'a str,
+    device: u16,
+    authority: &'static str,
+    resource_pool_id: Option<&'a str>,
+    alsa_target: Option<&'a str>,
+    host_id: Option<&'a str>,
+    boot_id: Option<&'a str>,
+    plan_id: Option<&'a str>,
+    play_id: Option<&'a str>,
+}
+
 pub fn list(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    reject_structured_modes(opts)?;
+    let output = RepositoryOutput::from_opts(opts);
+    if output.dry_run() {
+        output.emit_json(&AudioListReport {
+            schema: AUDIO_LIST_SCHEMA,
+            dry_run: true,
+            effects_performed: false,
+            observations: Vec::new(),
+        })?;
+        output.emit_human(|writer| {
+            writeln!(
+                writer,
+                "dry-run hosted audio list: metadata discovery not performed"
+            )
+        })?;
+        return Ok(());
+    }
     let observations = discover_alsa_playback()?;
+    if observations.len() > MAXIMUM_OUTPUT_ITEMS {
+        return Err("hosted audio observation output capacity exceeded".into());
+    }
     if observations.is_empty() {
         return Err("no ALSA playback resources are currently observed".into());
     }
-    if !opts.quiet {
-        println!("fresh hosted playback observations (no PCM device opened):");
-        for observation in observations {
-            println!(
+    output.emit_json(&AudioListReport {
+        schema: AUDIO_LIST_SCHEMA,
+        dry_run: false,
+        effects_performed: false,
+        observations: observations
+            .iter()
+            .map(|observation| AudioObservationReport {
+                card_id: &observation.card_id,
+                card_index: observation.card_index,
+                device: observation.device,
+                base_identity: &observation.base_identity,
+                card_name: &observation.card_name,
+                device_name: &observation.device_name,
+            })
+            .collect(),
+    })?;
+    output.emit_human(|writer| {
+        writeln!(
+            writer,
+            "fresh hosted playback observations (no PCM device opened):"
+        )?;
+        for observation in &observations {
+            writeln!(
+                writer,
                 "card-id={} card-index={} device={} base={} card-name={:?} device-name={:?}",
                 observation.card_id,
                 observation.card_index,
@@ -24,9 +101,10 @@ pub fn list(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 observation.base_identity,
                 observation.card_name,
                 observation.device_name,
-            );
+            )?;
         }
-    }
+        Ok(())
+    })?;
     Ok(())
 }
 
@@ -36,9 +114,30 @@ pub fn prove(
     device: u16,
     authorize_output: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    reject_structured_modes(opts)?;
+    let output = RepositoryOutput::from_opts(opts);
     if !authorize_output {
         return Err("hosted playback proof requires --authorize-output".into());
+    }
+    if output.dry_run() {
+        output.emit_json(&AudioProofReport {
+            schema: AUDIO_PROOF_SCHEMA,
+            dry_run: true,
+            effects_performed: false,
+            card_id,
+            device,
+            authority: "explicit-not-exercised",
+            resource_pool_id: None,
+            alsa_target: None,
+            host_id: None,
+            boot_id: None,
+            plan_id: None,
+            play_id: None,
+        })?;
+        output.emit_human(|writer| writeln!(writer,
+            "dry-run audio-proof card-id={} device={} authority=explicit-not-exercised device-opened=false",
+            card_id, device
+        ))?;
+        return Ok(());
     }
     let matches = discover_alsa_playback()?
         .into_iter()
@@ -61,22 +160,9 @@ pub fn prove(
     ));
     let selection =
         HostedPlaybackSelection::from_observation(observation, boot_id, OfferGeneration(1));
-    if opts.dry_run {
-        if !opts.quiet {
-            println!(
-                "dry-run audio-proof resource={} target={} profile={} authority=explicit-not-exercised device-opened=false",
-                selection.pool_id().as_str(),
-                selection.alsa_target(),
-                conduit_std_catalog::AUDIO_PLAY_ALSA_HW_PROFILE,
-            );
-        }
-        return Ok(());
-    }
     let authorization =
         ExplicitPlaybackAuthorization::new("grant/xtask-explicit-hosted-audio-play")?;
-    if opts.quiet {
-        run_playback_proof(selection, authorization, &mut std::io::sink())?;
-    } else {
+    if matches!(output.mode(), crate::output::OutputMode::Human) {
         let stdout = std::io::stdout();
         let mut output = stdout.lock();
         let receipt = run_playback_proof(selection, authorization, &mut output)?;
@@ -89,13 +175,24 @@ pub fn prove(
             receipt.active_play_id.as_str(),
             receipt.authority_grant_id,
         )?;
-    }
-    Ok(())
-}
-
-fn reject_structured_modes(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    if opts.json {
-        return Err("--json is not yet supported by hosted audio commands".into());
+    } else {
+        let receipt = run_playback_proof(selection, authorization, &mut std::io::sink())?;
+        let pool_id = receipt.playback.resource_pool_id.as_str();
+        let target = receipt.playback.alsa_target.as_str();
+        output.emit_json(&AudioProofReport {
+            schema: AUDIO_PROOF_SCHEMA,
+            dry_run: false,
+            effects_performed: true,
+            card_id,
+            device,
+            authority: "explicit-exercised",
+            resource_pool_id: Some(pool_id),
+            alsa_target: Some(target),
+            host_id: Some(receipt.host_id.as_str()),
+            boot_id: Some(receipt.boot_id.as_str()),
+            plan_id: Some(receipt.plan_id.as_str()),
+            play_id: Some(receipt.active_play_id.as_str()),
+        })?;
     }
     Ok(())
 }
