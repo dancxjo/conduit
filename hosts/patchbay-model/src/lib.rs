@@ -67,6 +67,7 @@ mod presenter_capstone;
 #[cfg(test)]
 mod presenter_capstone_tests;
 mod prewake;
+mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
 mod renderer_inspection;
@@ -189,6 +190,10 @@ pub use presentation_layout::{
 };
 pub use presenter_capstone::*;
 pub use prewake::*;
+pub use recursive_recovery_explanation::{
+    explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
+    MAX_RECURSIVE_RECOVERY_EXPLANATION_BYTES,
+};
 pub use renderer_conformance::{
     compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
     ENTRANCE_EQUIVALENCE_SCHEMA,

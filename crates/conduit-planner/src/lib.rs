@@ -54,6 +54,7 @@ mod profile;
 mod protected_resources;
 mod realization;
 mod realization_families;
+mod recursive_recovery;
 mod replanning;
 mod requirements;
 mod startup;
@@ -170,6 +171,10 @@ pub use realization_families::{
     select_current_family_frontier, CurrentFamilyOffer, FamilyFrontier, FamilyFrontierMetrics,
     RealizationFamily, RealizationFamilyCatalog, MAXIMUM_CURRENT_FAMILY_OFFERS,
     MAXIMUM_REALIZATION_FAMILIES, MAXIMUM_REALIZATION_FAMILY_PREREQUISITES,
+};
+pub use recursive_recovery::{
+    prove_recursive_recovery, RecursiveRecoveryCandidate, RecursiveRecoveryEvidence,
+    RecursiveRecoveryLimits, RecursiveRecoveryRefusal,
 };
 pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};

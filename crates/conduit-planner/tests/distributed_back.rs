@@ -7,8 +7,9 @@ use conduit_core::{
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form_with_backs, parse_syntax_document,
-    CanonicalBackCatalog, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
+    parse_syntax_document, CanonicalBackCatalog, KindDefinition, KindSignature, ProfileCatalog,
+    StartupCatalog,
 };
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlacementChoice,
@@ -17,6 +18,8 @@ use conduit_planner::{
 
 #[path = "distributed_back/execution.rs"]
 mod execution;
+#[path = "distributed_back/recovery.rs"]
+mod recovery;
 
 const VALUES: [&str; 6] = [
     "test/provider-prompt",
@@ -109,6 +112,18 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let mut backs = CanonicalBackCatalog::new();
     backs.insert(&high, &back, HIGH).unwrap();
     expand_canonical_form_with_backs(&user, "distributed", &profile, &backs).unwrap()
+}
+
+fn direct_expanded() -> conduit_form::ExpandedCanonicalForm {
+    let (startup, profile, _) = catalogs();
+    let user = check_syntax_document(
+        &parse_syntax_document(&format!(
+            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source > generate > sink\n}}\n"
+        )),
+        &startup,
+    )
+    .unwrap();
+    expand_canonical_form(&user, "distributed", &profile).unwrap()
 }
 
 fn offer(definition: &KindDefinition, part: &str) -> CapabilityOffer {
@@ -228,6 +243,29 @@ fn plan_with_http_part(
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &lines,
+        },
+    )
+    .unwrap();
+    (form, plan)
+}
+
+fn direct_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core::Plan) {
+    let form = direct_expanded();
+    let direct = host("direct", &[SOURCE, HIGH, SINK]);
+    let placements = default_expanded_placements(&form, std::slice::from_ref(&direct)).unwrap();
+    let plan = plan_expanded_canonical_with_options(
+        &form,
+        &[direct],
+        &placements,
+        &[ConnectionBase::Local],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 64,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
         },
     )
     .unwrap();

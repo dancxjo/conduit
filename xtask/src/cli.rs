@@ -262,6 +262,7 @@ pub enum ProveTarget {
     DegradedProfiles,
     Diversity,
     DormantReadmission,
+    RecursiveRecovery,
     LlmEmbodiment,
     LlmCrossHost,
     LlmPlanningAdvice,
