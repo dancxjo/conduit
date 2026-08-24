@@ -22,7 +22,7 @@ use conduit_std_host::std_create_uart::{
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
-use crate::commands::pete_std_create::{establish_safe, write_new_atomic};
+use crate::commands::pete_std_create::{establish_full, write_new_atomic};
 
 const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-speaker-evidence@1";
 const MAXIMUM_ID_BYTES: usize = 128;
@@ -113,7 +113,7 @@ pub fn run(args: StdSpeakerArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would attest robot {}, establish SAFE OI over {}, and play one bounded portable melody",
+                "would attest robot {}, establish FULL OI over {}, and play one bounded portable melody",
                 args.robot_id,
                 args.serial_path.display()
             );
@@ -143,7 +143,10 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
     })
     .map_err(|error| format!("base open: {error:?}"))?;
     let identity = provider.identity().clone();
-    let mode = establish_safe(&mut provider, args.read_timeout_ms)?;
+    // Pete's physical Create 1 retains a queued song without sounding it in
+    // SAFE. FULL is therefore an exact mechanism requirement of this speaker
+    // implementation, while the admitted operation remains speaker-only.
+    let mode = establish_full(&mut provider, args.read_timeout_ms)?;
     let observation = CreateSpeakerObservation {
         host_id: HostId::from(args.host_id.clone()),
         boot_id: BootId::from(args.boot_id.clone()),
@@ -227,7 +230,7 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
             stop_bits: identity.profile.stop_bits,
             parity: "none",
         },
-        observed_oi_mode: "safe",
+        observed_oi_mode: "full",
         speaker_authority: SPEAKER_AUTHORITY,
         speaker_implementation: SPEAKER_IMPLEMENTATION,
         motion_authority_granted: false,

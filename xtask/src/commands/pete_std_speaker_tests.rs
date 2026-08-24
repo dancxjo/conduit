@@ -39,9 +39,9 @@ fn exact_std_path_runs_portable_plan_and_only_speaker_bytes() {
     let (response_consumed_tx, response_consumed_rx) = std::sync::mpsc::channel();
     let responder = std::thread::spawn(move || {
         read_exact(&mut pty.master, &[128]);
-        read_exact(&mut pty.master, &[131]);
+        read_exact(&mut pty.master, &[132]);
         read_exact(&mut pty.master, &[142, 35]);
-        pty.master.write_all(&[2]).unwrap();
+        pty.master.write_all(&[3]).unwrap();
         read_exact(&mut pty.master, &[140, 2, 4, 60, 32, 64, 32, 0, 12, 67, 40]);
         read_exact(&mut pty.master, &[141, 2]);
         read_exact(&mut pty.master, &[142, 36]);

@@ -17,10 +17,25 @@ pub(crate) fn establish_safe(
     provider: &mut StdCreateUartBase,
     read_timeout_ms: u32,
 ) -> Result<OiMode, String> {
+    establish_mode(provider, read_timeout_ms, CreateOiModeRequest::Safe)
+}
+
+pub(crate) fn establish_full(
+    provider: &mut StdCreateUartBase,
+    read_timeout_ms: u32,
+) -> Result<OiMode, String> {
+    establish_mode(provider, read_timeout_ms, CreateOiModeRequest::Full)
+}
+
+fn establish_mode(
+    provider: &mut StdCreateUartBase,
+    read_timeout_ms: u32,
+    requested: CreateOiModeRequest,
+) -> Result<OiMode, String> {
     write_command(provider, &encode_start()).map_err(protocol_error)?;
     write_command(
         provider,
-        &encode_mode(CreateOiModeRequest::Safe).expect("SAFE has one exact command"),
+        &encode_mode(requested).expect("SAFE and FULL each have one exact command"),
     )
     .map_err(protocol_error)?;
     let query = encode_query_sensor(OI_MODE_PACKET).map_err(protocol_error)?;
@@ -38,8 +53,15 @@ pub(crate) fn establish_safe(
         3 => OiMode::Full,
         _ => return Err("invalid OI mode payload".into()),
     };
-    if mode != OiMode::Safe {
-        return Err(format!("device mode after SAFE request was {mode:?}"));
+    let expected = match requested {
+        CreateOiModeRequest::Passive => OiMode::Passive,
+        CreateOiModeRequest::Safe => OiMode::Safe,
+        CreateOiModeRequest::Full => OiMode::Full,
+    };
+    if mode != expected {
+        return Err(format!(
+            "device mode after {requested:?} request was {mode:?}"
+        ));
     }
     Ok(mode)
 }
