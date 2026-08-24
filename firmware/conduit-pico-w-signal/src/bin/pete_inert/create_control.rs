@@ -263,6 +263,15 @@ pub async fn task(
             create_link_gate::set_translator(&mut translator_oe, false);
             STATE.store(State::Initializing as u8, Ordering::Release);
             OI_MODE.store(0, Ordering::Release);
+            if crate::create_listen::claim_pending() {
+                crate::create_listen::execute(
+                    &mut provider,
+                    &mut translator_oe,
+                    &mut watchdog,
+                )
+                .await;
+                continue;
+            }
             if crate::create_power::claim_pending() {
                 crate::create_power::execute(
                     &mut power_toggle,

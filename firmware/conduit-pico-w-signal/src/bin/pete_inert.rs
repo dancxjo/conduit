@@ -22,6 +22,8 @@ use static_cell::StaticCell;
 mod create_control;
 #[path = "pete_inert/create_acquisition.rs"]
 mod create_acquisition;
+#[path = "pete_inert/create_listen.rs"]
+mod create_listen;
 #[path = "pete_inert/create_link_gate.rs"]
 mod create_link_gate;
 #[path = "pete_inert/create_play.rs"]
@@ -236,6 +238,11 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
 
         if create_play::hello_request_matches(request) {
             create_play::serve_hello(class).await;
+            continue;
+        }
+
+        if create_listen::request_matches(request) {
+            create_listen::serve(class).await;
             continue;
         }
 

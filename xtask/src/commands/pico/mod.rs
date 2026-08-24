@@ -3,6 +3,7 @@ mod body_admission;
 mod bootsel;
 mod capstone_serial;
 mod create_hello;
+mod create_listen;
 mod create_motion;
 mod create_power;
 mod doctor;
@@ -135,6 +136,8 @@ pub enum PicoSubcommand {
     Bootsel,
     /// Acquire Create Full, play one hello, and restore Safe without wheel authority.
     HelloCreate,
+    /// Observe Create RX for one second with OE high and UART TX exactly zero.
+    ListenCreate,
     /// Run one attended 250 ms wheels-off-floor semantic motion proof.
     DriveCreate {
         /// Confirm that every drive wheel is securely off the floor.
@@ -192,6 +195,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::Verify) => run_verify(&args),
         Some(PicoSubcommand::Bootsel) => run_bootsel(&args),
         Some(PicoSubcommand::HelloCreate) => create_hello::run(&args),
+        Some(PicoSubcommand::ListenCreate) => create_listen::run(&args),
         Some(PicoSubcommand::DriveCreate { wheels_off_floor }) => {
             create_motion::run(&args, *wheels_off_floor)
         }
