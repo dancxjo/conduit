@@ -16,6 +16,16 @@ const PAUSE_STREAM_OPCODE: u8 = 150;
 const SENSORS_OPCODE: u8 = 142;
 pub const STREAM_HEADER: u8 = 19;
 
+/// Pete's installed base is the original Create 1, whose protocol is the
+/// iRobot Create Open Interface v2 contract, not the later Create 2 OI.
+pub const CREATE_1_OI_SPECIFICATION: &str = "iRobot Create Open Interface v2";
+pub const CREATE_1_OI_SPECIFICATION_URL: &str =
+    "https://ptolemy.berkeley.edu/projects/chess/eecs124/iRobotDocs/CreateOpenInterface_v2.pdf";
+pub const CREATE_1_OI_PROTOCOL_VERSION: u8 = 2;
+pub const CREATE_1_PLAY_LED_MASK: u8 = 1 << 1;
+pub const CREATE_1_ADVANCE_LED_MASK: u8 = 1 << 3;
+pub const CREATE_1_LED_MASK: u8 = CREATE_1_PLAY_LED_MASK | CREATE_1_ADVANCE_LED_MASK;
+
 pub const CREATE_OI_BAUD: u32 = 57_600;
 pub const CREATE_OI_MAX_PACKET_BYTES: usize = 26;
 pub const CREATE_OI_MAX_FRAME_BYTES: usize = CREATE_OI_MAX_PACKET_BYTES + 4;
@@ -135,7 +145,16 @@ pub fn encode_seek_dock() -> EncodedOiCommand {
 
 pub fn encode_lights(led_bits: u8, color: u8, intensity: u8) -> EncodedOiCommand {
     EncodedOiCommand {
-        bytes: [LEDS_OPCODE, led_bits & 0x0f, color, intensity, 0],
+        // Create 1 OI v2 assigns only bit 1 to PLAY and bit 3 to ADVANCE.
+        // Bits 0 and 2 are not Create 1 LED outputs and must not leak from a
+        // later Create/Roomba LED layout into this codec.
+        bytes: [
+            LEDS_OPCODE,
+            led_bits & CREATE_1_LED_MASK,
+            color,
+            intensity,
+            0,
+        ],
         len: 4,
     }
 }

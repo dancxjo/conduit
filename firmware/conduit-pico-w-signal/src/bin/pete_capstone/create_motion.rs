@@ -16,7 +16,7 @@ use conduit_kernel::{
 use portable_atomic::{AtomicI32, Ordering};
 
 use super::{create_play, imu_control};
-use create_play::RequestState;
+use create_play::{RequestKind, RequestState};
 use crate::capstone_kernel::{
     prepare_scheduler, CapstoneScheduler, DRIVE_NODE, OBSERVATION_NODE, OBSERVATION_REQUEST,
 };
@@ -108,7 +108,7 @@ impl Runtime {
         };
         self.latest_safety = Some(safety);
 
-        if create_play::claim_pending() {
+        if create_play::claim_pending(RequestKind::Motion) {
             self.start_capstone(provider, now_ms, safety, contact);
         }
 

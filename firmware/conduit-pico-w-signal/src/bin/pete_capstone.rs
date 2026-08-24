@@ -4,6 +4,7 @@
 
 use core::fmt::Write as _;
 
+use aligned::{Aligned, A4};
 use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder};
 use embassy_executor::Executor;
 use embassy_futures::select::{select, Either};
@@ -18,18 +19,36 @@ use embassy_usb::{Builder, Config, UsbDevice};
 use heapless::String;
 use static_cell::StaticCell;
 
-#[path = "pete_inert/create_control.rs"]
+#[path = "pete_capstone/create_control.rs"]
 mod create_control;
-#[path = "pete_inert/create_link_gate.rs"]
+#[path = "pete_capstone/create_acquisition.rs"]
+mod create_acquisition;
+#[path = "pete_capstone/create_listen.rs"]
+mod create_listen;
+#[path = "pete_capstone/create_link_gate.rs"]
 mod create_link_gate;
-#[path = "pete_inert/create_play.rs"]
+#[path = "pete_capstone/create_play.rs"]
 mod create_play;
-#[path = "pete_inert/create_motion.rs"]
+#[path = "pete_capstone/create_motion.rs"]
 mod create_motion;
-#[path = "pete_inert/uart_diagnostic.rs"]
+#[path = "pete_capstone/create_power.rs"]
+mod create_power;
+#[path = "pete_capstone/create_presentation.rs"]
+mod create_presentation;
+#[path = "pete_capstone/create_battery_probe.rs"]
+mod create_battery_probe;
+#[path = "pete_capstone/create_full_stage.rs"]
+mod create_full_stage;
+#[path = "pete_capstone/create_lights_stage.rs"]
+mod create_lights_stage;
+#[path = "pete_capstone/uart_diagnostic.rs"]
 mod uart_diagnostic;
-#[path = "pete_inert/imu_control.rs"]
+#[path = "pete_capstone/imu_control.rs"]
 mod imu_control;
+#[path = "pete_capstone/pico_heartbeat.rs"]
+mod pico_heartbeat;
+#[path = "../radio.rs"]
+mod radio;
 // Compile the exact sealed capstone operations and fixed production-kernel
 // topology from their canonical source.  The firmware must not grow a second,
 // Pico-shaped scheduler or a lookalike copy of the portable Form.
@@ -67,8 +86,17 @@ fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
 
 bind_interrupts!(struct Irqs {
     I2C1_IRQ => I2cInterruptHandler<I2C1>;
-    USBCTRL_IRQ => usb::InterruptHandler<USB>;
 });
+
+static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
+    "../../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0.bin"
+));
+static CYW43_NVRAM: Aligned<A4, [u8; 742]> = Aligned(*include_bytes!(
+    "../../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
+));
+const _CYW43_LICENSE: &[u8] = include_bytes!(
+    "../../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/LICENSE-permissive-binary-license-1.0.txt"
+);
 
 static DEVICE: StaticCell<[u8; 256]> = StaticCell::new();
 static CONFIG: StaticCell<[u8; 256]> = StaticCell::new();
@@ -87,6 +115,15 @@ const UART_DIAGNOSTIC_PREFIX: &str = "CONDUIT_UART_DIAGNOSTIC@1:";
 pub(crate) const BOOTSEL_FRAME_MAX: usize = 768;
 const CONTROL_PACKET_WRITE_TIMEOUT_MS: u64 = 250;
 const CAPSTONE_READY_WAIT_STEPS: usize = 200;
+const BRINGUP_STAGE_IMU: u8 = 2;
+const BRINGUP_STAGE_CREATE_FULL: u8 = 3;
+const BRINGUP_STAGE_LIGHTS: u8 = 4;
+const BRINGUP_STAGE_PRESENTATION: u8 = 5;
+const BRINGUP_STAGE_MOTION: u8 = 6;
+// This attended image admits only the bounded Create 1 music/light presentation
+// and the lower no-motion diagnostic stages. Motion remains a distinct higher
+// build stage and cannot be requested from this artifact.
+const BRINGUP_STAGE: u8 = BRINGUP_STAGE_PRESENTATION;
 
 fn usb_device(
     driver: usb::Driver<'static, USB>,
@@ -225,8 +262,59 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             core::future::pending::<()>().await;
         }
 
-        if create_play::request_matches(request) {
-            create_play::serve(class).await;
+        if BRINGUP_STAGE >= BRINGUP_STAGE_MOTION
+            && create_play::motion_request_matches(request)
+        {
+            create_play::serve_motion(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
+            && create_play::hello_request_matches(request)
+        {
+            create_play::serve_hello(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
+            && create_full_stage::request_matches(request)
+        {
+            create_full_stage::serve(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_LIGHTS
+            && create_lights_stage::request_matches(request)
+        {
+            create_lights_stage::serve(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_PRESENTATION
+            && create_presentation::request_matches(request)
+        {
+            create_presentation::serve(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
+            && create_battery_probe::request_matches(request)
+        {
+            create_battery_probe::serve(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
+            && create_listen::request_matches(request)
+        {
+            create_listen::serve(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
+            && create_power::request_matches(request)
+        {
+            create_power::serve(class).await;
             continue;
         }
 
@@ -271,7 +359,6 @@ async fn usb_device_task(mut device: InertUsbDevice) -> ! {
 async fn qualification_task(
     mut class: InertCdc,
     charging_indicator: Input<'static>,
-    _power_toggle: Output<'static>,
 ) {
     class.wait_connection().await;
     // Emit immutable image identity before permitting any blocking peripheral
@@ -286,20 +373,25 @@ async fn qualification_task(
         ),
     )
     .await;
-    imu_control::permit_probe_after_usb_identity();
-    // Both physical providers run independently of USB. Wait a bounded interval
-    // for fresh evidence from each; the terminal receipt remains false if
-    // either attachment is absent or unhealthy.
+    if BRINGUP_STAGE >= BRINGUP_STAGE_IMU {
+        imu_control::permit_probe_after_usb_identity();
+    }
+    // Stage one waits only for the independently initialized CYW43 heartbeat.
+    // Later stages add their own evidence without weakening this first proof.
     for _ in 0..CAPSTONE_READY_WAIT_STEPS {
-        let create = create_control::snapshot();
-        let create_fresh = create_control::is_fresh(
-            &create,
-            embassy_time::Instant::now().as_millis() as u32,
-        );
-        if imu_control::snapshot().samples >= 2
-            && create.state == create_control::State::Full
-            && create_fresh
-        {
+        let heartbeat_ready = pico_heartbeat::initialized();
+        let imu_ready = BRINGUP_STAGE < BRINGUP_STAGE_IMU || imu_control::snapshot().samples >= 2;
+        let create_ready = if BRINGUP_STAGE < BRINGUP_STAGE_CREATE_FULL {
+            true
+        } else {
+            let create = create_control::snapshot();
+            create.state == create_control::State::Full
+                && create_control::is_fresh(
+                    &create,
+                    embassy_time::Instant::now().as_millis() as u32,
+                )
+        };
+        if heartbeat_ready && imu_ready && create_ready {
             break;
         }
         Timer::after(Duration::from_millis(20)).await;
@@ -309,11 +401,14 @@ async fn qualification_task(
     } else {
         "low"
     };
-    let mut disposition: String<512> = String::new();
+    let mut disposition: String<768> = String::new();
     let _ = writeln!(
         disposition,
-        "{{\"schema\":\"conduit.pete/capstone-disposition@1\",\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"isolated_until_attended_play\",\"charging_indicator\":{{\"gpio\":20,\"active_high\":true,\"level\":\"{}\"}},\"i2c\":{{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000}},\"watchdog\":{{\"timeout_ms\":2000,\"feed_interval_ms\":250}}}}",
+        "{{\"schema\":\"conduit.pete/capstone-disposition@1\",\"bringup_stage\":{},\"translator_oe\":\"low\",\"power_toggle\":\"low\",\"create_uart\":\"isolated_no_tx\",\"charging_indicator\":{{\"gpio\":20,\"active_high\":true,\"level\":\"{}\"}},\"pico_led\":{{\"controller\":\"cyw43\",\"gpio\":0,\"heartbeat\":true,\"on_ms\":200,\"off_ms\":800,\"initialized\":{}}},\"i2c\":{{\"controller\":1,\"sda_gpio\":2,\"scl_gpio\":3,\"hz\":100000,\"enabled\":{}}},\"watchdog\":{{\"timeout_ms\":2000,\"feed_interval_ms\":250}}}}",
+        BRINGUP_STAGE,
         charging_level,
+        pico_heartbeat::initialized(),
+        BRINGUP_STAGE >= BRINGUP_STAGE_IMU,
     );
     write_line(&mut class, &disposition).await;
     let imu = imu_control::snapshot();
@@ -322,7 +417,9 @@ async fn qualification_task(
         embassy_time::Instant::now().as_millis() as u32,
     );
     let mut line: String<512> = String::new();
-    if imu.samples >= 2 {
+    if BRINGUP_STAGE < BRINGUP_STAGE_IMU {
+        let _ = writeln!(line, "{{\"schema\":\"conduit.pete/imu-probe@1\",\"success\":false,\"state\":\"staged-off\",\"address\":0,\"samples\":0,\"failure\":\"not-enabled-in-stage-1\"}}");
+    } else if imu.samples >= 2 {
         let _ = writeln!(line, "{{\"schema\":\"conduit.pete/imu-probe@1\",\"success\":true,\"state\":\"{}\",\"address\":{},\"samples\":{},\"observed_at_ms\":{},\"fresh\":{},\"accel_mm_s2\":[{},{},{}],\"gyro_milliradians_s\":[{},{},{}],\"tilt_active\":{},\"impact_active\":{},\"calibration_generation\":{}}}", imu.state.name(), imu.address, imu.samples, imu.observed_at_ms, imu_fresh, imu.accel_x_mm_s2, imu.accel_y_mm_s2, imu.accel_z_mm_s2, imu.gyro_x_milliradians_s, imu.gyro_y_milliradians_s, imu.gyro_z_milliradians_s, imu.tilt_active, imu.impact_active, imu.calibration_generation);
     } else {
         let _ = writeln!(line, "{{\"schema\":\"conduit.pete/imu-probe@1\",\"success\":false,\"state\":\"{}\",\"address\":{},\"samples\":{},\"failure\":\"{}\"}}", imu.state.name(), imu.address, imu.samples, imu_control::failure_name(imu.failure));
@@ -333,13 +430,18 @@ async fn qualification_task(
         &create,
         embassy_time::Instant::now().as_millis() as u32,
     );
-    let create_ready = create.state == create_control::State::Full && create_fresh;
-    let qualification_complete = imu.samples >= 2 && create_ready;
+    let create_ready = BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
+        && create.state == create_control::State::Full
+        && create_fresh;
+    let stage_complete = pico_heartbeat::initialized()
+        && (BRINGUP_STAGE < BRINGUP_STAGE_IMU || imu.samples >= 2)
+        && (BRINGUP_STAGE < BRINGUP_STAGE_CREATE_FULL || create_ready);
     let mut ready: String<512> = String::new();
     let _ = writeln!(
         ready,
-        "{{\"schema\":\"conduit.pete/capstone-ready@1\",\"qualification_complete\":{},\"robot_control_ready\":{},\"create_link_fresh\":{},\"create_packets\":{},\"ready_cue_command_sent\":{},\"form\":\"pete-capstone\",\"kernel\":\"conduit-kernel\",\"oi_exposed\":false}}",
-        qualification_complete,
+        "{{\"schema\":\"conduit.pete/capstone-ready@1\",\"bringup_stage\":{},\"stage_complete\":{},\"qualification_complete\":false,\"robot_control_ready\":{},\"create_link_fresh\":{},\"create_packets\":{},\"ready_cue_command_sent\":{},\"form\":\"pete-capstone\",\"kernel\":\"conduit-kernel\",\"oi_exposed\":false}}",
+        BRINGUP_STAGE,
+        stage_complete,
         create_ready,
         create_fresh,
         create.packets,
@@ -357,7 +459,7 @@ fn main() -> ! {
     let power_toggle = Output::new(p.PIN_18, Level::Low);
     let translator_oe = Output::new(p.PIN_19, Level::Low);
     let charging_indicator = Input::new(p.PIN_20, Pull::Down);
-    let driver = usb::Driver::new(p.USB, Irqs);
+    let driver = usb::Driver::new(p.USB, radio::UsbIrq);
     let (device, class) = usb_device(driver);
     static EXECUTOR: StaticCell<Executor> = StaticCell::new();
     let executor = EXECUTOR.init(Executor::new());
@@ -368,19 +470,30 @@ fn main() -> ! {
                 p.UART0,
                 p.PIN_0,
                 p.PIN_1,
+                power_toggle,
                 translator_oe,
                 p.WATCHDOG,
             )
             .unwrap(),
         );
-        spawner.spawn(imu_control::task(p.I2C1, p.PIN_2, p.PIN_3).unwrap());
+        if BRINGUP_STAGE >= BRINGUP_STAGE_IMU {
+            spawner.spawn(imu_control::task(p.I2C1, p.PIN_2, p.PIN_3).unwrap());
+        }
         spawner.spawn(
-            qualification_task(
-                class,
-                charging_indicator,
-                power_toggle,
+            pico_heartbeat::task(
+                spawner,
+                p.PIO0,
+                p.DMA_CH0,
+                p.DMA_CH1,
+                p.PIN_23,
+                p.PIN_24,
+                p.PIN_25,
+                p.PIN_29,
+                &CYW43_FW,
+                &CYW43_NVRAM,
             )
             .unwrap(),
         );
+        spawner.spawn(qualification_task(class, charging_indicator).unwrap());
     });
 }

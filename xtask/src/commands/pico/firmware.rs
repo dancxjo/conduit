@@ -149,7 +149,7 @@ pub struct AssetEntry {
 pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
     println!("==> pico build: verifying required assets");
     let root = repo_root();
-    if !args.usb_midi_fixture && !args.pete_capstone {
+    if !args.usb_midi_fixture {
         let asset_dir = root.join(CYW43_ASSET_DIR);
         for (filename, expected) in CYW43_ASSETS {
             let path = asset_dir.join(filename);

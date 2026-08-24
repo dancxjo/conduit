@@ -2,7 +2,14 @@ mod appliance_identity;
 mod body_admission;
 mod bootsel;
 mod capstone_serial;
+mod create_battery_rx;
+mod create_full_stage;
+mod create_hello;
+mod create_lights_stage;
+mod create_listen;
 mod create_motion;
+mod create_power;
+mod create_presentation;
 mod doctor;
 mod firmware;
 #[cfg(test)]
@@ -111,7 +118,7 @@ pub struct PicoArgs {
     pub usb_midi_fixture: bool,
 
     /// Build, flash, or verify the Pete capstone physical Play image.
-    #[arg(long = "pete-capstone", alias = "pete-inert", global = true)]
+    #[arg(long = "pete-capstone", global = true)]
     pub pete_capstone: bool,
 
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
@@ -131,11 +138,45 @@ pub enum PicoSubcommand {
     Verify,
     /// Ask the exact running firmware to reboot into BOOTSEL over CDC 0.
     Bootsel,
+    /// Acquire Create Full, play one hello, and restore Safe without wheel authority.
+    HelloCreate,
+    /// Send only START/FULL, hold briefly, then restore Safe without observing RX.
+    FullCreate {
+        /// Confirm that the robot is stopped and physically clear for the attended test.
+        #[arg(long)]
+        wheels_clear: bool,
+    },
+    /// Run only the Netherwick Create-light pattern, then restore Safe.
+    LightsCreate {
+        /// Confirm that the robot is stopped and physically clear for the attended test.
+        #[arg(long)]
+        wheels_clear: bool,
+    },
+    /// Observe Create RX for one second with OE high and UART TX exactly zero.
+    ListenCreate,
     /// Run one attended 250 ms wheels-off-floor semantic motion proof.
     DriveCreate {
         /// Confirm that every drive wheel is securely off the floor.
         #[arg(long)]
         wheels_off_floor: bool,
+    },
+    /// Emit one attended Create power-toggle pulse after physical off-state confirmation.
+    WakeCreate {
+        /// Confirm that the Create is physically observed off before toggling power.
+        #[arg(long)]
+        confirmed_off: bool,
+    },
+    /// Play one bounded original riff with the Netherwick supervision lights.
+    PresentCreate {
+        /// Confirm that the robot is stopped and physically clear for the attended test.
+        #[arg(long)]
+        wheels_clear: bool,
+    },
+    /// Read one bounded Create OI packet-0 battery sample and restore Safe.
+    ReadCreateBattery {
+        /// Confirm that the robot is stopped, attended, and unable to propel itself.
+        #[arg(long)]
+        wheels_clear: bool,
     },
     /// Prove explicit Body admission against an already-provisioned Pico.
     ProveBodyAdmission,
@@ -181,8 +222,25 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::Flash) => run_flash(&args),
         Some(PicoSubcommand::Verify) => run_verify(&args),
         Some(PicoSubcommand::Bootsel) => run_bootsel(&args),
+        Some(PicoSubcommand::HelloCreate) => create_hello::run(&args),
+        Some(PicoSubcommand::FullCreate { wheels_clear }) => {
+            create_full_stage::run(&args, *wheels_clear)
+        }
+        Some(PicoSubcommand::LightsCreate { wheels_clear }) => {
+            create_lights_stage::run(&args, *wheels_clear)
+        }
+        Some(PicoSubcommand::ListenCreate) => create_listen::run(&args),
         Some(PicoSubcommand::DriveCreate { wheels_off_floor }) => {
             create_motion::run(&args, *wheels_off_floor)
+        }
+        Some(PicoSubcommand::WakeCreate { confirmed_off }) => {
+            create_power::run(&args, *confirmed_off)
+        }
+        Some(PicoSubcommand::PresentCreate { wheels_clear }) => {
+            create_presentation::run(&args, *wheels_clear)
+        }
+        Some(PicoSubcommand::ReadCreateBattery { wheels_clear }) => {
+            create_battery_rx::run(&args, *wheels_clear)
         }
         Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }

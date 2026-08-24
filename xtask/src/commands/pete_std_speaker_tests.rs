@@ -115,6 +115,39 @@ fn failed_safe_cleanup_is_never_reported_as_completed() {
 }
 
 #[test]
+fn failed_full_observation_still_restores_and_observes_safe() {
+    let mut pty = Pty::open();
+    let path = pty.slave_path.clone();
+    let (response_consumed_tx, response_consumed_rx) = std::sync::mpsc::channel();
+    let responder = std::thread::spawn(move || {
+        read_exact(&mut pty.master, &[128]);
+        read_exact(&mut pty.master, &[132]);
+        read_exact(&mut pty.master, &[142, 35]);
+        // This is a complete one-byte mode packet, but not a legal OI mode.
+        pty.master.write_all(&[0xff]).unwrap();
+        read_exact(&mut pty.master, &[128]);
+        read_exact(&mut pty.master, &[131]);
+        read_exact(&mut pty.master, &[142, 35]);
+        pty.master.write_all(&[2]).unwrap();
+        response_consumed_rx.recv().unwrap();
+    });
+    let error = match execute(&args(path, temp_path("unused-full-failure"))) {
+        Ok(_) => panic!("malformed Full observation must fail"),
+        Err(error) => error.to_string(),
+    };
+    response_consumed_tx.send(()).unwrap();
+    responder.join().unwrap();
+    assert!(
+        error.contains("speaker mode acquisition failed:"),
+        "unexpected error: {error}"
+    );
+    assert!(
+        error.contains("Safe cleanup completed"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn identity_attestation_is_required_before_device_or_evidence_access() {
     let evidence = temp_path("unattested-evidence");
     let mut input = args(temp_path("absent-device"), evidence.clone());

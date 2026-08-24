@@ -148,7 +148,25 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
     // Pete's physical Create 1 retains a queued song without sounding it in
     // SAFE. FULL is therefore an exact mechanism requirement of this speaker
     // implementation, while the admitted operation remains speaker-only.
-    let mode = establish_full(&mut provider, args.read_timeout_ms)?;
+    let mode = match establish_full(&mut provider, args.read_timeout_ms) {
+        Ok(mode) => mode,
+        Err(mode_error) => {
+            // A failed observation does not prove that the preceding FULL
+            // command was ignored. Restore and observe SAFE before returning
+            // the acquisition failure so an unreadable response cannot leave
+            // the physical robot in Full mode silently.
+            return match establish_safe(&mut provider, args.read_timeout_ms) {
+                Ok(_) => Err(format!(
+                    "speaker mode acquisition failed: {mode_error}; Safe cleanup completed"
+                )
+                .into()),
+                Err(cleanup_error) => Err(format!(
+                    "speaker mode acquisition failed: {mode_error}; Safe cleanup failed: {cleanup_error}"
+                )
+                .into()),
+            };
+        }
+    };
     let observation = CreateSpeakerObservation {
         host_id: HostId::from(args.host_id.clone()),
         boot_id: BootId::from(args.boot_id.clone()),
