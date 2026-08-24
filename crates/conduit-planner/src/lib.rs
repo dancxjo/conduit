@@ -36,6 +36,7 @@ mod decision_evidence;
 mod degradation;
 mod degraded_profile;
 mod diagnostic;
+mod diversity;
 mod fact_policy;
 mod functional_compatibility;
 mod fusion;
@@ -106,6 +107,13 @@ pub use degraded_profile::{
     MAXIMUM_DEGRADED_PROFILE_LABEL_BYTES,
 };
 pub use diagnostic::structured_planner_diagnostic;
+pub use diversity::{
+    classify_diversity, prove_diverse_replacement, select_surviving_diverse_candidate,
+    DiversityCandidate, DiversityRefusal, DiversityRelationship, DiversityReplacementEvidence,
+    LinePathHop, MechanismDependency, PreviousPlanDisposition, MAXIMUM_DIVERSITY_CANDIDATES,
+    MAXIMUM_DIVERSITY_DEPENDENCIES, MAXIMUM_DIVERSITY_ID_BYTES, MAXIMUM_DIVERSITY_LINE_HOPS,
+    MAXIMUM_DIVERSITY_MECHANISMS,
+};
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use fusion::{
     plan_selected_optimization, select_fusion_candidate, FusionBoundary, FusionCandidate,
