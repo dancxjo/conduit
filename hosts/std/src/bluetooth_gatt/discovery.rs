@@ -11,6 +11,7 @@ use super::{BluezBleGattCandidate, BluezBleGattError};
 const MAXIMUM_DISCOVERY_EVENTS_INSPECTED: usize = 256;
 const MAXIMUM_CACHED_DEVICES_INSPECTED: usize = 32;
 const DISCOVERY_TIMEOUT: Duration = Duration::from_secs(30);
+const AMBIGUITY_WINDOW: Duration = Duration::from_secs(2);
 
 /// Discover one currently present compatible peer. The scan is bounded by
 /// both elapsed time and inspected events and retains no nearby-device list.
@@ -110,9 +111,9 @@ pub async fn discover_one_ble_gatt_candidate(
         .await
         .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
     if initially_known.len() > MAXIMUM_CACHED_DEVICES_INSPECTED {
-        return Err(BluezBleGattError::CandidateUnavailable);
+        return Err(BluezBleGattError::DiscoveryCapacityExceeded);
     }
-    let mut connected_candidate = None;
+    let mut candidate = None;
     for address in initially_known
         .iter()
         .copied()
@@ -132,39 +133,55 @@ pub async fn discover_one_ble_gatt_candidate(
         let Some(observed) = inspect_candidate(&adapter, address, service_uuid).await? else {
             continue;
         };
-        if connected_candidate.replace(observed).is_some() {
-            return Err(BluezBleGattError::MultipleCandidates);
-        }
-    }
-    if let Some(candidate) = connected_candidate {
-        return Ok(candidate);
+        admit_candidate(&mut candidate, observed)?;
     }
     let mut initially_known = initially_known
         .into_iter()
         .take(MAXIMUM_CACHED_DEVICES_INSPECTED)
         .collect::<HashSet<_>>();
-    let events = adapter
-        .discover_devices_with_changes()
-        .await
-        .map_err(|error| BluezBleGattError::DiscoveryUnavailable(error.to_string()))?;
-    futures::pin_mut!(events);
-    let deadline = tokio::time::Instant::now() + DISCOVERY_TIMEOUT;
-    for _ in 0..MAXIMUM_DISCOVERY_EVENTS_INSPECTED {
-        let event = match tokio::time::timeout_at(deadline, events.next()).await {
-            Ok(Some(event)) => event,
-            Ok(None) | Err(_) => break,
-        };
-        if let AdapterEvent::DeviceAdded(address) = event {
-            if !is_fresh_observation(&mut initially_known, address) {
-                continue;
-            }
-            let Some(observed) = inspect_candidate(&adapter, address, service_uuid).await? else {
-                continue;
+    let scan = async {
+        let events = adapter
+            .discover_devices_with_changes()
+            .await
+            .map_err(|error| BluezBleGattError::DiscoveryUnavailable(error.to_string()))?;
+        futures::pin_mut!(events);
+        let mut ambiguity_deadline = candidate
+            .as_ref()
+            .map(|_| tokio::time::Instant::now() + AMBIGUITY_WINDOW);
+        for _ in 0..MAXIMUM_DISCOVERY_EVENTS_INSPECTED {
+            let event = if let Some(deadline) = ambiguity_deadline {
+                match tokio::time::timeout_at(deadline, events.next()).await {
+                    Ok(Some(event)) => event,
+                    Ok(None) | Err(_) => {
+                        return candidate.ok_or(BluezBleGattError::CandidateUnavailable);
+                    }
+                }
+            } else {
+                match events.next().await {
+                    Some(event) => event,
+                    None => return Err(BluezBleGattError::CandidateUnavailable),
+                }
             };
-            return Ok(observed);
+            if let AdapterEvent::DeviceAdded(address) = event {
+                if !is_fresh_observation(&mut initially_known, address) {
+                    continue;
+                }
+                let Some(observed) = inspect_candidate(&adapter, address, service_uuid).await?
+                else {
+                    continue;
+                };
+                let first = candidate.is_none();
+                admit_candidate(&mut candidate, observed)?;
+                if first {
+                    ambiguity_deadline = Some(tokio::time::Instant::now() + AMBIGUITY_WINDOW);
+                }
+            }
         }
-    }
-    Err(BluezBleGattError::CandidateUnavailable)
+        candidate.ok_or(BluezBleGattError::CandidateUnavailable)
+    };
+    tokio::time::timeout(DISCOVERY_TIMEOUT, scan)
+        .await
+        .map_err(|_| BluezBleGattError::CandidateUnavailable)?
 }
 
 /// `discover_devices_with_changes` first replays every known BlueZ device,
@@ -173,6 +190,22 @@ pub async fn discover_one_ble_gatt_candidate(
 /// this discovery session observed it.
 fn is_fresh_observation(initially_known: &mut HashSet<Address>, address: Address) -> bool {
     !initially_known.remove(&address)
+}
+
+fn admit_candidate(
+    slot: &mut Option<BluezBleGattCandidate>,
+    observed: BluezBleGattCandidate,
+) -> Result<(), BluezBleGattError> {
+    match slot {
+        Some(current) if current.address != observed.address => {
+            Err(BluezBleGattError::MultipleCandidates)
+        }
+        Some(_) => Ok(()),
+        None => {
+            *slot = Some(observed);
+            Ok(())
+        }
+    }
 }
 
 async fn inspect_candidate(
@@ -320,5 +353,40 @@ mod tests {
             &mut initially_known,
             Address([6, 5, 4, 3, 2, 1])
         ));
+    }
+
+    #[test]
+    fn two_distinct_fresh_candidates_fail_closed() {
+        let mut candidate = None;
+        admit_candidate(
+            &mut candidate,
+            BluezBleGattCandidate {
+                address: [1, 2, 3, 4, 5, 6],
+                paired: false,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            admit_candidate(
+                &mut candidate,
+                BluezBleGattCandidate {
+                    address: [6, 5, 4, 3, 2, 1],
+                    paired: true,
+                },
+            ),
+            Err(BluezBleGattError::MultipleCandidates)
+        );
+    }
+
+    #[test]
+    fn repeated_observation_of_same_candidate_is_not_ambiguous() {
+        let observed = BluezBleGattCandidate {
+            address: [1, 2, 3, 4, 5, 6],
+            paired: false,
+        };
+        let mut candidate = Some(observed);
+
+        assert_eq!(admit_candidate(&mut candidate, observed), Ok(()));
     }
 }

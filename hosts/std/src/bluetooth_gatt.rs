@@ -42,6 +42,7 @@ pub enum BluezBleGattError {
     ApplicationUnavailable(String),
     AdvertisementUnavailable(String),
     DiscoveryUnavailable(String),
+    DiscoveryCapacityExceeded,
     CandidateUnavailable,
     MultipleCandidates,
     IncompatibleProfile,

@@ -26,6 +26,14 @@ pub(super) async fn connect(
     let adapter = session
         .adapter(adapter_name)
         .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
+    let address = Address(address);
+    let device = adapter
+        .device(address)
+        .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+    // Register before opening the adapter-wide pairable window. An unpaired
+    // peer must never reach this realization while its application agent is
+    // absent.
+    let agent = pairing::prepare_agent(&session, allow_pairing).await?;
     let restore_pairable = if allow_pairing {
         let was_pairable = adapter
             .is_pairable()
@@ -41,17 +49,12 @@ pub(super) async fn connect(
     } else {
         false
     };
-    let address = Address(address);
-    let device = adapter
-        .device(address)
-        .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
     let result = async {
-        // Install the exact headless pairing policy before any operation that
-        // can establish the physical connection. For an unpaired peer,
+        // The exact headless pairing policy is installed before any operation
+        // that can establish the physical connection. For an unpaired peer,
         // Device.Pair owns connect + pairing + service discovery and binds
         // BlueZ to this application's agent. Calling Device.Connect first can
         // let a peripheral security request start outside that Pair operation.
-        let agent = pairing::prepare_agent(&session, allow_pairing).await?;
         let paired = device
             .is_paired()
             .await
@@ -157,11 +160,33 @@ pub(super) async fn connect(
         // within a finite cleanup bound so the peripheral can close honestly.
         let _ = tokio::time::timeout(std::time::Duration::from_secs(5), device.disconnect()).await;
     }
-    if restore_pairable {
-        adapter
-            .set_pairable(false)
-            .await
-            .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
+    let restore = async {
+        if restore_pairable {
+            adapter
+                .set_pairable(false)
+                .await
+                .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
+        }
+        Ok(())
     }
-    result
+    .await;
+    match result {
+        Err(primary) => {
+            // Preserve the realization failure; restoration is best-effort on
+            // this path and must not rewrite it as a controller error.
+            let _ = restore;
+            Err(primary)
+        }
+        Ok(line) => match restore {
+            Ok(()) => Ok(line),
+            Err(error) => {
+                // The successful Line cannot be returned while adapter state
+                // restoration is unresolved. Release its exact peer first.
+                let _ =
+                    tokio::time::timeout(std::time::Duration::from_secs(5), device.disconnect())
+                        .await;
+                Err(error)
+            }
+        },
+    }
 }

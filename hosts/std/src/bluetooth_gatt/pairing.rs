@@ -65,17 +65,12 @@ pub(super) async fn prepare_device(
             .is_paired()
             .await
             .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-        let connected = device
-            .is_connected()
-            .await
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-        if pair_call_complete && paired && connected {
+        if pair_call_complete && paired {
             break;
         }
         if tokio::time::Instant::now() >= deadline {
             return Err(BluezBleGattError::PairingFailed(
-                "BlueZ pairing timed out before Pair completed with paired and connected facts"
-                    .into(),
+                "BlueZ pairing timed out before Pair completed with a paired fact".into(),
             ));
         }
         if pair_call_complete {
