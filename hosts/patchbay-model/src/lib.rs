@@ -21,6 +21,7 @@ mod control;
 mod cross_host_renderer;
 mod degradation_explanation;
 mod degraded_profile_explanation;
+mod dormant_readmission_explanation;
 mod face_configuration;
 mod face_controls;
 mod form_editor;
@@ -102,6 +103,10 @@ pub use degraded_profile_explanation::{
     explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
     DegradedProfileExplanationError, DegradedProfileState, ProfileDimensionExplanation,
     MAX_DEGRADED_PROFILE_EXPLANATION_BYTES,
+};
+pub use dormant_readmission_explanation::{
+    explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
+    MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
 pub use face_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use form_editor::{
