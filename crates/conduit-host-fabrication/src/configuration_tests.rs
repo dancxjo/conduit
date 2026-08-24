@@ -96,17 +96,67 @@ fn rejects_each_required_invalid_class() {
     assert!(diagnostics
         .iter()
         .any(|item| matches!(item, ConfigurationDiagnostic::DuplicateResource { .. })));
+
+    let wrong_family = HOSTED.replace("machine = \"workstation\"", "machine = \"page\"");
+    let diagnostics = check_host_configuration(
+        parse_host_configuration(&wrong_family).unwrap(),
+        &FabricationCatalog::canonical(),
+    )
+    .unwrap_err();
+    assert!(diagnostics
+        .iter()
+        .any(|item| matches!(item, ConfigurationDiagnostic::UnknownTarget { .. })));
 }
 
 #[test]
-fn three_checked_in_configurations_build_with_exact_provenance() {
+fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() {
     let root =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../profiles/host-configurations");
-    for name in [
-        "linux-workstation.host.toml",
-        "pico-w.host.toml",
-        "browser-page.host.toml",
-    ] {
+    let fixtures = [
+        (
+            "browser-page.host.toml",
+            "sha256:d32fd79e5344a1d2d3156aa962458f794046eb15d88911942762a9c4acc91b1a",
+            "sha256:6d37d4075664d2a1fc7d48f2b5b5fbe5ce3c2dc570ddb4aba619186239a9b200",
+        ),
+        (
+            "conduitos-aarch64-virt.host.toml",
+            "sha256:9cc965dac8190afab6afc54b1d265ed39e5ac8255642a055c61f87c32f1e848c",
+            "sha256:0fc73d339059080e43378f0634d46af42c218dac8abab6b76998e405fa1a8f06",
+        ),
+        (
+            "conduitos-x86_64-pc.host.toml",
+            "sha256:9ba54ff0fb5cf22a4b2b031bf24580a244305fd1036110bd23bf05ab30b76738",
+            "sha256:485b9a6a941e3961b7dbabd811da32fa6f833a21a9ea896315ee4598f2a257c3",
+        ),
+        (
+            "linux-server.host.toml",
+            "sha256:f7bf73927e0e61ea401e86b1675848e8a255224b33c6cb14e2d9b77f169eadce",
+            "sha256:cca876687209749d902d266e5d8118a8ef76b193feba63bca2865694f5e3a366",
+        ),
+        (
+            "linux-workstation.host.toml",
+            "sha256:c5bd48ce787c3d19df10bbcfa653937662b7ee494384cf2cd33c4cd27bd31a3f",
+            "sha256:0348d29cf0862963e8852489dc71e6be4429bf56a07484cd1ebaa2fe89e6c718",
+        ),
+        (
+            "pico-w.host.toml",
+            "sha256:c3067ec55f4936c284666a3ab9c6cd39ace1db6edfb2783c673d6bba4174cf22",
+            "sha256:fc4acf3747304e9aa55e981d6799938f4ab42a0bbff42849507ddb20ec0c96fa",
+        ),
+    ];
+    let catalog = FabricationCatalog::canonical();
+    let descriptors = target_descriptors();
+    let descriptor_targets = descriptors
+        .iter()
+        .map(|item| format!("{}/{}/{}", item.family, item.architecture, item.machine))
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        descriptor_targets,
+        catalog.targets.into_iter().collect(),
+        "every configuration-supported catalog target needs one descriptor"
+    );
+    let mut snapshots = Vec::new();
+    for (name, expected_configuration_id, expected_profile_id) in fixtures {
         let source = std::fs::read_to_string(root.join(name)).unwrap();
         let checked = check_host_configuration(
             parse_host_configuration(&source).unwrap(),
@@ -122,6 +172,10 @@ fn three_checked_in_configurations_build_with_exact_provenance() {
                     && item.os.map(str::to_owned) == checked.configuration().target.os
             })
             .unwrap();
+        assert_eq!(checked.configuration_id(), expected_configuration_id);
+        let target = checked.profile().target.key();
+        let bases = checked.resolved_bases().to_vec();
+        let bounds = checked.profile().bounds.clone();
         let expected = checked.configuration_id().to_owned();
         let (image, _) = build_host_image(
             checked.into_profile(),
@@ -142,6 +196,19 @@ fn three_checked_in_configurations_build_with_exact_provenance() {
             image.payload.source_configuration_id.as_deref(),
             Some(expected.as_str())
         );
-        assert!(!image.manifest.base_selections.is_empty());
+        assert_eq!(image.manifest.profile_id, expected_profile_id);
+        snapshots.push((
+            name,
+            target,
+            expected,
+            image.manifest.profile_id,
+            bases,
+            bounds,
+        ));
     }
+    assert_eq!(snapshots.len(), descriptors.len());
+    assert!(
+        snapshots.windows(2).all(|pair| pair[0].0 < pair[1].0),
+        "fixture snapshot order must be canonical"
+    );
 }
