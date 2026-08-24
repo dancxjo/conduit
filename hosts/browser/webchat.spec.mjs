@@ -151,7 +151,7 @@ test("two native browser clients exchange bounded chat through planned kernels",
     expect(candidate.advertisement.host_id).toBe(candidate.hostId);
     expect(candidate.advertisement.boot_id).toBe(candidate.bootId);
     expect(candidate.advertisement.offer_generation).toBe(1);
-    expect(candidate.advertisement.capabilities).toHaveLength(6);
+    expect(candidate.advertisement.capabilities).toHaveLength(13);
     expect(candidate.advertisement.resources).toHaveLength(3);
   }
   const challengeFor = (candidate, suffix) => ({

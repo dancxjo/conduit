@@ -15,9 +15,12 @@ test("two browser Hosts realize camera-summary only after exact acquired resourc
   const errors = [];
   for (const page of [source, sink]) page.on("pageerror", (error) => errors.push(error.message));
   try {
-    await Promise.all([source, sink].map((page) => page.goto(
-      `/hosts/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(body.url)}`,
-    )));
+    const entrance = `/hosts/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(body.url)}`;
+    await source.goto(entrance);
+    await expect.poll(
+      () => source.evaluate(() => globalThis.__browserPresence?.presenceState()),
+    ).toBe("available");
+    await sink.goto(entrance);
     for (const page of [source, sink]) {
       await expect.poll(async () => ({
         presence: await page.evaluate(() => globalThis.__browserPresence?.presenceState()),
