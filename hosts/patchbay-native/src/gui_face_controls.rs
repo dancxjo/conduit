@@ -40,9 +40,16 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
         );
         let actions = control_actions(control);
         if let (
-            patchbay_model::FaceControlKind::ShortText { maximum_bytes },
+            Some(patchbay_model::FaceInteraction {
+                contract:
+                    conduit_core::InteractionContract {
+                        family: conduit_core::InteractionFamily::Text { maximum_bytes, .. },
+                        ..
+                    },
+                ..
+            }),
             conduit_core::ConfigurationValue::Text(value),
-        ) = (&control.kind, &control.value)
+        ) = (&control.interaction, &control.value)
         {
             let bounds = PixelRect {
                 x: gear_bounds.x + 8,
@@ -150,23 +157,26 @@ fn action_label(
     side: usize,
     count: usize,
 ) -> String {
-    match control.kind {
-        patchbay_model::FaceControlKind::Number { .. }
-        | patchbay_model::FaceControlKind::Range { .. }
-        | patchbay_model::FaceControlKind::ScalarNumber { .. } => {
+    match control
+        .interaction
+        .as_ref()
+        .map(|value| &value.contract.family)
+    {
+        Some(conduit_core::InteractionFamily::Scalar { .. }) => {
             let marker = if side == 0 { "−" } else { "+" };
             format!("{marker} {}", displayed_value(value))
         }
-        patchbay_model::FaceControlKind::BooleanChoice { .. } => {
+        Some(conduit_core::InteractionFamily::Boolean) => {
             format!("☐ {}", displayed_value(value))
         }
-        patchbay_model::FaceControlKind::TextChoice { .. } => {
+        Some(conduit_core::InteractionFamily::ChooseOne { .. }) => {
             format!("▾ {}", displayed_value(value))
         }
-        patchbay_model::FaceControlKind::ShortText { .. } => {
+        Some(conduit_core::InteractionFamily::Text { .. }) => {
             let prefix = if count == 1 { "EDIT" } else { "SET" };
             format!("{prefix} {}", displayed_value(value))
         }
+        _ => format!("UNAVAILABLE {}", displayed_value(value)),
     }
 }
 
@@ -212,15 +222,24 @@ fn displayed_contract(kind: &patchbay_model::FaceControlKind) -> String {
 }
 
 fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::ConfigurationValue> {
-    match (&control.kind, &control.value) {
+    match (
+        control
+            .interaction
+            .as_ref()
+            .map(|value| &value.contract.family),
+        &control.value,
+    ) {
         (
-            patchbay_model::FaceControlKind::BooleanChoice { .. },
+            Some(conduit_core::InteractionFamily::Boolean),
             conduit_core::ConfigurationValue::Bool(value),
         ) => vec![conduit_core::ConfigurationValue::Bool(!value)],
         (
-            patchbay_model::FaceControlKind::TextChoice { choices },
+            Some(conduit_core::InteractionFamily::ChooseOne { .. }),
             conduit_core::ConfigurationValue::Text(value),
-        ) => choices
+        ) => control
+            .kind
+            .text_choices()
+            .unwrap_or_default()
             .iter()
             .find(|choice| *choice != value)
             .cloned()
@@ -228,28 +247,33 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
             .into_iter()
             .collect(),
         (
-            patchbay_model::FaceControlKind::Number {
+            Some(conduit_core::InteractionFamily::Scalar {
                 minimum, maximum, ..
-            }
-            | patchbay_model::FaceControlKind::Range {
-                minimum, maximum, ..
-            },
+            }),
             conduit_core::ConfigurationValue::U64(value),
         ) => vec![
-            conduit_core::ConfigurationValue::U64(value.saturating_sub(1).max(*minimum)),
-            conduit_core::ConfigurationValue::U64(value.saturating_add(1).min(*maximum)),
+            conduit_core::ConfigurationValue::U64(
+                value
+                    .saturating_sub(1)
+                    .max((*minimum).try_into().unwrap_or(0)),
+            ),
+            conduit_core::ConfigurationValue::U64(
+                value
+                    .saturating_add(1)
+                    .min((*maximum).try_into().unwrap_or(u64::MAX)),
+            ),
         ],
         (
-            patchbay_model::FaceControlKind::ScalarNumber {
+            Some(conduit_core::InteractionFamily::Scalar {
                 minimum, maximum, ..
-            },
+            }),
             conduit_core::ConfigurationValue::I64(value),
         ) => vec![
             conduit_core::ConfigurationValue::I64(value.saturating_sub(1).max(*minimum)),
             conduit_core::ConfigurationValue::I64(value.saturating_add(1).min(*maximum)),
         ],
         (
-            patchbay_model::FaceControlKind::ShortText { .. },
+            Some(conduit_core::InteractionFamily::Text { .. }),
             conduit_core::ConfigurationValue::Text(value),
         ) => (!value.is_empty())
             .then(|| conduit_core::ConfigurationValue::Text(String::new()))

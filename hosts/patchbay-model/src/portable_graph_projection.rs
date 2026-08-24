@@ -45,6 +45,26 @@ pub(super) fn append_exact_graph(
                     control_contract(&control.kind)
                 ),
             );
+            if let Some(interaction) = &control.interaction {
+                identity(
+                    content,
+                    &subject,
+                    &format!("interaction-contract-{index}"),
+                    &interaction.contract.contract_identity,
+                );
+                identity(
+                    content,
+                    &subject,
+                    &format!("interaction-state-{index}"),
+                    &interaction.state.state_identity,
+                );
+                text(
+                    content,
+                    &subject,
+                    &format!("interaction-family-{index}"),
+                    interaction_family(&interaction.contract.family),
+                );
+            }
         }
         append_gear_plan(content, &subject, gear, plan, play);
         semantic_subjects.push((gear.identity.as_str(), subject.clone()));
@@ -111,6 +131,19 @@ pub(super) fn append_exact_graph(
                 });
             }
         }
+    }
+}
+
+fn interaction_family(family: &conduit_core::InteractionFamily) -> &'static str {
+    match family {
+        conduit_core::InteractionFamily::Activate => "Activate",
+        conduit_core::InteractionFamily::Boolean => "Boolean",
+        conduit_core::InteractionFamily::ChooseOne { .. } => "ChooseOne",
+        conduit_core::InteractionFamily::ChooseMany { .. } => "ChooseMany",
+        conduit_core::InteractionFamily::Scalar { .. } => "Scalar",
+        conduit_core::InteractionFamily::RelativeAdjustment { .. } => "RelativeAdjustment",
+        conduit_core::InteractionFamily::Text { .. } => "Text",
+        conduit_core::InteractionFamily::Structured { .. } => "Structured",
     }
 }
 

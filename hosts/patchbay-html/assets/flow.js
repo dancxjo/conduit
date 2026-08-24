@@ -58,7 +58,7 @@ function persist(scene, viewport = instance?.getViewport() || scene.viewport) {
 function presentEdges(edges) {
   return edges.map((edge) => ({
     ...edge,
-    className: "flow-cord",
+    className: `flow-cord ${edge.className || ""}`.trim(),
     markerEnd: { type: Flow.MarkerType.ArrowClosed },
   }));
 }

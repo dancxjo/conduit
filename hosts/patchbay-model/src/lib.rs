@@ -93,7 +93,7 @@ pub use cross_host_renderer::{
 pub use degradation_explanation::{
     PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,
 };
-pub use face_controls::{FaceControl, FaceControlKind, MAX_FACE_CONTROLS};
+pub use face_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
