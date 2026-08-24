@@ -86,6 +86,17 @@ fn host_local_admission_and_join_refuse_missing_duplicate_stale_and_wrong_truth(
             .admit_boundary(wrong),
         Err(ReactionDiffusionPartitionRefusal::WrongBoundaryDestination)
     );
+    let mut wrong_field = partitioned.boundaries[0].clone();
+    wrong_field.field_id = ReactionDiffusionFieldId(*b"field-wrong-0001");
+    let (contract, cells) = partitioned
+        .region_work_basis(wrong_field.destination_region)
+        .unwrap();
+    assert_eq!(
+        ReactionDiffusionRegionWork::new(contract, cells)
+            .unwrap()
+            .admit_boundary(wrong_field),
+        Err(ReactionDiffusionPartitionRefusal::WrongBoundaryField)
+    );
 
     let valid = evolve_all(&partitioned);
     assert_eq!(
