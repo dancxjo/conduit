@@ -1,10 +1,10 @@
 use conduit_core::{
-    ConnectionTerminalDisposition, ExpectedTerminal, HostAdvertisement, Observation,
+    ConnectionTerminalDisposition, ExpectedTerminal, HostAdvertisement, LineOffer, Observation,
     ObservationKind, Plan, TerminalDisposition,
 };
 use conduit_observatory::{
     validate_snapshot, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
-    HostReport, ObservatorySnapshot, OfferFreshness, OperationalState, PlanLifecycle,
+    HostReport, LineReport, ObservatorySnapshot, OfferFreshness, OperationalState, PlanLifecycle,
     PlayConnectionReport, PlayPlacementReport, PlayReport, RetentionReport, SNAPSHOT_SCHEMA,
 };
 use std::collections::BTreeSet;
@@ -15,6 +15,7 @@ const RETAINED_OBSERVATION_CAPACITY: usize = 256;
 
 pub fn snapshot_from_execution(
     advertisements: Vec<HostAdvertisement>,
+    line_offers: Vec<LineOffer>,
     plans: Vec<Plan>,
     observations: Vec<Observation>,
 ) -> ObservatorySnapshot {
@@ -42,7 +43,13 @@ pub fn snapshot_from_execution(
             state: OperationalState::Available,
         })
         .collect::<Vec<_>>();
-    let lines = Vec::new();
+    let lines = line_offers
+        .into_iter()
+        .map(|offer| LineReport {
+            offer,
+            state: OperationalState::Available,
+        })
+        .collect();
     let plays = plays_from_observations(&plans, &observations);
     ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.to_string(),

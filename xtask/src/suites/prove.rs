@@ -498,6 +498,16 @@ pub const PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS: &[Step] = &[
 
 pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
     Step::typed(
+        "prove.std-browser-s4.product-build",
+        "Build installed conduit product entrance",
+        "cargo",
+        &["build", "-p", "conduit"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/conduit"],
+    ),
+    Step::typed(
         "prove.std-browser-s4.wasm-build",
         "Build conduit-browser-runtime WASM artifact",
         "cargo",
@@ -579,6 +589,16 @@ pub const PROVE_STD_BROWSER_TOGGLE_STEPS: &[Step] = &[
 ];
 
 pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.browser-host.product-build",
+        "Build the installed conduit product entrance",
+        "cargo",
+        &["build", "-p", "conduit"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/conduit"],
+    ),
     Step::typed(
         "prove.browser-host.wasm-build",
         "Build conduit-browser-runtime WASM artifact",

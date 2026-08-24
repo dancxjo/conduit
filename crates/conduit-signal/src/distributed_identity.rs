@@ -10,6 +10,17 @@ pub fn distributed_source_advertisement_for(host_id: HostId, boot_id: BootId) ->
     advertisement
 }
 
+/// Rebinds the ordinary browser sink offer to one exact launched page identity.
+pub fn distributed_browser_advertisement_for(
+    host_id: HostId,
+    boot_id: BootId,
+) -> HostAdvertisement {
+    let mut advertisement = crate::distributed_browser_sink_advertisement();
+    advertisement.host_id = host_id;
+    advertisement.boot_id = boot_id;
+    advertisement
+}
+
 /// Rebinds only the source endpoint of the accepted std/browser link. The
 /// base instance, authority, peer endpoint, and finite limits stay exact.
 pub fn distributed_websocket_line_offer_for(
@@ -19,6 +30,18 @@ pub fn distributed_websocket_line_offer_for(
     let mut line = crate::distributed_websocket_line_offer();
     line.binding.source.host_id = source_host_id;
     line.binding.source.boot_id = source_boot_id;
+    line
+}
+
+pub fn distributed_websocket_line_offer_for_endpoints(
+    source_host_id: HostId,
+    source_boot_id: BootId,
+    sink_host_id: HostId,
+    sink_boot_id: BootId,
+) -> LineOffer {
+    let mut line = distributed_websocket_line_offer_for(source_host_id, source_boot_id);
+    line.binding.sink.host_id = sink_host_id;
+    line.binding.sink.boot_id = sink_boot_id;
     line
 }
 

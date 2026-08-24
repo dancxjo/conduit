@@ -22,9 +22,24 @@ pub fn exact_distributed_signal_plan_for(
     source_host_id: HostId,
     source_boot_id: BootId,
 ) -> Result<DistributedSignalPlan, alloc::string::String> {
+    exact_distributed_signal_plan_for_endpoints(
+        source_host_id,
+        source_boot_id,
+        HostId::from(crate::DISTRIBUTED_BROWSER_HOST_ID),
+        BootId::from(crate::DISTRIBUTED_BROWSER_BOOT_ID),
+    )
+}
+
+pub fn exact_distributed_signal_plan_for_endpoints(
+    source_host_id: HostId,
+    source_boot_id: BootId,
+    sink_host_id: HostId,
+    sink_boot_id: BootId,
+) -> Result<DistributedSignalPlan, alloc::string::String> {
     let source_advertisement =
         crate::distributed_source_advertisement_for(source_host_id.clone(), source_boot_id.clone());
-    let sink_advertisement = crate::distributed_browser_sink_advertisement();
+    let sink_advertisement =
+        crate::distributed_browser_advertisement_for(sink_host_id, sink_boot_id);
     let syntax =
         conduit_form::parse_syntax_document(include_str!("../../../examples/signal-demo.conduit"));
     let checked = conduit_form::check_syntax_document(&syntax, &crate::signal_startup_catalog())
@@ -53,7 +68,12 @@ pub fn exact_distributed_signal_plan_for(
             ),
         ]),
     };
-    let link = crate::distributed_websocket_line_offer_for(source_host_id, source_boot_id);
+    let link = crate::distributed_websocket_line_offer_for_endpoints(
+        source_host_id,
+        source_boot_id,
+        sink_advertisement.host_id.clone(),
+        sink_advertisement.boot_id.clone(),
+    );
     let plan = plan_expanded_canonical_with_options(
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],

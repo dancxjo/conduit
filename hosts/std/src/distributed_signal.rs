@@ -1,7 +1,7 @@
 //! Exact std source half of the live S4 std-to-browser Signal proof.
 
 use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
-use conduit_core::{bind_active_play, PlanFragment};
+use conduit_core::{bind_active_play, Observation, PlanFragment};
 #[cfg(test)]
 use conduit_core::{CapabilityId, ConnectionBase, GearId};
 use conduit_kernel::scheduler::{
@@ -38,6 +38,8 @@ use std::collections::BTreeMap;
 use std::io::Write;
 use std::thread;
 use std::time::Duration;
+
+mod observations;
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const ROUTE_SLOTS: usize = PORTS;
@@ -146,12 +148,17 @@ impl Operation for PulseOperation {
 pub struct DistributedSource {
     scheduler: SourceScheduler,
     fragment: PlanFragment,
+    sink_fragment: PlanFragment,
     lowered: LoweredPlanFragment,
     binding: SessionBinding,
     session: SessionMachine,
     identity: KernelExecutionIdentityMap,
     seal: CapacitySeal,
     pressure_retries: u32,
+}
+
+pub struct DistributedRunReport {
+    pub observations: Vec<Observation>,
 }
 
 impl DistributedSource {
@@ -168,6 +175,20 @@ impl DistributedSource {
         Self::prepare_exact(exact)
     }
 
+    /// Prepares the production source kernel from the product planner's exact
+    /// sealed world instead of reconstructing a private Plan fixture.
+    pub fn prepare_planned(
+        plan: conduit_core::Plan,
+        source_advertisement: conduit_core::HostAdvertisement,
+        sink_advertisement: conduit_core::HostAdvertisement,
+    ) -> Result<Self, String> {
+        Self::prepare_exact(DistributedSignalPlan {
+            source_advertisement,
+            sink_advertisement,
+            plan,
+        })
+    }
+
     fn prepare_exact(exact: DistributedSignalPlan) -> Result<Self, String> {
         let fragment = exact
             .plan
@@ -176,6 +197,13 @@ impl DistributedSource {
             .find(|fragment| fragment.host_id == exact.source_advertisement.host_id)
             .cloned()
             .ok_or_else(|| "source fragment missing".to_string())?;
+        let sink_fragment = exact
+            .plan
+            .fragments
+            .iter()
+            .find(|fragment| fragment.host_id == exact.sink_advertisement.host_id)
+            .cloned()
+            .ok_or_else(|| "sink fragment missing".to_string())?;
         let lowered = lower_plan_fragment(&fragment).map_err(|error| format!("{error:?}"))?;
         if lowered.nodes.len() != 1
             || lowered.cords.len() != 1
@@ -322,6 +350,7 @@ impl DistributedSource {
         Ok(Self {
             scheduler,
             fragment,
+            sink_fragment,
             lowered,
             binding,
             session,
@@ -458,13 +487,46 @@ impl DistributedSource {
     }
 
     pub fn run<W: Write>(
-        mut self,
+        self,
         listener: NativeWebSocketListener,
         report: &mut W,
     ) -> Result<(), String> {
-        let mut line = listener.accept().map_err(|error| format!("{error:?}"))?;
+        let line = listener.accept().map_err(|error| format!("{error:?}"))?;
+        self.run_line(line, report).map(|_| ())
+    }
+
+    pub fn run_with_peer_timeout<W: Write>(
+        self,
+        listener: NativeWebSocketListener,
+        timeout: Duration,
+        report: &mut W,
+    ) -> Result<(), String> {
+        let line = listener
+            .accept_with_timeout(timeout)
+            .map_err(|error| format!("peer-before-Play: {error:?}"))?;
+        self.run_line(line, report).map(|_| ())
+    }
+
+    pub fn run_report_with_peer_timeout<W: Write>(
+        self,
+        listener: NativeWebSocketListener,
+        timeout: Duration,
+        report: &mut W,
+    ) -> Result<DistributedRunReport, String> {
+        let line = listener
+            .accept_with_timeout(timeout)
+            .map_err(|error| format!("peer-before-Play: {error:?}"))?;
+        self.run_line(line, report)
+    }
+
+    fn run_line<W: Write>(
+        mut self,
+        mut line: NativeWebSocketLine,
+        report: &mut W,
+    ) -> Result<DistributedRunReport, String> {
         let mut outbound = [0_u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize];
         let mut inbound = [0_u8; DISTRIBUTED_MAXIMUM_FRAME_BYTES as usize];
+        let mut observations = Vec::with_capacity(MAXIMUM_VALUES + 1);
 
         if !matches!(
             self.receive(&mut line, &mut inbound).map_err(|detail| {
@@ -531,6 +593,12 @@ impl DistributedSource {
                         self.scheduler
                             .remote_egress_delivered(endpoint, cord, sequence)
                             .map_err(|error| format!("{error:?}"))?;
+                        observations.push(observations::presented(
+                            &self.sink_fragment,
+                            &self.binding,
+                            sequence,
+                            &payload,
+                        ));
                         break;
                     }
                     other => return Err(format!("unexpected delivery response {other:?}")),
@@ -601,8 +669,13 @@ impl DistributedSource {
             self.pressure_retries,
         )
         .map_err(|error| error.to_string())?;
+        observations.push(observations::terminal(
+            &self.sink_fragment,
+            &self.binding,
+            MAXIMUM_VALUES as u64,
+        ));
         line.close().map_err(|error| format!("{error:?}"))?;
-        Ok(())
+        Ok(DistributedRunReport { observations })
     }
 
     pub fn fragment(&self) -> &PlanFragment {

@@ -11,22 +11,29 @@ const MAXIMUM_PRODUCT_CONNECTION_BASES: usize = 8;
 
 pub(crate) struct ProductExecution {
     pub(crate) advertisements: Vec<HostAdvertisement>,
+    pub(crate) line_offers: Vec<LineOffer>,
     pub(crate) plan: Plan,
     pub(crate) observations: Vec<Observation>,
 }
 
 pub(crate) enum ProductRuntime {
-    Std(StdHost),
+    Std(Box<StdHost>),
+    Coordinated(HostAdvertisement),
 }
 
 impl ProductRuntime {
     pub(crate) fn std(host: StdHost) -> Self {
-        Self::Std(host)
+        Self::Std(Box::new(host))
+    }
+
+    pub(crate) fn coordinated(advertisement: HostAdvertisement) -> Self {
+        Self::Coordinated(advertisement)
     }
 
     fn advertisement(&self) -> &HostAdvertisement {
         match self {
             Self::Std(host) => host.advertisement(),
+            Self::Coordinated(advertisement) => advertisement,
         }
     }
 
@@ -39,6 +46,9 @@ impl ProductRuntime {
             Self::Std(host) => host
                 .run_fragment_to(fragment, output, &mut ThreadTimer)
                 .map(|report| report.observations),
+            Self::Coordinated(_) => {
+                Err("coordinated product runtime requires its admitted Line executor".to_string())
+            }
         }
     }
 }
@@ -58,6 +68,10 @@ pub(crate) struct ProductExecutionContext {
 impl ProductExecutionContext {
     pub(crate) fn advertisements(&self) -> &[HostAdvertisement] {
         &self.advertisements
+    }
+
+    pub(crate) fn line_offers(&self) -> &[LineOffer] {
+        &self.line_offers
     }
     pub(crate) fn local_std() -> Result<Self, String> {
         let host = StdHost::new();
@@ -191,7 +205,7 @@ impl ProductExecutionContext {
                     offer.binding.limits.maximum_buffered_bytes,
                 )
             })
-            .unwrap_or((1, 64));
+            .unwrap_or((4, 64));
         conduit_planner::plan_expanded_canonical_with_options(
             form,
             &self.advertisements,
@@ -227,6 +241,7 @@ impl ProductExecutionContext {
         }
         Ok(ProductExecution {
             advertisements: self.advertisements.clone(),
+            line_offers: self.line_offers.clone(),
             plan,
             observations,
         })
