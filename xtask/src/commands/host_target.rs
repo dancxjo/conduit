@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     cli::GlobalOpts,
     commands::conduitos::{
-        build_profile_image, target_build::boot_profile_image,
+        build_profile_image, target_backend, target_build::boot_profile_image,
         target_build::verify_artifact_digest, ProfileBuiltImage,
     },
 };
@@ -58,18 +58,15 @@ pub fn build_target(
     output: &Path,
     opts: &GlobalOpts,
 ) -> Result<TargetBuildManifest, Box<dyn std::error::Error>> {
+    let backend = target_backend::select(&image.manifest.target)?;
     let built = build_profile_image(&image.manifest, description_bytes, opts)?;
     if opts.dry_run {
         return Ok(receipt(image, &built));
     }
 
     fs::create_dir_all(output)?;
-    let kernel_name = "conduitos-kernel.elf";
-    let image_name = match image.manifest.target.as_str() {
-        "conduitos/x86_64/pc" => "conduitos-x86_64.iso",
-        "conduitos/aarch64/virt" => "conduitos-aarch64.iso",
-        target => return Err(format!("unsupported target artifact {target}").into()),
-    };
+    let kernel_name = backend.kernel_file;
+    let image_name = backend.image_file;
     fs::copy(&built.kernel, output.join(kernel_name))?;
     fs::copy(&built.image, output.join(image_name))?;
     verify_artifact_digest(&output.join(kernel_name), &built.kernel_sha256)?;
@@ -93,6 +90,16 @@ pub fn verify_target(output: &Path) -> Result<TargetBuildManifest, Box<dyn std::
         )
         .into());
     }
+    let backend = target_backend::select(&manifest.target)?;
+    if manifest.kernel.file != backend.kernel_file
+        || manifest.kernel.role != backend.kernel_role
+        || manifest.image.file != backend.image_file
+        || manifest.image.role != backend.image_role
+    {
+        return Err(
+            "target BUILD artifact names or roles do not match the selected backend".into(),
+        );
+    }
     verify_file(output, &manifest.kernel)?;
     verify_file(output, &manifest.image)?;
     let expected_image_id = format!("image:sha256:{}", manifest.image.sha256);
@@ -115,7 +122,7 @@ pub fn verify_target(output: &Path) -> Result<TargetBuildManifest, Box<dyn std::
     {
         return Err("target BUILD manifest does not bind its resolved PROFILE closure".into());
     }
-    let expected_boot = boot_assets(&manifest.target, &manifest.boot_assets)?;
+    let expected_boot = boot_assets(backend, &manifest.boot_assets);
     if manifest.boot_assets != expected_boot {
         return Err(
             "target BUILD manifest has the wrong architecture, machine, or EFI binding".into(),
@@ -150,6 +157,8 @@ fn verify_file(
 }
 
 fn receipt(image: &HostImage, built: &ProfileBuiltImage) -> TargetBuildManifest {
+    let backend = target_backend::select(&image.manifest.target)
+        .expect("receipt target was checked before lowering");
     let final_image_id = format!("image:sha256:{}", built.image_sha256);
     TargetBuildManifest {
         schema: TARGET_BUILD_MANIFEST_SCHEMA.into(),
@@ -161,22 +170,17 @@ fn receipt(image: &HostImage, built: &ProfileBuiltImage) -> TargetBuildManifest 
         toolchain_identity: image.manifest.toolchain_identity.clone(),
         target: image.manifest.target.clone(),
         kernel: ArtifactReceipt {
-            role: "freestanding-kernel".into(),
-            file: "conduitos-kernel.elf".into(),
+            role: backend.kernel_role.into(),
+            file: backend.kernel_file.into(),
             sha256: built.kernel_sha256.clone(),
         },
         image: ArtifactReceipt {
-            role: "final-bootable-image".into(),
-            file: match image.manifest.target.as_str() {
-                "conduitos/x86_64/pc" => "conduitos-x86_64.iso",
-                "conduitos/aarch64/virt" => "conduitos-aarch64.iso",
-                _ => "unsupported.iso",
-            }
-            .into(),
+            role: backend.image_role.into(),
+            file: backend.image_file.into(),
             sha256: built.image_sha256.clone(),
         },
         boot_assets: boot_assets(
-            &image.manifest.target,
+            backend,
             &BootAssetsReceipt {
                 packager: "pinned-limine-hybrid-iso".into(),
                 limine_version: built.limine_version.into(),
@@ -186,28 +190,22 @@ fn receipt(image: &HostImage, built: &ProfileBuiltImage) -> TargetBuildManifest 
                 firmware: String::new(),
                 boot_entry: String::new(),
             },
-        )
-        .expect("receipt target was checked before lowering"),
+        ),
         resolved_build: image.manifest.clone(),
     }
 }
 
 fn boot_assets(
-    target: &str,
+    backend: &target_backend::TargetBackend,
     source: &BootAssetsReceipt,
-) -> Result<BootAssetsReceipt, Box<dyn std::error::Error>> {
-    let (architecture, machine, firmware, boot_entry) = match target {
-        "conduitos/x86_64/pc" => ("x86_64", "q35", "OVMF_CODE.fd", "BOOTX64.EFI"),
-        "conduitos/aarch64/virt" => ("aarch64", "virt", "QEMU_EFI.fd", "BOOTAA64.EFI"),
-        _ => return Err(format!("unsupported target boot assets {target}").into()),
-    };
-    Ok(BootAssetsReceipt {
+) -> BootAssetsReceipt {
+    BootAssetsReceipt {
         packager: source.packager.clone(),
         limine_version: source.limine_version.clone(),
         limine_archive_sha256: source.limine_archive_sha256.clone(),
-        architecture: architecture.into(),
-        machine: machine.into(),
-        firmware: firmware.into(),
-        boot_entry: boot_entry.into(),
-    })
+        architecture: backend.architecture.into(),
+        machine: backend.machine.into(),
+        firmware: backend.firmware.into(),
+        boot_entry: backend.boot_entry.into(),
+    }
 }

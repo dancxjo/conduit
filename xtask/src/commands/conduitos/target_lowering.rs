@@ -33,17 +33,12 @@ pub(super) struct TargetBuildInputs {
 }
 
 pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
-    match manifest.target.as_str() {
-        "conduitos/x86_64/pc" => lower_x86_64_pc(manifest),
-        "conduitos/aarch64/virt" => lower_aarch64_virt(manifest),
-        _ => Err(refusal(
-            "unsupported-profile-target",
-            format!("no ConduitOS product lowerer for {}", manifest.target),
-        )),
-    }
+    super::target_backend::select(&manifest.target)?.lower(manifest)
 }
 
-fn lower_x86_64_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
+pub(super) fn lower_x86_64_pc(
+    manifest: &BuildManifest,
+) -> Result<TargetBuildInputs, ConduitosError> {
     let native = manifest
         .presenters
         .iter()
@@ -191,7 +186,9 @@ fn lower_x86_64_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, Condui
     })
 }
 
-fn lower_aarch64_virt(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
+pub(super) fn lower_aarch64_virt(
+    manifest: &BuildManifest,
+) -> Result<TargetBuildInputs, ConduitosError> {
     if manifest.presenters.as_slice() != [LINEAR_SERIAL_PRESENTER] {
         return Err(aarch64_closure_refusal(
             "presenter",

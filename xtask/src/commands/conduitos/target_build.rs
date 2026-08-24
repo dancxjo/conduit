@@ -266,14 +266,9 @@ pub(crate) fn boot_profile_image(
 }
 
 fn arch_for_target(target: &str) -> Result<ConduitosArch, ConduitosError> {
-    match target {
-        "conduitos/x86_64/pc" => Ok(ConduitosArch::X86_64),
-        "conduitos/aarch64/virt" => Ok(ConduitosArch::Aarch64),
-        _ => Err(ConduitosError::refusal(
-            "unsupported-profile-target",
-            target.to_owned(),
-        )),
-    }
+    let backend = super::target_backend::select(target)?;
+    backend.require_machine_boot()?;
+    Ok(backend.arch)
 }
 
 fn boot_aarch64_product(
