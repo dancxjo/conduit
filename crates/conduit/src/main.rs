@@ -2,11 +2,13 @@ mod cli;
 mod copy_task;
 mod diagnostics;
 mod form_source;
+mod product_execution;
+#[cfg(test)]
+mod product_execution_tests;
 mod report_artifact;
 
 use clap::Parser;
 use conduit_observatory::{build_report, render_text_report};
-use conduit_std_host::{load_placements, StdHost, ThreadTimer};
 use std::io;
 use std::path::Path;
 
@@ -43,34 +45,15 @@ fn run_with_placements(
 ) -> Result<(), String> {
     let source = form_source::load(Path::new(path))?;
     let form = source.expand_entry()?;
-    let placements = load_placements(placements_path).map_err(|err| err.to_string())?;
-    let mut host = StdHost::new();
-    let hosts = vec![host.advertisement().clone()];
-    let placements = match placements {
-        Some(placements) => placements,
-        None => conduit_planner::default_expanded_placements(&form, &hosts)
-            .map_err(|error| error.to_string())?,
-    };
-    let plan = conduit_planner::plan_expanded_canonical(
-        &form,
-        &hosts,
-        &placements,
-        &[conduit_core::ConnectionBase::Local],
-    )
-    .map_err(|error| error.to_string())?;
-    let fragment = plan
-        .fragments
-        .iter()
-        .find(|fragment| fragment.host_id == host.advertisement().host_id)
-        .cloned()
-        .ok_or_else(|| "no local fragment for std host".to_string())?;
+    let mut context = product_execution::ProductExecutionContext::local_std()?;
+    let plan = context.plan(&form, placements_path)?;
     let mut stdout = io::stdout().lock();
-    let report = host.run_fragment_to(fragment, &mut stdout, &mut ThreadTimer)?;
+    let execution = context.execute(plan, &mut stdout)?;
     if let Some(report_path) = report_path {
         let snapshot = snapshot_from_execution(
-            vec![host.advertisement().clone()],
-            vec![plan],
-            report.observations,
+            execution.advertisements,
+            vec![execution.plan],
+            execution.observations,
         );
         write_report(report_path, &snapshot)?;
     }
