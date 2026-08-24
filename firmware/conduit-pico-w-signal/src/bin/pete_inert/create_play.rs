@@ -12,7 +12,26 @@ pub const SPEED_MM_S: i16 = 50;
 pub const TTL_MS: u32 = 250;
 pub const AUTHORITY_GRANT: &str = "grant/pete-pico-wheels-off-floor-hil";
 const CAPSTONE_FORM: &str = "pete-capstone";
-const REQUEST_PREFIX: &str = "CONDUIT_PLAY@1:";
+const MOTION_REQUEST_PREFIX: &str = "CONDUIT_PLAY@1:";
+const HELLO_REQUEST_PREFIX: &str = "CONDUIT_CREATE_HELLO@1:";
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum RequestKind {
+    None = 0,
+    Motion = 1,
+    Hello = 2,
+}
+
+impl RequestKind {
+    fn from_raw(value: u8) -> Self {
+        match value {
+            1 => Self::Motion,
+            2 => Self::Hello,
+            _ => Self::None,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -74,6 +93,7 @@ pub struct RequestSnapshot {
 static NEXT_GENERATION: AtomicU32 = AtomicU32::new(0);
 static REQUEST_GENERATION: AtomicU32 = AtomicU32::new(0);
 static REQUEST_STATE: AtomicU8 = AtomicU8::new(RequestState::Idle as u8);
+static REQUEST_KIND: AtomicU8 = AtomicU8::new(RequestKind::None as u8);
 static RESULT_CODE: AtomicU8 = AtomicU8::new(0);
 static RESULT_SAFETY_GENERATION: AtomicU32 = AtomicU32::new(0);
 static RESULT_DEADLINE_MS: AtomicU32 = AtomicU32::new(0);
@@ -81,20 +101,31 @@ static SELECTED_LINEAR_MICROUNITS: AtomicI32 = AtomicI32::new(0);
 static KERNEL_DECISIONS: AtomicU32 = AtomicU32::new(0);
 static KERNEL_SIGNS: AtomicU32 = AtomicU32::new(0);
 
-pub fn request_matches(request: &[u8]) -> bool {
+pub fn motion_request_matches(request: &[u8]) -> bool {
     let mut expected = String::<BOOTSEL_FRAME_MAX>::new();
     write!(
         expected,
-        "{REQUEST_PREFIX}{}:{CAPSTONE_FORM}:{AUTHORITY_GRANT}",
+        "{MOTION_REQUEST_PREFIX}{}:{CAPSTONE_FORM}:{AUTHORITY_GRANT}",
         env!("CONDUIT_PETE_CAPSTONE_BUILD_ID")
     )
     .is_ok()
         && request == expected.as_bytes()
 }
 
-pub async fn serve(class: &mut InertCdc) {
+pub fn hello_request_matches(request: &[u8]) -> bool {
+    let mut expected = String::<BOOTSEL_FRAME_MAX>::new();
+    write!(
+        expected,
+        "{HELLO_REQUEST_PREFIX}{}",
+        env!("CONDUIT_PETE_CAPSTONE_BUILD_ID")
+    )
+    .is_ok()
+        && request == expected.as_bytes()
+}
+
+pub async fn serve_motion(class: &mut InertCdc) {
     let mut response = String::<BOOTSEL_FRAME_MAX>::new();
-    match submit() {
+    match submit(RequestKind::Motion) {
         Ok(generation) => {
             let deadline = Instant::now() + Duration::from_millis(2_000);
             loop {
@@ -161,12 +192,56 @@ pub async fn serve(class: &mut InertCdc) {
     }
 }
 
-pub fn submit() -> Result<u32, ()> {
+pub async fn serve_hello(class: &mut InertCdc) {
+    let mut response = String::<BOOTSEL_FRAME_MAX>::new();
+    match submit(RequestKind::Hello) {
+        Ok(generation) => {
+            let deadline = Instant::now() + Duration::from_millis(10_000);
+            loop {
+                let request = snapshot();
+                if request.generation == generation && request.state.terminal() {
+                    let success = request.state == RequestState::Completed;
+                    let _ = write!(
+                        response,
+                        "{{\"schema\":\"conduit.pete/create-hello-receipt@1\",\"build_id\":\"{}\",\"success\":{},\"generation\":{},\"state\":\"{}\",\"result_code\":{},\"observed_oi_mode\":\"{}\",\"final_oi_mode\":\"{}\",\"ready_cue_command_sent\":{},\"motion_authority_granted\":false}}",
+                        env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"),
+                        success,
+                        generation,
+                        request.state.name(),
+                        request.result_code,
+                        if success { "full" } else { "unknown" },
+                        if success { "safe" } else { "unknown" },
+                        success,
+                    );
+                    let _ = send_control_frame(class, response.as_bytes()).await;
+                    release(generation);
+                    break;
+                }
+                if Instant::now() >= deadline {
+                    timeout(generation);
+                    continue;
+                }
+                Timer::after(Duration::from_millis(5)).await;
+            }
+        }
+        Err(()) => {
+            let _ = write!(
+                response,
+                "{{\"schema\":\"conduit.pete/create-hello-receipt@1\",\"build_id\":\"{}\",\"success\":false,\"state\":\"busy\",\"result_code\":8,\"motion_authority_granted\":false}}",
+                env!("CONDUIT_PETE_CAPSTONE_BUILD_ID"),
+            );
+            let _ = send_control_frame(class, response.as_bytes()).await;
+        }
+    }
+}
+
+pub fn submit(kind: RequestKind) -> Result<u32, ()> {
     REQUEST_STATE
         .compare_exchange(RequestState::Idle as u8, RequestState::Preparing as u8, Ordering::AcqRel, Ordering::Acquire)
         .map_err(|_| ())?;
     let generation = NEXT_GENERATION.fetch_add(1, Ordering::Relaxed).wrapping_add(1).max(1);
     REQUEST_GENERATION.store(generation, Ordering::Release);
+    REQUEST_KIND.store(kind as u8, Ordering::Release);
     RESULT_CODE.store(0, Ordering::Release);
     RESULT_SAFETY_GENERATION.store(0, Ordering::Release);
     RESULT_DEADLINE_MS.store(0, Ordering::Release);
@@ -175,6 +250,10 @@ pub fn submit() -> Result<u32, ()> {
     KERNEL_SIGNS.store(0, Ordering::Release);
     set_state(RequestState::Pending);
     Ok(generation)
+}
+
+pub fn request_kind() -> RequestKind {
+    RequestKind::from_raw(REQUEST_KIND.load(Ordering::Acquire))
 }
 
 pub fn snapshot() -> RequestSnapshot {
@@ -190,8 +269,9 @@ pub fn snapshot() -> RequestSnapshot {
     }
 }
 
-pub fn claim_pending() -> bool {
-    REQUEST_STATE.compare_exchange(RequestState::Pending as u8, RequestState::Preparing as u8, Ordering::AcqRel, Ordering::Acquire).is_ok()
+pub fn claim_pending(kind: RequestKind) -> bool {
+    request_kind() == kind
+        && REQUEST_STATE.compare_exchange(RequestState::Pending as u8, RequestState::Preparing as u8, Ordering::AcqRel, Ordering::Acquire).is_ok()
 }
 
 pub fn set_state(state: RequestState) { REQUEST_STATE.store(state as u8, Ordering::Release); }
@@ -207,6 +287,7 @@ pub fn set_kernel_metrics(decisions: u32, signs: u32) {
 fn release(generation: u32) {
     if REQUEST_GENERATION.load(Ordering::Acquire) == generation && snapshot().state.terminal() {
         set_state(RequestState::Idle);
+        REQUEST_KIND.store(RequestKind::None as u8, Ordering::Release);
     }
 }
 

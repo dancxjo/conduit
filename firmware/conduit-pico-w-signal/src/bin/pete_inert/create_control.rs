@@ -1,9 +1,8 @@
 //! Persistent, bounded Create 1 OI ownership for the Pete carrier.
 
 use conduit_create_oi::{
-    decode_sensor_packet, encode_mode, encode_pause_stream, encode_sensor_stream,
-    encode_start, write_command, CreateOiModeRequest, CreateUartProvider, UartProfile,
-    CREATE_OI_BAUD, STREAM_HEADER,
+    decode_sensor_packet, encode_mode, encode_pause_stream, encode_sensor_stream, write_command,
+    CreateOiModeRequest, CreateUartProvider, UartProfile, CREATE_OI_BAUD, STREAM_HEADER,
 };
 use embassy_rp::gpio::Output;
 use embassy_rp::peripherals::{PIN_0, PIN_1, UART0, WATCHDOG};
@@ -12,21 +11,15 @@ use embassy_rp::watchdog::Watchdog;
 use embassy_rp::Peri;
 use embassy_time::{Duration, Instant, Timer};
 use embedded_hal_nb::serial::Read as _;
-use portable_atomic::{AtomicBool, AtomicU32, AtomicU8, Ordering};
+use portable_atomic::{AtomicU32, AtomicU8, Ordering};
 
-use crate::{create_link_gate, uart_diagnostic};
+use crate::{create_acquisition, create_link_gate, create_play, uart_diagnostic};
 
-const START_SETTLE_MS: u64 = 250;
-const MODE_SETTLE_MS: u64 = 100;
 const LINK_FRESHNESS_MS: u64 = 1_000;
-const ACQUISITION_CONFIRM_MS: u64 = 200;
 const REACQUIRE_COOLDOWN_MS: u64 = 50;
 const FULL_REFRESH_MS: u64 = 1_000;
 const WATCHDOG_TIMEOUT_MS: u64 = 2_000;
 const WATCHDOG_FEED_MS: u64 = 250;
-const READY_CUE_DEFINE: [u8; 9] = [140, 2, 3, 65, 6, 67, 6, 71, 10];
-const READY_CUE_PLAY: [u8; 2] = [141, 2];
-const MODE_FRAME_BYTES: usize = 5;
 const MAX_STREAM_FRAME_BYTES: usize = uart_diagnostic::MAX_FRAME_BYTES;
 const SAFETY_POLL_MS: u64 = 20;
 const CHARGING_POLL_MS: u64 = 250;
@@ -70,7 +63,6 @@ static OI_MODE: AtomicU8 = AtomicU8::new(0);
 static PACKETS: AtomicU32 = AtomicU32::new(0);
 static LAST_PACKET_MS: AtomicU32 = AtomicU32::new(0);
 static CHARGING_SOURCES: AtomicU8 = AtomicU8::new(0);
-static READY_CUE_PLAYED: AtomicBool = AtomicBool::new(false);
 
 pub fn snapshot() -> Snapshot {
     Snapshot {
@@ -87,11 +79,11 @@ pub fn is_fresh(snapshot: &Snapshot, now_ms: u32) -> bool {
 }
 
 pub fn ready_cue_command_sent() -> bool {
-    READY_CUE_PLAYED.load(Ordering::Acquire)
+    create_acquisition::ready_cue_command_sent()
 }
 
-struct Provider {
-    uart: Uart<'static, Blocking>,
+pub(super) struct Provider {
+    pub(super) uart: Uart<'static, Blocking>,
 }
 
 impl CreateUartProvider for Provider {
@@ -121,11 +113,11 @@ impl CreateUartProvider for Provider {
     }
 }
 
-fn now_ms() -> u32 {
+pub(super) fn now_ms() -> u32 {
     Instant::now().as_millis() as u32
 }
 
-async fn watchdog_delay(watchdog: &mut Watchdog, millis: u64) {
+pub(super) async fn watchdog_delay(watchdog: &mut Watchdog, millis: u64) {
     let mut remaining = millis;
     while remaining > 0 {
         let step = remaining.min(WATCHDOG_FEED_MS);
@@ -133,128 +125,6 @@ async fn watchdog_delay(watchdog: &mut Watchdog, millis: u64) {
         watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
         remaining -= step;
     }
-}
-
-fn discard_uart(provider: &mut Provider) {
-    for _ in 0..128 {
-        match provider.uart.read() {
-            Ok(_) => {
-                uart_diagnostic::record_rx(now_ms());
-                uart_diagnostic::record_discard(1);
-            }
-            Err(nb::Error::WouldBlock) => break,
-            Err(nb::Error::Other(error)) => uart_diagnostic::record_error(error),
-        }
-    }
-}
-
-fn begin_supervision(provider: &mut Provider) -> Result<(), ()> {
-    write_command(provider, &encode_start()).map_err(|_| ())?;
-    Ok(())
-}
-
-async fn play_ready_cue(provider: &mut Provider, watchdog: &mut Watchdog) -> Result<(), ()> {
-    if !create_link_gate::authorized() {
-        return Err(());
-    }
-    provider.write_all(&READY_CUE_DEFINE).map_err(|_| ())?;
-    watchdog_delay(watchdog, 20).await;
-    provider.write_all(&READY_CUE_PLAY).map_err(|_| ())?;
-    READY_CUE_PLAYED.store(true, Ordering::Release);
-    Ok(())
-}
-
-async fn acquire(provider: &mut Provider, watchdog: &mut Watchdog) -> Result<(), ()> {
-    if !create_link_gate::authorized() {
-        return Err(());
-    }
-    STATE.store(State::Acquiring as u8, Ordering::Release);
-    OI_MODE.store(0, Ordering::Release);
-    discard_uart(provider);
-    begin_supervision(provider)?;
-    watchdog_delay(watchdog, START_SETTLE_MS).await;
-    if !create_link_gate::authorized() {
-        return Err(());
-    }
-    write_command(
-        provider,
-        &encode_mode(CreateOiModeRequest::Full).expect("Full has one exact command"),
-    )
-    .map_err(|_| ())?;
-    watchdog_delay(watchdog, MODE_SETTLE_MS).await;
-    if !create_link_gate::authorized() {
-        return Err(());
-    }
-    // This bounded diagnostic cue is deliberately sent after each Full
-    // assertion, before RX verification. Hearing it proves the Create accepted
-    // the TX-side mode transition; it never grants motion authority.
-    play_ready_cue(provider, watchdog).await?;
-    let stream = encode_sensor_stream(35).map_err(|_| ())?;
-    write_command(provider, &stream).map_err(|_| ())
-}
-
-async fn confirm_full_mode(
-    provider: &mut Provider,
-    watchdog: &mut Watchdog,
-    deadline: Instant,
-) -> Result<(), ()> {
-    let mut frame = [0_u8; MODE_FRAME_BYTES];
-    let mut received = 0_usize;
-    while Instant::now() < deadline && create_link_gate::authorized() {
-        match provider.uart.read() {
-            Ok(byte) => {
-                uart_diagnostic::record_rx(now_ms());
-                watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
-                let accepted = match received {
-                    0 => byte == STREAM_HEADER,
-                    1 => usize::from(byte) + 3 == MODE_FRAME_BYTES,
-                    2 => byte == 35,
-                    _ => true,
-                };
-                if !accepted {
-                    uart_diagnostic::record_discard(
-                        uart_diagnostic::discarded_on_mismatch(received, byte, STREAM_HEADER),
-                    );
-                    received = usize::from(byte == STREAM_HEADER);
-                    if received == 1 {
-                        frame[0] = byte;
-                    }
-                    continue;
-                }
-                frame[received] = byte;
-                received += 1;
-                if received == MODE_FRAME_BYTES {
-                    if frame.iter().fold(0_u8, |sum, byte| sum.wrapping_add(*byte)) == 0
-                        && decode_sensor_packet(35, &frame[3..4])
-                            .map(|packet| packet.bytes()[0] == 3)
-                            .unwrap_or(false)
-                    {
-                        uart_diagnostic::record_frame(35, &frame, true);
-                        // Each framed Stream probe is one finite transaction;
-                        // pause it before another packet request can begin.
-                        write_command(provider, &encode_pause_stream()).map_err(|_| ())?;
-                        OI_MODE.store(3, Ordering::Release);
-                        return Ok(());
-                    }
-                    uart_diagnostic::record_frame(35, &frame, false);
-                    received = 0;
-                }
-            }
-            Err(nb::Error::WouldBlock) => {
-                Timer::after(Duration::from_millis(1)).await;
-                watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
-            }
-            Err(nb::Error::Other(error)) => {
-                uart_diagnostic::record_error(error);
-                uart_diagnostic::record_discard(received);
-                received = 0;
-                Timer::after(Duration::from_millis(1)).await;
-                watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
-            }
-        }
-    }
-    uart_diagnostic::record_timeout();
-    Err(())
 }
 
 async fn transact_sensor_packet(
@@ -406,28 +276,54 @@ pub async fn task(
         }
         create_link_gate::set_translator(&mut translator_oe, true);
         watchdog_delay(&mut watchdog, 10).await;
-        if acquire(&mut provider, &mut watchdog).await.is_err() {
-            STATE.store(State::UartFault as u8, Ordering::Release);
-            if !create_link_gate::authorized() {
-                create_link_gate::set_translator(&mut translator_oe, false);
+        STATE.store(State::Acquiring as u8, Ordering::Release);
+        OI_MODE.store(0, Ordering::Release);
+        if create_acquisition::establish_full(&mut provider, &mut watchdog)
+            .await
+            .is_err()
+        {
+            let kind = create_play::request_kind();
+            if kind != create_play::RequestKind::None && create_play::claim_pending(kind) {
+                create_play::set_result(7);
+                create_play::set_state(create_play::RequestState::Refused);
             }
-            watchdog_delay(&mut watchdog, REACQUIRE_COOLDOWN_MS).await;
+            STATE.store(State::LinkLost as u8, Ordering::Release);
+            create_link_gate::set_translator(&mut translator_oe, false);
             continue;
         }
-        if confirm_full_mode(
-            &mut provider,
-            &mut watchdog,
-            Instant::now() + Duration::from_millis(ACQUISITION_CONFIRM_MS),
-        )
-        .await
-        .is_err()
+        OI_MODE.store(3, Ordering::Release);
+        STATE.store(State::Full as u8, Ordering::Release);
+        if create_acquisition::play_ready_cue(&mut provider, &mut watchdog)
+            .await
+            .is_err()
         {
-            STATE.store(State::LinkLost as u8, Ordering::Release);
-            OI_MODE.store(0, Ordering::Release);
-            if !create_link_gate::authorized() {
-                create_link_gate::set_translator(&mut translator_oe, false);
+            let kind = create_play::request_kind();
+            if kind != create_play::RequestKind::None && create_play::claim_pending(kind) {
+                create_play::set_result(7);
+                create_play::set_state(create_play::RequestState::Refused);
             }
-            watchdog_delay(&mut watchdog, REACQUIRE_COOLDOWN_MS).await;
+            STATE.store(State::UartFault as u8, Ordering::Release);
+            create_link_gate::set_translator(&mut translator_oe, false);
+            continue;
+        }
+        if create_play::request_kind() == create_play::RequestKind::Hello {
+            if create_play::claim_pending(create_play::RequestKind::Hello) {
+                if create_acquisition::restore_safe(&mut provider, &mut watchdog)
+                    .await
+                    .is_ok()
+                {
+                    OI_MODE.store(2, Ordering::Release);
+                    STATE.store(State::Safe as u8, Ordering::Release);
+                    create_play::set_result(0);
+                    create_play::set_state(create_play::RequestState::Completed);
+                } else {
+                    OI_MODE.store(0, Ordering::Release);
+                    STATE.store(State::LinkLost as u8, Ordering::Release);
+                    create_play::set_result(7);
+                    create_play::set_state(create_play::RequestState::Refused);
+                }
+            }
+            create_link_gate::set_translator(&mut translator_oe, false);
             continue;
         }
         let mut next_full_refresh = Instant::now() + Duration::from_millis(FULL_REFRESH_MS);
