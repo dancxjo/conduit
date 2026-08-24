@@ -259,7 +259,12 @@ pub enum ProveTarget {
     StdBrowserToggle,
     BrowserHost,
     CalendarGoogle,
+    DegradedProfiles,
+    Diversity,
+    DormantReadmission,
+    RecursiveRecovery,
     LlmEmbodiment,
+    LlmCrossHost,
     LlmPlanningAdvice,
     PatchbayFrontDoor,
     StdPicoUsb,
@@ -590,6 +595,46 @@ mod tests {
             embodiment.command,
             Command::Prove(ProveArgs {
                 proof: ProveTarget::LlmEmbodiment,
+                ..
+            })
+        ));
+
+        let cross_host = Cli::try_parse_from(["xtask", "prove", "llm-cross-host"])
+            .expect("cross-Host LLM proof command parses");
+        assert!(matches!(
+            cross_host.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::LlmCrossHost,
+                ..
+            })
+        ));
+
+        let degraded = Cli::try_parse_from(["xtask", "prove", "degraded-profiles"])
+            .expect("degraded-profile proof command parses");
+        assert!(matches!(
+            degraded.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::DegradedProfiles,
+                ..
+            })
+        ));
+
+        let diversity =
+            Cli::try_parse_from(["xtask", "prove", "diversity"]).expect("diversity proof parses");
+        assert!(matches!(
+            diversity.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::Diversity,
+                ..
+            })
+        ));
+
+        let dormant = Cli::try_parse_from(["xtask", "prove", "dormant-readmission"])
+            .expect("dormant-readmission proof parses");
+        assert!(matches!(
+            dormant.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::DormantReadmission,
                 ..
             })
         ));

@@ -25,6 +25,8 @@ mod llm_contract;
 pub use llm_contract::*;
 mod local_model;
 pub use local_model::*;
+mod cross_host_lifecycle;
+pub use cross_host_lifecycle::*;
 mod interpretation;
 pub use interpretation::*;
 mod hybrid_retrieval;

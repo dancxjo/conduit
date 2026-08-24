@@ -34,7 +34,10 @@ mod compute_admission;
 mod contract;
 mod decision_evidence;
 mod degradation;
+mod degraded_profile;
 mod diagnostic;
+mod diversity;
+mod dormant_readmission;
 mod fact_policy;
 mod functional_compatibility;
 mod fusion;
@@ -51,6 +54,7 @@ mod profile;
 mod protected_resources;
 mod realization;
 mod realization_families;
+mod recursive_recovery;
 mod replanning;
 mod requirements;
 mod startup;
@@ -97,7 +101,27 @@ pub use degradation::{
     DegradationFragmentDisposition, DegradationInput, MAXIMUM_DEGRADATION_FRAGMENTS,
     MAXIMUM_DEGRADATION_FRAGMENT_ID_BYTES, MAXIMUM_DEGRADATION_REFUSAL_BYTES,
 };
+pub use degraded_profile::{
+    seal_reviewed_service_profile_plan, select_reviewed_service_profile, DegradationDirection,
+    DegradedDimension, DegradedDimensionEvidence, DegradedProfileRefusal, ReviewedServiceProfile,
+    ServiceProfileAdmission, ServiceProfileDisposition, SurvivalPolicy,
+    MAXIMUM_DEGRADED_PROFILE_DIMENSIONS, MAXIMUM_DEGRADED_PROFILE_ID_BYTES,
+    MAXIMUM_DEGRADED_PROFILE_LABEL_BYTES,
+};
 pub use diagnostic::structured_planner_diagnostic;
+pub use diversity::{
+    classify_diversity, prove_diverse_replacement, select_surviving_diverse_candidate,
+    DiversityCandidate, DiversityRefusal, DiversityRelationship, DiversityReplacementEvidence,
+    LinePathHop, MechanismDependency, PreviousPlanDisposition, MAXIMUM_DIVERSITY_CANDIDATES,
+    MAXIMUM_DIVERSITY_DEPENDENCIES, MAXIMUM_DIVERSITY_ID_BYTES, MAXIMUM_DIVERSITY_LINE_HOPS,
+    MAXIMUM_DIVERSITY_MECHANISMS,
+};
+pub use dormant_readmission::{
+    observe_dormant_candidate, prove_dormant_readmission, CurrentDormantCandidate,
+    DormantEquipmentHistory, DormantReadmissionEvidence, DormantReadmissionRefusal,
+    RequiredDormantLine, MAXIMUM_DORMANT_ABSENT_GENERATIONS, MAXIMUM_DORMANT_ID_BYTES,
+    MAXIMUM_DORMANT_REQUIRED_LINES, MAXIMUM_DORMANT_SIGNS,
+};
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use fusion::{
     plan_selected_optimization, select_fusion_candidate, FusionBoundary, FusionCandidate,
@@ -147,6 +171,10 @@ pub use realization_families::{
     select_current_family_frontier, CurrentFamilyOffer, FamilyFrontier, FamilyFrontierMetrics,
     RealizationFamily, RealizationFamilyCatalog, MAXIMUM_CURRENT_FAMILY_OFFERS,
     MAXIMUM_REALIZATION_FAMILIES, MAXIMUM_REALIZATION_FAMILY_PREREQUISITES,
+};
+pub use recursive_recovery::{
+    prove_recursive_recovery, RecursiveRecoveryCandidate, RecursiveRecoveryEvidence,
+    RecursiveRecoveryLimits, RecursiveRecoveryRefusal,
 };
 pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};

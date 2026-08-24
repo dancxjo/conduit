@@ -20,6 +20,8 @@ mod candidate_form;
 mod control;
 mod cross_host_renderer;
 mod degradation_explanation;
+mod degraded_profile_explanation;
+mod dormant_readmission_explanation;
 mod face_configuration;
 mod face_controls;
 mod form_editor;
@@ -39,6 +41,7 @@ mod layout;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
+mod llm_replan_explanation;
 mod maker_environment;
 mod palette;
 #[cfg(test)]
@@ -64,6 +67,7 @@ mod presenter_capstone;
 #[cfg(test)]
 mod presenter_capstone_tests;
 mod prewake;
+mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
 mod renderer_inspection;
@@ -95,6 +99,15 @@ pub use cross_host_renderer::{
 };
 pub use degradation_explanation::{
     PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,
+};
+pub use degraded_profile_explanation::{
+    explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
+    DegradedProfileExplanationError, DegradedProfileState, ProfileDimensionExplanation,
+    MAX_DEGRADED_PROFILE_EXPLANATION_BYTES,
+};
+pub use dormant_readmission_explanation::{
+    explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
+    MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
 pub use face_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use form_editor::{
@@ -140,6 +153,10 @@ pub use llm_presentation::{
     project_llm_patchbay, CandidateFormInspection, LlmGearActivity, LlmPatchbayTruth,
     LlmPresentationError, MAXIMUM_LLM_PRESENTATION_STAGES,
 };
+pub use llm_replan_explanation::{
+    explain_cross_host_llm_replan, explain_missing_llm_realization, CrossHostLlmReplanExplanation,
+    MAX_LLM_REPLAN_EXPLANATION_BYTES,
+};
 pub use maker_environment::{
     AuthoredEnvironment, AuthoredEnvironmentError, AuthoredLink, AuthoredPart, ConnectivityKind,
     EnvironmentComparison, EnvironmentComparisonRow, EnvironmentLinkKind, MachineProfile,
@@ -173,6 +190,10 @@ pub use presentation_layout::{
 };
 pub use presenter_capstone::*;
 pub use prewake::*;
+pub use recursive_recovery_explanation::{
+    explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
+    MAX_RECURSIVE_RECOVERY_EXPLANATION_BYTES,
+};
 pub use renderer_conformance::{
     compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
     ENTRANCE_EQUIVALENCE_SCHEMA,
