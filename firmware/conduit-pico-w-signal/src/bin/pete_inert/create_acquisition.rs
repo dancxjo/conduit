@@ -1,8 +1,9 @@
 //! Finite attended Create 1 Full-mode and hello transaction.
 
 use conduit_create_oi::{
-    decode_sensor_packet, encode_mode, encode_query_sensor, encode_start, write_command,
-    CreateOiModeRequest, CreateUartProvider,
+    decode_sensor_packet, encode_mode, encode_pause_stream, encode_query_sensor,
+    encode_sensor_stream, encode_start, write_command, CreateOiModeRequest, CreateUartProvider,
+    STREAM_HEADER,
 };
 use embassy_rp::watchdog::Watchdog;
 use embassy_time::{Duration, Instant, Timer};
@@ -20,6 +21,7 @@ const REACQUIRE_COOLDOWN_MS: u64 = 50;
 const READY_CUE_DEFINE: [u8; 11] = [140, 2, 4, 60, 32, 64, 32, 0, 12, 67, 40];
 const READY_CUE_PLAY: [u8; 2] = [141, 2];
 const READY_CUE_COMPLETION_MS: u64 = 1_913;
+const MODE_STREAM_RESPONSE_MS: u64 = 2_000;
 
 static READY_CUE_PLAYED: AtomicBool = AtomicBool::new(false);
 
@@ -77,6 +79,66 @@ async fn read_packet(
     Err(())
 }
 
+async fn read_full_stream(
+    provider: &mut Provider,
+    watchdog: &mut Watchdog,
+    deadline: Instant,
+) -> Result<(), ()> {
+    let mut frame = [0_u8; 5];
+    let mut received = 0_usize;
+    while Instant::now() < deadline && create_link_gate::authorized() {
+        match provider.uart.read() {
+            Ok(byte) => {
+                uart_diagnostic::record_rx(now_ms());
+                watchdog.feed(Duration::from_millis(2_000));
+                let accepted = match received {
+                    0 => byte == STREAM_HEADER,
+                    1 => byte == 2,
+                    2 => byte == 35,
+                    _ => true,
+                };
+                if !accepted {
+                    uart_diagnostic::record_discard(
+                        uart_diagnostic::discarded_on_mismatch(received, byte, STREAM_HEADER),
+                    );
+                    received = usize::from(byte == STREAM_HEADER);
+                    if received == 1 {
+                        frame[0] = byte;
+                    }
+                    continue;
+                }
+                frame[received] = byte;
+                received += 1;
+                if received == frame.len() {
+                    let valid = frame
+                        .iter()
+                        .fold(0_u8, |sum, value| sum.wrapping_add(*value))
+                        == 0
+                        && frame[3] == 3;
+                    uart_diagnostic::record_frame(35, &frame, valid);
+                    if valid {
+                        write_command(provider, &encode_pause_stream()).map_err(|_| ())?;
+                        return Ok(());
+                    }
+                    received = 0;
+                }
+            }
+            Err(nb::Error::WouldBlock) => {
+                Timer::after(Duration::from_millis(1)).await;
+                watchdog.feed(Duration::from_millis(2_000));
+            }
+            Err(nb::Error::Other(error)) => {
+                uart_diagnostic::record_error(error);
+                Timer::after(Duration::from_millis(1)).await;
+                watchdog.feed(Duration::from_millis(2_000));
+            }
+        }
+    }
+    let _ = write_command(provider, &encode_pause_stream());
+    uart_diagnostic::record_timeout();
+    Err(())
+}
+
 pub async fn establish_full(
     provider: &mut Provider,
     watchdog: &mut Watchdog,
@@ -121,6 +183,22 @@ pub async fn establish_full(
             return Ok(());
         }
         watchdog_delay(watchdog, REACQUIRE_COOLDOWN_MS).await;
+    }
+    discard_uart(provider);
+    if write_command(
+        provider,
+        &encode_sensor_stream(35).expect("mode stream packet is allow-listed"),
+    )
+    .is_ok()
+        && read_full_stream(
+            provider,
+            watchdog,
+            Instant::now() + Duration::from_millis(MODE_STREAM_RESPONSE_MS),
+        )
+        .await
+        .is_ok()
+    {
+        return Ok(());
     }
     let _ = request_safe_unverified(provider);
     Err(())
