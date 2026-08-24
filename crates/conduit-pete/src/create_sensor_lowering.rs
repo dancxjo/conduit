@@ -11,6 +11,10 @@ use conduit_core::{
     WheelDropObservation, BODY_SECTOR_FRONT_LEFT, BODY_SECTOR_FRONT_RIGHT, BODY_SECTOR_LEFT,
     BODY_SECTOR_RIGHT, CHARGING_SOURCE_MASK, WHEEL_CASTER, WHEEL_LEFT, WHEEL_RIGHT,
 };
+use conduit_create_oi::{
+    Create1BatteryEstimate, Create1BatteryNormalizationDisposition,
+    NormalizedCreate1BatteryEstimate,
+};
 
 pub const CREATE_GROUP_ZERO_PACKET_ID: u8 = 0;
 pub const CREATE_CHARGING_SOURCES_PACKET_ID: u8 = 34;
@@ -19,7 +23,6 @@ pub const CREATE_CHARGING_SOURCES_PACKET_ID: u8 = 34;
 pub enum CreateSensorLoweringError {
     WrongPacket { expected: u8, actual: u8 },
     Semantic(InfoDecodeError),
-    InconsistentCharge,
 }
 
 impl From<InfoDecodeError> for CreateSensorLoweringError {
@@ -39,18 +42,27 @@ pub struct CreateChargingSample {
 }
 
 impl CreateChargingSample {
+    pub const fn normalized_battery(self) -> NormalizedCreate1BatteryEstimate {
+        Create1BatteryEstimate {
+            reported_charge_mah: self.charge_mah,
+            reported_capacity_mah: self.capacity_mah,
+        }
+        .normalize()
+    }
+
     pub fn with_sources(
         self,
         sources: CreateChargingSources,
     ) -> Result<ChargingObservation, CreateSensorLoweringError> {
+        let battery = self.normalized_battery();
         Ok(ChargingObservation {
             state: self.state,
             sources: sources.bits,
             millivolts: self.millivolts,
             milliamps: self.milliamps,
             temperature_celsius: self.temperature_celsius,
-            charge_mah: self.charge_mah,
-            capacity_mah: self.capacity_mah,
+            charge_mah: battery.charge_mah,
+            capacity_mah: battery.capacity_mah,
         }
         .new()?)
     }
@@ -58,17 +70,14 @@ impl CreateChargingSample {
     /// Exact integer ratio rounded down. Zero capacity is absence, not a
     /// fabricated empty battery.
     pub fn battery(self) -> Result<Option<BatteryObservation>, CreateSensorLoweringError> {
-        if self.capacity_mah == 0 {
-            return if self.charge_mah == 0 {
-                Ok(None)
-            } else {
-                Err(CreateSensorLoweringError::InconsistentCharge)
-            };
+        let normalized = self.normalized_battery();
+        if normalized.disposition
+            == Create1BatteryNormalizationDisposition::EstimatedCapacityUnavailable
+        {
+            return Ok(None);
         }
-        if self.charge_mah > self.capacity_mah {
-            return Err(CreateSensorLoweringError::InconsistentCharge);
-        }
-        let permille = u32::from(self.charge_mah) * 1_000 / u32::from(self.capacity_mah);
+        let permille =
+            u32::from(normalized.charge_mah) * 1_000 / u32::from(normalized.capacity_mah);
         Ok(Some(BatteryObservation::new(
             u16::try_from(permille).expect("bounded battery ratio"),
             self.millivolts,
@@ -275,19 +284,12 @@ mod tests {
     }
 
     #[test]
-    fn packet_identity_charge_consistency_and_codec_validation_fail_closed() {
+    fn packet_identity_and_codec_validation_fail_closed() {
         let group = decode_stream_frame(0, &frame(0, &group_zero())).unwrap();
         assert!(matches!(
             lower_charging_sources(&group),
             Err(CreateSensorLoweringError::WrongPacket { .. })
         ));
-        let mut inconsistent = group_zero();
-        inconsistent[22..24].copy_from_slice(&2_401_u16.to_be_bytes());
-        let packet = decode_stream_frame(0, &frame(0, &inconsistent)).unwrap();
-        assert_eq!(
-            lower_group_zero(&packet),
-            Err(CreateSensorLoweringError::InconsistentCharge)
-        );
         let mut malformed = frame(34, &[4]);
         let checksum = malformed.len() - 1;
         malformed[checksum] = malformed[checksum].wrapping_sub(4);
