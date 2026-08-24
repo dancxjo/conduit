@@ -93,6 +93,10 @@ fn instrument_synth_exposes_every_control_and_an_edit_requires_a_new_plan() {
     let graph = PatchbayGraph::from_expanded(&before).unwrap();
     let synth = &graph.gears[0];
     assert_eq!(synth.controls.len(), 14);
+    assert!(synth
+        .controls
+        .iter()
+        .all(|control| control.interaction.is_some()));
     for required in [
         conduit_std_catalog::SYNTH_MAXIMUM_VOICES_KEY,
         conduit_std_catalog::SYNTH_OSCILLATOR_KEY,
@@ -131,6 +135,71 @@ fn instrument_synth_exposes_every_control_and_an_edit_requires_a_new_plan() {
         plan_after.fragments[0].placements[0].configuration[7].value,
         ConfigurationValue::U64(18_001)
     );
+}
+
+#[test]
+fn instrument_configuration_uses_common_typed_proposals_and_replans() {
+    use conduit_core::{
+        HumanInteractionProposal, InteractionProposalPayload, InteractionValue, KindId,
+    };
+
+    let mut editor = editor(
+        "form instrument {\n    synth: music/synth(maximum-voices = 8, oscillator = \"saw\")\n}\n",
+    );
+    let before = editor.expand_form("instrument").unwrap();
+    let plan_before = conduit_std_host::StdHost::new()
+        .plan_expanded_local(&before)
+        .unwrap();
+    let graph = PatchbayGraph::from_expanded(&before).unwrap();
+    let waveform = graph.gears[0]
+        .controls
+        .iter()
+        .find(|control| control.key == conduit_std_catalog::SYNTH_OSCILLATOR_KEY)
+        .unwrap();
+    let interaction = waveform.interaction.as_ref().unwrap();
+    assert!(matches!(
+        interaction.contract.family,
+        conduit_core::InteractionFamily::ChooseOne { .. }
+    ));
+    let proposal = HumanInteractionProposal::new(
+        &interaction.contract,
+        &interaction.state,
+        1,
+        InteractionProposalPayload::Values(vec![InteractionValue::new(
+            KindId::from("configuration/text-choice@1"),
+            b"triangle".to_vec(),
+        )
+        .unwrap()]),
+    )
+    .unwrap();
+    editor
+        .apply_gear_configuration_proposal(
+            0,
+            &before.expanded_form_id,
+            "synth",
+            conduit_std_catalog::SYNTH_OSCILLATOR_KEY,
+            &proposal,
+        )
+        .unwrap();
+    let after = editor.expand_form("instrument").unwrap();
+    let plan_after = conduit_std_host::StdHost::new()
+        .plan_expanded_local(&after)
+        .unwrap();
+    assert_ne!(before.checked_form_id, after.checked_form_id);
+    assert_ne!(before.expanded_form_id, after.expanded_form_id);
+    assert_ne!(plan_before.plan_id, plan_after.plan_id);
+    assert!(editor.view().source.contains("oscillator = \"triangle\""));
+
+    let refusal = editor
+        .apply_gear_configuration_proposal(
+            0,
+            &before.expanded_form_id,
+            "synth",
+            conduit_std_catalog::SYNTH_OSCILLATOR_KEY,
+            &proposal,
+        )
+        .unwrap_err();
+    assert!(matches!(refusal, FormEditorError::StaleRevision { .. }));
 }
 
 #[test]
