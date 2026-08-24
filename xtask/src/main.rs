@@ -4,6 +4,7 @@
 //! checked-out repository workflows and local hardware tooling.
 
 mod cli;
+mod command_registry;
 mod commands;
 mod evidence;
 mod obligation;
@@ -17,7 +18,9 @@ use clap::Parser;
 use cli::{AudioCommand, Cli, Command, DemoCommand, GlobalOpts, MidiCommand};
 
 fn main() {
-    let cli = Cli::parse();
+    let cli = Cli::parse_from(command_registry::normalize_compatibility_aliases(
+        std::env::args_os().collect(),
+    ));
     let opts = cli.global;
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
         Command::Browser => commands::browser::run(&opts),

@@ -1,19 +1,19 @@
 # Optional shell façade. Every recipe delegates to one of the two canonical
 # entrances; no product or repository behavior is implemented here.
 conduit *args:
-    cargo run -p conduit -- {{args}}
+    conduit {{args}}
 
 run form *args:
-    cargo run -p conduit -- run {{form}} {{args}}
+    conduit run {{form}} {{args}}
 
 form-check form *args:
-    cargo run -p conduit -- check {{form}} {{args}}
+    conduit check {{form}} {{args}}
 
 inspect report *args:
-    cargo run -p conduit -- inspect runtime-report {{report}} {{args}}
+    conduit inspect runtime-report {{report}} {{args}}
 
 copy *args:
-    cargo run -p conduit -- copy {{args}}
+    conduit copy {{args}}
 
 xtask *args:
     cargo xtask {{args}}
@@ -29,55 +29,55 @@ std-host:
     cargo xtask host std
 
 demo-std:
-    cargo xtask demo std
+    cargo xtask host std
 
 demo-triple-local:
     cargo xtask demo triple
 
 browser-sim:
-    cargo test -p conduit-browser-sim
+    cargo xtask check sim
 
 browser-frame-fixture:
-    cargo test -p conduit-browser-sim std_host_sends_signal_to_browser_through_bounded_frame_fixture
+    cargo xtask check sim
 
 triple-sim-proof:
-    cargo test -p conduit-browser-sim triple_signal_form_fans_out_to_std_and_simulated_receipts
+    cargo xtask check sim
 
 browser-sim-wasm-check:
-    cargo check -p conduit-browser-sim --target wasm32-unknown-unknown
+    cargo xtask check workspace-portable
 
 pico-sim:
-    cargo test -p conduit-pico-sim
+    cargo xtask check sim
 
 pico-datagram-fixture:
-    cargo test -p conduit-pico-sim std_host_sends_signal_to_pico_through_bounded_datagram_fixture
+    cargo xtask check sim
 
 pico-sim-thumb-check:
-    cargo check -p conduit-pico-sim --no-default-features --target thumbv6m-none-eabi
+    cargo xtask check workspace-pico
 
 body:
-    cargo test -p conduit-body
+    cargo xtask check workspace-test-foundation
 
 body-thumb-check:
-    cargo check -p conduit-body --target thumbv6m-none-eabi
+    cargo xtask check workspace-pico
 
 observatory:
-    cargo test -p conduit-observatory
+    cargo xtask check observatory
 
 observatory-thumb-check:
-    cargo check -p conduit-observatory --target thumbv6m-none-eabi
+    cargo xtask check workspace-pico
 
 system-continuity:
-    cargo test -p conduit-system-continuity
+    cargo xtask check workspace-test-foundation
 
 system-continuity-thumb-check:
-    cargo check -p conduit-system-continuity --target thumbv6m-none-eabi
+    cargo xtask check workspace-pico
 
 std-catalog:
-    cargo test -p conduit-std-catalog
+    cargo xtask check std-catalog
 
 std-catalog-thumb-check:
-    cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
+    cargo xtask check workspace-pico
 
 check suite="workspace" *args:
     cargo xtask check {{suite}} {{args}}
@@ -148,7 +148,7 @@ check-browser-s4:
     cargo xtask check browser-host
 
 check-body-readiness:
-    cargo test -p conduit-body
+    cargo xtask check workspace-test-foundation
 
 check-observatory-readiness:
     cargo xtask check observatory
