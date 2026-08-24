@@ -50,3 +50,29 @@ export async function startWebRtcRendezvousProbe() {
   });
   return { process, url, output: () => output };
 }
+
+export async function startBrowserHumanBodyCapstone() {
+  const process = spawn("target/debug/browser-human-body-capstone", [], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const url = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`browser Host Body was not ready\n${output}`)), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const match = output.match(/^(ws:\/\/[^\s]+)/);
+      if (match) {
+        clearTimeout(timeout);
+        resolve(match[1]);
+      }
+    };
+    process.stdout.on("data", inspect);
+    process.stderr.on("data", inspect);
+    process.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) reject(new Error(`browser Host Body exited (${code})\n${output}`));
+    });
+  });
+  return { process, url, output: () => output };
+}

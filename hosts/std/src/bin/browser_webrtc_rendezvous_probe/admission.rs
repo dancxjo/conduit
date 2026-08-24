@@ -2,6 +2,7 @@ use conduit_body::{
     AdmissionManager, AdmissionSigns, AmbientAdmissionProof, BodyMembership, CandidateInventory,
     CandidateObservation, DiscoveryProofId, MembershipCredential,
 };
+use conduit_core::HostAdvertisement;
 use conduit_core::{LinkBindingId, SignId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionSocket,
@@ -12,6 +13,7 @@ pub(super) struct Peer {
     pub(super) socket: BrowserAdmissionSocket,
     pub(super) credential: MembershipCredential,
     pub(super) session_id: LinkBindingId,
+    pub(super) advertisement: HostAdvertisement,
 }
 
 pub(super) fn admit(
@@ -40,7 +42,7 @@ pub(super) fn admit(
     let proof_id = format!("proof/probe/{index}");
     let candidate = candidates
         .observe(CandidateObservation {
-            advertisement,
+            advertisement: advertisement.clone(),
             friendly_label,
             observed_binding_id: LinkBindingId::from(format!("probe/admission/{index}")),
             observation_sign_id: SignId::from(format!("sign/probe/observed/{index}")),
@@ -112,5 +114,6 @@ pub(super) fn admit(
         socket,
         session_id: LinkBindingId::from(format!("probe/presence/{index}")),
         credential,
+        advertisement,
     })
 }

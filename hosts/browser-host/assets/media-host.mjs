@@ -50,7 +50,7 @@ export function createBrowserMediaHost({
   status = document.querySelector("#media-status"),
   output = document.querySelector("#media-evidence"),
 }) {
-  const required = ["conduit_browser_media_input_ptr", "conduit_browser_media_input_capacity", "conduit_browser_media_start_acquisition", "conduit_browser_media_effect_kind", "conduit_browser_media_complete_acquisition", "conduit_browser_media_start_use", "conduit_browser_media_submit_value", "conduit_browser_media_release_value", "conduit_browser_media_close", "conduit_browser_media_device_lost", "conduit_browser_media_track_ended", "conduit_browser_media_evidence_ptr", "conduit_browser_media_evidence_len"];
+  const required = ["conduit_browser_media_input_ptr", "conduit_browser_media_input_capacity", "conduit_browser_media_start_acquisition", "conduit_browser_media_effect_kind", "conduit_browser_media_complete_acquisition", "conduit_browser_media_start_use", "conduit_browser_media_start_use_plan", "conduit_browser_media_submit_value", "conduit_browser_media_release_value", "conduit_browser_media_close", "conduit_browser_media_device_lost", "conduit_browser_media_track_ended", "conduit_browser_media_evidence_ptr", "conduit_browser_media_evidence_len"];
   if (required.some(name => !(name in api)) || api.conduit_browser_media_input_capacity() !== INPUT_CAPACITY) throw new Error("browser media ABI is incomplete");
   let stream = null;
   const publish = () => {
@@ -59,7 +59,7 @@ export function createBrowserMediaHost({
     status.textContent = `${value.phase}${value.terminal ? `: ${value.terminal}` : ""}`;
     return value;
   };
-  async function acquire(kind) {
+  async function acquireResource(kind) {
     if (stream) throw new Error("one admitted browser media operation is already active");
     const identity = encoder.encode(hostId + bootId);
     write(api, identity);
@@ -77,16 +77,42 @@ export function createBrowserMediaHost({
       write(api, handle);
       requireStatus(api.conduit_browser_media_complete_acquisition(0, handle.length, camera ? settings.width : settings.sampleRate, camera ? settings.height : 0, camera ? Math.max(1, Math.round(settings.frameRate ?? 1)) : settings.channelCount, 256), "acquisition completion");
       acquired = true;
-      requireStatus(api.conduit_browser_media_start_use(1), "media use Plan");
-      const bytes = await boundedTrackValue(track, TrackProcessor);
-      write(api, bytes);
-      requireStatus(api.conduit_browser_media_submit_value(bytes.length), "media value");
-      publish();
-      requireStatus(api.conduit_browser_media_release_value(), "media value release");
-      requireStatus(api.conduit_browser_media_close(), "media closure");
-      for (const member of stream.getTracks()) member.stop();
-      stream = null;
-      return publish();
+      const acquiredStream = stream;
+      const resourceTruth = publish();
+      let used = false;
+      return Object.freeze({
+        evidence: () => evidence(api),
+        resourceTruth,
+        use: async ({ planId = null, onValue = null } = {}) => {
+          if (used || stream !== acquiredStream) throw new Error("browser media resource is no longer current");
+          used = true;
+          try {
+            if (planId) {
+              const encodedPlan = encoder.encode(planId);
+              write(api, encodedPlan);
+              requireStatus(api.conduit_browser_media_start_use_plan(encodedPlan.length, 1), "media use Plan");
+            } else {
+              requireStatus(api.conduit_browser_media_start_use(1), "media use Plan");
+            }
+            const bytes = await boundedTrackValue(track, TrackProcessor);
+            write(api, bytes);
+            requireStatus(api.conduit_browser_media_submit_value(bytes.length), "media value");
+            publish();
+            if (onValue) await onValue(bytes, evidence(api));
+            requireStatus(api.conduit_browser_media_release_value(), "media value release");
+            requireStatus(api.conduit_browser_media_close(), "media closure");
+            for (const member of acquiredStream.getTracks()) member.stop();
+            stream = null;
+            return publish();
+          } catch (error) {
+            api.conduit_browser_media_device_lost();
+            for (const member of acquiredStream.getTracks()) member.stop();
+            stream = null;
+            publish();
+            throw error;
+          }
+        },
+      });
     } catch (error) {
       if (!acquired) {
         requireStatus(api.conduit_browser_media_complete_acquisition(refusal(error), 0, 0, 0, 0, 64), "acquisition refusal");
@@ -101,6 +127,10 @@ export function createBrowserMediaHost({
       throw error;
     }
   }
+  async function acquire(kind) {
+    const resource = await acquireResource(kind);
+    return resource.use();
+  }
   function terminate() {
     if (!stream) return;
     api.conduit_browser_media_device_lost();
@@ -109,5 +139,5 @@ export function createBrowserMediaHost({
     publish();
   }
   globalThis.addEventListener("pagehide", terminate, { once: true });
-  return Object.freeze({ acquire, evidence: () => evidence(api), terminate });
+  return Object.freeze({ acquire, acquireResource, evidence: () => evidence(api), terminate });
 }

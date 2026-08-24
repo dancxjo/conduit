@@ -198,6 +198,23 @@ export class BodyWebRtcSessions {
     return this.#grantGeneration;
   }
 
+  activatePlan() {
+    if (this.#terminal !== null || !this.#begun || this.#expectedTotal !== 0 ||
+        this.#sessions.size !== 0 || this.#creating.size !== 0 || this.#pendingSignals.size !== 0 ||
+        this.#inFlightGrantIndex !== null || this.#nextGrantIndex !== 1) {
+      throw new Error("WebRTC Plan activation requires an exact completed empty grant set");
+    }
+    if (this.#grantGeneration + 1 >= MAXIMUM_GRANT_GENERATIONS) {
+      throw new Error("WebRTC grant generation capacity exhausted");
+    }
+    this.#expectedTotal = null;
+    this.#nextGrantIndex = 0;
+    this.#grantGeneration += 1;
+    this.#requestGrant(this.#grantGeneration, 0);
+    this.#onState?.(this.state());
+    return this.#grantGeneration;
+  }
+
   #session(negotiationId) {
     negotiationIdentity(negotiationId);
     if (this.#terminal !== null || !this.#begun) throw new Error("WebRTC sessions are not current");

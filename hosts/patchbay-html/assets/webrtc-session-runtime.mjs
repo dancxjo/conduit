@@ -1,4 +1,4 @@
-const FRAME_CAPACITY = 1024;
+const FRAME_CAPACITY = 128 * 1024;
 
 const requiredExports = [
   "memory",

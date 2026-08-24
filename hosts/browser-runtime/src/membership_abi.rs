@@ -10,7 +10,7 @@ use serde::Deserialize;
 use std::cell::RefCell;
 
 const INPUT_CAPACITY: usize = 4_096;
-const OUTPUT_CAPACITY: usize = 9_216;
+const OUTPUT_CAPACITY: usize = conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
 const KEY_BYTES: usize = 32;
 const MAX_IDENTITY_BYTES: usize = 128;
 const STATUS_READY: i32 = 0;
