@@ -1,5 +1,38 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_LLM_CROSS_HOST_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.llm-cross-host.provider-back",
+        "Prove an unchanged LLM Form uses exact distributed provider leaves, interruption, fresh Plan truth, and stale-completion refusal",
+        "cargo",
+        &["test", "-p", "conduit-ai", "--features", "form-catalog", "provider::tests::unchanged_form_selects_direct_face_or_distributed_provider_back_exactly"],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.llm-cross-host.kernel",
+        "Prove the recursive Back executes through bounded production-kernel fragments with pressure and terminal loss",
+        "cargo",
+        &["test", "-p", "conduit-planner", "--test", "distributed_back", "distributed_back_plays_through_two_production_kernel_fragments"],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.llm-cross-host.patchbay",
+        "Prove Patchbay explains unchanged Form identity, distinct realization truth, no automatic migration, and stale completion refusal",
+        "cargo",
+        &["test", "-p", "patchbay-model", "llm_replan_explanation"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+];
+
 pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
     Step::typed(
         "prove.llm-embodiment.plan",

@@ -3,11 +3,12 @@ extern crate std;
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    kind_id, resource_offer, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
-    ConnectionBase, GearId, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
-    LineId, LinkBindingId, LinkEndpointId, OfferGeneration, ProtectedResourceAccess,
-    ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId,
-    ResourceHandleId, SignId, PROTOCOL_VERSION,
+    bind_active_play, kind_id, resource_offer, seal_plan_with_realization_backs,
+    AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId, ConnectionBase, GearId,
+    HostAdvertisement, HostId, HostOperationContractId, HostProfileId, LineId, LinkBindingId,
+    LinkEndpointId, OfferGeneration, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
+    ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId, SignId,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
@@ -19,7 +20,11 @@ use conduit_planner::{
 };
 
 use super::*;
-use crate::{generate_text_base_fixtures, generate_text_contract, install_generate_text_catalog};
+use crate::{
+    classify_missing_llm_plan, generate_text_base_fixtures, generate_text_contract,
+    install_generate_text_catalog, CrossHostLlmError, CrossHostLlmRun, LlmInterruptionReason,
+    LlmPlanningRefusal, ReplacementLlmRun,
+};
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog, CanonicalBackCatalog) {
     let mut startup = StartupCatalog::new();
@@ -305,4 +310,83 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
         .unwrap();
     assert_eq!(protected.handle_id.as_str(), "opaque/provider-credential");
     assert!(conduit_core::verify_plan(&recursive_plan));
+
+    // Loss never patches Plan A. Fresh advertisement truth seals a distinct Plan B.
+    let plan_a_snapshot = recursive_plan.clone();
+    let play_a = bind_active_play(&recursive_plan.plan_id, &tiny.host_id, &tiny.boot_id, 1);
+    let run_a = CrossHostLlmRun::observe(&recursive_plan, &play_a, "request/a".into()).unwrap();
+    assert!(run_a.parts.iter().any(|part| part.host_id == tiny.host_id));
+    assert!(run_a
+        .parts
+        .iter()
+        .any(|part| part.host_id == provider.host_id));
+    let interrupted = run_a.interrupted(LlmInterruptionReason::ModelProviderLost);
+
+    assert_eq!(
+        classify_missing_llm_plan::<conduit_core::Plan>(None),
+        Err(LlmPlanningRefusal::MissingLlmRealization)
+    );
+
+    let fresh_host = HostId::from("replacement-provider-part");
+    let fresh_boot = BootId::from("replacement-provider-boot");
+    let mut fragments = recursive_plan.fragments.clone();
+    for fragment in &mut fragments {
+        if fragment.host_id == provider.host_id {
+            fragment.host_id = fresh_host.clone();
+            fragment.boot_id = fresh_boot.clone();
+            fragment.offer_generation = OfferGeneration(2);
+        }
+        for placement in &mut fragment.placements {
+            if placement.host_id == provider.host_id {
+                placement.host_id = fresh_host.clone();
+                placement.boot_id = fresh_boot.clone();
+                placement.offer_generation = OfferGeneration(2);
+                for authority in &mut placement.authority {
+                    authority.host_id = fresh_host.clone();
+                    authority.boot_id = fresh_boot.clone();
+                }
+            }
+        }
+        for connection in &mut fragment.connections {
+            for admitted in connection
+                .admitted_lines
+                .iter_mut()
+                .chain(connection.selected_line.iter_mut())
+            {
+                if admitted.binding.source.host_id == provider.host_id {
+                    admitted.binding.source.host_id = fresh_host.clone();
+                    admitted.binding.source.boot_id = fresh_boot.clone();
+                }
+                if admitted.binding.sink.host_id == provider.host_id {
+                    admitted.binding.sink.host_id = fresh_host.clone();
+                    admitted.binding.sink.boot_id = fresh_boot.clone();
+                }
+            }
+        }
+    }
+    let plan_b = seal_plan_with_realization_backs(
+        conduit_core::FormIdentity {
+            source_document_id: recursive_plan.source_document_id.clone(),
+            checked_form_id: recursive_plan.checked_form_id.clone(),
+            expanded_form_id: recursive_plan.expanded_form_id.clone(),
+        },
+        recursive_plan.realization_backs.clone(),
+        fragments,
+    );
+    let play_b = bind_active_play(&plan_b.plan_id, &tiny.host_id, &tiny.boot_id, 2);
+    let run_b = CrossHostLlmRun::observe(&plan_b, &play_b, "request/b".into()).unwrap();
+    let replacement = ReplacementLlmRun::start(interrupted, run_b).unwrap();
+    assert_eq!(recursive_plan, plan_a_snapshot);
+    assert_ne!(recursive_plan.plan_id, plan_b.plan_id);
+    assert_eq!(recursive_plan.source_document_id, plan_b.source_document_id);
+    assert_eq!(recursive_plan.checked_form_id, plan_b.checked_form_id);
+    assert_eq!(recursive_plan.expanded_form_id, plan_b.expanded_form_id);
+    assert_eq!(
+        replacement.accept_completion(&recursive_plan.plan_id, &play_a.active_play_id, "request/a"),
+        Err(CrossHostLlmError::StaleCompletion)
+    );
+    assert_eq!(
+        replacement.accept_completion(&plan_b.plan_id, &play_b.active_play_id, "request/b"),
+        Ok(())
+    );
 }

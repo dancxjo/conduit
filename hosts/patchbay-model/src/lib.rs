@@ -39,6 +39,7 @@ mod layout;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
+mod llm_replan_explanation;
 mod maker_environment;
 mod palette;
 #[cfg(test)]
@@ -139,6 +140,10 @@ pub use llm_embodiment_presentation::{
 pub use llm_presentation::{
     project_llm_patchbay, CandidateFormInspection, LlmGearActivity, LlmPatchbayTruth,
     LlmPresentationError, MAXIMUM_LLM_PRESENTATION_STAGES,
+};
+pub use llm_replan_explanation::{
+    explain_cross_host_llm_replan, explain_missing_llm_realization, CrossHostLlmReplanExplanation,
+    MAX_LLM_REPLAN_EXPLANATION_BYTES,
 };
 pub use maker_environment::{
     AuthoredEnvironment, AuthoredEnvironmentError, AuthoredLink, AuthoredPart, ConnectivityKind,
