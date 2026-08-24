@@ -1,26 +1,19 @@
 use std::time::Duration;
 
-use bluer::{Adapter, Device, Session};
+use bluer::{Device, Session};
 
 use super::BluezBleGattError;
 
 pub(super) struct PairingRetention {
     pub(super) agent: Option<bluer::agent::AgentHandle>,
-    pub(super) task: Option<tokio::task::JoinHandle<Result<(), bluer::Error>>>,
 }
 
-pub(super) async fn prepare_device(
+pub(super) async fn prepare_agent(
     session: &Session,
-    adapter: &Adapter,
-    device: &Device,
     allow_pairing: bool,
-) -> Result<PairingRetention, BluezBleGattError> {
-    let agent = if allow_pairing {
-        adapter
-            .set_pairable(true)
-            .await
-            .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
-        Some(
+) -> Result<Option<bluer::agent::AgentHandle>, BluezBleGattError> {
+    if allow_pairing {
+        Ok(Some(
             session
                 .register_agent(bluer::agent::Agent {
                     request_default: true,
@@ -28,42 +21,45 @@ pub(super) async fn prepare_device(
                 })
                 .await
                 .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?,
-        )
+        ))
     } else {
-        None
-    };
+        Ok(None)
+    }
+}
+
+pub(super) async fn prepare_device(
+    device: &Device,
+    agent: Option<bluer::agent::AgentHandle>,
+    allow_pairing: bool,
+) -> Result<PairingRetention, BluezBleGattError> {
     if device
         .is_paired()
         .await
         .map_err(|_| BluezBleGattError::DeviceUnavailable)?
     {
-        return Ok(PairingRetention { agent, task: None });
+        return Ok(PairingRetention { agent });
     }
     if !allow_pairing {
         return Err(BluezBleGattError::NotPaired);
     }
 
-    // Own the selected physical connection before pairing. BlueZ may otherwise
-    // create an ephemeral pairing connection and close it before the admitted
-    // GATT Line can adopt the same link.
-    device
-        .connect()
-        .await
-        .map_err(|error| BluezBleGattError::ConnectFailed(error.to_string()))?;
-    let pairing_device = device.clone();
-    let mut task = Some(tokio::spawn(async move { pairing_device.pair().await }));
     // BlueZ may complete controller encryption and publish the paired device
     // fact several seconds after Pair is issued on the Pico W controller.
-    // Keep the one retained operation slot alive for a finite physical bound.
+    // Drive the one pairing future in this task so every failure path drops it
+    // and therefore invokes BlueZ CancelPairing instead of detaching work.
     let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
+    let pairing = device.pair();
+    tokio::pin!(pairing);
+    let mut pair_call_complete = false;
     loop {
-        if task.as_ref().is_some_and(|task| task.is_finished()) {
-            task.take()
-                .expect("the finished pairing task remains present")
-                .await
-                .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?
-                .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?;
-            break;
+        if !pair_call_complete {
+            tokio::select! {
+                result = &mut pairing => {
+                    result.map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?;
+                    pair_call_complete = true;
+                }
+                () = tokio::time::sleep(Duration::from_millis(100)) => {}
+            }
         }
         let paired = device
             .is_paired()
@@ -73,18 +69,18 @@ pub(super) async fn prepare_device(
             .is_connected()
             .await
             .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-        if paired && connected {
+        if pair_call_complete && paired && connected {
             break;
         }
         if tokio::time::Instant::now() >= deadline {
-            if let Some(task) = task.take() {
-                task.abort();
-            }
             return Err(BluezBleGattError::PairingFailed(
-                "BlueZ pairing timed out without paired and connected facts".into(),
+                "BlueZ pairing timed out before Pair completed with paired and connected facts"
+                    .into(),
             ));
         }
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        if pair_call_complete {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
     }
-    Ok(PairingRetention { agent, task })
+    Ok(PairingRetention { agent })
 }

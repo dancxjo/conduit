@@ -135,7 +135,8 @@ use embassy_futures::join::join;
 #[cfg(any(
     feature = "pico-local",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "bluetooth-line"
 ))]
 use embassy_futures::select::{select, Either};
 #[cfg(not(feature = "wifi-bootstrap"))]
@@ -178,15 +179,6 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
 ))]
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;
-
-#[cfg(feature = "bluetooth-line")]
-#[embassy_executor::task]
-async fn bluetooth_bootsel_task(session_line: usb::PicoUsbCdcLine) -> ! {
-    let mut link_session = usb_link::UsbLinkSession::new(session_line).unwrap();
-    loop {
-        let _ = bootsel::wait_for_request(&mut link_session).await;
-    }
-}
 
 // Vendored CYW43 firmware assets — checked at build time via xtask doctor.
 static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
@@ -417,30 +409,41 @@ async fn main(spawner: Spawner) {
     #[cfg(feature = "bluetooth-line")]
     {
         const PICO_W_FLASH_BYTES: usize = 2 * 1024 * 1024;
+        let mut link_session = usb_link::UsbLinkSession::new(session_line).unwrap();
         let mut flash = Flash::<_, _, PICO_W_FLASH_BYTES>::new_blocking(p.FLASH);
         let mut flash_unique_id = [0_u8; 8];
         flash
             .blocking_unique_id(&mut flash_unique_id)
             .expect("Pico W flash must expose its physical unique identity");
-        spawner.spawn(bluetooth_bootsel_task(session_line).unwrap());
-        cdc.wait_dtr().await;
-        bluetooth_line::run(
-            &spawner,
-            &mut cdc,
-            p.PIO0,
-            p.DMA_CH0,
-            p.DMA_CH1,
-            p.PIN_23,
-            p.PIN_24,
-            p.PIN_25,
-            p.PIN_29,
-            &CYW43_FW,
-            &CYW43_BTFW,
-            &CYW43_NVRAM,
-            CYW43_CLM,
-            &runtime,
-            flash_unique_id,
-        )
-        .await;
+        let bluetooth = async {
+            cdc.wait_dtr().await;
+            bluetooth_line::run(
+                &spawner,
+                &mut cdc,
+                p.PIO0,
+                p.DMA_CH0,
+                p.DMA_CH1,
+                p.PIN_23,
+                p.PIN_24,
+                p.PIN_25,
+                p.PIN_29,
+                &CYW43_FW,
+                &CYW43_BTFW,
+                &CYW43_NVRAM,
+                CYW43_CLM,
+                &runtime,
+                flash_unique_id,
+            )
+            .await
+        };
+        let recovery = async {
+            loop {
+                let _ = bootsel::wait_for_request(&mut link_session).await;
+            }
+        };
+        match select(bluetooth, recovery).await {
+            Either::First(value) => value,
+            Either::Second(value) => value,
+        }
     }
 }

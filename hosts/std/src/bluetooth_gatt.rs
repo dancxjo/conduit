@@ -69,7 +69,6 @@ pub struct BluezBleGattCandidate {
 /// the object retains no discovery list, reconnect policy, or semantic state.
 pub struct BluezBleGattLine {
     _agent: Option<bluer::agent::AgentHandle>,
-    pairing_task: Option<tokio::task::JoinHandle<Result<(), bluer::Error>>>,
     address: Address,
     profile: BleGattProfile,
     write: BleGattWrite,
@@ -224,7 +223,6 @@ impl BluezBleGattListener {
         }
         Ok(BluezBleGattLine {
             _agent: None,
-            pairing_task: None,
             address: expected_address,
             profile: self.profile,
             write: BleGattWrite::Local(writer.expect("checked finite writer slot")),
@@ -282,6 +280,10 @@ impl BluezBleGattLine {
         let device = adapter
             .device(address)
             .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
+        // Install the exact headless pairing policy before the first physical
+        // connection. Service resolution may itself encounter an encrypted
+        // characteristic and must never race ahead of this process's agent.
+        let agent = pairing::prepare_agent(&session, allow_pairing).await?;
         if !allow_pairing
             && !device
                 .is_paired()
@@ -295,9 +297,9 @@ impl BluezBleGattLine {
             .await
             .map_err(|_| BluezBleGattError::DeviceUnavailable)?
         {
-            device
-                .connect()
+            tokio::time::timeout(std::time::Duration::from_secs(20), device.connect())
                 .await
+                .map_err(|_| BluezBleGattError::ConnectFailed("BlueZ connect timed out".into()))?
                 .map_err(|error| BluezBleGattError::ConnectFailed(error.to_string()))?;
         }
 
@@ -307,19 +309,19 @@ impl BluezBleGattLine {
         // Resolve the advertised GATT contract before initiating security.
         // Some BlueZ/controller pairs otherwise race service resolution with
         // the pairing transaction and publish a false ServicesUnresolved fact.
-        let services = device
-            .services()
+        let services = tokio::time::timeout(std::time::Duration::from_secs(20), device.services())
             .await
+            .map_err(|_| BluezBleGattError::MissingService)?
             .map_err(|_| BluezBleGattError::MissingService)?;
-        let pairing = pairing::prepare_device(&session, &adapter, &device, allow_pairing).await?;
+        let pairing = pairing::prepare_device(&device, agent, allow_pairing).await?;
         if !device
             .is_connected()
             .await
             .map_err(|_| BluezBleGattError::DeviceUnavailable)?
         {
-            device
-                .connect()
+            tokio::time::timeout(std::time::Duration::from_secs(20), device.connect())
                 .await
+                .map_err(|_| BluezBleGattError::ConnectFailed("BlueZ reconnect timed out".into()))?
                 .map_err(|error| BluezBleGattError::ConnectFailed(error.to_string()))?;
         }
         let mut service = None;
@@ -383,7 +385,6 @@ impl BluezBleGattLine {
 
         Ok(Self {
             _agent: pairing.agent,
-            pairing_task: pairing.task,
             address,
             profile,
             write: BleGattWrite::Remote(write_characteristic),
@@ -453,14 +454,6 @@ impl BluezBleGattLine {
                 output[..frame.len()].copy_from_slice(frame);
                 return Ok(frame.len());
             }
-        }
-    }
-}
-
-impl Drop for BluezBleGattLine {
-    fn drop(&mut self) {
-        if let Some(task) = &self.pairing_task {
-            task.abort();
         }
     }
 }
