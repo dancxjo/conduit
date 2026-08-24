@@ -208,8 +208,8 @@ mod tests {
             report.implemented_count + report.missing_count,
             report.catalog_entry_count
         );
-        assert_eq!(report.implemented_count, 55);
-        assert_eq!(report.missing_count, 2);
+        assert_eq!(report.implemented_count, 56);
+        assert_eq!(report.missing_count, 1);
         let state_select = report
             .entries
             .iter()
@@ -217,12 +217,9 @@ mod tests {
             .unwrap();
         assert_eq!(
             state_select.classification,
-            catalog::GapClassification::PortableImplementationMissing
+            catalog::GapClassification::Implemented
         );
-        assert_eq!(
-            state_select.unsatisfied_prerequisites,
-            ["implementation:portable"]
-        );
+        assert!(state_select.unsatisfied_prerequisites.is_empty());
         let file_copy = report
             .entries
             .iter()

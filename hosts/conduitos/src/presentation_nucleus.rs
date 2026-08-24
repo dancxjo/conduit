@@ -27,6 +27,11 @@ mod robotics_plan;
 mod robotics_play;
 #[cfg(test)]
 mod robotics_tests;
+mod state_select_operation;
+mod state_select_plan;
+mod state_select_play;
+#[cfg(test)]
+mod state_select_tests;
 
 pub use plan::{FORM_SOURCE, PreparedPresentationPlay, prepare};
 pub use play::{PresentationProof, PresentationRunError, run};
@@ -46,3 +51,5 @@ pub use portable_state_input_play::{
 pub use robotics_operation::RoboticsDriveEffect;
 pub use robotics_plan::{PreparedRobotics, prepare_robotics};
 pub use robotics_play::{RoboticsError, RoboticsProof, run_robotics};
+pub use state_select_plan::{PreparedStateSelect, StateSelectSequence, prepare_state_select};
+pub use state_select_play::{StateSelectError, StateSelectProof, run_state_select};
