@@ -5,9 +5,10 @@ use std::{
 };
 
 use conduit_host_fabrication::{
-    canonical_host_configuration_toml, check_host_configuration, compatible_base_implementations,
-    parse_host_configuration, target_descriptors, CheckedHostConfiguration, ConfigurationBase,
-    ConfigurationTarget, FabricationCatalog, HostConfiguration, HOST_CONFIGURATION_SCHEMA,
+    canonical_host_configuration_conduit, check_host_configuration,
+    compatible_base_implementations, parse_host_configuration_conduit, target_descriptors,
+    CheckedHostConfiguration, ConfigurationBase, ConfigurationTarget, FabricationCatalog,
+    HostConfiguration, HOST_CONFIGURATION_SCHEMA,
 };
 
 use crate::cli::GlobalOpts;
@@ -36,7 +37,7 @@ fn configure(
     let mut destination = path.map(Path::to_path_buf);
     let mut configuration = if path.is_some_and(Path::exists) {
         let source = fs::read_to_string(path.unwrap())?;
-        parse_host_configuration(&source)
+        parse_host_configuration_conduit(&source)
             .map_err(|item| format!("configuration decode refused: {item:?}"))?
     } else {
         create_configuration(input, output)?
@@ -57,10 +58,15 @@ fn configure(
                     destination = Some(PathBuf::from(read_line(input)?));
                 }
                 let destination = destination.as_ref().unwrap();
+                if !is_canonical_host_path(destination) {
+                    return Err(
+                        "Host construction source must use the '.host.conduit' suffix".into(),
+                    );
+                }
                 if let Some(parent) = destination.parent() {
                     fs::create_dir_all(parent)?;
                 }
-                let canonical = canonical_host_configuration_toml(&configuration)
+                let canonical = canonical_host_configuration_conduit(&configuration)
                     .map_err(|item| format!("configuration encode refused: {item:?}"))?;
                 fs::write(destination, canonical)?;
                 writeln!(output, "SAVED {}", destination.display())?;
@@ -72,6 +78,12 @@ fn configure(
             _ => writeln!(output, "Choose save, edit, validate, or quit.")?,
         }
     }
+}
+
+fn is_canonical_host_path(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.ends_with(".host.conduit"))
 }
 
 fn create_configuration(
@@ -271,7 +283,7 @@ mod tests {
     fn recorded_create_and_edit_transcript() {
         let directory =
             std::env::temp_dir().join(format!("conduit-host-config-{}", std::process::id()));
-        let path = directory.join("created.toml");
+        let path = directory.join("created.host.conduit");
         let mut create_input = Cursor::new("created\n1\n1,2\nv\ns\n");
         let mut create_output = Vec::new();
         configure(&mut create_input, &mut create_output, Some(&path)).unwrap();
@@ -282,7 +294,19 @@ mod tests {
         let mut edit_output = Vec::new();
         configure(&mut edit_input, &mut edit_output, Some(&path)).unwrap();
         let saved = std::fs::read_to_string(&path).unwrap();
-        assert!(saved.contains("name = \"renamed\""));
+        assert!(saved.starts_with("host renamed {"));
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn configurator_refuses_a_second_authoring_suffix() {
+        let directory =
+            std::env::temp_dir().join(format!("conduit-host-config-suffix-{}", std::process::id()));
+        let path = directory.join("created.host.toml");
+        let mut input = Cursor::new("created\n1\n\ns\n");
+        let mut output = Vec::new();
+        let error = configure(&mut input, &mut output, Some(&path)).unwrap_err();
+        assert!(error.to_string().contains(".host.conduit"));
+        assert!(!path.exists());
     }
 }

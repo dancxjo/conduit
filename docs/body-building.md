@@ -3,8 +3,8 @@
 Body building is a repository-development orchestration layer above accepted Host fabrication:
 
 ```text
-checked *.body.toml
-  -> checked referenced *.host.toml
+checked *.body.conduit
+  -> checked referenced *.host.conduit
   -> existing Host configuration -> PROFILE -> BUILD -> IMAGE
   -> Body binding
   -> Spore package
@@ -18,14 +18,22 @@ It is not a planner, runtime, package manager, or source of live Body presence. 
 Use the checked example with:
 
 ```text
-cargo xtask body check profiles/bodies/pete-r1.body.toml
-cargo xtask body show profiles/bodies/pete-r1.body.toml
-cargo xtask body build profiles/bodies/pete-r1.body.toml
-cargo xtask body build profiles/bodies/pete-r1.body.toml --host brainstem
-cargo xtask body deploy profiles/bodies/pete-r1.body.toml --host forebrain
+cargo xtask body check profiles/bodies/pete-r1.body.conduit
+cargo xtask body show profiles/bodies/pete-r1.body.conduit
+cargo xtask body build profiles/bodies/pete-r1.body.conduit
+cargo xtask body build profiles/bodies/pete-r1.body.conduit --host brainstem
+cargo xtask body deploy profiles/bodies/pete-r1.body.conduit --host forebrain
 ```
 
 `check` and `show` parse descriptors and reuse Host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected Host. `--host` selects exactly one architecture package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.
+
+`body` is a canonical Conduit document role parsed by the same tokenizer,
+declarations, structured values, spans, and diagnostics as `form` and `host`.
+Each repeated `host` declaration references checked `*.host.conduit` source and
+then enters the existing Host configuration path. Body construction has no
+private parser and creates no Host, Boot, OFFER, OBSERVE, ADMIT, Line, Plan, or
+Play truth. The historical `*.body.toml` specimen is retained only as #1740
+evidence and migration input; it is not a public Body authoring format.
 
 The output kind in a Spore is an exact requested target packaging class. Deployment is available only when the selected architecture package declares an adapter. The initial implementation supports bounded hosted-native and browser directory preparation. Pico UF2, ESP32 flash, and ConduitOS image deployment remain explicitly unavailable; Body build does not manufacture a target binary or physical-success claim when those adapters are absent.
 

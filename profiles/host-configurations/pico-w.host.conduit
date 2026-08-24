@@ -1,0 +1,6 @@
+host pico-w-control {
+  schema = 1
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  base = {kind: "serial/text", implementations: ["pico/usb-cdc@1"]}
+  limits = {static_memory_bytes: 131072, heap_arena_bytes: 65536, queue_items: 128, buffered_bytes: 65536, active_instances: 32, operation_slots: 32, timer_slots: 16, line_sessions: 4, evidence_items: 128}
+}

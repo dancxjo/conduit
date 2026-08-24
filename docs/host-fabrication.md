@@ -46,11 +46,30 @@ build receipt and IMAGE evidence; it never emits a Born Sign.
 
 ## Authored Host configurations
 
-A versioned `*.host.toml` configuration is the small structural recipe from
+```text
+one canonical Conduit language
+  ├─ form  -> portable meaning
+  ├─ host  -> configuration -> PROFILE -> BUILD -> IMAGE
+  ├─ body  -> BODY BUILD -> SPORES
+  └─ implementation need templates
+                 -> live OFFER + OBSERVE -> ADMIT -> PLAN -> PLAY
+```
+
+The final line is a truth sequence, not a source-language shortcut: authored
+appetite is not a live offer, observation, admission, binding, assignment, or
+execution fact.
+
+A versioned `*.host.conduit` document is the small structural recipe from
 which the checked PROFILE is derived. It names one target, a finite set of
 Bases, an explicit implementation (or finite ordered preferences) for each
-Base, resource budgets, and complete finite Host limits. It contains no Form,
+Base, authorable finite `need` templates, and complete finite Host limits. It contains no Form,
 application pin meaning, current presence, or authority truth.
+
+Host construction uses the same lossless tokenizer, declaration syntax,
+structured values, source spans, and diagnostic model as ordinary Form source.
+`host` selects the document role; it does not introduce another language or an
+embedded TOML section. A Need remains construction appetite. It does not create
+a current OFFER, OBSERVE, ADMIT, binding, assignment, Plan, or Play.
 
 The repository entrances are:
 
@@ -60,9 +79,9 @@ cargo xtask host std                     # explicit spelling of the default
 cargo xtask host browser                 # launch an independent browser Host
 cargo xtask host rpi [--board <board>]   # build an exact Raspberry Pi SD IMAGE
 cargo xtask host configure [path]
-cargo xtask host config check path/to/config.host.toml
-cargo xtask host config show path/to/config.host.toml
-cargo xtask host build path/to/config.host.toml
+cargo xtask host config check path/to/config.host.conduit
+cargo xtask host config show path/to/config.host.conduit
+cargo xtask host build path/to/config.host.conduit
 ```
 
 The lifecycle targets delegate to the existing authoritative implementations.
@@ -72,7 +91,7 @@ physical-proof` retains the bounded UART verifier. Image fabrication never
 implies that an IMAGE was flashed, booted, or physically proven. Pi 4 and Pi 5
 remain unsupported until their exact machine backends exist.
 
-The configurator creates or edits the TOML source itself. Its target and Base
+The configurator creates or edits canonical Conduit source itself. Its target and Base
 choices come from the same descriptors and `FabricationCatalog` metadata used
 by validation and BUILD; it owns no private catalog. `check` and interactive
 validation write nothing. Canonicalization sorts declaration order before
@@ -83,6 +102,12 @@ Checked examples live in `profiles/host-configurations/` for hosted Linux,
 Pico W, and a browser page. BUILD manifests and IMAGE payloads retain the exact
 source-configuration identity together with the resolved target, Base/driver
 selections, resource budgets, and limits.
+
+The historical `*.host.toml` files delivered by #1656 remain checked migration
+fixtures. Repository loaders may import them while parity tests prove that
+equivalent TOML and Conduit documents lower to byte- and identity-equivalent
+checked configuration/Profile semantics. They are not an ordinary authoring
+format and introduce no second checked Host model.
 
 ## Exact identities
 
