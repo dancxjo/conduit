@@ -13,14 +13,20 @@ use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
     interrupt::software::SoftwareInterruptControl,
-    rng::{Trng, TrngSource},
     timer::timg::TimerGroup,
 };
+#[cfg(feature = "bluetooth")]
+use esp_hal::rng::{Trng, TrngSource};
+#[cfg(feature = "bluetooth")]
 use esp_radio::ble::controller::BleConnector;
+#[cfg(feature = "bluetooth")]
 use trouble_host::prelude::ExternalController;
 
+#[cfg(feature = "bluetooth")]
 mod bluetooth;
+#[cfg(feature = "bluetooth")]
 mod receipts;
+#[cfg(feature = "bluetooth")]
 mod session;
 
 mod generated {
@@ -49,19 +55,24 @@ async fn main(_spawner: Spawner) {
     let timer_group = TimerGroup::new(peripherals.TIMG0);
     let software_interrupts = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     esp_rtos::start(timer_group.timer0, software_interrupts.software_interrupt0);
-    let _trng_source = TrngSource::new(peripherals.RNG, peripherals.ADC1);
-    let mut trng = Trng::try_new().expect("the physical entropy source must initialize");
-    let boot = receipts::BootIdentity::fresh(&trng);
-    boot.print_boot();
-
     // Keep the descriptor-bound generated image resident. Its planner input
     // used explicitly synthetic fixture identities. This build-only checkpoint
     // emits no BOOT or HOST receipt and therefore cannot be mistaken for one.
     let _exact_kernel_node_specs: &[conduit_kernel::scheduler::NodeSpec<
         { generated::GENERATED_PORTS_PER_NODE },
     >] = &generated::GENERATED_NODES;
-    let connector = BleConnector::new(peripherals.BT, Default::default())
-        .expect("the inspected ESP32 BLE controller must initialize");
-    let controller: ExternalController<_, 1> = ExternalController::new(connector);
-    bluetooth::run(controller, &boot, &mut trng).await;
+    #[cfg(feature = "bluetooth")]
+    {
+        let _trng_source = TrngSource::new(peripherals.RNG, peripherals.ADC1);
+        let mut trng = Trng::try_new().expect("the physical entropy source must initialize");
+        let boot = receipts::BootIdentity::fresh(&trng);
+        boot.print_boot();
+        let connector = BleConnector::new(peripherals.BT, Default::default())
+            .expect("the inspected ESP32 BLE controller must initialize");
+        let controller: ExternalController<_, 1> = ExternalController::new(connector);
+        bluetooth::run(controller, &boot, &mut trng).await;
+    }
+
+    #[cfg(not(feature = "bluetooth"))]
+    core::future::pending::<()>().await;
 }

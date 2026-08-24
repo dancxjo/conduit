@@ -9,6 +9,7 @@ pub mod check;
 pub mod conduitos;
 pub mod demo;
 pub mod doctor;
+pub mod esp32_firmware;
 pub mod evidence;
 pub mod host;
 pub mod messaging_github;

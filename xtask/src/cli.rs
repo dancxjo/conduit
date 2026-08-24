@@ -3,6 +3,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use crate::commands::body_coordination::BodyCoordinationArgs;
 use crate::commands::catalog::CatalogArgs;
 use crate::commands::conduitos::ConduitosArgs;
+use crate::commands::esp32_firmware::Esp32FirmwareArgs;
 use crate::commands::evidence::EvidenceArgs;
 use crate::commands::host::HostArgs;
 use crate::commands::pete_std_observe::PeteArgs;
@@ -56,6 +57,8 @@ pub enum Command {
     Evidence(EvidenceArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
+    /// Check the standalone ESP32 architecture package without touching hardware.
+    Esp32Firmware(Esp32FirmwareArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
     Pico(PicoArgs),
     /// Target one Host lifecycle or manage exact Host configuration and fabrication.
