@@ -1,4 +1,4 @@
-use std::{path::Path, process::Command};
+use std::{env, path::Path, process::Command};
 
 use serde::Serialize;
 
@@ -8,6 +8,14 @@ pub struct ExecutedCommand {
     pub cwd: String,
     pub program: String,
     pub args: Vec<String>,
+    pub environment: Vec<EnvironmentOverlay>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct EnvironmentOverlay {
+    pub variable: String,
+    pub operation: String,
+    pub value: String,
 }
 
 impl ExecutedCommand {
@@ -22,7 +30,17 @@ impl ExecutedCommand {
             cwd: cwd.display().to_string(),
             program: program.into(),
             args: args.into_iter().map(Into::into).collect(),
+            environment: Vec::new(),
         }
+    }
+
+    pub fn with_path_prefix(mut self, prefix: &Path) -> Self {
+        self.environment.push(EnvironmentOverlay {
+            variable: "PATH".into(),
+            operation: "prepend".into(),
+            value: prefix.display().to_string(),
+        });
+        self
     }
 }
 
@@ -31,10 +49,23 @@ pub fn run_capture(
     commands: &mut Vec<ExecutedCommand>,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     commands.push(specification.clone());
-    let output = Command::new(&specification.program)
+    let mut command = Command::new(&specification.program);
+    command
         .args(&specification.args)
-        .current_dir(&specification.cwd)
-        .output()?;
+        .current_dir(&specification.cwd);
+    for overlay in &specification.environment {
+        if overlay.variable != "PATH" || overlay.operation != "prepend" {
+            return Err("only a recorded PATH-prefix environment overlay is supported".into());
+        }
+        let prefix = Path::new(&overlay.value);
+        if !prefix.is_absolute() {
+            return Err("recorded PATH prefix must be absolute".into());
+        }
+        let ambient = env::var_os("PATH").unwrap_or_default();
+        let paths = std::iter::once(prefix.to_path_buf()).chain(env::split_paths(&ambient));
+        command.env("PATH", env::join_paths(paths)?);
+    }
+    let output = command.output()?;
     if !output.status.success() {
         return Err(format!(
             "{} failed with {}: {}",
@@ -90,9 +121,32 @@ pub fn rustc_version(repo_root: &Path, toolchain_name: &str) -> ExecutedCommand 
     )
 }
 
+pub fn rustc_sysroot(repo_root: &Path, toolchain_name: &str) -> ExecutedCommand {
+    ExecutedCommand::new(
+        "resolve-esp-rust-sysroot",
+        repo_root,
+        "rustc",
+        [
+            format!("+{toolchain_name}"),
+            "--print".to_owned(),
+            "sysroot".to_owned(),
+        ],
+    )
+}
+
+pub fn linker_version(repo_root: &Path, linker: &Path) -> ExecutedCommand {
+    ExecutedCommand::new(
+        "observe-esp-linker",
+        repo_root,
+        linker.display().to_string(),
+        ["--version"],
+    )
+}
+
 pub fn cargo_check(
     package_root: &Path,
     toolchain_name: &str,
+    linker_bin: &Path,
     features: &[String],
 ) -> ExecutedCommand {
     ExecutedCommand::new(
@@ -109,11 +163,13 @@ pub fn cargo_check(
             features.join(","),
         ],
     )
+    .with_path_prefix(linker_bin)
 }
 
 pub fn cargo_build(
     package_root: &Path,
     toolchain_name: &str,
+    linker_bin: &Path,
     features: &[String],
 ) -> ExecutedCommand {
     ExecutedCommand::new(
@@ -130,6 +186,7 @@ pub fn cargo_build(
             features.join(","),
         ],
     )
+    .with_path_prefix(linker_bin)
 }
 
 fn display_argv(command: &ExecutedCommand) -> String {
@@ -152,9 +209,10 @@ mod tests {
     fn compile_commands_are_locked_explicit_and_feature_derived() {
         let root = Path::new("/repo/firmware/esp32");
         let features = vec!["bluetooth".into(), "kernel-signal".into()];
+        let linker = Path::new("/sysroot/xtensa/bin");
         for command in [
-            cargo_check(root, "esp-conduit-1.91.1", &features),
-            cargo_build(root, "esp-conduit-1.91.1", &features),
+            cargo_check(root, "esp-conduit-1.91.1", linker, &features),
+            cargo_build(root, "esp-conduit-1.91.1", linker, &features),
         ] {
             assert_eq!(command.program, "cargo");
             assert_eq!(command.args[0], "+esp-conduit-1.91.1");
@@ -166,6 +224,14 @@ mod tests {
                 .args
                 .iter()
                 .any(|arg| arg == "--jobs" || arg == "-j"));
+            assert_eq!(
+                command.environment,
+                [EnvironmentOverlay {
+                    variable: "PATH".into(),
+                    operation: "prepend".into(),
+                    value: "/sysroot/xtensa/bin".into(),
+                }]
+            );
         }
     }
 
@@ -193,5 +259,9 @@ mod tests {
         let command = rustc_version(Path::new("/repo"), "esp-conduit-1.91.1");
         assert_eq!(command.program, "rustc");
         assert_eq!(command.args, ["+esp-conduit-1.91.1", "-Vv"]);
+        assert!(command.environment.is_empty());
+        let sysroot = rustc_sysroot(Path::new("/repo"), "esp-conduit-1.91.1");
+        assert_eq!(sysroot.args, ["+esp-conduit-1.91.1", "--print", "sysroot"]);
+        assert!(sysroot.environment.is_empty());
     }
 }

@@ -20,6 +20,8 @@ pub struct ArchitecturePackageDescriptor {
     pub toolchain: String,
     pub toolchain_name: String,
     pub toolchain_action: String,
+    pub linker_adapter: String,
+    pub linker_command: String,
     pub builder_adapter: String,
     pub minimal_features: Vec<String>,
     pub full_features: Vec<String>,
@@ -49,6 +51,8 @@ impl ArchitecturePackageDescriptor {
             || self.toolchain_name != "esp-conduit-1.91.1"
             || self.toolchain_action
                 != "esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4"
+            || self.linker_adapter != "xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin"
+            || self.linker_command != "xtensa-esp32-elf-gcc"
             || self.builder_adapter != "esp32-firmware/architecture-package-runner@2"
             || self.artifact != "target/xtensa-esp32-none-elf/release/conduit-esp32-wroom-signal"
         {
@@ -85,6 +89,8 @@ mod tests {
             toolchain_name: "esp-conduit-1.91.1".into(),
             toolchain_action: "esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4"
                 .into(),
+            linker_adapter: "xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin".into(),
+            linker_command: "xtensa-esp32-elf-gcc".into(),
             builder_adapter: "esp32-firmware/architecture-package-runner@2".into(),
             minimal_features: vec!["kernel-signal".into()],
             full_features: vec!["bluetooth".into(), "kernel-signal".into()],
@@ -119,5 +125,9 @@ mod tests {
         let mut ambient_toolchain = descriptor();
         ambient_toolchain.toolchain_name = "esp".into();
         assert!(ambient_toolchain.validate(&projection).is_err());
+
+        let mut ambient_linker = descriptor();
+        ambient_linker.linker_adapter = "/usr/bin".into();
+        assert!(ambient_linker.validate(&projection).is_err());
     }
 }
