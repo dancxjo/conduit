@@ -186,6 +186,12 @@ impl OllamaDiscovery {
                 work,
                 model_bytes: self.model_bytes,
                 admitted_memory_mib,
+                compute: conduit_ai::LocalModelComputeNeed {
+                    minimum_lanes: 1,
+                    preferred_lanes: 2,
+                    maximum_lanes: 4,
+                    minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
+                },
                 maximum_in_flight: 1,
                 maximum_queue_items: 4,
                 maximum_queue_bytes: (work.maximum_input_bytes * 4) as u32,

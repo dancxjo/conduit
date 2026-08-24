@@ -27,6 +27,46 @@ pub trait HostedLocalModelAdapter: Send {
     ) -> LocalModelAdapterTerminal;
 }
 
+pub(crate) fn resource_offers(
+    limits: &conduit_ai::LocalModelLimits,
+) -> Vec<conduit_core::ResourceOffer> {
+    vec![
+        conduit_core::resource_offer(
+            "std/local-model-memory",
+            conduit_ai::LOCAL_MODEL_MEMORY_RESOURCE,
+            limits.admitted_memory_mib,
+        ),
+        conduit_core::compute_resource_offer(
+            "std/local-model-compute",
+            conduit_ai::LOCAL_MODEL_COMPUTE_RESOURCE,
+            limits.compute.maximum_lanes,
+            conduit_core::ComputePoolContract {
+                service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
+                architecture_base_id: conduit_core::ArchitectureBaseId::from(
+                    "std/hosted-compute@1",
+                ),
+                architecture_base_kind: conduit_core::ArchitectureBaseKind::HostedOs,
+                topology_groups: Vec::new(),
+            },
+        ),
+        conduit_core::resource_offer(
+            "std/local-model-inference-slots",
+            conduit_ai::LOCAL_MODEL_INFERENCE_SLOT_RESOURCE,
+            u32::from(limits.maximum_in_flight),
+        ),
+        conduit_core::resource_offer(
+            "std/local-model-queue-items",
+            conduit_ai::LOCAL_MODEL_QUEUE_ITEM_RESOURCE,
+            u32::from(limits.maximum_queue_items),
+        ),
+        conduit_core::resource_offer(
+            "std/local-model-queue-kib",
+            conduit_ai::LOCAL_MODEL_QUEUE_KIB_RESOURCE,
+            limits.maximum_queue_bytes.div_ceil(1024),
+        ),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,6 +174,12 @@ mod tests {
                 },
                 model_bytes: 1,
                 admitted_memory_mib: 1,
+                compute: conduit_ai::LocalModelComputeNeed {
+                    minimum_lanes: 1,
+                    preferred_lanes: 2,
+                    maximum_lanes: 4,
+                    minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
+                },
                 maximum_in_flight: 1,
                 maximum_queue_items: 4,
                 maximum_queue_bytes: 16_384,
@@ -269,11 +315,10 @@ mod tests {
             StdHost::new_with_composition(config(), StdHostComposition::minimal())
                 .advertisement()
                 .clone();
-        advertisement.resources.push(conduit_core::resource_offer(
-            "std/local-model-memory",
-            conduit_ai::LOCAL_MODEL_MEMORY_RESOURCE,
-            local_offer.limits.admitted_memory_mib,
-        ));
+        advertisement
+            .resources
+            .extend(resource_offers(&local_offer.limits));
+        advertisement.resources.sort();
         advertisement
             .capabilities
             .extend(local_offer.capability_offers().unwrap());
