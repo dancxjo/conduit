@@ -15,10 +15,10 @@ pub(super) async fn prepare_agent(
     if allow_pairing {
         Ok(Some(
             session
-                .register_agent(bluer::agent::Agent {
-                    request_default: true,
-                    ..Default::default()
-                })
+                // BlueZ selects the agent registered by the same application
+                // that invokes Device.Pair; global default-agent authority is
+                // neither needed nor appropriate for this exact realization.
+                .register_agent(bluer::agent::Agent::default())
                 .await
                 .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?,
         ))
