@@ -14,52 +14,65 @@ pub(crate) fn evolve_generation(
     for y in 0..height {
         for x in 0..width {
             let index = y * width + x;
-            let center = current[index];
-            let north = current[((y + height - 1) % height) * width + x];
-            let south = current[((y + 1) % height) * width + x];
-            let west = current[y * width + ((x + width - 1) % width)];
-            let east = current[y * width + ((x + 1) % width)];
-            let lap_u = laplacian(
-                center.u_ppm,
-                north.u_ppm,
-                south.u_ppm,
-                west.u_ppm,
-                east.u_ppm,
-            );
-            let lap_v = laplacian(
-                center.v_ppm,
-                north.v_ppm,
-                south.v_ppm,
-                west.v_ppm,
-                east.v_ppm,
-            );
-            let reaction = scaled_product(
-                scaled_product(i64::from(center.u_ppm), i64::from(center.v_ppm))?,
-                i64::from(center.v_ppm),
+            next[index] = evolve_cell(
+                current[index],
+                current[((y + height - 1) % height) * width + x],
+                current[((y + 1) % height) * width + x],
+                current[y * width + ((x + width - 1) % width)],
+                current[y * width + ((x + 1) % width)],
+                parameters,
             )?;
-            let feed = scaled_product(
-                i64::from(parameters.feed_ppm),
-                CONCENTRATION_SCALE - i64::from(center.u_ppm),
-            )?;
-            let removal = scaled_product(
-                i64::from(parameters.feed_ppm + parameters.kill_ppm),
-                i64::from(center.v_ppm),
-            )?;
-            let delta_u = scaled_product(
-                i64::from(parameters.time_step_ppm),
-                scaled_product(i64::from(parameters.diffusion_u_ppm), lap_u)? - reaction + feed,
-            )?;
-            let delta_v = scaled_product(
-                i64::from(parameters.time_step_ppm),
-                scaled_product(i64::from(parameters.diffusion_v_ppm), lap_v)? + reaction - removal,
-            )?;
-            next[index] = ReactionDiffusionCell {
-                u_ppm: clamp_concentration(i64::from(center.u_ppm) + delta_u),
-                v_ppm: clamp_concentration(i64::from(center.v_ppm) + delta_v),
-            };
         }
     }
     Ok(())
+}
+
+pub(crate) fn evolve_cell(
+    center: ReactionDiffusionCell,
+    north: ReactionDiffusionCell,
+    south: ReactionDiffusionCell,
+    west: ReactionDiffusionCell,
+    east: ReactionDiffusionCell,
+    parameters: GrayScottParameters,
+) -> Result<ReactionDiffusionCell, ReactionDiffusionRefusal> {
+    let lap_u = laplacian(
+        center.u_ppm,
+        north.u_ppm,
+        south.u_ppm,
+        west.u_ppm,
+        east.u_ppm,
+    );
+    let lap_v = laplacian(
+        center.v_ppm,
+        north.v_ppm,
+        south.v_ppm,
+        west.v_ppm,
+        east.v_ppm,
+    );
+    let reaction = scaled_product(
+        scaled_product(i64::from(center.u_ppm), i64::from(center.v_ppm))?,
+        i64::from(center.v_ppm),
+    )?;
+    let feed = scaled_product(
+        i64::from(parameters.feed_ppm),
+        CONCENTRATION_SCALE - i64::from(center.u_ppm),
+    )?;
+    let removal = scaled_product(
+        i64::from(parameters.feed_ppm + parameters.kill_ppm),
+        i64::from(center.v_ppm),
+    )?;
+    let delta_u = scaled_product(
+        i64::from(parameters.time_step_ppm),
+        scaled_product(i64::from(parameters.diffusion_u_ppm), lap_u)? - reaction + feed,
+    )?;
+    let delta_v = scaled_product(
+        i64::from(parameters.time_step_ppm),
+        scaled_product(i64::from(parameters.diffusion_v_ppm), lap_v)? + reaction - removal,
+    )?;
+    Ok(ReactionDiffusionCell {
+        u_ppm: clamp_concentration(i64::from(center.u_ppm) + delta_u),
+        v_ppm: clamp_concentration(i64::from(center.v_ppm) + delta_v),
+    })
 }
 
 fn laplacian(center: u32, north: u32, south: u32, west: u32, east: u32) -> i64 {
