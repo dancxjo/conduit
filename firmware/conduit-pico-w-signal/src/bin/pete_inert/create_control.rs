@@ -365,6 +365,7 @@ pub async fn task(
     tx: Peri<'static, PIN_0>,
     rx: Peri<'static, PIN_1>,
     mut power_toggle: Output<'static>,
+    mut translator_oe: Output<'static>,
     watchdog: Peri<'static, WATCHDOG>,
 ) {
     let mut config = Config::default();
@@ -384,17 +385,18 @@ pub async fn task(
     watchdog.pause_on_debug(true);
     watchdog.start(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
     uart_diagnostic::start(now_ms());
-    create_link_gate::set_translator(false);
+    create_link_gate::set_translator(&mut translator_oe, false);
     let mut motion = crate::create_motion::Runtime::new();
 
     loop {
         while !create_link_gate::authorized() {
-            create_link_gate::set_translator(false);
+            create_link_gate::set_translator(&mut translator_oe, false);
             STATE.store(State::Initializing as u8, Ordering::Release);
             OI_MODE.store(0, Ordering::Release);
             if crate::create_power::claim_pending() {
                 crate::create_power::execute(
                     &mut power_toggle,
+                    &mut translator_oe,
                     &mut watchdog,
                 )
                 .await;
@@ -402,12 +404,12 @@ pub async fn task(
             }
             watchdog_delay(&mut watchdog, 20).await;
         }
-        create_link_gate::set_translator(true);
+        create_link_gate::set_translator(&mut translator_oe, true);
         watchdog_delay(&mut watchdog, 10).await;
         if acquire(&mut provider, &mut watchdog).await.is_err() {
             STATE.store(State::UartFault as u8, Ordering::Release);
             if !create_link_gate::authorized() {
-                create_link_gate::set_translator(false);
+                create_link_gate::set_translator(&mut translator_oe, false);
             }
             watchdog_delay(&mut watchdog, REACQUIRE_COOLDOWN_MS).await;
             continue;
@@ -423,7 +425,7 @@ pub async fn task(
             STATE.store(State::LinkLost as u8, Ordering::Release);
             OI_MODE.store(0, Ordering::Release);
             if !create_link_gate::authorized() {
-                create_link_gate::set_translator(false);
+                create_link_gate::set_translator(&mut translator_oe, false);
             }
             watchdog_delay(&mut watchdog, REACQUIRE_COOLDOWN_MS).await;
             continue;
@@ -437,7 +439,7 @@ pub async fn task(
                 motion.link_lost(&mut provider);
                 STATE.store(State::Initializing as u8, Ordering::Release);
                 OI_MODE.store(0, Ordering::Release);
-                create_link_gate::set_translator(false);
+                create_link_gate::set_translator(&mut translator_oe, false);
                 break;
             }
             let now = Instant::now();
@@ -490,7 +492,7 @@ pub async fn task(
             }
         }
         if !create_link_gate::authorized() {
-            create_link_gate::set_translator(false);
+            create_link_gate::set_translator(&mut translator_oe, false);
         }
         watchdog_delay(&mut watchdog, REACQUIRE_COOLDOWN_MS).await;
     }

@@ -77,9 +77,13 @@ pub fn claim_pending() -> bool {
     STATE.compare_exchange(PENDING, ACTIVE, Ordering::AcqRel, Ordering::Acquire).is_ok()
 }
 
-pub async fn execute(output: &mut Output<'static>, watchdog: &mut Watchdog) {
+pub async fn execute(
+    output: &mut Output<'static>,
+    translator_oe: &mut Output<'static>,
+    watchdog: &mut Watchdog,
+) {
     output.set_low();
-    create_link_gate::set_translator(true);
+    create_link_gate::set_translator(translator_oe, true);
     Timer::after(Duration::from_millis(TRANSLATOR_SETTLE_MS)).await;
     watchdog.feed(Duration::from_millis(WATCHDOG_TIMEOUT_MS));
     let mut provider = Provider { output };
@@ -100,6 +104,6 @@ pub async fn execute(output: &mut Output<'static>, watchdog: &mut Watchdog) {
         _ => false,
     };
     provider.output.set_low();
-    create_link_gate::set_translator(false);
+    create_link_gate::set_translator(translator_oe, false);
     STATE.store(if completed { COMPLETED } else { FAILED }, Ordering::Release);
 }
