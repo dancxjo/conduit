@@ -247,15 +247,15 @@ pub async fn task(
         uart: Uart::new_blocking(uart0, tx, rx, config),
     };
     // Slow the Pico edge presented to the TXS auto-direction translator and
-    // harden the receive threshold. The DB-25 path is quiet when TX is idle;
-    // its observed corruption is correlated with fast GP0 transitions.
+    // harden the receive threshold. Bias the R23 Create response input to the
+    // UART idle-high state while the translator or Create output is undriven.
     rp_pac::PADS_BANK0.gpio(0).modify(|value| {
         value.set_slewfast(false);
         value.set_drive(rp_pac::pads::vals::Drive::_2M_A);
     });
     rp_pac::PADS_BANK0.gpio(1).modify(|value| {
         value.set_schmitt(true);
-        value.set_pue(false);
+        value.set_pue(true);
         value.set_pde(false);
     });
     let mut watchdog = Watchdog::new(watchdog);
