@@ -260,6 +260,7 @@ pub enum ProveTarget {
     BrowserHost,
     CalendarGoogle,
     LlmEmbodiment,
+    LlmCrossHost,
     LlmPlanningAdvice,
     PatchbayFrontDoor,
     StdPicoUsb,
@@ -590,6 +591,16 @@ mod tests {
             embodiment.command,
             Command::Prove(ProveArgs {
                 proof: ProveTarget::LlmEmbodiment,
+                ..
+            })
+        ));
+
+        let cross_host = Cli::try_parse_from(["xtask", "prove", "llm-cross-host"])
+            .expect("cross-Host LLM proof command parses");
+        assert!(matches!(
+            cross_host.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::LlmCrossHost,
                 ..
             })
         ));
