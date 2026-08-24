@@ -12,6 +12,23 @@ pub(crate) struct CanonicalSource {
 }
 
 pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
+    let (startup, profiles) = standard_catalogs()?;
+    load_with_catalogs(path, startup, profiles)
+}
+
+pub(crate) fn load_signal(path: &Path) -> Result<CanonicalSource, String> {
+    load_with_catalogs(
+        path,
+        conduit_signal::signal_startup_catalog(),
+        conduit_signal::signal_profile_catalog(),
+    )
+}
+
+fn load_with_catalogs(
+    path: &Path,
+    startup: StartupCatalog,
+    profiles: ProfileCatalog,
+) -> Result<CanonicalSource, String> {
     if path.extension().and_then(std::ffi::OsStr::to_str) != Some("conduit") {
         return Err(format!(
             "canonical Form source must use the .conduit suffix: {}",
@@ -19,7 +36,6 @@ pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
         ));
     }
     let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    let (startup, profiles) = standard_catalogs()?;
     let syntax = conduit_form::parse_syntax_document(&source);
     Ok(CanonicalSource {
         source,
