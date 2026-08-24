@@ -35,6 +35,8 @@ mod create_motion;
 mod create_power;
 #[path = "pete_capstone/create_presentation.rs"]
 mod create_presentation;
+#[path = "pete_capstone/create_battery_probe.rs"]
+mod create_battery_probe;
 #[path = "pete_capstone/create_full_stage.rs"]
 mod create_full_stage;
 #[path = "pete_capstone/create_lights_stage.rs"]
@@ -292,6 +294,13 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             && create_presentation::request_matches(request)
         {
             create_presentation::serve(class).await;
+            continue;
+        }
+
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
+            && create_battery_probe::request_matches(request)
+        {
+            create_battery_probe::serve(class).await;
             continue;
         }
 

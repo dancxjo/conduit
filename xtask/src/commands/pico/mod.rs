@@ -2,6 +2,7 @@ mod appliance_identity;
 mod body_admission;
 mod bootsel;
 mod capstone_serial;
+mod create_battery_rx;
 mod create_full_stage;
 mod create_hello;
 mod create_lights_stage;
@@ -171,6 +172,12 @@ pub enum PicoSubcommand {
         #[arg(long)]
         wheels_clear: bool,
     },
+    /// Read one bounded Create OI packet-0 battery sample and restore Safe.
+    ReadCreateBattery {
+        /// Confirm that the robot is stopped, attended, and unable to propel itself.
+        #[arg(long)]
+        wheels_clear: bool,
+    },
     /// Prove explicit Body admission against an already-provisioned Pico.
     ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
@@ -231,6 +238,9 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         }
         Some(PicoSubcommand::PresentCreate { wheels_clear }) => {
             create_presentation::run(&args, *wheels_clear)
+        }
+        Some(PicoSubcommand::ReadCreateBattery { wheels_clear }) => {
+            create_battery_rx::run(&args, *wheels_clear)
         }
         Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }

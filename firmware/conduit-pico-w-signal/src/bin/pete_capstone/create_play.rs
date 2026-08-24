@@ -24,6 +24,7 @@ pub enum RequestKind {
     Presentation = 3,
     FullStage = 4,
     LightsStage = 5,
+    BatteryRx = 6,
 }
 
 impl RequestKind {
@@ -34,6 +35,7 @@ impl RequestKind {
             3 => Self::Presentation,
             4 => Self::FullStage,
             5 => Self::LightsStage,
+            6 => Self::BatteryRx,
             _ => Self::None,
         }
     }

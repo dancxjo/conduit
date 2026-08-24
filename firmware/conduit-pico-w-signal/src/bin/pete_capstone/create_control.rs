@@ -15,7 +15,7 @@ use portable_atomic::{AtomicU32, AtomicU8, Ordering};
 
 use crate::{
     create_acquisition, create_full_stage, create_lights_stage, create_link_gate, create_play,
-    create_presentation, uart_diagnostic,
+    create_battery_probe, create_presentation, uart_diagnostic,
 };
 
 const LINK_FRESHNESS_MS: u64 = 1_000;
@@ -332,6 +332,23 @@ pub async fn task(
         if create_play::request_kind() == create_play::RequestKind::Presentation {
             if create_play::claim_pending(create_play::RequestKind::Presentation) {
                 let completed = create_presentation::execute(&mut provider, &mut watchdog).await;
+                create_link_gate::set_translator(&mut translator_oe, false);
+                STATE.store(State::Initializing as u8, Ordering::Release);
+                OI_MODE.store(0, Ordering::Release);
+                create_play::set_result(if completed { 0 } else { 7 });
+                create_play::set_state(if completed {
+                    create_play::RequestState::Completed
+                } else {
+                    create_play::RequestState::Refused
+                });
+            } else {
+                create_link_gate::set_translator(&mut translator_oe, false);
+            }
+            continue;
+        }
+        if create_play::request_kind() == create_play::RequestKind::BatteryRx {
+            if create_play::claim_pending(create_play::RequestKind::BatteryRx) {
+                let completed = create_battery_probe::execute(&mut provider, &mut watchdog).await;
                 create_link_gate::set_translator(&mut translator_oe, false);
                 STATE.store(State::Initializing as u8, Ordering::Release);
                 OI_MODE.store(0, Ordering::Release);
