@@ -12,10 +12,10 @@ use portable_atomic::{AtomicBool, Ordering};
 use super::create_control::{now_ms, watchdog_delay, Provider};
 use crate::{create_link_gate, uart_diagnostic};
 
-const ACQUISITION_ATTEMPTS: usize = 10;
+const ACQUISITION_ATTEMPTS: usize = 5;
 const START_SETTLE_MS: u64 = 20;
 const MODE_SETTLE_MS: u64 = 20;
-const MODE_RESPONSE_MS: u64 = 500;
+const MODE_RESPONSE_MS: u64 = 1_000;
 const REACQUIRE_COOLDOWN_MS: u64 = 50;
 const READY_CUE_DEFINE: [u8; 11] = [140, 2, 4, 60, 32, 64, 32, 0, 12, 67, 40];
 const READY_CUE_PLAY: [u8; 2] = [141, 2];

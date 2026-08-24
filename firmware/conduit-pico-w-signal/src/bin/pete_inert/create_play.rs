@@ -201,6 +201,7 @@ pub async fn serve_hello(class: &mut InertCdc) {
                 let request = snapshot();
                 if request.generation == generation && request.state.terminal() {
                     let success = request.state == RequestState::Completed;
+                    let cue_sent = crate::create_acquisition::ready_cue_command_sent();
                     let _ = write!(
                         response,
                         "{{\"schema\":\"conduit.pete/create-hello-receipt@1\",\"build_id\":\"{}\",\"success\":{},\"generation\":{},\"state\":\"{}\",\"result_code\":{},\"observed_oi_mode\":\"{}\",\"final_oi_mode\":\"{}\",\"ready_cue_command_sent\":{},\"motion_authority_granted\":false}}",
@@ -209,9 +210,9 @@ pub async fn serve_hello(class: &mut InertCdc) {
                         generation,
                         request.state.name(),
                         request.result_code,
-                        if success { "full" } else { "unknown" },
+                        if cue_sent { "full" } else { "unknown" },
                         if success { "safe" } else { "unknown" },
-                        success,
+                        cue_sent,
                     );
                     let _ = send_control_frame(class, response.as_bytes()).await;
                     release(generation);

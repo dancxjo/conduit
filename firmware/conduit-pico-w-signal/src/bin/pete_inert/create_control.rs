@@ -255,7 +255,7 @@ pub async fn task(
     });
     rp_pac::PADS_BANK0.gpio(1).modify(|value| {
         value.set_schmitt(true);
-        value.set_pue(true);
+        value.set_pue(false);
         value.set_pde(false);
     });
     let mut watchdog = Watchdog::new(watchdog);
