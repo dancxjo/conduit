@@ -65,19 +65,14 @@ fn validate_receipt(record: &serde_json::Value, expected_build: &str) -> PicoRes
         || record["full_command_sent"] != true
         || record["led_command"] != serde_json::json!([139, 2, 0, 0])
         || record["led_command_sent"] != true
-        || record["requested_indicator"] != "play"
-        || record["power_color"] != 0
-        || record["power_intensity"] != 0
         || record["hold_ms"] != 60_000
         || record["hold_completed"] != true
         || record["translator_low_during_hold"] != true
-        || record["mode_observed"] != false
+        || record["create_acceptance_observed"] != false
         || record["physical_led_observed"] != false
         || record["safe_cleanup_command_sent"] != true
         || record["translator_final_level"] != "low"
         || record["uart_tx_bytes"] != 8
-        || record["uart_rx_required"] != false
-        || record["music_commands_sent"] != 0
         || record["motion_authority_granted"] != false
         || record["authority_grant_id"] != AUTHORITY_GRANT
     {
@@ -91,6 +86,8 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    const CONTROL_FRAME_MAX: usize = 768;
+
     fn valid_receipt() -> serde_json::Value {
         json!({
             "schema": RESPONSE_SCHEMA,
@@ -103,19 +100,14 @@ mod tests {
             "full_command_sent": true,
             "led_command": [139, 2, 0, 0],
             "led_command_sent": true,
-            "requested_indicator": "play",
-            "power_color": 0,
-            "power_intensity": 0,
             "hold_ms": 60000,
             "hold_completed": true,
             "translator_low_during_hold": true,
-            "mode_observed": false,
+            "create_acceptance_observed": false,
             "physical_led_observed": false,
             "safe_cleanup_command_sent": true,
             "translator_final_level": "low",
             "uart_tx_bytes": 8,
-            "uart_rx_required": false,
-            "music_commands_sent": 0,
             "motion_authority_granted": false,
             "authority_grant_id": AUTHORITY_GRANT,
         })
@@ -126,7 +118,6 @@ mod tests {
         assert!(validate_receipt(&valid_receipt(), "exact-build").is_ok());
 
         for (field, value) in [
-            ("music_commands_sent", json!(1)),
             ("motion_authority_granted", json!(true)),
             ("translator_low_during_hold", json!(false)),
             ("safe_cleanup_command_sent", json!(false)),
@@ -145,5 +136,14 @@ mod tests {
             invalid["led_command"] = command;
             assert!(validate_receipt(&invalid, "exact-build").is_err());
         }
+    }
+
+    #[test]
+    fn exact_receipt_fits_the_firmware_control_frame() {
+        let mut receipt = valid_receipt();
+        receipt["build_id"] = json!(
+            "conduit-pico-w-pete-capstone:fc448e576edac91f2da74bc771e86327716a226d:clean:thumbv6m-none-eabi:release:physical-play@1"
+        );
+        assert!(serde_json::to_vec(&receipt).unwrap().len() <= CONTROL_FRAME_MAX);
     }
 }
