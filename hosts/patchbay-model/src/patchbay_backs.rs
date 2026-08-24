@@ -325,6 +325,7 @@ mod tests {
                 kind: FaceControlKind::BooleanChoice {
                     choices: ["false", "true"],
                 },
+                interaction: None,
             }],
         };
         let subject = PatchbaySubjectPresentation::GearFace(gear_face_presentation(&gear).unwrap());

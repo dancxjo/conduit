@@ -1,13 +1,122 @@
 //! Exact source edits initiated by compact controls on a Gear Face.
 
-use conduit_core::ConfigurationValue;
+use conduit_core::{
+    ConfigurationValue, HumanInteractionProposal, InfoBool, InteractionFamily,
+    InteractionProposalPayload, InteractionValue, KindId, Quantity, BOOL_INFO_ID, QUANTITY_INFO_ID,
+    TEXT_INFO_ID,
+};
 use conduit_form::{parse_syntax_document, Argument, BackStatement};
 use conduit_std_catalog::StandardConfigurationRule;
 
 use crate::{FormEditor, FormEditorError, PatchbayGraph};
 
 impl FormEditor {
+    /// Applies one common typed interaction proposal to checked configuration.
+    /// Configuration remains a replan operation: this reseals the checked and
+    /// expanded identities rather than mutating an active implementation.
+    pub fn apply_gear_configuration_proposal(
+        &mut self,
+        offered_revision: u64,
+        offered_expanded_form_id: &conduit_core::ExpandedFormId,
+        gear_name: &str,
+        key: &str,
+        proposal: &HumanInteractionProposal,
+    ) -> Result<(), FormEditorError> {
+        self.require_revision(offered_revision)?;
+        let graph = self.patchbay_graph_for_authoring(&self.open_form)?;
+        if &graph.expanded_form_id != offered_expanded_form_id {
+            return Err(FormEditorError::StaleGraphBasis);
+        }
+        let gear_id = format!("{}/{}", self.open_form, gear_name);
+        let gear = graph
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id.as_str() == gear_id)
+            .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?;
+        let control = gear
+            .controls
+            .iter()
+            .find(|control| control.key == key)
+            .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?;
+        let interaction = control.interaction.as_ref().ok_or_else(|| {
+            FormEditorError::InvalidConfiguration(
+                "configuration is not representable by the common interaction contract".into(),
+            )
+        })?;
+        proposal
+            .validate_against(&interaction.contract, &interaction.state)
+            .map_err(|refusal| {
+                FormEditorError::InvalidConfiguration(format!(
+                    "common interaction refused: {refusal:?}"
+                ))
+            })?;
+        let value = configuration_from_proposal(&interaction.contract.family, proposal)?;
+        self.set_gear_configuration_exact(
+            offered_revision,
+            offered_expanded_form_id,
+            gear_name,
+            key,
+            value,
+        )
+    }
+
     pub fn set_gear_configuration(
+        &mut self,
+        offered_revision: u64,
+        offered_expanded_form_id: &conduit_core::ExpandedFormId,
+        gear_name: &str,
+        key: &str,
+        value: ConfigurationValue,
+    ) -> Result<(), FormEditorError> {
+        self.require_revision(offered_revision)?;
+        let graph = self.patchbay_graph_for_authoring(&self.open_form)?;
+        if &graph.expanded_form_id != offered_expanded_form_id {
+            return Err(FormEditorError::StaleGraphBasis);
+        }
+        let gear_id = format!("{}/{}", self.open_form, gear_name);
+        let gear = graph
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id.as_str() == gear_id)
+            .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?;
+        let control = gear
+            .controls
+            .iter()
+            .find(|control| control.key == key)
+            .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?;
+        let rule = conduit_std_catalog::supported_nucleus_contracts()
+            .into_iter()
+            .chain(conduit_std_catalog::standard_contracts())
+            .find(|contract| contract.kind_id == gear.kind_id)
+            .and_then(|contract| {
+                contract
+                    .configuration
+                    .into_iter()
+                    .find(|field| field.key == key)
+            })
+            .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?
+            .rule;
+        if !accepts(&rule, &value) {
+            return Err(FormEditorError::InvalidConfiguration(
+                configuration_refusal(&rule),
+            ));
+        }
+        let interaction = control.interaction.as_ref().ok_or_else(|| {
+            FormEditorError::InvalidConfiguration(
+                "configuration is not representable by the common interaction contract".into(),
+            )
+        })?;
+        let proposal = proposal_for_configuration(interaction, value)?;
+        self.apply_gear_configuration_proposal(
+            offered_revision,
+            offered_expanded_form_id,
+            gear_name,
+            key,
+            &proposal,
+        )
+    }
+
+    fn set_gear_configuration_exact(
         &mut self,
         offered_revision: u64,
         offered_expanded_form_id: &conduit_core::ExpandedFormId,
@@ -90,6 +199,120 @@ impl FormEditor {
             candidate.insert_str(closing, &format!(", {key} = {spelling}"));
         }
         self.apply_candidate(candidate)
+    }
+}
+
+fn proposal_for_configuration(
+    interaction: &crate::FaceInteraction,
+    value: ConfigurationValue,
+) -> Result<HumanInteractionProposal, FormEditorError> {
+    let typed = match (&interaction.contract.family, value) {
+        (InteractionFamily::Boolean, ConfigurationValue::Bool(value)) => InteractionValue::new(
+            KindId::from(BOOL_INFO_ID),
+            if value {
+                InfoBool::TRUE
+            } else {
+                InfoBool::FALSE
+            }
+            .encode()
+            .to_vec(),
+        ),
+        (InteractionFamily::Scalar { unit, .. }, ConfigurationValue::U64(value)) => {
+            let value = i64::try_from(value).map_err(|_| {
+                FormEditorError::InvalidConfiguration("scalar exceeds interaction range".into())
+            })?;
+            InteractionValue::new(
+                KindId::from(QUANTITY_INFO_ID),
+                Quantity::new(value, *unit).encode().to_vec(),
+            )
+        }
+        (InteractionFamily::Scalar { unit, .. }, ConfigurationValue::I64(value)) => {
+            InteractionValue::new(
+                KindId::from(QUANTITY_INFO_ID),
+                Quantity::new(value, *unit).encode().to_vec(),
+            )
+        }
+        (InteractionFamily::ChooseOne { value_kind, .. }, ConfigurationValue::Text(value)) => {
+            InteractionValue::new(value_kind.clone(), value.into_bytes())
+        }
+        (InteractionFamily::Text { .. }, ConfigurationValue::Text(value)) => {
+            InteractionValue::new(KindId::from(TEXT_INFO_ID), value.into_bytes())
+        }
+        _ => {
+            return Err(FormEditorError::InvalidConfiguration(
+                "value does not fit the common interaction family".into(),
+            ))
+        }
+    }
+    .map_err(|refusal| {
+        FormEditorError::InvalidConfiguration(format!(
+            "common interaction value refused: {refusal:?}"
+        ))
+    })?;
+    HumanInteractionProposal::new(
+        &interaction.contract,
+        &interaction.state,
+        interaction.state.revision.saturating_add(1),
+        InteractionProposalPayload::Values(vec![typed]),
+    )
+    .map_err(|refusal| {
+        FormEditorError::InvalidConfiguration(format!(
+            "common interaction proposal refused: {refusal:?}"
+        ))
+    })
+}
+
+fn configuration_from_proposal(
+    family: &InteractionFamily,
+    proposal: &HumanInteractionProposal,
+) -> Result<ConfigurationValue, FormEditorError> {
+    let InteractionProposalPayload::Values(values) = &proposal.payload else {
+        return Err(FormEditorError::InvalidConfiguration(
+            "configuration requires an absolute typed value".into(),
+        ));
+    };
+    let [value] = values.as_slice() else {
+        return Err(FormEditorError::InvalidConfiguration(
+            "configuration requires exactly one typed value".into(),
+        ));
+    };
+    match family {
+        InteractionFamily::Boolean if value.value_kind.as_str() == BOOL_INFO_ID => {
+            InfoBool::decode(&value.canonical_bytes)
+                .map(|decoded| ConfigurationValue::Bool(decoded == InfoBool::TRUE))
+                .map_err(|_| FormEditorError::InvalidConfiguration("malformed Boolean".into()))
+        }
+        InteractionFamily::Scalar { unit, .. } if value.value_kind.as_str() == QUANTITY_INFO_ID => {
+            let decoded = Quantity::decode(&value.canonical_bytes).map_err(|_| {
+                FormEditorError::InvalidConfiguration("malformed scalar quantity".into())
+            })?;
+            if *unit == conduit_core::QuantityUnit::Millionth {
+                Ok(ConfigurationValue::I64(decoded.value()))
+            } else {
+                decoded
+                    .value()
+                    .try_into()
+                    .map(ConfigurationValue::U64)
+                    .map_err(|_| {
+                        FormEditorError::InvalidConfiguration(
+                            "negative value for unsigned configuration".into(),
+                        )
+                    })
+            }
+        }
+        InteractionFamily::ChooseOne { .. } | InteractionFamily::Text { .. } => {
+            core::str::from_utf8(&value.canonical_bytes)
+                .map(|text| ConfigurationValue::Text(text.into()))
+                .map_err(|_| FormEditorError::InvalidConfiguration("malformed text".into()))
+        }
+        _ if value.value_kind.as_str() == TEXT_INFO_ID => {
+            core::str::from_utf8(&value.canonical_bytes)
+                .map(|text| ConfigurationValue::Text(text.into()))
+                .map_err(|_| FormEditorError::InvalidConfiguration("malformed text".into()))
+        }
+        _ => Err(FormEditorError::InvalidConfiguration(
+            "unsupported configuration interaction family".into(),
+        )),
     }
 }
 
