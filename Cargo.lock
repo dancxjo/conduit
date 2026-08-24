@@ -4157,7 +4157,6 @@ dependencies = [
  "conduit-std-host",
  "conduit-synth",
  "conduit-system-continuity",
- "conduit-tongues",
  "conduit-wire",
  "conduitos",
  "flate2",
