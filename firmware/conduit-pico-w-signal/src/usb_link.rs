@@ -29,6 +29,13 @@ impl UsbLinkSession {
         self.class.wait_connection().await;
     }
 
+    /// Discard incomplete or invalid bytes at an explicit CDC control-session
+    /// boundary. The buffer remains fixed; this only restores decoder state.
+    pub fn reset_stream_decoder(&mut self) {
+        self.decoder = StreamFrameDecoder::new(4096)
+            .expect("the fixed USB stream decoder limit is valid");
+    }
+
     /// Receive the next framed SessionFrame from the USB CDC ACM link.
     #[allow(dead_code)]
     pub async fn receive_frame<'a>(

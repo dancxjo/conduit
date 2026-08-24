@@ -56,9 +56,19 @@ pub async fn handle_request(
 pub async fn wait_for_request(link: &mut UsbLinkSession) -> Result<(), UsbLinkError> {
     let mut input = [0_u8; 1024];
 
+    // A CDC owner such as ModemManager may have written unrelated startup
+    // bytes before the explicit Conduit client opens the endpoint. Never let
+    // those bytes poison every later authenticated recovery attempt.
+    link.reset_stream_decoder();
     link.wait_connection().await;
     loop {
-        let request = link.receive_raw_stream_frame(&mut input).await?;
+        let request = match link.receive_raw_stream_frame(&mut input).await {
+            Ok(request) => request,
+            Err(error) => {
+                link.reset_stream_decoder();
+                return Err(error);
+            }
+        };
         handle_request(link, request).await?;
     }
 }

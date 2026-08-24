@@ -306,13 +306,6 @@ impl BluezBleGattLine {
         let service_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_SERVICE_UUID);
         let write_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_WRITE_UUID);
         let notify_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_NOTIFY_UUID);
-        // Resolve the advertised GATT contract before initiating security.
-        // Some BlueZ/controller pairs otherwise race service resolution with
-        // the pairing transaction and publish a false ServicesUnresolved fact.
-        let services = tokio::time::timeout(std::time::Duration::from_secs(20), device.services())
-            .await
-            .map_err(|_| BluezBleGattError::MissingService)?
-            .map_err(|_| BluezBleGattError::MissingService)?;
         let pairing = pairing::prepare_device(&device, agent, allow_pairing).await?;
         if !device
             .is_connected()
@@ -324,6 +317,13 @@ impl BluezBleGattLine {
                 .map_err(|_| BluezBleGattError::ConnectFailed("BlueZ reconnect timed out".into()))?
                 .map_err(|error| BluezBleGattError::ConnectFailed(error.to_string()))?;
         }
+        // Resolve the encrypted GATT contract only after explicit pairing has
+        // completed and BlueZ publishes paired+connected. Requiring service
+        // resolution first can deadlock security-sensitive characteristics.
+        let services = tokio::time::timeout(std::time::Duration::from_secs(20), device.services())
+            .await
+            .map_err(|_| BluezBleGattError::MissingService)?
+            .map_err(|_| BluezBleGattError::MissingService)?;
         let mut service = None;
         for candidate in services.into_iter().take(MAXIMUM_GATT_OBJECTS_INSPECTED) {
             if candidate
