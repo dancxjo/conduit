@@ -26,6 +26,8 @@ mod create_link_gate;
 mod create_play;
 #[path = "pete_inert/create_motion.rs"]
 mod create_motion;
+#[path = "pete_inert/create_power.rs"]
+mod create_power;
 #[path = "pete_inert/uart_diagnostic.rs"]
 mod uart_diagnostic;
 #[path = "pete_inert/imu_control.rs"]
@@ -149,7 +151,10 @@ pub(crate) async fn send_control_frame(class: &mut InertCdc, payload: &[u8]) -> 
     Ok(())
 }
 
-async fn serve_conduit_services(class: &mut InertCdc) -> ! {
+async fn serve_conduit_services(
+    class: &mut InertCdc,
+    power_toggle: &mut Output<'static>,
+) -> ! {
     let mut packet = [0_u8; 64];
     let mut request = [0_u8; BOOTSEL_FRAME_MAX];
     loop {
@@ -230,6 +235,11 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             continue;
         }
 
+        if create_power::request_matches(request) {
+            create_power::serve(class, power_toggle).await;
+            continue;
+        }
+
         let mut diagnostic_request = String::<BOOTSEL_FRAME_MAX>::new();
         if write!(
             diagnostic_request,
@@ -271,7 +281,7 @@ async fn usb_device_task(mut device: InertUsbDevice) -> ! {
 async fn qualification_task(
     mut class: InertCdc,
     charging_indicator: Input<'static>,
-    _power_toggle: Output<'static>,
+    mut power_toggle: Output<'static>,
 ) {
     class.wait_connection().await;
     // Emit immutable image identity before permitting any blocking peripheral
@@ -346,7 +356,7 @@ async fn qualification_task(
         create_control::ready_cue_command_sent(),
     );
     write_line(&mut class, &ready).await;
-    serve_conduit_services(&mut class).await;
+    serve_conduit_services(&mut class, &mut power_toggle).await;
 }
 
 #[cortex_m_rt::entry]

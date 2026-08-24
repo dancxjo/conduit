@@ -3,6 +3,7 @@ mod body_admission;
 mod bootsel;
 mod capstone_serial;
 mod create_motion;
+mod create_power;
 mod doctor;
 mod firmware;
 #[cfg(test)]
@@ -137,6 +138,12 @@ pub enum PicoSubcommand {
         #[arg(long)]
         wheels_off_floor: bool,
     },
+    /// Emit one attended Create power-toggle pulse after physical off-state confirmation.
+    WakeCreate {
+        /// Confirm that the Create is physically observed off before toggling power.
+        #[arg(long)]
+        confirmed_off: bool,
+    },
     /// Prove explicit Body admission against an already-provisioned Pico.
     ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
@@ -183,6 +190,9 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::Bootsel) => run_bootsel(&args),
         Some(PicoSubcommand::DriveCreate { wheels_off_floor }) => {
             create_motion::run(&args, *wheels_off_floor)
+        }
+        Some(PicoSubcommand::WakeCreate { confirmed_off }) => {
+            create_power::run(&args, *confirmed_off)
         }
         Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }
