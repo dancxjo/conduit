@@ -34,6 +34,7 @@ mod compute_admission;
 mod contract;
 mod decision_evidence;
 mod degradation;
+mod degraded_profile;
 mod diagnostic;
 mod fact_policy;
 mod functional_compatibility;
@@ -96,6 +97,13 @@ pub use degradation::{
     assess_scoped_degradation, DegradationAssessment, DegradationFragment,
     DegradationFragmentDisposition, DegradationInput, MAXIMUM_DEGRADATION_FRAGMENTS,
     MAXIMUM_DEGRADATION_FRAGMENT_ID_BYTES, MAXIMUM_DEGRADATION_REFUSAL_BYTES,
+};
+pub use degraded_profile::{
+    seal_reviewed_service_profile_plan, select_reviewed_service_profile, DegradationDirection,
+    DegradedDimension, DegradedDimensionEvidence, DegradedProfileRefusal, ReviewedServiceProfile,
+    ServiceProfileAdmission, ServiceProfileDisposition, SurvivalPolicy,
+    MAXIMUM_DEGRADED_PROFILE_DIMENSIONS, MAXIMUM_DEGRADED_PROFILE_ID_BYTES,
+    MAXIMUM_DEGRADED_PROFILE_LABEL_BYTES,
 };
 pub use diagnostic::structured_planner_diagnostic;
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};

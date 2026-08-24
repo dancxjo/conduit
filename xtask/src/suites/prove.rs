@@ -1,5 +1,28 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_DEGRADED_PROFILES_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.degraded-profiles.admission",
+        "Prove reviewed full, degraded, and unrealizable profiles with immutable fresh Plan truth",
+        "cargo",
+        &["test", "-p", "conduit-planner", "--test", "degraded_profiles"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
+        "prove.degraded-profiles.patchbay",
+        "Prove Patchbay names exact requested and surviving dimensions, policy, placement, and observation Signs",
+        "cargo",
+        &["test", "-p", "patchbay-model", "--test", "degraded_profile"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+];
+
 pub const PROVE_LLM_CROSS_HOST_STEPS: &[Step] = &[
     Step::typed(
         "prove.llm-cross-host.provider-back",
