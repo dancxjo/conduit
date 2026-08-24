@@ -1,8 +1,9 @@
 use super::*;
 use conduit_core::{
-    bind_active_play, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
-    HostProfileId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, OfferGeneration,
-    PlanId, PROTOCOL_VERSION,
+    bind_active_play, AuthorityContractId, AuthorityGrantId, ConnectionBase,
+    ConnectionBaseInstanceId, ConnectionId, FragmentId, HostProfileId, KindId, LineId,
+    LinkBindingId, LinkEndpointId, LinkLimits, MediaConstraints, MediaFlowBounds, OfferGeneration,
+    PlanId, PortId, ResourceClassId, ResourceHandleId, PROTOCOL_VERSION,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
@@ -107,6 +108,73 @@ fn bounded_advertisement_round_trips_without_creating_membership() {
     assert_eq!(
         decode_browser_admission_frame(&encoded),
         Ok(advertisement())
+    );
+}
+
+#[test]
+fn acquired_media_truth_and_later_use_plan_are_exact_bounded_frames() {
+    let resource = AcquiredMediaResource {
+        host_id: HostId::from("browser/media"),
+        boot_id: BootId::from("browser-boot/media"),
+        handle_id: ResourceHandleId::from("track/opaque-1"),
+        class_id: ResourceClassId::from("conduit.resource/acquired-camera@1"),
+        value_kind: KindId::from("media/camera-frame@1"),
+        settings: MediaConstraints::Camera {
+            minimum_width: 64,
+            maximum_width: 64,
+            minimum_height: 64,
+            maximum_height: 64,
+            maximum_frames_per_second: 30,
+        },
+        flow_bounds: MediaFlowBounds {
+            maximum_value_bytes: 64 * 1024,
+            maximum_queue_items: 1,
+            maximum_queue_bytes: 64 * 1024,
+        },
+        use_authority_contract: AuthorityContractId::from("conduit.authority/use-human-media@1"),
+        use_authority_grant: AuthorityGrantId::from("browser/media/use-1"),
+        availability: MediaResourceAvailability::Available,
+    };
+    let frame = BrowserAdmissionIngress::MediaResourceTruth {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        credential_id: serde_json::from_str("\"credential/media\"").unwrap(),
+        body_id: serde_json::from_str("\"body/media\"").unwrap(),
+        part_id: serde_json::from_str("\"part/media\"").unwrap(),
+        host_id: resource.host_id.clone(),
+        boot_id: resource.boot_id.clone(),
+        resource: resource.clone(),
+    };
+    let encoded = serde_json::to_vec(&frame).unwrap();
+    assert!(encoded.len() <= MAX_BROWSER_ADMISSION_FRAME_BYTES);
+    assert_eq!(decode_browser_admission_frame(&encoded), Ok(frame));
+
+    let mut wrong = resource;
+    wrong.host_id = HostId::from("browser/other");
+    let malformed = BrowserAdmissionIngress::MediaResourceTruth {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        credential_id: serde_json::from_str("\"credential/media\"").unwrap(),
+        body_id: serde_json::from_str("\"body/media\"").unwrap(),
+        part_id: serde_json::from_str("\"part/media\"").unwrap(),
+        host_id: HostId::from("browser/media"),
+        boot_id: BootId::from("browser-boot/media"),
+        resource: wrong,
+    };
+    assert_eq!(
+        decode_browser_admission_frame(&serde_json::to_vec(&malformed).unwrap()),
+        Err(BrowserAdmissionFrameError::InvalidMediaResource)
+    );
+
+    let plan = BrowserAdmissionEgress::MediaUsePlan {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        plan_id: PlanId::from("plan/media-use"),
+        resource_handle: ResourceHandleId::from("track/opaque-1"),
+        output_port: PortId::from("frame"),
+    };
+    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let length = encode_browser_admission_frame(&plan, &mut output).unwrap();
+    assert_eq!(
+        serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
+        plan
     );
 }
 

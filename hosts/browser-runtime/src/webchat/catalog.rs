@@ -33,6 +33,41 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
         }],
         capabilities: core::iter::once(socket.capability)
             .chain(chat.capabilities)
+            .chain(conduit_std_catalog::browser_human_io_advertisement_offers())
             .collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn live_browser_advertisement_is_finite_truth_without_acquired_camera_use() {
+        let advertisement = advertisement(HostId::from("browser/one"), BootId::from("boot/one"));
+        let encoded = serde_json::to_vec(&advertisement).unwrap();
+        assert!(
+            encoded.len() <= conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize,
+            "encoded browser advertisement is {} bytes",
+            encoded.len()
+        );
+        for kind in [
+            conduit_std_catalog::CAMERA_ACQUIRE_KIND,
+            conduit_std_catalog::MICROPHONE_ACQUIRE_KIND,
+            conduit_presentation::INTERACTION_KIND,
+            conduit_presentation::RENDERER_KIND,
+            conduit_std_catalog::TEXT_PRESENTATION_KIND,
+            conduit_std_catalog::GRAPHICS_RECT_KIND,
+            conduit_std_catalog::CAMERA_FRAME_SINK_KIND,
+        ] {
+            assert!(advertisement
+                .capabilities
+                .iter()
+                .any(|offer| offer.kind_id.as_str() == kind));
+        }
+        assert!(advertisement
+            .capabilities
+            .iter()
+            .all(|offer| offer.kind_id.as_str() != conduit_std_catalog::CAMERA_SOURCE_KIND));
     }
 }

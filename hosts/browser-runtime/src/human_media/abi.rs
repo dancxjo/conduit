@@ -22,6 +22,8 @@ struct AbiState {
     kind: HumanMediaKind,
     session: BrowserMediaSession,
     operation_id: HostOperationId,
+    acquisition_plan_id: PlanId,
+    use_plan_id: Option<PlanId>,
     constraints: MediaConstraints,
     bounds: MediaFlowBounds,
     evidence: [u8; EVIDENCE_BYTES],
@@ -30,6 +32,7 @@ struct AbiState {
     last_value_checksum: u32,
     stages: u16,
     resource_handle: Option<ResourceHandleId>,
+    acquired_resource: Option<AcquiredMediaResource>,
     use_authority_grant: Option<AuthorityGrantId>,
     output_port: PortId,
 }
@@ -142,9 +145,11 @@ pub extern "C" fn conduit_browser_media_start_acquisition(
         flow_bounds: bounds,
     };
     let mut session = BrowserMediaSession::new();
+    let acquisition_plan_id =
+        PlanId::from(format!("{}/media-acquisition-plan/1", host_id.as_str()).as_str());
     if session
         .seal_acquisition(
-            PlanId::from(format!("{}/media-acquisition-plan/1", host_id.as_str()).as_str()),
+            acquisition_plan_id.clone(),
             &offer,
             Some(&authority),
             request,
@@ -164,6 +169,8 @@ pub extern "C" fn conduit_browser_media_start_acquisition(
         kind,
         session,
         operation_id,
+        acquisition_plan_id,
+        use_plan_id: None,
         constraints,
         bounds,
         evidence: [0; EVIDENCE_BYTES],
@@ -172,6 +179,7 @@ pub extern "C" fn conduit_browser_media_start_acquisition(
         last_value_checksum: 0,
         stages: 0b0000_0111,
         resource_handle: None,
+        acquired_resource: None,
         use_authority_grant: None,
         output_port,
     };
@@ -245,7 +253,7 @@ pub extern "C" fn conduit_browser_media_complete_acquisition(
                 );
                 state.resource_handle = Some(handle_id.clone());
                 state.use_authority_grant = Some(use_authority_grant.clone());
-                MediaAcquisitionResult::Acquired(AcquiredMediaResource {
+                let resource = AcquiredMediaResource {
                     host_id: state.host_id.clone(),
                     boot_id: state.boot_id.clone(),
                     handle_id,
@@ -264,7 +272,9 @@ pub extern "C" fn conduit_browser_media_complete_acquisition(
                     ),
                     use_authority_grant,
                     availability: MediaResourceAvailability::Available,
-                })
+                };
+                state.acquired_resource = Some(resource.clone());
+                MediaAcquisitionResult::Acquired(resource)
             }
             1 => MediaAcquisitionResult::Denied,
             2 => MediaAcquisitionResult::Dismissed,
@@ -300,6 +310,37 @@ fn malformed(state: &mut AbiState) -> i32 {
 
 #[no_mangle]
 pub extern "C" fn conduit_browser_media_start_use(use_authority: i32) -> i32 {
+    let plan = STATE.with(|slot| {
+        slot.borrow().as_ref().map(|state| {
+            PlanId::from(format!("{}/media-use-plan/1", state.host_id.as_str()).as_str())
+        })
+    });
+    let Some(plan) = plan else {
+        return -1;
+    };
+    start_use(plan, use_authority)
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_media_start_use_plan(
+    plan_length: usize,
+    use_authority: i32,
+) -> i32 {
+    if plan_length == 0 || plan_length > INPUT_BYTES {
+        return -1;
+    }
+    let plan = INPUT.with(|input| {
+        core::str::from_utf8(&input.borrow()[..plan_length])
+            .ok()
+            .map(PlanId::from)
+    });
+    let Some(plan) = plan else {
+        return -1;
+    };
+    start_use(plan, use_authority)
+}
+
+fn start_use(plan_id: PlanId, use_authority: i32) -> i32 {
     if use_authority != 1 {
         return -2;
     }
@@ -321,16 +362,13 @@ pub extern "C" fn conduit_browser_media_start_use(use_authority: i32) -> i32 {
         };
         if state
             .session
-            .seal_use(
-                PlanId::from(format!("{}/media-use-plan/1", state.host_id.as_str()).as_str()),
-                &requirement,
-                Some(&grant),
-            )
+            .seal_use(plan_id.clone(), &requirement, Some(&grant))
             .and_then(|()| state.session.start_use())
             .is_err()
         {
             return -4;
         }
+        state.use_plan_id = Some(plan_id);
         state.stages |= 0b0110_0000;
         refresh_evidence(state);
         0
@@ -434,16 +472,47 @@ fn refresh_evidence(state: &mut AbiState) {
         .into_iter()
         .filter_map(|(bit, name)| (state.stages & bit != 0).then_some(name))
         .collect::<Vec<_>>();
+    let resource = state.acquired_resource.as_ref();
+    let settings = resource.map(|resource| match resource.settings {
+        MediaConstraints::Camera {
+            minimum_width,
+            minimum_height,
+            maximum_frames_per_second,
+            ..
+        } => serde_json::json!({
+            "width": minimum_width,
+            "height": minimum_height,
+            "maximum_frames_per_second": maximum_frames_per_second,
+        }),
+        MediaConstraints::Microphone {
+            minimum_sample_rate_hz,
+            maximum_channels,
+            ..
+        } => serde_json::json!({
+            "sample_rate_hz": minimum_sample_rate_hz,
+            "channels": maximum_channels,
+        }),
+    });
     let value = serde_json::json!({
         "schema": "conduit.browser/human-media-evidence@1",
         "host_id": state.host_id.as_str(), "boot_id": state.boot_id.as_str(),
         "operation_id": state.operation_id.as_str(), "phase": phase, "terminal": terminal,
+        "acquisition_plan_id": state.acquisition_plan_id.as_str(),
+        "use_plan_id": state.use_plan_id.as_ref().map(PlanId::as_str),
         "observed_values": state.session.observed_values(), "retained_bytes": state.session.retained_bytes(),
         "last_value_bytes": state.last_value_bytes,
         "last_value_checksum": state.last_value_checksum,
         "constraints": format!("{:?}", state.constraints),
         "stages": stages,
         "resource_handle": state.resource_handle.as_ref().map(ResourceHandleId::as_str),
+        "resource_class": resource.map(|value| value.class_id.as_str()),
+        "value_kind": resource.map(|value| value.value_kind.as_str()),
+        "settings": settings,
+        "flow_bounds": {
+            "maximum_value_bytes": state.bounds.maximum_value_bytes,
+            "maximum_queue_items": state.bounds.maximum_queue_items,
+            "maximum_queue_bytes": state.bounds.maximum_queue_bytes,
+        },
         "use_authority_grant": state.use_authority_grant.as_ref().map(AuthorityGrantId::as_str),
         "output_port": state.output_port.as_str(),
     });

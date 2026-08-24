@@ -9,7 +9,10 @@ use conduit_body::{
     PartReturnChallenge, SpawnInvitationId, ADMISSION_SIGNATURE_BYTES,
     MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
 };
-use conduit_core::{BootId, HostAdvertisement, HostId};
+use conduit_core::{
+    AcquiredMediaResource, BootId, HostAdvertisement, HostId, MediaResourceAvailability, PlanId,
+    PortId, ResourceHandleId,
+};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -66,6 +69,15 @@ pub enum BrowserAdmissionIngress {
         boot_id: BootId,
         sequence: u64,
     },
+    MediaResourceTruth {
+        protocol: u16,
+        credential_id: MembershipCredentialId,
+        body_id: BodyId,
+        part_id: PartId,
+        host_id: HostId,
+        boot_id: BootId,
+        resource: AcquiredMediaResource,
+    },
     WebRtcSignal {
         protocol: u16,
         credential_id: MembershipCredentialId,
@@ -121,6 +133,17 @@ pub enum BrowserAdmissionEgress {
         renew_after_millis: u64,
         expires_at_millis: u64,
     },
+    MediaUsePlan {
+        protocol: u16,
+        plan_id: PlanId,
+        resource_handle: ResourceHandleId,
+        output_port: PortId,
+    },
+    WebRtcPlanReady {
+        protocol: u16,
+        generation: u16,
+        plan_id: PlanId,
+    },
     WebRtcSignal {
         protocol: u16,
         source_host_id: HostId,
@@ -155,6 +178,7 @@ pub enum BrowserAdmissionFrameError {
     InvalidNonce,
     InvalidSignature,
     InvalidSequence,
+    InvalidMediaResource,
     InvalidSignal,
     InvalidGrant,
     OutputTooSmall,
@@ -320,6 +344,28 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             }
             protocol
         }
+        BrowserAdmissionIngress::MediaResourceTruth {
+            protocol,
+            host_id,
+            boot_id,
+            resource,
+            ..
+        } => {
+            if resource.host_id != *host_id
+                || resource.boot_id != *boot_id
+                || resource.availability != MediaResourceAvailability::Available
+                || resource.handle_id.as_str().is_empty()
+                || resource.class_id.as_str().is_empty()
+                || resource.value_kind.as_str().is_empty()
+                || resource.use_authority_contract.as_str().is_empty()
+                || resource.use_authority_grant.as_str().is_empty()
+                || !resource.settings.is_valid()
+                || !resource.flow_bounds.is_finite_and_valid()
+            {
+                return Err(BrowserAdmissionFrameError::InvalidMediaResource);
+            }
+            protocol
+        }
         BrowserAdmissionIngress::WebRtcSignal {
             protocol, signal, ..
         } => {
@@ -368,6 +414,33 @@ fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissio
         | BrowserAdmissionEgress::PresenceAccepted { protocol, .. }
         | BrowserAdmissionEgress::ReturnChallenge { protocol, .. }
         | BrowserAdmissionEgress::Refused { protocol, .. } => protocol,
+        BrowserAdmissionEgress::MediaUsePlan {
+            protocol,
+            plan_id,
+            resource_handle,
+            output_port,
+        } => {
+            if plan_id.as_str().is_empty()
+                || resource_handle.as_str().is_empty()
+                || output_port.as_str().is_empty()
+            {
+                return Err(BrowserAdmissionFrameError::InvalidMediaResource);
+            }
+            protocol
+        }
+        BrowserAdmissionEgress::WebRtcPlanReady {
+            protocol,
+            generation,
+            plan_id,
+        } => {
+            if *generation == 0
+                || *generation >= MAX_WEBRTC_GRANT_GENERATIONS
+                || plan_id.as_str().is_empty()
+            {
+                return Err(BrowserAdmissionFrameError::InvalidGrant);
+            }
+            protocol
+        }
         BrowserAdmissionEgress::WebRtcSignal {
             protocol, signal, ..
         } => {

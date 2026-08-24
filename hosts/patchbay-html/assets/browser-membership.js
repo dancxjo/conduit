@@ -1,7 +1,8 @@
 import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
 
 const INPUT_CAPACITY = 4096;
-const MAXIMUM_OUTPUT_BYTES = 9216;
+const MAXIMUM_OUTPUT_BYTES = 24 * 1024;
+const MEDIA_PLAN_TIMEOUT_MILLIS = 10_000;
 
 const MAXIMUM_WEB_RTC_GRANTS = 16;
 
@@ -29,7 +30,7 @@ export function immutableWebRtcSignalFrame(frame) {
   return Object.freeze({ ...frame, signal: immutableSignal });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGrant, onWebRtcSignal, onWebRtcState, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   const required = [
@@ -93,6 +94,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
   if (verifyingKey.length !== 32) throw new Error("invalid browser verifying key");
   requireSuccess(api.conduit_browser_membership_advertisement(), "browser advertisement");
   const advertisement = JSON.parse(decoder.decode(readOutput()));
+  configureHost?.(Object.freeze({ api, hostId, bootId }));
   let state = "connecting";
   let presenceState = "unavailable";
   let credential;
@@ -105,6 +107,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
   let webRtcSessions;
   let webRtcFailure = null;
   let webRtcRefusal = null;
+  let pendingMediaPlan = null;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
   let freshnessProfile = Object.freeze({
     scheduling: "best-effort-browser-event-loop",
@@ -210,7 +213,26 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     const frame = JSON.parse(typeof event.data === "string"
       ? event.data
       : decoder.decode(new Uint8Array(event.data)));
-    if (frame.kind === "challenge" && frame.protocol === 1) {
+    if (frame.kind === "media-use-plan" && frame.protocol === 1) {
+      if (!pendingMediaPlan || frame.resource_handle !== pendingMediaPlan.resourceHandle) {
+        throw new Error("stale or mismatched media use Plan");
+      }
+      clearTimeout(pendingMediaPlan.timeout);
+      const resolve = pendingMediaPlan.resolve;
+      pendingMediaPlan = null;
+      resolve(Object.freeze({
+        planId: frame.plan_id,
+        resourceHandle: frame.resource_handle,
+        outputPort: frame.output_port,
+      }));
+    } else if (frame.kind === "web-rtc-plan-ready" && frame.protocol === 1) {
+      if (!credential || presenceState !== "available" || frame.generation !== 1 ||
+          typeof frame.plan_id !== "string" || frame.plan_id.length === 0) {
+        throw new Error("invalid WebRTC Plan-ready transition");
+      }
+      const generation = webRtcSessions.activatePlan();
+      if (generation !== frame.generation) throw new Error("WebRTC Plan generation mismatch");
+    } else if (frame.kind === "challenge" && frame.protocol === 1) {
       const bytes = encoder.encode(JSON.stringify(frame.challenge));
       writeInput(bytes);
       requireSuccess(api.conduit_browser_membership_prove(bytes.length), "browser admission proof");
@@ -340,6 +362,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
       clearTimeout(renewalTimer);
       presenceState = "unavailable";
       webRtcSessions.reset("presence-lost");
+      if (pendingMediaPlan) {
+        clearTimeout(pendingMediaPlan.timeout);
+        pendingMediaPlan.reject(new Error("media use planning Line closed"));
+        pendingMediaPlan = null;
+      }
       if (state.startsWith("refused:")) return;
       if (!deliberateClose && presenceEstablished && reconnectPresence && reconnectAttempts === 0) {
         reconnectAttempts += 1;
@@ -351,6 +378,60 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     });
   };
   openSocket();
+  function publishMediaResource(mediaEvidence) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current Body membership is required for media resource truth"));
+    }
+    if (pendingMediaPlan) {
+      return Promise.reject(new Error("one media use planning operation is already pending"));
+    }
+    if (mediaEvidence?.host_id !== hostId || mediaEvidence?.boot_id !== bootId ||
+        mediaEvidence?.phase !== "resource-truth" || !mediaEvidence.resource_handle ||
+        !mediaEvidence.use_authority_grant || mediaEvidence.output_port !== "frame" ||
+        mediaEvidence.value_kind !== "media/camera-frame@1" ||
+        mediaEvidence.resource_class !== "conduit.resource/acquired-camera@1") {
+      return Promise.reject(new Error("invalid or non-current camera resource truth"));
+    }
+    const settings = mediaEvidence.settings;
+    const bounds = mediaEvidence.flow_bounds;
+    if (!settings || !bounds) return Promise.reject(new Error("camera resource truth lacks exact bounds"));
+    socket.send(encoder.encode(JSON.stringify({
+      kind: "media-resource-truth",
+      protocol: 1,
+      credential_id: credential.credential_id,
+      body_id: credential.body_id,
+      part_id: credential.part_id,
+      host_id: hostId,
+      boot_id: bootId,
+      resource: {
+        host_id: hostId,
+        boot_id: bootId,
+        handle_id: mediaEvidence.resource_handle,
+        class_id: mediaEvidence.resource_class,
+        value_kind: mediaEvidence.value_kind,
+        settings: { Camera: {
+          minimum_width: settings.width,
+          maximum_width: settings.width,
+          minimum_height: settings.height,
+          maximum_height: settings.height,
+          maximum_frames_per_second: settings.maximum_frames_per_second,
+        } },
+        flow_bounds: bounds,
+        use_authority_contract: "conduit.authority/use-human-media@1",
+        use_authority_grant: mediaEvidence.use_authority_grant,
+        availability: "Available",
+      },
+    })));
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingMediaPlan?.resourceHandle === mediaEvidence.resource_handle) {
+          pendingMediaPlan = null;
+          reject(new Error("media use planning timed out"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingMediaPlan = { resourceHandle: mediaEvidence.resource_handle, resolve, reject, timeout };
+    });
+  }
   return Object.freeze({
     hostId,
     bootId,
@@ -375,6 +456,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     waitWebRtcValueDelivered: (negotiationId, sequence) => webRtcSessions.waitDelivered(negotiationId, sequence),
     closeWebRtcLine: (negotiationId) => webRtcSessions.closeLine(negotiationId),
     replanWebRtc: () => webRtcSessions.replan(),
+    advertisement: Object.freeze(advertisement),
+    publishMediaResource,
     close: () => {
       deliberateClose = true;
       clearTimeout(renewalTimer);

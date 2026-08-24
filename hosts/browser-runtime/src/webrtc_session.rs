@@ -17,8 +17,8 @@ mod start;
 
 use plan::exact_binding;
 
-const FRAME_CAPACITY: usize = 1_024;
-const PAYLOAD_CAPACITY: u32 = 16;
+const FRAME_CAPACITY: usize = 128 * 1_024;
+const PAYLOAD_CAPACITY: u32 = 64 * 1_024;
 const STATUS_HANDSHAKE: i32 = 0;
 const STATUS_ACTIVE: i32 = 1;
 const STATUS_TERMINAL: i32 = 2;
