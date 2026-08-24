@@ -117,8 +117,8 @@ pub async fn run(
                 }
             }
         };
-        connection.raw().set_bondable(true).unwrap();
         let _ = sign.write_marker("CONDUIT_BLE_LINE_CONNECTED").await;
+        let _ = sign.write_marker("CONDUIT_BLE_SECURITY_REQUESTED").await;
         let result = serve_connection(
             &stack,
             &server,
@@ -166,7 +166,7 @@ async fn advertise<'values, 'server, C: Controller>(
         &[AdStructure::CompleteLocalName(b"Conduit Pico W")],
         &mut scan_data,
     )?;
-    Ok(peripheral
+    let connection = peripheral
         .advertise(
             &Default::default(),
             Advertisement::ConnectableScannableUndirected {
@@ -176,8 +176,13 @@ async fn advertise<'values, 'server, C: Controller>(
         )
         .await?
         .accept()
-        .await?
-        .with_attribute_server(server)?)
+        .await?;
+    // Establish the security contract before BlueZ can race ahead from the
+    // connection fact. This encrypted profile is always bondable and requests
+    // security explicitly; the central still owns whether pairing is admitted.
+    connection.set_bondable(true)?;
+    connection.request_security()?;
+    Ok(connection.with_attribute_server(server)?)
 }
 
 async fn serve_connection<C: Controller>(

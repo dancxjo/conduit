@@ -62,7 +62,7 @@ pub async fn wait_for_request(link: &mut UsbLinkSession) -> Result<(), UsbLinkEr
     link.reset_stream_decoder();
     link.wait_connection().await;
     loop {
-        let request = match link.receive_raw_stream_frame(&mut input).await {
+        let request = match link.receive_control_stream_frame(&mut input).await {
             Ok(request) => request,
             Err(error) => {
                 link.reset_stream_decoder();
