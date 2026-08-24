@@ -5,6 +5,9 @@
 #![no_main]
 #![deny(clippy::large_stack_frames, clippy::mem_forget)]
 
+#[cfg(not(feature = "kernel-signal"))]
+compile_error!("select the checked kernel-signal Base feature");
+
 extern crate alloc;
 
 use embassy_executor::Spawner;

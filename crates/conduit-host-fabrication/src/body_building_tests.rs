@@ -160,6 +160,15 @@ fn pico_and_esp32_packages_derive_only_selected_base_features() {
         derive_esp32_feature_closure(&[kernel, bluetooth]).unwrap(),
         ["bluetooth", "kernel-signal"]
     );
+    let esp32 = architecture_packages()
+        .iter()
+        .find(|candidate| candidate.id == "esp32-firmware@1")
+        .unwrap();
+    assert_eq!(esp32.revision, 2);
+    assert_eq!(
+        esp32.builder,
+        "esp32-firmware/architecture-package-runner@2"
+    );
 }
 
 #[test]
