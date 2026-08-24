@@ -245,10 +245,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     image.manifest.image_id
                 );
             }
-            if matches!(
-                image.manifest.target.as_str(),
-                "conduitos/x86_64/pc" | "conduitos/aarch64/virt"
-            ) {
+            if crate::commands::conduitos::target_backend::find(&image.manifest.target).is_some() {
                 let target = host_target::build_target(&image, &bytes, &output, opts)?;
                 if opts.json {
                     println!("{}", serde_json::to_string(&target)?);
@@ -352,6 +349,9 @@ fn load_configuration(
 fn repository_target_maxima(
     profile: &HostProfile,
 ) -> Result<HostBounds, Box<dyn std::error::Error>> {
+    if let Some(backend) = crate::commands::conduitos::target_backend::find(&profile.target.key()) {
+        return Ok(backend.build_maxima.clone());
+    }
     let limits = match (
         profile.target.family.as_str(),
         profile.target.machine.as_str(),
@@ -367,7 +367,6 @@ fn repository_target_maxima(
             line_sessions: 8,
             evidence_items: 512,
         },
-        ("conduitos", "pc" | "virt") => hosted_limits(512 * 1024 * 1024),
         ("std", _) | ("browser", _) => hosted_limits(2 * 1024 * 1024 * 1024),
         _ => {
             return Err(

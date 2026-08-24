@@ -29,16 +29,7 @@ pub(super) fn execute_profile(
     manifest: &BuildManifest,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
-    let arch = match manifest.target.as_str() {
-        "conduitos/x86_64/pc" => ConduitosArch::X86_64,
-        "conduitos/aarch64/virt" => ConduitosArch::Aarch64,
-        target => {
-            return Err(ConduitosError::refusal(
-                "unsupported-profile-target",
-                target.to_owned(),
-            ));
-        }
-    };
+    let arch = super::target_backend::select(&manifest.target)?.arch;
     let paths = Paths::new(arch)?;
     fs::create_dir_all(&paths.target)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
