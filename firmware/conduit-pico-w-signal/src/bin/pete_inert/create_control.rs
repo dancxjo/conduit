@@ -246,8 +246,15 @@ pub async fn task(
     let mut provider = Provider {
         uart: Uart::new_blocking(uart0, tx, rx, config),
     };
-    // Match Pete's RX pull-up so an unpowered Create cannot look like framing noise.
+    // Slow the Pico edge presented to the TXS auto-direction translator and
+    // harden the receive threshold. The DB-25 path is quiet when TX is idle;
+    // its observed corruption is correlated with fast GP0 transitions.
+    rp_pac::PADS_BANK0.gpio(0).modify(|value| {
+        value.set_slewfast(false);
+        value.set_drive(rp_pac::pads::vals::Drive::_2M_A);
+    });
     rp_pac::PADS_BANK0.gpio(1).modify(|value| {
+        value.set_schmitt(true);
         value.set_pue(true);
         value.set_pde(false);
     });

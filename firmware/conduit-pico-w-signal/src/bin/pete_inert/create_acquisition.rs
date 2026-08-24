@@ -53,7 +53,11 @@ async fn read_packet(
                 watchdog.feed(Duration::from_millis(2_000));
                 if decode_sensor_packet(packet_id, &[byte]).is_err() {
                     uart_diagnostic::record_frame(packet_id, &[byte], false);
-                    return Err(());
+                    // A TX-correlated edge can produce a bounded invalid byte
+                    // through the auto-direction level shifter. Keep scanning
+                    // until the deadline, but never promote that byte into a
+                    // mode or song observation.
+                    continue;
                 }
                 uart_diagnostic::record_frame(packet_id, &[byte], true);
                 return Ok(byte);
@@ -86,6 +90,7 @@ pub async fn establish_full(
             break;
         }
         watchdog_delay(watchdog, START_SETTLE_MS).await;
+        discard_uart(provider);
         if write_command(
             provider,
             &encode_mode(CreateOiModeRequest::Full).expect("Full has one exact command"),
@@ -95,6 +100,7 @@ pub async fn establish_full(
             break;
         }
         watchdog_delay(watchdog, MODE_SETTLE_MS).await;
+        discard_uart(provider);
         if write_command(
             provider,
             &encode_query_sensor(35).expect("mode packet is allow-listed"),
@@ -164,11 +170,15 @@ pub async fn restore_safe(
     watchdog: &mut Watchdog,
 ) -> Result<(), ()> {
     write_command(provider, &encode_start()).map_err(|_| ())?;
+    watchdog_delay(watchdog, START_SETTLE_MS).await;
+    discard_uart(provider);
     write_command(
         provider,
         &encode_mode(CreateOiModeRequest::Safe).expect("Safe has one exact command"),
     )
     .map_err(|_| ())?;
+    watchdog_delay(watchdog, MODE_SETTLE_MS).await;
+    discard_uart(provider);
     write_command(
         provider,
         &encode_query_sensor(35).expect("mode packet is allow-listed"),
