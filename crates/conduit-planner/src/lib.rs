@@ -37,6 +37,7 @@ mod degradation;
 mod degraded_profile;
 mod diagnostic;
 mod diversity;
+mod dormant_readmission;
 mod fact_policy;
 mod functional_compatibility;
 mod fusion;
@@ -113,6 +114,12 @@ pub use diversity::{
     LinePathHop, MechanismDependency, PreviousPlanDisposition, MAXIMUM_DIVERSITY_CANDIDATES,
     MAXIMUM_DIVERSITY_DEPENDENCIES, MAXIMUM_DIVERSITY_ID_BYTES, MAXIMUM_DIVERSITY_LINE_HOPS,
     MAXIMUM_DIVERSITY_MECHANISMS,
+};
+pub use dormant_readmission::{
+    observe_dormant_candidate, prove_dormant_readmission, CurrentDormantCandidate,
+    DormantEquipmentHistory, DormantReadmissionEvidence, DormantReadmissionRefusal,
+    RequiredDormantLine, MAXIMUM_DORMANT_ABSENT_GENERATIONS, MAXIMUM_DORMANT_ID_BYTES,
+    MAXIMUM_DORMANT_REQUIRED_LINES, MAXIMUM_DORMANT_SIGNS,
 };
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use fusion::{

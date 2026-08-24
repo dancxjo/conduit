@@ -11,6 +11,41 @@ pub const PROVE_DIVERSITY_STEPS: &[Step] = &[Step::typed(
     &[],
 )];
 
+pub const PROVE_DORMANT_READMISSION_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.dormant-readmission.planner",
+        "Prove dormant equipment returns only through fresh exact ordinary planning truth",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-planner",
+            "--test",
+            "dormant_readmission",
+        ],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
+        "prove.dormant-readmission.patchbay",
+        "Prove Patchbay explains unused-before, available-now, and preferred-path-loss truth",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "patchbay-model",
+            "--test",
+            "dormant_readmission",
+        ],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+];
+
 pub const PROVE_DEGRADED_PROFILES_STEPS: &[Step] = &[
     Step::typed(
         "prove.degraded-profiles.admission",

@@ -261,6 +261,7 @@ pub enum ProveTarget {
     CalendarGoogle,
     DegradedProfiles,
     Diversity,
+    DormantReadmission,
     LlmEmbodiment,
     LlmCrossHost,
     LlmPlanningAdvice,
@@ -623,6 +624,16 @@ mod tests {
             diversity.command,
             Command::Prove(ProveArgs {
                 proof: ProveTarget::Diversity,
+                ..
+            })
+        ));
+
+        let dormant = Cli::try_parse_from(["xtask", "prove", "dormant-readmission"])
+            .expect("dormant-readmission proof parses");
+        assert!(matches!(
+            dormant.command,
+            Command::Prove(ProveArgs {
+                proof: ProveTarget::DormantReadmission,
                 ..
             })
         ));
