@@ -22,6 +22,8 @@ mod execution;
 mod recovery;
 #[path = "distributed_back/survival_policy.rs"]
 mod survival_policy;
+#[path = "distributed_back/voyager_capstone.rs"]
+mod voyager_capstone;
 
 const VALUES: [&str; 6] = [
     "test/provider-prompt",
@@ -252,8 +254,12 @@ fn plan_with_http_part(
 }
 
 fn direct_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core::Plan) {
+    direct_plan_on("direct")
+}
+
+fn direct_plan_on(part: &str) -> (conduit_form::ExpandedCanonicalForm, conduit_core::Plan) {
     let form = direct_expanded();
-    let direct = host("direct", &[SOURCE, HIGH, SINK]);
+    let direct = host(part, &[SOURCE, HIGH, SINK]);
     let placements = default_expanded_placements(&form, std::slice::from_ref(&direct)).unwrap();
     let plan = plan_expanded_canonical_with_options(
         &form,

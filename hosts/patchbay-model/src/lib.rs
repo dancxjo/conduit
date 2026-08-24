@@ -79,6 +79,7 @@ mod text_lab_explanation;
 mod text_lab_explanation_loss;
 mod theme;
 mod topology;
+mod voyager_capstone_explanation;
 mod zero_body_authoring;
 mod zero_body_front_door;
 mod zero_body_projection;
@@ -223,6 +224,10 @@ pub use text_lab_explanation::{
 };
 pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
+pub use voyager_capstone_explanation::{
+    explain_voyager_capstone, VoyagerCapstoneExplanation, VoyagerCapstoneExplanationError,
+    VoyagerScarStageExplanation, MAX_VOYAGER_CAPSTONE_EXPLANATION_BYTES,
+};
 pub use zero_body_front_door::{
     BodyJoinCandidate, OpenedFrontDoorSubject, SeedCandidate, ZeroBodyFrontDoor,
     ZeroBodyFrontDoorProjection, MAX_FRONT_DOOR_BODY_CANDIDATES, MAX_FRONT_DOOR_REFUSAL_SIGNS,
