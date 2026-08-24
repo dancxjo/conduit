@@ -24,6 +24,7 @@ fn main() {
     let opts = cli.global;
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
         Command::Browser => commands::browser::run(&opts),
+        Command::Body(args) => commands::body::run(args, &opts),
         Command::BodyCoordination(args) => commands::body_coordination::run(args, &opts),
         Command::Catalog(args) => commands::catalog::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),

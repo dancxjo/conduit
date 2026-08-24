@@ -1,0 +1,38 @@
+schema = 1
+name = "pete-r1"
+
+[body]
+id = "body:pete-r1"
+
+[[hosts]]
+name = "forebrain"
+part = "part:forebrain"
+configuration = "../host-configurations/linux-workstation.host.toml"
+
+[hosts.spore]
+join_mode = "prejoined"
+output = "native-bundle"
+
+[hosts.deployment]
+destination = "target/body-deploy/pete-r1/forebrain"
+
+[[hosts]]
+name = "brainstem"
+part = "part:brainstem"
+configuration = "../host-configurations/pico-w.host.toml"
+
+[hosts.spore]
+join_mode = "prejoined"
+output = "uf2"
+
+[[hosts]]
+name = "eyes"
+configuration = "../host-configurations/browser-page.host.toml"
+
+[hosts.spore]
+join_mode = "self-joining"
+invitation = "invitation:pete-r1-eyes:single-use"
+output = "browser-bundle"
+
+[hosts.deployment]
+destination = "target/body-deploy/pete-r1/eyes"
