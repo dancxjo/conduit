@@ -5,11 +5,13 @@
 //! no parsing, planning, capability selection, firmware work, transport, or
 //! trigger. Unsupported facts fail closed rather than being approximated.
 
+mod assigned_plan;
 mod generate;
 mod model;
 mod render;
 mod validate;
 
+pub use assigned_plan::encode_assigned_plan;
 pub use generate::generate_embedded_plan;
 pub use model::*;
 
