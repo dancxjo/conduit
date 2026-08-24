@@ -38,7 +38,7 @@ visudo -cf "$target_rule" >/dev/null
 install -o root -g root -m 0644 "$source_udev_rule" "$target_udev_rule"
 udevadm control --reload-rules
 
-printf 'Installed narrow headless Pico BOOTSEL mount support.\n'
-printf 'Installed persistent plugdev access for Conduit Pico CDC interfaces.\n'
-printf 'Members of plugdev may now run only the fixed mount and unmount helper operations.\n'
-printf 'Reconnect the Pico once to apply the CDC access rule.\n'
+printf 'Installed narrow headless Pico BOOTSEL mount and exact-device reset support.\n'
+printf 'Installed persistent plugdev access for the matching Conduit Pico USB device and CDC interfaces.\n'
+printf 'Members of plugdev may run only the fixed mount helpers and access that exact USB identity.\n'
+printf 'Reconnect the Pico once to apply USB access and modem-probe exclusion.\n'
