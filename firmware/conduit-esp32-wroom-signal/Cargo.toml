@@ -28,6 +28,7 @@ path = "src/main.rs"
 conduit-bluetooth = { path = "../../crates/conduit-bluetooth", optional = true }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
+conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
 conduit-wire = { path = "../../crates/conduit-wire", default-features = false }
 critical-section = "1.2.0"
 embassy-executor = "0.10.0"

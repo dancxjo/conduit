@@ -128,6 +128,8 @@ mod usb_link;
 
 use aligned::{A4, Aligned};
 use embassy_executor::Spawner;
+#[cfg(feature = "bluetooth-line")]
+use embassy_rp::flash::Flash;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 use embassy_futures::join::join;
 #[cfg(any(
@@ -414,6 +416,12 @@ async fn main(spawner: Spawner) {
 
     #[cfg(feature = "bluetooth-line")]
     {
+        const PICO_W_FLASH_BYTES: usize = 2 * 1024 * 1024;
+        let mut flash = Flash::<_, _, PICO_W_FLASH_BYTES>::new_blocking(p.FLASH);
+        let mut flash_unique_id = [0_u8; 8];
+        flash
+            .blocking_unique_id(&mut flash_unique_id)
+            .expect("Pico W flash must expose its physical unique identity");
         spawner.spawn(bluetooth_bootsel_task(session_line).unwrap());
         cdc.wait_dtr().await;
         bluetooth_line::run(
@@ -431,6 +439,7 @@ async fn main(spawner: Spawner) {
             &CYW43_NVRAM,
             CYW43_CLM,
             &runtime,
+            flash_unique_id,
         )
         .await;
     }

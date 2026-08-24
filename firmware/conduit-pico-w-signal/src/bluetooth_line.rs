@@ -23,7 +23,6 @@ use cyw43::Control;
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embassy_rp::{
-    clocks::RoscRng,
     peripherals::{DMA_CH0, DMA_CH1, PIN_23, PIN_24, PIN_25, PIN_29, PIO0},
     Peri,
 };
@@ -76,6 +75,7 @@ pub async fn run(
     nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
     clm: &'static [u8],
     runtime: &RuntimeTranscriptIdentity,
+    flash_unique_id: [u8; 8],
 ) -> ! {
     let (bt_driver, mut control) = crate::radio::init_cyw43_bluetooth(
         spawner, pio0, dma_ch0, dma_ch1, pin23, pin24, pin25, pin29, fw, btfw, nvram, clm,
@@ -84,9 +84,8 @@ pub async fn run(
     let controller: ExternalController<_, 10> = ExternalController::new(bt_driver);
     let mut resources: HostResources<_, DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
         HostResources::new();
-    let mut rng = RoscRng;
     let mut address_bytes = [0_u8; 6];
-    rand_core::RngCore::fill_bytes(&mut rng, &mut address_bytes);
+    address_bytes.copy_from_slice(&flash_unique_id[..6]);
     address_bytes[5] = (address_bytes[5] & 0x3f) | 0xc0;
     let stack = trouble_host::new(controller, &mut resources)
         .set_random_address(Address::random(address_bytes))
@@ -105,38 +104,37 @@ pub async fn run(
     let _ = sign.write_marker("CONDUIT_BLE_CONTROLLER_READY").await;
     join(run_host(runner), async {
         let mut consecutive_advertise_failures = 0_u8;
-        loop {
-            let connection = match advertise(&mut peripheral, &server).await {
-                Ok(connection) => connection,
+        let connection = loop {
+            match advertise(&mut peripheral, &server).await {
+                Ok(connection) => break connection,
                 Err(_) if consecutive_advertise_failures < 7 => {
                     consecutive_advertise_failures += 1;
                     Timer::after(Duration::from_millis(250)).await;
-                    continue;
                 }
                 Err(_) => {
                     let _ = sign.write_marker("CONDUIT_BLE_ADVERTISE_FAILED").await;
                     return core::future::pending::<()>().await;
                 }
-            };
-            consecutive_advertise_failures = 0;
-            connection.raw().set_bondable(true).unwrap();
-            let _ = sign.write_marker("CONDUIT_BLE_LINE_CONNECTED").await;
-            let result = serve_connection(
-                &stack,
-                &server,
-                &connection,
-                &mut control,
-                sign,
-                runtime,
-            )
-            .await;
-            let marker = if result.is_ok() {
-                "CONDUIT_BLE_LINE_COMPLETE"
-            } else {
-                "CONDUIT_BLE_LINE_LOST"
-            };
-            let _ = sign.write_marker(marker).await;
-        }
+            }
+        };
+        connection.raw().set_bondable(true).unwrap();
+        let _ = sign.write_marker("CONDUIT_BLE_LINE_CONNECTED").await;
+        let result = serve_connection(
+            &stack,
+            &server,
+            &connection,
+            &mut control,
+            sign,
+            runtime,
+        )
+        .await;
+        let marker = if result.is_ok() {
+            "CONDUIT_BLE_LINE_COMPLETE"
+        } else {
+            "CONDUIT_BLE_LINE_LOST"
+        };
+        let _ = sign.write_marker(marker).await;
+        core::future::pending::<()>().await
     })
     .await;
     core::future::pending().await

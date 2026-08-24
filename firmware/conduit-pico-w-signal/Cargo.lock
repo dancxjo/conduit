@@ -364,7 +364,6 @@ dependencies = [
  "nb 1.1.0",
  "panic-halt",
  "portable-atomic",
- "rand_core 0.6.4",
  "rp-pac 7.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde-json-core",
  "serde_json",

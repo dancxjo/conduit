@@ -69,14 +69,20 @@ pub async fn discover_ble_gatt_candidate(
             .await
             .map_err(|error| BluezBleGattError::DiscoveryUnavailable(error.to_string()))?;
         futures::pin_mut!(events);
-        for _ in 0..MAXIMUM_DISCOVERY_EVENTS_INSPECTED {
-            match events.next().await {
-                Some(_) => {}
-                None => return Err(BluezBleGattError::CandidateUnavailable),
+        let mut inspection = tokio::time::interval(Duration::from_millis(100));
+        let mut inspected_events = 0;
+        while inspected_events < MAXIMUM_DISCOVERY_EVENTS_INSPECTED {
+            tokio::select! {
+                event = events.next() => match event {
+                    Some(_) => inspected_events += 1,
+                    None => return Err(BluezBleGattError::CandidateUnavailable),
+                },
+                _ = inspection.tick() => {}
             }
             // BlueZ can publish DeviceAdded before RSSI and UUID properties are
-            // populated. Reinspect the one selected address after each bounded
-            // discovery event instead of treating that first event as final.
+            // populated, or auto-connect a cached device without an adapter
+            // add/remove event. Reinspect the one selected address after each
+            // bounded event or timer tick instead of treating either as final.
             if let Some(candidate) = inspect_candidate(&adapter, expected, service_uuid).await? {
                 return Ok(candidate);
             }
@@ -173,11 +179,16 @@ async fn inspect_candidate(
     let device = adapter
         .device(address)
         .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-    let Ok(rssi) = device.rssi().await else {
+    let Ok(connected) = device.is_connected().await else {
         return Ok(None);
     };
-    if rssi.is_none() {
-        return Ok(None);
+    if !connected {
+        let Ok(rssi) = device.rssi().await else {
+            return Ok(None);
+        };
+        if rssi.is_none() {
+            return Ok(None);
+        }
     }
     let Ok(uuids) = device.uuids().await else {
         return Ok(None);

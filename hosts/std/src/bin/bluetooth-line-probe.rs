@@ -1,20 +1,18 @@
 use std::str::FromStr;
 
 use conduit_bluetooth::BleGattProfile;
-use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
-    HostId, KindId, LinkBindingId, LinkEndpointId, PlanId, PROTOCOL_VERSION,
+use conduit_core::{BootId, HostId};
+use conduit_signal::{
+    exact_std_esp32_bluetooth_plan, exact_std_pico_bluetooth_plan, ESP32_WROOM_PHYSICAL_HOST_ID,
 };
-use conduit_signal::{exact_std_pico_bluetooth_plan, STD_PICO_USB_SINK_HOST_ID};
 use conduit_std_host::bluetooth_gatt::{
     disconnect_ble_gatt_candidate, discover_ble_gatt_candidate, discover_one_ble_gatt_candidate,
     pair_ble_gatt_candidate, BluezBleGattLine, BluezBleGattListener,
 };
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_wire::{
-    decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
-    SessionEndpointIdentity, SessionLimits, SessionMachine, SessionMessage, SessionRole,
-    SessionTerminalDisposition,
+    decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
+    SessionMessage, SessionRole, SessionTerminalDisposition,
 };
 
 const FRAME_BYTES: usize = 2_048;
@@ -42,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         return Ok(());
     }
-    let role_accepts_binding = matches!(arguments[1].as_str(), "source" | "sink");
+    let role_accepts_binding = matches!(arguments[1].as_str(), "source" | "sink" | "loss");
     if !matches!(arguments.len(), 4 | 6)
         || !matches!(arguments[1].as_str(), "source" | "sink" | "loss")
         || (arguments.len() == 6 && !role_accepts_binding)
@@ -150,16 +148,23 @@ async fn source(
     binding: &SessionBinding,
     line: &mut BluezBleGattLine,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let exact = exact_std_pico_bluetooth_plan([0; 6])?;
-    let source_host = exact
-        .plan
+    let plan = if binding.sink.host_id.as_str() == ESP32_WROOM_PHYSICAL_HOST_ID {
+        exact_std_esp32_bluetooth_plan(line.address())?.plan
+    } else {
+        exact_std_pico_bluetooth_plan(line.address())?.plan
+    };
+    let source_host = plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() != STD_PICO_USB_SINK_HOST_ID)
+        .find(|fragment| fragment.host_id == binding.source.host_id)
         .ok_or("Bluetooth Plan lacks source fragment")?
         .host_id
         .clone();
-    let mut source = PicoUsbSource::prepare_plan(exact.plan, &HostId::from(source_host.as_str()))?;
+    let mut source = PicoUsbSource::prepare_plan_with_observed_boots(
+        plan,
+        &HostId::from(source_host.as_str()),
+        Some((binding.source.boot_id.clone(), binding.sink.boot_id.clone())),
+    )?;
     if source.binding() != binding {
         return Err("kernel source binding disagrees with canonical Bluetooth binding".into());
     }
@@ -400,48 +405,9 @@ fn binding(
         return conduit_signal::std_pico_bluetooth_session_binding()
             .map_err(|error| format!("canonical Bluetooth Session binding: {error:?}").into());
     };
-    let plan_id = PlanId::from("bluetooth/physical-capstone-plan");
-    let source_host = HostId::from("bluetooth/source-host");
-    let source_boot = BootId::from("bluetooth/source-boot");
-    let sink_host = HostId::from(peer_host_id);
-    let sink_boot = BootId::from(peer_boot_id);
-    Ok(SessionBinding {
-        protocol_version: PROTOCOL_VERSION,
-        source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0)
-            .active_play_id,
-        sink_active_play_id: bind_active_play(&plan_id, &sink_host, &sink_boot, 0).active_play_id,
-        plan_id,
-        source_fragment_id: FragmentId::from("bluetooth/source-fragment"),
-        sink_fragment_id: FragmentId::from("bluetooth/sink-fragment"),
-        connection_id: ConnectionId::from("bluetooth/unchanged-signal-cord"),
-        source: SessionEndpointIdentity {
-            host_id: source_host.clone(),
-            boot_id: source_boot.clone(),
-        },
-        sink: SessionEndpointIdentity {
-            host_id: sink_host.clone(),
-            boot_id: sink_boot.clone(),
-        },
-        value_kind: KindId::from("conduit.signal/level@1"),
-        limits: SessionLimits {
-            maximum_in_flight_items: 1,
-            maximum_payload_bytes: PAYLOAD_BYTES,
-            maximum_buffered_bytes: PAYLOAD_BYTES,
-        },
-        attachment: LineAttachment {
-            line_id: "bluetooth/physical-line".into(),
-            link_binding_id: LinkBindingId::from("bluetooth/physical-binding"),
-            base: ConnectionBase::BluetoothLeGatt,
-            base_instance_id: ConnectionBaseInstanceId::from("bluetooth/physical-session"),
-            source_host_id: source_host,
-            source_boot_id: source_boot,
-            source_endpoint_id: LinkEndpointId::from("bluetooth/source-write"),
-            sink_host_id: sink_host,
-            sink_boot_id: sink_boot,
-            sink_endpoint_id: LinkEndpointId::from("bluetooth/sink-indicate"),
-            limits: BleGattProfile::FIRST
-                .link_limits()
-                .expect("first Bluetooth profile has valid finite limits"),
-        },
-    })
+    if peer_host_id == ESP32_WROOM_PHYSICAL_HOST_ID {
+        return conduit_signal::std_esp32_bluetooth_session_binding(BootId::from(peer_boot_id))
+            .map_err(|error| format!("ESP32 Bluetooth Session binding: {error:?}").into());
+    }
+    Err(format!("unsupported Bluetooth sink Host identity: {peer_host_id}").into())
 }

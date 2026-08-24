@@ -53,18 +53,6 @@ impl BootIdentity {
         );
     }
 
-    pub fn host_id(&self) -> String {
-        format!(
-            "esp32/{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-            self.host_mac[0],
-            self.host_mac[1],
-            self.host_mac[2],
-            self.host_mac[3],
-            self.host_mac[4],
-            self.host_mac[5]
-        )
-    }
-
     pub fn boot_id(&self) -> String {
         format!(
             "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",

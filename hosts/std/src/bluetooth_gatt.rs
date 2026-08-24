@@ -25,6 +25,7 @@ use tokio::io::AsyncReadExt;
 
 const MAXIMUM_GATT_OBJECTS_INSPECTED: usize = 16;
 mod discovery;
+mod pairing;
 
 pub use discovery::{
     disconnect_ble_gatt_candidate, discover_ble_gatt_candidate, discover_one_ble_gatt_candidate,
@@ -46,7 +47,7 @@ pub enum BluezBleGattError {
     DeviceUnavailable,
     NotPaired,
     PairingFailed(String),
-    ConnectFailed,
+    ConnectFailed(String),
     MissingService,
     MissingWriteCharacteristic,
     MissingIndicateCharacteristic,
@@ -67,6 +68,8 @@ pub struct BluezBleGattCandidate {
 /// One exact connected GATT mechanism. Construct this during Host preparation;
 /// the object retains no discovery list, reconnect policy, or semantic state.
 pub struct BluezBleGattLine {
+    _agent: Option<bluer::agent::AgentHandle>,
+    pairing_task: Option<tokio::task::JoinHandle<Result<(), bluer::Error>>>,
     address: Address,
     profile: BleGattProfile,
     write: BleGattWrite,
@@ -220,6 +223,8 @@ impl BluezBleGattListener {
             }
         }
         Ok(BluezBleGattLine {
+            _agent: None,
+            pairing_task: None,
             address: expected_address,
             profile: self.profile,
             write: BleGattWrite::Local(writer.expect("checked finite writer slot")),
@@ -270,48 +275,20 @@ impl BluezBleGattLine {
         let session = Session::new()
             .await
             .map_err(|_| BluezBleGattError::BluetoothUnavailable)?;
-        let _agent = if allow_pairing {
-            Some(
-                session
-                    .register_agent(bluer::agent::Agent::default())
-                    .await
-                    .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?,
-            )
-        } else {
-            None
-        };
         let adapter = session
             .adapter(adapter_name)
             .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
-        if allow_pairing {
-            adapter
-                .set_pairable(true)
-                .await
-                .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
-        }
         let address = Address(address);
         let device = adapter
             .device(address)
             .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-        let paired = device
-            .is_paired()
-            .await
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-        if !paired {
-            if !allow_pairing {
-                return Err(BluezBleGattError::NotPaired);
-            }
-            // Own the selected physical connection before pairing. BlueZ may
-            // otherwise create an ephemeral pairing connection and close it
-            // before the admitted GATT Line can adopt the same link.
-            device
-                .connect()
+        if !allow_pairing
+            && !device
+                .is_paired()
                 .await
-                .map_err(|_| BluezBleGattError::ConnectFailed)?;
-            device
-                .pair()
-                .await
-                .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?;
+                .map_err(|_| BluezBleGattError::DeviceUnavailable)?
+        {
+            return Err(BluezBleGattError::NotPaired);
         }
         if !device
             .is_connected()
@@ -321,16 +298,30 @@ impl BluezBleGattLine {
             device
                 .connect()
                 .await
-                .map_err(|_| BluezBleGattError::ConnectFailed)?;
+                .map_err(|error| BluezBleGattError::ConnectFailed(error.to_string()))?;
         }
 
         let service_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_SERVICE_UUID);
         let write_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_WRITE_UUID);
         let notify_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_NOTIFY_UUID);
+        // Resolve the advertised GATT contract before initiating security.
+        // Some BlueZ/controller pairs otherwise race service resolution with
+        // the pairing transaction and publish a false ServicesUnresolved fact.
         let services = device
             .services()
             .await
             .map_err(|_| BluezBleGattError::MissingService)?;
+        let pairing = pairing::prepare_device(&session, &adapter, &device, allow_pairing).await?;
+        if !device
+            .is_connected()
+            .await
+            .map_err(|_| BluezBleGattError::DeviceUnavailable)?
+        {
+            device
+                .connect()
+                .await
+                .map_err(|error| BluezBleGattError::ConnectFailed(error.to_string()))?;
+        }
         let mut service = None;
         for candidate in services.into_iter().take(MAXIMUM_GATT_OBJECTS_INSPECTED) {
             if candidate
@@ -391,6 +382,8 @@ impl BluezBleGattLine {
         );
 
         Ok(Self {
+            _agent: pairing.agent,
+            pairing_task: pairing.task,
             address,
             profile,
             write: BleGattWrite::Remote(write_characteristic),
@@ -460,6 +453,14 @@ impl BluezBleGattLine {
                 output[..frame.len()].copy_from_slice(frame);
                 return Ok(frame.len());
             }
+        }
+    }
+}
+
+impl Drop for BluezBleGattLine {
+    fn drop(&mut self) {
+        if let Some(task) = &self.pairing_task {
+            task.abort();
         }
     }
 }
