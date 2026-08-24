@@ -93,7 +93,7 @@ fn evolve_inputs() -> Vec<PortDescriptor> {
 
 fn evolve_outputs() -> Vec<PortDescriptor> {
     vec![value_port(
-        "state",
+        "next-state",
         REACTION_DIFFUSION_STATE_INFO_ID,
         PortDirection::Output,
     )]

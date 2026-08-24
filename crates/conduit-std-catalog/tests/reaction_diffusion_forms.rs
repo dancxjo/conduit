@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    ProfileCatalog, StartupCatalog,
+    CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
 };
 use conduit_std_catalog::{
     evolve_reaction_diffusion_hosted, install_reaction_diffusion_catalogs,
@@ -55,12 +55,44 @@ fn ordinary_form_checks_and_plans_on_one_truthful_finite_host_offer() {
     assert!(placement.authority.is_empty());
 
     let offer = reaction_diffusion_std_offer();
+    assert_eq!(offer.inputs[0].port_id.as_str(), "state");
+    assert_eq!(offer.inputs[1].port_id.as_str(), "request");
+    assert_eq!(offer.outputs[0].port_id.as_str(), "next-state");
+    assert_eq!(offer.inputs[0].value_kind, offer.outputs[0].value_kind);
     assert_eq!(offer.limits.max_active_instances, 1);
     assert_eq!(offer.limits.max_queue_items, 1);
     assert_eq!(
         offer.host_operations[0].maximum_output_bytes,
         REACTION_DIFFUSION_MAXIMUM_STATE_BYTES
     );
+}
+
+#[test]
+fn direction_distinct_face_accepts_one_exact_canonical_back() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install_reaction_diffusion_catalogs(&mut startup, &mut profile).unwrap();
+    let back = check_syntax_document(
+        &parse_syntax_document(&format!(
+            "form field/evolve (\n > state: {}\n > request: {}\n next-state: {} >\n) {{\n}}\n",
+            conduit_core::REACTION_DIFFUSION_STATE_INFO_ID,
+            conduit_core::REACTION_DIFFUSION_REQUEST_INFO_ID,
+            conduit_core::REACTION_DIFFUSION_STATE_INFO_ID,
+        )),
+        &startup,
+    )
+    .unwrap();
+    let definition = profile
+        .get(&conduit_core::kind_id(REACTION_DIFFUSION_EVOLVE_KIND))
+        .unwrap();
+    assert_eq!(
+        back.forms[0].checked_face(),
+        reaction_diffusion_std_offer().checked_face()
+    );
+    let mut backs = CanonicalBackCatalog::new();
+    backs
+        .insert(definition, &back, REACTION_DIFFUSION_EVOLVE_KIND)
+        .unwrap();
 }
 
 #[test]
