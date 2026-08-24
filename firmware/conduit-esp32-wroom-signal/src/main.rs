@@ -29,6 +29,7 @@ mod bluetooth;
 mod receipts;
 #[cfg(feature = "bluetooth")]
 mod remote_kernel;
+#[cfg(feature = "bluetooth")]
 mod session;
 
 #[cfg(feature = "bluetooth")]
