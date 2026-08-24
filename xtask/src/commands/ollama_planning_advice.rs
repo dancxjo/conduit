@@ -38,7 +38,7 @@ struct OllamaMessage {
     content: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct WireProposal {
     proposal_id: String,
@@ -48,7 +48,7 @@ struct WireProposal {
     placements: Vec<WirePlacement>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct WirePlacement {
     gear_id: String,
@@ -69,6 +69,8 @@ struct LiveProof {
     request_sha256: String,
     response_sha256: String,
     proposal_sha256: String,
+    untrusted_model_proposal: WireProposal,
+    model_proposal_is_advisory: bool,
     proposal_id: String,
     request_identity: String,
     run_identity: String,
@@ -140,7 +142,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
             "model output is not the exact typed planning-advice schema",
         )
     })?;
-    let advice = convert(wire)?;
+    let advice = convert(wire.clone())?;
     let seeded = seed_planning_from_advice(&form, &hosts, &[], &advice).map_err(|error| {
         StepError::prereq(PROOF_ID, format!("planning advice refused: {error:?}"))
     })?;
@@ -164,7 +166,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     }
 
     let proof = LiveProof {
-        schema_version: 1,
+        schema_version: 2,
         proof_class: "live-local-model",
         ollama_version: ollama_version(endpoint)?,
         model: response.model,
@@ -173,6 +175,8 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         request_sha256: hex_digest(&request_bytes),
         response_sha256: hex_digest(&response_bytes),
         proposal_sha256: hex_digest(response.message.content.as_bytes()),
+        untrusted_model_proposal: wire,
+        model_proposal_is_advisory: true,
         proposal_id: seeded.evidence.proposal_id,
         request_identity: seeded.evidence.request_identity,
         run_identity: seeded.evidence.run_identity,
@@ -447,37 +451,5 @@ fn hex_digest(bytes: &[u8]) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn wire_schema_refuses_extra_plan_shaped_fields_and_empty_placements() {
-        let with_plan = r#"{"proposal_id":"p","request_identity":"r","run_identity":"x","checked_form_id":"c","placements":[],"plan_id":"forged"}"#;
-        assert!(serde_json::from_str::<WireProposal>(with_plan).is_err());
-        let empty: WireProposal = serde_json::from_str(
-            r#"{"proposal_id":"p","request_identity":"r","run_identity":"x","checked_form_id":"c","placements":[]}"#,
-        )
-        .unwrap();
-        assert!(convert(empty).is_err());
-    }
-
-    #[test]
-    fn configuration_refuses_credentials_tls_promotion_and_unbounded_model_identity() {
-        assert!(validate_configuration("http://forebrain.local:11434", "gpt-oss:20b").is_ok());
-        assert!(validate_configuration("https://forebrain.local", "gpt-oss:20b").is_err());
-        assert!(validate_configuration("http://token@forebrain.local", "gpt-oss:20b").is_err());
-        assert!(validate_configuration("http://forebrain.local", &"x".repeat(129)).is_err());
-    }
-
-    #[test]
-    fn exact_gpt_oss_proposal_converts_without_line_or_plan_invention() {
-        let wire: WireProposal = serde_json::from_str(
-            r#"{"proposal_id":"proposal/live","request_identity":"request/live","run_identity":"run/live","checked_form_id":"checked/live","placements":[{"gear_id":"advised/pulse","host_id":"advice/host-b","boot_id":"advice/boot-b","offer_generation":7,"capability_id":"advice/pulse-b"}]}"#,
-        )
-        .unwrap();
-        let advice = convert(wire).unwrap();
-        assert_eq!(advice.placements.len(), 1);
-        assert!(advice.lines.is_empty());
-        assert_eq!(advice.placements[0].host_id.as_str(), "advice/host-b");
-    }
-}
+#[path = "ollama_planning_advice_tests.rs"]
+mod tests;
