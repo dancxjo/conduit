@@ -1,7 +1,40 @@
 use crate::{
-    parse_syntax_document, Argument, BackStatement, CordStage, RuntimePortDirection,
-    RuntimePortTemporal,
+    parse_syntax_document, Argument, BackStatement, ConstructionRole, CordStage, ExpressionSyntax,
+    RuntimePortDirection, RuntimePortTemporal,
 };
+
+#[test]
+fn canonical_document_roles_share_tokens_declarations_values_and_diagnostics() {
+    let source = "host specimen {\n  schema = 1\n  target = {architecture: \"x86_64\", machine: \"workstation\"}\n  base = {kind: \"clock/monotonic\", implementations: [\"hosted/monotonic-clock@1\"]}\n}\n";
+    let document = parse_syntax_document(source);
+    assert_eq!(document.round_trip(), source);
+    assert!(!document.tokens.is_empty());
+    assert!(document.forms.is_empty());
+    let [host] = document.constructions().expect("Host role parses") else {
+        panic!("one Host construction document is required");
+    };
+    assert_eq!(host.role, ConstructionRole::Host);
+    assert_eq!(host.name.text, "specimen");
+    assert_eq!(host.declarations.len(), 3);
+    assert!(matches!(
+        host.declarations[1].value.syntax,
+        ExpressionSyntax::Record { .. }
+    ));
+    assert!(matches!(
+        host.declarations[2].value.syntax,
+        ExpressionSyntax::Record { .. }
+    ));
+
+    let malformed = parse_syntax_document(
+        "body specimen {\n  host = {name: \"one\", spore: {join_mode: }}\n}\n",
+    );
+    let diagnostic = malformed
+        .diagnostics
+        .first()
+        .expect("malformed structured value uses the canonical diagnostic path");
+    assert_eq!(diagnostic.code, "CND-FRM-019");
+    assert_eq!(diagnostic.span.line, 2);
+}
 
 #[test]
 fn canonical_clock_form_round_trips_with_named_and_inline_gears() {

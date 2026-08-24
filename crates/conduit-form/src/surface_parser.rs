@@ -4,21 +4,24 @@ use crate::surface_lex::{
     split_top_level, split_top_level_once, top_level_positions, SourceLine,
 };
 use crate::syntax::{
-    Argument, BackStatement, Cord, CordStage, Expression, FormFace, FormSyntax, Invocation,
-    LocalValue, NamedGear, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
-    SpannedText, StartupParameter, SyntaxDocument,
+    Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
+    FormFace, FormSyntax, Invocation, LocalValue, NamedGear, RuntimePort, RuntimePortDirection,
+    RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter, SyntaxDocument,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
 };
 
+mod construction;
 mod shared_pool;
+use construction::parse_construction;
 use shared_pool::parse_pool_declaration;
 
 pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
     if source.len() > MAXIMUM_FORM_SOURCE_BYTES {
         return SyntaxDocument::new(
             String::new(),
+            Vec::new(),
             Vec::new(),
             Vec::new(),
             vec![diagnostic(
@@ -34,15 +37,19 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
                 source.to_string(),
                 Vec::new(),
                 Vec::new(),
+                Vec::new(),
                 vec![diagnostic(FormError::TokenLimitExceeded, span)],
             );
         }
     };
     match Parser::new(source).parse_document() {
-        Ok(forms) => SyntaxDocument::new(source.to_string(), tokens, forms, Vec::new()),
+        Ok((forms, constructions)) => {
+            SyntaxDocument::new(source.to_string(), tokens, forms, constructions, Vec::new())
+        }
         Err((error, span)) => SyntaxDocument::new(
             source.to_string(),
             tokens,
+            Vec::new(),
             Vec::new(),
             vec![diagnostic(error, span)],
         ),
@@ -91,17 +98,42 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_document(mut self) -> Result<Vec<FormSyntax>, (FormError, Span)> {
+    fn parse_document(
+        mut self,
+    ) -> Result<(Vec<FormSyntax>, Vec<ConstructionSyntax>), (FormError, Span)> {
         let mut forms = Vec::new();
+        let mut constructions = Vec::new();
         self.skip_empty();
         while self.index < self.lines.len() {
-            forms.push(self.parse_form()?);
+            let (text, _) = self.lines[self.index].trimmed();
+            if text.starts_with("form ") {
+                forms.push(self.parse_form()?);
+            } else if text.starts_with("host ") {
+                constructions.push(parse_construction(
+                    &mut self,
+                    ConstructionRole::Host,
+                    "host",
+                )?);
+            } else if text.starts_with("body ") {
+                constructions.push(parse_construction(
+                    &mut self,
+                    ConstructionRole::Body,
+                    "body",
+                )?);
+            } else {
+                return Err((
+                    FormError::InvalidSyntax(
+                        "expected 'form NAME', 'host NAME', or 'body NAME' definition".into(),
+                    ),
+                    self.line_span(self.lines[self.index]),
+                ));
+            }
             self.skip_empty();
         }
-        if forms.is_empty() {
+        if forms.is_empty() && constructions.is_empty() {
             return Err((FormError::IncompleteForm, eof_span(self.source)));
         }
-        Ok(forms)
+        Ok((forms, constructions))
     }
 
     fn parse_form(&mut self) -> Result<FormSyntax, (FormError, Span)> {

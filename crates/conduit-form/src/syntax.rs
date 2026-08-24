@@ -1,15 +1,16 @@
 use crate::prelude::*;
 use crate::{CstToken, FormDiagnostic, Span};
 
-/// Lossless canonical Form source plus its syntax-only AST.
+/// Lossless canonical Conduit source plus its syntax-only AST.
 ///
 /// This layer deliberately does not perform catalog lookup, argument binding,
-/// name resolution, or semantic canonicalization.
+/// name resolution, or role-specific semantic lowering.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SyntaxDocument {
     source: String,
     pub tokens: Vec<CstToken>,
     pub forms: Vec<FormSyntax>,
+    pub constructions: Vec<ConstructionSyntax>,
     pub diagnostics: Vec<FormDiagnostic>,
 }
 
@@ -24,19 +25,41 @@ impl SyntaxDocument {
             .map_or(Ok(self.forms.as_slice()), Err)
     }
 
+    pub fn constructions(&self) -> Result<&[ConstructionSyntax], &FormDiagnostic> {
+        self.diagnostics
+            .first()
+            .map_or(Ok(self.constructions.as_slice()), Err)
+    }
+
     pub(crate) fn new(
         source: String,
         tokens: Vec<CstToken>,
         forms: Vec<FormSyntax>,
+        constructions: Vec<ConstructionSyntax>,
         diagnostics: Vec<FormDiagnostic>,
     ) -> Self {
         Self {
             source,
             tokens,
             forms,
+            constructions,
             diagnostics,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConstructionRole {
+    Host,
+    Body,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConstructionSyntax {
+    pub role: ConstructionRole,
+    pub name: SpannedText,
+    pub declarations: Vec<LocalValue>,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

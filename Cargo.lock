@@ -580,6 +580,7 @@ name = "conduit-host-fabrication"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "conduit-presentation",
  "conduit-std-catalog",
  "serde",

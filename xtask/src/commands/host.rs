@@ -2,8 +2,8 @@ use std::{fs, path::PathBuf};
 
 use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
-    build_host_image, check_host_configuration, parse_host_configuration, BuildInputs,
-    FabricationCatalog, HostBounds, HostProfile,
+    build_host_image, check_host_configuration, parse_host_configuration,
+    parse_host_configuration_conduit, BuildInputs, FabricationCatalog, HostBounds, HostProfile,
 };
 
 use crate::cli::GlobalOpts;
@@ -36,12 +36,12 @@ enum HostCommand {
     Browser,
     /// Build, flash, or physically verify an exact Raspberry Pi Host IMAGE.
     Rpi(RpiHostArgs),
-    /// Create or revise one durable Host configuration TOML interactively.
+    /// Create or revise one canonical Host construction document interactively.
     Configure {
         /// Existing configuration to edit, or destination offered when creating.
         path: Option<PathBuf>,
     },
-    /// Check or display one durable Host configuration TOML.
+    /// Check or display one canonical Host construction document.
     Config {
         #[command(subcommand)]
         command: HostConfigCommand,
@@ -147,7 +147,7 @@ enum RpiHostAction {
 
 #[derive(Subcommand, Debug)]
 enum HostConfigCommand {
-    /// Validate without saving or fabricating an IMAGE.
+    /// Validate canonical source without saving or fabricating an IMAGE.
     Check { path: PathBuf },
     /// Print the resolved target, Bases, variants, limits, and identity.
     Show { path: PathBuf },
@@ -215,7 +215,15 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 .map(Ok)
                 .unwrap_or_else(|| command_identity("rustc", &["--version", "--verbose"]))?;
             let source = fs::read_to_string(&profile_path)?;
-            let profile = if profile_path
+            let profile = if is_conduit_source(&profile_path, "host") {
+                let configuration =
+                    parse_host_configuration_conduit(&source).map_err(|diagnostic| {
+                        format!("Host configuration decode refused: {diagnostic:?}")
+                    })?;
+                check_host_configuration(configuration, &FabricationCatalog::canonical())
+                    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
+                    .into_profile()
+            } else if profile_path
                 .extension()
                 .is_some_and(|extension| extension == "toml")
             {
@@ -340,10 +348,20 @@ fn load_configuration(
     path: &std::path::Path,
 ) -> Result<conduit_host_fabrication::CheckedHostConfiguration, Box<dyn std::error::Error>> {
     let source = fs::read_to_string(path)?;
-    let configuration = parse_host_configuration(&source)
-        .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
+    let configuration = if is_conduit_source(path, "host") {
+        parse_host_configuration_conduit(&source)
+    } else {
+        parse_host_configuration(&source)
+    }
+    .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
     check_host_configuration(configuration, &FabricationCatalog::canonical())
         .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}").into())
+}
+
+fn is_conduit_source(path: &std::path::Path, role: &str) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.ends_with(&format!(".{role}.conduit")))
 }
 
 fn repository_target_maxima(
