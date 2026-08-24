@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod assigned_plan;
 mod audio_info;
 mod audio_render_demand;
 mod calendar;
@@ -59,6 +60,7 @@ mod temporal_recurrence_civil;
 mod temporal_schedule;
 mod temporal_window;
 
+pub use assigned_plan::*;
 pub use audio_info::*;
 pub use audio_render_demand::*;
 pub use calendar::*;
