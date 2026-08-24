@@ -6,8 +6,8 @@ use crate::{
     process::{run_suite, run_suite_with_environment, StepError},
     suites::prove::{
         PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS, PROVE_BODY_MEMBERSHIP_STEPS,
-        PROVE_BROWSER_HOST_STEPS, PROVE_PATCHBAY_FRONT_DOOR_STEPS, PROVE_STD_BROWSER_S4_STEPS,
-        PROVE_STD_BROWSER_TOGGLE_STEPS,
+        PROVE_BROWSER_HOST_STEPS, PROVE_LLM_EMBODIMENT_STEPS, PROVE_PATCHBAY_FRONT_DOOR_STEPS,
+        PROVE_STD_BROWSER_S4_STEPS, PROVE_STD_BROWSER_TOGGLE_STEPS,
     },
     workspace::workspace_root,
 };
@@ -89,6 +89,10 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         ProveTarget::CalendarGoogle => crate::commands::calendar_google::run(&args, &root, opts),
         ProveTarget::LlmPlanningAdvice => {
             crate::commands::ollama_planning_advice::run(&args, &root, opts)
+        }
+        ProveTarget::LlmEmbodiment => {
+            run_suite(PROVE_LLM_EMBODIMENT_STEPS, &root, opts)?;
+            crate::commands::ollama_embodiment::run(&args, &root, opts)
         }
         ProveTarget::PatchbayFrontDoor => run_patchbay_front_door(&args, &root, opts),
         ProveTarget::StdPicoUsb => {

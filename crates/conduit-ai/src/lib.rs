@@ -14,6 +14,8 @@ mod form_composition;
 pub use form_composition::*;
 mod effect_proposal;
 pub use effect_proposal::*;
+mod embodiment;
+pub use embodiment::*;
 mod effect_runtime;
 mod grounded_answer;
 pub use grounded_answer::*;

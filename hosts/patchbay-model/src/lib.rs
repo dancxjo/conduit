@@ -37,6 +37,7 @@ mod heterogeneous_capstone_explanation;
 mod interaction;
 mod layout;
 mod llm_documentary;
+mod llm_embodiment_presentation;
 mod llm_presentation;
 mod maker_environment;
 mod palette;
@@ -131,6 +132,10 @@ pub use layout::{
     MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
 };
 pub use llm_documentary::llm_documentary_presentation;
+pub use llm_embodiment_presentation::{
+    llm_embodiment_documentary_presentations, project_llm_embodiment,
+    LlmEmbodimentPresentationError,
+};
 pub use llm_presentation::{
     project_llm_patchbay, CandidateFormInspection, LlmGearActivity, LlmPatchbayTruth,
     LlmPresentationError, MAXIMUM_LLM_PRESENTATION_STAGES,

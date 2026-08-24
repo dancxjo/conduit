@@ -13,8 +13,8 @@ mod transport_types;
 
 pub use cross_host::{cross_host_demonstration_snapshot, CrossHostRendererError};
 pub use demo::{
-    demonstration_snapshot, llm_documentary_snapshot, text_lab_split_loss_snapshot,
-    text_lab_split_snapshot,
+    demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot,
+    text_lab_split_loss_snapshot, text_lab_split_snapshot,
 };
 pub use front_door::front_door_snapshot;
 pub use seed_sources::{

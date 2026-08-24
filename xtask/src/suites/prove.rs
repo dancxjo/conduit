@@ -1,5 +1,58 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.llm-embodiment.plan",
+        "Prove the model situation is derived from exact sealed Forms and Plans",
+        "cargo",
+        &["test", "-p", "conduit-planner", "--test", "model_embodiment"],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.llm-embodiment.effect",
+        "Prove only an admitted model request crosses the ordinary runtime effect boundary and produces its exact Sign",
+        "cargo",
+        &["test", "-p", "conduit-planner", "--test", "model_effect_runtime"],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.llm-embodiment.presentation",
+        "Prove Patchbay Presentation distinguishes Forms, Ports, Cords, proposals, decisions, and effect Signs",
+        "cargo",
+        &["test", "-p", "patchbay-model", "--test", "llm_embodiment"],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.llm-embodiment.patchbay-build",
+        "Build the isolated shared-Presentation Patchbay documentary fixture",
+        "cargo",
+        &["build", "-p", "patchbay-html"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/patchbay-html"],
+    ),
+    Step::typed(
+        "prove.llm-embodiment.patchbay-browser",
+        "Inspect the three graph-defined model situations through one pinned Chromium Patchbay manifestation",
+        "npx",
+        &["playwright", "test", "--config", "hosts/browser/patchbay-llm-embodiment.playwright.config.mjs"],
+        None,
+        Some("playwright"),
+        Some(ProofClass::LiveBrowser),
+        &[],
+    ),
+];
+
 pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
     Step::typed(
         "prove.body-membership.core",

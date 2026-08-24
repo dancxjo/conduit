@@ -13,7 +13,7 @@ use conduit_presentation::{
 };
 
 #[path = "llm_presentation_content.rs"]
-mod content;
+pub(crate) mod content;
 use content::Content;
 
 pub const MAXIMUM_LLM_PRESENTATION_STAGES: usize = 16;

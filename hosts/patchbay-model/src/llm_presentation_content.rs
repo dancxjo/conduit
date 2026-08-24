@@ -6,7 +6,7 @@ use conduit_presentation::{
     PresentationRole, PresentationSubject, PresentationText,
 };
 
-pub(super) struct Content {
+pub(crate) struct Content {
     pub subjects: Vec<PresentationSubject>,
     pub relationships: Vec<PresentationRelationship>,
     pub properties: Vec<PresentationProperty>,
@@ -15,7 +15,7 @@ pub(super) struct Content {
 }
 
 impl Content {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             subjects: vec![],
             relationships: vec![],
@@ -25,7 +25,7 @@ impl Content {
         }
     }
 
-    pub(super) fn subject(
+    pub(crate) fn subject(
         &mut self,
         identity: String,
         role: PresentationRole,
@@ -40,7 +40,7 @@ impl Content {
         });
     }
 
-    pub(super) fn contains(&mut self, source: &str, target: &str) {
+    pub(crate) fn contains(&mut self, source: &str, target: &str) {
         self.relationships.push(PresentationRelationship {
             source: source.into(),
             target: target.into(),
@@ -48,7 +48,15 @@ impl Content {
         });
     }
 
-    pub(super) fn describes(&mut self, source: &str, target: &str) {
+    pub(crate) fn connects(&mut self, source: &str, target: &str) {
+        self.relationships.push(PresentationRelationship {
+            source: source.into(),
+            target: target.into(),
+            kind: PresentationRelationshipKind::Connects,
+        });
+    }
+
+    pub(crate) fn describes(&mut self, source: &str, target: &str) {
         self.relationships.push(PresentationRelationship {
             source: source.into(),
             target: target.into(),
@@ -56,7 +64,7 @@ impl Content {
         });
     }
 
-    pub(super) fn text(&mut self, subject: &str, text: impl Into<String>) {
+    pub(crate) fn text(&mut self, subject: &str, text: impl Into<String>) {
         self.text.push(PresentationText {
             subject: subject.into(),
             text: text.into(),
@@ -71,7 +79,7 @@ impl Content {
         });
     }
 
-    pub(super) fn identity(&mut self, subject: &str, name: &str, value: &str) {
+    pub(crate) fn identity(&mut self, subject: &str, name: &str, value: &str) {
         self.property(
             subject,
             name,
@@ -79,15 +87,15 @@ impl Content {
         );
     }
 
-    pub(super) fn text_property(&mut self, subject: &str, name: &str, value: impl Into<String>) {
+    pub(crate) fn text_property(&mut self, subject: &str, name: &str, value: impl Into<String>) {
         self.property(subject, name, PresentationPropertyValue::Text(value.into()));
     }
 
-    pub(super) fn count(&mut self, subject: &str, name: &str, value: u64) {
+    pub(crate) fn count(&mut self, subject: &str, name: &str, value: u64) {
         self.property(subject, name, PresentationPropertyValue::Count(value));
     }
 
-    pub(super) fn disclose(&mut self, subject: &str, level: PresentationDisclosureLevel) {
+    pub(crate) fn disclose(&mut self, subject: &str, level: PresentationDisclosureLevel) {
         self.disclosures.push(PresentationDisclosure {
             subject: subject.into(),
             level,
