@@ -22,7 +22,10 @@ pub(super) async fn prepare_device(
             .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
         Some(
             session
-                .register_agent(bluer::agent::Agent::default())
+                .register_agent(bluer::agent::Agent {
+                    request_default: true,
+                    ..Default::default()
+                })
                 .await
                 .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?,
         )
