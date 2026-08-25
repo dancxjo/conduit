@@ -71,7 +71,7 @@ pub fn run_capture(
             "{} failed with {}: {}",
             display_argv(&specification),
             output.status,
-            bounded_tail(&output.stderr, 8192)
+            bounded_failure(&output.stdout, &output.stderr, 8192)
         )
         .into());
     }
@@ -201,6 +201,17 @@ fn bounded_tail(bytes: &[u8], maximum: usize) -> String {
     String::from_utf8_lossy(&bytes[start..]).trim().to_owned()
 }
 
+fn bounded_failure(stdout: &[u8], stderr: &[u8], maximum: usize) -> String {
+    let stderr = bounded_tail(stderr, maximum);
+    let stdout = bounded_tail(stdout, maximum);
+    match (stdout.is_empty(), stderr.is_empty()) {
+        (true, true) => "subprocess produced no diagnostic output".to_owned(),
+        (true, false) => stderr,
+        (false, true) => stdout,
+        (false, false) => format!("stderr: {stderr}\nstdout: {stdout}"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,5 +274,18 @@ mod tests {
         let sysroot = rustc_sysroot(Path::new("/repo"), "esp-conduit-1.91.1");
         assert_eq!(sysroot.args, ["+esp-conduit-1.91.1", "--print", "sysroot"]);
         assert!(sysroot.environment.is_empty());
+    }
+
+    #[test]
+    fn failure_diagnostic_preserves_stdout_only_tools() {
+        assert_eq!(bounded_failure(b"rustfmt diff", b"", 8192), "rustfmt diff");
+        assert_eq!(
+            bounded_failure(b"", b"compiler error", 8192),
+            "compiler error"
+        );
+        assert_eq!(
+            bounded_failure(b"", b"", 8192),
+            "subprocess produced no diagnostic output"
+        );
     }
 }

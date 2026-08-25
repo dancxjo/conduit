@@ -13,13 +13,11 @@ extern crate alloc;
 use embassy_executor::Spawner;
 use esp_alloc as _;
 use esp_backtrace as _;
-use esp_hal::{
-    clock::CpuClock,
-    interrupt::software::SoftwareInterruptControl,
-    timer::timg::TimerGroup,
-};
 #[cfg(feature = "bluetooth")]
 use esp_hal::rng::{Trng, TrngSource};
+use esp_hal::{
+    clock::CpuClock, interrupt::software::SoftwareInterruptControl, timer::timg::TimerGroup,
+};
 #[cfg(feature = "bluetooth")]
 use esp_radio::ble::controller::BleConnector;
 #[cfg(feature = "bluetooth")]
