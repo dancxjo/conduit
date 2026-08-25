@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
   <title id="title">The Conduit idea</title>
-  <desc id="desc">A Form describes what should happen. Body building prepares Parts as spores. After boot and join, the current Body contains the Hosts, resources, Lines, and Signs that actually exist now. Conduit combines the Form with that current Body to create one exact Plan and execute it as a Play.</desc>
+  <desc id="desc">A form describes what should happen. Body building prepares parts as spores. After boot and join, the current body contains the hosts, resources, lines, and signs that actually exist now. Conduit combines the form with that current body to create one exact plan and execute it as a play.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#101827"/>
@@ -26,31 +26,31 @@
   <rect width="1200" height="620" rx="24" fill="url(#bg)"/>
 
   <text x="54" y="50" class="small">A useful mental model</text>
-  <text x="54" y="84" class="h">The Body is the computer</text>
+  <text x="54" y="84" class="h">The body is the computer</text>
 
   <rect x="54" y="126" width="330" height="126" rx="18" class="semantic"/>
-  <text x="82" y="164" class="label">Form</text>
+  <text x="82" y="164" class="label">form</text>
   <text x="82" y="197" class="t">what should happen</text>
   <text x="82" y="224" class="small">portable semantic meaning</text>
 
   <rect x="816" y="126" width="330" height="126" rx="18" class="build"/>
   <text x="844" y="164" class="label">body building</text>
-  <text x="844" y="197" class="t">prepare the intended Parts</text>
+  <text x="844" y="197" class="t">prepare the intended parts</text>
   <text x="844" y="224" class="small">build deployable spores</text>
 
   <rect x="816" y="334" width="330" height="126" rx="18" class="truth"/>
-  <text x="844" y="372" class="label">current Body</text>
+  <text x="844" y="372" class="label">current body</text>
   <text x="844" y="405" class="t">what actually came alive</text>
-  <text x="844" y="432" class="small">Parts · Hosts · resources · Lines · Signs</text>
+  <text x="844" y="432" class="small">parts · hosts · resources · lines · signs</text>
 
   <rect x="438" y="334" width="260" height="126" rx="18" class="exact"/>
-  <text x="466" y="372" class="label">Plan</text>
+  <text x="466" y="372" class="label">plan</text>
   <text x="466" y="405" class="t">one exact finite realization</text>
   <text x="466" y="432" class="small">admitted against current truth</text>
 
   <rect x="438" y="500" width="260" height="76" rx="18" class="play"/>
-  <text x="466" y="535" class="label">Play</text>
-  <text x="466" y="559" class="t">execute that Plan</text>
+  <text x="466" y="535" class="label">play</text>
+  <text x="466" y="559" class="t">execute that plan</text>
 
   <path d="M219 252 V296 H568 V334" class="line"/>
   <path d="M981 252 V334" class="line"/>
@@ -58,5 +58,5 @@
   <path d="M816 397 H698" class="line"/>
   <path d="M568 460 V500" class="line"/>
 
-  <text x="54" y="601" class="small">The Form says what must remain true. The current Body says what can make it true now.</text>
+  <text x="54" y="601" class="small">The form says what must remain true. The current body says what can make it true now.</text>
 </svg>
