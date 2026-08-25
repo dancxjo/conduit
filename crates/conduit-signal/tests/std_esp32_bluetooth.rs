@@ -2,10 +2,11 @@
 
 use conduit_core::{BootId, ConnectionBase};
 use conduit_signal::{
-    exact_std_esp32_bluetooth_plan, exact_std_esp32_s3_bluetooth_plan,
-    std_esp32_bluetooth_session_binding, std_esp32_bluetooth_session_binding_for_host,
-    ESP32_S3_IMAGE_BOOT_ID, ESP32_S3_PHYSICAL_HOST_ID, ESP32_WROOM_IMAGE_BOOT_ID,
-    ESP32_WROOM_PHYSICAL_HOST_ID, STD_ESP32_BLUETOOTH_BASE_INSTANCE_ID,
+    exact_std_esp32_bluetooth_plan, exact_std_esp32_c3_bluetooth_plan,
+    exact_std_esp32_s3_bluetooth_plan, std_esp32_bluetooth_session_binding,
+    std_esp32_bluetooth_session_binding_for_host, ESP32_C3_IMAGE_BOOT_ID,
+    ESP32_C3_PHYSICAL_HOST_ID, ESP32_S3_IMAGE_BOOT_ID, ESP32_S3_PHYSICAL_HOST_ID,
+    ESP32_WROOM_IMAGE_BOOT_ID, ESP32_WROOM_PHYSICAL_HOST_ID, STD_ESP32_BLUETOOTH_BASE_INSTANCE_ID,
     STD_PICO_USB_SOURCE_HOST_ID,
 };
 
@@ -64,6 +65,33 @@ fn inspected_s3_gets_its_own_exact_plan_and_runtime_binding() {
     .unwrap();
     assert_eq!(runtime.sink.host_id.as_str(), ESP32_S3_PHYSICAL_HOST_ID);
     assert_eq!(runtime.sink.boot_id.as_str(), "esp32/s3/runtime-boot");
+}
+
+#[test]
+fn inspected_c3_gets_its_own_exact_plan_and_runtime_binding() {
+    let exact = exact_std_esp32_c3_bluetooth_plan([1, 2, 3, 4, 5, 6]).unwrap();
+    let sink = exact
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == ESP32_C3_PHYSICAL_HOST_ID)
+        .unwrap();
+    assert_eq!(sink.boot_id.as_str(), ESP32_C3_IMAGE_BOOT_ID);
+    assert_ne!(
+        exact.plan.plan_id,
+        exact_std_esp32_bluetooth_plan([1, 2, 3, 4, 5, 6])
+            .unwrap()
+            .plan
+            .plan_id
+    );
+
+    let runtime = std_esp32_bluetooth_session_binding_for_host(
+        ESP32_C3_PHYSICAL_HOST_ID,
+        BootId::from("esp32/c3/runtime-boot"),
+    )
+    .unwrap();
+    assert_eq!(runtime.sink.host_id.as_str(), ESP32_C3_PHYSICAL_HOST_ID);
+    assert_eq!(runtime.sink.boot_id.as_str(), "esp32/c3/runtime-boot");
 }
 
 #[test]

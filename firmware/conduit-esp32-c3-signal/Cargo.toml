@@ -1,5 +1,5 @@
 [package]
-name = "conduit-esp32-s3-signal"
+name = "conduit-esp32-c3-signal"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
@@ -22,7 +22,7 @@ bluetooth = [
 ]
 
 [[bin]]
-name = "conduit-esp32-s3-signal"
+name = "conduit-esp32-c3-signal"
 path = "../conduit-esp32-wroom-signal/src/main.rs"
 
 [dependencies]
@@ -35,13 +35,13 @@ critical-section = "1.2.0"
 embassy-executor = "0.10.0"
 embassy-futures = { version = "0.1", optional = true }
 embassy-sync = { version = "0.7.2", optional = true }
-esp-alloc = { version = "0.10.0", features = ["esp32s3"] }
-esp-backtrace = { version = "0.19.0", features = ["esp32s3", "panic-handler", "println"] }
-esp-bootloader-esp-idf = { version = "0.5.0", features = ["esp32s3"] }
-esp-hal = { version = "~1.1.0", features = ["esp32s3", "log-04", "unstable"] }
-esp-println = { version = "0.17.0", features = ["esp32s3", "log-04"] }
-esp-radio = { version = "0.18.0", features = ["ble", "esp32s3", "log-04", "unstable"], optional = true }
-esp-rtos = { version = "0.3.0", features = ["embassy", "esp-radio", "esp32s3", "log-04"] }
+esp-alloc = { version = "0.10.0", features = ["esp32c3"] }
+esp-backtrace = { version = "0.19.0", features = ["esp32c3", "panic-handler", "println"] }
+esp-bootloader-esp-idf = { version = "0.5.0", features = ["esp32c3"] }
+esp-hal = { version = "~1.1.0", features = ["esp32c3", "log-04", "unstable"] }
+esp-println = { version = "0.17.0", features = ["esp32c3", "log-04"] }
+esp-radio = { version = "0.18.0", features = ["ble", "esp32c3", "log-04", "unstable"], optional = true }
+esp-rtos = { version = "0.3.0", features = ["embassy", "esp-radio", "esp32c3", "log-04"] }
 heapless = { version = "0.9.1", optional = true }
 log = "0.4.27"
 static_cell = { version = "2.1.1", optional = true }

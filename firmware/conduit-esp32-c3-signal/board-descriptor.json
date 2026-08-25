@@ -1,0 +1,35 @@
+{
+  "schema": "conduit.host/esp32-board-descriptor@2",
+  "id": "observed/usb-dcf8355d-esp32-c3@1",
+  "fabrication": {
+    "board_marking": "not-visually-inspected",
+    "module_marking": "not-visually-inspected",
+    "soc_marking": "ESP32-C3 (QFN32)",
+    "revision": "soc-v0.4; board-unmarked",
+    "inspection_evidence": "esptool-v5.3.0; usb-10c4:ea60/dcf8355da19ded11a7205f84e259fb3e; mac-c0:4e:30:ee:5c:a8"
+  },
+  "target": {
+    "architecture": "riscv32imc",
+    "machine": "usb-dcf8355d-esp32-c3",
+    "chip": "ESP32-C3",
+    "cores": 1,
+    "clock_hz": 160000000
+  },
+  "memory_regions": [],
+  "flash": {
+    "bytes": 4194304,
+    "mode": "embedded-spi; image-mode-unselected",
+    "maximum_frequency_hz": 40000000
+  },
+  "boot": {
+    "image_format": "espressif-esp32c3-image",
+    "flash_transport": "rom-uart0-via-cp2102n",
+    "diagnostic_transport": "uart0-via-cp2102n"
+  },
+  "pins": [],
+  "controllers": [],
+  "radios": [
+    { "id": "wifi-2.4-ghz", "kind": "wifi24-ghz" },
+    { "id": "bluetooth-low-energy", "kind": "bluetooth-low-energy" }
+  ]
+}

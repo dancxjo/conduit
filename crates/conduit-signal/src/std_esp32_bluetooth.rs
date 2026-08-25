@@ -15,13 +15,16 @@ use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
 
 use crate::{
-    esp32_s3_build_fixture_advertisement, esp32_wroom_build_fixture_advertisement,
-    signal_profile_catalog, std_pico_usb_source_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    SIGNAL_ENCODED_LEN, STD_PICO_USB_SOURCE_HOST_ID,
+    esp32_c3_build_fixture_advertisement, esp32_s3_build_fixture_advertisement,
+    esp32_wroom_build_fixture_advertisement, signal_profile_catalog,
+    std_pico_usb_source_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
+    STD_PICO_USB_SOURCE_HOST_ID,
 };
 
 pub const ESP32_WROOM_PHYSICAL_HOST_ID: &str = "esp32/24dcc39a0a44";
 pub const ESP32_WROOM_IMAGE_BOOT_ID: &str = "esp32/wroom/image-boot";
+pub const ESP32_C3_PHYSICAL_HOST_ID: &str = "esp32/c04e30ee5ca8";
+pub const ESP32_C3_IMAGE_BOOT_ID: &str = "esp32/c3/image-boot";
 pub const ESP32_S3_PHYSICAL_HOST_ID: &str = "esp32/c04e30371ab8";
 pub const ESP32_S3_IMAGE_BOOT_ID: &str = "esp32/s3/image-boot";
 pub const STD_ESP32_BLUETOOTH_LINE_ID: &str = "bluetooth/line/std-esp32-gatt";
@@ -48,6 +51,12 @@ pub fn exact_std_esp32_s3_bluetooth_plan(
     exact_std_esp32_bluetooth_plan_for_host(peer_address, ESP32_S3_PHYSICAL_HOST_ID)
 }
 
+pub fn exact_std_esp32_c3_bluetooth_plan(
+    peer_address: [u8; 6],
+) -> Result<ExactStdEsp32BluetoothPlan, alloc::string::String> {
+    exact_std_esp32_bluetooth_plan_for_host(peer_address, ESP32_C3_PHYSICAL_HOST_ID)
+}
+
 pub fn exact_std_esp32_bluetooth_plan_for_host(
     peer_address: [u8; 6],
     physical_host_id: &str,
@@ -63,6 +72,11 @@ pub fn exact_std_esp32_bluetooth_plan_for_host(
             esp32_s3_build_fixture_advertisement(),
             ESP32_S3_IMAGE_BOOT_ID,
             "esp32-s3-uart-show-1",
+        ),
+        ESP32_C3_PHYSICAL_HOST_ID => (
+            esp32_c3_build_fixture_advertisement(),
+            ESP32_C3_IMAGE_BOOT_ID,
+            "esp32-c3-uart-show-1",
         ),
         _ => {
             return Err(alloc::format!(
