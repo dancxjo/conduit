@@ -44,7 +44,7 @@ pub struct GlobalOpts {
 pub enum Command {
     /// Build and launch one independent browser page/WASM Host.
     Browser,
-    /// Check, show, build, or deploy one whole Body description.
+    /// Create, inspect, build, or deploy one whole Body description.
     Body(BodyArgs),
     /// Prove bounded Pete forebrain-motherbrain coordination.
     BodyCoordination(BodyCoordinationArgs),
@@ -432,6 +432,29 @@ mod tests {
         ])
         .expect("host BUILD command parses");
         assert!(matches!(host.command, Command::Host(_)));
+
+        let body_new = Cli::try_parse_from([
+            "xtask",
+            "body",
+            "new",
+            "pete",
+            "--template",
+            "robot",
+            "--host",
+            "eyes=browser-page",
+        ])
+        .expect("Body scaffold command parses");
+        assert!(matches!(body_new.command, Command::Body(_)));
+        assert!(
+            Cli::try_parse_from(["xtask", "body", "new", "pete", "--template", "unknown"]).is_err()
+        );
+        let guided_body = Cli::try_parse_from(["xtask", "body", "new"])
+            .expect("interactive Body scaffold may prompt for its name");
+        assert!(matches!(guided_body.command, Command::Body(_)));
+        let scripted_body =
+            Cli::try_parse_from(["xtask", "body", "new", "pete", "--no-interactive"])
+                .expect("scripted Body scaffold parses");
+        assert!(matches!(scripted_body.command, Command::Body(_)));
 
         for command in [
             vec!["xtask", "host"],

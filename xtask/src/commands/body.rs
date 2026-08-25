@@ -15,6 +15,10 @@ use serde::Serialize;
 
 use crate::cli::GlobalOpts;
 
+mod scaffold;
+
+use scaffold::{BodyTemplate, HostAssignment};
+
 #[derive(Args, Debug)]
 pub struct BodyArgs {
     #[command(subcommand)]
@@ -23,6 +27,25 @@ pub struct BodyArgs {
 
 #[derive(Subcommand, Debug)]
 enum BodyCommand {
+    /// Create one checked canonical Body description from repository Host recipes.
+    New {
+        /// Body name; prompted for in an interactive terminal when omitted.
+        name: Option<String>,
+        /// Start from a named composition; defaults to minimal unless --host is supplied.
+        #[arg(long, value_enum)]
+        template: Option<BodyTemplate>,
+        /// Add or replace one Host entry as NAME=HOST-CONFIGURATION.
+        #[arg(long = "host", value_name = "NAME=CONFIGURATION")]
+        hosts: Vec<HostAssignment>,
+        /// Destination `.body.conduit` file.
+        #[arg(long)]
+        output: Option<PathBuf>,
+        /// Disable terminal prompts for automation and scripted use.
+        #[arg(long)]
+        no_interactive: bool,
+    },
+    /// List the built-in Body compositions and repository Host recipes they use.
+    Templates,
     /// Validate a Body description and every referenced Host configuration without artifacts.
     Check { path: PathBuf },
     /// Display the checked Body, target packages, Bases, join modes, and deployment readiness.
@@ -69,24 +92,32 @@ struct HostReport<'a> {
 }
 
 pub fn run(args: BodyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    let path = match &args.command {
-        BodyCommand::Check { path }
-        | BodyCommand::Show { path }
-        | BodyCommand::Build { path, .. }
-        | BodyCommand::Deploy { path, .. } => path,
-    };
-    let checked = load(path)?;
     match args.command {
-        BodyCommand::Check { .. } => print_checked(&checked, opts),
-        BodyCommand::Show { .. } => show(&checked, opts),
+        BodyCommand::New {
+            name,
+            template,
+            hosts,
+            output,
+            no_interactive,
+        } => scaffold::create(
+            name.as_deref(),
+            template,
+            &hosts,
+            output.as_deref(),
+            no_interactive,
+            opts,
+        ),
+        BodyCommand::Templates => scaffold::list_templates(opts),
+        BodyCommand::Check { path } => print_checked(&load(&path)?, opts),
+        BodyCommand::Show { path } => show(&load(&path)?, opts),
         BodyCommand::Build {
+            path,
             host,
             output,
             deploy,
-            ..
-        } => build(&checked, host.as_deref(), &output, deploy, opts),
-        BodyCommand::Deploy { host, output, .. } => {
-            build(&checked, host.as_deref(), &output, true, opts)
+        } => build(&load(&path)?, host.as_deref(), &output, deploy, opts),
+        BodyCommand::Deploy { path, host, output } => {
+            build(&load(&path)?, host.as_deref(), &output, true, opts)
         }
     }
 }
