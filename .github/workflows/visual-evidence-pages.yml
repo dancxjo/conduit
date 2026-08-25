@@ -1,9 +1,10 @@
 name: visual-evidence-pages
 
 on:
-  push:
-    branches:
-      - main
+  # Automatic publication is paused while the Patchbay evidence model is
+  # reconsidered. Keep a manual entry point so the pipeline remains available
+  # for targeted experiments without taxing every main-branch update.
+  workflow_dispatch:
 
 concurrency:
   group: visual-evidence-pages
