@@ -51,8 +51,8 @@ export async function startWebRtcRendezvousProbe() {
   return { process, url, output: () => output };
 }
 
-export async function startBrowserHumanBodyCapstone() {
-  const process = spawn("target/debug/browser-human-body-capstone", [], {
+export async function startBrowserBodyCameraRealizationCapstone() {
+  const process = spawn("target/debug/browser-body-camera-realization-capstone", [], {
     cwd: new URL("../..", import.meta.url).pathname,
     stdio: ["ignore", "pipe", "pipe"],
   });

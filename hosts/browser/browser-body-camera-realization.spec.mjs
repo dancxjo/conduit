@@ -1,8 +1,8 @@
 import { chromium, expect, test } from "@playwright/test";
-import { startBrowserHumanBodyCapstone } from "./browser-presence-support.mjs";
+import { startBrowserBodyCameraRealizationCapstone } from "./browser-presence-support.mjs";
 
 test("two browser Hosts realize camera-summary only after exact acquired resource truth", async () => {
-  const body = await startBrowserHumanBodyCapstone();
+  const body = await startBrowserBodyCameraRealizationCapstone();
   const browser = await chromium.launch({
     headless: true,
     args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],

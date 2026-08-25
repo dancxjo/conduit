@@ -97,10 +97,10 @@ pub(super) fn realize(
         capability_id: camera_capability,
     };
     let line = process_owned_line_offer_with_limits(
-        "browser/human-body/camera-line",
-        "browser/human-body/camera-binding",
+        "browser/body-camera-realization/camera-line",
+        "browser/body-camera-realization/camera-binding",
         ConnectionBase::WebRtcDataChannel,
-        "browser/human-body/camera-base",
+        "browser/body-camera-realization/camera-base",
         &source,
         &sink,
         LinkLimits {

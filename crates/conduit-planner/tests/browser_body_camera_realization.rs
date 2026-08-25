@@ -1,3 +1,6 @@
+//! Browser Body planning requires exact acquired camera-resource truth; losing
+//! the owning Host invalidates any realization that depends on that truth.
+
 use std::collections::BTreeMap;
 
 use conduit_core::{
@@ -23,7 +26,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("browser/human-body@1"),
+        profile: HostProfileId::from("browser/body-camera-realization@1"),
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],
@@ -134,10 +137,10 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
     .is_err());
 
     let line = conduit_core::process_owned_line_offer_with_limits(
-        "browser/human-body/camera-line",
-        "browser/human-body/camera-binding",
+        "browser/body-camera-realization/camera-line",
+        "browser/body-camera-realization/camera-binding",
         ConnectionBase::WebRtcDataChannel,
-        "browser/human-body/camera-base",
+        "browser/body-camera-realization/camera-base",
         &source,
         &sink,
         LinkLimits {
@@ -200,6 +203,6 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
     assert_eq!(cord.byte_capacity, 64 * 1024);
     assert_eq!(
         cord.selected_line.as_ref().unwrap().line_id.as_str(),
-        "browser/human-body/camera-line"
+        "browser/body-camera-realization/camera-line"
     );
 }

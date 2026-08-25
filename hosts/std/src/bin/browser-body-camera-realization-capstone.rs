@@ -1,8 +1,11 @@
 //! Two admitted browser Hosts realizing one semantic camera-frame Cord.
+//!
+//! Realizability depends on exact acquired camera-resource truth. Losing the Host
+//! that owns that truth invalidates the dependent realization.
 
 #[path = "browser_webrtc_rendezvous_probe/admission.rs"]
 mod admission;
-#[path = "browser_human_body_capstone/planning.rs"]
+#[path = "browser_body_camera_realization_capstone/planning.rs"]
 mod planning;
 #[path = "browser_webrtc_rendezvous_probe/protocol.rs"]
 mod protocol;
@@ -31,7 +34,7 @@ fn main() -> Result<(), String> {
         SourceDocumentId::from("source/examples/camera-summary.conduit"),
         CheckedFormId::from("checked/camera-summary"),
         1,
-        SignId::from("sign/browser-human-body/body-born"),
+        SignId::from("sign/browser-body-camera-realization/body-born"),
     )
     .map_err(debug("Body birth"))?;
     let mut membership = BodyMembership::new(body.body_id.clone()).map_err(debug("membership"))?;
@@ -52,7 +55,7 @@ fn main() -> Result<(), String> {
         )?);
     }
     let clock = HostPresenceClock::new(
-        "clock/browser-human-body".into(),
+        "clock/browser-body-camera-realization".into(),
         HostPresenceClockScale::Milliseconds,
         1,
         0,
@@ -69,7 +72,9 @@ fn main() -> Result<(), String> {
                 1,
                 1,
                 LEASE_MILLIS,
-                SignId::from(format!("sign/browser-human-body/present-{index}")),
+                SignId::from(format!(
+                    "sign/browser-body-camera-realization/present-{index}"
+                )),
             )
             .map_err(debug("start presence"))?;
         peer.socket
@@ -120,7 +125,9 @@ fn main() -> Result<(), String> {
                             &peers[index].credential.part_id,
                             &peers[index].session_id,
                             observed_at,
-                            SignId::from(format!("sign/browser-human-body/lost-{index}")),
+                            SignId::from(format!(
+                                "sign/browser-body-camera-realization/lost-{index}"
+                            )),
                         )
                         .map_err(debug("lose presence"))?;
                     active[index] = false;
