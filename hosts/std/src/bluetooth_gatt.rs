@@ -25,6 +25,8 @@ use tokio::io::AsyncReadExt;
 
 const MAXIMUM_GATT_OBJECTS_INSPECTED: usize = 16;
 mod discovery;
+mod pairing;
+mod remote;
 
 pub use discovery::{
     disconnect_ble_gatt_candidate, discover_ble_gatt_candidate, discover_one_ble_gatt_candidate,
@@ -40,13 +42,14 @@ pub enum BluezBleGattError {
     ApplicationUnavailable(String),
     AdvertisementUnavailable(String),
     DiscoveryUnavailable(String),
+    DiscoveryCapacityExceeded,
     CandidateUnavailable,
     MultipleCandidates,
     IncompatibleProfile,
     DeviceUnavailable,
     NotPaired,
     PairingFailed(String),
-    ConnectFailed,
+    ConnectFailed(String),
     MissingService,
     MissingWriteCharacteristic,
     MissingIndicateCharacteristic,
@@ -67,12 +70,23 @@ pub struct BluezBleGattCandidate {
 /// One exact connected GATT mechanism. Construct this during Host preparation;
 /// the object retains no discovery list, reconnect policy, or semantic state.
 pub struct BluezBleGattLine {
+    _agent: Option<bluer::agent::AgentHandle>,
     address: Address,
     profile: BleGattProfile,
-    write: CharacteristicWriter,
-    indicate: CharacteristicReader,
+    write: BleGattWrite,
+    indicate: BleGattIndicate,
     send_sequence: u8,
     reassembler: BleReassembler,
+}
+
+enum BleGattWrite {
+    Remote(Characteristic),
+    Local(CharacteristicWriter),
+}
+
+enum BleGattIndicate {
+    Remote(Pin<Box<dyn futures::Stream<Item = Vec<u8>> + Send>>),
+    Local(CharacteristicReader),
 }
 
 pub struct BluezBleGattListener {
@@ -210,10 +224,11 @@ impl BluezBleGattListener {
             }
         }
         Ok(BluezBleGattLine {
+            _agent: None,
             address: expected_address,
             profile: self.profile,
-            write: writer.expect("checked finite writer slot"),
-            indicate: reader.expect("checked finite reader slot"),
+            write: BleGattWrite::Local(writer.expect("checked finite writer slot")),
+            indicate: BleGattIndicate::Local(reader.expect("checked finite reader slot")),
             send_sequence: 0,
             reassembler: BleReassembler::new(self.profile),
         })
@@ -254,134 +269,7 @@ impl BluezBleGattLine {
         profile: BleGattProfile,
         allow_pairing: bool,
     ) -> Result<Self, BluezBleGattError> {
-        let profile = profile
-            .validate()
-            .map_err(|_| BluezBleGattError::InvalidProfile)?;
-        let session = Session::new()
-            .await
-            .map_err(|_| BluezBleGattError::BluetoothUnavailable)?;
-        let _agent = if allow_pairing {
-            Some(
-                session
-                    .register_agent(bluer::agent::Agent::default())
-                    .await
-                    .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?,
-            )
-        } else {
-            None
-        };
-        let adapter = session
-            .adapter(adapter_name)
-            .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
-        if allow_pairing {
-            adapter
-                .set_pairable(true)
-                .await
-                .map_err(|_| BluezBleGattError::ControllerUnavailable)?;
-        }
-        let address = Address(address);
-        let device = adapter
-            .device(address)
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-        let paired = device
-            .is_paired()
-            .await
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?;
-        if !paired {
-            if !allow_pairing {
-                return Err(BluezBleGattError::NotPaired);
-            }
-            // Own the selected physical connection before pairing. BlueZ may
-            // otherwise create an ephemeral pairing connection and close it
-            // before the admitted GATT Line can adopt the same link.
-            device
-                .connect()
-                .await
-                .map_err(|_| BluezBleGattError::ConnectFailed)?;
-            device
-                .pair()
-                .await
-                .map_err(|error| BluezBleGattError::PairingFailed(error.to_string()))?;
-        }
-        if !device
-            .is_connected()
-            .await
-            .map_err(|_| BluezBleGattError::DeviceUnavailable)?
-        {
-            device
-                .connect()
-                .await
-                .map_err(|_| BluezBleGattError::ConnectFailed)?;
-        }
-
-        let service_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_SERVICE_UUID);
-        let write_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_WRITE_UUID);
-        let notify_uuid = uuid::Uuid::from_bytes(CONDUIT_BLE_NOTIFY_UUID);
-        let services = device
-            .services()
-            .await
-            .map_err(|_| BluezBleGattError::MissingService)?;
-        let mut service = None;
-        for candidate in services.into_iter().take(MAXIMUM_GATT_OBJECTS_INSPECTED) {
-            if candidate
-                .uuid()
-                .await
-                .map_err(|_| BluezBleGattError::MissingService)?
-                == service_uuid
-            {
-                service = Some(candidate);
-                break;
-            }
-        }
-        let service = service.ok_or(BluezBleGattError::MissingService)?;
-        let characteristics = service
-            .characteristics()
-            .await
-            .map_err(|_| BluezBleGattError::MissingService)?;
-        let mut write_characteristic = None;
-        let mut indicate_characteristic = None;
-        for characteristic in characteristics
-            .into_iter()
-            .take(MAXIMUM_GATT_OBJECTS_INSPECTED)
-        {
-            let uuid = characteristic
-                .uuid()
-                .await
-                .map_err(|_| BluezBleGattError::CharacteristicContractMismatch)?;
-            if uuid == write_uuid {
-                write_characteristic = Some(characteristic);
-            } else if uuid == notify_uuid {
-                indicate_characteristic = Some(characteristic);
-            }
-        }
-
-        let write_characteristic =
-            write_characteristic.ok_or(BluezBleGattError::MissingWriteCharacteristic)?;
-        let indicate_characteristic =
-            indicate_characteristic.ok_or(BluezBleGattError::MissingIndicateCharacteristic)?;
-        validate_characteristics(&write_characteristic, &indicate_characteristic).await?;
-
-        let write = write_characteristic
-            .write_io()
-            .await
-            .map_err(|_| BluezBleGattError::CharacteristicContractMismatch)?;
-        let indicate = indicate_characteristic
-            .notify_io()
-            .await
-            .map_err(|_| BluezBleGattError::CharacteristicContractMismatch)?;
-        let required_mtu = usize::from(profile.maximum_gatt_packet_bytes);
-        if write.mtu() < required_mtu || indicate.mtu() < required_mtu {
-            return Err(BluezBleGattError::MtuMismatch);
-        }
-
-        Ok(Self {
-            address,
-            profile,
-            write,
-            indicate,
-            send_sequence: 0,
-            reassembler: BleReassembler::new(profile),
-        })
+        remote::connect(adapter_name, address, profile, allow_pairing).await
     }
 
     pub fn address(&self) -> [u8; 6] {
@@ -400,10 +288,15 @@ impl BluezBleGattLine {
             let length =
                 encode_fragment(frame, self.send_sequence, index, self.profile, &mut packet)
                     .map_err(|_| BluezBleGattError::OversizedFrame)?;
-            self.write
-                .send(&packet[..length])
-                .await
-                .map_err(map_io_error)?;
+            match &mut self.write {
+                BleGattWrite::Remote(write) => write
+                    .write(&packet[..length])
+                    .await
+                    .map_err(|_| BluezBleGattError::Transport)?,
+                BleGattWrite::Local(write) => {
+                    write.send(&packet[..length]).await.map_err(map_io_error)?
+                }
+            }
         }
         self.send_sequence = self.send_sequence.wrapping_add(1);
         Ok(())
@@ -413,25 +306,44 @@ impl BluezBleGattLine {
         if output.len() < usize::try_from(self.profile.maximum_frame_bytes).unwrap_or(usize::MAX) {
             return Err(BluezBleGattError::OutputTooSmall);
         }
-        let mut packet = [0_u8; 517];
         loop {
-            let count = self
-                .indicate
-                .read(&mut packet)
-                .await
-                .map_err(map_io_error)?;
-            if count == 0 {
-                return Err(BluezBleGattError::Disconnected);
-            }
+            let mut local_packet = [0_u8; 517];
+            let packet = match &mut self.indicate {
+                BleGattIndicate::Remote(indicate) => indicate
+                    .next()
+                    .await
+                    .ok_or(BluezBleGattError::Disconnected)?,
+                BleGattIndicate::Local(indicate) => {
+                    let count = indicate
+                        .read(&mut local_packet)
+                        .await
+                        .map_err(map_io_error)?;
+                    if count == 0 {
+                        return Err(BluezBleGattError::Disconnected);
+                    }
+                    local_packet[..count].to_vec()
+                }
+            };
             let completed = self
                 .reassembler
-                .admit(&packet[..count])
+                .admit(&packet)
                 .map_err(|_| BluezBleGattError::Transport)?;
             if let Some(frame) = completed {
                 output[..frame.len()].copy_from_slice(frame);
                 return Ok(frame.len());
             }
         }
+    }
+}
+
+fn map_io_error(error: std::io::Error) -> BluezBleGattError {
+    match error.kind() {
+        std::io::ErrorKind::BrokenPipe
+        | std::io::ErrorKind::ConnectionAborted
+        | std::io::ErrorKind::ConnectionReset
+        | std::io::ErrorKind::NotConnected
+        | std::io::ErrorKind::UnexpectedEof => BluezBleGattError::Disconnected,
+        _ => BluezBleGattError::Transport,
     }
 }
 
@@ -451,15 +363,4 @@ async fn validate_characteristics(
         return Err(BluezBleGattError::CharacteristicContractMismatch);
     }
     Ok(())
-}
-
-fn map_io_error(error: std::io::Error) -> BluezBleGattError {
-    match error.kind() {
-        std::io::ErrorKind::BrokenPipe
-        | std::io::ErrorKind::ConnectionAborted
-        | std::io::ErrorKind::ConnectionReset
-        | std::io::ErrorKind::NotConnected
-        | std::io::ErrorKind::UnexpectedEof => BluezBleGattError::Disconnected,
-        _ => BluezBleGattError::Transport,
-    }
 }

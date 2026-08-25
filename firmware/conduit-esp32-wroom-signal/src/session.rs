@@ -10,25 +10,31 @@ use conduit_core::{
 };
 use conduit_wire::{
     LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionMachine,
-    SessionMessage, SessionRole, decode_session_frame, encode_session_frame_into,
+    SessionMessage, SessionRole, SessionTerminalDisposition, decode_session_frame,
+    encode_session_frame_into,
 };
 use heapless::Vec;
 
 const PAYLOAD_BYTES: u32 = 96;
-const MAXIMUM_REPLY_PACKETS: usize = 24;
+const MAXIMUM_REPLY_PACKETS: usize = 8;
 type ReplyPacket = Vec<u8, MAXIMUM_BLE_GATT_PACKET_BYTES>;
 pub type ReplyPackets = Vec<ReplyPacket, MAXIMUM_REPLY_PACKETS>;
 
-pub struct ConduitBleSession {
+pub struct ConduitBleSession<'kernel> {
     binding: SessionBinding,
     machine: SessionMachine,
     reassembler: BleReassembler,
     send_sequence: u8,
+    kernel: &'kernel mut crate::remote_kernel::Esp32RemoteSignalKernel,
+    kernel_complete: bool,
 }
 
-impl ConduitBleSession {
-    pub fn new(boot: &crate::receipts::BootIdentity) -> Result<Self, &'static str> {
-        let binding = binding(boot);
+impl<'kernel> ConduitBleSession<'kernel> {
+    pub fn new(
+        boot: &crate::receipts::BootIdentity,
+        kernel: &'kernel mut crate::remote_kernel::Esp32RemoteSignalKernel,
+    ) -> Result<Self, &'static str> {
+        let binding = binding(boot)?;
         let machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
             .map_err(|_| "invalid-binding")?;
         Ok(Self {
@@ -36,6 +42,8 @@ impl ConduitBleSession {
             machine,
             reassembler: BleReassembler::new(BleGattProfile::FIRST),
             send_sequence: 0,
+            kernel,
+            kernel_complete: false,
         })
     }
 
@@ -65,15 +73,49 @@ impl ConduitBleSession {
             SessionMessage::Ready => {
                 self.push_frame(binding.frame(SessionMessage::Ready), &mut replies)?;
             }
-            SessionMessage::Offered { sequence, .. } => {
+            SessionMessage::Offered { sequence, payload } => {
+                match self.kernel.admit(sequence, payload)? {
+                    conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. } => {}
+                    conduit_kernel::scheduler::RemoteIngressOutcome::Full { .. } => {
+                        self.push_frame(
+                            binding.frame(SessionMessage::Pressure { sequence }),
+                            &mut replies,
+                        )?;
+                        return Ok(replies);
+                    }
+                }
                 self.push_frame(
                     binding.frame(SessionMessage::Accepted { sequence }),
                     &mut replies,
                 )?;
+                self.kernel.present_accepted(sequence)?;
                 self.push_frame(
                     binding.frame(SessionMessage::Delivered { sequence }),
                     &mut replies,
                 )?;
+            }
+            SessionMessage::InputClosed { final_sequence } => {
+                self.kernel.close_and_complete(final_sequence)?;
+                self.kernel_complete = true;
+            }
+            SessionMessage::Terminal {
+                disposition,
+                final_sequence,
+            } => {
+                if disposition != SessionTerminalDisposition::Completed || !self.kernel_complete {
+                    return Err("unexpected-source-terminal");
+                }
+                self.push_frame(
+                    binding.frame(SessionMessage::Terminal {
+                        disposition,
+                        final_sequence,
+                    }),
+                    &mut replies,
+                )?;
+                esp_println::println!(
+                    "CONDUIT_ESP32_LINE_COMPLETE final-sequence={}",
+                    final_sequence
+                );
             }
             _ => return Err("unexpected-source-message"),
         }
@@ -121,21 +163,37 @@ impl ConduitBleSession {
     }
 }
 
-fn binding(boot: &crate::receipts::BootIdentity) -> SessionBinding {
-    let plan_id = PlanId::from("bluetooth/physical-capstone-plan");
-    let source_host = HostId::from("bluetooth/source-host");
-    let source_boot = BootId::from("bluetooth/source-boot");
-    let sink_host = HostId::from(boot.host_id());
-    let sink_boot = BootId::from(boot.boot_id());
+fn binding(boot: &crate::receipts::BootIdentity) -> Result<SessionBinding, &'static str> {
+    let source_host = HostId::from(crate::generated::GENERATED_REMOTE_ENDPOINT_PEER_HOSTS[0]);
+    let source_boot = BootId::from(crate::generated::GENERATED_REMOTE_ENDPOINT_PEER_BOOTS[0]);
+    let sink_host = HostId::from(crate::generated::HOST_ID);
+    let sink_boot = BootId::from(crate::generated::BOOT_ID);
     SessionBinding {
         protocol_version: PROTOCOL_VERSION,
-        source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0)
-            .active_play_id,
-        sink_active_play_id: bind_active_play(&plan_id, &sink_host, &sink_boot, 0).active_play_id,
-        plan_id,
-        source_fragment_id: FragmentId::from("bluetooth/source-fragment"),
-        sink_fragment_id: FragmentId::from("bluetooth/sink-fragment"),
-        connection_id: ConnectionId::from("bluetooth/unchanged-signal-cord"),
+        source_active_play_id: bind_active_play(
+            &PlanId::from(crate::generated::PLAN_ID),
+            &source_host,
+            &source_boot,
+            0,
+        )
+        .active_play_id,
+        sink_active_play_id: bind_active_play(
+            &PlanId::from(crate::generated::PLAN_ID),
+            &sink_host,
+            &sink_boot,
+            0,
+        )
+        .active_play_id,
+        plan_id: PlanId::from(crate::generated::PLAN_ID),
+        source_fragment_id: FragmentId::from(
+            crate::generated::GENERATED_REMOTE_ENDPOINT_SOURCE_FRAGMENT_IDS[0],
+        ),
+        sink_fragment_id: FragmentId::from(
+            crate::generated::GENERATED_REMOTE_ENDPOINT_SINK_FRAGMENT_IDS[0],
+        ),
+        connection_id: ConnectionId::from(
+            crate::generated::GENERATED_REMOTE_ENDPOINT_CONNECTION_IDS[0],
+        ),
         source: SessionEndpointIdentity {
             host_id: source_host.clone(),
             boot_id: source_boot.clone(),
@@ -144,26 +202,37 @@ fn binding(boot: &crate::receipts::BootIdentity) -> SessionBinding {
             host_id: sink_host.clone(),
             boot_id: sink_boot.clone(),
         },
-        value_kind: KindId::from("conduit.signal/level@1"),
+        value_kind: KindId::from(crate::generated::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS[0]),
         limits: SessionLimits {
-            maximum_in_flight_items: 1,
-            maximum_payload_bytes: PAYLOAD_BYTES,
-            maximum_buffered_bytes: PAYLOAD_BYTES,
+            maximum_in_flight_items:
+                crate::generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS[0],
+            maximum_payload_bytes: crate::generated::CORD_VALUE_BYTES,
+            maximum_buffered_bytes: crate::generated::CORD_VALUE_BYTES,
         },
         attachment: LineAttachment {
-            line_id: "bluetooth/physical-line".into(),
-            link_binding_id: LinkBindingId::from("bluetooth/physical-binding"),
+            line_id: crate::generated::GENERATED_REMOTE_ENDPOINT_LINE_IDS[0].into(),
+            link_binding_id: LinkBindingId::from(
+                crate::generated::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS[0],
+            ),
             base: ConnectionBase::BluetoothLeGatt,
-            base_instance_id: ConnectionBaseInstanceId::from("bluetooth/physical-session"),
+            base_instance_id: ConnectionBaseInstanceId::from(
+                crate::generated::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS[0],
+            ),
             source_host_id: source_host,
-            source_boot_id: source_boot,
-            source_endpoint_id: LinkEndpointId::from("bluetooth/source-write"),
+            source_boot_id: source_boot.clone(),
+            source_endpoint_id: LinkEndpointId::from(
+                crate::generated::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS[0],
+            ),
             sink_host_id: sink_host,
             sink_boot_id: sink_boot,
-            sink_endpoint_id: LinkEndpointId::from("bluetooth/sink-indicate"),
+            sink_endpoint_id: LinkEndpointId::from(
+                crate::generated::GENERATED_REMOTE_ENDPOINT_LOCAL_ENDPOINTS[0],
+            ),
             limits: BleGattProfile::FIRST
                 .link_limits()
                 .expect("the frozen BLE profile remains valid"),
         },
     }
+    .with_observed_boots(source_boot, BootId::from(boot.boot_id()))
+    .map_err(|_| "runtime-binding")
 }

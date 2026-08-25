@@ -74,6 +74,14 @@ impl PicoUsbSource {
     }
 
     pub fn prepare_plan(plan: Plan, source_host_id: &HostId) -> Result<Self, String> {
+        Self::prepare_plan_with_observed_boots(plan, source_host_id, None)
+    }
+
+    pub fn prepare_plan_with_observed_boots(
+        plan: Plan,
+        source_host_id: &HostId,
+        observed_boots: Option<(BootId, BootId)>,
+    ) -> Result<Self, String> {
         let fragment = plan
             .fragments
             .iter()
@@ -98,13 +106,18 @@ impl PicoUsbSource {
             .iter()
             .find(|connection| connection.connection_id == remote.connection_id)
             .ok_or_else(|| "planned source connection missing".to_owned())?;
-        let binding = SessionBinding::from_planned_connection(
+        let mut binding = SessionBinding::from_planned_connection(
             fragment.plan_id.clone(),
             remote.source_fragment_id.clone(),
             remote.sink_fragment_id.clone(),
             connection,
         )
         .map_err(|error| format!("{error:?}"))?;
+        if let Some((source_boot, sink_boot)) = observed_boots {
+            binding = binding
+                .with_observed_boots(source_boot, sink_boot)
+                .map_err(|error| format!("{error:?}"))?;
+        }
         if binding.limits.maximum_in_flight_items != DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS {
             return Err("planned remote Signal item bound changed".to_owned());
         }

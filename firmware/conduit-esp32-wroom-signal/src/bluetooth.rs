@@ -31,8 +31,12 @@ struct ConduitService {
     notify: Vec<u8, PACKET_BYTES_MAXIMUM>,
 }
 
-pub async fn run<C>(controller: C, boot: &crate::receipts::BootIdentity, security_rng: &mut Trng)
-where
+pub async fn run<C>(
+    controller: C,
+    boot: &crate::receipts::BootIdentity,
+    security_rng: &mut Trng,
+    kernel: &'static mut crate::remote_kernel::Esp32RemoteSignalKernel,
+) where
     C: Controller,
 {
     let mac = efuse::interface_mac_address(InterfaceMacAddress::Bluetooth);
@@ -76,18 +80,22 @@ where
     boot.print_host_offer(address);
 
     let _ = join(run_controller(runner), async {
-        loop {
-            let connection = advertise(&mut peripheral, &server)
-                .await
-                .expect("bounded BLE advertising must remain available");
-            connection
-                .raw()
-                .set_bondable(true)
-                .expect("the fresh connection security policy must be configurable");
-            esp_println::println!("CONDUIT_ESP32_BLE_CONNECTED");
-            let _ = serve_connection(&server, &connection, boot, &stack).await;
-            esp_println::println!("CONDUIT_ESP32_BLE_LOST");
-        }
+        let connection = advertise(&mut peripheral, &server)
+            .await
+            .expect("bounded BLE advertising must remain available");
+        connection
+            .raw()
+            .set_bondable(true)
+            .expect("the fresh connection security policy must be configurable");
+        // Repeat the exact physical identity at the accepted-session boundary.
+        // The UART proof reader may attach after boot; acceptance must not rely
+        // on ambient serial backlog to bind this session to its Host and Boot.
+        boot.print_boot();
+        boot.print_host_offer(address);
+        esp_println::println!("CONDUIT_ESP32_BLE_CONNECTED");
+        let _ = serve_connection(&server, &connection, boot, &stack, kernel).await;
+        esp_println::println!("CONDUIT_ESP32_BLE_LOST");
+        core::future::pending::<()>().await;
     })
     .await;
 }
@@ -132,8 +140,9 @@ async fn serve_connection<C: Controller, P: PacketPool>(
     connection: &GattConnection<'_, '_, P>,
     boot: &crate::receipts::BootIdentity,
     stack: &Stack<'_, C, P>,
+    kernel: &mut crate::remote_kernel::Esp32RemoteSignalKernel,
 ) -> Result<(), Error> {
-    let mut session = ConduitBleSession::new(boot)
+    let mut session = ConduitBleSession::new(boot, kernel)
         .expect("the exact boot-scoped BLE session binding must validate");
     loop {
         match connection.next().await {

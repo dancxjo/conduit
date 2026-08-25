@@ -7,7 +7,10 @@ use super::firmware::{read_identity_manifest, FirmwareIdentity, GeneratedImageId
 use super::{PicoArgs, PicoResult};
 
 const EXPECTED_RECEIPTS: usize = 16;
-const DEVICE_ID_NEEDLE: &str = "conduit-pico-w-signal";
+// udev renders USB product spaces as underscores in /dev/serial/by-id. Match
+// the shared Conduit Pico W prefix so local and Bluetooth-Line images retain
+// the same exact dual-CDC discovery entrance.
+const DEVICE_ID_NEEDLE: &str = "conduit_pico_w_";
 
 pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
     if args.pete_capstone {

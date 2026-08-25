@@ -5,7 +5,7 @@
 //!   PIN_23 (power), PIN_24 (DIO), PIN_25 (CS), PIN_29 (clock)
 
 use cyw43::Control;
-use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
+use cyw43_pio::{PioSpi, RM2_CLOCK_DIVIDER};
 use embassy_executor::Spawner;
 use embassy_rp::{
     bind_interrupts,
@@ -62,7 +62,10 @@ pub async fn init_cyw43_bluetooth(
     let spi = PioSpi::new(
         &mut pio.common,
         pio.sm0,
-        DEFAULT_CLOCK_DIVIDER,
+        // Bluetooth HCI payloads are corrupted at the default 66.5 MHz PIO
+        // SPI clock on this CYW43439 path. Keep Wi-Fi at its reviewed clock,
+        // but run the Bluetooth transport at the upstream-proven slower rate.
+        RM2_CLOCK_DIVIDER * 10,
         pio.irq0,
         cs,
         pin24,
@@ -153,7 +156,7 @@ pub async fn init_cyw43(
     let spi = PioSpi::new(
         &mut pio.common,
         pio.sm0,
-        DEFAULT_CLOCK_DIVIDER,
+        cyw43_pio::DEFAULT_CLOCK_DIVIDER,
         pio.irq0,
         cs,
         pin24,
@@ -199,7 +202,7 @@ pub async fn init_cyw43_network(
     let spi = PioSpi::new(
         &mut pio.common,
         pio.sm0,
-        DEFAULT_CLOCK_DIVIDER,
+        cyw43_pio::DEFAULT_CLOCK_DIVIDER,
         pio.irq0,
         cs,
         pin24,

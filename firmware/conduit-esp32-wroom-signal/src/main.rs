@@ -28,19 +28,26 @@ mod bluetooth;
 #[cfg(feature = "bluetooth")]
 mod receipts;
 #[cfg(feature = "bluetooth")]
+mod remote_kernel;
+#[cfg(feature = "bluetooth")]
 mod session;
+
+#[cfg(feature = "bluetooth")]
+static REMOTE_KERNEL: static_cell::StaticCell<remote_kernel::Esp32RemoteSignalKernel> =
+    static_cell::StaticCell::new();
 
 mod generated {
     #![allow(dead_code)]
     include!(concat!(env!("OUT_DIR"), "/signal_image.rs"));
 }
 
-const _: () = assert!(generated::GENERATED_NODES.len() == 2);
+const _: () = assert!(generated::GENERATED_NODES.len() == 1);
 const _: () = assert!(generated::GENERATED_CORDS.len() == 1);
-const _: () = assert!(generated::GENERATED_ROUTES.len() == 1);
-const _: () = assert!(generated::GENERATED_ROUTE_TARGETS.len() == 1);
-const _: () = assert!(generated::GENERATED_HOST_OPERATIONS.len() == 2);
-const _: () = assert!(generated::GENERATED_RESOURCES.len() == 2);
+const _: () = assert!(generated::GENERATED_REMOTE_ENDPOINT_COUNT == 1);
+const _: () = assert!(generated::GENERATED_ROUTES.is_empty());
+const _: () = assert!(generated::GENERATED_ROUTE_TARGETS.is_empty());
+const _: () = assert!(generated::GENERATED_HOST_OPERATIONS.len() == 1);
+const _: () = assert!(generated::GENERATED_RESOURCES.len() == 1);
 const _: () = assert!(generated::CORD_VALUE_SLOTS == 1);
 const _: () = assert!(generated::CORD_VALUE_BYTES == 9);
 const _: () = assert!(!generated::GENERATED_FABRICATION_DESCRIPTOR_BINDING.is_empty());
@@ -52,7 +59,7 @@ async fn main(_spawner: Spawner) {
     esp_println::logger::init_logger_from_env();
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
-    esp_alloc::heap_allocator!(size: 72 * 1024);
+    esp_alloc::heap_allocator!(size: 48 * 1024);
     let timer_group = TimerGroup::new(peripherals.TIMG0);
     let software_interrupts = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     esp_rtos::start(timer_group.timer0, software_interrupts.software_interrupt0);
@@ -71,7 +78,11 @@ async fn main(_spawner: Spawner) {
         let connector = BleConnector::new(peripherals.BT, Default::default())
             .expect("the inspected ESP32 BLE controller must initialize");
         let controller: ExternalController<_, 1> = ExternalController::new(connector);
-        bluetooth::run(controller, &boot, &mut trng).await;
+        let remote_kernel = REMOTE_KERNEL.init_with(|| {
+            remote_kernel::Esp32RemoteSignalKernel::new()
+                .expect("the generated remote kernel must fit its admitted static storage")
+        });
+        bluetooth::run(controller, &boot, &mut trng, remote_kernel).await;
     }
 
     #[cfg(not(feature = "bluetooth"))]

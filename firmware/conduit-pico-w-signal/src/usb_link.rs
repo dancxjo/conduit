@@ -7,9 +7,10 @@ use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionFrame
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
 use embassy_usb::class::cdc_acm::CdcAcmClass;
+use embassy_time::{with_timeout, Duration};
 
 use super::usb::PicoUsbCdcLine;
-pub use crate::remote_error::{RemoteError as UsbLinkError, RemoteResult as UsbLinkResult};
+pub use crate::remote_error::RemoteError as UsbLinkError;
 
 pub struct UsbLinkSession {
     class: CdcAcmClass<'static, usb::Driver<'static, USB>>,
@@ -27,6 +28,13 @@ impl UsbLinkSession {
     /// Wait for USB host connection on CDC 0 interface.
     pub async fn wait_connection(&mut self) {
         self.class.wait_connection().await;
+    }
+
+    /// Discard incomplete or invalid bytes at an explicit CDC control-session
+    /// boundary. The buffer remains fixed; this only restores decoder state.
+    pub fn reset_stream_decoder(&mut self) {
+        self.decoder = StreamFrameDecoder::new(4096)
+            .expect("the fixed USB stream decoder limit is valid");
     }
 
     /// Receive the next framed SessionFrame from the USB CDC ACM link.
@@ -86,6 +94,7 @@ impl UsbLinkSession {
     }
 
     /// Receive next raw length-prefixed stream frame payload without SessionFrame decoding.
+    #[allow(dead_code, reason = "exclusive firmware modes select one raw receive policy")]
     pub async fn receive_raw_stream_frame<'a>(
         &mut self,
         buf: &'a mut [u8],
@@ -111,6 +120,51 @@ impl UsbLinkSession {
             }
 
             self.decoder.accept_bytes(&packet_buf[..read_bytes])?;
+        }
+    }
+
+    /// Receive developer lifecycle control while recovering from unrelated
+    /// CDC startup bytes. Ordinary Session traffic deliberately does not use
+    /// this timeout-and-resynchronize policy.
+    pub async fn receive_control_stream_frame<'a>(
+        &mut self,
+        buf: &'a mut [u8],
+    ) -> Result<&'a [u8], UsbLinkError> {
+        let mut packet_buf = [0u8; 64];
+        loop {
+            match self.decoder.next_frame() {
+                Ok(Some(frame_bytes)) => {
+                    if buf.len() < frame_bytes.len() {
+                        self.reset_stream_decoder();
+                        return Err(UsbLinkError::BufferOverflow);
+                    }
+                    buf[..frame_bytes.len()].copy_from_slice(frame_bytes);
+                    return Ok(&buf[..frame_bytes.len()]);
+                }
+                Ok(None) => {}
+                Err(_) => {
+                    self.reset_stream_decoder();
+                }
+            }
+
+            let read_bytes = match with_timeout(
+                Duration::from_millis(500),
+                self.class.read_packet(&mut packet_buf),
+            )
+            .await
+            {
+                Ok(Ok(read_bytes)) => read_bytes,
+                Ok(Err(_)) => return Err(UsbLinkError::UsbDisconnected),
+                Err(_) => {
+                    self.reset_stream_decoder();
+                    continue;
+                }
+            };
+            if read_bytes != 0 {
+                if self.decoder.accept_bytes(&packet_buf[..read_bytes]).is_err() {
+                    self.reset_stream_decoder();
+                }
+            }
         }
     }
 

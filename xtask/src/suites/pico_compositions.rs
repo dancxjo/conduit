@@ -219,8 +219,8 @@ mod tests {
             .find(|line| line.starts_with("bluetooth-line ="))
             .expect("Bluetooth Line composition feature");
         assert!(bluetooth_feature.contains("dep:conduit-bluetooth"));
-        assert!(bluetooth_feature.contains("dep:conduit-wire"));
-        assert!(!bluetooth_feature.contains("session-control"));
+        assert!(bluetooth_feature.contains("session-control"));
+        assert!(!bluetooth_feature.contains("dep:conduit-wire"));
         assert!(manifest.contains(
             "conduit-wire = { path = \"../../crates/conduit-wire\", default-features = false, optional = true }"
         ));

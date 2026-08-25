@@ -21,9 +21,8 @@ use conduit_wire::{
 };
 use cyw43::Control;
 use embassy_executor::Spawner;
-use embassy_futures::join::join;
+use embassy_futures::select::{select, Either};
 use embassy_rp::{
-    clocks::RoscRng,
     peripherals::{DMA_CH0, DMA_CH1, PIN_23, PIN_24, PIN_25, PIN_29, PIO0},
     Peri,
 };
@@ -76,6 +75,7 @@ pub async fn run(
     nvram: &'static aligned::Aligned<aligned::A4, [u8]>,
     clm: &'static [u8],
     runtime: &RuntimeTranscriptIdentity,
+    flash_unique_id: [u8; 8],
 ) -> ! {
     let (bt_driver, mut control) = crate::radio::init_cyw43_bluetooth(
         spawner, pio0, dma_ch0, dma_ch1, pin23, pin24, pin25, pin29, fw, btfw, nvram, clm,
@@ -84,12 +84,12 @@ pub async fn run(
     let controller: ExternalController<_, 10> = ExternalController::new(bt_driver);
     let mut resources: HostResources<_, DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
         HostResources::new();
-    let mut rng = RoscRng;
     let mut address_bytes = [0_u8; 6];
-    rand_core::RngCore::fill_bytes(&mut rng, &mut address_bytes);
+    address_bytes.copy_from_slice(&flash_unique_id[..6]);
     address_bytes[5] = (address_bytes[5] & 0x3f) | 0xc0;
     let stack = trouble_host::new(controller, &mut resources)
         .set_random_address(Address::random(address_bytes))
+        .set_io_capabilities(IoCapabilities::NoInputNoOutput)
         .build();
     let mut peripheral = stack.peripheral();
     let runner = stack.runner();
@@ -102,51 +102,58 @@ pub async fn run(
     let identity = SignalExecutionIdentity::plan_a();
     let _ = sign.write_boot_identity(identity.boot(), runtime).await;
     let _ = sign.write_marker("CONDUIT_BLE_CONTROLLER_READY").await;
-    join(run_host(runner), async {
+    let line = async {
         let mut consecutive_advertise_failures = 0_u8;
-        loop {
-            let connection = match advertise(&mut peripheral, &server).await {
-                Ok(connection) => connection,
+        let connection = loop {
+            match advertise(&mut peripheral, &server).await {
+                Ok(connection) => break connection,
                 Err(_) if consecutive_advertise_failures < 7 => {
                     consecutive_advertise_failures += 1;
                     Timer::after(Duration::from_millis(250)).await;
-                    continue;
                 }
                 Err(_) => {
                     let _ = sign.write_marker("CONDUIT_BLE_ADVERTISE_FAILED").await;
                     return core::future::pending::<()>().await;
                 }
-            };
-            consecutive_advertise_failures = 0;
-            connection.raw().set_bondable(true).unwrap();
-            let _ = sign.write_marker("CONDUIT_BLE_LINE_CONNECTED").await;
-            let result = serve_connection(
-                &stack,
-                &server,
-                &connection,
-                &mut control,
-                sign,
-                runtime,
-            )
-            .await;
-            let marker = if result.is_ok() {
-                "CONDUIT_BLE_LINE_COMPLETE"
+            }
+        };
+        let _ = sign.write_marker("CONDUIT_BLE_LINE_CONNECTED").await;
+        let result = serve_connection(
+            &stack,
+            &server,
+            &connection,
+            &mut control,
+            sign,
+            runtime,
+        )
+        .await;
+        let marker = if result.is_ok() {
+            "CONDUIT_BLE_LINE_COMPLETE"
+        } else {
+            "CONDUIT_BLE_LINE_LOST"
+        };
+        let _ = sign.write_marker(marker).await;
+        core::future::pending::<()>().await
+    };
+    match select(run_host_until_stopped(runner), line).await {
+        Either::First(host_failed) => {
+            let marker = if host_failed {
+                "CONDUIT_BLE_HOST_FAILED"
             } else {
-                "CONDUIT_BLE_LINE_LOST"
+                "CONDUIT_BLE_HOST_RETURNED"
             };
             let _ = sign.write_marker(marker).await;
+            core::future::pending().await
         }
-    })
-    .await;
-    core::future::pending().await
-}
-
-async fn run_host<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) -> ! {
-    loop {
-        if runner.run().await.is_err() {
-            core::future::pending::<()>().await;
+        Either::Second(()) => {
+            let _ = sign.write_marker("CONDUIT_BLE_LINE_STOPPED").await;
+            core::future::pending().await
         }
     }
+}
+
+async fn run_host_until_stopped<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) -> bool {
+    runner.run().await.is_err()
 }
 
 async fn advertise<'values, 'server, C: Controller>(
@@ -167,7 +174,7 @@ async fn advertise<'values, 'server, C: Controller>(
         &[AdStructure::CompleteLocalName(b"Conduit Pico W")],
         &mut scan_data,
     )?;
-    Ok(peripheral
+    let connection = peripheral
         .advertise(
             &Default::default(),
             Advertisement::ConnectableScannableUndirected {
@@ -177,8 +184,12 @@ async fn advertise<'values, 'server, C: Controller>(
         )
         .await?
         .accept()
-        .await?
-        .with_attribute_server(server)?)
+        .await?;
+    // Establish bondability before the central starts SMP. The selected BlueZ
+    // application owns the one bounded Device.Pair operation after this
+    // connection has entered its GATT event loop.
+    connection.set_bondable(true)?;
+    Ok(connection.with_attribute_server(server)?)
 }
 
 async fn serve_connection<C: Controller>(
@@ -196,6 +207,17 @@ async fn serve_connection<C: Controller>(
     let mut reassembler = BleReassembler::new(BleGattProfile::FIRST);
     let mut frame_bytes = [0_u8; FRAME_BYTES];
     let mut send_sequence = 0_u8;
+
+    // BlueZ completes its controller feature exchange before its bounded
+    // Device.Pair operation can consume a peripheral Security Request. An
+    // immediate request at accept races that exchange on the CYW43439; a
+    // finite stabilization delay keeps the request inside this connection
+    // realization while allowing the controller handshake to finish.
+    Timer::after(Duration::from_millis(500)).await;
+    connection
+        .raw()
+        .request_security()
+        .map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
 
     loop {
         match connection.next().await {

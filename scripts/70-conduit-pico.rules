@@ -1,4 +1,7 @@
-# Grant the repository's hardware-development group access to Conduit Pico CDC
-# interfaces. The manufacturer match keeps the Raspberry Pi vendor/product pair
-# from broadening access to unrelated firmware using the same development PID.
-SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000a", ATTRS{manufacturer}=="Conduit", GROUP="plugdev", MODE="0660", TAG+="uaccess"
+# Grant the repository's hardware-development group access to the exact Conduit
+# Pico USB device and its CDC interfaces. Device-node access permits a targeted
+# USB reset when a failed radio session wedges CDC before the authenticated
+# BOOTSEL exchange. The manufacturer match keeps the Raspberry Pi vendor/product
+# pair from broadening access to unrelated firmware using the development PID.
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="2e8a", ATTR{idProduct}=="000a", ATTR{manufacturer}=="Conduit", GROUP="plugdev", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000a", ATTRS{manufacturer}=="Conduit", ENV{ID_MM_DEVICE_IGNORE}="1", GROUP="plugdev", MODE="0660", TAG+="uaccess"
