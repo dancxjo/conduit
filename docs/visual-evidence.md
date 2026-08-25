@@ -59,6 +59,11 @@ new exact commit. Each image links to its provenance page. The prose states the
 same essential result because the images document a rendering; they do not
 define semantic success.
 
+The overview correlates the checked Form graph with the same authoritative
+structure exposed by Patchbay.
+
+[![Current accepted Conduit Patchbay overview](https://dancxjo.github.io/conduit/current/patchbay/overview.png)](https://dancxjo.github.io/conduit/current/patchbay/overview/)
+
 After keyboard selection succeeds through an admitted interaction Play, the
 selected Gear is correlated across the structural list, graph, and inspector.
 

@@ -1,114 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
-  <title id="title">A useful mental model for Conduit</title>
-  <desc id="desc">Conduit has three authored roles: Form meaning, Host construction, and Body construction. Host construction becomes a Profile, Build, and Image; Body construction binds Images into Spores. After boot and join, current Hosts, Boots, offers, resources, Lines, and Signs are observed. Checked meaning and current truth produce candidate realizations whose Needs are atomically admitted or refused. Successful admission creates exact bindings, an immutable Plan, and a Play.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">The Conduit idea</title>
+  <desc id="desc">A form describes what should happen. Body building prepares parts as spores. After boot and join, the current body contains the hosts, resources, lines, and signs that actually exist now. Conduit combines the form with that current body to create one exact plan and execute it as a play.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#101827"/>
       <stop offset="1" stop-color="#17243a"/>
     </linearGradient>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-      <path d="M0 0l10 5-10 5z" fill="#8bd5ca"/>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto">
+      <path d="M0 0 L9 4.5 L0 9 z" fill="#8bd5ca"/>
     </marker>
     <style>
-      .h{font:700 24px ui-sans-serif,system-ui,sans-serif;fill:#f4f7fb}
-      .t{font:15px ui-sans-serif,system-ui,sans-serif;fill:#c7d2e3}
-      .small{font:13px ui-sans-serif,system-ui,sans-serif;fill:#aebbd0}
-      .s{font:700 13px ui-sans-serif,system-ui,sans-serif;letter-spacing:1.4px;fill:#8bd5ca}
-      .box{fill:#1e2d46;stroke:#57749d;stroke-width:2}
+      .h{font:700 26px ui-sans-serif,system-ui,sans-serif;fill:#f4f7fb}
+      .t{font:16px ui-sans-serif,system-ui,sans-serif;fill:#d2dbea}
+      .small{font:14px ui-sans-serif,system-ui,sans-serif;fill:#aebbd0}
+      .label{font:700 17px ui-sans-serif,system-ui,sans-serif;fill:#8bd5ca}
       .semantic{fill:#243956;stroke:#7dc4e4;stroke-width:2}
       .build{fill:#332f4b;stroke:#c6a0f6;stroke-width:2}
-      .observe{fill:#303748;stroke:#f5bde6;stroke-width:2}
-      .admit{fill:#263d3d;stroke:#8bd5ca;stroke-width:2}
+      .truth{fill:#303748;stroke:#f5bde6;stroke-width:2}
       .exact{fill:#28354f;stroke:#c6a0f6;stroke-width:2}
       .play{fill:#2c3d32;stroke:#a6da95;stroke-width:2}
       .line{fill:none;stroke:#8bd5ca;stroke-width:3;marker-end:url(#arrow)}
-      .thin{fill:none;stroke:#57749d;stroke-width:2;marker-end:url(#arrow)}
-      .dash{fill:none;stroke:#8bd5ca;stroke-width:2;stroke-dasharray:7 7;marker-end:url(#arrow)}
     </style>
   </defs>
 
-  <rect width="1200" height="760" rx="24" fill="url(#bg)"/>
+  <rect width="1200" height="620" rx="24" fill="url(#bg)"/>
 
-  <text x="52" y="48" class="s">AUTHOR</text>
-  <text x="52" y="78" class="h">Three authored roles, one language</text>
+  <text x="54" y="50" class="small">A useful mental model</text>
+  <text x="54" y="84" class="h">The body is the computer</text>
 
-  <rect x="52" y="104" width="310" height="112" rx="16" class="semantic"/>
-  <text x="78" y="138" class="s">FORM</text>
-  <text x="78" y="168" class="t">what should happen</text>
-  <text x="78" y="194" class="small">Kinds · Gears · Ports · Cords · Info</text>
+  <rect x="54" y="126" width="330" height="126" rx="18" class="semantic"/>
+  <text x="82" y="164" class="label">form</text>
+  <text x="82" y="197" class="t">what should happen</text>
+  <text x="82" y="224" class="small">portable semantic meaning</text>
 
-  <rect x="445" y="104" width="310" height="112" rx="16" class="build"/>
-  <text x="471" y="138" class="s">HOST CONSTRUCTION</text>
-  <text x="471" y="168" class="t">what machinery should exist</text>
-  <text x="471" y="194" class="small">target · Bases · variants · finite bounds</text>
+  <rect x="816" y="126" width="330" height="126" rx="18" class="build"/>
+  <text x="844" y="164" class="label">body building</text>
+  <text x="844" y="197" class="t">prepare the intended parts</text>
+  <text x="844" y="224" class="small">build deployable spores</text>
 
-  <rect x="838" y="104" width="310" height="112" rx="16" class="build"/>
-  <text x="864" y="138" class="s">BODY CONSTRUCTION</text>
-  <text x="864" y="168" class="t">which intended Parts belong together</text>
-  <text x="864" y="194" class="small">Body binding · Part intent · join mode</text>
+  <rect x="816" y="334" width="330" height="126" rx="18" class="truth"/>
+  <text x="844" y="372" class="label">current body</text>
+  <text x="844" y="405" class="t">what actually came alive</text>
+  <text x="844" y="432" class="small">parts · hosts · resources · lines · signs</text>
 
-  <text x="52" y="266" class="s">BUILD</text>
+  <rect x="438" y="334" width="260" height="126" rx="18" class="exact"/>
+  <text x="466" y="372" class="label">plan</text>
+  <text x="466" y="405" class="t">one exact finite realization</text>
+  <text x="466" y="432" class="small">admitted against current truth</text>
 
-  <rect x="52" y="286" width="310" height="96" rx="16" class="semantic"/>
-  <text x="78" y="320" class="s">CHECKED MEANING</text>
-  <text x="78" y="350" class="t">portable semantic truth</text>
+  <rect x="438" y="500" width="260" height="76" rx="18" class="play"/>
+  <text x="466" y="535" class="label">play</text>
+  <text x="466" y="559" class="t">execute that plan</text>
 
-  <rect x="410" y="286" width="380" height="96" rx="16" class="build"/>
-  <text x="436" y="320" class="s">HOST FABRICATION</text>
-  <text x="436" y="350" class="t">configuration → PROFILE → BUILD → IMAGE</text>
+  <path d="M219 252 V296 H568 V334" class="line"/>
+  <path d="M981 252 V334" class="line"/>
+  <text x="1001" y="299" class="small">boot / join</text>
+  <path d="M816 397 H698" class="line"/>
+  <path d="M568 460 V500" class="line"/>
 
-  <rect x="838" y="286" width="310" height="96" rx="16" class="build"/>
-  <text x="864" y="320" class="s">SPORE</text>
-  <text x="864" y="350" class="t">IMAGE + Body binding + provenance</text>
-
-  <path d="M207 216v70" class="line"/>
-  <path d="M600 216v70" class="line"/>
-  <path d="M993 216v70" class="line"/>
-  <path d="M790 334h48" class="thin"/>
-
-  <text x="52" y="432" class="s">BOOT / JOIN / OBSERVE</text>
-  <rect x="52" y="452" width="1096" height="112" rx="18" class="observe"/>
-  <text x="78" y="486" class="s">CURRENT TRUTH</text>
-  <text x="78" y="518" class="t">Body / Parts · Hosts / Boots · offers / resources · Lines · Signs</text>
-  <text x="78" y="544" class="small">what actually came alive, what is available now, and what has been observed</text>
-
-  <path d="M600 382v70" class="line"/>
-  <path d="M993 382v70" class="line"/>
-
-  <text x="52" y="616" class="s">REALIZE</text>
-
-  <rect x="52" y="638" width="178" height="72" rx="14" class="box"/>
-  <text x="141" y="666" text-anchor="middle" class="s">CANDIDATE</text>
-  <text x="141" y="691" text-anchor="middle" class="small">implementation</text>
-
-  <rect x="276" y="638" width="148" height="72" rx="14" class="box"/>
-  <text x="350" y="666" text-anchor="middle" class="s">NEED</text>
-  <text x="350" y="691" text-anchor="middle" class="small">finite demand</text>
-
-  <rect x="470" y="638" width="178" height="72" rx="14" class="admit"/>
-  <text x="559" y="666" text-anchor="middle" class="s">ADMIT / REFUSE</text>
-  <text x="559" y="691" text-anchor="middle" class="small">atomic reservation</text>
-
-  <rect x="694" y="638" width="148" height="72" rx="14" class="exact"/>
-  <text x="768" y="666" text-anchor="middle" class="s">BIND</text>
-  <text x="768" y="691" text-anchor="middle" class="small">exact resources</text>
-
-  <rect x="888" y="638" width="126" height="72" rx="14" class="exact"/>
-  <text x="951" y="666" text-anchor="middle" class="s">PLAN</text>
-  <text x="951" y="691" text-anchor="middle" class="small">immutable</text>
-
-  <rect x="1058" y="638" width="90" height="72" rx="14" class="play"/>
-  <text x="1103" y="666" text-anchor="middle" class="s">PLAY</text>
-  <text x="1103" y="691" text-anchor="middle" class="small">execute</text>
-
-  <path d="M230 674h46" class="line"/>
-  <path d="M424 674h46" class="line"/>
-  <path d="M648 674h46" class="line"/>
-  <path d="M842 674h46" class="line"/>
-  <path d="M1014 674h44" class="line"/>
-
-  <path d="M207 382v202c0 26-18 42-42 42h-24v12" class="dash"/>
-  <path d="M600 564v40c0 18-12 28-30 28H559v6" class="dash"/>
-
-  <text x="52" y="742" class="small">Checked meaning supplies what must remain true. Current truth supplies what can exist here, now. Admission joins them without mutating either.</text>
+  <text x="54" y="601" class="small">The form says what must remain true. The current body says what can make it true now.</text>
 </svg>
