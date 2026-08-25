@@ -157,9 +157,23 @@ pub fn architecture_packages() -> &'static [ArchitecturePackage] {
     macro_rules! package {
         ($id:expr, $targets:expr, $toolchain:expr, $builder:expr, $outputs:expr,
          $deployment:expr, $features:expr, $maxima:expr $(,)?) => {
+            package!(
+                $id,
+                1,
+                $targets,
+                $toolchain,
+                $builder,
+                $outputs,
+                $deployment,
+                $features,
+                $maxima,
+            )
+        };
+        ($id:expr, $revision:expr, $targets:expr, $toolchain:expr, $builder:expr, $outputs:expr,
+         $deployment:expr, $features:expr, $maxima:expr $(,)?) => {
             ArchitecturePackage {
                 id: $id,
-                revision: 1,
+                revision: $revision,
                 target_patterns: $targets,
                 toolchain: $toolchain,
                 builder: $builder,
@@ -214,9 +228,10 @@ pub fn architecture_packages() -> &'static [ArchitecturePackage] {
             ),
             package!(
                 "esp32-firmware@1",
+                2,
                 &["esp32/xtensa-lx6/*"],
                 "esp-rs/rust-build@v1.91.1.0",
-                "conduit-host-fabrication/build-host-image@1",
+                "esp32-firmware/architecture-package-runner@2",
                 &[SporeOutputKind::Esp32Image],
                 None,
                 &[
