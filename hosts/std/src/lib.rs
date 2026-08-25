@@ -380,11 +380,9 @@ impl StdHost {
             .map_err(|error| format!("local-model offer is not initialized: {error:?}"))?;
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement.resources.push(conduit_core::resource_offer(
-            "std/local-model-memory",
-            conduit_ai::LOCAL_MODEL_MEMORY_RESOURCE,
-            offer.limits.admitted_memory_mib,
-        ));
+        advertisement
+            .resources
+            .extend(hosted_local_model::resource_offers(&offer.limits));
         advertisement.capabilities.extend(
             offer
                 .capability_offers()

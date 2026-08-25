@@ -59,6 +59,12 @@ fn offer() -> LocalModelOffer {
             },
             model_bytes: 8_000_000_000,
             admitted_memory_mib: 16_384,
+            compute: conduit_ai::LocalModelComputeNeed {
+                minimum_lanes: 2,
+                preferred_lanes: 4,
+                maximum_lanes: 8,
+                minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
+            },
             maximum_in_flight: 1,
             maximum_queue_items: 2,
             maximum_queue_bytes: 8192,

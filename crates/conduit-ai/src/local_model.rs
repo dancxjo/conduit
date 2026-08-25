@@ -1,8 +1,8 @@
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    resource_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer,
+    compute_resource_requirement, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ComputeServiceGuarantee, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, ImplementationOffer,
 };
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +13,11 @@ use crate::{
 
 pub const LOCAL_MODEL_OPERATION: &str = "conduit.host/local-model-inference@1";
 pub const LOCAL_MODEL_MEMORY_RESOURCE: &str = "conduit.resource/local-model-memory-mib@1";
+pub const LOCAL_MODEL_COMPUTE_RESOURCE: &str = "conduit.resource/compute/shared-lane@1";
+pub const LOCAL_MODEL_INFERENCE_SLOT_RESOURCE: &str =
+    "conduit.resource/local-model-inference-slot@1";
+pub const LOCAL_MODEL_QUEUE_ITEM_RESOURCE: &str = "conduit.resource/local-model-queue-item@1";
+pub const LOCAL_MODEL_QUEUE_KIB_RESOURCE: &str = "conduit.resource/local-model-queue-kib@1";
 pub const LOCAL_MODEL_IMPLEMENTATION: &str = "std/local-open-weight-model@1";
 pub const LOCAL_MODEL_EXECUTION_PROFILE: &str = "conduit.llm/local-model-hosted@1";
 pub const LOCAL_MODEL_ARTIFACT: &str = "conduit-std-host/local-model-adapter@1";
@@ -108,11 +113,20 @@ pub struct LocalModelLimits {
     pub work: LlmWorkBounds,
     pub model_bytes: u64,
     pub admitted_memory_mib: u32,
+    pub compute: LocalModelComputeNeed,
     pub maximum_in_flight: u16,
     pub maximum_queue_items: u16,
     pub maximum_queue_bytes: u32,
     pub cancellation_supported: bool,
     pub cache_policy: LocalModelCachePolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LocalModelComputeNeed {
+    pub minimum_lanes: u32,
+    pub preferred_lanes: u32,
+    pub maximum_lanes: u32,
+    pub minimum_service_guarantee: ComputeServiceGuarantee,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -179,6 +193,9 @@ impl LocalModelOffer {
         if !self.limits.work.valid()
             || self.limits.model_bytes == 0
             || self.limits.admitted_memory_mib == 0
+            || self.limits.compute.minimum_lanes == 0
+            || self.limits.compute.minimum_lanes > self.limits.compute.preferred_lanes
+            || self.limits.compute.preferred_lanes > self.limits.compute.maximum_lanes
         {
             return Err(LocalModelOfferInvalidity::InvalidLimits);
         }
@@ -241,6 +258,30 @@ impl LocalModelOffer {
             maximum_input_bytes: self.limits.work.maximum_input_bytes as u32,
             maximum_output_bytes: self.limits.work.maximum_output_bytes as u32,
         };
+        let mut resource_requirements = vec![
+            resource_requirement(LOCAL_MODEL_MEMORY_RESOURCE, self.limits.admitted_memory_mib),
+            compute_resource_requirement(
+                LOCAL_MODEL_COMPUTE_RESOURCE,
+                self.limits.compute.minimum_lanes,
+                self.limits.compute.preferred_lanes,
+                self.limits.compute.maximum_lanes,
+                self.limits.compute.minimum_service_guarantee,
+                None,
+            ),
+            resource_requirement(
+                LOCAL_MODEL_INFERENCE_SLOT_RESOURCE,
+                u32::from(self.limits.maximum_in_flight),
+            ),
+            resource_requirement(
+                LOCAL_MODEL_QUEUE_ITEM_RESOURCE,
+                u32::from(self.limits.maximum_queue_items),
+            ),
+            resource_requirement(
+                LOCAL_MODEL_QUEUE_KIB_RESOURCE,
+                self.limits.maximum_queue_bytes.div_ceil(1024),
+            ),
+        ];
+        resource_requirements.sort();
         CapabilityOffer {
             startup_parameters: [
                 "maximum-input-bytes",
@@ -274,10 +315,7 @@ impl LocalModelOffer {
                 )),
             },
             host_operations: vec![operation],
-            resource_requirements: vec![resource_requirement(
-                LOCAL_MODEL_MEMORY_RESOURCE,
-                self.limits.admitted_memory_mib,
-            )],
+            resource_requirements,
             authority_requirements: Vec::new(),
             limits: CapabilityLimits {
                 max_active_instances: self.limits.maximum_in_flight,

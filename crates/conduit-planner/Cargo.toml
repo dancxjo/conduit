@@ -12,6 +12,7 @@ sha2 = { version = "0.10", default-features = false }
 conduit-body = { path = "../conduit-body", default-features = false }
 conduit-bluetooth = { path = "../conduit-bluetooth" }
 conduit-ai = { path = "../conduit-ai", features = ["form-catalog"] }
+conduit-host-fabrication = { path = "../conduit-host-fabrication" }
 conduit-kernel = { path = "../conduit-kernel" }
 conduit-runtime = { path = "../conduit-runtime", default-features = false, features = ["compatibility-executor"] }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }

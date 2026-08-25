@@ -27,6 +27,12 @@ fn offer() -> LocalModelOffer {
             },
             model_bytes: 2_000_000_000,
             admitted_memory_mib: 8_192,
+            compute: conduit_ai::LocalModelComputeNeed {
+                minimum_lanes: 2,
+                preferred_lanes: 4,
+                maximum_lanes: 8,
+                minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
+            },
             maximum_in_flight: 1,
             maximum_queue_items: 4,
             maximum_queue_bytes: 16_384,
@@ -61,11 +67,19 @@ fn initialized_offer_exposes_five_exact_finite_l0_capabilities() {
             capability.host_operations[0].contract_id.as_str(),
             LOCAL_MODEL_OPERATION
         );
-        assert_eq!(capability.resource_requirements.len(), 1);
-        assert_eq!(
-            capability.resource_requirements[0].class_id.as_str(),
-            LOCAL_MODEL_MEMORY_RESOURCE
-        );
+        assert_eq!(capability.resource_requirements.len(), 5);
+        assert!(capability
+            .resource_requirements
+            .iter()
+            .any(|requirement| requirement.class_id.as_str() == LOCAL_MODEL_MEMORY_RESOURCE));
+        assert!(capability.resource_requirements.iter().any(|requirement| {
+            requirement.class_id.as_str() == conduit_ai::LOCAL_MODEL_COMPUTE_RESOURCE
+                && requirement.compute.as_ref().is_some_and(|compute| {
+                    compute.minimum_lanes == 2
+                        && compute.preferred_lanes == 4
+                        && compute.maximum_lanes == 8
+                })
+        }));
         assert_eq!(capability.limits.max_active_instances, 1);
         assert_eq!(capability.limits.max_queue_items, 4);
         assert_eq!(capability.limits.max_queue_bytes, 16_384);
