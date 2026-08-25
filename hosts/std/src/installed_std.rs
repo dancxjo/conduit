@@ -1,3 +1,5 @@
+mod alife_host;
+mod alife_operations;
 mod audio_play_operation;
 mod bool_presentation;
 mod calendar_proposal_codec;
@@ -323,6 +325,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
     let mut calendar_host = calendar_provider_host::CalendarProviderHost::prepare(fragment)?;
+    let mut alife_host = alife_host::AlifeHost::prepare(fragment)?;
+    let alife_capacity_before = alife_host.allocation_capacity();
     if let Some(listener) = &external_listener {
         writeln!(
             _output,
@@ -1138,6 +1142,47 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         format!("complete external WebSocket host operation: {error:?}")
                     })?;
                 continue;
+            } else if let Some(completion) = alife_host.execute(
+                contract,
+                lowered_operation.target_kind.as_ref(),
+                request.node,
+                input,
+                fragment,
+                _output,
+            ) {
+                let outcome = match completion {
+                    alife_host::AlifeCompletion::Completed => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output: None,
+                        failure: None,
+                    },
+                    alife_host::AlifeCompletion::Output(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store Lenia field: {error:?}"))?;
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    conduit_core::LENIA_MAXIMUM_FIELD_BYTES,
+                                )
+                                .map_err(|error| format!("bound Lenia field: {error:?}"))?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    alife_host::AlifeCompletion::Failed(failure) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Failed,
+                        output: None,
+                        failure: Some(failure),
+                    },
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete alife host operation: {error:?}"))?;
+                continue;
             } else if contract == &wait_contract_id {
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
                 if let Some(now_ms) = timer.monotonic_now_ms() {
@@ -1620,8 +1665,10 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .map(|driver| driver.operation().allocation_capacity())
         .sum::<usize>();
     let value_allocation_after = scheduler.values().allocation_capacities();
+    let alife_capacity_after = alife_host.allocation_capacity();
     if driver_capacity_after != driver_capacity_before
         || value_allocation_after != value_allocation_before
+        || alife_capacity_after != alife_capacity_before
     {
         return Err("installed storage grew after Play start".to_string());
     }

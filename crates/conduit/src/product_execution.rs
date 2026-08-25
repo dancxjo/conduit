@@ -1,6 +1,9 @@
-use conduit_core::{ConnectionBase, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment};
+use conduit_core::{
+    ConnectionBase, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment,
+    LENIA_MAXIMUM_FIELD_BYTES, SCALAR_FIELD2_INFO_ID,
+};
 use conduit_form::ExpandedCanonicalForm;
-use conduit_planner::{PlacementChoices, PlanningOptions};
+use conduit_planner::{ConnectionQueueLimits, PlacementChoices, PlanningOptions};
 use conduit_std_host::{load_placements, StdHost, ThreadTimer};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -206,7 +209,26 @@ impl ProductExecutionContext {
                 )
             })
             .unwrap_or((4, 64));
-        conduit_planner::plan_expanded_canonical_with_options(
+        let field_limits = form
+            .connections
+            .iter()
+            .filter(|connection| connection.value_kind.as_str() == SCALAR_FIELD2_INFO_ID)
+            .map(|connection| {
+                (
+                    (
+                        connection.source_gear_id.clone(),
+                        connection.source_port_id.clone(),
+                        connection.sink_gear_id.clone(),
+                        connection.sink_port_id.clone(),
+                    ),
+                    ConnectionQueueLimits {
+                        item_capacity,
+                        byte_capacity: LENIA_MAXIMUM_FIELD_BYTES,
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        conduit_planner::plan_expanded_canonical_with_connection_limits(
             form,
             &self.advertisements,
             placements,
@@ -220,6 +242,7 @@ impl ProductExecutionContext {
                 protected_resource_grants: &[],
                 line_offers: &self.line_offers,
             },
+            &field_limits,
         )
         .map_err(|error| error.to_string())
     }

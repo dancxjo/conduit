@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::{
-    default_placements_unvalidated, plan_validated_form, PlacementChoices, PlannerError,
-    PlanningOptions,
+    default_placements_unvalidated, plan_validated_form,
+    plan_validated_form_with_connection_limits, ConnectionEndpoints, ConnectionQueueLimits,
+    PlacementChoices, PlannerError, PlanningOptions,
 };
 use alloc::collections::BTreeMap;
 use conduit_core::{
@@ -71,6 +72,45 @@ pub fn plan_expanded_canonical_with_options(
         nested_forms: Vec::new(),
     };
     let plan = plan_validated_form(&planning_form, hosts, placements, bases, options)?;
+    Ok(conduit_core::seal_plan_with_realization_backs(
+        conduit_core::FormIdentity {
+            source_document_id: form.source_document_id.clone(),
+            checked_form_id: form.checked_form_id.clone(),
+            expanded_form_id: form.expanded_form_id.clone(),
+        },
+        form.realization_backs.clone(),
+        plan.fragments,
+    ))
+}
+
+pub fn plan_expanded_canonical_with_connection_limits(
+    form: &ExpandedCanonicalForm,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[ConnectionBase],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+) -> Result<Plan, PlannerError> {
+    form.validate_expansion()
+        .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
+    let planning_form = CheckedForm {
+        source_document_id: form.source_document_id.clone(),
+        checked_form_id: form.checked_form_id.clone(),
+        expanded_form_id: form.expanded_form_id.clone(),
+        name: form.name.clone(),
+        gears: form.gears.clone(),
+        connections: form.connections.clone(),
+        exports: Vec::new(),
+        nested_forms: Vec::new(),
+    };
+    let plan = plan_validated_form_with_connection_limits(
+        &planning_form,
+        hosts,
+        placements,
+        bases,
+        options,
+        connection_limits,
+    )?;
     Ok(conduit_core::seal_plan_with_realization_backs(
         conduit_core::FormIdentity {
             source_document_id: form.source_document_id.clone(),

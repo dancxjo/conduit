@@ -14,6 +14,15 @@ fn hello_form() -> conduit_form::ExpandedCanonicalForm {
         .expect("canonical hello expands")
 }
 
+fn lenia_form() -> conduit_form::ExpandedCanonicalForm {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/lenia-orbium.conduit");
+    form_source::load(&path)
+        .expect("canonical Lenia source loads")
+        .expand_entry()
+        .expect("canonical Lenia demo expands")
+}
+
 fn host(name: &str) -> StdHost {
     StdHost::new_with_config(StdHostConfig {
         host_id: HostId::from(name),
@@ -129,4 +138,31 @@ fn fixture_only_connection_base_is_not_product_admission() {
         error.contains("FixtureFrame") && error.contains("not supported"),
         "{error}"
     );
+}
+
+#[test]
+fn portable_lenia_demo_executes_four_fields_through_the_product_entrance() {
+    let mut context = ProductExecutionContext::local_std().unwrap();
+    let form = lenia_form();
+    let plan = context.plan(&form, None).unwrap();
+    for connection in plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+    {
+        let expected = if connection.value_kind.as_str() == conduit_core::SCALAR_FIELD2_INFO_ID {
+            conduit_core::LENIA_MAXIMUM_FIELD_BYTES
+        } else {
+            64
+        };
+        assert_eq!(connection.byte_capacity, expected);
+    }
+    let mut output = Vec::new();
+    let execution = context.execute(plan, &mut output).unwrap();
+    assert_eq!(execution.plan.fragments.len(), 1);
+    let output = String::from_utf8(output).unwrap();
+    assert_eq!(output.matches("SCALAR-FIELD title=\"Orbium\"").count(), 4);
+    for generation in 1..=4 {
+        assert!(output.contains(&format!("generation={generation} width=128 height=128")));
+    }
 }

@@ -13,6 +13,7 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Text" => kind_id("value/text@1"),
         "Tick" => kind_id("value/tick@1"),
         "Count" => kind_id("value/count@1"),
+        "ScalarField2" => kind_id(conduit_core::SCALAR_FIELD2_INFO_ID),
         "Presentation" => kind_id("presentation/presentation@1"),
         "Manifestation" => kind_id("presentation/manifestation@1"),
         exact => kind_id(exact),
@@ -100,6 +101,10 @@ mod tests {
         assert_eq!(canonical_value_kind("Text").as_str(), "value/text@1");
         assert_eq!(canonical_value_kind("Tick").as_str(), "value/tick@1");
         assert_eq!(canonical_value_kind("Count").as_str(), "value/count@1");
+        assert_eq!(
+            canonical_value_kind("ScalarField2").as_str(),
+            conduit_core::SCALAR_FIELD2_INFO_ID
+        );
         assert_eq!(
             canonical_value_kind("Presentation").as_str(),
             "presentation/presentation@1"

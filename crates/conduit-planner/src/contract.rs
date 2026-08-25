@@ -1,9 +1,17 @@
 use crate::prelude::*;
 use alloc::collections::BTreeMap;
 use conduit_core::{
-    AuthorityGrant, CapabilityId, ConnectionBase, GearId, HostId, LineId, LineOffer,
+    AuthorityGrant, CapabilityId, ConnectionBase, GearId, HostId, LineId, LineOffer, PortId,
     ProtectedResourceGrant,
 };
+
+pub type ConnectionEndpoints = (GearId, PortId, GearId, PortId);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConnectionQueueLimits {
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlacementChoice {

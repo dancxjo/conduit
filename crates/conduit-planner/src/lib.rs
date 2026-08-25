@@ -81,7 +81,8 @@ pub use advice::{
 };
 pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
-    default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
+    default_expanded_placements, plan_expanded_canonical,
+    plan_expanded_canonical_with_connection_limits, plan_expanded_canonical_with_options,
     plan_expanded_canonical_with_shared_pools, SharedPoolPlanningRequirement,
 };
 pub use characteristics::{
@@ -92,7 +93,8 @@ pub use characteristics::{
     SelectedRealizationPlanning, MAXIMUM_PLANNER_POLICY_CLAUSES,
 };
 pub use contract::{
-    parse_placements, PlacementChoice, PlacementChoices, PlannerError, PlanningOptions,
+    parse_placements, ConnectionEndpoints, ConnectionQueueLimits, PlacementChoice,
+    PlacementChoices, PlannerError, PlanningOptions,
 };
 pub use decision_evidence::{
     RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection,
@@ -344,6 +346,24 @@ pub(crate) fn plan_validated_form(
     bases: &[ConnectionBase],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
+    plan_validated_form_with_connection_limits(
+        form,
+        hosts,
+        placements,
+        bases,
+        options,
+        &BTreeMap::new(),
+    )
+}
+
+pub(crate) fn plan_validated_form_with_connection_limits(
+    form: &CheckedForm,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[ConnectionBase],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+) -> Result<Plan, PlannerError> {
     let PlanningOptions {
         connection_bases,
         line_candidates,
@@ -357,6 +377,22 @@ pub(crate) fn plan_validated_form(
         return Err(PlannerError::InvalidConnectionBudget(
             "item and byte capacity must both be nonzero".to_string(),
         ));
+    }
+    for (endpoints, limits) in connection_limits {
+        if limits.item_capacity == 0 || limits.byte_capacity == 0 {
+            return Err(PlannerError::InvalidConnectionBudget(
+                "per-connection item and byte capacity must both be nonzero".to_string(),
+            ));
+        }
+        if !form
+            .connections
+            .iter()
+            .any(|connection| connection_endpoints(connection) == *endpoints)
+        {
+            return Err(PlannerError::InvalidConnectionBudget(
+                "per-connection capacity names a Cord absent from the checked Form".to_string(),
+            ));
+        }
     }
     let host_index = hosts
         .iter()
@@ -574,6 +610,13 @@ pub(crate) fn plan_validated_form(
 
     let mut planned_connections = Vec::<PlannedConnection>::new();
     for connection in &form.connections {
+        let limits = connection_limits
+            .get(&connection_endpoints(connection))
+            .copied()
+            .unwrap_or(ConnectionQueueLimits {
+                item_capacity: connection_item_capacity,
+                byte_capacity: connection_byte_capacity,
+            });
         let source_placement = placement_lookup
             .get(&connection.source_gear_id)
             .ok_or_else(|| {
@@ -607,30 +650,30 @@ pub(crate) fn plan_validated_form(
                 connection.sink_gear_id.clone(),
             )),
             line_offers,
-            connection_item_capacity,
-            connection_byte_capacity,
+            connection_item_capacity: limits.item_capacity,
+            connection_byte_capacity: limits.byte_capacity,
         })?;
         let source_capability =
             find_capability(hosts, &source_plan.host_id, &source_plan.capability_id)?;
         let sink_capability = find_capability(hosts, &sink_plan.host_id, &sink_plan.capability_id)?;
-        if connection_item_capacity > source_capability.limits.max_queue_items
-            || connection_item_capacity > sink_capability.limits.max_queue_items
+        if limits.item_capacity > source_capability.limits.max_queue_items
+            || limits.item_capacity > sink_capability.limits.max_queue_items
         {
             return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
                 "connection from '{}' to '{}' requires item capacity {}",
                 source_plan.gear_id.as_str(),
                 sink_plan.gear_id.as_str(),
-                connection_item_capacity
+                limits.item_capacity
             )));
         }
-        if connection_byte_capacity > source_capability.limits.max_queue_bytes
-            || connection_byte_capacity > sink_capability.limits.max_queue_bytes
+        if limits.byte_capacity > source_capability.limits.max_queue_bytes
+            || limits.byte_capacity > sink_capability.limits.max_queue_bytes
         {
             return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
                 "connection from '{}' to '{}' requires byte capacity {}",
                 source_plan.gear_id.as_str(),
                 sink_plan.gear_id.as_str(),
-                connection_byte_capacity
+                limits.byte_capacity
             )));
         }
         planned_connections.push(PlannedConnection {
@@ -652,8 +695,8 @@ pub(crate) fn plan_validated_form(
             temporal: connection.temporal,
             selected_line,
             admitted_lines,
-            item_capacity: connection_item_capacity,
-            byte_capacity: connection_byte_capacity,
+            item_capacity: limits.item_capacity,
+            byte_capacity: limits.byte_capacity,
         });
     }
 
@@ -759,6 +802,15 @@ pub(crate) fn plan_validated_form(
         .collect::<Vec<_>>();
 
     Ok(seal_plan(form.identity(), fragments))
+}
+
+fn connection_endpoints(connection: &conduit_form::CheckedConnection) -> ConnectionEndpoints {
+    (
+        connection.source_gear_id.clone(),
+        connection.source_port_id.clone(),
+        connection.sink_gear_id.clone(),
+        connection.sink_port_id.clone(),
+    )
 }
 
 fn validate_operation_capability(
