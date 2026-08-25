@@ -13,7 +13,7 @@
       .h{font:700 26px ui-sans-serif,system-ui,sans-serif;fill:#f4f7fb}
       .t{font:16px ui-sans-serif,system-ui,sans-serif;fill:#d2dbea}
       .small{font:14px ui-sans-serif,system-ui,sans-serif;fill:#aebbd0}
-      .s{font:700 13px ui-sans-serif,system-ui,sans-serif;letter-spacing:1.5px;fill:#8bd5ca}
+      .label{font:700 17px ui-sans-serif,system-ui,sans-serif;fill:#8bd5ca}
       .semantic{fill:#243956;stroke:#7dc4e4;stroke-width:2}
       .build{fill:#332f4b;stroke:#c6a0f6;stroke-width:2}
       .truth{fill:#303748;stroke:#f5bde6;stroke-width:2}
@@ -25,31 +25,31 @@
 
   <rect width="1200" height="620" rx="24" fill="url(#bg)"/>
 
-  <text x="54" y="50" class="s">A USEFUL MENTAL MODEL</text>
+  <text x="54" y="50" class="small">A useful mental model</text>
   <text x="54" y="84" class="h">The Body is the computer</text>
 
   <rect x="54" y="126" width="330" height="126" rx="18" class="semantic"/>
-  <text x="82" y="164" class="s">FORM</text>
+  <text x="82" y="164" class="label">Form</text>
   <text x="82" y="197" class="t">what should happen</text>
   <text x="82" y="224" class="small">portable semantic meaning</text>
 
   <rect x="816" y="126" width="330" height="126" rx="18" class="build"/>
-  <text x="844" y="164" class="s">BODY BUILDING</text>
+  <text x="844" y="164" class="label">body building</text>
   <text x="844" y="197" class="t">prepare the intended Parts</text>
   <text x="844" y="224" class="small">build deployable spores</text>
 
   <rect x="816" y="334" width="330" height="126" rx="18" class="truth"/>
-  <text x="844" y="372" class="s">CURRENT BODY</text>
+  <text x="844" y="372" class="label">current Body</text>
   <text x="844" y="405" class="t">what actually came alive</text>
   <text x="844" y="432" class="small">Parts · Hosts · resources · Lines · Signs</text>
 
   <rect x="438" y="334" width="260" height="126" rx="18" class="exact"/>
-  <text x="466" y="372" class="s">PLAN</text>
+  <text x="466" y="372" class="label">Plan</text>
   <text x="466" y="405" class="t">one exact finite realization</text>
   <text x="466" y="432" class="small">admitted against current truth</text>
 
   <rect x="438" y="500" width="260" height="76" rx="18" class="play"/>
-  <text x="466" y="535" class="s">PLAY</text>
+  <text x="466" y="535" class="label">Play</text>
   <text x="466" y="559" class="t">execute that Plan</text>
 
   <path d="M219 252 V296 H568 V334" class="line"/>
