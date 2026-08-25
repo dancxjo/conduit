@@ -87,7 +87,7 @@ pub(super) struct FlashFacts {
     pub(super) manufacturer_id: String,
     pub(super) device_id: String,
     pub(super) detected_bytes: u64,
-    pub(super) voltage: String,
+    pub(super) voltage: Option<String>,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -358,15 +358,17 @@ pub(super) fn parse_flash_facts(source: &str) -> Result<FlashFacts, Box<dyn std:
     let strapped_voltage = optional_line_value(source, "Flash voltage set by a strapping pin:");
     let efuse_voltage = optional_line_value(source, "Flash voltage set by eFuse:");
     let voltage = match (strapped_voltage, efuse_voltage) {
-        (Some(voltage), None) | (None, Some(voltage)) => voltage,
-        (None, None) => return Err("missing inspection field Flash voltage".into()),
+        (Some(voltage), None) | (None, Some(voltage)) => Some(voltage.to_owned()),
+        // Parts with embedded flash may omit a separate voltage from
+        // `flash-id`; retain the absence instead of inventing a value.
+        (None, None) => None,
         (Some(_), Some(_)) => return Err("ambiguous flash voltage sources".into()),
     };
     Ok(FlashFacts {
         manufacturer_id: normalize_hex(line_value(source, "Manufacturer:")?)?,
         device_id: normalize_hex(line_value(source, "Device:")?)?,
         detected_bytes,
-        voltage: voltage.to_owned(),
+        voltage,
     })
 }
 

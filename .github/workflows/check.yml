@@ -200,6 +200,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install the pinned ESP32-C3 Rust toolchain
+        uses: dtolnay/rust-toolchain@1.91.1
+        with:
+          targets: riscv32imc-unknown-none-elf
+          components: rust-src
       - name: Restore the exact named Xtensa toolchain
         id: esp-toolchain-cache
         uses: actions/cache@v6
@@ -210,7 +215,7 @@ jobs:
         if: steps.esp-toolchain-cache.outputs.cache-hit != 'true'
         uses: esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4
         with:
-          buildtargets: esp32
+          buildtargets: esp32,esp32s3
           default: false
           ldproxy: false
           name: esp-conduit-1.91.1
@@ -220,16 +225,23 @@ jobs:
           cache-on-failure: true
           workspaces: |
             . -> target
+            firmware/conduit-esp32-c3-signal -> target
+            firmware/conduit-esp32-s3-signal -> target
             firmware/conduit-esp32-wroom-signal -> target
             firmware/conduit-esp32-wroom-signal/architecture-package-runner -> target
-          shared-key: esp32-wroom-v2
+          shared-key: esp32-family-v3
       - name: Check the locked standalone architecture package
-        run: cargo xtask esp32-firmware check --locked
+        run: cargo +stable xtask esp32-firmware check --locked
+      - name: Build the exact ESP32-family firmware images
+        run: |
+          cargo +stable xtask esp32-firmware build --target wroom --locked --receipt target/esp32-firmware/wroom-build.json
+          cargo +stable xtask esp32-firmware build --target c3 --locked --receipt target/esp32-firmware/c3-build.json
+          cargo +stable xtask esp32-firmware build --target s3 --locked --receipt target/esp32-firmware/s3-build.json
       - name: Retain the machine-only check receipt
         uses: actions/upload-artifact@v7
         with:
           name: esp32-firmware-check-${{ github.sha }}
-          path: target/esp32-firmware/check-receipt.json
+          path: target/esp32-firmware/*.json
           if-no-files-found: error
           retention-days: 14
 

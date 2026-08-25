@@ -39,6 +39,8 @@ members = [
 	"xtask",
 ]
 exclude = [
+	"firmware/conduit-esp32-c3-signal",
+	"firmware/conduit-esp32-s3-signal",
 	"firmware/conduit-esp32-wroom-signal",
 	"firmware/conduit-pico-w-signal",
 ]
