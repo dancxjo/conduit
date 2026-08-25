@@ -323,7 +323,9 @@ jobs:
     needs: [classify, browser-tools]
     if: always() && needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # One-job cold compilation plus evidence upload and cache post-processing
+    # exceeded the old ceiling after the semantic proof had already passed.
+    timeout-minutes: 15
     container:
       image: mcr.microsoft.com/playwright:v1.62.0-noble
       options: --ipc=host
