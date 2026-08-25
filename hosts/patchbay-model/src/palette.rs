@@ -3,7 +3,7 @@
 use conduit_core::{CapabilityLimits, ConfigurationValue, KindId, PortDescriptor};
 pub use conduit_std_catalog::{PaletteCategory, PaletteIconKey, StandardConfigurationRule};
 
-pub const MAX_PALETTE_ENTRIES: usize = 65;
+pub const MAX_PALETTE_ENTRIES: usize = 68;
 pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
