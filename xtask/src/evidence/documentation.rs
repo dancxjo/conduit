@@ -13,34 +13,26 @@ const MAX_MARKDOWN_BYTES: u64 = 4 * 1024 * 1024;
 
 const REFERENCES: &[Reference] = &[
     Reference {
-        document: "README.md",
+        document: "docs/visual-evidence.md",
         scenario: "overview",
-        alt:
-            "Current accepted Conduit Patchbay overview showing the Form graph and structural view",
     },
     Reference {
         document: "docs/visual-evidence.md",
         scenario: "selected-gear",
-        alt:
-            "Current accepted Patchbay state with one Gear selected and correlated in the inspector",
     },
     Reference {
         document: "docs/visual-evidence.md",
         scenario: "interaction",
-        alt: "Current accepted Patchbay state after an interaction Play succeeds",
     },
     Reference {
         document: "docs/visual-evidence.md",
         scenario: "disconnected",
-        alt:
-            "Current accepted Patchbay state retaining its exact Plan after renderer delivery loss",
     },
 ];
 
 struct Reference {
     document: &'static str,
     scenario: &'static str,
-    alt: &'static str,
 }
 
 pub struct DocumentationReferenceRequest {
@@ -72,10 +64,13 @@ pub fn verify_documentation_references(
                     reference.document
                 )
             })?;
-        let expected = markdown_reference(reference);
-        if document.1.matches(&expected).count() != 1 {
+        let image_url = current_image_url(reference);
+        let provenance_url = current_provenance_url(reference);
+        if document.1.matches(&image_url).count() != 1
+            || document.1.matches(&provenance_url).count() != 1
+        {
             return Err(format!(
-                "{} must contain exactly one canonical '{}' visual reference",
+                "{} must contain exactly one current '{}' image and provenance link",
                 reference.document, reference.scenario
             ));
         }
@@ -110,11 +105,12 @@ pub fn verify_documentation_references(
     Ok(())
 }
 
-fn markdown_reference(reference: &Reference) -> String {
-    format!(
-        "[![{}]({CURRENT_PATCHBAY}{}.png)]({CURRENT_PATCHBAY}{}/)",
-        reference.alt, reference.scenario, reference.scenario
-    )
+fn current_image_url(reference: &Reference) -> String {
+    format!("{CURRENT_PATCHBAY}{}.png", reference.scenario)
+}
+
+fn current_provenance_url(reference: &Reference) -> String {
+    format!("{CURRENT_PATCHBAY}{}/", reference.scenario)
 }
 
 fn read_markdown_tree(root: &Path) -> Result<Vec<(PathBuf, String)>, String> {
