@@ -17,8 +17,12 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rustc-link-arg=-Tlinkall.x");
 
-    let form = conduit_form::parse_with_startup(SIGNAL_FORM, &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-        .expect("portable Signal form must check");
+    let form = conduit_form::parse_with_startup(
+        SIGNAL_FORM,
+        &conduit_signal::signal_startup_catalog(),
+        &signal_profile_catalog(),
+    )
+    .expect("portable Signal form must check");
     let descriptor = hw463_esp_wroom_32_sample();
     validate_esp32_descriptor(&descriptor)
         .expect("inspected WROOM fabrication descriptor must remain valid");

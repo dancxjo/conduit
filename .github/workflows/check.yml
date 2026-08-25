@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
+  CARGO_BUILD_JOBS: "1"
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
 
@@ -191,23 +192,38 @@ jobs:
     needs: classify
     if: always() && needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # A cold one-job cache population installs 1.8 GB of pinned tooling and
+    # compiles three Cargo workspaces. Warm runs remain bounded by their work,
+    # but the first immutable cache fill needs a larger safety ceiling.
+    timeout-minutes: 30
     env:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+      - name: Restore the exact named Xtensa toolchain
+        id: esp-toolchain-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.rustup/toolchains/esp-conduit-1.91.1
+          key: esp-xtensa-toolchain-v1-${{ runner.os }}-${{ runner.arch }}-esp32-1.91.1.0-ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4
       - name: Install the pinned Xtensa Rust toolchain
+        if: steps.esp-toolchain-cache.outputs.cache-hit != 'true'
         uses: esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4
         with:
           buildtargets: esp32
           default: false
           ldproxy: false
+          name: esp-conduit-1.91.1
           version: "1.91.1.0"
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: firmware/conduit-esp32-wroom-signal
-          shared-key: esp32-wroom-v1
+          cache-on-failure: true
+          workspaces: |
+            . -> target
+            firmware/conduit-esp32-wroom-signal -> target
+            firmware/conduit-esp32-wroom-signal/architecture-package-runner -> target
+          shared-key: esp32-wroom-v2
       - name: Check the locked standalone architecture package
         run: cargo xtask esp32-firmware check --locked
       - name: Retain the machine-only check receipt
@@ -307,7 +323,9 @@ jobs:
     needs: [classify, browser-tools]
     if: always() && needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # One-job cold compilation plus evidence upload and cache post-processing
+    # exceeded the old ceiling after the semantic proof had already passed.
+    timeout-minutes: 15
     container:
       image: mcr.microsoft.com/playwright:v1.62.0-noble
       options: --ipc=host
