@@ -225,6 +225,8 @@ mod sound;
 pub use sound::*;
 mod audio_render_demand;
 pub use audio_render_demand::*;
+mod alife;
+pub use alife::*;
 mod music_input;
 pub use music_input::*;
 mod sound_compatibility;
@@ -287,6 +289,9 @@ pub enum TerminalBehavior {
     HostInputEndsOrFailsSource,
     HostObservationEndsOrFailsSource,
     EmitsInitialAndTogglesUntilInputCloses,
+    EmitsOneField,
+    EvolvesAfterTicksAndCompletesWhenTickCloses,
+    PresentsEachFieldAndCompletesWhenInputCloses,
     CompletesAfterDockedRefusedOrDeadline,
 }
 
@@ -294,6 +299,7 @@ pub enum TerminalBehavior {
 /// installed std implementation. This is discovery truth, not a Host offer.
 pub fn palette_contracts() -> Vec<StandardKindContract> {
     let mut contracts = supported_nucleus_contracts();
+    contracts.extend(alife_contracts());
     contracts.extend(robotics_hazard_contracts());
     contracts.push(keyboard_contract());
     contracts.extend(http_contracts());

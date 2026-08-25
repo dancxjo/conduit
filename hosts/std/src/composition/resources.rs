@@ -22,6 +22,7 @@ pub(super) fn offers(
                 || composition.logic
                 || composition.math
                 || composition.files
+                || composition.alife
         }
         _ => false,
     });

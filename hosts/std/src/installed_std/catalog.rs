@@ -1,5 +1,8 @@
 //! Exact installed implementation factory catalog.
 
+use super::alife_operations::{
+    LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_PRESENTATION_FACTORY,
+};
 use super::audio_play_operation::AUDIO_PLAY_FACTORY;
 use super::bool_presentation::BOOL_PRESENTATION_FACTORY;
 use super::calendar_proposal_operation::FACTORY as CALENDAR_PROPOSAL_FACTORY;
@@ -113,6 +116,9 @@ const FACTORIES: &[&InstalledFactory] = &[
     &CALENDAR_INVITE_FACTORY,
     &TICK_PRESENTATION_FACTORY,
     &BOOL_PRESENTATION_FACTORY,
+    &ORBIUM_SEED_FACTORY,
+    &LENIA_STEP_FACTORY,
+    &SCALAR_FIELD_PRESENTATION_FACTORY,
     &TEXT_LITERAL_FACTORY,
     &TEXT_UPPER_FACTORY,
     &TEXT_JOIN_FACTORY,

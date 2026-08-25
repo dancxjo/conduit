@@ -200,10 +200,9 @@ fn parse_configuration_value(
                 )
             })
     } else if matches!(validation, ConfigurationRule::I64Range { .. }) {
-        literal
-            .parse::<i64>()
+        parse_scalar_configuration(&literal)
             .map(ConfigurationValue::I64)
-            .map_err(|_| {
+            .ok_or_else(|| {
                 CanonicalExpansionDiagnostic::new(
                     "CND-FRM-041",
                     format!("primitive startup scalar '{name}' is invalid or overflows"),
@@ -220,6 +219,39 @@ fn parse_configuration_value(
             "CND-FRM-041",
             format!("primitive startup value '{name}' cannot be represented by the current planner contract"),
         ))
+    }
+}
+
+fn parse_scalar_configuration(literal: &str) -> Option<i64> {
+    if !literal.contains('.') {
+        return literal.parse().ok();
+    }
+    let (negative, magnitude) = literal
+        .strip_prefix('-')
+        .map_or((false, literal), |value| (true, value));
+    let (whole, fraction) = magnitude.split_once('.')?;
+    if whole.is_empty()
+        || fraction.is_empty()
+        || fraction.len() > 6
+        || !whole.bytes().all(|byte| byte.is_ascii_digit())
+        || !fraction.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return None;
+    }
+    let whole = whole.parse::<u64>().ok()?;
+    let fraction_digits = fraction.len();
+    let fraction = fraction.parse::<u64>().ok()?;
+    let magnitude = whole
+        .checked_mul(conduit_core::Scalar::SCALE as u64)?
+        .checked_add(fraction.checked_mul(10_u64.pow((6 - fraction_digits) as u32))?)?;
+    if negative {
+        if magnitude == i64::MAX as u64 + 1 {
+            Some(i64::MIN)
+        } else {
+            i64::try_from(magnitude).ok()?.checked_neg()
+        }
+    } else {
+        i64::try_from(magnitude).ok()
     }
 }
 
@@ -423,3 +455,7 @@ pub(super) fn validate_face_bindings(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "graph_tests.rs"]
+mod tests;

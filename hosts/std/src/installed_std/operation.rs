@@ -16,6 +16,9 @@ impl Operation for InstalledOperation {
             Self::CalendarProvider(operation) => operation.start(),
             Self::TickPresentation(operation) => operation.start(),
             Self::BoolPresentation(operation) => operation.start(),
+            Self::OrbiumSeed(operation) => operation.start(),
+            Self::LeniaStep(operation) => operation.start(),
+            Self::ScalarFieldPresentation(operation) => operation.start(),
             Self::TextLiteral(operation) => operation.start(),
             Self::TextUpper(operation) => operation.start(),
             Self::TextJoin(operation) => operation.start(),
@@ -123,6 +126,9 @@ impl Operation for InstalledOperation {
             (Self::TextPresentation(operation), input) => operation.resume(input),
             (Self::TickPresentation(operation), input) => operation.resume(input),
             (Self::BoolPresentation(operation), input) => operation.resume(input),
+            (Self::OrbiumSeed(_), _) => Self::fail(180),
+            (Self::LeniaStep(operation), input) => operation.resume(input),
+            (Self::ScalarFieldPresentation(operation), input) => operation.resume(input),
             (Self::StateCount(operation), input) => operation.resume(input),
             (Self::StateToggle(operation), input) => operation.resume(input),
             (Self::CountPresentation(operation), input) => operation.resume(input),
@@ -215,6 +221,7 @@ impl Operation for InstalledOperation {
 
     fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
         match self {
+            Self::LeniaStep(operation) => operation.resume_value(port, value, canonical),
             Self::LogicCompareScalar(operation) => operation.resume_value(port, value, canonical),
             Self::LogicNot(operation) => operation.resume_value(port, value, canonical),
             Self::LogicSelectScalar(operation) => operation.resume_value(port, value, canonical),
@@ -256,6 +263,9 @@ impl Operation for InstalledOperation {
             Self::Tick(operation) => operation.advance(),
             Self::TickPresentation(_) => OperationAction::Await,
             Self::BoolPresentation(_) => OperationAction::Await,
+            Self::OrbiumSeed(operation) => operation.advance(),
+            Self::LeniaStep(operation) => operation.advance(),
+            Self::ScalarFieldPresentation(_) => OperationAction::Await,
             Self::TimeDebounce(operation) => operation.advance(),
             Self::TimeTimeout(operation) => operation.advance(),
             Self::TimeDelay(operation) => operation.advance(),
@@ -362,6 +372,9 @@ impl Operation for InstalledOperation {
             Self::Tick(operation) => operation.cancel(),
             Self::TickPresentation(operation) => operation.cancel(),
             Self::BoolPresentation(operation) => operation.cancel(),
+            Self::OrbiumSeed(_) => {}
+            Self::LeniaStep(operation) => operation.cancel(),
+            Self::ScalarFieldPresentation(operation) => operation.cancel(),
             Self::TimeDebounce(operation) => operation.cancel(),
             Self::TimeTimeout(operation) => operation.cancel(),
             Self::TimeDelay(operation) => operation.cancel(),

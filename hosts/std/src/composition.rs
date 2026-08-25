@@ -29,6 +29,7 @@ pub struct StdHostComposition {
     pub external_websocket: bool,
     pub http: bool,
     pub json: bool,
+    pub alife: bool,
 }
 
 impl StdHostComposition {
@@ -49,6 +50,7 @@ impl StdHostComposition {
             external_websocket: false,
             http: true,
             json: true,
+            alife: true,
         }
     }
 
@@ -70,6 +72,7 @@ impl StdHostComposition {
             external_websocket: false,
             http: false,
             json: false,
+            alife: false,
         }
     }
 
@@ -140,6 +143,11 @@ impl StdHostComposition {
 
     pub const fn with_json(mut self) -> Self {
         self.json = true;
+        self
+    }
+
+    pub const fn with_alife(mut self) -> Self {
+        self.alife = true;
         self
     }
 }
@@ -271,6 +279,9 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::json_encode_std_offer(),
             conduit_std_catalog::json_decode_std_offer(),
         ]);
+    }
+    if composition.alife {
+        capabilities.extend(conduit_std_catalog::alife_offers());
     }
     if playback.is_some() {
         capabilities.push(conduit_std_catalog::audio_play_alsa_hw_offer());
