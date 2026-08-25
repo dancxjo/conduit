@@ -34,6 +34,10 @@ mod esp32_wroom;
 #[cfg(feature = "host-profile")]
 pub use esp32_wroom::*;
 #[cfg(feature = "host-profile")]
+mod esp32_s3;
+#[cfg(feature = "host-profile")]
+pub use esp32_s3::*;
+#[cfg(feature = "host-profile")]
 mod std_esp32_bluetooth;
 #[cfg(feature = "host-profile")]
 pub use std_esp32_bluetooth::*;

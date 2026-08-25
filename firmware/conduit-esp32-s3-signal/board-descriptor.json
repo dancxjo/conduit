@@ -1,0 +1,42 @@
+{
+  "schema": "conduit.host/esp32-board-descriptor@2",
+  "id": "observed/usb-54e2006398-esp32-s3@1",
+  "fabrication": {
+    "board_marking": "not-visually-inspected",
+    "module_marking": "not-visually-inspected",
+    "soc_marking": "ESP32-S3 (QFN56)",
+    "revision": "soc-v0.2; board-unobserved",
+    "inspection_evidence": "esptool-v5.3.0; usb-1a86:55d3/54E2006398; mac-c0:4e:30:37:1a:b8"
+  },
+  "target": {
+    "architecture": "xtensa-lx7",
+    "machine": "usb-54e2006398-esp32-s3",
+    "chip": "ESP32-S3",
+    "cores": 2,
+    "clock_hz": 240000000
+  },
+  "memory_regions": [
+    {
+      "id": "embedded-psram",
+      "kind": "external-ram",
+      "physical_bytes": 8388608,
+      "usable_bytes": 0
+    }
+  ],
+  "flash": {
+    "bytes": 16777216,
+    "mode": "external-spi; quad; image-mode-unselected",
+    "maximum_frequency_hz": 40000000
+  },
+  "boot": {
+    "image_format": "espressif-esp32s3-image",
+    "flash_transport": "rom-uart0-via-ch343",
+    "diagnostic_transport": "uart0-via-ch343"
+  },
+  "pins": [],
+  "controllers": [],
+  "radios": [
+    { "id": "wifi-2.4-ghz", "kind": "wifi24-ghz" },
+    { "id": "bluetooth-low-energy", "kind": "bluetooth-low-energy" }
+  ]
+}

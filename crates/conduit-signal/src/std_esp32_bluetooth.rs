@@ -15,13 +15,15 @@ use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
 
 use crate::{
-    esp32_wroom_build_fixture_advertisement, signal_profile_catalog,
-    std_pico_usb_source_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
-    STD_PICO_USB_SOURCE_HOST_ID,
+    esp32_s3_build_fixture_advertisement, esp32_wroom_build_fixture_advertisement,
+    signal_profile_catalog, std_pico_usb_source_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    SIGNAL_ENCODED_LEN, STD_PICO_USB_SOURCE_HOST_ID,
 };
 
 pub const ESP32_WROOM_PHYSICAL_HOST_ID: &str = "esp32/24dcc39a0a44";
 pub const ESP32_WROOM_IMAGE_BOOT_ID: &str = "esp32/wroom/image-boot";
+pub const ESP32_S3_PHYSICAL_HOST_ID: &str = "esp32/c04e30371ab8";
+pub const ESP32_S3_IMAGE_BOOT_ID: &str = "esp32/s3/image-boot";
 pub const STD_ESP32_BLUETOOTH_LINE_ID: &str = "bluetooth/line/std-esp32-gatt";
 pub const STD_ESP32_BLUETOOTH_BINDING_ID: &str = "bluetooth/binding/std-esp32-gatt";
 pub const STD_ESP32_BLUETOOTH_BASE_INSTANCE_ID: &str = "esp32/controller/ble-session-0";
@@ -37,10 +39,39 @@ pub struct ExactStdEsp32BluetoothPlan {
 pub fn exact_std_esp32_bluetooth_plan(
     peer_address: [u8; 6],
 ) -> Result<ExactStdEsp32BluetoothPlan, alloc::string::String> {
+    exact_std_esp32_bluetooth_plan_for_host(peer_address, ESP32_WROOM_PHYSICAL_HOST_ID)
+}
+
+pub fn exact_std_esp32_s3_bluetooth_plan(
+    peer_address: [u8; 6],
+) -> Result<ExactStdEsp32BluetoothPlan, alloc::string::String> {
+    exact_std_esp32_bluetooth_plan_for_host(peer_address, ESP32_S3_PHYSICAL_HOST_ID)
+}
+
+pub fn exact_std_esp32_bluetooth_plan_for_host(
+    peer_address: [u8; 6],
+    physical_host_id: &str,
+) -> Result<ExactStdEsp32BluetoothPlan, alloc::string::String> {
     let source = std_pico_usb_source_advertisement();
-    let mut sink = esp32_wroom_build_fixture_advertisement();
-    sink.host_id = HostId::from(ESP32_WROOM_PHYSICAL_HOST_ID);
-    sink.boot_id = BootId::from(ESP32_WROOM_IMAGE_BOOT_ID);
+    let (mut sink, image_boot_id, capability_id) = match physical_host_id {
+        ESP32_WROOM_PHYSICAL_HOST_ID => (
+            esp32_wroom_build_fixture_advertisement(),
+            ESP32_WROOM_IMAGE_BOOT_ID,
+            "esp32-wroom-uart-show-1",
+        ),
+        ESP32_S3_PHYSICAL_HOST_ID => (
+            esp32_s3_build_fixture_advertisement(),
+            ESP32_S3_IMAGE_BOOT_ID,
+            "esp32-s3-uart-show-1",
+        ),
+        _ => {
+            return Err(alloc::format!(
+                "unsupported inspected ESP32 Host identity: {physical_host_id}"
+            ));
+        }
+    };
+    sink.host_id = HostId::from(physical_host_id);
+    sink.boot_id = BootId::from(image_boot_id);
     let observation = BluetoothLineObservation {
         candidate: BluetoothDiscoveryCandidate {
             observation_sign_id: SignId::from("bluetooth/discovery/esp32"),
@@ -96,7 +127,7 @@ pub fn exact_std_esp32_bluetooth_plan(
                 GearId::from("signal-demo/show"),
                 PlacementChoice {
                     host_id: sink.host_id.clone(),
-                    capability_id: "esp32-wroom-uart-show-1".into(),
+                    capability_id: capability_id.into(),
                 },
             ),
         ]),
@@ -117,7 +148,14 @@ pub fn exact_std_esp32_bluetooth_plan(
 pub fn std_esp32_bluetooth_session_binding(
     runtime_boot: BootId,
 ) -> Result<SessionBinding, alloc::string::String> {
-    let exact = exact_std_esp32_bluetooth_plan([0; 6])?;
+    std_esp32_bluetooth_session_binding_for_host(ESP32_WROOM_PHYSICAL_HOST_ID, runtime_boot)
+}
+
+pub fn std_esp32_bluetooth_session_binding_for_host(
+    physical_host_id: &str,
+    runtime_boot: BootId,
+) -> Result<SessionBinding, alloc::string::String> {
+    let exact = exact_std_esp32_bluetooth_plan_for_host([0; 6], physical_host_id)?;
     let source = exact
         .plan
         .fragments
@@ -128,7 +166,7 @@ pub fn std_esp32_bluetooth_session_binding(
         .plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == ESP32_WROOM_PHYSICAL_HOST_ID)
+        .find(|fragment| fragment.host_id.as_str() == physical_host_id)
         .ok_or_else(|| alloc::string::String::from("Bluetooth Plan lacks ESP32 fragment"))?;
     let connection = sink
         .connections

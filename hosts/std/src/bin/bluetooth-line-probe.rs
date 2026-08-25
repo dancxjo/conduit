@@ -2,9 +2,7 @@ use std::str::FromStr;
 
 use conduit_bluetooth::BleGattProfile;
 use conduit_core::{BootId, HostId};
-use conduit_signal::{
-    exact_std_esp32_bluetooth_plan, exact_std_pico_bluetooth_plan, ESP32_WROOM_PHYSICAL_HOST_ID,
-};
+use conduit_signal::{exact_std_esp32_bluetooth_plan_for_host, exact_std_pico_bluetooth_plan};
 use conduit_std_host::bluetooth_gatt::{
     disconnect_ble_gatt_candidate, discover_ble_gatt_candidate, discover_one_ble_gatt_candidate,
     pair_ble_gatt_candidate, BluezBleGattLine, BluezBleGattListener,
@@ -148,8 +146,8 @@ async fn source(
     binding: &SessionBinding,
     line: &mut BluezBleGattLine,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let plan = if binding.sink.host_id.as_str() == ESP32_WROOM_PHYSICAL_HOST_ID {
-        exact_std_esp32_bluetooth_plan(line.address())?.plan
+    let plan = if binding.sink.host_id.as_str().starts_with("esp32/") {
+        exact_std_esp32_bluetooth_plan_for_host(line.address(), binding.sink.host_id.as_str())?.plan
     } else {
         exact_std_pico_bluetooth_plan(line.address())?.plan
     };
@@ -405,9 +403,12 @@ fn binding(
         return conduit_signal::std_pico_bluetooth_session_binding()
             .map_err(|error| format!("canonical Bluetooth Session binding: {error:?}").into());
     };
-    if peer_host_id == ESP32_WROOM_PHYSICAL_HOST_ID {
-        return conduit_signal::std_esp32_bluetooth_session_binding(BootId::from(peer_boot_id))
-            .map_err(|error| format!("ESP32 Bluetooth Session binding: {error:?}").into());
+    if peer_host_id.starts_with("esp32/") {
+        return conduit_signal::std_esp32_bluetooth_session_binding_for_host(
+            peer_host_id,
+            BootId::from(peer_boot_id),
+        )
+        .map_err(|error| format!("ESP32 Bluetooth Session binding: {error:?}").into());
     }
     Err(format!("unsupported Bluetooth sink Host identity: {peer_host_id}").into())
 }

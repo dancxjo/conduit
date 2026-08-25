@@ -1,5 +1,5 @@
-//! Finite generated Signal image and optional bounded BLE Base for the
-//! inspected HW-463 / ESP-WROOM-32.
+//! Finite generated Signal image and optional bounded BLE Base for one exact
+//! ESP32-family architecture package.
 
 #![no_std]
 #![no_main]

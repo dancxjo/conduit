@@ -2,3 +2,4 @@
 # inspected Conduit ESP32 adapter. Keep USB transport identity separate from
 # the firmware Host identity used by Plans and receipts.
 SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{serial}=="0001", ENV{ID_USB_INTERFACE_NUM}=="00", GROUP="plugdev", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d3", ATTRS{serial}=="54E2006398", ENV{ID_USB_INTERFACE_NUM}=="00", GROUP="plugdev", MODE="0660", TAG+="uaccess"
