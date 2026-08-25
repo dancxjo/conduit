@@ -231,12 +231,12 @@ jobs:
             firmware/conduit-esp32-wroom-signal/architecture-package-runner -> target
           shared-key: esp32-family-v3
       - name: Check the locked standalone architecture package
-        run: cargo xtask esp32-firmware check --locked
+        run: cargo +stable xtask esp32-firmware check --locked
       - name: Build the exact ESP32-family firmware images
         run: |
-          cargo xtask esp32-firmware build --target wroom --locked --receipt target/esp32-firmware/wroom-build.json
-          cargo xtask esp32-firmware build --target c3 --locked --receipt target/esp32-firmware/c3-build.json
-          cargo xtask esp32-firmware build --target s3 --locked --receipt target/esp32-firmware/s3-build.json
+          cargo +stable xtask esp32-firmware build --target wroom --locked --receipt target/esp32-firmware/wroom-build.json
+          cargo +stable xtask esp32-firmware build --target c3 --locked --receipt target/esp32-firmware/c3-build.json
+          cargo +stable xtask esp32-firmware build --target s3 --locked --receipt target/esp32-firmware/s3-build.json
       - name: Retain the machine-only check receipt
         uses: actions/upload-artifact@v7
         with:
