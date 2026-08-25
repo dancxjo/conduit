@@ -52,9 +52,8 @@ pub(super) async fn connect(
     let result = async {
         // The exact headless pairing policy is installed before any operation
         // that can establish the physical connection. For an unpaired peer,
-        // Device.Pair owns connect + pairing + service discovery and binds
-        // BlueZ to this application's agent. Calling Device.Connect first can
-        // let a peripheral security request start outside that Pair operation.
+        // Device.Pair owns connect + pairing and binds BlueZ to this
+        // application's agent.
         let paired = device
             .is_paired()
             .await

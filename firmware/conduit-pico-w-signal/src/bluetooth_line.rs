@@ -186,8 +186,8 @@ async fn advertise<'values, 'server, C: Controller>(
         .accept()
         .await?;
     // Establish bondability before the central starts SMP. The selected BlueZ
-    // Device.Pair operation is the sole pairing initiator; a peripheral-side
-    // security request here races that transaction and BlueZ cancels it.
+    // application owns the one bounded Device.Pair operation after this
+    // connection has entered its GATT event loop.
     connection.set_bondable(true)?;
     Ok(connection.with_attribute_server(server)?)
 }
@@ -207,6 +207,17 @@ async fn serve_connection<C: Controller>(
     let mut reassembler = BleReassembler::new(BleGattProfile::FIRST);
     let mut frame_bytes = [0_u8; FRAME_BYTES];
     let mut send_sequence = 0_u8;
+
+    // BlueZ completes its controller feature exchange before its bounded
+    // Device.Pair operation can consume a peripheral Security Request. An
+    // immediate request at accept races that exchange on the CYW43439; a
+    // finite stabilization delay keeps the request inside this connection
+    // realization while allowing the controller handshake to finish.
+    Timer::after(Duration::from_millis(500)).await;
+    connection
+        .raw()
+        .request_security()
+        .map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
 
     loop {
         match connection.next().await {
