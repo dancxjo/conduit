@@ -5,6 +5,7 @@
 
 mod architecture_package;
 mod body_description;
+mod body_source;
 mod build;
 mod canonical;
 mod catalog;
@@ -20,6 +21,7 @@ mod validation;
 
 pub use architecture_package::*;
 pub use body_description::*;
+pub use body_source::*;
 pub use build::*;
 pub use canonical::{canonical_profile_json, ProfileId};
 pub use catalog::{FabricationCatalog, PrerequisiteNode};

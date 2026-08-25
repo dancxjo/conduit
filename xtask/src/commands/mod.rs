@@ -13,6 +13,7 @@ pub mod doctor;
 pub mod esp32_firmware;
 pub mod evidence;
 pub mod host;
+mod host_configuration_prompt;
 pub mod messaging_github;
 pub mod midi;
 pub mod ollama_embodiment;
