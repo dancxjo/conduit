@@ -192,7 +192,10 @@ jobs:
     needs: classify
     if: always() && needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # A cold one-job cache population installs 1.8 GB of pinned tooling and
+    # compiles three Cargo workspaces. Warm runs remain bounded by their work,
+    # but the first immutable cache fill needs a larger safety ceiling.
+    timeout-minutes: 30
     env:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
