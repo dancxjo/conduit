@@ -1,4 +1,41 @@
 #![no_std]
+#![doc = r#"
+# Planner architecture
+
+The ordinary v1 path is intentionally small:
+
+1. `default_placements` derives functionally valid placement choices from a
+   checked Form and current Host advertisements.
+2. `plan` (or `plan_with_options`) validates exact capabilities, resources,
+   authority, Lines, queue bounds, and startup order, then seals one immutable
+   `Plan`.
+
+Reusable mechanisms surround that path without replacing it:
+
+- `requirements`, `characteristics`, and `policy` keep hard admissibility
+  distinct from reviewed preference;
+- `observations`, `locality`, `performance_policy`, and `fusion` select from
+  current truthful offers using bounded evidence;
+- `incremental`, `replanning`, `degradation`, `diversity`,
+  `dormant_readmission`, `survival_policy`, and `recursive_recovery` produce or
+  justify fresh planning decisions without mutating an existing Plan;
+- `realization` and `realization_families` select exact implementation leaves.
+
+Named acceptance compositions live under [`proof`]. They consume the reusable
+planner API but are not planner architecture or production extension points.
+New policy belongs in a focused reusable module; new end-to-end evidence belongs
+under `proof`.
+
+The old flat capstone imports are deliberately absent:
+
+```compile_fail
+use conduit_planner::prove_voyager_capstone;
+```
+
+```compile_fail
+use conduit_planner::evaluate_heterogeneous_capstone;
+```
+"#]
 
 #[macro_use]
 extern crate alloc;
@@ -42,7 +79,6 @@ mod fact_policy;
 mod functional_compatibility;
 mod fusion;
 mod generic_selection;
-mod heterogeneous_capstone;
 mod human_media;
 mod incremental;
 mod locality;
@@ -51,6 +87,7 @@ mod performance_policy;
 mod policy;
 mod policy_composition;
 mod profile;
+pub mod proof;
 mod protected_resources;
 mod realization;
 mod realization_families;
@@ -62,7 +99,6 @@ mod startup;
 use startup::startup_order;
 mod style;
 mod survival_policy;
-mod voyager_capstone;
 
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
@@ -133,13 +169,6 @@ pub use fusion::{
     FusionRealizationOffer, FusionSelection, OptimizedPlan, MAXIMUM_FUSION_CANDIDATES,
     MAXIMUM_FUSION_GROUPS, MAXIMUM_FUSION_MEMBERS, MAXIMUM_FUSION_OFFERS,
 };
-pub use heterogeneous_capstone::{
-    evaluate_heterogeneous_capstone, CapstoneDecision, CapstoneDeviceClass,
-    CapstoneDeviceDisposition, CapstoneGainDimension, CapstoneMeasurement,
-    HeterogeneousCapstoneEvidence, HeterogeneousCapstoneReport, SchedulerProofClass,
-    SchedulerStrategy, MAXIMUM_CAPSTONE_DECISIONS, MAXIMUM_CAPSTONE_DEVICE_CLASSES,
-    MAXIMUM_CAPSTONE_ID_BYTES, MAXIMUM_CAPSTONE_REASON_BYTES,
-};
 pub use human_media::{plan_media_acquisition, select_acquired_media};
 pub use incremental::{
     plan_cold, CandidateEvaluation, CandidateEvaluationDisposition, CandidateStructure, FactDomain,
@@ -195,12 +224,6 @@ pub use survival_policy::{
     SurvivalPlanningMode, SurvivalPlanningPolicy, SurvivalPolicyRefusal, SurvivalTradeoff,
     WorkloadResourceRequest, MAXIMUM_SCARCE_RESOURCE_REQUESTS, MAXIMUM_SURVIVAL_CANDIDATES,
     MAXIMUM_SURVIVAL_POLICY_ID_BYTES, MAXIMUM_SURVIVAL_TRADEOFFS,
-};
-pub use voyager_capstone::{
-    prove_voyager_capstone, VoyagerBodyInventory, VoyagerCapstoneEvidence, VoyagerCapstoneRefusal,
-    VoyagerDamageStage, VoyagerIrrecoverableReason, VoyagerPhenomenon, VoyagerProofClass,
-    VoyagerScarKind, VoyagerStageEvidence, VoyagerStageMetrics, MAXIMUM_VOYAGER_DAMAGE_STAGES,
-    MAXIMUM_VOYAGER_ID_BYTES, MAXIMUM_VOYAGER_STAGE_SIGNS,
 };
 
 pub fn default_placements(
