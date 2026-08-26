@@ -246,6 +246,7 @@ pub(super) fn build_advertisement(
             conduit_std_catalog::graphics_text_offer(),
             conduit_std_catalog::graphics_icon_offer(),
             conduit_std_catalog::graphics_presentation_offer(),
+            conduit_std_catalog::bitmap_presentation_offer(),
         ]);
     }
     if composition.robotics {
@@ -489,7 +490,8 @@ mod tests {
                 offer.kind_id.as_str() != conduit_std_catalog::INSTRUMENT_MAP_KIND
                     && (revision.starts_with("conduit.std/")
                         || revision.starts_with("conduit.input/")
-                        || offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND)
+                        || offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND
+                        || offer.kind_id.as_str() == conduit_std_catalog::BITMAP_PRESENTATION_KIND)
             })
             .cloned()
             .collect::<Vec<_>>();
