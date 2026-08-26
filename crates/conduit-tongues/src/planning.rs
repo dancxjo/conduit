@@ -53,13 +53,10 @@ pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> 
                 .configuration
                 .into_iter()
                 .map(|field| conduit_form::ConfigurationField {
-                    key: field.key,
+                    key: field.key.into(),
                     default_value: field.default_value,
-                    validation: match field.rule {
-                        conduit_std_catalog::StandardConfigurationRule::TextBytes { maximum } => {
-                            conduit_form::ConfigurationRule::TextBytes { maximum }
-                        }
-                        _ => unreachable!("text literal has one text rule"),
+                    validation: conduit_form::ConfigurationRule::TextBytes {
+                        maximum: field.maximum_text_bytes,
                     },
                 })
                 .collect(),
