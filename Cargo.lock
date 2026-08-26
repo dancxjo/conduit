@@ -601,6 +601,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-host-browser-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
+]
+
+[[package]]
+name = "conduit-host-conduitos-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
+]
+
+[[package]]
+name = "conduit-host-esp32-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
+]
+
+[[package]]
 name = "conduit-host-fabrication"
 version = "0.1.0"
 dependencies = [
@@ -615,10 +636,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-host-hosted"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
+]
+
+[[package]]
+name = "conduit-host-raspberry-pi"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
+]
+
+[[package]]
+name = "conduit-host-rp2040"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+]
+
+[[package]]
+name = "conduit-linear-framebuffer-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
 ]
 
 [[package]]
@@ -710,6 +759,7 @@ dependencies = [
  "conduit-signal",
  "conduit-std-catalog",
  "conduit-wire",
+ "conduit-workspace-fabrication",
  "serde_json",
  "sha2 0.10.9",
 ]
@@ -725,6 +775,14 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-rp2040-pio-audio-extension"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
+ "conduit-host-rp2040",
 ]
 
 [[package]]
@@ -795,6 +853,7 @@ dependencies = [
  "conduit-synth",
  "conduit-system-continuity",
  "conduit-wire",
+ "conduit-workspace-fabrication",
  "dbus",
  "ed25519-dalek",
  "futures",
@@ -851,6 +910,21 @@ name = "conduit-wire"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+]
+
+[[package]]
+name = "conduit-workspace-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-browser-fabrication",
+ "conduit-host-conduitos-fabrication",
+ "conduit-host-esp32-fabrication",
+ "conduit-host-fabrication",
+ "conduit-host-hosted",
+ "conduit-host-raspberry-pi",
+ "conduit-host-rp2040",
+ "conduit-linear-framebuffer-fabrication",
+ "conduit-rp2040-pio-audio-extension",
 ]
 
 [[package]]
@@ -4258,6 +4332,7 @@ dependencies = [
  "conduit-synth",
  "conduit-system-continuity",
  "conduit-wire",
+ "conduit-workspace-fabrication",
  "conduitos",
  "console",
  "flate2",

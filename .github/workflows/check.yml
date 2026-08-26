@@ -61,7 +61,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' xtask/src/commands/conduitos/profile.rs)" = 1
+          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' hosts/conduitos/fabrication/xtask/profile.rs)" = 1
           mkdir -p target/conduitos/vendor
           archive=target/conduitos/vendor/limine-binary-12.5.2.tar.gz
           if ! curl --fail --location --remove-on-error \
@@ -78,7 +78,7 @@ jobs:
           fi
       - name: Verify the pinned bootloader archive
         run: |
-          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' xtask/src/commands/conduitos/profile.rs)" = 1
+          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' hosts/conduitos/fabrication/xtask/profile.rs)" = 1
           echo '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055  target/conduitos/vendor/limine-binary-12.5.2.tar.gz' | sha256sum --check --strict
       - name: Distribute the verified pinned archive
         uses: actions/upload-artifact@v7
@@ -233,9 +233,9 @@ jobs:
             firmware/conduit-esp32-c3-signal -> target
             firmware/conduit-esp32-s3-signal -> target
             firmware/conduit-esp32-wroom-signal -> target
-            firmware/conduit-esp32-wroom-signal/architecture-package-runner -> target
+            firmware/conduit-esp32-wroom-signal/fabrication-package-runner -> target
           shared-key: esp32-family-v3
-      - name: Check the locked standalone architecture package
+      - name: Check the locked standalone fabrication package
         run: cargo +stable xtask esp32-firmware check --locked
       - name: Build the exact ESP32-family firmware images
         run: |
@@ -582,7 +582,6 @@ jobs:
           cargo xtask host build profiles/hosts/conduitos-aarch64-headless.profile.json \
             --output target/conduitos/aarch64-product-host \
             --source-identity "$GITHUB_SHA" \
-            --toolchain-identity "$(rustc --version)" \
             --locked
           cargo xtask host verify target/conduitos/aarch64-product-host --boot --locked
           cargo xtask conduitos product-readiness-matrix --locked > target/conduitos/product-readiness-matrix.json

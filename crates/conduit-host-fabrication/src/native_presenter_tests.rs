@@ -1,3 +1,4 @@
+use crate::test_packages::{test_build_host_image, test_catalog};
 use crate::*;
 
 const CONDUITOS_NATIVE: &str =
@@ -7,27 +8,16 @@ const CONDUITOS_HEADLESS: &str =
 
 #[test]
 fn native_presenter_offer_requires_exact_image_and_live_compositor_stack() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let inputs = BuildInputs {
         source_identity: "git:46275f67".into(),
-        toolchain_identity: "rustc:fixture@1".into(),
         toolchain_available: true,
-        maxima: HostBounds {
-            static_memory_bytes: 64 * 1024 * 1024,
-            heap_arena_bytes: 64 * 1024 * 1024,
-            queue_items: 4096,
-            buffered_bytes: 64 * 1024 * 1024,
-            active_instances: 4096,
-            operation_slots: 4096,
-            timer_slots: 4096,
-            line_sessions: 4096,
-            evidence_items: 4096,
-        },
     };
     let native_profile = serde_json::from_str(CONDUITOS_NATIVE).unwrap();
     let headless_profile = serde_json::from_str(CONDUITOS_HEADLESS).unwrap();
-    let (native, native_bytes) = build_host_image(native_profile, &catalog, &inputs).unwrap();
-    let (headless, headless_bytes) = build_host_image(headless_profile, &catalog, &inputs).unwrap();
+    let (native, native_bytes) = test_build_host_image(native_profile, &catalog, &inputs).unwrap();
+    let (headless, headless_bytes) =
+        test_build_host_image(headless_profile, &catalog, &inputs).unwrap();
     let presenter = native_presenter_offer();
 
     let ready = bind_runtime_offer(

@@ -23,6 +23,7 @@ conduit-core = { path = "../crates/conduit-core" }
 conduit-create-oi = { path = "../crates/conduit-create-oi" }
 conduit-form = { path = "../crates/conduit-form" }
 conduit-host-fabrication = { path = "../crates/conduit-host-fabrication" }
+conduit-workspace-fabrication = { path = "../crates/conduit-workspace-fabrication" }
 conduit-kernel = { path = "../crates/conduit-kernel", features = ["alloc"] }
 conduit-midi = { path = "../crates/conduit-midi" }
 conduit-std-catalog = { path = "../crates/conduit-std-catalog", features = ["body-coordination-plan"] }

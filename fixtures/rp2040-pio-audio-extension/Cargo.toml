@@ -1,0 +1,11 @@
+[package]
+name = "conduit-rp2040-pio-audio-extension"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-host-fabrication = { path = "../../crates/conduit-host-fabrication" }
+
+[dev-dependencies]
+conduit-host-rp2040 = { path = "../../firmware/conduit-pico-w-signal/fabrication-package" }

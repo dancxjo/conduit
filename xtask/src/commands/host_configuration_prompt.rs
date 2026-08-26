@@ -2,9 +2,8 @@ use std::fmt::Write as _;
 
 use conduit_host_fabrication::{
     canonical_host_configuration_conduit, check_host_configuration,
-    compatible_base_implementations, target_descriptors, CheckedHostConfiguration,
-    ConfigurationBase, ConfigurationTarget, FabricationCatalog, HostConfiguration,
-    HostTargetDescriptor, HOST_CONFIGURATION_SCHEMA,
+    compatible_base_implementations, CheckedHostConfiguration, ConfigurationBase,
+    ConfigurationTarget, HostConfiguration, TargetDescriptor, HOST_CONFIGURATION_SCHEMA,
 };
 
 pub(crate) struct PromptedHostConfiguration {
@@ -25,7 +24,8 @@ pub(crate) fn prompt(
         .validate(|value: &String| validate_name(value))
         .interact()?;
 
-    let descriptors = target_descriptors();
+    let packages = conduit_workspace_fabrication::package_set();
+    let descriptors = packages.target_descriptors();
     let initial_target = existing
         .and_then(|configuration| descriptor_index(&descriptors, &configuration.target))
         .unwrap_or(0);
@@ -35,7 +35,7 @@ pub(crate) fn prompt(
     for (index, descriptor) in descriptors.iter().enumerate() {
         target_prompt = target_prompt.item(
             index,
-            descriptor.label,
+            descriptor.label.as_str(),
             format!(
                 "{}/{}/{}",
                 descriptor.family, descriptor.architecture, descriptor.machine
@@ -46,7 +46,7 @@ pub(crate) fn prompt(
     let descriptor = &descriptors[target_index];
     let same_target =
         existing.is_some_and(|configuration| descriptor_matches(descriptor, &configuration.target));
-    let choices = compatible_base_implementations(descriptor, &FabricationCatalog::canonical());
+    let choices = compatible_base_implementations(descriptor, &packages);
     let selected_kinds = if choices.is_empty() {
         cliclack::note(
             "Bases",
@@ -118,10 +118,10 @@ pub(crate) fn prompt(
         schema: HOST_CONFIGURATION_SCHEMA,
         name,
         target: ConfigurationTarget {
-            architecture: descriptor.architecture.into(),
-            machine: descriptor.machine.into(),
-            board: descriptor.board.map(str::to_owned),
-            os: descriptor.os.map(str::to_owned),
+            architecture: descriptor.architecture.clone(),
+            machine: descriptor.machine.clone(),
+            board: descriptor.board.clone(),
+            os: descriptor.os.clone(),
         },
         bases,
         resources: existing
@@ -140,8 +140,12 @@ pub(crate) fn prompt(
 pub(crate) fn prepare(
     configuration: HostConfiguration,
 ) -> Result<PromptedHostConfiguration, Box<dyn std::error::Error>> {
-    let checked = check_host_configuration(configuration, &FabricationCatalog::canonical())
-        .map_err(|items| format!("Host configuration refused: {items:?}"))?;
+    let checked = check_host_configuration(
+        configuration,
+        &conduit_workspace_fabrication::catalog(),
+        &conduit_workspace_fabrication::package_set(),
+    )
+    .map_err(|items| format!("Host configuration refused: {items:?}"))?;
     let source = canonical_host_configuration_conduit(checked.configuration())
         .map_err(|item| format!("Host configuration encode refused: {item:?}"))?;
     Ok(PromptedHostConfiguration { checked, source })
@@ -164,7 +168,7 @@ fn summary(checked: &CheckedHostConfiguration) -> String {
 }
 
 fn descriptor_index(
-    descriptors: &[HostTargetDescriptor],
+    descriptors: &[&TargetDescriptor],
     target: &ConfigurationTarget,
 ) -> Option<usize> {
     descriptors
@@ -172,11 +176,11 @@ fn descriptor_index(
         .position(|descriptor| descriptor_matches(descriptor, target))
 }
 
-fn descriptor_matches(descriptor: &HostTargetDescriptor, target: &ConfigurationTarget) -> bool {
+fn descriptor_matches(descriptor: &TargetDescriptor, target: &ConfigurationTarget) -> bool {
     descriptor.architecture == target.architecture
         && descriptor.machine == target.machine
-        && descriptor.board.map(str::to_owned) == target.board
-        && descriptor.os.map(str::to_owned) == target.os
+        && descriptor.board == target.board
+        && descriptor.os == target.os
 }
 
 fn exact_implementation(
@@ -218,18 +222,18 @@ mod tests {
 
     #[test]
     fn prepared_configuration_uses_shared_descriptor_and_catalog_truth() {
-        let descriptor = target_descriptors().remove(0);
-        let choices =
-            compatible_base_implementations(&descriptor, &FabricationCatalog::canonical());
+        let packages = conduit_workspace_fabrication::package_set();
+        let descriptor = packages.target_descriptors().remove(0);
+        let choices = compatible_base_implementations(descriptor, &packages);
         let (kind, implementations) = choices.first().unwrap();
         let prompted = prepare(HostConfiguration {
             schema: HOST_CONFIGURATION_SCHEMA,
             name: "shared-host".into(),
             target: ConfigurationTarget {
-                architecture: descriptor.architecture.into(),
-                machine: descriptor.machine.into(),
-                board: descriptor.board.map(str::to_owned),
-                os: descriptor.os.map(str::to_owned),
+                architecture: descriptor.architecture.clone(),
+                machine: descriptor.machine.clone(),
+                board: descriptor.board.clone(),
+                os: descriptor.os.clone(),
             },
             bases: vec![ConfigurationBase {
                 kind: kind.clone(),
@@ -237,7 +241,7 @@ mod tests {
                 implementations: Vec::new(),
             }],
             resources: Vec::new(),
-            limits: descriptor.maxima,
+            limits: descriptor.maxima.clone(),
         })
         .unwrap();
         assert_eq!(prompted.checked.resolved_bases()[0].1, implementations[0]);

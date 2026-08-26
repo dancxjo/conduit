@@ -336,16 +336,20 @@ mod tests {
                 include_str!("../../../profiles/host-configurations/pico-w.host.toml"),
             ),
         ];
-        let catalog = FabricationCatalog::canonical();
+        let catalog = crate::test_packages::test_catalog();
         for (conduit, toml) in pairs {
             let canonical = check_host_configuration(
                 parse_host_configuration_conduit(conduit).unwrap(),
                 &catalog,
+                &crate::test_packages::test_package_set(),
             )
             .unwrap();
-            let migration =
-                check_host_configuration(parse_host_configuration(toml).unwrap(), &catalog)
-                    .unwrap();
+            let migration = check_host_configuration(
+                parse_host_configuration(toml).unwrap(),
+                &catalog,
+                &crate::test_packages::test_package_set(),
+            )
+            .unwrap();
             assert_eq!(canonical.configuration(), migration.configuration());
             assert_eq!(canonical.configuration_id(), migration.configuration_id());
             assert_eq!(
@@ -373,7 +377,13 @@ mod tests {
         assert_eq!(configuration.resources.len(), 1);
         assert_eq!(configuration.resources[0].id, "need:model-memory");
         assert_eq!(configuration.resources[0].bytes, 4096);
-        check_host_configuration(configuration, &FabricationCatalog::canonical()).unwrap();
+        check_host_configuration(
+            configuration,
+            &FabricationCatalog::canonical()
+                .with_packages(&crate::test_packages::test_package_set()),
+            &crate::test_packages::test_package_set(),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -409,12 +419,16 @@ mod tests {
             );
             let canonical_diagnostics = check_host_configuration(
                 parse_host_configuration_conduit(&conduit).unwrap(),
-                &FabricationCatalog::canonical(),
+                &FabricationCatalog::canonical()
+                    .with_packages(&crate::test_packages::test_package_set()),
+                &crate::test_packages::test_package_set(),
             )
             .unwrap_err();
             let migration_diagnostics = check_host_configuration(
                 parse_host_configuration(&toml).unwrap(),
-                &FabricationCatalog::canonical(),
+                &FabricationCatalog::canonical()
+                    .with_packages(&crate::test_packages::test_package_set()),
+                &crate::test_packages::test_package_set(),
             )
             .unwrap_err();
             assert!(format!("{canonical_diagnostics:?}").contains(expected));
@@ -427,7 +441,9 @@ mod tests {
         );
         let diagnostics = check_host_configuration(
             parse_host_configuration_conduit(&duplicate).unwrap(),
-            &FabricationCatalog::canonical(),
+            &FabricationCatalog::canonical()
+                .with_packages(&crate::test_packages::test_package_set()),
+            &crate::test_packages::test_package_set(),
         )
         .unwrap_err();
         assert!(diagnostics.iter().any(|item| matches!(
@@ -469,7 +485,8 @@ mod tests {
         let checked = check_body_description(
             description,
             &configurations,
-            &FabricationCatalog::canonical(),
+            &crate::test_packages::test_catalog(),
+            &crate::test_packages::test_package_set(),
         )
         .unwrap();
         assert_eq!(checked.hosts().len(), 3);

@@ -7,8 +7,8 @@ use conduit_core::{
 };
 use conduit_form::{parse, ProfileCatalog};
 use conduit_host_fabrication::{
-    bind_runtime_offer, build_host_image, BoundHostAdvertisement, BuildInputs, FabricationCatalog,
-    HostBounds, HostProfile, RuntimeFacts, RuntimeOfferInputs,
+    bind_runtime_offer, build_default_host_image, BoundHostAdvertisement, BuildInputs,
+    FabricationCatalog, HostProfile, RuntimeFacts, RuntimeOfferInputs,
 };
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
@@ -38,16 +38,11 @@ const BROWSER_PROFILE: &str = include_str!("../../../profiles/hosts/browser-page
 const HEADLESS_PROFILE: &str =
     include_str!("../../../profiles/hosts/conduitos-headless.profile.json");
 
-pub fn prove(
-    source_identity: &str,
-    toolchain_identity: &str,
-) -> Result<CapstoneReceipt, Box<dyn std::error::Error>> {
-    let catalog = FabricationCatalog::canonical();
+pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::error::Error>> {
+    let catalog = conduit_workspace_fabrication::catalog();
     let inputs = BuildInputs {
         source_identity: source_identity.into(),
-        toolchain_identity: toolchain_identity.into(),
         toolchain_available: true,
-        maxima: capstone_maxima(),
     };
     let native = build_profile("conduitos-native", NATIVE_PROFILE, &catalog, &inputs)?;
     let browser = build_profile("browser-page", BROWSER_PROFILE, &catalog, &inputs)?;
@@ -274,7 +269,9 @@ fn build_profile(
     inputs: &BuildInputs,
 ) -> Result<BuiltProfile, Box<dyn std::error::Error>> {
     let profile: HostProfile = serde_json::from_str(source)?;
-    let (image, bytes) = build_host_image(profile, catalog, inputs).map_err(debug_error)?;
+    let packages = conduit_workspace_fabrication::package_set();
+    let (image, bytes) =
+        build_default_host_image(profile, catalog, &packages, inputs).map_err(debug_error)?;
     Ok(BuiltProfile { name, image, bytes })
 }
 
@@ -468,20 +465,6 @@ fn headless_placement_refuses(
         ]),
     };
     plan(form, advertisements, &choices, &[]).is_err()
-}
-
-fn capstone_maxima() -> HostBounds {
-    HostBounds {
-        static_memory_bytes: 512 * 1024 * 1024,
-        heap_arena_bytes: 512 * 1024 * 1024,
-        queue_items: 1_048_576,
-        buffered_bytes: 512 * 1024 * 1024,
-        active_instances: 65_536,
-        operation_slots: 65_536,
-        timer_slots: 65_536,
-        line_sessions: 65_536,
-        evidence_items: 1_048_576,
-    }
 }
 
 fn require(condition: bool, detail: &str) -> Result<(), Box<dyn std::error::Error>> {

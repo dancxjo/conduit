@@ -11,8 +11,8 @@ use sha2::{Digest, Sha256};
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
-const ARCHITECTURE_RUNNER_MANIFEST: &str =
-    "firmware/conduit-esp32-wroom-signal/architecture-package-runner/Cargo.toml";
+const FABRICATION_RUNNER_MANIFEST: &str =
+    "firmware/conduit-esp32-wroom-signal/fabrication-package-runner/Cargo.toml";
 const ESPFLASH_VERSION: &str = "4.5.0";
 const ESPFLASH_ARCHIVE: &str = "espflash-x86_64-unknown-linux-gnu.zip";
 const ESPFLASH_URL: &str = "https://github.com/esp-rs/espflash/releases/download/v4.5.0/espflash-x86_64-unknown-linux-gnu.zip";
@@ -29,7 +29,7 @@ pub struct Esp32FirmwareArgs {
 
 #[derive(Subcommand, Debug)]
 enum Esp32FirmwareCommand {
-    /// Delegate the locked machine-only check to the classic ESP32 architecture package.
+    /// Delegate the locked machine-only check to the ESP32 fabrication package.
     Check {
         #[arg(long, default_value = "target/esp32-firmware/check-receipt.json")]
         receipt: PathBuf,
@@ -162,10 +162,10 @@ fn run_check(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    let manifest = root.join(ARCHITECTURE_RUNNER_MANIFEST);
+    let manifest = root.join(FABRICATION_RUNNER_MANIFEST);
     if !manifest.is_file() {
         return Err(format!(
-            "ESP32 architecture-package runner is unavailable at {}",
+            "ESP32 fabrication-package runner is unavailable at {}",
             manifest.display()
         )
         .into());
@@ -183,7 +183,7 @@ fn run_check(
         command.arg("--allow-dirty");
     }
     forward_output_flags(&mut command, opts);
-    require_success(command, "ESP32 architecture-package runner")
+    require_success(command, "ESP32 fabrication-package runner")
 }
 
 fn run_build(

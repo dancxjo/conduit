@@ -1,3 +1,4 @@
+use crate::test_packages::{test_build_host_image, test_catalog};
 use crate::*;
 
 const HEADLESS: &str = include_str!("../../../profiles/hosts/conduitos-headless.profile.json");
@@ -16,19 +17,7 @@ fn sample_profile(binding: String) -> HostProfile {
 fn build_inputs() -> BuildInputs {
     BuildInputs {
         source_identity: "git:observed-sample".into(),
-        toolchain_identity: "esp32-toolchain:unexecuted".into(),
         toolchain_available: true,
-        maxima: HostBounds {
-            static_memory_bytes: u64::MAX,
-            heap_arena_bytes: u64::MAX,
-            queue_items: u32::MAX,
-            buffered_bytes: u64::MAX,
-            active_instances: u32::MAX,
-            operation_slots: u32::MAX,
-            timer_slots: u32::MAX,
-            line_sessions: u32::MAX,
-            evidence_items: u32::MAX,
-        },
     }
 }
 
@@ -52,7 +41,7 @@ fn only_the_observed_sample_can_reach_profile_and_image_lowering() {
     let descriptor = hw463_esp_wroom_32_sample();
     let binding = esp32_descriptor_binding(&descriptor).unwrap();
     let target = "esp32/xtensa-lx6/hw-463-esp-wroom-32";
-    let mut catalog = FabricationCatalog::canonical();
+    let mut catalog = test_catalog();
     catalog.targets.push(target.into());
     catalog
         .esp32_descriptors
@@ -65,8 +54,11 @@ fn only_the_observed_sample_can_reach_profile_and_image_lowering() {
         Some(binding.as_str())
     );
     let (image, _) =
-        build_host_image(checked.profile().clone(), &catalog, &build_inputs()).unwrap();
-    assert_eq!(image.manifest.image_use, ImageUse::Flash);
+        test_build_host_image(checked.profile().clone(), &catalog, &build_inputs()).unwrap();
+    assert_eq!(
+        image.manifest.post_build_actions,
+        [PostBuildAction::Flash, PostBuildAction::Boot]
+    );
     assert_eq!(
         image.manifest.fabrication_descriptor.as_deref(),
         Some(binding.as_str())

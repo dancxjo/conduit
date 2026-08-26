@@ -2,8 +2,8 @@ use std::{fs, path::PathBuf};
 
 use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
-    build_host_image, check_host_configuration, parse_host_configuration,
-    parse_host_configuration_conduit, BuildInputs, FabricationCatalog, HostBounds, HostProfile,
+    build_default_host_image, check_host_configuration, parse_host_configuration,
+    parse_host_configuration_conduit, BuildInputs, HostProfile,
 };
 
 use crate::cli::GlobalOpts;
@@ -54,9 +54,6 @@ enum HostCommand {
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
-        /// Exact toolchain identity; defaults to `rustc --version --verbose`.
-        #[arg(long)]
-        toolchain_identity: Option<String>,
     },
     /// Verify one final target IMAGE and its exact BUILD closure.
     Verify {
@@ -71,8 +68,6 @@ enum HostCommand {
         output: PathBuf,
         #[arg(long, default_value = "workspace-head")]
         source_identity: String,
-        #[arg(long, default_value = "rustc:workspace")]
-        toolchain_identity: String,
     },
     /// Inspect one attached ESP32 without writing its flash.
     InspectEsp32 {
@@ -206,23 +201,23 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             profile: profile_path,
             output,
             source_identity,
-            toolchain_identity,
         } => {
             let source_identity = source_identity
                 .map(Ok)
                 .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
-            let toolchain_identity = toolchain_identity
-                .map(Ok)
-                .unwrap_or_else(|| command_identity("rustc", &["--version", "--verbose"]))?;
             let source = fs::read_to_string(&profile_path)?;
             let profile = if is_conduit_source(&profile_path, "host") {
                 let configuration =
                     parse_host_configuration_conduit(&source).map_err(|diagnostic| {
                         format!("Host configuration decode refused: {diagnostic:?}")
                     })?;
-                check_host_configuration(configuration, &FabricationCatalog::canonical())
-                    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
-                    .into_profile()
+                check_host_configuration(
+                    configuration,
+                    &conduit_workspace_fabrication::catalog(),
+                    &conduit_workspace_fabrication::package_set(),
+                )
+                .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
+                .into_profile()
             } else if profile_path
                 .extension()
                 .is_some_and(|extension| extension == "toml")
@@ -230,22 +225,28 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 let configuration = parse_host_configuration(&source).map_err(|diagnostic| {
                     format!("Host configuration decode refused: {diagnostic:?}")
                 })?;
-                check_host_configuration(configuration, &FabricationCatalog::canonical())
-                    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
-                    .into_profile()
+                check_host_configuration(
+                    configuration,
+                    &conduit_workspace_fabrication::catalog(),
+                    &conduit_workspace_fabrication::package_set(),
+                )
+                .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
+                .into_profile()
             } else {
                 serde_json::from_str::<HostProfile>(&source)?
             };
-            let maxima = repository_target_maxima(&profile)?;
             let inputs = BuildInputs {
                 source_identity,
-                toolchain_identity,
                 toolchain_available: true,
-                maxima,
             };
-            let (image, bytes) =
-                build_host_image(profile, &FabricationCatalog::canonical(), &inputs)
-                    .map_err(|diagnostics| format!("Host BUILD refused: {diagnostics:?}"))?;
+            let packages = conduit_workspace_fabrication::package_set();
+            let (image, bytes) = build_default_host_image(
+                profile,
+                &conduit_workspace_fabrication::catalog(),
+                &packages,
+                &inputs,
+            )
+            .map_err(|diagnostics| format!("Host BUILD refused: {diagnostics:?}"))?;
             if opts.dry_run {
                 println!(
                     "would BUILD {} from resolved binding {}",
@@ -258,7 +259,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 if opts.json {
                     println!("{}", serde_json::to_string(&target)?);
                 } else if !opts.quiet {
-                    println!("BUILT {} ({:?})", target.image_id, image.manifest.image_use);
+                    println!("BUILT {} ({:?})", target.image_id, image.manifest.output);
                     println!("IMAGE: {}", output.join(&target.image.file).display());
                     println!("manifest: {}", output.join("build-manifest.json").display());
                 }
@@ -274,7 +275,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 } else if !opts.quiet {
                     println!(
                         "BUILT {} ({:?})",
-                        image.manifest.image_id, image.manifest.image_use
+                        image.manifest.image_id, image.manifest.output
                     );
                     println!("IMAGE: {}", output.join("image.json").display());
                     println!("manifest: {}", output.join("build-manifest.json").display());
@@ -285,8 +286,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         HostCommand::Capstone {
             output,
             source_identity,
-            toolchain_identity,
-        } => host_capstone::run(&output, &source_identity, &toolchain_identity, opts),
+        } => host_capstone::run(&output, &source_identity, opts),
         HostCommand::InspectEsp32 {
             port,
             expected_soc,
@@ -354,57 +354,16 @@ fn load_configuration(
         parse_host_configuration(&source)
     }
     .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
-    check_host_configuration(configuration, &FabricationCatalog::canonical())
-        .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}").into())
+    check_host_configuration(
+        configuration,
+        &conduit_workspace_fabrication::catalog(),
+        &conduit_workspace_fabrication::package_set(),
+    )
+    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}").into())
 }
 
 fn is_conduit_source(path: &std::path::Path, role: &str) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
         .is_some_and(|name| name.ends_with(&format!(".{role}.conduit")))
-}
-
-fn repository_target_maxima(
-    profile: &HostProfile,
-) -> Result<HostBounds, Box<dyn std::error::Error>> {
-    if let Some(backend) = crate::commands::conduitos::target_backend::find(&profile.target.key()) {
-        return Ok(backend.build_maxima.clone());
-    }
-    let limits = match (
-        profile.target.family.as_str(),
-        profile.target.machine.as_str(),
-    ) {
-        ("conduitos", "pico-w") => HostBounds {
-            static_memory_bytes: 2 * 1024 * 1024,
-            heap_arena_bytes: 256 * 1024,
-            queue_items: 512,
-            buffered_bytes: 512 * 1024,
-            active_instances: 64,
-            operation_slots: 64,
-            timer_slots: 32,
-            line_sessions: 8,
-            evidence_items: 512,
-        },
-        ("std", _) | ("browser", _) => hosted_limits(2 * 1024 * 1024 * 1024),
-        _ => {
-            return Err(
-                format!("no BUILD ceiling table for target {}", profile.target.key()).into(),
-            )
-        }
-    };
-    Ok(limits)
-}
-
-fn hosted_limits(memory: u64) -> HostBounds {
-    HostBounds {
-        static_memory_bytes: memory,
-        heap_arena_bytes: memory,
-        queue_items: 1_048_576,
-        buffered_bytes: memory,
-        active_instances: 65_536,
-        operation_slots: 65_536,
-        timer_slots: 65_536,
-        line_sessions: 65_536,
-        evidence_items: 1_048_576,
-    }
 }

@@ -113,6 +113,33 @@ pixel format, or toolkit object: the selected implementation, admitted host
 operation, finite presentation resource, and exact display Base remain Plan and
 Host truth. Transform Kinds do not acquire hidden manifestation side effects.
 
+### Fabrication and runtime
+
+A Host fabrication package is a Rust project boundary that knows how to manufacture machinery for a finite coherent family of exact targets. An anchor package owns each target's descriptor, toolchain and build adapter, finite maxima, artifact kinds, and target-appropriate post-build mechanics. Extension packages may add exact Base implementation offers without editing the anchor or generic Conduit fabrication.
+
+```text
+fabrication packages present in a project
+    -> exact target and implementation offers
+
+Host construction
+    -> target + selected Base implementations + finite bounds
+
+PROFILE -> BUILD -> IMAGE
+    -> exact machinery plus package, implementation, and tooling provenance
+
+LAUNCH / LOAD / FLASH / BOOT
+    -> target-appropriate later actions
+
+HOST / BOOT
+    -> runtime truth only after machinery actually comes alive
+```
+
+The common contract is not an artifact format, CPU architecture, firmware ontology, or deployment verb. Native bundles, browser bundles, UF2 firmware, ConduitOS disk images, ESP images, and Raspberry Pi SD images remain honestly different. A package may own several exact targets where that is the coherent maintenance boundary; it may not erase their distinct board, architecture, machine, toolchain, artifact, or proof identities.
+
+Package inspection is lightweight. Heavy toolchains and builders run only for BUILD. The package environment is composed explicitly through ordinary Rust dependencies rather than a central closed target list, runtime plugin loader, or package marketplace. Competing implementation offers are explicit; duplicate exact implementation identity refuses rather than resolving by load order.
+
+PROFILE, BUILD, and IMAGE describe and manufacture inert machinery. They do not create HostId, BootId, reachability, membership, authority, live offers, reservations, Plans, or Plays.
+
 ## Execution invariants
 
 ### Exact typed ports

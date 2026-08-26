@@ -7,10 +7,9 @@ use crate::cli::GlobalOpts;
 pub(crate) fn run(
     output: &Path,
     source_identity: &str,
-    toolchain_identity: &str,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let receipt = super::prove(source_identity, toolchain_identity)?;
+    let receipt = super::prove(source_identity)?;
     if opts.dry_run {
         println!("would retain {} at {}", receipt.schema, output.display());
         return Ok(());

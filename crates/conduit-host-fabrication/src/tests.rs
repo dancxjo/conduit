@@ -1,3 +1,4 @@
+use crate::test_packages::{test_build_host_image, test_catalog};
 use crate::*;
 
 const STD_WORKSTATION: &str = include_str!("../../../profiles/hosts/std-workstation.profile.json");
@@ -15,7 +16,7 @@ fn parse(source: &str) -> HostProfile {
 
 #[test]
 fn four_materially_different_checked_in_profiles_validate() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let profiles = [
         parse(STD_WORKSTATION),
         parse(CONDUITOS_NATIVE),
@@ -51,7 +52,7 @@ fn four_materially_different_checked_in_profiles_validate() {
 
 #[test]
 fn aarch64_virt_profile_closes_the_exact_linear_serial_presenter() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let profile = parse(CONDUITOS_AARCH64_HEADLESS);
     let validated = validate_profile(profile.clone(), &catalog).unwrap();
     assert_eq!(validated.profile().target.key(), "conduitos/aarch64/virt");
@@ -88,7 +89,7 @@ fn aarch64_virt_profile_closes_the_exact_linear_serial_presenter() {
 
 #[test]
 fn canonical_identity_ignores_declaration_order_but_not_meaning() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let profile = parse(STD_WORKSTATION);
     let expected = validate_profile(profile.clone(), &catalog).unwrap();
     let mut reordered = profile.clone();
@@ -107,7 +108,7 @@ fn canonical_identity_ignores_declaration_order_but_not_meaning() {
 
 #[test]
 fn canonical_std_offer_metadata_drives_exact_prerequisites() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let profile = parse(STD_WORKSTATION);
     let validated = validate_profile(profile.clone(), &catalog).unwrap();
     assert!(validated.dependency_paths().keys().any(|path| {
@@ -128,7 +129,7 @@ fn canonical_std_offer_metadata_drives_exact_prerequisites() {
 
 #[test]
 fn invalid_unknown_unbounded_and_contradictory_profiles_fail_specifically() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let mut profile = parse(STD_WORKSTATION);
     profile.target.machine = "unknown".into();
     profile.resources[0].slots = 0;
@@ -161,7 +162,7 @@ fn invalid_unknown_unbounded_and_contradictory_profiles_fail_specifically() {
 
 #[test]
 fn presenter_without_compositor_display_or_driver_fails_closed() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let mut profile = parse(CONDUITOS_NATIVE);
     profile.facilities.clear();
     profile.bases.clear();
@@ -181,7 +182,7 @@ fn presenter_without_compositor_display_or_driver_fails_closed() {
 
 #[test]
 fn target_incompatible_base_and_driver_fail_before_target_lowering() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let mut profile = parse(CONDUITOS_NATIVE);
     profile.target.family = "browser".into();
     profile.target.architecture = "wasm32".into();
@@ -199,7 +200,7 @@ fn target_incompatible_base_and_driver_fail_before_target_lowering() {
 
 #[test]
 fn circular_prerequisite_metadata_is_rejected() {
-    let mut catalog = FabricationCatalog::canonical();
+    let mut catalog = test_catalog();
     let facility = PrerequisiteNode::Facility("compositor/native@1".into());
     let base = PrerequisiteNode::Base("display/scanout".into());
     catalog
@@ -216,8 +217,7 @@ fn circular_prerequisite_metadata_is_rejected() {
 
 #[test]
 fn profile_validation_is_inert_machinery_description() {
-    let validated =
-        validate_profile(parse(CONDUITOS_HEADLESS), &FabricationCatalog::canonical()).unwrap();
+    let validated = validate_profile(parse(CONDUITOS_HEADLESS), &test_catalog()).unwrap();
     let debug = format!("{validated:?}");
     for runtime_truth in [
         "HostAdvertisement",
@@ -233,25 +233,13 @@ fn profile_validation_is_inert_machinery_description() {
 fn build_inputs() -> BuildInputs {
     BuildInputs {
         source_identity: "git:a467ae61".into(),
-        toolchain_identity: "rustc:fixture@1".into(),
         toolchain_available: true,
-        maxima: HostBounds {
-            static_memory_bytes: 64 * 1024 * 1024,
-            heap_arena_bytes: 64 * 1024 * 1024,
-            queue_items: 4096,
-            buffered_bytes: 64 * 1024 * 1024,
-            active_instances: 4096,
-            operation_slots: 4096,
-            timer_slots: 4096,
-            line_sessions: 4096,
-            evidence_items: 4096,
-        },
     }
 }
 
 #[test]
 fn three_profiles_build_through_one_deterministic_pipeline() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let profiles = [
         parse(STD_WORKSTATION),
         parse(BROWSER_PAGE),
@@ -260,35 +248,44 @@ fn three_profiles_build_through_one_deterministic_pipeline() {
     let images = profiles
         .into_iter()
         .map(|profile| {
-            let first = build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
-            let second = build_host_image(profile, &catalog, &build_inputs()).unwrap();
+            let first = test_build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
+            let second = test_build_host_image(profile, &catalog, &build_inputs()).unwrap();
             assert_eq!(first, second);
             verify_image_binding(&first.0, &first.1).unwrap();
             first.0
         })
         .collect::<Vec<_>>();
-    assert_eq!(images[0].manifest.image_use, ImageUse::Launch);
-    assert_eq!(images[1].manifest.image_use, ImageUse::Load);
-    assert_eq!(images[2].manifest.image_use, ImageUse::Boot);
+    assert_eq!(
+        images[0].manifest.post_build_actions,
+        [PostBuildAction::Launch]
+    );
+    assert_eq!(
+        images[1].manifest.post_build_actions,
+        [PostBuildAction::Load, PostBuildAction::Launch]
+    );
+    assert_eq!(
+        images[2].manifest.post_build_actions,
+        [PostBuildAction::Boot]
+    );
 }
 
 #[test]
 fn build_identity_uses_canonical_profile_meaning_not_declaration_order() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let profile = parse(STD_WORKSTATION);
-    let expected = build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
+    let expected = test_build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
     let mut reordered = profile;
     reordered.host_operations.reverse();
     reordered.resources.reverse();
     reordered.presenters.reverse();
-    let actual = build_host_image(reordered, &catalog, &build_inputs()).unwrap();
+    let actual = test_build_host_image(reordered, &catalog, &build_inputs()).unwrap();
     assert_eq!(expected, actual);
 }
 
 #[test]
 fn profile_controls_graphical_inclusion_and_headless_omission() {
-    let catalog = FabricationCatalog::canonical();
-    let graphical = build_host_image(parse(CONDUITOS_NATIVE), &catalog, &build_inputs())
+    let catalog = test_catalog();
+    let graphical = test_build_host_image(parse(CONDUITOS_NATIVE), &catalog, &build_inputs())
         .unwrap()
         .0;
     assert!(graphical
@@ -305,7 +302,7 @@ fn profile_controls_graphical_inclusion_and_headless_omission() {
         .keys()
         .any(|path| path.contains("presenter:presenter/main")));
 
-    let headless = build_host_image(parse(CONDUITOS_HEADLESS), &catalog, &build_inputs())
+    let headless = test_build_host_image(parse(CONDUITOS_HEADLESS), &catalog, &build_inputs())
         .unwrap()
         .0;
     assert!(headless.manifest.presenters.is_empty());
@@ -314,12 +311,12 @@ fn profile_controls_graphical_inclusion_and_headless_omission() {
 
 #[test]
 fn build_refuses_budget_toolchain_and_artifact_binding_failures() {
-    let catalog = FabricationCatalog::canonical();
-    let profile = parse(STD_WORKSTATION);
+    let catalog = test_catalog();
+    let mut profile = parse(STD_WORKSTATION);
+    profile.bounds.queue_items = u32::MAX;
     let mut inputs = build_inputs();
     inputs.toolchain_available = false;
-    inputs.maxima.queue_items = 1;
-    let diagnostics = build_host_image(profile.clone(), &catalog, &inputs).unwrap_err();
+    let diagnostics = test_build_host_image(profile.clone(), &catalog, &inputs).unwrap_err();
     assert!(diagnostics
         .iter()
         .any(|item| matches!(item, BuildDiagnostic::ToolchainUnavailable { .. })));
@@ -331,7 +328,8 @@ fn build_refuses_budget_toolchain_and_artifact_binding_failures() {
         }
     )));
 
-    let (image, mut bytes) = build_host_image(profile, &catalog, &build_inputs()).unwrap();
+    let (image, mut bytes) =
+        test_build_host_image(parse(STD_WORKSTATION), &catalog, &build_inputs()).unwrap();
     bytes[0] = b'[';
     assert!(matches!(
         verify_image_binding(&image, &bytes),
@@ -342,12 +340,8 @@ fn build_refuses_budget_toolchain_and_artifact_binding_failures() {
 
 #[test]
 fn build_output_contains_no_runtime_truth() {
-    let (image, _) = build_host_image(
-        parse(STD_WORKSTATION),
-        &FabricationCatalog::canonical(),
-        &build_inputs(),
-    )
-    .unwrap();
+    let (image, _) =
+        test_build_host_image(parse(STD_WORKSTATION), &test_catalog(), &build_inputs()).unwrap();
     let encoded = serde_json::to_string(&image).unwrap();
     for forbidden in ["BodyId", "PlanId", "PlayId", "HostOffer", "BootId"] {
         assert!(!encoded.contains(forbidden));
@@ -384,7 +378,7 @@ fn bind_tick_runtime(
         &image.manifest,
         image,
         bytes,
-        &FabricationCatalog::canonical(),
+        &test_catalog(),
         RuntimeOfferInputs {
             host_id: conduit_core::HostId::from("host/durable"),
             boot_id: conduit_core::BootId::from(boot),
@@ -402,12 +396,8 @@ fn bind_tick_runtime(
 
 #[test]
 fn compiled_capability_is_absent_until_runtime_prerequisites_are_ready() {
-    let (image, bytes) = build_host_image(
-        parse(STD_WORKSTATION),
-        &FabricationCatalog::canonical(),
-        &build_inputs(),
-    )
-    .unwrap();
+    let (image, bytes) =
+        test_build_host_image(parse(STD_WORKSTATION), &test_catalog(), &build_inputs()).unwrap();
     let unavailable = bind_tick_runtime(&image, &bytes, "boot/a", 1, false);
     assert!(unavailable.advertisement().capabilities.is_empty());
     assert!(unavailable.advertisement().resources.is_empty());
@@ -428,12 +418,8 @@ fn compiled_capability_is_absent_until_runtime_prerequisites_are_ready() {
 
 #[test]
 fn runtime_cannot_advertise_unbuilt_implementation_or_stale_boot() {
-    let (image, bytes) = build_host_image(
-        parse(STD_WORKSTATION),
-        &FabricationCatalog::canonical(),
-        &build_inputs(),
-    )
-    .unwrap();
+    let (image, bytes) =
+        test_build_host_image(parse(STD_WORKSTATION), &test_catalog(), &build_inputs()).unwrap();
     let bound = bind_tick_runtime(&image, &bytes, "boot/current", 1, true);
     let (identity, mut advertisement) = bound.into_parts();
     advertisement.capabilities[0]
@@ -454,15 +440,15 @@ fn runtime_cannot_advertise_unbuilt_implementation_or_stale_boot() {
 
 #[test]
 fn rebuild_reseals_image_while_old_boot_truth_remains_old() {
-    let catalog = FabricationCatalog::canonical();
+    let catalog = test_catalog();
     let profile = parse(STD_WORKSTATION);
     let (old_image, old_bytes) =
-        build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
+        test_build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
     let old = bind_tick_runtime(&old_image, &old_bytes, "boot/old", 1, true);
 
     let mut changed = profile;
     changed.bounds.timer_slots += 1;
-    let (new_image, new_bytes) = build_host_image(changed, &catalog, &build_inputs()).unwrap();
+    let (new_image, new_bytes) = test_build_host_image(changed, &catalog, &build_inputs()).unwrap();
     let new = bind_tick_runtime(&new_image, &new_bytes, "boot/new", 1, true);
     assert_ne!(old.identity().profile_id, new.identity().profile_id);
     assert_ne!(old.identity().build_id, new.identity().build_id);

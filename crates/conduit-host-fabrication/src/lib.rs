@@ -3,7 +3,6 @@
 //! Validation describes machinery that BUILD may fabricate. It deliberately
 //! cannot create a runtime Host, Boot, offer, Body, Plan, or Play.
 
-mod architecture_package;
 mod body_description;
 mod body_source;
 mod build;
@@ -15,11 +14,14 @@ mod construction_source;
 mod esp32;
 mod esp32_wroom32;
 mod model;
+mod package_contract;
 mod runtime;
 mod spore;
 mod validation;
 
-pub use architecture_package::*;
+#[cfg(test)]
+mod test_packages;
+
 pub use body_description::*;
 pub use body_source::*;
 pub use build::*;
@@ -31,6 +33,7 @@ pub use construction_source::*;
 pub use esp32::*;
 pub use esp32_wroom32::*;
 pub use model::*;
+pub use package_contract::*;
 pub use runtime::*;
 pub use spore::*;
 pub use validation::{validate_profile, ProfileDiagnostic, ValidatedHostProfile};

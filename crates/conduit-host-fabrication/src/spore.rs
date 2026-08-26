@@ -2,12 +2,12 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    architecture_package_for, build_host_image, ArchitectureBuildSelection, BuildDiagnostic,
-    BuildInputs, CheckedBodyDescription, FabricationCatalog, HostImage, SporeJoinMode,
+    build_host_image, BuildDiagnostic, BuildInputs, CheckedBodyDescription,
+    FabricationBuildSelection, FabricationCatalog, FabricationPackageSet, HostImage, SporeJoinMode,
     SporeOutputKind,
 };
 
-pub const SPORE_MANIFEST_SCHEMA: &str = "conduit.body/spore-manifest@1";
+pub const SPORE_MANIFEST_SCHEMA: &str = "conduit.body/spore-manifest@2";
 pub const DEPLOYMENT_RECEIPT_SCHEMA: &str = "conduit.body/spore-deployment@1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -31,7 +31,7 @@ pub struct SporeManifest {
     pub image_id: String,
     pub target: String,
     pub output: SporeOutputKind,
-    pub architecture: ArchitectureBuildSelection,
+    pub fabrication: FabricationBuildSelection,
     pub source_identity: String,
 }
 
@@ -66,7 +66,7 @@ pub enum BodyBuildDiagnostic {
     UnknownHost {
         name: String,
     },
-    Architecture {
+    Fabrication {
         host: String,
         detail: String,
     },
@@ -90,6 +90,7 @@ pub fn build_body_spores(
     selected_host: Option<&str>,
     source_identity: &str,
     catalog: &FabricationCatalog,
+    packages: &FabricationPackageSet,
 ) -> Result<Vec<BuiltSpore>, Vec<BodyBuildDiagnostic>> {
     if selected_host.is_some_and(|selected| {
         !body
@@ -109,33 +110,28 @@ pub fn build_body_spores(
         .filter(|host| selected_host.is_none_or(|selected| host.description.name == selected))
     {
         let profile = host.configuration.profile().clone();
-        let package = match architecture_package_for(&profile) {
-            Ok(package) => package,
-            Err(error) => {
-                diagnostics.push(BodyBuildDiagnostic::Architecture {
-                    host: host.description.name.clone(),
-                    detail: format!("{error:?}"),
-                });
-                continue;
-            }
-        };
-        let architecture = match package.derive(&profile, &host.description.spore.output) {
-            Ok(selection) => selection,
-            Err(error) => {
-                diagnostics.push(BodyBuildDiagnostic::Architecture {
-                    host: host.description.name.clone(),
-                    detail: format!("{error:?}"),
-                });
-                continue;
-            }
-        };
+        let fabrication =
+            match packages.derive_build_selection(&profile, &host.description.spore.output) {
+                Ok(selection) => selection,
+                Err(error) => {
+                    diagnostics.push(BodyBuildDiagnostic::Fabrication {
+                        host: host.description.name.clone(),
+                        detail: format!("{error:?}"),
+                    });
+                    continue;
+                }
+            };
         let inputs = BuildInputs {
             source_identity: source_identity.into(),
-            toolchain_identity: architecture.toolchain_identity.clone(),
             toolchain_available: true,
-            maxima: package.maxima.clone(),
         };
-        let (image, image_bytes) = match build_host_image(profile, catalog, &inputs) {
+        let (image, image_bytes) = match build_host_image(
+            profile,
+            catalog,
+            packages,
+            &host.description.spore.output,
+            &inputs,
+        ) {
             Ok(value) => value,
             Err(items) => {
                 diagnostics.push(BodyBuildDiagnostic::HostBuild {
@@ -175,7 +171,7 @@ pub fn build_body_spores(
             image_id: image.manifest.image_id.clone(),
             target: image.manifest.target.clone(),
             output: host.description.spore.output.clone(),
-            architecture,
+            fabrication,
             source_identity: source_identity.into(),
         };
         let basis = serde_json::to_vec(&manifest).map_err(|error| {
@@ -218,7 +214,7 @@ pub fn deployment_receipt(
         .clone();
     let adapter = spore
         .manifest
-        .architecture
+        .fabrication
         .deployment_adapter
         .clone()
         .ok_or_else(|| BodyBuildDiagnostic::DeploymentAdapterMissing {

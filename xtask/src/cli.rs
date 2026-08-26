@@ -60,7 +60,7 @@ pub enum Command {
     Evidence(EvidenceArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
-    /// Check the standalone ESP32 architecture package without touching hardware.
+    /// Check the standalone ESP32 fabrication package without touching hardware.
     Esp32Firmware(Esp32FirmwareArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
     Pico(PicoArgs),
@@ -427,8 +427,6 @@ mod tests {
             "target/host-image",
             "--source-identity",
             "git:abc",
-            "--toolchain-identity",
-            "rustc:1",
         ])
         .expect("host BUILD command parses");
         assert!(matches!(host.command, Command::Host(_)));

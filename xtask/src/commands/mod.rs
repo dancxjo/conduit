@@ -7,6 +7,7 @@ pub mod browser;
 pub mod calendar_google;
 pub mod catalog;
 pub mod check;
+#[path = "../../../hosts/conduitos/fabrication/xtask/mod.rs"]
 pub mod conduitos;
 pub mod demo;
 pub mod doctor;
@@ -26,6 +27,7 @@ pub mod pete_std_observe;
 pub mod pete_std_speaker;
 #[cfg(test)]
 mod pete_std_test_support;
+#[path = "../../../firmware/conduit-pico-w-signal/fabrication/xtask/mod.rs"]
 pub mod pico;
 pub mod proofs;
 pub mod prove;

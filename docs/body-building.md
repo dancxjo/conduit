@@ -25,7 +25,7 @@ cargo xtask body build profiles/bodies/pete-r1.body.conduit --host brainstem
 cargo xtask body deploy profiles/bodies/pete-r1.body.conduit --host forebrain
 ```
 
-`check` and `show` parse descriptors and reuse Host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected Host. `--host` selects exactly one architecture package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.
+`check` and `show` parse descriptors and reuse Host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected Host. `--host` selects exactly one fabrication package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.
 
 `body` is a canonical Conduit document role parsed by the same tokenizer,
 declarations, structured values, spans, and diagnostics as `form` and `host`.
@@ -35,10 +35,10 @@ private parser and creates no Host, Boot, OFFER, OBSERVE, ADMIT, Line, Plan, or
 Play truth. The historical `*.body.toml` specimen is retained only as #1740
 evidence and migration input; it is not a public Body authoring format.
 
-The output kind in a Spore is an exact requested target packaging class. Deployment is available only when the selected architecture package declares an adapter. The initial implementation supports bounded hosted-native and browser directory preparation. Pico UF2, ESP32 flash, and ConduitOS image deployment remain explicitly unavailable; Body build does not manufacture a target binary or physical-success claim when those adapters are absent.
+The output kind in a Spore is an exact requested target packaging class. Deployment is available only when the selected fabrication package declares an adapter. Body build does not manufacture runtime Host, Boot, or physical-success truth.
 
 ## Architecture packages
 
 Each package owns a target pattern, toolchain identity, build adapter identity, supported output kinds, optional deployment adapter, finite maxima, and Base-implementation-to-feature mapping. Selected checked Bases deterministically derive the recorded feature closure. For example, Pico `serial/text -> pico/usb-cdc@1` selects only `line-usb-cdc`; ESP32 Bluetooth adds `bluetooth` while the kernel-only specimen omits it.
 
-The generic Body layer calls the existing `build_host_image` path and records which architecture package and adapter were selected. Adding a target is localized to another package descriptor rather than another target switch in Body orchestration. A dependency-graph test keeps the descriptor/Spore model crate free of target SDKs, browser build CLIs, and unrelated speech assets.
+The generic Body layer calls the existing `build_host_image` path and records which fabrication package and adapter were selected. Adding a target is localized to another package contribution rather than another target switch in Body orchestration. A dependency-graph test keeps the descriptor/Spore model crate free of target SDKs, browser build CLIs, and unrelated speech assets.

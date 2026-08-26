@@ -1,5 +1,5 @@
 //! Finite generated Signal image and optional bounded BLE Base for one exact
-//! ESP32-family architecture package.
+//! ESP32-family Host machinery.
 
 #![no_std]
 #![no_main]

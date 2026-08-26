@@ -1,3 +1,4 @@
+use crate::test_packages::{test_build_host_image, test_catalog};
 use crate::*;
 
 const HEADLESS: &str = include_str!("../../../profiles/hosts/conduitos-headless.profile.json");
@@ -65,7 +66,7 @@ fn profile(descriptor: Option<String>) -> HostProfile {
 }
 
 fn catalog() -> (FabricationCatalog, String) {
-    let mut catalog = FabricationCatalog::canonical();
+    let mut catalog = test_catalog();
     let descriptor = fixture();
     let binding = esp32_descriptor_binding(&descriptor).unwrap();
     catalog.targets.push("esp32/xtensa/esp-wroom-32".into());
@@ -78,19 +79,7 @@ fn catalog() -> (FabricationCatalog, String) {
 fn build_inputs() -> BuildInputs {
     BuildInputs {
         source_identity: "git:fixture".into(),
-        toolchain_identity: "esp32-toolchain:fixture".into(),
         toolchain_available: true,
-        maxima: HostBounds {
-            static_memory_bytes: u64::MAX,
-            heap_arena_bytes: u64::MAX,
-            queue_items: u32::MAX,
-            buffered_bytes: u64::MAX,
-            active_instances: u32::MAX,
-            operation_slots: u32::MAX,
-            timer_slots: u32::MAX,
-            line_sessions: u32::MAX,
-            evidence_items: u32::MAX,
-        },
     }
 }
 
@@ -106,7 +95,7 @@ fn esp32_profile_requires_an_exact_descriptor_and_binds_it_to_identity() {
     let mut changed = fixture();
     changed.target.clock_hz -= 1;
     let changed_binding = esp32_descriptor_binding(&changed).unwrap();
-    let mut changed_catalog = FabricationCatalog::canonical();
+    let mut changed_catalog = test_catalog();
     changed_catalog
         .targets
         .push("esp32/xtensa/esp-wroom-32".into());
@@ -144,13 +133,16 @@ fn descriptor_rejects_false_capacity_duplicates_and_target_cross_wiring() {
 fn build_and_image_retain_exact_descriptor_binding_without_runtime_truth() {
     let (catalog, binding) = catalog();
     let (image, bytes) =
-        build_host_image(profile(Some(binding.clone())), &catalog, &build_inputs()).unwrap();
+        test_build_host_image(profile(Some(binding.clone())), &catalog, &build_inputs()).unwrap();
     assert_eq!(
         image.manifest.fabrication_descriptor.as_deref(),
         Some(binding.as_str())
     );
     assert_eq!(image.payload.fabrication_descriptor, Some(binding));
-    assert_eq!(image.manifest.image_use, ImageUse::Flash);
+    assert_eq!(
+        image.manifest.post_build_actions,
+        [PostBuildAction::Flash, PostBuildAction::Boot]
+    );
     verify_image_binding(&image, &bytes).unwrap();
     let evidence = String::from_utf8(bytes).unwrap();
     for runtime_truth in ["HostId", "BootId", "OfferGeneration", "ActivePlayId"] {
