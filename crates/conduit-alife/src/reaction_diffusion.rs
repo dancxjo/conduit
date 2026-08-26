@@ -83,5 +83,16 @@ mod tests {
         );
         assert_eq!(definition.inputs[0].direction, PortDirection::Input);
         assert_eq!(definition.outputs[0].direction, PortDirection::Output);
+
+        let portable_truth = alloc::format!("{definition:?}").to_ascii_lowercase();
+        for forbidden in [
+            "artifact_id",
+            "execution_profile_id",
+            "host_operation",
+            "std/field-gray-scott",
+            "conduit-std-host",
+        ] {
+            assert!(!portable_truth.contains(forbidden), "leaked {forbidden}");
+        }
     }
 }
