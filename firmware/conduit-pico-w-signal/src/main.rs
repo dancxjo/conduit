@@ -120,7 +120,12 @@ mod network_receipts;
 mod wifi_join;
 #[cfg(feature = "wifi-bootstrap")]
 mod wifi_session;
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
 mod startup_arena;
 mod usb;
 #[cfg(feature = "session-control")]
@@ -142,7 +147,12 @@ use embassy_futures::select::{select, Either};
 #[cfg(not(feature = "wifi-bootstrap"))]
 use panic_halt as _;
 
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
 #[global_allocator]
 static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new();
 
@@ -150,8 +160,7 @@ static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client",
-    feature = "bluetooth-line"
+    feature = "appliance-hil-client"
 ))]
 struct NoAllocator;
 
@@ -159,8 +168,7 @@ struct NoAllocator;
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client",
-    feature = "bluetooth-line"
+    feature = "appliance-hil-client"
 ))]
 unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
@@ -174,8 +182,7 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client",
-    feature = "bluetooth-line"
+    feature = "appliance-hil-client"
 ))]
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;

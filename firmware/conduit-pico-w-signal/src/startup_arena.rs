@@ -25,7 +25,7 @@ impl StartupArena {
         }
     }
 
-    #[cfg(feature = "wifi-bootstrap")]
+    #[cfg(any(feature = "wifi-bootstrap", feature = "bluetooth-line"))]
     pub fn seal(&self) {
         self.sealed.store(true, Ordering::Release);
     }
