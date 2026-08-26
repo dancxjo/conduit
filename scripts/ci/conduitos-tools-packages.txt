@@ -1,5 +1,6 @@
 build-essential
 curl
+libslirp0
 ovmf-ia32
 qemu-efi-aarch64
 qemu-system-arm
