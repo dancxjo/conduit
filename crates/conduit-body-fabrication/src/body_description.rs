@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{
+use conduit_host_fabrication::{
     check_host_configuration, CheckedHostConfiguration, FabricationCatalog, FabricationPackageSet,
     HostConfiguration, SporeOutputKind,
 };

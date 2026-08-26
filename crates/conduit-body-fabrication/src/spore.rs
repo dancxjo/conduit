@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{
-    build_host_image, BuildDiagnostic, BuildInputs, CheckedBodyDescription,
-    FabricationBuildSelection, FabricationCatalog, FabricationPackageSet, HostImage, SporeJoinMode,
-    SporeOutputKind,
+use crate::{CheckedBodyDescription, SporeJoinMode};
+use conduit_host_fabrication::{
+    build_host_image, BuildDiagnostic, BuildInputs, FabricationBuildSelection, FabricationCatalog,
+    FabricationPackageSet, HostImage, SporeOutputKind,
 };
 
 pub const SPORE_MANIFEST_SCHEMA: &str = "conduit.body/spore-manifest@2";

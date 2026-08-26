@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::test_packages::{test_catalog, test_package_set};
 use crate::*;
+use conduit_host_fabrication::*;
+use conduit_workspace_fabrication::{catalog as test_catalog, package_set as test_package_set};
 
 #[test]
 fn checked_multihost_body_builds_distinct_body_bound_spores() {
@@ -225,8 +226,36 @@ fn deployment_receipt_is_separate_and_denies_runtime_claims() {
 }
 
 #[test]
-fn descriptor_and_spore_model_dependency_graph_excludes_target_toolchains() {
+fn body_fabrication_depends_one_way_on_host_fabrication_without_target_toolchains() {
     let output = std::process::Command::new("cargo")
+        .args([
+            "tree",
+            "--manifest-path",
+            "../../Cargo.toml",
+            "-p",
+            "conduit-body-fabrication",
+            "--prefix",
+            "none",
+        ])
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let graph = String::from_utf8(output.stdout).unwrap();
+    assert!(graph.contains("conduit-host-fabrication"));
+    for forbidden in [
+        "arpabet_cmudict",
+        "esp-idf",
+        "embassy-rp",
+        "wasm-bindgen-cli",
+    ] {
+        assert!(
+            !graph.contains(forbidden),
+            "unexpected heavyweight dependency: {forbidden}"
+        );
+    }
+
+    let host_graph = std::process::Command::new("cargo")
         .args([
             "tree",
             "--manifest-path",
@@ -239,19 +268,10 @@ fn descriptor_and_spore_model_dependency_graph_excludes_target_toolchains() {
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()
         .unwrap();
-    assert!(output.status.success());
-    let graph = String::from_utf8(output.stdout).unwrap();
-    for forbidden in [
-        "arpabet_cmudict",
-        "esp-idf",
-        "embassy-rp",
-        "wasm-bindgen-cli",
-    ] {
-        assert!(
-            !graph.contains(forbidden),
-            "unexpected heavyweight dependency: {forbidden}"
-        );
-    }
+    assert!(host_graph.status.success());
+    assert!(!String::from_utf8(host_graph.stdout)
+        .unwrap()
+        .contains("conduit-body-fabrication"));
 }
 
 fn checked_example() -> CheckedBodyDescription {

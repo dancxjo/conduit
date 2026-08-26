@@ -1,8 +1,9 @@
 use std::{fs, path::Path};
 
+use conduit_body_fabrication::build_body_spores;
 use conduit_host_fabrication::{
-    build_body_spores, build_default_host_image, check_host_configuration,
-    parse_host_configuration_conduit, BuildInputs, CheckedHostConfiguration, SporeOutputKind,
+    build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+    BuildInputs, CheckedHostConfiguration, SporeOutputKind,
 };
 
 use crate::cli::{BodyCommand, HostCommand};

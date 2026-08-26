@@ -4,7 +4,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use conduit_host_fabrication::{parse_body_description_conduit, SporeJoinMode};
+use conduit_body_fabrication::{parse_body_description_conduit, SporeJoinMode};
 
 use super::*;
 

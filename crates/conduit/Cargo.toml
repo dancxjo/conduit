@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 conduit-core = { path = "../conduit-core" }
+conduit-body-fabrication = { path = "../conduit-body-fabrication" }
 conduit-form = { path = "../conduit-form" }
 conduit-host-fabrication = { path = "../conduit-host-fabrication" }
 conduit-kernel = { path = "../conduit-kernel" }

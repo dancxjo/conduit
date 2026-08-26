@@ -77,8 +77,9 @@ mod tests {
     use super::*;
     use crate::{
         parse_body_description_conduit, BodyBindingTarget, BodyHostDescription, SporeDescription,
-        SporeJoinMode, SporeOutputKind, BODY_DESCRIPTION_SCHEMA,
+        SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
     };
+    use conduit_host_fabrication::SporeOutputKind;
 
     #[test]
     fn canonical_source_is_sorted_and_round_trips_escaped_values() {

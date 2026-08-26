@@ -16,6 +16,7 @@ members = [
 	"crates/conduit-planner",
 	"crates/conduit-presentation",
 	"crates/conduit-body",
+	"crates/conduit-body-fabrication",
 	"crates/conduit-runtime",
 	"crates/conduit-composite",
 	"crates/conduit-observatory",

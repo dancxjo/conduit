@@ -5,10 +5,12 @@ use std::{
 };
 
 use clap::{Args, Subcommand};
-use conduit_host_fabrication::{
+use conduit_body_fabrication::{
     build_body_spores, check_body_description, deployment_receipt, parse_body_description_conduit,
-    parse_host_configuration_conduit, BuiltSpore, CheckedBodyDescription, DeploymentDisposition,
-    HostConfiguration,
+    BuiltSpore, CheckedBodyDescription, DeploymentDisposition, SporeJoinMode,
+};
+use conduit_host_fabrication::{
+    parse_host_configuration_conduit, HostConfiguration, SporeOutputKind,
 };
 use serde::Serialize;
 
@@ -83,8 +85,8 @@ struct HostReport<'a> {
     configuration: &'a str,
     configuration_id: &'a str,
     bases: &'a [(String, String)],
-    join_mode: &'a conduit_host_fabrication::SporeJoinMode,
-    output: &'a conduit_host_fabrication::SporeOutputKind,
+    join_mode: &'a SporeJoinMode,
+    output: &'a SporeOutputKind,
     fabrication_package: String,
     features: Vec<String>,
     deployment_complete: bool,
