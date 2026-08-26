@@ -25,6 +25,7 @@ fn target(label: &str, machine: &str) -> TargetDescriptor {
         outputs: vec![SporeOutputKind::SdImage],
         default_output: SporeOutputKind::SdImage,
         post_build_actions: vec![PostBuildAction::Flash, PostBuildAction::Boot],
+        fabrication_descriptors: Vec::new(),
         maxima: HostBounds {
             static_memory_bytes: 512 * 1024 * 1024,
             heap_arena_bytes: 512 * 1024 * 1024,
@@ -44,6 +45,7 @@ impl HostFabricationPackage for RaspberryPiFabricationPackage {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "conduit-host-raspberry-pi@1".into(),
             package_revision: 1,
+            catalog: Default::default(),
             targets: vec![
                 target(
                     "Raspberry Pi Model B+ v1.2",

@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{TargetSelection, MAX_PROFILE_ID_BYTES, MAX_PROFILE_ITEMS};
+use conduit_host_fabrication::{TargetSelection, MAX_PROFILE_ID_BYTES, MAX_PROFILE_ITEMS};
 
 pub const ESP32_DESCRIPTOR_SCHEMA: &str = "conduit.host/esp32-board-descriptor@2";
 

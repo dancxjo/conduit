@@ -4,6 +4,40 @@ use serde::{Deserialize, Serialize};
 
 use crate::{HostBounds, HostProfile};
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PrerequisiteNode {
+    Implementation(String),
+    HostOperation(String),
+    Resource(String),
+    Base(String),
+    Driver(String),
+    Facility(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImplementationMetadata {
+    pub kind: String,
+    pub contract_revision: String,
+    pub targets: Vec<String>,
+    pub prerequisites: Vec<PrerequisiteNode>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PresenterMetadata {
+    pub targets: Vec<String>,
+    pub prerequisites: Vec<PrerequisiteNode>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PackageCatalogContribution {
+    pub implementations: BTreeMap<String, ImplementationMetadata>,
+    pub presenters: BTreeMap<String, PresenterMetadata>,
+    pub dependencies: BTreeMap<PrerequisiteNode, Vec<PrerequisiteNode>>,
+    pub facilities: Vec<String>,
+    pub profile_fragments: Vec<String>,
+    pub mutually_exclusive_mechanisms: Vec<(String, String)>,
+}
+
 pub const FABRICATION_PACKAGE_CONTRACT: &str = "conduit.host/fabrication-package@1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,6 +110,8 @@ pub struct TargetDescriptor {
     pub outputs: Vec<SporeOutputKind>,
     pub default_output: SporeOutputKind,
     pub post_build_actions: Vec<PostBuildAction>,
+    /// Exact package-owned descriptor bindings accepted for this target.
+    pub fabrication_descriptors: Vec<String>,
     pub maxima: HostBounds,
 }
 
@@ -98,6 +134,7 @@ pub struct FabricationAnchor {
     pub package_revision: u32,
     pub targets: Vec<TargetDescriptor>,
     pub offers: Vec<ImplementationOffer>,
+    pub catalog: PackageCatalogContribution,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,6 +143,7 @@ pub struct FabricationExtension {
     pub package_revision: u32,
     pub compatible_target_patterns: Vec<String>,
     pub offers: Vec<ImplementationOffer>,
+    pub catalog: PackageCatalogContribution,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -135,6 +173,13 @@ impl FabricationContribution {
             Self::Extension(extension) => &extension.offers,
         }
     }
+
+    pub fn catalog(&self) -> &PackageCatalogContribution {
+        match self {
+            Self::Anchor(anchor) => &anchor.catalog,
+            Self::Extension(extension) => &extension.catalog,
+        }
+    }
 }
 
 /// Lightweight descriptor entrypoint implemented by independently authored packages.
@@ -162,6 +207,10 @@ pub enum PackageCompositionDiagnostic {
     DuplicateImplementationIdentity {
         implementation_id: String,
         packages: Vec<String>,
+    },
+    DuplicateFabricationDescriptorBinding {
+        binding: String,
+        targets: Vec<String>,
     },
     ExtensionHasNoCompatibleAnchor {
         package_id: String,
@@ -232,6 +281,32 @@ impl FabricationPackageSet {
                     target: target.clone(),
                     packages: packages.clone(),
                 });
+            }
+        }
+
+        let mut descriptor_targets = BTreeMap::<String, Vec<String>>::new();
+        for contribution in &contributions {
+            if let FabricationContribution::Anchor(anchor) = contribution {
+                for target in &anchor.targets {
+                    for binding in &target.fabrication_descriptors {
+                        descriptor_targets
+                            .entry(binding.clone())
+                            .or_default()
+                            .push(target.key());
+                    }
+                }
+            }
+        }
+        for (binding, mut targets) in descriptor_targets {
+            targets.sort();
+            targets.dedup();
+            if targets.len() > 1 {
+                diagnostics.push(
+                    PackageCompositionDiagnostic::DuplicateFabricationDescriptorBinding {
+                        binding,
+                        targets,
+                    },
+                );
             }
         }
 

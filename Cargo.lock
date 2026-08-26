@@ -619,6 +619,9 @@ name = "conduit-host-esp32-fabrication"
 version = "0.1.0"
 dependencies = [
  "conduit-host-fabrication",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]

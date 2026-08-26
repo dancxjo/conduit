@@ -1,9 +1,66 @@
 use conduit_host_fabrication::{
     FabricationAnchor, FabricationContribution, HostBounds, HostFabricationPackage,
-    ImplementationOffer, PostBuildAction, SporeOutputKind, TargetDescriptor, TargetPresenter,
+    ImplementationMetadata, ImplementationOffer, PackageCatalogContribution, PostBuildAction,
+    PrerequisiteNode, PresenterMetadata, SporeOutputKind, TargetDescriptor, TargetPresenter,
 };
+use std::collections::BTreeMap;
 
 pub struct ConduitOsFabricationPackage;
+
+fn package_catalog() -> PackageCatalogContribution {
+    PackageCatalogContribution {
+        implementations: BTreeMap::from([(
+            "conduitos/kernel-http-client-http1-literal@1".into(),
+            ImplementationMetadata {
+                kind: "http/client".into(),
+                contract_revision: "conduit.http/client@1".into(),
+                targets: vec!["conduitos/x86_64/pc".into()],
+                prerequisites: vec![
+                    PrerequisiteNode::HostOperation("conduit.host/http-client-exchange@1".into()),
+                    PrerequisiteNode::Resource("conduit.resource/network/http-client@1".into()),
+                    PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+                ],
+            },
+        )]),
+        presenters: BTreeMap::from([(
+            "presenter/linear-serial@1".into(),
+            PresenterMetadata {
+                targets: vec!["conduitos/aarch64/virt".into()],
+                prerequisites: vec![
+                    PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                    PrerequisiteNode::Base("serial/text".into()),
+                ],
+            },
+        )]),
+        dependencies: BTreeMap::from([
+            (
+                PrerequisiteNode::Base("serial/text".into()),
+                vec![PrerequisiteNode::Driver("conduitos/pl011@1".into())],
+            ),
+            (
+                PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+                vec![
+                    PrerequisiteNode::Resource("network/packet-buffer@1".into()),
+                    PrerequisiteNode::Resource("network/tcp-socket@1".into()),
+                    PrerequisiteNode::Resource("network/timer@1".into()),
+                    PrerequisiteNode::Base("network/ipv4-tcp".into()),
+                ],
+            ),
+            (
+                PrerequisiteNode::Base("network/ipv4-tcp".into()),
+                vec![PrerequisiteNode::Driver(
+                    "conduitos/deterministic-ipv4-tcp@1".into(),
+                )],
+            ),
+        ]),
+        facilities: vec!["network/http1-literal-client@1".into()],
+        profile_fragments: vec![
+            "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
+            "profile-fragment/conduitos-hotplug-proof@1".into(),
+        ],
+        mutually_exclusive_mechanisms: Vec::new(),
+    }
+}
 
 fn target(label: &str, architecture: &str, machine: &str) -> TargetDescriptor {
     let rust_target = match architecture {
@@ -37,6 +94,7 @@ fn target(label: &str, architecture: &str, machine: &str) -> TargetDescriptor {
         outputs: vec![SporeOutputKind::DiskImage, SporeOutputKind::EfiArtifact],
         default_output: SporeOutputKind::DiskImage,
         post_build_actions: vec![PostBuildAction::Boot],
+        fabrication_descriptors: Vec::new(),
         maxima: HostBounds {
             static_memory_bytes: 512 * 1024 * 1024,
             heap_arena_bytes: 512 * 1024 * 1024,
@@ -56,6 +114,7 @@ impl HostFabricationPackage for ConduitOsFabricationPackage {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "conduitos-image@1".into(),
             package_revision: 1,
+            catalog: package_catalog(),
             targets: vec![
                 target("ConduitOS x86_64 PC", "x86_64", "pc"),
                 target("ConduitOS IA-32 PC", "ia32", "pc"),

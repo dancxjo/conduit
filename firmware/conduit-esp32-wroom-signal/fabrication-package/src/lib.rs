@@ -3,6 +3,20 @@ use conduit_host_fabrication::{
     ImplementationOffer, PostBuildAction, SporeOutputKind, TargetDescriptor,
 };
 
+pub mod descriptor;
+pub mod wroom32;
+
+pub use descriptor::{
+    esp32_descriptor_binding, validate_esp32_binding, validate_esp32_descriptor,
+    validate_esp32_target, Esp32BoardDescriptor, Esp32DescriptorDiagnostic,
+};
+pub use wroom32::hw463_esp_wroom_32_sample;
+
+#[cfg(test)]
+mod descriptor_tests;
+#[cfg(test)]
+mod wroom32_tests;
+
 pub struct Esp32FabricationPackage;
 
 pub fn features_for_bases(bases: &[BaseSelection]) -> Result<Vec<String>, String> {
@@ -45,9 +59,15 @@ fn offer(kind: &str, implementation: &str, feature: &str) -> ImplementationOffer
 
 impl HostFabricationPackage for Esp32FabricationPackage {
     fn contribution(&self) -> FabricationContribution {
+        let descriptor = hw463_esp_wroom_32_sample();
+        validate_esp32_descriptor(&descriptor)
+            .expect("package-owned WROOM descriptor must remain valid");
+        let descriptor_binding = esp32_descriptor_binding(&descriptor)
+            .expect("package-owned WROOM descriptor must have an exact binding");
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "conduit-host-esp32@1".into(),
             package_revision: 1,
+            catalog: Default::default(),
             targets: vec![TargetDescriptor {
                 label: "ESP32-WROOM-32".into(),
                 family: "esp32".into(),
@@ -64,6 +84,7 @@ impl HostFabricationPackage for Esp32FabricationPackage {
                 outputs: vec![SporeOutputKind::Esp32Image],
                 default_output: SporeOutputKind::Esp32Image,
                 post_build_actions: vec![PostBuildAction::Flash, PostBuildAction::Boot],
+                fabrication_descriptors: vec![descriptor_binding],
                 maxima: HostBounds {
                     static_memory_bytes: 64 * 1024 * 1024,
                     heap_arena_bytes: 64 * 1024 * 1024,

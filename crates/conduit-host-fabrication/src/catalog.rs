@@ -2,31 +2,10 @@ use std::collections::BTreeMap;
 
 use conduit_std_catalog::supported_nucleus_offers;
 
-use crate::{Esp32BoardDescriptor, FabricationContribution, FabricationPackageSet};
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PrerequisiteNode {
-    Implementation(String),
-    HostOperation(String),
-    Resource(String),
-    Base(String),
-    Driver(String),
-    Facility(String),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImplementationMetadata {
-    pub kind: String,
-    pub contract_revision: String,
-    pub targets: Vec<String>,
-    pub prerequisites: Vec<PrerequisiteNode>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PresenterMetadata {
-    pub targets: Vec<String>,
-    pub prerequisites: Vec<PrerequisiteNode>,
-}
+use crate::{
+    FabricationContribution, FabricationPackageSet, ImplementationMetadata,
+    PackageCatalogContribution, PrerequisiteNode, PresenterMetadata,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FabricationCatalog {
@@ -43,7 +22,8 @@ pub struct FabricationCatalog {
     pub facilities: Vec<String>,
     pub policy_profiles: Vec<String>,
     pub profile_fragments: Vec<String>,
-    pub esp32_descriptors: BTreeMap<String, Esp32BoardDescriptor>,
+    pub mutually_exclusive_mechanisms: Vec<(String, String)>,
+    pub fabrication_descriptors: BTreeMap<String, String>,
 }
 
 impl FabricationCatalog {
@@ -72,98 +52,10 @@ impl FabricationCatalog {
                     prerequisites,
                 });
         }
-        implementations.insert(
-            conduitos_http_implementation().into(),
-            ImplementationMetadata {
-                kind: conduit_std_catalog::HTTP_CLIENT_KIND.into(),
-                contract_revision: conduit_std_catalog::HTTP_CLIENT_REVISION.into(),
-                targets: vec!["conduitos/x86_64/pc".into()],
-                prerequisites: vec![
-                    PrerequisiteNode::HostOperation("conduit.host/http-client-exchange@1".into()),
-                    PrerequisiteNode::Resource("conduit.resource/network/http-client@1".into()),
-                    PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
-                ],
-            },
-        );
         Self {
             implementations,
-            presenters: BTreeMap::from([
-                (
-                    "presenter/native-graphical@1".into(),
-                    PresenterMetadata {
-                        targets: vec![
-                            "std/x86_64/workstation".into(),
-                            "conduitos/x86_64/pc".into(),
-                        ],
-                        prerequisites: vec![
-                            PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
-                            PrerequisiteNode::Facility("compositor/native@1".into()),
-                            PrerequisiteNode::Resource("presentation/surface".into()),
-                            PrerequisiteNode::Base("display/scanout".into()),
-                        ],
-                    },
-                ),
-                (
-                    "presenter/browser-dom-svg@1".into(),
-                    PresenterMetadata {
-                        targets: vec!["browser/wasm32/page".into()],
-                        prerequisites: vec![
-                            PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
-                            PrerequisiteNode::Resource("presentation/surface".into()),
-                            PrerequisiteNode::Base("browser/dom".into()),
-                        ],
-                    },
-                ),
-                (
-                    "presenter/linear-serial@1".into(),
-                    PresenterMetadata {
-                        targets: vec!["conduitos/aarch64/virt".into()],
-                        prerequisites: vec![
-                            PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
-                            PrerequisiteNode::Base("serial/text".into()),
-                        ],
-                    },
-                ),
-            ]),
-            dependencies: BTreeMap::from([
-                (
-                    PrerequisiteNode::Facility("compositor/native@1".into()),
-                    vec![PrerequisiteNode::Resource("presentation/surface".into())],
-                ),
-                (
-                    PrerequisiteNode::Base("display/scanout".into()),
-                    vec![PrerequisiteNode::Driver(
-                        "display/linear-framebuffer@1".into(),
-                    )],
-                ),
-                (
-                    PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),
-                    vec![PrerequisiteNode::Base("timer/monotonic".into())],
-                ),
-                (
-                    PrerequisiteNode::Base("timer/monotonic".into()),
-                    vec![PrerequisiteNode::Driver("hosted/monotonic-clock@1".into())],
-                ),
-                (
-                    PrerequisiteNode::Base("serial/text".into()),
-                    vec![PrerequisiteNode::Driver("conduitos/pl011@1".into())],
-                ),
-                (
-                    PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
-                    vec![
-                        PrerequisiteNode::Resource("network/packet-buffer@1".into()),
-                        PrerequisiteNode::Resource("network/tcp-socket@1".into()),
-                        PrerequisiteNode::Resource("network/timer@1".into()),
-                        PrerequisiteNode::Base("network/ipv4-tcp".into()),
-                    ],
-                ),
-                (
-                    PrerequisiteNode::Base("network/ipv4-tcp".into()),
-                    vec![PrerequisiteNode::Driver(
-                        "conduitos/deterministic-ipv4-tcp@1".into(),
-                    )],
-                ),
-            ]),
+            presenters: BTreeMap::new(),
+            dependencies: BTreeMap::new(),
             targets: Vec::new(),
             host_cores: Vec::new(),
             base_kinds: Vec::new(),
@@ -171,34 +63,33 @@ impl FabricationCatalog {
             driver_kinds: Vec::new(),
             driver_targets: BTreeMap::new(),
             line_facilities: vec!["line/usb-cdc@1".into(), "line/websocket@1".into()],
-            facilities: vec![
-                "compositor/native@1".into(),
-                "network/http1-literal-client@1".into(),
-            ],
+            facilities: Vec::new(),
             policy_profiles: vec![
                 "authority/explicit@1".into(),
                 "trust/local-explicit@1".into(),
                 "update/rebuild@1".into(),
             ],
-            profile_fragments: vec![
-                "profile-fragment/explicit-local-trust@1".into(),
-                "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
-                "profile-fragment/conduitos-hotplug-proof@1".into(),
-            ],
-            esp32_descriptors: BTreeMap::new(),
+            profile_fragments: vec!["profile-fragment/explicit-local-trust@1".into()],
+            mutually_exclusive_mechanisms: Vec::new(),
+            fabrication_descriptors: BTreeMap::new(),
         }
     }
 
     pub fn with_packages(mut self, packages: &FabricationPackageSet) -> Self {
         for contribution in packages.contributions() {
+            self.merge_catalog_contribution(contribution.catalog());
             if let FabricationContribution::Anchor(anchor) = contribution {
                 for target in &anchor.targets {
                     let key = target.key();
                     if !self.targets.contains(&key) {
-                        self.targets.push(key);
+                        self.targets.push(key.clone());
                     }
                     if !self.host_cores.iter().any(|item| item == &target.host_core) {
                         self.host_cores.push(target.host_core.clone());
+                    }
+                    for binding in &target.fabrication_descriptors {
+                        self.fabrication_descriptors
+                            .insert(binding.clone(), key.clone());
                     }
                 }
             }
@@ -241,6 +132,12 @@ impl FabricationCatalog {
         self.base_kinds.dedup();
         self.driver_kinds.sort();
         self.driver_kinds.dedup();
+        self.facilities.sort();
+        self.facilities.dedup();
+        self.profile_fragments.sort();
+        self.profile_fragments.dedup();
+        self.mutually_exclusive_mechanisms.sort();
+        self.mutually_exclusive_mechanisms.dedup();
         for targets in self.base_targets.values_mut() {
             targets.sort();
             targets.dedup();
@@ -251,8 +148,28 @@ impl FabricationCatalog {
         }
         self
     }
-}
 
-const fn conduitos_http_implementation() -> &'static str {
-    "conduitos/kernel-http-client-http1-literal@1"
+    pub fn with_catalog_contribution(mut self, contribution: &PackageCatalogContribution) -> Self {
+        self.merge_catalog_contribution(contribution);
+        self.facilities.sort();
+        self.facilities.dedup();
+        self.profile_fragments.sort();
+        self.profile_fragments.dedup();
+        self.mutually_exclusive_mechanisms.sort();
+        self.mutually_exclusive_mechanisms.dedup();
+        self
+    }
+
+    fn merge_catalog_contribution(&mut self, contribution: &PackageCatalogContribution) {
+        self.implementations
+            .extend(contribution.implementations.clone());
+        self.presenters.extend(contribution.presenters.clone());
+        self.dependencies.extend(contribution.dependencies.clone());
+        self.facilities
+            .extend(contribution.facilities.iter().cloned());
+        self.profile_fragments
+            .extend(contribution.profile_fragments.iter().cloned());
+        self.mutually_exclusive_mechanisms
+            .extend(contribution.mutually_exclusive_mechanisms.iter().cloned());
+    }
 }

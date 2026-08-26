@@ -12,6 +12,7 @@ impl HostFabricationPackage for Rp2040PioAudioExtension {
         FabricationContribution::Extension(FabricationExtension {
             package_id: PACKAGE_ID.into(),
             package_revision: 1,
+            catalog: Default::default(),
             compatible_target_patterns: vec!["conduitos/thumbv6m/*".into()],
             offers: vec![ImplementationOffer {
                 base_kind: "audio/pcm-output".into(),

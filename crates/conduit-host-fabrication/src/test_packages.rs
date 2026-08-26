@@ -1,8 +1,10 @@
 use crate::{
     FabricationAnchor, FabricationCatalog, FabricationContribution, FabricationExtension,
-    FabricationPackageSet, HostBounds, ImplementationOffer, PostBuildAction, SporeOutputKind,
-    TargetDescriptor, TargetPresenter,
+    FabricationPackageSet, HostBounds, ImplementationMetadata, ImplementationOffer,
+    PackageCatalogContribution, PostBuildAction, PrerequisiteNode, PresenterMetadata,
+    SporeOutputKind, TargetDescriptor, TargetPresenter,
 };
+use std::collections::BTreeMap;
 
 fn maxima(memory: u64, items: u32) -> HostBounds {
     HostBounds {
@@ -95,6 +97,7 @@ fn target(
             _ => SporeOutputKind::DiskImage,
         },
         post_build_actions: actions,
+        fabrication_descriptors: Vec::new(),
         maxima,
     }
 }
@@ -116,6 +119,7 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "hosted-native@1".into(),
             package_revision: 1,
+            catalog: Default::default(),
             targets: vec![
                 target(
                     "Hosted Linux workstation",
@@ -163,6 +167,7 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "browser-wasm@1".into(),
             package_revision: 1,
+            catalog: Default::default(),
             targets: vec![target(
                 "Browser page",
                 "browser",
@@ -183,6 +188,7 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "conduit-host-rp2040@1".into(),
             package_revision: 1,
+            catalog: Default::default(),
             targets: vec![target(
                 "Pico W",
                 "conduitos",
@@ -203,6 +209,7 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "conduit-host-esp32@1".into(),
             package_revision: 1,
+            catalog: Default::default(),
             targets: vec![
                 target(
                     "ESP32 WROOM",
@@ -243,6 +250,7 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "conduitos-image@1".into(),
             package_revision: 1,
+            catalog: test_catalog_metadata(),
             targets: vec![
                 target(
                     "ConduitOS x86_64 PC",
@@ -275,6 +283,7 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
         FabricationContribution::Extension(FabricationExtension {
             package_id: "linear-framebuffer-fixture@1".into(),
             package_revision: 1,
+            catalog: Default::default(),
             compatible_target_patterns: vec!["std/*/*".into(), "conduitos/x86_64/pc".into()],
             offers: vec![ImplementationOffer {
                 base_kind: "display/scanout".into(),
@@ -293,7 +302,119 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
 }
 
 pub(crate) fn test_catalog() -> FabricationCatalog {
-    FabricationCatalog::canonical().with_packages(&test_package_set())
+    FabricationCatalog::canonical()
+        .with_packages(&test_package_set())
+        .with_catalog_contribution(&test_catalog_metadata())
+}
+
+fn test_catalog_metadata() -> PackageCatalogContribution {
+    PackageCatalogContribution {
+        implementations: BTreeMap::from([(
+            "conduitos/kernel-http-client-http1-literal@1".into(),
+            ImplementationMetadata {
+                kind: "http/client".into(),
+                contract_revision: "conduit.http/client@1".into(),
+                targets: vec!["conduitos/x86_64/pc".into()],
+                prerequisites: vec![
+                    PrerequisiteNode::HostOperation("conduit.host/http-client-exchange@1".into()),
+                    PrerequisiteNode::Resource("conduit.resource/network/http-client@1".into()),
+                    PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+                ],
+            },
+        )]),
+        presenters: BTreeMap::from([
+            (
+                "presenter/native-graphical@1".into(),
+                PresenterMetadata {
+                    targets: vec![
+                        "std/x86_64/workstation".into(),
+                        "conduitos/x86_64/pc".into(),
+                    ],
+                    prerequisites: vec![
+                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::Facility("compositor/native@1".into()),
+                        PrerequisiteNode::Resource("presentation/surface".into()),
+                        PrerequisiteNode::Base("display/scanout".into()),
+                    ],
+                },
+            ),
+            (
+                "presenter/browser-dom-svg@1".into(),
+                PresenterMetadata {
+                    targets: vec!["browser/wasm32/page".into()],
+                    prerequisites: vec![
+                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::Resource("presentation/surface".into()),
+                        PrerequisiteNode::Base("browser/dom".into()),
+                    ],
+                },
+            ),
+            (
+                "presenter/linear-serial@1".into(),
+                PresenterMetadata {
+                    targets: vec!["conduitos/aarch64/virt".into()],
+                    prerequisites: vec![
+                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::Base("serial/text".into()),
+                    ],
+                },
+            ),
+        ]),
+        dependencies: BTreeMap::from([
+            (
+                PrerequisiteNode::Facility("compositor/native@1".into()),
+                vec![PrerequisiteNode::Resource("presentation/surface".into())],
+            ),
+            (
+                PrerequisiteNode::Base("display/scanout".into()),
+                vec![PrerequisiteNode::Driver(
+                    "display/linear-framebuffer@1".into(),
+                )],
+            ),
+            (
+                PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),
+                vec![PrerequisiteNode::Base("timer/monotonic".into())],
+            ),
+            (
+                PrerequisiteNode::Base("timer/monotonic".into()),
+                vec![PrerequisiteNode::Driver("hosted/monotonic-clock@1".into())],
+            ),
+            (
+                PrerequisiteNode::Base("serial/text".into()),
+                vec![PrerequisiteNode::Driver("conduitos/pl011@1".into())],
+            ),
+            (
+                PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+                vec![
+                    PrerequisiteNode::Resource("network/packet-buffer@1".into()),
+                    PrerequisiteNode::Resource("network/tcp-socket@1".into()),
+                    PrerequisiteNode::Resource("network/timer@1".into()),
+                    PrerequisiteNode::Base("network/ipv4-tcp".into()),
+                ],
+            ),
+            (
+                PrerequisiteNode::Base("network/ipv4-tcp".into()),
+                vec![PrerequisiteNode::Driver(
+                    "conduitos/deterministic-ipv4-tcp@1".into(),
+                )],
+            ),
+        ]),
+        facilities: vec![
+            "compositor/native@1".into(),
+            "network/http1-literal-client@1".into(),
+        ],
+        profile_fragments: vec![
+            "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
+            "profile-fragment/conduitos-hotplug-proof@1".into(),
+        ],
+        mutually_exclusive_mechanisms: vec![
+            ("compositor/native@1".into(), "browser/dom".into()),
+            (
+                "display/linear-framebuffer@1".into(),
+                "browser/dom@1".into(),
+            ),
+        ],
+    }
 }
 
 pub(crate) fn test_build_host_image(

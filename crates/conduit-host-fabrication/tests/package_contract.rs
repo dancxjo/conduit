@@ -33,6 +33,7 @@ fn pico_anchor() -> FabricationAnchor {
     FabricationAnchor {
         package_id: "conduit-host-rp2040@1".into(),
         package_revision: 1,
+        catalog: Default::default(),
         targets: vec![TargetDescriptor {
             label: "Pico W".into(),
             family: "conduitos".into(),
@@ -49,6 +50,7 @@ fn pico_anchor() -> FabricationAnchor {
             outputs: vec![SporeOutputKind::Uf2],
             default_output: SporeOutputKind::Uf2,
             post_build_actions: vec![PostBuildAction::Flash, PostBuildAction::Boot],
+            fabrication_descriptors: Vec::new(),
             maxima: maxima(),
         }],
         offers: vec![offer("serial/text", "pico/usb-cdc@1", "line-usb-cdc")],
@@ -59,6 +61,7 @@ fn audio_extension(package_id: &str, implementation: &str) -> FabricationExtensi
     FabricationExtension {
         package_id: package_id.into(),
         package_revision: 1,
+        catalog: Default::default(),
         compatible_target_patterns: vec!["conduitos/thumbv6m/*".into()],
         offers: vec![offer("audio/pcm-output", implementation, "base-pio-audio")],
     }

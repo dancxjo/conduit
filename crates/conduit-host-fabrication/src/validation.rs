@@ -1,8 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
-    canonical::profile_id, validate_esp32_binding, validate_esp32_descriptor,
-    validate_esp32_target, FabricationCatalog, HostProfile, PrerequisiteNode, ProfileId,
+    canonical::profile_id, FabricationCatalog, HostProfile, PrerequisiteNode, ProfileId,
     HOST_PROFILE_SCHEMA, MAX_PROFILE_ID_BYTES, MAX_PROFILE_ITEMS,
 };
 
@@ -238,37 +237,26 @@ fn validate_fabrication_descriptor(
     diagnostics: &mut Vec<ProfileDiagnostic>,
 ) {
     let selected = profile.target.fabrication_descriptor.as_deref();
-    if profile.target.family == "esp32" && selected.is_none() {
-        diagnostics.push(ProfileDiagnostic::MissingFabricationDescriptor {
-            target: profile.target.key(),
-        });
+    let target = profile.target.key();
+    let target_requires_descriptor = catalog
+        .fabrication_descriptors
+        .values()
+        .any(|descriptor_target| descriptor_target == &target);
+    if target_requires_descriptor && selected.is_none() {
+        diagnostics.push(ProfileDiagnostic::MissingFabricationDescriptor { target });
         return;
     }
     let Some(selected) = selected else { return };
-    let Some(descriptor) = catalog.esp32_descriptors.get(selected) else {
+    let Some(descriptor_target) = catalog.fabrication_descriptors.get(selected) else {
         diagnostics.push(ProfileDiagnostic::UnknownFabricationDescriptor {
             descriptor: selected.to_owned(),
         });
         return;
     };
-    if let Err(items) = validate_esp32_descriptor(descriptor) {
-        diagnostics.extend(items.into_iter().map(|item| {
-            ProfileDiagnostic::InvalidFabricationDescriptor {
-                descriptor: selected.to_owned(),
-                detail: format!("{item:?}"),
-            }
-        }));
-    }
-    if let Err(item) = validate_esp32_binding(selected, descriptor) {
-        diagnostics.push(ProfileDiagnostic::InvalidFabricationDescriptor {
-            descriptor: selected.to_owned(),
-            detail: format!("{item:?}"),
-        });
-    }
-    if validate_esp32_target(&profile.target, descriptor).is_err() {
+    if descriptor_target != &target {
         diagnostics.push(ProfileDiagnostic::FabricationTargetMismatch {
             descriptor: selected.to_owned(),
-            target: profile.target.key(),
+            target,
         });
     }
 }

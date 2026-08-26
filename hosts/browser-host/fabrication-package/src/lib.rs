@@ -1,15 +1,35 @@
 use conduit_host_fabrication::{
     FabricationAnchor, FabricationContribution, HostBounds, HostFabricationPackage,
-    ImplementationOffer, PostBuildAction, SporeOutputKind, TargetDescriptor,
+    ImplementationOffer, PackageCatalogContribution, PostBuildAction, PrerequisiteNode,
+    PresenterMetadata, SporeOutputKind, TargetDescriptor,
 };
+use std::collections::BTreeMap;
 
 pub struct BrowserFabricationPackage;
+
+fn package_catalog() -> PackageCatalogContribution {
+    PackageCatalogContribution {
+        presenters: BTreeMap::from([(
+            "presenter/browser-dom-svg@1".into(),
+            PresenterMetadata {
+                targets: vec!["browser/wasm32/page".into()],
+                prerequisites: vec![
+                    PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                    PrerequisiteNode::Resource("presentation/surface".into()),
+                    PrerequisiteNode::Base("browser/dom".into()),
+                ],
+            },
+        )]),
+        ..Default::default()
+    }
+}
 
 impl HostFabricationPackage for BrowserFabricationPackage {
     fn contribution(&self) -> FabricationContribution {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "browser-wasm@1".into(),
             package_revision: 1,
+            catalog: package_catalog(),
             targets: vec![TargetDescriptor {
                 label: "Browser page".into(),
                 family: "browser".into(),
@@ -26,6 +46,7 @@ impl HostFabricationPackage for BrowserFabricationPackage {
                 outputs: vec![SporeOutputKind::BrowserBundle],
                 default_output: SporeOutputKind::BrowserBundle,
                 post_build_actions: vec![PostBuildAction::Load, PostBuildAction::Launch],
+                fabrication_descriptors: Vec::new(),
                 maxima: HostBounds {
                     static_memory_bytes: 64 * 1024 * 1024,
                     heap_arena_bytes: 64 * 1024 * 1024,
