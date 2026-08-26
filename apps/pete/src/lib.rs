@@ -1,9 +1,5 @@
 //! Ordinary Conduit realizations for Pete's Create hardware.
 
-mod capstone;
-mod capstone_kernel;
-mod capstone_operations;
-mod capstone_play;
 mod create_dock;
 mod create_dock_kernel_operations;
 mod create_dock_plan_validation;
@@ -38,11 +34,11 @@ mod pete_model_context;
 mod physical_interaction_surface;
 mod planning;
 mod profile;
+#[cfg(test)]
+mod proof;
 mod ssd1306_frame;
 mod ssd1306_presenter;
 
-pub use capstone::*;
-pub use capstone_play::*;
 pub use conduit_create_oi::*;
 pub use create_dock::*;
 pub use create_dock_play::*;

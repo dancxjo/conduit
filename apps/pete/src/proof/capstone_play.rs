@@ -1,9 +1,9 @@
 //! Deterministic execution receipt for the exact sealed capstone Plan.
 
-use crate::capstone_kernel::{
+use super::capstone::{capstone_plan, CapstoneHostEvidence};
+use super::capstone_kernel::{
     prepare_scheduler, CapstoneScheduler, DRIVE_NODE, OBSERVATION_NODE, OBSERVATION_REQUEST,
 };
-use crate::{capstone_plan, CapstoneHostEvidence};
 use conduit_core::{ConfigurationValue, Plan, Scalar};
 use conduit_kernel::{
     scheduler::{HostOperationRequest, SchedulerStatus},
@@ -290,10 +290,11 @@ fn drive_ttl(plan: &Plan) -> Result<u64, CapstoneExecutionRefusal> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::capstone::CapstoneHostClass;
     use super::*;
     use crate::{
-        CapstoneHostClass, CreateDriveObservation, CreateObservationEvidence,
-        IndependentWatchdogObservation, OiMode, SafetyInputObservation, SafetyObservation,
+        CreateDriveObservation, CreateObservationEvidence, IndependentWatchdogObservation, OiMode,
+        SafetyInputObservation, SafetyObservation,
     };
     use conduit_core::{BootId, HostId, OfferGeneration};
 

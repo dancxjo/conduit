@@ -1,6 +1,6 @@
 //! Fixed production-kernel topology for the sealed five-Gear capstone.
 
-use crate::capstone_operations::{CurrentSelector, DriveSink};
+use super::capstone_operations::{CurrentSelector, DriveSink};
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
     BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,

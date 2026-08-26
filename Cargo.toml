@@ -23,7 +23,7 @@ members = [
 	"crates/conduit-system-continuity",
 	"crates/conduit-bluetooth",
     "crates/conduit-net",
-    "crates/conduit-pete",
+    "apps/pete",
 	"crates/conduit-chat",
 	"crates/conduit-ai",
 	"crates/conduit-alife",
