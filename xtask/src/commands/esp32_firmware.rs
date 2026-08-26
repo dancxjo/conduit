@@ -5,7 +5,8 @@ use std::{
     process::Command,
 };
 
-use clap::{Args, Subcommand, ValueEnum};
+use clap::{Args, Subcommand};
+use conduit_host_esp32_fabrication::Esp32FamilyTarget;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -38,8 +39,8 @@ enum Esp32FirmwareCommand {
     },
     /// Build one exact descriptor-bound ESP32-family firmware image.
     Build {
-        #[arg(long, value_enum)]
-        target: Esp32FirmwareTarget,
+        #[arg(long)]
+        target: Esp32FamilyTarget,
         /// Build the exact distributed-Lenia worker image.
         #[arg(long)]
         distributed_lenia: bool,
@@ -48,8 +49,8 @@ enum Esp32FirmwareCommand {
     },
     /// Build and flash one exact attached ESP32-family target.
     Flash {
-        #[arg(long, value_enum)]
-        target: Esp32FirmwareTarget,
+        #[arg(long)]
+        target: Esp32FamilyTarget,
         /// Flash the exact distributed-Lenia worker image.
         #[arg(long)]
         distributed_lenia: bool,
@@ -63,63 +64,13 @@ enum Esp32FirmwareCommand {
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ValueEnum)]
-#[serde(rename_all = "kebab-case")]
-enum Esp32FirmwareTarget {
-    Wroom,
-    C3,
-    S3,
-}
-
-impl Esp32FirmwareTarget {
-    fn package_dir(self) -> &'static str {
-        match self {
-            Self::Wroom => "firmware/conduit-esp32-wroom-signal",
-            Self::C3 => "firmware/conduit-esp32-c3-signal",
-            Self::S3 => "firmware/conduit-esp32-s3-signal",
-        }
-    }
-    fn toolchain(self) -> &'static str {
-        match self {
-            Self::C3 => "1.91.1",
-            Self::Wroom | Self::S3 => "esp-conduit-1.91.1",
-        }
-    }
-    fn cargo_target(self) -> &'static str {
-        match self {
-            Self::Wroom => "xtensa-esp32-none-elf",
-            Self::C3 => "riscv32imc-unknown-none-elf",
-            Self::S3 => "xtensa-esp32s3-none-elf",
-        }
-    }
-    fn artifact_name(self) -> &'static str {
-        match self {
-            Self::Wroom => "conduit-esp32-wroom-signal",
-            Self::C3 => "conduit-esp32-c3-signal",
-            Self::S3 => "conduit-esp32-s3-signal",
-        }
-    }
-    fn espflash_chip(self) -> &'static str {
-        match self {
-            Self::Wroom => "esp32",
-            Self::C3 => "esp32c3",
-            Self::S3 => "esp32s3",
-        }
-    }
-    fn usb_serial(self) -> &'static str {
-        match self {
-            Self::Wroom => "0001",
-            Self::C3 => "dcf8355da19ded11a7205f84e259fb3e",
-            Self::S3 => "54E2006398",
-        }
-    }
-    fn artifact(self, root: &Path) -> PathBuf {
-        root.join(self.package_dir())
-            .join("target")
-            .join(self.cargo_target())
-            .join("release")
-            .join(self.artifact_name())
-    }
+fn artifact(target: Esp32FamilyTarget, root: &Path) -> PathBuf {
+    let facts = target.facts();
+    root.join(facts.package_dir)
+        .join("target")
+        .join(facts.cargo_target)
+        .join("release")
+        .join(facts.artifact_name)
 }
 
 #[derive(Serialize)]
@@ -127,7 +78,7 @@ struct FirmwareReceipt {
     schema: &'static str,
     outcome: &'static str,
     proof_class: &'static str,
-    target: Esp32FirmwareTarget,
+    target: Esp32FamilyTarget,
     firmware_mode: &'static str,
     source_sha: String,
     artifact: String,
@@ -204,23 +155,24 @@ fn run_check(
 }
 
 fn run_build(
-    target: Esp32FirmwareTarget,
+    target: Esp32FamilyTarget,
     distributed_lenia: bool,
     receipt: PathBuf,
     opts: &GlobalOpts,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    let package = root.join(target.package_dir());
+    let facts = target.facts();
+    let package = root.join(facts.package_dir);
     if !package.join("Cargo.toml").is_file() {
         return Err(format!("ESP32 package is unavailable at {}", package.display()).into());
     }
-    let artifact = target.artifact(&root);
+    let artifact = artifact(target, &root);
     if opts.dry_run {
         if !opts.quiet {
             println!(
                 "would build {} with +{} from {}",
-                target.artifact_name(),
-                target.toolchain(),
+                facts.artifact_name,
+                facts.rust_toolchain,
                 package.display()
             );
         }
@@ -229,7 +181,7 @@ fn run_build(
     let mut command = Command::new("cargo");
     command
         .current_dir(&package)
-        .arg(format!("+{}", target.toolchain()))
+        .arg(format!("+{}", facts.rust_toolchain))
         .args(["build", "--release", "--features"])
         .arg(if distributed_lenia {
             "distributed-lenia"
@@ -265,22 +217,23 @@ fn run_build(
 }
 
 fn run_flash(
-    target: Esp32FirmwareTarget,
+    target: Esp32FamilyTarget,
     distributed_lenia: bool,
     port: &Path,
     confirm_serial: &str,
     receipt: PathBuf,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if confirm_serial != target.usb_serial() {
-        return Err(format!("ESP32 flash confirmation mismatch: target requires USB serial {}, received {confirm_serial}", target.usb_serial()).into());
+    let facts = target.facts();
+    if confirm_serial != facts.usb_serial {
+        return Err(format!("ESP32 flash confirmation mismatch: target requires USB serial {}, received {confirm_serial}", facts.usb_serial).into());
     }
     if opts.dry_run {
         let _ = run_build(target, distributed_lenia, PathBuf::new(), opts)?;
         if !opts.quiet {
             println!(
                 "would flash {} through {} after verifying USB serial {}",
-                target.artifact_name(),
+                facts.artifact_name,
                 port.display(),
                 confirm_serial
             );
@@ -310,7 +263,7 @@ fn run_flash(
     let mut command = Command::new(&tool);
     command
         .arg("flash")
-        .args(["--chip", target.espflash_chip(), "--port"])
+        .args(["--chip", facts.espflash_chip, "--port"])
         .arg(port)
         .args(["--non-interactive", "--skip-update-check"])
         .arg(&artifact);
@@ -458,18 +411,21 @@ mod tests {
     use super::*;
     #[test]
     fn exact_targets_select_reviewed_packages_tools_and_serials() {
-        assert_eq!(Esp32FirmwareTarget::Wroom.usb_serial(), "0001");
+        assert_eq!(Esp32FamilyTarget::Wroom.facts().usb_serial, "0001");
         assert_eq!(
-            Esp32FirmwareTarget::C3.usb_serial(),
+            Esp32FamilyTarget::C3.facts().usb_serial,
             "dcf8355da19ded11a7205f84e259fb3e"
         );
-        assert_eq!(Esp32FirmwareTarget::S3.usb_serial(), "54E2006398");
-        assert_eq!(Esp32FirmwareTarget::C3.toolchain(), "1.91.1");
+        assert_eq!(Esp32FamilyTarget::S3.facts().usb_serial, "54E2006398");
+        assert_eq!(Esp32FamilyTarget::C3.facts().rust_toolchain, "1.91.1");
         assert_eq!(
-            Esp32FirmwareTarget::C3.cargo_target(),
+            Esp32FamilyTarget::C3.facts().cargo_target,
             "riscv32imc-unknown-none-elf"
         );
-        assert_eq!(Esp32FirmwareTarget::C3.espflash_chip(), "esp32c3");
-        assert_eq!(Esp32FirmwareTarget::S3.toolchain(), "esp-conduit-1.91.1");
+        assert_eq!(Esp32FamilyTarget::C3.facts().espflash_chip, "esp32c3");
+        assert_eq!(
+            Esp32FamilyTarget::S3.facts().rust_toolchain,
+            "esp-conduit-1.91.1"
+        );
     }
 }

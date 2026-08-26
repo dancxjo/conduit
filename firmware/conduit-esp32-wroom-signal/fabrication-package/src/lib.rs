@@ -1,19 +1,23 @@
 use conduit_host_fabrication::{
-    BaseSelection, FabricationAnchor, FabricationContribution, HostBounds, HostFabricationPackage,
-    ImplementationOffer, PostBuildAction, SporeOutputKind, TargetDescriptor,
+    BaseSelection, FabricationAnchor, FabricationContribution, HostFabricationPackage,
+    ImplementationOffer,
 };
 
 pub mod descriptor;
+pub mod family;
 pub mod wroom32;
 
 pub use descriptor::{
     esp32_descriptor_binding, validate_esp32_binding, validate_esp32_descriptor,
     validate_esp32_target, Esp32BoardDescriptor, Esp32DescriptorDiagnostic,
 };
+pub use family::{Esp32FamilyTarget, Esp32FamilyTargetFacts};
 pub use wroom32::hw463_esp_wroom_32_sample;
 
 #[cfg(test)]
 mod descriptor_tests;
+#[cfg(test)]
+mod family_tests;
 #[cfg(test)]
 mod wroom32_tests;
 
@@ -51,7 +55,13 @@ fn offer(kind: &str, implementation: &str, feature: &str) -> ImplementationOffer
         base_kind: kind.into(),
         implementation_id: implementation.into(),
         implementation_revision: 1,
-        target_patterns: vec!["esp32/xtensa-lx6/*".into()],
+        target_patterns: Esp32FamilyTarget::ALL
+            .into_iter()
+            .map(|target| {
+                let facts = target.facts();
+                format!("esp32/{}/{}", facts.architecture, facts.machine)
+            })
+            .collect(),
         prerequisites: Vec::new(),
         build_feature: Some(feature.into()),
     }
@@ -59,44 +69,14 @@ fn offer(kind: &str, implementation: &str, feature: &str) -> ImplementationOffer
 
 impl HostFabricationPackage for Esp32FabricationPackage {
     fn contribution(&self) -> FabricationContribution {
-        let descriptor = hw463_esp_wroom_32_sample();
-        validate_esp32_descriptor(&descriptor)
-            .expect("package-owned WROOM descriptor must remain valid");
-        let descriptor_binding = esp32_descriptor_binding(&descriptor)
-            .expect("package-owned WROOM descriptor must have an exact binding");
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "conduit-host-esp32@1".into(),
             package_revision: 1,
             catalog: Default::default(),
-            targets: vec![TargetDescriptor {
-                label: "ESP32-WROOM-32".into(),
-                family: "esp32".into(),
-                architecture: "xtensa-lx6".into(),
-                machine: "hw-463-esp-wroom-32".into(),
-                board: Some("hw-463-esp-wroom-32".into()),
-                os: None,
-                host_core: "host-core/conduitos@1".into(),
-                presenter: None,
-                host_operations: Vec::new(),
-                toolchain_identity: "esp-rs/rust-build@v1.91.1.0".into(),
-                builder_adapter: "conduit-host-esp32/build-image@1".into(),
-                deployment_adapter: None,
-                outputs: vec![SporeOutputKind::Esp32Image],
-                default_output: SporeOutputKind::Esp32Image,
-                post_build_actions: vec![PostBuildAction::Flash, PostBuildAction::Boot],
-                fabrication_descriptors: vec![descriptor_binding],
-                maxima: HostBounds {
-                    static_memory_bytes: 64 * 1024 * 1024,
-                    heap_arena_bytes: 64 * 1024 * 1024,
-                    queue_items: 4096,
-                    buffered_bytes: 4 * 1024 * 1024,
-                    active_instances: 4096,
-                    operation_slots: 4096,
-                    timer_slots: 4096,
-                    line_sessions: 4096,
-                    evidence_items: 4096,
-                },
-            }],
+            targets: Esp32FamilyTarget::ALL
+                .into_iter()
+                .map(Esp32FamilyTarget::target_descriptor)
+                .collect(),
             offers: vec![
                 offer("kernel/signal", "esp32/kernel-signal@1", "kernel-signal"),
                 offer(
