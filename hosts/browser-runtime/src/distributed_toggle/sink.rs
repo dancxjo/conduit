@@ -25,9 +25,9 @@ use conduit_kernel::{
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
-use conduit_signal::{
+use conduit_signal::TOGGLE_PRESENTATION_KIND;
+use conduit_signal_conformance::{
     distributed_toggle_browser_sink_advertisement, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-    TOGGLE_PRESENTATION_KIND,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,

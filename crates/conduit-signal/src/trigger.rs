@@ -9,23 +9,14 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    await_trigger_host_operation_requirement, kind_id, port_id, resource_offer,
-    resource_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationEntry, ConfigurationValue, ConnectionBase, ConnectionBaseInstanceId,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindContractRevision, KindId, LineAvailability, LineAvailabilitySign,
-    LineContinuation, LineContract, LineDuplex, LineId, LineOffer, LineOrdering, LineReliability,
-    LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkBindingId,
-    LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration,
-    PortDescriptor, PortDirection, ResourceRequirement, ValuePayload, INPUT_RESOURCE_CLASS,
-    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    await_trigger_host_operation_requirement, kind_id, port_id, resource_requirement,
+    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
+    KindContractRevision, KindId, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
+    INPUT_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    DISTRIBUTED_MAXIMUM_BUFFERED_BYTES, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, MAX_SIGNAL_COUNT,
-};
+use crate::MAX_SIGNAL_COUNT;
 
 pub const TRIGGER_VALUE_KIND: &str = conduit_std_catalog::TICK_VALUE_KIND;
 pub const TRIGGER_KIND: &str = "interaction/trigger";
@@ -37,7 +28,7 @@ pub use conduit_std_catalog::{
     STATE_TOGGLE_EXECUTION_PROFILE as TOGGLE_EXECUTION_PROFILE, STATE_TOGGLE_KIND as TOGGLE_KIND,
 };
 
-fn trigger_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+pub fn trigger_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
     vec![conduit_core::FaceStartupParameter {
         name: "count".to_string(),
         value_type: "Count".to_string(),
@@ -45,7 +36,7 @@ fn trigger_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> 
     }]
 }
 
-fn toggle_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+pub fn toggle_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
     vec![conduit_core::FaceStartupParameter {
         name: "initial".to_string(),
         value_type: "Boolean".to_string(),
@@ -56,12 +47,6 @@ pub const TRIGGER_PORT: &str = "trigger";
 pub const TRIGGER_ENCODED_LEN: u32 = 8;
 pub const TRIGGER_CONTRACT_REVISION: &str = "conduit.signal/interaction-trigger@1";
 pub const TRIGGER_EXECUTION_PROFILE: &str = "conduit.signal/trigger-hosted@1";
-pub const DISTRIBUTED_TOGGLE_STD_HOST_ID: &str = "s4/toggle-std-source";
-pub const DISTRIBUTED_TOGGLE_STD_BOOT_ID: &str = "s4/toggle-std-source-boot";
-pub const DISTRIBUTED_TOGGLE_BROWSER_HOST_ID: &str = "s4/toggle-browser-sink";
-pub const DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID: &str = "s4/toggle-browser-sink-boot";
-pub const DISTRIBUTED_TOGGLE_LINK_BINDING_ID: &str = "s4/toggle-std-browser-link";
-pub const DISTRIBUTED_TOGGLE_BASE_INSTANCE_ID: &str = "s4/toggle-websocket-loopback-instance";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Trigger {
@@ -216,128 +201,6 @@ pub fn decode_trigger_bytes(encoded: &[u8]) -> Result<Trigger, crate::SignalProf
     Ok(Trigger {
         sequence: u64::from_le_bytes(sequence),
     })
-}
-
-pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
-    HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id: HostId::from(DISTRIBUTED_TOGGLE_STD_HOST_ID),
-        boot_id: BootId::from(DISTRIBUTED_TOGGLE_STD_BOOT_ID),
-        offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("rust-std-kernel"),
-        resources: vec![resource_offer(
-            "s4/toggle-std-input",
-            INPUT_RESOURCE_CLASS,
-            1,
-        )],
-        planner_capabilities: vec![],
-        capabilities: vec![
-            CapabilityOffer {
-                startup_parameters: trigger_face_startup_parameters(),
-                shorthand: None,
-                capability_id: CapabilityId::from("trigger-1"),
-                kind_id: trigger_kind(),
-                kind_contract_revision: trigger_contract_revision(),
-                implementation: conduit_core::ImplementationOffer {
-                    execution_profile_id: trigger_execution_profile(),
-                    implementation_id: ImplementationId::from("std/kernel-trigger-v1"),
-                    artifact_id: ArtifactId::from("conduit-signal/trigger-artifact-v1"),
-                },
-                inputs: Vec::new(),
-                outputs: trigger_outputs(),
-                host_operations: trigger_host_operation_requirements(),
-                resource_requirements: trigger_resource_requirements(),
-                authority_requirements: Vec::new(),
-                limits: CapabilityLimits {
-                    max_active_instances: 1,
-                    max_queue_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-                    max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
-                },
-            },
-            CapabilityOffer {
-                startup_parameters: toggle_face_startup_parameters(),
-                shorthand: None,
-                capability_id: CapabilityId::from("toggle-1"),
-                kind_id: toggle_kind(),
-                kind_contract_revision: toggle_contract_revision(),
-                implementation: conduit_std_catalog::state_toggle_offer().implementation,
-                inputs: toggle_inputs(),
-                outputs: toggle_outputs(),
-                host_operations: toggle_host_operation_requirements(),
-                resource_requirements: toggle_resource_requirements(),
-                authority_requirements: Vec::new(),
-                limits: conduit_std_catalog::state_toggle_offer().limits,
-            },
-        ],
-    }
-}
-
-pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
-    HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id: HostId::from(DISTRIBUTED_TOGGLE_BROWSER_HOST_ID),
-        boot_id: BootId::from(DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID),
-        offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("browser-wasm-kernel"),
-        resources: vec![resource_offer(
-            "s4/toggle-browser-dom",
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        planner_capabilities: vec![],
-        capabilities: vec![toggle_browser_presentation_offer("toggle-dom-show-1")],
-    }
-}
-
-pub fn toggle_browser_presentation_offer(capability_id: &str) -> CapabilityOffer {
-    let mut offer = conduit_std_catalog::bool_presentation_browser_offer();
-    offer.capability_id = CapabilityId::from(capability_id);
-    offer
-}
-
-pub fn distributed_toggle_websocket_line_offer() -> LineOffer {
-    let binding = LinkBinding {
-        binding_id: LinkBindingId::from(DISTRIBUTED_TOGGLE_LINK_BINDING_ID),
-        source: LinkEndpoint {
-            host_id: HostId::from(DISTRIBUTED_TOGGLE_STD_HOST_ID),
-            boot_id: BootId::from(DISTRIBUTED_TOGGLE_STD_BOOT_ID),
-            endpoint_id: LinkEndpointId::from("s4/toggle-std-websocket-egress"),
-        },
-        sink: LinkEndpoint {
-            host_id: HostId::from(DISTRIBUTED_TOGGLE_BROWSER_HOST_ID),
-            boot_id: BootId::from(DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID),
-            endpoint_id: LinkEndpointId::from("s4/toggle-browser-websocket-ingress"),
-        },
-        base: ConnectionBase::WebSocket,
-        base_instance_id: ConnectionBaseInstanceId::from(DISTRIBUTED_TOGGLE_BASE_INSTANCE_ID),
-        credential: LinkCredentialReference::None,
-        authority: LinkAuthorityReference::ProcessOwned,
-        limits: LinkLimits {
-            maximum_in_flight_items: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-            maximum_payload_bytes: TRIGGER_ENCODED_LEN,
-            maximum_buffered_bytes: TRIGGER_ENCODED_LEN,
-            maximum_frame_bytes: DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-        },
-    };
-    LineOffer {
-        line_id: LineId::from("s4/line/toggle-websocket"),
-        availability: LineAvailabilitySign {
-            line_id: LineId::from("s4/line/toggle-websocket"),
-            binding_id: binding.binding_id.clone(),
-            availability: LineAvailability::Ready,
-            sign_id: conduit_core::SignId::from("s4/line/toggle-websocket/ready"),
-        },
-        binding,
-        contract: LineContract {
-            scope: LineScope::Machine,
-            traffic_shape: LineTrafficShape::Message,
-            duplex: LineDuplex::FullDuplex,
-            ordering: LineOrdering::Ordered,
-            reliability: LineReliability::Reliable,
-            continuation: LineContinuation::None,
-            security: LineSecurity::PlaintextNetwork,
-        },
-    }
 }
 
 #[cfg(feature = "host-profile")]

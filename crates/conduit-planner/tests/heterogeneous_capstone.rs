@@ -394,7 +394,7 @@ fn measurement(
 }
 
 fn evidence() -> HeterogeneousCapstoneEvidence {
-    let exact = conduit_signal::triple::exact_plan().unwrap();
+    let exact = conduit_signal_conformance::triple::exact_plan().unwrap();
     assert!(conduit_core::verify_plan(&exact.plan));
     assert_eq!(exact.plan.fragments.len(), 3);
     let accelerator = accelerator_selection();

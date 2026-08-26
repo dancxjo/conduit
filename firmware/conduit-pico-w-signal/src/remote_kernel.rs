@@ -4,14 +4,15 @@ use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    remote_sign_storage_bytes, BoundedValueRef, SignQuery, Failure, FailureCode, FixedSignLog,
+    remote_sign_storage_bytes, BoundedValueRef, Failure, FailureCode, FixedSignLog,
     FixedValueStore, HostOperationDisposition, HostOperationOutcome, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueStorage,
+    OperationInput, PortId, RequestId, SignQuery, ValueStorage,
 };
 use conduit_signal::{decode_signal_bytes, Signal, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN_USIZE};
 use cyw43::Control;
 
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
+use crate::remote_error::{RemoteError as UsbLinkError, RemoteResult as UsbLinkResult};
 use crate::signal_execution_identity::SignalExecutionIdentity;
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::signal_image::generated_remote_endpoint;
@@ -21,7 +22,6 @@ use crate::signal_image::{
     PENDING_REQUESTS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES,
     RUNTIME_SIGN_EVENTS,
 };
-use crate::remote_error::{RemoteError as UsbLinkError, RemoteResult as UsbLinkResult};
 
 type SinkScheduler = FixedScheduler<
     OperationDriver<ShowOperation, PORTS>,
@@ -116,17 +116,17 @@ impl RemoteSignalKernel {
         cord: conduit_kernel::CordId,
     ) -> UsbLinkResult<Self> {
         let layout = remote_signal_layout().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-        let values = FixedValueStore::<QUEUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(
-            SIGNAL_ENCODED_LEN,
-        )
-        .map_err(UsbLinkError::Storage)?;
+        let values =
+            FixedValueStore::<QUEUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(SIGNAL_ENCODED_LEN)
+                .map_err(UsbLinkError::Storage)?;
         // Every admitted remote Signal retains one exact lifecycle identity;
         // closing the remote Cord retains one more. Admit both fixed budgets
         // before the scheduler starts for the image's bounded session.
         let remote_sign_items = u16::try_from(MAX_STORED_SIGNAL_VALUES + 1)
             .map_err(|_| UsbLinkError::SignStorage(conduit_kernel::SignError::InvalidBudget))?;
-        let remote_sign_bytes = remote_sign_storage_bytes(remote_sign_items)
-            .ok_or(UsbLinkError::SignStorage(conduit_kernel::SignError::InvalidBudget))?;
+        let remote_sign_bytes = remote_sign_storage_bytes(remote_sign_items).ok_or(
+            UsbLinkError::SignStorage(conduit_kernel::SignError::InvalidBudget),
+        )?;
         let sign = FixedSignLog::<RUNTIME_SIGN_EVENTS>::new_with_remote_storage(
             RUNTIME_SIGN_BYTES,
             remote_sign_items,
@@ -186,7 +186,8 @@ impl RemoteSignalKernel {
                         .map_err(UsbLinkError::Kernel)?,
                 )
                 .map_err(|_| UsbLinkError::InvalidSignal)?;
-                if signal.sequence != expected_sequence || self.presented as u64 != expected_sequence
+                if signal.sequence != expected_sequence
+                    || self.presented as u64 != expected_sequence
                 {
                     return Err(UsbLinkError::InvalidSignal);
                 }
@@ -195,13 +196,7 @@ impl RemoteSignalKernel {
                     .presentation(self.presented)
                     .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
                 control.gpio_set(0, signal.level).await;
-                sign
-                    .write_receipt(
-                        signal.sequence,
-                        signal.level,
-                        identity,
-                        runtime,
-                    )
+                sign.write_receipt(signal.sequence, signal.level, identity, runtime)
                     .await?;
                 self.scheduler
                     .complete_host_operation(

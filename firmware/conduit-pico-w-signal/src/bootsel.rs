@@ -4,6 +4,10 @@ use core::fmt::Write as _;
 use embassy_time::{Duration, Timer};
 use heapless::String;
 
+#[cfg(feature = "distributed-lenia")]
+use crate::lenia_image::FIRMWARE_BUILD_ID;
+#[cfg(feature = "wifi-bootstrap")]
+use crate::network_image::FIRMWARE_BUILD_ID;
 #[cfg(all(
     not(feature = "wifi-bootstrap"),
     not(feature = "appliance-hello"),
@@ -11,10 +15,6 @@ use heapless::String;
 ))]
 #[cfg(not(feature = "distributed-lenia"))]
 use crate::signal_image::FIRMWARE_BUILD_ID;
-#[cfg(feature = "distributed-lenia")]
-use crate::lenia_image::FIRMWARE_BUILD_ID;
-#[cfg(feature = "wifi-bootstrap")]
-use crate::network_image::FIRMWARE_BUILD_ID;
 #[cfg(feature = "appliance-hello")]
 const FIRMWARE_BUILD_ID: &str = env!("CONDUIT_PICO_APPLIANCE_BUILD_ID");
 #[cfg(feature = "appliance-hil-client")]

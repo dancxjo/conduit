@@ -202,25 +202,9 @@ pub async fn run(
             ServiceEvent::Failure(failure) => {
                 sequence += 1;
                 let code = failure_code(failure);
-                write_sign(
-                    sign,
-                    &runtime_boot,
-                    sequence,
-                    "failure",
-                    Some(code),
-                    None,
-                )
-                .await;
+                write_sign(sign, &runtime_boot, sequence, "failure", Some(code), None).await;
                 sequence += 1;
-                write_sign(
-                    sign,
-                    &runtime_boot,
-                    sequence,
-                    "terminal",
-                    Some(code),
-                    None,
-                )
-                .await;
+                write_sign(sign, &runtime_boot, sequence, "terminal", Some(code), None).await;
                 core::future::pending::<()>().await;
             }
         }
@@ -234,13 +218,19 @@ async fn serve_dhcp_once(
     let mut request = [0; conduit_net::MAXIMUM_DHCP_PACKET_BYTES];
     let (len, _) = match socket.recv_from(&mut request).await {
         Ok(value) => value,
-        Err(_) => return ServiceEvent::Failure(conduit_net::ApplianceFailure::OversizedDhcpRequest),
+        Err(_) => {
+            return ServiceEvent::Failure(conduit_net::ApplianceFailure::OversizedDhcpRequest)
+        }
     };
     let mut response = [0; conduit_net::MAXIMUM_DHCP_PACKET_BYTES];
     match conduit_net::answer_appliance_dhcp(&request[..len], leases, &mut response) {
         Ok(answer) => {
             let remote = IpEndpoint::new(Ipv4Address::BROADCAST.into(), 68);
-            if socket.send_to(&response[..answer.len], remote).await.is_err() {
+            if socket
+                .send_to(&response[..answer.len], remote)
+                .await
+                .is_err()
+            {
                 ServiceEvent::Failure(conduit_net::ApplianceFailure::ServiceBaseLost(
                     conduit_net::ApplianceService::Dhcp,
                 ))
@@ -261,7 +251,11 @@ async fn serve_dns_once(socket: &UdpSocket<'_>) -> ServiceEvent {
     let mut response = [0; conduit_net::MAXIMUM_DNS_PACKET_BYTES as usize];
     match conduit_net::answer_appliance_dns(&request[..len], &mut response) {
         Ok(response_len) => {
-            if socket.send_to(&response[..response_len], remote).await.is_err() {
+            if socket
+                .send_to(&response[..response_len], remote)
+                .await
+                .is_err()
+            {
                 ServiceEvent::Failure(conduit_net::ApplianceFailure::ServiceBaseLost(
                     conduit_net::ApplianceService::Dns,
                 ))
@@ -365,12 +359,7 @@ async fn write_sign(
     // identities are included, so retain that reviewed image-level bound.
     let mut line = HString::<1024>::new();
     let mut sign_id = HString::<192>::new();
-    if write!(
-        sign_id,
-        "pico/appliance/sign:{runtime_boot}:{sequence:02}"
-    )
-    .is_err()
-    {
+    if write!(sign_id, "pico/appliance/sign:{runtime_boot}:{sequence:02}").is_err() {
         core::future::pending::<()>().await;
     }
     if write!(
@@ -393,9 +382,7 @@ async fn write_sign(
             core::future::pending::<()>().await;
         }
     }
-    if line.push_str("}\n").is_err()
-        || sign.write_all_mandatory(line.as_bytes()).await.is_err()
-    {
+    if line.push_str("}\n").is_err() || sign.write_all_mandatory(line.as_bytes()).await.is_err() {
         core::future::pending::<()>().await;
     }
 }

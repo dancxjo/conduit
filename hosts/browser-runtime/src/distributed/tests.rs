@@ -147,7 +147,7 @@ fn stale_completion_from_replaced_browser_boot_refuses_current_truth() {
 fn triple_browser_reconstructs_its_fragment_from_the_same_three_host_plan() {
     let sink =
         DistributedSink::prepare(None, PlanKind::Triple, None, None).expect("triple sink prepares");
-    let exact = conduit_signal::triple::exact_plan().expect("triple plan resolves");
+    let exact = conduit_signal_conformance::triple::exact_plan().expect("triple plan resolves");
     assert_eq!(sink.fragment.host_id, exact.browser_advertisement.host_id);
     assert_eq!(sink.binding.plan_id, exact.plan.plan_id);
     assert_eq!(

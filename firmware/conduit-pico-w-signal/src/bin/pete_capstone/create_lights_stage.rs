@@ -3,8 +3,8 @@
 use core::fmt::Write as _;
 
 use conduit_create_oi::{
-    presentation_bytes_are_motion_free, presentation_lights, require_provider,
-    CreateUartProvider, PRESENTATION_FULL, PRESENTATION_LIGHTS_OFF, PRESENTATION_LIGHT_STEPS,
+    presentation_bytes_are_motion_free, presentation_lights, require_provider, CreateUartProvider,
+    PRESENTATION_FULL, PRESENTATION_LIGHTS_OFF, PRESENTATION_LIGHT_STEPS,
     PRESENTATION_LIGHT_STEP_MS, PRESENTATION_SAFE, PRESENTATION_START,
 };
 use embassy_rp::watchdog::Watchdog;
@@ -116,8 +116,8 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
     reset_report();
     create_play::set_state(create_play::RequestState::Active);
 
-    let mut completed = create_link_gate::authorized()
-        && write_exact(provider, &PRESENTATION_START);
+    let mut completed =
+        create_link_gate::authorized() && write_exact(provider, &PRESENTATION_START);
     START_SENT.store(completed, Ordering::Release);
     if completed {
         watchdog_delay(watchdog, START_SETTLE_MS).await;

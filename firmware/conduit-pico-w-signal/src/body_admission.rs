@@ -81,16 +81,10 @@ impl PicoBodyAdmission {
             .await?;
 
         let challenge_bytes = line.receive_raw_stream_frame(&mut input).await?;
-        let (challenge, _) = serde_json_core::from_slice::<PicoAdmissionChallenge<'_>>(
-            challenge_bytes,
-        )
-        .map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
-        if !validate_pico_challenge(
-            &challenge,
-            HOST_ID,
-            self.boot_id.as_str(),
-            OFFER_GENERATION,
-        ) {
+        let (challenge, _) =
+            serde_json_core::from_slice::<PicoAdmissionChallenge<'_>>(challenge_bytes)
+                .map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
+        if !validate_pico_challenge(&challenge, HOST_ID, self.boot_id.as_str(), OFFER_GENERATION) {
             return Err(UsbLinkError::InvalidGeneratedEndpoint);
         }
         let transcript = ambient_admission_transcript(

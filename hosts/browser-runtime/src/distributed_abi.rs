@@ -312,7 +312,7 @@ mod tests {
             let slot = slot.borrow();
             assert_eq!(
                 slot.as_ref().expect("sink").binding.source.host_id.as_str(),
-                conduit_signal::DISTRIBUTED_STD_HOST_ID
+                conduit_signal_conformance::DISTRIBUTED_STD_HOST_ID
             );
         });
     }

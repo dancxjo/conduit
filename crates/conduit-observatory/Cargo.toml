@@ -11,3 +11,4 @@ serde = { version = "1", default-features = false, features = ["alloc", "derive"
 conduit-form = { path = "../conduit-form" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }

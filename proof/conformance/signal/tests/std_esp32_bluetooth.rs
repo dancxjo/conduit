@@ -1,7 +1,7 @@
 #![cfg(feature = "host-profile")]
 
 use conduit_core::{BootId, ConnectionBase};
-use conduit_signal::{
+use conduit_signal_conformance::{
     exact_std_esp32_bluetooth_plan, exact_std_esp32_c3_bluetooth_plan,
     exact_std_esp32_s3_bluetooth_plan, std_esp32_bluetooth_session_binding,
     std_esp32_bluetooth_session_binding_for_host, ESP32_C3_IMAGE_BOOT_ID,

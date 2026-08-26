@@ -4,12 +4,9 @@ use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedSignLog, FixedValueStore, HostOperationDisposition,
-    HostOperationOutcome,
+    BoundedValueRef, FixedSignLog, FixedValueStore, HostOperationDisposition, HostOperationOutcome,
 };
-use conduit_wire::{
-    SessionMachine, SessionMessage, SessionRole,
-};
+use conduit_wire::{SessionMachine, SessionMessage, SessionRole};
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embassy_net::{Config, Stack, StackResources};
@@ -24,8 +21,8 @@ use crate::network_image::{
     generated_routes, network_join_layout, CORDS, HOST_BINDING_SLOTS, NODES, PENDING_REQUESTS,
     PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES, RUNTIME_SIGN_EVENTS,
 };
-use crate::network_receipts::NetworkAttachmentIdentity;
 use crate::network_operations::NetworkOperation;
+use crate::network_receipts::NetworkAttachmentIdentity;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::usb::PicoUsbCdcLine;
 use crate::usb_link::{UsbLinkError, UsbLinkSession};
@@ -74,7 +71,7 @@ impl JoinKernel {
         let values = FixedValueStore::new(
             conduit_net::MAXIMUM_JOIN_INPUT_BYTES + conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES,
         )
-            .map_err(UsbLinkError::Storage)?;
+        .map_err(UsbLinkError::Storage)?;
         let sign = FixedSignLog::new(RUNTIME_SIGN_BYTES).map_err(UsbLinkError::SignStorage)?;
         let join = NetworkOperation::join(
             layout.join_input_port,
@@ -119,7 +116,11 @@ impl JoinKernel {
         })
     }
 
-    fn admit(&mut self, sequence: u64, payload: &[u8]) -> Result<RemoteIngressOutcome, UsbLinkError> {
+    fn admit(
+        &mut self,
+        sequence: u64,
+        payload: &[u8],
+    ) -> Result<RemoteIngressOutcome, UsbLinkError> {
         self.scheduler
             .admit_remote_input(self.endpoint, self.cord, sequence, payload)
             .map_err(UsbLinkError::Kernel)
@@ -187,8 +188,7 @@ impl JoinKernel {
                     credential_len = decoded.credential.len();
                     credential[..credential_len].copy_from_slice(decoded.credential);
                 }
-                if !(CYW43_WPA_PASSPHRASE_MINIMUM_BYTES
-                    ..=CYW43_WPA_PASSPHRASE_MAXIMUM_BYTES)
+                if !(CYW43_WPA_PASSPHRASE_MINIMUM_BYTES..=CYW43_WPA_PASSPHRASE_MAXIMUM_BYTES)
                     .contains(&credential_len)
                 {
                     credential.fill(0);
@@ -371,27 +371,27 @@ pub(crate) async fn establish_usb(
             continue;
         }
         if raw == b"CONDUIT_RAW_CDC0_PROBE" {
-            link.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_REPLY").await?;
+            link.send_raw_stream_frame(b"CONDUIT_RAW_CDC0_REPLY")
+                .await?;
             break;
         }
     }
     sign.wait_dtr().await;
-    sign
-        .write_boot_identity(
-            crate::receipts::BootIdentity {
-                firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
-                source_document_id: crate::network_image::SOURCE_DOCUMENT_ID,
-                checked_form_id: crate::network_image::CHECKED_FORM_ID,
-                expanded_form_id: crate::network_image::EXPANDED_FORM_ID,
-                plan_id: crate::network_image::PLAN_ID,
-                fragment_id: crate::network_image::FRAGMENT_ID,
-                host_id: crate::network_image::HOST_ID,
-                boot_id: crate::network_image::BOOT_ID,
-                boot_sign_id: crate::network_image::BOOT_SIGN_ID,
-            },
-            runtime,
-        )
-        .await?;
+    sign.write_boot_identity(
+        crate::receipts::BootIdentity {
+            firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
+            source_document_id: crate::network_image::SOURCE_DOCUMENT_ID,
+            checked_form_id: crate::network_image::CHECKED_FORM_ID,
+            expanded_form_id: crate::network_image::EXPANDED_FORM_ID,
+            plan_id: crate::network_image::PLAN_ID,
+            fragment_id: crate::network_image::FRAGMENT_ID,
+            host_id: crate::network_image::HOST_ID,
+            boot_id: crate::network_image::BOOT_ID,
+            boot_sign_id: crate::network_image::BOOT_SIGN_ID,
+        },
+        runtime,
+    )
+    .await?;
     Ok(())
 }
 
@@ -404,8 +404,8 @@ async fn run_session(
 ) -> Result<(), UsbLinkError> {
     let binding = session_binding(runtime)?;
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionMachine);
-    let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
-        .map_err(UsbLinkError::Codec)?;
+    let mut machine =
+        SessionMachine::new(binding.clone(), SessionRole::Sink).map_err(UsbLinkError::Codec)?;
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelStorage);
     let mut kernel = JoinKernel::new()?;
     let mut frame_buf = [0_u8; 2048];
@@ -415,7 +415,8 @@ async fn run_session(
             continue;
         }
         if raw == conduit_net::R1_USB_NETWORK_SESSION_QUERY {
-            link.send_raw_stream_frame(conduit_net::R1_USB_NETWORK_SESSION_READY).await?;
+            link.send_raw_stream_frame(conduit_net::R1_USB_NETWORK_SESSION_READY)
+                .await?;
             crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionExecution);
             break;
         }
@@ -424,30 +425,43 @@ async fn run_session(
     let hello = link.receive_frame(&mut frame_buf).await?;
     machine.admit_inbound(hello).map_err(UsbLinkError::Codec)?;
     let response = binding.hello_frame();
-    machine.admit_outbound(response).map_err(UsbLinkError::Codec)?;
+    machine
+        .admit_outbound(response)
+        .map_err(UsbLinkError::Codec)?;
     link.send_frame(&response).await?;
     let ready = link.receive_frame(&mut frame_buf).await?;
     machine.admit_inbound(ready).map_err(UsbLinkError::Codec)?;
     let response = binding.frame(SessionMessage::Ready);
-    machine.admit_outbound(response).map_err(UsbLinkError::Codec)?;
+    machine
+        .admit_outbound(response)
+        .map_err(UsbLinkError::Codec)?;
     link.send_frame(&response).await?;
     let offered = link.receive_frame(&mut frame_buf).await?;
     let (sequence, payload) = match offered.message {
         SessionMessage::Offered { sequence, payload } => (sequence, payload),
         _ => return Err(UsbLinkError::InvalidNetworkJoin),
     };
-    machine.admit_inbound(offered).map_err(UsbLinkError::Codec)?;
+    machine
+        .admit_inbound(offered)
+        .map_err(UsbLinkError::Codec)?;
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelIngress);
-    if !matches!(kernel.admit(sequence, payload)?, RemoteIngressOutcome::Accepted { .. }) {
+    if !matches!(
+        kernel.admit(sequence, payload)?,
+        RemoteIngressOutcome::Accepted { .. }
+    ) {
         return Err(UsbLinkError::InvalidNetworkJoin);
     }
     let accepted = binding.frame(SessionMessage::Accepted { sequence });
-    machine.admit_outbound(accepted).map_err(UsbLinkError::Codec)?;
+    machine
+        .admit_outbound(accepted)
+        .map_err(UsbLinkError::Codec)?;
     link.send_frame(&accepted).await?;
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
     kernel.execute(control, stack, sign, runtime).await?;
     let delivered = binding.frame(SessionMessage::Delivered { sequence });
-    machine.admit_outbound(delivered).map_err(UsbLinkError::Codec)?;
+    machine
+        .admit_outbound(delivered)
+        .map_err(UsbLinkError::Codec)?;
     link.send_frame(&delivered).await?;
     let closed = link.receive_frame(&mut frame_buf).await?;
     let final_sequence = match closed.message {
@@ -466,12 +480,16 @@ async fn run_session(
     ) {
         return Err(UsbLinkError::InvalidNetworkJoin);
     }
-    machine.admit_inbound(terminal).map_err(UsbLinkError::Codec)?;
+    machine
+        .admit_inbound(terminal)
+        .map_err(UsbLinkError::Codec)?;
     let response = binding.frame(SessionMessage::Terminal {
         disposition: conduit_wire::SessionTerminalDisposition::Completed,
         final_sequence,
     });
-    machine.admit_outbound(response).map_err(UsbLinkError::Codec)?;
+    machine
+        .admit_outbound(response)
+        .map_err(UsbLinkError::Codec)?;
     link.send_frame(&response).await?;
     if !machine.is_terminal() {
         return Err(UsbLinkError::InvalidNetworkJoin);
@@ -479,7 +497,9 @@ async fn run_session(
     Ok(())
 }
 
-pub(crate) fn attachment_identity<'a>(runtime: &'a RuntimeTranscriptIdentity) -> NetworkAttachmentIdentity<'a> {
+pub(crate) fn attachment_identity<'a>(
+    runtime: &'a RuntimeTranscriptIdentity,
+) -> NetworkAttachmentIdentity<'a> {
     NetworkAttachmentIdentity {
         firmware_build_id: crate::network_image::FIRMWARE_BUILD_ID,
         source_document_id: crate::network_image::SOURCE_DOCUMENT_ID,

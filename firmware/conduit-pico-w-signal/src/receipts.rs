@@ -34,7 +34,9 @@ pub enum UsbSignError {
 }
 
 impl UsbCdc {
-    pub fn new(sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>) -> Self {
+    pub fn new(
+        sender: embassy_usb::class::cdc_acm::Sender<'static, usb::Driver<'static, USB>>,
+    ) -> Self {
         Self { sender }
     }
 
@@ -133,8 +135,7 @@ impl RuntimeTranscriptIdentity {
             1,
         );
         u64::from_le_bytes([
-            digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6],
-            digest[7],
+            digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
         ])
     }
 
@@ -147,7 +148,10 @@ impl RuntimeTranscriptIdentity {
         for byte in digest {
             let _ = write!(active_play_id, "{byte:02x}");
         }
-        Self { boot_id, active_play_id }
+        Self {
+            boot_id,
+            active_play_id,
+        }
     }
 }
 
@@ -199,8 +203,6 @@ pub async fn usb_task_spawn(device: UsbDevice<'static, usb::Driver<'static, USB>
     let mut device = device;
     device.run().await
 }
-
-
 
 impl UsbCdc {
     /// Write the boot-scoped identity record for this generated firmware image.
@@ -449,10 +451,7 @@ impl UsbCdc {
         self.write_all_mandatory(line.as_bytes()).await
     }
 
-    pub(crate) async fn write_all_mandatory(
-        &mut self,
-        data: &[u8],
-    ) -> Result<(), UsbSignError> {
+    pub(crate) async fn write_all_mandatory(&mut self, data: &[u8]) -> Result<(), UsbSignError> {
         let mut offset = 0;
         while offset < data.len() {
             let chunk_len = (data.len() - offset).min(SIGN_WRITE_CHUNK_BYTES);
@@ -468,5 +467,4 @@ impl UsbCdc {
         }
         Ok(())
     }
-
 }

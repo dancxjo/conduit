@@ -34,7 +34,7 @@ fn fixture() -> Fixture {
         BootId::from("boot/remote-1"),
         OfferGeneration(1),
     );
-    let mut line = conduit_signal::triple::exact_plan()
+    let mut line = conduit_signal_conformance::triple::exact_plan()
         .expect("exact Line fixture")
         .browser_line;
     line.line_id = LineId::from("line/local-to-remote");

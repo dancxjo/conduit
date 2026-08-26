@@ -50,9 +50,18 @@ struct Server {
 
 #[gatt_service(uuid = "9f105e51-7731-4524-9688-0d8a61021401")]
 struct ConduitService {
-    #[characteristic(uuid = "9f105e51-7731-4524-9688-0d8a61021402", write_without_response, permissions(encrypted))]
+    #[characteristic(
+        uuid = "9f105e51-7731-4524-9688-0d8a61021402",
+        write_without_response,
+        permissions(encrypted)
+    )]
     write: Vec<u8, MAXIMUM_BLE_GATT_PACKET_BYTES>,
-    #[characteristic(uuid = "9f105e51-7731-4524-9688-0d8a61021403", read, notify, permissions(encrypted))]
+    #[characteristic(
+        uuid = "9f105e51-7731-4524-9688-0d8a61021403",
+        read,
+        notify,
+        permissions(encrypted)
+    )]
     notify: Vec<u8, MAXIMUM_BLE_GATT_PACKET_BYTES>,
 }
 
@@ -204,13 +213,17 @@ async fn reboot_after_terminal(sign: &UsbCdc) -> ! {
     rp_pac::PSM
         .wdsel()
         .write_value(rp_pac::psm::regs::Wdsel(0x0001_fffc));
-    rp_pac::WATCHDOG.ctrl().modify(|value| value.set_trigger(true));
+    rp_pac::WATCHDOG
+        .ctrl()
+        .modify(|value| value.set_trigger(true));
     loop {
         cortex_m::asm::wfi();
     }
 }
 
-async fn run_host_until_stopped<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) -> bool {
+async fn run_host_until_stopped<C: Controller, P: PacketPool>(
+    mut runner: Runner<'_, C, P>,
+) -> bool {
     runner.run().await.is_err()
 }
 
@@ -285,7 +298,9 @@ async fn serve_connection<C: Controller>(
                 }
                 let _ = sign.write_marker("CONDUIT_BLE_PEER_PAIRED").await;
             }
-            GattConnectionEvent::PairingFailed(_) => return Err(UsbLinkError::InvalidGeneratedEndpoint),
+            GattConnectionEvent::PairingFailed(_) => {
+                return Err(UsbLinkError::InvalidGeneratedEndpoint)
+            }
             GattConnectionEvent::Gatt {
                 event: GattEvent::Write(event),
             } if event.handle() == server.conduit.write.handle => {
@@ -369,7 +384,14 @@ async fn handle_session_frame(
     machine.admit_inbound(frame)?;
     match frame.message {
         SessionMessage::Hello(_) => {
-            send_session(binding.hello_frame(), machine, server, connection, send_sequence).await?;
+            send_session(
+                binding.hello_frame(),
+                machine,
+                server,
+                connection,
+                send_sequence,
+            )
+            .await?;
         }
         SessionMessage::Ready => {
             send_session(
@@ -458,12 +480,8 @@ async fn send_session(
 ) -> Result<(), UsbLinkError> {
     machine.admit_outbound(frame)?;
     let mut bytes = [0_u8; FRAME_BYTES];
-    let length = encode_session_frame_into(
-        frame,
-        &mut bytes,
-        SESSION_PAYLOAD_BYTES,
-        FRAME_BYTES as u32,
-    )?;
+    let length =
+        encode_session_frame_into(frame, &mut bytes, SESSION_PAYLOAD_BYTES, FRAME_BYTES as u32)?;
     let profile = BleGattProfile::FIRST;
     let count = fragment_count(length, profile).map_err(|_| UsbLinkError::BufferOverflow)?;
     let mut packet = [0_u8; MAXIMUM_BLE_GATT_PACKET_BYTES];
@@ -475,8 +493,9 @@ async fn send_session(
             profile,
             &mut packet,
         )
-            .map_err(|_| UsbLinkError::BufferOverflow)?;
-        let value = Vec::from_slice(&packet[..packet_len]).map_err(|_| UsbLinkError::BufferOverflow)?;
+        .map_err(|_| UsbLinkError::BufferOverflow)?;
+        let value =
+            Vec::from_slice(&packet[..packet_len]).map_err(|_| UsbLinkError::BufferOverflow)?;
         server
             .conduit
             .notify
@@ -503,7 +522,8 @@ fn binding(runtime: &RuntimeTranscriptIdentity) -> Result<SessionBinding, UsbLin
     let sink_boot = BootId::from(planned.local_boot);
     SessionBinding {
         protocol_version: 1,
-        source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0).active_play_id,
+        source_active_play_id: bind_active_play(&plan_id, &source_host, &source_boot, 0)
+            .active_play_id,
         sink_active_play_id: bind_active_play(&plan_id, &sink_host, &sink_boot, 0).active_play_id,
         plan_id,
         source_fragment_id: FragmentId::from(planned.source_fragment_id),
@@ -542,6 +562,9 @@ fn binding(runtime: &RuntimeTranscriptIdentity) -> Result<SessionBinding, UsbLin
             },
         },
     }
-    .with_observed_boots(BootId::from(planned.peer_boot), BootId::from(runtime.boot_id()))
+    .with_observed_boots(
+        BootId::from(planned.peer_boot),
+        BootId::from(runtime.boot_id()),
+    )
     .map_err(UsbLinkError::Codec)
 }

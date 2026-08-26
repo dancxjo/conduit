@@ -1,12 +1,12 @@
 //! One fixed, attachment-dependent WebSocket Base and current Session handshake.
 
+use conduit_core::LineOffer;
 use embassy_futures::select::{select, Either};
 use embassy_net::{tcp::TcpSocket, Stack};
 use embassy_time::Duration;
-use conduit_core::LineOffer;
 
-use crate::network_receipts::WebSocketRouteIdentity;
 use crate::continuable_signal::ContinuableSignalSink;
+use crate::network_receipts::WebSocketRouteIdentity;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::usb_link::UsbLinkSession;
 
@@ -45,7 +45,11 @@ pub async fn run(
         sign_id: conduit_net::R1_WEBSOCKET_ROUTE_SIGN_ID,
     };
     let plan_c = await_query(link).await.map_err(|_| WebSocketUnavailable)?;
-    let signal_runtime = if plan_c { plan_c_runtime } else { plan_a_runtime };
+    let signal_runtime = if plan_c {
+        plan_c_runtime
+    } else {
+        plan_a_runtime
+    };
     let mut state = if plan_c {
         match plan_c_state.take() {
             Some(state) => state,
@@ -77,7 +81,8 @@ pub async fn run(
     if socket.accept(conduit_net::R1_WEBSOCKET_PORT).await.is_err() {
         remain_bootsel(link).await
     }
-    let Ok(mut transport) = crate::websocket_transport::WebSocketTransport::accept(&mut socket).await
+    let Ok(mut transport) =
+        crate::websocket_transport::WebSocketTransport::accept(&mut socket).await
     else {
         socket.abort();
         remain_bootsel(link).await
@@ -103,7 +108,8 @@ pub async fn run(
             &mut state,
         ),
     )
-    .await {
+    .await
+    {
         Either::First(_) => unreachable!(),
         Either::Second(Ok(())) => {
             socket.abort();
@@ -127,8 +133,14 @@ pub async fn run(
 async fn await_query(link: &mut UsbLinkSession) -> Result<bool, ()> {
     let mut frame = [0_u8; 1024];
     loop {
-        let raw = link.receive_raw_stream_frame(&mut frame).await.map_err(|_| ())?;
-        if crate::bootsel::handle_request(link, raw).await.map_err(|_| ())? {
+        let raw = link
+            .receive_raw_stream_frame(&mut frame)
+            .await
+            .map_err(|_| ())?;
+        if crate::bootsel::handle_request(link, raw)
+            .await
+            .map_err(|_| ())?
+        {
             continue;
         }
         if raw == conduit_net::R1_WEBSOCKET_BASE_QUERY {

@@ -224,7 +224,7 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
         &pico_advertisement,
     );
     let form = conduit_form::parse_with_startup(
-        include_str!("../../../fixtures/forms/triple-signal.conduit"),
+        include_str!("../../../../fixtures/forms/triple-signal.conduit"),
         &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -325,7 +325,7 @@ mod tests {
     fn missing_capability_and_stale_link_fail_closed() {
         let exact = exact_plan().expect("triple plan resolves");
         let form = conduit_form::parse_with_startup(
-            include_str!("../../../fixtures/forms/triple-signal.conduit"),
+            include_str!("../../../../fixtures/forms/triple-signal.conduit"),
             &crate::signal_startup_catalog(),
             &signal_profile_catalog(),
         )

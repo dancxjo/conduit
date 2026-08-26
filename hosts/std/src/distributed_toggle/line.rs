@@ -7,7 +7,7 @@ use super::source::{DistributedToggleSource, MAXIMUM_VALUES};
 use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_core::BOOL_ENCODED_LEN;
 use conduit_kernel::{KernelEventKind, SignQuery, ValueStorage};
-use conduit_signal::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
+use conduit_signal_conformance::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,
 };

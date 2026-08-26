@@ -4,18 +4,15 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use conduit_core::{
-    bind_active_play, bind_sign, bind_presentation, BootId, ConnectionBase, HostId,
-    PlacementId, PlanId,
+    bind_active_play, bind_presentation, bind_sign, BootId, ConnectionBase, HostId, PlacementId,
+    PlanId,
 };
-use conduit_embedded_build::{
-    generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan,
-};
+use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan};
 use conduit_runtime::lowering::lower_plan_fragment;
-use conduit_signal::{
-    exact_std_pico_bluetooth_plan, exact_std_pico_usb_plan, pico_local_advertisement, signal_profile_catalog,
-    triple,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, SHOW_KIND, SIGNAL_ENCODED_LEN,
-    STD_PICO_USB_SINK_HOST_ID,
+use conduit_signal::{signal_profile_catalog, SHOW_KIND, SIGNAL_ENCODED_LEN};
+use conduit_signal_conformance::{
+    exact_std_pico_bluetooth_plan, exact_std_pico_usb_plan, pico_local_advertisement, triple,
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, STD_PICO_USB_SINK_HOST_ID,
 };
 
 mod identity_sidecar;
@@ -82,9 +79,7 @@ fn generate_pico_lenia_image(out: &Path) {
         .plan
         .fragments
         .iter()
-        .find(|fragment| {
-            fragment.host_id.as_str() == conduit_alife::DISTRIBUTED_LENIA_PICO_HOST_ID
-        })
+        .find(|fragment| fragment.host_id.as_str() == conduit_alife::DISTRIBUTED_LENIA_PICO_HOST_ID)
         .expect("distributed Lenia Plan must contain the Pico worker");
     let lowered = lower_plan_fragment(fragment).expect("Pico Lenia fragment must lower");
     let generated = generate_embedded_plan(
@@ -124,12 +119,8 @@ fn generate_pico_lenia_image(out: &Path) {
     .expect("writing to a String cannot fail");
     fs::write(out.join("pico_signal_image.rs"), module)
         .expect("generated Pico Lenia image must be writable");
-    let active_play = bind_active_play(
-        &exact.plan.plan_id,
-        &fragment.host_id,
-        &fragment.boot_id,
-        0,
-    );
+    let active_play =
+        bind_active_play(&exact.plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     let sidecar = serde_json::json!({
         "schema": "conduit.distributed-lenia/generated-worker-image@1",
         "firmware_mode": "distributed-lenia",
@@ -155,8 +146,8 @@ fn generate_pico_lenia_image(out: &Path) {
         "sign_items": generated.sign_items,
         "sign_bytes": generated.sign_bytes,
     });
-    let sidecar = serde_json::to_string_pretty(&sidecar)
-        .expect("distributed Lenia identity must serialize");
+    let sidecar =
+        serde_json::to_string_pretty(&sidecar).expect("distributed Lenia identity must serialize");
     fs::write(out.join("pico_signal_identity.json"), &sidecar)
         .expect("generated Pico Lenia identity sidecar must be writable");
     if let Ok(path) = env::var(IDENTITY_SIDECAR_ENV) {
@@ -347,8 +338,12 @@ fn generate_pico_appliance_identity() {
 }
 
 fn generate_r1_recovery_signal_images(out: &Path) {
-    let form = conduit_form::parse_with_startup(SIGNAL_DEMO_FORM, &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-        .expect("R1 Signal form must check against conduit-signal profile");
+    let form = conduit_form::parse_with_startup(
+        SIGNAL_DEMO_FORM,
+        &conduit_signal::signal_startup_catalog(),
+        &signal_profile_catalog(),
+    )
+    .expect("R1 Signal form must check against conduit-signal profile");
     for (stem, routes) in [
         (
             "r1_plan_a_signal",
@@ -380,7 +375,7 @@ fn generate_r1_recovery_signal_images(out: &Path) {
         let identity = GeneratedFirmwareIdentity::new(&form, &generated);
         let rendered = render_firmware_module(&generated, &identity);
         fs::write(out.join(format!("{stem}_image.rs")), &rendered)
-        .expect("generated R1 Pico Signal image should be writable");
+            .expect("generated R1 Pico Signal image should be writable");
         if matches!(
             routes,
             conduit_system_continuity::R1SignalRouteSet::WebSocketOnly
@@ -433,12 +428,7 @@ fn generate_pico_network_image(out: &Path) {
     let boot_id = BootId::from(generated.boot_id.clone());
     let active_play = bind_active_play(&plan_id, &host_id, &boot_id, 0);
     let boot_sign = bind_sign(&host_id, &boot_id, None, 0);
-    let attachment_sign = bind_sign(
-        &host_id,
-        &boot_id,
-        Some(&active_play.active_play_id),
-        0,
-    );
+    let attachment_sign = bind_sign(&host_id, &boot_id, Some(&active_play.active_play_id), 0);
     let firmware_build_id = format!(
         "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}:{}",
         git_revision(),
@@ -511,8 +501,12 @@ fn generate_pico_signal_image(out: &Path) {
     } else {
         SIGNAL_DEMO_FORM
     };
-    let form = conduit_form::parse_with_startup(source, &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
-        .expect("selected Signal form must check against conduit-signal profile");
+    let form = conduit_form::parse_with_startup(
+        source,
+        &conduit_signal::signal_startup_catalog(),
+        &signal_profile_catalog(),
+    )
+    .expect("selected Signal form must check against conduit-signal profile");
     let (plan, target_host) = if firmware_mode() == "triple-remote" {
         let exact = triple::exact_plan().expect("exact three-host Signal plan must resolve");
         (exact.plan, triple::PICO_HOST_ID)
@@ -583,9 +577,7 @@ fn render_firmware_module(
             "pub const WAIT_VALUE_BYTES: u32 = {};\n",
             "pub const RUNTIME_SIGN_EVENTS: usize = {};\n",
         ),
-        MAX_STORED_SIGNAL_VALUES,
-        WAIT_VALUE_BYTES,
-        RUNTIME_SIGN_EVENTS,
+        MAX_STORED_SIGNAL_VALUES, WAIT_VALUE_BYTES, RUNTIME_SIGN_EVENTS,
     ));
     module
 }
@@ -723,11 +715,7 @@ fn render_identity_constants(module: &mut String, identity: &GeneratedFirmwareId
     render_string_constant(module, "EXPANDED_FORM_ID", &identity.expanded_form_id);
     render_string_constant(module, "ACTIVE_PLAY_ID", &identity.active_play_id);
     render_string_constant(module, "BOOT_SIGN_ID", &identity.boot_sign_id);
-    render_string_constant(
-        module,
-        "TERMINAL_SIGN_ID",
-        &identity.terminal_sign_id,
-    );
+    render_string_constant(module, "TERMINAL_SIGN_ID", &identity.terminal_sign_id);
     render_string_array(module, "PRESENTATION_IDS", &identity.presentation_ids);
     render_string_array(
         module,
@@ -737,8 +725,7 @@ fn render_identity_constants(module: &mut String, identity: &GeneratedFirmwareId
 }
 
 fn render_string_constant(module: &mut String, name: &str, value: &str) {
-    writeln!(module, "pub const {name}: &str = {value:?};")
-        .expect("String writes cannot fail");
+    writeln!(module, "pub const {name}: &str = {value:?};").expect("String writes cannot fail");
 }
 
 fn render_string_array(module: &mut String, name: &str, values: &[String]) {

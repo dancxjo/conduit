@@ -94,8 +94,14 @@ pub async fn execute(
     }
     create_link_gate::set_translator(translator_oe, false);
     let after = uart_diagnostic::snapshot();
-    RX_BYTES.store(after.rx_bytes.wrapping_sub(before.rx_bytes), Ordering::Release);
-    OVERRUNS.store(after.overruns.wrapping_sub(before.overruns), Ordering::Release);
+    RX_BYTES.store(
+        after.rx_bytes.wrapping_sub(before.rx_bytes),
+        Ordering::Release,
+    );
+    OVERRUNS.store(
+        after.overruns.wrapping_sub(before.overruns),
+        Ordering::Release,
+    );
     BREAKS.store(after.breaks.wrapping_sub(before.breaks), Ordering::Release);
     PARITY_ERRORS.store(
         after.parity_errors.wrapping_sub(before.parity_errors),

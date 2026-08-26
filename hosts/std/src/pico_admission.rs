@@ -189,7 +189,7 @@ mod tests {
         PicoAdmissionProof,
     };
     use conduit_core::{CheckedFormId, SourceDocumentId};
-    use conduit_signal::pico_local_advertisement;
+    use conduit_signal_conformance::pico_local_advertisement;
     use ed25519_dalek::{Signer, SigningKey};
 
     #[test]

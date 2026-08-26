@@ -17,9 +17,9 @@ use conduit_signal::{
     pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
     pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
     show_host_operation_requirements, show_inputs, show_resource_requirements,
-    signal_profile_catalog, signal_resource_offers, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    SIGNAL_ENCODED_LEN,
+    signal_profile_catalog, signal_resource_offers, SIGNAL_ENCODED_LEN,
 };
+use conduit_signal_conformance::DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS;
 
 pub const R1_PULSE_CAPABILITY_ID: &str = "r1/std-pulse";
 pub const R1_LED_CAPABILITY_ID: &str = "r1/pico-cyw43-led";

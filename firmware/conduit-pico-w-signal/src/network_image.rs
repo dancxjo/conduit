@@ -5,9 +5,7 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/pico_network_image.rs"));
 }
 
-use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, HostOperationId, NodeId, PortId,
-};
+use conduit_kernel::{FixedHostOperationBindings, FixedRoutes, HostOperationId, NodeId, PortId};
 
 pub const NODES: usize = generated::GENERATED_NODES.len();
 pub const CORDS: usize = generated::GENERATED_CORDS.len();
@@ -194,8 +192,7 @@ pub fn generated_remote_endpoint() -> Option<GeneratedRemoteEndpoint> {
         link_binding_id: generated::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS[0],
         base_instance_id: generated::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS[0],
         value_kind: generated::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS[0],
-        maximum_in_flight_items:
-            generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS[0],
+        maximum_in_flight_items: generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS[0],
         maximum_payload_bytes: generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_PAYLOAD_BYTES[0],
         maximum_buffered_bytes: generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_BUFFERED_BYTES[0],
         maximum_frame_bytes: generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_FRAME_BYTES[0],

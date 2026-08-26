@@ -8,9 +8,10 @@ use conduit_core::{
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
-use conduit_signal::{
+use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
+use conduit_signal_conformance::{
     distributed_browser_sink_advertisement, distributed_websocket_line_offer,
-    signal_profile_catalog, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
 };
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_wire::{LineDisposition, LineError, LineMachine};
@@ -71,12 +72,12 @@ impl DistributedRouteDemo {
         }
         let one = planned(&[USB_LINE], &source_host_id, &source_boot_id)?;
         let fallback = planned(
-            &[USB_LINE, conduit_signal::DISTRIBUTED_LINE_ID],
+            &[USB_LINE, conduit_signal_conformance::DISTRIBUTED_LINE_ID],
             &source_host_id,
             &source_boot_id,
         )?;
         let replacement = planned(
-            &[conduit_signal::DISTRIBUTED_LINE_ID],
+            &[conduit_signal_conformance::DISTRIBUTED_LINE_ID],
             &source_host_id,
             &source_boot_id,
         )?;
@@ -184,8 +185,10 @@ impl DistributedRouteDemo {
         )?;
         let mut fallback_machine = LineMachine::new(fallback_connection)?;
         let ready = LineAvailabilitySign {
-            line_id: LineId::from(conduit_signal::DISTRIBUTED_LINE_ID),
-            binding_id: LinkBindingId::from(conduit_signal::DISTRIBUTED_LINK_BINDING_ID),
+            line_id: LineId::from(conduit_signal_conformance::DISTRIBUTED_LINE_ID),
+            binding_id: LinkBindingId::from(
+                conduit_signal_conformance::DISTRIBUTED_LINK_BINDING_ID,
+            ),
             availability: LineAvailability::Ready,
             sign_id: SignId::from("route-demo/plan-b/websocket-ready"),
         };

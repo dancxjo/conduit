@@ -11,6 +11,7 @@ conduit-net = { path = "../conduit-net", optional = true }
 conduit-observatory = { path = "../conduit-observatory" }
 conduit-planner = { path = "../conduit-planner", optional = true }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"], optional = true }
+conduit-signal-conformance = { path = "../../proof/conformance/signal", optional = true }
 conduit-wire = { path = "../conduit-wire" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
@@ -22,6 +23,7 @@ r1-recovery = [
     "dep:conduit-net",
     "dep:conduit-planner",
     "dep:conduit-signal",
+    "dep:conduit-signal-conformance",
 ]
 
 [[test]]
@@ -30,3 +32,4 @@ required-features = ["r1-recovery"]
 
 [dev-dependencies]
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }

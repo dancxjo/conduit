@@ -20,14 +20,16 @@ use conduit_runtime::lowering::{
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 #[cfg(test)]
-use conduit_signal::{
+use conduit_signal::signal_profile_catalog;
+use conduit_signal::{encode_signal, parse_pulse_configuration, Signal, SIGNAL_ENCODED_LEN};
+#[cfg(test)]
+use conduit_signal_conformance::{
     distributed_browser_sink_advertisement, distributed_std_source_advertisement,
-    distributed_websocket_line_offer, signal_profile_catalog,
+    distributed_websocket_line_offer,
 };
-use conduit_signal::{
-    encode_signal, exact_distributed_signal_plan, exact_distributed_signal_plan_for,
-    parse_pulse_configuration, DistributedSignalPlan, Signal, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-    SIGNAL_ENCODED_LEN,
+use conduit_signal_conformance::{
+    exact_distributed_signal_plan, exact_distributed_signal_plan_for, DistributedSignalPlan,
+    DISTRIBUTED_MAXIMUM_FRAME_BYTES,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,

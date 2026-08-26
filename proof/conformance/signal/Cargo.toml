@@ -1,0 +1,18 @@
+[package]
+name = "conduit-signal-conformance"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-bluetooth = { path = "../../../crates/conduit-bluetooth" }
+conduit-core = { path = "../../../crates/conduit-core" }
+conduit-form = { path = "../../../crates/conduit-form" }
+conduit-planner = { path = "../../../crates/conduit-planner" }
+conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }
+conduit-std-catalog = { path = "../../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
+conduit-wire = { path = "../../../crates/conduit-wire", default-features = false }
+
+[features]
+default = ["host-profile"]
+host-profile = []

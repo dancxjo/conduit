@@ -62,7 +62,8 @@ pub fn endpoint(base: ConnectionBase) -> Option<RemoteEndpointIdentity> {
             .get(index)?,
         maximum_buffered_bytes: *generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_BUFFERED_BYTES
             .get(index)?,
-        maximum_frame_bytes: *generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_FRAME_BYTES.get(index)?,
+        maximum_frame_bytes: *generated::GENERATED_REMOTE_ENDPOINT_MAXIMUM_FRAME_BYTES
+            .get(index)?,
     })
 }
 

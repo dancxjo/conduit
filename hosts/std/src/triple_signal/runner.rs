@@ -2,7 +2,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use conduit_signal::{decode_signal_bytes, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SIGNAL_ENCODED_LEN};
+use conduit_signal::{decode_signal_bytes, SIGNAL_ENCODED_LEN};
+use conduit_signal_conformance::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,
 };

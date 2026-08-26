@@ -8,13 +8,11 @@ use cyw43::Control;
 use cyw43_pio::{PioSpi, RM2_CLOCK_DIVIDER};
 use embassy_executor::Spawner;
 use embassy_rp::{
-    bind_interrupts,
-    dma,
+    bind_interrupts, dma,
     gpio::{Level, Output},
     peripherals::{DMA_CH0, DMA_CH1, PIN_23, PIN_24, PIN_25, PIN_29, PIO0, USB},
     pio::Pio,
-    usb,
-    Peri,
+    usb, Peri,
 };
 #[cfg(any(
     feature = "wifi-bootstrap",
@@ -211,11 +209,8 @@ pub async fn init_cyw43_network(
         dma_rx,
     );
     let state = STATE.init(cyw43::State::new());
-    let driver_startup = with_timeout(
-        RADIO_PHASE_TIMEOUT,
-        cyw43::new(state, pwr, spi, fw, nvram),
-    )
-    .await;
+    let driver_startup =
+        with_timeout(RADIO_PHASE_TIMEOUT, cyw43::new(state, pwr, spi, fw, nvram)).await;
     let (net_device, mut control, runner) = match driver_startup {
         Ok(driver) => driver,
         Err(_) => {

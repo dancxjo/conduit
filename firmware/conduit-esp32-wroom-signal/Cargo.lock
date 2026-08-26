@@ -221,6 +221,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-wire",
  "critical-section",
  "embassy-executor",
@@ -316,13 +317,23 @@ dependencies = [
 name = "conduit-signal"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-std-catalog",
+ "serde",
+]
+
+[[package]]
+name = "conduit-signal-conformance"
+version = "0.1.0"
+dependencies = [
  "conduit-bluetooth",
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-signal",
  "conduit-std-catalog",
  "conduit-wire",
- "serde",
 ]
 
 [[package]]

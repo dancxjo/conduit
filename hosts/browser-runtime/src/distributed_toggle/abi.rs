@@ -160,7 +160,7 @@ mod tests {
     use super::super::sink::ToggleDistributedSink;
     use super::super::OUTPUT_PRESENT;
     use conduit_core::{InfoBool, BOOL_ENCODED_LEN};
-    use conduit_signal::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
+    use conduit_signal_conformance::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
     use conduit_wire::{encode_session_frame_into, SessionFrame, SessionMessage};
 
     fn ingest(sink: &mut ToggleDistributedSink, frame: SessionFrame<'_>) {

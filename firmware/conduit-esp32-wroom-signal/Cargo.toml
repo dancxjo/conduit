@@ -60,6 +60,7 @@ conduit-host-esp32-fabrication = { path = "../../targets/esp32/fabrication" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 
 [profile.dev]
 opt-level = "s"

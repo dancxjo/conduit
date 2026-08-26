@@ -40,8 +40,9 @@ pub fn exact_distributed_signal_plan_for_endpoints(
         crate::distributed_source_advertisement_for(source_host_id.clone(), source_boot_id.clone());
     let sink_advertisement =
         crate::distributed_browser_advertisement_for(sink_host_id, sink_boot_id);
-    let syntax =
-        conduit_form::parse_syntax_document(include_str!("../../../examples/signal-demo.conduit"));
+    let syntax = conduit_form::parse_syntax_document(include_str!(
+        "../../../../examples/signal-demo.conduit"
+    ));
     let checked = conduit_form::check_syntax_document(&syntax, &crate::signal_startup_catalog())
         .map_err(|error| alloc::format!("{}: {}", error.code, error.message))?;
     let form = conduit_form::expand_canonical_form(

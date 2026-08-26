@@ -63,6 +63,20 @@ compile_error!("select exactly one Pico firmware mode");
 )))]
 compile_error!("select exactly one Pico firmware mode");
 
+#[cfg(feature = "appliance-hello")]
+mod appliance;
+#[cfg(feature = "appliance-hil-client")]
+mod appliance_hil_client;
+#[cfg(feature = "bluetooth-line")]
+mod bluetooth_line;
+#[cfg(any(feature = "pico-local", feature = "wifi-bootstrap"))]
+mod body_admission;
+#[cfg(feature = "session-control")]
+mod bootsel;
+#[cfg(feature = "wifi-bootstrap")]
+mod continuable_signal;
+#[cfg(feature = "distributed-lenia")]
+mod distributed_lenia;
 #[cfg(not(any(
     feature = "appliance-hello",
     feature = "appliance-hil-client",
@@ -70,60 +84,8 @@ compile_error!("select exactly one Pico firmware mode");
     feature = "distributed-lenia"
 )))]
 mod kernel;
-#[cfg(any(feature = "pico-local", feature = "wifi-bootstrap"))]
-mod body_admission;
-#[cfg(feature = "appliance-hello")]
-mod appliance;
-#[cfg(feature = "appliance-hil-client")]
-mod appliance_hil_client;
-#[cfg(feature = "bluetooth-line")]
-mod bluetooth_line;
-#[cfg(feature = "distributed-lenia")]
-mod distributed_lenia;
 #[cfg(feature = "distributed-lenia")]
 mod lenia_image;
-#[cfg(feature = "session-control")]
-mod bootsel;
-#[cfg(feature = "wifi-bootstrap")]
-mod panic_recovery;
-#[cfg(feature = "wifi-bootstrap")]
-mod wifi_recovery;
-#[cfg(feature = "wifi-bootstrap")]
-mod websocket_route;
-#[cfg(feature = "wifi-bootstrap")]
-mod websocket_signal;
-#[cfg(feature = "wifi-bootstrap")]
-mod websocket_transport;
-mod radio;
-mod receipts;
-#[cfg(any(feature = "session-control", feature = "bluetooth-line"))]
-mod remote_error;
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap"))]
-mod remote_signal;
-#[cfg(any(
-    feature = "usb-remote",
-    feature = "triple-remote",
-    feature = "wifi-bootstrap",
-    feature = "bluetooth-line"
-))]
-mod remote_kernel;
-#[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client", feature = "distributed-lenia")))]
-mod signal_image;
-#[cfg(any(
-    feature = "usb-remote",
-    feature = "triple-remote",
-    feature = "wifi-bootstrap",
-    feature = "bluetooth-line"
-))]
-mod signal_execution_identity;
-#[cfg(feature = "wifi-bootstrap")]
-mod plan_b_signal_image;
-#[cfg(feature = "wifi-bootstrap")]
-mod plan_c_signal_image;
-#[cfg(feature = "wifi-bootstrap")]
-mod continuable_signal;
-#[cfg(feature = "wifi-bootstrap")]
-mod signal_recovery;
 #[cfg(feature = "wifi-bootstrap")]
 mod network_image;
 #[cfg(feature = "wifi-bootstrap")]
@@ -131,9 +93,43 @@ mod network_operations;
 #[cfg(feature = "wifi-bootstrap")]
 mod network_receipts;
 #[cfg(feature = "wifi-bootstrap")]
-mod wifi_join;
+mod panic_recovery;
 #[cfg(feature = "wifi-bootstrap")]
-mod wifi_session;
+mod plan_b_signal_image;
+#[cfg(feature = "wifi-bootstrap")]
+mod plan_c_signal_image;
+mod radio;
+mod receipts;
+#[cfg(any(feature = "session-control", feature = "bluetooth-line"))]
+mod remote_error;
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
+mod remote_kernel;
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap"
+))]
+mod remote_signal;
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
+mod signal_execution_identity;
+#[cfg(not(any(
+    feature = "appliance-hello",
+    feature = "appliance-hil-client",
+    feature = "distributed-lenia"
+)))]
+mod signal_image;
+#[cfg(feature = "wifi-bootstrap")]
+mod signal_recovery;
 #[cfg(any(
     feature = "usb-remote",
     feature = "triple-remote",
@@ -144,11 +140,21 @@ mod startup_arena;
 mod usb;
 #[cfg(feature = "session-control")]
 mod usb_link;
+#[cfg(feature = "wifi-bootstrap")]
+mod websocket_route;
+#[cfg(feature = "wifi-bootstrap")]
+mod websocket_signal;
+#[cfg(feature = "wifi-bootstrap")]
+mod websocket_transport;
+#[cfg(feature = "wifi-bootstrap")]
+mod wifi_join;
+#[cfg(feature = "wifi-bootstrap")]
+mod wifi_recovery;
+#[cfg(feature = "wifi-bootstrap")]
+mod wifi_session;
 
-use aligned::{A4, Aligned};
+use aligned::{Aligned, A4};
 use embassy_executor::Spawner;
-#[cfg(any(feature = "bluetooth-line", feature = "distributed-lenia"))]
-use embassy_rp::flash::Flash;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 use embassy_futures::join::join;
 #[cfg(any(
@@ -159,6 +165,8 @@ use embassy_futures::join::join;
     feature = "distributed-lenia"
 ))]
 use embassy_futures::select::{select, Either};
+#[cfg(any(feature = "bluetooth-line", feature = "distributed-lenia"))]
+use embassy_rp::flash::Flash;
 #[cfg(not(feature = "wifi-bootstrap"))]
 use panic_halt as _;
 
@@ -252,11 +260,14 @@ async fn main(spawner: Spawner) {
         not(feature = "appliance-hil-client"),
         not(feature = "distributed-lenia")
     ))]
-    let runtime = receipts::RuntimeTranscriptIdentity::new(signal_image::PLAN_ID, signal_image::HOST_ID);
+    let runtime =
+        receipts::RuntimeTranscriptIdentity::new(signal_image::PLAN_ID, signal_image::HOST_ID);
     #[cfg(feature = "distributed-lenia")]
-    let runtime = receipts::RuntimeTranscriptIdentity::new(lenia_image::PLAN_ID, lenia_image::HOST_ID);
+    let runtime =
+        receipts::RuntimeTranscriptIdentity::new(lenia_image::PLAN_ID, lenia_image::HOST_ID);
     #[cfg(feature = "wifi-bootstrap")]
-    let runtime = receipts::RuntimeTranscriptIdentity::new(network_image::PLAN_ID, network_image::HOST_ID);
+    let runtime =
+        receipts::RuntimeTranscriptIdentity::new(network_image::PLAN_ID, network_image::HOST_ID);
     let mut cdc = receipts::UsbCdc::new(sign_sender.sender);
 
     #[cfg(feature = "pico-local")]
@@ -488,13 +499,28 @@ async fn main(spawner: Spawner) {
         let bluetooth = async {
             cdc.wait_dtr().await;
             distributed_lenia::run(
-                &spawner, &mut cdc, p.PIO0, p.DMA_CH0, p.DMA_CH1, p.PIN_23,
-                p.PIN_24, p.PIN_25, p.PIN_29, &CYW43_FW, &CYW43_BTFW,
-                &CYW43_NVRAM, CYW43_CLM, &runtime, flash_unique_id,
-            ).await
+                &spawner,
+                &mut cdc,
+                p.PIO0,
+                p.DMA_CH0,
+                p.DMA_CH1,
+                p.PIN_23,
+                p.PIN_24,
+                p.PIN_25,
+                p.PIN_29,
+                &CYW43_FW,
+                &CYW43_BTFW,
+                &CYW43_NVRAM,
+                CYW43_CLM,
+                &runtime,
+                flash_unique_id,
+            )
+            .await
         };
         let recovery = async {
-            loop { let _ = bootsel::wait_for_request(&mut link_session).await; }
+            loop {
+                let _ = bootsel::wait_for_request(&mut link_session).await;
+            }
         };
         match select(bluetooth, recovery).await {
             Either::First(value) => value,

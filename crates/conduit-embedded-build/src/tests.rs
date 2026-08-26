@@ -8,9 +8,9 @@ use conduit_core::{
     SourceDocumentId, StartupDependency, TerminalPolicy,
 };
 use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
-use conduit_signal::{
-    pico_local_advertisement, signal_profile_catalog, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    PICO_LOCAL_HOST_ID, SIGNAL_ENCODED_LEN,
+use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
+use conduit_signal_conformance::{
+    pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID,
 };
 
 use crate::validate::validate_range;

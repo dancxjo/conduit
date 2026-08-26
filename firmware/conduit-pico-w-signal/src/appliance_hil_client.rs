@@ -52,9 +52,7 @@ impl ProbeFailure {
 }
 
 #[embassy_executor::task]
-async fn network_task(
-    mut runner: embassy_net::Runner<'static, cyw43::NetDriver<'static>>,
-) -> ! {
+async fn network_task(mut runner: embassy_net::Runner<'static, cyw43::NetDriver<'static>>) -> ! {
     runner.run().await
 }
 
@@ -96,10 +94,7 @@ pub async fn run(
     spawner.spawn(network_task(runner).unwrap());
     match with_timeout(
         PROBE_TIMEOUT,
-        control.join(
-            conduit_net::APPLIANCE_SSID,
-            cyw43::JoinOptions::new_open(),
-        ),
+        control.join(conduit_net::APPLIANCE_SSID, cyw43::JoinOptions::new_open()),
     )
     .await
     {
@@ -155,9 +150,7 @@ pub async fn run(
             })
             .await;
         match result {
-            Ok(0) | Err(_) => {
-                terminal_failure(sign, &runtime_boot, ProbeFailure::HttpWrite).await
-            }
+            Ok(0) | Err(_) => terminal_failure(sign, &runtime_boot, ProbeFailure::HttpWrite).await,
             Ok(count) => written += count,
         }
     }
@@ -224,9 +217,7 @@ async fn write_receipt(
     {
         core::future::pending::<()>().await;
     }
-    if line.push_str("}\n").is_err()
-        || sign.write_all_mandatory(line.as_bytes()).await.is_err()
-    {
+    if line.push_str("}\n").is_err() || sign.write_all_mandatory(line.as_bytes()).await.is_err() {
         core::future::pending::<()>().await;
     }
 }

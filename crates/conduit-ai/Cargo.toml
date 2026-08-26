@@ -20,5 +20,6 @@ conduit-form = { path = "../conduit-form" }
 conduit-kernel = { path = "../conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-presentation = { path = "../conduit-presentation" }
 serde_json = "1"

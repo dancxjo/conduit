@@ -24,24 +24,21 @@ pub async fn run(
     let plan_b_runtime = runtime.for_plan(plan_b.plan_id, plan_b.host_id);
     let plan_c_runtime = runtime.for_plan(plan_c.plan_id, plan_c.host_id);
     let route_basis = conduit_net::r1_line_basis(BootId::from(runtime.boot_id()));
-    let mut plan_a_state = match crate::continuable_signal::ContinuableSignalSink::new_plan_a(
-        &plan_a_runtime,
-    ) {
-        Ok(state) => Some(state),
-        Err(_) => remain_bootsel(link).await,
-    };
-    let mut plan_b_state = match crate::continuable_signal::ContinuableSignalSink::new_plan_b(
-        &plan_b_runtime,
-    ) {
-        Ok(state) => Some(state),
-        Err(_) => remain_bootsel(link).await,
-    };
-    let mut plan_c_state = match crate::continuable_signal::ContinuableSignalSink::new(
-        &plan_c_runtime,
-    ) {
-        Ok(state) => Some(state),
-        Err(_) => remain_bootsel(link).await,
-    };
+    let mut plan_a_state =
+        match crate::continuable_signal::ContinuableSignalSink::new_plan_a(&plan_a_runtime) {
+            Ok(state) => Some(state),
+            Err(_) => remain_bootsel(link).await,
+        };
+    let mut plan_b_state =
+        match crate::continuable_signal::ContinuableSignalSink::new_plan_b(&plan_b_runtime) {
+            Ok(state) => Some(state),
+            Err(_) => remain_bootsel(link).await,
+        };
+    let mut plan_c_state =
+        match crate::continuable_signal::ContinuableSignalSink::new(&plan_c_runtime) {
+            Ok(state) => Some(state),
+            Err(_) => remain_bootsel(link).await,
+        };
     crate::ALLOCATOR.seal();
     crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelCompletion);
 

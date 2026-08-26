@@ -1,5 +1,5 @@
 use conduit_core::{bind_active_play, bind_presentation, bind_sign};
-use conduit_signal::triple;
+use conduit_signal_conformance::triple;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PicoRuntimeIdentity {

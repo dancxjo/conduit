@@ -2,11 +2,12 @@ use std::{env, fs, path::PathBuf};
 
 use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
 use conduit_host_esp32_fabrication::{
-    esp32_descriptor_binding, validate_esp32_descriptor, Esp32BoardDescriptor,
+    Esp32BoardDescriptor, esp32_descriptor_binding, validate_esp32_descriptor,
 };
 use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
-use conduit_signal::{
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_S3_PHYSICAL_HOST_ID, SIGNAL_ENCODED_LEN,
+use conduit_signal::SIGNAL_ENCODED_LEN;
+use conduit_signal_conformance::{
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_S3_PHYSICAL_HOST_ID,
     exact_std_esp32_s3_bluetooth_plan,
 };
 

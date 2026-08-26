@@ -97,7 +97,7 @@ fn completed_play_projection_keeps_exact_play_plan_and_sign() {
 
 #[test]
 fn live_link_availability_changes_do_not_mutate_sealed_line_candidates() {
-    let exact = conduit_signal::triple::exact_plan().unwrap();
+    let exact = conduit_signal_conformance::triple::exact_plan().unwrap();
     let plan = exact.plan;
     let before = plan.clone();
     let document =

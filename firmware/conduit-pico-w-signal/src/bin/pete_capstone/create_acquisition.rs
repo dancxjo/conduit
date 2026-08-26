@@ -98,9 +98,11 @@ async fn read_full_stream(
                     _ => true,
                 };
                 if !accepted {
-                    uart_diagnostic::record_discard(
-                        uart_diagnostic::discarded_on_mismatch(received, byte, STREAM_HEADER),
-                    );
+                    uart_diagnostic::record_discard(uart_diagnostic::discarded_on_mismatch(
+                        received,
+                        byte,
+                        STREAM_HEADER,
+                    ));
                     received = usize::from(byte == STREAM_HEADER);
                     if received == 1 {
                         frame[0] = byte;
@@ -139,10 +141,7 @@ async fn read_full_stream(
     Err(())
 }
 
-pub async fn establish_full(
-    provider: &mut Provider,
-    watchdog: &mut Watchdog,
-) -> Result<(), ()> {
+pub async fn establish_full(provider: &mut Provider, watchdog: &mut Watchdog) -> Result<(), ()> {
     for _ in 0..ACQUISITION_ATTEMPTS {
         if !create_link_gate::authorized() {
             return Err(());
@@ -213,10 +212,7 @@ pub fn request_safe_unverified(provider: &mut Provider) -> Result<(), ()> {
     .map_err(|_| ())
 }
 
-pub async fn play_ready_cue(
-    provider: &mut Provider,
-    watchdog: &mut Watchdog,
-) -> Result<(), ()> {
+pub async fn play_ready_cue(provider: &mut Provider, watchdog: &mut Watchdog) -> Result<(), ()> {
     if !create_link_gate::authorized() {
         return Err(());
     }
@@ -243,10 +239,7 @@ pub async fn play_ready_cue(
     }
 }
 
-pub async fn restore_safe(
-    provider: &mut Provider,
-    watchdog: &mut Watchdog,
-) -> Result<(), ()> {
+pub async fn restore_safe(provider: &mut Provider, watchdog: &mut Watchdog) -> Result<(), ()> {
     write_command(provider, &encode_start()).map_err(|_| ())?;
     watchdog_delay(watchdog, START_SETTLE_MS).await;
     discard_uart(provider);

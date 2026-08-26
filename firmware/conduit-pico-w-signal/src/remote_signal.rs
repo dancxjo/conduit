@@ -11,16 +11,16 @@ use conduit_core::{
     LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
-use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionTerminalDisposition};
 #[cfg(not(feature = "wifi-bootstrap"))]
 use conduit_wire::{LineAttachment, SessionEndpointIdentity, SessionLimits, SessionRole};
+use conduit_wire::{SessionBinding, SessionMachine, SessionMessage, SessionTerminalDisposition};
 use cyw43::Control;
 
+#[cfg(feature = "wifi-bootstrap")]
+use crate::continuable_signal::ContinuableSignalSink;
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::kernel::boot_identity;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
-#[cfg(feature = "wifi-bootstrap")]
-use crate::continuable_signal::ContinuableSignalSink;
 use crate::remote_kernel::RemoteSignalKernel;
 use crate::signal_execution_identity::SignalExecutionIdentity;
 #[cfg(not(feature = "wifi-bootstrap"))]
@@ -176,9 +176,7 @@ async fn run_remote_signal_sink_for(
             line_id: LineId::from(planned.line_id),
             link_binding_id: LinkBindingId::from(planned.link_binding_id),
             base,
-            base_instance_id: ConnectionBaseInstanceId::from(
-                planned.base_instance_id,
-            ),
+            base_instance_id: ConnectionBaseInstanceId::from(planned.base_instance_id),
             source_host_id,
             source_boot_id,
             source_endpoint_id: LinkEndpointId::from(planned.peer_endpoint),
@@ -193,7 +191,10 @@ async fn run_remote_signal_sink_for(
             },
         },
     }
-    .with_observed_boots(BootId::from(planned.peer_boot), BootId::from(runtime.boot_id()))
+    .with_observed_boots(
+        BootId::from(planned.peer_boot),
+        BootId::from(runtime.boot_id()),
+    )
     .map_err(UsbLinkError::Codec)?;
 
     let mut machine =
@@ -230,14 +231,18 @@ async fn run_prepared_signal_sink(
     let mut failure_disposition: Option<SessionTerminalDisposition> = None;
 
     // Phase 1: SessionMessage::Hello wait on the proven CDC 0 path.
-    let raw_bytes = link_session.receive_raw_stream_frame(&mut frame_buf).await?;
+    let raw_bytes = link_session
+        .receive_raw_stream_frame(&mut frame_buf)
+        .await?;
     let frame = conduit_wire::decode_session_frame(raw_bytes, 1024, 1024)?;
     if !matches!(frame.message, SessionMessage::Hello(_)) {
         return Err(UsbLinkError::Codec(conduit_wire::WireError::InvalidState));
     }
     machine.admit_inbound(frame).map_err(UsbLinkError::Codec)?;
     let hello_frame = binding.hello_frame();
-    machine.admit_outbound(hello_frame).map_err(UsbLinkError::Codec)?;
+    machine
+        .admit_outbound(hello_frame)
+        .map_err(UsbLinkError::Codec)?;
     link_session.send_frame(&hello_frame).await?;
 
     // Phase 2: Receive SessionMessage::Ready from Source and emit SessionMessage::Ready from Sink
@@ -268,14 +273,8 @@ async fn run_prepared_signal_sink(
             let admitted = match kernel.admit(sequence, payload) {
                 Ok(admitted) => admitted,
                 Err(error) => {
-                    return fail_active_session(
-                        link_session,
-                        binding,
-                        machine,
-                        kernel,
-                        error,
-                    )
-                    .await;
+                    return fail_active_session(link_session, binding, machine, kernel, error)
+                        .await;
                 }
             };
             match admitted {
@@ -303,14 +302,7 @@ async fn run_prepared_signal_sink(
                 .present_accepted(sequence, control, sign_cdc, runtime)
                 .await
             {
-                return fail_active_session(
-                    link_session,
-                    binding,
-                    machine,
-                    kernel,
-                    error,
-                )
-                .await;
+                return fail_active_session(link_session, binding, machine, kernel, error).await;
             }
 
             let delivered_frame = binding.frame(SessionMessage::Delivered { sequence });

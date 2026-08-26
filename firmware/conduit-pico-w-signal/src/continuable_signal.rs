@@ -64,7 +64,11 @@ impl ContinuableSignalSink {
         Ok(Self {
             machine: SessionMachine::new(machine_binding, SessionRole::Sink)
                 .map_err(UsbLinkError::Codec)?,
-            kernel: RemoteSignalKernel::new_for_endpoint(identity, endpoint.endpoint, endpoint.cord)?,
+            kernel: RemoteSignalKernel::new_for_endpoint(
+                identity,
+                endpoint.endpoint,
+                endpoint.cord,
+            )?,
             identity,
             binding: receipt_binding,
             usb_bindings: None,
@@ -117,11 +121,18 @@ fn binding(
         plan_id: plan.clone(),
         source_fragment_id: FragmentId::from(endpoint.source_fragment_id),
         sink_fragment_id: FragmentId::from(endpoint.sink_fragment_id),
-        source_active_play_id: bind_active_play(&plan, &source_host, &source_boot, 0).active_play_id,
+        source_active_play_id: bind_active_play(&plan, &source_host, &source_boot, 0)
+            .active_play_id,
         sink_active_play_id: bind_active_play(&plan, &sink_host, &sink_boot, 0).active_play_id,
         connection_id: ConnectionId::from(endpoint.connection_id),
-        source: SessionEndpointIdentity { host_id: source_host.clone(), boot_id: source_boot.clone() },
-        sink: SessionEndpointIdentity { host_id: sink_host.clone(), boot_id: sink_boot.clone() },
+        source: SessionEndpointIdentity {
+            host_id: source_host.clone(),
+            boot_id: source_boot.clone(),
+        },
+        sink: SessionEndpointIdentity {
+            host_id: sink_host.clone(),
+            boot_id: sink_boot.clone(),
+        },
         value_kind: KindId::from(endpoint.value_kind),
         limits: SessionLimits {
             maximum_in_flight_items: endpoint.session_item_capacity,
@@ -147,6 +158,9 @@ fn binding(
             },
         },
     }
-    .with_observed_boots(BootId::from(endpoint.peer_boot), BootId::from(runtime.boot_id()))
+    .with_observed_boots(
+        BootId::from(endpoint.peer_boot),
+        BootId::from(runtime.boot_id()),
+    )
     .map_err(UsbLinkError::Codec)
 }

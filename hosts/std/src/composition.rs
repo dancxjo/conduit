@@ -462,8 +462,8 @@ mod tests {
     #[test]
     fn reference_host_browser_and_pico_have_different_exact_offer_sets() {
         let std = host(StdHostComposition::reference());
-        let browser = conduit_signal::distributed_browser_sink_advertisement();
-        let pico = conduit_signal::pico_local_advertisement();
+        let browser = conduit_signal_conformance::distributed_browser_sink_advertisement();
+        let pico = conduit_signal_conformance::pico_local_advertisement();
 
         let kinds = |advertisement: &conduit_core::HostAdvertisement| {
             advertisement

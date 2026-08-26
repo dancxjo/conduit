@@ -19,11 +19,7 @@ pub(super) fn render_signal_identity_sidecar(
     generated: &GeneratedEmbeddedPlan,
     identity: &GeneratedFirmwareIdentity,
 ) -> String {
-    render_identity_sidecar(
-        generated,
-        identity,
-        "conduit.pico-signal.generated-image@1",
-    )
+    render_identity_sidecar(generated, identity, "conduit.pico-signal.generated-image@1")
 }
 
 fn render_identity_sidecar(

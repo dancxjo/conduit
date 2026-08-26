@@ -1,7 +1,7 @@
 #![cfg(feature = "bluetooth-bluez")]
 
 use conduit_core::ConnectionBase;
-use conduit_signal::{exact_std_pico_bluetooth_plan, STD_PICO_USB_SINK_HOST_ID};
+use conduit_signal_conformance::{exact_std_pico_bluetooth_plan, STD_PICO_USB_SINK_HOST_ID};
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_wire::{SessionMachine, SessionMessage, SessionRole, SessionTerminalDisposition};
 

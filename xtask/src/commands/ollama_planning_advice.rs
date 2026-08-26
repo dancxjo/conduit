@@ -7,7 +7,8 @@ use conduit_form::parse_with_startup;
 use conduit_planner::{
     default_placements, plan, seed_planning_from_advice, PlanningAdvice, SuggestedPlacement,
 };
-use conduit_signal::{pico_local_advertisement, signal_profile_catalog};
+use conduit_signal::signal_profile_catalog;
+use conduit_signal_conformance::pico_local_advertisement;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{

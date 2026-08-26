@@ -5,10 +5,10 @@
 
 use conduit_core::{CapabilityId, ConnectionBase, GearId, HostAdvertisement, Plan};
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
-use conduit_signal::{
+use conduit_signal::signal_profile_catalog;
+use conduit_signal_conformance::{
     distributed_toggle_browser_sink_advertisement, distributed_toggle_std_source_advertisement,
-    distributed_toggle_websocket_line_offer, signal_profile_catalog,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    distributed_toggle_websocket_line_offer, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
 };
 use std::collections::BTreeMap;
 

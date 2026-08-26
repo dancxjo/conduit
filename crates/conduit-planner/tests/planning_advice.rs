@@ -9,9 +9,9 @@ use conduit_planner::{
     default_placements, plan, plan_with_options, seed_planning_from_advice, PlanningAdvice,
     PlanningAdviceRefusal, PlanningOptions, SuggestedLine, SuggestedPlacement,
 };
-use conduit_signal::{
-    pico_local_advertisement, signal_profile_catalog, triple, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
-    SIGNAL_ENCODED_LEN,
+use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
+use conduit_signal_conformance::{
+    pico_local_advertisement, triple, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
 };
 
 fn pulse_fixture() -> (

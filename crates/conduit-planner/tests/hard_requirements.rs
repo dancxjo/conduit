@@ -3,7 +3,8 @@ use conduit_form::parse_with_startup;
 use conduit_planner::{
     default_placements, plan_with_hard_requirements, HardRealizationRequirements, PlannerError,
 };
-use conduit_signal::{pico_local_advertisement, signal_profile_catalog};
+use conduit_signal::signal_profile_catalog;
+use conduit_signal_conformance::pico_local_advertisement;
 use std::collections::{BTreeMap, BTreeSet};
 
 fn pulse_form() -> conduit_form::CheckedForm {

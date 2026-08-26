@@ -16,9 +16,9 @@ use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
-use conduit_signal::{
-    encode_signal, exact_std_pico_usb_plan, parse_pulse_configuration, Signal,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN, STD_PICO_USB_SOURCE_HOST_ID,
+use conduit_signal::{encode_signal, parse_pulse_configuration, Signal, SIGNAL_ENCODED_LEN};
+use conduit_signal_conformance::{
+    exact_std_pico_usb_plan, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, STD_PICO_USB_SOURCE_HOST_ID,
 };
 use conduit_wire::{
     SessionBinding, SessionCheckpointAcceptance, SessionCheckpointOffer, SessionFrame,

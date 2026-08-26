@@ -14,6 +14,7 @@ conduit-runtime = { path = "../../crates/conduit-runtime", default-features = fa
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-ai = { path = "../../crates/conduit-ai", features = ["form-catalog"] }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog", "text-lab-plan"] }
 conduit-std-host = { path = "../std" }
 conduit-wire = { path = "../../crates/conduit-wire" }
@@ -22,4 +23,5 @@ serde = { version = "1", features = ["derive"] }
 [dev-dependencies]
 conduit-browser-runtime = { path = "../browser-runtime" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 serde_json = "1"
