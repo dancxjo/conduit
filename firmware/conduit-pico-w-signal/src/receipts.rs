@@ -51,6 +51,12 @@ impl UsbCdc {
         }
     }
 
+    /// Observe whether the current sign consumer still owns this CDC session.
+    #[cfg(feature = "bluetooth-line")]
+    pub fn dtr(&self) -> bool {
+        self.sender.dtr()
+    }
+
     /// Write a mandatory proof marker to CDC 1.
     #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "bluetooth-line"))]
     pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbSignError> {

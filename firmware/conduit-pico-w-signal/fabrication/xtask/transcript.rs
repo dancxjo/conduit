@@ -51,7 +51,7 @@ pub fn verify_bluetooth_transcript(
                 verify_receipt(
                     line,
                     receipts,
-                    conduit_signal::signal_level_for_sequence(receipts as u64, true),
+                    expected_bluetooth_level(receipts as u64),
                     identity,
                     boot.as_ref()
                         .ok_or("Bluetooth receipt arrived before boot")?,
@@ -88,6 +88,10 @@ pub fn verify_bluetooth_transcript(
         runtime_active_play_id: runtime.active_play_id,
         paired_marker_seen,
     })
+}
+
+fn expected_bluetooth_level(sequence: u64) -> bool {
+    conduit_signal::signal_level_for_sequence(sequence, false)
 }
 
 pub fn verify_bluetooth_loss_transcript(
@@ -305,4 +309,16 @@ fn required_string<'a>(record: &'a serde_json::Value, field: &str) -> PicoResult
         return Err(format!("Pico transcript field `{field}` is empty").into());
     }
     Ok(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::expected_bluetooth_level;
+
+    #[test]
+    fn bluetooth_receipts_follow_the_forms_false_initial_level() {
+        assert!(!expected_bluetooth_level(0));
+        assert!(expected_bluetooth_level(1));
+        assert!(!expected_bluetooth_level(2));
+    }
 }

@@ -103,8 +103,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     std::fs::create_dir_all(evidence_root)
         .map_err(|error| StepError::prereq("prove.bluetooth-line.evidence", error.to_string()))?;
     let capture = if let Some(sign_port) = sign_port {
-        let port = std::fs::OpenOptions::new()
-            .read(true)
+        let port = sign_port_options(false)
             .open(sign_port)
             .map_err(|error| StepError::prereq("prove.bluetooth-line.sign", error.to_string()))?;
         conduit_std_host::usb_cdc::configure_cdc_port(&port, 0, 10)
@@ -118,7 +117,9 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         let capture_stop = Arc::clone(&stop);
         Some((
             stop,
-            std::thread::spawn(move || transcript::capture(port, terminal_marker, capture_stop)),
+            std::thread::spawn(move || {
+                transcript::capture(port, terminal_marker, capture_stop, None)
+            }),
         ))
     } else {
         None
@@ -247,9 +248,7 @@ pub fn run_pico(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), 
         }
     }
 
-    let port = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
+    let port = sign_port_options(true)
         .open(sign_port)
         .map_err(|error| StepError::prereq("prove.bluetooth-pico.sign", error.to_string()))?;
     conduit_std_host::usb_cdc::configure_cdc_port(&port, 0, 10)
@@ -264,11 +263,35 @@ pub fn run_pico(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), 
     };
     let stop = Arc::new(AtomicBool::new(false));
     let capture_stop = Arc::clone(&stop);
-    let capture =
-        std::thread::spawn(move || transcript::capture(port, terminal_marker, capture_stop));
+    let (boot_sender, boot_receiver) = std::sync::mpsc::sync_channel(1);
+    let capture = std::thread::spawn(move || {
+        transcript::capture(port, terminal_marker, capture_stop, Some(boot_sender))
+    });
+
+    let runtime_boot = match boot_receiver.recv_timeout(std::time::Duration::from_secs(10)) {
+        Ok(boot) => boot,
+        Err(_) => {
+            stop.store(true, Ordering::Release);
+            let _ = capture.join();
+            return Err(StepError::prereq(
+                "prove.bluetooth-pico.identity",
+                "timed out waiting for the Pico runtime Boot identity",
+            ));
+        }
+    };
 
     let operation = if loss { "loss" } else { "source" };
-    let hosted = run_probe(root, opts.locked, &[operation, adapter, peer])?;
+    let hosted = run_probe(
+        root,
+        opts.locked,
+        &[
+            operation,
+            adapter,
+            peer,
+            conduit_signal::STD_PICO_USB_SINK_HOST_ID,
+            runtime_boot.as_str(),
+        ],
+    )?;
     if !hosted.status.success() {
         stop.store(true, Ordering::Release);
     }
@@ -378,6 +401,22 @@ fn run_probe(root: &Path, locked: bool, arguments: &[&str]) -> Result<Output, St
         .output()
         .map_err(|error| StepError::prereq("prove.bluetooth-pico.launch", error.to_string()))?;
     Ok(output)
+}
+
+fn sign_port_options(writable: bool) -> std::fs::OpenOptions {
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true).write(writable);
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        // A proof process launched without an existing controlling terminal
+        // must not acquire the Pico CDC endpoint as one. The firmware's
+        // intentional post-terminal USB re-enumeration would otherwise send
+        // SIGHUP to the proof process before it can retain its receipt.
+        // Linux uapi asm-generic/fcntl.h: O_NOCTTY = 0o00000400.
+        options.custom_flags(0o00000400);
+    }
+    options
 }
 
 fn parse_probe_record(output: &Output, operation: &str) -> Result<serde_json::Value, StepError> {

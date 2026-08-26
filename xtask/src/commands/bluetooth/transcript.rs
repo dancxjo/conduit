@@ -2,6 +2,7 @@ use std::{
     io::{ErrorKind, Read},
     sync::{
         atomic::{AtomicBool, Ordering},
+        mpsc::SyncSender,
         Arc,
     },
     time::{Duration, Instant},
@@ -14,11 +15,13 @@ pub(super) fn capture(
     mut file: std::fs::File,
     terminal_marker: &'static str,
     stop: Arc<AtomicBool>,
+    boot_sender: Option<SyncSender<String>>,
 ) -> Result<Vec<String>, String> {
     let deadline = Instant::now() + Duration::from_secs(180);
     let mut lines = Vec::with_capacity(MAXIMUM_TRANSCRIPT_LINES);
     let mut line = Vec::with_capacity(MAXIMUM_TRANSCRIPT_LINE_BYTES);
     let mut input = [0_u8; 256];
+    let mut boot_sender = boot_sender;
     loop {
         match file.read(&mut input) {
             Ok(0) => {}
@@ -35,6 +38,12 @@ pub(super) fn capture(
                                 );
                             }
                             let complete = text.starts_with(terminal_marker);
+                            if let Some(sender) = boot_sender.as_ref() {
+                                if let Some(boot) = runtime_boot_id(text) {
+                                    let _ = sender.send(boot);
+                                    boot_sender = None;
+                                }
+                            }
                             lines.push(text.to_owned());
                             if complete {
                                 return Ok(lines);
@@ -60,6 +69,12 @@ pub(super) fn capture(
             return Ok(lines);
         }
     }
+}
+
+fn runtime_boot_id(line: &str) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(line).ok()?["runtime_boot_id"]
+        .as_str()
+        .map(str::to_owned)
 }
 
 pub(super) fn verify_esp32(
@@ -206,7 +221,7 @@ fn field<'a>(line: &'a str, name: &str) -> Option<&'a str> {
 
 #[cfg(test)]
 mod tests {
-    use super::verify_esp32;
+    use super::{runtime_boot_id, verify_esp32};
 
     const HOST: &str = "esp32/24dcc39a0a44";
     const BOOT: &str = "00112233445566778899aabbccddeeff";
@@ -259,5 +274,14 @@ mod tests {
         let mut completed = lines;
         completed.insert(4, "CONDUIT_ESP32_PRESENT sequence=0 level=false".into());
         assert!(verify_esp32(&completed, true, HOST, BOOT, ADDRESS).is_err());
+    }
+
+    #[test]
+    fn runtime_boot_identity_is_taken_only_from_a_structured_receipt() {
+        assert_eq!(
+            runtime_boot_id(r#"{"runtime_boot_id":"runtime/boot/1"}"#).as_deref(),
+            Some("runtime/boot/1")
+        );
+        assert_eq!(runtime_boot_id("runtime_boot_id=ambient-text"), None);
     }
 }
