@@ -106,8 +106,8 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
     reset_report();
     create_play::set_state(create_play::RequestState::Active);
 
-    let mut completed = create_link_gate::authorized()
-        && write_exact(provider, &PRESENTATION_START);
+    let mut completed =
+        create_link_gate::authorized() && write_exact(provider, &PRESENTATION_START);
     START_SENT.store(completed, Ordering::Release);
     if completed {
         watchdog_delay(watchdog, START_SETTLE_MS).await;

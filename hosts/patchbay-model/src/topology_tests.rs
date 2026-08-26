@@ -35,7 +35,7 @@ fn host_report(
 }
 
 fn fleet_snapshot(link_available: bool) -> ObservatorySnapshot {
-    let exact = conduit_signal::triple::exact_plan().unwrap();
+    let exact = conduit_signal_conformance::triple::exact_plan().unwrap();
     let laptop = exact.source_advertisement;
     let browser_new = exact.browser_advertisement;
     let mut browser_old = browser_new.clone();

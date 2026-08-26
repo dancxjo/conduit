@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::path::PathBuf;
 
-use conduit_signal::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
+use conduit_signal_conformance::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
 use conduit_std_host::triple_signal::{default_pico_ports, TriplePhysicalRunner};
 use conduit_std_host::websocket::NativeWebSocketListener;
 

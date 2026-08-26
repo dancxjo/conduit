@@ -2,8 +2,8 @@
 
 use conduit_mpu6050::{
     AsyncMpu6050I2cProvider, GravityCalibration, I2cBaseAvailability, I2cProviderFailure,
-    ImuDeriver, ImuThresholds, Mpu6050Failure, Mpu6050Session, RawImuSample,
-    ALTERNATE_ADDRESS, DEFAULT_ADDRESS,
+    ImuDeriver, ImuThresholds, Mpu6050Failure, Mpu6050Session, RawImuSample, ALTERNATE_ADDRESS,
+    DEFAULT_ADDRESS,
 };
 use embassy_futures::select::{select, Either};
 use embassy_rp::i2c::{Async, Config as I2cConfig, I2c};
@@ -156,7 +156,8 @@ pub fn snapshot() -> Snapshot {
 pub fn is_fresh(snapshot: &Snapshot, now_ms: u32) -> bool {
     snapshot.state == State::Healthy
         && snapshot.samples > 0
-        && now_ms.wrapping_sub(snapshot.observed_at_ms) <= THRESHOLDS.maximum_sample_age_ticks as u32
+        && now_ms.wrapping_sub(snapshot.observed_at_ms)
+            <= THRESHOLDS.maximum_sample_age_ticks as u32
 }
 
 pub const fn failure_name(code: u8) -> &'static str {
@@ -226,28 +227,15 @@ fn publish_sample(sample: RawImuSample) {
     ACCEL_X.store(i32::from(sample.accel_x_mm_s2), Ordering::Release);
     ACCEL_Y.store(i32::from(sample.accel_y_mm_s2), Ordering::Release);
     ACCEL_Z.store(i32::from(sample.accel_z_mm_s2), Ordering::Release);
-    GYRO_X.store(
-        i32::from(sample.gyro_x_milliradians_s),
-        Ordering::Release,
-    );
-    GYRO_Y.store(
-        i32::from(sample.gyro_y_milliradians_s),
-        Ordering::Release,
-    );
-    GYRO_Z.store(
-        i32::from(sample.gyro_z_milliradians_s),
-        Ordering::Release,
-    );
+    GYRO_X.store(i32::from(sample.gyro_x_milliradians_s), Ordering::Release);
+    GYRO_Y.store(i32::from(sample.gyro_y_milliradians_s), Ordering::Release);
+    GYRO_Z.store(i32::from(sample.gyro_z_milliradians_s), Ordering::Release);
     OBSERVED_AT_MS.store(sample.observed_at_tick as u32, Ordering::Release);
     SAMPLES.fetch_add(1, Ordering::Relaxed);
 }
 
 #[embassy_executor::task]
-pub async fn task(
-    i2c1: Peri<'static, I2C1>,
-    sda: Peri<'static, PIN_2>,
-    scl: Peri<'static, PIN_3>,
-) {
+pub async fn task(i2c1: Peri<'static, I2C1>, sda: Peri<'static, PIN_2>, scl: Peri<'static, PIN_3>) {
     // Preserve USB-first identity, then keep every physical I2C operation
     // asynchronous and deadline-bounded. A held or absent auxiliary bus must
     // remain its own typed failure without starving the shared USB executor.

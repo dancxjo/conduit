@@ -1,9 +1,9 @@
 use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds};
 use conduit_runtime::lowering::{lower_plan_fragment, RemoteCordDirection};
-use conduit_signal::{
-    exact_std_pico_usb_plan, pico_local_advertisement, signal_profile_catalog,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, SIGNAL_ENCODED_LEN,
-    STD_PICO_USB_SINK_HOST_ID,
+use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
+use conduit_signal_conformance::{
+    exact_std_pico_usb_plan, pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    PICO_LOCAL_HOST_ID, STD_PICO_USB_SINK_HOST_ID,
 };
 
 const FORM: &str = include_str!("../../../fixtures/forms/signal-demo.conduit");

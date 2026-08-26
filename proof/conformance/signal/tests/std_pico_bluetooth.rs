@@ -1,7 +1,7 @@
 #![cfg(feature = "host-profile")]
 
 use conduit_core::ConnectionBase;
-use conduit_signal::{
+use conduit_signal_conformance::{
     exact_std_pico_bluetooth_plan, exact_std_pico_usb_plan, std_pico_bluetooth_session_binding,
     STD_PICO_BLUETOOTH_BASE_INSTANCE_ID, STD_PICO_USB_SINK_HOST_ID,
 };

@@ -3,8 +3,8 @@
 use core::fmt::Write as _;
 
 use conduit_create_oi::{
-    decode_sensor_packet, presentation_bytes_are_motion_free, require_provider,
-    CreateUartProvider, PRESENTATION_SAFE, PRESENTATION_START,
+    decode_sensor_packet, presentation_bytes_are_motion_free, require_provider, CreateUartProvider,
+    PRESENTATION_SAFE, PRESENTATION_START,
 };
 use embassy_rp::watchdog::Watchdog;
 use embassy_time::{Duration, Instant, Timer};
@@ -14,8 +14,7 @@ use portable_atomic::{AtomicBool, AtomicU16, AtomicU8, Ordering};
 
 use super::create_control::{now_ms, watchdog_delay, Provider};
 use crate::{
-    create_link_gate, create_play, send_control_frame, uart_diagnostic, InertCdc,
-    BOOTSEL_FRAME_MAX,
+    create_link_gate, create_play, send_control_frame, uart_diagnostic, InertCdc, BOOTSEL_FRAME_MAX,
 };
 
 const REQUEST_PREFIX: &str = "CONDUIT_CREATE_BATTERY_RX@1:";
@@ -40,8 +39,7 @@ static MILLIAMPS_BITS: AtomicU16 = AtomicU16::new(0);
 static TEMPERATURE_BITS: AtomicU8 = AtomicU8::new(0);
 static CHARGE_MAH: AtomicU16 = AtomicU16::new(0);
 static CAPACITY_MAH: AtomicU16 = AtomicU16::new(0);
-static RAW_RX: [AtomicU8; GROUP_ZERO_BYTES] =
-    [const { AtomicU8::new(0) }; GROUP_ZERO_BYTES];
+static RAW_RX: [AtomicU8; GROUP_ZERO_BYTES] = [const { AtomicU8::new(0) }; GROUP_ZERO_BYTES];
 
 const _: () = {
     assert!(presentation_bytes_are_motion_free(&PRESENTATION_START));
@@ -164,7 +162,8 @@ fn reset_report() {
 }
 
 fn write_exact(provider: &mut Provider, bytes: &[u8]) -> bool {
-    let admitted = bytes == PRESENTATION_START || bytes == SENSOR_QUERY || bytes == PRESENTATION_SAFE;
+    let admitted =
+        bytes == PRESENTATION_START || bytes == SENSOR_QUERY || bytes == PRESENTATION_SAFE;
     if !admitted
         || !presentation_bytes_are_motion_free(bytes)
         || require_provider(provider).is_err()
@@ -211,10 +210,7 @@ fn accept_payload(payload: &[u8; GROUP_ZERO_BYTES]) -> bool {
     let charge_mah = u16::from_be_bytes([payload[22], payload[23]]);
     let capacity_mah = u16::from_be_bytes([payload[24], payload[25]]);
     let millivolts = u16::from_be_bytes([payload[17], payload[18]]);
-    if millivolts > 60_000
-        || capacity_mah == 0
-        || charge_mah > capacity_mah
-    {
+    if millivolts > 60_000 || capacity_mah == 0 || charge_mah > capacity_mah {
         RX_OUTCOME.store(RxOutcome::Inconsistent as u8, Ordering::Release);
         uart_diagnostic::record_frame(GROUP_ZERO_PACKET_ID, payload, false);
         return false;
@@ -237,9 +233,7 @@ async fn read_group_zero(provider: &mut Provider, watchdog: &mut Watchdog) -> bo
     let deadline = Instant::now() + Duration::from_millis(RESPONSE_DEADLINE_MS);
     let mut payload = [0_u8; GROUP_ZERO_BYTES];
     let mut received = 0_usize;
-    while received < GROUP_ZERO_BYTES
-        && Instant::now() < deadline
-        && create_link_gate::authorized()
+    while received < GROUP_ZERO_BYTES && Instant::now() < deadline && create_link_gate::authorized()
     {
         match provider.uart.read() {
             Ok(byte) => {
@@ -281,11 +275,7 @@ async fn read_group_zero(provider: &mut Provider, watchdog: &mut Watchdog) -> bo
         );
         uart_diagnostic::record_timeout();
         if received != 0 {
-            uart_diagnostic::record_frame(
-                GROUP_ZERO_PACKET_ID,
-                &payload[..received],
-                false,
-            );
+            uart_diagnostic::record_frame(GROUP_ZERO_PACKET_ID, &payload[..received], false);
         }
         return false;
     }
@@ -313,11 +303,7 @@ pub async fn serve(class: &mut InertCdc) {
                 if request.generation == generation && request.state.terminal() {
                     let battery = snapshot();
                     let mut raw_hex = String::<{ GROUP_ZERO_BYTES * 2 }>::new();
-                    for byte in battery
-                        .raw
-                        .iter()
-                        .take(usize::from(battery.rx_bytes))
-                    {
+                    for byte in battery.raw.iter().take(usize::from(battery.rx_bytes)) {
                         let _ = write!(raw_hex, "{byte:02x}");
                     }
                     let success = request.state == create_play::RequestState::Completed;
@@ -395,9 +381,8 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
         false
     };
 
-    let query = prequery_readable
-        && create_link_gate::authorized()
-        && write_exact(provider, &SENSOR_QUERY);
+    let query =
+        prequery_readable && create_link_gate::authorized() && write_exact(provider, &SENSOR_QUERY);
     QUERY_SENT.store(query, Ordering::Release);
     let rx_valid = query && read_group_zero(provider, watchdog).await;
     RX_VALID.store(rx_valid, Ordering::Release);

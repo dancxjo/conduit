@@ -14,4 +14,5 @@ conduit-form = { path = "../conduit-form" }
 conduit-net = { path = "../conduit-net" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-system-continuity = { path = "../conduit-system-continuity", features = ["r1-recovery"] }

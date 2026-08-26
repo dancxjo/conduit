@@ -6,8 +6,8 @@ use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder};
 use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionFrame};
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb;
-use embassy_usb::class::cdc_acm::CdcAcmClass;
 use embassy_time::{with_timeout, Duration};
+use embassy_usb::class::cdc_acm::CdcAcmClass;
 
 use super::usb::PicoUsbCdcLine;
 pub use crate::remote_error::RemoteError as UsbLinkError;
@@ -33,8 +33,8 @@ impl UsbLinkSession {
     /// Discard incomplete or invalid bytes at an explicit CDC control-session
     /// boundary. The buffer remains fixed; this only restores decoder state.
     pub fn reset_stream_decoder(&mut self) {
-        self.decoder = StreamFrameDecoder::new(4096)
-            .expect("the fixed USB stream decoder limit is valid");
+        self.decoder =
+            StreamFrameDecoder::new(4096).expect("the fixed USB stream decoder limit is valid");
     }
 
     /// Receive the next framed SessionFrame from the USB CDC ACM link.
@@ -94,7 +94,10 @@ impl UsbLinkSession {
     }
 
     /// Receive next raw length-prefixed stream frame payload without SessionFrame decoding.
-    #[allow(dead_code, reason = "exclusive firmware modes select one raw receive policy")]
+    #[allow(
+        dead_code,
+        reason = "exclusive firmware modes select one raw receive policy"
+    )]
     pub async fn receive_raw_stream_frame<'a>(
         &mut self,
         buf: &'a mut [u8],
@@ -161,7 +164,11 @@ impl UsbLinkSession {
                 }
             };
             if read_bytes != 0 {
-                if self.decoder.accept_bytes(&packet_buf[..read_bytes]).is_err() {
+                if self
+                    .decoder
+                    .accept_bytes(&packet_buf[..read_bytes])
+                    .is_err()
+                {
                     self.reset_stream_decoder();
                 }
             }

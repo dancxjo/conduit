@@ -1,5 +1,5 @@
 use conduit_runtime::lowering::{lower_plan_fragment, RemoteCordDirection};
-use conduit_signal::triple;
+use conduit_signal_conformance::triple;
 
 #[test]
 fn source_fragment_has_one_local_and_two_remote_atomic_fanout_branches() {

@@ -250,7 +250,7 @@ fn display_base(base: ConnectionBase) -> &'static str {
 fn display_binding(binding_id: &LinkBindingId) -> &str {
     match binding_id.as_str() {
         "s4/distributed-signal-usb-link" => "USB CDC",
-        conduit_signal::DISTRIBUTED_LINK_BINDING_ID => "WebSocket",
+        conduit_signal_conformance::DISTRIBUTED_LINK_BINDING_ID => "WebSocket",
         "ambient/unplanned-wifi" => "ambient Wi-Fi",
         other => other,
     }

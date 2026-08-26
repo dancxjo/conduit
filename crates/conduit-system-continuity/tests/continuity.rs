@@ -7,7 +7,7 @@ use conduit_observatory::{
     ObservatorySnapshot, OfferFreshness, OperationalState, PlanLifecycle, PlayReport,
     RetentionReport, SNAPSHOT_SCHEMA,
 };
-use conduit_signal::triple;
+use conduit_signal_conformance::triple;
 use conduit_system_continuity::{
     ContinuityError, DelegatedTransitionGrant, DurableSystemId, HostInstance, RoleId,
     RoleRequirement, SystemRecord, TransitionCause, TransitionId,

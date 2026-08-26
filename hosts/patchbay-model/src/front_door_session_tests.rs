@@ -352,7 +352,7 @@ fn front_door_projects_a_bounded_pico_profile_fixture_without_promoting_it_to_li
         BootId::from("front-door/local/boot-1"),
     )
     .unwrap();
-    let advertisement = conduit_signal::triple::exact_plan()
+    let advertisement = conduit_signal_conformance::triple::exact_plan()
         .unwrap()
         .pico_advertisement;
     let identity = BrowserAdmissionIdentity::from_csprng_seed(

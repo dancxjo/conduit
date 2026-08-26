@@ -18,11 +18,10 @@ use conduit_kernel::{
 use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
+use conduit_signal::{decode_signal_bytes, SHOW_KIND, SIGNAL_ENCODED_LEN};
 #[cfg(test)]
-use conduit_signal::exact_distributed_signal_plan_for;
-use conduit_signal::{
-    decode_signal_bytes, DISTRIBUTED_MAXIMUM_FRAME_BYTES, SHOW_KIND, SIGNAL_ENCODED_LEN,
-};
+use conduit_signal_conformance::exact_distributed_signal_plan_for;
+use conduit_signal_conformance::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,

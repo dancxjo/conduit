@@ -6,8 +6,8 @@ use conduit_wire::{
 };
 use embassy_net::tcp::TcpSocket;
 
-use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::continuable_signal::ContinuableSignalSink;
+use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::usb_link::UsbLinkError;
 use crate::websocket_transport::{WebSocketTransport, WebSocketTransportError};
 
@@ -24,10 +24,23 @@ pub async fn run(
     let mut bytes = [0_u8; conduit_net::R1_MAXIMUM_FRAME_BYTES as usize];
 
     let hello = receive(socket, transport, &mut bytes).await?;
-    state.machine.admit_inbound(hello).map_err(|_| WebSocketTransportError::Frame)?;
-    send(socket, transport, &mut state.machine, binding.hello_frame(), &mut bytes).await?;
+    state
+        .machine
+        .admit_inbound(hello)
+        .map_err(|_| WebSocketTransportError::Frame)?;
+    send(
+        socket,
+        transport,
+        &mut state.machine,
+        binding.hello_frame(),
+        &mut bytes,
+    )
+    .await?;
     let ready = receive(socket, transport, &mut bytes).await?;
-    state.machine.admit_inbound(ready).map_err(|_| WebSocketTransportError::Frame)?;
+    state
+        .machine
+        .admit_inbound(ready)
+        .map_err(|_| WebSocketTransportError::Frame)?;
     send(
         socket,
         transport,
@@ -44,8 +57,15 @@ pub async fn run(
         let frame = receive(socket, transport, &mut bytes).await?;
         match frame.message {
             SessionMessage::Offered { sequence, payload } => {
-                state.machine.admit_inbound(frame).map_err(|_| WebSocketTransportError::Frame)?;
-                match state.kernel.admit(sequence, payload).map_err(kernel_error)? {
+                state
+                    .machine
+                    .admit_inbound(frame)
+                    .map_err(|_| WebSocketTransportError::Frame)?;
+                match state
+                    .kernel
+                    .admit(sequence, payload)
+                    .map_err(kernel_error)?
+                {
                     RemoteIngressOutcome::Full { .. } => {
                         send(
                             socket,
@@ -67,7 +87,8 @@ pub async fn run(
                     &mut bytes,
                 )
                 .await?;
-                state.kernel
+                state
+                    .kernel
                     .present_accepted(sequence, control, sign, runtime)
                     .await
                     .map_err(kernel_error)?;
@@ -81,30 +102,50 @@ pub async fn run(
                 .await?;
             }
             SessionMessage::InputClosed { final_sequence } => {
-                state.machine.admit_inbound(frame).map_err(|_| WebSocketTransportError::Frame)?;
-                state.kernel.close_and_complete(final_sequence).map_err(kernel_error)?;
+                state
+                    .machine
+                    .admit_inbound(frame)
+                    .map_err(|_| WebSocketTransportError::Frame)?;
+                state
+                    .kernel
+                    .close_and_complete(final_sequence)
+                    .map_err(kernel_error)?;
             }
-            SessionMessage::Terminal { disposition, final_sequence } => {
-                state.machine.admit_inbound(frame).map_err(|_| WebSocketTransportError::Frame)?;
+            SessionMessage::Terminal {
+                disposition,
+                final_sequence,
+            } => {
+                state
+                    .machine
+                    .admit_inbound(frame)
+                    .map_err(|_| WebSocketTransportError::Frame)?;
                 send(
                     socket,
                     transport,
                     &mut state.machine,
-                    binding.frame(SessionMessage::Terminal { disposition, final_sequence }),
+                    binding.frame(SessionMessage::Terminal {
+                        disposition,
+                        final_sequence,
+                    }),
                     &mut bytes,
                 )
                 .await?;
             }
             SessionMessage::Cancelled { .. } | SessionMessage::Failed { .. } => {
-                state.machine.admit_inbound(frame).map_err(|_| WebSocketTransportError::Frame)?;
+                state
+                    .machine
+                    .admit_inbound(frame)
+                    .map_err(|_| WebSocketTransportError::Frame)?;
                 state.kernel.cancel().map_err(kernel_error)?;
                 return Err(WebSocketTransportError::Frame);
             }
-            _ => state.machine.admit_inbound(frame).map_err(|_| WebSocketTransportError::Frame)?,
+            _ => state
+                .machine
+                .admit_inbound(frame)
+                .map_err(|_| WebSocketTransportError::Frame)?,
         }
         if state.machine.is_terminal() {
-            sign
-                .write_terminal(true, identity.terminal(), runtime)
+            sign.write_terminal(true, identity.terminal(), runtime)
                 .await
                 .map_err(|_| WebSocketTransportError::Disconnected)?;
             return Ok(());
@@ -129,7 +170,9 @@ async fn send(
     frame: conduit_wire::SessionFrame<'_>,
     bytes: &mut [u8],
 ) -> Result<(), WebSocketTransportError> {
-    machine.admit_outbound(frame).map_err(|_| WebSocketTransportError::Frame)?;
+    machine
+        .admit_outbound(frame)
+        .map_err(|_| WebSocketTransportError::Frame)?;
     let len = encode_session_frame_into(frame, bytes, 1024, conduit_net::R1_MAXIMUM_FRAME_BYTES)
         .map_err(|_| WebSocketTransportError::Frame)?;
     transport.send_binary(socket, &bytes[..len]).await

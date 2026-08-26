@@ -441,6 +441,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-wire",
@@ -459,6 +460,7 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-std-catalog",
  "libm",
  "serde",
@@ -516,6 +518,7 @@ dependencies = [
  "conduit-presentation",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-wire",
  "ed25519-dalek",
@@ -571,6 +574,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-system-continuity",
 ]
 
@@ -689,6 +693,7 @@ dependencies = [
  "conduit-form",
  "conduit-planner",
  "conduit-signal",
+ "conduit-signal-conformance",
  "serde",
 ]
 
@@ -706,6 +711,7 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-ssd1306",
  "conduit-std-catalog",
  "patchbay-model",
@@ -726,6 +732,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-wire",
  "conduit-workspace-fabrication",
@@ -766,14 +773,23 @@ dependencies = [
 name = "conduit-signal"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-std-catalog",
+ "serde",
+]
+
+[[package]]
+name = "conduit-signal-conformance"
+version = "0.1.0"
+dependencies = [
  "conduit-bluetooth",
  "conduit-core",
  "conduit-form",
  "conduit-planner",
- "conduit-runtime",
+ "conduit-signal",
  "conduit-std-catalog",
  "conduit-wire",
- "serde",
 ]
 
 [[package]]
@@ -814,6 +830,7 @@ dependencies = [
  "conduit-presentation",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-synth",
  "conduit-system-continuity",
@@ -850,6 +867,7 @@ dependencies = [
  "conduit-observatory",
  "conduit-planner",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-wire",
  "serde",
 ]
@@ -2423,6 +2441,7 @@ dependencies = [
  "conduit-presentation",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-wire",
@@ -4293,6 +4312,7 @@ dependencies = [
  "conduit-presentation",
  "conduit-runtime",
  "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-synth",

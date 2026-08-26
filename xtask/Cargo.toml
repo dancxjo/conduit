@@ -10,6 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 conduit-host-esp32-fabrication = { path = "../targets/esp32/fabrication" }
+conduit-signal-conformance = { path = "../proof/conformance/signal" }
 conduit-host-conduitos-fabrication = { path = "../hosts/conduitos/fabrication-package" }
 clap = { version = "4", features = ["derive"] }
 cliclack = "0.5.6"

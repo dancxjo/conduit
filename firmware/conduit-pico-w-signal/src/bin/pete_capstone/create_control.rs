@@ -14,8 +14,8 @@ use embedded_hal_nb::serial::Read as _;
 use portable_atomic::{AtomicU32, AtomicU8, Ordering};
 
 use crate::{
-    create_acquisition, create_full_stage, create_lights_stage, create_link_gate, create_play,
-    create_battery_probe, create_presentation, uart_diagnostic,
+    create_acquisition, create_battery_probe, create_full_stage, create_lights_stage,
+    create_link_gate, create_play, create_presentation, uart_diagnostic,
 };
 
 const LINK_FRESHNESS_MS: u64 = 1_000;
@@ -77,8 +77,7 @@ pub fn snapshot() -> Snapshot {
 }
 
 pub fn is_fresh(snapshot: &Snapshot, now_ms: u32) -> bool {
-    snapshot.packets > 0
-        && now_ms.wrapping_sub(snapshot.last_packet_ms) <= LINK_FRESHNESS_MS as u32
+    snapshot.packets > 0 && now_ms.wrapping_sub(snapshot.last_packet_ms) <= LINK_FRESHNESS_MS as u32
 }
 
 pub fn ready_cue_command_sent() -> bool {
@@ -159,9 +158,11 @@ async fn transact_sensor_packet(
                     _ => true,
                 };
                 if !accepted {
-                    uart_diagnostic::record_discard(
-                        uart_diagnostic::discarded_on_mismatch(received, byte, STREAM_HEADER),
-                    );
+                    uart_diagnostic::record_discard(uart_diagnostic::discarded_on_mismatch(
+                        received,
+                        byte,
+                        STREAM_HEADER,
+                    ));
                     received = usize::from(byte == STREAM_HEADER);
                     if received == 1 {
                         frame[0] = byte;
@@ -274,21 +275,13 @@ pub async fn task(
             STATE.store(State::Initializing as u8, Ordering::Release);
             OI_MODE.store(0, Ordering::Release);
             if crate::create_listen::claim_pending() {
-                crate::create_listen::execute(
-                    &mut provider,
-                    &mut translator_oe,
-                    &mut watchdog,
-                )
-                .await;
+                crate::create_listen::execute(&mut provider, &mut translator_oe, &mut watchdog)
+                    .await;
                 continue;
             }
             if crate::create_power::claim_pending() {
-                crate::create_power::execute(
-                    &mut power_toggle,
-                    &mut translator_oe,
-                    &mut watchdog,
-                )
-                .await;
+                crate::create_power::execute(&mut power_toggle, &mut translator_oe, &mut watchdog)
+                    .await;
                 continue;
             }
             watchdog_delay(&mut watchdog, 20).await;
@@ -464,8 +457,7 @@ pub async fn task(
             if Instant::now() >= next_full_refresh && !motion.is_active() {
                 if write_command(
                     &mut provider,
-                    &encode_mode(CreateOiModeRequest::Full)
-                        .expect("Full has one exact command"),
+                    &encode_mode(CreateOiModeRequest::Full).expect("Full has one exact command"),
                 )
                 .is_err()
                 {

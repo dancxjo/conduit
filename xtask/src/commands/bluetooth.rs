@@ -288,7 +288,7 @@ pub fn run_pico(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), 
             operation,
             adapter,
             peer,
-            conduit_signal::STD_PICO_USB_SINK_HOST_ID,
+            conduit_signal_conformance::STD_PICO_USB_SINK_HOST_ID,
             runtime_boot.as_str(),
         ],
     )?;

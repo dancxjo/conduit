@@ -28,7 +28,10 @@ pub(super) fn emit_rerun_directives() {
 
 pub(super) fn generate(out: &Path, activate: bool) {
     let form = conduit_form::parse_with_startup(
-        R1_CONTROL_FORM, &conduit_signal::signal_startup_catalog(), &conduit_signal::signal_profile_catalog())
+        R1_CONTROL_FORM,
+        &conduit_signal::signal_startup_catalog(),
+        &conduit_signal::signal_profile_catalog(),
+    )
     .expect("R1 three-peer control Form must check");
     for (stem, routes, identity_env) in [
         (
@@ -65,18 +68,16 @@ pub(super) fn generate(out: &Path, activate: bool) {
         let rendered = render_firmware_module(&generated, &identity);
         let sidecar = render_signal_identity_sidecar(&generated, &identity);
         fs::write(out.join(format!("{stem}_image.rs")), &rendered)
-        .expect("generated R1 control Pico image should be writable");
+            .expect("generated R1 control Pico image should be writable");
         fs::write(out.join(format!("{stem}_identity.json")), &sidecar)
-        .expect("generated R1 control Pico identity sidecar should be writable");
+            .expect("generated R1 control Pico identity sidecar should be writable");
         write_explicit_identity(identity_env, &sidecar);
         if activate {
             let active_stem = match routes {
                 conduit_system_continuity::R1SignalRouteSet::WebSocketOnly => {
                     "pico_signal_image.rs"
                 }
-                conduit_system_continuity::R1SignalRouteSet::UsbOnly => {
-                    "r1_plan_b_signal_image.rs"
-                }
+                conduit_system_continuity::R1SignalRouteSet::UsbOnly => "r1_plan_b_signal_image.rs",
                 conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb => {
                     "r1_plan_c_signal_image.rs"
                 }

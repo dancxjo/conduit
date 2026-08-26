@@ -90,7 +90,7 @@ pub fn live_indicator_advertisement(
         return Err(IndicatorRefusal::UnsupportedMode);
     }
 
-    let source = conduit_signal::distributed_source_advertisement_for(
+    let source = conduit_signal_conformance::distributed_source_advertisement_for(
         observation.host_id.clone(),
         observation.boot_id.clone(),
     );

@@ -7,7 +7,7 @@ use super::{
     OperationalState, PlanLifecycle, RetentionReport, SealedBootProvenanceReport, SNAPSHOT_SCHEMA,
 };
 use conduit_core::{ArtifactId, TerminalDisposition};
-use conduit_signal::exact_std_pico_usb_plan;
+use conduit_signal_conformance::exact_std_pico_usb_plan;
 
 #[test]
 fn status_vocabulary_keeps_failure_modes_distinct() {

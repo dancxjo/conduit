@@ -142,7 +142,7 @@ fn require_host(host: &str) -> PlannerPredicate {
 }
 
 fn lines(hosts: &[conduit_core::HostAdvertisement]) -> Vec<conduit_core::LineOffer> {
-    let exact = conduit_signal::triple::exact_plan().expect("reviewed Line fixture");
+    let exact = conduit_signal_conformance::triple::exact_plan().expect("reviewed Line fixture");
     let mut outward = exact.browser_line;
     outward.line_id = LineId::from("line/laptop-to-workstation");
     outward.binding.binding_id = LinkBindingId::from("binding/laptop-to-workstation");

@@ -20,13 +20,13 @@ fn portable_inputs() -> (conduit_form::CheckedForm, Vec<HostAdvertisement>) {
         &conduit_signal::signal_profile_catalog(),
     )
     .expect("portable Signal form checks");
-    let target = conduit_signal::pico_local_advertisement();
+    let target = conduit_signal_conformance::pico_local_advertisement();
     assert!(target.planner_capabilities.is_empty());
     (form, vec![target])
 }
 
 fn planner_host(host: &str, boot: &str, profile: &str, limits: PlannerLimits) -> HostAdvertisement {
-    let mut host_advertisement = conduit_signal::pico_local_advertisement();
+    let mut host_advertisement = conduit_signal_conformance::pico_local_advertisement();
     host_advertisement.host_id = HostId::from(host);
     host_advertisement.boot_id = BootId::from(boot);
     host_advertisement.capabilities.clear();

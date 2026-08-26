@@ -1,13 +1,13 @@
 //! Physical execution of the sealed Pete capstone through Conduit's
 //! production kernel and local Create safety realization.
 
-use conduit_create_oi::{
-    CreateActuatorSupervisionSign, CreateUartProvider, DifferentialMotionRequest,
-    DriveSafetySign, IndependentWatchdogObservation, LocalCreateDriveSafety, LocalSafetyEnvelope,
-    MotionAuthority, MotionSafetyAuthority, PhysicalActuatorObservation, SafetyInputObservation,
-    SafetyInputs, SafeDispositionCause,
-};
 use conduit_core::{InfoBool, Scalar};
+use conduit_create_oi::{
+    CreateActuatorSupervisionSign, CreateUartProvider, DifferentialMotionRequest, DriveSafetySign,
+    IndependentWatchdogObservation, LocalCreateDriveSafety, LocalSafetyEnvelope, MotionAuthority,
+    MotionSafetyAuthority, PhysicalActuatorObservation, SafeDispositionCause,
+    SafetyInputObservation, SafetyInputs,
+};
 use conduit_kernel::{
     scheduler::{HostOperationRequest, SchedulerStatus},
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
@@ -16,10 +16,10 @@ use conduit_kernel::{
 use portable_atomic::{AtomicI32, Ordering};
 
 use super::{create_play, imu_control};
-use create_play::{RequestKind, RequestState};
 use crate::capstone_kernel::{
     prepare_scheduler, CapstoneScheduler, DRIVE_NODE, OBSERVATION_NODE, OBSERVATION_REQUEST,
 };
+use create_play::{RequestKind, RequestState};
 
 const SAFETY_MAXIMUM_AGE_MS: u32 = 100;
 static DISTANCE_MM: AtomicI32 = AtomicI32::new(0);
@@ -129,11 +129,10 @@ impl Runtime {
                 explicitly_disarmed: false,
                 motor_feedback_invalid: false,
             };
-            if let Some(sign) = self.drive.supervise_physical(
-                provider,
-                u64::from(now_ms),
-                observation,
-            ) {
+            if let Some(sign) =
+                self.drive
+                    .supervise_physical(provider, u64::from(now_ms), observation)
+            {
                 match sign {
                     CreateActuatorSupervisionSign::Drive(DriveSafetySign::SafeDisposition {
                         cause,
@@ -350,10 +349,7 @@ impl Runtime {
             )
             .is_ok()
             && scheduler.run(128).is_ok();
-        create_play::set_kernel_metrics(
-            scheduler.decisions(),
-            u32::from(scheduler.signs().len()),
-        );
+        create_play::set_kernel_metrics(scheduler.decisions(), u32::from(scheduler.signs().len()));
         if completed {
             create_play::set_state(RequestState::Completed);
         } else {
@@ -411,18 +407,16 @@ impl Runtime {
     }
 }
 
-fn next_kernel_request(
-    scheduler: &mut CapstoneScheduler,
-) -> Result<HostOperationRequest, ()> {
+fn next_kernel_request(scheduler: &mut CapstoneScheduler) -> Result<HostOperationRequest, ()> {
     for _ in 0..128 {
         if let Some(request) = scheduler.next_host_request() {
             return Ok(request);
         }
         match scheduler.step().map_err(|_| ())? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Idle
-            | SchedulerStatus::Complete
-            | SchedulerStatus::Cancelled => return Err(()),
+            SchedulerStatus::Idle | SchedulerStatus::Complete | SchedulerStatus::Cancelled => {
+                return Err(())
+            }
         }
     }
     Err(())

@@ -1,7 +1,8 @@
 use conduit_core::{ArtifactId, CapabilityId, ImplementationId, ImplementationOffer};
 use conduit_form::parse_with_startup;
 use conduit_planner::{default_placements, plan, PlacementChoice};
-use conduit_signal::{pico_local_advertisement, signal_profile_catalog, PULSE_KIND};
+use conduit_signal::{signal_profile_catalog, PULSE_KIND};
+use conduit_signal_conformance::pico_local_advertisement;
 
 fn pulse_form() -> conduit_form::CheckedForm {
     parse_with_startup(

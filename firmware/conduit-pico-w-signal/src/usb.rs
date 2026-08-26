@@ -49,10 +49,7 @@ pub fn init_composite_usb(
     let (product, serial_number) = if cfg!(feature = "bluetooth-line") {
         ("Pico W Bluetooth Line", "conduit-pico-w-bluetooth-line")
     } else if cfg!(feature = "appliance-hil-client") {
-        (
-            "Pico W Appliance HIL Client",
-            "conduit-pico-hil-client",
-        )
+        ("Pico W Appliance HIL Client", "conduit-pico-hil-client")
     } else {
         ("Pico W Signal", "conduit-pico-w-signal")
     };
@@ -91,10 +88,7 @@ pub fn init_composite_usb(
 #[cfg(not(feature = "session-control"))]
 pub fn init_sign_usb(
     driver: usb::Driver<'static, USB>,
-) -> (
-    UsbDevice<'static, usb::Driver<'static, USB>>,
-    UsbSignSender,
-) {
+) -> (UsbDevice<'static, usb::Driver<'static, USB>>, UsbSignSender) {
     let device_descriptor = USB_DEVICE_DESCRIPTOR.init([0u8; 256]);
     let config_descriptor = USB_CONFIG_DESCRIPTOR.init([0u8; 256]);
     let bos_descriptor = USB_BOS_DESCRIPTOR.init([0u8; 256]);

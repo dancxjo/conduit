@@ -6,7 +6,7 @@ use super::{
 #[cfg(feature = "host-profile")]
 use super::{
     decode_signal, encode_signal, parse_pulse_configuration, pulse_configuration_entries,
-    PulseConfiguration, PICO_LOCAL_BOOT_ID, PICO_LOCAL_HOST_ID,
+    PulseConfiguration,
 };
 
 #[cfg(feature = "host-profile")]
@@ -73,30 +73,4 @@ fn round_trips_pulse_configuration_entries() {
     let parsed = parse_pulse_configuration(&pulse_configuration_entries(&config))
         .expect("pulse configuration should parse");
     assert_eq!(parsed, config);
-}
-
-#[cfg(feature = "host-profile")]
-#[test]
-fn pico_local_advertisement_names_exact_constrained_signal_profile() {
-    let advertisement = super::pico_local_advertisement();
-    assert_eq!(advertisement.host_id.as_str(), PICO_LOCAL_HOST_ID);
-    assert_eq!(advertisement.boot_id.as_str(), PICO_LOCAL_BOOT_ID);
-    assert_eq!(advertisement.capabilities.len(), 2);
-    assert_eq!(advertisement.resources.len(), 2);
-    assert!(advertisement
-        .capabilities
-        .iter()
-        .all(|capability| capability.limits.max_active_instances == 1
-            && capability.limits.max_queue_items == 1
-            && capability.limits.max_queue_bytes == super::SIGNAL_ENCODED_LEN));
-    assert!(advertisement.capabilities.iter().any(|capability| {
-        capability.kind_id == super::pulse_kind()
-            && capability.outputs == super::pulse_outputs()
-            && capability.inputs.is_empty()
-    }));
-    assert!(advertisement.capabilities.iter().any(|capability| {
-        capability.kind_id == super::show_kind()
-            && capability.inputs == super::show_inputs()
-            && capability.outputs.is_empty()
-    }));
 }

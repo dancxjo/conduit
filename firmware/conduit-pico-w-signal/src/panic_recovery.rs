@@ -68,9 +68,7 @@ impl PanicRecord {
             PanicPhase::RecoveryAdmission => "r1-recovery-admission-panic",
             PanicPhase::PostPlayStartAllocation => "r1-post-play-start-allocation-panic",
             PanicPhase::PlanCLineFailure => "r1-plan-c-line-failure-panic",
-            PanicPhase::PlanCLineFailureAllocation => {
-                "r1-plan-c-line-failure-allocation-panic"
-            }
+            PanicPhase::PlanCLineFailureAllocation => "r1-plan-c-line-failure-allocation-panic",
             PanicPhase::PlanCCheckpoint => "r1-plan-c-checkpoint-panic",
             PanicPhase::PlanCCheckpointAllocation => "r1-plan-c-checkpoint-allocation-panic",
             PanicPhase::PlanCResume => "r1-plan-c-resume-panic",

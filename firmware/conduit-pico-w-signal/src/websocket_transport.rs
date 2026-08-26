@@ -2,8 +2,8 @@
 
 use embassy_net::tcp::TcpSocket;
 use embedded_websocket::{
-    read_http_header, Error as FrameError, WebSocketReceiveMessageType,
-    WebSocketSendMessageType, WebSocketServer,
+    read_http_header, Error as FrameError, WebSocketReceiveMessageType, WebSocketSendMessageType,
+    WebSocketServer,
 };
 
 const HTTP_BYTES: usize = 1_024;
@@ -69,7 +69,10 @@ impl WebSocketTransport {
                 .server_accept(&context.sec_websocket_key, None, &mut response)
                 .map_err(|_| WebSocketTransportError::Http)?;
             write_all(socket, &response[..response_len]).await?;
-            socket.flush().await.map_err(|_| WebSocketTransportError::Tcp)?;
+            socket
+                .flush()
+                .await
+                .map_err(|_| WebSocketTransportError::Tcp)?;
             let mut transport = Self {
                 websocket,
                 pending: [0; FRAME_BYTES + FRAME_OVERHEAD_BYTES],
@@ -105,7 +108,8 @@ impl WebSocketTransport {
             if result.len_from == 0 && result.len_to == 0 {
                 return Err(WebSocketTransportError::Frame);
             }
-            self.pending.copy_within(result.len_from..self.pending_len, 0);
+            self.pending
+                .copy_within(result.len_from..self.pending_len, 0);
             self.pending_len -= result.len_from;
             output_len = output_len
                 .checked_add(result.len_to)
@@ -138,7 +142,10 @@ impl WebSocketTransport {
             .write(WebSocketSendMessageType::Binary, true, payload, &mut frame)
             .map_err(|_| WebSocketTransportError::Frame)?;
         write_all(socket, &frame[..length]).await?;
-        socket.flush().await.map_err(|_| WebSocketTransportError::Tcp)
+        socket
+            .flush()
+            .await
+            .map_err(|_| WebSocketTransportError::Tcp)
     }
 
     async fn read_more(

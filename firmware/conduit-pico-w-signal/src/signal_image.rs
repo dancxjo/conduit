@@ -64,12 +64,22 @@ pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     })
 }
 
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap", feature = "bluetooth-line"))]
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
 pub fn presentation_ids() -> &'static [&'static str] {
     &generated_signal::PRESENTATION_IDS
 }
 
-#[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "wifi-bootstrap", feature = "bluetooth-line"))]
+#[cfg(any(
+    feature = "usb-remote",
+    feature = "triple-remote",
+    feature = "wifi-bootstrap",
+    feature = "bluetooth-line"
+))]
 pub fn presentation_sign_ids() -> &'static [&'static str] {
     &generated_signal::PRESENTATION_SIGN_IDS
 }
@@ -324,15 +334,14 @@ pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
         peer_boot: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_BOOTS.first()?,
         peer_endpoint: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS.first()?,
         base_code: *generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_CODES.first()?,
-        base_instance_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS
-            .first()?,
+        base_instance_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS.first()?,
         line_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINE_IDS.first()?,
         link_binding_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.first()?,
         value_kind: generated_signal::GENERATED_REMOTE_ENDPOINT_VALUE_KINDS.first()?,
         session_item_capacity: cord_spec.item_capacity,
         session_byte_capacity: cord_spec.byte_capacity,
-        maximum_in_flight_items: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS
-            .first()?,
+        maximum_in_flight_items:
+            *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_IN_FLIGHT_ITEMS.first()?,
         maximum_payload_bytes: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_PAYLOAD_BYTES
             .first()?,
         maximum_buffered_bytes: *generated_signal::GENERATED_REMOTE_ENDPOINT_MAXIMUM_BUFFERED_BYTES

@@ -19,43 +19,43 @@ use embassy_usb::{Builder, Config, UsbDevice};
 use heapless::String;
 use static_cell::StaticCell;
 
-#[path = "pete_capstone/create_control.rs"]
-mod create_control;
 #[path = "pete_capstone/create_acquisition.rs"]
 mod create_acquisition;
-#[path = "pete_capstone/create_listen.rs"]
-mod create_listen;
-#[path = "pete_capstone/create_link_gate.rs"]
-mod create_link_gate;
-#[path = "pete_capstone/create_play.rs"]
-mod create_play;
-#[path = "pete_capstone/create_motion.rs"]
-mod create_motion;
-#[path = "pete_capstone/create_power.rs"]
-mod create_power;
-#[path = "pete_capstone/create_presentation.rs"]
-mod create_presentation;
 #[path = "pete_capstone/create_battery_probe.rs"]
 mod create_battery_probe;
+#[path = "pete_capstone/create_control.rs"]
+mod create_control;
 #[path = "pete_capstone/create_full_stage.rs"]
 mod create_full_stage;
 #[path = "pete_capstone/create_lights_stage.rs"]
 mod create_lights_stage;
-#[path = "pete_capstone/uart_diagnostic.rs"]
-mod uart_diagnostic;
+#[path = "pete_capstone/create_link_gate.rs"]
+mod create_link_gate;
+#[path = "pete_capstone/create_listen.rs"]
+mod create_listen;
+#[path = "pete_capstone/create_motion.rs"]
+mod create_motion;
+#[path = "pete_capstone/create_play.rs"]
+mod create_play;
+#[path = "pete_capstone/create_power.rs"]
+mod create_power;
+#[path = "pete_capstone/create_presentation.rs"]
+mod create_presentation;
 #[path = "pete_capstone/imu_control.rs"]
 mod imu_control;
 #[path = "pete_capstone/pico_heartbeat.rs"]
 mod pico_heartbeat;
 #[path = "../radio.rs"]
 mod radio;
+#[path = "pete_capstone/uart_diagnostic.rs"]
+mod uart_diagnostic;
 // Compile the exact sealed capstone operations and fixed production-kernel
 // topology from their canonical source.  The firmware must not grow a second,
 // Pico-shaped scheduler or a lookalike copy of the portable Form.
-#[path = "../../../../crates/conduit-pete/src/capstone_operations.rs"]
-mod capstone_operations;
 #[path = "../../../../crates/conduit-pete/src/capstone_kernel.rs"]
 mod capstone_kernel;
+#[path = "../../../../crates/conduit-pete/src/capstone_operations.rs"]
+mod capstone_operations;
 
 struct NoAllocator;
 
@@ -262,30 +262,24 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             core::future::pending::<()>().await;
         }
 
-        if BRINGUP_STAGE >= BRINGUP_STAGE_MOTION
-            && create_play::motion_request_matches(request)
-        {
+        if BRINGUP_STAGE >= BRINGUP_STAGE_MOTION && create_play::motion_request_matches(request) {
             create_play::serve_motion(class).await;
             continue;
         }
 
-        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
-            && create_play::hello_request_matches(request)
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL && create_play::hello_request_matches(request)
         {
             create_play::serve_hello(class).await;
             continue;
         }
 
-        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
-            && create_full_stage::request_matches(request)
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL && create_full_stage::request_matches(request)
         {
             create_full_stage::serve(class).await;
             continue;
         }
 
-        if BRINGUP_STAGE >= BRINGUP_STAGE_LIGHTS
-            && create_lights_stage::request_matches(request)
-        {
+        if BRINGUP_STAGE >= BRINGUP_STAGE_LIGHTS && create_lights_stage::request_matches(request) {
             create_lights_stage::serve(class).await;
             continue;
         }
@@ -304,16 +298,12 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             continue;
         }
 
-        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
-            && create_listen::request_matches(request)
-        {
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL && create_listen::request_matches(request) {
             create_listen::serve(class).await;
             continue;
         }
 
-        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
-            && create_power::request_matches(request)
-        {
+        if BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL && create_power::request_matches(request) {
             create_power::serve(class).await;
             continue;
         }
@@ -356,10 +346,7 @@ async fn usb_device_task(mut device: InertUsbDevice) -> ! {
 }
 
 #[embassy_executor::task]
-async fn qualification_task(
-    mut class: InertCdc,
-    charging_indicator: Input<'static>,
-) {
+async fn qualification_task(mut class: InertCdc, charging_indicator: Input<'static>) {
     class.wait_connection().await;
     // Emit immutable image identity before permitting any blocking peripheral
     // probe. A physically held I2C bus must not prevent this firmware from
@@ -412,10 +399,7 @@ async fn qualification_task(
     );
     write_line(&mut class, &disposition).await;
     let imu = imu_control::snapshot();
-    let imu_fresh = imu_control::is_fresh(
-        &imu,
-        embassy_time::Instant::now().as_millis() as u32,
-    );
+    let imu_fresh = imu_control::is_fresh(&imu, embassy_time::Instant::now().as_millis() as u32);
     let mut line: String<512> = String::new();
     if BRINGUP_STAGE < BRINGUP_STAGE_IMU {
         let _ = writeln!(line, "{{\"schema\":\"conduit.pete/imu-probe@1\",\"success\":false,\"state\":\"staged-off\",\"address\":0,\"samples\":0,\"failure\":\"not-enabled-in-stage-1\"}}");
@@ -426,10 +410,8 @@ async fn qualification_task(
     }
     write_line(&mut class, &line).await;
     let create = create_control::snapshot();
-    let create_fresh = create_control::is_fresh(
-        &create,
-        embassy_time::Instant::now().as_millis() as u32,
-    );
+    let create_fresh =
+        create_control::is_fresh(&create, embassy_time::Instant::now().as_millis() as u32);
     let create_ready = BRINGUP_STAGE >= BRINGUP_STAGE_CREATE_FULL
         && create.state == create_control::State::Full
         && create_fresh;

@@ -1171,7 +1171,7 @@ mod tests {
         };
         let mut remote = fragment.clone();
         let foreign_line: conduit_core::AdmittedLine =
-            (&conduit_signal::distributed_websocket_line_offer()).into();
+            (&conduit_signal_conformance::distributed_websocket_line_offer()).into();
         remote.connections[0].selected_line = Some(foreign_line.clone());
         remote.connections[0].admitted_lines = vec![foreign_line];
         let remote = seal_plan(form_identity.clone(), vec![remote]);

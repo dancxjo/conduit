@@ -125,10 +125,7 @@ impl NetworkOperation {
         })
     }
 
-    pub fn attachment_sign(
-        input_port: PortId,
-        operation: conduit_kernel::HostOperationId,
-    ) -> Self {
+    pub fn attachment_sign(input_port: PortId, operation: conduit_kernel::HostOperationId) -> Self {
         Self::AttachmentSign(AttachmentSignOperation {
             input_port,
             operation,

@@ -6,13 +6,9 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../conduit-core", optional = true }
 conduit-form = { path = "../conduit-form", optional = true }
-conduit-runtime = { path = "../conduit-runtime", optional = true, default-features = false }
-conduit-planner = { path = "../conduit-planner", optional = true }
 conduit-std-catalog = { path = "../conduit-std-catalog", optional = true, default-features = false }
-conduit-bluetooth = { path = "../conduit-bluetooth", optional = true }
-conduit-wire = { path = "../conduit-wire", optional = true, default-features = false }
 serde = { version = "1", default-features = false, features = ["derive"] }
 
 [features]
 default = []
-host-profile = ["dep:conduit-core", "dep:conduit-form", "dep:conduit-planner", "dep:conduit-std-catalog", "dep:conduit-bluetooth", "dep:conduit-wire", "conduit-std-catalog/form-catalog"]
+host-profile = ["dep:conduit-core", "dep:conduit-form", "dep:conduit-std-catalog", "conduit-std-catalog/form-catalog"]

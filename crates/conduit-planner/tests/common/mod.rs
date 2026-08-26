@@ -1,6 +1,7 @@
 use conduit_core::{ArtifactId, CapabilityId, HostId, ImplementationId, KindContractRevision};
 use conduit_form::parse_with_startup;
-use conduit_signal::{pico_local_advertisement, signal_profile_catalog, PULSE_KIND};
+use conduit_signal::{signal_profile_catalog, PULSE_KIND};
+use conduit_signal_conformance::pico_local_advertisement;
 
 #[allow(dead_code)]
 pub fn generate_text_form() -> conduit_form::CheckedForm {

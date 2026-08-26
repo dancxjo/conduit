@@ -11,7 +11,7 @@ fn document_distinguishes_replan_from_same_plan_fallback() {
     assert!(text.contains("OUTCOME replan=false same-plan="));
     assert!(text.contains("REFUSED route=ambient/unplanned-wifi"));
     assert!(text.contains("patchbay-native/std-realization"));
-    assert!(text.contains(conduit_signal::DISTRIBUTED_BROWSER_HOST_ID));
+    assert!(text.contains(conduit_signal_conformance::DISTRIBUTED_BROWSER_HOST_ID));
 }
 
 #[test]
@@ -19,13 +19,13 @@ fn candidate_order_changes_exact_plan_identity() {
     let host = HostId::from("patchbay-native/std-realization");
     let boot = BootId::from("patchbay-native/std-boot-1");
     let usb_first = planned(
-        &[USB_LINE, conduit_signal::DISTRIBUTED_LINE_ID],
+        &[USB_LINE, conduit_signal_conformance::DISTRIBUTED_LINE_ID],
         &host,
         &boot,
     )
     .unwrap();
     let websocket_first = planned(
-        &[conduit_signal::DISTRIBUTED_LINE_ID, USB_LINE],
+        &[conduit_signal_conformance::DISTRIBUTED_LINE_ID, USB_LINE],
         &host,
         &boot,
     )

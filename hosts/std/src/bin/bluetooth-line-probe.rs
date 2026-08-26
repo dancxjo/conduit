@@ -3,7 +3,9 @@ use std::time::Duration;
 
 use conduit_bluetooth::BleGattProfile;
 use conduit_core::{BootId, HostId};
-use conduit_signal::{exact_std_esp32_bluetooth_plan_for_host, exact_std_pico_bluetooth_plan};
+use conduit_signal_conformance::{
+    exact_std_esp32_bluetooth_plan_for_host, exact_std_pico_bluetooth_plan,
+};
 use conduit_std_host::bluetooth_gatt::{
     disconnect_ble_gatt_candidate, discover_ble_gatt_candidate, discover_one_ble_gatt_candidate,
     pair_ble_gatt_candidate, BluezBleGattLine, BluezBleGattListener,
@@ -404,18 +406,18 @@ fn binding(
         return Err("peer HostId and BootId must be supplied together".into());
     }
     let (Some(peer_host_id), Some(peer_boot_id)) = (peer_host_id, peer_boot_id) else {
-        return conduit_signal::std_pico_bluetooth_session_binding()
+        return conduit_signal_conformance::std_pico_bluetooth_session_binding()
             .map_err(|error| format!("canonical Bluetooth Session binding: {error:?}").into());
     };
     if peer_host_id.starts_with("esp32/") {
-        return conduit_signal::std_esp32_bluetooth_session_binding_for_host(
+        return conduit_signal_conformance::std_esp32_bluetooth_session_binding_for_host(
             peer_host_id,
             BootId::from(peer_boot_id),
         )
         .map_err(|error| format!("ESP32 Bluetooth Session binding: {error:?}").into());
     }
-    if peer_host_id == conduit_signal::STD_PICO_USB_SINK_HOST_ID {
-        let canonical = conduit_signal::std_pico_bluetooth_session_binding()
+    if peer_host_id == conduit_signal_conformance::STD_PICO_USB_SINK_HOST_ID {
+        let canonical = conduit_signal_conformance::std_pico_bluetooth_session_binding()
             .map_err(|error| format!("canonical Bluetooth Session binding: {error:?}"))?;
         let source_boot = canonical.source.boot_id.clone();
         return canonical

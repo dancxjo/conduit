@@ -5,8 +5,9 @@ use conduit_host_esp32_fabrication::{
     esp32_descriptor_binding, hw463_esp_wroom_32_sample, validate_esp32_descriptor,
 };
 use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
-use conduit_signal::{
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_WROOM_PHYSICAL_HOST_ID, SIGNAL_ENCODED_LEN,
+use conduit_signal::SIGNAL_ENCODED_LEN;
+use conduit_signal_conformance::{
+    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_WROOM_PHYSICAL_HOST_ID,
     exact_std_esp32_bluetooth_plan,
 };
 

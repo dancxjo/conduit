@@ -161,7 +161,11 @@ pub async fn serve_motion(class: &mut InertCdc) {
                         motion.state.name(),
                         motion.result_code,
                         motion.selected_linear_microunits,
-                        if motion.selected_linear_microunits == 0 { 0 } else { SPEED_MM_S },
+                        if motion.selected_linear_microunits == 0 {
+                            0
+                        } else {
+                            SPEED_MM_S
+                        },
                         motion.safety_generation,
                         motion.deadline_ms,
                         motion.kernel_decisions,
@@ -246,9 +250,17 @@ pub async fn serve_hello(class: &mut InertCdc) {
 
 pub fn submit(kind: RequestKind) -> Result<u32, ()> {
     REQUEST_STATE
-        .compare_exchange(RequestState::Idle as u8, RequestState::Preparing as u8, Ordering::AcqRel, Ordering::Acquire)
+        .compare_exchange(
+            RequestState::Idle as u8,
+            RequestState::Preparing as u8,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        )
         .map_err(|_| ())?;
-    let generation = NEXT_GENERATION.fetch_add(1, Ordering::Relaxed).wrapping_add(1).max(1);
+    let generation = NEXT_GENERATION
+        .fetch_add(1, Ordering::Relaxed)
+        .wrapping_add(1)
+        .max(1);
     REQUEST_GENERATION.store(generation, Ordering::Release);
     REQUEST_KIND.store(kind as u8, Ordering::Release);
     RESULT_CODE.store(0, Ordering::Release);
@@ -280,14 +292,31 @@ pub fn snapshot() -> RequestSnapshot {
 
 pub fn claim_pending(kind: RequestKind) -> bool {
     request_kind() == kind
-        && REQUEST_STATE.compare_exchange(RequestState::Pending as u8, RequestState::Preparing as u8, Ordering::AcqRel, Ordering::Acquire).is_ok()
+        && REQUEST_STATE
+            .compare_exchange(
+                RequestState::Pending as u8,
+                RequestState::Preparing as u8,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .is_ok()
 }
 
-pub fn set_state(state: RequestState) { REQUEST_STATE.store(state as u8, Ordering::Release); }
-pub fn set_result(code: u8) { RESULT_CODE.store(code, Ordering::Release); }
-pub fn set_safety_generation(value: u32) { RESULT_SAFETY_GENERATION.store(value, Ordering::Release); }
-pub fn set_deadline(value: u32) { RESULT_DEADLINE_MS.store(value, Ordering::Release); }
-pub fn set_selected(value: i32) { SELECTED_LINEAR_MICROUNITS.store(value, Ordering::Release); }
+pub fn set_state(state: RequestState) {
+    REQUEST_STATE.store(state as u8, Ordering::Release);
+}
+pub fn set_result(code: u8) {
+    RESULT_CODE.store(code, Ordering::Release);
+}
+pub fn set_safety_generation(value: u32) {
+    RESULT_SAFETY_GENERATION.store(value, Ordering::Release);
+}
+pub fn set_deadline(value: u32) {
+    RESULT_DEADLINE_MS.store(value, Ordering::Release);
+}
+pub fn set_selected(value: i32) {
+    SELECTED_LINEAR_MICROUNITS.store(value, Ordering::Release);
+}
 pub fn set_kernel_metrics(decisions: u32, signs: u32) {
     KERNEL_DECISIONS.store(decisions, Ordering::Release);
     KERNEL_SIGNS.store(signs, Ordering::Release);
@@ -302,7 +331,10 @@ pub(crate) fn release(generation: u32) {
 
 pub(crate) fn timeout(generation: u32) {
     if REQUEST_GENERATION.load(Ordering::Acquire) == generation
-        && matches!(snapshot().state, RequestState::Preparing | RequestState::Pending)
+        && matches!(
+            snapshot().state,
+            RequestState::Preparing | RequestState::Pending
+        )
     {
         set_result(6);
         set_state(RequestState::Refused);

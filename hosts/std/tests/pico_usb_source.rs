@@ -1,5 +1,6 @@
 use conduit_core::{BootId, ConnectionBase};
-use conduit_signal::{exact_std_pico_usb_plan, SIGNAL_ENCODED_LEN};
+use conduit_signal::SIGNAL_ENCODED_LEN;
+use conduit_signal_conformance::exact_std_pico_usb_plan;
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_wire::{
     SessionFrame, SessionMachine, SessionMessage, SessionRole, SessionTerminalDisposition,

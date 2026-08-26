@@ -54,10 +54,12 @@ unsafe impl GlobalAlloc for StartupArena {
             if next > STARTUP_ARENA_BYTES {
                 return core::ptr::null_mut();
             }
-            match self
-                .next
-                .compare_exchange_weak(current, next, Ordering::AcqRel, Ordering::Relaxed)
-            {
+            match self.next.compare_exchange_weak(
+                current,
+                next,
+                Ordering::AcqRel,
+                Ordering::Relaxed,
+            ) {
                 Ok(_) => return aligned_address as *mut u8,
                 Err(observed) => current = observed,
             }

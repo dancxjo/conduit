@@ -140,7 +140,7 @@ pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::S
     let source_advertisement = std_pico_usb_source_advertisement();
     let sink_advertisement = std_pico_usb_sink_advertisement();
     let form = conduit_form::parse_with_startup(
-        include_str!("../../../fixtures/forms/signal-demo.conduit"),
+        include_str!("../../../../fixtures/forms/signal-demo.conduit"),
         &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )

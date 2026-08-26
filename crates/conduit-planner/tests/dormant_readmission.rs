@@ -150,7 +150,7 @@ fn line(
     name: &str,
     base: ConnectionBase,
 ) -> conduit_core::LineOffer {
-    let mut line = conduit_signal::distributed_websocket_line_offer();
+    let mut line = conduit_signal_conformance::distributed_websocket_line_offer();
     line.line_id = LineId::from(format!("dormant/{name}"));
     line.binding.binding_id = LinkBindingId::from(format!("dormant/{name}/binding"));
     line.binding.source.host_id = source.host_id.clone();

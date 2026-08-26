@@ -16,6 +16,7 @@ conduit-ssd1306 = { path = "../conduit-ssd1306" }
 conduit-observatory = { path = "../conduit-observatory" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-std-catalog = { path = "../conduit-std-catalog", features = ["form-catalog"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

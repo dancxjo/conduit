@@ -1,5 +1,5 @@
-use heapless::String as HString;
 use conduit_core::LineOffer;
+use heapless::String as HString;
 
 use crate::receipts::{UsbCdc, UsbSignError, RECEIPT_BUFFER_BYTES};
 

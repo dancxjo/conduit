@@ -4,9 +4,8 @@ use conduit_core::{
     verify_plan, CapabilityId, ConnectionBase, GearId, LineId, LinkBindingId, LinkEndpointId,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
-use conduit_signal::{
-    signal_profile_catalog, triple, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
-};
+use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
+use conduit_signal_conformance::{triple, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS};
 
 fn plan_with_policy(
     ordered_ids: Vec<LineId>,

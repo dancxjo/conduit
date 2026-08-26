@@ -18,9 +18,10 @@ use conduit_runtime::lowering::{
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 use conduit_signal::{
-    decode_signal_bytes, encode_signal, parse_pulse_configuration, triple, Signal, PULSE_KIND,
-    SHOW_KIND, SIGNAL_ENCODED_LEN,
+    decode_signal_bytes, encode_signal, parse_pulse_configuration, Signal, PULSE_KIND, SHOW_KIND,
+    SIGNAL_ENCODED_LEN,
 };
+use conduit_signal_conformance::triple;
 use conduit_wire::{SessionBinding, SessionFrame, SessionMachine, SessionRole};
 
 use super::operation::TripleOperation;

@@ -12,12 +12,14 @@ use conduit_core::{
 };
 use conduit_form::parse_with_startup;
 use conduit_signal::{
-    pico_local_advertisement, pulse_contract_revision, pulse_execution_profile,
-    pulse_host_operation_requirements, pulse_outputs, pulse_resource_requirements,
-    show_contract_revision, show_execution_profile, show_host_operation_requirements, show_inputs,
-    show_resource_requirements, signal_profile_catalog, signal_resource_offers,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID, PULSE_KIND, SHOW_KIND,
-    SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
+    pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
+    pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
+    show_host_operation_requirements, show_inputs, show_resource_requirements,
+    signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN,
+    SIGNAL_PRESENTATION_KIND,
+};
+use conduit_signal_conformance::{
+    pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID,
 };
 use std::collections::BTreeMap;
 

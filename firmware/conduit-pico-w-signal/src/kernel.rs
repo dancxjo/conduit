@@ -10,9 +10,9 @@ use conduit_kernel::{
         FixedScheduler, OperationDriver, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
         StepOutcome,
     },
-    BoundedValueRef, SignSink, Failure, FailureCode, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedSignLog, FixedValueStore, HostOperationDisposition,
+    HostOperationId, HostOperationOutcome, NodeId, Operation, OperationAction, OperationInput,
+    PortId, RequestId, SignSink, ValueRef, ValueStorage,
 };
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use conduit_signal::{
@@ -26,19 +26,14 @@ use embassy_time::{Duration, Timer};
 
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::receipts::BootIdentity;
-#[cfg(not(feature = "wifi-bootstrap"))]
-use crate::receipts::TerminalIdentity;
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::receipts::PresentationReceiptIdentity;
+#[cfg(not(feature = "wifi-bootstrap"))]
+use crate::receipts::TerminalIdentity;
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::signal_image::BOOT_SIGN_ID;
-#[cfg(not(feature = "wifi-bootstrap"))]
-use crate::signal_image::{
-    ACTIVE_PLAY_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID, FIRMWARE_BUILD_ID, FRAGMENT_ID,
-    HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_SIGN_ID,
-};
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::signal_image::{
     decode_wait_ms, generated_cords, generated_host_bindings, generated_nodes, generated_routes,
@@ -46,6 +41,11 @@ use crate::signal_image::{
     HOST_BINDING_SLOTS, MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS,
     ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES, RUNTIME_SIGN_EVENTS, VALUE_SLOTS,
     WAIT_VALUE_BYTES,
+};
+#[cfg(not(feature = "wifi-bootstrap"))]
+use crate::signal_image::{
+    ACTIVE_PLAY_ID, BOOT_ID, CHECKED_FORM_ID, EXPANDED_FORM_ID, FIRMWARE_BUILD_ID, FRAGMENT_ID,
+    HOST_ID, PLAN_ID, SOURCE_DOCUMENT_ID, TERMINAL_SIGN_ID,
 };
 
 /// Run the generated local Signal demo through conduit-kernel.
@@ -63,11 +63,10 @@ pub async fn run_signal_demo(
     {
         return;
     }
-    let mut values =
-        FixedValueStore::<VALUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(value_store_bytes(
-            layout.configuration.count,
-        ))
-        .expect("value store capacity valid");
+    let mut values = FixedValueStore::<VALUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>::new(
+        value_store_bytes(layout.configuration.count),
+    )
+    .expect("value store capacity valid");
 
     let mut signal_values = [EMPTY_VALUE_REF; MAX_STORED_SIGNAL_VALUES];
     for (sequence, slot) in signal_values
@@ -77,10 +76,7 @@ pub async fn run_signal_demo(
     {
         let signal = Signal {
             sequence: sequence as u64,
-            level: signal_level_for_sequence(
-                sequence as u64,
-                layout.configuration.initial_level,
-            ),
+            level: signal_level_for_sequence(sequence as u64, layout.configuration.initial_level),
         };
         *slot = values
             .store(&encode_signal_fixed(&signal))
@@ -100,8 +96,7 @@ pub async fn run_signal_demo(
     }
 
     let sign =
-        FixedSignLog::<RUNTIME_SIGN_EVENTS>::new(RUNTIME_SIGN_BYTES)
-            .expect("sign log valid");
+        FixedSignLog::<RUNTIME_SIGN_EVENTS>::new(RUNTIME_SIGN_BYTES).expect("sign log valid");
     let routes = generated_routes();
     let host_bindings = generated_host_bindings();
 
@@ -164,8 +159,7 @@ pub async fn run_signal_demo(
                     };
                     Timer::after(Duration::from_millis(duration_ms)).await;
                     complete_host_request(&mut scheduler, req.node, req.request);
-                } else if req.node == layout.show_node
-                    && req.operation == layout.present_operation
+                } else if req.node == layout.show_node && req.operation == layout.present_operation
                 {
                     let signal = scheduler
                         .host_value(req.input.value)

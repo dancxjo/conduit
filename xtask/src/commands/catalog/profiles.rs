@@ -19,7 +19,7 @@ pub(super) fn advertisement(host: CatalogHost) -> Result<HostAdvertisement, Cata
         .advertisement()
         .clone()),
         CatalogHost::Browser => browser_advertisement(),
-        CatalogHost::Pico => Ok(conduit_signal::pico_local_advertisement()),
+        CatalogHost::Pico => Ok(conduit_signal_conformance::pico_local_advertisement()),
         CatalogHost::Conduitos => conduitos_advertisement(),
         CatalogHost::PatchbayConstrained => patchbay_model::patchbay_presenter_plans()
             .map(|proof| proof.recursive_host)
@@ -28,7 +28,7 @@ pub(super) fn advertisement(host: CatalogHost) -> Result<HostAdvertisement, Cata
 }
 
 fn browser_advertisement() -> Result<HostAdvertisement, CatalogError> {
-    let mut browser = conduit_signal::distributed_browser_sink_advertisement();
+    let mut browser = conduit_signal_conformance::distributed_browser_sink_advertisement();
     browser
         .capabilities
         .extend(conduit_std_catalog::browser_presentation_nucleus_offers());

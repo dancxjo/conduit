@@ -6,7 +6,10 @@ use crate::receipts::UsbSignError;
 
 pub type RemoteResult<T> = Result<T, RemoteError>;
 
-#[allow(dead_code, reason = "variants are shared across exclusive remote firmware modes")]
+#[allow(
+    dead_code,
+    reason = "variants are shared across exclusive remote firmware modes"
+)]
 #[derive(Debug)]
 pub enum RemoteError {
     UsbDisconnected,
