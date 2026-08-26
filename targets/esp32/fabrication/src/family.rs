@@ -31,11 +31,11 @@ impl Esp32FamilyTarget {
         match self {
             Self::Wroom => hw463_esp_wroom_32_sample(),
             Self::C3 => serde_json::from_str(include_str!(
-                "../../../conduit-esp32-c3-signal/board-descriptor.json"
+                "../../../../firmware/conduit-esp32-c3-signal/board-descriptor.json"
             ))
             .expect("package-owned C3 descriptor must decode"),
             Self::S3 => serde_json::from_str(include_str!(
-                "../../../conduit-esp32-s3-signal/board-descriptor.json"
+                "../../../../firmware/conduit-esp32-s3-signal/board-descriptor.json"
             ))
             .expect("package-owned S3 descriptor must decode"),
         }
