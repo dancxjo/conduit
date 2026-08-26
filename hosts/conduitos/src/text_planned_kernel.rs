@@ -25,7 +25,7 @@ const ROUTE_TARGETS: usize = 2;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
 const PENDING_REQUESTS: usize = 3;
 const VALUE_SLOTS: usize = 6;
-const VALUE_BYTES: usize = (conduit_std_catalog::MAX_TEXT_BYTES as usize) * 3;
+const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
 const SIGN_CAPACITY: usize = 64;
 
 type Driver = OperationDriver<PlannedOperation, PORTS>;
@@ -59,9 +59,7 @@ impl TextPlannedKernel {
         let literal_index = fragment
             .placements
             .iter()
-            .position(|placement| {
-                placement.kind_id.as_str() == conduit_std_catalog::TEXT_LITERAL_KIND
-            })
+            .position(|placement| placement.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
             .ok_or(SchedulerError::InvalidPlan)?;
         let presentation_index = fragment
             .placements
@@ -73,9 +71,7 @@ impl TextPlannedKernel {
         let upper_index = fragment
             .placements
             .iter()
-            .position(|placement| {
-                placement.kind_id.as_str() == conduit_std_catalog::TEXT_UPPER_KIND
-            })
+            .position(|placement| placement.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND)
             .ok_or(SchedulerError::InvalidPlan)?;
         let literal = configured_text(&fragment.placements[literal_index].configuration, "value")?;
         let text = values.store(literal.as_bytes())?;
@@ -178,7 +174,7 @@ impl TextPlannedKernel {
             return Err(SchedulerError::InvalidHostOperationAccess);
         }
         let value = self.scheduler.store_host_value(output)?;
-        let output = BoundedValueRef::new(value, conduit_std_catalog::MAX_TEXT_BYTES)
+        let output = BoundedValueRef::new(value, conduit_text::MAX_TEXT_BYTES)
             .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
         self.scheduler.complete_host_operation(
             request.node,
@@ -256,7 +252,7 @@ fn configured_text<'a>(
             _ => None,
         })
         .filter(|value| {
-            value.len() <= conduit_std_catalog::MAX_TEXT_BYTES as usize
+            value.len() <= conduit_text::MAX_TEXT_BYTES as usize
                 && core::str::from_utf8(value.as_bytes()).is_ok()
         })
         .ok_or(SchedulerError::InvalidPlan)
@@ -273,7 +269,7 @@ fn validate_shape(
         || lowered.routes.len() != 2
         || lowered.host_operations.len() != 2
         || lowered.cord_value_slots != 2
-        || lowered.cord_value_bytes != conduit_std_catalog::MAX_TEXT_BYTES * 2
+        || lowered.cord_value_bytes != conduit_text::MAX_TEXT_BYTES * 2
         || !lowered.remote_endpoints.is_empty()
     {
         return Err(SchedulerError::InvalidPlan);
@@ -281,7 +277,7 @@ fn validate_shape(
     let literal = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEXT_LITERAL_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
         .ok_or(SchedulerError::InvalidPlan)?;
     let presentation = fragment
         .placements
@@ -291,7 +287,7 @@ fn validate_shape(
     let upper = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEXT_UPPER_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND)
         .ok_or(SchedulerError::InvalidPlan)?;
     if literal.implementation_id.as_str() != crate::offer::TEXT_LITERAL_IMPLEMENTATION
         || upper.implementation_id.as_str() != crate::offer::TEXT_UPPER_IMPLEMENTATION
@@ -305,8 +301,8 @@ fn validate_shape(
             .map(|kind| kind.as_str())
             != Some(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_TARGET)
         || upper.host_operations[0].maximum_in_flight != 1
-        || upper.host_operations[0].maximum_input_bytes != conduit_std_catalog::MAX_TEXT_BYTES
-        || upper.host_operations[0].maximum_output_bytes != conduit_std_catalog::MAX_TEXT_BYTES
+        || upper.host_operations[0].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
+        || upper.host_operations[0].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || configured_text(&literal.configuration, "value")? != crate::ordinary_plan::TEXT_LITERAL
         || configured_u64(&presentation.configuration, "maximum-values")?
             != conduit_std_catalog::MAX_TEXT_VALUES
@@ -395,7 +391,7 @@ mod tests {
         let upper = fragment
             .placements
             .iter_mut()
-            .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEXT_UPPER_KIND)
+            .find(|placement| placement.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND)
             .unwrap();
         upper.host_operations[0].target_kind = Some(conduit_core::KindId::from("wrong/transform"));
         assert!(conduit_runtime::lowering::lower_plan_fragment(&fragment).is_err());

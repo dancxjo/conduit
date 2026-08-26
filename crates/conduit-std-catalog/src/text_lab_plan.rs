@@ -3,7 +3,7 @@
 use crate::{
     browser_text_upper_offer, hosted_keyboard_offer, install_input_semantic_catalogs,
     install_keyboard_catalogs, install_text_pipeline_catalogs, standard_host_advertisement,
-    KEYBOARD_KIND, KEYMAP_KIND, MAX_TEXT_BYTES, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND,
+    KEYBOARD_KIND, KEYMAP_KIND, TEXT_PRESENTATION_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -147,8 +147,8 @@ fn exact_text_lab_split_plan_with_loss(
     };
     let limits = LinkLimits {
         maximum_in_flight_items: 1,
-        maximum_payload_bytes: MAX_TEXT_BYTES,
-        maximum_buffered_bytes: MAX_TEXT_BYTES,
+        maximum_payload_bytes: conduit_text::MAX_TEXT_BYTES,
+        maximum_buffered_bytes: conduit_text::MAX_TEXT_BYTES,
         maximum_frame_bytes: 1_024,
     };
     let mut forward_line = process_owned_line_offer_with_limits(
@@ -205,7 +205,7 @@ fn exact_text_lab_split_plan_with_loss(
             conduit_core::GearId::from("text-lab/uppercase"),
             PlacementChoice {
                 host_id: browser.host_id.clone(),
-                capability_id: capability(&browser, TEXT_UPPER_KIND)?,
+                capability_id: capability(&browser, conduit_text::TEXT_UPPER_KIND)?,
             },
         ),
         (

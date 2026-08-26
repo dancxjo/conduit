@@ -1,6 +1,6 @@
 //! Allocation-free Unicode uppercase realization with an exact output bound.
 
-pub const MAXIMUM_BYTES: usize = conduit_std_catalog::MAX_TEXT_BYTES as usize;
+pub const MAXIMUM_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UppercaseError {

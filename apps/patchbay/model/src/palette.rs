@@ -167,10 +167,7 @@ mod tests {
             join.configuration[0].rule,
             StandardConfigurationRule::TextBytes { .. }
         ));
-        assert_eq!(
-            join.limits,
-            conduit_std_catalog::text_join_contract().limits
-        );
+        assert_eq!(join.limits, conduit_text::text_join_semantics().limits);
     }
 
     #[test]

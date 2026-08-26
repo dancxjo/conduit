@@ -104,7 +104,7 @@ fn omitted_argument_uses_the_checked_face_default_without_mutating_the_form() {
 
 #[test]
 fn join_output_bound_and_selected_realization_identity_fail_before_presentation() {
-    let oversized_prefix = "x".repeat(conduit_std_catalog::MAX_TEXT_BYTES as usize);
+    let oversized_prefix = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize);
     let source = format!(
         "form bad {{\n    join: text/join(\"{oversized_prefix}\")\n    \"y\" > join > presentation/text\n}}\n"
     );

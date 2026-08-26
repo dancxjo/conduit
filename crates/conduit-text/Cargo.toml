@@ -1,0 +1,12 @@
+[package]
+name = "conduit-text"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-form = { path = "../conduit-form", optional = true }
+
+[features]
+default = ["form-catalog"]
+form-catalog = ["dep:conduit-form"]

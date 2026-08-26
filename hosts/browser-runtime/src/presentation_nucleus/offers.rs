@@ -26,8 +26,7 @@ pub(super) fn canonical_offer(kind: &str) -> Option<CapabilityOffer> {
                 .then(conduit_std_catalog::text_presentation_offer)
         })
         .or_else(|| {
-            (kind == conduit_std_catalog::TEXT_UPPER_KIND)
-                .then(conduit_std_catalog::text_upper_offer)
+            (kind == conduit_text::TEXT_UPPER_KIND).then(conduit_std_catalog::text_upper_offer)
         })
 }
 
@@ -105,7 +104,7 @@ fn text_source_offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_std_catalog::MAX_TEXT_BYTES,
+            max_queue_bytes: conduit_text::MAX_TEXT_BYTES,
         },
     }
 }

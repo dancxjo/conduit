@@ -536,6 +536,7 @@ dependencies = [
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
+ "conduit-text",
  "conduit-wire",
  "ed25519-dalek",
  "serde",
@@ -840,6 +841,7 @@ dependencies = [
  "conduit-midi",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-text",
  "conduit-web",
  "serde",
 ]
@@ -872,6 +874,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-synth",
  "conduit-system-continuity",
+ "conduit-text",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-fabrication",
@@ -913,6 +916,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-text"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+]
+
+[[package]]
 name = "conduit-tongues"
 version = "0.1.0"
 dependencies = [
@@ -922,6 +933,7 @@ dependencies = [
  "conduit-planner",
  "conduit-runtime",
  "conduit-std-catalog",
+ "conduit-text",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -973,6 +985,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-synth",
+ "conduit-text",
  "conduit-web",
  "limine",
  "serde_json",
@@ -2505,6 +2518,7 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-std-host",
+ "conduit-text",
  "conduit-wire",
  "serde",
  "serde_json",
@@ -2527,6 +2541,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-system-continuity",
+ "conduit-text",
  "conduit-wire",
  "conduitos",
  "embedded-graphics",
@@ -4383,6 +4398,7 @@ dependencies = [
  "conduit-std-host",
  "conduit-synth",
  "conduit-system-continuity",
+ "conduit-text",
  "conduit-wire",
  "conduit-workspace-fabrication",
  "conduitos",

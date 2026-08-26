@@ -298,8 +298,8 @@ fn branch_placements(
     for placement in &fragment.placements {
         if matches!(
             placement.kind_id.as_str(),
-            conduit_std_catalog::TEXT_LITERAL_KIND
-                | conduit_std_catalog::TEXT_UPPER_KIND
+            conduit_text::TEXT_LITERAL_KIND
+                | conduit_text::TEXT_UPPER_KIND
                 | conduit_std_catalog::TEXT_PRESENTATION_KIND
         ) {
             text.push(placement.placement_id.clone());

@@ -31,7 +31,7 @@ const ROUTE_TARGETS: usize = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
 const PENDING_REQUESTS: usize = 4;
 const VALUE_SLOTS: usize = 64;
-const MAX_VALUE_BYTES: usize = conduit_std_catalog::MAX_TEXT_BYTES as usize;
+const MAX_VALUE_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 const VALUE_BYTE_CAPACITY: usize = 128;
 const SIGN_CAPACITY: usize = 768;
 
@@ -118,7 +118,7 @@ impl KeyboardTextKernel {
         validate_shape(fragment, &lowered)?;
         let keyboard_node = node_for(fragment, conduit_std_catalog::KEYBOARD_KIND)?;
         let keymap_node = node_for(fragment, conduit_std_catalog::KEYMAP_KIND)?;
-        let upper_node = node_for(fragment, conduit_std_catalog::TEXT_UPPER_KIND)?;
+        let upper_node = node_for(fragment, conduit_text::TEXT_UPPER_KIND)?;
         let presentation_node = node_for(fragment, conduit_std_catalog::TEXT_PRESENTATION_KIND)?;
         let mut values =
             FixedValueStore::<VALUE_SLOTS, MAX_VALUE_BYTES>::new(VALUE_BYTE_CAPACITY as u32)

@@ -12,9 +12,10 @@ use conduit_runtime::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 use conduit_std_catalog::{
-    exact_text_lab_split_plan, KEYBOARD_KIND, KEYMAP_KIND, MAX_TEXT_BYTES, TEXT_LAB_MAXIMUM_VALUES,
+    exact_text_lab_split_plan, KEYBOARD_KIND, KEYMAP_KIND, TEXT_LAB_MAXIMUM_VALUES,
     TEXT_LAB_NATIVE_HOST, TEXT_PRESENTATION_KIND,
 };
+use conduit_text::MAX_TEXT_BYTES;
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const ROUTE_SLOTS: usize = 3 * PORTS;

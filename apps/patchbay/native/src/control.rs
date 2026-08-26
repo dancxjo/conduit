@@ -438,10 +438,9 @@ impl NativeControl {
     pub fn presented_text(&self) -> Option<String> {
         let output = std::str::from_utf8(self.presentation.as_deref()?).ok()?;
         let mut presented = String::with_capacity(
-            conduit_std_catalog::MAX_TEXT_VALUES as usize
-                * conduit_std_catalog::MAX_TEXT_BYTES as usize,
+            conduit_std_catalog::MAX_TEXT_VALUES as usize * conduit_text::MAX_TEXT_BYTES as usize,
         );
-        let mut decoded = Vec::with_capacity(conduit_std_catalog::MAX_TEXT_BYTES as usize);
+        let mut decoded = Vec::with_capacity(conduit_text::MAX_TEXT_BYTES as usize);
         let mut found = false;
         for line in output.lines() {
             let Some(receipt) = line.strip_prefix("PRESENTATION-TEXT bytes=") else {

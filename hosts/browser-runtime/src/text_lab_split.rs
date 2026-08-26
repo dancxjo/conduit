@@ -12,9 +12,9 @@ use conduit_runtime::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 use conduit_std_catalog::{
-    exact_text_lab_split_plan, MAX_TEXT_BYTES, TEXT_LAB_BROWSER_HOST, TEXT_LAB_MAXIMUM_VALUES,
-    TEXT_UPPER_KIND,
+    exact_text_lab_split_plan, TEXT_LAB_BROWSER_HOST, TEXT_LAB_MAXIMUM_VALUES,
 };
+use conduit_text::{MAX_TEXT_BYTES, TEXT_UPPER_KIND};
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
 const SIGN_ITEMS: u16 = 128;

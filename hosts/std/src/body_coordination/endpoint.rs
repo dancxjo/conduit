@@ -10,9 +10,8 @@ use conduit_runtime::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
     MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
-use conduit_std_catalog::{
-    BodyCoordinationPlan, MAX_TEXT_BYTES, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND,
-};
+use conduit_std_catalog::{BodyCoordinationPlan, TEXT_PRESENTATION_KIND};
+use conduit_text::{MAX_TEXT_BYTES, TEXT_LITERAL_KIND};
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 
 const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;

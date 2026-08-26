@@ -23,7 +23,7 @@ const TEXT_FORM: &str = r#"form browser-text-nucleus {
 
 type TextScheduler = FixedScheduler<
     OperationDriver<NucleusOperation, PORTS>,
-    FixedValueStore<6, { conduit_std_catalog::MAX_TEXT_BYTES as usize }>,
+    FixedValueStore<6, { conduit_text::MAX_TEXT_BYTES as usize }>,
     FixedSignLog<32>,
     3,
     2,
@@ -53,7 +53,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::MAX_TEXT_BYTES,
+            connection_byte_capacity: conduit_text::MAX_TEXT_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -98,8 +98,8 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
             .map_err(debug_error)?;
     }
     bindings.seal().map_err(debug_error)?;
-    let mut values = FixedValueStore::<6, { conduit_std_catalog::MAX_TEXT_BYTES as usize }>::new(
-        conduit_std_catalog::MAX_TEXT_BYTES * 6,
+    let mut values = FixedValueStore::<6, { conduit_text::MAX_TEXT_BYTES as usize }>::new(
+        conduit_text::MAX_TEXT_BYTES * 6,
     )
     .map_err(debug_error)?;
     let source = values.store("Straße".as_bytes()).map_err(debug_error)?;
@@ -110,7 +110,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
                 value: source,
                 emitted: false,
             },
-            conduit_std_catalog::TEXT_UPPER_KIND => NucleusOperation::Transform {
+            conduit_text::TEXT_UPPER_KIND => NucleusOperation::Transform {
                 maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
                 pending: false,
                 emitted: false,
@@ -148,7 +148,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
                 .map_err(debug_error)?
                 .to_vec();
             let placement = &fragment.placements[usize::from(request.node.0)];
-            let outcome = if placement.kind_id.as_str() == conduit_std_catalog::TEXT_UPPER_KIND {
+            let outcome = if placement.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND {
                 let output = uppercase_utf8(&input)?;
                 let value = scheduler.store_host_value(&output).map_err(debug_error)?;
                 Some(
@@ -195,11 +195,11 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
 pub(crate) fn uppercase_utf8(input: &[u8]) -> Result<Vec<u8>, String> {
     let text = core::str::from_utf8(input)
         .map_err(|_| "browser text/upper input is not valid UTF-8".to_string())?;
-    let mut output = Vec::with_capacity(conduit_std_catalog::MAX_TEXT_BYTES as usize);
+    let mut output = Vec::with_capacity(conduit_text::MAX_TEXT_BYTES as usize);
     for character in text.chars().flat_map(char::to_uppercase) {
         let mut encoded = [0_u8; 4];
         let bytes = character.encode_utf8(&mut encoded).as_bytes();
-        if output.len() + bytes.len() > conduit_std_catalog::MAX_TEXT_BYTES as usize {
+        if output.len() + bytes.len() > conduit_text::MAX_TEXT_BYTES as usize {
             return Err("browser text/upper output exceeds its admitted bound".into());
         }
         output.extend_from_slice(bytes);

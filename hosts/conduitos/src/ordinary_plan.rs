@@ -22,7 +22,7 @@ use crate::{
 pub const ORDINARY_FORM_SOURCE: &str = "form conduitos-text-upper {\n    upper: text/upper\n    show: presentation/text\n    \"Hello, ConduitOS\" > upper > show\n}\n";
 pub const TEXT_LITERAL: &str = "Hello, ConduitOS";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
-const CORD_BYTES: u32 = conduit_std_catalog::MAX_TEXT_BYTES;
+const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
 const ORDINARY_PLACEMENT_COUNT: usize = 3;
 pub const COOPERATIVE_REGION_PROFILE: &str = "conduitos/cooperative-bounded-step@1";
 
@@ -143,12 +143,10 @@ pub(crate) fn advertisement(
         || fixed.boot_id != identities.boot
         || fixed.generation == 0
         || fixed.capabilities.len() != CAPABILITY_COUNT
-        || fixed.capabilities[2].kind != conduit_std_catalog::TEXT_LITERAL_KIND
-        || fixed.capabilities[2].contract_revision
-            != conduit_std_catalog::TEXT_LITERAL_CONTRACT_REVISION
-        || fixed.capabilities[3].kind != conduit_std_catalog::TEXT_UPPER_KIND
-        || fixed.capabilities[3].contract_revision
-            != conduit_std_catalog::TEXT_UPPER_CONTRACT_REVISION
+        || fixed.capabilities[2].kind != conduit_text::TEXT_LITERAL_KIND
+        || fixed.capabilities[2].contract_revision != conduit_text::TEXT_LITERAL_CONTRACT_REVISION
+        || fixed.capabilities[3].kind != conduit_text::TEXT_UPPER_KIND
+        || fixed.capabilities[3].contract_revision != conduit_text::TEXT_UPPER_CONTRACT_REVISION
         || fixed.capabilities[4].kind != conduit_std_catalog::TEXT_PRESENTATION_KIND
         || fixed.capabilities[4].contract_revision
             != conduit_std_catalog::TEXT_PRESENTATION_CONTRACT_REVISION
@@ -157,7 +155,7 @@ pub(crate) fn advertisement(
         || fixed.capabilities[4].implementation != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
         || fixed.capabilities[2].required_base != crate::machine::BaseKind::Memory
         || fixed.capabilities[2].host_operation.is_some()
-        || fixed.capabilities[2].maximum_output_bytes != conduit_std_catalog::MAX_TEXT_BYTES
+        || fixed.capabilities[2].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[2].output.is_none_or(|port| {
             port.name != "text"
                 || port.value_kind != conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND
@@ -166,8 +164,8 @@ pub(crate) fn advertisement(
         || fixed.capabilities[3].required_base != crate::machine::BaseKind::Memory
         || fixed.capabilities[3].host_operation
             != Some(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT)
-        || fixed.capabilities[3].maximum_input_bytes != conduit_std_catalog::MAX_TEXT_BYTES
-        || fixed.capabilities[3].maximum_output_bytes != conduit_std_catalog::MAX_TEXT_BYTES
+        || fixed.capabilities[3].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
+        || fixed.capabilities[3].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[4].required_base != crate::machine::BaseKind::Serial
         || fixed.capabilities[4].host_operation != Some("conduit.host/present@1")
         || fixed.capabilities[4].maximum_input_bytes != crate::offer::SERIAL_MAXIMUM_BYTES
@@ -239,7 +237,7 @@ fn validate_text_capacity(
     let literal = form
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == conduit_std_catalog::TEXT_LITERAL_KIND)
+        .find(|gear| gear.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
         .and_then(|gear| {
             gear.configuration
                 .iter()
@@ -249,8 +247,7 @@ fn validate_text_capacity(
                 })
         })
         .ok_or(PreparationError::FormRejected)?;
-    if literal.len() > conduit_std_catalog::MAX_TEXT_BYTES as usize
-        || literal.len() > cord_bytes as usize
+    if literal.len() > conduit_text::MAX_TEXT_BYTES as usize || literal.len() > cord_bytes as usize
     {
         return Err(PreparationError::PlanRejected);
     }
@@ -392,7 +389,7 @@ mod tests {
             prepare(&identities, &offer, "build").err(),
             Some(PreparationError::OfferMismatch)
         );
-        offer.capabilities[2].maximum_output_bytes = conduit_std_catalog::MAX_TEXT_BYTES;
+        offer.capabilities[2].maximum_output_bytes = conduit_text::MAX_TEXT_BYTES;
         offer.capabilities[3].implementation = "unavailable";
         assert_eq!(
             prepare(&identities, &offer, "build").err(),
@@ -480,7 +477,7 @@ mod tests {
 
     #[test]
     fn oversized_text_is_refused_during_source_checking() {
-        let oversized = "x".repeat(conduit_std_catalog::MAX_TEXT_BYTES as usize + 1);
+        let oversized = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize + 1);
         let source = format!("form too-large {{\n    \"{oversized}\" > presentation/text\n}}\n");
         let syntax = conduit_form::parse_syntax_document(&source);
         let mut startup = conduit_form::StartupCatalog::new();

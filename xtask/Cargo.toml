@@ -33,6 +33,7 @@ conduit-workspace-fabrication = { path = "../crates/conduit-workspace-fabricatio
 conduit-kernel = { path = "../crates/conduit-kernel", features = ["alloc"] }
 conduit-midi = { path = "../crates/conduit-midi" }
 conduit-std-catalog = { path = "../crates/conduit-std-catalog", features = ["body-coordination-plan"] }
+conduit-text = { path = "../crates/conduit-text" }
 conduitos = { path = "../hosts/conduitos", features = ["hosted-tools"] }
 conduit-net = { path = "../crates/conduit-net" }
 conduit-pete = { path = "../apps/pete" }

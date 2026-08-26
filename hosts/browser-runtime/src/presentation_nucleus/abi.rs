@@ -7,7 +7,7 @@ struct BrowserNucleusBuffers {
     graphics_len: usize,
     layout: [u8; MAX_LAYOUT_FRAME_BYTES],
     layout_len: usize,
-    text: [u8; conduit_std_catalog::MAX_TEXT_BYTES as usize],
+    text: [u8; conduit_text::MAX_TEXT_BYTES as usize],
     text_len: usize,
     structured: [u8; 512],
     structured_len: usize,
@@ -21,7 +21,7 @@ thread_local! {
 pub extern "C" fn conduit_browser_presentation_nucleus_run() -> i32 {
     match execute_browser_nucleus() {
         Ok(proof) => {
-            let mut text = [0; conduit_std_catalog::MAX_TEXT_BYTES as usize];
+            let mut text = [0; conduit_text::MAX_TEXT_BYTES as usize];
             text[..proof.text.len()].copy_from_slice(proof.text.as_bytes());
             let (structured, structured_len) = encode_structured(&proof.structured);
             BROWSER_NUCLEUS.with(|slot| {
