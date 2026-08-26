@@ -203,6 +203,7 @@ dependencies = [
  "conduit-core",
  "conduit-embedded-build",
  "conduit-form",
+ "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
  "conduit-kernel",
  "conduit-planner",
@@ -233,6 +234,16 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "serde",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-host-esp32-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
+ "serde",
+ "serde_json",
  "sha2",
 ]
 

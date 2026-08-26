@@ -1,7 +1,9 @@
 use std::{env, fs, path::PathBuf};
 
 use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
-use conduit_host_fabrication::{esp32_descriptor_binding, validate_esp32_descriptor};
+use conduit_host_esp32_fabrication::{
+    esp32_descriptor_binding, validate_esp32_descriptor, Esp32BoardDescriptor,
+};
 use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_signal::{
     DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_S3_PHYSICAL_HOST_ID, SIGNAL_ENCODED_LEN,
@@ -14,7 +16,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rustc-link-arg=-Tlinkall.x");
 
-    let descriptor: conduit_host_fabrication::Esp32BoardDescriptor = serde_json::from_str(
+    let descriptor: Esp32BoardDescriptor = serde_json::from_str(
         &fs::read_to_string("board-descriptor.json").expect("S3 descriptor must be readable"),
     )
     .expect("S3 descriptor must decode");

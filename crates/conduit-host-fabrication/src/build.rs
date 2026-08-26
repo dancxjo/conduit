@@ -165,10 +165,7 @@ pub fn build_host_image(
         });
     }
     validate_bounds(&profile.bounds, &fabrication.maxima, &mut diagnostics);
-    for (left, right) in [
-        ("compositor/native@1", "browser/dom"),
-        ("display/linear-framebuffer@1", "browser/dom@1"),
-    ] {
+    for (left, right) in &catalog.mutually_exclusive_mechanisms {
         let selected = profile
             .facilities
             .iter()
@@ -178,8 +175,8 @@ pub fn build_host_image(
             .collect::<BTreeSet<_>>();
         if selected.contains(left) && selected.contains(right) {
             diagnostics.push(BuildDiagnostic::MutuallyExclusiveMechanisms {
-                left: left.into(),
-                right: right.into(),
+                left: left.clone(),
+                right: right.clone(),
             });
         }
     }

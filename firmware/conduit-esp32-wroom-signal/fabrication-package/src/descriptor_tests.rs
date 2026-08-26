@@ -1,7 +1,7 @@
-use crate::test_packages::{test_build_host_image, test_catalog};
-use crate::*;
+use crate::descriptor::*;
+use conduit_host_fabrication::*;
 
-const HEADLESS: &str = include_str!("../../../profiles/hosts/conduitos-headless.profile.json");
+const HEADLESS: &str = include_str!("../../../../profiles/hosts/conduitos-headless.profile.json");
 
 fn fixture() -> Esp32BoardDescriptor {
     Esp32BoardDescriptor {
@@ -15,8 +15,8 @@ fn fixture() -> Esp32BoardDescriptor {
             inspection_evidence: "fixture/not-physical".into(),
         },
         target: Esp32TargetFacts {
-            architecture: "xtensa".into(),
-            machine: "esp-wroom-32".into(),
+            architecture: "xtensa-lx6".into(),
+            machine: "hw-463-esp-wroom-32".into(),
             chip: "fixture-chip".into(),
             cores: 2,
             clock_hz: 240_000_000,
@@ -58,21 +58,26 @@ fn profile(descriptor: Option<String>) -> HostProfile {
     let mut profile: HostProfile = serde_json::from_str(HEADLESS).unwrap();
     profile.name = "fixture-esp32".into();
     profile.target.family = "esp32".into();
-    profile.target.architecture = "xtensa".into();
-    profile.target.machine = "esp-wroom-32".into();
+    profile.target.architecture = "xtensa-lx6".into();
+    profile.target.machine = "hw-463-esp-wroom-32".into();
     profile.target.fabrication_descriptor = descriptor;
     profile.lines.clear();
+    profile.exclusions.clear();
     profile
 }
 
 fn catalog() -> (FabricationCatalog, String) {
-    let mut catalog = test_catalog();
+    let packages = conduit_host_fabrication::FabricationPackageSet::compose(&[
+        &crate::Esp32FabricationPackage,
+    ])
+    .unwrap();
+    let mut catalog = FabricationCatalog::canonical().with_packages(&packages);
     let descriptor = fixture();
     let binding = esp32_descriptor_binding(&descriptor).unwrap();
-    catalog.targets.push("esp32/xtensa/esp-wroom-32".into());
-    catalog
-        .esp32_descriptors
-        .insert(binding.clone(), descriptor);
+    catalog.fabrication_descriptors.insert(
+        binding.clone(),
+        "esp32/xtensa-lx6/hw-463-esp-wroom-32".into(),
+    );
     (catalog, binding)
 }
 
@@ -85,23 +90,21 @@ fn build_inputs() -> BuildInputs {
 
 #[test]
 fn esp32_profile_requires_an_exact_descriptor_and_binds_it_to_identity() {
-    let (catalog, binding) = catalog();
-    let diagnostics = validate_profile(profile(None), &catalog).unwrap_err();
+    let (base_catalog, binding) = catalog();
+    let diagnostics = validate_profile(profile(None), &base_catalog).unwrap_err();
     assert!(diagnostics
         .iter()
         .any(|item| matches!(item, ProfileDiagnostic::MissingFabricationDescriptor { .. })));
 
-    let first = validate_profile(profile(Some(binding)), &catalog).unwrap();
+    let first = validate_profile(profile(Some(binding)), &base_catalog).unwrap();
     let mut changed = fixture();
     changed.target.clock_hz -= 1;
     let changed_binding = esp32_descriptor_binding(&changed).unwrap();
-    let mut changed_catalog = test_catalog();
-    changed_catalog
-        .targets
-        .push("esp32/xtensa/esp-wroom-32".into());
-    changed_catalog
-        .esp32_descriptors
-        .insert(changed_binding.clone(), changed);
+    let (mut changed_catalog, _) = catalog();
+    changed_catalog.fabrication_descriptors.insert(
+        changed_binding.clone(),
+        "esp32/xtensa-lx6/hw-463-esp-wroom-32".into(),
+    );
     let second = validate_profile(profile(Some(changed_binding)), &changed_catalog).unwrap();
     assert_ne!(first.profile_id(), second.profile_id());
 }
@@ -132,8 +135,13 @@ fn descriptor_rejects_false_capacity_duplicates_and_target_cross_wiring() {
 #[test]
 fn build_and_image_retain_exact_descriptor_binding_without_runtime_truth() {
     let (catalog, binding) = catalog();
-    let (image, bytes) =
-        test_build_host_image(profile(Some(binding.clone())), &catalog, &build_inputs()).unwrap();
+    let (image, bytes) = build_default_host_image(
+        profile(Some(binding.clone())),
+        &catalog,
+        &FabricationPackageSet::compose(&[&crate::Esp32FabricationPackage]).unwrap(),
+        &build_inputs(),
+    )
+    .unwrap();
     assert_eq!(
         image.manifest.fabrication_descriptor.as_deref(),
         Some(binding.as_str())

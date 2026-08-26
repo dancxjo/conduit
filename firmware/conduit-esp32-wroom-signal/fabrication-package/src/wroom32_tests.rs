@@ -1,7 +1,8 @@
-use crate::test_packages::{test_build_host_image, test_catalog};
-use crate::*;
+use crate::descriptor::*;
+use crate::wroom32::*;
+use conduit_host_fabrication::*;
 
-const HEADLESS: &str = include_str!("../../../profiles/hosts/conduitos-headless.profile.json");
+const HEADLESS: &str = include_str!("../../../../profiles/hosts/conduitos-headless.profile.json");
 
 fn sample_profile(binding: String) -> HostProfile {
     let mut profile: HostProfile = serde_json::from_str(HEADLESS).unwrap();
@@ -11,6 +12,7 @@ fn sample_profile(binding: String) -> HostProfile {
     profile.target.machine = "hw-463-esp-wroom-32".into();
     profile.target.fabrication_descriptor = Some(binding);
     profile.lines.clear();
+    profile.exclusions.clear();
     profile
 }
 
@@ -41,11 +43,11 @@ fn only_the_observed_sample_can_reach_profile_and_image_lowering() {
     let descriptor = hw463_esp_wroom_32_sample();
     let binding = esp32_descriptor_binding(&descriptor).unwrap();
     let target = "esp32/xtensa-lx6/hw-463-esp-wroom-32";
-    let mut catalog = test_catalog();
-    catalog.targets.push(target.into());
+    let packages = FabricationPackageSet::compose(&[&crate::Esp32FabricationPackage]).unwrap();
+    let mut catalog = FabricationCatalog::canonical().with_packages(&packages);
     catalog
-        .esp32_descriptors
-        .insert(binding.clone(), descriptor);
+        .fabrication_descriptors
+        .insert(binding.clone(), target.into());
 
     let checked = validate_profile(sample_profile(binding.clone()), &catalog).unwrap();
     assert_eq!(checked.profile().target.key(), target);
@@ -53,8 +55,13 @@ fn only_the_observed_sample_can_reach_profile_and_image_lowering() {
         checked.profile().target.fabrication_descriptor.as_deref(),
         Some(binding.as_str())
     );
-    let (image, _) =
-        test_build_host_image(checked.profile().clone(), &catalog, &build_inputs()).unwrap();
+    let (image, _) = build_default_host_image(
+        checked.profile().clone(),
+        &catalog,
+        &packages,
+        &build_inputs(),
+    )
+    .unwrap();
     assert_eq!(
         image.manifest.post_build_actions,
         [PostBuildAction::Flash, PostBuildAction::Boot]

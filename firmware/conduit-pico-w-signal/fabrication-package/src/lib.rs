@@ -14,6 +14,7 @@ impl HostFabricationPackage for Rp2040FabricationPackage {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: PACKAGE_ID.into(),
             package_revision: 1,
+            catalog: Default::default(),
             targets: vec![TargetDescriptor {
                 label: "Pico W".into(),
                 family: "conduitos".into(),
@@ -30,6 +31,7 @@ impl HostFabricationPackage for Rp2040FabricationPackage {
                 outputs: vec![SporeOutputKind::Uf2],
                 default_output: SporeOutputKind::Uf2,
                 post_build_actions: vec![PostBuildAction::Flash, PostBuildAction::Boot],
+                fabrication_descriptors: Vec::new(),
                 maxima: HostBounds {
                     static_memory_bytes: 256 * 1024,
                     heap_arena_bytes: 256 * 1024,

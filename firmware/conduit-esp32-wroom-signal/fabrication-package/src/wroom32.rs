@@ -1,4 +1,4 @@
-use crate::{
+use crate::descriptor::{
     Esp32BoardDescriptor, Esp32BootFacts, Esp32FabricationIdentity, Esp32FlashFacts,
     Esp32MemoryKind, Esp32MemoryRegion, Esp32RadioFacts, Esp32RadioKind, Esp32TargetFacts,
     ESP32_DESCRIPTOR_SCHEMA,

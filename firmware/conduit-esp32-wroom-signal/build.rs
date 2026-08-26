@@ -1,7 +1,7 @@
 use std::{env, fs, path::PathBuf};
 
 use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
-use conduit_host_fabrication::{
+use conduit_host_esp32_fabrication::{
     esp32_descriptor_binding, hw463_esp_wroom_32_sample, validate_esp32_descriptor,
 };
 use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};

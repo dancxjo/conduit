@@ -1,9 +1,27 @@
 use conduit_host_fabrication::{
     FabricationAnchor, FabricationContribution, HostBounds, HostFabricationPackage,
-    ImplementationOffer, PostBuildAction, SporeOutputKind, TargetDescriptor,
+    ImplementationOffer, PackageCatalogContribution, PostBuildAction, PrerequisiteNode,
+    SporeOutputKind, TargetDescriptor,
 };
+use std::collections::BTreeMap;
 
 pub struct HostedFabricationPackage;
+
+fn package_catalog() -> PackageCatalogContribution {
+    PackageCatalogContribution {
+        dependencies: BTreeMap::from([
+            (
+                PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),
+                vec![PrerequisiteNode::Base("timer/monotonic".into())],
+            ),
+            (
+                PrerequisiteNode::Base("timer/monotonic".into()),
+                vec![PrerequisiteNode::Driver("hosted/monotonic-clock@1".into())],
+            ),
+        ]),
+        ..Default::default()
+    }
+}
 
 fn maxima() -> HostBounds {
     HostBounds {
@@ -36,6 +54,7 @@ fn target(label: &str, machine: &str) -> TargetDescriptor {
         outputs: vec![SporeOutputKind::NativeBundle],
         default_output: SporeOutputKind::NativeBundle,
         post_build_actions: vec![PostBuildAction::Launch],
+        fabrication_descriptors: Vec::new(),
         maxima: maxima(),
     }
 }
@@ -56,6 +75,7 @@ impl HostFabricationPackage for HostedFabricationPackage {
         FabricationContribution::Anchor(FabricationAnchor {
             package_id: "hosted-native@1".into(),
             package_revision: 1,
+            catalog: package_catalog(),
             targets: vec![
                 target("Hosted Linux workstation", "workstation"),
                 target("Hosted Linux server", "server"),
