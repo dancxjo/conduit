@@ -1,7 +1,6 @@
-mod browser_product;
-#[cfg(test)]
-mod browser_product_tests;
+mod body_product;
 mod cli;
+mod construction;
 mod copy_task;
 #[cfg(test)]
 mod copy_task_tests;
@@ -12,7 +11,7 @@ mod product_execution;
 mod product_execution_tests;
 mod protected_task;
 mod report_artifact;
-mod two_std_line;
+mod std_websocket_line;
 #[cfg(test)]
 mod two_std_line_tests;
 
@@ -51,63 +50,38 @@ fn run_with_placements(
     path: &str,
     placements_path: Option<&str>,
     report_path: Option<&Path>,
-    execution_fixture: Option<cli::ExecutionFixture>,
+    body_path: Option<&Path>,
 ) -> Result<(), String> {
-    let source = match execution_fixture {
-        Some(cli::ExecutionFixture::TwoStdLine) => form_source::load_signal(Path::new(path))?,
-        Some(cli::ExecutionFixture::StdBrowserLine) => form_source::load_signal(Path::new(path))?,
-        None => form_source::load(Path::new(path))?,
+    let source = if body_path.is_some() {
+        form_source::load_signal(Path::new(path))?
+    } else {
+        form_source::load(Path::new(path))?
     };
     let form = source.expand_entry()?;
-    let mut context = match execution_fixture {
+    let body_product = body_path.map(body_product::prepare).transpose()?;
+    let mut context = match body_product {
+        Some(product) => product.context,
         None => product_execution::ProductExecutionContext::local_std()?,
-        Some(cli::ExecutionFixture::TwoStdLine) => two_std_line::context()?,
-        Some(cli::ExecutionFixture::StdBrowserLine) => browser_product::context()?,
     };
-    let plan = match execution_fixture {
-        None => context.plan(&form, placements_path)?,
-        Some(cli::ExecutionFixture::TwoStdLine) => {
-            if placements_path.is_some() {
-                return Err("the two-std-line fixture owns its exact machine placement".into());
-            }
-            context.plan_with_placements(&form, &two_std_line::placements(&form)?)?
-        }
-        Some(cli::ExecutionFixture::StdBrowserLine) => {
-            if placements_path.is_some() {
-                return Err("the std-browser-line fixture owns its exact machine placement".into());
-            }
-            context.plan_with_placements(&form, &browser_product::placements(&form)?)?
-        }
-    };
+    let plan = context.plan(&form, placements_path)?;
     let mut stdout = io::stdout().lock();
-    let execution = match execution_fixture {
-        None => context.execute(plan, &mut stdout)?,
-        Some(cli::ExecutionFixture::TwoStdLine) => {
-            context.validate_plan(&plan)?;
-            let evidence = two_std_line::execute(&plan)?;
-            writeln!(
-                stdout,
-                "two-std Line complete values={} pressure_retries={}",
-                evidence.received, evidence.pressure_retries
-            )
-            .map_err(|error| error.to_string())?;
-            product_execution::ProductExecution {
-                advertisements: context.advertisements().to_vec(),
-                line_offers: context.line_offers().to_vec(),
-                plan,
-                observations: Vec::new(),
-            }
+    let execution = if body_path.is_some() {
+        context.validate_plan(&plan)?;
+        let evidence = std_websocket_line::execute(&plan)?;
+        writeln!(
+            stdout,
+            "Body Line complete values={} pressure_retries={}",
+            evidence.received, evidence.pressure_retries
+        )
+        .map_err(|error| error.to_string())?;
+        product_execution::ProductExecution {
+            advertisements: context.advertisements().to_vec(),
+            line_offers: context.line_offers().to_vec(),
+            plan,
+            observations: Vec::new(),
         }
-        Some(cli::ExecutionFixture::StdBrowserLine) => {
-            context.validate_plan(&plan)?;
-            let observations = browser_product::execute(&plan, &mut stdout)?;
-            product_execution::ProductExecution {
-                advertisements: context.advertisements().to_vec(),
-                line_offers: context.line_offers().to_vec(),
-                plan,
-                observations,
-            }
-        }
+    } else {
+        context.execute(plan, &mut stdout)?
     };
     if let Some(report_path) = report_path {
         let snapshot = snapshot_from_execution(
@@ -135,13 +109,15 @@ fn main() {
             form,
             placements,
             report,
-            execution_fixture,
+            body,
         } => run_with_placements(
             &form.to_string_lossy(),
             placements.as_deref().map(Path::to_string_lossy).as_deref(),
             report.as_deref(),
-            execution_fixture,
+            body.as_deref(),
         ),
+        cli::Command::Host { command } => construction::host(command),
+        cli::Command::Body { command } => construction::body(command),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
             Ok(false) => std::process::exit(1),

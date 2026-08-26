@@ -1,11 +1,12 @@
-//! Bounded machine-only product fixture for one exact two-std-Host Line.
+//! Bounded machine-only execution of an exact two-std-Host WebSocket Line.
 
+#[cfg(test)]
+use conduit_core::{BootId, CapabilityId, GearId, HostId};
 use conduit_core::{
-    BootId, CapabilityId, ConnectionBase, ConnectionBaseInstanceId, GearId, HostId,
-    LineAvailability, LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId,
-    LineOffer, LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
-    LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint,
-    LinkEndpointId, LinkLimits, Plan, SignId,
+    ConnectionBase, ConnectionBaseInstanceId, LineAvailability, LineAvailabilitySign,
+    LineContinuation, LineContract, LineDuplex, LineId, LineOffer, LineOrdering, LineReliability,
+    LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkBindingId,
+    LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, Plan, SignId,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, StepInputBytes, StepIo, StepOperation, StepOutcome,
@@ -19,17 +20,21 @@ use conduit_std_host::websocket::NativeWebSocketListener;
 use conduit_wire::{
     SessionBinding, SessionMachine, SessionMessage, SessionRole, SessionTerminalDisposition,
 };
+#[cfg(test)]
 use std::collections::BTreeMap;
 use std::thread;
 
 mod peer;
 use peer::{activate_source, receive, send};
 
+#[cfg(test)]
 pub(crate) const SOURCE_HOST: &str = "product/std-source";
+#[cfg(test)]
 pub(crate) const SINK_HOST: &str = "product/std-sink";
+#[cfg(test)]
 const SOURCE_BOOT: &str = "product/std-source/boot-1";
+#[cfg(test)]
 const SINK_BOOT: &str = "product/std-sink/boot-1";
-const LINE: &str = "product/two-std/websocket-line";
 const MAXIMUM_VALUES: usize = 16;
 const MAXIMUM_FRAME_BYTES: u32 = conduit_signal::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
 const PORTS: usize = conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
@@ -98,6 +103,7 @@ impl StepOperation<PORTS> for Driver {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn host(name: &str) -> conduit_std_host::StdHost {
     let boot = match name {
         SOURCE_HOST => SOURCE_BOOT,
@@ -111,6 +117,7 @@ pub(crate) fn host(name: &str) -> conduit_std_host::StdHost {
     })
 }
 
+#[cfg(test)]
 pub(crate) fn context() -> Result<crate::product_execution::ProductExecutionContext, String> {
     let source = host(SOURCE_HOST);
     let sink = host(SINK_HOST);
@@ -126,6 +133,7 @@ pub(crate) fn context() -> Result<crate::product_execution::ProductExecutionCont
     )
 }
 
+#[cfg(test)]
 pub(crate) fn placements(
     form: &conduit_form::ExpandedCanonicalForm,
 ) -> Result<conduit_planner::PlacementChoices, String> {
@@ -134,11 +142,7 @@ pub(crate) fn placements(
         let (host_id, capability_id) = match gear.kind_id.as_str() {
             conduit_signal::PULSE_KIND => (SOURCE_HOST, "pulse-1"),
             conduit_signal::SHOW_KIND => (SINK_HOST, "stdout-show-1"),
-            other => {
-                return Err(format!(
-                    "two-std-line fixture does not implement kind '{other}'"
-                ))
-            }
+            other => return Err(format!("test Host pair does not implement kind '{other}'")),
         };
         by_gear.insert(
             GearId::from(gear.gear_id.as_str()),
@@ -155,8 +159,12 @@ pub(crate) fn line_offer(
     source: &conduit_std_host::StdHost,
     sink: &conduit_std_host::StdHost,
 ) -> LineOffer {
-    let line_id = LineId::from(LINE);
-    let binding_id = LinkBindingId::from("product/two-std/websocket-binding");
+    let line_id = LineId::from(format!(
+        "body-line/{}/{}",
+        source.advertisement().host_id.as_str(),
+        sink.advertisement().host_id.as_str()
+    ));
+    let binding_id = LinkBindingId::from(format!("{}/binding", line_id.as_str()));
     LineOffer {
         line_id: line_id.clone(),
         binding: LinkBinding {
@@ -172,7 +180,9 @@ pub(crate) fn line_offer(
                 endpoint_id: LinkEndpointId::from("product/std-sink/ingress"),
             },
             base: ConnectionBase::WebSocket,
-            base_instance_id: ConnectionBaseInstanceId::from("product/two-std/loopback-instance"),
+            base_instance_id: ConnectionBaseInstanceId::from(
+                "product/std-websocket/loopback-instance",
+            ),
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
             limits: LinkLimits {
@@ -195,24 +205,39 @@ pub(crate) fn line_offer(
             line_id,
             binding_id,
             availability: LineAvailability::Ready,
-            sign_id: SignId::from("product/two-std/line-ready"),
+            sign_id: SignId::from("product/std-websocket/line-ready"),
         },
     }
 }
 
 pub(crate) fn execute(plan: &Plan) -> Result<ExecutionEvidence, String> {
-    let source = plan
+    let lowered = plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == SOURCE_HOST)
+        .map(|fragment| {
+            lower_plan_fragment(fragment)
+                .map(|lowered| (fragment, lowered))
+                .map_err(|error| format!("{error:?}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let (source, source_lowered) = lowered
+        .iter()
+        .find(|(_, lowered)| {
+            lowered
+                .remote_endpoints
+                .iter()
+                .any(|endpoint| endpoint.direction == RemoteCordDirection::Egress)
+        })
         .ok_or("source fragment missing")?;
-    let sink = plan
-        .fragments
+    let (sink, sink_lowered) = lowered
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == SINK_HOST)
+        .find(|(_, lowered)| {
+            lowered
+                .remote_endpoints
+                .iter()
+                .any(|endpoint| endpoint.direction == RemoteCordDirection::Ingress)
+        })
         .ok_or("sink fragment missing")?;
-    let source_lowered = lower_plan_fragment(source).map_err(|error| format!("{error:?}"))?;
-    let sink_lowered = lower_plan_fragment(sink).map_err(|error| format!("{error:?}"))?;
     let source_remote = source_lowered
         .remote_endpoints
         .first()
@@ -245,6 +270,8 @@ pub(crate) fn execute(plan: &Plan) -> Result<ExecutionEvidence, String> {
         .map_err(|error| format!("{error:?}"))?;
     let url = listener.url().map_err(|error| format!("{error:?}"))?;
     let sink_binding = binding.clone();
+    let sink_lowered = sink_lowered.clone();
+    let source_lowered = source_lowered.clone();
     let sink_handle =
         thread::spawn(move || peer::run_sink(sink_lowered, sink_binding, address, &url));
     let source_result = run_source(source_lowered, binding, listener);

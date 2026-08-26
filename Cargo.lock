@@ -434,6 +434,7 @@ dependencies = [
  "clap",
  "conduit-core",
  "conduit-form",
+ "conduit-host-fabrication",
  "conduit-kernel",
  "conduit-net",
  "conduit-observatory",
@@ -443,6 +444,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-wire",
+ "conduit-workspace-fabrication",
  "serde",
  "serde_json",
 ]
