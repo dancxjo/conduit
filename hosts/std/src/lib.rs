@@ -70,6 +70,8 @@ pub mod pico_wifi_bootstrap;
 pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
+pub mod reaction_diffusion;
+pub use reaction_diffusion::*;
 pub mod sound_recovery;
 #[cfg(all(target_os = "linux", feature = "pete-create"))]
 pub mod std_create_uart;

@@ -9,6 +9,7 @@ conduit-form = { path = "../conduit-form" }
 sha2 = { version = "0.10", default-features = false }
 
 [dev-dependencies]
+conduit-alife = { path = "../conduit-alife" }
 conduit-body = { path = "../conduit-body", default-features = false }
 conduit-bluetooth = { path = "../conduit-bluetooth" }
 conduit-ai = { path = "../conduit-ai", features = ["form-catalog"] }

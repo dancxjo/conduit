@@ -1,3 +1,4 @@
+use conduit_alife::install_reaction_diffusion_catalogs;
 use conduit_core::{
     BootId, ConnectionBase, GrayScottParameters, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId,
@@ -16,10 +17,7 @@ use conduit_kernel::{
     Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
     SignQuery, ValueRef, ValueStorage,
 };
-use conduit_std_catalog::{
-    evolve_reaction_diffusion_hosted, install_reaction_diffusion_catalogs,
-    reaction_diffusion_std_offer,
-};
+use conduit_std_host::{evolve_reaction_diffusion_hosted, reaction_diffusion_std_offer};
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const EVOLVE_NODE: NodeId = NodeId(1);

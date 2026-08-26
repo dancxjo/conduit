@@ -122,7 +122,7 @@ pub fn distributed_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core:
 fn catalogs() -> (StartupCatalog, ProfileCatalog, KindDefinition) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_reaction_diffusion_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_alife::install_reaction_diffusion_catalogs(&mut startup, &mut profile).unwrap();
     let field = profile.get(&kind_id(FIELD)).unwrap().clone();
     let definitions = [
         definition(PREPARE, &[STATE, REQUEST], &[WORK, BOUNDARY]),

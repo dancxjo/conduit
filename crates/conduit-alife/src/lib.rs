@@ -7,9 +7,11 @@ mod distributed_expansion;
 #[cfg(feature = "planning")]
 mod distributed_plan;
 mod field_bitmap;
+mod reaction_diffusion;
 
 pub use distributed_catalog::*;
 pub use distributed_expansion::*;
 #[cfg(feature = "planning")]
 pub use distributed_plan::*;
 pub use field_bitmap::*;
+pub use reaction_diffusion::*;

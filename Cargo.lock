@@ -432,6 +432,7 @@ name = "conduit"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "conduit-alife",
  "conduit-body-fabrication",
  "conduit-core",
  "conduit-form",
@@ -740,6 +741,7 @@ name = "conduit-planner"
 version = "0.1.0"
 dependencies = [
  "conduit-ai",
+ "conduit-alife",
  "conduit-bluetooth",
  "conduit-body",
  "conduit-core",

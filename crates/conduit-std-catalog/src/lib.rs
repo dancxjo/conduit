@@ -102,12 +102,6 @@ mod finance_catalog;
 pub use finance_catalog::*;
 mod job;
 pub use job::*;
-mod reaction_diffusion;
-pub use reaction_diffusion::*;
-#[cfg(feature = "form-catalog")]
-mod reaction_diffusion_catalog;
-#[cfg(feature = "form-catalog")]
-pub use reaction_diffusion_catalog::*;
 #[cfg(feature = "form-catalog")]
 mod job_catalog;
 #[cfg(feature = "form-catalog")]
