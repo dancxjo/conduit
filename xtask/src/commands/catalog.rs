@@ -365,7 +365,6 @@ mod tests {
         assert_eq!(
             std_missing,
             vec![
-                conduit_std_catalog::BITMAP_PRESENTATION_KIND,
                 conduit_std_catalog::PATCHBAY_PRESENTATION_KIND,
                 conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND,
                 conduit_std_catalog::PATCHBAY_PORT_KIND,
