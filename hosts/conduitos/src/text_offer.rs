@@ -25,15 +25,15 @@ pub(super) fn literal(build_id: &str) -> CapabilityOffer<'_> {
             closes: true,
         }),
         maximum_in_flight: 1,
-        maximum_input_bytes: conduit_std_catalog::MAX_TEXT_BYTES,
-        maximum_output_bytes: conduit_std_catalog::MAX_TEXT_BYTES,
+        maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
+        maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
     }
 }
 
 pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
     CapabilityOffer {
-        kind: conduit_std_catalog::TEXT_UPPER_KIND,
-        contract_revision: conduit_std_catalog::TEXT_UPPER_CONTRACT_REVISION,
+        kind: conduit_text::TEXT_UPPER_KIND,
+        contract_revision: conduit_text::TEXT_UPPER_CONTRACT_REVISION,
         implementation: TEXT_UPPER_IMPLEMENTATION,
         artifact_build: build_id,
         host_operation: Some(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT),
@@ -52,8 +52,8 @@ pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
             closes: true,
         }),
         maximum_in_flight: 1,
-        maximum_input_bytes: conduit_std_catalog::MAX_TEXT_BYTES,
-        maximum_output_bytes: conduit_std_catalog::MAX_TEXT_BYTES,
+        maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
+        maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
     }
 }
 

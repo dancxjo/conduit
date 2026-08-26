@@ -5,7 +5,7 @@ use conduit_core::{
 };
 
 const OUTPUT_BYTES: usize = conduit_core::JSON_MAXIMUM_ENCODED_BYTES;
-const TEXT_OUTPUT_BYTES: usize = conduit_std_catalog::MAX_TEXT_BYTES as usize;
+const TEXT_OUTPUT_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoundedHostOperationError {

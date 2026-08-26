@@ -126,7 +126,7 @@ pub fn validate(
         (conduit_std_catalog::KEYBOARD_KIND, KEYBOARD_IMPLEMENTATION),
         (conduit_std_catalog::KEYMAP_KIND, KEYMAP_IMPLEMENTATION),
         (
-            conduit_std_catalog::TEXT_UPPER_KIND,
+            conduit_text::TEXT_UPPER_KIND,
             crate::offer::TEXT_UPPER_IMPLEMENTATION,
         ),
         (

@@ -27,8 +27,8 @@ const ROUTE_TARGETS: usize = 3;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
 const PENDING_REQUESTS: usize = 4;
 const VALUE_SLOTS: usize = 10;
-const VALUE_SLOT_BYTES: usize = conduit_std_catalog::MAX_TEXT_BYTES as usize;
-const VALUE_BUDGET_BYTES: u32 = conduit_std_catalog::MAX_TEXT_BYTES * 4;
+const VALUE_SLOT_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
+const VALUE_BUDGET_BYTES: u32 = conduit_text::MAX_TEXT_BYTES * 4;
 const SIGN_CAPACITY: usize = 64;
 
 type Driver = OperationDriver<PlannedOperation, PORTS>;
@@ -60,8 +60,8 @@ impl DualRegionKernel {
         lowered: &LoweredPlanFragment,
     ) -> Result<Self, SchedulerError> {
         validate_shape(fragment, lowered)?;
-        let literal_index = placement_index(fragment, conduit_std_catalog::TEXT_LITERAL_KIND)?;
-        let upper_index = placement_index(fragment, conduit_std_catalog::TEXT_UPPER_KIND)?;
+        let literal_index = placement_index(fragment, conduit_text::TEXT_LITERAL_KIND)?;
+        let upper_index = placement_index(fragment, conduit_text::TEXT_UPPER_KIND)?;
         let text_presentation_index =
             placement_index(fragment, conduit_std_catalog::TEXT_PRESENTATION_KIND)?;
         let timer_index = placement_index(fragment, conduit_std_catalog::TICK_KIND)?;
@@ -210,7 +210,7 @@ impl DualRegionKernel {
             return Err(SchedulerError::InvalidHostOperationAccess);
         }
         let value = self.scheduler.store_host_value(output)?;
-        let output = BoundedValueRef::new(value, conduit_std_catalog::MAX_TEXT_BYTES)
+        let output = BoundedValueRef::new(value, conduit_text::MAX_TEXT_BYTES)
             .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
         self.scheduler.complete_host_operation(
             request.node,
@@ -303,7 +303,7 @@ fn configured_text<'a>(
             }
             _ => None,
         })
-        .filter(|value| value.len() <= conduit_std_catalog::MAX_TEXT_BYTES as usize)
+        .filter(|value| value.len() <= conduit_text::MAX_TEXT_BYTES as usize)
         .ok_or(SchedulerError::InvalidPlan)
 }
 

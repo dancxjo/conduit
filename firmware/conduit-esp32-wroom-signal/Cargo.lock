@@ -344,8 +344,17 @@ dependencies = [
  "conduit-form",
  "conduit-midi",
  "conduit-presentation",
+ "conduit-text",
  "conduit-web",
  "serde",
+]
+
+[[package]]
+name = "conduit-text"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
 ]
 
 [[package]]

@@ -18,7 +18,6 @@ pub const TEXT_PRESENTATION_EXECUTION_PROFILE: &str =
 pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-text@1";
 pub const TEXT_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-text@1";
 pub const TEXT_PRESENTATION_CAPABILITY: &str = "presentation-text-v1";
-pub const MAX_TEXT_BYTES: u32 = 256;
 /// Finite per-Play text occurrence budget. Eight admits the golden `hello`
 /// interaction plus a small edit/refusal margin without making the live source
 /// or Presenter unbounded.
@@ -43,7 +42,7 @@ pub fn text_presentation_contract() -> StandardKindContract {
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 4,
-            max_queue_bytes: MAX_TEXT_BYTES,
+            max_queue_bytes: conduit_text::MAX_TEXT_BYTES,
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
@@ -83,7 +82,7 @@ pub fn text_presentation_offer() -> CapabilityOffer {
         outputs: contract.outputs,
         host_operations: vec![present_host_operation_requirement(
             kind_id("presentation/stdout-text"),
-            MAX_TEXT_BYTES,
+            conduit_text::MAX_TEXT_BYTES,
         )],
         resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
         authority_requirements: Vec::new(),
@@ -131,7 +130,10 @@ mod tests {
             offer.implementation.implementation_id.as_str(),
             TEXT_PRESENTATION_IMPLEMENTATION
         );
-        assert_eq!(offer.host_operations[0].maximum_input_bytes, MAX_TEXT_BYTES);
+        assert_eq!(
+            offer.host_operations[0].maximum_input_bytes,
+            conduit_text::MAX_TEXT_BYTES
+        );
         assert!(contract.browser_manifestation_honest);
         assert!(!contract.pico_manifestation_honest);
     }

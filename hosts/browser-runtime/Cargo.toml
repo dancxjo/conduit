@@ -19,6 +19,7 @@ conduit-runtime = { path = "../../crates/conduit-runtime", default-features = fa
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog", "text-lab-plan"] }
+conduit-text = { path = "../../crates/conduit-text", default-features = false }
 conduit-wire = { path = "../../crates/conduit-wire" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }

@@ -57,9 +57,9 @@ fn lines(
 ) -> Vec<conduit_core::LineOffer> {
     let limits = LinkLimits {
         maximum_in_flight_items: 4,
-        maximum_payload_bytes: conduit_std_catalog::MAX_TEXT_BYTES,
-        maximum_buffered_bytes: conduit_std_catalog::MAX_TEXT_BYTES * 4,
-        maximum_frame_bytes: conduit_std_catalog::MAX_TEXT_BYTES * 2,
+        maximum_payload_bytes: conduit_text::MAX_TEXT_BYTES,
+        maximum_buffered_bytes: conduit_text::MAX_TEXT_BYTES * 4,
+        maximum_frame_bytes: conduit_text::MAX_TEXT_BYTES * 2,
     };
     vec![
         process_owned_line_offer_with_limits(
@@ -117,7 +117,7 @@ fn split_plan(
                 conduit_core::GearId::from("text-lab/uppercase"),
                 PlacementChoice {
                     host_id: browser.host_id.clone(),
-                    capability_id: capability(browser, conduit_std_catalog::TEXT_UPPER_KIND),
+                    capability_id: capability(browser, conduit_text::TEXT_UPPER_KIND),
                 },
             ),
             (

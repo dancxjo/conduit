@@ -82,7 +82,7 @@ fn validate_observatory(
     let expected_kinds = [
         conduit_std_catalog::KEYBOARD_KIND,
         conduit_std_catalog::KEYMAP_KIND,
-        conduit_std_catalog::TEXT_UPPER_KIND,
+        conduit_text::TEXT_UPPER_KIND,
         conduit_std_catalog::TEXT_PRESENTATION_KIND,
     ];
     let Some(plan) = snapshot.plans.first() else {

@@ -3,9 +3,10 @@
 use crate::text_lab_split::BrowserTextLabFragment;
 use conduit_core::{Plan, PlanFragment};
 use conduit_std_catalog::{
-    exact_text_lab_split_plan, MAX_TEXT_BYTES, TEXT_LAB_BROWSER_HOST, TEXT_LAB_FORWARD_LINE,
+    exact_text_lab_split_plan, TEXT_LAB_BROWSER_HOST, TEXT_LAB_FORWARD_LINE,
     TEXT_LAB_MAXIMUM_VALUES, TEXT_LAB_NATIVE_HOST, TEXT_LAB_RETURN_LINE,
 };
+use conduit_text::MAX_TEXT_BYTES;
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,

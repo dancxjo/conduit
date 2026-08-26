@@ -32,7 +32,7 @@ pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> 
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_speech_catalogs(&mut startup, &mut profile)?;
-    let literal = conduit_std_catalog::text_literal_contract();
+    let literal = conduit_text::text_literal_semantics();
     startup.insert(conduit_form::KindSignature {
         kind: literal.kind_id.as_str().into(),
         startup_parameters: vec![conduit_form::StartupParameterSignature {
@@ -45,7 +45,7 @@ pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> 
         .insert(conduit_form::KindDefinition {
             kind_id: literal.kind_id,
             kind_contract_revision: conduit_core::KindContractRevision::from(
-                conduit_std_catalog::TEXT_LITERAL_CONTRACT_REVISION,
+                conduit_text::TEXT_LITERAL_CONTRACT_REVISION,
             ),
             inputs: literal.inputs,
             outputs: literal.outputs,

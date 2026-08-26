@@ -187,8 +187,7 @@ impl Operation for UpperOperation {
                 port: PortId(0),
                 value,
             } if !self.pending && !self.emitted => {
-                let Ok(input) = BoundedValueRef::new(value, conduit_std_catalog::MAX_TEXT_BYTES)
-                else {
+                let Ok(input) = BoundedValueRef::new(value, conduit_text::MAX_TEXT_BYTES) else {
                     return invalid(30);
                 };
                 self.pending = true;
@@ -257,8 +256,7 @@ impl Operation for PresentationOperation {
                 port: PortId(0),
                 value,
             } if !self.pending => {
-                let Ok(input) = BoundedValueRef::new(value, conduit_std_catalog::MAX_TEXT_BYTES)
-                else {
+                let Ok(input) = BoundedValueRef::new(value, conduit_text::MAX_TEXT_BYTES) else {
                     return invalid(20);
                 };
                 self.pending = true;

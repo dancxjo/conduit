@@ -2,7 +2,7 @@
 
 use crate::{
     install_text_pipeline_catalogs, standard_host_advertisement, text_literal_offer,
-    text_presentation_offer, MAX_TEXT_BYTES, TEXT_LITERAL_KIND, TEXT_PRESENTATION_KIND,
+    text_presentation_offer, TEXT_PRESENTATION_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -105,8 +105,8 @@ fn exact_body_coordination_plan_with_loss(
     let motherbrain = coordination_host(MOTHERBRAIN_HOST, motherbrain_boot);
     let limits = LinkLimits {
         maximum_in_flight_items: BODY_COORDINATION_MAXIMUM_ITEMS,
-        maximum_payload_bytes: MAX_TEXT_BYTES,
-        maximum_buffered_bytes: MAX_TEXT_BYTES,
+        maximum_payload_bytes: conduit_text::MAX_TEXT_BYTES,
+        maximum_buffered_bytes: conduit_text::MAX_TEXT_BYTES,
         maximum_frame_bytes: BODY_COORDINATION_MAXIMUM_FRAME_BYTES,
     };
     let mut outbound_line = process_owned_line_offer_with_limits(
@@ -144,13 +144,21 @@ fn exact_body_coordination_plan_with_loss(
     }
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
-            placement("body-coordination/message", &forebrain, TEXT_LITERAL_KIND)?,
+            placement(
+                "body-coordination/message",
+                &forebrain,
+                conduit_text::TEXT_LITERAL_KIND,
+            )?,
             placement(
                 "body-coordination/receive-message",
                 &motherbrain,
                 TEXT_PRESENTATION_KIND,
             )?,
-            placement("body-coordination/reply", &motherbrain, TEXT_LITERAL_KIND)?,
+            placement(
+                "body-coordination/reply",
+                &motherbrain,
+                conduit_text::TEXT_LITERAL_KIND,
+            )?,
             placement(
                 "body-coordination/receive-reply",
                 &forebrain,
@@ -183,7 +191,7 @@ fn exact_body_coordination_plan_with_loss(
             connection_bases: &BTreeMap::new(),
             line_candidates: &line_candidates,
             connection_item_capacity: BODY_COORDINATION_MAXIMUM_ITEMS,
-            connection_byte_capacity: MAX_TEXT_BYTES,
+            connection_byte_capacity: conduit_text::MAX_TEXT_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[outbound_line.clone(), return_line.clone()],

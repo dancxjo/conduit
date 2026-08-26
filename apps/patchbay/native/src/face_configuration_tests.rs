@@ -178,7 +178,7 @@ fn maximum_short_text_crosses_the_bounded_interaction_envelope() {
         .unwrap()
         .subject_ref("gear/controls/literal")
         .unwrap();
-    let maximum = "x".repeat(conduit_std_catalog::MAX_TEXT_BYTES as usize);
+    let maximum = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize);
     application
         .handle_gui_action(GuiAction::ConfigureGear {
             subject,

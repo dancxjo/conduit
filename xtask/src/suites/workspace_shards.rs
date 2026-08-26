@@ -26,6 +26,7 @@ const FOUNDATION_TEST_PACKAGES: &[&str] = &[
     "conduit-rp2040-network-realization",
     "conduit-wire",
     "conduit-web",
+    "conduit-text",
     "conduit-system-continuity",
     "conduit-observatory",
 ];
@@ -134,6 +135,7 @@ const FOUNDATION_TEST_STEP: Step = Step::new(
         "conduit-wire",
         "-p",
         "conduit-web",
+        "conduit-text",
         "-p",
         "conduit-system-continuity",
         "-p",

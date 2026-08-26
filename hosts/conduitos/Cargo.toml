@@ -177,6 +177,7 @@ conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
+conduit-text = { path = "../../crates/conduit-text", default-features = false }
 conduit-web = { path = "../../crates/conduit-web", default-features = false }
 conduit-synth = { path = "../../crates/conduit-synth" }
 sha2 = { version = "=0.10.9", default-features = false }

@@ -8,6 +8,7 @@ members = [
 	"crates/conduit-kernel",
 	"crates/conduit-wire",
 	"crates/conduit-web",
+	"crates/conduit-text",
 	"crates/conduit-signal",
 	"proof/conformance/signal",
 	"proof/conformance/network-r1",

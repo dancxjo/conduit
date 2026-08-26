@@ -137,7 +137,7 @@ fn text_source_offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_std_catalog::MAX_TEXT_BYTES,
+            max_queue_bytes: conduit_text::MAX_TEXT_BYTES,
         },
     }
 }
