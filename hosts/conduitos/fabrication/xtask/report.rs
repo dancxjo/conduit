@@ -5,9 +5,30 @@ use sha2::{Digest, Sha256};
 
 use super::ConduitosError;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ArtifactRole {
+    ProductHost,
+    ArchitectureProofAppliance,
+}
+
+impl ArtifactRole {
+    pub fn require(self, expected: Self) -> Result<(), ConduitosError> {
+        if self == expected {
+            Ok(())
+        } else {
+            Err(ConduitosError::refusal(
+                "artifact-role-mismatch",
+                format!("expected {expected:?}, received {self:?}"),
+            ))
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct BuildRecord {
     pub schema: &'static str,
+    pub artifact_role: ArtifactRole,
     pub base_commit: String,
     pub architecture: &'static str,
     pub rust_target: &'static str,
@@ -18,11 +39,30 @@ pub struct BuildRecord {
 #[derive(Debug, Serialize)]
 pub struct ImageRecord {
     pub schema: &'static str,
+    pub artifact_role: ArtifactRole,
     pub architecture: &'static str,
     pub limine_version: &'static str,
     pub limine_archive_sha256: &'static str,
     pub iso_sha256: String,
     pub file_count: usize,
+}
+
+#[cfg(test)]
+mod artifact_role_tests {
+    use super::ArtifactRole;
+
+    #[test]
+    fn product_and_proof_roles_cannot_cross_route() {
+        assert!(ArtifactRole::ProductHost
+            .require(ArtifactRole::ProductHost)
+            .is_ok());
+        assert!(ArtifactRole::ProductHost
+            .require(ArtifactRole::ArchitectureProofAppliance)
+            .is_err());
+        assert!(ArtifactRole::ArchitectureProofAppliance
+            .require(ArtifactRole::ProductHost)
+            .is_err());
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

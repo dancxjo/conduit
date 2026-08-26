@@ -9,11 +9,11 @@ use crate::{
     cli::GlobalOpts,
     commands::conduitos::{
         build_profile_image, target_backend, target_build::boot_profile_image,
-        target_build::verify_artifact_digest, ProfileBuiltImage,
+        target_build::verify_artifact_digest, ArtifactRole, ProfileBuiltImage,
     },
 };
 
-pub const TARGET_BUILD_MANIFEST_SCHEMA: &str = "conduit.host/target-build-manifest@2";
+pub const TARGET_BUILD_MANIFEST_SCHEMA: &str = "conduit.host/target-build-manifest@3";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactReceipt {
@@ -36,6 +36,7 @@ pub struct BootAssetsReceipt {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TargetBuildManifest {
     pub schema: String,
+    pub artifact_role: ArtifactRole,
     pub profile_id: String,
     pub build_id: String,
     /// The sole canonical identity of the final bootable IMAGE.
@@ -89,6 +90,9 @@ pub fn verify_target(output: &Path) -> Result<TargetBuildManifest, Box<dyn std::
             manifest.schema
         )
         .into());
+    }
+    if manifest.artifact_role != ArtifactRole::ProductHost {
+        return Err("target BUILD manifest is not a product Host artifact".into());
     }
     let backend = target_backend::select(&manifest.target)?;
     if manifest.kernel.file != backend.kernel_file
@@ -162,6 +166,7 @@ fn receipt(image: &HostImage, built: &ProfileBuiltImage) -> TargetBuildManifest 
     let final_image_id = format!("image:sha256:{}", built.image_sha256);
     TargetBuildManifest {
         schema: TARGET_BUILD_MANIFEST_SCHEMA.into(),
+        artifact_role: built.artifact_role,
         profile_id: image.manifest.profile_id.clone(),
         build_id: image.manifest.build_id.clone(),
         image_id: final_image_id.clone(),

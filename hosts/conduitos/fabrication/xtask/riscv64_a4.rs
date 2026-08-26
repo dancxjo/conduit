@@ -47,7 +47,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Riscv64)?;
     riscv64_a3::build_variant(opts, BINARY, "riscv64-a4")?;
-    image::assemble(ConduitosArch::Riscv64, opts)?;
+    image::assemble_architecture_proof(ConduitosArch::Riscv64, opts)?;
     let (kernel, identity, _) = boot_once(&paths)?;
     if opts.json {
         println!("{}", serde_json::to_string(&kernel).map_err(encoding)?);
@@ -62,9 +62,9 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Riscv64)?;
     riscv64_a3::build_variant(opts, BINARY, "riscv64-a4")?;
-    let image1 = image::assemble(ConduitosArch::Riscv64, opts)?;
+    let image1 = image::assemble_architecture_proof(ConduitosArch::Riscv64, opts)?;
     riscv64_a3::build_variant(opts, BINARY, "riscv64-a4")?;
-    let image2 = image::assemble(ConduitosArch::Riscv64, opts)?;
+    let image2 = image::assemble_architecture_proof(ConduitosArch::Riscv64, opts)?;
     if image1.iso_sha256 != image2.iso_sha256 {
         return Err(refusal(
             "non-reproducible-image",

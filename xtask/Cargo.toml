@@ -10,6 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 conduit-host-esp32-fabrication = { path = "../firmware/conduit-esp32-wroom-signal/fabrication-package" }
+conduit-host-conduitos-fabrication = { path = "../hosts/conduitos/fabrication-package" }
 clap = { version = "4", features = ["derive"] }
 cliclack = "0.5.6"
 console = "0.16"

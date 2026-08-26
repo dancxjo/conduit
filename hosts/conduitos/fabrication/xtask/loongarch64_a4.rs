@@ -47,7 +47,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Loongarch64)?;
     loongarch64_a3::build_variant(opts, BINARY, "loongarch64-a4")?;
-    image::assemble(ConduitosArch::Loongarch64, opts)?;
+    image::assemble_architecture_proof(ConduitosArch::Loongarch64, opts)?;
     let (kernel, identity, _) = boot_once(&paths)?;
     if opts.json {
         println!("{}", serde_json::to_string(&kernel).map_err(encoding)?);
@@ -64,9 +64,9 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     loongarch64_a3::prove(opts)?;
     let paths = Paths::new(ConduitosArch::Loongarch64)?;
     loongarch64_a3::build_variant(opts, BINARY, "loongarch64-a4")?;
-    let image1 = image::assemble(ConduitosArch::Loongarch64, opts)?;
+    let image1 = image::assemble_architecture_proof(ConduitosArch::Loongarch64, opts)?;
     loongarch64_a3::build_variant(opts, BINARY, "loongarch64-a4")?;
-    let image2 = image::assemble(ConduitosArch::Loongarch64, opts)?;
+    let image2 = image::assemble_architecture_proof(ConduitosArch::Loongarch64, opts)?;
     if image1.iso_sha256 != image2.iso_sha256 {
         return Err(refusal(
             "non-reproducible-image",

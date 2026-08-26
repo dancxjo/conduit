@@ -3,7 +3,7 @@ use std::{fs, process::Command};
 use super::{
     ia32_a0,
     profile::{Paths, IA32_OBJECT_TARGET},
-    report::{git_head, sha256_file, BuildRecord},
+    report::{git_head, sha256_file, ArtifactRole, BuildRecord},
     ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
@@ -98,7 +98,8 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
 
 fn record(paths: &Paths, digest: String) -> Result<BuildRecord, ConduitosError> {
     Ok(BuildRecord {
-        schema: "conduit.conduitos.build/v1",
+        schema: "conduit.conduitos.build/v2",
+        artifact_role: ArtifactRole::ArchitectureProofAppliance,
         base_commit: git_head(&paths.root)?,
         architecture: "ia32",
         rust_target: "i686-freestanding-elf32",

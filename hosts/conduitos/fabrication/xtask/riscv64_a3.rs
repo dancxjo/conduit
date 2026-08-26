@@ -7,7 +7,7 @@ use crate::cli::GlobalOpts;
 use super::{
     image,
     profile::{Paths, LIMINE_ARCHIVE_SHA256, LIMINE_VERSION},
-    report::{git_head, sha256_file, BuildRecord},
+    report::{git_head, sha256_file, ArtifactRole, BuildRecord},
     riscv64_a0, riscv64_a1, ConduitosArch, ConduitosError,
 };
 
@@ -106,7 +106,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Riscv64)?;
     build_variant(opts, BINARY, "riscv64-a3")?;
-    image::assemble(ConduitosArch::Riscv64, opts)?;
+    image::assemble_architecture_proof(ConduitosArch::Riscv64, opts)?;
     let (kernel, identity) = boot_once(&paths)?;
     if opts.json {
         println!("{}", serde_json::to_string(&kernel).map_err(encoding)?);
@@ -127,9 +127,9 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Riscv64)?;
     build_variant(opts, BINARY, "riscv64-a3")?;
-    let first_image = image::assemble(ConduitosArch::Riscv64, opts)?;
+    let first_image = image::assemble_architecture_proof(ConduitosArch::Riscv64, opts)?;
     build_variant(opts, BINARY, "riscv64-a3")?;
-    let second_image = image::assemble(ConduitosArch::Riscv64, opts)?;
+    let second_image = image::assemble_architecture_proof(ConduitosArch::Riscv64, opts)?;
     if first_image.iso_sha256 != second_image.iso_sha256 {
         return Err(refusal(
             "non-reproducible-image",
@@ -255,7 +255,8 @@ pub(super) fn build_variant(
     fs::copy(built, &paths.kernel)
         .map_err(|e| refusal("build-output-unavailable", e.to_string()))?;
     let record = BuildRecord {
-        schema: "conduit.conduitos.build/v1",
+        schema: "conduit.conduitos.build/v2",
+        artifact_role: ArtifactRole::ArchitectureProofAppliance,
         base_commit: commit,
         architecture: "riscv64",
         rust_target: riscv64_a0::TARGET,

@@ -57,7 +57,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    let image = image::execute(ConduitosArch::X86_64, opts)?;
+    let image = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
     let monitor_socket = paths.target.join("journey-monitor.sock");
     let serial_path = paths.target.join("journey-serial.log");
     let proof_path = paths.target.join("journey-proof.json");

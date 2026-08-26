@@ -83,9 +83,9 @@ enum ConduitosCommand {
     ArchitectureMatrix,
     /// Report exact earned Product Spine cells independently of A0-A4.
     ProductReadinessMatrix,
-    /// Compile and mechanically inspect the freestanding executable.
+    /// Compile and mechanically inspect one bounded architecture proof appliance.
     Build(TargetArgs),
-    /// Create the tiny pinned-Limine hybrid ISO image.
+    /// Package one bounded architecture proof appliance into its pinned boot image.
     Image(TargetArgs),
     /// Erase, write, and byte-verify one explicitly confirmed removable device.
     Flash(FlashArgs),
@@ -97,7 +97,7 @@ enum ConduitosCommand {
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof,
-    /// Boot one deterministic QEMU session and validate its boot Sign.
+    /// Boot one architecture proof appliance and validate its bounded terminal Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
     Prove(ProveArgs),
@@ -210,6 +210,7 @@ pub enum ConduitosArch {
 }
 
 pub(crate) use armv6_rpi_board::Armv6RpiBoard;
+pub(crate) use report::ArtifactRole;
 pub(crate) use target_build::{build_profile_image, ProfileBuiltImage};
 
 pub(crate) fn build_rpi_image(
@@ -346,7 +347,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 armv6_rpi_b_plus_a0::execute(target.board.unwrap_or_default(), opts).map(|_| ())
             } else {
                 reject_board_for_non_armv6(target.arch, target.board)?;
-                build::execute(target.arch, opts).map(|_| ())
+                build::execute_architecture_proof(target.arch, opts).map(|_| ())
             }
         }
         ConduitosCommand::Image(target) => {
@@ -356,7 +357,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 armv6_rpi_b_plus_image::execute(target.board.unwrap_or_default(), opts)
             } else {
                 reject_board_for_non_armv6(target.arch, target.board)?;
-                image::execute(target.arch, opts).map(|_| ())
+                image::execute_architecture_proof(target.arch, opts).map(|_| ())
             }
         }
         ConduitosCommand::Flash(flash) => {

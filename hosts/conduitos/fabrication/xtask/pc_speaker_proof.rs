@@ -44,7 +44,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    image::execute(ConduitosArch::X86_64, opts)?;
+    image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
     let positive = run::boot_once(&paths, opts)?;
     let status = Command::new("cargo")
         .args(["test", "-p", "conduitos", "--lib", "pc_speaker"])

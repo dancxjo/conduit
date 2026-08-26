@@ -7,7 +7,7 @@ use crate::cli::GlobalOpts;
 use super::{
     armv6_rpi_board::Armv6RpiBoard,
     profile::Paths,
-    report::{git_head, sha256_file, BuildRecord},
+    report::{git_head, sha256_file, ArtifactRole, BuildRecord},
     ConduitosArch, ConduitosError,
 };
 
@@ -290,7 +290,8 @@ fn inspect_symbol(elf: &Path, root: &Path) -> Result<(), ConduitosError> {
 
 fn record(paths: &Paths, digest: String) -> Result<BuildRecord, ConduitosError> {
     Ok(BuildRecord {
-        schema: "conduit.conduitos.build/v1",
+        schema: "conduit.conduitos.build/v2",
+        artifact_role: ArtifactRole::ArchitectureProofAppliance,
         base_commit: git_head(&paths.root)?,
         architecture: "armv6",
         rust_target: TARGET,
