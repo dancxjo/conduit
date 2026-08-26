@@ -72,11 +72,6 @@ fn compare_not_and_select_plan_and_execute_together_through_the_production_kerne
             .find(|placement| placement.kind_id.as_str() == kind)
             .expect("logic placement exists");
         assert_eq!(placement.implementation_id.as_str(), implementation);
-        assert!(placement
-            .inputs
-            .iter()
-            .chain(placement.outputs.iter())
-            .all(|port| port.value_kind.as_str() != conduit_std_catalog::GENERIC_VALUE_KIND));
     }
 
     let mut output = Vec::with_capacity(1_024);

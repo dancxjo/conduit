@@ -44,11 +44,6 @@ fn hosts() -> Vec<conduit_core::HostAdvertisement> {
             "window-keyboard-v1",
             "native-window-keyboard@1",
         ));
-    local.capabilities.extend([
-        conduit_std_catalog::keymap_offer(),
-        conduit_std_catalog::text_upper_offer(),
-        conduit_std_catalog::text_presentation_offer(),
-    ]);
     local.resources.push(conduit_core::resource_offer(
         "constrained/heavy-work",
         CPU,
@@ -77,11 +72,6 @@ fn hosts() -> Vec<conduit_core::HostAdvertisement> {
         BootId::from("boot/workstation-1"),
         OfferGeneration(1),
     );
-    remote.capabilities.extend([
-        conduit_std_catalog::keymap_offer(),
-        conduit_std_catalog::text_upper_offer(),
-        conduit_std_catalog::text_presentation_offer(),
-    ]);
     remote.resources.push(conduit_core::resource_offer(
         "workstation/heavy-work",
         CPU,

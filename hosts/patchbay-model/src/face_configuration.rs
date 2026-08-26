@@ -86,7 +86,6 @@ impl FormEditor {
             .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?;
         let rule = conduit_std_catalog::supported_nucleus_contracts()
             .into_iter()
-            .chain(conduit_std_catalog::standard_contracts())
             .find(|contract| contract.kind_id == gear.kind_id)
             .and_then(|contract| {
                 contract
@@ -140,7 +139,6 @@ impl FormEditor {
             .ok_or_else(|| FormEditorError::UnknownGear(gear_name.into()))?;
         let contract = conduit_std_catalog::supported_nucleus_contracts()
             .into_iter()
-            .chain(conduit_std_catalog::standard_contracts())
             .find(|contract| contract.kind_id == gear.kind_id)
             .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?;
         let field = contract

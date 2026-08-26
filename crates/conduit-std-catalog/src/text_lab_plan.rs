@@ -2,9 +2,8 @@
 
 use crate::{
     browser_text_upper_offer, hosted_keyboard_offer, install_input_semantic_catalogs,
-    install_keyboard_catalogs, install_text_pipeline_catalogs, keymap_offer,
-    standard_host_advertisement, text_presentation_offer, KEYBOARD_KIND, KEYMAP_KIND,
-    MAX_TEXT_BYTES, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND,
+    install_keyboard_catalogs, install_text_pipeline_catalogs, standard_host_advertisement,
+    KEYBOARD_KIND, KEYMAP_KIND, MAX_TEXT_BYTES, TEXT_PRESENTATION_KIND, TEXT_UPPER_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -103,9 +102,6 @@ fn exact_text_lab_split_plan_with_loss(
         "text-lab-native-keyboard",
         "text-lab/native-keyboard@1",
     ));
-    native
-        .capabilities
-        .extend([keymap_offer(), text_presentation_offer()]);
     native.resources.push(resource_offer(
         "text-lab/native-input",
         INPUT_RESOURCE_CLASS,

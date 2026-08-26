@@ -37,10 +37,6 @@ fn hosts() -> (
             "text-lab-native-keyboard",
             "text-lab/native-keyboard@1",
         ));
-    local.capabilities.extend([
-        conduit_std_catalog::keymap_offer(),
-        conduit_std_catalog::text_presentation_offer(),
-    ]);
     local.resources.push(conduit_core::resource_offer(
         "text-lab/native-input",
         conduit_core::INPUT_RESOURCE_CLASS,

@@ -422,11 +422,6 @@ mod tests {
             time_delay_contract(),
             time_throttle_contract(),
         ] {
-            assert!(contract
-                .inputs
-                .iter()
-                .chain(&contract.outputs)
-                .all(|port| port.value_kind.as_str() != super::super::GENERIC_VALUE_KIND));
             assert_eq!(contract.limits.max_queue_items, 1);
         }
         for offer in [

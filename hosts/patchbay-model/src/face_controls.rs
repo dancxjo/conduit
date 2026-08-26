@@ -69,7 +69,6 @@ pub struct FaceInteraction {
 pub(crate) fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, PatchbayGraphError> {
     let Some(contract) = conduit_std_catalog::supported_nucleus_contracts()
         .into_iter()
-        .chain(conduit_std_catalog::standard_contracts())
         .find(|contract| contract.kind_id == gear.kind_id)
     else {
         return Ok(Vec::new());

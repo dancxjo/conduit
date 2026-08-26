@@ -467,9 +467,10 @@ fn validate(
         || placement.resources[0].compute.is_some()
         || !placement.authority.is_empty()
         || !placement.pool_references.is_empty()
-        || placement.inputs.iter().any(|port| {
-            port.direction != PortDirection::Input || port.value_kind.as_str() == "value/any"
-        })
+        || placement
+            .inputs
+            .iter()
+            .any(|port| port.direction != PortDirection::Input)
         || placement.outputs.iter().any(|port| {
             port.direction != PortDirection::Output || port.value_kind.as_str() != BOOL_INFO_ID
         })
