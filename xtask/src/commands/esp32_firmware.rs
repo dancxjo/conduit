@@ -40,6 +40,9 @@ enum Esp32FirmwareCommand {
     Build {
         #[arg(long, value_enum)]
         target: Esp32FirmwareTarget,
+        /// Build the exact distributed-Lenia worker image.
+        #[arg(long)]
+        distributed_lenia: bool,
         #[arg(long, default_value = "target/esp32-firmware/build-receipt.json")]
         receipt: PathBuf,
     },
@@ -47,6 +50,9 @@ enum Esp32FirmwareCommand {
     Flash {
         #[arg(long, value_enum)]
         target: Esp32FirmwareTarget,
+        /// Flash the exact distributed-Lenia worker image.
+        #[arg(long)]
+        distributed_lenia: bool,
         #[arg(long)]
         port: PathBuf,
         /// Exact USB serial expected for the selected target.
@@ -122,6 +128,7 @@ struct FirmwareReceipt {
     outcome: &'static str,
     proof_class: &'static str,
     target: Esp32FirmwareTarget,
+    firmware_mode: &'static str,
     source_sha: String,
     artifact: String,
     artifact_sha256: String,
@@ -144,15 +151,25 @@ pub fn run(args: Esp32FirmwareArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
             receipt,
             allow_dirty,
         } => run_check(receipt, allow_dirty, opts),
-        Esp32FirmwareCommand::Build { target, receipt } => {
-            run_build(target, receipt, opts).map(|_| ())
-        }
+        Esp32FirmwareCommand::Build {
+            target,
+            distributed_lenia,
+            receipt,
+        } => run_build(target, distributed_lenia, receipt, opts).map(|_| ()),
         Esp32FirmwareCommand::Flash {
             target,
+            distributed_lenia,
             port,
             confirm_serial,
             receipt,
-        } => run_flash(target, &port, &confirm_serial, receipt, opts),
+        } => run_flash(
+            target,
+            distributed_lenia,
+            &port,
+            &confirm_serial,
+            receipt,
+            opts,
+        ),
     }
 }
 
@@ -188,6 +205,7 @@ fn run_check(
 
 fn run_build(
     target: Esp32FirmwareTarget,
+    distributed_lenia: bool,
     receipt: PathBuf,
     opts: &GlobalOpts,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
@@ -212,7 +230,12 @@ fn run_build(
     command
         .current_dir(&package)
         .arg(format!("+{}", target.toolchain()))
-        .args(["build", "--release", "--features", "bluetooth"]);
+        .args(["build", "--release", "--features"])
+        .arg(if distributed_lenia {
+            "distributed-lenia"
+        } else {
+            "bluetooth"
+        });
     if opts.locked {
         command.arg("--locked");
     }
@@ -225,6 +248,11 @@ fn run_build(
         outcome: "built",
         proof_class: "machine-only-contract-compile",
         target,
+        firmware_mode: if distributed_lenia {
+            "distributed-lenia"
+        } else {
+            "bluetooth"
+        },
         source_sha: git_head(&root)?,
         artifact: relative(&root, &artifact)?,
         artifact_sha256: sha256_file(&artifact)?,
@@ -238,6 +266,7 @@ fn run_build(
 
 fn run_flash(
     target: Esp32FirmwareTarget,
+    distributed_lenia: bool,
     port: &Path,
     confirm_serial: &str,
     receipt: PathBuf,
@@ -247,7 +276,7 @@ fn run_flash(
         return Err(format!("ESP32 flash confirmation mismatch: target requires USB serial {}, received {confirm_serial}", target.usb_serial()).into());
     }
     if opts.dry_run {
-        let _ = run_build(target, PathBuf::new(), opts)?;
+        let _ = run_build(target, distributed_lenia, PathBuf::new(), opts)?;
         if !opts.quiet {
             println!(
                 "would flash {} through {} after verifying USB serial {}",
@@ -272,6 +301,7 @@ fn run_flash(
     }
     let artifact = run_build(
         target,
+        distributed_lenia,
         PathBuf::from("target/esp32-firmware/build-receipt.json"),
         opts,
     )?;
@@ -290,6 +320,11 @@ fn run_flash(
         outcome: "flashed-and-verified",
         proof_class: "physical-flash",
         target,
+        firmware_mode: if distributed_lenia {
+            "distributed-lenia"
+        } else {
+            "bluetooth"
+        },
         source_sha: git_head(&root)?,
         artifact: relative(&root, &artifact)?,
         artifact_sha256: sha256_file(&artifact)?,

@@ -42,6 +42,8 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
     let actual_mode = read_firmware_mode(&root)?;
     let expected_mode = if args.pete_capstone {
         "pete-capstone"
+    } else if args.distributed_lenia {
+        "distributed-lenia"
     } else if args.bluetooth_line {
         "bluetooth-line"
     } else if args.appliance_hello {

@@ -160,6 +160,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-alife"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+ "conduit-presentation",
+ "conduit-std-catalog",
+]
+
+[[package]]
 name = "conduit-bluetooth"
 version = "0.1.0"
 dependencies = [
@@ -199,6 +210,7 @@ dependencies = [
 name = "conduit-esp32-wroom-signal"
 version = "0.1.0"
 dependencies = [
+ "conduit-alife",
  "conduit-bluetooth",
  "conduit-core",
  "conduit-embedded-build",
@@ -214,6 +226,7 @@ dependencies = [
  "embassy-executor",
  "embassy-futures",
  "embassy-sync 0.7.2",
+ "embassy-time",
  "esp-alloc",
  "esp-backtrace",
  "esp-bootloader-esp-idf",

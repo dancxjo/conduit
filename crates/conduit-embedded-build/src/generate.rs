@@ -3,9 +3,7 @@ use conduit_core::{
     PlanFragment,
 };
 use conduit_kernel::{CordEndpoint, SignExpectationTarget};
-use conduit_runtime::lowering::{
-    LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
-};
+use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
 
 use crate::model::{
     EmbeddedImageBounds, GeneratedConfigurationEntry, GeneratedConfigurationValue,
@@ -138,11 +136,6 @@ fn generate_remote_endpoints(
     }
     let mut result = Vec::with_capacity(lowered.remote_endpoints.len());
     for endpoint in &lowered.remote_endpoints {
-        if endpoint.direction != RemoteCordDirection::Ingress {
-            return Err(GenerationError::Unsupported(
-                UnsupportedPlanFeature::RemoteConnection,
-            ));
-        }
         if !matches!(
             endpoint.line.binding.base,
             ConnectionBase::UsbCdc | ConnectionBase::WebSocket | ConnectionBase::BluetoothLeGatt
@@ -332,15 +325,18 @@ fn generate_routes(
             target_len: route.range.len,
         });
         for target in &route.targets {
-            let CordEndpoint::Local { node, port } = target.sink else {
-                return Err(GenerationError::Unsupported(
-                    UnsupportedPlanFeature::RemoteRouteTarget,
-                ));
+            let sink = match target.sink {
+                CordEndpoint::Local { node, port } => GeneratedCordEndpoint::Local {
+                    node: node.0,
+                    port: port.0,
+                },
+                CordEndpoint::Remote(endpoint) => GeneratedCordEndpoint::Remote {
+                    endpoint: endpoint.0,
+                },
             };
             targets.push(GeneratedStaticRouteTarget {
                 cord: target.cord.0,
-                sink_node: node.0,
-                sink_port: port.0,
+                sink,
             });
         }
     }

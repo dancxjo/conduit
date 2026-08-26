@@ -35,6 +35,7 @@ const APPLIANCE_IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_APPLIANCE_IDENTITY_SI
 const APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR_ENV: &str =
     "CONDUIT_PICO_APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR";
 const APPLIANCE_HIL_CLIENT_ARTIFACT: &str = "pico/appliance-hil-client-firmware@1";
+const DISTRIBUTED_LENIA_ARTIFACT: &str = "pico/distributed-lenia-worker@1";
 const MAX_STORED_SIGNAL_VALUES: usize = 16;
 const WAIT_VALUE_BYTES: u32 = 8;
 const RUNTIME_SIGN_EVENTS: usize = 256;
@@ -65,11 +66,125 @@ fn main() {
         generate_pico_network_image(&out);
         generate_r1_recovery_signal_images(&out);
         r1_control_images::generate(&out, true);
+    } else if firmware_mode() == "distributed-lenia" {
+        generate_pico_lenia_image(&out);
     } else {
         generate_pico_signal_image(&out);
     }
 
     emit_linker_contract(&out);
+}
+
+fn generate_pico_lenia_image(out: &Path) {
+    let exact = conduit_alife::exact_distributed_lenia_plan()
+        .expect("the exact distributed Lenia Plan must resolve");
+    let fragment = exact
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| {
+            fragment.host_id.as_str() == conduit_alife::DISTRIBUTED_LENIA_PICO_HOST_ID
+        })
+        .expect("distributed Lenia Plan must contain the Pico worker");
+    let lowered = lower_plan_fragment(fragment).expect("Pico Lenia fragment must lower");
+    let generated = generate_embedded_plan(
+        fragment,
+        &lowered,
+        EmbeddedImageBounds {
+            maximum_nodes: 1,
+            maximum_cords: 2,
+            maximum_routes: 2,
+            maximum_route_targets: 2,
+            maximum_host_operations: 0,
+            maximum_resources: 0,
+            maximum_sign_expectations: 8,
+            maximum_configuration_entries: 0,
+            maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
+            maximum_remote_endpoints: 2,
+            maximum_cord_value_slots: 2,
+            maximum_cord_value_bytes: conduit_alife::DISTRIBUTED_LENIA_VALUE_BYTES * 2,
+            maximum_sign_items: 16,
+            maximum_sign_bytes: 1024,
+        },
+    )
+    .expect("Pico Lenia fragment must fit reviewed fixed-image bounds");
+    let bindings = conduit_alife::distributed_lenia_participant_bindings(
+        &exact.plan,
+        conduit_alife::DISTRIBUTED_LENIA_PICO_HOST_ID,
+        conduit_alife::DISTRIBUTED_LENIA_PICO_BOOT_ID,
+    )
+    .expect("Pico Lenia bindings must resolve");
+    let mut module = generated.render_no_alloc_firmware_module();
+    render_lenia_binding_constants(&mut module, &bindings);
+    writeln!(
+        module,
+        "pub const LENIA_FIRMWARE_BUILD_ID: &str = {:?};",
+        appliance_build_id()
+    )
+    .expect("writing to a String cannot fail");
+    fs::write(out.join("pico_signal_image.rs"), module)
+        .expect("generated Pico Lenia image must be writable");
+    let active_play = bind_active_play(
+        &exact.plan.plan_id,
+        &fragment.host_id,
+        &fragment.boot_id,
+        0,
+    );
+    let sidecar = serde_json::json!({
+        "schema": "conduit.distributed-lenia/generated-worker-image@1",
+        "firmware_mode": "distributed-lenia",
+        "firmware_build_id": appliance_build_id(),
+        "source_document_id": exact.plan.source_document_id.as_str(),
+        "checked_form_id": exact.plan.checked_form_id.as_str(),
+        "expanded_form_id": exact.plan.expanded_form_id.as_str(),
+        "plan_id": generated.plan_id,
+        "fragment_id": generated.fragment_id,
+        "host_id": generated.host_id,
+        "boot_id": generated.boot_id,
+        "active_play_id": active_play.active_play_id.as_str(),
+        "boot_sign_id": bind_sign(&fragment.host_id, &fragment.boot_id, None, 0).sign_id.as_str(),
+        "presentation_ids": [],
+        "presentation_sign_ids": [],
+        "terminal_sign_id": bind_sign(&fragment.host_id, &fragment.boot_id, Some(&active_play.active_play_id), 0).sign_id.as_str(),
+        "offer_generation": generated.offer_generation,
+        "nodes": generated.nodes.len(),
+        "cords": generated.cords.len(),
+        "host_operations": generated.host_operations.len(),
+        "cord_value_slots": generated.cord_value_slots,
+        "cord_value_bytes": generated.cord_value_bytes,
+        "sign_items": generated.sign_items,
+        "sign_bytes": generated.sign_bytes,
+    });
+    let sidecar = serde_json::to_string_pretty(&sidecar)
+        .expect("distributed Lenia identity must serialize");
+    fs::write(out.join("pico_signal_identity.json"), &sidecar)
+        .expect("generated Pico Lenia identity sidecar must be writable");
+    if let Ok(path) = env::var(IDENTITY_SIDECAR_ENV) {
+        let path = PathBuf::from(path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("Lenia sidecar directory must be writable");
+        }
+        fs::write(path, sidecar).expect("explicit Lenia identity sidecar must be writable");
+    }
+}
+
+fn render_lenia_binding_constants(
+    module: &mut String,
+    bindings: &conduit_alife::DistributedLeniaParticipantBindings,
+) {
+    for (prefix, binding) in [("WORK", &bindings.work), ("RESULT", &bindings.result)] {
+        for (name, value) in [
+            ("PLAY_ID", binding.play_id.as_str()),
+            ("LINE_ID", binding.line_id.as_str()),
+            ("SOURCE_HOST_ID", binding.source_host_id.as_str()),
+            ("SOURCE_BOOT_ID", binding.source_boot_id.as_str()),
+            ("SINK_HOST_ID", binding.sink_host_id.as_str()),
+            ("SINK_BOOT_ID", binding.sink_boot_id.as_str()),
+        ] {
+            writeln!(module, "pub const LENIA_{prefix}_{name}: &str = {value:?};")
+                .expect("writing to a String cannot fail");
+        }
+    }
 }
 
 fn emit_linker_contract(out: &Path) {
@@ -120,6 +235,8 @@ fn generate_body_advertisement(out: &Path, mode: &str) {
 fn appliance_build_id() -> String {
     let artifact = if firmware_mode() == "appliance-hil-client" {
         APPLIANCE_HIL_CLIENT_ARTIFACT
+    } else if firmware_mode() == "distributed-lenia" {
+        DISTRIBUTED_LENIA_ARTIFACT
     } else {
         conduit_net::PICO_APPLIANCE_ARTIFACT
     };

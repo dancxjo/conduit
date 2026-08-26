@@ -25,15 +25,20 @@ use trouble_host::prelude::ExternalController;
 
 #[cfg(feature = "bluetooth")]
 mod bluetooth;
+#[cfg(feature = "distributed-lenia")]
+mod lenia_session;
 #[cfg(feature = "bluetooth")]
 mod receipts;
-#[cfg(feature = "bluetooth")]
+#[cfg(all(feature = "bluetooth", not(feature = "distributed-lenia")))]
 mod remote_kernel;
-#[cfg(feature = "bluetooth")]
+#[cfg(all(feature = "bluetooth", not(feature = "distributed-lenia")))]
 mod session;
 
-#[cfg(feature = "bluetooth")]
+#[cfg(all(feature = "bluetooth", not(feature = "distributed-lenia")))]
 static REMOTE_KERNEL: static_cell::StaticCell<remote_kernel::Esp32RemoteSignalKernel> =
+    static_cell::StaticCell::new();
+#[cfg(feature = "distributed-lenia")]
+static LENIA_WORKER: static_cell::StaticCell<conduit_core::DistributedLeniaWorker> =
     static_cell::StaticCell::new();
 
 mod generated {
@@ -42,13 +47,29 @@ mod generated {
 }
 
 const _: () = assert!(generated::GENERATED_NODES.len() == 1);
+#[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::GENERATED_CORDS.len() == 1);
+#[cfg(feature = "distributed-lenia")]
+const _: () = assert!(generated::GENERATED_CORDS.len() == 2);
+#[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::GENERATED_REMOTE_ENDPOINT_COUNT == 1);
+#[cfg(feature = "distributed-lenia")]
+const _: () = assert!(generated::GENERATED_REMOTE_ENDPOINT_COUNT == 2);
+#[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::GENERATED_ROUTES.is_empty());
+#[cfg(feature = "distributed-lenia")]
+const _: () = assert!(generated::GENERATED_ROUTES.len() == 1);
+#[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::GENERATED_ROUTE_TARGETS.is_empty());
+#[cfg(feature = "distributed-lenia")]
+const _: () = assert!(generated::GENERATED_ROUTE_TARGETS.len() == 1);
+#[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::GENERATED_HOST_OPERATIONS.len() == 1);
+#[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::GENERATED_RESOURCES.len() == 1);
+#[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::CORD_VALUE_SLOTS == 1);
+#[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::CORD_VALUE_BYTES == 9);
 const _: () = assert!(!generated::GENERATED_FABRICATION_DESCRIPTOR_BINDING.is_empty());
 
@@ -78,11 +99,22 @@ async fn main(_spawner: Spawner) {
         let connector = BleConnector::new(peripherals.BT, Default::default())
             .expect("the inspected ESP32 BLE controller must initialize");
         let controller: ExternalController<_, 1> = ExternalController::new(connector);
-        let remote_kernel = REMOTE_KERNEL.init_with(|| {
-            remote_kernel::Esp32RemoteSignalKernel::new()
-                .expect("the generated remote kernel must fit its admitted static storage")
-        });
-        bluetooth::run(controller, &boot, &mut trng, remote_kernel).await;
+        #[cfg(not(feature = "distributed-lenia"))]
+        {
+            let remote_kernel = REMOTE_KERNEL.init_with(|| {
+                remote_kernel::Esp32RemoteSignalKernel::new()
+                    .expect("the generated remote kernel must fit its admitted static storage")
+            });
+            bluetooth::run(controller, &boot, &mut trng, remote_kernel).await;
+        }
+        #[cfg(feature = "distributed-lenia")]
+        {
+            let worker = LENIA_WORKER.init(conduit_core::DistributedLeniaWorker::new());
+            worker
+                .prepare()
+                .expect("the fixed Lenia kernel must prepare before Play");
+            bluetooth::run(controller, &boot, &mut trng, worker).await;
+        }
     }
 
     #[cfg(not(feature = "bluetooth"))]

@@ -836,6 +836,7 @@ version = "0.1.0"
 dependencies = [
  "bluer",
  "conduit-ai",
+ "conduit-alife",
  "conduit-bluetooth",
  "conduit-body",
  "conduit-browser-runtime",

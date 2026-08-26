@@ -116,6 +116,10 @@ pub struct PicoArgs {
     #[arg(long, global = true)]
     pub bluetooth_line: bool,
 
+    /// Build or flash the exact three-participant distributed Lenia worker image.
+    #[arg(long, global = true)]
+    pub distributed_lenia: bool,
+
     /// Build the bounded breadboard USB-MIDI fixture image (build only; never flash).
     #[arg(long, global = true)]
     pub usb_midi_fixture: bool,
@@ -287,6 +291,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         + usize::from(args.appliance_hello)
         + usize::from(args.appliance_hil_client)
         + usize::from(args.bluetooth_line)
+        + usize::from(args.distributed_lenia)
         + usize::from(args.usb_midi_fixture)
         + usize::from(args.pete_capstone)
         > 1
@@ -336,6 +341,7 @@ pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
         || args.r1_control
         || args.appliance_hello
         || args.bluetooth_line
+        || args.distributed_lenia
         || args.usb_midi_fixture
         || args.pete_capstone
     {

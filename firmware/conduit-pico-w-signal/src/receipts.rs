@@ -52,16 +52,38 @@ impl UsbCdc {
     }
 
     /// Observe whether the current sign consumer still owns this CDC session.
-    #[cfg(feature = "bluetooth-line")]
+    #[cfg(any(feature = "bluetooth-line", feature = "distributed-lenia"))]
     pub fn dtr(&self) -> bool {
         self.sender.dtr()
     }
 
     /// Write a mandatory proof marker to CDC 1.
-    #[cfg(any(feature = "usb-remote", feature = "triple-remote", feature = "bluetooth-line"))]
+    #[cfg(any(
+        feature = "usb-remote",
+        feature = "triple-remote",
+        feature = "bluetooth-line",
+        feature = "distributed-lenia"
+    ))]
     pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbSignError> {
         self.write_all_mandatory(msg.as_bytes()).await?;
         self.write_all_mandatory(b"\n").await
+    }
+
+    #[cfg(feature = "distributed-lenia")]
+    pub async fn write_lenia_boot(
+        &mut self,
+        runtime: &RuntimeTranscriptIdentity,
+        plan_id: &str,
+        host_id: &str,
+    ) -> Result<(), UsbSignError> {
+        let mut record = HString::<RECEIPT_BUFFER_BYTES>::new();
+        write!(
+            record,
+            "CONDUIT_LENIA_BOOT plan={plan_id} host={host_id} boot={}",
+            runtime.boot_id()
+        )
+        .map_err(|_| UsbSignError::FormatOverflow)?;
+        self.write_marker(&record).await
     }
 }
 

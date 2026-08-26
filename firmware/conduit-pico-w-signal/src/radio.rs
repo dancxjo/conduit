@@ -35,7 +35,7 @@ bind_interrupts!(struct RadioIrqs {
 
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
 
-#[cfg(feature = "bluetooth-line")]
+#[cfg(any(feature = "bluetooth-line", feature = "distributed-lenia"))]
 #[allow(
     clippy::too_many_arguments,
     reason = "the Pico W Bluetooth boundary names each fixed peripheral and firmware asset"

@@ -240,6 +240,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-alife"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+ "conduit-presentation",
+ "conduit-std-catalog",
+]
+
+[[package]]
 name = "conduit-bluetooth"
 version = "0.1.0"
 dependencies = [
@@ -328,6 +339,7 @@ name = "conduit-pico-w-signal"
 version = "0.1.0"
 dependencies = [
  "aligned",
+ "conduit-alife",
  "conduit-bluetooth",
  "conduit-body",
  "conduit-core",

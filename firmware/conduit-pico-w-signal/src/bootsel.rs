@@ -9,7 +9,10 @@ use heapless::String;
     not(feature = "appliance-hello"),
     not(feature = "appliance-hil-client")
 ))]
+#[cfg(not(feature = "distributed-lenia"))]
 use crate::signal_image::FIRMWARE_BUILD_ID;
+#[cfg(feature = "distributed-lenia")]
+use crate::lenia_image::FIRMWARE_BUILD_ID;
 #[cfg(feature = "wifi-bootstrap")]
 use crate::network_image::FIRMWARE_BUILD_ID;
 #[cfg(feature = "appliance-hello")]
