@@ -229,7 +229,7 @@ fn appliance_build_id() -> String {
     } else if firmware_mode() == "distributed-lenia" {
         DISTRIBUTED_LENIA_ARTIFACT
     } else {
-        conduit_net::PICO_APPLIANCE_ARTIFACT
+        conduit_rp2040_network_realization::PICO_APPLIANCE_ARTIFACT
     };
     format!(
         "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}",
@@ -260,13 +260,13 @@ fn generate_pico_appliance_hil_client_identity() {
         "image_artifact": APPLIANCE_HIL_CLIENT_ARTIFACT,
         "fixture_only": true,
         "usb_serial": "conduit-pico-hil-client",
-        "ssid": conduit_net::APPLIANCE_SSID,
+        "ssid": conduit_rp2040_network_realization::APPLIANCE_SSID,
         "open_ap": true,
-        "server_address": conduit_net::DHCP_SERVER_ADDRESS,
-        "local_name": conduit_net::APPLIANCE_LOCAL_NAME,
-        "hello_body": conduit_net::APPLIANCE_HELLO_BODY,
-        "maximum_http_request_bytes": conduit_net::MAXIMUM_HTTP_REQUEST_BYTES,
-        "maximum_http_response_bytes": conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES,
+        "server_address": conduit_rp2040_network_realization::DHCP_SERVER_ADDRESS,
+        "local_name": conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME,
+        "hello_body": conduit_rp2040_network_realization::APPLIANCE_HELLO_BODY,
+        "maximum_http_request_bytes": conduit_rp2040_network_realization::MAXIMUM_HTTP_REQUEST_BYTES,
+        "maximum_http_response_bytes": conduit_rp2040_network_realization::MAXIMUM_HTTP_RESPONSE_BYTES,
     });
     let sidecar = env::var_os(APPLIANCE_HIL_CLIENT_IDENTITY_SIDECAR_ENV)
         .map(PathBuf::from)
@@ -287,39 +287,39 @@ fn generate_pico_appliance_hil_client_identity() {
 }
 
 fn generate_pico_appliance_identity() {
-    let advertisement = conduit_net::pico_appliance_advertisement(
+    let advertisement = conduit_rp2040_network_realization::pico_appliance_advertisement(
         "pico/appliance-hello",
         "image/boot-bound-at-runtime",
-        conduit_net::PicoApplianceComposition::Hello,
-        conduit_net::PicoApplianceInitialization::hello_ready(),
+        conduit_rp2040_network_realization::PicoApplianceComposition::Hello,
+        conduit_rp2040_network_realization::PicoApplianceInitialization::hello_ready(),
     )
     .expect("complete appliance composition must advertise");
     let identity = serde_json::json!({
         "schema": "conduit.pico-appliance/generated-image@1",
         "firmware_mode": firmware_mode(),
         "firmware_build_id": appliance_build_id(),
-        "image_artifact": conduit_net::PICO_APPLIANCE_ARTIFACT,
+        "image_artifact": conduit_rp2040_network_realization::PICO_APPLIANCE_ARTIFACT,
         "service_artifacts": [
-            conduit_net::AP_SERVICE_ARTIFACT,
-            conduit_net::DHCP_SERVICE_ARTIFACT,
-            conduit_net::DNS_SERVICE_ARTIFACT,
-            conduit_net::HTTP_SERVICE_ARTIFACT,
+            conduit_rp2040_network_realization::AP_SERVICE_ARTIFACT,
+            conduit_rp2040_network_realization::DHCP_SERVICE_ARTIFACT,
+            conduit_rp2040_network_realization::DNS_SERVICE_ARTIFACT,
+            conduit_rp2040_network_realization::HTTP_SERVICE_ARTIFACT,
         ],
         "host_advertisement": advertisement,
-        "ssid": conduit_net::APPLIANCE_SSID,
+        "ssid": conduit_rp2040_network_realization::APPLIANCE_SSID,
         "open_ap": true,
         "channel": 6,
-        "server_address": conduit_net::DHCP_SERVER_ADDRESS,
-        "local_name": conduit_net::APPLIANCE_LOCAL_NAME,
-        "hello_body": conduit_net::APPLIANCE_HELLO_BODY,
-        "maximum_associations": conduit_net::MAXIMUM_AP_ASSOCIATIONS,
-        "maximum_dhcp_leases": conduit_net::MAXIMUM_DHCP_LEASES,
-        "maximum_dhcp_packet_bytes": conduit_net::MAXIMUM_DHCP_PACKET_BYTES,
-        "maximum_dns_packet_bytes": conduit_net::MAXIMUM_DNS_PACKET_BYTES,
-        "maximum_http_request_bytes": conduit_net::MAXIMUM_HTTP_REQUEST_BYTES,
-        "maximum_http_response_bytes": conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES,
-        "maximum_signs": conduit_net::MAXIMUM_APPLIANCE_SIGNS,
-        "maximum_network_sockets": conduit_net::MAXIMUM_APPLIANCE_NETWORK_SOCKETS,
+        "server_address": conduit_rp2040_network_realization::DHCP_SERVER_ADDRESS,
+        "local_name": conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME,
+        "hello_body": conduit_rp2040_network_realization::APPLIANCE_HELLO_BODY,
+        "maximum_associations": conduit_rp2040_network_realization::MAXIMUM_AP_ASSOCIATIONS,
+        "maximum_dhcp_leases": conduit_rp2040_network_realization::MAXIMUM_DHCP_LEASES,
+        "maximum_dhcp_packet_bytes": conduit_rp2040_network_realization::MAXIMUM_DHCP_PACKET_BYTES,
+        "maximum_dns_packet_bytes": conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES,
+        "maximum_http_request_bytes": conduit_rp2040_network_realization::MAXIMUM_HTTP_REQUEST_BYTES,
+        "maximum_http_response_bytes": conduit_rp2040_network_realization::MAXIMUM_HTTP_RESPONSE_BYTES,
+        "maximum_signs": conduit_rp2040_network_realization::MAXIMUM_APPLIANCE_SIGNS,
+        "maximum_network_sockets": conduit_rp2040_network_realization::MAXIMUM_APPLIANCE_NETWORK_SOCKETS,
     });
     let sidecar = env::var_os(APPLIANCE_IDENTITY_SIDECAR_ENV)
         .map(PathBuf::from)
@@ -359,7 +359,7 @@ fn generate_r1_recovery_signal_images(out: &Path) {
         ),
     ] {
         let exact = conduit_system_continuity::exact_r1_signal_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             routes,
         )
         .expect("exact R1 recovery Signal Plan must resolve");
@@ -367,7 +367,7 @@ fn generate_r1_recovery_signal_images(out: &Path) {
             .plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+            .find(|fragment| fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID)
             .expect("R1 recovery Plan must contain the Pico fragment");
         let lowered = lower_plan_fragment(fragment).expect("R1 Pico Signal fragment must lower");
         let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
@@ -392,13 +392,13 @@ fn generate_r1_recovery_signal_images(out: &Path) {
 }
 
 fn generate_pico_network_image(out: &Path) {
-    let exact = conduit_net::exact_r1_network_bootstrap_plan()
+    let exact = conduit_r1_network_conformance::exact_r1_network_bootstrap_plan()
         .expect("exact R1 USB network bootstrap Plan must resolve");
     let fragment = exact
         .plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .find(|fragment| fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID)
         .expect("R1 bootstrap Plan must contain the Pico fragment");
     let lowered = lower_plan_fragment(fragment).expect("Pico network fragment must lower");
     let generated = generate_embedded_plan(

@@ -1,0 +1,14 @@
+[package]
+name = "conduit-r1-network-conformance"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../../crates/conduit-core" }
+conduit-form = { path = "../../../crates/conduit-form" }
+conduit-net = { path = "../../../crates/conduit-net", features = ["form-catalog"] }
+conduit-planner = { path = "../../../crates/conduit-planner" }
+conduit-wire = { path = "../../../crates/conduit-wire", default-features = false }
+
+[dev-dependencies]
+serde_json = "1"

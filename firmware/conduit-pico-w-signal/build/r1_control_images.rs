@@ -51,7 +51,7 @@ pub(super) fn generate(out: &Path, activate: bool) {
         ),
     ] {
         let exact = conduit_system_continuity::exact_r1_control_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             routes,
         )
         .expect("exact R1 three-peer control Plan must resolve");
@@ -59,7 +59,7 @@ pub(super) fn generate(out: &Path, activate: bool) {
             .plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+            .find(|fragment| fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID)
             .expect("R1 control Plan must contain the Pico fragment");
         let lowered = lower_plan_fragment(fragment).expect("R1 control Pico fragment must lower");
         let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())

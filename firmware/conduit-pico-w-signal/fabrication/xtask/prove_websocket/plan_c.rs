@@ -29,7 +29,7 @@ pub(crate) fn verify_plan_c_continuation(
         return Err("physical R1 Plan C network-loss proof requires --interactive".into());
     }
     let plan = conduit_system_continuity::exact_r1_control_plan(
-        BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
     )?
     .plan;
@@ -38,12 +38,12 @@ pub(crate) fn verify_plan_c_continuation(
         sign,
         identity,
         runtime,
-        conduit_net::R1_PLAN_C_WEBSOCKET_BASE_QUERY,
+        conduit_r1_network_conformance::R1_PLAN_C_WEBSOCKET_BASE_QUERY,
     )?;
     super::super::usb_continuity::verify(usb, identity)?;
 
-    let source_host = conduit_core::HostId::from(conduit_net::R1_STD_HOST_ID);
-    let source_boot = BootId::from(conduit_net::R1_STD_BOOT_ID);
+    let source_host = conduit_core::HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID);
+    let source_boot = BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID);
     let mut source = PicoControlSource::prepare_plan(plan.clone(), &source_host)?;
     source.observe_sink_boot(BootId::from(runtime.boot_id.as_str()))?;
     let initial_binding = source.binding().clone();
@@ -201,7 +201,7 @@ pub(crate) fn verify_plan_c_continuation(
         fault: "operator-confirmed-real-wifi-or-network-unavailability",
         body_id: body.body_id.as_str(),
         wake_id: wake.wake_id.as_str(),
-        pico_host_id: conduit_net::R1_PICO_HOST_ID,
+        pico_host_id: conduit_r1_network_conformance::R1_PICO_HOST_ID,
         pico_boot_id: runtime.boot_id.as_str(),
         plan_id: source.binding().plan_id.as_str(),
         source_play_id: source.binding().source_active_play_id.as_str(),
@@ -212,8 +212,8 @@ pub(crate) fn verify_plan_c_continuation(
         websocket_unavailable_after_fault: true,
         initially_selected_base: "websocket",
         continued_selected_base: "usb-cdc",
-        websocket_link_binding_id: conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
-        usb_cdc_link_binding_id: conduit_net::R1_USB_LINK_BINDING_ID,
+        websocket_link_binding_id: conduit_r1_network_conformance::R1_WEBSOCKET_LINK_BINDING_ID,
+        usb_cdc_link_binding_id: conduit_r1_network_conformance::R1_USB_LINK_BINDING_ID,
         reconciliation: "replay-offered",
         same_plan_continues: true,
         delivered_values: delivered,

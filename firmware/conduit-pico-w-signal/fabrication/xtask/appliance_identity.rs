@@ -81,18 +81,19 @@ pub struct ApplianceHilClientGeneratedImageIdentity {
 
 impl ApplianceFirmwareIdentity {
     pub fn verify(&self) -> PicoResult<()> {
-        let expected_advertisement = conduit_net::pico_appliance_advertisement(
-            "pico/appliance-hello",
-            "image/boot-bound-at-runtime",
-            conduit_net::PicoApplianceComposition::Hello,
-            conduit_net::PicoApplianceInitialization::hello_ready(),
-        )
-        .map_err(|error| format!("expected Pico appliance advertisement failed: {error:?}"))?;
+        let expected_advertisement =
+            conduit_rp2040_network_realization::pico_appliance_advertisement(
+                "pico/appliance-hello",
+                "image/boot-bound-at-runtime",
+                conduit_rp2040_network_realization::PicoApplianceComposition::Hello,
+                conduit_rp2040_network_realization::PicoApplianceInitialization::hello_ready(),
+            )
+            .map_err(|error| format!("expected Pico appliance advertisement failed: {error:?}"))?;
         let expected_artifacts = [
-            conduit_net::AP_SERVICE_ARTIFACT,
-            conduit_net::DHCP_SERVICE_ARTIFACT,
-            conduit_net::DNS_SERVICE_ARTIFACT,
-            conduit_net::HTTP_SERVICE_ARTIFACT,
+            conduit_rp2040_network_realization::AP_SERVICE_ARTIFACT,
+            conduit_rp2040_network_realization::DHCP_SERVICE_ARTIFACT,
+            conduit_rp2040_network_realization::DNS_SERVICE_ARTIFACT,
+            conduit_rp2040_network_realization::HTTP_SERVICE_ARTIFACT,
         ];
         let expected_radio_assets = CYW43_ASSETS
             .iter()
@@ -113,7 +114,7 @@ impl ApplianceFirmwareIdentity {
             || image.schema != "conduit.pico-appliance/generated-image@1"
             || image.firmware_mode != self.firmware_mode
             || image.firmware_build_id != self.firmware_build_id
-            || image.image_artifact != conduit_net::PICO_APPLIANCE_ARTIFACT
+            || image.image_artifact != conduit_rp2040_network_realization::PICO_APPLIANCE_ARTIFACT
             || image
                 .service_artifacts
                 .iter()
@@ -121,20 +122,26 @@ impl ApplianceFirmwareIdentity {
                 .collect::<Vec<_>>()
                 != expected_artifacts
             || image.host_advertisement != expected_advertisement
-            || image.ssid != conduit_net::APPLIANCE_SSID
+            || image.ssid != conduit_rp2040_network_realization::APPLIANCE_SSID
             || !image.open_ap
             || image.channel != 6
-            || image.server_address != conduit_net::DHCP_SERVER_ADDRESS
-            || image.local_name != conduit_net::APPLIANCE_LOCAL_NAME
-            || image.hello_body != conduit_net::APPLIANCE_HELLO_BODY
-            || image.maximum_associations != conduit_net::MAXIMUM_AP_ASSOCIATIONS
-            || image.maximum_dhcp_leases != conduit_net::MAXIMUM_DHCP_LEASES
-            || image.maximum_dhcp_packet_bytes != conduit_net::MAXIMUM_DHCP_PACKET_BYTES
-            || image.maximum_dns_packet_bytes != conduit_net::MAXIMUM_DNS_PACKET_BYTES
-            || image.maximum_http_request_bytes != conduit_net::MAXIMUM_HTTP_REQUEST_BYTES
-            || image.maximum_http_response_bytes != conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES
-            || image.maximum_signs != conduit_net::MAXIMUM_APPLIANCE_SIGNS
-            || image.maximum_network_sockets != conduit_net::MAXIMUM_APPLIANCE_NETWORK_SOCKETS
+            || image.server_address != conduit_rp2040_network_realization::DHCP_SERVER_ADDRESS
+            || image.local_name != conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME
+            || image.hello_body != conduit_rp2040_network_realization::APPLIANCE_HELLO_BODY
+            || image.maximum_associations
+                != conduit_rp2040_network_realization::MAXIMUM_AP_ASSOCIATIONS
+            || image.maximum_dhcp_leases != conduit_rp2040_network_realization::MAXIMUM_DHCP_LEASES
+            || image.maximum_dhcp_packet_bytes
+                != conduit_rp2040_network_realization::MAXIMUM_DHCP_PACKET_BYTES
+            || image.maximum_dns_packet_bytes
+                != conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES
+            || image.maximum_http_request_bytes
+                != conduit_rp2040_network_realization::MAXIMUM_HTTP_REQUEST_BYTES
+            || image.maximum_http_response_bytes
+                != conduit_rp2040_network_realization::MAXIMUM_HTTP_RESPONSE_BYTES
+            || image.maximum_signs != conduit_rp2040_network_realization::MAXIMUM_APPLIANCE_SIGNS
+            || image.maximum_network_sockets
+                != conduit_rp2040_network_realization::MAXIMUM_APPLIANCE_NETWORK_SOCKETS
             || self.cyw43_commit != CYW43_COMMIT
             || actual_radio_assets != expected_radio_assets
         {
@@ -168,13 +175,15 @@ impl ApplianceHilClientFirmwareIdentity {
             || image.image_artifact != APPLIANCE_HIL_CLIENT_ARTIFACT
             || !image.fixture_only
             || image.usb_serial != "conduit-pico-hil-client"
-            || image.ssid != conduit_net::APPLIANCE_SSID
+            || image.ssid != conduit_rp2040_network_realization::APPLIANCE_SSID
             || !image.open_ap
-            || image.server_address != conduit_net::DHCP_SERVER_ADDRESS
-            || image.local_name != conduit_net::APPLIANCE_LOCAL_NAME
-            || image.hello_body != conduit_net::APPLIANCE_HELLO_BODY
-            || image.maximum_http_request_bytes != conduit_net::MAXIMUM_HTTP_REQUEST_BYTES
-            || image.maximum_http_response_bytes != conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES
+            || image.server_address != conduit_rp2040_network_realization::DHCP_SERVER_ADDRESS
+            || image.local_name != conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME
+            || image.hello_body != conduit_rp2040_network_realization::APPLIANCE_HELLO_BODY
+            || image.maximum_http_request_bytes
+                != conduit_rp2040_network_realization::MAXIMUM_HTTP_REQUEST_BYTES
+            || image.maximum_http_response_bytes
+                != conduit_rp2040_network_realization::MAXIMUM_HTTP_RESPONSE_BYTES
             || self.cyw43_commit != CYW43_COMMIT
             || actual_radio_assets != expected_radio_assets
         {

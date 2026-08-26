@@ -321,8 +321,6 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
- "conduit-planner",
- "conduit-wire",
  "serde",
 ]
 
@@ -350,6 +348,8 @@ dependencies = [
  "conduit-mpu6050",
  "conduit-net",
  "conduit-planner",
+ "conduit-r1-network-conformance",
+ "conduit-rp2040-network-realization",
  "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -402,6 +402,24 @@ dependencies = [
  "conduit-form",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-r1-network-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-net",
+ "conduit-planner",
+ "conduit-wire",
+]
+
+[[package]]
+name = "conduit-rp2040-network-realization"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]
@@ -460,6 +478,7 @@ dependencies = [
  "conduit-net",
  "conduit-observatory",
  "conduit-planner",
+ "conduit-r1-network-conformance",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-wire",

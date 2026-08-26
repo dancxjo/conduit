@@ -1,10 +1,10 @@
-#![cfg(feature = "r1-planning")]
-
 use conduit_core::{ConnectionBase, PortDirection};
 use conduit_net::{
-    encode_network_join_request, exact_r1_network_bootstrap_plan, network_omitting_advertisement,
-    NetworkJoinRequest, MAXIMUM_JOIN_INPUT_BYTES, NETWORK_ATTACHMENT_KIND,
-    NETWORK_JOIN_REQUEST_KIND, R1_JOIN_GRANT_ID, R1_PICO_HOST_ID, R1_STD_HOST_ID,
+    encode_network_join_request, network_omitting_advertisement, NetworkJoinRequest,
+    MAXIMUM_JOIN_INPUT_BYTES, NETWORK_ATTACHMENT_KIND, NETWORK_JOIN_REQUEST_KIND,
+};
+use conduit_r1_network_conformance::{
+    exact_r1_network_bootstrap_plan, R1_JOIN_GRANT_ID, R1_PICO_HOST_ID, R1_STD_HOST_ID,
 };
 
 #[test]

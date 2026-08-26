@@ -10,31 +10,42 @@ fn current_r1_plans_generate_exact_single_and_dual_line_ingress() {
             R1SignalRouteSet::WebSocketOnly,
             vec![(
                 ConnectionBase::WebSocket,
-                conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                conduit_r1_network_conformance::R1_WEBSOCKET_LINK_BINDING_ID,
             )],
         ),
         (
             R1SignalRouteSet::UsbOnly,
-            vec![(ConnectionBase::UsbCdc, conduit_net::R1_USB_LINK_BINDING_ID)],
+            vec![(
+                ConnectionBase::UsbCdc,
+                conduit_r1_network_conformance::R1_USB_LINK_BINDING_ID,
+            )],
         ),
         (
             R1SignalRouteSet::WebSocketThenUsb,
             vec![
                 (
                     ConnectionBase::WebSocket,
-                    conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                    conduit_r1_network_conformance::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
-                (ConnectionBase::UsbCdc, conduit_net::R1_USB_LINK_BINDING_ID),
+                (
+                    ConnectionBase::UsbCdc,
+                    conduit_r1_network_conformance::R1_USB_LINK_BINDING_ID,
+                ),
             ],
         ),
     ] {
-        let exact = exact_r1_signal_plan(BootId::from(conduit_net::R1_PICO_BOOT_ID), routes)
-            .expect("exact R1 Signal Plan");
+        let exact = exact_r1_signal_plan(
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
+            routes,
+        )
+        .expect("exact R1 Signal Plan");
         let fragment = exact
             .plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+            .find(|fragment| {
+                fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+            })
             .expect("R1 Pico fragment");
         let lowered = lower_plan_fragment(fragment).expect("R1 Pico fragment lowers");
         let generated =
@@ -57,20 +68,27 @@ fn three_peer_control_plans_generate_the_same_exact_pico_ingress_family() {
         (R1SignalRouteSet::UsbOnly, 1),
         (R1SignalRouteSet::WebSocketThenUsb, 2),
     ] {
-        let exact = exact_r1_control_plan(BootId::from(conduit_net::R1_PICO_BOOT_ID), routes)
-            .expect("exact R1 three-peer control Plan");
+        let exact = exact_r1_control_plan(
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
+            routes,
+        )
+        .expect("exact R1 three-peer control Plan");
         let source = exact
             .plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_STD_HOST_ID)
+            .find(|fragment| {
+                fragment.host_id.as_str() == conduit_r1_network_conformance::R1_STD_HOST_ID
+            })
             .expect("R1 control source fragment");
         assert_eq!(source.placements.len(), 4);
         let fragment = exact
             .plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+            .find(|fragment| {
+                fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+            })
             .expect("R1 control Pico fragment");
         let lowered = lower_plan_fragment(fragment).expect("R1 control Pico fragment lowers");
         let generated =

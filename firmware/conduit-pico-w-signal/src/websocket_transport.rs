@@ -8,7 +8,7 @@ use embedded_websocket::{
 
 const HTTP_BYTES: usize = 1_024;
 const FRAME_OVERHEAD_BYTES: usize = 14;
-const FRAME_BYTES: usize = conduit_net::R1_MAXIMUM_FRAME_BYTES as usize;
+const FRAME_BYTES: usize = conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES as usize;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum WebSocketTransportError {

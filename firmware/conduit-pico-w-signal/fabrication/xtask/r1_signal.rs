@@ -13,7 +13,7 @@ use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionFrame
 use super::PicoResult;
 
 const SESSION_PAYLOAD_BYTES: u32 = SIGNAL_ENCODED_LEN;
-const SESSION_FRAME_BYTES: u32 = conduit_net::R1_MAXIMUM_FRAME_BYTES;
+const SESSION_FRAME_BYTES: u32 = conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES;
 
 pub trait R1SessionIo {
     fn send(&mut self, frame: &SessionFrame<'_>) -> PicoResult<()>;
@@ -278,13 +278,15 @@ mod tests {
     #[test]
     fn transport_neutral_driver_executes_exact_r1_plan_with_pressure() {
         let exact = conduit_system_continuity::exact_r1_signal_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
         )
         .unwrap();
-        let mut source =
-            PicoUsbSource::prepare_plan(exact.plan, &HostId::from(conduit_net::R1_STD_HOST_ID))
-                .unwrap();
+        let mut source = PicoUsbSource::prepare_plan(
+            exact.plan,
+            &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+        )
+        .unwrap();
         let mut io = FakeIo::new(source.binding().clone());
         let mut accepted = Vec::new();
         handshake(&mut io, &mut source).unwrap();

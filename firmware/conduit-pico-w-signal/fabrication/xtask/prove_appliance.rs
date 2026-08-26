@@ -64,7 +64,10 @@ pub fn run_prove_pico_appliance(
             "  client interface: {}",
             client_interface.unwrap_or("<require exactly one NetworkManager Wi-Fi device>")
         );
-        println!("  join open SSID: {}", conduit_net::APPLIANCE_SSID);
+        println!(
+            "  join open SSID: {}",
+            conduit_rp2040_network_realization::APPLIANCE_SSID
+        );
         println!("  require bounded DHCP, DNS, HTTP, and exact terminal Signs");
         println!("  safety: refuse an interface with an active connection");
         println!("  proof class: physical-local-hardware");
@@ -112,7 +115,7 @@ pub fn run_prove_pico_appliance(
         "device",
         "wifi",
         "connect",
-        conduit_net::APPLIANCE_SSID,
+        conduit_rp2040_network_realization::APPLIANCE_SSID,
         "ifname",
         &interface,
     ])?;
@@ -166,9 +169,9 @@ pub fn run_prove_pico_appliance(
         hardware_identity,
         client_interface: interface,
         leased_address,
-        dns_name: conduit_net::APPLIANCE_LOCAL_NAME,
+        dns_name: conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME,
         dns_address,
-        http_body: conduit_net::APPLIANCE_HELLO_BODY,
+        http_body: conduit_rp2040_network_realization::APPLIANCE_HELLO_BODY,
         runtime_boot_id,
         signs,
         physical_acceptance: true,
@@ -260,14 +263,14 @@ fn wait_for_ssid(interface: &str) -> PicoResult<()> {
         ])?;
         if output
             .lines()
-            .any(|ssid| ssid == conduit_net::APPLIANCE_SSID)
+            .any(|ssid| ssid == conduit_rp2040_network_realization::APPLIANCE_SSID)
         {
             return Ok(());
         }
         if Instant::now() >= deadline {
             return Err(format!(
                 "timed out waiting for Pico appliance SSID `{}`",
-                conduit_net::APPLIANCE_SSID
+                conduit_rp2040_network_realization::APPLIANCE_SSID
             )
             .into());
         }
@@ -311,31 +314,39 @@ fn leased_address(interface: &str) -> PicoResult<String> {
 fn prove_dns() -> PicoResult<[u8; 4]> {
     let socket = UdpSocket::bind("0.0.0.0:0")?;
     socket.set_read_timeout(Some(Duration::from_secs(5)))?;
-    let mut query = [0; conduit_net::MAXIMUM_DNS_PACKET_BYTES as usize];
-    let query_len = conduit_net::encode_appliance_dns_query(0xc011, &mut query)
-        .map_err(|error| format!("failed building exact DNS query: {error:?}"))?;
+    let mut query = [0; conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES as usize];
+    let query_len =
+        conduit_rp2040_network_realization::encode_appliance_dns_query(0xc011, &mut query)
+            .map_err(|error| format!("failed building exact DNS query: {error:?}"))?;
     socket.send_to(&query[..query_len], "192.168.4.1:53")?;
-    let mut actual = [0; conduit_net::MAXIMUM_DNS_PACKET_BYTES as usize];
+    let mut actual = [0; conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES as usize];
     let (actual_len, _) = socket.recv_from(&mut actual)?;
-    let mut expected = [0; conduit_net::MAXIMUM_DNS_PACKET_BYTES as usize];
-    let expected_len = conduit_net::answer_appliance_dns(&query[..query_len], &mut expected)
-        .map_err(|error| format!("failed building expected DNS answer: {error:?}"))?;
+    let mut expected = [0; conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES as usize];
+    let expected_len = conduit_rp2040_network_realization::answer_appliance_dns(
+        &query[..query_len],
+        &mut expected,
+    )
+    .map_err(|error| format!("failed building expected DNS answer: {error:?}"))?;
     if actual[..actual_len] != expected[..expected_len] {
         return Err("physical Pico returned a non-exact DNS answer".into());
     }
-    Ok(conduit_net::DHCP_SERVER_ADDRESS)
+    Ok(conduit_rp2040_network_realization::DHCP_SERVER_ADDRESS)
 }
 
 fn prove_http() -> PicoResult<()> {
     let mut stream = TcpStream::connect_timeout(
-        &SocketAddrV4::new(conduit_net::DHCP_SERVER_ADDRESS.into(), 80).into(),
+        &SocketAddrV4::new(
+            conduit_rp2040_network_realization::DHCP_SERVER_ADDRESS.into(),
+            80,
+        )
+        .into(),
         Duration::from_secs(5),
     )?;
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     stream.write_all(b"GET / HTTP/1.1\r\nHost: hello.conduit\r\nConnection: close\r\n\r\n")?;
     let mut response = Vec::new();
     stream.read_to_end(&mut response)?;
-    if response != conduit_net::HTTP_HELLO_RESPONSE {
+    if response != conduit_rp2040_network_realization::HTTP_HELLO_RESPONSE {
         return Err("physical Pico returned a non-exact HTTP Hello response".into());
     }
     Ok(())
@@ -369,7 +380,11 @@ pub(super) fn verify_signs(
         let index = signs.len();
         verify_field(&sign, "schema", "conduit.pico-appliance/sign@1")?;
         verify_field(&sign, "firmware_build_id", firmware_build_id)?;
-        verify_field(&sign, "profile", conduit_net::PICO_APPLIANCE_PROFILE)?;
+        verify_field(
+            &sign,
+            "profile",
+            conduit_rp2040_network_realization::PICO_APPLIANCE_PROFILE,
+        )?;
         verify_field(&sign, "host_id", "pico/appliance-hello")?;
         if sign.get("failure").is_some() {
             return Err(format!("Pico appliance emitted failure Sign: {sign}").into());
@@ -495,7 +510,12 @@ impl Drop for WifiRestoration {
 }
 
 fn restore_wifi(interface: &str, previous: Option<&str>) -> PicoResult<()> {
-    let _ = run_nmcli(&["connection", "delete", "id", conduit_net::APPLIANCE_SSID]);
+    let _ = run_nmcli(&[
+        "connection",
+        "delete",
+        "id",
+        conduit_rp2040_network_realization::APPLIANCE_SSID,
+    ]);
     if let Some(connection) = previous {
         run_nmcli(&["connection", "up", "id", connection, "ifname", interface])?;
     }
@@ -511,7 +531,10 @@ mod tests {
     #[test]
     fn physical_sign_contract_is_exact_and_bounded() {
         assert_eq!(EXPECTED_SIGNS.len(), 8);
-        assert!(EXPECTED_SIGNS.len() <= conduit_net::MAXIMUM_APPLIANCE_SIGNS as usize);
+        assert!(
+            EXPECTED_SIGNS.len()
+                <= conduit_rp2040_network_realization::MAXIMUM_APPLIANCE_SIGNS as usize
+        );
         assert_eq!(EXPECTED_SIGNS[0], "ap-ready");
         assert_eq!(EXPECTED_SIGNS[7], "terminal");
         assert!(!EXPECTED_SIGNS.contains(&"success"));
@@ -539,7 +562,7 @@ mod tests {
             let mut sign = serde_json::json!({
                 "schema": "conduit.pico-appliance/sign@1",
                 "firmware_build_id": "build/1",
-                "profile": conduit_net::PICO_APPLIANCE_PROFILE,
+                "profile": conduit_rp2040_network_realization::PICO_APPLIANCE_PROFILE,
                 "host_id": "pico/appliance-hello",
                 "runtime_boot_id": "runtime/boot/1",
                 "sequence": index + 1,

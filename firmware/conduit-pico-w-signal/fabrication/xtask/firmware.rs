@@ -82,14 +82,16 @@ impl FirmwareIdentity {
             ),
         ] {
             let exact = conduit_system_continuity::exact_r1_control_plan(
-                conduit_core::BootId::from(conduit_net::R1_PICO_BOOT_ID),
+                conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
                 routes,
             )?;
             let fragment = exact
                 .plan
                 .fragments
                 .iter()
-                .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+                .find(|fragment| {
+                    fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+                })
                 .ok_or("exact R1 control Plan has no Pico fragment")?;
             if image.schema != "conduit.pico-signal.generated-image@1"
                 || image.firmware_mode != self.firmware_mode
@@ -98,8 +100,8 @@ impl FirmwareIdentity {
                 || image.expanded_form_id != exact.plan.expanded_form_id.as_str()
                 || image.plan_id != exact.plan.plan_id.as_str()
                 || image.fragment_id != fragment.fragment_id.as_str()
-                || image.host_id != conduit_net::R1_PICO_HOST_ID
-                || image.boot_id != conduit_net::R1_PICO_BOOT_ID
+                || image.host_id != conduit_r1_network_conformance::R1_PICO_HOST_ID
+                || image.boot_id != conduit_r1_network_conformance::R1_PICO_BOOT_ID
                 || image.nodes != 1
                 || image.cords != 1
                 || image.host_operations != 1

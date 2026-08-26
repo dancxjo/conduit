@@ -18,9 +18,9 @@ use crate::receipts::UsbCdc;
 
 const HOST_ID: &str = "pico/appliance-hello";
 const FIRMWARE_BUILD_ID: &str = env!("CONDUIT_PICO_APPLIANCE_BUILD_ID");
-const MAXIMUM_HTTP_RESPONSE_BYTES: usize = conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES as usize;
+const MAXIMUM_HTTP_RESPONSE_BYTES: usize = conduit_rp2040_network_realization::MAXIMUM_HTTP_RESPONSE_BYTES as usize;
 static NETWORK_RESOURCES: StaticCell<
-    StackResources<{ conduit_net::MAXIMUM_APPLIANCE_NETWORK_SOCKETS as usize }>,
+    StackResources<{ conduit_rp2040_network_realization::MAXIMUM_APPLIANCE_NETWORK_SOCKETS as usize }>,
 > = StaticCell::new();
 
 #[embassy_executor::task]
@@ -32,10 +32,10 @@ async fn appliance_network_task(
 
 #[derive(Clone, Copy)]
 enum ServiceEvent {
-    Dhcp(conduit_net::DhcpResponse),
+    Dhcp(conduit_rp2040_network_realization::DhcpResponse),
     Dns,
     Http,
-    Failure(conduit_net::ApplianceFailure),
+    Failure(conduit_rp2040_network_realization::ApplianceFailure),
 }
 
 #[allow(
@@ -97,7 +97,7 @@ pub async fn run(
     write_progress(sign, &runtime_boot, "stack-started").await;
     if with_timeout(
         Duration::from_secs(10),
-        control.start_ap_open(conduit_net::APPLIANCE_SSID, 6),
+        control.start_ap_open(conduit_rp2040_network_realization::APPLIANCE_SSID, 6),
     )
     .await
     .is_err()
@@ -108,8 +108,8 @@ pub async fn run(
 
     let mut dhcp_rx_meta = [PacketMetadata::EMPTY; 1];
     let mut dhcp_tx_meta = [PacketMetadata::EMPTY; 1];
-    let mut dhcp_rx = [0; conduit_net::MAXIMUM_DHCP_PACKET_BYTES];
-    let mut dhcp_tx = [0; conduit_net::MAXIMUM_DHCP_PACKET_BYTES];
+    let mut dhcp_rx = [0; conduit_rp2040_network_realization::MAXIMUM_DHCP_PACKET_BYTES];
+    let mut dhcp_tx = [0; conduit_rp2040_network_realization::MAXIMUM_DHCP_PACKET_BYTES];
     let mut dhcp = UdpSocket::new(
         stack,
         &mut dhcp_rx_meta,
@@ -123,8 +123,8 @@ pub async fn run(
 
     let mut dns_rx_meta = [PacketMetadata::EMPTY; 1];
     let mut dns_tx_meta = [PacketMetadata::EMPTY; 1];
-    let mut dns_rx = [0; conduit_net::MAXIMUM_DNS_PACKET_BYTES as usize];
-    let mut dns_tx = [0; conduit_net::MAXIMUM_DNS_PACKET_BYTES as usize];
+    let mut dns_rx = [0; conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES as usize];
+    let mut dns_tx = [0; conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES as usize];
     let mut dns = UdpSocket::new(
         stack,
         &mut dns_rx_meta,
@@ -137,10 +137,10 @@ pub async fn run(
     }
     write_progress(sign, &runtime_boot, "sockets-ready").await;
 
-    let mut http_rx = [0; conduit_net::MAXIMUM_HTTP_REQUEST_BYTES as usize];
+    let mut http_rx = [0; conduit_rp2040_network_realization::MAXIMUM_HTTP_REQUEST_BYTES as usize];
     let mut http_tx = [0; MAXIMUM_HTTP_RESPONSE_BYTES];
     let mut http = TcpSocket::new(stack, &mut http_rx, &mut http_tx);
-    let mut leases = conduit_net::DhcpLeasePool::default();
+    let mut leases = conduit_rp2040_network_realization::DhcpLeasePool::default();
     let mut sequence = 1_u16;
     write_progress(sign, &runtime_boot, "before-ap-ready").await;
     write_sign(sign, &runtime_boot, sequence, "ap-ready", None, None).await;
@@ -160,7 +160,7 @@ pub async fn run(
             ServiceEvent::Dhcp(response) => {
                 sequence += 1;
                 match response.kind {
-                    conduit_net::DhcpResponseKind::Offer => {
+                    conduit_rp2040_network_realization::DhcpResponseKind::Offer => {
                         write_sign(
                             sign,
                             &runtime_boot,
@@ -171,7 +171,7 @@ pub async fn run(
                         )
                         .await;
                     }
-                    conduit_net::DhcpResponseKind::Acknowledgement => {
+                    conduit_rp2040_network_realization::DhcpResponseKind::Acknowledgement => {
                         write_sign(
                             sign,
                             &runtime_boot,
@@ -213,17 +213,17 @@ pub async fn run(
 
 async fn serve_dhcp_once(
     socket: &UdpSocket<'_>,
-    leases: &mut conduit_net::DhcpLeasePool,
+    leases: &mut conduit_rp2040_network_realization::DhcpLeasePool,
 ) -> ServiceEvent {
-    let mut request = [0; conduit_net::MAXIMUM_DHCP_PACKET_BYTES];
+    let mut request = [0; conduit_rp2040_network_realization::MAXIMUM_DHCP_PACKET_BYTES];
     let (len, _) = match socket.recv_from(&mut request).await {
         Ok(value) => value,
         Err(_) => {
-            return ServiceEvent::Failure(conduit_net::ApplianceFailure::OversizedDhcpRequest)
+            return ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::OversizedDhcpRequest)
         }
     };
-    let mut response = [0; conduit_net::MAXIMUM_DHCP_PACKET_BYTES];
-    match conduit_net::answer_appliance_dhcp(&request[..len], leases, &mut response) {
+    let mut response = [0; conduit_rp2040_network_realization::MAXIMUM_DHCP_PACKET_BYTES];
+    match conduit_rp2040_network_realization::answer_appliance_dhcp(&request[..len], leases, &mut response) {
         Ok(answer) => {
             let remote = IpEndpoint::new(Ipv4Address::BROADCAST.into(), 68);
             if socket
@@ -231,8 +231,8 @@ async fn serve_dhcp_once(
                 .await
                 .is_err()
             {
-                ServiceEvent::Failure(conduit_net::ApplianceFailure::ServiceBaseLost(
-                    conduit_net::ApplianceService::Dhcp,
+                ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::ServiceBaseLost(
+                    conduit_rp2040_network_realization::ApplianceService::Dhcp,
                 ))
             } else {
                 ServiceEvent::Dhcp(answer)
@@ -243,21 +243,21 @@ async fn serve_dhcp_once(
 }
 
 async fn serve_dns_once(socket: &UdpSocket<'_>) -> ServiceEvent {
-    let mut request = [0; conduit_net::MAXIMUM_DNS_PACKET_BYTES as usize];
+    let mut request = [0; conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES as usize];
     let (len, remote) = match socket.recv_from(&mut request).await {
         Ok(value) => value,
-        Err(_) => return ServiceEvent::Failure(conduit_net::ApplianceFailure::OversizedDnsRequest),
+        Err(_) => return ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::OversizedDnsRequest),
     };
-    let mut response = [0; conduit_net::MAXIMUM_DNS_PACKET_BYTES as usize];
-    match conduit_net::answer_appliance_dns(&request[..len], &mut response) {
+    let mut response = [0; conduit_rp2040_network_realization::MAXIMUM_DNS_PACKET_BYTES as usize];
+    match conduit_rp2040_network_realization::answer_appliance_dns(&request[..len], &mut response) {
         Ok(response_len) => {
             if socket
                 .send_to(&response[..response_len], remote)
                 .await
                 .is_err()
             {
-                ServiceEvent::Failure(conduit_net::ApplianceFailure::ServiceBaseLost(
-                    conduit_net::ApplianceService::Dns,
+                ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::ServiceBaseLost(
+                    conduit_rp2040_network_realization::ApplianceService::Dns,
                 ))
             } else {
                 ServiceEvent::Dns
@@ -269,27 +269,27 @@ async fn serve_dns_once(socket: &UdpSocket<'_>) -> ServiceEvent {
 
 async fn serve_http_once(socket: &mut TcpSocket<'_>) -> ServiceEvent {
     if socket.accept(80).await.is_err() {
-        return ServiceEvent::Failure(conduit_net::ApplianceFailure::ServiceBaseLost(
-            conduit_net::ApplianceService::Http,
+        return ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::ServiceBaseLost(
+            conduit_rp2040_network_realization::ApplianceService::Http,
         ));
     }
-    let mut request = [0; conduit_net::MAXIMUM_HTTP_REQUEST_BYTES as usize];
+    let mut request = [0; conduit_rp2040_network_realization::MAXIMUM_HTTP_REQUEST_BYTES as usize];
     let mut used = 0;
     while used < request.len() && !request[..used].ends_with(b"\r\n\r\n") {
         match socket.read(&mut request[used..]).await {
             Ok(0) | Err(_) => {
                 socket.abort();
-                return ServiceEvent::Failure(conduit_net::ApplianceFailure::MalformedHttpRequest);
+                return ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::MalformedHttpRequest);
             }
             Ok(read) => used += read,
         }
     }
     if used == request.len() && !request.ends_with(b"\r\n\r\n") {
         socket.abort();
-        return ServiceEvent::Failure(conduit_net::ApplianceFailure::OversizedHttpRequest);
+        return ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::OversizedHttpRequest);
     }
     let mut response = [0; MAXIMUM_HTTP_RESPONSE_BYTES];
-    let response_len = match conduit_net::answer_appliance_http(&request[..used], &mut response) {
+    let response_len = match conduit_rp2040_network_realization::answer_appliance_http(&request[..used], &mut response) {
         Ok(len) => len,
         Err(error) => {
             socket.abort();
@@ -301,8 +301,8 @@ async fn serve_http_once(socket: &mut TcpSocket<'_>) -> ServiceEvent {
         match socket.write(&response[written..response_len]).await {
             Ok(0) | Err(_) => {
                 socket.abort();
-                return ServiceEvent::Failure(conduit_net::ApplianceFailure::ServiceBaseLost(
-                    conduit_net::ApplianceService::Http,
+                return ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::ServiceBaseLost(
+                    conduit_rp2040_network_realization::ApplianceService::Http,
                 ));
             }
             Ok(count) => written += count,
@@ -310,8 +310,8 @@ async fn serve_http_once(socket: &mut TcpSocket<'_>) -> ServiceEvent {
     }
     socket.close();
     if socket.flush().await.is_err() {
-        return ServiceEvent::Failure(conduit_net::ApplianceFailure::ServiceBaseLost(
-            conduit_net::ApplianceService::Http,
+        return ServiceEvent::Failure(conduit_rp2040_network_realization::ApplianceFailure::ServiceBaseLost(
+            conduit_rp2040_network_realization::ApplianceService::Http,
         ));
     }
     ServiceEvent::Http
@@ -365,7 +365,7 @@ async fn write_sign(
     if write!(
         line,
         "{{\"schema\":\"conduit.pico-appliance/sign@1\",\"firmware_build_id\":\"{FIRMWARE_BUILD_ID}\",\"profile\":\"{}\",\"host_id\":\"{HOST_ID}\",\"runtime_boot_id\":\"{runtime_boot}\",\"sequence\":{sequence},\"sign_id\":\"{}\",\"kind\":\"{kind}\"",
-        conduit_net::PICO_APPLIANCE_PROFILE,
+        conduit_rp2040_network_realization::PICO_APPLIANCE_PROFILE,
         sign_id.as_str(),
     )
     .is_err()
@@ -401,7 +401,7 @@ fn runtime_boot_id() -> HString<96> {
 
 fn network_seed(runtime_boot: &str) -> u64 {
     let digest = conduit_core::active_play_digest(
-        conduit_net::PICO_APPLIANCE_PROFILE,
+        conduit_rp2040_network_realization::PICO_APPLIANCE_PROFILE,
         HOST_ID,
         runtime_boot,
         0,
@@ -409,8 +409,8 @@ fn network_seed(runtime_boot: &str) -> u64 {
     u64::from_le_bytes(digest[..8].try_into().unwrap())
 }
 
-fn failure_code(failure: conduit_net::ApplianceFailure) -> &'static str {
-    use conduit_net::{ApplianceFailure as F, ApplianceService as S};
+fn failure_code(failure: conduit_rp2040_network_realization::ApplianceFailure) -> &'static str {
+    use conduit_rp2040_network_realization::{ApplianceFailure as F, ApplianceService as S};
     match failure {
         F::MissingRadioArtifact => "missing-radio-artifact",
         F::RadioInitializationFailed => "radio-initialization-failed",

@@ -13,7 +13,7 @@ use conduit_wire::{
 #[test]
 fn one_production_source_executes_both_exact_r1_recovery_plans() {
     let pico_boot = BootId::from("r1/test-pico-runtime-boot");
-    let source_host = HostId::from(conduit_net::R1_STD_HOST_ID);
+    let source_host = HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID);
     let plan_a = exact_r1_signal_plan(pico_boot.clone(), R1SignalRouteSet::WebSocketOnly)
         .expect("WebSocket-only Plan A");
     let plan_b =
@@ -45,7 +45,7 @@ fn one_production_source_executes_both_exact_r1_recovery_plans() {
 #[test]
 fn production_source_retains_plan_play_and_offer_across_sealed_usb_resume() {
     let exact = exact_r1_signal_plan(
-        BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         R1SignalRouteSet::WebSocketThenUsb,
     )
     .expect("dual-Line Plan C");
@@ -58,9 +58,11 @@ fn production_source_retains_plan_play_and_offer_across_sealed_usb_resume() {
         .expect("dual-Line Cord")
         .clone();
     let usb = connection.admitted_lines[1].clone();
-    let mut source =
-        PicoUsbSource::prepare_plan(exact.plan, &HostId::from(conduit_net::R1_STD_HOST_ID))
-            .expect("production Plan-C source");
+    let mut source = PicoUsbSource::prepare_plan(
+        exact.plan,
+        &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+    )
+    .expect("production Plan-C source");
     source
         .observe_sink_boot(BootId::from("r1/runtime-pico-boot"))
         .unwrap();
@@ -129,7 +131,7 @@ fn production_source_retains_plan_play_and_offer_across_sealed_usb_resume() {
 #[test]
 fn control_source_retains_exact_input_across_sealed_usb_resume() {
     let exact = exact_r1_control_plan(
-        BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         R1SignalRouteSet::WebSocketThenUsb,
     )
     .expect("dual-Line control Plan C");
@@ -142,9 +144,11 @@ fn control_source_retains_exact_input_across_sealed_usb_resume() {
         .expect("dual-Line control Cord")
         .clone();
     let usb = connection.admitted_lines[1].clone();
-    let mut source =
-        PicoControlSource::prepare_plan(exact.plan, &HostId::from(conduit_net::R1_STD_HOST_ID))
-            .expect("production control Plan-C source");
+    let mut source = PicoControlSource::prepare_plan(
+        exact.plan,
+        &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+    )
+    .expect("production control Plan-C source");
     source
         .observe_sink_boot(BootId::from("r1/runtime-pico-boot"))
         .unwrap();

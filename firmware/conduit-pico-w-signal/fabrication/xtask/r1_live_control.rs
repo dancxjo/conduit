@@ -151,7 +151,7 @@ mod tests {
     #[test]
     fn physical_sign_correlates_exact_peer_sequence_plan_and_led_result() {
         let plan = conduit_system_continuity::exact_r1_control_plan(
-            conduit_core::BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
         )
         .unwrap()

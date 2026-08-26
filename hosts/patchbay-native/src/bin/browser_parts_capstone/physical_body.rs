@@ -24,7 +24,7 @@ impl PhysicalBody {
             .as_ref()
             .map(|_| {
                 conduit_system_continuity::exact_r1_control_plan(
-                    BootId::from(conduit_net::R1_PICO_BOOT_ID),
+                    BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
                     R1SignalRouteSet::WebSocketOnly,
                 )
             })

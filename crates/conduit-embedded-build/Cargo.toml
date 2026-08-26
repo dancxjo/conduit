@@ -12,6 +12,7 @@ conduit-runtime = { path = "../conduit-runtime", default-features = false }
 [dev-dependencies]
 conduit-form = { path = "../conduit-form" }
 conduit-net = { path = "../conduit-net" }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }

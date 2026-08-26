@@ -24,8 +24,8 @@ fn start() -> (R1NewPlanRecovery, conduit_core::Plan, conduit_core::Plan) {
         GearId::from("signal-demo/show"),
         1,
         1,
-        HostId::from(conduit_net::R1_STD_HOST_ID),
-        BootId::from(conduit_net::R1_STD_BOOT_ID),
+        HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+        BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
         0,
         R1RecoveryStartSigns {
             birth: SignId::from("r1/body-born"),
@@ -42,9 +42,11 @@ fn lose_websocket(recovery: &mut R1NewPlanRecovery) {
     recovery
         .observe_line_unavailable(
             LineAvailabilitySign {
-                line_id: conduit_core::LineId::from(conduit_net::R1_WEBSOCKET_LINE_ID),
+                line_id: conduit_core::LineId::from(
+                    conduit_r1_network_conformance::R1_WEBSOCKET_LINE_ID,
+                ),
                 binding_id: conduit_core::LinkBindingId::from(
-                    conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                    conduit_r1_network_conformance::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
                 availability: LineAvailability::Unavailable,
                 sign_id: SignId::from("r1/websocket-unavailable"),
@@ -129,7 +131,9 @@ fn exact_selected_host_loss_makes_play_unsatisfied_without_mutating_plan() {
     let selected = plan_a
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .find(|fragment| {
+            fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+        })
         .unwrap();
     let (presence, part_id) = presence_for(
         &recovery,
@@ -184,7 +188,9 @@ fn non_loss_and_non_selected_host_observations_refuse_without_mutation() {
     let selected = plan_a
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .find(|fragment| {
+            fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+        })
         .unwrap();
     let (available, selected_part) = presence_for(
         &recovery,
@@ -294,10 +300,10 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
     recovery
         .install_replacement(
             plan_b.clone(),
-            HostId::from(conduit_net::R1_STD_HOST_ID),
-            BootId::from(conduit_net::R1_STD_BOOT_ID),
-            HostId::from(conduit_net::R1_STD_HOST_ID),
-            BootId::from(conduit_net::R1_STD_BOOT_ID),
+            HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
+            HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
             1,
             R1ReplacementSigns {
                 request: SignId::from("r1/replan-requested"),
@@ -343,7 +349,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
             if sign_id.as_str() == "r1/plan-b-planned"
     ));
 
-    let pico_host = HostId::from(conduit_net::R1_PICO_HOST_ID);
+    let pico_host = HostId::from(conduit_r1_network_conformance::R1_PICO_HOST_ID);
     let pico_boot = BootId::from("r1/pico-runtime-boot");
     let plan_b_session = recovery.plan_b_session_binding().unwrap();
     assert_eq!(
@@ -399,8 +405,8 @@ fn bounded_multi_sign_transition_is_admitted_atomically() {
     for sequence in 0..3 {
         recovery
             .refuse_replacement(
-                HostId::from(conduit_net::R1_STD_HOST_ID),
-                BootId::from(conduit_net::R1_STD_BOOT_ID),
+                HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+                BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
                 SignId::from(format!("r1/replan-requested-{sequence}")),
                 SignId::from(format!("r1/no-realization-{sequence}")),
                 PlanningRefusalReason::NoCompatibleRealization,
@@ -411,8 +417,8 @@ fn bounded_multi_sign_transition_is_admitted_atomically() {
     let before = recovery.events().to_vec();
     assert_eq!(
         recovery.refuse_replacement(
-            HostId::from(conduit_net::R1_STD_HOST_ID),
-            BootId::from(conduit_net::R1_STD_BOOT_ID),
+            HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
             SignId::from("r1/replan-requested-overflow"),
             SignId::from("r1/no-realization-overflow"),
             PlanningRefusalReason::NoCompatibleRealization,
@@ -428,8 +434,8 @@ fn no_valid_replacement_remains_explicitly_unsatisfied() {
     lose_websocket(&mut recovery);
     recovery
         .refuse_replacement(
-            HostId::from(conduit_net::R1_STD_HOST_ID),
-            BootId::from(conduit_net::R1_STD_BOOT_ID),
+            HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
             SignId::from("r1/replan-requested"),
             SignId::from("r1/no-compatible-realization"),
             PlanningRefusalReason::NoCompatibleRealization,
@@ -460,10 +466,10 @@ fn replacement_cannot_change_the_pico_realization_subject() {
     assert!(matches!(
         recovery.install_replacement(
             plan_b,
-            HostId::from(conduit_net::R1_STD_HOST_ID),
-            BootId::from(conduit_net::R1_STD_BOOT_ID),
-            HostId::from(conduit_net::R1_STD_HOST_ID),
-            BootId::from(conduit_net::R1_STD_BOOT_ID),
+            HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
+            HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
             1,
             R1ReplacementSigns {
                 request: SignId::from("r1/replan-requested"),

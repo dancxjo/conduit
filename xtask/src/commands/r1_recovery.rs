@@ -79,8 +79,8 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
         GearId::from("signal-demo/show"),
         1,
         1,
-        HostId::from(conduit_net::R1_STD_HOST_ID),
-        BootId::from(conduit_net::R1_STD_BOOT_ID),
+        HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+        BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
         0,
         R1RecoveryStartSigns {
             birth: SignId::from("r1/body-born"),
@@ -103,9 +103,9 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
     recovery
         .observe_line_unavailable(
             LineAvailabilitySign {
-                line_id: LineId::from(conduit_net::R1_WEBSOCKET_LINE_ID),
+                line_id: LineId::from(conduit_r1_network_conformance::R1_WEBSOCKET_LINE_ID),
                 binding_id: conduit_core::LinkBindingId::from(
-                    conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                    conduit_r1_network_conformance::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
                 availability: LineAvailability::Unavailable,
                 sign_id: SignId::from("r1/injected-websocket-line-unavailable"),
@@ -116,10 +116,10 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
     recovery
         .install_replacement(
             plan_b,
-            HostId::from(conduit_net::R1_STD_HOST_ID),
-            BootId::from(conduit_net::R1_STD_BOOT_ID),
-            HostId::from(conduit_net::R1_STD_HOST_ID),
-            BootId::from(conduit_net::R1_STD_BOOT_ID),
+            HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
+            HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
             1,
             R1ReplacementSigns {
                 request: SignId::from("r1/replan-requested"),
@@ -142,7 +142,7 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
         .map_err(|error| format!("invalid Plan B session: {error:?}"))?;
     recovery
         .record_led_result(conduit_system_continuity::R1LedResultObservation {
-            pico_host_id: HostId::from(conduit_net::R1_PICO_HOST_ID),
+            pico_host_id: HostId::from(conduit_r1_network_conformance::R1_PICO_HOST_ID),
             pico_boot_id: pico_boot,
             plan_id: plan_b_id.clone(),
             active_play_id: play_b_id.clone(),

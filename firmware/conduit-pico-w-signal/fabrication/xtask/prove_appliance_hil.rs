@@ -175,9 +175,9 @@ pub fn run_prove_pico_appliance_hil(
         client_firmware_sha256: client_identity.firmware_sha256,
         client_hardware_identity,
         leased_address,
-        dns_name: conduit_net::APPLIANCE_LOCAL_NAME,
-        dns_address: conduit_net::DHCP_SERVER_ADDRESS,
-        http_body: conduit_net::APPLIANCE_HELLO_BODY,
+        dns_name: conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME,
+        dns_address: conduit_rp2040_network_realization::DHCP_SERVER_ADDRESS,
+        http_body: conduit_rp2040_network_realization::APPLIANCE_HELLO_BODY,
         appliance_runtime_boot_id,
         appliance_signs,
         client_receipt,
@@ -306,7 +306,7 @@ fn verify_client_identity(receipt: &serde_json::Value, firmware_build_id: &str) 
         && receipt["runtime_boot_id"]
             .as_str()
             .is_some_and(|value| !value.is_empty())
-        && receipt["ssid"].as_str() == Some(conduit_net::APPLIANCE_SSID)
+        && receipt["ssid"].as_str() == Some(conduit_rp2040_network_realization::APPLIANCE_SSID)
         && receipt["terminal"].as_bool() == Some(true);
     if !exact {
         return Err(format!("Pico appliance HIL client identity is not exact: {receipt}").into());
@@ -318,9 +318,11 @@ fn verify_client_receipt(receipt: &serde_json::Value, firmware_build_id: &str) -
     verify_client_identity(receipt, firmware_build_id)?;
     let exact = receipt["success"].as_bool() == Some(true)
         && receipt.get("failure").is_none()
-        && receipt["dns_name"].as_str() == Some(conduit_net::APPLIANCE_LOCAL_NAME)
+        && receipt["dns_name"].as_str()
+            == Some(conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME)
         && receipt["dns_address"].as_str() == Some("192.168.4.1")
-        && receipt["http_body"].as_str() == Some(conduit_net::APPLIANCE_HELLO_BODY);
+        && receipt["http_body"].as_str()
+            == Some(conduit_rp2040_network_realization::APPLIANCE_HELLO_BODY);
     let lease = receipt["leased_address"]
         .as_str()
         .and_then(|address| address.rsplit_once('.'))
@@ -361,13 +363,13 @@ mod tests {
             "firmware_build_id": "client-build",
             "host_id": "pico/appliance-hil-client",
             "runtime_boot_id": "client-runtime/1",
-            "ssid": conduit_net::APPLIANCE_SSID,
+            "ssid": conduit_rp2040_network_realization::APPLIANCE_SSID,
             "terminal": true,
             "success": true,
             "leased_address": "192.168.4.2",
-            "dns_name": conduit_net::APPLIANCE_LOCAL_NAME,
+            "dns_name": conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME,
             "dns_address": "192.168.4.1",
-            "http_body": conduit_net::APPLIANCE_HELLO_BODY,
+            "http_body": conduit_rp2040_network_realization::APPLIANCE_HELLO_BODY,
         })
     }
 

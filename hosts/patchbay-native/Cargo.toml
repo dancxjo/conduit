@@ -11,6 +11,7 @@ conduit-chat = { path = "../../crates/conduit-chat", features = ["form-catalog"]
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog"] }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-observatory = { path = "../../crates/conduit-observatory" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }

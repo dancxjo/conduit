@@ -175,7 +175,7 @@ fn local_signal_plan() -> GeneratedEmbeddedPlan {
 
 fn remote_signal_plan() -> GeneratedEmbeddedPlan {
     let exact = exact_r1_signal_plan(
-        BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         R1SignalRouteSet::UsbOnly,
     )
     .unwrap();
@@ -183,7 +183,9 @@ fn remote_signal_plan() -> GeneratedEmbeddedPlan {
         .plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .find(|fragment| {
+            fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+        })
         .unwrap();
     generated_for(fragment)
 }

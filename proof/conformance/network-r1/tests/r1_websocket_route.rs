@@ -1,5 +1,5 @@
 use conduit_core::{BootId, ConnectionBase};
-use conduit_net::{
+use conduit_r1_network_conformance::{
     r1_line_basis, r1_websocket_probe_binding, R1_MAXIMUM_FRAME_BYTES, R1_PICO_HOST_ID,
     R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
 };

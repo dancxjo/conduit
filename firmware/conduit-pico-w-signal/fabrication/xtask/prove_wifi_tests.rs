@@ -63,7 +63,7 @@ fn attachment_sign_requires_exact_runtime_and_generated_identities() {
         "boot_id": "runtime-boot",
         "active_play_id": "runtime-play",
         "attachment_id": "attachment",
-        "interface_pool_id": conduit_net::R1_WIFI_STATION_POOL_ID,
+        "interface_pool_id": conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         "generation": 1,
         "sign_id": "attachment-sign"
     });
@@ -87,7 +87,7 @@ fn failure_sign_exposes_only_the_bounded_code() {
         "host_id": "host",
         "boot_id": "runtime-boot",
         "active_play_id": "runtime-play",
-        "interface_pool_id": conduit_net::R1_WIFI_STATION_POOL_ID,
+        "interface_pool_id": conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         "sign_id": "attachment-sign",
         "error_code": "network-join-failed"
     });

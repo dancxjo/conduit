@@ -14,17 +14,17 @@ pub async fn accept_probe(
     transport: &mut WebSocketTransport,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<(), WebSocketTransportError> {
-    let binding = conduit_net::r1_websocket_probe_binding(BootId::from(runtime.boot_id()));
+    let binding = conduit_r1_network_conformance::r1_websocket_probe_binding(BootId::from(runtime.boot_id()));
     let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)
         .map_err(|_| WebSocketTransportError::Frame)?;
-    let mut encoded = [0_u8; conduit_net::R1_MAXIMUM_FRAME_BYTES as usize];
-    let mut decoded = [0_u8; conduit_net::R1_MAXIMUM_FRAME_BYTES as usize];
+    let mut encoded = [0_u8; conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES as usize];
+    let mut decoded = [0_u8; conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES as usize];
 
     let length = transport.receive_binary(socket, &mut encoded).await?;
     let hello = decode_session_frame(
         &encoded[..length],
-        conduit_net::R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
-        conduit_net::R1_MAXIMUM_FRAME_BYTES,
+        conduit_r1_network_conformance::R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
+        conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
     )
     .map_err(|_| WebSocketTransportError::Frame)?;
     machine
@@ -42,8 +42,8 @@ pub async fn accept_probe(
     let length = transport.receive_binary(socket, &mut encoded).await?;
     let ready = decode_session_frame(
         &encoded[..length],
-        conduit_net::R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
-        conduit_net::R1_MAXIMUM_FRAME_BYTES,
+        conduit_r1_network_conformance::R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
+        conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
     )
     .map_err(|_| WebSocketTransportError::Frame)?;
     machine
@@ -70,8 +70,8 @@ async fn send(
     let length = encode_session_frame_into(
         frame,
         output,
-        conduit_net::R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
-        conduit_net::R1_MAXIMUM_FRAME_BYTES,
+        conduit_r1_network_conformance::R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
+        conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
     )
     .map_err(|_| WebSocketTransportError::Frame)?;
     transport.send_binary(socket, &output[..length]).await

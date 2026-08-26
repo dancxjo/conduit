@@ -7,7 +7,7 @@ use conduit_wire::{SessionMessage, SessionTerminalDisposition};
 use super::r1_signal::R1SessionIo;
 use super::PicoResult;
 
-const SESSION_FRAME_BYTES: usize = conduit_net::R1_MAXIMUM_FRAME_BYTES as usize;
+const SESSION_FRAME_BYTES: usize = conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES as usize;
 
 pub fn handshake(io: &mut impl R1SessionIo, source: &mut PicoControlSource) -> PicoResult<()> {
     let binding = source.binding().clone();
@@ -228,13 +228,13 @@ mod tests {
                 frame,
                 bytes,
                 SIGNAL_ENCODED_LEN,
-                conduit_net::R1_MAXIMUM_FRAME_BYTES,
+                conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
             )
             .map_err(|error| format!("fake control sink encode failed: {error:?}"))?;
             decode_session_frame(
                 &bytes[..length],
                 SIGNAL_ENCODED_LEN,
-                conduit_net::R1_MAXIMUM_FRAME_BYTES,
+                conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
             )
             .map_err(|error| format!("fake control sink decode failed: {error:?}").into())
         }
@@ -243,13 +243,15 @@ mod tests {
     #[test]
     fn transport_neutral_driver_delivers_exact_inputs_with_pressure_and_terminal() {
         let exact = conduit_system_continuity::exact_r1_control_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
         )
         .unwrap();
-        let mut source =
-            PicoControlSource::prepare_plan(exact.plan, &HostId::from(conduit_net::R1_STD_HOST_ID))
-                .unwrap();
+        let mut source = PicoControlSource::prepare_plan(
+            exact.plan,
+            &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+        )
+        .unwrap();
         let mut io = FakeIo::new(source.binding().clone());
         handshake(&mut io, &mut source).unwrap();
         let mut accepted = Vec::new();

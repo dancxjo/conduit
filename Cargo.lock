@@ -572,6 +572,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-net",
  "conduit-planner",
+ "conduit-r1-network-conformance",
  "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -679,10 +680,8 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
- "conduit-wire",
  "serde",
  "serde_json",
- "smoltcp",
 ]
 
 [[package]]
@@ -751,6 +750,26 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-r1-network-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-net",
+ "conduit-planner",
+ "conduit-wire",
+ "serde_json",
+]
+
+[[package]]
+name = "conduit-rp2040-network-realization"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "smoltcp",
 ]
 
 [[package]]
@@ -828,6 +847,8 @@ dependencies = [
  "conduit-net",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-r1-network-conformance",
+ "conduit-rp2040-network-realization",
  "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -866,6 +887,7 @@ dependencies = [
  "conduit-net",
  "conduit-observatory",
  "conduit-planner",
+ "conduit-r1-network-conformance",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-wire",
@@ -2462,6 +2484,7 @@ dependencies = [
  "conduit-observatory",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-r1-network-conformance",
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-system-continuity",
@@ -4310,6 +4333,8 @@ dependencies = [
  "conduit-pete",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-r1-network-conformance",
+ "conduit-rp2040-network-realization",
  "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",

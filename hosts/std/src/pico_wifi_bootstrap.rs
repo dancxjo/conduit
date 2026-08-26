@@ -162,12 +162,14 @@ pub struct PicoWifiBootstrapSource {
 impl PicoWifiBootstrapSource {
     pub fn prepare(ssid: &[u8], credential: &[u8]) -> Result<Self, String> {
         let mut credentials = VolatileCredentials::new(ssid, credential)?;
-        let exact = conduit_net::exact_r1_network_bootstrap_plan()?;
+        let exact = conduit_r1_network_conformance::exact_r1_network_bootstrap_plan()?;
         let fragment = exact
             .plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_STD_HOST_ID)
+            .find(|fragment| {
+                fragment.host_id.as_str() == conduit_r1_network_conformance::R1_STD_HOST_ID
+            })
             .cloned()
             .ok_or_else(|| "R1 std bootstrap fragment missing".to_owned())?;
         let lowered = lower_plan_fragment(&fragment).map_err(|error| format!("{error:?}"))?;

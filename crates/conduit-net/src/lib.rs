@@ -16,12 +16,6 @@ use conduit_core::{
 
 mod external_websocket;
 pub use external_websocket::*;
-mod pico_appliance;
-pub use pico_appliance::*;
-mod pico_appliance_dhcp;
-pub use pico_appliance_dhcp::*;
-mod pico_appliance_protocol;
-pub use pico_appliance_protocol::*;
 mod network_info;
 pub use network_info::*;
 mod application_info;
@@ -30,35 +24,8 @@ pub use application_info::*;
 mod application_catalog;
 #[cfg(feature = "form-catalog")]
 pub use application_catalog::*;
-mod r1_route;
-pub use r1_route::*;
-#[cfg(feature = "r1-planning")]
-mod r1_wifi_bootstrap;
-#[cfg(feature = "r1-planning")]
-pub use r1_wifi_bootstrap::*;
 
 pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-station@1";
-pub const R1_WIFI_STATION_POOL_ID: &str = "r1/pico-wifi-station-0";
-/// Base-level CDC control payload asking whether the R1 network Session can
-/// now accept its exact Hello. This is readiness of the planned USB Line, not
-/// semantic Info and not a substitute for runtime Signs.
-pub const R1_USB_NETWORK_SESSION_QUERY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_QUERY@1";
-/// Exact reply emitted only after radio initialization and bounded network
-/// Join kernel admission have completed.
-pub const R1_USB_NETWORK_SESSION_READY: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_READY@1";
-
-/// The queried R1 network Session cannot become ready on this boot. The
-/// machine-readable failure remains on the admitted Sign face.
-pub const R1_USB_NETWORK_SESSION_FAILED: &[u8] = b"CONDUIT_R1_NETWORK_SESSION_FAILED@1";
-
-/// Host acknowledgement that the admitted Sign face is ready to receive the
-/// recovery record associated with `R1_USB_NETWORK_SESSION_FAILED`.
-pub const R1_USB_NETWORK_FAILURE_SIGN_READY: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_SIGN_READY@1";
-pub const R1_USB_NETWORK_FAILURE_SIGN_WRITTEN: &[u8] = b"CONDUIT_R1_NETWORK_FAILURE_SIGN_WRITTEN@1";
-pub const R1_USB_NETWORK_FAILURE_SIGN_FORMAT_FAILED: &[u8] =
-    b"CONDUIT_R1_NETWORK_FAILURE_SIGN_FORMAT_FAILED@1";
-pub const R1_USB_NETWORK_FAILURE_SIGN_DISCONNECTED: &[u8] =
-    b"CONDUIT_R1_NETWORK_FAILURE_SIGN_DISCONNECTED@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
 pub const NETWORK_ATTACHMENT_SIGN_OPERATION: &str = "network/attachment-sign";
