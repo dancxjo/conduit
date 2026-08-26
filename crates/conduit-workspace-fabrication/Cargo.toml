@@ -13,4 +13,3 @@ conduit-host-hosted = { path = "../../hosts/std/fabrication-package" }
 conduit-linear-framebuffer-fabrication = { path = "../../hosts/fabrication/linear-framebuffer" }
 conduit-host-rp2040 = { path = "../../firmware/conduit-pico-w-signal/fabrication-package" }
 conduit-host-raspberry-pi = { path = "../../hosts/raspberry-pi/fabrication-package" }
-conduit-rp2040-pio-audio-extension = { path = "../../fixtures/rp2040-pio-audio-extension" }

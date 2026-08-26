@@ -6,7 +6,6 @@ use conduit_host_hosted::HostedFabricationPackage;
 use conduit_host_raspberry_pi::RaspberryPiFabricationPackage;
 use conduit_host_rp2040::Rp2040FabricationPackage;
 use conduit_linear_framebuffer_fabrication::LinearFramebufferFabricationExtension;
-use conduit_rp2040_pio_audio_extension::Rp2040PioAudioExtension;
 
 /// The finite package environment explicitly chosen by this repository's tooling.
 pub fn package_set() -> FabricationPackageSet {
@@ -18,7 +17,6 @@ pub fn package_set() -> FabricationPackageSet {
         &Rp2040FabricationPackage,
         &RaspberryPiFabricationPackage,
         &LinearFramebufferFabricationExtension,
-        &Rp2040PioAudioExtension,
     ])
     .expect("workspace fabrication package composition is valid")
 }
