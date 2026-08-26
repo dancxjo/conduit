@@ -215,7 +215,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "chromium",
             "firefox",
         ],
-        named_artifacts: &["hosts/browser/conduit_browser_runtime.wasm"],
+        named_artifacts: &["proof/browser/conduit_browser_runtime.wasm"],
         allowed_claims: &["actual browser host executes through the browser/WASM kernel"],
     },
     ProofCommandContract {
@@ -226,7 +226,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         named_artifacts: &[
             "target/debug/patchbay-native",
             "target/debug/patchbay-html",
-            "hosts/browser/conduit_browser_runtime.wasm",
+            "proof/browser/conduit_browser_runtime.wasm",
             "target/conduit-evidence/patchbay-front-door/manifest.json",
         ],
         allowed_claims: &[
@@ -238,7 +238,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         command: "cargo xtask prove std-browser-s4",
         proof_class: ProofClass::LiveTransport,
         required_tools_or_targets: &["wasm32-unknown-unknown", "playwright", "chromium", "loopback WebSocket"],
-        named_artifacts: &["hosts/browser/conduit_browser_runtime.wasm"],
+        named_artifacts: &["proof/browser/conduit_browser_runtime.wasm"],
         allowed_claims: &["one bounded live loopback WebSocket carries the exact std-to-browser session"],
     },
     ProofCommandContract {
@@ -373,7 +373,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         command: "cargo xtask prove body-membership",
         proof_class: ProofClass::LiveBrowser,
         required_tools_or_targets: &["cargo", "wasm32-unknown-unknown", "playwright", "chromium"],
-        named_artifacts: &["hosts/browser/conduit_browser_runtime.wasm"],
+        named_artifacts: &["proof/browser/conduit_browser_runtime.wasm"],
         allowed_claims: &[
             "bounded conformance proves Body membership topology continuity and Pico simulation contracts plus one live Chromium admission over a loopback Line",
         ],
@@ -390,7 +390,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "two physical Wi-Fi/network faults",
             "pinned Chromium",
         ],
-        named_artifacts: &["hosts/browser/conduit_browser_runtime.wasm"],
+        named_artifacts: &["proof/browser/conduit_browser_runtime.wasm"],
         allowed_claims: &[
             "one exact Body links local std, at least two browser Parts, and one explicitly admitted physical Pico to the same immutable R1 Plan and production Play evidence",
         ],
@@ -541,7 +541,7 @@ mod tests {
 
     #[test]
     fn live_browser_contract_keeps_pinned_single_worker_zero_retry_policy() {
-        let config = include_str!("../../hosts/browser/playwright.config.mjs");
+        let config = include_str!("../../proof/browser/playwright.config.mjs");
         assert!(config.contains("workers: 1"));
         assert!(config.contains("retries: 0"));
         assert!(config.contains("name: \"chromium\""));

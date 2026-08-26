@@ -6,7 +6,7 @@ test("real Chromium pointer input crosses the planned production kernel", async 
   page.on("console", (message) => {
     if (message.type() === "error") failures.push(message.text());
   });
-  await page.goto("/hosts/browser/browser-pointer.test.html");
+  await page.goto("/proof/browser/browser-pointer.test.html");
   await expect(page.locator("#result")).toHaveText("ready");
   const bounds = await page.locator("#surface").boundingBox();
   expect(bounds).not.toBeNull();

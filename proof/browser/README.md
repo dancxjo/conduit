@@ -1,8 +1,15 @@
-# Browser host
+# Browser conformance specimens
 
-This host parses and plans unchanged `fixtures/forms/signal-demo.conduit`, lowers its exact local fragment
-through the shared plan-to-kernel contract, and executes it with `conduit-kernel`'s port-aware
-fixed scheduler compiled to `wasm32-unknown-unknown`. It has no alternate executor.
+This directory owns browser conformance fixtures and proof-only launch support.
+It is not a third browser Host implementation. The authoritative product owners
+are `hosts/browser-host` for the browser Host and assets and
+`hosts/browser-runtime` for browser composition and Bases.
+
+The primary specimen parses and plans unchanged
+`fixtures/forms/signal-demo.conduit`, lowers its exact local fragment through
+the shared plan-to-kernel contract, and executes it with `conduit-kernel`'s
+port-aware fixed scheduler compiled to `wasm32-unknown-unknown`. It has no
+alternate executor.
 JavaScript owns only the browser platform effects: real timers and DOM presentation.
 
 Each page host receives an independent WebAssembly instance, so its runtime state, host/boot
@@ -19,6 +26,10 @@ Run the proof with:
 rustup target add wasm32-unknown-unknown
 cargo xtask check browser-host
 ```
+
+All test pages, JavaScript adapters, Playwright configurations, and the static
+server here exist to establish their named proof classes. Product browser
+launch and runtime code must not be added here.
 
 The Chromium test has one pinned project, one worker, no retries, and no forced interaction. It
 runs two independent page hosts concurrently, waits on all fifteen 250 ms intervals per host,

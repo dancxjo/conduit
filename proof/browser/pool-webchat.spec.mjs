@@ -41,7 +41,7 @@ test("dynamic browser peers join broadcast leave and continue through the planne
   const context = await browser.newContext();
   const pageA = await context.newPage();
   const pageB = await context.newPage();
-  const target = `/hosts/browser/pool-webchat.test.html?line=${encodeURIComponent(lineUrl)}`;
+  const target = `/proof/browser/pool-webchat.test.html?line=${encodeURIComponent(lineUrl)}`;
   await pageA.goto(target);
   await expect(pageA.getByRole("status")).toHaveText("joined");
   await pageB.goto(target);

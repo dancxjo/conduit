@@ -3,7 +3,7 @@ import { startPresenceProbe } from "./browser-presence-support.mjs";
 
 test("admitted browser renews exact current presence and close makes it unavailable", async ({ page }) => {
   const probe = await startPresenceProbe();
-  await page.goto(`/hosts/browser/browser-presence.test.html?body=${encodeURIComponent(probe.url)}`);
+  await page.goto(`/proof/browser/browser-presence.test.html?body=${encodeURIComponent(probe.url)}`);
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence?.presenceState())).toBe("available");
   await expect.poll(probe.output).toContain("renewed sequence=2");
   await expect.poll(probe.output).toContain("renewed sequence=3");
@@ -146,7 +146,7 @@ test("admitted browser renews exact current presence and close makes it unavaila
 });
 test("admitted browser that stops renewing becomes unavailable only at lease expiry", async ({ page }) => {
   const probe = await startPresenceProbe();
-  await page.goto(`/hosts/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`);
+  await page.goto(`/proof/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`);
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence?.presenceState())).toBe("available");
   await expect.poll(probe.output).toContain("unavailable reason=expired sequence=1");
   await expect.poll(() => probe.process.exitCode).toBe(0);
@@ -155,7 +155,7 @@ test("admitted browser that stops renewing becomes unavailable only at lease exp
 
 test("same running browser returns after session loss with exact Host and Boot", async ({ page }) => {
   const probe = await startPresenceProbe(["--reconnect"]);
-  await page.goto(`/hosts/browser/browser-presence.test.html?body=${encodeURIComponent(probe.url)}`);
+  await page.goto(`/proof/browser/browser-presence.test.html?body=${encodeURIComponent(probe.url)}`);
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence?.presenceState())).toBe("available");
   const identity = await page.evaluate(() => ({
     hostId: globalThis.__browserPresence.hostId,

@@ -41,7 +41,7 @@ assert_classification false "$manifest_change" "$lock_change"
 workflow_change="$(commit_file .github/workflows/check.yml workflow)"
 assert_classification false "$lock_change" "$workflow_change"
 
-baseline_change="$(commit_file hosts/browser/baseline.png pixels)"
+baseline_change="$(commit_file proof/browser/baseline.png pixels)"
 assert_classification false "$workflow_change" "$baseline_change"
 
 mixed_base="$baseline_change"

@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("generic Presenter renders breadth and emits exact portable values without indices",async({page})=>{
-  await page.goto("/hosts/browser/human-interaction-presenter.test.html");
+  await page.goto("/proof/browser/human-interaction-presenter.test.html");
   await expect(page.getByRole("button",{name:"Panic"})).toBeVisible();
   await expect(page.getByRole("checkbox",{name:"Sustain"})).not.toBeChecked();
   await expect(page.getByRole("combobox",{name:"Waveform selection"})).toHaveValue("waveform/sine");
@@ -14,7 +14,7 @@ test("generic Presenter renders breadth and emits exact portable values without 
 });
 
 test("semantic source and local mechanism change independently",async({page})=>{
-  await page.goto("/hosts/browser/human-interaction-presenter.test.html");
+  await page.goto("/proof/browser/human-interaction-presenter.test.html");
   await page.evaluate(()=>{const item=globalThis.authoritativeSnapshot.interactions.find(value=>value.semantic_id==="interaction/waveform");item.label="Oscillator shape";item.options.find(value=>value.identity==="waveform/triangle").label="Three-sided";globalThis.renderAuthoritative();});
   await expect(page.getByRole("heading",{name:"Oscillator shape"})).toBeVisible();
   await expect(page.getByRole("option",{name:"Three-sided"})).toHaveText("Three-sided");
@@ -25,7 +25,7 @@ test("semantic source and local mechanism change independently",async({page})=>{
 });
 
 test("focus draft and reload remain local while authoritative current state reconstructs",async({page})=>{
-  await page.goto("/hosts/browser/human-interaction-presenter.test.html");
+  await page.goto("/proof/browser/human-interaction-presenter.test.html");
   const name=page.getByRole("textbox",{name:"Instrument name"});await name.fill("local draft");await name.focus();
   expect(await page.evaluate(()=>globalThis.proposals.length)).toBe(0);
   expect(await page.evaluate(()=>globalThis.authoritativeSnapshot.interactions.find(value=>value.semantic_id==="interaction/name").current)).toBeUndefined();
@@ -33,7 +33,7 @@ test("focus draft and reload remain local while authoritative current state reco
 });
 
 test("semantic validation and adapter failures remain explicit",async({page})=>{
-  await page.goto("/hosts/browser/human-interaction-presenter.test.html");
+  await page.goto("/proof/browser/human-interaction-presenter.test.html");
   const layers=page.getByRole("group",{name:"Active layers"});for(const box of await layers.getByRole("checkbox").all())if(await box.isChecked())await box.uncheck();
   await layers.getByRole("button",{name:"Apply layers"}).click();await expect(page.locator('[data-interaction-id="interaction/layers"] output')).toHaveText("Refused(InvalidCardinality)");
   await page.evaluate(()=>{globalThis.presenter=new (globalThis.presenter.constructor)(document.querySelector("#interactions"),{submit:async()=>{const error=new Error("lost");error.code="AdapterUnavailable";throw error;}});globalThis.presenter.render(globalThis.authoritativeSnapshot);});
@@ -41,7 +41,7 @@ test("semantic validation and adapter failures remain explicit",async({page})=>{
 });
 
 test("keyboard access emits semantics while renderer trickery and pending pressure fail closed",async({page})=>{
-  await page.goto("/hosts/browser/human-interaction-presenter.test.html");
+  await page.goto("/proof/browser/human-interaction-presenter.test.html");
   await page.getByRole("button",{name:"Panic"}).focus();await page.keyboard.press("Enter");
   expect((await page.evaluate(()=>globalThis.proposals.at(-1))).payload).toEqual({kind:"activate"});
   await page.evaluate(()=>{const item=globalThis.authoritativeSnapshot.interactions.find(value=>value.semantic_id==="interaction/layers");item.options.find(value=>value.identity==="waveform/pulse").availability="unavailable";globalThis.renderAuthoritative();const checkbox=document.querySelector('[data-interaction-id="interaction/layers"] [data-option-identity="waveform/pulse"]');checkbox.disabled=false;checkbox.checked=true;});

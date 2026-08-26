@@ -27,7 +27,7 @@ function collectLines(stream) {
 }
 
 test("homepage is useful and honestly waiting without a trigger endpoint", async ({ page }) => {
-  const source = readFileSync("hosts/browser/conduit-site.html", "utf8");
+  const source = readFileSync("proof/browser/conduit-site.html", "utf8");
   for (const forbidden of [
     "addEventListener",
     "onclick=",
@@ -41,7 +41,7 @@ test("homepage is useful and honestly waiting without a trigger endpoint", async
   expect(source).toContain("domHost.completePresentation(effect)");
   expect(source).toContain("if (result.ok) showReceipt(result.receipt)");
 
-  await page.goto("/hosts/browser/conduit-site.html");
+  await page.goto("/proof/browser/conduit-site.html");
   await expect(page).toHaveTitle("Conduit — programs that become real");
   await expect(page.locator("h1")).toHaveText("Meaning, made manifest.");
   await expect(page.locator("#manifestation-title")).toHaveText("Conduit is waiting");
@@ -53,7 +53,7 @@ test("homepage is useful and honestly waiting without a trigger endpoint", async
 
 test("homepage exposes a bounded error state without fabricating a receipt", async ({ page }) => {
   await page.goto(
-    "/hosts/browser/conduit-site.html?ws=ws%3A%2F%2F127.0.0.1%3A1%2Fconduit",
+    "/proof/browser/conduit-site.html?ws=ws%3A%2F%2F127.0.0.1%3A1%2Fconduit",
   );
   await expect(page.locator("html")).toHaveAttribute("data-manifestation", "error");
   await expect(page.locator("#manifestation-title")).toHaveText(
@@ -76,7 +76,7 @@ test("canonical initial state and terminal triggers change the homepage only aft
   const lines = collectLines(source.stdout);
   try {
     const url = await lines.line(0);
-    await page.goto(`/hosts/browser/conduit-site.html?ws=${encodeURIComponent(url)}`);
+    await page.goto(`/proof/browser/conduit-site.html?ws=${encodeURIComponent(url)}`);
     await expect(page.locator("#browser-sink output")).toHaveCount(1);
     await expect(page.locator("html")).toHaveAttribute("data-manifestation", "true");
     await expect(page.locator("#manifestation-title")).toHaveText("Conduit is live");

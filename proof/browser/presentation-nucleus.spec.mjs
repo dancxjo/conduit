@@ -7,7 +7,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
     if (message.type() === "error") failures.push(message.text());
   });
 
-  await page.goto("/hosts/browser/presentation-nucleus.test.html");
+  await page.goto("/proof/browser/presentation-nucleus.test.html");
   await expect(page.locator("#result")).toHaveText("ok");
   await expect(page.locator("#nucleus [data-layout-index]")).toHaveCount(3);
   await expect(page.locator("#nucleus [data-graphics-kind]")).toHaveCount(3);

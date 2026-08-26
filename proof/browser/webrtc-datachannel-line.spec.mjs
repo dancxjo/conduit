@@ -10,8 +10,8 @@ async function connect(context, leftLimits = limits, rightLimits = limits) {
   const left = await context.newPage();
   const right = await context.newPage();
   await Promise.all([
-    left.goto("/hosts/browser/webrtc-datachannel-line.test.html"),
-    right.goto("/hosts/browser/webrtc-datachannel-line.test.html"),
+    left.goto("/proof/browser/webrtc-datachannel-line.test.html"),
+    right.goto("/proof/browser/webrtc-datachannel-line.test.html"),
   ]);
   const offer = await left.evaluate((value) => window.conduitOffer(value), leftLimits);
   const answer = await right.evaluate(
@@ -237,7 +237,7 @@ test("exact planned WebRTC session admits, terminates, and rejects late frames",
 });
 
 test("Body-granted canonical Hello initializes the exact browser session", async ({ page }) => {
-  await page.goto("/hosts/browser/webrtc-datachannel-line.test.html");
+  await page.goto("/proof/browser/webrtc-datachannel-line.test.html");
   expect(await page.evaluate(() => window.conduitSessionStart(0))).toBe(0);
   const grantedHello = await page.evaluate(() => window.conduitSessionOutput());
   expect(await page.evaluate(
@@ -266,8 +266,8 @@ test("Body grants compose one real peer with the exact shared session", async ({
   const left = await context.newPage();
   const right = await context.newPage();
   await Promise.all([
-    left.goto("/hosts/browser/webrtc-datachannel-line.test.html"),
-    right.goto("/hosts/browser/webrtc-datachannel-line.test.html"),
+    left.goto("/proof/browser/webrtc-datachannel-line.test.html"),
+    right.goto("/proof/browser/webrtc-datachannel-line.test.html"),
   ]);
   await left.evaluate(() => window.conduitSessionStart(0));
   const hello = await left.evaluate(() => window.conduitSessionOutput());

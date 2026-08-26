@@ -41,7 +41,7 @@ test("terminal and two Chromium peers independently issue keydown on and keyup o
   const context = await browser.newContext();
   const pageA = await context.newPage();
   const pageB = await context.newPage();
-  const pageUrl = (peer) => `/hosts/browser/r1-three-peer-input.test.html?peer=${peer}&line=${encodeURIComponent(lineUrl)}`;
+  const pageUrl = (peer) => `/proof/browser/r1-three-peer-input.test.html?peer=${peer}&line=${encodeURIComponent(lineUrl)}`;
   await pageA.goto(pageUrl("browser-a"));
   await expect(pageA.getByRole("status")).toHaveText("ready");
   await pageB.goto(pageUrl("browser-b"));

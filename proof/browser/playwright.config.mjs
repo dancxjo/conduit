@@ -36,8 +36,8 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `cd ../.. && node hosts/browser/static-server.mjs ${port}`,
-    url: `http://127.0.0.1:${port}/hosts/browser/signal-dom-host.test.html`,
+    command: `cd ../.. && node proof/browser/static-server.mjs ${port}`,
+    url: `http://127.0.0.1:${port}/proof/browser/signal-dom-host.test.html`,
     reuseExistingServer: !process.env.CI,
     timeout: 10_000,
   },

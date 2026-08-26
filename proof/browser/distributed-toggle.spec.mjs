@@ -71,7 +71,7 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
     expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
     process.stdout.write(`distributed toggle URL ${url}\n`);
     await page.goto(
-      `/hosts/browser/distributed-toggle.test.html?ws=${encodeURIComponent(url)}`,
+      `/proof/browser/distributed-toggle.test.html?ws=${encodeURIComponent(url)}`,
     );
 
     // The canonical current output manifests its exact initial value before any Tick.
@@ -188,17 +188,17 @@ test("a broken toggle link after four delivered values fails with retained exact
   try {
     const url = await lines.line(0);
     expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
-    await page.goto("/hosts/browser/distributed-toggle.test.html");
+    await page.goto("/proof/browser/distributed-toggle.test.html");
 
     const browserReady = page.evaluate(async ({ url }) => {
-      const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
+      const { BrowserDomHost } = await import("/proof/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
-        "/hosts/browser/websocket-line.mjs"
+        "/hosts/browser-host/assets/websocket-line.mjs"
       );
       const {
         instantiateDistributedToggleRuntime,
         runDistributedToggleRuntime,
-      } = await import("/hosts/browser/distributed-toggle-runtime.mjs");
+      } = await import("/proof/browser/distributed-toggle-runtime.mjs");
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
       ).then((response) => response.arrayBuffer());

@@ -60,11 +60,11 @@ test("unchanged Text Lab executes both exact Lines through browser WASM", async 
   try {
     const url = await lines.line(0);
     expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
-    await page.goto("/hosts/browser/text-lab-live.test.html");
+    await page.goto("/proof/browser/text-lab-live.test.html");
     const result = await page.evaluate(async ({ url }) => {
-      const { BrowserWebSocketLine } = await import("/hosts/browser/websocket-line.mjs");
+      const { BrowserWebSocketLine } = await import("/hosts/browser-host/assets/websocket-line.mjs");
       const { instantiateTextLabLive, runTextLabLive } = await import(
-        "/hosts/browser/text-lab-live-runtime.mjs"
+        "/hosts/browser-host/assets/text-lab-live-runtime.mjs"
       );
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
@@ -126,12 +126,12 @@ test("return Line loss preserves the accepted Plan and makes fresh planning unre
   const outcome = processOutcome(server);
   try {
     const url = await lines.line(0);
-    const browser = await page.goto("/hosts/browser/text-lab-live.test.html");
+    const browser = await page.goto("/proof/browser/text-lab-live.test.html");
     expect(browser.ok()).toBe(true);
     const result = await page.evaluate(async ({ url }) => {
-      const { BrowserWebSocketLine } = await import("/hosts/browser/websocket-line.mjs");
+      const { BrowserWebSocketLine } = await import("/hosts/browser-host/assets/websocket-line.mjs");
       const { instantiateTextLabLive, runTextLabLive } = await import(
-        "/hosts/browser/text-lab-live-runtime.mjs"
+        "/hosts/browser-host/assets/text-lab-live-runtime.mjs"
       );
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",

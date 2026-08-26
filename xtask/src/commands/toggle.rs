@@ -124,11 +124,11 @@ fn encode_query_component(value: &str) -> String {
 }
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    run_page("toggle", "/hosts/browser/distributed-toggle.test.html")
+    run_page("toggle", "/proof/browser/distributed-toggle.test.html")
 }
 
 pub fn run_site() -> Result<(), Box<dyn std::error::Error>> {
-    run_page("site", "/hosts/browser/conduit-site.html")
+    run_page("site", "/proof/browser/conduit-site.html")
 }
 
 fn run_page(label: &str, page: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -156,7 +156,7 @@ fn run_page(label: &str, page: &str) -> Result<(), Box<dyn std::error::Error>> {
     let static_port = available_static_port()?;
     let mut static_command = Command::new("node");
     static_command
-        .args(["hosts/browser/static-server.mjs", &static_port.to_string()])
+        .args(["proof/browser/static-server.mjs", &static_port.to_string()])
         .current_dir(&root)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
