@@ -1,5 +1,5 @@
 use super::*;
-use conduit_std_catalog::{
+use conduit_web::{
     HttpMethod, HttpRequest, HttpResponse, HttpTarget, HttpTransactionId, decode_response,
     encode_request,
 };
@@ -32,11 +32,11 @@ fn request(scheme: &str, authority: &str) -> alloc::vec::Vec<u8> {
             authority: authority.into(),
             path_and_query: "/v1/check?q=1".into(),
         },
-        headers: alloc::vec![conduit_std_catalog::HttpHeader {
+        headers: alloc::vec![conduit_web::HttpHeader {
             name: "x-test".into(),
             value: b"yes".to_vec(),
         }],
-        body: conduit_std_catalog::HttpBody::inline(b"hello".to_vec()),
+        body: conduit_web::HttpBody::inline(b"hello".to_vec()),
     })
     .unwrap()
 }
@@ -53,10 +53,7 @@ fn endpoint(response: &'static [u8]) -> LocalEndpoint {
 #[test]
 fn exact_offer_is_finite_and_requires_narrow_authority() {
     let offer = offer();
-    assert_eq!(
-        offer.kind_id.as_str(),
-        conduit_std_catalog::HTTP_CLIENT_KIND
-    );
+    assert_eq!(offer.kind_id.as_str(), conduit_web::HTTP_CLIENT_KIND);
     assert_eq!(offer.host_operations.len(), 1);
     assert_eq!(
         offer.resource_requirements[0].class_id.as_str(),
@@ -180,8 +177,8 @@ fn base_connect_provider_close_and_overflow_failures_do_not_become_statuses() {
 
     let oversized = alloc::format!(
         "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
-        conduit_std_catalog::HTTP_MAXIMUM_RESPONSE_BODY_BYTES + 1,
-        "x".repeat(conduit_std_catalog::HTTP_MAXIMUM_RESPONSE_BODY_BYTES + 1)
+        conduit_web::HTTP_MAXIMUM_RESPONSE_BODY_BYTES + 1,
+        "x".repeat(conduit_web::HTTP_MAXIMUM_RESPONSE_BODY_BYTES + 1)
     );
     let leaked: &'static [u8] = alloc::boxed::Box::leak(oversized.into_bytes().into_boxed_slice());
     let mut endpoint = endpoint(leaked);
@@ -202,7 +199,7 @@ fn semantic_response_matches_the_shared_http_contract() {
         transaction_id: HttpTransactionId(44),
         status: 204,
         headers: alloc::vec::Vec::new(),
-        body: conduit_std_catalog::HttpBody::inline(alloc::vec::Vec::new()),
+        body: conduit_web::HttpBody::inline(alloc::vec::Vec::new()),
     };
-    assert!(conduit_std_catalog::encode_response(&response).is_ok());
+    assert!(conduit_web::encode_response(&response).is_ok());
 }

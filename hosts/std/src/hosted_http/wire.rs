@@ -1,4 +1,4 @@
-use conduit_std_catalog::{
+use conduit_web::{
     HttpBody, HttpExchangeFailure, HttpHeader, HttpMethod, HttpRequest, HttpResponse, HttpTarget,
     HttpTransactionId, HTTP_MAXIMUM_HEADERS, HTTP_MAXIMUM_HEADER_NAME_BYTES,
     HTTP_MAXIMUM_HEADER_VALUE_BYTES, HTTP_MAXIMUM_REQUEST_BODY_BYTES,

@@ -13,10 +13,7 @@ fn ordinary_form_runs_shared_bounded_json_through_the_production_kernel() {
     let mut host = StdHost::new_with_composition(config, crate::StdHostComposition::reference());
     let plan = host.plan_local(&form, None).expect("JSON codec Form plans");
     let fragment = plan.fragments[0].clone();
-    for kind in [
-        conduit_std_catalog::JSON_DECODE_KIND,
-        conduit_std_catalog::JSON_ENCODE_KIND,
-    ] {
+    for kind in [conduit_web::JSON_DECODE_KIND, conduit_web::JSON_ENCODE_KIND] {
         let placement = fragment
             .placements
             .iter()

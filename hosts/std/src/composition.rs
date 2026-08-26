@@ -381,21 +381,21 @@ mod tests {
     #[test]
     fn hosted_http_is_opt_in_and_seals_resources_operations_and_authority() {
         let omitted = host(StdHostComposition::minimal());
-        assert!(!offered(&omitted, conduit_std_catalog::HTTP_CLIENT_KIND));
-        assert!(!offered(&omitted, conduit_std_catalog::HTTP_SERVER_KIND));
+        assert!(!offered(&omitted, conduit_web::HTTP_CLIENT_KIND));
+        assert!(!offered(&omitted, conduit_web::HTTP_SERVER_KIND));
 
         let selected = host(StdHostComposition::minimal().with_http());
         let client = selected
             .advertisement()
             .capabilities
             .iter()
-            .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::HTTP_CLIENT_KIND)
+            .find(|offer| offer.kind_id.as_str() == conduit_web::HTTP_CLIENT_KIND)
             .unwrap();
         let server = selected
             .advertisement()
             .capabilities
             .iter()
-            .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::HTTP_SERVER_KIND)
+            .find(|offer| offer.kind_id.as_str() == conduit_web::HTTP_SERVER_KIND)
             .unwrap();
         assert_eq!(client.host_operations.len(), 1);
         assert_eq!(client.authority_requirements.len(), 1);
@@ -437,8 +437,8 @@ mod tests {
             "robotics/velocity-intent",
             "robotics/drive-differential",
             "file/copy",
-            conduit_std_catalog::HTTP_CLIENT_KIND,
-            conduit_std_catalog::HTTP_SERVER_KIND,
+            conduit_web::HTTP_CLIENT_KIND,
+            conduit_web::HTTP_SERVER_KIND,
         ] {
             assert!(!offered(&minimal, kind), "minimal host offered {kind}");
             assert!(offered(&reference, kind), "reference host omitted {kind}");

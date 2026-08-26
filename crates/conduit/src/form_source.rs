@@ -80,8 +80,8 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_std_catalog::install_graphics_presentation_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_http_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_json_catalogs(&mut startup, &mut profiles)?;
+    conduit_web::install_http_catalogs(&mut startup, &mut profiles)?;
+    conduit_web::install_json_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_recurrence_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_schedule_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_calendar_provider_catalogs(&mut startup, &mut profiles)?;

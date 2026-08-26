@@ -1,19 +1,14 @@
 //! Portable bounded JSON encode/decode Kind contracts.
 
 use super::{StandardKindContract, TerminalBehavior};
-use alloc::string::{String, ToString};
+use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, ImplementationOffer, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal,
+    port_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
+    ImplementationOffer, KindContractRevision,
 };
 
-pub const JSON_ENCODE_KIND: &str = "json/encode";
-pub const JSON_DECODE_KIND: &str = "json/decode";
-pub const JSON_ENCODE_REVISION: &str = "conduit.std/json-encode@1";
-pub const JSON_DECODE_REVISION: &str = "conduit.std/json-decode@1";
 pub const JSON_ENCODE_STD_IMPLEMENTATION: &str = "std/kernel-json-encode@1";
 pub const JSON_DECODE_STD_IMPLEMENTATION: &str = "std/kernel-json-decode@1";
 pub const JSON_STD_PROFILE: &str = "std/no-std-bounded-json@1";
@@ -26,21 +21,17 @@ pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
 
 pub fn json_encode_contract() -> StandardKindContract {
     contract(
-        JSON_ENCODE_KIND,
+        conduit_web::json_encode_semantics(),
         "JSON encode",
         "Encode one canonical finite JSON value as deterministic bounded UTF-8 text.",
-        conduit_core::JSON_INFO_ID,
-        conduit_core::JSON_TEXT_INFO_ID,
     )
 }
 
 pub fn json_decode_contract() -> StandardKindContract {
     contract(
-        JSON_DECODE_KIND,
+        conduit_web::json_decode_semantics(),
         "JSON decode",
         "Decode one bounded UTF-8 JSON document into canonical finite JSON value semantics.",
-        conduit_core::JSON_TEXT_INFO_ID,
-        conduit_core::JSON_INFO_ID,
     )
 }
 
@@ -48,7 +39,7 @@ pub fn json_encode_std_offer() -> CapabilityOffer {
     offer(
         &json_encode_contract(),
         "std-json-encode-v1",
-        JSON_ENCODE_REVISION,
+        conduit_web::JSON_ENCODE_REVISION,
         JSON_STD_PROFILE,
         JSON_ENCODE_STD_IMPLEMENTATION,
     )
@@ -58,7 +49,7 @@ pub fn json_decode_std_offer() -> CapabilityOffer {
     offer(
         &json_decode_contract(),
         "std-json-decode-v1",
-        JSON_DECODE_REVISION,
+        conduit_web::JSON_DECODE_REVISION,
         JSON_STD_PROFILE,
         JSON_DECODE_STD_IMPLEMENTATION,
     )
@@ -68,7 +59,7 @@ pub fn json_encode_conduitos_offer() -> CapabilityOffer {
     offer(
         &json_encode_contract(),
         "conduitos-json-encode-v1",
-        JSON_ENCODE_REVISION,
+        conduit_web::JSON_ENCODE_REVISION,
         JSON_CONDUITOS_PROFILE,
         JSON_ENCODE_CONDUITOS_IMPLEMENTATION,
     )
@@ -78,72 +69,31 @@ pub fn json_decode_conduitos_offer() -> CapabilityOffer {
     offer(
         &json_decode_contract(),
         "conduitos-json-decode-v1",
-        JSON_DECODE_REVISION,
+        conduit_web::JSON_DECODE_REVISION,
         JSON_CONDUITOS_PROFILE,
         JSON_DECODE_CONDUITOS_IMPLEMENTATION,
     )
 }
 
-#[cfg(feature = "form-catalog")]
-pub fn install_json_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
-) -> Result<(), String> {
-    use conduit_form::{KindDefinition, KindSignature};
-    for (contract, revision) in [
-        (json_encode_contract(), JSON_ENCODE_REVISION),
-        (json_decode_contract(), JSON_DECODE_REVISION),
-    ] {
-        startup.insert(KindSignature {
-            kind: contract.kind_id.as_str().to_string(),
-            startup_parameters: Vec::new(),
-        })?;
-        profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: Vec::new(),
-            })
-            .map_err(|error| error.to_string())?;
-    }
-    Ok(())
-}
-
 fn contract(
-    kind: &str,
+    contract: conduit_web::PortableKindContract,
     name: &str,
     summary: &str,
-    input: &str,
-    output: &str,
 ) -> StandardKindContract {
+    let example = alloc::format!("codec: {}", contract.kind_id.as_str());
     StandardKindContract {
-        kind_id: kind_id(kind),
+        kind_id: contract.kind_id,
         plain_name: name.to_string(),
         summary: summary.to_string(),
-        inputs: vec![port("value", input, PortDirection::Input)],
-        outputs: vec![port("value", output, PortDirection::Output)],
+        inputs: contract.inputs,
+        outputs: contract.outputs,
         configuration: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 4,
-            max_queue_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
-        },
+        limits: contract.limits,
         terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
-        example: alloc::format!("codec: {kind}"),
-    }
-}
-
-fn port(name: &str, value: &str, direction: PortDirection) -> PortDescriptor {
-    PortDescriptor {
-        port_id: port_id(name),
-        value_kind: kind_id(value),
-        direction,
-        temporal: PortTemporal::Value,
+        example,
     }
 }
 
@@ -154,7 +104,7 @@ fn offer(
     profile: &str,
     implementation: &str,
 ) -> CapabilityOffer {
-    let operation = if contract.kind_id.as_str() == JSON_ENCODE_KIND {
+    let operation = if contract.kind_id.as_str() == conduit_web::JSON_ENCODE_KIND {
         JSON_ENCODE_HOST_OPERATION
     } else {
         JSON_DECODE_HOST_OPERATION
@@ -191,8 +141,20 @@ mod tests {
 
     #[test]
     fn faces_are_exact_bounded_portable_and_authority_free() {
+        let portable_encode = conduit_web::json_encode_semantics();
+        let portable_decode = conduit_web::json_decode_semantics();
+        let described_encode = json_encode_contract();
+        let described_decode = json_decode_contract();
         let encode = json_encode_std_offer();
         let decode = json_decode_conduitos_offer();
+        assert_eq!(described_encode.kind_id, portable_encode.kind_id);
+        assert_eq!(described_encode.inputs, portable_encode.inputs);
+        assert_eq!(described_encode.outputs, portable_encode.outputs);
+        assert_eq!(described_encode.limits, portable_encode.limits);
+        assert_eq!(described_decode.kind_id, portable_decode.kind_id);
+        assert_eq!(described_decode.inputs, portable_decode.inputs);
+        assert_eq!(described_decode.outputs, portable_decode.outputs);
+        assert_eq!(described_decode.limits, portable_decode.limits);
         assert_eq!(
             encode.inputs[0].value_kind.as_str(),
             conduit_core::JSON_INFO_ID

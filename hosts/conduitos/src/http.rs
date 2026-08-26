@@ -80,12 +80,8 @@ pub struct NativeHttpClient {
 
 impl NativeHttpClient {
     pub fn prepare() -> Self {
-        let request = conduit_std_catalog::http_request_type()
-            .canonical_bytes()
-            .unwrap();
-        let response = conduit_std_catalog::http_response_type()
-            .canonical_bytes()
-            .unwrap();
+        let request = conduit_web::http_request_type().canonical_bytes().unwrap();
+        let response = conduit_web::http_response_type().canonical_bytes().unwrap();
         assert!(request.len() <= TYPE_BYTES && response.len() <= TYPE_BYTES);
         let mut value = Self {
             request: [0; REQUEST_BYTES],
@@ -227,14 +223,14 @@ fn encode_wire_request(
     cursor.variant("inline")?;
     let body = cursor.leaf()?;
     cursor.field("headers")?;
-    cursor.collection(conduit_std_catalog::HTTP_MAXIMUM_HEADERS)?;
+    cursor.collection(conduit_web::HTTP_MAXIMUM_HEADERS)?;
     let mut headers = [Header {
         name: &[],
         value: &[],
-    }; conduit_std_catalog::HTTP_MAXIMUM_HEADERS];
+    }; conduit_web::HTTP_MAXIMUM_HEADERS];
     let mut count = 0;
     let mut unused_seen = false;
-    for _ in 0..conduit_std_catalog::HTTP_MAXIMUM_HEADERS {
+    for _ in 0..conduit_web::HTTP_MAXIMUM_HEADERS {
         cursor.tag(3)?;
         let tag = cursor.bytes()?;
         match tag {
@@ -300,19 +296,19 @@ fn encode_wire_request(
     }
     if target.is_empty()
         || target[0] != b'/'
-        || target.len() > conduit_std_catalog::HTTP_MAXIMUM_TARGET_BYTES
+        || target.len() > conduit_web::HTTP_MAXIMUM_TARGET_BYTES
     {
         return Err(HttpClientFailure::MalformedRequest);
     }
-    if count > conduit_std_catalog::HTTP_MAXIMUM_HEADERS {
+    if count > conduit_web::HTTP_MAXIMUM_HEADERS {
         return Err(HttpClientFailure::RequestOverflow);
     }
     for header in &headers[..count] {
         let name = header.name;
         let value = header.value;
         if name.is_empty()
-            || name.len() > conduit_std_catalog::HTTP_MAXIMUM_HEADER_NAME_BYTES
-            || value.len() > conduit_std_catalog::HTTP_MAXIMUM_HEADER_VALUE_BYTES
+            || name.len() > conduit_web::HTTP_MAXIMUM_HEADER_NAME_BYTES
+            || value.len() > conduit_web::HTTP_MAXIMUM_HEADER_VALUE_BYTES
             || !name.iter().all(|byte| {
                 byte.is_ascii_lowercase()
                     || byte.is_ascii_digit()
@@ -332,7 +328,7 @@ fn encode_wire_request(
             return Err(HttpClientFailure::MalformedRequest);
         }
     }
-    if body.len() > conduit_std_catalog::HTTP_MAXIMUM_REQUEST_BODY_BYTES {
+    if body.len() > conduit_web::HTTP_MAXIMUM_REQUEST_BODY_BYTES {
         return Err(HttpClientFailure::RequestOverflow);
     }
     let mut writer = Writer::new(output);
@@ -378,7 +374,7 @@ fn encode_info_response(
     let split = find(wire, b"\r\n\r\n").ok_or(HttpClientFailure::MalformedResponse)?;
     let head = &wire[..split];
     let body = &wire[split + 4..];
-    if body.len() > conduit_std_catalog::HTTP_MAXIMUM_RESPONSE_BODY_BYTES {
+    if body.len() > conduit_web::HTTP_MAXIMUM_RESPONSE_BODY_BYTES {
         return Err(HttpClientFailure::ResponseBodyOverflow);
     }
     let first_end = find(head, b"\r\n").unwrap_or(head.len());
@@ -393,7 +389,7 @@ fn encode_info_response(
     let mut headers = [Header {
         name: &[],
         value: &[],
-    }; conduit_std_catalog::HTTP_MAXIMUM_HEADERS];
+    }; conduit_web::HTTP_MAXIMUM_HEADERS];
     let mut count = 0;
     let mut offset = first_end.saturating_add(2);
     let mut content_length = None;
@@ -413,8 +409,8 @@ fn encode_info_response(
             .strip_prefix(b" ")
             .unwrap_or(&line[colon + 1..]);
         if name.is_empty()
-            || name.len() > conduit_std_catalog::HTTP_MAXIMUM_HEADER_NAME_BYTES
-            || value.len() > conduit_std_catalog::HTTP_MAXIMUM_HEADER_VALUE_BYTES
+            || name.len() > conduit_web::HTTP_MAXIMUM_HEADER_NAME_BYTES
+            || value.len() > conduit_web::HTTP_MAXIMUM_HEADER_VALUE_BYTES
             || !name
                 .iter()
                 .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
@@ -438,7 +434,7 @@ fn encode_info_response(
     writer.variant("inline")?;
     writer.leaf(body)?;
     writer.field("headers")?;
-    writer.collection(conduit_std_catalog::HTTP_MAXIMUM_HEADERS)?;
+    writer.collection(conduit_web::HTTP_MAXIMUM_HEADERS)?;
     for header in &headers[..count] {
         writer.variant("header")?;
         writer.record(2)?;
@@ -447,7 +443,7 @@ fn encode_info_response(
         writer.field("value")?;
         writer.leaf(header.value)?;
     }
-    for _ in count..conduit_std_catalog::HTTP_MAXIMUM_HEADERS {
+    for _ in count..conduit_web::HTTP_MAXIMUM_HEADERS {
         writer.variant("unused")?;
         writer.leaf(&[])?;
     }

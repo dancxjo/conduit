@@ -105,6 +105,16 @@ dependencies = [
  "conduit-form",
  "conduit-midi",
  "conduit-presentation",
+ "conduit-web",
+ "serde",
+]
+
+[[package]]
+name = "conduit-web"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
  "serde",
 ]
 
