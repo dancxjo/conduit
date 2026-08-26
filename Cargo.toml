@@ -22,6 +22,7 @@ members = [
     "crates/conduit-pete",
 	"crates/conduit-chat",
 	"crates/conduit-ai",
+	"crates/conduit-alife",
 	"crates/conduit-tongues",
 	"crates/conduit-synth",
 	"crates/conduit-midi",

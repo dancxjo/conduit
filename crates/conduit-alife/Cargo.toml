@@ -1,0 +1,13 @@
+[package]
+name = "conduit-alife"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-form = { path = "../conduit-form" }
+conduit-presentation = { path = "../conduit-presentation", default-features = false }
+conduit-std-catalog = { path = "../conduit-std-catalog", default-features = false, features = ["form-catalog"] }
+
+[dev-dependencies]
+conduit-planner = { path = "../conduit-planner" }

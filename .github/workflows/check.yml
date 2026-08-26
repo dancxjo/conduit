@@ -220,6 +220,11 @@ jobs:
           ldproxy: false
           name: esp-conduit-1.91.1
           version: "1.91.1.0"
+      - name: Activate the pinned Xtensa compiler from the restored toolchain
+        run: |
+          test -x "$HOME/.rustup/toolchains/esp-conduit-1.91.1/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc"
+          echo "$HOME/.rustup/toolchains/esp-conduit-1.91.1/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin" >> "$GITHUB_PATH"
+          echo "LIBCLANG_PATH=$HOME/.rustup/toolchains/esp-conduit-1.91.1/xtensa-esp32-elf-clang/esp-20.1.1_20250829/esp-clang/lib" >> "$GITHUB_ENV"
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true

@@ -99,7 +99,33 @@ pub async fn run(
     }))
     .unwrap();
 
+    // Session identities own bounded strings. Materialize the exact selected
+    // Plan fragment before Play, then seal the startup arena so the Bluetooth
+    // path cannot hide later growth behind the embedded global allocator.
+    let binding = match binding(runtime) {
+        Ok(binding) => binding,
+        Err(_) => {
+            let _ = sign.write_marker("CONDUIT_BLE_BINDING_REFUSED").await;
+            halt().await
+        }
+    };
+    let mut machine = match SessionMachine::new(binding.clone(), SessionRole::Sink) {
+        Ok(machine) => machine,
+        Err(_) => {
+            let _ = sign.write_marker("CONDUIT_BLE_BINDING_REFUSED").await;
+            halt().await
+        }
+    };
     let identity = SignalExecutionIdentity::plan_a();
+    let mut kernel = match RemoteSignalKernel::new(identity) {
+        Ok(kernel) => kernel,
+        Err(_) => {
+            let _ = sign.write_marker("CONDUIT_BLE_KERNEL_REFUSED").await;
+            halt().await
+        }
+    };
+    crate::ALLOCATOR.seal();
+
     let _ = sign.write_boot_identity(identity.boot(), runtime).await;
     let _ = sign.write_marker("CONDUIT_BLE_CONTROLLER_READY").await;
     let line = async {
@@ -125,6 +151,9 @@ pub async fn run(
             &mut control,
             sign,
             runtime,
+            &binding,
+            &mut machine,
+            &mut kernel,
         )
         .await;
         let marker = if result.is_ok() {
@@ -149,6 +178,12 @@ pub async fn run(
             let _ = sign.write_marker("CONDUIT_BLE_LINE_STOPPED").await;
             core::future::pending().await
         }
+    }
+}
+
+async fn halt() -> ! {
+    loop {
+        core::future::pending::<()>().await;
     }
 }
 
@@ -199,11 +234,10 @@ async fn serve_connection<C: Controller>(
     control: &mut Control<'_>,
     sign: &mut UsbCdc,
     runtime: &RuntimeTranscriptIdentity,
+    binding: &SessionBinding,
+    machine: &mut SessionMachine,
+    kernel: &mut RemoteSignalKernel,
 ) -> Result<(), UsbLinkError> {
-    let binding = binding(runtime)?;
-    let mut machine = SessionMachine::new(binding.clone(), SessionRole::Sink)?;
-    let identity = SignalExecutionIdentity::plan_a();
-    let mut kernel = RemoteSignalKernel::new(identity)?;
     let mut reassembler = BleReassembler::new(BleGattProfile::FIRST);
     let mut frame_bytes = [0_u8; FRAME_BYTES];
     let mut send_sequence = 0_u8;
@@ -260,9 +294,9 @@ async fn serve_connection<C: Controller>(
                     )?;
                     handle_session_frame(
                         decoded,
-                        &binding,
-                        &mut machine,
-                        &mut kernel,
+                        binding,
+                        machine,
+                        kernel,
                         server,
                         connection,
                         control,
