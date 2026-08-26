@@ -14,8 +14,8 @@ test("two admitted product clients compose Body grants into one exact ready sess
     page.on("pageerror", (error) => browserErrors.push(error.message));
   }
   await Promise.all([
-    source.goto(`/hosts/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`),
-    sink.goto(`/hosts/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`),
+    source.goto(`/proof/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`),
+    sink.goto(`/proof/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`),
   ]);
   for (const page of [source, sink]) {
     await expect.poll(
@@ -258,7 +258,7 @@ test("two admitted product clients compose Body grants into one exact ready sess
   const restartedContext = await browser.newContext();
   const restartedPage = await restartedContext.newPage();
   await restartedPage.goto(
-    `/hosts/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`,
+    `/proof/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(probe.url)}`,
   );
   await expect.poll(async () => {
     if (probe.process.exitCode !== null) throw new Error(probe.output());

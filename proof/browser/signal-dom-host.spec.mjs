@@ -7,7 +7,7 @@ test("two actual page hosts retain bounded exactly correlated DOM receipts", asy
     if (message.type() === "error") failures.push(message.text());
   });
 
-  await page.goto("/hosts/browser/signal-dom-host.test.html");
+  await page.goto("/proof/browser/signal-dom-host.test.html");
   await expect(page.locator("#result")).toHaveText("ok");
   await expect(page.locator("#host-a output")).toHaveCount(16);
   await expect(page.locator("#host-b output")).toHaveCount(16);

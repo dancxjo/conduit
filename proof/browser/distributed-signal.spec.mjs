@@ -84,16 +84,16 @@ test("native Patchbay source and browser peer execute one exact distributed Play
     const [, url, sourceHostId, sourceBootId, planId] = match;
     expect(sourceHostId).toMatch(/^patchbay-native\//);
     expect(sourceBootId).toMatch(/^patchbay-boot\//);
-    await page.goto("/hosts/browser/distributed-signal.test.html");
+    await page.goto("/proof/browser/distributed-signal.test.html");
     const result = await page.evaluate(async ({ url, sourceHostId, sourceBootId }) => {
-      const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
+      const { BrowserDomHost } = await import("/proof/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
-        "/hosts/browser/websocket-line.mjs"
+        "/hosts/browser-host/assets/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
         runDistributedBrowserRuntime,
-      } = await import("/hosts/browser/distributed-signal-runtime.mjs");
+      } = await import("/proof/browser/distributed-signal-runtime.mjs");
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
       ).then((response) => response.arrayBuffer());

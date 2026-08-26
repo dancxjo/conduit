@@ -110,7 +110,7 @@ impl BrowserHarness {
                 "playwright",
                 "test",
                 "--config",
-                "hosts/browser/r1-physical-input.playwright.config.mjs",
+                "proof/browser/r1-physical-input.playwright.config.mjs",
             ])
             .env("CONDUIT_R1_INPUT_LINE", format!("ws://{address}"))
             .spawn()

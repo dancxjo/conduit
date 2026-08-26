@@ -15,8 +15,8 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `cd ../.. && node hosts/browser/static-server.mjs ${port}`,
-    url: `http://127.0.0.1:${port}/hosts/browser/r1-three-peer-input.test.html`,
+    command: `cd ../.. && node proof/browser/static-server.mjs ${port}`,
+    url: `http://127.0.0.1:${port}/proof/browser/r1-three-peer-input.test.html`,
     reuseExistingServer: false,
     timeout: 10_000,
   },

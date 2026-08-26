@@ -138,7 +138,7 @@ HTTP URL for a real browser page.
 Open the exact URL printed by the command in a normal browser. It looks like:
 
 ```text
-http://127.0.0.1:4174/hosts/browser/distributed-toggle.test.html?ws=...
+http://127.0.0.1:4174/proof/browser/distributed-toggle.test.html?ws=...
 ```
 
 Then press **Enter in the terminal**. Each admitted Play start runs through the

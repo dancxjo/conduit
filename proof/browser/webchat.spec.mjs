@@ -85,7 +85,7 @@ test("two native browser clients exchange bounded chat through planned kernels",
   const context = await browser.newContext();
   const pageA = await context.newPage();
   const pageB = await context.newPage();
-  const target = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(websocketUrl)}`;
+  const target = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(websocketUrl)}`;
   const admittedTarget = `${target}&body=${encodeURIComponent(admissionUrl)}`;
 
   await pageA.goto(admittedTarget);
@@ -193,7 +193,7 @@ test("two native browser clients exchange bounded chat through planned kernels",
 
 test("authored Presentation labels change the generic host without JavaScript changes", async ({ page }) => {
   const oracleServer = await startWebchatServer();
-  const target = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(oracleServer.url)}&form=webchat-browser-label-oracle`;
+  const target = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(oracleServer.url)}&form=webchat-browser-label-oracle`;
   await page.goto(target);
   await expect(page.getByRole("status")).toHaveText("connected");
   await expect(page.getByLabel("Say something")).toBeVisible();
@@ -240,7 +240,7 @@ test("Body-directed fragment admits exactly one browser and replay stays refused
   });
   const context = await browser.newContext();
   const fragment = `#body=${encodeURIComponent(invitation.body)}&spawn_hex=${invitation.spawnHex}`;
-  const target = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(spawnChat.url)}${fragment}`;
+  const target = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(spawnChat.url)}${fragment}`;
   const admitted = await context.newPage();
   await admitted.goto(target);
   await expect(admitted.getByRole("status")).toHaveText("connected");
@@ -282,7 +282,7 @@ test("one native Body presents three mixed browser Parts without mutating its Pl
     });
   });
   const context = await browser.newContext();
-  const ambientTarget = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(ambientChat.url)}&body=${encodeURIComponent(invitation.body)}`;
+  const ambientTarget = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(ambientChat.url)}&body=${encodeURIComponent(invitation.body)}`;
   const first = await context.newPage();
   await first.goto(ambientTarget);
   await expect.poll(() => first.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting")).toBe("admitted");
@@ -291,7 +291,7 @@ test("one native Body presents three mixed browser Parts without mutating its Pl
   await expect.poll(() => second.evaluate(() => globalThis.__webchat?.bodyAdmission.state() ?? "starting")).toBe("admitted");
 
   const fragment = `#body=${encodeURIComponent(invitation.body)}&spawn_hex=${invitation.spawnHex}`;
-  const spawnTarget = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(spawnedChat.url)}${fragment}`;
+  const spawnTarget = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(spawnedChat.url)}${fragment}`;
   const third = await context.newPage();
   await third.goto(spawnTarget);
   await expect.poll(async () => {
@@ -374,7 +374,7 @@ test("Patchbay front door presents one live browser Part through restart and rep
   });
   const context = await browser.newContext();
   const page = await context.newPage();
-  const target = `/hosts/browser/webchat.test.html?ws=${encodeURIComponent(chat.url)}&body=${encodeURIComponent(bodyUrl)}`;
+  const target = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(chat.url)}&body=${encodeURIComponent(bodyUrl)}`;
   await page.goto(target);
   await expect.poll(async () => {
     if (capstone.exitCode !== null) {

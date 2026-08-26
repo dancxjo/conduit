@@ -1,6 +1,6 @@
 import {test,expect} from "@playwright/test";
 
-test.beforeEach(async({page})=>{await page.goto("/hosts/browser/human-interaction-convergence.test.html");});
+test.beforeEach(async({page})=>{await page.goto("/proof/browser/human-interaction-convergence.test.html");});
 
 test("physical and browser mechanisms converge only through semantic state",async({page})=>{
   await page.evaluate(()=>window.capstone.physicalChoice("saw"));

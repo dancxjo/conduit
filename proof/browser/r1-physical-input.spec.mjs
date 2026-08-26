@@ -6,7 +6,7 @@ test("two Chromium peers deliver exact physical-session inputs", async ({ browse
   const context = await browser.newContext();
   const pageA = await context.newPage();
   const pageB = await context.newPage();
-  const pageUrl = (peer) => `/hosts/browser/r1-three-peer-input.test.html?peer=${peer}&line=${encodeURIComponent(line)}`;
+  const pageUrl = (peer) => `/proof/browser/r1-three-peer-input.test.html?peer=${peer}&line=${encodeURIComponent(line)}`;
 
   await pageA.goto(pageUrl("browser-a"));
   await expect(pageA.getByRole("status")).toHaveText("ready");

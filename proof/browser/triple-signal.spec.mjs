@@ -69,16 +69,16 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
   try {
     const url = await lines.line(0);
     expect(url).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/conduit$/);
-    await page.goto("/hosts/browser/distributed-signal.test.html");
+    await page.goto("/proof/browser/distributed-signal.test.html");
     const result = await page.evaluate(async ({ url }) => {
-      const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
+      const { BrowserDomHost } = await import("/proof/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
-        "/hosts/browser/websocket-line.mjs"
+        "/hosts/browser-host/assets/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
         runDistributedBrowserRuntime,
-      } = await import("/hosts/browser/distributed-signal-runtime.mjs");
+      } = await import("/proof/browser/distributed-signal-runtime.mjs");
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
       ).then((response) => {
@@ -169,16 +169,16 @@ test("a broken browser link fails the one kernel and reaches a physical Pico ter
   );
   try {
     const url = await lines.line(0);
-    await page.goto("/hosts/browser/distributed-signal.test.html");
+    await page.goto("/proof/browser/distributed-signal.test.html");
     const result = await page.evaluate(async ({ url }) => {
-      const { BrowserDomHost } = await import("/hosts/browser/signal-dom-host.mjs");
+      const { BrowserDomHost } = await import("/proof/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
-        "/hosts/browser/websocket-line.mjs"
+        "/hosts/browser-host/assets/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
         runDistributedBrowserRuntime,
-      } = await import("/hosts/browser/distributed-signal-runtime.mjs");
+      } = await import("/proof/browser/distributed-signal-runtime.mjs");
       const wasmBytes = await fetch(
         "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
       ).then((response) => response.arrayBuffer());

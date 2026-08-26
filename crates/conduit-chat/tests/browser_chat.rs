@@ -46,8 +46,8 @@ fn browser_chat_family_is_finite_and_does_not_log_or_store_credentials() {
 
 #[test]
 fn browser_shell_and_adapter_do_not_own_chat_controls_or_policy() {
-    let html = include_str!("../../../hosts/browser/webchat.test.html");
-    let javascript = include_str!("../../../hosts/browser/webchat-runtime.mjs");
+    let html = include_str!("../../../proof/browser/webchat.test.html");
+    let javascript = include_str!("../../../proof/browser/webchat-runtime.mjs");
     for forbidden in ["id=\"history\"", "id=\"message\"", "id=\"send\""] {
         assert!(!html.contains(forbidden));
     }

@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 const STATIC_PORT_START: u16 = 4184;
 const STATIC_PORT_END: u16 = 4193;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(10);
-const PAGE: &str = "/hosts/browser/webchat.test.html";
+const PAGE: &str = "/proof/browser/webchat.test.html";
 const BUILD_STEPS: &[Step] = &[
     Step::new(
         "demo.body-membership.browser-runtime",
@@ -66,7 +66,7 @@ pub(super) fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let static_port = available_static_port()?;
     let mut static_server = ChildGuard(
         Command::new("node")
-            .args(["hosts/browser/static-server.mjs", &static_port.to_string()])
+            .args(["proof/browser/static-server.mjs", &static_port.to_string()])
             .current_dir(&root)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
