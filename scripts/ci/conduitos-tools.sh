@@ -115,6 +115,18 @@ install_bundle() {
   ); then
     refuse 'offline package installation failed'
   fi
+  local emulator
+  for emulator in \
+    qemu-system-aarch64 \
+    qemu-system-i386 \
+    qemu-system-loongarch64 \
+    qemu-system-riscv64 \
+    qemu-system-x86_64; do
+    command -v "$emulator" >/dev/null \
+      || refuse "required emulator is absent after installation: $emulator"
+    "$emulator" --version >/dev/null \
+      || refuse "required emulator cannot load after installation: $emulator"
+  done
 }
 
 cache_status() {
