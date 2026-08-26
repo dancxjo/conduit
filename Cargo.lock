@@ -889,7 +889,6 @@ dependencies = [
  "conduit-host-raspberry-pi",
  "conduit-host-rp2040",
  "conduit-linear-framebuffer-fabrication",
- "conduit-rp2040-pio-audio-extension",
 ]
 
 [[package]]

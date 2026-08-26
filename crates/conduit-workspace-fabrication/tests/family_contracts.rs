@@ -105,3 +105,21 @@ fn exact_conduitos_and_raspberry_pi_families_have_one_owner_each() {
         );
     }
 }
+
+#[test]
+fn ordinary_package_set_excludes_the_proof_only_rp2040_audio_fixture() {
+    let packages = conduit_workspace_fabrication::package_set();
+    assert!(packages
+        .offers_for_target("conduitos/thumbv6m/pico-w")
+        .iter()
+        .all(|offer| offer.offer.implementation_id != "example/rp2040-pio-audio@1"));
+}
+
+#[test]
+fn ordinary_package_set_manifest_cannot_depend_on_fixture_paths() {
+    let manifest = include_str!("../Cargo.toml");
+    assert!(
+        !manifest.contains("fixtures/"),
+        "ordinary workspace fabrication must not depend on proof fixtures"
+    );
+}
