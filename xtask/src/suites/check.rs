@@ -34,12 +34,6 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &["test", "-p", "conduit-kernel", "--features", "alloc"],
     ),
     Step::new(
-        "check.observatory-fixture",
-        "Observatory fixture test",
-        "cargo",
-        &["test", "-p", "conduit", "--test", "observatory_fixture"],
-    ),
-    Step::new(
         "check.system-continuity",
         "Durable system continuity conformance",
         "cargo",

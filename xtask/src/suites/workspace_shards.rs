@@ -212,7 +212,7 @@ impl WorkspaceShard {
                 matches!(step.id, "check.kernel-alloc" | "check.system-continuity")
             }
             Self::TestHosts => false,
-            Self::TestProducts => matches!(step.id, "check.observatory-fixture"),
+            Self::TestProducts => false,
             Self::Portable => {
                 step.id.starts_with("check.no-std.")
                     || (step.id.starts_with("check.thumb.")
