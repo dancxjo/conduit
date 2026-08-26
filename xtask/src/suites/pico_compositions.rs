@@ -205,14 +205,14 @@ mod tests {
         assert!(manifest.contains("usb-remote = [\"session-control\"]"));
         assert!(manifest.contains("triple-remote = [\"session-control\"]"));
         assert!(manifest.contains(
-            "wifi-bootstrap = [\"session-control\", \"dep:conduit-net\", \"dep:embassy-net\"]"
+            "wifi-bootstrap = [\"session-control\", \"dep:conduit-net\", \"dep:conduit-rp2040-network-realization\", \"dep:conduit-r1-network-conformance\", \"dep:embassy-net\"]"
         ));
         assert!(manifest.contains("r1-control = [\"wifi-bootstrap\"]"));
         assert!(manifest.contains(
-            "appliance-hello = [\"session-control\", \"dep:conduit-net\", \"dep:embassy-net\"]"
+            "appliance-hello = [\"session-control\", \"dep:conduit-net\", \"dep:conduit-rp2040-network-realization\", \"dep:embassy-net\"]"
         ));
         assert!(manifest.contains(
-            "appliance-hil-client = [\"session-control\", \"dep:conduit-net\", \"dep:embassy-net\"]"
+            "appliance-hil-client = [\"session-control\", \"dep:conduit-net\", \"dep:conduit-rp2040-network-realization\", \"dep:embassy-net\"]"
         ));
         let bluetooth_feature = manifest
             .lines()

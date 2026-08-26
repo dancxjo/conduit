@@ -89,7 +89,7 @@ mod tests {
 
     fn playing() -> (Body, Wake) {
         let plan = conduit_system_continuity::exact_r1_control_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
         )
         .unwrap()
@@ -107,8 +107,8 @@ mod tests {
             .unwrap();
         let play = bind_active_play(
             &plan.plan_id,
-            &HostId::from(conduit_net::R1_STD_HOST_ID),
-            &BootId::from(conduit_net::R1_STD_BOOT_ID),
+            &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            &BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
             0,
         );
         let wake = wake
@@ -148,7 +148,7 @@ mod tests {
         let (body, wake) = playing();
         let first = lull_and_wake(&body, &wake, true, 2, signs()).unwrap();
         let plan_c = conduit_system_continuity::exact_r1_control_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
         )
         .unwrap()
@@ -159,8 +159,8 @@ mod tests {
             .unwrap();
         let play = bind_active_play(
             &plan_c.plan_id,
-            &HostId::from(conduit_net::R1_STD_HOST_ID),
-            &BootId::from(conduit_net::R1_STD_BOOT_ID),
+            &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+            &BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
             0,
         );
         let wake = wake

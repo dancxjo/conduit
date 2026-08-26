@@ -27,8 +27,8 @@ pub struct ExactR1ControlPlan {
 pub fn r1_control_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
-        host_id: conduit_core::HostId::from(conduit_net::R1_STD_HOST_ID),
-        boot_id: BootId::from(conduit_net::R1_STD_BOOT_ID),
+        host_id: conduit_core::HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+        boot_id: BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-r1-three-peer-control"),
         resources: vec![conduit_core::resource_offer(
@@ -57,7 +57,7 @@ pub fn exact_r1_control_plan(
 ) -> Result<ExactR1ControlPlan, String> {
     let source = r1_control_source_advertisement();
     let pico = r1_signal_pico_advertisement(pico_boot_id.clone());
-    let observed_lines = conduit_net::r1_line_basis(pico_boot_id);
+    let observed_lines = conduit_r1_network_conformance::r1_line_basis(pico_boot_id);
     let plan = plan_r1_control(&source, &pico, &observed_lines, route_set)?;
 
     Ok(ExactR1ControlPlan {
@@ -234,7 +234,7 @@ mod tests {
         source.resources[0].capacity_units = 2;
         let boot = BootId::from("r1/pico-runtime-boot");
         let pico = r1_signal_pico_advertisement(boot.clone());
-        let observed_links = conduit_net::r1_line_basis(boot);
+        let observed_links = conduit_r1_network_conformance::r1_line_basis(boot);
         assert!(plan_r1_control(
             &source,
             &pico,

@@ -27,11 +27,11 @@ pub(super) fn verify(
 ) -> PicoResult<()> {
     let mut websocket = connect(usb, sign, identity, runtime)?;
     let plan_a = conduit_system_continuity::exact_r1_signal_plan(
-        BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
     )?
     .plan;
-    let source_host = conduit_core::HostId::from(conduit_net::R1_STD_HOST_ID);
+    let source_host = conduit_core::HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID);
     let mut source = PicoUsbSource::prepare_plan(plan_a, &source_host)?;
     source.observe_sink_boot(BootId::from(runtime.boot_id.as_str()))?;
     let mut websocket_io = WebSocketSessionIo::new(&mut websocket);
@@ -59,7 +59,7 @@ fn connect(
         sign,
         identity,
         runtime,
-        conduit_net::R1_WEBSOCKET_BASE_QUERY,
+        conduit_r1_network_conformance::R1_WEBSOCKET_BASE_QUERY,
     )
 }
 
@@ -73,23 +73,29 @@ fn connect_with_query(
     usb.send_raw_stream_frame(query, Duration::from_secs(2))?;
     let mut raw = [0_u8; 2048];
     if usb.receive_raw_stream_frame(&mut raw, Duration::from_secs(3))?
-        != conduit_net::R1_WEBSOCKET_BASE_READY
+        != conduit_r1_network_conformance::R1_WEBSOCKET_BASE_READY
     {
         return Err("Pico returned an unexpected WebSocket Base readiness payload".into());
     }
     usb.send_raw_stream_frame(
-        conduit_net::R1_WEBSOCKET_ENDPOINT_SIGN_READY,
+        conduit_r1_network_conformance::R1_WEBSOCKET_ENDPOINT_SIGN_READY,
         Duration::from_secs(2),
     )?;
     let endpoint_line = sign
         .read_line(Duration::from_secs(3))
         .map_err(|error| format!("timed out reading WebSocket endpoint Sign: {error}"))?;
     let address = verify_endpoint_sign(&endpoint_line, identity, runtime)?;
-    let socket_address = SocketAddr::V4(SocketAddrV4::new(address, conduit_net::R1_WEBSOCKET_PORT));
+    let socket_address = SocketAddr::V4(SocketAddrV4::new(
+        address,
+        conduit_r1_network_conformance::R1_WEBSOCKET_PORT,
+    ));
     let url = format!("ws://{socket_address}/conduit");
-    let websocket =
-        NativeWebSocketLine::connect(socket_address, &url, conduit_net::R1_MAXIMUM_FRAME_BYTES)
-            .map_err(|error| format!("failed to connect bounded WebSocket line: {error:?}"))?;
+    let websocket = NativeWebSocketLine::connect(
+        socket_address,
+        &url,
+        conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
+    )
+    .map_err(|error| format!("failed to connect bounded WebSocket line: {error:?}"))?;
     Ok(websocket)
 }
 
@@ -118,8 +124,8 @@ pub(super) fn verify_new_plan_recovery(
         return Err("replacement Plan changed the semantic Cord identity".into());
     }
     let cord_connection_id = plan_a_connection.connection_id.clone();
-    let source_host = conduit_core::HostId::from(conduit_net::R1_STD_HOST_ID);
-    let source_boot = BootId::from(conduit_net::R1_STD_BOOT_ID);
+    let source_host = conduit_core::HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID);
+    let source_boot = BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID);
     let mut recovery = conduit_system_continuity::R1NewPlanRecovery::begin(
         plan_a.clone(),
         conduit_core::GearId::from("signal-demo/show"),
@@ -187,9 +193,11 @@ pub(super) fn verify_new_plan_recovery(
     recovery
         .observe_line_unavailable(
             conduit_core::LineAvailabilitySign {
-                line_id: conduit_core::LineId::from(conduit_net::R1_WEBSOCKET_LINE_ID),
+                line_id: conduit_core::LineId::from(
+                    conduit_r1_network_conformance::R1_WEBSOCKET_LINE_ID,
+                ),
                 binding_id: conduit_core::LinkBindingId::from(
-                    conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                    conduit_r1_network_conformance::R1_WEBSOCKET_LINK_BINDING_ID,
                 ),
                 availability: conduit_core::LineAvailability::Unavailable,
                 sign_id: conduit_core::SignId::from("r1/physical/websocket-line-unavailable"),
@@ -260,7 +268,9 @@ pub(super) fn verify_new_plan_recovery(
         .clone();
     recovery
         .record_led_result(conduit_system_continuity::R1LedResultObservation {
-            pico_host_id: conduit_core::HostId::from(conduit_net::R1_PICO_HOST_ID),
+            pico_host_id: conduit_core::HostId::from(
+                conduit_r1_network_conformance::R1_PICO_HOST_ID,
+            ),
             pico_boot_id: BootId::from(runtime.boot_id.as_str()),
             plan_id: plan_b_id,
             active_play_id: play_b_id,
@@ -286,7 +296,7 @@ pub(super) fn verify_new_plan_recovery(
         fault: "operator-confirmed-real-wifi-or-network-unavailability",
         body_id: recovery.body().body_id.as_str(),
         wake_id: recovery.wake().wake_id.as_str(),
-        pico_host_id: conduit_net::R1_PICO_HOST_ID,
+        pico_host_id: conduit_r1_network_conformance::R1_PICO_HOST_ID,
         pico_boot_id: runtime.boot_id.as_str(),
         checked_form_id: plan_a.checked_form_id.as_str(),
         cord_connection_id: cord_connection_id.as_str(),
@@ -305,11 +315,11 @@ pub(super) fn verify_new_plan_recovery(
         initially_selected_base: "websocket",
         replacement_selected_base: "usb-cdc",
         plan_a_base: "websocket",
-        plan_a_link_binding_id: conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
-        plan_a_base_instance_id: conduit_net::R1_WEBSOCKET_BASE_INSTANCE_ID,
+        plan_a_link_binding_id: conduit_r1_network_conformance::R1_WEBSOCKET_LINK_BINDING_ID,
+        plan_a_base_instance_id: conduit_r1_network_conformance::R1_WEBSOCKET_BASE_INSTANCE_ID,
         plan_b_base: "usb-cdc",
-        plan_b_link_binding_id: conduit_net::R1_USB_LINK_BINDING_ID,
-        plan_b_base_instance_id: conduit_net::R1_USB_BASE_INSTANCE_ID,
+        plan_b_link_binding_id: conduit_r1_network_conformance::R1_USB_LINK_BINDING_ID,
+        plan_b_base_instance_id: conduit_r1_network_conformance::R1_USB_BASE_INSTANCE_ID,
         control_events: recovery.events(),
         led_results: recovery.led_results(),
         lifecycle: &lifecycle.sign,
@@ -354,7 +364,7 @@ struct PhysicalNewPlanRecoveryOutcome<'a> {
 }
 
 fn recovery_plans() -> PicoResult<(conduit_core::Plan, conduit_core::Plan)> {
-    let planned_boot = BootId::from(conduit_net::R1_PICO_BOOT_ID);
+    let planned_boot = BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID);
     let plan_a = conduit_system_continuity::exact_r1_control_plan(
         planned_boot.clone(),
         conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
@@ -408,20 +418,25 @@ fn verify_endpoint_sign(
             ("host_id", identity.generated_image.host_id.as_str()),
             ("runtime_boot_id", runtime.boot_id.as_str()),
             ("attachment_id", "r1/pico-network-attachment-1"),
-            ("interface_pool_id", conduit_net::R1_WIFI_STATION_POOL_ID),
+            (
+                "interface_pool_id",
+                conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
+            ),
             (
                 "base_instance_id",
-                conduit_net::R1_WEBSOCKET_BASE_INSTANCE_ID,
+                conduit_r1_network_conformance::R1_WEBSOCKET_BASE_INSTANCE_ID,
             ),
             (
                 "sink_endpoint_id",
-                conduit_net::R1_PICO_WEBSOCKET_ENDPOINT_ID,
+                conduit_r1_network_conformance::R1_PICO_WEBSOCKET_ENDPOINT_ID,
             ),
         ],
     )?;
-    if record["port"].as_u64() != Some(u64::from(conduit_net::R1_WEBSOCKET_PORT))
+    if record["port"].as_u64() != Some(u64::from(conduit_r1_network_conformance::R1_WEBSOCKET_PORT))
         || record["maximum_frame_bytes"].as_u64()
-            != Some(u64::from(conduit_net::R1_MAXIMUM_FRAME_BYTES))
+            != Some(u64::from(
+                conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
+            ))
     {
         return Err("WebSocket endpoint Sign bounds mismatched".into());
     }
@@ -466,29 +481,37 @@ fn verify_link_sign(
                 binding.sink_active_play_id.as_str(),
             ),
             ("attachment_id", "r1/pico-network-attachment-1"),
-            ("usb_link_binding_id", conduit_net::R1_USB_LINK_BINDING_ID),
+            (
+                "usb_link_binding_id",
+                conduit_r1_network_conformance::R1_USB_LINK_BINDING_ID,
+            ),
             (
                 "websocket_link_binding_id",
-                conduit_net::R1_WEBSOCKET_LINK_BINDING_ID,
+                conduit_r1_network_conformance::R1_WEBSOCKET_LINK_BINDING_ID,
             ),
             (
                 "base_instance_id",
-                conduit_net::R1_WEBSOCKET_BASE_INSTANCE_ID,
+                conduit_r1_network_conformance::R1_WEBSOCKET_BASE_INSTANCE_ID,
             ),
             (
                 "source_endpoint_id",
-                conduit_net::R1_STD_WEBSOCKET_ENDPOINT_ID,
+                conduit_r1_network_conformance::R1_STD_WEBSOCKET_ENDPOINT_ID,
             ),
             (
                 "sink_endpoint_id",
-                conduit_net::R1_PICO_WEBSOCKET_ENDPOINT_ID,
+                conduit_r1_network_conformance::R1_PICO_WEBSOCKET_ENDPOINT_ID,
             ),
-            ("sign_id", conduit_net::R1_WEBSOCKET_ROUTE_SIGN_ID),
+            (
+                "sign_id",
+                conduit_r1_network_conformance::R1_WEBSOCKET_ROUTE_SIGN_ID,
+            ),
         ],
     )?;
     if record["handshake"].as_bool() != Some(true)
         || record["maximum_frame_bytes"].as_u64()
-            != Some(u64::from(conduit_net::R1_MAXIMUM_FRAME_BYTES))
+            != Some(u64::from(
+                conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
+            ))
     {
         return Err("WebSocket link Sign handshake or bound mismatched".into());
     }

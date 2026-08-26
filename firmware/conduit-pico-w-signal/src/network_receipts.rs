@@ -68,7 +68,7 @@ impl UsbCdc {
                 identity.address[2],
                 identity.address[3],
                 identity.port,
-                conduit_net::R1_MAXIMUM_FRAME_BYTES,
+                conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
             ),
         )
         .map_err(|_| UsbSignError::FormatOverflow)?;
@@ -112,7 +112,7 @@ impl UsbCdc {
                 identity.websocket_link.binding.base_instance_id.as_str(),
                 identity.websocket_link.binding.source.endpoint_id.as_str(),
                 identity.websocket_link.binding.sink.endpoint_id.as_str(),
-                conduit_net::R1_MAXIMUM_FRAME_BYTES,
+                conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES,
                 identity.sign_id,
             ),
         )

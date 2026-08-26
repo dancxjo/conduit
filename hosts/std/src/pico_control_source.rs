@@ -230,13 +230,15 @@ mod tests {
     #[test]
     fn six_deliberate_inputs_cross_the_exact_control_session_with_pressure() {
         let exact = conduit_system_continuity::exact_r1_control_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
         )
         .unwrap();
-        let mut source =
-            PicoControlSource::prepare_plan(exact.plan, &HostId::from(conduit_net::R1_STD_HOST_ID))
-                .unwrap();
+        let mut source = PicoControlSource::prepare_plan(
+            exact.plan,
+            &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
+        )
+        .unwrap();
         let binding = source.binding().clone();
         let mut sink = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
         exchange(
@@ -317,18 +319,18 @@ mod tests {
     #[test]
     fn pulse_source_and_control_source_cannot_masquerade_as_each_other() {
         let exact = conduit_system_continuity::exact_r1_control_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
         )
         .unwrap();
         assert!(crate::pico_usb_source::PicoUsbSource::prepare_plan(
             exact.plan.clone(),
-            &HostId::from(conduit_net::R1_STD_HOST_ID),
+            &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
         )
         .is_err());
         assert!(PicoControlSource::prepare_plan(
             exact.plan,
-            &HostId::from(conduit_net::R1_STD_HOST_ID),
+            &HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
         )
         .is_ok());
     }

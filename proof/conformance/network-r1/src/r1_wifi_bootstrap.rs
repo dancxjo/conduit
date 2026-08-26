@@ -16,16 +16,19 @@ use conduit_planner::{
 };
 
 use crate::{
+    R1_MAXIMUM_FRAME_BYTES, R1_PICO_BOOT_ID, R1_PICO_HOST_ID, R1_PICO_USB_ENDPOINT_ID,
+    R1_STD_BOOT_ID, R1_STD_HOST_ID, R1_STD_USB_ENDPOINT_ID, R1_USB_BASE_INSTANCE_ID,
+    R1_USB_LINE_ID, R1_USB_LINK_BINDING_ID, R1_WIFI_STATION_POOL_ID,
+};
+use conduit_net::{
     install_network_bootstrap_catalogs, network_attachment_sign_offer, network_credentials_offer,
-    network_join_offer, wifi_station_resource, MAXIMUM_JOIN_INPUT_BYTES, R1_MAXIMUM_FRAME_BYTES,
-    R1_PICO_BOOT_ID, R1_PICO_HOST_ID, R1_PICO_USB_ENDPOINT_ID, R1_STD_BOOT_ID, R1_STD_HOST_ID,
-    R1_STD_USB_ENDPOINT_ID, R1_USB_BASE_INSTANCE_ID, R1_USB_LINE_ID, R1_USB_LINK_BINDING_ID,
+    network_join_offer, wifi_station_resource, MAXIMUM_JOIN_INPUT_BYTES,
 };
 
 pub const R1_CREDENTIALS_CAPABILITY_ID: &str = "r1/std-network-credentials";
 pub const R1_JOIN_CAPABILITY_ID: &str = "r1/pico-network-join";
 pub const R1_ATTACHMENT_SIGN_CAPABILITY_ID: &str = "r1/pico-network-attachment-sign";
-pub const R1_WIFI_POOL_ID: &str = crate::R1_WIFI_STATION_POOL_ID;
+pub const R1_WIFI_POOL_ID: &str = R1_WIFI_STATION_POOL_ID;
 pub const R1_CREDENTIALS_GRANT_ID: &str = "r1/grant/read-network-credentials";
 pub const R1_JOIN_GRANT_ID: &str = "r1/grant/configure-pico-network";
 
@@ -108,7 +111,7 @@ pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, 
     let mut profile = conduit_form::ProfileCatalog::new();
     install_network_bootstrap_catalogs(&mut startup, &mut profile)?;
     let syntax = conduit_form::parse_syntax_document(include_str!(
-        "../../../examples/r1-network-bootstrap.conduit"
+        "../../../../examples/r1-network-bootstrap.conduit"
     ));
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|error| format!("{}: {}", error.code, error.message))?;
@@ -117,17 +120,17 @@ pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, 
     let credentials_gear = form
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == crate::NETWORK_CREDENTIALS_OPERATION)
+        .find(|gear| gear.kind_id.as_str() == conduit_net::NETWORK_CREDENTIALS_OPERATION)
         .ok_or_else(|| "expanded bootstrap Form has no credentials Gear".to_string())?;
     let join_gear = form
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == crate::NETWORK_JOIN_OPERATION)
+        .find(|gear| gear.kind_id.as_str() == conduit_net::NETWORK_JOIN_OPERATION)
         .ok_or_else(|| "expanded bootstrap Form has no join Gear".to_string())?;
     let attachment_sign_gear = form
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == crate::NETWORK_ATTACHMENT_SIGN_OPERATION)
+        .find(|gear| gear.kind_id.as_str() == conduit_net::NETWORK_ATTACHMENT_SIGN_OPERATION)
         .ok_or_else(|| "expanded bootstrap Form has no attachment Sign Gear".to_string())?;
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([

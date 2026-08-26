@@ -94,7 +94,7 @@ pub async fn run(
     spawner.spawn(network_task(runner).unwrap());
     match with_timeout(
         PROBE_TIMEOUT,
-        control.join(conduit_net::APPLIANCE_SSID, cyw43::JoinOptions::new_open()),
+        control.join(conduit_rp2040_network_realization::APPLIANCE_SSID, cyw43::JoinOptions::new_open()),
     )
     .await
     {
@@ -117,7 +117,7 @@ pub async fn run(
 
     let answers = match with_timeout(
         PROBE_TIMEOUT,
-        stack.dns_query(conduit_net::APPLIANCE_LOCAL_NAME, DnsQueryType::A),
+        stack.dns_query(conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME, DnsQueryType::A),
     )
     .await
     {
@@ -127,12 +127,12 @@ pub async fn run(
     let dns_address = answers.first().and_then(|address| match address {
         IpAddress::Ipv4(address) => Some(address.octets()),
     });
-    if dns_address != Some(conduit_net::DHCP_SERVER_ADDRESS) {
+    if dns_address != Some(conduit_rp2040_network_realization::DHCP_SERVER_ADDRESS) {
         terminal_failure(sign, &runtime_boot, ProbeFailure::DnsAddress).await;
     }
 
-    let mut tcp_rx = [0_u8; conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES as usize];
-    let mut tcp_tx = [0_u8; conduit_net::MAXIMUM_HTTP_REQUEST_BYTES as usize];
+    let mut tcp_rx = [0_u8; conduit_rp2040_network_realization::MAXIMUM_HTTP_RESPONSE_BYTES as usize];
+    let mut tcp_tx = [0_u8; conduit_rp2040_network_realization::MAXIMUM_HTTP_REQUEST_BYTES as usize];
     let mut socket = TcpSocket::new(stack, &mut tcp_rx, &mut tcp_tx);
     socket.set_timeout(Some(Duration::from_secs(5)));
     let endpoint = IpEndpoint::new(Ipv4Address::new(192, 168, 4, 1).into(), 80);
@@ -157,7 +157,7 @@ pub async fn run(
     if socket.flush().await.is_err() {
         terminal_failure(sign, &runtime_boot, ProbeFailure::HttpWrite).await;
     }
-    let mut response = [0_u8; conduit_net::MAXIMUM_HTTP_RESPONSE_BYTES as usize];
+    let mut response = [0_u8; conduit_rp2040_network_realization::MAXIMUM_HTTP_RESPONSE_BYTES as usize];
     let mut received = 0;
     loop {
         if received == response.len() {
@@ -169,7 +169,7 @@ pub async fn run(
             Err(_) => terminal_failure(sign, &runtime_boot, ProbeFailure::HttpRead).await,
         }
     }
-    if response[..received] != conduit_net::HTTP_HELLO_RESPONSE[..] {
+    if response[..received] != conduit_rp2040_network_realization::HTTP_HELLO_RESPONSE[..] {
         terminal_failure(sign, &runtime_boot, ProbeFailure::HttpResponse).await;
     }
 
@@ -197,7 +197,7 @@ async fn write_receipt(
     if write!(
         line,
         "{{\"schema\":\"conduit.pico-appliance/hil-client@1\",\"firmware_build_id\":\"{FIRMWARE_BUILD_ID}\",\"host_id\":\"{HOST_ID}\",\"runtime_boot_id\":\"{runtime_boot}\",\"ssid\":\"{}\",\"terminal\":true,\"success\":{}",
-        conduit_net::APPLIANCE_SSID,
+        conduit_rp2040_network_realization::APPLIANCE_SSID,
         failure.is_none(),
     )
     .is_err()
@@ -211,7 +211,7 @@ async fn write_receipt(
     } else if write!(
         line,
         ",\"leased_address\":\"{a}.{b}.{c}.{d}\",\"dns_name\":\"{}\",\"dns_address\":\"192.168.4.1\",\"http_body\":\"Hello from Conduit\\n\"",
-        conduit_net::APPLIANCE_LOCAL_NAME,
+        conduit_rp2040_network_realization::APPLIANCE_LOCAL_NAME,
     )
     .is_err()
     {
@@ -236,7 +236,7 @@ fn runtime_boot_id() -> HString<96> {
 
 fn network_seed(runtime_boot: &str) -> u64 {
     let digest = conduit_core::active_play_digest(
-        conduit_net::PICO_APPLIANCE_PROFILE,
+        conduit_rp2040_network_realization::PICO_APPLIANCE_PROFILE,
         HOST_ID,
         runtime_boot,
         0,

@@ -51,7 +51,7 @@ pub fn run(
             "schema": "conduit.r1/complete-hil@1",
             "proof_class": "physical-cross-host",
             "body_id": body_id.as_str(),
-            "pico_host_id": conduit_net::R1_PICO_HOST_ID,
+            "pico_host_id": conduit_r1_network_conformance::R1_PICO_HOST_ID,
             "pico_boot_id": runtime.boot_id.as_str(),
             "new_plan_recovery_completed": true,
             "same_plan_continuation_completed": true,
@@ -111,21 +111,21 @@ fn verify_membership_receipt(
         .iter()
         .filter(|part| {
             part.get("host_id").and_then(serde_json::Value::as_str)
-                == Some(conduit_net::R1_PICO_HOST_ID)
+                == Some(conduit_r1_network_conformance::R1_PICO_HOST_ID)
         })
         .count();
     let local_std_parts = parts
         .iter()
         .filter(|part| {
             part.get("host_id").and_then(serde_json::Value::as_str)
-                == Some(conduit_net::R1_STD_HOST_ID)
+                == Some(conduit_r1_network_conformance::R1_STD_HOST_ID)
         })
         .count();
     let pico_boot_id = parts
         .iter()
         .find(|part| {
             part.get("host_id").and_then(serde_json::Value::as_str)
-                == Some(conduit_net::R1_PICO_HOST_ID)
+                == Some(conduit_r1_network_conformance::R1_PICO_HOST_ID)
         })
         .and_then(|part| part.get("boot_id"))
         .and_then(serde_json::Value::as_str)
@@ -133,7 +133,7 @@ fn verify_membership_receipt(
     // Production R1 seals the Plan against its planned Pico slot, then binds the
     // authenticated physical Boot at session start without mutating that Plan.
     let exact_plan = conduit_system_continuity::exact_r1_control_plan(
-        conduit_core::BootId::from(conduit_net::R1_PICO_BOOT_ID),
+        conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
     )?;
     let body_id = field("body_id")?;
@@ -175,7 +175,7 @@ mod tests {
 
     fn receipt(runtime_boot: &str) -> serde_json::Value {
         let plan = conduit_system_continuity::exact_r1_control_plan(
-            conduit_core::BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
         )
         .unwrap()
@@ -195,8 +195,8 @@ mod tests {
             "active_plan_unchanged_by_join": true,
             "replacement_plan_distinct": true,
             "parts": [
-                { "host_id": conduit_net::R1_STD_HOST_ID, "boot_id": conduit_net::R1_STD_BOOT_ID },
-                { "host_id": conduit_net::R1_PICO_HOST_ID, "boot_id": runtime_boot },
+                { "host_id": conduit_r1_network_conformance::R1_STD_HOST_ID, "boot_id": conduit_r1_network_conformance::R1_STD_BOOT_ID },
+                { "host_id": conduit_r1_network_conformance::R1_PICO_HOST_ID, "boot_id": runtime_boot },
                 { "host_id": "browser/a", "boot_id": "browser-boot/a" },
                 { "host_id": "browser/b", "boot_id": "browser-boot/b" },
             ],

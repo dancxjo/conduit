@@ -414,8 +414,8 @@ async fn run_session(
         if crate::bootsel::handle_request(link, raw).await? {
             continue;
         }
-        if raw == conduit_net::R1_USB_NETWORK_SESSION_QUERY {
-            link.send_raw_stream_frame(conduit_net::R1_USB_NETWORK_SESSION_READY)
+        if raw == conduit_rp2040_network_realization::R1_USB_NETWORK_SESSION_QUERY {
+            link.send_raw_stream_frame(conduit_rp2040_network_realization::R1_USB_NETWORK_SESSION_READY)
                 .await?;
             crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::SessionExecution);
             break;
@@ -511,7 +511,7 @@ pub(crate) fn attachment_identity<'a>(
         boot_id: runtime.boot_id(),
         active_play_id: runtime.active_play_id(),
         attachment_id: ATTACHMENT_ID,
-        interface_pool_id: conduit_net::R1_WIFI_STATION_POOL_ID,
+        interface_pool_id: conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         generation: 1,
         sign_id: crate::network_image::ATTACHMENT_SIGN_ID,
     }

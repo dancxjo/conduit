@@ -141,7 +141,9 @@ fn verify_identity(
 fn pico_fragment(plan: &conduit_core::Plan) -> PicoResult<&conduit_core::PlanFragment> {
     plan.fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+        .find(|fragment| {
+            fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+        })
         .ok_or_else(|| "R1 Plan has no Pico fragment".into())
 }
 
@@ -158,16 +160,20 @@ mod tests {
         RuntimeTranscriptIdentity,
     ) {
         let plan = conduit_system_continuity::exact_r1_signal_plan(
-            BootId::from(conduit_net::R1_PICO_BOOT_ID),
+            BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             conduit_system_continuity::R1SignalRouteSet::UsbOnly,
         )
         .unwrap()
         .plan;
-        let network = conduit_net::exact_r1_network_bootstrap_plan().unwrap().plan;
+        let network = conduit_r1_network_conformance::exact_r1_network_bootstrap_plan()
+            .unwrap()
+            .plan;
         let network_fragment = network
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == conduit_net::R1_PICO_HOST_ID)
+            .find(|fragment| {
+                fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+            })
             .unwrap();
         let prefix = "conduit-pico-w-signal:test:clean:thumb:release:wifi-bootstrap";
         let firmware_build_id = format!(

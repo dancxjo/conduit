@@ -21,7 +21,7 @@ pub async fn run(
 ) -> Result<(), WebSocketTransportError> {
     let binding = &state.binding;
     let identity = state.identity;
-    let mut bytes = [0_u8; conduit_net::R1_MAXIMUM_FRAME_BYTES as usize];
+    let mut bytes = [0_u8; conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES as usize];
 
     let hello = receive(socket, transport, &mut bytes).await?;
     state
@@ -159,7 +159,7 @@ async fn receive<'a>(
     bytes: &'a mut [u8],
 ) -> Result<conduit_wire::SessionFrame<'a>, WebSocketTransportError> {
     let len = transport.receive_binary(socket, bytes).await?;
-    decode_session_frame(&bytes[..len], 1024, conduit_net::R1_MAXIMUM_FRAME_BYTES)
+    decode_session_frame(&bytes[..len], 1024, conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES)
         .map_err(|_| WebSocketTransportError::Frame)
 }
 
@@ -173,7 +173,7 @@ async fn send(
     machine
         .admit_outbound(frame)
         .map_err(|_| WebSocketTransportError::Frame)?;
-    let len = encode_session_frame_into(frame, bytes, 1024, conduit_net::R1_MAXIMUM_FRAME_BYTES)
+    let len = encode_session_frame_into(frame, bytes, 1024, conduit_r1_network_conformance::R1_MAXIMUM_FRAME_BYTES)
         .map_err(|_| WebSocketTransportError::Frame)?;
     transport.send_binary(socket, &bytes[..len]).await
 }

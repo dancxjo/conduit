@@ -9,10 +9,10 @@ pico-local = ["session-control"]
 pico-local-minimal = []
 usb-remote = ["session-control"]
 triple-remote = ["session-control"]
-wifi-bootstrap = ["session-control", "dep:conduit-net", "dep:embassy-net"]
+wifi-bootstrap = ["session-control", "dep:conduit-net", "dep:conduit-rp2040-network-realization", "dep:conduit-r1-network-conformance", "dep:embassy-net"]
 r1-control = ["wifi-bootstrap"]
-appliance-hello = ["session-control", "dep:conduit-net", "dep:embassy-net"]
-appliance-hil-client = ["session-control", "dep:conduit-net", "dep:embassy-net"]
+appliance-hello = ["session-control", "dep:conduit-net", "dep:conduit-rp2040-network-realization", "dep:embassy-net"]
+appliance-hil-client = ["session-control", "dep:conduit-net", "dep:conduit-rp2040-network-realization", "dep:embassy-net"]
 bluetooth-line = ["session-control", "dep:conduit-bluetooth", "dep:embassy-sync", "dep:heapless09", "dep:trouble-host", "cyw43/bluetooth"]
 distributed-lenia = ["session-control", "dep:conduit-bluetooth", "dep:embassy-sync", "dep:heapless09", "dep:trouble-host", "cyw43/bluetooth"]
 usb-midi-fixture = ["dep:embassy-futures"]
@@ -51,6 +51,8 @@ conduit-kernel = { path = "../../crates/conduit-kernel" }
 conduit-mpu6050 = { path = "../../crates/conduit-mpu6050" }
 conduit-ssd1306 = { path = "../../crates/conduit-ssd1306" }
 conduit-net = { path = "../../crates/conduit-net", default-features = false, optional = true }
+conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-realization", optional = true }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1", optional = true }
 conduit-signal = { path = "../../crates/conduit-signal", default-features = false }
 conduit-wire = { path = "../../crates/conduit-wire", default-features = false, optional = true }
 conduit-bluetooth = { path = "../../crates/conduit-bluetooth", optional = true }
@@ -67,7 +69,9 @@ conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
-conduit-net = { path = "../../crates/conduit-net", features = ["r1-planning"] }
+conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog"] }
+conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-realization" }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }
 serde_json = "1"
 
