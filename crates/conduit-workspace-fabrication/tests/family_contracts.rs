@@ -1,13 +1,13 @@
 use conduit_host_fabrication::{
-    build_default_host_image, check_host_configuration, parse_host_configuration, BuildInputs,
-    PostBuildAction, SporeOutputKind,
+    build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+    BuildInputs, PostBuildAction, SporeOutputKind,
 };
 
 fn build_configuration(source: &str) -> conduit_host_fabrication::HostImage {
     let packages = conduit_workspace_fabrication::package_set();
     let catalog = conduit_workspace_fabrication::catalog();
     let profile = check_host_configuration(
-        parse_host_configuration(source).unwrap(),
+        parse_host_configuration_conduit(source).unwrap(),
         &catalog,
         &packages,
     )
@@ -29,13 +29,13 @@ fn build_configuration(source: &str) -> conduit_host_fabrication::HostImage {
 #[test]
 fn native_and_browser_are_not_flash_shaped() {
     let workstation = build_configuration(include_str!(
-        "../../../profiles/host-configurations/linux-workstation.host.toml"
+        "../../../profiles/host-configurations/linux-workstation.host.conduit"
     ));
     let server = build_configuration(include_str!(
-        "../../../profiles/host-configurations/linux-server.host.toml"
+        "../../../profiles/host-configurations/linux-server.host.conduit"
     ));
     let browser = build_configuration(include_str!(
-        "../../../profiles/host-configurations/browser-page.host.toml"
+        "../../../profiles/host-configurations/browser-page.host.conduit"
     ));
 
     assert_eq!(workstation.manifest.output, SporeOutputKind::NativeBundle);

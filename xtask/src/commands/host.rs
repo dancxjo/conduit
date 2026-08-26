@@ -2,8 +2,8 @@ use std::{fs, path::PathBuf};
 
 use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
-    build_default_host_image, check_host_configuration, parse_host_configuration,
-    parse_host_configuration_conduit, BuildInputs, HostProfile,
+    build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+    BuildInputs, HostProfile,
 };
 
 use crate::cli::GlobalOpts;
@@ -218,20 +218,6 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 )
                 .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
                 .into_profile()
-            } else if profile_path
-                .extension()
-                .is_some_and(|extension| extension == "toml")
-            {
-                let configuration = parse_host_configuration(&source).map_err(|diagnostic| {
-                    format!("Host configuration decode refused: {diagnostic:?}")
-                })?;
-                check_host_configuration(
-                    configuration,
-                    &conduit_workspace_fabrication::catalog(),
-                    &conduit_workspace_fabrication::package_set(),
-                )
-                .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
-                .into_profile()
             } else {
                 serde_json::from_str::<HostProfile>(&source)?
             };
@@ -348,12 +334,15 @@ fn load_configuration(
     path: &std::path::Path,
 ) -> Result<conduit_host_fabrication::CheckedHostConfiguration, Box<dyn std::error::Error>> {
     let source = fs::read_to_string(path)?;
-    let configuration = if is_conduit_source(path, "host") {
-        parse_host_configuration_conduit(&source)
-    } else {
-        parse_host_configuration(&source)
+    if !is_conduit_source(path, "host") {
+        return Err(format!(
+            "Host construction source must use the canonical .host.conduit suffix: {}",
+            path.display()
+        )
+        .into());
     }
-    .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
+    let configuration = parse_host_configuration_conduit(&source)
+        .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
     check_host_configuration(
         configuration,
         &conduit_workspace_fabrication::catalog(),

@@ -317,50 +317,33 @@ fn string(value: &str) -> Result<String, ConfigurationDiagnostic> {
 mod tests {
     use super::*;
     use crate::{
-        canonical_profile_json, check_body_description, check_host_configuration,
-        parse_body_description, parse_host_configuration, ConfigurationDiagnostic,
+        check_body_description, check_host_configuration, ConfigurationDiagnostic,
         FabricationCatalog,
     };
 
     #[test]
-    fn canonical_host_sources_match_toml_semantics_and_identity() {
-        let pairs = [
-            (
-                include_str!(
-                    "../../../profiles/host-configurations/linux-workstation.host.conduit"
-                ),
-                include_str!("../../../profiles/host-configurations/linux-workstation.host.toml"),
-            ),
-            (
-                include_str!("../../../profiles/host-configurations/pico-w.host.conduit"),
-                include_str!("../../../profiles/host-configurations/pico-w.host.toml"),
-            ),
+    fn canonical_host_sources_round_trip_without_changing_meaning_or_identity() {
+        let sources = [
+            include_str!("../../../profiles/host-configurations/linux-workstation.host.conduit"),
+            include_str!("../../../profiles/host-configurations/pico-w.host.conduit"),
         ];
         let catalog = crate::test_packages::test_catalog();
-        for (conduit, toml) in pairs {
+        for conduit in sources {
             let canonical = check_host_configuration(
                 parse_host_configuration_conduit(conduit).unwrap(),
                 &catalog,
                 &crate::test_packages::test_package_set(),
             )
             .unwrap();
-            let migration = check_host_configuration(
-                parse_host_configuration(toml).unwrap(),
+            let encoded = canonical_host_configuration_conduit(canonical.configuration()).unwrap();
+            let round_trip = check_host_configuration(
+                parse_host_configuration_conduit(&encoded).unwrap(),
                 &catalog,
                 &crate::test_packages::test_package_set(),
             )
             .unwrap();
-            assert_eq!(canonical.configuration(), migration.configuration());
-            assert_eq!(canonical.configuration_id(), migration.configuration_id());
-            assert_eq!(
-                canonical_profile_json(canonical.profile()).unwrap(),
-                canonical_profile_json(migration.profile()).unwrap()
-            );
-            let encoded = canonical_host_configuration_conduit(canonical.configuration()).unwrap();
-            assert_eq!(
-                parse_host_configuration_conduit(&encoded).unwrap(),
-                canonical.configuration().clone()
-            );
+            assert_eq!(round_trip.configuration(), canonical.configuration());
+            assert_eq!(round_trip.configuration_id(), canonical.configuration_id());
         }
     }
 
@@ -387,11 +370,9 @@ mod tests {
     }
 
     #[test]
-    fn canonical_and_migration_inputs_share_host_validation_truth() {
+    fn canonical_inputs_retain_host_validation_truth() {
         let canonical =
             include_str!("../../../profiles/host-configurations/linux-workstation.host.conduit");
-        let migration =
-            include_str!("../../../profiles/host-configurations/linux-workstation.host.toml");
         let cases = [
             ("x86_64", "mystery", "UnknownTarget"),
             ("clock/monotonic", "unknown/base", "UnknownBase"),
@@ -409,14 +390,6 @@ mod tests {
         ];
         for (from, to, expected) in cases {
             let conduit = canonical.replace(from, to);
-            let toml = migration.replace(from, to).replace(
-                "queue_items = 4096",
-                if expected == "UnboundedCapacity" {
-                    "queue_items = 0"
-                } else {
-                    "queue_items = 4096"
-                },
-            );
             let canonical_diagnostics = check_host_configuration(
                 parse_host_configuration_conduit(&conduit).unwrap(),
                 &FabricationCatalog::canonical()
@@ -424,15 +397,7 @@ mod tests {
                 &crate::test_packages::test_package_set(),
             )
             .unwrap_err();
-            let migration_diagnostics = check_host_configuration(
-                parse_host_configuration(&toml).unwrap(),
-                &FabricationCatalog::canonical()
-                    .with_packages(&crate::test_packages::test_package_set()),
-                &crate::test_packages::test_package_set(),
-            )
-            .unwrap_err();
             assert!(format!("{canonical_diagnostics:?}").contains(expected));
-            assert!(format!("{migration_diagnostics:?}").contains(expected));
         }
 
         let duplicate = canonical.replace(
@@ -456,12 +421,6 @@ mod tests {
     fn canonical_body_composes_canonical_hosts_through_existing_model() {
         let source = include_str!("../../../profiles/bodies/pete-r1.body.conduit");
         let description = parse_body_description_conduit(source).unwrap();
-        let migration =
-            parse_body_description(include_str!("../../../profiles/bodies/pete-r1.body.toml"))
-                .unwrap();
-        assert_eq!(description.schema, migration.schema);
-        assert_eq!(description.name, migration.name);
-        assert_eq!(description.body, migration.body);
 
         let mut configurations = BTreeMap::new();
         for host in &description.hosts {
@@ -502,7 +461,7 @@ mod tests {
             for line in document.lines().filter(|line| line.contains("cargo xtask")) {
                 assert!(
                     !line.contains(".toml"),
-                    "ordinary authoring entrance leaked a migration format: {line}"
+                    "ordinary authoring entrance leaked a noncanonical format: {line}"
                 );
             }
         }

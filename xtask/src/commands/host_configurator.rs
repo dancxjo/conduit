@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn configurator_accepts_only_the_canonical_authoring_suffix() {
         assert!(is_canonical_host_path(Path::new("pico-w.host.conduit")));
-        assert!(!is_canonical_host_path(Path::new("pico-w.host.toml")));
         assert!(!is_canonical_host_path(Path::new("pico-w.conduit")));
+        assert!(!is_canonical_host_path(Path::new("pico-w.json")));
     }
 }

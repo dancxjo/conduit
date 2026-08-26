@@ -141,12 +141,6 @@ pub enum BodyDescriptionDiagnostic {
     },
 }
 
-pub fn parse_body_description(source: &str) -> Result<BodyDescription, BodyDescriptionDiagnostic> {
-    toml::from_str(source).map_err(|error| BodyDescriptionDiagnostic::Decode {
-        detail: error.to_string(),
-    })
-}
-
 pub fn check_body_description(
     mut description: BodyDescription,
     configurations: &BTreeMap<String, HostConfiguration>,

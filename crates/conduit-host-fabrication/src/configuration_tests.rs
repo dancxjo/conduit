@@ -1,36 +1,23 @@
 use crate::test_packages::test_build_host_image;
 use crate::test_packages::test_package_set;
 use crate::{
-    canonical_profile_json, check_host_configuration, parse_host_configuration, BuildInputs,
-    ConfigurationDiagnostic, FabricationCatalog,
+    canonical_profile_json, check_host_configuration, parse_host_configuration_conduit,
+    BuildInputs, ConfigurationDiagnostic, FabricationCatalog,
 };
 
 const HOSTED: &str = r#"
-schema = 1
-name = "linux"
-[target]
-architecture = "x86_64"
-machine = "workstation"
-os = "linux"
-[[bases]]
-kind = "storage/protected-file"
-implementation = "hosted/protected-file@1"
-[limits]
-static_memory_bytes = 1048576
-heap_arena_bytes = 1048576
-queue_items = 64
-buffered_bytes = 65536
-active_instances = 8
-operation_slots = 8
-timer_slots = 8
-line_sessions = 2
-evidence_items = 64
+host linux {
+  schema = 1
+  target = {architecture: "x86_64", machine: "workstation", os: "linux"}
+  base = {kind: "storage/protected-file", implementation: "hosted/protected-file@1"}
+  limits = {static_memory_bytes: 1048576, heap_arena_bytes: 1048576, queue_items: 64, buffered_bytes: 65536, active_instances: 8, operation_slots: 8, timer_slots: 8, line_sessions: 2, evidence_items: 64}
+}
 "#;
 
 #[test]
-fn toml_lowers_into_existing_profile_with_provenance() {
+fn canonical_source_lowers_into_existing_profile_with_provenance() {
     let checked = check_host_configuration(
-        parse_host_configuration(HOSTED).unwrap(),
+        parse_host_configuration_conduit(HOSTED).unwrap(),
         &FabricationCatalog::canonical().with_packages(&test_package_set()),
         &test_package_set(),
     )
@@ -51,21 +38,24 @@ fn toml_lowers_into_existing_profile_with_provenance() {
 
 #[test]
 fn selection_order_does_not_change_profile_identity() {
-    let first = HOSTED.replace("[[bases]]", "[[bases]]\nkind = \"clock/monotonic\"\nimplementation = \"hosted/monotonic-clock@1\"\n[[bases]]");
+    let first = HOSTED.replace(
+        "  limits =",
+        "  base = {kind: \"clock/monotonic\", implementation: \"hosted/monotonic-clock@1\"}\n  limits =",
+    );
     let second = first.replace(
-        "kind = \"clock/monotonic\"\nimplementation = \"hosted/monotonic-clock@1\"\n[[bases]]\nkind = \"storage/protected-file\"\nimplementation = \"hosted/protected-file@1\"",
-        "kind = \"storage/protected-file\"\nimplementation = \"hosted/protected-file@1\"\n[[bases]]\nkind = \"clock/monotonic\"\nimplementation = \"hosted/monotonic-clock@1\"",
+        "  base = {kind: \"storage/protected-file\", implementation: \"hosted/protected-file@1\"}\n  base = {kind: \"clock/monotonic\", implementation: \"hosted/monotonic-clock@1\"}",
+        "  base = {kind: \"clock/monotonic\", implementation: \"hosted/monotonic-clock@1\"}\n  base = {kind: \"storage/protected-file\", implementation: \"hosted/protected-file@1\"}",
     );
     let packages = test_package_set();
     let catalog = FabricationCatalog::canonical().with_packages(&packages);
     let a = check_host_configuration(
-        parse_host_configuration(&first).unwrap(),
+        parse_host_configuration_conduit(&first).unwrap(),
         &catalog,
         &packages,
     )
     .unwrap();
     let b = check_host_configuration(
-        parse_host_configuration(&second).unwrap(),
+        parse_host_configuration_conduit(&second).unwrap(),
         &catalog,
         &packages,
     )
@@ -85,13 +75,13 @@ fn rejects_each_required_invalid_class() {
         (HOSTED.replace("hosted/protected-file@1", "unknown-driver@1"), "UnknownImplementation"),
         (HOSTED.replace("hosted/protected-file@1", "pico/usb-cdc@1"), "IncompatibleImplementation"),
         (HOSTED.replace("storage/protected-file", "browser/dom"), "UnsupportedBase"),
-        (HOSTED.replace("static_memory_bytes = 1048576", "static_memory_bytes = 999999999999"), "LimitExceeded"),
-        (HOSTED.replace("queue_items = 64", "queue_items = 0"), "UnboundedCapacity"),
-        (HOSTED.replace("[[bases]]", "[[bases]]\nkind = \"storage/protected-file\"\nimplementation = \"hosted/serial@1\"\n[[bases]]"), "DuplicateContradictoryBase"),
+        (HOSTED.replace("static_memory_bytes: 1048576", "static_memory_bytes: 999999999999"), "LimitExceeded"),
+        (HOSTED.replace("queue_items: 64", "queue_items: 0"), "UnboundedCapacity"),
+        (HOSTED.replace("  limits =", "  base = {kind: \"storage/protected-file\", implementation: \"hosted/serial@1\"}\n  limits ="), "DuplicateContradictoryBase"),
     ];
     for (source, expected) in cases {
         let diagnostics = check_host_configuration(
-            parse_host_configuration(&source).unwrap(),
+            parse_host_configuration_conduit(&source).unwrap(),
             &FabricationCatalog::canonical().with_packages(&test_package_set()),
             &test_package_set(),
         )
@@ -102,9 +92,9 @@ fn rejects_each_required_invalid_class() {
             "expected {expected}: {rendered}"
         );
     }
-    let duplicate_resource = HOSTED.replace("[limits]", "[[resources]]\nid = \"r\"\nclass = \"memory\"\nslots = 1\nbytes = 1\n[[resources]]\nid = \"r\"\nclass = \"memory\"\nslots = 2\nbytes = 2\n[limits]");
+    let duplicate_resource = HOSTED.replace("  limits =", "  need = {id: \"r\", class: \"memory\", slots: 1, bytes: 1}\n  need = {id: \"r\", class: \"memory\", slots: 2, bytes: 2}\n  limits =");
     let diagnostics = check_host_configuration(
-        parse_host_configuration(&duplicate_resource).unwrap(),
+        parse_host_configuration_conduit(&duplicate_resource).unwrap(),
         &FabricationCatalog::canonical().with_packages(&test_package_set()),
         &test_package_set(),
     )
@@ -113,9 +103,9 @@ fn rejects_each_required_invalid_class() {
         .iter()
         .any(|item| matches!(item, ConfigurationDiagnostic::DuplicateResource { .. })));
 
-    let wrong_family = HOSTED.replace("machine = \"workstation\"", "machine = \"page\"");
+    let wrong_family = HOSTED.replace("machine: \"workstation\"", "machine: \"page\"");
     let diagnostics = check_host_configuration(
-        parse_host_configuration(&wrong_family).unwrap(),
+        parse_host_configuration_conduit(&wrong_family).unwrap(),
         &FabricationCatalog::canonical().with_packages(&test_package_set()),
         &test_package_set(),
     )
@@ -131,32 +121,32 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../profiles/host-configurations");
     let fixtures = [
         (
-            "browser-page.host.toml",
+            "browser-page.host.conduit",
             "sha256:d32fd79e5344a1d2d3156aa962458f794046eb15d88911942762a9c4acc91b1a",
             "sha256:6d37d4075664d2a1fc7d48f2b5b5fbe5ce3c2dc570ddb4aba619186239a9b200",
         ),
         (
-            "conduitos-aarch64-virt.host.toml",
+            "conduitos-aarch64-virt.host.conduit",
             "sha256:9cc965dac8190afab6afc54b1d265ed39e5ac8255642a055c61f87c32f1e848c",
             "sha256:0fc73d339059080e43378f0634d46af42c218dac8abab6b76998e405fa1a8f06",
         ),
         (
-            "conduitos-x86_64-pc.host.toml",
+            "conduitos-x86_64-pc.host.conduit",
             "sha256:9ba54ff0fb5cf22a4b2b031bf24580a244305fd1036110bd23bf05ab30b76738",
             "sha256:485b9a6a941e3961b7dbabd811da32fa6f833a21a9ea896315ee4598f2a257c3",
         ),
         (
-            "linux-server.host.toml",
+            "linux-server.host.conduit",
             "sha256:f7bf73927e0e61ea401e86b1675848e8a255224b33c6cb14e2d9b77f169eadce",
             "sha256:cca876687209749d902d266e5d8118a8ef76b193feba63bca2865694f5e3a366",
         ),
         (
-            "linux-workstation.host.toml",
+            "linux-workstation.host.conduit",
             "sha256:c5bd48ce787c3d19df10bbcfa653937662b7ee494384cf2cd33c4cd27bd31a3f",
             "sha256:0348d29cf0862963e8852489dc71e6be4429bf56a07484cd1ebaa2fe89e6c718",
         ),
         (
-            "pico-w.host.toml",
+            "pico-w.host.conduit",
             "sha256:c3067ec55f4936c284666a3ab9c6cd39ace1db6edfb2783c673d6bba4174cf22",
             "sha256:fc4acf3747304e9aa55e981d6799938f4ab42a0bbff42849507ddb20ec0c96fa",
         ),
@@ -177,7 +167,7 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
     for (name, expected_configuration_id, expected_profile_id) in fixtures {
         let source = std::fs::read_to_string(root.join(name)).unwrap();
         let checked = check_host_configuration(
-            parse_host_configuration(&source).unwrap(),
+            parse_host_configuration_conduit(&source).unwrap(),
             &catalog,
             &packages,
         )

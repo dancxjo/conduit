@@ -1,0 +1,6 @@
+host conduitos-aarch64-virt {
+  schema = 1
+  target = {architecture: "aarch64", machine: "virt"}
+  base = {kind: "serial/text", implementation: "conduitos/pl011@1"}
+  limits = {static_memory_bytes: 8388608, heap_arena_bytes: 1, queue_items: 64, buffered_bytes: 16384, active_instances: 16, operation_slots: 8, timer_slots: 4, line_sessions: 1, evidence_items: 64}
+}
