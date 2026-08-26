@@ -9,7 +9,7 @@ use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
 };
 
-use super::linguistics::*;
+use crate::info::*;
 
 struct Lexeme {
     surface: String,

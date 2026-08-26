@@ -1,4 +1,4 @@
-//! Finite host-neutral linguistic Info and deterministic reference realizations.
+//! Finite host-neutral linguistic Info.
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{

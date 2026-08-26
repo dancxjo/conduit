@@ -6,6 +6,7 @@ members = [
 	"mechanisms/devices/ssd1306",
 	"crates/conduit-embedded-build",
 	"crates/conduit-kernel",
+	"crates/conduit-language",
 	"crates/conduit-wire",
 	"crates/conduit-web",
 	"crates/conduit-text",

@@ -76,14 +76,6 @@ pub use generalized_input_realization::*;
 mod generalized_input_catalog;
 #[cfg(feature = "form-catalog")]
 pub use generalized_input_catalog::*;
-mod linguistics;
-pub use linguistics::*;
-mod linguistics_realization;
-pub use linguistics_realization::*;
-#[cfg(feature = "form-catalog")]
-mod linguistics_catalog;
-#[cfg(feature = "form-catalog")]
-pub use linguistics_catalog::*;
 mod tabular;
 pub use tabular::*;
 mod tabular_realization;
