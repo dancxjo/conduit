@@ -546,8 +546,10 @@ mod tests {
             );
         }
         let pixels = bytes
-            .chunks_exact(4)
-            .map(|pixel| u32::from_le_bytes(pixel.try_into().unwrap()))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|pixel| u32::from_le_bytes(*pixel))
             .collect::<alloc::vec::Vec<_>>();
         assert_eq!(
             pixels,
