@@ -1,7 +1,7 @@
 use conduit_core::{
     ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId, CapabilityOffer,
     ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, resource_requirement,
+    ImplementationOffer, resource_requirement,
 };
 
 pub const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal@1";
@@ -17,12 +17,12 @@ pub const PACKET_BUFFERS: u16 = 4;
 pub const SOCKET_SLOTS: u16 = 1;
 pub const TIMER_SLOTS: u16 = 2;
 pub const SIGN_ITEMS: u16 = 32;
-pub const REQUEST_BYTES: usize = conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES as usize;
-pub const RESPONSE_BYTES: usize = conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize;
+pub const REQUEST_BYTES: usize = conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES as usize;
+pub const RESPONSE_BYTES: usize = conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize;
 
 pub fn offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::http_client_contract();
-    let request_kind = conduit_std_catalog::http_request_type()
+    let contract = conduit_web::http_client_semantics();
+    let request_kind = conduit_web::http_request_type()
         .profile()
         .expect("finite HTTP request profile")
         .value_kind()
@@ -39,9 +39,7 @@ pub fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-http-client-http1-literal"),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::HTTP_CLIENT_REVISION,
-        ),
+        kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
         implementation: ImplementationOffer {

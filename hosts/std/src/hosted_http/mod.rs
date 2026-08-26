@@ -5,7 +5,7 @@
 
 mod wire;
 
-use conduit_std_catalog::{
+use conduit_web::{
     HttpExchangeFailure, HttpRequest, HttpResponse, HttpServerResponseRefusal,
     HttpServerTransactions, HttpTransactionId, HTTP_MAXIMUM_IN_FLIGHT,
 };
@@ -139,7 +139,7 @@ impl HostedHttpListener {
         response: &HttpResponse,
     ) -> Result<(), HttpServerResponseRefusal> {
         response.validate().map_err(|error| match error {
-            conduit_std_catalog::HttpContractError::ResponseBodyOverflow => {
+            conduit_web::HttpContractError::ResponseBodyOverflow => {
                 HttpServerResponseRefusal::ResponseBodyOverflow
             }
             _ => HttpServerResponseRefusal::ResponseHeaderOverflow,
@@ -192,7 +192,7 @@ fn map_server_wire_failure(failure: HttpExchangeFailure) -> HttpServerResponseRe
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_std_catalog::{HttpHeader, HttpMethod, HttpTarget};
+    use conduit_web::{HttpHeader, HttpMethod, HttpTarget};
     use std::thread;
 
     #[test]
@@ -211,7 +211,7 @@ mod tests {
                         name: "content-type".into(),
                         value: b"text/plain".to_vec(),
                     }],
-                    body: conduit_std_catalog::HttpBody::inline(b"still HTTP data".to_vec()),
+                    body: conduit_web::HttpBody::inline(b"still HTTP data".to_vec()),
                 })
                 .unwrap();
         });
@@ -226,7 +226,7 @@ mod tests {
                     path_and_query: "/fixture".into(),
                 },
                 headers: Vec::new(),
-                body: conduit_std_catalog::HttpBody::inline(b"bounded".to_vec()),
+                body: conduit_web::HttpBody::inline(b"bounded".to_vec()),
             })
             .unwrap();
         server.join().unwrap();
@@ -250,7 +250,7 @@ mod tests {
                 path_and_query: "/".into(),
             },
             headers: Vec::new(),
-            body: conduit_std_catalog::HttpBody::inline(Vec::new()),
+            body: conduit_web::HttpBody::inline(Vec::new()),
         };
         assert_eq!(
             client.exchange(&request("https", "example.test:443".into())),

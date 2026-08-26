@@ -30,7 +30,7 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
     let fixture = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
     let fixture_address = fixture.local_addr().unwrap();
     let fixture_thread = thread::spawn(move || {
-        for sequence in 0..conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT {
+        for sequence in 0..conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
             let (mut stream, _) = fixture.accept().unwrap();
             let request = read_http_message(&mut stream).unwrap();
             if sequence == 0 {
@@ -62,7 +62,7 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
     let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_http());
     let mut startup = conduit_form::StartupCatalog::new();
     let mut catalog = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_http_catalogs(&mut startup, &mut catalog).unwrap();
+    conduit_web::install_http_catalogs(&mut startup, &mut catalog).unwrap();
     let form = conduit_form::parse(
         "form proxy {\n server: http/server\n client: http/client\n server.request > client.request\n client.response > server.response\n}\n",
         &catalog,
@@ -105,8 +105,8 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
-                .max(conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES),
+            connection_byte_capacity: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
+                .max(conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES),
             authority_grants: &grants,
             protected_resource_grants: &[],
             line_offers: &[],
@@ -118,12 +118,12 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
     let server = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::HTTP_SERVER_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_web::HTTP_SERVER_KIND)
         .unwrap();
     let client = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::HTTP_CLIENT_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_web::HTTP_CLIENT_KIND)
         .unwrap();
     assert_eq!(server.authority.len(), 2);
     assert_eq!(client.authority.len(), 1);
@@ -148,7 +148,7 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
         }
     };
 
-    for sequence in 0..conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT {
+    for sequence in 0..conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
         let mut stream = TcpStream::connect(proxy_address).unwrap();
         let (method, body) = if sequence == 0 {
             ("GET", String::new())
@@ -196,7 +196,7 @@ fn operator_cancellation_releases_the_admitted_listener_before_accept() {
     let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_http());
     let mut startup = conduit_form::StartupCatalog::new();
     let mut catalog = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_http_catalogs(&mut startup, &mut catalog).unwrap();
+    conduit_web::install_http_catalogs(&mut startup, &mut catalog).unwrap();
     let form = conduit_form::parse(
         "form proxy {\n server: http/server\n client: http/client\n server.request > client.request\n client.response > server.response\n}\n",
         &catalog,

@@ -74,7 +74,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     super::test_timing_sink::install_catalog(&mut catalog);
     super::test_json_codec::install_catalog(&mut catalog);
     let mut startup = conduit_form::StartupCatalog::new();
-    conduit_std_catalog::install_json_catalogs(&mut startup, &mut catalog)
+    conduit_web::install_json_catalogs(&mut startup, &mut catalog)
         .expect("JSON catalogs are exact and unique");
     conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)
         .expect("text catalogs are exact and unique");

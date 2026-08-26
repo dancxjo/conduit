@@ -86,11 +86,11 @@ fn portable_face_and_provider_protocol_keep_realization_and_failures_distinct() 
         .iter()
         .all(|header| header.name != "authorization"));
 
-    let response = conduit_std_catalog::HttpResponse {
-        transaction_id: conduit_std_catalog::HttpTransactionId(7),
+    let response = conduit_web::HttpResponse {
+        transaction_id: conduit_web::HttpTransactionId(7),
         status: 200,
         headers: vec![],
-        body: conduit_std_catalog::HttpBody::inline(br#"{"output":"world"}"#.to_vec()),
+        body: conduit_web::HttpBody::inline(br#"{"output":"world"}"#.to_vec()),
     };
     let decoded =
         conduit_core::JsonValue::decode_text(provider_http_response(&response).unwrap()).unwrap();
@@ -188,7 +188,7 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
         planner_capabilities: vec![],
     };
     assert!(tiny.capabilities.iter().all(|offer| {
-        offer.kind_id.as_str() != conduit_std_catalog::HTTP_CLIENT_KIND
+        offer.kind_id.as_str() != conduit_web::HTTP_CLIENT_KIND
             && offer.kind_id.as_str() != GENERATE_TEXT_KIND
     }));
 
@@ -224,18 +224,18 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
     let http_gear = recursive
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == conduit_std_catalog::HTTP_CLIENT_KIND)
+        .find(|gear| gear.kind_id.as_str() == conduit_web::HTTP_CLIENT_KIND)
         .unwrap();
     let http_capability = provider
         .capabilities
         .iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::HTTP_CLIENT_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_web::HTTP_CLIENT_KIND)
         .unwrap();
     let authority = AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/provider-endpoint"),
         contract_id: AuthorityContractId::from(PROVIDER_ENDPOINT_AUTHORITY),
         host_operation_contract_id: HostOperationContractId::from(PROVIDER_HTTP_OPERATION),
-        subject_kind: kind_id(conduit_std_catalog::HTTP_CLIENT_KIND),
+        subject_kind: kind_id(conduit_web::HTTP_CLIENT_KIND),
         host_id: provider.host_id.clone(),
         boot_id: provider.boot_id.clone(),
         capability_id: http_capability.capability_id.clone(),

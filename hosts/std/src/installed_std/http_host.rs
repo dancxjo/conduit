@@ -1,7 +1,7 @@
 //! Hosted HTTP platform-effect adapter. It does not own scheduling or policy.
 
 use crate::hosted_http::{HostedHttpClient, HostedHttpListener};
-use conduit_std_catalog::{
+use conduit_web::{
     decode_request, decode_response, encode_request, encode_response, HttpExchangeFailure,
     HttpServerResponseRefusal,
 };
@@ -19,7 +19,7 @@ impl InstalledHttpHost {
             .any(|placement| {
                 placement.implementation_id.as_str() == super::http::CLIENT_IMPLEMENTATION
             })
-            .then(|| HostedHttpClient::new(conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT))
+            .then(|| HostedHttpClient::new(conduit_web::HTTP_MAXIMUM_IN_FLIGHT))
             .transpose()
             .map_err(|failure| format!("prepare hosted HTTP client: {failure:?}"))?;
         let server = fragment

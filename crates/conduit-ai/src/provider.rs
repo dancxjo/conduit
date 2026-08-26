@@ -17,7 +17,7 @@ use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
+use conduit_web::{
     HttpHeader, HttpMethod, HttpRequest, HttpResponse, HttpTarget, HttpTransactionId,
 };
 
@@ -123,7 +123,7 @@ pub fn provider_http_request(
             name: "content-type".into(),
             value: b"application/json".to_vec(),
         }],
-        body: conduit_std_catalog::HttpBody::inline(json.to_vec()),
+        body: conduit_web::HttpBody::inline(json.to_vec()),
     };
     request
         .validate()
@@ -158,8 +158,8 @@ pub fn install_provider_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    conduit_std_catalog::install_json_catalogs(startup, profile)?;
-    conduit_std_catalog::install_http_catalogs(startup, profile)?;
+    conduit_web::install_json_catalogs(startup, profile)?;
+    conduit_web::install_http_catalogs(startup, profile)?;
     for definition in provider_definitions() {
         startup.insert(KindSignature {
             kind: definition.kind_id.as_str().into(),
@@ -179,9 +179,9 @@ pub fn install_provider_back(
 ) -> Result<(), String> {
     let source = format!(
         "form {GENERATE_TEXT_KIND} (\n prompt: {TEXT_VALUE_KIND} > text: {TEXT_VALUE_KIND}\n) {{\n request: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result: {PROVIDER_RESULT_KIND}\n prompt > request.prompt\n request.value > encode.value\n encode.value > envelope.json\n envelope.request > http.request\n http.response > response.response\n response.json > decode.value\n decode.value > result.value\n result.text > text\n}}\n",
-        conduit_std_catalog::JSON_ENCODE_KIND,
-        conduit_std_catalog::HTTP_CLIENT_KIND,
-        conduit_std_catalog::JSON_DECODE_KIND,
+        conduit_web::JSON_ENCODE_KIND,
+        conduit_web::HTTP_CLIENT_KIND,
+        conduit_web::JSON_DECODE_KIND,
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), startup)
         .map_err(|error| format!("provider Back check: {} {}", error.code, error.message))?;
@@ -201,22 +201,20 @@ pub fn provider_offers() -> Vec<CapabilityOffer> {
 }
 
 pub fn provider_http_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::http_client_contract();
+    let contract = conduit_web::http_client_semantics();
     let operation = HostOperationRequirement {
         contract_id: HostOperationContractId::from(PROVIDER_HTTP_OPERATION),
-        target_kind: Some(kind_id(conduit_std_catalog::HTTP_CLIENT_KIND)),
+        target_kind: Some(kind_id(conduit_web::HTTP_CLIENT_KIND)),
         maximum_in_flight: 1,
-        maximum_input_bytes: conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
-        maximum_output_bytes: conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+        maximum_input_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
+        maximum_output_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     };
     CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("provider-http-client-v1"),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::HTTP_CLIENT_REVISION,
-        ),
+        kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
         implementation: ImplementationOffer {
@@ -232,13 +230,13 @@ pub fn provider_http_offer() -> CapabilityOffer {
         authority_requirements: vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(PROVIDER_ENDPOINT_AUTHORITY),
             host_operation_contract_id: operation.contract_id,
-            subject_kind: kind_id(conduit_std_catalog::HTTP_CLIENT_KIND),
+            subject_kind: kind_id(conduit_web::HTTP_CLIENT_KIND),
         }],
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
-                + conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+            max_queue_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
+                + conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
         },
     }
 }
@@ -260,7 +258,7 @@ fn provider_definitions() -> Vec<KindDefinition> {
             conduit_core::JSON_TEXT_INFO_ID,
             PortTemporal::Value,
             "request",
-            conduit_std_catalog::http_request_type()
+            conduit_web::http_request_type()
                 .profile()
                 .expect("finite HTTP request profile")
                 .value_kind()
@@ -270,7 +268,7 @@ fn provider_definitions() -> Vec<KindDefinition> {
         definition(
             PROVIDER_RESPONSE_KIND,
             "response",
-            conduit_std_catalog::http_response_type()
+            conduit_web::http_response_type()
                 .profile()
                 .expect("finite HTTP response profile")
                 .value_kind()

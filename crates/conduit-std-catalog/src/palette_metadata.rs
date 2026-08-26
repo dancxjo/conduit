@@ -9,8 +9,7 @@ pub use conduit_presentation::PresentationIconKey as PaletteIconKey;
 use crate::{
     AUDIO_RENDER_DEMAND_KIND, BITMAP_PRESENTATION_KIND, BOOL_PRESENTATION_KIND, CHORDS_KIND,
     COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND, GRAPHICS_ICON_KIND,
-    GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, HTTP_CLIENT_KIND,
-    HTTP_SERVER_KIND, JSON_DECODE_KIND, JSON_ENCODE_KIND, KEYBOARD_KIND, KEYMAP_KIND,
+    GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND,
     KEY_EVENT_TEE_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND,
     LAYOUT_ROW_KIND, LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LENIA_STEP_KIND, LOGIC_COMPARE_KIND,
     LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND,
@@ -425,22 +424,22 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["copy", "filesystem", "resource"],
             PaletteIconKey::FileOutput,
         ),
-        HTTP_CLIENT_KIND => metadata(
+        conduit_web::HTTP_CLIENT_KIND => metadata(
             PaletteCategory::Protocol,
             &["http", "request", "client", "protocol"],
             PaletteIconKey::Combine,
         ),
-        HTTP_SERVER_KIND => metadata(
+        conduit_web::HTTP_SERVER_KIND => metadata(
             PaletteCategory::Protocol,
             &["http", "response", "server", "protocol"],
             PaletteIconKey::Combine,
         ),
-        JSON_ENCODE_KIND => metadata(
+        conduit_web::JSON_ENCODE_KIND => metadata(
             PaletteCategory::Protocol,
             &["json", "encode", "serialize", "protocol"],
             PaletteIconKey::Combine,
         ),
-        JSON_DECODE_KIND => metadata(
+        conduit_web::JSON_DECODE_KIND => metadata(
             PaletteCategory::Protocol,
             &["json", "decode", "parse", "protocol"],
             PaletteIconKey::Combine,

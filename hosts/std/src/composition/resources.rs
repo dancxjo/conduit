@@ -48,7 +48,7 @@ pub(super) fn offers(
             resource_offer(
                 "std/http-client",
                 installed_std::http_client_resource_class(),
-                u32::from(conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT),
+                u32::from(conduit_web::HTTP_MAXIMUM_IN_FLIGHT),
             ),
             resource_offer(
                 "std/http-listener",

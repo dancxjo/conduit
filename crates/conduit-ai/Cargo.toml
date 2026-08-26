@@ -6,16 +6,17 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form", optional = true }
-conduit-std-catalog = { path = "../conduit-std-catalog", optional = true, default-features = false, features = ["form-catalog"] }
+conduit-web = { path = "../conduit-web", optional = true, default-features = false, features = ["form-catalog"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 libm = "0.2"
 sha2 = { version = "0.10", default-features = false }
 
 [features]
 default = []
-form-catalog = ["dep:conduit-form", "dep:conduit-std-catalog"]
+form-catalog = ["dep:conduit-form", "dep:conduit-web"]
 
 [dev-dependencies]
+conduit-std-catalog = { path = "../conduit-std-catalog", features = ["form-catalog"] }
 conduit-form = { path = "../conduit-form" }
 conduit-kernel = { path = "../conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../conduit-planner" }

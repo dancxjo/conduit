@@ -207,13 +207,13 @@ fn fixture_offer(
     let descriptor = PortDescriptor {
         port_id: port_id("value"),
         value_kind: if direction == PortDirection::Output {
-            conduit_std_catalog::http_request_type()
+            conduit_web::http_request_type()
                 .profile()
                 .unwrap()
                 .value_kind()
                 .clone()
         } else {
-            conduit_std_catalog::http_response_type()
+            conduit_web::http_response_type()
                 .profile()
                 .unwrap()
                 .value_kind()
@@ -225,7 +225,7 @@ fn fixture_offer(
     let observe = (direction == PortDirection::Input).then(|| HostOperationRequirement {
         contract_id: HostOperationContractId::from(OBSERVE_OPERATION),
         target_kind: Some(
-            conduit_std_catalog::http_response_type()
+            conduit_web::http_response_type()
                 .profile()
                 .unwrap()
                 .value_kind()
@@ -267,7 +267,7 @@ fn catalogs() -> (conduit_form::StartupCatalog, conduit_form::ProfileCatalog) {
     use conduit_form::{KindDefinition, KindSignature};
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_http_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_web::install_http_catalogs(&mut startup, &mut profile).unwrap();
     for offer in [
         fixture_offer(
             SOURCE_KIND,
@@ -409,23 +409,23 @@ fn run_ordinary_form() {
     let http = fragment
         .placements
         .iter()
-        .find(|item| item.kind_id.as_str() == conduit_std_catalog::HTTP_CLIENT_KIND)
+        .find(|item| item.kind_id.as_str() == conduit_web::HTTP_CLIENT_KIND)
         .unwrap();
     assert_eq!(http.authority.len(), 1);
     assert_eq!(http.resources.len(), 1);
     assert_eq!(http.host_operations[0].maximum_in_flight, 1);
     let lowered = lower_plan_fragment(fragment).unwrap();
 
-    let request = conduit_std_catalog::encode_request(&conduit_std_catalog::HttpRequest {
-        transaction_id: conduit_std_catalog::HttpTransactionId(7),
-        method: conduit_std_catalog::HttpMethod::Get,
-        target: conduit_std_catalog::HttpTarget {
+    let request = conduit_web::encode_request(&conduit_web::HttpRequest {
+        transaction_id: conduit_web::HttpTransactionId(7),
+        method: conduit_web::HttpMethod::Get,
+        target: conduit_web::HttpTarget {
             scheme: "http".into(),
             authority: "192.0.2.9:8080".into(),
             path_and_query: "/ready".into(),
         },
         headers: Vec::new(),
-        body: conduit_std_catalog::HttpBody::inline(Vec::new()),
+        body: conduit_web::HttpBody::inline(Vec::new()),
     })
     .unwrap();
     let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32).unwrap();
@@ -551,11 +551,8 @@ fn run_ordinary_form() {
             SchedulerStatus::Cancelled => panic!("unexpected cancellation"),
         }
     }
-    let response = conduit_std_catalog::decode_response(&observed).unwrap();
-    assert_eq!(
-        response.transaction_id,
-        conduit_std_catalog::HttpTransactionId(7)
-    );
+    let response = conduit_web::decode_response(&observed).unwrap();
+    assert_eq!(response.transaction_id, conduit_web::HttpTransactionId(7));
     assert_eq!(response.status, 201);
     assert_eq!(response.body.as_inline(), Some(b"ready".as_slice()));
     assert!(kernel.signs().len() > 0);

@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
     CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PlannedGear,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -37,8 +36,8 @@ pub(super) static HTTP_SERVER_FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(crate) fn client_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::http_client_contract();
-    let request_kind = conduit_std_catalog::http_request_type()
+    let contract = conduit_web::http_client_semantics();
+    let request_kind = conduit_web::http_request_type()
         .profile()
         .unwrap()
         .value_kind()
@@ -46,17 +45,15 @@ pub(crate) fn client_offer() -> CapabilityOffer {
     let operation = host_operation(
         CLIENT_OPERATION,
         request_kind.as_str(),
-        conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
-        conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+        conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
+        conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     );
     CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("std-http-client-http1"),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::HTTP_CLIENT_REVISION,
-        ),
+        kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
         implementation: ImplementationOffer {
@@ -76,13 +73,13 @@ pub(crate) fn client_offer() -> CapabilityOffer {
 }
 
 pub(crate) fn server_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::http_server_contract();
-    let request_kind = conduit_std_catalog::http_request_type()
+    let contract = conduit_web::http_server_semantics();
+    let request_kind = conduit_web::http_request_type()
         .profile()
         .unwrap()
         .value_kind()
         .clone();
-    let response_kind = conduit_std_catalog::http_response_type()
+    let response_kind = conduit_web::http_response_type()
         .profile()
         .unwrap()
         .value_kind()
@@ -91,12 +88,12 @@ pub(crate) fn server_offer() -> CapabilityOffer {
         SERVER_ACCEPT_OPERATION,
         request_kind.as_str(),
         0,
-        conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
+        conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
     );
     let respond = host_operation(
         SERVER_RESPOND_OPERATION,
         response_kind.as_str(),
-        conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+        conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
         0,
     );
     CapabilityOffer {
@@ -104,9 +101,7 @@ pub(crate) fn server_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("std-http-server-http1"),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::HTTP_SERVER_REVISION,
-        ),
+        kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
         implementation: ImplementationOffer {
@@ -173,7 +168,7 @@ impl HttpClientOperation {
                     operation: HostOperationId(0),
                     input: BoundedValueRef::new(
                         value,
-                        conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
+                        conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
                     )
                     .expect("planned HTTP request is bounded"),
                 }
@@ -205,7 +200,7 @@ impl HttpClientOperation {
     }
 
     pub(super) fn advance(&mut self) -> OperationAction {
-        if self.completed == conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT {
+        if self.completed == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
             OperationAction::Complete
         } else {
             OperationAction::Await
@@ -247,7 +242,7 @@ impl HttpServerOperation {
                     operation: HostOperationId(1),
                     input: BoundedValueRef::new(
                         value,
-                        conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+                        conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
                     )
                     .expect("planned HTTP response is bounded"),
                 }
@@ -275,7 +270,7 @@ impl HttpServerOperation {
                         }
                     }
                     (ServerPending::Respond, HostOperationDisposition::Completed, None, None) => {
-                        if self.accepted == conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT {
+                        if self.accepted == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
                             self.released = Some(self.empty);
                             OperationAction::Complete
                         } else {
@@ -329,24 +324,24 @@ fn client_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement, &client_offer())?;
     Ok(OperationBudget {
         value_items: 2,
-        value_bytes: conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
-            + conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
-        host_requests: usize::from(conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT),
+        value_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
+            + conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+        host_requests: usize::from(conduit_web::HTTP_MAXIMUM_IN_FLIGHT),
         sign_items: 64,
-        maximum_value_bytes: conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+        maximum_value_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     })
 }
 
 fn server_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement, &server_offer())?;
     Ok(OperationBudget {
-        value_items: conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT * 2 + 1,
-        value_bytes: u32::from(conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT)
-            * (conduit_std_catalog::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
-                + conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES),
-        host_requests: usize::from(conduit_std_catalog::HTTP_MAXIMUM_IN_FLIGHT) * 2,
+        value_items: conduit_web::HTTP_MAXIMUM_IN_FLIGHT * 2 + 1,
+        value_bytes: u32::from(conduit_web::HTTP_MAXIMUM_IN_FLIGHT)
+            * (conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
+                + conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES),
+        host_requests: usize::from(conduit_web::HTTP_MAXIMUM_IN_FLIGHT) * 2,
         sign_items: 128,
-        maximum_value_bytes: conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+        maximum_value_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     })
 }
 

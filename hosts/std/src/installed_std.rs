@@ -453,7 +453,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     let mut http_output =
-        Vec::with_capacity(conduit_std_catalog::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
+        Vec::with_capacity(conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
     let mut json_host = json_operations::JsonHost::prepare();
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
