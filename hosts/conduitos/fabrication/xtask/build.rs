@@ -12,18 +12,14 @@ use super::{
 };
 
 pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
-    match arch {
-        ConduitosArch::X86_64 => execute_embedded_profile(
+    if arch == ConduitosArch::X86_64 {
+        execute_embedded_profile(
             arch,
             include_str!("../../../../profiles/hosts/conduitos-native.profile.json"),
             opts,
-        ),
-        ConduitosArch::Aarch64 => execute_embedded_profile(
-            arch,
-            include_str!("../../../../profiles/hosts/conduitos-aarch64-headless.profile.json"),
-            opts,
-        ),
-        _ => execute_with_features(arch, opts, &[], None),
+        )
+    } else {
+        execute_with_features(arch, opts, &[], None)
     }
 }
 
