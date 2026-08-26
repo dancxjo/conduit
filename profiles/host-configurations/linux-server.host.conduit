@@ -1,0 +1,7 @@
+host linux-server {
+  schema = 1
+  target = {architecture: "x86_64", machine: "server", os: "linux"}
+  base = {kind: "clock/monotonic", implementation: "hosted/monotonic-clock@1"}
+  base = {kind: "serial/text", implementation: "hosted/serial@1"}
+  limits = {static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}
+}

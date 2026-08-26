@@ -32,8 +32,8 @@ declarations, structured values, spans, and diagnostics as `form` and `host`.
 Each repeated `host` declaration references checked `*.host.conduit` source and
 then enters the existing Host configuration path. Body construction has no
 private parser and creates no Host, Boot, OFFER, OBSERVE, ADMIT, Line, Plan, or
-Play truth. The historical `*.body.toml` specimen is retained only as #1740
-evidence and migration input; it is not a public Body authoring format.
+Play truth. Canonical `*.body.conduit` documents are the only Body construction
+source; repository loaders do not infer or import a second format.
 
 The output kind in a Spore is an exact requested target packaging class. Deployment is available only when the selected fabrication package declares an adapter. Body build does not manufacture runtime Host, Boot, or physical-success truth.
 

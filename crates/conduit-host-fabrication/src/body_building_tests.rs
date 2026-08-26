@@ -267,7 +267,10 @@ fn checked_example() -> CheckedBodyDescription {
 }
 
 fn parse_example() -> BodyDescription {
-    parse_body_description(include_str!("../../../profiles/bodies/pete-r1.body.toml")).unwrap()
+    parse_body_description_conduit(include_str!(
+        "../../../profiles/bodies/pete-r1.body.conduit"
+    ))
+    .unwrap()
 }
 
 fn configurations_for(description: &BodyDescription) -> BTreeMap<String, HostConfiguration> {
@@ -277,21 +280,21 @@ fn configurations_for(description: &BodyDescription) -> BTreeMap<String, HostCon
         .map(|host| {
             let source = match host.name.as_str() {
                 "forebrain" => include_str!(
-                    "../../../profiles/host-configurations/linux-workstation.host.toml"
+                    "../../../profiles/host-configurations/linux-workstation.host.conduit"
                 ),
                 "brainstem" => {
-                    include_str!("../../../profiles/host-configurations/pico-w.host.toml")
+                    include_str!("../../../profiles/host-configurations/pico-w.host.conduit")
                 }
                 "eyes" => {
-                    include_str!("../../../profiles/host-configurations/browser-page.host.toml")
+                    include_str!("../../../profiles/host-configurations/browser-page.host.conduit")
                 }
                 _ => include_str!(
-                    "../../../profiles/host-configurations/linux-workstation.host.toml"
+                    "../../../profiles/host-configurations/linux-workstation.host.conduit"
                 ),
             };
             (
                 host.configuration.clone(),
-                parse_host_configuration(source).unwrap(),
+                parse_host_configuration_conduit(source).unwrap(),
             )
         })
         .collect()

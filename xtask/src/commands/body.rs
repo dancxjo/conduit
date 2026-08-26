@@ -6,9 +6,9 @@ use std::{
 
 use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
-    build_body_spores, check_body_description, deployment_receipt, parse_body_description,
-    parse_body_description_conduit, parse_host_configuration, parse_host_configuration_conduit,
-    BuiltSpore, CheckedBodyDescription, DeploymentDisposition, HostConfiguration,
+    build_body_spores, check_body_description, deployment_receipt, parse_body_description_conduit,
+    parse_host_configuration_conduit, BuiltSpore, CheckedBodyDescription, DeploymentDisposition,
+    HostConfiguration,
 };
 use serde::Serialize;
 
@@ -123,12 +123,15 @@ pub fn run(args: BodyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
 
 fn load(path: &Path) -> Result<CheckedBodyDescription, Box<dyn std::error::Error>> {
     let source = fs::read_to_string(path)?;
-    let description = if is_conduit_source(path, "body") {
-        parse_body_description_conduit(&source)
-    } else {
-        parse_body_description(&source)
+    if !is_conduit_source(path, "body") {
+        return Err(format!(
+            "Body construction source must use the canonical .body.conduit suffix: {}",
+            path.display()
+        )
+        .into());
     }
-    .map_err(|item| format!("Body description decode refused: {item:?}"))?;
+    let description = parse_body_description_conduit(&source)
+        .map_err(|item| format!("Body description decode refused: {item:?}"))?;
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     let mut configurations = BTreeMap::<String, HostConfiguration>::new();
     for host in &description.hosts {
@@ -147,12 +150,14 @@ fn load(path: &Path) -> Result<CheckedBodyDescription, Box<dyn std::error::Error
                 .into())
             }
         };
-        let parsed = if is_conduit_source(&config_path, "host") {
-            parse_host_configuration_conduit(&config_source)
-        } else {
-            parse_host_configuration(&config_source)
-        };
-        let configuration = parsed.map_err(|item| {
+        if !is_conduit_source(&config_path, "host") {
+            return Err(format!(
+                "Referenced Host construction source must use the canonical .host.conduit suffix: {}",
+                config_path.display()
+            )
+            .into());
+        }
+        let configuration = parse_host_configuration_conduit(&config_source).map_err(|item| {
             format!(
                 "Host configuration {} decode refused: {item:?}",
                 config_path.display()

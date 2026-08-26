@@ -103,11 +103,10 @@ Pico W, and a browser page. BUILD manifests and IMAGE payloads retain the exact
 source-configuration identity together with the resolved target, Base/driver
 selections, resource budgets, and limits.
 
-The historical `*.host.toml` files delivered by #1656 remain checked migration
-fixtures. Repository loaders may import them while parity tests prove that
-equivalent TOML and Conduit documents lower to byte- and identity-equivalent
-checked configuration/Profile semantics. They are not an ordinary authoring
-format and introduce no second checked Host model.
+Canonical `*.host.conduit` documents are the only Host construction source.
+Repository loaders do not infer or import a second format. The checked semantic
+model and the stable configuration/Profile identities established during the
+earlier migration remain unchanged.
 
 ## Exact identities
 

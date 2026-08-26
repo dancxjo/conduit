@@ -138,15 +138,10 @@ impl CheckedHostConfiguration {
     }
 }
 
-pub fn parse_host_configuration(
-    source: &str,
-) -> Result<HostConfiguration, ConfigurationDiagnostic> {
-    toml::from_str(source).map_err(|error| ConfigurationDiagnostic::Decode {
-        detail: error.to_string(),
-    })
-}
-
-pub fn canonical_host_configuration_toml(
+// Configuration identity predates the canonical Conduit construction source.
+// Keep this encoding private so accepted identities remain stable without
+// retaining TOML as a parseable or authorable construction format.
+fn stable_host_configuration_identity_source(
     configuration: &HostConfiguration,
 ) -> Result<String, ConfigurationDiagnostic> {
     let mut canonical = configuration.clone();
@@ -304,7 +299,8 @@ pub fn check_host_configuration(
     if !diagnostics.is_empty() {
         return Err(diagnostics);
     }
-    let canonical = canonical_host_configuration_toml(&configuration).map_err(|item| vec![item])?;
+    let canonical =
+        stable_host_configuration_identity_source(&configuration).map_err(|item| vec![item])?;
     let configuration_id = format!("sha256:{:x}", Sha256::digest(canonical.as_bytes()));
     let mut resolved_bases = selected.into_iter().collect::<Vec<_>>();
     resolved_bases.sort();
