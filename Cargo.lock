@@ -4280,6 +4280,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-form",
+ "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
  "conduit-kernel",
  "conduit-midi",
