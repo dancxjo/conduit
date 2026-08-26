@@ -19,6 +19,7 @@ conduit-chat = { path = "../../crates/conduit-chat", features = ["form-catalog"]
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-host-fabrication = { path = "../../crates/conduit-host-fabrication" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
+conduit-language = { path = "../../crates/conduit-language" }
 conduit-midi = { path = "../../crates/conduit-midi" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi", optional = true }
 conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog"] }

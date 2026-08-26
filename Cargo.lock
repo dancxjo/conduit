@@ -438,6 +438,7 @@ dependencies = [
  "conduit-form",
  "conduit-host-fabrication",
  "conduit-kernel",
+ "conduit-language",
  "conduit-net",
  "conduit-observatory",
  "conduit-planner",
@@ -674,6 +675,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-language"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+]
+
+[[package]]
 name = "conduit-linear-framebuffer-fabrication"
 version = "0.1.0"
 dependencies = [
@@ -864,6 +873,7 @@ dependencies = [
  "conduit-form",
  "conduit-host-fabrication",
  "conduit-kernel",
+ "conduit-language",
  "conduit-midi",
  "conduit-net",
  "conduit-planner",

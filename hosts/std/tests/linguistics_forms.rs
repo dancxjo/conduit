@@ -7,13 +7,13 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
+use conduit_language::{
     annotate_with_model_fixture, annotate_with_unicode_library, install_linguistics_catalogs,
-    linguistic_token_type, linguistic_tokens_four_type, linguistics_std_offers, tokenize_four,
-    LinguisticRefusal, ANNOTATE_FOUR_KIND, LINGUISTICS_HOST_OPERATION, LINGUISTIC_DEPENDENCY_COUNT,
-    LINGUISTIC_FEATURE_SLOTS, LINGUISTIC_TOKEN_COUNT, MAXIMUM_LINGUISTIC_TEXT_BYTES,
-    TOKENIZE_FOUR_KIND,
+    linguistic_token_type, linguistic_tokens_four_type, tokenize_four, LinguisticRefusal,
+    ANNOTATE_FOUR_KIND, LINGUISTIC_DEPENDENCY_COUNT, LINGUISTIC_FEATURE_SLOTS,
+    LINGUISTIC_TOKEN_COUNT, MAXIMUM_LINGUISTIC_TEXT_BYTES, TOKENIZE_FOUR_KIND,
 };
+use conduit_std_host::hosted_linguistics::{linguistics_std_offers, LINGUISTICS_HOST_OPERATION};
 
 const SOURCE: &str = include_str!("../../../examples/linguistic-annotations.conduit");
 
