@@ -1,9 +1,9 @@
-use conduit_planner::{
+use conduit_planner::proof::heterogeneous::{
     evaluate_heterogeneous_capstone, CapstoneDecision, CapstoneDeviceClass,
-    CapstoneDeviceDisposition, CapstoneMeasurement, DegradationAssessment, DegradationFragment,
-    DegradationFragmentDisposition, HeterogeneousCapstoneEvidence, SchedulerProofClass,
-    SchedulerStrategy,
+    CapstoneDeviceDisposition, CapstoneMeasurement, HeterogeneousCapstoneEvidence,
+    HeterogeneousCapstoneReport, SchedulerProofClass, SchedulerStrategy,
 };
+use conduit_planner::{DegradationAssessment, DegradationFragment, DegradationFragmentDisposition};
 
 use crate::PatchbayHeterogeneousCapstoneExplanation;
 
@@ -54,7 +54,7 @@ fn measurement(strategy: SchedulerStrategy, latency: u64, throughput: u64) -> Ca
     }
 }
 
-fn report() -> conduit_planner::HeterogeneousCapstoneReport {
+fn report() -> HeterogeneousCapstoneReport {
     evaluate_heterogeneous_capstone(HeterogeneousCapstoneEvidence {
         proof_class: SchedulerProofClass::DeterministicFixture,
         measurements: vec![

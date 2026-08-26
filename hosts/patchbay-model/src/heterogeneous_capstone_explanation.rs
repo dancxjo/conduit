@@ -1,7 +1,8 @@
 //! Renderer-neutral explanation of the heterogeneous scheduler capstone.
 
-use conduit_planner::{
-    CapstoneGainDimension, HeterogeneousCapstoneReport, SchedulerProofClass, SchedulerStrategy,
+use conduit_planner::proof::heterogeneous::{
+    CapstoneDeviceDisposition, CapstoneGainDimension, HeterogeneousCapstoneReport,
+    SchedulerProofClass, SchedulerStrategy,
 };
 use serde::{Deserialize, Serialize};
 
@@ -78,10 +79,10 @@ impl PatchbayHeterogeneousCapstoneExplanation {
             .devices
             .iter()
             .filter_map(|device| match &device.disposition {
-                conduit_planner::CapstoneDeviceDisposition::IntentionallyUnused { reason } => {
+                CapstoneDeviceDisposition::IntentionallyUnused { reason } => {
                     Some(format!("{}: {reason}", device.class_id))
                 }
-                conduit_planner::CapstoneDeviceDisposition::Used { .. } => None,
+                CapstoneDeviceDisposition::Used { .. } => None,
             })
             .collect();
         let partial_failure = report

@@ -4,17 +4,19 @@ use conduit_core::{
     BootId, CapabilityId, CheckedFormId, GearId, HostId, ImplementationId, OfferGeneration, PlanId,
     ResourcePoolId, SignId,
 };
+use conduit_planner::proof::heterogeneous::{
+    evaluate_heterogeneous_capstone, CapstoneDecision, CapstoneDeviceClass,
+    CapstoneDeviceDisposition, CapstoneMeasurement, HeterogeneousCapstoneEvidence,
+    SchedulerProofClass, SchedulerStrategy,
+};
 use conduit_planner::{
-    assess_scoped_degradation, evaluate_heterogeneous_capstone, plan_cold,
-    select_accelerator_candidate, select_performance_candidate, AcceleratorCandidate,
-    AcceleratorDemand, AcceleratorDimension, AcceleratorObservation, AcceleratorOffer,
-    AcceleratorPlanningBasis, CandidateEvaluation, CandidateEvaluationDisposition,
-    CandidateStructure, CapstoneDecision, CapstoneDeviceClass, CapstoneDeviceDisposition,
-    CapstoneMeasurement, DegradationInput, ExecutionMechanism, FactDomain,
-    HeterogeneousCapstoneEvidence, IncrementalPlanner, ObservationProvenance, PerformanceCandidate,
-    PerformanceIntent, PerformancePolicy, PerformanceProfileObservation, PlanningFact,
-    PlanningFactKey, PolicyScope, PolicySourceId, PolicySourceRevision, SchedulerProofClass,
-    SchedulerStrategy, StabilityPolicy,
+    assess_scoped_degradation, plan_cold, select_accelerator_candidate,
+    select_performance_candidate, AcceleratorCandidate, AcceleratorDemand, AcceleratorDimension,
+    AcceleratorObservation, AcceleratorOffer, AcceleratorPlanningBasis, CandidateEvaluation,
+    CandidateEvaluationDisposition, CandidateStructure, DegradationInput, ExecutionMechanism,
+    FactDomain, IncrementalPlanner, ObservationProvenance, PerformanceCandidate, PerformanceIntent,
+    PerformancePolicy, PerformanceProfileObservation, PlanningFact, PlanningFactKey, PolicyScope,
+    PolicySourceId, PolicySourceRevision, StabilityPolicy,
 };
 
 fn provenance(identity: &str) -> ObservationProvenance {

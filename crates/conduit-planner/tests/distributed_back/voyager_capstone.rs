@@ -1,15 +1,17 @@
 use super::*;
 use conduit_core::{AuthorityGrantId, CharacteristicId, GearId, ImplementationId, SignId};
+use conduit_planner::proof::voyager::{
+    prove_voyager_capstone, VoyagerBodyInventory, VoyagerCapstoneRefusal, VoyagerDamageStage,
+    VoyagerIrrecoverableReason, VoyagerPhenomenon, VoyagerProofClass, VoyagerStageMetrics,
+};
 use conduit_planner::{
-    prove_recursive_recovery, prove_voyager_capstone, select_plan_with_survival_policy,
-    triage_scarce_resource, CurrentDormantCandidate, DegradedDimensionEvidence,
-    DiversityRelationship, DiversityReplacementEvidence, DormantReadmissionEvidence,
-    ExplicitCriticality, PlannerFactValue, PreviousPlanDisposition, RecursiveRecoveryCandidate,
-    RecursiveRecoveryLimits, ServiceProfileAdmission, ServiceProfileDisposition, SurvivalCandidate,
+    prove_recursive_recovery, select_plan_with_survival_policy, triage_scarce_resource,
+    CurrentDormantCandidate, DegradedDimensionEvidence, DiversityRelationship,
+    DiversityReplacementEvidence, DormantReadmissionEvidence, ExplicitCriticality,
+    PlannerFactValue, PreviousPlanDisposition, RecursiveRecoveryCandidate, RecursiveRecoveryLimits,
+    ServiceProfileAdmission, ServiceProfileDisposition, SurvivalCandidate,
     SurvivalCandidateDisposition, SurvivalPlanningMode, SurvivalPlanningPolicy,
-    SurvivalPolicyRefusal, SurvivalTradeoff, VoyagerBodyInventory, VoyagerCapstoneRefusal,
-    VoyagerDamageStage, VoyagerIrrecoverableReason, VoyagerPhenomenon, VoyagerProofClass,
-    VoyagerStageMetrics, WorkloadResourceRequest,
+    SurvivalPolicyRefusal, SurvivalTradeoff, WorkloadResourceRequest,
 };
 
 const PROFILE: &str = "test/provider-generate@full-v1";

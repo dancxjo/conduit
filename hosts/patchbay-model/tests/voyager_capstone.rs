@@ -1,5 +1,5 @@
 use conduit_core::{PlanId, SignId};
-use conduit_planner::{
+use conduit_planner::proof::voyager::{
     VoyagerCapstoneEvidence, VoyagerProofClass, VoyagerScarKind, VoyagerStageEvidence,
     VoyagerStageMetrics,
 };
