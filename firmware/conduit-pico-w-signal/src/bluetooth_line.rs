@@ -162,7 +162,11 @@ pub async fn run(
             "CONDUIT_BLE_LINE_LOST"
         };
         let _ = sign.write_marker(marker).await;
-        core::future::pending::<()>().await
+        // A completed or lost Line is terminal for this exact Boot and Plan.
+        // Reboot instead of parking the controller forever: the next DTR-gated
+        // realization receives a fresh Boot identity and freshly prepared
+        // finite session state, while the terminal marker remains observable.
+        reboot_after_terminal(sign).await
     };
     match select(run_host_until_stopped(runner), line).await {
         Either::First(host_failed) => {
@@ -184,6 +188,25 @@ pub async fn run(
 async fn halt() -> ! {
     loop {
         core::future::pending::<()>().await;
+    }
+}
+
+async fn reboot_after_terminal(sign: &UsbCdc) -> ! {
+    // Let the proof consumer retain the terminal record and release DTR before
+    // USB disappears. The finite fallback still recovers if a crashed host
+    // leaves DTR asserted, so neither outcome can wedge the peripheral.
+    for _ in 0..500 {
+        if !sign.dtr() {
+            break;
+        }
+        Timer::after(Duration::from_millis(10)).await;
+    }
+    rp_pac::PSM
+        .wdsel()
+        .write_value(rp_pac::psm::regs::Wdsel(0x0001_fffc));
+    rp_pac::WATCHDOG.ctrl().modify(|value| value.set_trigger(true));
+    loop {
+        cortex_m::asm::wfi();
     }
 }
 
@@ -266,6 +289,7 @@ async fn serve_connection<C: Controller>(
             GattConnectionEvent::Gatt {
                 event: GattEvent::Write(event),
             } if event.handle() == server.conduit.write.handle => {
+                let _ = sign.write_marker("CONDUIT_BLE_FRAGMENT_RECEIVED").await;
                 let mut packet = [0_u8; MAXIMUM_BLE_GATT_PACKET_BYTES];
                 let packet_len = event.with_data(|_, data| {
                     if data.len() <= packet.len() {
@@ -286,6 +310,7 @@ async fn serve_connection<C: Controller>(
                     .admit(&packet[..packet_len])
                     .map_err(|_| UsbLinkError::BufferOverflow)?
                 {
+                    let _ = sign.write_marker("CONDUIT_BLE_FRAME_RECEIVED").await;
                     frame_bytes[..frame.len()].copy_from_slice(frame);
                     let decoded = decode_session_frame(
                         &frame_bytes[..frame.len()],
@@ -305,6 +330,14 @@ async fn serve_connection<C: Controller>(
                         &mut send_sequence,
                     )
                     .await?;
+                }
+            }
+            GattConnectionEvent::Gatt {
+                event: GattEvent::NotAllowed(event),
+            } => {
+                let _ = sign.write_marker("CONDUIT_BLE_GATT_NOT_ALLOWED").await;
+                if let Ok(reply) = event.accept() {
+                    reply.send().await;
                 }
             }
             GattConnectionEvent::Gatt { event } => {
@@ -401,6 +434,11 @@ async fn handle_session_frame(
                 send_sequence,
             )
             .await?;
+            // `notify` admits the final fragments to the controller but does
+            // not prove over-air delivery. Keep this exact connection alive
+            // for one finite drain interval before emitting terminal USB
+            // evidence and ending the Boot.
+            Timer::after(Duration::from_millis(100)).await;
             if disposition == SessionTerminalDisposition::Completed {
                 sign.write_terminal(true, SignalExecutionIdentity::plan_a().terminal(), runtime)
                     .await?;
@@ -445,6 +483,12 @@ async fn send_session(
             .notify(connection, &value, false)
             .await
             .map_err(|_| UsbLinkError::UsbDisconnected)?;
+        // Notification completion only admits the packet to the controller.
+        // Pace a multi-fragment frame within the single planned reassembly
+        // slot so the central observes every best-effort fragment in order.
+        if index + 1 < count {
+            Timer::after(Duration::from_millis(5)).await;
+        }
     }
     *send_sequence = send_sequence.wrapping_add(1);
     Ok(())

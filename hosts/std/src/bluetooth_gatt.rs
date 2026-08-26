@@ -24,6 +24,7 @@ use std::{collections::BTreeSet, pin::Pin};
 use tokio::io::AsyncReadExt;
 
 const MAXIMUM_GATT_OBJECTS_INSPECTED: usize = 16;
+const REMOTE_WRITE_COMMAND_PACING: std::time::Duration = std::time::Duration::from_millis(5);
 mod discovery;
 mod pairing;
 mod remote;
@@ -289,10 +290,20 @@ impl BluezBleGattLine {
                 encode_fragment(frame, self.send_sequence, index, self.profile, &mut packet)
                     .map_err(|_| BluezBleGattError::OversizedFrame)?;
             match &mut self.write {
-                BleGattWrite::Remote(write) => write
-                    .write(&packet[..length])
-                    .await
-                    .map_err(|_| BluezBleGattError::Transport)?,
+                BleGattWrite::Remote(write) => {
+                    write
+                        .write(&packet[..length])
+                        .await
+                        .map_err(|_| BluezBleGattError::Transport)?;
+                    // WriteValue with command semantics only proves that BlueZ
+                    // admitted the fragment, not that the controller has sent
+                    // it. Pace this bounded, best-effort profile so a multi-
+                    // fragment Hello cannot overrun the peripheral's single
+                    // admitted reassembly slot.
+                    if index + 1 < count {
+                        tokio::time::sleep(REMOTE_WRITE_COMMAND_PACING).await;
+                    }
+                }
                 BleGattWrite::Local(write) => {
                     write.send(&packet[..length]).await.map_err(map_io_error)?
                 }

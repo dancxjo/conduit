@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::time::Duration;
 
 use conduit_bluetooth::BleGattProfile;
 use conduit_core::{BootId, HostId};
@@ -15,6 +16,8 @@ use conduit_wire::{
 
 const FRAME_BYTES: usize = 2_048;
 const PAYLOAD_BYTES: u32 = 96;
+const SESSION_IO_TIMEOUT: Duration = Duration::from_secs(15);
+const LISTENER_ACCEPT_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -112,9 +115,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut listener = BluezBleGattListener::bind(&arguments[2], BleGattProfile::FIRST)
                 .await
                 .map_err(|error| format!("bind: {error:?}"))?;
-            let mut line = listener
-                .accept(address)
+            let mut line = tokio::time::timeout(LISTENER_ACCEPT_TIMEOUT, listener.accept(address))
                 .await
+                .map_err(|_| "accept: timed out waiting for the exact planned peer")?
                 .map_err(|error| format!("accept: {error:?}"))?;
             sink(&binding, &mut line).await?;
         }
@@ -250,9 +253,9 @@ async fn receive_source(
     line: &mut BluezBleGattLine,
 ) -> Result<InboundFact, Box<dyn std::error::Error>> {
     let mut bytes = [0_u8; FRAME_BYTES];
-    let length = line
-        .receive_frame(&mut bytes)
+    let length = tokio::time::timeout(SESSION_IO_TIMEOUT, line.receive_frame(&mut bytes))
         .await
+        .map_err(|_| "receive: timed out waiting for the exact session frame")?
         .map_err(|error| format!("receive: {error:?}"))?;
     let frame = decode_session_frame(&bytes[..length], PAYLOAD_BYTES, FRAME_BYTES as u32)
         .map_err(|error| format!("decode: {error:?}"))?;
@@ -275,8 +278,9 @@ async fn send_encoded(
     let mut bytes = [0_u8; FRAME_BYTES];
     let length = encode_session_frame_into(frame, &mut bytes, PAYLOAD_BYTES, FRAME_BYTES as u32)
         .map_err(|error| format!("encode: {error:?}"))?;
-    line.send_frame(&bytes[..length])
+    tokio::time::timeout(SESSION_IO_TIMEOUT, line.send_frame(&bytes[..length]))
         .await
+        .map_err(|_| "send: timed out writing the exact session frame")?
         .map_err(|error| format!("send: {error:?}"))?;
     Ok(())
 }
@@ -342,9 +346,9 @@ async fn receive_sink(
     line: &mut BluezBleGattLine,
 ) -> Result<SinkInboundFact, Box<dyn std::error::Error>> {
     let mut bytes = [0_u8; FRAME_BYTES];
-    let length = line
-        .receive_frame(&mut bytes)
+    let length = tokio::time::timeout(SESSION_IO_TIMEOUT, line.receive_frame(&mut bytes))
         .await
+        .map_err(|_| "receive: timed out waiting for the exact session frame")?
         .map_err(|error| format!("receive: {error:?}"))?;
     let frame = decode_session_frame(&bytes[..length], PAYLOAD_BYTES, FRAME_BYTES as u32)
         .map_err(|error| format!("decode: {error:?}"))?;
@@ -380,9 +384,9 @@ async fn receive(
     line: &mut BluezBleGattLine,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut bytes = [0_u8; FRAME_BYTES];
-    let length = line
-        .receive_frame(&mut bytes)
+    let length = tokio::time::timeout(SESSION_IO_TIMEOUT, line.receive_frame(&mut bytes))
         .await
+        .map_err(|_| "receive: timed out waiting for the exact session frame")?
         .map_err(|error| format!("receive: {error:?}"))?;
     let frame = decode_session_frame(&bytes[..length], PAYLOAD_BYTES, FRAME_BYTES as u32)
         .map_err(|error| format!("decode: {error:?}"))?;
@@ -409,6 +413,14 @@ fn binding(
             BootId::from(peer_boot_id),
         )
         .map_err(|error| format!("ESP32 Bluetooth Session binding: {error:?}").into());
+    }
+    if peer_host_id == conduit_signal::STD_PICO_USB_SINK_HOST_ID {
+        let canonical = conduit_signal::std_pico_bluetooth_session_binding()
+            .map_err(|error| format!("canonical Bluetooth Session binding: {error:?}"))?;
+        let source_boot = canonical.source.boot_id.clone();
+        return canonical
+            .with_observed_boots(source_boot, BootId::from(peer_boot_id))
+            .map_err(|error| format!("Pico Bluetooth Session binding: {error:?}").into());
     }
     Err(format!("unsupported Bluetooth sink Host identity: {peer_host_id}").into())
 }
