@@ -10,7 +10,7 @@ publish = false
 
 [dependencies]
 conduit-host-fabrication = { path = "../../../crates/conduit-host-fabrication" }
-conduit-host-esp32-fabrication = { path = "../fabrication-package" }
+conduit-host-esp32-fabrication = { path = "../../../targets/esp32/fabrication" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

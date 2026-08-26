@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.88"
 
 [workspace]
-exclude = ["fabrication-package", "fabrication-package-runner"]
+exclude = ["fabrication-package-runner"]
 
 [features]
 default = []
@@ -56,7 +56,7 @@ conduit-core = { path = "../../crates/conduit-core" }
 conduit-embedded-build = { path = "../../crates/conduit-embedded-build" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-host-fabrication = { path = "../../crates/conduit-host-fabrication" }
-conduit-host-esp32-fabrication = { path = "fabrication-package" }
+conduit-host-esp32-fabrication = { path = "../../targets/esp32/fabrication" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }

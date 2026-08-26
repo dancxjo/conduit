@@ -9,7 +9,7 @@ name = "xtask"
 path = "src/main.rs"
 
 [dependencies]
-conduit-host-esp32-fabrication = { path = "../firmware/conduit-esp32-wroom-signal/fabrication-package" }
+conduit-host-esp32-fabrication = { path = "../targets/esp32/fabrication" }
 conduit-host-conduitos-fabrication = { path = "../hosts/conduitos/fabrication-package" }
 clap = { version = "4", features = ["derive"] }
 cliclack = "0.5.6"

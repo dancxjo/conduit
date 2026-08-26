@@ -2,6 +2,7 @@ use conduit_host_fabrication::{
     build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
     BuildInputs, PostBuildAction, SporeOutputKind,
 };
+use std::path::Path;
 
 fn build_configuration(source: &str) -> conduit_host_fabrication::HostImage {
     let packages = conduit_workspace_fabrication::package_set();
@@ -122,4 +123,36 @@ fn ordinary_package_set_manifest_cannot_depend_on_fixture_paths() {
         !manifest.contains("fixtures/"),
         "ordinary workspace fabrication must not depend on proof fixtures"
     );
+}
+
+#[test]
+fn target_family_fabrication_owners_are_not_firmware_children() {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for owner in [
+        repository.join("targets/esp32/fabrication/Cargo.toml"),
+        repository.join("targets/rp2040/fabrication/Cargo.toml"),
+    ] {
+        assert!(
+            owner.is_file(),
+            "missing target-family owner {}",
+            owner.display()
+        );
+    }
+
+    for historical_parent in [
+        repository
+            .join("firmware")
+            .join("conduit-esp32-wroom-signal")
+            .join("fabrication-package"),
+        repository
+            .join("firmware")
+            .join("conduit-pico-w-signal")
+            .join("fabrication-package"),
+    ] {
+        assert!(
+            !historical_parent.exists(),
+            "target-family fabrication returned beneath firmware: {}",
+            historical_parent.display()
+        );
+    }
 }

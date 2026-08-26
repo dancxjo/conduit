@@ -526,10 +526,11 @@ The first Pico W slice does not require DHCP, DNS, captive portal behavior, HTTP
 
 Those may follow once the semantic source-to-sink path is proven.
 
-The current Pico W implementation is the RP2040 fabrication package and
-firmware under `firmware/conduit-pico-w-signal`. Its deterministic contract,
-planning, lowering, image-generation, and kernel tests remain distinct from
-firmware execution and physical/HIL evidence.
+The RP2040 family package lives under `targets/rp2040/fabrication`. The current
+Pico W firmware and its repository-development proof mechanics live under
+`firmware/conduit-pico-w-signal` and consume that package. Deterministic
+contract, planning, lowering, image-generation, and kernel tests remain
+distinct from firmware execution and physical/HIL evidence.
 
 ### Rust standard-library host
 

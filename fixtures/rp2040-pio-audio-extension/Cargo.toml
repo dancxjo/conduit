@@ -8,4 +8,4 @@ publish = false
 conduit-host-fabrication = { path = "../../crates/conduit-host-fabrication" }
 
 [dev-dependencies]
-conduit-host-rp2040 = { path = "../../firmware/conduit-pico-w-signal/fabrication-package" }
+conduit-host-rp2040 = { path = "../../targets/rp2040/fabrication" }
