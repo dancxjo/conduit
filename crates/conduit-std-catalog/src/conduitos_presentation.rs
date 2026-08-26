@@ -2,8 +2,9 @@ use alloc::{format, vec::Vec};
 use conduit_core::{ArtifactId, CapabilityOffer, ExecutionProfileId, ImplementationId};
 
 use crate::{
-    bool_presentation_std_offer, graphics_offer_for, graphics_presentation_offer, layout_offer_for,
-    patchbay_presentation_offers, presentation_composition_offer_for, text_presentation_offer,
+    bitmap_presentation_offer, bool_presentation_std_offer, graphics_offer_for,
+    graphics_presentation_offer, layout_offer_for, patchbay_presentation_offers,
+    presentation_composition_offer_for, text_presentation_offer, BITMAP_PRESENTATION_KIND,
     BOOL_PRESENTATION_KIND, COUNT_PRESENTATION_KIND, GRAPHICS_ICON_KIND,
     GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, LAYOUT_ALIGN_KIND,
     LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
@@ -30,6 +31,7 @@ pub fn conduitos_presentation_nucleus_offers() -> Vec<CapabilityOffer> {
         GRAPHICS_TEXT_KIND,
         GRAPHICS_ICON_KIND,
         GRAPHICS_PRESENTATION_KIND,
+        BITMAP_PRESENTATION_KIND,
         BOOL_PRESENTATION_KIND,
         COUNT_PRESENTATION_KIND,
     ]
@@ -39,6 +41,7 @@ pub fn conduitos_presentation_nucleus_offers() -> Vec<CapabilityOffer> {
             .or_else(|| presentation_composition_offer_for(kind))
             .or_else(|| graphics_offer_for(kind))
             .or_else(|| (kind == GRAPHICS_PRESENTATION_KIND).then(graphics_presentation_offer))
+            .or_else(|| (kind == BITMAP_PRESENTATION_KIND).then(bitmap_presentation_offer))
             .or_else(|| (kind == TEXT_PRESENTATION_KIND).then(text_presentation_offer))
             .or_else(|| (kind == BOOL_PRESENTATION_KIND).then(bool_presentation_std_offer))
             .or_else(|| (kind == COUNT_PRESENTATION_KIND).then(crate::count_presentation_offer))
@@ -88,6 +91,7 @@ mod tests {
         let offers = conduitos_presentation_nucleus_offers();
         for kind in [
             COUNT_PRESENTATION_KIND,
+            BITMAP_PRESENTATION_KIND,
             crate::PATCHBAY_PRESENTATION_KIND,
             crate::PATCHBAY_PORT_KIND,
             crate::PATCHBAY_CORD_KIND,

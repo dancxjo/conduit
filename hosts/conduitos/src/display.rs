@@ -179,6 +179,33 @@ pub fn render_scene(
     Ok(receipt)
 }
 
+/// Manifest one portable gray8 bitmap on the selected finite display Base.
+/// Nearest-neighbor scaling is a mechanism choice below the bitmap and
+/// presentation contracts; it does not mutate their semantic truth.
+pub fn render_gray8_bitmap(
+    target: &mut impl PixelTarget,
+    bitmap: &conduit_presentation::Gray8Bitmap,
+) -> Result<DisplayReceipt, DisplayError> {
+    let format = target.format().validate()?;
+    let source_width = u64::from(bitmap.width());
+    let source_height = u64::from(bitmap.height());
+    let mut receipt = DisplayReceipt {
+        commands: 1,
+        pixels_written: 0,
+    };
+    for y in 0..format.height {
+        let source_y = u64::from(y) * source_height / u64::from(format.height);
+        for x in 0..format.width {
+            let source_x = u64::from(x) * source_width / u64::from(format.width);
+            let index = usize::try_from(source_y * source_width + source_x)
+                .map_err(|_| DisplayError::InvalidExtent)?;
+            let gray = bitmap.pixels()[index];
+            put(target, x, y, format.pixel(gray, gray, gray), &mut receipt)?;
+        }
+    }
+    Ok(receipt)
+}
+
 fn render_command(
     target: &mut impl PixelTarget,
     format: DisplayFormat,
@@ -487,6 +514,61 @@ mod tests {
         assert_eq!(
             render_scene(&mut target, &scene),
             Err(DisplayError::BufferTooSmall)
+        );
+    }
+
+    #[test]
+    fn portable_gray8_bitmap_reaches_exact_framebuffer_pixels() {
+        let bitmap =
+            conduit_presentation::Gray8Bitmap::new(2, 2, alloc::vec![0, 64, 128, 255]).unwrap();
+        let mut exact = format();
+        exact.width = 4;
+        exact.height = 4;
+        exact.pitch = 16;
+        let mut bytes = [0_u8; 4 * 4 * 4];
+        {
+            let mut target = Buffer {
+                format: exact,
+                bytes: &mut bytes,
+                lost: false,
+            };
+            assert_eq!(
+                render_gray8_bitmap(&mut target, &bitmap),
+                Ok(DisplayReceipt {
+                    commands: 1,
+                    pixels_written: 16,
+                })
+            );
+            target.lost = true;
+            assert_eq!(
+                render_gray8_bitmap(&mut target, &bitmap),
+                Err(DisplayError::Lost)
+            );
+        }
+        let pixels = bytes
+            .chunks_exact(4)
+            .map(|pixel| u32::from_le_bytes(pixel.try_into().unwrap()))
+            .collect::<alloc::vec::Vec<_>>();
+        assert_eq!(
+            pixels,
+            alloc::vec![
+                0x0000_0000,
+                0x0000_0000,
+                0x0040_4040,
+                0x0040_4040,
+                0x0000_0000,
+                0x0000_0000,
+                0x0040_4040,
+                0x0040_4040,
+                0x0080_8080,
+                0x0080_8080,
+                0x00ff_ffff,
+                0x00ff_ffff,
+                0x0080_8080,
+                0x0080_8080,
+                0x00ff_ffff,
+                0x00ff_ffff,
+            ]
         );
     }
 }
