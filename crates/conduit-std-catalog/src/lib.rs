@@ -476,7 +476,7 @@ mod supported_nucleus_tests {
     fn supported_nucleus_is_typed_hosted_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
-        assert_eq!(contracts.len(), 57);
+        assert_eq!(contracts.len(), 58);
         assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
