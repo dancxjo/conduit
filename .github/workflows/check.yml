@@ -582,7 +582,6 @@ jobs:
           cargo xtask host build profiles/hosts/conduitos-aarch64-headless.profile.json \
             --output target/conduitos/aarch64-product-host \
             --source-identity "$GITHUB_SHA" \
-            --toolchain-identity "$(rustc --version)" \
             --locked
           cargo xtask host verify target/conduitos/aarch64-product-host --boot --locked
           cargo xtask conduitos product-readiness-matrix --locked > target/conduitos/product-readiness-matrix.json
