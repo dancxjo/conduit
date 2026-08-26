@@ -20,7 +20,7 @@ conduit-form = { path = "../../crates/conduit-form" }
 conduit-host-fabrication = { path = "../../crates/conduit-host-fabrication" }
 conduit-kernel = { path = "../../crates/conduit-kernel", features = ["alloc"] }
 conduit-midi = { path = "../../crates/conduit-midi" }
-conduit-create-oi = { path = "../../crates/conduit-create-oi", optional = true }
+conduit-create-oi = { path = "../../mechanisms/devices/create-oi", optional = true }
 conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog"] }
 conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-realization" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }

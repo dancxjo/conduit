@@ -45,11 +45,11 @@ embedded-websocket = { version = "0.9.5", default-features = false }
 httparse = { version = "1.10", default-features = false }
 
 conduit-core = { path = "../../crates/conduit-core", default-features = false }
-conduit-create-oi = { path = "../../crates/conduit-create-oi" }
+conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-kernel = { path = "../../crates/conduit-kernel" }
-conduit-mpu6050 = { path = "../../crates/conduit-mpu6050" }
-conduit-ssd1306 = { path = "../../crates/conduit-ssd1306" }
+conduit-mpu6050 = { path = "../../mechanisms/devices/mpu6050" }
+conduit-ssd1306 = { path = "../../mechanisms/devices/ssd1306" }
 conduit-net = { path = "../../crates/conduit-net", default-features = false, optional = true }
 conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-realization", optional = true }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1", optional = true }

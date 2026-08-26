@@ -26,7 +26,7 @@ conduit-body = { path = "../crates/conduit-body" }
 conduit-body-fabrication = { path = "../crates/conduit-body-fabrication" }
 conduit-ai = { path = "../crates/conduit-ai" }
 conduit-core = { path = "../crates/conduit-core" }
-conduit-create-oi = { path = "../crates/conduit-create-oi" }
+conduit-create-oi = { path = "../mechanisms/devices/create-oi" }
 conduit-form = { path = "../crates/conduit-form" }
 conduit-host-fabrication = { path = "../crates/conduit-host-fabrication" }
 conduit-workspace-fabrication = { path = "../crates/conduit-workspace-fabrication" }

@@ -1,9 +1,9 @@
 [workspace]
 members = [
 	"crates/conduit-core",
-	"crates/conduit-create-oi",
-	"crates/conduit-mpu6050",
-	"crates/conduit-ssd1306",
+	"mechanisms/devices/create-oi",
+	"mechanisms/devices/mpu6050",
+	"mechanisms/devices/ssd1306",
 	"crates/conduit-embedded-build",
 	"crates/conduit-kernel",
 	"crates/conduit-wire",
