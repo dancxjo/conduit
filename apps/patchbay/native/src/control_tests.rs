@@ -88,13 +88,17 @@ fn host_failure_is_rendered_separately_from_rejection_and_cancellation() {
 #[test]
 fn ordinary_native_control_consumes_the_advertised_keyboard_through_the_kernel() {
     let composition = StdHostComposition::minimal().with_text().with_input();
-    let model = PatchbayModel::with_identity_composition_and(
-        HostId::from("patchbay-native/text-lab"),
-        BootId::from("patchbay-native/text-lab-boot"),
+    let host = conduit_std_host::StdHost::new_with_composition(
+        conduit_std_host::StdHostConfig {
+            host_id: HostId::from("patchbay-native/text-lab"),
+            boot_id: BootId::from("patchbay-native/text-lab-boot"),
+            offer_generation: conduit_core::OfferGeneration(1),
+        },
         composition,
-        portable_keyboard::append_offer,
-    )
-    .unwrap();
+    );
+    let mut advertisement = host.advertisement().clone();
+    portable_keyboard::append_offer(&mut advertisement).unwrap();
+    let model = PatchbayModel::from_advertisement(advertisement);
     let mut keyboard = portable_keyboard::NativeKeyboardInput::new();
     let mut control =
         NativeControl::for_advertisement(model.advertisement().clone(), keyboard.reader()).unwrap();

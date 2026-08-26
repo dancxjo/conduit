@@ -52,6 +52,7 @@ fn projected_roles(
 #[test]
 fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
     let mut session = ZeroBodyFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("navigation/host"),
         BootId::from("navigation/boot"),
     )
@@ -116,6 +117,7 @@ fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
 #[test]
 fn birth_removes_entrance_and_keeps_program_and_body_subject_sets_distinct() {
     let mut session = ZeroBodyFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("embodied/host"),
         BootId::from("embodied/boot"),
     )

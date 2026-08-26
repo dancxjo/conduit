@@ -16,8 +16,10 @@ use conduit_presentation::Presentation;
 
 use crate::{project_llm_patchbay, CandidateFormInspection, LlmGearActivity, LlmPatchbayTruth};
 
-pub fn llm_documentary_presentation() -> Result<Presentation, String> {
-    let base = crate::portable_demonstration()?;
+pub fn llm_documentary_presentation_with_adapter(
+    adapter: &dyn crate::PatchbayHostAdapter,
+) -> Result<Presentation, String> {
+    let base = crate::portable_demonstration_with_adapter(adapter)?;
     let contract =
         llm_contract(LLM_INTERPRET_KIND).ok_or("missing reviewed llm/interpret contract")?;
     let placement = documentary_placement(&contract);
@@ -103,6 +105,11 @@ pub fn llm_documentary_presentation() -> Result<Presentation, String> {
         },
     )
     .map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+pub fn llm_documentary_presentation() -> Result<Presentation, String> {
+    llm_documentary_presentation_with_adapter(crate::host_adapter::test_host_adapter())
 }
 
 fn documentary_proposal(

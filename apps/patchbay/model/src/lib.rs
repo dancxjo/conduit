@@ -4,16 +4,12 @@
 //! capability registry or accepts UI-authored advertisements.
 
 use conduit_core::{
-    BootId, CapabilityId, HostAdvertisement, HostId, Observation, ObservationKind, OfferGeneration,
-    SignId,
+    BootId, CapabilityId, HostAdvertisement, HostId, Observation, ObservationKind, SignId,
 };
 use conduit_observatory::{
     CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport,
     ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
 };
-use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 mod build_birth;
 mod candidate_form;
@@ -35,7 +31,9 @@ mod front_door_topology;
 mod front_door_transition;
 mod gear_realization;
 mod graphical_patchbay;
+#[cfg(test)]
 mod heterogeneous_capstone_explanation;
+mod host_adapter;
 mod interaction;
 mod layout;
 mod llm_documentary;
@@ -93,7 +91,10 @@ pub use build_birth::{
 };
 pub use candidate_form::PatchbayCandidateForm;
 pub use conduit_body::WakeLifecycle;
-pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
+pub use control::{
+    admit_run, ControlError, ControlReceiptProjection, PatchbayRequestId, PlanDocument,
+    PlayDocument, PlayExecutionProjection,
+};
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
@@ -132,10 +133,12 @@ pub use graphical_patchbay::{
     PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
     MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
 };
+#[cfg(test)]
 pub use heterogeneous_capstone_explanation::{
     PatchbayCapstoneBaseline, PatchbayHeterogeneousCapstoneExplanation,
     MAX_CAPSTONE_EXPLANATION_BYTES,
 };
+pub use host_adapter::{PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile};
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
     PatchbayEditBasis, PatchbayInteraction, PatchbayInteractionRequest,
@@ -146,7 +149,9 @@ pub use layout::{
     CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
     MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
 };
+#[cfg(test)]
 pub use llm_documentary::llm_documentary_presentation;
+pub use llm_documentary::llm_documentary_presentation_with_adapter;
 pub use llm_embodiment_presentation::{
     llm_embodiment_documentary_presentations, project_llm_embodiment,
     LlmEmbodimentPresentationError,
@@ -180,7 +185,11 @@ pub use policy_explanation::{
 pub use portable_composition::{
     constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
 };
+#[cfg(test)]
 pub use portable_demo::{portable_demonstration, portable_demonstration_with_parts};
+pub use portable_demo::{
+    portable_demonstration_with_adapter, portable_demonstration_with_parts_and_adapter,
+};
 pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_navigation::PatchbayNavigationProjection;
@@ -275,7 +284,6 @@ mod text_lab_explanation_tests;
 mod theme_tests;
 
 const LIFECYCLE_CAPACITY: u32 = 2;
-static ID_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostProjection {
@@ -323,70 +331,27 @@ pub struct PatchbayModel {
 }
 
 impl PatchbayModel {
-    /// Creates a fresh process-scoped host and boot identity.
-    pub fn fresh() -> Self {
-        Self::fresh_with_composition(StdHostComposition::minimal().with_signal())
-    }
-
-    /// Creates a fresh process-scoped identity with the exact native host image.
-    pub fn fresh_with_composition(composition: StdHostComposition) -> Self {
-        Self::fresh_with_composition_and(composition, |_| Ok(())).expect("empty extension succeeds")
-    }
-
-    /// Creates a fresh native Host image and admits platform-owned offers
-    /// before its immutable startup projection is published.
-    pub fn fresh_with_composition_and(
-        composition: StdHostComposition,
-        extend: impl FnOnce(&mut HostAdvertisement) -> Result<(), String>,
-    ) -> Result<Self, String> {
-        let nonce = fresh_nonce();
-        Self::with_identity_composition_and(
-            HostId::from(format!("patchbay-native/{nonce}")),
-            BootId::from(format!("patchbay-boot/{nonce}")),
-            composition,
-            extend,
-        )
-    }
-
-    /// Deterministic constructor for conformance tests and embedding.
-    pub fn with_identity(host_id: HostId, boot_id: BootId) -> Self {
-        Self::with_identity_and_composition(
-            host_id,
-            boot_id,
-            StdHostComposition::minimal().with_signal(),
-        )
-    }
-
-    pub fn with_identity_and_composition(
-        host_id: HostId,
-        boot_id: BootId,
-        composition: StdHostComposition,
-    ) -> Self {
-        Self::with_identity_composition_and(host_id, boot_id, composition, |_| Ok(()))
-            .expect("empty extension succeeds")
-    }
-
-    pub fn with_identity_composition_and(
-        host_id: HostId,
-        boot_id: BootId,
-        composition: StdHostComposition,
-        extend: impl FnOnce(&mut HostAdvertisement) -> Result<(), String>,
-    ) -> Result<Self, String> {
-        let host = StdHost::new_with_composition(
-            StdHostConfig {
-                host_id,
-                boot_id,
-                offer_generation: OfferGeneration(1),
-            },
-            composition,
-        );
-        let mut advertisement = host.advertisement().clone();
-        extend(&mut advertisement)?;
+    /// Projects one authoritative Host advertisement supplied by the
+    /// application composition edge. Patchbay does not construct Hosts.
+    pub fn from_advertisement(advertisement: HostAdvertisement) -> Self {
         let projection = HostProjection::from_advertisement(&advertisement);
-        Ok(Self {
+        Self {
             advertisement,
             projection,
-        })
+        }
+    }
+
+    #[cfg(test)]
+    pub fn with_identity(host_id: HostId, boot_id: BootId) -> Self {
+        let advertisement = crate::host_adapter::test_host_adapter()
+            .advertisement(
+                host_id,
+                boot_id,
+                conduit_core::OfferGeneration(1),
+                crate::PatchbayHostProfile::Signal,
+            )
+            .expect("test Host advertisement");
+        Self::from_advertisement(advertisement)
     }
 
     pub fn projection(&self) -> &HostProjection {
@@ -473,25 +438,22 @@ impl PatchbayModel {
     }
 }
 
-fn fresh_nonce() -> String {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let sequence = ID_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    format!("{nanos:x}-{sequence:x}")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use conduit_observatory::validate_snapshot;
+    use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 
     fn model() -> PatchbayModel {
-        PatchbayModel::with_identity(
-            HostId::from("patchbay-test-host"),
-            BootId::from("patchbay-test-boot"),
-        )
+        let host = StdHost::new_with_composition(
+            StdHostConfig {
+                host_id: HostId::from("patchbay-test-host"),
+                boot_id: BootId::from("patchbay-test-boot"),
+                offer_generation: conduit_core::OfferGeneration(1),
+            },
+            StdHostComposition::minimal().with_signal(),
+        );
+        PatchbayModel::from_advertisement(host.advertisement().clone())
     }
 
     #[test]
@@ -532,11 +494,9 @@ mod tests {
     }
 
     #[test]
-    fn fresh_processes_get_distinct_exact_identities() {
-        let first = PatchbayModel::fresh();
-        let second = PatchbayModel::fresh();
-
-        assert_ne!(first.projection().host_id(), second.projection().host_id());
-        assert_ne!(first.projection().boot_id(), second.projection().boot_id());
+    fn model_preserves_the_exact_application_supplied_identity() {
+        let model = model();
+        assert_eq!(model.projection().host_id().as_str(), "patchbay-test-host");
+        assert_eq!(model.projection().boot_id().as_str(), "patchbay-test-boot");
     }
 }

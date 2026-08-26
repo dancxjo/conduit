@@ -346,14 +346,30 @@ impl NativeControl {
                     .plan
                     .as_ref()
                     .ok_or("completed Play lost its exact Plan")?;
-                self.play_document = Some(
-                    PlayDocument::from_report(plan, &report)
-                        .map_err(|error| format!("Play inspection: {error:?}"))?,
-                );
                 let kernel = report
                     .kernel
                     .as_ref()
-                    .expect("Play document required a kernel report");
+                    .ok_or("completed Play omitted its kernel report")?;
+                let execution = patchbay_model::PlayExecutionProjection {
+                    active_play_id: kernel.active_play_id.clone(),
+                    decisions: kernel.decisions,
+                    kernel_events: kernel.kernel_events,
+                    kernel_sign: kernel.kernel_sign.clone(),
+                    observations: report.observations.clone(),
+                    control_receipts: report
+                        .control_receipts
+                        .iter()
+                        .map(|receipt| patchbay_model::ControlReceiptProjection {
+                            request_id: receipt.request_id.as_str().into(),
+                            disposition: format!("{:?}", receipt.disposition),
+                            active_play_id: receipt.active_play_id.clone(),
+                        })
+                        .collect(),
+                };
+                self.play_document = Some(
+                    PlayDocument::from_execution(plan, &execution)
+                        .map_err(|error| format!("Play inspection: {error:?}"))?,
+                );
                 let terminal = self
                     .play_document
                     .as_ref()

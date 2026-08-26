@@ -1,9 +1,9 @@
 //! Sign-backed projection of distributed route selection and replanning.
 
 use conduit_core::{
-    BootId, CapabilityId, ConnectionBase, ControlLoopEvent, GearId, HostAdvertisement, HostId,
-    LineAvailability, LineAvailabilitySign, LineId, LinkBindingId, LinkEndpointId, OfferGeneration,
-    PlanningRequestAuthority, PlayUnsatisfiedReason, SignId,
+    CapabilityId, ConnectionBase, ControlLoopEvent, GearId, HostAdvertisement, LineAvailability,
+    LineAvailabilitySign, LineId, LinkBindingId, LinkEndpointId, PlanningRequestAuthority,
+    PlayUnsatisfiedReason, SignId,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -13,7 +13,6 @@ use conduit_signal_conformance::{
     distributed_browser_sink_advertisement, distributed_websocket_line_offer,
     DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
 };
-use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_wire::{LineDisposition, LineError, LineMachine};
 use std::collections::BTreeMap;
 
@@ -52,17 +51,21 @@ pub struct DistributedRouteDemo {
 }
 
 impl DistributedRouteDemo {
+    #[cfg(test)]
     pub fn build() -> Result<Self, RouteDemoError> {
-        Self::build_for_source(
-            HostId::from("patchbay-native/std-realization"),
-            BootId::from("patchbay-native/std-boot-1"),
-        )
+        use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
+        let host = StdHost::new_with_composition(
+            StdHostConfig {
+                host_id: conduit_core::HostId::from("patchbay-native/std-realization"),
+                boot_id: conduit_core::BootId::from("patchbay-native/std-boot-1"),
+                offer_generation: conduit_core::OfferGeneration(1),
+            },
+            StdHostComposition::minimal().with_signal(),
+        );
+        Self::build_for_source(host.advertisement().clone())
     }
 
-    pub fn build_for_source(
-        source_host_id: HostId,
-        source_boot_id: BootId,
-    ) -> Result<Self, RouteDemoError> {
+    pub fn build_for_source(source: HostAdvertisement) -> Result<Self, RouteDemoError> {
         if SOURCE.contains("host")
             || SOURCE.contains("WebSocket")
             || SOURCE.contains("UsbCdc")
@@ -70,17 +73,12 @@ impl DistributedRouteDemo {
         {
             return Err(RouteDemoError::InvalidSemanticForm);
         }
-        let one = planned(&[USB_LINE], &source_host_id, &source_boot_id)?;
+        let one = planned(&[USB_LINE], &source)?;
         let fallback = planned(
             &[USB_LINE, conduit_signal_conformance::DISTRIBUTED_LINE_ID],
-            &source_host_id,
-            &source_boot_id,
+            &source,
         )?;
-        let replacement = planned(
-            &[conduit_signal_conformance::DISTRIBUTED_LINE_ID],
-            &source_host_id,
-            &source_boot_id,
-        )?;
+        let replacement = planned(&[conduit_signal_conformance::DISTRIBUTED_LINE_ID], &source)?;
         let one_connection = remote_connection(&one)?;
         let fallback_connection = remote_connection(&fallback)?;
 
@@ -142,8 +140,8 @@ impl DistributedRouteDemo {
             },
             ControlLoopEvent::PlanningRequested {
                 prior_plan_id: one.plan_id.clone(),
-                requester_host_id: source_host_id,
-                requester_boot_id: source_boot_id,
+                requester_host_id: source.host_id.clone(),
+                requester_boot_id: source.boot_id.clone(),
                 authority: PlanningRequestAuthority::HostLocal,
                 request_sign_id: SignId::from("route-demo/plan-a/replan-request"),
             },
@@ -363,10 +361,8 @@ fn plan_presentation(
 
 fn planned(
     candidate_ids: &[&str],
-    source_host_id: &HostId,
-    source_boot_id: &BootId,
+    source: &HostAdvertisement,
 ) -> Result<conduit_core::Plan, RouteDemoError> {
-    let source = native_advertisement(source_host_id.clone(), source_boot_id.clone());
     let sink = distributed_browser_sink_advertisement();
     let syntax = conduit_form::parse_syntax_document(SOURCE);
     let checked =
@@ -415,7 +411,7 @@ fn planned(
     )]);
     plan_expanded_canonical_with_options(
         &form,
-        &[source, sink],
+        &[source.clone(), sink],
         &placements,
         &[ConnectionBase::WebSocket, ConnectionBase::UsbCdc],
         PlanningOptions {
@@ -429,19 +425,6 @@ fn planned(
         },
     )
     .map_err(|error| RouteDemoError::Planning(error.to_string()))
-}
-
-fn native_advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
-    StdHost::new_with_composition(
-        StdHostConfig {
-            host_id,
-            boot_id,
-            offer_generation: OfferGeneration(1),
-        },
-        StdHostComposition::minimal().with_signal(),
-    )
-    .advertisement()
-    .clone()
 }
 
 fn remote_connection(

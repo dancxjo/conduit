@@ -110,7 +110,10 @@ impl NativeDistributedPlay {
 }
 
 pub fn run_server() -> Result<(), String> {
-    let model = patchbay_model::PatchbayModel::fresh();
+    let model = crate::hosted_adapter::fresh_model(
+        conduit_std_host::StdHostComposition::minimal().with_signal(),
+        |_| Ok(()),
+    )?;
     let source = DistributedSource::prepare_for_source(
         model.projection().host_id().clone(),
         model.projection().boot_id().clone(),

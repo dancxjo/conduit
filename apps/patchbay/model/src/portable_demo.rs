@@ -7,18 +7,22 @@ use conduit_body::{
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use conduit_presentation::{Presentation, TemporalInstant, TemporalReference, TemporalScale};
-use conduit_std_host::{StdHost, StdHostConfig, ThreadTimer};
 
 use crate::{
-    DistributedRouteDemo, FormEditor, PartsView, PatchbayModel, PatchbayPresentation,
-    PatchbayRequestId, PatchbayTopology, PlanDocument, PlayDocument,
+    DistributedRouteDemo, FormEditor, PartsView, PatchbayHostAdapter, PatchbayHostProfile,
+    PatchbayModel, PatchbayPresentation, PatchbayRequestId, PatchbayTopology, PlanDocument,
+    PlayDocument,
 };
 
-pub fn portable_demonstration() -> Result<Presentation, String> {
-    portable_demonstration_with_parts().map(|(presentation, _)| presentation)
+pub fn portable_demonstration_with_adapter(
+    adapter: &dyn PatchbayHostAdapter,
+) -> Result<Presentation, String> {
+    portable_demonstration_with_parts_and_adapter(adapter).map(|(presentation, _)| presentation)
 }
 
-pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), String> {
+pub fn portable_demonstration_with_parts_and_adapter(
+    adapter: &dyn PatchbayHostAdapter,
+) -> Result<(Presentation, PartsView), String> {
     let editor = FormEditor::from_source(
         "examples/hello.conduit".into(),
         include_str!("../../../../examples/hello.conduit").into(),
@@ -27,33 +31,29 @@ pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), 
     let expanded = editor
         .expand_form("hello")
         .map_err(|error| error.to_string())?;
-    let mut host = StdHost::new_with_config(StdHostConfig {
-        host_id: HostId::from("patchbay-portable/host"),
-        boot_id: BootId::from("patchbay-portable/boot"),
-        offer_generation: OfferGeneration(1),
-    });
-    let host_id = host.advertisement().host_id.clone();
-    let boot_id = host.advertisement().boot_id.clone();
-    let plan = host
-        .plan_expanded_local(&expanded)
-        .map_err(|error| error.to_string())?;
+    let advertisement = adapter.advertisement(
+        HostId::from("patchbay-portable/host"),
+        BootId::from("patchbay-portable/boot"),
+        OfferGeneration(1),
+        PatchbayHostProfile::Reference,
+    )?;
+    let host_id = advertisement.host_id.clone();
+    let boot_id = advertisement.boot_id.clone();
+    let plan = adapter.plan_expanded_local(&advertisement, &expanded)?;
     let plan_document = PlanDocument::from_plan(
         PatchbayRequestId::new("patchbay/portable-plan").map_err(|error| format!("{error:?}"))?,
         &plan,
     )
     .map_err(|error| format!("{error:?}"))?;
-    let mut output = Vec::with_capacity(4096);
-    let report = host
-        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut ThreadTimer)
-        .map_err(|error| error.to_string())?;
-    let play_document =
-        PlayDocument::from_report(&plan, &report).map_err(|error| format!("{error:?}"))?;
-    let patchbay = PatchbayModel::with_identity(host_id.clone(), boot_id.clone());
+    let execution = adapter.run_fragment(&advertisement, plan.fragments[0].clone())?;
+    let play_document = PlayDocument::from_execution(&plan, &execution.projection)
+        .map_err(|error| format!("{error:?}"))?;
+    let patchbay = PatchbayModel::from_advertisement(advertisement.clone());
     let mut topology = PatchbayTopology::new(1).map_err(|error| error.to_string())?;
     topology
         .ingest(&patchbay.startup_snapshot())
         .map_err(|error| error.to_string())?;
-    let route = DistributedRouteDemo::build()
+    let route = DistributedRouteDemo::build_for_source(advertisement.clone())
         .map_err(|error| format!("{error:?}"))?
         .presentation()
         .clone();
@@ -108,7 +108,7 @@ pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), 
     admit_demo_part(&mut membership, &body, "pico-w", None, 2)?;
     let mut candidates =
         CandidateInventory::new(body.body_id.clone()).map_err(|error| format!("{error:?}"))?;
-    let mut candidate = host.advertisement().clone();
+    let mut candidate = advertisement;
     candidate.host_id = HostId::from("browser/tab-3");
     candidate.boot_id = BootId::from("browser/tab-3/boot");
     candidates
@@ -184,6 +184,16 @@ pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), 
         )
         .map_err(|error| error.to_string())?;
     Ok((presentation, parts))
+}
+
+#[cfg(test)]
+pub fn portable_demonstration() -> Result<Presentation, String> {
+    portable_demonstration_with_adapter(crate::host_adapter::test_host_adapter())
+}
+
+#[cfg(test)]
+pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), String> {
+    portable_demonstration_with_parts_and_adapter(crate::host_adapter::test_host_adapter())
 }
 
 fn admit_demo_part(

@@ -19,8 +19,10 @@ pub(super) fn append_vector_search_realization(
     let proof_class =
         if placement.implementation_id.as_str() == conduit_ai::EXACT_VECTOR_SEARCH_IMPLEMENTATION {
             Some("deterministic-exact")
-        } else if placement.implementation_id.as_str()
-            == conduit_std_host::hosted_vector_index::HOSTED_HNSW_IMPLEMENTATION_ID
+        } else if placement
+            .execution_profile_id
+            .as_str()
+            .starts_with("conduit.vector-search/hnsw/")
         {
             Some("approximate")
         } else {

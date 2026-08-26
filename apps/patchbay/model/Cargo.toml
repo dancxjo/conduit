@@ -16,12 +16,12 @@ conduit-ai = { path = "../../../crates/conduit-ai", features = ["form-catalog"] 
 conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../../proof/conformance/signal" }
 conduit-std-catalog = { path = "../../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog", "text-lab-plan"] }
-conduit-std-host = { path = "../../../hosts/std" }
 conduit-wire = { path = "../../../crates/conduit-wire" }
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
 conduit-browser-runtime = { path = "../../../hosts/browser-runtime" }
+conduit-std-host = { path = "../../../hosts/std" }
 conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../../proof/conformance/signal" }
 serde_json = "1"

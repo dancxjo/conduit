@@ -36,7 +36,10 @@ impl NativeFrontDoorPresentation {
 
 impl PatchbayApplication {
     pub(super) fn initialize_front_door(&mut self) -> Result<(), String> {
-        let session = ZeroBodyFrontDoor::from_model(self.model.clone())?;
+        let session = ZeroBodyFrontDoor::from_model(
+            std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter),
+            self.model.clone(),
+        )?;
         let projection = session.project()?;
         let presentation = projection.presentation;
         let navigation = projection.navigation;

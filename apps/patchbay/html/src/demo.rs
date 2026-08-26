@@ -5,7 +5,9 @@ use patchbay_model::{
 };
 
 pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
-    let (presentation, parts) = patchbay_model::portable_demonstration_with_parts()?;
+    let (presentation, parts) = patchbay_model::portable_demonstration_with_parts_and_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )?;
     let execution = RendererExecution::prepare(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
@@ -30,7 +32,9 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
 }
 
 pub fn llm_documentary_snapshot() -> Result<RendererSnapshot, String> {
-    let presentation = patchbay_model::llm_documentary_presentation()?;
+    let presentation = patchbay_model::llm_documentary_presentation_with_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )?;
     let execution = RendererExecution::prepare(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
@@ -84,7 +88,7 @@ pub fn text_lab_split_snapshot(base: &str) -> Result<RendererSnapshot, String> {
 
 pub fn text_lab_split_loss_snapshot(
     base: &str,
-    receipt: &conduit_std_host::text_lab_live::TextLabLineLossReceipt,
+    receipt: &conduit_std_catalog::TextLabLineLossReceipt,
 ) -> Result<RendererSnapshot, String> {
     text_lab_snapshot(patchbay_model::text_lab_split_loss_explanation(
         base, receipt,

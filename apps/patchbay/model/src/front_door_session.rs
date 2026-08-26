@@ -10,7 +10,7 @@ use conduit_core::{
     LineOffer, OfferGeneration, PlanId, SignId,
 };
 use conduit_presentation::Presentation;
-use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
+use std::sync::Arc;
 
 use crate::{
     front_door_topology::FrontDoorTopology, FormEditor, PartsView, PatchbayModel,
@@ -26,6 +26,7 @@ pub struct LocalFrontDoorProjection {
 
 #[derive(Clone)]
 pub struct LocalFrontDoor {
+    pub(super) adapter: Arc<dyn crate::PatchbayHostAdapter>,
     pub(super) model: PatchbayModel,
     pub(super) editor: FormEditor,
     pub(super) form_name: String,
@@ -35,7 +36,6 @@ pub struct LocalFrontDoor {
     pub(super) candidates: CandidateInventory,
     pub(super) admissions: AdmissionManager,
     pub(super) here: PartId,
-    pub(super) composition: StdHostComposition,
     pub(super) plan: Option<PlanDocument>,
     pub(super) play: Option<PlayDocument>,
     pub(super) active_play: Option<ActivePlayIdentity>,
@@ -44,22 +44,38 @@ pub struct LocalFrontDoor {
 }
 
 impl LocalFrontDoor {
-    pub fn fresh() -> Result<Self, String> {
-        let model =
-            PatchbayModel::fresh_with_composition(StdHostComposition::minimal().with_text());
-        Self::from_model(model)
+    pub fn fresh(adapter: Arc<dyn crate::PatchbayHostAdapter>) -> Result<Self, String> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let advertisement = adapter.advertisement(
+            HostId::from(format!("patchbay-native/{nonce:x}")),
+            BootId::from(format!("patchbay-boot/{nonce:x}")),
+            OfferGeneration(1),
+            crate::PatchbayHostProfile::Text,
+        )?;
+        Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
 
-    pub fn with_identity(host_id: HostId, boot_id: BootId) -> Result<Self, String> {
-        Self::from_model(PatchbayModel::with_identity_and_composition(
+    pub fn with_identity(
+        adapter: Arc<dyn crate::PatchbayHostAdapter>,
+        host_id: HostId,
+        boot_id: BootId,
+    ) -> Result<Self, String> {
+        let advertisement = adapter.advertisement(
             host_id,
             boot_id,
-            StdHostComposition::minimal().with_text(),
-        ))
+            OfferGeneration(1),
+            crate::PatchbayHostProfile::Text,
+        )?;
+        Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
 
-    fn from_model(model: PatchbayModel) -> Result<Self, String> {
-        let composition = StdHostComposition::minimal().with_text();
+    fn from_model(
+        adapter: Arc<dyn crate::PatchbayHostAdapter>,
+        model: PatchbayModel,
+    ) -> Result<Self, String> {
         let editor = FormEditor::from_source(
             "patchbay-front-door.conduit".into(),
             include_str!("../../../../examples/patchbay-front-door.conduit").into(),
@@ -120,6 +136,7 @@ impl LocalFrontDoor {
         let admissions =
             AdmissionManager::new(body.body_id.clone()).map_err(|error| format!("{error:?}"))?;
         Ok(Self {
+            adapter,
             model,
             editor,
             form_name: "patchbay-front-door".into(),
@@ -129,7 +146,6 @@ impl LocalFrontDoor {
             candidates,
             admissions,
             here,
-            composition,
             plan: None,
             play: None,
             active_play: None,
@@ -269,15 +285,13 @@ impl LocalFrontDoor {
         offer_generation: OfferGeneration,
     ) -> Result<(), String> {
         let host_id = self.model.advertisement().host_id.clone();
-        let next_model = PatchbayModel::with_identity_composition_and(
+        let advertisement = self.adapter.advertisement(
             host_id.clone(),
             boot_id.clone(),
-            self.composition,
-            |advertisement| {
-                advertisement.offer_generation = offer_generation;
-                Ok(())
-            },
+            offer_generation,
+            crate::PatchbayHostProfile::Text,
         )?;
+        let next_model = PatchbayModel::from_advertisement(advertisement);
         self.membership
             .observe_present(
                 &self.body.body_id,
@@ -336,19 +350,13 @@ impl LocalFrontDoor {
             .as_ref()
             .ok_or("planning requires an explicit Wake after Birth")?;
         let advertisement = self.model.advertisement().clone();
-        let config = StdHostConfig {
-            host_id: advertisement.host_id.clone(),
-            boot_id: advertisement.boot_id.clone(),
-            offer_generation: advertisement.offer_generation,
-        };
-        let host = StdHost::new_with_composition(config, self.composition);
         let expanded = self
             .editor
             .expand_form(&self.form_name)
             .map_err(|error| error.to_string())?;
-        let plan = host
-            .plan_expanded_local(&expanded)
-            .map_err(|error| error.to_string())?;
+        let plan = self
+            .adapter
+            .plan_expanded_local(&advertisement, &expanded)?;
         let awaiting = match wake.lifecycle {
             WakeLifecycle::AwaitingPlan => wake.clone(),
             WakeLifecycle::Playing => {
@@ -400,12 +408,6 @@ impl LocalFrontDoor {
             ));
         }
         let advertisement = self.model.advertisement().clone();
-        let config = StdHostConfig {
-            host_id: advertisement.host_id.clone(),
-            boot_id: advertisement.boot_id.clone(),
-            offer_generation: advertisement.offer_generation,
-        };
-        let mut host = StdHost::new_with_composition(config, self.composition);
         let plan = self
             .plan
             .as_ref()
@@ -431,8 +433,8 @@ impl LocalFrontDoor {
             .first()
             .cloned()
             .ok_or("front-door Plan has no local fragment")?;
-        let report = host.run_fragment_to(fragment, &mut Vec::new(), &mut ThreadTimer)?;
-        let play_document = PlayDocument::from_report(&plan, &report)
+        let execution = self.adapter.run_fragment(&advertisement, fragment)?;
+        let play_document = PlayDocument::from_execution(&plan, &execution.projection)
             .map_err(|error| format!("play document: {error:?}"))?;
         self.wake = Some(playing);
         self.play = Some(play_document);

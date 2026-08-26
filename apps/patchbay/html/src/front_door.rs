@@ -12,7 +12,8 @@ use crate::transport_types::{
 };
 
 pub fn front_door_snapshot() -> Result<RendererSnapshot, String> {
-    let session = ZeroBodyFrontDoor::fresh()?;
+    let session =
+        ZeroBodyFrontDoor::fresh(std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter))?;
     snapshot_for_zero_body_front_door(&session)
 }
 

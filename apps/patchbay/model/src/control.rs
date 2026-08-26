@@ -4,7 +4,6 @@ use conduit_core::{
     verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, HostAdvertisement, Observation, Plan,
     PlanId, SourceDocumentId, TerminalDisposition,
 };
-use conduit_std_host::StdRunReport;
 
 const MAXIMUM_CONTROL_ID_BYTES: usize = 128;
 const MAXIMUM_INSPECTION_LINES: usize = 512;
@@ -167,10 +166,54 @@ pub struct PlayDocument {
     pub terminal: TerminalDisposition,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlayExecutionProjection {
+    pub active_play_id: ActivePlayId,
+    pub decisions: u32,
+    pub kernel_events: u16,
+    pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
+    pub observations: Vec<Observation>,
+    pub control_receipts: Vec<ControlReceiptProjection>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ControlReceiptProjection {
+    pub request_id: String,
+    pub disposition: String,
+    pub active_play_id: ActivePlayId,
+}
+
 impl PlayDocument {
-    pub fn from_report(plan: &Plan, report: &StdRunReport) -> Result<Self, ControlError> {
+    #[cfg(test)]
+    pub fn from_report(
+        plan: &Plan,
+        report: &conduit_std_host::StdRunReport,
+    ) -> Result<Self, ControlError> {
         let kernel = report.kernel.as_ref().ok_or(ControlError::InvalidPlan)?;
-        let terminal = report
+        let execution = PlayExecutionProjection {
+            active_play_id: kernel.active_play_id.clone(),
+            decisions: kernel.decisions,
+            kernel_events: kernel.kernel_events,
+            kernel_sign: kernel.kernel_sign.clone(),
+            observations: report.observations.clone(),
+            control_receipts: report
+                .control_receipts
+                .iter()
+                .map(|receipt| ControlReceiptProjection {
+                    request_id: receipt.request_id.as_str().into(),
+                    disposition: format!("{:?}", receipt.disposition),
+                    active_play_id: receipt.active_play_id.clone(),
+                })
+                .collect(),
+        };
+        Self::from_execution(plan, &execution)
+    }
+
+    pub fn from_execution(
+        plan: &Plan,
+        execution: &PlayExecutionProjection,
+    ) -> Result<Self, ControlError> {
+        let terminal = execution
             .observations
             .iter()
             .rev()
@@ -181,17 +224,17 @@ impl PlayDocument {
             .ok_or(ControlError::InvalidPlan)?;
         let mut lines = vec![format!(
             "PLAY active={} plan={} terminal={terminal:?}",
-            kernel.active_play_id.as_str(),
+            execution.active_play_id.as_str(),
             plan.plan_id.as_str()
         )];
         push(
             &mut lines,
             format!(
                 "  PRESSURE exposed=false decisions={} kernel_events={} sign_gaps=0",
-                kernel.decisions, kernel.kernel_events
+                execution.decisions, execution.kernel_events
             ),
         )?;
-        for observation in &report.observations {
+        for observation in &execution.observations {
             push(
                 &mut lines,
                 format!(
@@ -201,7 +244,7 @@ impl PlayDocument {
                 ),
             )?;
         }
-        for event in &kernel.kernel_sign {
+        for event in &execution.kernel_sign {
             push(
                 &mut lines,
                 format!(
@@ -210,21 +253,21 @@ impl PlayDocument {
                 ),
             )?;
         }
-        for receipt in &report.control_receipts {
+        for receipt in &execution.control_receipts {
             push(
                 &mut lines,
                 format!(
-                    "  CONTROL request={} disposition={:?} active={}",
-                    receipt.request_id.as_str(),
+                    "  CONTROL request={} disposition={} active={}",
+                    receipt.request_id,
                     receipt.disposition,
                     receipt.active_play_id.as_str()
                 ),
             )?;
         }
         Ok(Self {
-            active_play_id: kernel.active_play_id.clone(),
+            active_play_id: execution.active_play_id.clone(),
             plan_id: plan.plan_id.clone(),
-            signs: report.observations.clone(),
+            signs: execution.observations.clone(),
             lines,
             terminal,
         })

@@ -157,13 +157,17 @@ fn unchanged_k6_form_plans_to_truthful_native_realization_without_usb_facts() {
     let composition = conduit_std_host::StdHostComposition::minimal()
         .with_text()
         .with_input();
-    let model = patchbay_model::PatchbayModel::with_identity_composition_and(
-        conduit_core::HostId::from("patchbay-native/conformance"),
-        conduit_core::BootId::from("patchbay-native/boot-1"),
+    let host = conduit_std_host::StdHost::new_with_composition(
+        conduit_std_host::StdHostConfig {
+            host_id: conduit_core::HostId::from("patchbay-native/conformance"),
+            boot_id: conduit_core::BootId::from("patchbay-native/boot-1"),
+            offer_generation: conduit_core::OfferGeneration(1),
+        },
         composition,
-        append_offer,
-    )
-    .unwrap();
+    );
+    let mut advertisement = host.advertisement().clone();
+    append_offer(&mut advertisement).unwrap();
+    let model = patchbay_model::PatchbayModel::from_advertisement(advertisement);
     let source = conduitos::keyboard_text_plan::FORM_SOURCE;
     let syntax = conduit_form::parse_syntax_document(source);
     let mut startup = conduit_form::StartupCatalog::new();

@@ -1,4 +1,5 @@
 use super::*;
+use conduit_core::{BootId, HostId, OfferGeneration};
 
 #[test]
 fn document_distinguishes_replan_from_same_plan_fallback() {
@@ -18,19 +19,32 @@ fn document_distinguishes_replan_from_same_plan_fallback() {
 fn candidate_order_changes_exact_plan_identity() {
     let host = HostId::from("patchbay-native/std-realization");
     let boot = BootId::from("patchbay-native/std-boot-1");
+    let source = native_advertisement_for_test(host, boot);
     let usb_first = planned(
         &[USB_LINE, conduit_signal_conformance::DISTRIBUTED_LINE_ID],
-        &host,
-        &boot,
+        &source,
     )
     .unwrap();
     let websocket_first = planned(
         &[conduit_signal_conformance::DISTRIBUTED_LINE_ID, USB_LINE],
-        &host,
-        &boot,
+        &source,
     )
     .unwrap();
     assert_ne!(usb_first.plan_id, websocket_first.plan_id);
+}
+
+fn native_advertisement_for_test(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
+    use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
+    StdHost::new_with_composition(
+        StdHostConfig {
+            host_id,
+            boot_id,
+            offer_generation: OfferGeneration(1),
+        },
+        StdHostComposition::minimal().with_signal(),
+    )
+    .advertisement()
+    .clone()
 }
 
 #[test]

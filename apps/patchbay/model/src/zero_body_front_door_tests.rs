@@ -63,9 +63,12 @@ fn living_body_candidate() -> BodyJoinCandidate {
 
 #[test]
 fn zero_body_world_is_valid_and_native_browser_semantics_match() {
-    let session =
-        ZeroBodyFrontDoor::with_identity(HostId::from("zero/host"), BootId::from("zero/boot"))
-            .unwrap();
+    let session = ZeroBodyFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
+        HostId::from("zero/host"),
+        BootId::from("zero/boot"),
+    )
+    .unwrap();
     let presentation = session.project().unwrap().presentation;
     assert!(presentation.basis.body_id.is_none());
     assert!(presentation.basis.seed_id.is_none());
@@ -135,9 +138,12 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
 
 #[test]
 fn opening_seed_is_inert_and_only_explicit_birth_embodies_host() {
-    let mut session =
-        ZeroBodyFrontDoor::with_identity(HostId::from("birth/host"), BootId::from("birth/boot"))
-            .unwrap();
+    let mut session = ZeroBodyFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
+        HostId::from("birth/host"),
+        BootId::from("birth/boot"),
+    )
+    .unwrap();
     let initial = session.project().unwrap().presentation;
     let seed = initial
         .subjects
@@ -196,6 +202,7 @@ fn opening_seed_is_inert_and_only_explicit_birth_embodies_host() {
 #[test]
 fn discovered_body_open_is_inert_and_explicit_proof_backed_join_is_exact() {
     let mut session = ZeroBodyFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("join/local-host"),
         BootId::from("join/local-boot"),
     )
@@ -236,9 +243,12 @@ fn discovered_body_open_is_inert_and_explicit_proof_backed_join_is_exact() {
 
 #[test]
 fn zero_body_sources_are_finite_and_duplicates_fail_closed() {
-    let mut session =
-        ZeroBodyFrontDoor::with_identity(HostId::from("bounds/host"), BootId::from("bounds/boot"))
-            .unwrap();
+    let mut session = ZeroBodyFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
+        HostId::from("bounds/host"),
+        BootId::from("bounds/boot"),
+    )
+    .unwrap();
     let seed = session.seeds[0].clone();
     assert!(session.add_seed(seed).is_err());
     let candidate = living_body_candidate();
@@ -248,9 +258,12 @@ fn zero_body_sources_are_finite_and_duplicates_fail_closed() {
 
 #[test]
 fn opened_seed_edits_canonical_source_and_stale_edits_are_atomic() {
-    let mut session =
-        ZeroBodyFrontDoor::with_identity(HostId::from("edit/host"), BootId::from("edit/boot"))
-            .unwrap();
+    let mut session = ZeroBodyFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
+        HostId::from("edit/host"),
+        BootId::from("edit/boot"),
+    )
+    .unwrap();
     let seed = SeedCandidate::from_source(
         "Empty",
         "empty.conduit",

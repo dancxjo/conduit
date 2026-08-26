@@ -6,7 +6,10 @@ use conduit_presentation::{
 
 #[test]
 fn native_and_linear_consume_one_bounded_portable_navigation_journey() {
-    let presentation = patchbay_model::portable_demonstration().unwrap();
+    let presentation = patchbay_model::portable_demonstration_with_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )
+    .unwrap();
     let mut navigation =
         patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
     let mut places = navigation.navigation.places.clone();

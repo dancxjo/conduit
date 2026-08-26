@@ -26,7 +26,10 @@ fn assert_semantic_history_round_trip(
 
 #[test]
 fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
-    let presentation = patchbay_model::portable_demonstration().unwrap();
+    let presentation = patchbay_model::portable_demonstration_with_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )
+    .unwrap();
     let lines = portable_presentation_lines(&presentation).unwrap();
     let nonvisual = conduit_presentation::render_linear_presentation(&presentation).unwrap();
     assert_eq!(lines, nonvisual.lines);

@@ -29,6 +29,28 @@ pub const TEXT_LAB_FORWARD_LINE: &str = "text-lab/native-to-browser";
 pub const TEXT_LAB_RETURN_LINE: &str = "text-lab/browser-to-native";
 pub const TEXT_LAB_MAXIMUM_VALUES: usize = 5;
 
+/// Bounded machine-readable observation emitted when the live Text Lab loses
+/// its planned return Line. This is shared contract data, not std-Host state.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TextLabLineLossReceipt {
+    pub schema: String,
+    pub code: String,
+    pub phase: String,
+    pub sequence: u64,
+    pub line_id: String,
+    pub plan_id: String,
+    pub source_document_id: String,
+    pub checked_form_id: String,
+    pub active_play_id: String,
+    pub sign_id: String,
+    pub old_plan_disposition: String,
+    pub fresh_planning: String,
+    pub form_unchanged: bool,
+    pub refusal: String,
+    pub transport_failure: String,
+}
+
 pub struct TextLabSplitPlan {
     pub plan: Plan,
     pub native: HostAdvertisement,

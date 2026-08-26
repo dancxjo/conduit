@@ -16,7 +16,9 @@ impl PatchbayHtmlServer {
         address: SocketAddr,
         seeds: Vec<SeedCandidate>,
     ) -> Result<Self, ServerError> {
-        let mut session = ZeroBodyFrontDoor::fresh().map_err(ServerError::Interaction)?;
+        let mut session =
+            ZeroBodyFrontDoor::fresh(std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter))
+                .map_err(ServerError::Interaction)?;
         for seed in seeds {
             session.add_seed(seed).map_err(ServerError::Interaction)?;
         }

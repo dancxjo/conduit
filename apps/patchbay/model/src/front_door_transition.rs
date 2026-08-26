@@ -5,7 +5,7 @@ use conduit_body::{
     MembershipProofId, PartId, Wake,
 };
 use conduit_core::SignId;
-use conduit_std_host::StdHostComposition;
+use std::sync::Arc;
 
 use crate::{
     front_door_topology::FrontDoorTopology, BodyJoinCandidate, FormEditor, LocalFrontDoor,
@@ -14,11 +14,13 @@ use crate::{
 
 impl LocalFrontDoor {
     pub(super) fn join_existing(
+        adapter: Arc<dyn crate::PatchbayHostAdapter>,
         model: PatchbayModel,
         candidate: BodyJoinCandidate,
         revision: u64,
     ) -> Result<Self, String> {
         Self::from_existing(
+            adapter,
             model,
             candidate.editor,
             candidate.body,
@@ -31,6 +33,7 @@ impl LocalFrontDoor {
     }
 
     pub(super) fn born_from_seed(
+        adapter: Arc<dyn crate::PatchbayHostAdapter>,
         model: PatchbayModel,
         seed: SeedCandidate,
         revision: u64,
@@ -48,12 +51,13 @@ impl LocalFrontDoor {
         let proof = MembershipProofId::bind(&format!("explicit-birth/{}", seed.seed_id.as_str()))
             .map_err(|error| error.to_string())?;
         Self::from_existing(
-            model, editor, body, None, membership, proof, revision, "born",
+            adapter, model, editor, body, None, membership, proof, revision, "born",
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn from_existing(
+        adapter: Arc<dyn crate::PatchbayHostAdapter>,
         model: PatchbayModel,
         editor: FormEditor,
         body: Body,
@@ -71,7 +75,6 @@ impl LocalFrontDoor {
             .find(|form| form.checked_form_id == body.checked_form_id)
             .map(|form| form.name.clone())
             .ok_or("Body checked Form is absent from its source document")?;
-        let composition = StdHostComposition::minimal().with_text();
         let here = PartId::bind(
             &body.body_id,
             model.advertisement().host_id.as_str(),
@@ -107,6 +110,7 @@ impl LocalFrontDoor {
         let admissions =
             AdmissionManager::new(body.body_id.clone()).map_err(|error| format!("{error:?}"))?;
         Ok(Self {
+            adapter,
             model,
             editor,
             form_name,
@@ -116,7 +120,6 @@ impl LocalFrontDoor {
             candidates,
             admissions,
             here,
-            composition,
             plan: None,
             play: None,
             active_play: None,

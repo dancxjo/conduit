@@ -340,7 +340,10 @@ fn native_follow_crosses_exact_documentary_correlation_and_returns() {
         ..Arguments::default()
     })
     .unwrap();
-    let presentation = patchbay_model::portable_demonstration().unwrap();
+    let presentation = patchbay_model::portable_demonstration_with_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )
+    .unwrap();
     let navigation =
         patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
     application.entrance = Some(
@@ -476,7 +479,10 @@ fn native_follow_refuses_zero_or_ambiguous_correlations_without_motion() {
         "FOLLOW unavailable for the current Focus"
     );
 
-    let presentation = patchbay_model::portable_demonstration().unwrap();
+    let presentation = patchbay_model::portable_demonstration_with_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )
+    .unwrap();
     let navigation =
         patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
     let forward = &navigation.navigation.follows[0];

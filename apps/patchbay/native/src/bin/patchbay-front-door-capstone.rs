@@ -27,6 +27,7 @@ const BROWSER_BINDING_ID: &str = "patchbay-front-door/browser-binding";
 
 fn main() -> Result<(), String> {
     let mut session = LocalFrontDoor::with_identity(
+        std::sync::Arc::new(patchbay_hosted::HostedPatchbayAdapter),
         HostId::from("patchbay-front-door/here"),
         BootId::from("patchbay-front-door/here/boot-1"),
     )?;

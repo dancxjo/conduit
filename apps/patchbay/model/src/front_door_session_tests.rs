@@ -28,6 +28,7 @@ fn browser_advertisement(identity: &BrowserAdmissionIdentity) -> HostAdvertiseme
 #[test]
 fn fresh_session_projects_only_current_canonical_truth() {
     let session = LocalFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("front-door/local"),
         BootId::from("front-door/local/boot-1"),
     )
@@ -55,6 +56,7 @@ fn fresh_session_projects_only_current_canonical_truth() {
 #[test]
 fn plan_play_restart_and_replan_are_distinct_revisioned_truth() {
     let mut session = LocalFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("front-door/local"),
         BootId::from("front-door/local/boot-1"),
     )
@@ -112,6 +114,7 @@ fn plan_play_restart_and_replan_are_distinct_revisioned_truth() {
 #[test]
 fn planned_gear_and_host_are_exact_bidirectional_cross_place_follows() {
     let mut session = LocalFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("front-door/follow"),
         BootId::from("front-door/follow/boot-1"),
     )
@@ -185,6 +188,7 @@ fn planned_gear_and_host_are_exact_bidirectional_cross_place_follows() {
 #[test]
 fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
     let mut session = LocalFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("front-door/local"),
         BootId::from("front-door/local/boot-1"),
     )
@@ -348,6 +352,7 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
 #[test]
 fn front_door_projects_a_bounded_pico_profile_fixture_without_promoting_it_to_live_proof() {
     let mut session = LocalFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("front-door/local"),
         BootId::from("front-door/local/boot-1"),
     )

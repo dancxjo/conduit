@@ -5,6 +5,7 @@ use conduit_core::{BootId, CheckedFormId, HostId, SignId, SourceDocumentId};
 use conduit_presentation::Presentation;
 
 use crate::{FormEditor, LocalFrontDoor, PatchbayModel};
+use std::sync::Arc;
 
 pub const MAX_FRONT_DOOR_BODY_CANDIDATES: usize = 16;
 pub const MAX_FRONT_DOOR_SEEDS: usize = 16;
@@ -160,6 +161,7 @@ pub struct ZeroBodyFrontDoorProjection {
 
 #[derive(Clone)]
 pub struct ZeroBodyFrontDoor {
+    pub(super) adapter: Arc<dyn crate::PatchbayHostAdapter>,
     pub(super) model: PatchbayModel,
     pub(super) body_candidates: Vec<BodyJoinCandidate>,
     pub(super) seeds: Vec<SeedCandidate>,
@@ -169,22 +171,38 @@ pub struct ZeroBodyFrontDoor {
 }
 
 impl ZeroBodyFrontDoor {
-    pub fn fresh() -> Result<Self, String> {
-        let model = PatchbayModel::fresh_with_composition(
-            conduit_std_host::StdHostComposition::minimal().with_text(),
-        );
-        Self::from_model(model)
+    pub fn fresh(adapter: Arc<dyn crate::PatchbayHostAdapter>) -> Result<Self, String> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let advertisement = adapter.advertisement(
+            HostId::from(format!("patchbay-native/{nonce:x}")),
+            BootId::from(format!("patchbay-boot/{nonce:x}")),
+            conduit_core::OfferGeneration(1),
+            crate::PatchbayHostProfile::Text,
+        )?;
+        Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
 
-    pub fn with_identity(host_id: HostId, boot_id: BootId) -> Result<Self, String> {
-        Self::from_model(PatchbayModel::with_identity_and_composition(
+    pub fn with_identity(
+        adapter: Arc<dyn crate::PatchbayHostAdapter>,
+        host_id: HostId,
+        boot_id: BootId,
+    ) -> Result<Self, String> {
+        let advertisement = adapter.advertisement(
             host_id,
             boot_id,
-            conduit_std_host::StdHostComposition::minimal().with_text(),
-        ))
+            conduit_core::OfferGeneration(1),
+            crate::PatchbayHostProfile::Text,
+        )?;
+        Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
 
-    pub fn from_model(model: PatchbayModel) -> Result<Self, String> {
+    pub fn from_model(
+        adapter: Arc<dyn crate::PatchbayHostAdapter>,
+        model: PatchbayModel,
+    ) -> Result<Self, String> {
         let seed = SeedCandidate::from_source(
             "Patchbay entrance specimen",
             "patchbay-front-door.conduit",
@@ -194,6 +212,7 @@ impl ZeroBodyFrontDoor {
             1,
         )?;
         Ok(Self {
+            adapter,
             model,
             body_candidates: Vec::new(),
             seeds: vec![seed],
@@ -333,7 +352,7 @@ impl ZeroBodyFrontDoor {
         if candidate.freshness_sequence != observed_at {
             return Err("opened Body observation is stale".into());
         }
-        LocalFrontDoor::join_existing(self.model, candidate, self.revision)
+        LocalFrontDoor::join_existing(self.adapter, self.model, candidate, self.revision)
     }
 
     pub fn birth(self, revision: u64) -> Result<LocalFrontDoor, String> {
@@ -353,7 +372,7 @@ impl ZeroBodyFrontDoor {
         if seed.freshness_sequence != observed_at {
             return Err("opened Seed observation is stale".into());
         }
-        LocalFrontDoor::born_from_seed(self.model, seed, self.revision)
+        LocalFrontDoor::born_from_seed(self.adapter, self.model, seed, self.revision)
     }
 
     fn require_revision(&self, revision: u64) -> Result<(), String> {

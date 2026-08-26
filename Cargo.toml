@@ -37,6 +37,7 @@ members = [
 	"hosts/conduitos",
 	"apps/patchbay/model",
 	"apps/patchbay/html",
+	"apps/patchbay/hosted",
 	"apps/patchbay/native",
 	"hosts/std",
 	"targets/rp2040/fabrication",

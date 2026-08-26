@@ -15,7 +15,7 @@ impl PatchbayApplication {
         if native_file_base.is_some() {
             composition = composition.with_files();
         }
-        let model = PatchbayModel::fresh_with_composition_and(composition, |advertisement| {
+        let model = hosted_adapter::fresh_model(composition, |advertisement| {
             portable_keyboard::append_offer(advertisement)
         })?;
         emit_report("startup", &model.startup_snapshot())?;
@@ -61,9 +61,11 @@ impl PatchbayApplication {
         {
             return Err("--prewake requires both --form and --environment".into());
         }
-        let mut prewake = arguments
-            .prewake
-            .then(patchbay_model::PrewakeController::default);
+        let mut prewake = arguments.prewake.then(|| {
+            patchbay_model::PrewakeController::new(std::sync::Arc::new(
+                patchbay_hosted::HostedPatchbayAdapter,
+            ))
+        });
         if let Some(controller) = &mut prewake {
             controller.set_hold(arguments.prewake_hold);
             controller
@@ -93,18 +95,15 @@ impl PatchbayApplication {
             composition,
         );
         let route_demo = (arguments.distributed_route_demo || arguments.distributed_play)
-            .then(|| {
-                DistributedRouteDemo::build_for_source(
-                    source_host_id.clone(),
-                    source_boot_id.clone(),
-                )
-            })
+            .then(|| DistributedRouteDemo::build_for_source(model.advertisement().clone()))
             .transpose()
             .map_err(|error| format!("distributed route demo: {error:?}"))?;
         let renderer_execution = (arguments.distributed_route_demo || arguments.distributed_play)
             .then(|| {
                 RendererExecution::prepare(
-                    patchbay_model::portable_demonstration()?,
+                    patchbay_model::portable_demonstration_with_adapter(
+                        &patchbay_hosted::HostedPatchbayAdapter,
+                    )?,
                     RendererAdapterKind::NativeWayland,
                     RendererAdapterIdentity {
                         host_id: source_host_id.clone(),

@@ -112,7 +112,9 @@ impl PatchbayApplication {
         let realization_hosts = self
             .environment
             .as_ref()
-            .map(simulated_advertisements)
+            .map(|environment| {
+                simulated_advertisements(&patchbay_hosted::HostedPatchbayAdapter, environment)
+            })
             .unwrap_or_default();
         let realization_plan =
             self.prewake

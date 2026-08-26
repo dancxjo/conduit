@@ -8,8 +8,8 @@ use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
     PlanningOptions,
 };
-use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 use std::collections::{BTreeMap, VecDeque};
+use std::sync::Arc;
 
 pub const MAX_PREWAKE_HISTORY: usize = 8;
 
@@ -86,8 +86,9 @@ impl std::fmt::Display for PrewakeError {
 }
 impl std::error::Error for PrewakeError {}
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PrewakeController {
+    adapter: Arc<dyn crate::PatchbayHostAdapter>,
     state: PrewakeState,
     hold: bool,
     provenance: PrewakeProvenance,
@@ -97,9 +98,27 @@ pub struct PrewakeController {
         BTreeMap<conduit_core::GearId, (HostId, conduit_core::CapabilityId)>,
 }
 
-impl Default for PrewakeController {
-    fn default() -> Self {
+impl std::fmt::Debug for PrewakeController {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("PrewakeController")
+            .field("state", &self.state)
+            .field("hold", &self.hold)
+            .field("provenance", &self.provenance)
+            .field("history", &self.history)
+            .field("last_refusal", &self.last_refusal)
+            .field(
+                "implementation_preferences",
+                &self.implementation_preferences,
+            )
+            .finish_non_exhaustive()
+    }
+}
+
+impl PrewakeController {
+    pub fn new(adapter: Arc<dyn crate::PatchbayHostAdapter>) -> Self {
         Self {
+            adapter,
             state: PrewakeState::Off,
             hold: false,
             provenance: PrewakeProvenance::default(),
@@ -108,9 +127,7 @@ impl Default for PrewakeController {
             implementation_preferences: BTreeMap::new(),
         }
     }
-}
 
-impl PrewakeController {
     pub fn state(&self) -> &PrewakeState {
         &self.state
     }
@@ -144,11 +161,11 @@ impl PrewakeController {
     ) -> Result<(), PrewakeError> {
         let result = self
             .prepare(editor, environment)
-            .and_then(|(basis, plan, mut hosts)| {
+            .and_then(|(basis, plan, hosts)| {
                 if self.hold {
                     Ok(PrewakeState::Held { basis, plan })
                 } else {
-                    let play = execute_simulated(&plan, &mut hosts)?;
+                    let play = execute_simulated(self.adapter.as_ref(), &plan, &hosts)?;
                     Ok(PrewakeState::Auto { basis, plan, play })
                 }
             });
@@ -176,7 +193,7 @@ impl PrewakeController {
             PrewakeState::Off => return Err(PrewakeError::NotEntered),
             PrewakeState::Auto { .. } => return Err(PrewakeError::NoHeldPlan),
         };
-        let (current_basis, current_plan, mut hosts) = self.prepare(editor, environment)?;
+        let (current_basis, current_plan, hosts) = self.prepare(editor, environment)?;
         if held_basis != current_basis || held_plan.plan_id != current_plan.plan_id {
             let error = PrewakeError::StaleHeldPlan {
                 plan_id: held_plan.plan_id,
@@ -184,7 +201,7 @@ impl PrewakeController {
             self.last_refusal = Some(error.clone());
             return Err(error);
         }
-        let play = execute_simulated(&held_plan, &mut hosts)?;
+        let play = execute_simulated(self.adapter.as_ref(), &held_plan, &hosts)?;
         self.retain_current();
         self.state = PrewakeState::Auto {
             basis: held_basis,
@@ -222,7 +239,7 @@ impl PrewakeController {
             &graph,
             subject,
             plan,
-            &simulated_advertisements(environment),
+            &simulated_advertisements(self.adapter.as_ref(), environment),
         )
         .map_err(|error| PrewakeError::Planning(error.to_string()))
     }
@@ -282,7 +299,7 @@ impl PrewakeController {
         &self,
         editor: &FormEditor,
         environment: &AuthoredEnvironment,
-    ) -> Result<(PrewakeBasis, Plan, Vec<StdHost>), PrewakeError> {
+    ) -> Result<(PrewakeBasis, Plan, Vec<HostAdvertisement>), PrewakeError> {
         environment
             .validate()
             .map_err(|error| PrewakeError::Planning(error.to_string()))?;
@@ -296,11 +313,7 @@ impl PrewakeController {
         let expanded = editor
             .expand_form(&view.open_form)
             .map_err(|_| PrewakeError::InvalidForm)?;
-        let hosts = simulated_hosts(environment);
-        let advertisements = hosts
-            .iter()
-            .map(|host| host.advertisement().clone())
-            .collect::<Vec<HostAdvertisement>>();
+        let advertisements = simulated_advertisements(self.adapter.as_ref(), environment);
         let mut placements = default_expanded_placements(&expanded, &advertisements)
             .map_err(|error| PrewakeError::Planning(error.to_string()))?;
         for (gear_id, (host_id, capability_id)) in &self.implementation_preferences {
@@ -353,7 +366,7 @@ impl PrewakeController {
                 environment_revision: environment.revision,
             },
             plan,
-            hosts,
+            advertisements,
         ))
     }
 
@@ -374,35 +387,38 @@ impl PrewakeController {
     }
 }
 
-fn simulated_hosts(environment: &AuthoredEnvironment) -> Vec<StdHost> {
+#[cfg(test)]
+impl Default for PrewakeController {
+    fn default() -> Self {
+        Self::new(crate::host_adapter::test_host_adapter_arc())
+    }
+}
+
+pub fn simulated_advertisements(
+    adapter: &dyn crate::PatchbayHostAdapter,
+    environment: &AuthoredEnvironment,
+) -> Vec<HostAdvertisement> {
     let mut hosts = environment
         .simulation_projection()
         .expect("validated environment projects")
         .hosts
         .into_iter()
         .map(|candidate| {
-            let composition = match candidate.profile {
-                MachineProfile::PicoW => StdHostComposition::minimal()
-                    .with_signal()
-                    .with_time()
-                    .with_state()
-                    .with_logic()
-                    .with_math()
-                    .with_robotics(),
+            let profile = match candidate.profile {
+                MachineProfile::PicoW => crate::PatchbayHostProfile::PicoSimulation,
                 MachineProfile::RaspberryPi5 | MachineProfile::LaptopLinux => {
-                    StdHostComposition::reference()
+                    crate::PatchbayHostProfile::Reference
                 }
             };
-            let host = StdHost::new_with_composition(
-                StdHostConfig {
-                    host_id: HostId::from(candidate.host_id),
-                    boot_id: BootId::from(candidate.boot_id),
-                    offer_generation: OfferGeneration(environment.revision),
-                },
-                composition,
-            );
+            let mut advertisement = adapter
+                .advertisement(
+                    HostId::from(candidate.host_id),
+                    BootId::from(candidate.boot_id),
+                    OfferGeneration(environment.revision),
+                    profile,
+                )
+                .expect("validated simulation profile has an application adapter");
             if candidate.profile == MachineProfile::LaptopLinux {
-                let mut advertisement = host.advertisement().clone();
                 advertisement.resources.push(conduit_core::resource_offer(
                     &format!("prewake/{}/input", advertisement.boot_id.as_str()),
                     conduit_core::INPUT_RESOURCE_CLASS,
@@ -420,51 +436,40 @@ fn simulated_hosts(environment: &AuthoredEnvironment) -> Vec<StdHost> {
                 advertisement
                     .capabilities
                     .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-                StdHost::from_advertisement(advertisement)
-                    .expect("validated simulated keyboard offer fits reference resources")
-            } else {
-                host
             }
+            advertisement
         })
         .collect::<Vec<_>>();
     hosts.sort_by_key(|host| {
         (
-            std::cmp::Reverse(host.advertisement().capabilities.len()),
-            host.advertisement().host_id.clone(),
+            std::cmp::Reverse(host.capabilities.len()),
+            host.host_id.clone(),
         )
     });
     hosts
 }
 
-pub fn simulated_advertisements(environment: &AuthoredEnvironment) -> Vec<HostAdvertisement> {
-    simulated_hosts(environment)
-        .iter()
-        .map(|host| host.advertisement().clone())
-        .collect()
-}
-
-fn execute_simulated(plan: &Plan, hosts: &mut [StdHost]) -> Result<SimulatedPlay, PrewakeError> {
+fn execute_simulated(
+    adapter: &dyn crate::PatchbayHostAdapter,
+    plan: &Plan,
+    hosts: &[HostAdvertisement],
+) -> Result<SimulatedPlay, PrewakeError> {
     let mut active_play_ids = Vec::with_capacity(plan.fragments.len());
     let mut output = Vec::with_capacity(4096);
     let mut kernel_sign = Vec::new();
     for fragment in &plan.fragments {
         let host = hosts
-            .iter_mut()
-            .find(|host| {
-                host.advertisement().host_id == fragment.host_id
-                    && host.advertisement().boot_id == fragment.boot_id
-            })
+            .iter()
+            .find(|host| host.host_id == fragment.host_id && host.boot_id == fragment.boot_id)
             .ok_or_else(|| {
                 PrewakeError::Simulation("planned simulated Host/Boot is absent".into())
             })?;
-        let report = host
-            .run_fragment_to(fragment.clone(), &mut output, &mut ThreadTimer)
+        let report = adapter
+            .run_fragment(host, fragment.clone())
             .map_err(PrewakeError::Simulation)?;
-        let kernel = report.kernel.ok_or_else(|| {
-            PrewakeError::Simulation("simulated kernel omitted its terminal report".into())
-        })?;
-        kernel_sign.extend(kernel.kernel_sign);
-        active_play_ids.push(kernel.active_play_id);
+        output.extend(report.output);
+        kernel_sign.extend(report.projection.kernel_sign);
+        active_play_ids.push(report.projection.active_play_id);
     }
     Ok(SimulatedPlay {
         plan_id: plan.plan_id.clone(),

@@ -58,6 +58,7 @@ mod gui_inspector;
 mod gui_navigator;
 mod gui_primitives;
 mod gui_viewport;
+mod hosted_adapter;
 mod icon;
 mod interaction_feedback;
 mod interaction_status;

@@ -150,8 +150,10 @@ struct Source {
 }
 
 pub fn cross_host_demonstration_snapshot() -> Result<RendererSnapshot, CrossHostRendererError> {
-    let (presentation, parts) = patchbay_model::portable_demonstration_with_parts()
-        .map_err(CrossHostRendererError::Presentation)?;
+    let (presentation, parts) = patchbay_model::portable_demonstration_with_parts_and_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )
+    .map_err(CrossHostRendererError::Presentation)?;
     let renderer_identity = RendererAdapterIdentity {
         host_id: HostId::from("patchbay-html/host"),
         boot_id: BootId::from("patchbay-html/boot"),

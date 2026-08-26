@@ -106,6 +106,8 @@ mod tests {
             .parent()
             .unwrap()
             .parent()
+            .unwrap()
+            .parent()
             .unwrap();
         let mut application = PatchbayApplication::new(Arguments {
             prewake: true,
@@ -170,6 +172,8 @@ mod tests {
     #[test]
     fn text_lab_held_rehearsal_exits_into_the_same_live_native_product_loop() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
             .parent()
             .unwrap()
             .parent()

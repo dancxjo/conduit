@@ -4,9 +4,9 @@ use crate::text_lab_split::NativeTextLabFragment;
 use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_core::{Plan, PlanFragment};
 use conduit_std_catalog::{
-    exact_text_lab_line_loss_outcome, exact_text_lab_split_plan, MAX_TEXT_BYTES,
-    TEXT_LAB_BROWSER_HOST, TEXT_LAB_FORWARD_LINE, TEXT_LAB_MAXIMUM_VALUES, TEXT_LAB_NATIVE_BOOT,
-    TEXT_LAB_NATIVE_HOST, TEXT_LAB_RETURN_LINE,
+    exact_text_lab_line_loss_outcome, exact_text_lab_split_plan, TextLabLineLossReceipt,
+    MAX_TEXT_BYTES, TEXT_LAB_BROWSER_HOST, TEXT_LAB_FORWARD_LINE, TEXT_LAB_MAXIMUM_VALUES,
+    TEXT_LAB_NATIVE_BOOT, TEXT_LAB_NATIVE_HOST, TEXT_LAB_RETURN_LINE,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
@@ -15,26 +15,6 @@ use conduit_wire::{
 use std::io::Write;
 
 pub const TEXT_LAB_LIVE_FRAME_BYTES: u32 = 1_024;
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct TextLabLineLossReceipt {
-    pub schema: String,
-    pub code: String,
-    pub phase: String,
-    pub sequence: u64,
-    pub line_id: String,
-    pub plan_id: String,
-    pub source_document_id: String,
-    pub checked_form_id: String,
-    pub active_play_id: String,
-    pub sign_id: String,
-    pub old_plan_disposition: String,
-    pub fresh_planning: String,
-    pub form_unchanged: bool,
-    pub refusal: String,
-    pub transport_failure: String,
-}
 
 fn return_line_loss(
     plan: &Plan,

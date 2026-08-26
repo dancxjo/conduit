@@ -101,6 +101,7 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
 #[test]
 fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
     let mut session = LocalFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("front-door/conformance"),
         BootId::from("front-door/conformance/boot-1"),
     )
@@ -230,6 +231,7 @@ fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
 #[test]
 fn native_and_browser_share_selection_actions_and_layers_without_renderer_identity() {
     let mut session = LocalFrontDoor::with_identity(
+        crate::host_adapter::test_host_adapter_arc(),
         HostId::from("front-door/conformance"),
         BootId::from("front-door/conformance/boot-1"),
     )

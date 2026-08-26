@@ -3,10 +3,10 @@ use crate::{
 };
 use conduit_core::{BootId, HostId, SignId};
 use conduit_presentation::{PresentationDepth, PresentationPlace, PresentationRole};
+use conduit_std_catalog::TextLabLineLossReceipt;
 use conduit_std_catalog::{
     exact_text_lab_line_loss_outcome, exact_text_lab_split_plan, TEXT_LAB_RETURN_LINE,
 };
-use conduit_std_host::text_lab_live::TextLabLineLossReceipt;
 
 fn loss_receipt(base: &str) -> TextLabLineLossReceipt {
     let exact = exact_text_lab_split_plan(base).unwrap();
