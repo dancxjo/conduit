@@ -6,13 +6,13 @@ publish = false
 
 [dependencies]
 conduit-ai = { path = "../conduit-ai" }
-conduit-create-oi = { path = "../conduit-create-oi" }
+conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
 conduit-kernel = { path = "../conduit-kernel" }
-conduit-mpu6050 = { path = "../conduit-mpu6050" }
+conduit-mpu6050 = { path = "../../mechanisms/devices/mpu6050" }
 conduit-presentation = { path = "../conduit-presentation" }
-conduit-ssd1306 = { path = "../conduit-ssd1306" }
+conduit-ssd1306 = { path = "../../mechanisms/devices/ssd1306" }
 conduit-observatory = { path = "../conduit-observatory" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
