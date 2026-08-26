@@ -10,6 +10,7 @@ members = [
 	"crates/conduit-signal",
 	"crates/conduit-form",
 	"crates/conduit-host-fabrication",
+	"crates/conduit-workspace-fabrication",
 	"crates/conduit-planner",
 	"crates/conduit-presentation",
 	"crates/conduit-body",
@@ -37,6 +38,14 @@ members = [
 	"hosts/patchbay-html",
 	"hosts/patchbay-native",
 	"hosts/std",
+	"firmware/conduit-pico-w-signal/fabrication-package",
+	"hosts/std/fabrication-package",
+	"hosts/browser-host/fabrication-package",
+	"hosts/conduitos/fabrication-package",
+	"firmware/conduit-esp32-wroom-signal/fabrication-package",
+	"hosts/raspberry-pi/fabrication-package",
+	"hosts/fabrication/linear-framebuffer",
+	"fixtures/rp2040-pio-audio-extension",
 	"xtask",
 ]
 exclude = [

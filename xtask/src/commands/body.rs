@@ -8,8 +8,7 @@ use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
     build_body_spores, check_body_description, deployment_receipt, parse_body_description,
     parse_body_description_conduit, parse_host_configuration, parse_host_configuration_conduit,
-    BuiltSpore, CheckedBodyDescription, DeploymentDisposition, FabricationCatalog,
-    HostConfiguration,
+    BuiltSpore, CheckedBodyDescription, DeploymentDisposition, HostConfiguration,
 };
 use serde::Serialize;
 
@@ -86,7 +85,7 @@ struct HostReport<'a> {
     bases: &'a [(String, String)],
     join_mode: &'a conduit_host_fabrication::SporeJoinMode,
     output: &'a conduit_host_fabrication::SporeOutputKind,
-    architecture_package: &'a str,
+    fabrication_package: String,
     features: Vec<String>,
     deployment_complete: bool,
 }
@@ -164,7 +163,8 @@ fn load(path: &Path) -> Result<CheckedBodyDescription, Box<dyn std::error::Error
     check_body_description(
         description,
         &configurations,
-        &FabricationCatalog::canonical(),
+        &conduit_workspace_fabrication::catalog(),
+        &conduit_workspace_fabrication::package_set(),
     )
     .map_err(|items| format!("Body description refused: {items:?}").into())
 }
@@ -176,15 +176,16 @@ fn is_conduit_source(path: &Path, role: &str) -> bool {
 }
 
 fn report(body: &CheckedBodyDescription) -> BodyReport<'_> {
+    let packages = conduit_workspace_fabrication::package_set();
     let hosts = body
         .hosts()
         .iter()
         .map(|host| {
-            let package =
-                conduit_host_fabrication::architecture_package_for(host.configuration.profile())
-                    .expect("checked architecture package");
-            let selection = package
-                .derive(host.configuration.profile(), &host.description.spore.output)
+            let selection = packages
+                .derive_build_selection(
+                    host.configuration.profile(),
+                    &host.description.spore.output,
+                )
                 .expect("checked architecture selection");
             HostReport {
                 name: &host.description.name,
@@ -194,7 +195,7 @@ fn report(body: &CheckedBodyDescription) -> BodyReport<'_> {
                 bases: host.configuration.resolved_bases(),
                 join_mode: &host.description.spore.join_mode,
                 output: &host.description.spore.output,
-                architecture_package: package.id,
+                fabrication_package: selection.fabrication_package_id,
                 features: selection.features,
                 deployment_complete: host.description.deployment.is_some()
                     && selection.deployment_adapter.is_some(),
@@ -254,7 +255,7 @@ fn show(
         println!("  bases                {:?}", host.bases);
         println!("  join mode            {:?}", host.join_mode);
         println!("  output               {:?}", host.output);
-        println!("  architecture package {}", host.architecture_package);
+        println!("  fabrication package {}", host.fabrication_package);
         println!("  derived features     {:?}", host.features);
         println!("  deployment complete  {}", host.deployment_complete);
     }
@@ -273,7 +274,8 @@ fn build(
         body,
         selected,
         &source_identity,
-        &FabricationCatalog::canonical(),
+        &conduit_workspace_fabrication::catalog(),
+        &conduit_workspace_fabrication::package_set(),
     )
     .map_err(|items| format!("Body BUILD refused: {items:?}"))?;
     if opts.dry_run {
@@ -281,8 +283,8 @@ fn build(
             println!(
                 "would BUILD Spore {} with {} features={:?}",
                 spore.manifest.host_entry_name,
-                spore.manifest.architecture.architecture_package_id,
-                spore.manifest.architecture.features
+                spore.manifest.fabrication.fabrication_package_id,
+                spore.manifest.fabrication.features
             );
             if deploy {
                 let receipt = deployment_receipt(body, spore, DeploymentDisposition::Prepared)
@@ -335,7 +337,7 @@ fn build(
                 "BUILT Spore {} image={} package={}",
                 spore.manifest.spore_id,
                 spore.manifest.image_id,
-                spore.manifest.architecture.architecture_package_id
+                spore.manifest.fabrication.fabrication_package_id
             );
         }
         for receipt in receipts {

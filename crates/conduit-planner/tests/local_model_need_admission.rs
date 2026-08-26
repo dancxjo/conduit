@@ -87,7 +87,8 @@ fn host(id: &str, lanes: u32, need: (u32, u32, u32)) -> HostAdvertisement {
     );
     let checked = conduit_host_fabrication::check_host_configuration(
         conduit_host_fabrication::parse_host_configuration_conduit(&construction).unwrap(),
-        &conduit_host_fabrication::FabricationCatalog::canonical(),
+        &conduit_workspace_fabrication::catalog(),
+        &conduit_workspace_fabrication::package_set(),
     )
     .unwrap();
     let mut resources = checked

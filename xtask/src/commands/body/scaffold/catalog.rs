@@ -2,8 +2,8 @@ use std::{collections::BTreeMap, fs, path::Path};
 
 use clap::ValueEnum;
 use conduit_host_fabrication::{
-    architecture_package_for, check_host_configuration, parse_host_configuration_conduit,
-    ArchitecturePackage, CheckedHostConfiguration, FabricationCatalog, SporeOutputKind,
+    check_host_configuration, parse_host_configuration_conduit, CheckedHostConfiguration,
+    FabricationAnchor, SporeOutputKind,
 };
 use serde::Serialize;
 
@@ -48,7 +48,7 @@ pub(super) struct HostRecipe {
     pub(super) checked: CheckedHostConfiguration,
     pub(super) source_path: std::path::PathBuf,
     pub(super) target: String,
-    pub(super) package: &'static ArchitecturePackage,
+    pub(super) package: FabricationAnchor,
     pub(super) outputs: Vec<SporeOutputKind>,
 }
 
@@ -124,7 +124,7 @@ pub(super) fn load_host_recipes(
     root: &Path,
 ) -> Result<BTreeMap<String, HostRecipe>, Box<dyn std::error::Error>> {
     let directory = root.join("profiles/host-configurations");
-    let catalog = FabricationCatalog::canonical();
+    let catalog = conduit_workspace_fabrication::catalog();
     let mut recipes = BTreeMap::new();
     for entry in fs::read_dir(&directory)? {
         let path = entry?.path();
@@ -141,8 +141,12 @@ pub(super) fn load_host_recipes(
                 path.display()
             )
         })?;
-        let checked = check_host_configuration(configuration, &catalog)
-            .map_err(|items| format!("Host configuration {} refused: {items:?}", path.display()))?;
+        let checked = check_host_configuration(
+            configuration,
+            &catalog,
+            &conduit_workspace_fabrication::package_set(),
+        )
+        .map_err(|items| format!("Host configuration {} refused: {items:?}", path.display()))?;
         insert_host_recipe(&mut recipes, &selector, path, checked)?;
     }
     if recipes.is_empty() {
@@ -160,16 +164,29 @@ pub(super) fn insert_host_recipe(
     if recipes.contains_key(selector) {
         return Err(format!("duplicate Host recipe selector '{selector}'").into());
     }
-    let package = architecture_package_for(checked.profile()).map_err(|item| {
-        format!(
-            "Host configuration {} has no architecture package: {item:?}",
-            source_path.display()
-        )
-    })?;
+    let packages = conduit_workspace_fabrication::package_set();
+    let package = packages
+        .anchor_for_target(&checked.profile().target.key())
+        .ok_or_else(|| {
+            format!(
+                "Host configuration {} has no fabrication anchor",
+                source_path.display()
+            )
+        })?
+        .clone();
+    let target = checked.profile().target.key();
     let outputs = package
+        .targets
+        .iter()
+        .find(|descriptor| descriptor.key() == target)
+        .expect("resolved anchor owns exact target")
         .outputs
         .iter()
-        .filter(|output| package.derive(checked.profile(), output).is_ok())
+        .filter(|output| {
+            packages
+                .derive_build_selection(checked.profile(), output)
+                .is_ok()
+        })
         .cloned()
         .collect::<Vec<_>>();
     if outputs.is_empty() {
@@ -179,7 +196,6 @@ pub(super) fn insert_host_recipe(
         )
         .into());
     }
-    let target = checked.profile().target.key();
     recipes.insert(
         selector.into(),
         HostRecipe {
@@ -302,5 +318,6 @@ pub(super) const fn output_name(output: &SporeOutputKind) -> &'static str {
         SporeOutputKind::DiskImage => "disk-image",
         SporeOutputKind::EfiArtifact => "efi-artifact",
         SporeOutputKind::Esp32Image => "esp32-image",
+        SporeOutputKind::SdImage => "sd-image",
     }
 }

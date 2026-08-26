@@ -6,8 +6,8 @@ use conduit_form::{
     StartupCatalog,
 };
 use conduit_host_fabrication::{
-    bind_runtime_offer, build_host_image, BuildInputs, FabricationCatalog, HostBounds, HostImage,
-    HostProfile, RuntimeFacts, RuntimeOfferInputs,
+    bind_runtime_offer, build_default_host_image, BuildInputs, HostImage, HostProfile,
+    RuntimeFacts, RuntimeOfferInputs,
 };
 
 use crate::{StdHost, TimerAdapter};
@@ -20,22 +20,11 @@ fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, Hos
     profile.bounds.timer_slots += extra_timer_slots;
     let inputs = BuildInputs {
         source_identity: source.into(),
-        toolchain_identity: "rustc:test".into(),
         toolchain_available: true,
-        maxima: HostBounds {
-            static_memory_bytes: u64::MAX,
-            heap_arena_bytes: u64::MAX,
-            queue_items: u32::MAX,
-            buffered_bytes: u64::MAX,
-            active_instances: u32::MAX,
-            operation_slots: u32::MAX,
-            timer_slots: u32::MAX,
-            line_sessions: u32::MAX,
-            evidence_items: u32::MAX,
-        },
     };
-    let catalog = FabricationCatalog::canonical();
-    let (image, bytes) = build_host_image(profile, &catalog, &inputs).unwrap();
+    let catalog = conduit_workspace_fabrication::catalog();
+    let packages = conduit_workspace_fabrication::package_set();
+    let (image, bytes) = build_default_host_image(profile, &catalog, &packages, &inputs).unwrap();
     let binding = bind_runtime_offer(
         &image.manifest,
         &image,

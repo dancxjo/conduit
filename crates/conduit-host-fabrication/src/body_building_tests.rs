@@ -1,12 +1,19 @@
 use std::collections::BTreeMap;
 
+use crate::test_packages::{test_catalog, test_package_set};
 use crate::*;
 
 #[test]
 fn checked_multihost_body_builds_distinct_body_bound_spores() {
     let body = checked_example();
-    let spores =
-        build_body_spores(&body, None, "git:test", &FabricationCatalog::canonical()).unwrap();
+    let spores = build_body_spores(
+        &body,
+        None,
+        "git:test",
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .unwrap();
     assert_eq!(spores.len(), 3);
     assert!(spores
         .iter()
@@ -19,10 +26,10 @@ fn checked_multihost_body_builds_distinct_body_bound_spores() {
         .iter()
         .find(|item| item.manifest.host_entry_name == "brainstem")
         .unwrap();
-    assert_eq!(brainstem.manifest.architecture.features, ["line-usb-cdc"]);
+    assert_eq!(brainstem.manifest.fabrication.features, ["line-usb-cdc"]);
     assert!(!brainstem
         .manifest
-        .architecture
+        .fabrication
         .features
         .contains(&"wifi".into()));
 
@@ -30,13 +37,14 @@ fn checked_multihost_body_builds_distinct_body_bound_spores() {
         &body,
         Some("brainstem"),
         "git:test",
-        &FabricationCatalog::canonical(),
+        &test_catalog(),
+        &test_package_set(),
     )
     .unwrap();
     assert_eq!(one.len(), 1);
     assert_eq!(
-        one[0].manifest.architecture.architecture_package_id,
-        "pico-rp2040@1"
+        one[0].manifest.fabrication.fabrication_package_id,
+        "conduit-host-rp2040@1"
     );
 }
 
@@ -47,7 +55,8 @@ fn body_binding_changes_spore_not_reusable_image_identity() {
         &body,
         Some("forebrain"),
         "git:test",
-        &FabricationCatalog::canonical(),
+        &test_catalog(),
+        &test_package_set(),
     )
     .unwrap()
     .remove(0);
@@ -55,11 +64,22 @@ fn body_binding_changes_spore_not_reusable_image_identity() {
     changed.body.id = "body:another".into();
     changed.hosts.retain(|host| host.name == "forebrain");
     let configurations = configurations_for(&changed);
-    let changed =
-        check_body_description(changed, &configurations, &FabricationCatalog::canonical()).unwrap();
-    let second = build_body_spores(&changed, None, "git:test", &FabricationCatalog::canonical())
-        .unwrap()
-        .remove(0);
+    let changed = check_body_description(
+        changed,
+        &configurations,
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .unwrap();
+    let second = build_body_spores(
+        &changed,
+        None,
+        "git:test",
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .unwrap()
+    .remove(0);
     assert_eq!(first.manifest.image_id, second.manifest.image_id);
     assert_ne!(first.manifest.spore_id, second.manifest.spore_id);
 }
@@ -70,9 +90,13 @@ fn validation_rejects_conflicts_incomplete_join_and_host_configuration_truth() {
     duplicate.hosts[1].name = duplicate.hosts[0].name.clone();
     duplicate.hosts[1].part = duplicate.hosts[0].part.clone();
     let configurations = configurations_for(&duplicate);
-    let errors =
-        check_body_description(duplicate, &configurations, &FabricationCatalog::canonical())
-            .unwrap_err();
+    let errors = check_body_description(
+        duplicate,
+        &configurations,
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .unwrap_err();
     assert!(errors
         .iter()
         .any(|item| matches!(item, BodyDescriptionDiagnostic::DuplicateHost { .. })));
@@ -87,7 +111,8 @@ fn validation_rejects_conflicts_incomplete_join_and_host_configuration_truth() {
     let errors = check_body_description(
         incomplete,
         &configurations,
-        &FabricationCatalog::canonical(),
+        &test_catalog(),
+        &test_package_set(),
     )
     .unwrap_err();
     assert!(errors
@@ -107,7 +132,8 @@ fn validation_rejects_conflicts_incomplete_join_and_host_configuration_truth() {
     let errors = check_body_description(
         invalid.clone(),
         &configurations,
-        &FabricationCatalog::canonical(),
+        &test_catalog(),
+        &test_package_set(),
     )
     .unwrap_err();
     assert!(errors.iter().any(|item| matches!(
@@ -116,8 +142,13 @@ fn validation_rejects_conflicts_incomplete_join_and_host_configuration_truth() {
     )));
     invalid.hosts[0].spore.output = SporeOutputKind::Uf2;
     let configurations = configurations_for(&invalid);
-    let errors = check_body_description(invalid, &configurations, &FabricationCatalog::canonical())
-        .unwrap_err();
+    let errors = check_body_description(
+        invalid,
+        &configurations,
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .unwrap_err();
     assert!(errors
         .iter()
         .any(|item| matches!(item, BodyDescriptionDiagnostic::IncompatibleOutput { .. })));
@@ -133,10 +164,10 @@ fn pico_and_esp32_packages_derive_only_selected_base_features() {
         .configuration
         .profile()
         .clone();
-    let package = architecture_package_for(&pico).unwrap();
+    let packages = test_package_set();
     assert_eq!(
-        package
-            .derive(&pico, &SporeOutputKind::Uf2)
+        packages
+            .derive_build_selection(&pico, &SporeOutputKind::Uf2)
             .unwrap()
             .features,
         ["line-usb-cdc"]
@@ -147,8 +178,16 @@ fn pico_and_esp32_packages_derive_only_selected_base_features() {
         kind: "kernel/signal".into(),
         driver: "esp32/kernel-signal@1".into(),
     };
+    let mut esp32_profile = pico.clone();
+    esp32_profile.target.family = "esp32".into();
+    esp32_profile.target.architecture = "xtensa-lx6".into();
+    esp32_profile.target.machine = "hw-463-esp-wroom-32".into();
+    esp32_profile.bases = vec![kernel.clone()];
     assert_eq!(
-        derive_esp32_feature_closure(std::slice::from_ref(&kernel)).unwrap(),
+        packages
+            .derive_build_selection(&esp32_profile, &SporeOutputKind::Esp32Image)
+            .unwrap()
+            .features,
         ["kernel-signal"]
     );
     let bluetooth = BaseSelection {
@@ -156,19 +195,13 @@ fn pico_and_esp32_packages_derive_only_selected_base_features() {
         kind: "line/bluetooth-le-gatt".into(),
         driver: "esp32/bluetooth-le-gatt@1".into(),
     };
-    assert_eq!(
-        derive_esp32_feature_closure(&[kernel, bluetooth]).unwrap(),
-        ["bluetooth", "kernel-signal"]
-    );
-    let esp32 = architecture_packages()
-        .iter()
-        .find(|candidate| candidate.id == "esp32-firmware@1")
+    esp32_profile.bases = vec![kernel, bluetooth];
+    let esp32 = packages
+        .derive_build_selection(&esp32_profile, &SporeOutputKind::Esp32Image)
         .unwrap();
-    assert_eq!(esp32.revision, 2);
-    assert_eq!(
-        esp32.builder,
-        "esp32-firmware/architecture-package-runner@2"
-    );
+    assert_eq!(esp32.features, ["bluetooth", "kernel-signal"]);
+    assert_eq!(esp32.fabrication_package_revision, 1);
+    assert_eq!(esp32.builder_adapter, "conduit-host-esp32/build-image@1");
 }
 
 #[test]
@@ -178,7 +211,8 @@ fn deployment_receipt_is_separate_and_denies_runtime_claims() {
         &body,
         Some("forebrain"),
         "git:test",
-        &FabricationCatalog::canonical(),
+        &test_catalog(),
+        &test_package_set(),
     )
     .unwrap()
     .remove(0);
@@ -226,7 +260,8 @@ fn checked_example() -> CheckedBodyDescription {
     check_body_description(
         description,
         &configurations,
-        &FabricationCatalog::canonical(),
+        &test_catalog(),
+        &test_package_set(),
     )
     .unwrap()
 }

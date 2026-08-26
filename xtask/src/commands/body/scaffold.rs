@@ -2,8 +2,8 @@ use std::{collections::BTreeMap, io::IsTerminal as _, path::Path, str::FromStr};
 
 use conduit_host_fabrication::{
     canonical_body_description_conduit, check_body_description, BodyBindingTarget, BodyDescription,
-    BodyHostDescription, CheckedHostConfiguration, FabricationCatalog, SporeDescription,
-    SporeJoinMode, SporeOutputKind, BODY_DESCRIPTION_SCHEMA,
+    BodyHostDescription, CheckedHostConfiguration, SporeDescription, SporeJoinMode,
+    SporeOutputKind, BODY_DESCRIPTION_SCHEMA,
 };
 use console::{style, Emoji};
 use serde::Serialize;
@@ -87,7 +87,7 @@ struct CreatedHostReport {
     target: String,
     join_mode: &'static str,
     output: &'static str,
-    architecture_package: &'static str,
+    fabrication_package: String,
     features: Vec<String>,
 }
 
@@ -229,9 +229,8 @@ fn prepare(
                 output
             }
         };
-        let selection = recipe
-            .package
-            .derive(recipe.checked.profile(), output_kind)
+        let selection = conduit_workspace_fabrication::package_set()
+            .derive_build_selection(recipe.checked.profile(), output_kind)
             .map_err(|item| {
                 format!(
                     "Host configuration '{}' output refused: {item:?}",
@@ -262,7 +261,7 @@ fn prepare(
             target: recipe.target.clone(),
             join_mode: join_name(seed.join_mode),
             output: output_name(output_kind),
-            architecture_package: recipe.package.id,
+            fabrication_package: recipe.package.package_id.clone(),
             features: selection.features,
         });
     }
@@ -276,7 +275,8 @@ fn prepare(
             hosts,
         },
         &configurations,
-        &FabricationCatalog::canonical(),
+        &conduit_workspace_fabrication::catalog(),
+        &conduit_workspace_fabrication::package_set(),
     )
     .map_err(|items| format!("generated Body description refused: {items:?}"))?;
     host_reports.sort_by(|left, right| left.name.cmp(&right.name));

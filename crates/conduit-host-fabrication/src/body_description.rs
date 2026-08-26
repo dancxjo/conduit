@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    architecture_package_for, check_host_configuration, ArchitecturePackageDiagnostic,
-    CheckedHostConfiguration, FabricationCatalog, HostConfiguration, SporeOutputKind,
+    check_host_configuration, CheckedHostConfiguration, FabricationCatalog, FabricationPackageSet,
+    HostConfiguration, SporeOutputKind,
 };
 
 pub const BODY_DESCRIPTION_SCHEMA: u32 = 1;
@@ -151,6 +151,7 @@ pub fn check_body_description(
     mut description: BodyDescription,
     configurations: &BTreeMap<String, HostConfiguration>,
     catalog: &FabricationCatalog,
+    packages: &FabricationPackageSet,
 ) -> Result<CheckedBodyDescription, Vec<BodyDescriptionDiagnostic>> {
     let mut diagnostics = Vec::new();
     if description.schema != BODY_DESCRIPTION_SCHEMA {
@@ -233,11 +234,9 @@ pub fn check_body_description(
             });
             continue;
         };
-        match check_host_configuration(configuration.clone(), catalog) {
+        match check_host_configuration(configuration.clone(), catalog, packages) {
             Ok(checked) => {
-                match architecture_package_for(checked.profile())
-                    .and_then(|package| package.derive(checked.profile(), &host.spore.output))
-                {
+                match packages.derive_build_selection(checked.profile(), &host.spore.output) {
                     Ok(selection) => {
                         if host.deployment.is_some() && selection.deployment_adapter.is_none() {
                             diagnostics.push(BodyDescriptionDiagnostic::UnsupportedDeployment {
@@ -252,7 +251,7 @@ pub fn check_body_description(
                     }
                     Err(item) => diagnostics.push(BodyDescriptionDiagnostic::IncompatibleOutput {
                         host: host.name.clone(),
-                        diagnostic: architecture_diagnostic(item),
+                        diagnostic: format!("{item:?}"),
                     }),
                 }
             }
@@ -283,8 +282,4 @@ pub fn check_body_description(
         description_id,
         hosts: checked_hosts,
     })
-}
-
-fn architecture_diagnostic(item: ArchitecturePackageDiagnostic) -> String {
-    format!("{item:?}")
 }

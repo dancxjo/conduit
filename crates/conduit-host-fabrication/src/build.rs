@@ -4,16 +4,18 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    validate_profile, BaseSelection, DriverSelection, FabricationCatalog, HostBounds, HostProfile,
-    ProfileDiagnostic, ResourceBudget,
+    validate_profile, BaseSelection, DriverSelection, FabricationCatalog, FabricationPackageSet,
+    HostBounds, HostProfile, ImplementationPackageProvenance, PackageCompositionDiagnostic,
+    PostBuildAction, ProfileDiagnostic, ResourceBudget, SporeOutputKind,
 };
 
-pub const BUILD_MANIFEST_SCHEMA: &str = "conduit.host/build-manifest@1";
+pub const BUILD_MANIFEST_SCHEMA: &str = "conduit.host/build-manifest@2";
 pub const IMAGE_SCHEMA: &str = "conduit.host/image@1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BuildDiagnostic {
     Profile(ProfileDiagnostic),
+    Package(PackageCompositionDiagnostic),
     SourceIdentityMissing,
     ToolchainUnavailable {
         toolchain: String,
@@ -39,18 +41,7 @@ pub enum BuildDiagnostic {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildInputs {
     pub source_identity: String,
-    pub toolchain_identity: String,
     pub toolchain_available: bool,
-    pub maxima: HostBounds,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum ImageUse {
-    Launch,
-    Load,
-    Flash,
-    Boot,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,11 +61,17 @@ pub struct BuildManifest {
     pub image_id: String,
     pub source_identity: String,
     pub toolchain_identity: String,
+    pub fabrication_package_id: String,
+    pub fabrication_package_revision: u32,
+    pub builder_adapter: String,
+    pub deployment_adapter: Option<String>,
+    pub output: SporeOutputKind,
+    pub implementation_packages: Vec<ImplementationPackageProvenance>,
     pub target: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fabrication_descriptor: Option<String>,
     pub profile_fragments: Vec<String>,
-    pub image_use: ImageUse,
+    pub post_build_actions: Vec<PostBuildAction>,
     pub reproducibility: Reproducibility,
     pub implementations: Vec<String>,
     pub host_operations: Vec<String>,
@@ -122,9 +119,30 @@ pub struct HostImage {
     pub manifest: BuildManifest,
 }
 
+pub fn build_default_host_image(
+    profile: HostProfile,
+    catalog: &FabricationCatalog,
+    packages: &FabricationPackageSet,
+    inputs: &BuildInputs,
+) -> Result<(HostImage, Vec<u8>), Vec<BuildDiagnostic>> {
+    let target = profile.target.key();
+    let output = packages
+        .target_descriptor(&target)
+        .ok_or_else(|| {
+            vec![BuildDiagnostic::Package(
+                PackageCompositionDiagnostic::UnknownTarget { target },
+            )]
+        })?
+        .default_output
+        .clone();
+    build_host_image(profile, catalog, packages, &output, inputs)
+}
+
 pub fn build_host_image(
     profile: HostProfile,
     catalog: &FabricationCatalog,
+    packages: &FabricationPackageSet,
+    output: &SporeOutputKind,
     inputs: &BuildInputs,
 ) -> Result<(HostImage, Vec<u8>), Vec<BuildDiagnostic>> {
     let validated = validate_profile(profile, catalog).map_err(|items| {
@@ -134,16 +152,19 @@ pub fn build_host_image(
             .collect::<Vec<_>>()
     })?;
     let profile = validated.profile();
+    let fabrication = packages
+        .derive_build_selection(profile, output)
+        .map_err(|diagnostic| vec![BuildDiagnostic::Package(diagnostic)])?;
     let mut diagnostics = Vec::new();
     if inputs.source_identity.trim().is_empty() {
         diagnostics.push(BuildDiagnostic::SourceIdentityMissing);
     }
     if !inputs.toolchain_available {
         diagnostics.push(BuildDiagnostic::ToolchainUnavailable {
-            toolchain: inputs.toolchain_identity.clone(),
+            toolchain: fabrication.toolchain_identity.clone(),
         });
     }
-    validate_bounds(&profile.bounds, &inputs.maxima, &mut diagnostics);
+    validate_bounds(&profile.bounds, &fabrication.maxima, &mut diagnostics);
     for (left, right) in [
         ("compositor/native@1", "browser/dom"),
         ("display/linear-framebuffer@1", "browser/dom@1"),
@@ -167,15 +188,7 @@ pub fn build_host_image(
     }
 
     let target = profile.target.key();
-    let image_use = match profile.target.family.as_str() {
-        "std" => ImageUse::Launch,
-        "browser" => ImageUse::Load,
-        "esp32" => ImageUse::Flash,
-        "conduitos" if profile.target.machine == "pico-w" => ImageUse::Flash,
-        "conduitos" => ImageUse::Boot,
-        _ => ImageUse::Load,
-    };
-    let reproducibility = if profile.target.family == "browser" {
+    let reproducibility = if matches!(output, SporeOutputKind::BrowserBundle) {
         Reproducibility::ManifestExactArtifactToolchainDependent
     } else {
         Reproducibility::ByteExact
@@ -197,7 +210,13 @@ pub fn build_host_image(
     let build_basis = serde_json::to_vec(&(
         validated.profile_id().as_str(),
         &inputs.source_identity,
-        &inputs.toolchain_identity,
+        &fabrication.fabrication_package_id,
+        fabrication.fabrication_package_revision,
+        &fabrication.toolchain_identity,
+        &fabrication.builder_adapter,
+        &fabrication.output,
+        &fabrication.features,
+        &fabrication.implementation_packages,
         &target,
         &implementations,
         &presenters,
@@ -249,11 +268,17 @@ pub fn build_host_image(
         build_id: build_id.clone(),
         image_id: image_id.clone(),
         source_identity: inputs.source_identity.clone(),
-        toolchain_identity: inputs.toolchain_identity.clone(),
+        toolchain_identity: fabrication.toolchain_identity.clone(),
+        fabrication_package_id: fabrication.fabrication_package_id,
+        fabrication_package_revision: fabrication.fabrication_package_revision,
+        builder_adapter: fabrication.builder_adapter,
+        deployment_adapter: fabrication.deployment_adapter,
+        output: fabrication.output,
+        implementation_packages: fabrication.implementation_packages,
         target,
         fabrication_descriptor: payload.fabrication_descriptor.clone(),
         profile_fragments: payload.profile_fragments.clone(),
-        image_use,
+        post_build_actions: fabrication.post_build_actions,
         reproducibility,
         implementations,
         host_operations: payload.host_operations.clone(),

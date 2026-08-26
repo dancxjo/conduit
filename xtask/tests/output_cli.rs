@@ -97,7 +97,7 @@ fn migrated_sources_have_no_bespoke_unsupported_literals() {
         include_str!("../src/main.rs"),
         include_str!("../src/commands/midi.rs"),
         include_str!("../src/commands/audio.rs"),
-        include_str!("../src/commands/pico/mod.rs"),
+        include_str!("../../firmware/conduit-pico-w-signal/fabrication/xtask/mod.rs"),
     ] {
         assert!(!source.contains("--json is not yet supported"));
         assert!(!source.contains("--quiet is not yet supported"));

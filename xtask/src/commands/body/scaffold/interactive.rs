@@ -163,7 +163,11 @@ fn choose_output(
     }
     let mut prompt = cliclack::select("Choose the Spore output for this Host");
     for output in &recipe.outputs {
-        prompt = prompt.item(output.clone(), output_name(output), recipe.package.id);
+        prompt = prompt.item(
+            output.clone(),
+            output_name(output),
+            recipe.package.package_id.as_str(),
+        );
     }
     Ok(Some(prompt.interact()?))
 }

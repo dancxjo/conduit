@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn capstone_retains_exact_cross_profile_body_and_refusal_evidence() {
-    let receipt = prove("git:test-head", "rustc:test-toolchain").unwrap();
+    let receipt = prove("git:test-head").unwrap();
     assert_eq!(receipt.images.len(), 3);
     assert_eq!(receipt.boots.len(), 3);
     assert_eq!(receipt.part_ids.len(), 3);

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    target_descriptors, validate_profile, BaseSelection, DriverSelection, FabricationCatalog,
+    validate_profile, BaseSelection, DriverSelection, FabricationCatalog, FabricationPackageSet,
     HostBounds, HostPolicy, HostProfile, PresenterSelection, ResourceBudget, TargetSelection,
     HOST_PROFILE_SCHEMA,
 };
@@ -164,6 +164,7 @@ pub fn canonical_host_configuration_toml(
 pub fn check_host_configuration(
     configuration: HostConfiguration,
     catalog: &FabricationCatalog,
+    packages: &FabricationPackageSet,
 ) -> Result<CheckedHostConfiguration, Vec<ConfigurationDiagnostic>> {
     let mut diagnostics = Vec::new();
     if configuration.schema != HOST_CONFIGURATION_SCHEMA {
@@ -174,11 +175,11 @@ pub fn check_host_configuration(
     if configuration.name.trim().is_empty() {
         diagnostics.push(ConfigurationDiagnostic::InvalidName);
     }
-    let descriptor = target_descriptors().into_iter().find(|item| {
+    let descriptor = packages.target_descriptors().into_iter().find(|item| {
         item.architecture == configuration.target.architecture
             && item.machine == configuration.target.machine
-            && item.board.map(str::to_owned) == configuration.target.board
-            && item.os.map(str::to_owned) == configuration.target.os
+            && item.board == configuration.target.board
+            && item.os == configuration.target.os
     });
     let Some(descriptor) = descriptor else {
         diagnostics.push(ConfigurationDiagnostic::UnknownTarget {
@@ -244,12 +245,12 @@ pub fn check_host_configuration(
             });
         }
         let mut resolved = None;
-        let allowed = descriptor
-            .base_implementations
-            .iter()
-            .find(|(kind, _)| *kind == base.kind)
-            .map(|(_, implementations)| implementations.as_slice())
-            .unwrap_or(&[]);
+        let allowed = packages
+            .offers_for_target(&target_key)
+            .into_iter()
+            .filter(|offer| offer.offer.base_kind == base.kind)
+            .map(|offer| offer.offer.implementation_id)
+            .collect::<Vec<_>>();
         for implementation in preferences {
             if !catalog
                 .driver_kinds
@@ -261,7 +262,7 @@ pub fn check_host_configuration(
                 });
                 continue;
             }
-            if allowed.contains(&implementation)
+            if allowed.iter().any(|allowed| allowed == implementation)
                 && catalog
                     .driver_targets
                     .get(implementation)
@@ -312,20 +313,16 @@ pub fn check_host_configuration(
         name: configuration.name.clone(),
         source_configuration_id: Some(configuration_id.clone()),
         target: TargetSelection {
-            family: descriptor.family.into(),
-            architecture: descriptor.architecture.into(),
-            machine: descriptor.machine.into(),
+            family: descriptor.family.clone(),
+            architecture: descriptor.architecture.clone(),
+            machine: descriptor.machine.clone(),
             build_profile: "release".into(),
             fabrication_descriptor: None,
         },
-        host_core: descriptor.host_core.into(),
+        host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
         capabilities: Vec::new(),
-        host_operations: descriptor
-            .host_operations
-            .iter()
-            .map(|item| (*item).into())
-            .collect(),
+        host_operations: descriptor.host_operations.clone(),
         resources: configuration.resources.clone(),
         bases: resolved_bases
             .iter()
@@ -347,10 +344,11 @@ pub fn check_host_configuration(
         lines: Vec::new(),
         presenters: descriptor
             .presenter
-            .map(|(id, implementation, interactive)| PresenterSelection {
-                id: id.into(),
-                implementation: implementation.into(),
-                interactive,
+            .as_ref()
+            .map(|presenter| PresenterSelection {
+                id: presenter.id.clone(),
+                implementation: presenter.implementation_id.clone(),
+                interactive: presenter.interactive,
             })
             .into_iter()
             .collect(),

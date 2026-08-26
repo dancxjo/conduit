@@ -1,6 +1,8 @@
+use crate::test_packages::test_build_host_image;
+use crate::test_packages::test_package_set;
 use crate::{
-    build_host_image, canonical_profile_json, check_host_configuration, parse_host_configuration,
-    target_descriptors, BuildInputs, ConfigurationDiagnostic, FabricationCatalog,
+    canonical_profile_json, check_host_configuration, parse_host_configuration, BuildInputs,
+    ConfigurationDiagnostic, FabricationCatalog,
 };
 
 const HOSTED: &str = r#"
@@ -29,7 +31,8 @@ evidence_items = 64
 fn toml_lowers_into_existing_profile_with_provenance() {
     let checked = check_host_configuration(
         parse_host_configuration(HOSTED).unwrap(),
-        &FabricationCatalog::canonical(),
+        &FabricationCatalog::canonical().with_packages(&test_package_set()),
+        &test_package_set(),
     )
     .unwrap();
     assert_eq!(checked.profile().target.key(), "std/x86_64/workstation");
@@ -53,9 +56,20 @@ fn selection_order_does_not_change_profile_identity() {
         "kind = \"clock/monotonic\"\nimplementation = \"hosted/monotonic-clock@1\"\n[[bases]]\nkind = \"storage/protected-file\"\nimplementation = \"hosted/protected-file@1\"",
         "kind = \"storage/protected-file\"\nimplementation = \"hosted/protected-file@1\"\n[[bases]]\nkind = \"clock/monotonic\"\nimplementation = \"hosted/monotonic-clock@1\"",
     );
-    let catalog = FabricationCatalog::canonical();
-    let a = check_host_configuration(parse_host_configuration(&first).unwrap(), &catalog).unwrap();
-    let b = check_host_configuration(parse_host_configuration(&second).unwrap(), &catalog).unwrap();
+    let packages = test_package_set();
+    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let a = check_host_configuration(
+        parse_host_configuration(&first).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let b = check_host_configuration(
+        parse_host_configuration(&second).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
     assert_eq!(a.configuration_id(), b.configuration_id());
     assert_eq!(
         canonical_profile_json(a.profile()).unwrap(),
@@ -78,7 +92,8 @@ fn rejects_each_required_invalid_class() {
     for (source, expected) in cases {
         let diagnostics = check_host_configuration(
             parse_host_configuration(&source).unwrap(),
-            &FabricationCatalog::canonical(),
+            &FabricationCatalog::canonical().with_packages(&test_package_set()),
+            &test_package_set(),
         )
         .unwrap_err();
         let rendered = format!("{diagnostics:?}");
@@ -90,7 +105,8 @@ fn rejects_each_required_invalid_class() {
     let duplicate_resource = HOSTED.replace("[limits]", "[[resources]]\nid = \"r\"\nclass = \"memory\"\nslots = 1\nbytes = 1\n[[resources]]\nid = \"r\"\nclass = \"memory\"\nslots = 2\nbytes = 2\n[limits]");
     let diagnostics = check_host_configuration(
         parse_host_configuration(&duplicate_resource).unwrap(),
-        &FabricationCatalog::canonical(),
+        &FabricationCatalog::canonical().with_packages(&test_package_set()),
+        &test_package_set(),
     )
     .unwrap_err();
     assert!(diagnostics
@@ -100,7 +116,8 @@ fn rejects_each_required_invalid_class() {
     let wrong_family = HOSTED.replace("machine = \"workstation\"", "machine = \"page\"");
     let diagnostics = check_host_configuration(
         parse_host_configuration(&wrong_family).unwrap(),
-        &FabricationCatalog::canonical(),
+        &FabricationCatalog::canonical().with_packages(&test_package_set()),
+        &test_package_set(),
     )
     .unwrap_err();
     assert!(diagnostics
@@ -144,15 +161,16 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
             "sha256:fc4acf3747304e9aa55e981d6799938f4ab42a0bbff42849507ddb20ec0c96fa",
         ),
     ];
-    let catalog = FabricationCatalog::canonical();
-    let descriptors = target_descriptors();
+    let packages = test_package_set();
+    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let descriptors = packages.target_descriptors();
     let descriptor_targets = descriptors
         .iter()
         .map(|item| format!("{}/{}/{}", item.family, item.architecture, item.machine))
         .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(
         descriptor_targets,
-        catalog.targets.into_iter().collect(),
+        catalog.targets.iter().cloned().collect(),
         "every configuration-supported catalog target needs one descriptor"
     );
     let mut snapshots = Vec::new();
@@ -160,31 +178,21 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
         let source = std::fs::read_to_string(root.join(name)).unwrap();
         let checked = check_host_configuration(
             parse_host_configuration(&source).unwrap(),
-            &FabricationCatalog::canonical(),
+            &catalog,
+            &packages,
         )
         .unwrap();
-        let descriptor = target_descriptors()
-            .into_iter()
-            .find(|item| {
-                item.architecture == checked.configuration().target.architecture
-                    && item.machine == checked.configuration().target.machine
-                    && item.board.map(str::to_owned) == checked.configuration().target.board
-                    && item.os.map(str::to_owned) == checked.configuration().target.os
-            })
-            .unwrap();
         assert_eq!(checked.configuration_id(), expected_configuration_id);
         let target = checked.profile().target.key();
         let bases = checked.resolved_bases().to_vec();
         let bounds = checked.profile().bounds.clone();
         let expected = checked.configuration_id().to_owned();
-        let (image, _) = build_host_image(
+        let (image, _) = test_build_host_image(
             checked.into_profile(),
-            &FabricationCatalog::canonical(),
+            &catalog,
             &BuildInputs {
                 source_identity: "test-source".into(),
-                toolchain_identity: "test-toolchain".into(),
                 toolchain_available: true,
-                maxima: descriptor.maxima,
             },
         )
         .unwrap();
@@ -206,7 +214,6 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
             bounds,
         ));
     }
-    assert_eq!(snapshots.len(), descriptors.len());
     assert!(
         snapshots.windows(2).all(|pair| pair[0].0 < pair[1].0),
         "fixture snapshot order must be canonical"

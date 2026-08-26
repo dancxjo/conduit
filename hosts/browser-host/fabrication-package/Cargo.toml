@@ -1,0 +1,7 @@
+[package]
+name = "conduit-host-browser-fabrication"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-host-fabrication = { path = "../../../crates/conduit-host-fabrication" }
