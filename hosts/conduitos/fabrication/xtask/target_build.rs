@@ -15,12 +15,13 @@ use crate::cli::GlobalOpts;
 use super::{
     build, image,
     profile::Paths,
-    report::{sha256_file, GuestBootSign, GuestPresentationSign},
+    report::{sha256_file, ArtifactRole, GuestBootSign, GuestPresentationSign},
     ConduitosArch, ConduitosError,
 };
 
 #[derive(Debug)]
 pub(crate) struct ProfileBuiltImage {
+    pub artifact_role: ArtifactRole,
     pub kernel: PathBuf,
     pub image: PathBuf,
     pub kernel_sha256: String,
@@ -39,9 +40,16 @@ pub(crate) fn build_profile_image(
 ) -> Result<ProfileBuiltImage, ConduitosError> {
     let arch = arch_for_target(&manifest.target)?;
     let build_record = build::execute_profile(manifest, opts)?;
-    let image_record = image::assemble_with_description(arch, Some(build_description), opts)?;
+    let image_record = image::assemble_product(arch, build_description, opts)?;
+    build_record
+        .artifact_role
+        .require(ArtifactRole::ProductHost)?;
+    image_record
+        .artifact_role
+        .require(ArtifactRole::ProductHost)?;
     let paths = Paths::new(arch)?;
     Ok(ProfileBuiltImage {
+        artifact_role: ArtifactRole::ProductHost,
         kernel: paths.kernel,
         image: paths.iso,
         kernel_sha256: build_record.elf_sha256,
@@ -499,6 +507,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(manifest.target, "conduitos/aarch64/virt");
+        assert_eq!(built.artifact_role, ArtifactRole::ProductHost);
         assert_eq!(built.image_sha256, "dry-run");
         assert!(arch_for_target("conduitos/aarch64/a3-proof").is_err());
     }

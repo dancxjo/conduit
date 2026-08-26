@@ -89,7 +89,7 @@ struct A3Proof {
 
 pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Aarch64)?;
-    let _ = image::execute(ConduitosArch::Aarch64, opts)?;
+    let _ = image::execute_architecture_proof(ConduitosArch::Aarch64, opts)?;
     let (kernel, identity, _) = boot_once(&paths)?;
     if opts.json {
         println!("{}", serde_json::to_string(&kernel).map_err(encoding)?);
@@ -114,8 +114,8 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::Aarch64)?;
-    let first_image = image::execute(ConduitosArch::Aarch64, opts)?;
-    let second_image = image::execute(ConduitosArch::Aarch64, opts)?;
+    let first_image = image::execute_architecture_proof(ConduitosArch::Aarch64, opts)?;
+    let second_image = image::execute_architecture_proof(ConduitosArch::Aarch64, opts)?;
     if first_image.iso_sha256 != second_image.iso_sha256 {
         return Err(ConduitosError::refusal(
             "non-reproducible-image",

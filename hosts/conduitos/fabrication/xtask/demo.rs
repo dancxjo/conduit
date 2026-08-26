@@ -26,7 +26,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<(), ConduitosEr
     }
 
     let paths = Paths::new(arch)?;
-    let image = image::execute(arch, opts)?;
+    let image = image::execute_architecture_proof(arch, opts)?;
     let args = qemu_args(paths.iso.to_str().ok_or_else(|| {
         ConduitosError::refusal("demo-image-path-invalid", "image path is not UTF-8")
     })?);

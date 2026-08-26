@@ -7,7 +7,7 @@ use crate::cli::GlobalOpts;
 use super::{
     image, loongarch64_a0, loongarch64_a1,
     profile::{Paths, LIMINE_ARCHIVE_SHA256, LIMINE_VERSION},
-    report::{git_head, sha256_file, BuildRecord},
+    report::{git_head, sha256_file, ArtifactRole, BuildRecord},
     ConduitosArch, ConduitosError,
 };
 
@@ -67,7 +67,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Loongarch64)?;
     build(opts)?;
-    image::assemble(ConduitosArch::Loongarch64, opts)?;
+    image::assemble_architecture_proof(ConduitosArch::Loongarch64, opts)?;
     let sign = boot_once(&paths)?;
     if opts.json {
         println!("{}", serde_json::to_string(&sign).map_err(encoding)?);
@@ -84,9 +84,9 @@ pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Loongarch64)?;
     build(opts)?;
-    let image1 = image::assemble(ConduitosArch::Loongarch64, opts)?;
+    let image1 = image::assemble_architecture_proof(ConduitosArch::Loongarch64, opts)?;
     build(opts)?;
-    let image2 = image::assemble(ConduitosArch::Loongarch64, opts)?;
+    let image2 = image::assemble_architecture_proof(ConduitosArch::Loongarch64, opts)?;
     if image1.iso_sha256 != image2.iso_sha256 {
         return Err(refusal(
             "non-reproducible-image",
@@ -206,7 +206,8 @@ fn build(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         ));
     }
     let record = BuildRecord {
-        schema: "conduit.conduitos.build/v1",
+        schema: "conduit.conduitos.build/v2",
+        artifact_role: ArtifactRole::ArchitectureProofAppliance,
         base_commit: commit,
         architecture: "loongarch64",
         rust_target: loongarch64_a0::TARGET,

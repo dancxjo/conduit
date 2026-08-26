@@ -63,7 +63,7 @@ struct Proof {
 pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Riscv64)?;
-    image::execute(ConduitosArch::Riscv64, opts)?;
+    image::execute_architecture_proof(ConduitosArch::Riscv64, opts)?;
     let sign = boot_once(&paths)?;
     if opts.json {
         println!("{}", serde_json::to_string(&sign).map_err(encoding)?);
@@ -79,8 +79,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 pub fn prove(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     reject_dry_run(opts)?;
     let paths = Paths::new(ConduitosArch::Riscv64)?;
-    let image1 = image::execute(ConduitosArch::Riscv64, opts)?;
-    let image2 = image::execute(ConduitosArch::Riscv64, opts)?;
+    let image1 = image::execute_architecture_proof(ConduitosArch::Riscv64, opts)?;
+    let image2 = image::execute_architecture_proof(ConduitosArch::Riscv64, opts)?;
     if image1.iso_sha256 != image2.iso_sha256 {
         return Err(refusal(
             "non-reproducible-image",

@@ -11,44 +11,70 @@ use super::{
     profile::{
         command, command_with_env, Paths, LIMINE_ARCHIVE_SHA256, LIMINE_ARCHIVE_URL, LIMINE_VERSION,
     },
-    report::{sha256_file, ImageRecord},
+    report::{sha256_file, ArtifactRole, ImageRecord},
     ConduitosArch, ConduitosError,
 };
 
 const EXPECTED_IMAGE_FILE_COUNT: usize = 6;
 const CONDUITOS_GPT_DISK_GUID: &str = "434f4e44-5549-544f-5300-000000000001";
 
-pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
-    let _build = build::execute(arch, opts)?;
-    assemble(arch, opts)
+pub fn execute_architecture_proof(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
+    let build = build::execute_architecture_proof(arch, opts)?;
+    build
+        .artifact_role
+        .require(ArtifactRole::ArchitectureProofAppliance)?;
+    assemble_architecture_proof(arch, opts)
 }
 
 pub(super) fn execute_hotplug(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
-    let _build = build::execute_hotplug(arch, opts)?;
-    assemble(arch, opts)
+    let build = build::execute_hotplug(arch, opts)?;
+    build
+        .artifact_role
+        .require(ArtifactRole::ArchitectureProofAppliance)?;
+    assemble_architecture_proof(arch, opts)
 }
 
 pub(super) fn execute_proof(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
-    let _build = build::execute_proof(arch, opts)?;
-    assemble(arch, opts)
+    let build = build::execute_proof(arch, opts)?;
+    build
+        .artifact_role
+        .require(ArtifactRole::ArchitectureProofAppliance)?;
+    assemble_architecture_proof(arch, opts)
 }
 
-pub(super) fn assemble(
+pub(super) fn assemble_architecture_proof(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
-    assemble_with_description(arch, None, opts)
+    assemble_with_role(arch, None, ArtifactRole::ArchitectureProofAppliance, opts)
 }
 
-pub(super) fn assemble_with_description(
+pub(super) fn assemble_product(
+    arch: ConduitosArch,
+    build_description: &[u8],
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
+    assemble_with_role(
+        arch,
+        Some(build_description),
+        ArtifactRole::ProductHost,
+        opts,
+    )
+}
+
+fn assemble_with_role(
     arch: ConduitosArch,
     build_description: Option<&[u8]>,
+    artifact_role: ArtifactRole,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
     let paths = Paths::new(arch)?;
@@ -56,7 +82,8 @@ pub(super) fn assemble_with_description(
         println!("fetch and verify pinned Limine {LIMINE_VERSION}");
         println!("assemble {}", paths.iso.display());
         return Ok(ImageRecord {
-            schema: "conduit.conduitos.image/v1",
+            schema: "conduit.conduitos.image/v2",
+            artifact_role,
             architecture: arch.as_str(),
             limine_version: LIMINE_VERSION,
             limine_archive_sha256: LIMINE_ARCHIVE_SHA256,
@@ -80,7 +107,8 @@ pub(super) fn assemble_with_description(
         ));
     }
     let record = ImageRecord {
-        schema: "conduit.conduitos.image/v1",
+        schema: "conduit.conduitos.image/v2",
+        artifact_role,
         architecture: arch.as_str(),
         limine_version: LIMINE_VERSION,
         limine_archive_sha256: LIMINE_ARCHIVE_SHA256,

@@ -1,5 +1,6 @@
 use std::{fs, path::Path, process::Command};
 
+use conduit_host_conduitos_fabrication::ConduitOsProductArtifact;
 use conduit_host_fabrication::{build_default_host_image, BuildInputs, BuildManifest, HostProfile};
 
 use crate::cli::GlobalOpts;
@@ -7,19 +8,30 @@ use crate::cli::GlobalOpts;
 use super::{
     aarch64_a0, armv6_rpi_b_plus_a0, ia32_a2, loongarch64_a0,
     profile::{Paths, COMMON_BACKBONE_TARGETS},
-    report::{git_head, sha256_file, BuildRecord},
+    report::{git_head, sha256_file, ArtifactRole, BuildRecord},
     riscv64_a0, target_lowering, ConduitosArch, ConduitosError,
 };
 
-pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+pub fn execute_architecture_proof(
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
     if arch == ConduitosArch::X86_64 {
         execute_embedded_profile(
             arch,
             include_str!("../../../../profiles/hosts/conduitos-native.profile.json"),
+            ArtifactRole::ArchitectureProofAppliance,
             opts,
         )
     } else {
-        execute_with_features(arch, opts, &[], None)
+        execute_with_features(
+            arch,
+            opts,
+            &[],
+            None,
+            ArtifactRole::ArchitectureProofAppliance,
+            None,
+        )
     }
 }
 
@@ -27,7 +39,27 @@ pub(super) fn execute_profile(
     manifest: &BuildManifest,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
+    execute_profile_for_role(manifest, ArtifactRole::ProductHost, opts)
+}
+
+fn execute_profile_for_role(
+    manifest: &BuildManifest,
+    artifact_role: ArtifactRole,
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
     let arch = super::target_backend::select(&manifest.target)?.arch;
+    let product_artifact = if artifact_role == ArtifactRole::ProductHost {
+        Some(
+            ConduitOsProductArtifact::for_target(&manifest.target).ok_or_else(|| {
+                ConduitosError::refusal(
+                    "product-artifact-resolution-failed",
+                    format!("{} has no package-owned product artifact", manifest.target),
+                )
+            })?,
+        )
+    } else {
+        None
+    };
     let paths = Paths::new(arch)?;
     fs::create_dir_all(&paths.target)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
@@ -65,6 +97,8 @@ pub(super) fn execute_profile(
             build_id: &manifest.build_id,
             image_binding: &manifest.image_id,
         }),
+        artifact_role,
+        product_artifact,
     )
 }
 
@@ -75,6 +109,7 @@ pub(super) fn execute_hotplug(
     execute_embedded_profile(
         arch,
         include_str!("../../../../profiles/hosts/conduitos-hotplug-proof.profile.json"),
+        ArtifactRole::ArchitectureProofAppliance,
         opts,
     )
 }
@@ -86,6 +121,7 @@ pub(super) fn execute_proof(
     execute_embedded_profile(
         arch,
         include_str!("../../../../profiles/hosts/conduitos-proof.profile.json"),
+        ArtifactRole::ArchitectureProofAppliance,
         opts,
     )
 }
@@ -93,10 +129,11 @@ pub(super) fn execute_proof(
 fn execute_embedded_profile(
     arch: ConduitosArch,
     source: &str,
+    artifact_role: ArtifactRole,
     opts: &GlobalOpts,
 ) -> Result<BuildRecord, ConduitosError> {
     let manifest = resolve_embedded_profile(arch, source)?;
-    execute_profile(&manifest, opts)
+    execute_profile_for_role(&manifest, artifact_role, opts)
 }
 
 pub(super) fn proof_manifest(arch: ConduitosArch) -> Result<BuildManifest, ConduitosError> {
@@ -145,6 +182,8 @@ fn execute_with_features(
     opts: &GlobalOpts,
     features: &[&str],
     fabrication: Option<ProfileFabrication<'_>>,
+    artifact_role: ArtifactRole,
+    product_artifact: Option<ConduitOsProductArtifact>,
 ) -> Result<BuildRecord, ConduitosError> {
     if arch == ConduitosArch::Ia32 {
         return ia32_a2::execute(opts);
@@ -162,17 +201,19 @@ fn execute_with_features(
         return loongarch64_a0::execute(opts);
     }
     let paths = Paths::new(arch)?;
-    let (binary, target) = match arch {
-        ConduitosArch::X86_64 => ("conduitos", "x86_64-unknown-none"),
-        ConduitosArch::Aarch64 => ("conduitos-aarch64-product", "aarch64-unknown-none"),
-        _ => unreachable!("profile build architecture checked above"),
-    };
+    let (binary, target) = product_artifact.map_or_else(
+        || match arch {
+            ConduitosArch::X86_64 => ("conduitos", "x86_64-unknown-none"),
+            _ => unreachable!("architecture proof appliance checked above"),
+        },
+        |artifact| (artifact.binary, artifact.rust_target),
+    );
     if opts.dry_run {
         println!(
             "cargo build -p conduitos --bin {binary} --target {target} --release --features {}",
             features.join(",")
         );
-        return dry_record(arch, &paths);
+        return dry_record(arch, &paths, artifact_role);
     }
     fs::create_dir_all(&paths.target)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
@@ -228,7 +269,8 @@ fn execute_with_features(
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     assert_elf(&paths)?;
     let record = BuildRecord {
-        schema: "conduit.conduitos.build/v1",
+        schema: "conduit.conduitos.build/v2",
+        artifact_role,
         base_commit,
         architecture: arch.as_str(),
         rust_target: target,
@@ -327,7 +369,11 @@ fn write_json(path: &std::path::Path, value: &BuildRecord) -> Result<(), Conduit
         .map_err(|error| ConduitosError::refusal("build-record-failed", error.to_string()))
 }
 
-fn dry_record(arch: ConduitosArch, paths: &Paths) -> Result<BuildRecord, ConduitosError> {
+fn dry_record(
+    arch: ConduitosArch,
+    paths: &Paths,
+    artifact_role: ArtifactRole,
+) -> Result<BuildRecord, ConduitosError> {
     let rust_target = match arch {
         ConduitosArch::X86_64 => "x86_64-unknown-none",
         ConduitosArch::Aarch64 => "aarch64-unknown-none",
@@ -339,11 +385,33 @@ fn dry_record(arch: ConduitosArch, paths: &Paths) -> Result<BuildRecord, Conduit
         }
     };
     Ok(BuildRecord {
-        schema: "conduit.conduitos.build/v1",
+        schema: "conduit.conduitos.build/v2",
+        artifact_role,
         base_commit: git_head(&paths.root)?,
         architecture: arch.as_str(),
         rust_target,
         limine_crate: "0.5.0",
         elf_sha256: "dry-run".into(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn aarch64_architecture_build_is_typed_as_a_proof_appliance() {
+        let record = execute_architecture_proof(
+            ConduitosArch::Aarch64,
+            &GlobalOpts {
+                dry_run: true,
+                ..GlobalOpts::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            record.artifact_role,
+            ArtifactRole::ArchitectureProofAppliance
+        );
+    }
 }

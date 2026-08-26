@@ -7,6 +7,31 @@ use std::collections::BTreeMap;
 
 pub struct ConduitOsFabricationPackage;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConduitOsProductArtifact {
+    pub target: &'static str,
+    pub binary: &'static str,
+    pub rust_target: &'static str,
+}
+
+impl ConduitOsProductArtifact {
+    pub fn for_target(target: &str) -> Option<Self> {
+        match target {
+            "conduitos/x86_64/pc" => Some(Self {
+                target: "conduitos/x86_64/pc",
+                binary: "conduitos",
+                rust_target: "x86_64-unknown-none",
+            }),
+            "conduitos/aarch64/virt" => Some(Self {
+                target: "conduitos/aarch64/virt",
+                binary: "conduitos-aarch64-product",
+                rust_target: "aarch64-unknown-none",
+            }),
+            _ => None,
+        }
+    }
+}
+
 fn package_catalog() -> PackageCatalogContribution {
     PackageCatalogContribution {
         implementations: BTreeMap::from([(
@@ -141,5 +166,23 @@ impl HostFabricationPackage for ConduitOsFabricationPackage {
                 },
             ],
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ConduitOsProductArtifact;
+
+    #[test]
+    fn product_registry_has_no_architecture_proof_aliases() {
+        let product = ConduitOsProductArtifact::for_target("conduitos/aarch64/virt").unwrap();
+        assert_eq!(product.binary, "conduitos-aarch64-product");
+        for proof_identity in [
+            "conduitos/aarch64/a0-proof",
+            "conduitos/aarch64/a3-proof",
+            "conduitos-aarch64-a3",
+        ] {
+            assert!(ConduitOsProductArtifact::for_target(proof_identity).is_none());
+        }
     }
 }
