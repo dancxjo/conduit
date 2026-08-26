@@ -1,0 +1,27 @@
+[package]
+name = "patchbay-model"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../../crates/conduit-core" }
+conduit-form = { path = "../../../crates/conduit-form" }
+conduit-kernel = { path = "../../../crates/conduit-kernel", features = ["alloc"] }
+conduit-observatory = { path = "../../../crates/conduit-observatory" }
+conduit-planner = { path = "../../../crates/conduit-planner" }
+conduit-presentation = { path = "../../../crates/conduit-presentation" }
+conduit-runtime = { path = "../../../crates/conduit-runtime", default-features = false }
+conduit-body = { path = "../../../crates/conduit-body" }
+conduit-ai = { path = "../../../crates/conduit-ai", features = ["form-catalog"] }
+conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../../proof/conformance/signal" }
+conduit-std-catalog = { path = "../../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog", "text-lab-plan"] }
+conduit-std-host = { path = "../../../hosts/std" }
+conduit-wire = { path = "../../../crates/conduit-wire" }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+conduit-browser-runtime = { path = "../../../hosts/browser-runtime" }
+conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../../proof/conformance/signal" }
+serde_json = "1"

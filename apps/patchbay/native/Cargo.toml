@@ -1,0 +1,30 @@
+[package]
+name = "patchbay-native"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+default-run = "patchbay-native"
+
+[dependencies]
+conduit-body = { path = "../../../crates/conduit-body" }
+conduit-chat = { path = "../../../crates/conduit-chat", features = ["form-catalog"] }
+conduit-core = { path = "../../../crates/conduit-core" }
+conduit-form = { path = "../../../crates/conduit-form" }
+conduit-net = { path = "../../../crates/conduit-net", features = ["form-catalog"] }
+conduit-r1-network-conformance = { path = "../../../proof/conformance/network-r1" }
+conduit-observatory = { path = "../../../crates/conduit-observatory" }
+conduit-planner = { path = "../../../crates/conduit-planner" }
+conduit-presentation = { path = "../../../crates/conduit-presentation" }
+conduit-std-catalog = { path = "../../../crates/conduit-std-catalog", features = ["form-catalog"] }
+conduit-std-host = { path = "../../../hosts/std" }
+conduit-system-continuity = { path = "../../../crates/conduit-system-continuity" }
+conduit-wire = { path = "../../../crates/conduit-wire" }
+embedded-graphics = "=0.8.1"
+patchbay-model = { path = "../model" }
+serde_json = "1"
+softbuffer = { version = "0.4", default-features = false, features = ["wayland", "wayland-dlopen"] }
+winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }
+
+[dev-dependencies]
+conduit-browser-runtime = { path = "../../../hosts/browser-runtime" }
+conduitos = { path = "../../../hosts/conduitos" }
