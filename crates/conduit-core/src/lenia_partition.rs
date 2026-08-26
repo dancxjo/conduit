@@ -387,6 +387,39 @@ pub struct LeniaRegionResult {
 }
 
 impl LeniaRegionResult {
+    pub fn from_cells(
+        field_id: LeniaFieldId,
+        generation: u64,
+        field_width: u16,
+        field_height: u16,
+        region: LeniaRegion,
+        cells: Vec<u32>,
+    ) -> Result<Self, LeniaPartitionRefusal> {
+        if field_width == 0
+            || field_height == 0
+            || region.width == 0
+            || u32::from(region.x) + u32::from(region.width) > u32::from(field_width)
+        {
+            return Err(LeniaPartitionRefusal::InvalidRegion);
+        }
+        if cells.len() != usize::from(region.width) * usize::from(field_height) {
+            return Err(LeniaPartitionRefusal::CellCountMismatch);
+        }
+        if cells.iter().any(|cell| *cell > crate::LENIA_Q16_ONE) {
+            return Err(LeniaPartitionRefusal::Evolution(
+                LeniaRefusal::CellOutOfRange,
+            ));
+        }
+        Ok(Self {
+            field_id,
+            generation,
+            field_width,
+            field_height,
+            region,
+            cells,
+        })
+    }
+
     pub fn cells(&self) -> &[u32] {
         &self.cells
     }

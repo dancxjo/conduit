@@ -185,7 +185,7 @@ pub fn decode_assigned_plan(
             ASSIGNED_CONFIGURATION => length == 27,
             ASSIGNED_CORD => length == 36,
             ASSIGNED_ROUTE => length == 8,
-            ASSIGNED_ROUTE_TARGET => length == 6,
+            ASSIGNED_ROUTE_TARGET => length == 6 || length == 7,
             ASSIGNED_HOST_OPERATION => length == 46,
             ASSIGNED_RESOURCE => length == 8,
             ASSIGNED_SIGN => length == 37,
@@ -201,6 +201,7 @@ pub fn decode_assigned_plan(
             ASSIGNED_PORT => payload[4] <= 1,
             ASSIGNED_CONFIGURATION => payload[18] <= 2,
             ASSIGNED_CORD => payload[18] <= 1 && payload[23] <= 1,
+            ASSIGNED_ROUTE_TARGET => length == 6 || payload[2] == 1,
             ASSIGNED_SIGN => payload[34] <= 2,
             ASSIGNED_REMOTE_ENDPOINT => payload[212] <= 7 && payload[213] <= 1,
             ASSIGNED_STARTUP => {

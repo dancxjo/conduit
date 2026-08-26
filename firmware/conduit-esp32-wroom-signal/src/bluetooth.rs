@@ -11,6 +11,9 @@ use esp_hal::{
 use heapless::Vec;
 use trouble_host::prelude::*;
 
+#[cfg(feature = "distributed-lenia")]
+use crate::lenia_session::ConduitLeniaSession as ConduitBleSession;
+#[cfg(not(feature = "distributed-lenia"))]
 use crate::session::ConduitBleSession;
 
 const CONNECTIONS_MAXIMUM: usize = 1;
@@ -25,9 +28,17 @@ struct Server {
 
 #[gatt_service(uuid = "9f105e51-7731-4524-9688-0d8a61021401")]
 struct ConduitService {
-    #[characteristic(uuid = "9f105e51-7731-4524-9688-0d8a61021402", write_without_response)]
+    #[characteristic(
+        uuid = "9f105e51-7731-4524-9688-0d8a61021402",
+        write_without_response,
+        permissions(encrypted)
+    )]
     write: Vec<u8, PACKET_BYTES_MAXIMUM>,
-    #[characteristic(uuid = "9f105e51-7731-4524-9688-0d8a61021403", notify)]
+    #[characteristic(
+        uuid = "9f105e51-7731-4524-9688-0d8a61021403",
+        notify,
+        permissions(encrypted)
+    )]
     notify: Vec<u8, PACKET_BYTES_MAXIMUM>,
 }
 
@@ -35,7 +46,7 @@ pub async fn run<C>(
     controller: C,
     boot: &crate::receipts::BootIdentity,
     security_rng: &mut Trng,
-    kernel: &'static mut crate::remote_kernel::Esp32RemoteSignalKernel,
+    kernel: &'static mut ActiveKernel,
 ) where
     C: Controller,
 {
@@ -100,6 +111,11 @@ pub async fn run<C>(
     .await;
 }
 
+#[cfg(not(feature = "distributed-lenia"))]
+type ActiveKernel = crate::remote_kernel::Esp32RemoteSignalKernel;
+#[cfg(feature = "distributed-lenia")]
+type ActiveKernel = conduit_core::DistributedLeniaWorker;
+
 async fn run_controller<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) {
     loop {
         runner
@@ -140,7 +156,7 @@ async fn serve_connection<C: Controller, P: PacketPool>(
     connection: &GattConnection<'_, '_, P>,
     boot: &crate::receipts::BootIdentity,
     stack: &Stack<'_, C, P>,
-    kernel: &mut crate::remote_kernel::Esp32RemoteSignalKernel,
+    kernel: &mut ActiveKernel,
 ) -> Result<(), Error> {
     let mut session = ConduitBleSession::new(boot, kernel)
         .expect("the exact boot-scoped BLE session binding must validate");
@@ -188,6 +204,10 @@ async fn serve_connection<C: Controller, P: PacketPool>(
                             .extend_from_slice(packet)
                             .map_err(|_| Error::InsufficientSpace)?;
                         server.conduit.notify.notify(connection, &value).await?;
+                        // Controller admission is not over-air delivery. Keep
+                        // every result burst within the receiver's one fixed
+                        // reassembly slot.
+                        embassy_time::Timer::after_millis(5).await;
                     }
                     if !replies.is_empty() {
                         esp_println::println!(

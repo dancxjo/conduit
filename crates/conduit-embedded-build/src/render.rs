@@ -299,10 +299,18 @@ fn render_routes(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     )
     .expect("String writes cannot fail");
     for target in &plan.route_targets {
+        let sink = match target.sink {
+            GeneratedCordEndpoint::Local { node, port } => format!(
+                "conduit_kernel::CordEndpoint::local(conduit_kernel::NodeId({node}), conduit_kernel::PortId({port}))"
+            ),
+            GeneratedCordEndpoint::Remote { endpoint } => format!(
+                "conduit_kernel::CordEndpoint::Remote(conduit_kernel::RemoteEndpointId({endpoint}))"
+            ),
+        };
         writeln!(
             output,
-            "    conduit_kernel::RouteTarget {{ cord: conduit_kernel::CordId({}), sink: conduit_kernel::CordEndpoint::local(conduit_kernel::NodeId({}), conduit_kernel::PortId({})) }},",
-            target.cord, target.sink_node, target.sink_port
+            "    conduit_kernel::RouteTarget {{ cord: conduit_kernel::CordId({}), sink: {} }},",
+            target.cord, sink
         )
         .expect("String writes cannot fail");
     }

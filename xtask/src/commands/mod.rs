@@ -10,6 +10,7 @@ pub mod check;
 #[path = "../../../hosts/conduitos/fabrication/xtask/mod.rs"]
 pub mod conduitos;
 pub mod demo;
+pub mod distributed_lenia;
 pub mod doctor;
 pub mod esp32_firmware;
 pub mod evidence;

@@ -175,8 +175,7 @@ pub struct GeneratedStaticRoute {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct GeneratedStaticRouteTarget {
     pub cord: u16,
-    pub sink_node: u16,
-    pub sink_port: u16,
+    pub sink: GeneratedCordEndpoint,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

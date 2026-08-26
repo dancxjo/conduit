@@ -228,6 +228,28 @@ pub struct ProveArgs {
     /// Exact peer Boot identity advertised by the constrained boot.
     #[arg(long)]
     pub bluetooth_peer_boot_id: Option<String>,
+
+    /// Exact classic ESP32 address for the distributed Lenia proof.
+    #[arg(long)]
+    pub lenia_wroom_address: Option<String>,
+    /// Exact classic ESP32 Boot identity for the distributed Lenia proof.
+    #[arg(long)]
+    pub lenia_wroom_boot: Option<String>,
+    /// Exact ESP32-C3 address for the distributed Lenia proof.
+    #[arg(long)]
+    pub lenia_c3_address: Option<String>,
+    /// Exact ESP32-C3 Boot identity for the distributed Lenia proof.
+    #[arg(long)]
+    pub lenia_c3_boot: Option<String>,
+    /// Exact Pico W address for the distributed Lenia proof.
+    #[arg(long)]
+    pub lenia_pico_address: Option<String>,
+    /// Exact Pico W Boot identity for the distributed Lenia proof.
+    #[arg(long)]
+    pub lenia_pico_boot: Option<String>,
+    /// Withhold the Pico region and require honest non-completion.
+    #[arg(long)]
+    pub withhold_lenia_pico: bool,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -271,6 +293,7 @@ pub enum ProveTarget {
     CalendarGoogle,
     DegradedProfiles,
     Diversity,
+    DistributedLenia,
     DormantReadmission,
     RecursiveRecovery,
     LlmEmbodiment,

@@ -77,7 +77,7 @@ impl BootIdentity {
 
     pub fn print_host_offer(&self, address: Address) {
         esp_println::println!(
-            "CONDUIT_ESP32_HOST schema=conduit.host/esp32-advertisement@1 host=esp32/{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} boot={:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} generation=1 base=bluetooth-le-gatt base-instance=boot/ble-controller/0 address={} sessions=1 in-flight-items=1 payload-bytes=96 buffered-bytes=4096 frame-bytes=2048 reconnect-attempts=0",
+            "CONDUIT_ESP32_HOST schema=conduit.host/esp32-advertisement@1 host=esp32/{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} boot={:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} generation=1 base=bluetooth-le-gatt base-instance=boot/ble-controller/0 address={} sessions=1 in-flight-items=1 payload-bytes={} buffered-bytes={} frame-bytes=2048 reconnect-attempts=0",
             self.host_mac[0],
             self.host_mac[1],
             self.host_mac[2],
@@ -101,6 +101,8 @@ impl BootIdentity {
             self.nonce[14],
             self.nonce[15],
             address,
+            crate::generated::CORD_VALUE_BYTES / u32::from(crate::generated::CORD_VALUE_SLOTS),
+            crate::generated::CORD_VALUE_BYTES,
         );
     }
 }

@@ -192,6 +192,8 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
             "--features",
             "usb-midi-fixture",
         ]);
+    } else if args.distributed_lenia {
+        build_args.extend(["--no-default-features", "--features", "distributed-lenia"]);
     } else if args.bluetooth_line {
         build_args.extend(["--no-default-features", "--features", "bluetooth-line"]);
     } else if args.appliance_hello {

@@ -14,6 +14,7 @@ r1-control = ["wifi-bootstrap"]
 appliance-hello = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 appliance-hil-client = ["session-control", "dep:conduit-net", "dep:embassy-net"]
 bluetooth-line = ["session-control", "dep:conduit-bluetooth", "dep:embassy-sync", "dep:heapless09", "dep:trouble-host", "cyw43/bluetooth"]
+distributed-lenia = ["session-control", "dep:conduit-bluetooth", "dep:embassy-sync", "dep:heapless09", "dep:trouble-host", "cyw43/bluetooth"]
 usb-midi-fixture = ["dep:embassy-futures"]
 pete-capstone = ["dep:conduit-wire", "dep:embassy-futures"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
@@ -58,6 +59,7 @@ ed25519-dalek = { version = "2.2", default-features = false }
 serde-json-core = "0.6"
 
 [build-dependencies]
+conduit-alife = { path = "../../crates/conduit-alife", features = ["planning"] }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-embedded-build = { path = "../../crates/conduit-embedded-build" }
 conduit-form = { path = "../../crates/conduit-form" }

@@ -15,6 +15,7 @@ pete-create = ["dep:conduit-create-oi"]
 
 [dependencies]
 conduit-ai = { path = "../../crates/conduit-ai", features = ["form-catalog"] }
+conduit-alife = { path = "../../crates/conduit-alife", features = ["planning"] }
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-bluetooth = { path = "../../crates/conduit-bluetooth" }
 conduit-core = { path = "../../crates/conduit-core" }
@@ -52,6 +53,11 @@ uuid = { version = "1", optional = true }
 [[bin]]
 name = "bluetooth-line-probe"
 path = "src/bin/bluetooth-line-probe.rs"
+required-features = ["bluetooth-bluez"]
+
+[[bin]]
+name = "distributed-lenia-probe"
+path = "src/bin/distributed-lenia-probe.rs"
 required-features = ["bluetooth-bluez"]
 
 [dev-dependencies]

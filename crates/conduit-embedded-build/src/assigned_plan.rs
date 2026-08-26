@@ -96,8 +96,17 @@ pub fn encode_assigned_plan(
     }
     for target in &plan.route_targets {
         let mut value = Vec::new();
-        for item in [target.cord, target.sink_node, target.sink_port] {
-            u16_to(&mut value, item);
+        u16_to(&mut value, target.cord);
+        match target.sink {
+            GeneratedCordEndpoint::Local { node, port } => {
+                u16_to(&mut value, node);
+                u16_to(&mut value, port);
+            }
+            GeneratedCordEndpoint::Remote { endpoint } => {
+                value.push(1);
+                u16_to(&mut value, endpoint);
+                u16_to(&mut value, 0);
+            }
         }
         record(ASSIGNED_ROUTE_TARGET, value)?;
     }

@@ -39,7 +39,15 @@
     all(feature = "bluetooth-line", feature = "triple-remote"),
     all(feature = "bluetooth-line", feature = "wifi-bootstrap"),
     all(feature = "bluetooth-line", feature = "appliance-hello"),
-    all(feature = "bluetooth-line", feature = "appliance-hil-client")
+    all(feature = "bluetooth-line", feature = "appliance-hil-client"),
+    all(feature = "distributed-lenia", feature = "pico-local"),
+    all(feature = "distributed-lenia", feature = "pico-local-minimal"),
+    all(feature = "distributed-lenia", feature = "usb-remote"),
+    all(feature = "distributed-lenia", feature = "triple-remote"),
+    all(feature = "distributed-lenia", feature = "wifi-bootstrap"),
+    all(feature = "distributed-lenia", feature = "appliance-hello"),
+    all(feature = "distributed-lenia", feature = "appliance-hil-client"),
+    all(feature = "distributed-lenia", feature = "bluetooth-line")
 ))]
 compile_error!("select exactly one Pico firmware mode");
 #[cfg(not(any(
@@ -50,14 +58,16 @@ compile_error!("select exactly one Pico firmware mode");
     feature = "wifi-bootstrap",
     feature = "appliance-hello",
     feature = "appliance-hil-client",
-    feature = "bluetooth-line"
+    feature = "bluetooth-line",
+    feature = "distributed-lenia"
 )))]
 compile_error!("select exactly one Pico firmware mode");
 
 #[cfg(not(any(
     feature = "appliance-hello",
     feature = "appliance-hil-client",
-    feature = "bluetooth-line"
+    feature = "bluetooth-line",
+    feature = "distributed-lenia"
 )))]
 mod kernel;
 #[cfg(any(feature = "pico-local", feature = "wifi-bootstrap"))]
@@ -68,6 +78,10 @@ mod appliance;
 mod appliance_hil_client;
 #[cfg(feature = "bluetooth-line")]
 mod bluetooth_line;
+#[cfg(feature = "distributed-lenia")]
+mod distributed_lenia;
+#[cfg(feature = "distributed-lenia")]
+mod lenia_image;
 #[cfg(feature = "session-control")]
 mod bootsel;
 #[cfg(feature = "wifi-bootstrap")]
@@ -93,7 +107,7 @@ mod remote_signal;
     feature = "bluetooth-line"
 ))]
 mod remote_kernel;
-#[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client")))]
+#[cfg(not(any(feature = "appliance-hello", feature = "appliance-hil-client", feature = "distributed-lenia")))]
 mod signal_image;
 #[cfg(any(
     feature = "usb-remote",
@@ -133,7 +147,7 @@ mod usb_link;
 
 use aligned::{A4, Aligned};
 use embassy_executor::Spawner;
-#[cfg(feature = "bluetooth-line")]
+#[cfg(any(feature = "bluetooth-line", feature = "distributed-lenia"))]
 use embassy_rp::flash::Flash;
 #[cfg(any(feature = "usb-remote", feature = "triple-remote"))]
 use embassy_futures::join::join;
@@ -141,7 +155,8 @@ use embassy_futures::join::join;
     feature = "pico-local",
     feature = "appliance-hello",
     feature = "appliance-hil-client",
-    feature = "bluetooth-line"
+    feature = "bluetooth-line",
+    feature = "distributed-lenia"
 ))]
 use embassy_futures::select::{select, Either};
 #[cfg(not(feature = "wifi-bootstrap"))]
@@ -160,7 +175,8 @@ static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "distributed-lenia"
 ))]
 struct NoAllocator;
 
@@ -168,7 +184,8 @@ struct NoAllocator;
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "distributed-lenia"
 ))]
 unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
@@ -182,7 +199,8 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     feature = "pico-local",
     feature = "pico-local-minimal",
     feature = "appliance-hello",
-    feature = "appliance-hil-client"
+    feature = "appliance-hil-client",
+    feature = "distributed-lenia"
 ))]
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;
@@ -194,7 +212,7 @@ static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
 static CYW43_NVRAM: Aligned<A4, [u8; 742]> = Aligned(*include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
 ));
-#[cfg(feature = "bluetooth-line")]
+#[cfg(any(feature = "bluetooth-line", feature = "distributed-lenia"))]
 static CYW43_BTFW: Aligned<A4, [u8; 6164]> = Aligned(*include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_btfw.bin"
 ));
@@ -202,7 +220,8 @@ static CYW43_BTFW: Aligned<A4, [u8; 6164]> = Aligned(*include_bytes!(
     feature = "wifi-bootstrap",
     feature = "appliance-hello",
     feature = "appliance-hil-client",
-    feature = "bluetooth-line"
+    feature = "bluetooth-line",
+    feature = "distributed-lenia"
 ))]
 static CYW43_CLM: &[u8; 984] = include_bytes!(
     "../../../firmware/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_clm.bin"
@@ -230,9 +249,12 @@ async fn main(spawner: Spawner) {
     #[cfg(all(
         not(feature = "wifi-bootstrap"),
         not(feature = "appliance-hello"),
-        not(feature = "appliance-hil-client")
+        not(feature = "appliance-hil-client"),
+        not(feature = "distributed-lenia")
     ))]
     let runtime = receipts::RuntimeTranscriptIdentity::new(signal_image::PLAN_ID, signal_image::HOST_ID);
+    #[cfg(feature = "distributed-lenia")]
+    let runtime = receipts::RuntimeTranscriptIdentity::new(lenia_image::PLAN_ID, lenia_image::HOST_ID);
     #[cfg(feature = "wifi-bootstrap")]
     let runtime = receipts::RuntimeTranscriptIdentity::new(network_image::PLAN_ID, network_image::HOST_ID);
     let mut cdc = receipts::UsbCdc::new(sign_sender.sender);
@@ -447,6 +469,32 @@ async fn main(spawner: Spawner) {
             loop {
                 let _ = bootsel::wait_for_request(&mut link_session).await;
             }
+        };
+        match select(bluetooth, recovery).await {
+            Either::First(value) => value,
+            Either::Second(value) => value,
+        }
+    }
+
+    #[cfg(feature = "distributed-lenia")]
+    {
+        const PICO_W_FLASH_BYTES: usize = 2 * 1024 * 1024;
+        let mut link_session = usb_link::UsbLinkSession::new(session_line).unwrap();
+        let mut flash = Flash::<_, _, PICO_W_FLASH_BYTES>::new_blocking(p.FLASH);
+        let mut flash_unique_id = [0_u8; 8];
+        flash
+            .blocking_unique_id(&mut flash_unique_id)
+            .expect("Pico W flash must expose its physical unique identity");
+        let bluetooth = async {
+            cdc.wait_dtr().await;
+            distributed_lenia::run(
+                &spawner, &mut cdc, p.PIO0, p.DMA_CH0, p.DMA_CH1, p.PIN_23,
+                p.PIN_24, p.PIN_25, p.PIN_29, &CYW43_FW, &CYW43_BTFW,
+                &CYW43_NVRAM, CYW43_CLM, &runtime, flash_unique_id,
+            ).await
+        };
+        let recovery = async {
+            loop { let _ = bootsel::wait_for_request(&mut link_session).await; }
         };
         match select(bluetooth, recovery).await {
             Either::First(value) => value,
