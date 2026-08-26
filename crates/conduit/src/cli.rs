@@ -27,9 +27,19 @@ pub(crate) enum Command {
         /// Write a neutral runtime report after execution.
         #[arg(long)]
         report: Option<PathBuf>,
-        /// Select a bounded machine-only product execution fixture.
-        #[arg(long, value_enum)]
-        execution_fixture: Option<ExecutionFixture>,
+        /// Exact canonical Body construction source used for Host and Line truth.
+        #[arg(long)]
+        body: Option<PathBuf>,
+    },
+    /// Check, inspect, or build canonical Host construction truth.
+    Host {
+        #[command(subcommand)]
+        command: HostCommand,
+    },
+    /// Check, inspect, or build canonical Body construction truth.
+    Body {
+        #[command(subcommand)]
+        command: BodyCommand,
     },
     /// Check a Form and render owned diagnostics without executing it.
     Check {
@@ -55,10 +65,34 @@ pub(crate) enum PatchbayHost {
     Browser,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
-pub(crate) enum ExecutionFixture {
-    TwoStdLine,
-    StdBrowserLine,
+#[derive(Debug, Subcommand)]
+pub(crate) enum HostCommand {
+    Check {
+        source: PathBuf,
+    },
+    Show {
+        source: PathBuf,
+    },
+    Build {
+        source: PathBuf,
+        #[arg(long, default_value = "target/host-build")]
+        output: PathBuf,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum BodyCommand {
+    Check {
+        source: PathBuf,
+    },
+    Show {
+        source: PathBuf,
+    },
+    Build {
+        source: PathBuf,
+        #[arg(long, default_value = "target/body-build")]
+        output: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -82,21 +116,6 @@ mod tests {
             }
         ));
         assert!(matches!(
-            Cli::try_parse_from([
-                "conduit",
-                "run",
-                "signal.conduit",
-                "--execution-fixture",
-                "std-browser-line"
-            ])
-            .expect("std-browser product fixture parses")
-            .command,
-            Command::Run {
-                execution_fixture: Some(ExecutionFixture::StdBrowserLine),
-                ..
-            }
-        ));
-        assert!(matches!(
             Cli::try_parse_from(["conduit", "run", "hello.conduit"])
                 .expect("run command parses")
                 .command,
@@ -107,16 +126,21 @@ mod tests {
                 "conduit",
                 "run",
                 "signal.conduit",
-                "--execution-fixture",
-                "two-std-line"
+                "--body",
+                "current.body.conduit"
             ])
-            .expect("two-std product fixture parses")
+            .expect("Body-backed product run parses")
             .command,
-            Command::Run {
-                execution_fixture: Some(ExecutionFixture::TwoStdLine),
-                ..
-            }
+            Command::Run { body: Some(_), .. }
         ));
+        assert!(Cli::try_parse_from([
+            "conduit",
+            "run",
+            "signal.conduit",
+            "--execution-fixture",
+            "two-std-line"
+        ])
+        .is_err());
         assert!(matches!(
             Cli::try_parse_from(["conduit", "check", "hello.conduit", "--json"])
                 .expect("check command parses")
@@ -128,6 +152,22 @@ mod tests {
                 .expect("inspect command parses")
                 .command,
             Command::Inspect { .. }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "host", "build", "linux.host.conduit"])
+                .expect("Host build entrance parses")
+                .command,
+            Command::Host {
+                command: HostCommand::Build { .. }
+            }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "body", "show", "current.body.conduit"])
+                .expect("Body show entrance parses")
+                .command,
+            Command::Body {
+                command: BodyCommand::Show { .. }
+            }
         ));
     }
 }

@@ -21,7 +21,6 @@ pub(crate) struct ProductExecution {
 
 pub(crate) enum ProductRuntime {
     Std(Box<StdHost>),
-    Coordinated(HostAdvertisement),
 }
 
 impl ProductRuntime {
@@ -29,14 +28,9 @@ impl ProductRuntime {
         Self::Std(Box::new(host))
     }
 
-    pub(crate) fn coordinated(advertisement: HostAdvertisement) -> Self {
-        Self::Coordinated(advertisement)
-    }
-
     fn advertisement(&self) -> &HostAdvertisement {
         match self {
             Self::Std(host) => host.advertisement(),
-            Self::Coordinated(advertisement) => advertisement,
         }
     }
 
@@ -49,9 +43,6 @@ impl ProductRuntime {
             Self::Std(host) => host
                 .run_fragment_to(fragment, output, &mut ThreadTimer)
                 .map(|report| report.observations),
-            Self::Coordinated(_) => {
-                Err("coordinated product runtime requires its admitted Line executor".to_string())
-            }
         }
     }
 }

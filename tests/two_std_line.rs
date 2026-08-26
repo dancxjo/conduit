@@ -14,8 +14,11 @@ fn installed_run_reports_two_hosts_one_line_and_terminal_values() {
                 env!("CARGO_MANIFEST_DIR"),
                 "/../../examples/signal-demo.conduit"
             ),
-            "--execution-fixture",
-            "two-std-line",
+            "--body",
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../profiles/bodies/std-line.body.conduit"
+            ),
             "--report",
         ])
         .arg(&report)
@@ -28,12 +31,12 @@ fn installed_run_reports_two_hosts_one_line_and_terminal_values() {
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(
-        stdout.contains("two-std Line complete values=16 pressure_retries=1"),
+        stdout.contains("Body Line complete values=16 pressure_retries=1"),
         "{stdout}"
     );
     let artifact = std::fs::read_to_string(&report).unwrap();
-    assert!(artifact.contains("product/std-source"));
-    assert!(artifact.contains("product/std-sink"));
-    assert!(artifact.contains("product/two-std/websocket-line"));
+    assert!(artifact.contains("body:std-line/host/clock"));
+    assert!(artifact.contains("body:std-line/host/serial"));
+    assert!(artifact.contains("body-line/body:std-line/host/clock/body:std-line/host/serial"));
     std::fs::remove_file(report).unwrap();
 }

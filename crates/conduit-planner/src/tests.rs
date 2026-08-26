@@ -6,8 +6,8 @@ use super::{
 use conduit_core::{
     authority_grant, kind_id, mandatory_sign_storage_requirement, present_authority_requirement,
     process_owned_line_offer, verify_plan, verify_plan_fragment, ArtifactId, CancellationPolicy,
-    CapabilityLimits, CapabilityOffer, ConnectionBase, ExpandedFormId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, OfferGeneration, SourceDocumentId, StartupDependency,
+    CapabilityLimits, CapabilityOffer, ConnectionBase, ExpandedFormId, GearId, HostAdvertisement,
+    HostId, HostProfileId, ImplementationId, OfferGeneration, SourceDocumentId, StartupDependency,
     TerminalPolicy, PROTOCOL_VERSION,
 };
 use conduit_form::parse_with_startup;
@@ -103,6 +103,29 @@ fn parses_block_placement_file() {
 fn default_placement_uses_hosts() {
     let placements = default_placements(&form(), &[host()]).expect("placements must work");
     assert_eq!(placements.by_gear.len(), 2);
+}
+
+#[test]
+fn default_placement_uses_capabilities_across_hosts() {
+    let mut source = host();
+    source.host_id = HostId::from("std-source");
+    source
+        .capabilities
+        .retain(|offer| offer.kind_id.as_str() == PULSE_KIND);
+    let mut sink = host();
+    sink.host_id = HostId::from("std-sink");
+    sink.capabilities
+        .retain(|offer| offer.kind_id.as_str() == SHOW_KIND);
+
+    let placements = default_placements(&form(), &[source, sink]).expect("placements must work");
+    assert_eq!(
+        placements.by_gear[&GearId::from("signal-demo/pulse")].host_id,
+        HostId::from("std-source")
+    );
+    assert_eq!(
+        placements.by_gear[&GearId::from("signal-demo/show")].host_id,
+        HostId::from("std-sink")
+    );
 }
 
 #[test]

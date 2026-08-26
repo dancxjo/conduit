@@ -1,7 +1,7 @@
 use crate::{
     form_source,
     product_execution::{ProductExecutionContext, ProductRuntime},
-    two_std_line,
+    std_websocket_line as two_std_line,
 };
 use conduit_core::{BootId, ConnectionBase, GearId, HostId, OfferGeneration};
 use conduit_planner::{PlacementChoice, PlacementChoices};
@@ -47,7 +47,7 @@ fn binding(plan: &conduit_core::Plan) -> SessionBinding {
 }
 
 #[test]
-fn installed_fixture_runs_two_std_kernels_over_exact_line() {
+fn body_line_executor_runs_two_std_kernels_over_exact_line() {
     let source = include_str!("../../../examples/signal-demo.conduit").to_ascii_lowercase();
     for forbidden in [
         "host",
@@ -70,7 +70,7 @@ fn installed_fixture_runs_two_std_kernels_over_exact_line() {
         .unwrap()
         .line_id
         .as_str()
-        == "product/two-std/websocket-line"));
+        == "body-line/product/std-source/product/std-sink"));
 }
 
 #[test]
