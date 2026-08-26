@@ -124,7 +124,9 @@ fn check_shared_backbone(paths: &Paths, opts: &GlobalOpts) -> Result<(), Conduit
 }
 
 fn compile_object(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
-    let source = paths.root.join("hosts/conduitos/src/bin/riscv64_a0.rs");
+    let source = paths
+        .root
+        .join("hosts/conduitos/proof-appliances/riscv64/a0.rs");
     let status = Command::new("rustc")
         .args([
             "--crate-name",
@@ -157,7 +159,9 @@ fn compile_object(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
 
 fn link(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
     let linker = rust_lld(&paths.root)?;
-    let script = paths.root.join("hosts/conduitos/linker/riscv64_a0.ld");
+    let script = paths
+        .root
+        .join("hosts/conduitos/proof-appliances/riscv64/linker/a0.ld");
     let status = Command::new(linker)
         .args(["-flavor", "gnu", "-m", "elf64lriscv", "-T"])
         .arg(script)

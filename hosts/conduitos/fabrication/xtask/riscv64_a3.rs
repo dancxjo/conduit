@@ -210,7 +210,9 @@ pub(super) fn build_variant(
         .map_err(|e| refusal("build-output-unavailable", e.to_string()))?;
     let commit = git_head(&paths.root)?;
     let linker = riscv64_a0::rust_lld(&paths.root)?;
-    let script = paths.root.join("hosts/conduitos/linker/riscv64_a3.ld");
+    let script = paths
+        .root
+        .join("hosts/conduitos/proof-appliances/riscv64/linker/a3.ld");
     let rustflags = format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display());
     let mut command = Command::new("cargo");
     command

@@ -21,7 +21,9 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
         .map_err(|error| refusal("build-output-unavailable", error.to_string()))?;
     let commit = git_head(&paths.root)?;
     let linker = ia32_a0::rust_lld(&paths.root)?;
-    let script = paths.root.join("hosts/conduitos/linker/ia32_a3.ld");
+    let script = paths
+        .root
+        .join("hosts/conduitos/proof-appliances/ia32/linker/a3.ld");
     let rustflags = format!(
         "-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib",
         linker.display(), script.display()

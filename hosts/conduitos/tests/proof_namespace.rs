@@ -1,0 +1,29 @@
+use std::{fs, path::Path};
+
+#[test]
+fn architecture_rung_entrypoints_are_proof_owned() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let ordinary_bins = fs::read_dir(root.join("src/bin"))
+        .expect("ordinary ConduitOS bin directory")
+        .filter_map(Result::ok)
+        .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "rs"))
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+
+    assert_eq!(ordinary_bins, ["aarch64_product.rs"]);
+
+    let manifest = fs::read_to_string(root.join("Cargo.toml")).expect("ConduitOS manifest");
+    assert_eq!(manifest.matches("path = \"proof-appliances/").count(), 17);
+    assert_eq!(manifest.matches("path = \"src/bin/").count(), 1);
+    assert!(manifest.contains("path = \"src/bin/aarch64_product.rs\""));
+
+    let ordinary_linkers = fs::read_dir(root.join("linker"))
+        .expect("ordinary ConduitOS linker directory")
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        ordinary_linkers,
+        ["aarch64_product.ld".into(), "x86_64.ld".into()].into()
+    );
+}
