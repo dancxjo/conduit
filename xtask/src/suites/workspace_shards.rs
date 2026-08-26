@@ -333,7 +333,7 @@ mod tests {
                 .unwrap_or(options.len());
             let packages = &options[..package_end];
             assert_eq!(packages.len() % 2, 0, "{} package pairs", step.id);
-            for pair in packages.chunks_exact(2) {
+            for pair in packages.as_chunks::<2>().0 {
                 assert_eq!(pair[0], "-p", "{} package flag for {}", step.id, pair[1]);
             }
             if package_end < options.len() {
