@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, io::IsTerminal as _, path::Path, str::FromStr};
 
-use conduit_host_fabrication::{
+use conduit_body_fabrication::{
     canonical_body_description_conduit, check_body_description, BodyBindingTarget, BodyDescription,
-    BodyHostDescription, CheckedHostConfiguration, SporeDescription, SporeJoinMode,
-    SporeOutputKind, BODY_DESCRIPTION_SCHEMA,
+    BodyHostDescription, SporeDescription, SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
 };
+use conduit_host_fabrication::{CheckedHostConfiguration, SporeOutputKind};
 use console::{style, Emoji};
 use serde::Serialize;
 

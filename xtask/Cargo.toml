@@ -23,6 +23,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 conduit-body = { path = "../crates/conduit-body" }
+conduit-body-fabrication = { path = "../crates/conduit-body-fabrication" }
 conduit-ai = { path = "../crates/conduit-ai" }
 conduit-core = { path = "../crates/conduit-core" }
 conduit-create-oi = { path = "../crates/conduit-create-oi" }

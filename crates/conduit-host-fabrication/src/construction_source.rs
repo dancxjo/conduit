@@ -9,7 +9,6 @@ use serde_json::{Map, Number, Value};
 use std::fmt::Write as _;
 
 use crate::{
-    BodyBindingTarget, BodyDescription, BodyDescriptionDiagnostic, BodyHostDescription,
     ConfigurationBase, ConfigurationDiagnostic, ConfigurationTarget, HostBounds, HostConfiguration,
     ResourceBudget,
 };
@@ -17,7 +16,7 @@ use crate::{
 pub fn parse_host_configuration_conduit(
     source: &str,
 ) -> Result<HostConfiguration, ConfigurationDiagnostic> {
-    let construction = one_construction(source, ConstructionRole::Host)
+    let construction = one_host_construction(source)
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     let declarations = declarations(&construction);
     let schema = one_required::<u32>(&declarations, "schema")
@@ -150,32 +149,7 @@ pub fn canonical_host_configuration_conduit(
     Ok(source)
 }
 
-pub fn parse_body_description_conduit(
-    source: &str,
-) -> Result<BodyDescription, BodyDescriptionDiagnostic> {
-    let construction = one_construction(source, ConstructionRole::Body)
-        .map_err(|detail| BodyDescriptionDiagnostic::Decode { detail })?;
-    let declarations = declarations(&construction);
-    let schema = one_required::<u32>(&declarations, "schema")
-        .map_err(|detail| BodyDescriptionDiagnostic::Decode { detail })?;
-    let id = one_required::<String>(&declarations, "id")
-        .map_err(|detail| BodyDescriptionDiagnostic::Decode { detail })?;
-    let hosts = repeated::<BodyHostDescription>(&declarations, "host")
-        .map_err(|detail| BodyDescriptionDiagnostic::Decode { detail })?;
-    reject_unknown(&declarations, &["schema", "id", "host"])
-        .map_err(|detail| BodyDescriptionDiagnostic::Decode { detail })?;
-    Ok(BodyDescription {
-        schema,
-        name: construction.name.text.clone(),
-        body: BodyBindingTarget { id },
-        hosts,
-    })
-}
-
-fn one_construction(
-    source: &str,
-    expected: ConstructionRole,
-) -> Result<ConstructionSyntax, String> {
+fn one_host_construction(source: &str) -> Result<ConstructionSyntax, String> {
     let document = parse_syntax_document(source);
     if let Some(diagnostic) = document.diagnostics.first() {
         return Err(format!(
@@ -194,14 +168,8 @@ fn one_construction(
         .into_iter()
         .next()
         .expect("one construction was required");
-    if construction.role != expected {
-        return Err(format!(
-            "expected a {} document",
-            match expected {
-                ConstructionRole::Host => "host",
-                ConstructionRole::Body => "body",
-            }
-        ));
+    if construction.role != ConstructionRole::Host {
+        return Err("expected a host document".into());
     }
     Ok(construction)
 }
@@ -316,10 +284,7 @@ fn string(value: &str) -> Result<String, ConfigurationDiagnostic> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        check_body_description, check_host_configuration, ConfigurationDiagnostic,
-        FabricationCatalog,
-    };
+    use crate::{check_host_configuration, ConfigurationDiagnostic, FabricationCatalog};
 
     #[test]
     fn canonical_host_sources_round_trip_without_changing_meaning_or_identity() {
@@ -415,40 +380,6 @@ mod tests {
             item,
             ConfigurationDiagnostic::DuplicateContradictoryBase { .. }
         )));
-    }
-
-    #[test]
-    fn canonical_body_composes_canonical_hosts_through_existing_model() {
-        let source = include_str!("../../../profiles/bodies/pete-r1.body.conduit");
-        let description = parse_body_description_conduit(source).unwrap();
-
-        let mut configurations = BTreeMap::new();
-        for host in &description.hosts {
-            let source = match host.name.as_str() {
-                "forebrain" => include_str!(
-                    "../../../profiles/host-configurations/linux-workstation.host.conduit"
-                ),
-                "brainstem" => {
-                    include_str!("../../../profiles/host-configurations/pico-w.host.conduit")
-                }
-                "eyes" => {
-                    include_str!("../../../profiles/host-configurations/browser-page.host.conduit")
-                }
-                _ => unreachable!(),
-            };
-            configurations.insert(
-                host.configuration.clone(),
-                parse_host_configuration_conduit(source).unwrap(),
-            );
-        }
-        let checked = check_body_description(
-            description,
-            &configurations,
-            &crate::test_packages::test_catalog(),
-            &crate::test_packages::test_package_set(),
-        )
-        .unwrap();
-        assert_eq!(checked.hosts().len(), 3);
     }
 
     #[test]

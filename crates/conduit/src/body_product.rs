@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
-use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration};
-use conduit_host_fabrication::{
-    check_body_description, parse_body_description_conduit, parse_host_configuration_conduit,
-    CheckedBodyDescription, HostConfiguration,
+use conduit_body_fabrication::{
+    check_body_description, parse_body_description_conduit, CheckedBodyDescription,
 };
+use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration};
+use conduit_host_fabrication::{parse_host_configuration_conduit, HostConfiguration};
 use conduit_std_host::{StdHost, StdHostConfig};
 
 use crate::product_execution::{ProductExecutionContext, ProductRuntime};
@@ -115,7 +115,7 @@ fn context(body: &CheckedBodyDescription) -> Result<ProductExecutionContext, Str
 
 fn runtime(
     body: &CheckedBodyDescription,
-    host: &conduit_host_fabrication::CheckedBodyHost,
+    host: &conduit_body_fabrication::CheckedBodyHost,
     kind: &str,
 ) -> Result<StdHost, String> {
     let host_id = HostId::from(format!(

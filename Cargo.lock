@@ -432,6 +432,7 @@ name = "conduit"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "conduit-body-fabrication",
  "conduit-core",
  "conduit-form",
  "conduit-host-fabrication",
@@ -498,6 +499,19 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-body-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-form",
+ "conduit-host-fabrication",
+ "conduit-workspace-fabrication",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "toml",
 ]
 
 [[package]]
@@ -4320,6 +4334,7 @@ dependencies = [
  "cliclack",
  "conduit-ai",
  "conduit-body",
+ "conduit-body-fabrication",
  "conduit-core",
  "conduit-create-oi",
  "conduit-form",
