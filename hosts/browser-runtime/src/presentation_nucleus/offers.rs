@@ -148,10 +148,6 @@ fn fixture_offer(kind: &str, value_kind: &str, maximum_bytes: u32) -> Capability
 
 pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> {
     let mut catalog = conduit_std_catalog::standard_profile_catalog();
-    let mut startup = conduit_form::StartupCatalog::new();
-    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut catalog)?;
-    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut catalog)?;
-    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut catalog)?;
     for (kind, value_kind) in [
         (
             FIXTURE_GRAPHICS_KIND,

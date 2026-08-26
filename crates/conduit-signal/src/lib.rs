@@ -572,13 +572,6 @@ pub fn distributed_websocket_line_offer() -> LineOffer {
     }
 }
 
-#[cfg(feature = "legacy-fixture-driver")]
-mod host_profile;
-#[cfg(feature = "legacy-fixture-driver")]
-pub use host_profile::{
-    install_signal_profile, signal_registry, PulseImplementation, ShowImplementation,
-};
-
 #[cfg(feature = "host-profile")]
 mod profile_catalog;
 #[cfg(feature = "host-profile")]

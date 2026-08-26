@@ -34,27 +34,6 @@ demo-std:
 demo-triple-local:
     cargo xtask demo triple
 
-browser-sim:
-    cargo xtask check sim
-
-browser-frame-fixture:
-    cargo xtask check sim
-
-triple-sim-proof:
-    cargo xtask check sim
-
-browser-sim-wasm-check:
-    cargo xtask check workspace-portable
-
-pico-sim:
-    cargo xtask check sim
-
-pico-datagram-fixture:
-    cargo xtask check sim
-
-pico-sim-thumb-check:
-    cargo xtask check workspace-pico
-
 body:
     cargo xtask check workspace-test-foundation
 

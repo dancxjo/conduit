@@ -14,11 +14,6 @@ fn robotics_contracts_are_typed_bounded_and_prewake_offers_are_authority_free() 
             _ => unreachable!(),
         };
         let offer = offer(contract.clone(), revision, "test", implementation);
-        assert!(contract
-            .inputs
-            .iter()
-            .chain(&contract.outputs)
-            .all(|port| port.value_kind.as_str() != crate::GENERIC_VALUE_KIND));
         assert_eq!(contract.limits.max_queue_items, 1);
         assert!(offer.host_operations.is_empty());
         assert!(offer.resource_requirements.is_empty());

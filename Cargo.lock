@@ -432,13 +432,11 @@ name = "conduit"
 version = "0.1.0"
 dependencies = [
  "clap",
- "conduit-browser-sim",
  "conduit-core",
  "conduit-form",
  "conduit-kernel",
  "conduit-net",
  "conduit-observatory",
- "conduit-pico-sim",
  "conduit-planner",
  "conduit-runtime",
  "conduit-signal",
@@ -521,22 +519,6 @@ dependencies = [
  "ed25519-dalek",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "conduit-browser-sim"
-version = "0.1.0"
-dependencies = [
- "conduit-body",
- "conduit-core",
- "conduit-form",
- "conduit-pico-sim",
- "conduit-planner",
- "conduit-runtime",
- "conduit-signal",
- "conduit-std-host",
- "conduit-wire",
- "ed25519-dalek",
 ]
 
 [[package]]
@@ -701,13 +683,10 @@ dependencies = [
 name = "conduit-observatory"
 version = "0.1.0"
 dependencies = [
- "conduit-browser-sim",
  "conduit-core",
  "conduit-form",
- "conduit-pico-sim",
  "conduit-planner",
  "conduit-signal",
- "conduit-std-host",
  "serde",
 ]
 
@@ -730,21 +709,6 @@ dependencies = [
  "patchbay-model",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "conduit-pico-sim"
-version = "0.1.0"
-dependencies = [
- "conduit-body",
- "conduit-core",
- "conduit-form",
- "conduit-planner",
- "conduit-runtime",
- "conduit-signal",
- "conduit-std-host",
- "conduit-wire",
- "ed25519-dalek",
 ]
 
 [[package]]
@@ -793,10 +757,7 @@ name = "conduit-runtime"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-form",
  "conduit-kernel",
- "conduit-planner",
- "conduit-wire",
 ]
 
 [[package]]
@@ -826,7 +787,6 @@ dependencies = [
  "conduit-midi",
  "conduit-planner",
  "conduit-presentation",
- "conduit-runtime",
  "serde",
 ]
 
@@ -848,7 +808,6 @@ dependencies = [
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",
- "conduit-pico-sim",
  "conduit-planner",
  "conduit-presentation",
  "conduit-runtime",

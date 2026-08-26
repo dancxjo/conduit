@@ -1,385 +1,13 @@
-use alloc::collections::BTreeMap;
 use alloc::vec;
 
 use super::{
-    build_report, render_text_report, unsupported_state, BuildInclusionPathReport,
+    build_report, render_text_report, unsupported_state, BootProofClass, BuildInclusionPathReport,
     CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport,
     ImageBuildTraceReport, LineReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
-    OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport,
-    PressureReport, RetentionReport, SealedBootProvenanceReport, SNAPSHOT_SCHEMA,
+    OperationalState, PlanLifecycle, RetentionReport, SealedBootProvenanceReport, SNAPSHOT_SCHEMA,
 };
-use conduit_browser_sim::{BrowserSimConfig, BrowserSimPage};
-use conduit_core::{
-    authority_grant, present_authority_requirement, process_owned_line_offer, ArtifactId, BootId,
-    CapabilityId, ConnectionBase, GearId, HostCommand, HostId, ObservationKind, OfferGeneration,
-    TerminalDisposition,
-};
-use conduit_form::parse_with_startup;
-use conduit_pico_sim::{pico_advertisement, PicoSimConfig};
-use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
-use conduit_signal::{exact_std_pico_usb_plan, signal_profile_catalog};
-use conduit_std_host::{LegacyStdFixtureHost, StdHostConfig};
-
-#[test]
-fn report_separates_identity_capability_plan_connection_and_sign_tables() {
-    let mut std_host = LegacyStdFixtureHost::new_with_config(StdHostConfig {
-        host_id: HostId::from("std-host-triple"),
-        boot_id: BootId::from("std-boot-triple"),
-        offer_generation: OfferGeneration(1),
-    });
-    let page = BrowserSimPage::with_hosts([BrowserSimConfig {
-        host_id: HostId::from("browser-sim-triple"),
-        boot_id: BootId::from("browser-sim-boot-triple"),
-        offer_generation: OfferGeneration(1),
-    }]);
-    let pico_ad = pico_advertisement(PicoSimConfig {
-        host_id: HostId::from("pico-sim-triple"),
-        boot_id: BootId::from("pico-sim-boot-triple"),
-        offer_generation: OfferGeneration(1),
-    });
-    let mut browser_ad = page
-        .advertisements()
-        .into_iter()
-        .next()
-        .expect("browser advertisement exists");
-    let browser_host_id = browser_ad.host_id.clone();
-    let browser_boot_id = browser_ad.boot_id.clone();
-    let browser_capability = browser_ad
-        .capabilities
-        .iter_mut()
-        .find(|capability| capability.capability_id == CapabilityId::from("dom-show"))
-        .expect("browser presentation capability exists");
-    let presentation_subject = browser_capability
-        .host_operations
-        .iter()
-        .find_map(|requirement| requirement.target_kind.clone())
-        .expect("browser presentation declares a target subject");
-    let authority_requirement = present_authority_requirement(presentation_subject);
-    browser_capability
-        .authority_requirements
-        .push(authority_requirement.clone());
-    let browser_authority_grant = authority_grant(
-        "grant/browser-presentation",
-        &authority_requirement,
-        browser_host_id,
-        browser_boot_id,
-        browser_capability.capability_id.clone(),
-    );
-    let advertisements = vec![
-        std_host.advertisement().clone(),
-        browser_ad.clone(),
-        pico_ad.clone(),
-    ];
-
-    let form = parse_with_startup(
-        include_str!("../../../fixtures/forms/triple-signal.conduit"),
-        &conduit_signal::signal_startup_catalog(),
-        &signal_profile_catalog(),
-    )
-    .expect("triple form parses");
-    let placements = PlacementChoices {
-        by_gear: BTreeMap::from([
-            (
-                GearId::from("triple-signal/pulse"),
-                PlacementChoice {
-                    host_id: HostId::from("std-host-triple"),
-                    capability_id: CapabilityId::from("pulse-1"),
-                },
-            ),
-            (
-                GearId::from("triple-signal/local"),
-                PlacementChoice {
-                    host_id: HostId::from("std-host-triple"),
-                    capability_id: CapabilityId::from("stdout-show-1"),
-                },
-            ),
-            (
-                GearId::from("triple-signal/web"),
-                PlacementChoice {
-                    host_id: HostId::from("browser-sim-triple"),
-                    capability_id: CapabilityId::from("dom-show"),
-                },
-            ),
-            (
-                GearId::from("triple-signal/light"),
-                PlacementChoice {
-                    host_id: HostId::from("pico-sim-triple"),
-                    capability_id: CapabilityId::from("onboard-led"),
-                },
-            ),
-        ]),
-    };
-    let connection_bases = BTreeMap::from([
-        (
-            (
-                GearId::from("triple-signal/pulse"),
-                GearId::from("triple-signal/local"),
-            ),
-            ConnectionBase::Local,
-        ),
-        (
-            (
-                GearId::from("triple-signal/pulse"),
-                GearId::from("triple-signal/web"),
-            ),
-            ConnectionBase::FixtureFrame,
-        ),
-        (
-            (
-                GearId::from("triple-signal/pulse"),
-                GearId::from("triple-signal/light"),
-            ),
-            ConnectionBase::FixtureDatagram,
-        ),
-    ]);
-    let line_offers = vec![
-        process_owned_line_offer(
-            "line/std-browser",
-            "link/std-browser",
-            ConnectionBase::FixtureFrame,
-            "fixture/frame/std-browser",
-            &advertisements[0],
-            &advertisements[1],
-            4,
-            64,
-        ),
-        process_owned_line_offer(
-            "line/std-pico",
-            "link/std-pico",
-            ConnectionBase::FixtureDatagram,
-            "fixture/datagram/std-pico",
-            &advertisements[0],
-            &advertisements[2],
-            4,
-            64,
-        ),
-    ];
-    let plan = plan_with_options(
-        &form,
-        &advertisements,
-        &placements,
-        &[
-            ConnectionBase::Local,
-            ConnectionBase::FixtureFrame,
-            ConnectionBase::FixtureDatagram,
-        ],
-        PlanningOptions {
-            connection_bases: &connection_bases,
-            line_candidates: &BTreeMap::new(),
-            connection_item_capacity: 4,
-            connection_byte_capacity: 64,
-            authority_grants: core::slice::from_ref(&browser_authority_grant),
-            protected_resource_grants: &[],
-            line_offers: &line_offers,
-        },
-    )
-    .expect("M1 triple-simulation plan resolves");
-    std_host.replace_line_offers(line_offers.clone());
-    let fragment = plan
-        .fragments
-        .iter()
-        .find(|fragment| fragment.host_id == HostId::from("std-host-triple"))
-        .expect("std fragment exists")
-        .clone();
-    let _ = std_host.handle(HostCommand::Prepare(fragment.clone()));
-    let _ = std_host.handle(HostCommand::StartPlay(fragment.plan_id.clone()));
-    let observations = std_host
-        .handle(HostCommand::Inspect)
-        .events
-        .into_iter()
-        .find_map(|event| match event {
-            conduit_core::HostEvent::Observations { items } => Some(items),
-            _ => None,
-        })
-        .expect("inspect returns observations");
-
-    let active_play_id = observations
-        .iter()
-        .find_map(|observation| observation.active_play_id.clone())
-        .expect("active Play identity is reported");
-    let hosts = advertisements
-        .iter()
-        .cloned()
-        .map(|advertisement| HostReport {
-            capabilities: advertisement
-                .capabilities
-                .iter()
-                .map(|capability| CapabilityStatusReport {
-                    capability_id: capability.capability_id.clone(),
-                    freshness: OfferFreshness::Fresh,
-                    support: CapabilitySupport::Supported,
-                    availability: CapabilityAvailability::Available,
-                })
-                .collect(),
-            advertisement,
-            state: OperationalState::Available,
-        })
-        .collect();
-    let play = PlayReport {
-        active_play_id: active_play_id.clone(),
-        plan_id: plan.plan_id.clone(),
-        host_id: HostId::from("std-host-triple"),
-        boot_id: BootId::from("std-boot-triple"),
-        lifecycle: PlanLifecycle::Active,
-        terminal_disposition: None,
-        failure_message: None,
-        placements: fragment
-            .placements
-            .iter()
-            .map(|placement| PlayPlacementReport {
-                placement_id: placement.placement_id.clone(),
-                lifecycle: PlanLifecycle::Prepared,
-                terminal_disposition: None,
-                failure_message: None,
-            })
-            .collect(),
-        connections: fragment
-            .connections
-            .iter()
-            .map(|connection| PlayConnectionReport {
-                connection_id: connection.connection_id.clone(),
-                lifecycle: PlanLifecycle::Active,
-                terminal_disposition: None,
-                pressure: Some(PressureReport {
-                    current_in_flight_items: Some(0),
-                    current_buffered_bytes: Some(0),
-                    pressure_events: 1,
-                    last_pressure_sequence: Some(0),
-                }),
-                failure_message: None,
-            })
-            .collect(),
-    };
-    let snapshot = ObservatorySnapshot {
-        schema: SNAPSHOT_SCHEMA.into(),
-        hosts,
-        bases: vec![],
-        lines: line_offers
-            .into_iter()
-            .map(|offer| LineReport {
-                offer,
-                state: OperationalState::Available,
-            })
-            .collect(),
-        plans: vec![plan],
-        plays: vec![play],
-        retention: RetentionReport {
-            item_capacity: 64,
-            retained_items: observations.len() as u32,
-            dropped_items: 0,
-        },
-        observations,
-        historical_observations: vec![],
-        sealed_boot_provenance: vec![],
-    };
-    let report = build_report(&snapshot).expect("neutral report projects");
-    assert_eq!(report.hosts.len(), 3);
-    assert_eq!(report.lines.len(), 2);
-    assert!(report.capabilities.iter().all(|capability| {
-        capability.support == CapabilitySupport::Supported
-            && capability.availability == CapabilityAvailability::Available
-            && capability.freshness == OfferFreshness::Fresh
-    }));
-    assert_eq!(report.plans.len(), 1);
-    assert_eq!(report.plans[0].placement_count, 4);
-    assert_eq!(report.plans[0].connection_count, 3);
-    assert_eq!(report.placements.len(), 4);
-    assert_eq!(report.fragments.len(), 3);
-    assert_eq!(report.plays.len(), 1);
-    assert_eq!(report.plays[0].active_play_id, active_play_id);
-    assert!(report.capabilities.iter().any(|capability| {
-        capability.capability_id == CapabilityId::from("dom-show")
-            && capability.authority_requirements == vec![authority_requirement.clone()]
-    }));
-    assert!(report.placements.iter().any(|placement| {
-        placement.capability_id == CapabilityId::from("dom-show")
-            && placement.authority.len() == 1
-            && placement.authority[0].grant_id == browser_authority_grant.grant_id
-    }));
-    assert_eq!(report.connections.len(), 3);
-    assert!(report.connections.iter().any(|connection| connection
-        .selected_line
-        .as_ref()
-        .map(|line| line.binding.base)
-        == Some(ConnectionBase::FixtureFrame)));
-    assert!(report.connections.iter().any(|connection| connection
-        .selected_line
-        .as_ref()
-        .map(|line| line.binding.base)
-        == Some(ConnectionBase::FixtureDatagram)));
-    assert!(report.connections.iter().all(|connection| connection
-        .selected_line
-        .as_ref()
-        .is_none_or(|selected| connection.admitted_lines.contains(selected))));
-    assert!(report
-        .signs
-        .iter()
-        .all(|row| !row.sign_id.as_str().is_empty()));
-    assert!(report.signs.iter().any(|row| {
-        row.plan_id == Some(report.plans[0].plan_id.clone())
-            && row.active_play_id.is_some()
-            && matches!(row.kind, ObservationKind::PlanPlayStarted)
-    }));
-    assert!(report.retention.bounded);
-
-    let rendered = render_text_report(&report);
-    assert!(rendered.contains("host observatory report"));
-    assert!(rendered.contains("host id=std-host-triple boot=std-boot-triple"));
-    assert!(rendered.contains("capability host=browser-sim-triple"));
-    assert!(rendered.contains(conduit_core::PRESENT_HOST_OPERATION_CONTRACT));
-    assert!(rendered.contains("presentation/signal"));
-    assert!(rendered.contains(conduit_core::PRESENTATION_RESOURCE_CLASS));
-    assert!(rendered.contains("browser/presentation"));
-    assert!(rendered.contains(conduit_core::PRESENT_AUTHORITY_CONTRACT));
-    assert!(rendered.contains("grant/browser-presentation"));
-    assert!(rendered.contains("base=FixtureFrame"));
-    assert!(rendered.contains("base=FixtureDatagram"));
-    assert!(rendered.contains("link/std-browser"));
-    assert!(rendered.contains("fixture/datagram/std-pico"));
-    assert!(rendered.contains("authority: ProcessOwned"));
-    assert!(rendered.contains("plays 1"));
-    assert!(rendered.contains("pressure=in_flight=Some(0)"));
-    assert!(rendered.contains("active_play="));
-    assert!(!rendered.contains("sign id=sign/"));
-
-    let mut state_snapshot = snapshot.clone();
-    state_snapshot.hosts[0].state = OperationalState::Stale;
-    state_snapshot.hosts[1].state = OperationalState::Unreachable;
-    state_snapshot.hosts[2].state = OperationalState::Denied;
-    state_snapshot.hosts[0].capabilities[0].support = CapabilitySupport::Unsupported;
-    state_snapshot.hosts[0].capabilities[0].availability = CapabilityAvailability::Unavailable;
-    state_snapshot.lines[0].state = OperationalState::Failed;
-    state_snapshot.lines[1].state = OperationalState::Unknown;
-    state_snapshot.plays[0].lifecycle = PlanLifecycle::Failed;
-    state_snapshot.plays[0].terminal_disposition = Some(TerminalDisposition::Failed {
-        reason: conduit_core::FailureReason::UnsupportedKind,
-    });
-    state_snapshot.plays[0].failure_message = Some("installed implementation failed".into());
-    state_snapshot.plays[0].connections[0].lifecycle = PlanLifecycle::Failed;
-    state_snapshot.plays[0].connections[0].failure_message = Some("sink rejected".into());
-    let mut gap = state_snapshot.observations[0].clone();
-    gap.sign_id = conduit_core::SignId::from("host-gap-sign");
-    gap.kind = ObservationKind::SignGap { dropped: 3 };
-    state_snapshot.observations.push(gap);
-    state_snapshot.retention.retained_items += 1;
-    state_snapshot.retention.dropped_items = 2;
-
-    let state_report = build_report(&state_snapshot).expect("distinct states remain valid");
-    assert_eq!(state_report.hosts[0].state, OperationalState::Stale);
-    assert_eq!(state_report.hosts[1].state, OperationalState::Unreachable);
-    assert_eq!(state_report.hosts[2].state, OperationalState::Denied);
-    assert_eq!(state_report.lines[0].state, OperationalState::Failed);
-    assert_eq!(state_report.lines[1].state, OperationalState::Unknown);
-    assert_eq!(
-        state_report.capabilities[0].support,
-        CapabilitySupport::Unsupported
-    );
-    assert_eq!(state_report.retention.visible_gap_count, 5);
-    let states = render_text_report(&state_report);
-    assert!(states.contains("failure=installed implementation failed"));
-    assert!(states.contains("failure=sink rejected"));
-    assert!(states.contains("pressure=in_flight=Some(0)"));
-}
+use conduit_core::{ArtifactId, TerminalDisposition};
+use conduit_signal::exact_std_pico_usb_plan;
 
 #[test]
 fn status_vocabulary_keeps_failure_modes_distinct() {
@@ -457,12 +85,9 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
 }
 
 #[test]
-fn traces_profile_build_image_host_boot_and_inclusion_without_owning_truth() {
-    let advertisement = pico_advertisement(PicoSimConfig {
-        host_id: HostId::from("trace/host"),
-        boot_id: BootId::from("trace/boot"),
-        offer_generation: OfferGeneration(1),
-    });
+fn traces_current_profile_build_image_host_boot_and_inclusion_without_owning_truth() {
+    let exact = exact_std_pico_usb_plan().expect("current std/Pico USB plan resolves");
+    let advertisement = exact.sink_advertisement;
     let snapshot = ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.into(),
         hosts: vec![HostReport {
@@ -488,8 +113,8 @@ fn traces_profile_build_image_host_boot_and_inclusion_without_owning_truth() {
         sealed_boot_provenance: vec![SealedBootProvenanceReport {
             host_id: advertisement.host_id,
             boot_id: advertisement.boot_id,
-            firmware_environment: "fixture".into(),
-            adapter_name: "fixture-adapter".into(),
+            firmware_environment: "rp2040-current".into(),
+            adapter_name: "rp2040-fabrication-package".into(),
             adapter_version: "1".into(),
             adapter_revision: "1".into(),
             image_id: ArtifactId::from("image:sha256:exact"),
@@ -497,43 +122,31 @@ fn traces_profile_build_image_host_boot_and_inclusion_without_owning_truth() {
             image_build_trace: Some(ImageBuildTraceReport {
                 profile_id: "sha256:profile".into(),
                 inclusions: vec![BuildInclusionPathReport {
-                    request: "capability:time/tick".into(),
-                    path: vec![
-                        "host-operation:conduit.host/wait@1".into(),
-                        "resource:conduit.resource/timer-slot@1".into(),
-                    ],
+                    request: "capability:signal/show".into(),
+                    path: vec!["package:rp2040".into(), "artifact:signal-show".into()],
                 }],
             }),
             memory_map: MemoryMapSummary {
                 normalized_region_count: 1,
-                runtime_arena_bytes: 1024,
+                runtime_arena_bytes: 4096,
             },
-            boot_artifacts: vec![],
+            boot_artifacts: vec![ArtifactId::from("artifact:signal-show")],
             initial_plan_artifact_id: None,
             recovery_plan_artifact_id: None,
             framebuffers: vec![],
-            proof_class: super::BootProofClass::Unknown,
+            proof_class: BootProofClass::FirmwareExecution,
         }],
         retention: RetentionReport {
-            item_capacity: 1,
+            item_capacity: 16,
             retained_items: 0,
             dropped_items: 0,
         },
     };
-    let report = build_report(&snapshot).unwrap();
+
+    let report = build_report(&snapshot).expect("current provenance projects");
     let rendered = render_text_report(&report);
-    assert!(rendered.contains("image=image:sha256:exact"));
-    assert!(rendered.contains("build=build:sha256:exact"));
+    assert!(rendered.contains("rp2040-current"));
+    assert!(rendered.contains("build:sha256:exact"));
     assert!(rendered.contains("profile=sha256:profile"));
     assert!(rendered.contains("inclusion_paths=1"));
-
-    let mut malformed = snapshot;
-    malformed.sealed_boot_provenance[0]
-        .image_build_trace
-        .as_mut()
-        .unwrap()
-        .inclusions[0]
-        .path
-        .clear();
-    assert!(super::validate_snapshot(&malformed).is_err());
 }

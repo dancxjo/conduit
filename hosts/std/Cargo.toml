@@ -6,10 +6,6 @@ edition = "2021"
 [features]
 default = []
 bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]
-legacy-fixture-driver = [
-    "conduit-runtime/compatibility-executor",
-    "conduit-signal/legacy-fixture-driver",
-]
 local-model-proof = []
 pete-create = ["dep:conduit-create-oi"]
 
@@ -62,6 +58,5 @@ required-features = ["bluetooth-bluez"]
 
 [dev-dependencies]
 conduit-browser-runtime = { path = "../browser-runtime" }
-conduit-pico-sim = { path = "../../fixtures/pico-sim", features = ["compatibility-fixture"] }
 conduit-workspace-fabrication = { path = "../../crates/conduit-workspace-fabrication" }
 ed25519-dalek = "2.2"

@@ -2,7 +2,7 @@
 
 This host parses and plans unchanged `fixtures/forms/signal-demo.conduit`, lowers its exact local fragment
 through the shared plan-to-kernel contract, and executes it with `conduit-kernel`'s port-aware
-fixed scheduler compiled to `wasm32-unknown-unknown`. It does not construct `HostRuntime`.
+fixed scheduler compiled to `wasm32-unknown-unknown`. It has no alternate executor.
 JavaScript owns only the browser platform effects: real timers and DOM presentation.
 
 Each page host receives an independent WebAssembly instance, so its runtime state, host/boot

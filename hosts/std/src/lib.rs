@@ -1,17 +1,9 @@
-#[cfg(feature = "legacy-fixture-driver")]
-use conduit_core::HostCommand;
-#[cfg(feature = "legacy-fixture-driver")]
-use conduit_core::ImplementationId;
 use conduit_core::{
     ConnectionBase, HostAdvertisement, HostId, Observation, OfferGeneration, Plan, PlanFragment,
     PlanId,
 };
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
-#[cfg(feature = "legacy-fixture-driver")]
-use conduit_runtime::{HostRuntime, RuntimeOutput};
-#[cfg(feature = "legacy-fixture-driver")]
-use conduit_signal::signal_registry;
 use conduit_signal::{PULSE_KIND, SHOW_KIND};
 use std::fs;
 use std::io::Write;
@@ -902,47 +894,6 @@ impl StdHost {
             writeln!(output, "receipts 0").map_err(|error| error.to_string())?;
         }
         Ok(report)
-    }
-}
-
-/// Explicit compatibility driver for simulation fixtures that have not yet migrated to the
-/// kernel protocol. Production std execution never constructs this legacy runtime.
-#[cfg(feature = "legacy-fixture-driver")]
-pub struct LegacyStdFixtureHost {
-    runtime: HostRuntime,
-}
-
-#[cfg(feature = "legacy-fixture-driver")]
-impl LegacyStdFixtureHost {
-    pub fn new_with_config(config: StdHostConfig) -> Self {
-        let advertisement = composition::build_advertisement(
-            config,
-            StdHostComposition::reference(),
-            None,
-            None,
-            None,
-            false,
-        );
-        let registry = signal_registry(
-            ImplementationId::from("std/pulse-v1"),
-            ImplementationId::from("std/stdout-show-signal-v1"),
-        )
-        .expect("std fixture signal implementations have unique identities");
-        Self {
-            runtime: HostRuntime::new(advertisement, registry, 256),
-        }
-    }
-
-    pub fn advertisement(&self) -> &HostAdvertisement {
-        self.runtime.advertisement()
-    }
-
-    pub fn handle(&mut self, command: HostCommand) -> RuntimeOutput {
-        self.runtime.handle(command)
-    }
-
-    pub fn replace_line_offers(&mut self, lines: Vec<conduit_core::LineOffer>) {
-        self.runtime.replace_line_offers(lines);
     }
 }
 

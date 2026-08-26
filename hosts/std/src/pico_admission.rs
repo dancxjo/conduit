@@ -188,17 +188,16 @@ mod tests {
         AdmissionManager, AdmissionSigns, Body, BodyMembership, CandidateInventory, CandidateState,
         PicoAdmissionProof,
     };
-    use conduit_core::{CheckedFormId, OfferGeneration, SourceDocumentId};
-    use conduit_pico_sim::{pico_advertisement, PicoSimConfig};
+    use conduit_core::{CheckedFormId, SourceDocumentId};
+    use conduit_signal::pico_local_advertisement;
     use ed25519_dalek::{Signer, SigningKey};
 
     #[test]
     fn codec_carries_exact_advertisement_and_rejects_protocol_and_size() {
-        let advertisement = pico_advertisement(PicoSimConfig {
-            host_id: HostId::from("pico/provisioned"),
-            boot_id: BootId::from("pico/boot-1"),
-            offer_generation: OfferGeneration(3),
-        });
+        let mut advertisement = pico_local_advertisement();
+        advertisement.host_id = HostId::from("pico/provisioned");
+        advertisement.boot_id = BootId::from("pico/boot-1");
+        advertisement.offer_generation = conduit_core::OfferGeneration(3);
         let frame = PicoAdmissionAdvertisement {
             protocol: PICO_ADMISSION_PROTOCOL,
             advertisement: advertisement.clone(),
@@ -246,11 +245,10 @@ mod tests {
             SignId::from("sign/body-born"),
         )
         .unwrap();
-        let advertisement = pico_advertisement(PicoSimConfig {
-            host_id: HostId::from("pico/provisioned"),
-            boot_id: BootId::from("pico/boot-1"),
-            offer_generation: OfferGeneration(3),
-        });
+        let mut advertisement = pico_local_advertisement();
+        advertisement.host_id = HostId::from("pico/provisioned");
+        advertisement.boot_id = BootId::from("pico/boot-1");
+        advertisement.offer_generation = conduit_core::OfferGeneration(3);
         let mut candidates = CandidateInventory::new(body.body_id.clone()).unwrap();
         let candidate_id = candidates
             .observe(CandidateObservation {

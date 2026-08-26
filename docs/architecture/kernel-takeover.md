@@ -59,15 +59,7 @@ The complete typed `tick -> tee -> filter/latest -> show` conformance form uses
 the same std/kernel boundary with exact pressure, closure, cancellation,
 resource, Sign, and identity proofs. The ordinary `conduit` CLI uses these
 installed profiles. Unsupported std forms fail closed; production `StdHost`
-does not contain `HostRuntime`, expose its command surface, or fall back to its
-operation/connection pump.
-
-## Compatibility boundary
-
-Cross-host browser/Pico simulations are not production std execution. They opt
-into `LegacyStdFixtureHost` by name until their later host/link milestones
-migrate. Composite conformance likewise remains later work. Neither path is
-present in default production `StdHost`.
+has no alternate executor or operation/connection pump.
 
 ## Proof commands
 

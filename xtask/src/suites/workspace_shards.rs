@@ -36,9 +36,7 @@ const HOST_TEST_PACKAGES: &[&str] = &[
     "conduit-linear-framebuffer-fabrication",
     "conduit-rp2040-pio-audio-extension",
     "conduit-workspace-fabrication",
-    "conduit-browser-sim",
     "conduit-browser-host",
-    "conduit-pico-sim",
     "conduit-std-host",
     "conduit-browser-runtime",
     "conduitos",
@@ -134,11 +132,7 @@ const HOST_TEST_STEP: Step = Step::new(
     &[
         "test",
         "-p",
-        "conduit-browser-sim",
-        "-p",
         "conduit-browser-host",
-        "-p",
-        "conduit-pico-sim",
         "-p",
         "conduit-std-host",
         "-p",
@@ -218,7 +212,7 @@ impl WorkspaceShard {
                 matches!(step.id, "check.kernel-alloc" | "check.system-continuity")
             }
             Self::TestHosts => false,
-            Self::TestProducts => matches!(step.id, "check.observatory-fixture"),
+            Self::TestProducts => false,
             Self::Portable => {
                 step.id.starts_with("check.no-std.")
                     || (step.id.starts_with("check.thumb.")

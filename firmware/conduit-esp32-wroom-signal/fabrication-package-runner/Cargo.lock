@@ -80,10 +80,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-kernel"
-version = "0.1.0"
-
-[[package]]
 name = "conduit-midi"
 version = "0.1.0"
 dependencies = [
@@ -102,14 +98,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-runtime"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-kernel",
-]
-
-[[package]]
 name = "conduit-std-catalog"
 version = "0.1.0"
 dependencies = [
@@ -117,7 +105,6 @@ dependencies = [
  "conduit-form",
  "conduit-midi",
  "conduit-presentation",
- "conduit-runtime",
  "serde",
 ]
 

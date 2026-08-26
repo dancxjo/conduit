@@ -4,9 +4,8 @@ use super::*;
 
 /// Exact typed contracts currently supported by the executable `conduit.std` nucleus.
 ///
-/// This deliberately excludes the eight legacy contracts returned by
-/// [`standard_contracts`]. Those revisions use `value/any` and remain audited
-/// compatibility fixtures rather than supported operations.
+/// Conduit v1 exposes only these exact typed revisions; the former erased
+/// `value/any` catalog is not compiled or discoverable.
 pub fn supported_nucleus_contracts() -> Vec<StandardKindContract> {
     vec![
         tick_contract(),

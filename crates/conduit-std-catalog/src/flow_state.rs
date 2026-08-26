@@ -442,9 +442,6 @@ mod tests {
         {
             assert_eq!(port.value_kind.as_str(), SCALAR_INFO_ID);
         }
-        for port in gate.inputs.iter().chain(gate.outputs.iter()) {
-            assert_ne!(port.value_kind.as_str(), super::super::GENERIC_VALUE_KIND);
-        }
     }
 
     #[cfg(feature = "form-catalog")]

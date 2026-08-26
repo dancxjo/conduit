@@ -526,13 +526,10 @@ The first Pico W slice does not require DHCP, DNS, captive portal behavior, HTTP
 
 Those may follow once the semantic source-to-sink path is proven.
 
-Current repository slice: `conduit-pico-sim` provides the bounded Pico W
-shaped advertisement and simulated LED receipt model, checks without default features
-for `thumbv6m-none-eabi`, and has a hosted deterministic local
-`flow/pulse -> presentation/show` fixture. It also has a deterministic bounded
-std-to-simulation datagram fixture that moves connection envelopes through
-`conduit-wire`. It is not a board support package, firmware image, live timer
-driver, radio stack, physical LED acceptance run, or live std-to-Pico socket.
+The current Pico W implementation is the RP2040 fabrication package and
+firmware under `firmware/conduit-pico-w-signal`. Its deterministic contract,
+planning, lowering, image-generation, and kernel tests remain distinct from
+firmware execution and physical/HIL evidence.
 
 ### Rust standard-library host
 

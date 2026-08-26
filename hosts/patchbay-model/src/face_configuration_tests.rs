@@ -232,36 +232,28 @@ fn signed_scalar_control_is_visible_bounded_and_authored_exactly() {
 fn boolean_contract_projects_a_toggle_with_explicit_choices() {
     let gear = conduit_form::CheckedGear {
         gear_id: conduit_core::GearId::from("controls/pulse"),
-        kind_id: conduit_core::kind_id("flow/pulse"),
-        kind_contract_revision: conduit_core::KindContractRevision::from("legacy-test"),
+        kind_id: conduit_core::kind_id(conduit_std_catalog::STATE_TOGGLE_KIND),
+        kind_contract_revision: conduit_core::KindContractRevision::from(
+            conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION,
+        ),
         startup_parameters: Vec::new(),
         shorthand: None,
         inputs: Vec::new(),
         outputs: Vec::new(),
-        configuration: vec![
-            conduit_core::ConfigurationEntry {
-                key: "count".into(),
-                value: ConfigurationValue::U64(4),
-            },
-            conduit_core::ConfigurationEntry {
-                key: "period-ms".into(),
-                value: ConfigurationValue::U64(25),
-            },
-            conduit_core::ConfigurationEntry {
-                key: "initial".into(),
-                value: ConfigurationValue::Bool(true),
-            },
-        ],
+        configuration: vec![conduit_core::ConfigurationEntry {
+            key: "initial".into(),
+            value: ConfigurationValue::Bool(true),
+        }],
         pool_references: Vec::new(),
     };
     let controls = crate::face_controls::project_controls(&gear).unwrap();
     assert!(matches!(
-        controls[2].kind,
+        controls[0].kind,
         FaceControlKind::BooleanChoice {
             choices: ["false", "true"]
         }
     ));
-    assert_eq!(controls[2].value, ConfigurationValue::Bool(true));
+    assert_eq!(controls[0].value, ConfigurationValue::Bool(true));
 }
 
 #[test]

@@ -1,24 +1,11 @@
-//! Current exact-plan lowering plus explicitly fenced compatibility execution.
+//! Exact Plan-to-kernel lowering for every current Host.
 //!
-//! Production hosts depend on this crate with default features disabled and can
-//! use only [`lowering`]. Legacy fixture and composite paths must deliberately
-//! opt into `compatibility-executor`.
+//! Conduit v1 has one execution kernel. The former hosted compatibility
+//! executor and its fixture-only scheduler have been removed rather than kept
+//! as an alternate feature-selected runtime.
 
 #![no_std]
 
 extern crate alloc;
-#[cfg(feature = "compatibility-executor")]
-#[macro_use]
-extern crate std;
 
 pub mod lowering;
-
-#[cfg(feature = "compatibility-executor")]
-mod shared_pool_validation;
-
-#[cfg(feature = "compatibility-executor")]
-mod compatibility_executor;
-#[cfg(feature = "compatibility-executor")]
-pub use compatibility_executor::*;
-#[cfg(feature = "compatibility-executor")]
-pub mod bases;

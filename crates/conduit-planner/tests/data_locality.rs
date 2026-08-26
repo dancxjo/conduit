@@ -14,7 +14,7 @@ fn fixture() -> (
     conduit_core::LineOffer,
 ) {
     let form = conduit_form::parse(
-        "form locality {\n source: time/tick(count = 10, period-ms = 1)\n reduction: flow/filter\n analysis: flow/map\n source.tick > reduction.in\n reduction > analysis\n}\n",
+        "form locality {\n source: time/tick(count = 10, period-ms = 1)\n reduction: state/count(0)\n analysis: presentation/count\n source.tick > reduction.bump\n reduction.value > analysis.value\n}\n",
         &conduit_std_catalog::standard_profile_catalog(),
     ).expect("canonical locality Form checks");
     let source = conduit_std_catalog::standard_host_advertisement(

@@ -5,7 +5,7 @@ archived browser subsystem. Each independent Rust/WASM instance parses and
 plans unchanged `fixtures/forms/signal-demo.conduit`, lowers its exact local fragment
 through the shared lowering contract, and installs the numeric result into the
 same port-aware `conduit-kernel` scheduler model used by production `StdHost`.
-The production browser crate does not construct or execute `HostRuntime`.
+The production browser crate has no alternate executor.
 
 The JavaScript adapter accepts only a `presentation/signal` request with the
 exact source, checked, expanded, plan, fragment, host, boot, active-play,
