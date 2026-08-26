@@ -2445,6 +2445,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "patchbay-hosted"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-std-host",
+ "patchbay-model",
+]
+
+[[package]]
 name = "patchbay-html"
 version = "0.1.0"
 dependencies = [
@@ -2456,6 +2466,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-wire",
+ "patchbay-hosted",
  "patchbay-model",
  "serde",
  "serde_json",
@@ -2505,6 +2516,7 @@ dependencies = [
  "conduit-wire",
  "conduitos",
  "embedded-graphics",
+ "patchbay-hosted",
  "patchbay-model",
  "serde_json",
  "softbuffer",

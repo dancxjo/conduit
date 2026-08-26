@@ -1,0 +1,287 @@
+//! Read-only Plan/Play projections and fail-closed Run admission.
+
+use conduit_core::{
+    verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, HostAdvertisement, Observation, Plan,
+    PlanId, SourceDocumentId, TerminalDisposition,
+};
+
+const MAXIMUM_CONTROL_ID_BYTES: usize = 128;
+const MAXIMUM_INSPECTION_LINES: usize = 512;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbayRequestId(String);
+
+impl PatchbayRequestId {
+    pub fn new(value: impl Into<String>) -> Result<Self, ControlError> {
+        let value = value.into();
+        if value.is_empty() || value.len() > MAXIMUM_CONTROL_ID_BYTES {
+            return Err(ControlError::InvalidRequestIdentity);
+        }
+        Ok(Self(value))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ControlError {
+    InvalidRequestIdentity,
+    StalePlan,
+    StaleBoot,
+    UnavailableRealization,
+    AuthorityDenied,
+    InvalidPlan,
+    InspectionTooLarge,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlanDocument {
+    pub request_id: PatchbayRequestId,
+    pub plan_id: PlanId,
+    pub source_document_id: SourceDocumentId,
+    pub checked_form_id: CheckedFormId,
+    pub expanded_form_id: ExpandedFormId,
+    pub exact: Plan,
+    pub lines: Vec<String>,
+}
+
+impl PlanDocument {
+    pub fn from_plan(request_id: PatchbayRequestId, plan: &Plan) -> Result<Self, ControlError> {
+        let mut lines = vec![
+            format!(
+                "PLAN request={} plan={}",
+                request_id.as_str(),
+                plan.plan_id.as_str()
+            ),
+            format!(
+                "  source={} checked={} expanded={}",
+                plan.source_document_id.as_str(),
+                plan.checked_form_id.as_str(),
+                plan.expanded_form_id.as_str()
+            ),
+        ];
+        for fragment in &plan.fragments {
+            push(
+                &mut lines,
+                format!(
+                    "  FRAGMENT host={} boot={} generation={}",
+                    fragment.host_id.as_str(),
+                    fragment.boot_id.as_str(),
+                    fragment.offer_generation.0
+                ),
+            )?;
+            for placement in &fragment.placements {
+                push(&mut lines, format!(
+                    "    GEAR operation={} placement={} host={} boot={} capability={} implementation={} artifact={}",
+                    placement.gear_id.as_str(), placement.placement_id.as_str(),
+                    placement.host_id.as_str(), placement.boot_id.as_str(),
+                    placement.capability_id.as_str(), placement.implementation_id.as_str(),
+                    placement.artifact_id.as_str()
+                ))?;
+            }
+            for connection in &fragment.connections {
+                push(
+                    &mut lines,
+                    format!(
+                        "    CORD connection={} base={:?} items={} bytes={}",
+                        connection.connection_id.as_str(),
+                        connection
+                            .selected_line
+                            .as_ref()
+                            .map(|line| line.binding.base),
+                        connection.item_capacity,
+                        connection.byte_capacity
+                    ),
+                )?;
+                for (index, candidate) in connection.admitted_lines.iter().enumerate() {
+                    push(
+                        &mut lines,
+                        format!(
+                            "      CANDIDATE index={} binding={} base={:?} instance={}",
+                            index,
+                            candidate.binding.binding_id.as_str(),
+                            candidate.binding.base,
+                            candidate.binding.base_instance_id.as_str()
+                        ),
+                    )?;
+                }
+            }
+        }
+        Ok(Self {
+            request_id,
+            plan_id: plan.plan_id.clone(),
+            source_document_id: plan.source_document_id.clone(),
+            checked_form_id: plan.checked_form_id.clone(),
+            expanded_form_id: plan.expanded_form_id.clone(),
+            exact: plan.clone(),
+            lines,
+        })
+    }
+}
+
+pub fn admit_run(
+    plan: &Plan,
+    current_source: &conduit_core::SourceDocumentId,
+    hosts: &[HostAdvertisement],
+) -> Result<(), ControlError> {
+    if &plan.source_document_id != current_source {
+        return Err(ControlError::StalePlan);
+    }
+    for fragment in &plan.fragments {
+        let host = hosts
+            .iter()
+            .find(|host| host.host_id == fragment.host_id)
+            .ok_or(ControlError::UnavailableRealization)?;
+        if host.boot_id != fragment.boot_id || host.offer_generation != fragment.offer_generation {
+            return Err(ControlError::StaleBoot);
+        }
+        for placement in &fragment.placements {
+            let offer = host
+                .capabilities
+                .iter()
+                .find(|offer| offer.capability_id == placement.capability_id)
+                .ok_or(ControlError::UnavailableRealization)?;
+            if offer.implementation.implementation_id != placement.implementation_id {
+                return Err(ControlError::UnavailableRealization);
+            }
+            if placement.authority.len() != offer.authority_requirements.len() {
+                return Err(ControlError::AuthorityDenied);
+            }
+        }
+    }
+    if !verify_plan(plan) {
+        return Err(ControlError::InvalidPlan);
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlayDocument {
+    pub active_play_id: ActivePlayId,
+    pub plan_id: PlanId,
+    pub signs: Vec<Observation>,
+    pub lines: Vec<String>,
+    pub terminal: TerminalDisposition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlayExecutionProjection {
+    pub active_play_id: ActivePlayId,
+    pub decisions: u32,
+    pub kernel_events: u16,
+    pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
+    pub observations: Vec<Observation>,
+    pub control_receipts: Vec<ControlReceiptProjection>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ControlReceiptProjection {
+    pub request_id: String,
+    pub disposition: String,
+    pub active_play_id: ActivePlayId,
+}
+
+impl PlayDocument {
+    #[cfg(test)]
+    pub fn from_report(
+        plan: &Plan,
+        report: &conduit_std_host::StdRunReport,
+    ) -> Result<Self, ControlError> {
+        let kernel = report.kernel.as_ref().ok_or(ControlError::InvalidPlan)?;
+        let execution = PlayExecutionProjection {
+            active_play_id: kernel.active_play_id.clone(),
+            decisions: kernel.decisions,
+            kernel_events: kernel.kernel_events,
+            kernel_sign: kernel.kernel_sign.clone(),
+            observations: report.observations.clone(),
+            control_receipts: report
+                .control_receipts
+                .iter()
+                .map(|receipt| ControlReceiptProjection {
+                    request_id: receipt.request_id.as_str().into(),
+                    disposition: format!("{:?}", receipt.disposition),
+                    active_play_id: receipt.active_play_id.clone(),
+                })
+                .collect(),
+        };
+        Self::from_execution(plan, &execution)
+    }
+
+    pub fn from_execution(
+        plan: &Plan,
+        execution: &PlayExecutionProjection,
+    ) -> Result<Self, ControlError> {
+        let terminal = execution
+            .observations
+            .iter()
+            .rev()
+            .find_map(|observation| match observation.kind {
+                conduit_core::ObservationKind::PlanTerminal { disposition } => Some(disposition),
+                _ => None,
+            })
+            .ok_or(ControlError::InvalidPlan)?;
+        let mut lines = vec![format!(
+            "PLAY active={} plan={} terminal={terminal:?}",
+            execution.active_play_id.as_str(),
+            plan.plan_id.as_str()
+        )];
+        push(
+            &mut lines,
+            format!(
+                "  PRESSURE exposed=false decisions={} kernel_events={} sign_gaps=0",
+                execution.decisions, execution.kernel_events
+            ),
+        )?;
+        for observation in &execution.observations {
+            push(
+                &mut lines,
+                format!(
+                    "  SIGN id={} kind={:?}",
+                    observation.sign_id.as_str(),
+                    observation.kind
+                ),
+            )?;
+        }
+        for event in &execution.kernel_sign {
+            push(
+                &mut lines,
+                format!(
+                    "  KERNEL-SIGN sequence={} node={} kind={:?}",
+                    event.sequence, event.node.0, event.kind
+                ),
+            )?;
+        }
+        for receipt in &execution.control_receipts {
+            push(
+                &mut lines,
+                format!(
+                    "  CONTROL request={} disposition={} active={}",
+                    receipt.request_id,
+                    receipt.disposition,
+                    receipt.active_play_id.as_str()
+                ),
+            )?;
+        }
+        Ok(Self {
+            active_play_id: execution.active_play_id.clone(),
+            plan_id: plan.plan_id.clone(),
+            signs: execution.observations.clone(),
+            lines,
+            terminal,
+        })
+    }
+}
+
+fn push(lines: &mut Vec<String>, line: String) -> Result<(), ControlError> {
+    if lines.len() == MAXIMUM_INSPECTION_LINES {
+        return Err(ControlError::InspectionTooLarge);
+    }
+    lines.push(line);
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "control_tests.rs"]
+mod tests;

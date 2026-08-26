@@ -1,0 +1,528 @@
+//! Native window/event-loop adapter for Patchbay.
+
+use conduit_core::SignId;
+use patchbay_model::{
+    BuildBirthController, DistributedRouteDemo, FormEditor, PatchbayInteraction, PatchbayModel,
+    PatchbayTopology, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+};
+use std::rc::Rc;
+use winit::application::ApplicationHandler;
+use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::window::{Window, WindowId};
+
+const HISTORY_CAPACITY: usize = 4;
+mod application_init;
+mod arguments;
+mod browser_ambient;
+mod browser_parts;
+mod browser_presence;
+mod browser_return;
+mod build_birth;
+mod canvas;
+mod canvas_input;
+mod canvas_viewport;
+mod control;
+mod details;
+mod details_input;
+#[cfg(test)]
+mod details_tests;
+mod distributed_play;
+mod environment_interaction;
+mod environment_resource;
+mod environment_view;
+#[cfg(test)]
+mod environment_view_tests;
+mod face_control_keyboard;
+mod file_task;
+mod first_run_proof;
+mod font;
+mod form_authoring;
+mod form_interaction;
+mod forms_navigation;
+#[cfg(test)]
+mod forms_navigation_tests;
+mod front_door;
+mod front_door_follow;
+mod front_door_keyboard;
+#[cfg(test)]
+mod front_door_tests;
+mod gui;
+mod gui_composition;
+mod gui_face_controls;
+mod gui_gear;
+mod gui_gear_layout;
+mod gui_gesture;
+mod gui_hit;
+mod gui_inspector;
+mod gui_navigator;
+mod gui_primitives;
+mod gui_viewport;
+mod hosted_adapter;
+mod icon;
+mod interaction_feedback;
+mod interaction_status;
+mod keyboard_input;
+mod lifecycle_flow;
+#[cfg(test)]
+mod navigation_journey;
+#[cfg(test)]
+mod navigation_journey_tests;
+mod palette_icon;
+mod palette_icon_data;
+mod palette_input;
+mod palette_state;
+mod palette_view;
+mod parts_interaction;
+mod parts_keyboard;
+#[cfg(test)]
+mod parts_temporal_presentation_tests;
+mod parts_view;
+mod pico_parts;
+mod portable_keyboard;
+#[cfg(test)]
+mod portable_keyboard_tests;
+mod presentation;
+mod prewake_interaction;
+mod render;
+mod renderer_adapter;
+mod resource;
+mod semantic_history;
+mod semantic_invocation;
+mod temporal_presentation;
+mod viewport_input;
+#[cfg(test)]
+mod viewport_tests;
+mod window_title;
+mod workspace_open;
+use arguments::{parse_arguments, Arguments, USAGE};
+use conduit_std_host::StdHostComposition;
+use control::NativeControl;
+use distributed_play::{run_server as run_distributed_server, NativeDistributedPlay};
+use file_task::{probe_native_file_base, NativeFileTask};
+use render::{draw_document, BACKGROUND};
+
+struct PatchbayApplication {
+    model: PatchbayModel,
+    topology_lines: Vec<String>,
+    form_editor: Option<FormEditor>,
+    semantic_history: Option<semantic_history::SemanticHistory>,
+    environment: Option<patchbay_model::AuthoredEnvironment>,
+    environment_path: Option<std::path::PathBuf>,
+    selected_environment_part: Option<String>,
+    environment_drag: Option<(String, (f64, f64))>,
+    pending_environment_link: Option<(String, patchbay_model::EnvironmentLinkKind)>,
+    environment_name_editing: bool,
+    observed_environment_snapshot: Option<conduit_observatory::ObservatorySnapshot>,
+    prewake: Option<patchbay_model::PrewakeController>,
+    prewake_environment_view: bool,
+    form_selection: usize,
+    navigator_selection: usize,
+    navigator_scroll: usize,
+    back_navigation: Vec<forms_navigation::BackNavigationEntry>,
+    pending_back_target: Option<forms_navigation::BackNavigationEntry>,
+    pending_back_selection: bool,
+    graphical_form: Option<patchbay_model::PatchbayGraph>,
+    layout: patchbay_model::PatchbayLayout,
+    interaction: Option<PatchbayInteraction>,
+    entrance: Option<front_door::NativeFrontDoorPresentation>,
+    zero_body_front_door: Option<patchbay_model::ZeroBodyFrontDoor>,
+    hit_targets: Vec<gui::HitTarget>,
+    cursor_position: (f64, f64),
+    canvas_viewport: canvas_viewport::CanvasViewport,
+    canvas_pan_drag: Option<(f64, f64)>,
+    linear_view: bool,
+    details_lens: details::DetailsLens,
+    details_scroll: usize,
+    modifiers: winit::keyboard::ModifiersState,
+    native_keyboard: portable_keyboard::NativeKeyboardInput,
+    palette: palette_state::PaletteChooser,
+    selected_follow: Option<String>,
+    exact_identity_open: bool,
+    parts_open: bool,
+    selected_part: Option<conduit_body::PartId>,
+    selected_candidate: Option<conduit_body::CandidateId>,
+    pending_revoke: Option<conduit_body::PartId>,
+    body_candidates: Option<conduit_body::CandidateInventory>,
+    browser_parts: Option<browser_parts::BrowserPartsCoordinator>,
+    pico_parts: Option<pico_parts::PicoPartsCoordinator>,
+    face_control_focus: usize,
+    face_text_edit: Option<first_run_proof::ShortTextEdit>,
+    palette_drag: Option<String>,
+    cord_drag: Option<patchbay_model::PatchbaySubjectRef>,
+    cord_route_drag: Option<patchbay_model::PatchbaySubjectRef>,
+    gear_drag: Option<(patchbay_model::PatchbaySubjectRef, (f64, f64))>,
+    last_gear_click: Option<(patchbay_model::PatchbaySubjectRef, std::time::Instant)>,
+    interaction_status: interaction_status::InteractionStatusChannel,
+    control: NativeControl,
+    build_birth: BuildBirthController,
+    lifecycle_sequence: u64,
+    file_task: NativeFileTask,
+    route_demo: Option<DistributedRouteDemo>,
+    renderer_execution: Option<RendererExecution>,
+    distributed_play: Option<NativeDistributedPlay>,
+    window: Option<Rc<Window>>,
+    surface_context: Option<softbuffer::Context<Rc<Window>>>,
+    surface: Option<softbuffer::Surface<Rc<Window>, Rc<Window>>>,
+    exit_after_window: bool,
+    rendered_once: bool,
+    failure: Option<String>,
+}
+
+impl ApplicationHandler for PatchbayApplication {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.window.is_some() {
+            return;
+        }
+        let attributes = Window::default_attributes()
+            .with_title(self.title())
+            .with_inner_size(winit::dpi::LogicalSize::new(1100.0, 720.0));
+        match event_loop.create_window(attributes) {
+            Ok(window) => {
+                let window = Rc::new(window);
+                match softbuffer::Context::new(window.clone()).and_then(|context| {
+                    softbuffer::Surface::new(&context, window.clone())
+                        .map(|surface| (context, surface))
+                }) {
+                    Ok((context, surface)) => {
+                        window.request_redraw();
+                        self.surface_context = Some(context);
+                        self.surface = Some(surface);
+                        self.window = Some(window);
+                    }
+                    Err(error) => {
+                        self.failure = Some(format!("cannot create native surface: {error}"));
+                        event_loop.exit();
+                    }
+                }
+            }
+            Err(error) => {
+                self.failure = Some(format!("cannot create native window: {error}"));
+                event_loop.exit();
+            }
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        if self.window.as_ref().map(|window| window.id()) != Some(window_id) {
+            return;
+        }
+        match event {
+            WindowEvent::CloseRequested => {
+                self.native_keyboard.close();
+                event_loop.exit();
+            }
+            WindowEvent::Focused(focused) => self.handle_window_focus(focused),
+            WindowEvent::Resized(_) => {
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+            }
+            WindowEvent::RedrawRequested => {
+                if let Err(error) = self.render() {
+                    self.failure = Some(format!("cannot render native topology view: {error}"));
+                    event_loop.exit();
+                }
+            }
+            WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
+            WindowEvent::CursorMoved { position, .. } => {
+                self.move_canvas_pan_to((position.x, position.y));
+                self.cursor_position = (position.x, position.y);
+                if self.environment_drag.is_some()
+                    || self.palette_drag.is_some()
+                    || self.cord_drag.is_some()
+                    || self.cord_route_drag.is_some()
+                    || self.gear_drag.is_some()
+                {
+                    if let Some(window) = &self.window {
+                        window.request_redraw();
+                    }
+                }
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } if !self.linear_view => {
+                if let Err(error) = self.handle_canvas_press() {
+                    self.failure = Some(format!("native canvas press failed: {error}"));
+                    event_loop.exit();
+                }
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Right,
+                ..
+            } if !self.linear_view
+                && self.graphical_form.is_some()
+                && !(self.environment.is_some()
+                    && (self.prewake.is_none() || self.prewake_environment_view)) =>
+            {
+                self.canvas_pan_drag = Some(self.cursor_position);
+                self.publish_completed("Canvas pointer pan started");
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Right,
+                ..
+            } => {
+                if self.canvas_pan_drag.take().is_some() {
+                    self.publish_completed("Canvas pointer pan completed");
+                }
+            }
+            WindowEvent::MouseWheel { delta, .. }
+                if !self.linear_view
+                    && self.graphical_form.is_some()
+                    && !(self.environment.is_some()
+                        && (self.prewake.is_none() || self.prewake_environment_view)) =>
+            {
+                let (horizontal, vertical) = match delta {
+                    MouseScrollDelta::LineDelta(x, y) => (x * 24.0, y * 24.0),
+                    MouseScrollDelta::PixelDelta(position) => {
+                        (position.x as f32, position.y as f32)
+                    }
+                };
+                self.scroll_viewport(horizontal, vertical);
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Left,
+                ..
+            } if !self.linear_view => {
+                if let Err(error) = self.handle_canvas_release() {
+                    self.failure = Some(format!("native canvas release failed: {error}"));
+                    event_loop.exit();
+                }
+            }
+            WindowEvent::KeyboardInput { event, .. } => {
+                self.handle_keyboard_input(event_loop, &event)
+            }
+            _ => {}
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if self.interaction_status.expire_due() {
+            if let Some(window) = &self.window {
+                window.request_redraw();
+            }
+        }
+        match self.file_task.poll() {
+            Ok(true) => {
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+                self.rendered_once = false;
+            }
+            Ok(false) => {}
+            Err(error) => {
+                self.failure = Some(format!("Native file task failed: {error}"));
+                event_loop.exit();
+                return;
+            }
+        }
+        match self.poll_body_parts() {
+            Ok(true) => {
+                if let Err(error) = self.refresh_front_door() {
+                    self.failure = Some(format!("front-door refresh failed: {error}"));
+                    event_loop.exit();
+                    return;
+                }
+                self.rendered_once = false;
+            }
+            Ok(false) => {}
+            Err(error) => self.publish_refusal(error),
+        }
+        match self.control.poll() {
+            Ok(true) => {
+                if let Err(error) = self.refresh_front_door() {
+                    self.failure = Some(format!("front-door refresh failed: {error}"));
+                    event_loop.exit();
+                    return;
+                }
+                for line in self.control.lines().iter().filter(|line| {
+                    line.starts_with("PLAN ")
+                        || line.starts_with("PLAY ")
+                        || line.starts_with("PLAN-ACTION ")
+                        || line.starts_with("RUN ")
+                        || line.starts_with("STOP ")
+                        || line.starts_with("RUN-TERMINAL ")
+                        || line.trim_start().starts_with("CONTROL ")
+                        || line.trim_start().starts_with("KERNEL-SIGN ")
+                }) {
+                    println!("patchbay control {line}");
+                }
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+                self.rendered_once = false;
+            }
+            Ok(false) => {}
+            Err(error) => {
+                self.failure = Some(format!("Play control failed: {error}"));
+                event_loop.exit();
+                return;
+            }
+        }
+        if let Some(distributed) = &mut self.distributed_play {
+            match distributed.poll() {
+                Ok(true) => {
+                    if let Some(window) = &self.window {
+                        window.request_redraw();
+                    }
+                    self.rendered_once = false;
+                }
+                Ok(false) => {}
+                Err(error) => {
+                    self.failure = Some(format!("Distributed Play failed: {error}"));
+                    event_loop.exit();
+                    return;
+                }
+            }
+        }
+        event_loop.set_control_flow(
+            if self.control.is_running()
+                || self.file_task.is_running()
+                || self
+                    .browser_parts
+                    .as_ref()
+                    .is_some_and(browser_parts::BrowserPartsCoordinator::is_running)
+                || self
+                    .pico_parts
+                    .as_ref()
+                    .is_some_and(pico_parts::PicoPartsCoordinator::is_running)
+                || self
+                    .distributed_play
+                    .as_ref()
+                    .is_some_and(NativeDistributedPlay::is_running)
+            {
+                ControlFlow::Poll
+            } else if let Some(deadline) = self.interaction_status.deadline() {
+                ControlFlow::WaitUntil(deadline)
+            } else {
+                ControlFlow::Wait
+            },
+        );
+        if self.exit_after_window
+            && self.rendered_once
+            && !self.control.is_running()
+            && !self.file_task.is_running()
+            && !self
+                .distributed_play
+                .as_ref()
+                .is_some_and(NativeDistributedPlay::is_running)
+        {
+            event_loop.exit();
+        }
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        if let Some(execution) = &mut self.renderer_execution {
+            if execution.manifestation.lifecycle
+                == conduit_presentation::ManifestationLifecycle::Available
+            {
+                if let Err(error) =
+                    execution.mark_closed(SignId::from("patchbay-native/window-closed"))
+                {
+                    self.failure = Some(format!("cannot close native Manifestation: {error}"));
+                }
+            }
+        }
+        if let Err(error) = emit_report("shutdown", &self.model.shutdown_snapshot()) {
+            self.failure = Some(format!("Patchbay shutdown report is invalid: {error}"));
+        }
+    }
+}
+
+fn emit_report(
+    phase: &str,
+    snapshot: &conduit_observatory::ObservatorySnapshot,
+) -> Result<(), String> {
+    let report = conduit_observatory::build_report(snapshot)?;
+    println!(
+        "patchbay lifecycle={phase}\n{}",
+        conduit_observatory::render_text_report(&report)
+    );
+    Ok(())
+}
+
+fn render_linear_snapshot(path: &std::path::Path) -> Result<String, String> {
+    let encoded =
+        std::fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let snapshot = serde_json::from_slice(&encoded)
+        .map_err(|error| format!("cannot decode {}: {error}", path.display()))?;
+    let mut topology = PatchbayTopology::new(1).map_err(|error| error.to_string())?;
+    topology
+        .ingest(&snapshot)
+        .map_err(|error| error.to_string())?;
+    Ok(topology
+        .document(None)
+        .map_err(|error| error.to_string())?
+        .lines()
+        .join("\n"))
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let arguments = parse_arguments(std::env::args().skip(1))?;
+    if arguments.help {
+        println!("{USAGE}");
+        return Ok(());
+    }
+    if let Some(path) = arguments.linear_snapshot_path.as_deref() {
+        println!("{}", render_linear_snapshot(path)?);
+        return Ok(());
+    }
+    if arguments.distributed_play_server {
+        run_distributed_server()?;
+        return Ok(());
+    }
+    if arguments.first_run_proof {
+        first_run_proof::run(arguments)?;
+        return Ok(());
+    }
+    let event_loop = EventLoop::new()?;
+    event_loop.set_control_flow(ControlFlow::Wait);
+    let mut application = PatchbayApplication::new(arguments)?;
+    event_loop.run_app(&mut application)?;
+    if let Some(error) = application.failure {
+        return Err(error.into());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "main_tests.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "canvas_tests.rs"]
+mod canvas_tests;
+
+#[cfg(test)]
+#[path = "font_tests.rs"]
+mod font_tests;
+
+#[cfg(test)]
+#[path = "render_tests.rs"]
+mod render_tests;
+
+#[cfg(test)]
+#[path = "gui_tests.rs"]
+mod gui_tests;
+
+#[cfg(test)]
+#[path = "face_configuration_tests.rs"]
+mod face_configuration_tests;
+
+#[cfg(test)]
+#[path = "cord_editing_tests.rs"]
+mod cord_editing_tests;
+
+#[cfg(test)]
+#[path = "inspector_tests.rs"]
+mod inspector_tests;

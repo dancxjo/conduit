@@ -22,4 +22,4 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [dev-dependencies]
-patchbay-model = { path = "../../hosts/patchbay-model" }
+patchbay-model = { path = "../patchbay/model" }
