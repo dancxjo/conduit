@@ -90,6 +90,7 @@ const FOUNDATION_TEST_STEP: Step = Step::new(
         "conduit-workspace-fabrication",
         "-p",
         "conduit-bluetooth",
+        "-p",
         "conduit-alife",
         "-p",
         "conduit-core",
@@ -135,6 +136,7 @@ const FOUNDATION_TEST_STEP: Step = Step::new(
         "conduit-wire",
         "-p",
         "conduit-web",
+        "-p",
         "conduit-text",
         "-p",
         "conduit-system-continuity",
@@ -251,7 +253,8 @@ mod tests {
     use std::{collections::BTreeSet, process::Command};
 
     use super::{
-        WorkspaceShard, FOUNDATION_TEST_PACKAGES, HOST_TEST_PACKAGES, PRODUCT_TEST_PACKAGES,
+        WorkspaceShard, FOUNDATION_TEST_PACKAGES, FOUNDATION_TEST_STEP, HOST_TEST_PACKAGES,
+        HOST_TEST_STEP, PRODUCT_TEST_PACKAGES, PRODUCT_TEST_STEP,
     };
     use crate::suites::{
         check::WORKSPACE_STEPS, network_capability::NETWORK_CAPABILITY_STEPS,
@@ -317,5 +320,30 @@ mod tests {
             unique, members,
             "test shards must cover the exact workspace"
         );
+    }
+
+    #[test]
+    fn every_test_shard_names_packages_with_an_explicit_package_flag() {
+        for step in [&FOUNDATION_TEST_STEP, &HOST_TEST_STEP, &PRODUCT_TEST_STEP] {
+            assert_eq!(step.args.first(), Some(&"test"), "{} command", step.id);
+            let options = &step.args[1..];
+            let package_end = options
+                .iter()
+                .position(|argument| *argument == "--features")
+                .unwrap_or(options.len());
+            let packages = &options[..package_end];
+            assert_eq!(packages.len() % 2, 0, "{} package pairs", step.id);
+            for pair in packages.chunks_exact(2) {
+                assert_eq!(pair[0], "-p", "{} package flag for {}", step.id, pair[1]);
+            }
+            if package_end < options.len() {
+                assert_eq!(
+                    &options[package_end..],
+                    ["--features", "conduit-tongues/speech"],
+                    "{} trailing options",
+                    step.id
+                );
+            }
+        }
     }
 }
