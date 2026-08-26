@@ -1,4 +1,4 @@
-//! Deterministic provider and filter for the finite tabular contract.
+//! Deterministic reference provider and filter for the finite tabular contract.
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
@@ -7,7 +7,7 @@ use conduit_core::{
     RESOURCE_REFERENCE_INFO_ID,
 };
 
-use super::tabular::*;
+use crate::tabular::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersonRow<'a> {

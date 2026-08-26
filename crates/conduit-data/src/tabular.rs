@@ -1,4 +1,4 @@
-//! Finite typed rows and query outcomes without SQL or JSON semantics.
+//! Host-neutral finite typed rows and query outcomes without SQL or JSON semantics.
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{

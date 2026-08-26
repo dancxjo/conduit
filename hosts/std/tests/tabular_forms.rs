@@ -4,16 +4,16 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoValue,
     StructuredInfoValueShape, PROTOCOL_VERSION,
 };
+use conduit_data::{
+    deterministic_person_provider, deterministic_query_error, deterministic_query_result,
+    filter_active_rows, install_tabular_catalogs, materialized_query_outcome, PersonRow,
+    TabularRefusal, TABULAR_FILTER_KIND, TABULAR_MAXIMUM_ROWS, TABULAR_PROVIDER_KIND,
+};
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
-    deterministic_person_provider, deterministic_query_error, deterministic_query_result,
-    filter_active_rows, install_tabular_catalogs, materialized_query_outcome, tabular_std_offers,
-    PersonRow, TabularRefusal, TABULAR_FILTER_KIND, TABULAR_HOST_OPERATION, TABULAR_MAXIMUM_ROWS,
-    TABULAR_PROVIDER_KIND,
-};
+use conduit_std_host::hosted_data::{tabular_std_offers, TABULAR_HOST_OPERATION};
 
 const SOURCE: &str = include_str!("../../../examples/tabular-query.conduit");
 

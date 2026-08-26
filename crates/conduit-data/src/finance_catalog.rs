@@ -1,16 +1,13 @@
-//! Canonical Form catalog and finite hosted offers for exact finance Info.
+//! Canonical Form catalog for exact finance Info.
 
 use alloc::{
-    format,
     string::{String, ToString},
     vec,
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    StructuredInfoType,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -21,9 +18,6 @@ pub const FINANCE_ADD_KIND: &str = "finance/add-money";
 pub const FINANCE_COMPARE_KIND: &str = "finance/compare-money";
 pub const FINANCE_CONVERT_KIND: &str = "finance/convert-money";
 pub const FINANCE_REVISION: &str = "conduit.std/finance-exact@1";
-pub const FINANCE_PROFILE: &str = "std/finance-kernel-hosted@1";
-pub const FINANCE_ARTIFACT: &str = "conduit-std-host/finance@1";
-pub const FINANCE_HOST_OPERATION: &str = "conduit.host/finance-exact@1";
 
 pub fn install_finance_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -85,56 +79,6 @@ pub fn install_finance_catalogs(
     )
 }
 
-pub fn finance_std_offers() -> Vec<CapabilityOffer> {
-    let money = finance_money_type();
-    vec![
-        offer(
-            FINANCE_FIXTURE_KIND,
-            vec![],
-            vec![
-                port("convertible", &money, PortDirection::Output),
-                port(
-                    "events",
-                    &finance_transaction_events_type(),
-                    PortDirection::Output,
-                ),
-                port("left", &money, PortDirection::Output),
-                port("quote", &finance_quote_type(), PortDirection::Output),
-                port("rate", &finance_rate_type(), PortDirection::Output),
-                port("right", &money, PortDirection::Output),
-            ],
-        ),
-        offer(
-            FINANCE_ADD_KIND,
-            vec![
-                port("left", &money, PortDirection::Input),
-                port("right", &money, PortDirection::Input),
-            ],
-            vec![port("sum", &money, PortDirection::Output)],
-        ),
-        offer(
-            FINANCE_COMPARE_KIND,
-            vec![
-                port("left", &money, PortDirection::Input),
-                port("right", &money, PortDirection::Input),
-            ],
-            vec![port(
-                "result",
-                &finance_money_comparison_type(),
-                PortDirection::Output,
-            )],
-        ),
-        offer(
-            FINANCE_CONVERT_KIND,
-            vec![
-                port("money", &money, PortDirection::Input),
-                port("rate", &finance_rate_type(), PortDirection::Input),
-            ],
-            vec![port("converted", &money, PortDirection::Output)],
-        ),
-    ]
-}
-
 fn finance_types() -> Vec<(&'static str, StructuredInfoType)> {
     vec![
         (FINANCE_FIXED_DECIMAL_TYPE, finance_fixed_decimal_type()),
@@ -190,36 +134,5 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
-    }
-}
-
-fn offer(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from(format!("std/{kind}@1")),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(FINANCE_REVISION),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(FINANCE_PROFILE),
-            implementation_id: ImplementationId::from(format!("std/{kind}@1")),
-            artifact_id: ArtifactId::from(FINANCE_ARTIFACT),
-        },
-        inputs,
-        outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(FINANCE_HOST_OPERATION),
-            target_kind: Some(kind_id(kind)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 4,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
-        },
     }
 }

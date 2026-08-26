@@ -12,6 +12,7 @@ conduit-form = { path = "../conduit-form" }
 conduit-host-fabrication = { path = "../conduit-host-fabrication" }
 conduit-kernel = { path = "../conduit-kernel" }
 conduit-language = { path = "../conduit-language" }
+conduit-data = { path = "../conduit-data" }
 conduit-net = { path = "../conduit-net", features = ["form-catalog"] }
 conduit-observatory = { path = "../conduit-observatory" }
 conduit-planner = { path = "../conduit-planner" }

@@ -1,4 +1,4 @@
-//! Exact finite monetary semantics without floats or provider symbols.
+//! Host-neutral exact finite monetary semantics without floats or provider symbols.
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{
