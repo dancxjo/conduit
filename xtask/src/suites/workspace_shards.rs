@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::process::Step;
 
 macro_rules! package_test_shard {
@@ -145,6 +147,29 @@ impl WorkspaceShard {
         }
     }
 
+    pub fn obligation_packages(self) -> BTreeSet<&'static str> {
+        use crate::suites::{
+            check::WORKSPACE_STEPS, network_capability::NETWORK_CAPABILITY_STEPS,
+            pico_compositions::PICO_COMPOSITION_STEPS,
+        };
+
+        if self == Self::Pico {
+            return BTreeSet::from(["conduit-pico-w-signal"]);
+        }
+        WORKSPACE_STEPS
+            .iter()
+            .chain(NETWORK_CAPABILITY_STEPS)
+            .chain(PICO_COMPOSITION_STEPS)
+            .filter(|step| self.owns(step))
+            .flat_map(|step| {
+                step.args
+                    .windows(2)
+                    .filter(|pair| pair[0] == "-p")
+                    .map(|pair| pair[1])
+            })
+            .collect()
+    }
+
     pub fn owns(self, step: &Step) -> bool {
         match self {
             Self::Lint => matches!(step.id, "check.fmt" | "check.clippy"),
@@ -263,5 +288,18 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn portable_and_pico_obligations_derive_from_their_owned_commands() {
+        let portable = WorkspaceShard::Portable.obligation_packages();
+        assert!(portable.contains("conduit-kernel"));
+        assert!(portable.contains("conduit-browser-runtime"));
+        assert!(portable.contains("conduit-wire"));
+        assert!(!portable.contains("conduit"));
+        assert_eq!(
+            WorkspaceShard::Pico.obligation_packages(),
+            BTreeSet::from(["conduit-pico-w-signal"])
+        );
     }
 }

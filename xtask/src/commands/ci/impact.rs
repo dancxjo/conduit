@@ -10,6 +10,7 @@ mod cargo_graph;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
 
 const SUITES: [&str; 3] = ["esp32", "browser", "conduitos"];
+const ESP32_TARGETS: [&str; 3] = ["wroom", "c3", "s3"];
 const GLOBAL_PREFIXES: [&str; 4] = [".github/", ".cargo/", "xtask/", "scripts/ci/"];
 const GLOBAL_FILES: [&str; 4] = [
     "Cargo.toml",
@@ -30,6 +31,7 @@ const HARMLESS_FILES: [&str; 6] = [
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
     esp32_required: bool,
+    esp32_targets: Vec<String>,
     browser_required: bool,
     conduitos_required: bool,
     full_fallback: bool,
@@ -45,6 +47,10 @@ struct WorkspaceImpact {
     changed_packages: BTreeSet<String>,
     affected_test_packages: BTreeSet<String>,
     shards: BTreeMap<String, bool>,
+}
+
+struct TargetImpact {
+    esp32: BTreeSet<String>,
 }
 
 pub(super) fn run(
@@ -107,9 +113,17 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
     ])
 }
 
+fn esp32_target_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
+    BTreeMap::from([
+        ("wroom", BTreeSet::from(["conduit-esp32-wroom-signal"])),
+        ("c3", BTreeSet::from(["conduit-esp32-c3-signal"])),
+        ("s3", BTreeSet::from(["conduit-esp32-s3-signal"])),
+    ])
+}
+
 fn direct_prefixes(suite: &str) -> &'static [&'static str] {
     match suite {
-        "esp32" => &["firmware/conduit-esp32-", "targets/esp32/"],
+        "esp32" => &["targets/esp32/"],
         "browser" => &[
             "hosts/browser-",
             "apps/patchbay/",
@@ -132,9 +146,16 @@ fn plan_for_paths(
             dependency_closure(packages, roots).map(|closure| ((*suite).to_owned(), closure))
         })
         .collect::<Result<_, _>>()?;
+    let esp32_closures: BTreeMap<_, _> = esp32_target_roots()
+        .iter()
+        .map(|(target, roots)| {
+            dependency_closure(packages, roots).map(|closure| ((*target).to_owned(), closure))
+        })
+        .collect::<Result<_, _>>()?;
     let mut selected = BTreeMap::from(SUITES.map(|suite| (suite.to_owned(), false)));
     let mut reasons = empty_reasons();
     let mut changed_packages = BTreeSet::new();
+    let mut esp32_targets = BTreeSet::new();
     let substantive: Vec<_> = paths.iter().filter(|path| !path.ends_with(".md")).collect();
     if substantive.is_empty() {
         return Ok(plan(
@@ -149,6 +170,9 @@ fn plan_for_paths(
                     .into_iter()
                     .map(|shard| (shard.name().to_owned(), false))
                     .collect(),
+            },
+            TargetImpact {
+                esp32: esp32_targets,
             },
             reasons,
         ));
@@ -169,8 +193,21 @@ fn plan_for_paths(
                 direct = true;
             }
         }
+        for target in ESP32_TARGETS {
+            if path.starts_with(&format!("firmware/conduit-esp32-{target}-signal/")) {
+                esp32_targets.insert(target.to_owned());
+            }
+        }
+        if path.starts_with("targets/esp32/") {
+            esp32_targets.extend(ESP32_TARGETS.map(str::to_owned));
+        }
         if let Some(package) = package_for_path(root, path, packages) {
             changed_packages.insert(package.to_owned());
+            for target in ESP32_TARGETS {
+                if esp32_closures[target].contains(package) {
+                    esp32_targets.insert(target.to_owned());
+                }
+            }
             for suite in SUITES {
                 if closures[suite].contains(package) {
                     selected.insert(suite.to_owned(), true);
@@ -208,6 +245,9 @@ fn plan_for_paths(
             affected_test_packages: affected,
             shards: workspace_shards,
         },
+        TargetImpact {
+            esp32: esp32_targets,
+        },
         reasons,
     ))
 }
@@ -216,13 +256,15 @@ fn workspace_shards_for(affected: &BTreeSet<String>) -> BTreeMap<String, bool> {
     WorkspaceShard::ALL
         .into_iter()
         .map(|shard| {
-            let required = matches!(
-                shard,
-                WorkspaceShard::Lint | WorkspaceShard::Portable | WorkspaceShard::Pico
-            ) || shard
-                .test_packages()
-                .iter()
-                .any(|package| affected.contains(*package));
+            let required = shard == WorkspaceShard::Lint
+                || shard
+                    .test_packages()
+                    .iter()
+                    .any(|package| affected.contains(*package))
+                || shard
+                    .obligation_packages()
+                    .iter()
+                    .any(|package| affected.contains(*package));
             (shard.name().to_owned(), required)
         })
         .collect()
@@ -251,10 +293,12 @@ fn plan(
     reason: String,
     changed_paths: Vec<String>,
     workspace: WorkspaceImpact,
+    targets: TargetImpact,
     suite_reasons: BTreeMap<String, Vec<String>>,
 ) -> ImpactPlan {
     ImpactPlan {
         esp32_required: selected["esp32"],
+        esp32_targets: targets.esp32.into_iter().collect(),
         browser_required: selected["browser"],
         conduitos_required: selected["conduitos"],
         full_fallback,
@@ -287,6 +331,9 @@ fn full_plan(reason: String, paths: Vec<String>) -> ImpactPlan {
                 .into_iter()
                 .map(|shard| (shard.name().to_owned(), true))
                 .collect(),
+        },
+        TargetImpact {
+            esp32: ESP32_TARGETS.map(str::to_owned).into_iter().collect(),
         },
         suite_reasons,
     )
@@ -331,6 +378,10 @@ fn changed_paths(root: &Path, base: &str, head: &str) -> Result<Vec<String>, Str
 
 fn write_github_outputs(plan: &ImpactPlan) {
     println!("esp32_required={}", plan.esp32_required);
+    println!(
+        "esp32_matrix={}",
+        serde_json::to_string(&plan.esp32_targets).expect("ESP32 matrix serializes")
+    );
     println!("browser_required={}", plan.browser_required);
     println!("conduitos_required={}", plan.conduitos_required);
     println!("full_fallback={}", plan.full_fallback);
@@ -364,6 +415,21 @@ fn markdown_summary(plan: &ImpactPlan) -> String {
             }
         ));
     }
+    for target in ESP32_TARGETS {
+        rows.push_str(&format!(
+            "| esp32/{target} | {} | {} |\n",
+            if plan.esp32_targets.iter().any(|item| item == target) {
+                "run"
+            } else {
+                "skip on PR"
+            },
+            if plan.esp32_targets.iter().any(|item| item == target) {
+                "target dependency/ownership path"
+            } else {
+                "no target dependency/ownership path"
+            }
+        ));
+    }
     for shard in WorkspaceShard::ALL {
         rows.push_str(&format!(
             "| workspace/{} | {} | {} |\n",
@@ -373,10 +439,7 @@ fn markdown_summary(plan: &ImpactPlan) -> String {
             } else {
                 "skip on PR"
             },
-            if matches!(
-                shard,
-                WorkspaceShard::Lint | WorkspaceShard::Portable | WorkspaceShard::Pico
-            ) {
+            if shard == WorkspaceShard::Lint {
                 "permanent product spine"
             } else if plan.workspace_shards[shard.name()] {
                 "affected reverse-dependent package"
