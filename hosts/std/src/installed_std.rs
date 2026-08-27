@@ -367,7 +367,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .iter()
         .filter(|placement| {
             placement.implementation_id.as_str()
-                == conduit_std_catalog::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+                == conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
         })
         .count();
     let mut execution_identity = KernelExecutionIdentityMap::new(

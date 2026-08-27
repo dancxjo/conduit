@@ -38,6 +38,7 @@ pub mod human_media;
 pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
+mod structured_offers;
 mod text_lab_live;
 pub mod text_lab_split;
 mod webchat;

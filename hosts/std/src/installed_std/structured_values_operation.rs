@@ -11,12 +11,12 @@ use conduit_kernel::{
 };
 
 pub(super) static LITERAL_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::STRUCTURED_LITERAL_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::STRUCTURED_LITERAL_STD_IMPLEMENTATION,
     budget: literal_budget,
     prepare: prepare_literal,
 };
 pub(super) static PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION,
     budget: presentation_budget,
     prepare: prepare_presentation,
 };
@@ -120,10 +120,10 @@ fn validate_literal(placement: &PlannedGear) -> Result<(), String> {
         || placement.kind_contract_revision.as_str()
             != conduit_std_catalog::STRUCTURED_LITERAL_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::STRUCTURED_LITERAL_STD_PROFILE
+            != conduit_std_offers::STRUCTURED_LITERAL_STD_PROFILE
         || placement.implementation_id.as_str()
-            != conduit_std_catalog::STRUCTURED_LITERAL_STD_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_catalog::STRUCTURED_LITERAL_STD_ARTIFACT
+            != conduit_std_offers::STRUCTURED_LITERAL_STD_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::STRUCTURED_LITERAL_STD_ARTIFACT
         || !placement.inputs.is_empty()
         || output.port_id.as_str() != "value"
         || output.direction != PortDirection::Output
@@ -145,11 +145,11 @@ fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
         || placement.kind_contract_revision.as_str()
             != conduit_std_catalog::STRUCTURED_PRESENTATION_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::STRUCTURED_PRESENTATION_STD_PROFILE
+            != conduit_std_offers::STRUCTURED_PRESENTATION_STD_PROFILE
         || placement.implementation_id.as_str()
-            != conduit_std_catalog::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+            != conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
         || placement.artifact_id.as_str()
-            != conduit_std_catalog::STRUCTURED_PRESENTATION_STD_ARTIFACT
+            != conduit_std_offers::STRUCTURED_PRESENTATION_STD_ARTIFACT
         || input.port_id.as_str() != "input"
         || input.direction != PortDirection::Input
         || input.temporal != PortTemporal::Value
