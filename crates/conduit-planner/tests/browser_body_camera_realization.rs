@@ -6,7 +6,8 @@ use std::collections::BTreeMap;
 use conduit_core::{
     resource_offer, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
     BootId, CapabilityId, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
-    KindId, LinkLimits, OfferGeneration, PROTOCOL_VERSION,
+    KindId, LineContinuation, LineContract, LineDuplex, LineOrdering, LineReliability, LineScope,
+    LineSecurity, LineTrafficShape, LinkLimits, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
 use conduit_planner::{
@@ -136,7 +137,7 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
     )
     .is_err());
 
-    let line = conduit_core::process_owned_line_offer_with_limits(
+    let mut line = conduit_core::process_owned_line_offer_with_limits(
         "browser/body-camera-realization/camera-line",
         "browser/body-camera-realization/camera-binding",
         BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
@@ -150,6 +151,15 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
             maximum_frame_bytes: 128 * 1024,
         },
     );
+    line.contract = LineContract {
+        scope: LineScope::PointToPoint,
+        traffic_shape: LineTrafficShape::Message,
+        duplex: LineDuplex::FullDuplex,
+        ordering: LineOrdering::Ordered,
+        reliability: LineReliability::Reliable,
+        continuation: LineContinuation::None,
+        security: LineSecurity::AuthenticatedEncrypted,
+    };
     let connection = &expanded.connections[0];
     let line_candidates = BTreeMap::from([(
         (
@@ -206,5 +216,17 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
     assert_eq!(
         cord.selected_line.as_ref().unwrap().line_id.as_str(),
         "browser/body-camera-realization/camera-line"
+    );
+    assert_eq!(
+        cord.selected_line.as_ref().unwrap().contract,
+        LineContract {
+            scope: LineScope::PointToPoint,
+            traffic_shape: LineTrafficShape::Message,
+            duplex: LineDuplex::FullDuplex,
+            ordering: LineOrdering::Ordered,
+            reliability: LineReliability::Reliable,
+            continuation: LineContinuation::None,
+            security: LineSecurity::AuthenticatedEncrypted,
+        }
     );
 }

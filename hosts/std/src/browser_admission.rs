@@ -21,10 +21,10 @@ use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocke
 mod webrtc_signaling;
 
 pub use webrtc_signaling::{
-    BrowserWebRtcDescription, BrowserWebRtcGrant, BrowserWebRtcRendezvous,
-    BrowserWebRtcRendezvousRefusal, BrowserWebRtcRole, BrowserWebRtcSignal,
-    RoutedBrowserWebRtcSignal, MAX_WEBRTC_DESCRIPTION_BYTES, MAX_WEBRTC_NEGOTIATIONS,
-    MAX_WEBRTC_SESSION_HELLO_BYTES,
+    browser_webrtc_line_contract, BrowserWebRtcDescription, BrowserWebRtcGrant,
+    BrowserWebRtcRendezvous, BrowserWebRtcRendezvousRefusal, BrowserWebRtcRole,
+    BrowserWebRtcSignal, RoutedBrowserWebRtcSignal, MAX_WEBRTC_DESCRIPTION_BYTES,
+    MAX_WEBRTC_NEGOTIATIONS, MAX_WEBRTC_SESSION_HELLO_BYTES,
 };
 
 pub const BROWSER_ADMISSION_PROTOCOL: u16 = 1;

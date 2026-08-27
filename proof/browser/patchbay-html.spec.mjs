@@ -203,14 +203,14 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#realizations")).toContainText("project · host patchbay-presentation/host · boot patchbay-presentation/boot");
     await expect(page.locator("#realizations")).toContainText("presentation -> presentation · Info presentation/presentation@1");
     await expect(page.locator("#realizations")).toContainText("Line patchbay-renderer/line/websocket");
-    await expect(page.locator("#realizations")).toContainText("base WebSocket");
+    await expect(page.locator("#realizations")).toContainText("base conduit.base/websocket-rfc6455@1");
     await expect(page.locator("#realizations")).toContainText("binding patchbay-renderer/binding/websocket");
     await expect(page.locator("#realizations")).toContainText("base-instance patchbay-renderer/websocket-instance");
     await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/cross-host-prepared · Prepared");
     await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/document-ready · Available");
     await expect(page.locator("#topology li").first()).toContainText("boot");
-    await expect(page.locator("#route-cards li").filter({hasText:"USB CDC"}).first()).toBeVisible();
-    await expect(page.locator("#route-cards li").filter({hasText:"WebSocket"}).first()).toBeVisible();
+    await expect(page.locator("#route-cards li").filter({hasText:"conduit.base/usb-cdc-acm@1"}).first()).toBeVisible();
+    await expect(page.locator("#route-cards li").filter({hasText:"conduit.base/websocket-rfc6455@1"}).first()).toBeVisible();
     const workspace=await page.locator(".workspace").boundingBox();
     const canvas=await page.locator("#form").boundingBox();
     await page.locator("#toggle-inspector").click();
