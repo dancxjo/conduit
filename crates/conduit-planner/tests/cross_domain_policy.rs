@@ -266,10 +266,9 @@ fn presentation_fixture() -> (
     let mut hosts = Vec::new();
     let mut advertisements = Vec::new();
     for (family, facts) in profiles {
-        let mut host = conduit_std_catalog::standard_host_advertisement(
+        let mut host = common::standard_planning_fixture(
             HostId::from(format!("style-{family}")),
             conduit_core::BootId::from(format!("style-{family}-boot")),
-            conduit_core::OfferGeneration(1),
         );
         let mut offer = conduit_std_catalog::patchbay_presentation_offers()[0].clone();
         offer.capability_id = CapabilityId::from(format!("style-{family}/patchbay@1"));

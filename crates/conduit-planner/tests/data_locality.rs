@@ -1,12 +1,14 @@
 use std::collections::BTreeMap;
 
-use conduit_core::{BootId, CapabilityId, GearId, HostId, LineId, OfferGeneration, SignId};
+use conduit_core::{BootId, CapabilityId, GearId, HostId, LineId, SignId};
 use conduit_planner::{
     select_data_locality_candidate, CandidatePlacementDisposition, DataFlowObservation,
     LocalCordObservation, LocalityCandidate, LocalityPlanningBasis, ObservationProvenance,
     PlacementChoice, PlacementChoices, RealizationWorkObservation, ReductionObservation,
     TransportObservation,
 };
+
+mod common;
 
 fn fixture() -> (
     conduit_form::CheckedForm,
@@ -17,15 +19,13 @@ fn fixture() -> (
         "form locality {\n source: time/tick(count = 10, period-ms = 1)\n reduction: state/count(0)\n analysis: presentation/count\n source.tick > reduction.bump\n reduction.value > analysis.value\n}\n",
         &conduit_std_catalog::standard_profile_catalog(),
     ).expect("canonical locality Form checks");
-    let source = conduit_std_catalog::standard_host_advertisement(
+    let source = common::standard_planning_fixture(
         HostId::from("host/constrained"),
         BootId::from("boot/constrained-1"),
-        OfferGeneration(1),
     );
-    let remote = conduit_std_catalog::standard_host_advertisement(
+    let remote = common::standard_planning_fixture(
         HostId::from("host/analysis"),
         BootId::from("boot/analysis-1"),
-        OfferGeneration(1),
     );
     let mut line = conduit_signal_conformance::triple::exact_plan()
         .expect("Line fixture")

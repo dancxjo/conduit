@@ -6,9 +6,9 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_offer, resource_requirement,
+    kind_id, present_host_operation_requirement, resource_requirement,
     wait_host_operation_requirement, CapabilityLimits, ConfigurationValue,
-    HostOperationRequirement, KindId, PortDescriptor, ResourceOffer, ResourceRequirement,
+    HostOperationRequirement, KindId, PortDescriptor, ResourceRequirement,
     PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
@@ -289,16 +289,10 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
     use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
 
     let mut catalog = ProfileCatalog::new();
-    let mut offers = supported_nucleus_offers();
-    for contract in supported_nucleus_contracts() {
-        let offer_index = offers
-            .iter()
-            .position(|offer| offer.kind_id == contract.kind_id)
-            .expect("supported nucleus contract has one matching offer");
-        let offer = offers.remove(offer_index);
+    for (contract, revision) in supported_nucleus_contracts_with_revisions() {
         catalog
             .insert(KindDefinition {
-                kind_contract_revision: offer.kind_contract_revision,
+                kind_contract_revision: conduit_core::KindContractRevision::from(revision),
                 kind_id: contract.kind_id,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
@@ -331,7 +325,6 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
             })
             .expect("standard catalog kinds are unique");
     }
-    debug_assert!(offers.is_empty());
     catalog
 }
 
@@ -354,34 +347,6 @@ pub fn standard_resource_requirements(kind_id: &KindId) -> Vec<ResourceRequireme
         PULSE_KIND | TICK_KIND => vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         SHOW_KIND => vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
         _ => Vec::new(),
-    }
-}
-
-pub fn standard_resource_offers(capacity_units: u32) -> Vec<ResourceOffer> {
-    vec![
-        resource_offer(
-            "std-catalog/presentation",
-            PRESENTATION_RESOURCE_CLASS,
-            capacity_units,
-        ),
-        resource_offer("std-catalog/timer", TIMER_RESOURCE_CLASS, capacity_units),
-    ]
-}
-
-pub fn standard_host_advertisement(
-    host_id: conduit_core::HostId,
-    boot_id: conduit_core::BootId,
-    offer_generation: conduit_core::OfferGeneration,
-) -> conduit_core::HostAdvertisement {
-    conduit_core::HostAdvertisement {
-        protocol_version: conduit_core::PROTOCOL_VERSION,
-        host_id,
-        boot_id,
-        offer_generation,
-        profile: conduit_core::HostProfileId::from("conduit.std/hosted-v1"),
-        resources: standard_resource_offers(16),
-        planner_capabilities: vec![],
-        capabilities: supported_nucleus_offers(),
     }
 }
 
@@ -453,5 +418,27 @@ mod supported_nucleus_tests {
             })
             .collect::<BTreeSet<_>>();
         assert_eq!(offer_identities.len(), offers.len());
+    }
+
+    #[cfg(feature = "form-catalog")]
+    #[test]
+    fn portable_profile_revisions_are_exact_without_reading_host_offers() {
+        let catalog = standard_profile_catalog();
+        let offers = supported_nucleus_offers();
+
+        for (contract, revision) in supported_nucleus_contracts_with_revisions() {
+            let definition = catalog
+                .get(&contract.kind_id)
+                .expect("portable contract is present in the profile catalog");
+            assert_eq!(definition.kind_contract_revision.as_str(), revision);
+            assert_eq!(definition.inputs, contract.inputs);
+            assert_eq!(definition.outputs, contract.outputs);
+
+            let offer = offers
+                .iter()
+                .find(|offer| offer.kind_id == contract.kind_id)
+                .expect("current std offer remains exact during ownership migration");
+            assert_eq!(offer.kind_contract_revision.as_str(), revision);
+        }
     }
 }

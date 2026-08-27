@@ -4,6 +4,34 @@ use conduit_signal::{signal_profile_catalog, PULSE_KIND};
 use conduit_signal_conformance::pico_local_advertisement;
 
 #[allow(dead_code)]
+pub fn standard_planning_fixture(
+    host_id: impl Into<conduit_core::HostId>,
+    boot_id: impl Into<conduit_core::BootId>,
+) -> conduit_core::HostAdvertisement {
+    conduit_core::HostAdvertisement {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: host_id.into(),
+        boot_id: boot_id.into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+        profile: conduit_core::HostProfileId::from("planner-test/standard-fixture@1"),
+        resources: vec![
+            conduit_core::resource_offer(
+                "planner-test/presentation",
+                conduit_core::PRESENTATION_RESOURCE_CLASS,
+                16,
+            ),
+            conduit_core::resource_offer(
+                "planner-test/timer",
+                conduit_core::TIMER_RESOURCE_CLASS,
+                16,
+            ),
+        ],
+        planner_capabilities: Vec::new(),
+        capabilities: conduit_std_catalog::supported_nucleus_offers(),
+    }
+}
+
+#[allow(dead_code)]
 pub fn generate_text_form() -> conduit_form::CheckedForm {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();

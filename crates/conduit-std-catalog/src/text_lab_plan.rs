@@ -2,8 +2,8 @@
 
 use crate::{
     hosted_keyboard_offer, install_input_semantic_catalogs, install_keyboard_catalogs,
-    install_text_pipeline_catalogs, standard_host_advertisement, KEYBOARD_KIND, KEYMAP_KIND,
-    TEXT_PRESENTATION_KIND,
+    install_text_pipeline_catalogs, keymap_offer, text_presentation_offer, text_upper_offer,
+    KEYBOARD_KIND, KEYMAP_KIND, TEXT_PRESENTATION_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -14,8 +14,8 @@ use alloc::{
 };
 use conduit_core::{
     process_owned_line_offer_with_limits, resource_offer, BaseImplementationId, BootId,
-    HostAdvertisement, HostId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration,
-    Plan, INPUT_RESOURCE_CLASS,
+    HostAdvertisement, HostId, HostProfileId, LineOffer, LineScope, LineSecurity, LinkLimits,
+    OfferGeneration, Plan, INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -125,20 +125,28 @@ fn exact_text_lab_split_plan_with_loss(
     .map_err(|error| format!("check canonical Text Lab: {error:?}"))?;
     let expanded = conduit_form::expand_canonical_form(&checked, "text-lab", &profile)
         .map_err(|error| format!("expand canonical Text Lab: {error:?}"))?;
-    let mut native = standard_host_advertisement(
-        HostId::from(TEXT_LAB_NATIVE_HOST),
-        BootId::from(TEXT_LAB_NATIVE_BOOT),
-        OfferGeneration(1),
-    );
-    native.capabilities.push(hosted_keyboard_offer(
-        "text-lab-native-keyboard",
-        "text-lab/native-keyboard@1",
-    ));
-    native.resources.push(resource_offer(
-        "text-lab/native-input",
-        INPUT_RESOURCE_CLASS,
-        1,
-    ));
+    let mut native = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from(TEXT_LAB_NATIVE_HOST),
+        boot_id: BootId::from(TEXT_LAB_NATIVE_BOOT),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("text-lab/native-fixture@1"),
+        resources: vec![
+            resource_offer("text-lab/native-input", INPUT_RESOURCE_CLASS, 1),
+            resource_offer(
+                "text-lab/native-presentation",
+                PRESENTATION_RESOURCE_CLASS,
+                1,
+            ),
+        ],
+        planner_capabilities: Vec::new(),
+        capabilities: vec![
+            hosted_keyboard_offer("text-lab-native-keyboard", "text-lab/native-keyboard@1"),
+            keymap_offer(),
+            text_upper_offer(),
+            text_presentation_offer(),
+        ],
+    };
     native
         .capabilities
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
