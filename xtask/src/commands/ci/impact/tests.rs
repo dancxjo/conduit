@@ -109,6 +109,12 @@ fn esp32_paths_select_exact_target_obligations() {
     )
     .unwrap();
     assert_eq!(c3.esp32_targets, ["c3"]);
+    assert!(c3
+        .affected_test_packages
+        .contains(&"conduit-esp32-c3-signal".to_owned()));
+    assert!(!c3
+        .workspace_lint_packages
+        .contains(&"conduit-esp32-c3-signal".to_owned()));
 
     let s3 = plan_for_paths(
         &root,
