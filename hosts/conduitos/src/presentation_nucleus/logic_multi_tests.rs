@@ -38,11 +38,11 @@ fn ordinary_compare_and_select_agree_with_shared_portable_semantics() {
         for (kind, implementation) in [
             (
                 conduit_std_catalog::LOGIC_COMPARE_KIND,
-                conduit_std_catalog::CONDUITOS_LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
+                crate::functional_offers::LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
             ),
             (
                 conduit_std_catalog::LOGIC_SELECT_KIND,
-                conduit_std_catalog::CONDUITOS_LOGIC_SELECT_SCALAR_IMPLEMENTATION,
+                crate::functional_offers::LOGIC_SELECT_SCALAR_IMPLEMENTATION,
             ),
         ] {
             assert_eq!(

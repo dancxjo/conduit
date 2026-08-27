@@ -127,8 +127,8 @@ fn advertisement(
         .map(|(kind, value)| source_offer(kind, value))
         .collect::<Vec<_>>();
     capabilities.extend([
-        conduit_std_catalog::conduitos_logic_compare_scalar_offer(),
-        conduit_std_catalog::conduitos_logic_select_scalar_offer(),
+        crate::functional_offers::logic_compare_scalar_offer(),
+        crate::functional_offers::logic_select_scalar_offer(),
         sink_offer(),
     ]);
     HostAdvertisement {
@@ -156,7 +156,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
         kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_LOGIC_NOT_EXECUTION_PROFILE,
+                crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,
             ),
             implementation_id: ImplementationId::from("conduitos.fixture/logic-source@1"),
             artifact_id: ArtifactId::from(FIXTURE_ARTIFACT),

@@ -24,10 +24,6 @@ pub const MATH_CLAMP_IMPLEMENTATION: &str = "std/kernel-math-clamp-scalar@1";
 pub const MATH_CLAMP_ARTIFACT: &str = "conduit-std-host/math-clamp-scalar@1";
 pub const MATH_CLAMP_CAPABILITY: &str = "math-clamp-scalar-v1";
 pub const MATH_CLAMP_HOST_OPERATION: &str = "conduit.host/math-clamp-scalar@1";
-pub const CONDUITOS_MATH_CLAMP_CAPABILITY: &str = "conduitos/math-clamp-scalar@1";
-pub const CONDUITOS_MATH_CLAMP_EXECUTION_PROFILE: &str = "conduitos/functional-kernel@1";
-pub const CONDUITOS_MATH_CLAMP_IMPLEMENTATION: &str = "conduitos/kernel-math-clamp-scalar@1";
-pub const CONDUITOS_MATH_CLAMP_ARTIFACT: &str = "conduitos/functional-kernel@1";
 
 pub const MATH_SCALE_CONTRACT_REVISION: &str = "conduit.std/math-scale-scalar@1";
 pub const MATH_SCALE_EXECUTION_PROFILE: &str = "conduit.std/math-scale-scalar-kernel@1";
@@ -42,10 +38,6 @@ pub const MATH_DEADBAND_IMPLEMENTATION: &str = "std/kernel-math-deadband-scalar@
 pub const MATH_DEADBAND_ARTIFACT: &str = "conduit-std-host/math-deadband-scalar@1";
 pub const MATH_DEADBAND_CAPABILITY: &str = "math-deadband-scalar-v1";
 pub const MATH_DEADBAND_HOST_OPERATION: &str = "conduit.host/math-deadband-scalar@1";
-pub const CONDUITOS_MATH_SCALE_CAPABILITY: &str = "conduitos-math-scale-scalar-v1";
-pub const CONDUITOS_MATH_SCALE_IMPLEMENTATION: &str = "conduitos/kernel-math-scale-scalar@1";
-pub const CONDUITOS_MATH_DEADBAND_CAPABILITY: &str = "conduitos-math-deadband-scalar-v1";
-pub const CONDUITOS_MATH_DEADBAND_IMPLEMENTATION: &str = "conduitos/kernel-math-deadband-scalar@1";
 
 pub const SCALAR_INPUT_PORT: &str = "in";
 pub const SCALAR_OUTPUT_PORT: &str = "out";
@@ -154,17 +146,6 @@ pub fn math_clamp_offer() -> CapabilityOffer {
     )
 }
 
-pub fn conduitos_math_clamp_offer() -> CapabilityOffer {
-    let mut offer = math_clamp_offer();
-    offer.capability_id = CapabilityId::from(CONDUITOS_MATH_CLAMP_CAPABILITY);
-    offer.implementation.execution_profile_id =
-        ExecutionProfileId::from(CONDUITOS_MATH_CLAMP_EXECUTION_PROFILE);
-    offer.implementation.implementation_id =
-        ImplementationId::from(CONDUITOS_MATH_CLAMP_IMPLEMENTATION);
-    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_MATH_CLAMP_ARTIFACT);
-    offer
-}
-
 pub fn math_scale_offer() -> CapabilityOffer {
     offer(
         math_scale_contract(),
@@ -177,14 +158,6 @@ pub fn math_scale_offer() -> CapabilityOffer {
     )
 }
 
-pub fn conduitos_math_scale_offer() -> CapabilityOffer {
-    super::text_transform::conduitos_bounded_host_operation_offer(
-        math_scale_offer(),
-        CONDUITOS_MATH_SCALE_CAPABILITY,
-        CONDUITOS_MATH_SCALE_IMPLEMENTATION,
-    )
-}
-
 pub fn math_deadband_offer() -> CapabilityOffer {
     offer(
         math_deadband_contract(),
@@ -194,14 +167,6 @@ pub fn math_deadband_offer() -> CapabilityOffer {
         MATH_DEADBAND_IMPLEMENTATION,
         MATH_DEADBAND_ARTIFACT,
         MATH_DEADBAND_HOST_OPERATION,
-    )
-}
-
-pub fn conduitos_math_deadband_offer() -> CapabilityOffer {
-    super::text_transform::conduitos_bounded_host_operation_offer(
-        math_deadband_offer(),
-        CONDUITOS_MATH_DEADBAND_CAPABILITY,
-        CONDUITOS_MATH_DEADBAND_IMPLEMENTATION,
     )
 }
 

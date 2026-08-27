@@ -209,7 +209,7 @@ fn advertisement(host: &str, boot: &str, input: InfoBool) -> HostAdvertisement {
         planner_capabilities: Vec::new(),
         capabilities: vec![
             source_offer(input),
-            conduit_std_catalog::conduitos_logic_not_offer(),
+            crate::functional_offers::logic_not_offer(),
             sink_offer(),
         ],
     }
@@ -228,10 +228,10 @@ fn source_offer(input: InfoBool) -> CapabilityOffer {
         kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_LOGIC_NOT_EXECUTION_PROFILE,
+                crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,
             ),
             implementation_id: ImplementationId::from(SOURCE_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(conduit_std_catalog::CONDUITOS_LOGIC_NOT_ARTIFACT),
+            artifact_id: ArtifactId::from(crate::functional_offers::FUNCTIONAL_KERNEL_ARTIFACT),
         },
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
@@ -260,10 +260,10 @@ fn sink_offer() -> CapabilityOffer {
         kind_contract_revision: KindContractRevision::from(SINK_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_LOGIC_NOT_EXECUTION_PROFILE,
+                crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,
             ),
             implementation_id: ImplementationId::from(SINK_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(conduit_std_catalog::CONDUITOS_LOGIC_NOT_ARTIFACT),
+            artifact_id: ArtifactId::from(crate::functional_offers::FUNCTIONAL_KERNEL_ARTIFACT),
         },
         inputs: vec![PortDescriptor {
             port_id: port_id("value"),
@@ -441,7 +441,7 @@ mod tests {
                 .unwrap();
             assert_eq!(
                 placement.implementation_id.as_str(),
-                conduit_std_catalog::CONDUITOS_LOGIC_NOT_IMPLEMENTATION
+                crate::functional_offers::LOGIC_NOT_IMPLEMENTATION
             );
             let proof = run_not(&prepared).unwrap();
             assert_eq!(proof.output, InfoBool::new(!input.get()));
