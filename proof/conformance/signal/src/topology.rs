@@ -3,12 +3,12 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    resource_offer, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConnectionBase, ConnectionBaseInstanceId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LineAvailability, LineAvailabilitySign, LineContinuation, LineContract,
-    LineDuplex, LineId, LineOffer, LineOrdering, LineReliability, LineScope, LineSecurity,
-    LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference,
-    LinkEndpoint, LinkEndpointId, LinkLimits, OfferGeneration, SignId, PRESENTATION_RESOURCE_CLASS,
+    resource_offer, ArtifactId, BaseImplementationId, BaseInstanceId, BootId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    LineAvailability, LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId,
+    LineOffer, LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
+    LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint,
+    LinkEndpointId, LinkLimits, OfferGeneration, SignId, PRESENTATION_RESOURCE_CLASS,
     PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 
@@ -175,8 +175,8 @@ pub fn distributed_websocket_line_offer() -> LineOffer {
             boot_id: BootId::from(DISTRIBUTED_BROWSER_BOOT_ID),
             endpoint_id: LinkEndpointId::from("s4/browser-websocket-ingress"),
         },
-        base: ConnectionBase::WebSocket,
-        base_instance_id: ConnectionBaseInstanceId::from(DISTRIBUTED_BASE_INSTANCE_ID),
+        base: BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        base_instance_id: BaseInstanceId::from(DISTRIBUTED_BASE_INSTANCE_ID),
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
@@ -196,7 +196,7 @@ pub fn distributed_websocket_line_offer() -> LineOffer {
         },
         binding,
         contract: LineContract {
-            scope: LineScope::Machine,
+            scope: LineScope::LocalNetwork,
             traffic_shape: LineTrafficShape::Message,
             duplex: LineDuplex::FullDuplex,
             ordering: LineOrdering::Ordered,

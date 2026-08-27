@@ -12,8 +12,9 @@ use crate::requirements::{
 use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationPolicy};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    CapabilityOffer, CharacteristicId, CharacteristicQuantity, CharacteristicValue, ConnectionBase,
-    GearId, HostAdvertisement, Plan, RealizationAdvertisement, ResourceObservation,
+    BaseImplementationId, CapabilityOffer, CharacteristicId, CharacteristicQuantity,
+    CharacteristicValue, GearId, HostAdvertisement, Plan, RealizationAdvertisement,
+    ResourceObservation,
 };
 use conduit_form::{CheckedForm, CheckedGear};
 
@@ -205,7 +206,7 @@ fn base_rejection(dimension: &'static str) -> RealizationRejection {
 pub fn plan_selected_realizations_with_characteristics(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     advertisements: &[RealizationAdvertisement],
     observations: &[ResourceObservation],
@@ -229,7 +230,7 @@ pub fn plan_selected_realizations_with_characteristics(
 
 pub struct SelectedRealizationPlanning<'a> {
     pub hosts: &'a [HostAdvertisement],
-    pub bases: &'a [ConnectionBase],
+    pub bases: &'a [BaseImplementationId],
     pub requirements: &'a BTreeMap<GearId, HardRealizationRequirements>,
     pub advertisements: &'a [RealizationAdvertisement],
     pub observations: &'a [ResourceObservation],
@@ -284,7 +285,7 @@ pub fn plan_selected_realizations_with_characteristics_and_authority(
 pub fn plan_selected_realizations_with_characteristics_and_options(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     advertisements: &[RealizationAdvertisement],
     observations: &[ResourceObservation],

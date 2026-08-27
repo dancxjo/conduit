@@ -1,7 +1,7 @@
 use super::{ObligationBasis, ObligationRefusal, VALUE_BYTES};
 use conduit_core::{
-    kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConnectionBase, ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId,
+    kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
     KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
     PROTOCOL_VERSION,
@@ -64,7 +64,7 @@ pub(super) fn checked_plan(
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

@@ -161,7 +161,9 @@ fn mechanism_free_form_plans_to_exact_create_realization() {
         &expanded,
         &[host],
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
     )
     .unwrap();
     let placement = &plan.fragments[0].placements[0];

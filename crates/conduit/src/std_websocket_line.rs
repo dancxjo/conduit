@@ -1,13 +1,13 @@
 //! Bounded machine-only execution of an exact two-std-Host WebSocket Line.
 
-#[cfg(test)]
-use conduit_core::{BootId, CapabilityId, GearId, HostId};
 use conduit_core::{
-    ConnectionBase, ConnectionBaseInstanceId, LineAvailability, LineAvailabilitySign,
-    LineContinuation, LineContract, LineDuplex, LineId, LineOffer, LineOrdering, LineReliability,
-    LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkBindingId,
+    BaseImplementationId, BaseInstanceId, LineAvailability, LineAvailabilitySign, LineContinuation,
+    LineContract, LineDuplex, LineId, LineOffer, LineOrdering, LineReliability, LineScope,
+    LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkBindingId,
     LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, Plan, SignId,
 };
+#[cfg(test)]
+use conduit_core::{BootId, CapabilityId, GearId, HostId};
 use conduit_kernel::scheduler::{
     FixedScheduler, StepInputBytes, StepIo, StepOperation, StepOutcome,
 };
@@ -56,9 +56,9 @@ impl crate::product_execution::ProductLineRuntime for ProductWebSocketRuntime {
             .filter_map(|connection| connection.selected_line.as_ref())
             .collect::<Vec<_>>();
         !lines.is_empty()
-            && lines
-                .iter()
-                .all(|line| line.binding.base == ConnectionBase::WebSocket)
+            && lines.iter().all(|line| {
+                line.binding.base == BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
+            })
     }
 
     fn execute(
@@ -161,7 +161,9 @@ pub(crate) fn context() -> Result<crate::product_execution::ProductExecutionCont
             crate::product_execution::ProductRuntime::std(source),
             crate::product_execution::ProductRuntime::std(sink),
         ],
-        vec![ConnectionBase::WebSocket],
+        vec![BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
         vec![offer],
         Vec::new(),
     )
@@ -213,10 +215,8 @@ pub(crate) fn line_offer(
                 boot_id: sink.advertisement().boot_id.clone(),
                 endpoint_id: LinkEndpointId::from("product/std-sink/ingress"),
             },
-            base: ConnectionBase::WebSocket,
-            base_instance_id: ConnectionBaseInstanceId::from(
-                "product/std-websocket/loopback-instance",
-            ),
+            base: BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            base_instance_id: BaseInstanceId::from("product/std-websocket/loopback-instance"),
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
             limits: LinkLimits {
@@ -227,7 +227,7 @@ pub(crate) fn line_offer(
             },
         },
         contract: LineContract {
-            scope: LineScope::Machine,
+            scope: LineScope::LocalNetwork,
             traffic_shape: LineTrafficShape::Message,
             duplex: LineDuplex::FullDuplex,
             ordering: LineOrdering::Ordered,

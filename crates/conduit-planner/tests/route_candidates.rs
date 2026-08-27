@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    verify_plan, CapabilityId, ConnectionBase, GearId, LineId, LinkBindingId, LinkEndpointId,
+    verify_plan, BaseImplementationId, CapabilityId, GearId, LineId, LinkBindingId, LinkEndpointId,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
@@ -53,9 +53,9 @@ fn plan_with_policy(
     let mut usb_alternative = exact.browser_line.clone();
     usb_alternative.line_id = LineId::from("s4/line/triple-browser-usb");
     usb_alternative.binding.binding_id = LinkBindingId::from("s4/triple-browser-usb-link");
-    usb_alternative.binding.base = ConnectionBase::UsbCdc;
+    usb_alternative.binding.base = BaseImplementationId::from("conduit.base/usb-cdc-acm@1");
     usb_alternative.binding.base_instance_id =
-        conduit_core::ConnectionBaseInstanceId::from("s4/triple-browser-usb-0");
+        conduit_core::BaseInstanceId::from("s4/triple-browser-usb-0");
     usb_alternative.binding.source.endpoint_id =
         LinkEndpointId::from("s4/triple-browser-usb-egress");
     usb_alternative.binding.sink.endpoint_id =
@@ -80,9 +80,9 @@ fn plan_with_policy(
         ],
         &placements,
         &[
-            ConnectionBase::Local,
-            ConnectionBase::WebSocket,
-            ConnectionBase::UsbCdc,
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
         ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
@@ -121,11 +121,11 @@ fn policy_seals_one_or_multiple_ready_routes_in_identity_bound_order() {
     assert_eq!(web_connection(&two).admitted_lines.len(), 2);
     assert_eq!(
         web_connection(&two).admitted_lines[0].binding.base,
-        ConnectionBase::WebSocket
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
     );
     assert_eq!(
         web_connection(&two).admitted_lines[1].binding.base,
-        ConnectionBase::UsbCdc
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     );
     assert_ne!(one.plan_id, two.plan_id);
     assert_ne!(two.plan_id, reversed.plan_id);

@@ -354,7 +354,9 @@ mod tests {
             &expanded,
             &hosts,
             &placements,
-            &[conduit_core::ConnectionBase::Local],
+            &[conduit_core::BaseImplementationId::from(
+                "conduit.base/local@1",
+            )],
             conduit_planner::PlanningOptions {
                 connection_bases: &connection_bases,
                 line_candidates: &line_candidates,

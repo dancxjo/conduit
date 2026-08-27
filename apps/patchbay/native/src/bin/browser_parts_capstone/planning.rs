@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use conduit_core::{ConnectionBase, HostAdvertisement, LinkLimits};
+use conduit_core::{BaseImplementationId, HostAdvertisement, LinkLimits};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
@@ -69,7 +69,7 @@ pub(super) fn cross_browser_plan(
     let line = conduit_core::process_owned_line_offer_with_limits(
         "browser/capstone/websocket-line",
         "browser/capstone/websocket-binding",
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         "browser/capstone/websocket-instance",
         source,
         sink,
@@ -83,7 +83,7 @@ pub(super) fn cross_browser_plan(
     let reverse_line = conduit_core::process_owned_line_offer_with_limits(
         "browser/capstone/websocket-return-line",
         "browser/capstone/websocket-return-binding",
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         "browser/capstone/websocket-return-instance",
         sink,
         source,
@@ -124,7 +124,10 @@ pub(super) fn cross_browser_plan(
         &expanded,
         &[source.clone(), sink.clone()],
         &PlacementChoices { by_gear },
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &line_candidates,

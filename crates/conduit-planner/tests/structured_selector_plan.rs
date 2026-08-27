@@ -1,8 +1,8 @@
 use conduit_core::{
-    port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
-    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
-    StructuredInfoType, PROTOCOL_VERSION,
+    port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, KindId, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
+    StructuredFieldType, StructuredInfoType, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document,
@@ -148,7 +148,7 @@ fn selector_is_an_ordinary_exact_planned_leaf_and_wrong_profile_refuses() {
         &expanded,
         &[exact_host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     assert!(plan.fragments[0]

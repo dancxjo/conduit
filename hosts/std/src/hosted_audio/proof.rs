@@ -1,6 +1,6 @@
 use super::{HostedPlaybackSelection, PlaybackReport};
 use crate::{StdHost, StdHostConfig, ThreadTimer};
-use conduit_core::{ActivePlayId, CharacteristicId, ConnectionBase, HostId, PlanId, SignId};
+use conduit_core::{ActivePlayId, BaseImplementationId, CharacteristicId, HostId, PlanId, SignId};
 use std::collections::BTreeMap;
 use std::io::Write;
 
@@ -63,7 +63,7 @@ pub fn run_playback_proof<W: Write>(
         &form,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &advertisements,
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[realization],
             observations: &[observation],

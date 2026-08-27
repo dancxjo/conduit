@@ -268,8 +268,8 @@ fn optional_identity(identity: Option<&str>) -> &str {
 fn display_property(value: &PresentationPropertyValue) -> String {
     match value {
         PresentationPropertyValue::Identity(value) => format!("identity:{value:?}"),
-        PresentationPropertyValue::ConnectionBase(value) => {
-            format!("base={}", display_base(*value))
+        PresentationPropertyValue::BaseImplementationId(value) => {
+            format!("base={}", display_base(value))
         }
         PresentationPropertyValue::Text(value) => format!("text:{value:?}"),
         PresentationPropertyValue::Count(value) => format!("count:{value}"),
@@ -292,17 +292,8 @@ fn display_availability(value: &crate::PresentationActionAvailability) -> String
     }
 }
 
-fn display_base(base: conduit_core::ConnectionBase) -> &'static str {
-    match base {
-        conduit_core::ConnectionBase::Local => "local",
-        conduit_core::ConnectionBase::InMemory => "in-memory",
-        conduit_core::ConnectionBase::FixtureFrame => "fixture frame",
-        conduit_core::ConnectionBase::FixtureDatagram => "fixture datagram",
-        conduit_core::ConnectionBase::WebSocket => "WebSocket",
-        conduit_core::ConnectionBase::UsbCdc => "USB CDC",
-        conduit_core::ConnectionBase::BluetoothLeGatt => "Bluetooth LE GATT",
-        conduit_core::ConnectionBase::WebRtcDataChannel => "WebRTC DataChannel",
-    }
+fn display_base(base: &conduit_core::BaseImplementationId) -> &str {
+    base.as_str()
 }
 
 #[cfg(test)]
@@ -310,7 +301,7 @@ mod tests {
     use alloc::vec;
     use conduit_body::Body;
     use conduit_core::{
-        ActivePlayId, CheckedFormId, ConnectionBase, ExpandedFormId, PlanId, SignId,
+        ActivePlayId, BaseImplementationId, CheckedFormId, ExpandedFormId, PlanId, SignId,
         SourceDocumentId,
     };
 
@@ -366,7 +357,9 @@ mod tests {
             vec![PresentationProperty {
                 subject: "subject/play".into(),
                 name: "line-base".into(),
-                value: PresentationPropertyValue::ConnectionBase(ConnectionBase::UsbCdc),
+                value: PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+                    "conduit.base/usb-cdc-acm@1",
+                )),
             }],
             vec![PresentationText {
                 subject: "subject/play".into(),
@@ -421,7 +414,7 @@ mod tests {
             "RELATIONSHIP kind=Contains source=\"subject/body\" target=\"subject/play\""
         ));
         assert!(output
-            .contains("PROPERTY subject=\"subject/play\" name=\"line-base\" value=base=USB CDC"));
+            .contains("PROPERTY subject=\"subject/play\" name=\"line-base\" value=base=conduit.base/usb-cdc-acm@1"));
         assert!(output.contains("TEXT subject=\"subject/play\" value=\"line one\\nline two\""));
         assert!(linear.lines.len() <= MAX_LINEAR_PRESENTATION_LINES);
         assert!(linear.encoded_bytes <= MAX_LINEAR_PRESENTATION_BYTES);

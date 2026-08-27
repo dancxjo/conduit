@@ -101,11 +101,11 @@ fn projection_uses_typed_bases_and_exact_validated_event_sign() {
     let facts = demo.presentation();
     assert_eq!(
         facts.new_plan.prior.candidates[0].base,
-        ConnectionBase::UsbCdc
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     );
     assert_eq!(
         facts.same_plan.plan.candidates[1].base,
-        ConnectionBase::WebSocket
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
     );
 
     let [link, unsatisfied, requested, succeeded, installed, selected] = demo.control_events()

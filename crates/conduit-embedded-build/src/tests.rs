@@ -1,7 +1,7 @@
 use conduit_core::{
-    mandatory_sign_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
-    CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry, ConfigurationValue,
-    ConnectionBase, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,
+    mandatory_sign_storage_requirement, seal_plan, ArtifactId, BaseImplementationId, BootId,
+    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry,
+    ConfigurationValue, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,
     ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
     KindContractRevision, KindId, OfferGeneration, PlacementId, PlanFragment, PlanId,
     PlannedConnection, PlannedGear, PortDescriptor, PortDirection, PortId, SignStorageBudget,
@@ -136,7 +136,7 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
     )
@@ -446,8 +446,8 @@ fn sealed_current_fragment() -> PlanFragment {
 #[test]
 fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
     use conduit_core::{
-        seal_plan, AdmittedLine, ConnectionBaseInstanceId, FormIdentity, LineContinuation,
-        LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope, LineSecurity,
+        seal_plan, AdmittedLine, BaseInstanceId, FormIdentity, LineContinuation, LineContract,
+        LineDuplex, LineId, LineOrdering, LineReliability, LineScope, LineSecurity,
         LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkCredentialReference,
         LinkEndpoint, LinkEndpointId, LinkLimits,
     };
@@ -483,8 +483,8 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
             boot_id: pico_boot_id.clone(),
             endpoint_id: LinkEndpointId::from("pico-in"),
         },
-        base: ConnectionBase::UsbCdc,
-        base_instance_id: ConnectionBaseInstanceId::from("pico-usb-cdc-0"),
+        base: BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+        base_instance_id: BaseInstanceId::from("pico-usb-cdc-0"),
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
@@ -576,7 +576,10 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
             .expect("remote pico fragment generates embedded plan");
 
     assert_eq!(generated.remote_endpoints.len(), 1);
-    assert_eq!(generated.remote_endpoints[0].base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        generated.remote_endpoints[0].base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
     assert_eq!(
         generated.remote_endpoints[0].link_binding_id,
         "link/usb-cdc"

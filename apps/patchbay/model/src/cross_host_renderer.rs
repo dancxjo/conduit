@@ -1,10 +1,10 @@
 //! Exact two-Host plan for delivering one Patchbay Presentation to a renderer.
 
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, LineOffer, LinkLimits, OfferGeneration, Plan,
-    PortDirection, PROTOCOL_VERSION,
+    ImplementationOffer, KindContractRevision, LineOffer, LineScope, LineSecurity, LinkLimits,
+    OfferGeneration, Plan, PortDirection, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
@@ -65,7 +65,9 @@ pub fn cross_host_renderer_plan(
         &form,
         &[source_advertisement.clone(), renderer_advertisement.clone()],
         &placements,
-        &[ConnectionBase::WebSocket],
+        &[BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
         1,
         MAX_RENDERER_VALUE_BYTES,
         core::slice::from_ref(&line),
@@ -154,10 +156,10 @@ fn websocket_line(
         boot_id: sink_boot_id,
         ..source.clone()
     };
-    conduit_core::process_owned_line_offer_with_limits(
+    let mut line = conduit_core::process_owned_line_offer_with_limits(
         "patchbay-renderer/line/websocket",
         "patchbay-renderer/binding/websocket",
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         "patchbay-renderer/websocket-instance",
         &source,
         &sink,
@@ -167,5 +169,8 @@ fn websocket_line(
             maximum_buffered_bytes: MAX_RENDERER_VALUE_BYTES,
             maximum_frame_bytes: CROSS_HOST_MAXIMUM_FRAME_BYTES,
         },
-    )
+    );
+    line.contract.scope = LineScope::LocalNetwork;
+    line.contract.security = LineSecurity::PlaintextNetwork;
+    line
 }

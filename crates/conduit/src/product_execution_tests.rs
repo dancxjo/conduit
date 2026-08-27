@@ -1,6 +1,6 @@
 use crate::form_source;
 use crate::product_execution::{ProductExecutionContext, ProductRuntime};
-use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration};
+use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_planner::{PlacementChoice, PlacementChoices};
 use conduit_std_host::{StdHost, StdHostConfig};
 use std::collections::BTreeMap;
@@ -55,7 +55,10 @@ fn two_advertisement_context_reaches_ordinary_planner_placement() {
     let context = ProductExecutionContext::new(
         advertisements,
         vec![ProductRuntime::std(first), ProductRuntime::std(second)],
-        vec![ConnectionBase::Local, ConnectionBase::WebSocket],
+        vec![
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         Vec::new(),
         Vec::new(),
     )
@@ -105,7 +108,7 @@ fn duplicate_host_id_is_refused_before_planning() {
     let error = ProductExecutionContext::new(
         vec![first.advertisement().clone(), duplicate],
         vec![ProductRuntime::std(first)],
-        vec![ConnectionBase::Local],
+        vec![BaseImplementationId::from("conduit.base/local@1")],
         Vec::new(),
         Vec::new(),
     )
@@ -124,7 +127,7 @@ fn planned_local_fragment_without_runtime_is_refused() {
     let mut context = ProductExecutionContext::new(
         vec![advertisement],
         Vec::new(),
-        vec![ConnectionBase::Local],
+        vec![BaseImplementationId::from("conduit.base/local@1")],
         Vec::new(),
         Vec::new(),
     )
@@ -140,21 +143,16 @@ fn planned_local_fragment_without_runtime_is_refused() {
 }
 
 #[test]
-fn fixture_only_connection_base_is_not_product_admission() {
+fn product_context_does_not_classify_base_identity_names() {
     let host = host("product-host");
-    let error = ProductExecutionContext::new(
+    ProductExecutionContext::new(
         vec![host.advertisement().clone()],
         vec![ProductRuntime::std(host)],
-        vec![ConnectionBase::FixtureFrame],
+        vec![BaseImplementationId::from("conduit.proof/frame@1")],
         Vec::new(),
         Vec::new(),
     )
-    .err()
-    .expect("fixture Base must not become installed product truth");
-    assert!(
-        error.contains("FixtureFrame") && error.contains("not supported"),
-        "{error}"
-    );
+    .expect("an identity name alone neither grants nor denies a runnable Line");
 }
 
 #[test]
@@ -232,7 +230,9 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
     let context = ProductExecutionContext::new(
         advertisements,
         Vec::new(),
-        vec![ConnectionBase::WebSocket],
+        vec![BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
         offers.clone(),
         Vec::new(),
     )
@@ -273,7 +273,9 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
     let error = ProductExecutionContext::new(
         advertisements,
         Vec::new(),
-        vec![ConnectionBase::WebSocket],
+        vec![BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
         undersized,
         Vec::new(),
     )

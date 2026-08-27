@@ -148,7 +148,7 @@ fn append_line_candidates(
         content.property(
             &subject,
             "base",
-            PresentationPropertyValue::ConnectionBase(candidate.base),
+            PresentationPropertyValue::BaseImplementationId(candidate.base.clone()),
         );
         content.property(
             &subject,

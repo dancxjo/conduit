@@ -304,7 +304,7 @@ pub(super) fn append_observatory(
         content.property(
             &subject,
             "base",
-            PresentationPropertyValue::ConnectionBase(line.offer.binding.base),
+            PresentationPropertyValue::BaseImplementationId(line.offer.binding.base.clone()),
         );
         for (name, value) in [
             (

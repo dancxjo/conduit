@@ -13,8 +13,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    process_owned_line_offer_with_limits, resource_offer, BootId, ConnectionBase,
-    HostAdvertisement, HostId, LineOffer, LinkLimits, OfferGeneration, Plan, INPUT_RESOURCE_CLASS,
+    process_owned_line_offer_with_limits, resource_offer, BaseImplementationId, BootId,
+    HostAdvertisement, HostId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration,
+    Plan, INPUT_RESOURCE_CLASS,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -154,7 +155,7 @@ fn exact_text_lab_split_plan_with_loss(
     let mut forward_line = process_owned_line_offer_with_limits(
         TEXT_LAB_FORWARD_LINE,
         "text-lab/native-to-browser-binding",
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         base_instance,
         &native,
         &browser,
@@ -163,12 +164,16 @@ fn exact_text_lab_split_plan_with_loss(
     let mut return_line = process_owned_line_offer_with_limits(
         TEXT_LAB_RETURN_LINE,
         "text-lab/browser-to-native-binding",
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         base_instance,
         &browser,
         &native,
         limits,
     );
+    for line in [&mut forward_line, &mut return_line] {
+        line.contract.scope = LineScope::LocalNetwork;
+        line.contract.security = LineSecurity::PlaintextNetwork;
+    }
     match unavailable_line {
         Some(TEXT_LAB_FORWARD_LINE) => {
             forward_line.availability.availability = conduit_core::LineAvailability::Unavailable;
@@ -236,7 +241,10 @@ fn exact_text_lab_split_plan_with_loss(
         &expanded,
         &[native.clone(), browser.clone()],
         &PlacementChoices { by_gear },
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &line_candidates,

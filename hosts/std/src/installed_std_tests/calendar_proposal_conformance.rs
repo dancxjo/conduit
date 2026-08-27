@@ -1,5 +1,5 @@
 use super::{host, installed_std, RecordingTimer};
-use conduit_core::{ConfigurationValue, ConnectionBase, PortDirection, PortTemporal};
+use conduit_core::{BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
     ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
@@ -51,7 +51,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -151,7 +151,7 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
             &expanded,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             conduit_planner::PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),

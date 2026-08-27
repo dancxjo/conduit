@@ -1,4 +1,4 @@
-use conduit_core::{verify_plan, BootId, ConnectionBase, HostId, SignId};
+use conduit_core::{verify_plan, BaseImplementationId, BootId, HostId, SignId};
 use conduit_presentation::{
     render_linear_presentation, ManifestationError, ManifestationFailure, ManifestationLifecycle,
     Presentation, PresentationTemporalFact, PresentationTemporalRole, TemporalInstant,
@@ -413,7 +413,7 @@ fn unchanged_renderer_form_plans_one_exact_cross_host_websocket_line() {
     let connection = source.connections.first().unwrap();
     assert_eq!(
         connection.selected_line.as_ref().unwrap().binding.base,
-        ConnectionBase::WebSocket
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
     );
     assert_eq!(connection.item_capacity, 1);
     assert_eq!(
@@ -429,7 +429,10 @@ fn unchanged_renderer_form_plans_one_exact_cross_host_websocket_line() {
     .unwrap();
     assert_eq!(binding.source.host_id, source.host_id);
     assert_eq!(binding.sink.host_id, sink.host_id);
-    assert_eq!(binding.attachment.base, ConnectionBase::WebSocket);
+    assert_eq!(
+        binding.attachment.base,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
+    );
     assert_eq!(binding.attachment.line_id, exact.line.line_id);
 }
 

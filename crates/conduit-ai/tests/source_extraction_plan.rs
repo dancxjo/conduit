@@ -8,8 +8,8 @@ use conduit_ai::{
     SOURCE_READER_RESOURCE_ROLE, SOURCE_READ_AUTHORITY,
 };
 use conduit_core::{
-    authority_grant, bind_active_play, bind_sign, resource_offer, verify_plan, BootId,
-    ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    authority_grant, bind_active_play, bind_sign, resource_offer, verify_plan,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     ProtectedResourceAccess, ProtectedResourceCommitPolicy, ProtectedResourceGrant,
     ResourceBindingRoleId, ResourceClassId, ResourceHandleId, PROTOCOL_VERSION,
 };
@@ -78,7 +78,7 @@ fn plan(
         expanded,
         core::slice::from_ref(host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

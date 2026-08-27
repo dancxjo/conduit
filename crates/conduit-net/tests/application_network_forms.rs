@@ -1,7 +1,7 @@
 #![cfg(feature = "form-catalog")]
 
 use conduit_core::{
-    authority_grant, resource_offer, BootId, ConnectionBase, HostAdvertisement, HostId,
+    authority_grant, resource_offer, BaseImplementationId, BootId, HostAdvertisement, HostId,
     HostProfileId, OfferGeneration, StructuredInfoTypeShape, DEFAULT_CONNECTION_BYTE_CAPACITY,
     DEFAULT_CONNECTION_ITEM_CAPACITY, PROTOCOL_VERSION,
 };
@@ -54,7 +54,7 @@ fn ordinary_form_plans_dns_and_connection_with_explicit_resources_and_authority(
         &authored.expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
@@ -90,7 +90,7 @@ fn stale_dns_and_connection_outcomes_are_nominal_and_not_line_or_socket_identity
     for value_type in [dns_result_type(), network_connection_state_type()] {
         let bytes = value_type.canonical_bytes().unwrap();
         let rendered = String::from_utf8_lossy(&bytes);
-        for forbidden in ["ConnectionBase", "HostId", "LineId", "socket-handle"] {
+        for forbidden in ["BaseImplementationId", "HostId", "LineId", "socket-handle"] {
             assert!(!rendered.contains(forbidden));
         }
         assert!(matches!(

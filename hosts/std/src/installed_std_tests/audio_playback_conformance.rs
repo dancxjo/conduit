@@ -4,7 +4,7 @@ use crate::hosted_audio::{
 };
 use crate::{RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHostConfig};
 use conduit_core::{
-    BootId, ConnectionBase, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
+    BaseImplementationId, BootId, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
 };
 use std::collections::BTreeMap;
 
@@ -64,7 +64,7 @@ fn fragment(host: &StdHost, with_authority: bool) -> Result<conduit_core::PlanFr
         &form,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &advertisements,
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[realization],
             observations: &[observation],
@@ -229,7 +229,7 @@ fn stale_selection_and_wrong_grant_fail_before_play() {
         &form,
         &advertisements,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         &[grant],
     )
     .unwrap_err();

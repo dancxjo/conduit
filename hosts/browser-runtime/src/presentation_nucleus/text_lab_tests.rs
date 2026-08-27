@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    process_owned_line_offer_with_limits, BootId, ConnectionBase, HostId, LineAvailability,
+    process_owned_line_offer_with_limits, BaseImplementationId, BootId, HostId, LineAvailability,
     LinkLimits, OfferGeneration,
 };
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
@@ -65,7 +65,7 @@ fn lines(
         process_owned_line_offer_with_limits(
             "text-lab/native-to-browser",
             "text-lab/native-to-browser-binding",
-            ConnectionBase::WebSocket,
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
             "text-lab/native-to-browser-instance",
             local,
             browser,
@@ -74,7 +74,7 @@ fn lines(
         process_owned_line_offer_with_limits(
             "text-lab/browser-to-native",
             "text-lab/browser-to-native-binding",
-            ConnectionBase::WebSocket,
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
             "text-lab/browser-to-native-instance",
             browser,
             local,
@@ -133,7 +133,10 @@ fn split_plan(
         form,
         &[local.clone(), browser.clone()],
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         4,
         24,
         lines,

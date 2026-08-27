@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     authority_grant, kind_id, resource_offer, resource_requirement, ArtifactId,
-    AuthorityContractId, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionBase, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
+    AuthorityContractId, AuthorityRequirement, BaseImplementationId, BootId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
     HostId, HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
     ImplementationOffer, KindContractRevision, OfferGeneration, ResourceHealth,
     ResourceObservation, SignId, BOOL_ENCODED_LEN, BOOL_INFO_ID, PROTOCOL_VERSION,
@@ -222,7 +222,7 @@ pub fn create_dock_plan(
         &form,
         SelectedRealizationPlanning {
             hosts: &hosts,
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[],
             observations: &observations,

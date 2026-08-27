@@ -1,6 +1,6 @@
 use conduit_core::{
-    bind_active_play, ArtifactId, AuthorityGrantId, BootId, CapabilityId, ConnectionBase,
-    ConnectionBaseInstanceId, ConnectionId, FragmentId, HostAdvertisement, HostId, HostProfileId,
+    bind_active_play, ArtifactId, AuthorityGrantId, BaseImplementationId, BaseInstanceId, BootId,
+    CapabilityId, ConnectionId, FragmentId, HostAdvertisement, HostId, HostProfileId,
     ImplementationId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, OfferGeneration,
     PlanId, PROTOCOL_VERSION,
 };
@@ -74,8 +74,17 @@ fn session(controller: &HostInstance, target: &HostInstance) -> SessionBinding {
         attachment: LineAttachment {
             line_id: LineId::from("line/controller-to-target"),
             link_binding_id: LinkBindingId::from("link/controller-to-target"),
-            base: ConnectionBase::FixtureFrame,
-            base_instance_id: ConnectionBaseInstanceId::from("base/reboot-fixture"),
+            base: BaseImplementationId::from("conduit.proof/frame@1"),
+            contract: conduit_core::LineContract {
+                scope: conduit_core::LineScope::LocalNetwork,
+                traffic_shape: conduit_core::LineTrafficShape::Message,
+                duplex: conduit_core::LineDuplex::FullDuplex,
+                ordering: conduit_core::LineOrdering::Ordered,
+                reliability: conduit_core::LineReliability::Reliable,
+                continuation: conduit_core::LineContinuation::None,
+                security: conduit_core::LineSecurity::PlaintextNetwork,
+            },
+            base_instance_id: BaseInstanceId::from("base/reboot-fixture"),
             source_host_id: controller.host_id.clone(),
             source_boot_id: controller.boot_id.clone(),
             source_endpoint_id: LinkEndpointId::from("endpoint/controller"),

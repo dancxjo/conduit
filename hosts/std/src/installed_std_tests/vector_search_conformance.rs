@@ -15,7 +15,7 @@ use conduit_ai::{
     VectorSearchValue, VECTOR_INDEX_RESOURCE_CLASS,
 };
 use conduit_core::{
-    BootId, ConnectionBase, HostId, OfferGeneration, ResourceClassId, ResourcePoolId,
+    BaseImplementationId, BootId, HostId, OfferGeneration, ResourceClassId, ResourcePoolId,
     TerminalDisposition,
 };
 use conduit_form::{
@@ -205,7 +205,7 @@ fn plan(host: &StdHost) -> conduit_core::Plan {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

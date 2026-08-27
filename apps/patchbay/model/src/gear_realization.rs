@@ -198,7 +198,9 @@ pub fn replan_with_implementation(
         form,
         hosts,
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
     )
     .map_err(GearRealizationError::Planning)?;
     if replacement.plan_id == current_plan.plan_id {

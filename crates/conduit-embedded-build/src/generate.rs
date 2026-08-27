@@ -1,6 +1,5 @@
 use conduit_core::{
-    verify_plan_fragment, ConfigurationValue, ConnectionBase, ExpectedSign, ExpectedTerminal,
-    PlanFragment,
+    verify_plan_fragment, ConfigurationValue, ExpectedSign, ExpectedTerminal, PlanFragment,
 };
 use conduit_kernel::{CordEndpoint, SignExpectationTarget};
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
@@ -137,8 +136,10 @@ fn generate_remote_endpoints(
     let mut result = Vec::with_capacity(lowered.remote_endpoints.len());
     for endpoint in &lowered.remote_endpoints {
         if !matches!(
-            endpoint.line.binding.base,
-            ConnectionBase::UsbCdc | ConnectionBase::WebSocket | ConnectionBase::BluetoothLeGatt
+            endpoint.line.binding.base.as_str(),
+            "conduit.base/usb-cdc-acm@1"
+                | "conduit.base/websocket-rfc6455@1"
+                | "conduit.base/bluetooth-le-gatt@1"
         ) {
             return Err(GenerationError::Unsupported(
                 UnsupportedPlanFeature::RemoteConnection,
@@ -158,7 +159,8 @@ fn generate_remote_endpoints(
             peer_boot: endpoint.peer.boot_id.as_str().to_owned(),
             peer_endpoint: endpoint.peer.endpoint_id.as_str().to_owned(),
             line_id: endpoint.line.line_id.as_str().to_owned(),
-            base: endpoint.line.binding.base,
+            base: endpoint.line.binding.base.clone(),
+            contract: endpoint.line.contract,
             base_instance_id: endpoint.line.binding.base_instance_id.as_str().to_owned(),
             link_binding_id: endpoint.line.binding.binding_id.as_str().to_owned(),
             value_kind: endpoint.value_kind.as_str().to_owned(),

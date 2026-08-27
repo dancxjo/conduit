@@ -1,7 +1,9 @@
 //! Shared exact planning for the std-to-browser Signal execution pair.
 
 use alloc::collections::BTreeMap;
-use conduit_core::{BootId, CapabilityId, ConnectionBase, GearId, HostAdvertisement, HostId, Plan};
+use conduit_core::{
+    BaseImplementationId, BootId, CapabilityId, GearId, HostAdvertisement, HostId, Plan,
+};
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
@@ -79,7 +81,9 @@ pub fn exact_distributed_signal_plan_for_endpoints(
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
-        &[ConnectionBase::WebSocket],
+        &[BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

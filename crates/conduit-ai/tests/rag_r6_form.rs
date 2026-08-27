@@ -8,8 +8,8 @@ use conduit_ai::{
     install_rag_answer_catalog, ordinary_rag_answer_offer,
 };
 use conduit_core::{
-    verify_plan, BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    PROTOCOL_VERSION,
+    verify_plan, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
+    OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -70,7 +70,7 @@ fn plan(
         &expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

@@ -4,7 +4,7 @@ use super::{
     operation::NucleusOperation,
     FIXTURE_TEXT_KIND, PORTS,
 };
-use conduit_core::ConnectionBase;
+use conduit_core::BaseImplementationId;
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
     FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
@@ -48,7 +48,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

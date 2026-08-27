@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-use conduit_core::{CancellationPolicy, ConnectionBase, TerminalPolicy};
+use conduit_core::{BaseImplementationId, CancellationPolicy, LineContract, TerminalPolicy};
 use conduit_plan_lowering::lowering::{RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
 /// Reviewed finite ceilings for one generated fixed image.
@@ -238,7 +238,8 @@ pub struct GeneratedStaticRemoteEndpoint {
     pub peer_boot: String,
     pub peer_endpoint: String,
     pub line_id: String,
-    pub base: ConnectionBase,
+    pub base: BaseImplementationId,
+    pub contract: LineContract,
     pub base_instance_id: String,
     pub link_binding_id: String,
     pub value_kind: String,

@@ -9,6 +9,18 @@ use conduit_core::{
 const MAXIMUM_PAYLOAD_BYTES: u32 = 16;
 const MAXIMUM_FRAME_BYTES: u32 = 512;
 
+fn remote_session_contract() -> LineContract {
+    LineContract {
+        scope: LineScope::LocalNetwork,
+        traffic_shape: LineTrafficShape::Message,
+        duplex: LineDuplex::FullDuplex,
+        ordering: LineOrdering::Ordered,
+        reliability: LineReliability::Reliable,
+        continuation: LineContinuation::None,
+        security: LineSecurity::PlaintextNetwork,
+    }
+}
+
 fn binding() -> SessionBinding {
     let plan_id = PlanId::from("test/plan");
     let source = LinkEndpoint {
@@ -50,8 +62,9 @@ fn binding() -> SessionBinding {
         attachment: LineAttachment {
             line_id: LineId::from("test/line"),
             link_binding_id: LinkBindingId::from("test/link"),
-            base: ConnectionBase::WebSocket,
-            base_instance_id: ConnectionBaseInstanceId::from("test/base-instance"),
+            base: BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            contract: remote_session_contract(),
+            base_instance_id: BaseInstanceId::from("test/base-instance"),
             source_host_id: source.host_id,
             source_boot_id: source.boot_id,
             source_endpoint_id: LinkEndpointId::from("test/source-endpoint"),
@@ -68,7 +81,7 @@ fn binding() -> SessionBinding {
     }
 }
 
-fn planned_connection(expected: &SessionBinding, base: ConnectionBase) -> PlannedConnection {
+fn planned_connection(expected: &SessionBinding, base: BaseImplementationId) -> PlannedConnection {
     let line = AdmittedLine {
         line_id: expected.attachment.line_id.clone(),
         binding: BoundLink {
@@ -89,15 +102,7 @@ fn planned_connection(expected: &SessionBinding, base: ConnectionBase) -> Planne
             authority: LinkAuthorityReference::ProcessOwned,
             limits: expected.attachment.limits,
         },
-        contract: LineContract {
-            scope: LineScope::Machine,
-            traffic_shape: LineTrafficShape::Message,
-            duplex: LineDuplex::FullDuplex,
-            ordering: LineOrdering::Ordered,
-            reliability: LineReliability::Reliable,
-            continuation: LineContinuation::None,
-            security: LineSecurity::PlaintextNetwork,
-        },
+        contract: remote_session_contract(),
     };
     PlannedConnection {
         connection_id: expected.connection_id.clone(),
@@ -130,7 +135,10 @@ fn trigger(machine: &mut SessionMachine) {
 #[test]
 fn exact_planned_connection_constructs_the_session_binding() {
     let expected = binding();
-    let connection = planned_connection(&expected, ConnectionBase::WebSocket);
+    let connection = planned_connection(
+        &expected,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+    );
     let actual = SessionBinding::from_planned_connection(
         expected.plan_id.clone(),
         expected.source_fragment_id.clone(),
@@ -412,7 +420,7 @@ fn every_route_attachment_wire_fact_is_checked_separately() {
         };
         match field {
             0 => hello.link_binding_id = "wrong/link",
-            1 => hello.base = ConnectionBase::UsbCdc,
+            1 => hello.base = "conduit.base/usb-cdc-acm@1",
             2 => hello.base_instance_id = "wrong/base-instance",
             3 => hello.source_endpoint_id = "wrong/source-endpoint",
             4 => hello.sink_endpoint_id = "wrong/sink-endpoint",
@@ -485,10 +493,11 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
     // protocol. This proves session line neutrality without claiming that FixtureFrame
     // is an installed, runnable, or production-ready physical transport.
     let mut expected = binding();
-    expected.attachment.base = ConnectionBase::FixtureFrame;
-    assert!(expected.attachment.base.supports_remote_session());
-
-    let connection = planned_connection(&expected, ConnectionBase::FixtureFrame);
+    expected.attachment.base = BaseImplementationId::from("conduit.proof/frame@1");
+    let connection = planned_connection(
+        &expected,
+        BaseImplementationId::from("conduit.proof/frame@1"),
+    );
 
     let actual = SessionBinding::from_planned_connection(
         expected.plan_id.clone(),
@@ -522,15 +531,20 @@ fn fixture_frame_exercises_remote_session_contract_without_transport_claim() {
 }
 
 #[test]
-fn local_and_in_memory_bases_remain_rejected() {
+fn base_identity_cannot_override_an_ineligible_line_contract() {
     let binding = binding();
-    for connection_base in [ConnectionBase::Local, ConnectionBase::InMemory] {
-        assert!(!connection_base.supports_remote_session());
+    for connection_base in [
+        BaseImplementationId::from("conduit.base/local@1"),
+        BaseImplementationId::from("third.party.base/quic@1"),
+    ] {
         let mut invalid = binding.clone();
-        invalid.attachment.base = connection_base;
+        invalid.attachment.base = connection_base.clone();
+        invalid.attachment.contract.scope = LineScope::Process;
         assert_eq!(invalid.validate(), Err(WireError::InvalidBase));
 
-        let connection = planned_connection(&binding, connection_base);
+        let mut connection = planned_connection(&binding, connection_base);
+        connection.selected_line.as_mut().unwrap().contract.scope = LineScope::Process;
+        connection.admitted_lines[0].contract.scope = LineScope::Process;
         assert_eq!(
             SessionBinding::from_planned_connection(
                 binding.plan_id.clone(),
@@ -544,17 +558,22 @@ fn local_and_in_memory_bases_remain_rejected() {
 }
 
 #[test]
-fn fixture_datagram_base_remains_rejected() {
-    // Explicit negative proving datagram fixtures are not promoted into frame wire sessions
-    // and that eligibility is an explicit allowlist rather than merely base != Local.
-    let base = ConnectionBase::FixtureDatagram;
-    assert!(!base.supports_remote_session());
+fn datagram_contract_remains_rejected_independently_of_base_identity() {
+    let base = BaseImplementationId::from("conduit.proof/datagram@1");
 
     let mut invalid = binding();
-    invalid.attachment.base = base;
+    invalid.attachment.base = base.clone();
+    invalid.attachment.contract.traffic_shape = LineTrafficShape::Datagram;
     assert_eq!(invalid.validate(), Err(WireError::InvalidBase));
 
-    let connection = planned_connection(&invalid, base);
+    let mut connection = planned_connection(&invalid, base);
+    connection
+        .selected_line
+        .as_mut()
+        .unwrap()
+        .contract
+        .traffic_shape = LineTrafficShape::Datagram;
+    connection.admitted_lines[0].contract.traffic_shape = LineTrafficShape::Datagram;
     assert_eq!(
         SessionBinding::from_planned_connection(
             invalid.plan_id,
@@ -569,7 +588,10 @@ fn fixture_datagram_base_remains_rejected() {
 #[test]
 fn unsealed_selected_line_remains_rejected() {
     let expected = binding();
-    let mut connection = planned_connection(&expected, ConnectionBase::WebSocket);
+    let mut connection = planned_connection(
+        &expected,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+    );
     connection.selected_line.as_mut().unwrap().line_id = LineId::from("test/unsealed-line");
     assert_eq!(
         SessionBinding::from_planned_connection(
@@ -590,7 +612,7 @@ fn mutated_base_in_peer_hello_remains_rejected() {
         SessionMessage::Hello(hello) => hello,
         _ => unreachable!(),
     };
-    hello.base = ConnectionBase::FixtureFrame; // Peer Hello specifies different base
+    hello.base = "conduit.proof/frame@1"; // Peer Hello specifies different base
     assert_eq!(
         machine.admit_inbound(binding.frame(SessionMessage::Hello(hello))),
         Err(WireError::InvalidSession)
@@ -612,16 +634,9 @@ fn mutated_base_instance_in_route_attachment_remains_rejected() {
 }
 
 #[test]
-fn usb_cdc_base_round_trip_and_session_eligibility() {
+fn arbitrary_open_world_base_identity_round_trips_through_session_wire() {
     let mut b = binding();
-    b.attachment.base = ConnectionBase::UsbCdc;
-
-    assert!(ConnectionBase::UsbCdc.supports_remote_session());
-    assert_eq!(ConnectionBase::UsbCdc.canonical_code(), 5);
-    assert_eq!(
-        ConnectionBase::from_canonical_code(5),
-        Some(ConnectionBase::UsbCdc)
-    );
+    b.attachment.base = BaseImplementationId::from("third.party.base/quic@1");
 
     let hello_frame = b.hello_frame();
     let mut buf = [0u8; 1024];
@@ -643,7 +658,8 @@ fn usb_cdc_base_round_trip_and_session_eligibility() {
         SessionMessage::Hello(hello) => hello,
         _ => panic!("expected Hello message"),
     };
-    assert_eq!(hello_msg.base, ConnectionBase::UsbCdc);
+    assert_eq!(hello_msg.base, "third.party.base/quic@1");
+    assert_eq!(hello_msg.contract, remote_session_contract());
 
     let mut machine = SessionMachine::new(b.clone(), SessionRole::Source).unwrap();
     machine.admit_outbound(hello_frame).unwrap();
@@ -660,13 +676,7 @@ fn usb_cdc_base_round_trip_and_session_eligibility() {
 #[test]
 fn webrtc_datachannel_base_round_trips_through_session_wire() {
     let mut binding = binding();
-    binding.attachment.base = ConnectionBase::WebRtcDataChannel;
-    assert!(binding.attachment.base.supports_remote_session());
-    assert_eq!(binding.attachment.base.canonical_code(), 7);
-    assert_eq!(
-        ConnectionBase::from_canonical_code(7),
-        Some(ConnectionBase::WebRtcDataChannel)
-    );
+    binding.attachment.base = BaseImplementationId::from("conduit.base/webrtc-data-channel@1");
 
     let mut bytes = [0; 1024];
     let length = encode_session_frame_into(
@@ -682,5 +692,6 @@ fn webrtc_datachannel_base_round_trips_through_session_wire() {
     let SessionMessage::Hello(hello) = decoded.message else {
         panic!("expected Hello");
     };
-    assert_eq!(hello.base, ConnectionBase::WebRtcDataChannel);
+    assert_eq!(hello.base, "conduit.base/webrtc-data-channel@1");
+    assert_eq!(hello.contract, remote_session_contract());
 }

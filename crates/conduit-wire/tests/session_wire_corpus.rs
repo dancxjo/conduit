@@ -2,8 +2,8 @@
 //! PR #405 instead of maintaining a second, hand-written mutation vocabulary.
 
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionEnvelope,
-    FragmentId, HostId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PROTOCOL_VERSION,
+    bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionEnvelope, FragmentId,
+    HostId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PROTOCOL_VERSION,
 };
 use conduit_wire::{
     decode_envelope, decode_session_frame, encode_session_frame_into, LineAttachment,
@@ -123,8 +123,9 @@ fn binding(envelope: &ConnectionEnvelope) -> SessionBinding {
         attachment: LineAttachment {
             line_id: "line/session-corpus".into(),
             link_binding_id: LinkBindingId::from("corpus/link"),
-            base: ConnectionBase::WebSocket,
-            base_instance_id: ConnectionBaseInstanceId::from("corpus/base"),
+            base: BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            contract: remote_session_contract(),
+            base_instance_id: BaseInstanceId::from("corpus/base"),
             source_host_id: source.host_id,
             source_boot_id: source.boot_id,
             source_endpoint_id: LinkEndpointId::from("corpus/source-endpoint"),
@@ -138,6 +139,18 @@ fn binding(envelope: &ConnectionEnvelope) -> SessionBinding {
                 maximum_frame_bytes: SESSION_MAXIMUM_FRAME_BYTES,
             },
         },
+    }
+}
+
+fn remote_session_contract() -> conduit_core::LineContract {
+    conduit_core::LineContract {
+        scope: conduit_core::LineScope::LocalNetwork,
+        traffic_shape: conduit_core::LineTrafficShape::Message,
+        duplex: conduit_core::LineDuplex::FullDuplex,
+        ordering: conduit_core::LineOrdering::Ordered,
+        reliability: conduit_core::LineReliability::Reliable,
+        continuation: conduit_core::LineContinuation::None,
+        security: conduit_core::LineSecurity::PlaintextNetwork,
     }
 }
 
@@ -302,7 +315,10 @@ fn malformed_corpus_drives_live_session_codec_denial() {
     let golden = envelope(corpus!("golden.bin"), "golden.bin");
     let baseline = binding(&golden);
     let encoded = encode_offered(&baseline, 0, &golden.payload);
-    assert_eq!(encoded[4], 3, "Line-aware session identity is wire v3");
+    assert_eq!(
+        encoded[4], 4,
+        "open Base identity and exact Line contract are wire v4"
+    );
 
     let mut legacy_v2 = encoded.clone();
     legacy_v2[4] = 2;

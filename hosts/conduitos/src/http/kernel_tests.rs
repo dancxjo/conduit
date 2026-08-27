@@ -2,8 +2,8 @@ use super::*;
 extern crate std;
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
-    ArtifactId, AuthorityGrant, AuthorityGrantId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionBase, ExecutionProfileId, HostAdvertisement, HostId,
+    ArtifactId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
     ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION, PortDescriptor,
     PortDirection, PortTemporal, kind_id, port_id, resource_offer,
@@ -382,7 +382,7 @@ fn run_ordinary_form() {
             &checked,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             options_without_authority,
         )
         .is_err()
@@ -392,7 +392,7 @@ fn run_ordinary_form() {
         &checked,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &alloc::collections::BTreeMap::new(),
             line_candidates: &alloc::collections::BTreeMap::new(),

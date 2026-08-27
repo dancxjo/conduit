@@ -1,4 +1,4 @@
-use conduit_core::{BootId, ConnectionBase};
+use conduit_core::{BaseImplementationId, BootId};
 use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_signal_conformance::exact_std_pico_usb_plan;
 use conduit_std_host::pico_usb_source::PicoUsbSource;
@@ -68,7 +68,10 @@ fn source_is_the_exact_planned_kernel_egress() {
         .expect("sink fragment");
     assert_eq!(source.fragment().plan_id, sink.plan_id);
     assert_eq!(source.binding().sink_fragment_id, sink.fragment_id);
-    assert_eq!(source.binding().attachment.base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        source.binding().attachment.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
     assert_eq!(source.binding().limits.maximum_in_flight_items, 1);
     assert_eq!(
         source.binding().limits.maximum_payload_bytes,

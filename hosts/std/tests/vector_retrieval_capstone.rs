@@ -7,7 +7,7 @@ use conduit_ai::{
     VECTOR_INDEX_RESOURCE_CLASS,
 };
 use conduit_core::{
-    prepare_plan_on_hosts, ActivePlayId, BootId, ConnectionBase, HostAdvertisement, HostId,
+    prepare_plan_on_hosts, ActivePlayId, BaseImplementationId, BootId, HostAdvertisement, HostId,
     HostPreparationRefusal, HostProfileId, OfferGeneration, PlanFragment, PlanPreparationError,
     PlanPreparationHost, PreparationHostIdentity, PreparedFragmentReceipt, ResourceBinding,
     ResourceClassId, ResourcePoolId, PROTOCOL_VERSION,
@@ -232,7 +232,7 @@ fn plan(
         expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap()
 }

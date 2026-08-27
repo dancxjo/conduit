@@ -9,7 +9,8 @@ use conduit_body::{
     AdmissionManager, AdmissionSigns, Body, BodyMembership, CandidateInventory, DiscoveryProofId,
 };
 use conduit_core::{
-    CheckedFormId, ConnectionBase, HostAdvertisement, LinkBindingId, Plan, SignId, SourceDocumentId,
+    BaseImplementationId, CheckedFormId, HostAdvertisement, LinkBindingId, Plan, SignId,
+    SourceDocumentId,
 };
 use conduit_std_host::pico_admission::PicoAdmissionSocket;
 use serde::Serialize;
@@ -196,7 +197,7 @@ fn plan_from_advertisement(advertisement: &HostAdvertisement) -> PicoResult<Plan
         &checked,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         1,
         conduit_signal::SIGNAL_ENCODED_LEN,
     )?)

@@ -1,5 +1,5 @@
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
     HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
 };
 use conduit_wire::{
@@ -8,16 +8,16 @@ use conduit_wire::{
     SessionRole, WireError,
 };
 
-fn binding(base: ConnectionBase) -> SessionBinding {
+fn binding(base: BaseImplementationId) -> SessionBinding {
     let plan = PlanId::from("r1/plan-c");
     let source_host = HostId::from("r1/std-host");
     let source_boot = BootId::from("r1/std-boot");
     let sink_host = HostId::from("r1/pico-host");
     let sink_boot = BootId::from("r1/pico-boot");
-    let suffix = match base {
-        ConnectionBase::WebSocket => "websocket",
-        ConnectionBase::UsbCdc => "usb-cdc",
-        _ => unreachable!(),
+    let suffix = match base.as_str() {
+        "conduit.base/websocket-rfc6455@1" => "websocket",
+        "conduit.base/usb-cdc-acm@1" => "usb-cdc",
+        identity => panic!("unsupported test base identity: {identity}"),
     };
     SessionBinding {
         protocol_version: PROTOCOL_VERSION,
@@ -46,7 +46,8 @@ fn binding(base: ConnectionBase) -> SessionBinding {
             line_id: "line/session".into(),
             link_binding_id: LinkBindingId::from(format!("r1/{suffix}-line")),
             base,
-            base_instance_id: ConnectionBaseInstanceId::from(format!("r1/{suffix}-base")),
+            contract: remote_session_contract(),
+            base_instance_id: BaseInstanceId::from(format!("r1/{suffix}-base")),
             source_host_id: source_host,
             source_boot_id: source_boot,
             source_endpoint_id: LinkEndpointId::from(format!("r1/{suffix}-source")),
@@ -60,6 +61,18 @@ fn binding(base: ConnectionBase) -> SessionBinding {
                 maximum_frame_bytes: 1024,
             },
         },
+    }
+}
+
+fn remote_session_contract() -> conduit_core::LineContract {
+    conduit_core::LineContract {
+        scope: conduit_core::LineScope::LocalNetwork,
+        traffic_shape: conduit_core::LineTrafficShape::Message,
+        duplex: conduit_core::LineDuplex::FullDuplex,
+        ordering: conduit_core::LineOrdering::Ordered,
+        reliability: conduit_core::LineReliability::Reliable,
+        continuation: conduit_core::LineContinuation::None,
+        security: conduit_core::LineSecurity::PlaintextNetwork,
     }
 }
 
@@ -77,8 +90,10 @@ fn activate(machine: &mut SessionMachine) {
 
 #[test]
 fn peers_exchange_exact_bounded_checkpoints_before_same_plan_attachment_resume() {
-    let websocket = binding(ConnectionBase::WebSocket);
-    let usb = binding(ConnectionBase::UsbCdc);
+    let websocket = binding(BaseImplementationId::from(
+        "conduit.base/websocket-rfc6455@1",
+    ));
+    let usb = binding(BaseImplementationId::from("conduit.base/usb-cdc-acm@1"));
     let mut source = SessionMachine::new(websocket.clone(), SessionRole::Source).unwrap();
     let mut sink = SessionMachine::new(websocket.clone(), SessionRole::Sink).unwrap();
     activate(&mut source);
@@ -111,14 +126,22 @@ fn peers_exchange_exact_bounded_checkpoints_before_same_plan_attachment_resume()
     assert!(sink_acceptance.same_plan_continues);
     assert_eq!(source.binding().plan_id.as_str(), "r1/plan-c");
     assert_eq!(sink.binding().plan_id.as_str(), "r1/plan-c");
-    assert_eq!(source.binding().attachment.base, ConnectionBase::UsbCdc);
-    assert_eq!(sink.binding().attachment.base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        source.binding().attachment.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
+    assert_eq!(
+        sink.binding().attachment.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
 }
 
 #[test]
 fn checkpoint_for_another_logical_session_is_rejected_after_wire_decode() {
-    let websocket = binding(ConnectionBase::WebSocket);
-    let usb = binding(ConnectionBase::UsbCdc);
+    let websocket = binding(BaseImplementationId::from(
+        "conduit.base/websocket-rfc6455@1",
+    ));
+    let usb = binding(BaseImplementationId::from("conduit.base/usb-cdc-acm@1"));
     let mut source = SessionMachine::new(websocket, SessionRole::Source).unwrap();
     activate(&mut source);
     let mut wrong_binding = usb.clone();

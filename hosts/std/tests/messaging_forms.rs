@@ -8,7 +8,7 @@ use conduit_chat::{
     MAXIMUM_MESSAGE_RECIPIENTS, MESSAGE_ATTACHMENT_ACCESS_CLASS, MESSAGE_ATTACHMENT_PROFILE,
 };
 use conduit_core::{
-    authority_grant, BootId, BoundedResourceRef, ConnectionBase, HostAdvertisement, HostId,
+    authority_grant, BaseImplementationId, BootId, BoundedResourceRef, HostAdvertisement, HostId,
     HostProfileId, OfferGeneration, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredInfoValueShape, DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
     PROTOCOL_VERSION,
@@ -58,7 +58,7 @@ fn canonical_form_constructs_and_routes_one_structured_message() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,

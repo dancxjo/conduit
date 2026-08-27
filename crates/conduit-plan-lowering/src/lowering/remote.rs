@@ -1,6 +1,6 @@
 //! Exact lowering of the finite Line candidates sealed into a remote Cord.
 
-use conduit_core::{AdmittedLine, ConnectionBase, PlanFragment, PlannedConnection};
+use conduit_core::{AdmittedLine, BaseImplementationId, PlanFragment, PlannedConnection};
 use conduit_kernel::{CordId, RemoteEndpointId};
 
 use super::{LoweredRemoteEndpoint, LoweringError, RemoteCordDirection};
@@ -16,7 +16,7 @@ pub(super) fn lower_remote_endpoints(
         .selected_line
         .as_ref()
         .ok_or_else(|| invalid(connection))?;
-    if selected.binding.base == ConnectionBase::Local {
+    if selected.binding.base == BaseImplementationId::from("conduit.base/local@1") {
         return Err(invalid(connection));
     }
 
@@ -70,7 +70,7 @@ fn validate_local_endpoint(
         RemoteCordDirection::Egress => &candidate.binding.source,
         RemoteCordDirection::Ingress => &candidate.binding.sink,
     };
-    if candidate.binding.base == ConnectionBase::Local
+    if candidate.binding.base == BaseImplementationId::from("conduit.base/local@1")
         || local.host_id != fragment.host_id
         || local.boot_id != fragment.boot_id
     {

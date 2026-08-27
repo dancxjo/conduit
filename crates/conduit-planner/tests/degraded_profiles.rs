@@ -1,5 +1,5 @@
 use conduit_ai::{DATA_EGRESS_CHARACTERISTIC, MAXIMUM_CONTEXT_CHARACTERISTIC};
-use conduit_core::{CharacteristicId, CharacteristicUnit, ConnectionBase};
+use conduit_core::{BaseImplementationId, CharacteristicId, CharacteristicUnit};
 use conduit_planner::{
     seal_reviewed_service_profile_plan, select_reviewed_service_profile, DegradationDirection,
     DegradedDimension, DegradedProfileRefusal, HardRealizationRequirements, PlannerFactRef,
@@ -63,7 +63,7 @@ fn full_loss_admits_exact_weaker_profile_and_seals_a_fresh_plan() {
     let plan_a = seal_reviewed_service_profile_plan(
         &form,
         &hosts,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         &advertisements,
         &full,
     )
@@ -108,7 +108,7 @@ fn full_loss_admits_exact_weaker_profile_and_seals_a_fresh_plan() {
     let plan_b = seal_reviewed_service_profile_plan(
         &form,
         &surviving_hosts,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         &surviving_advertisements,
         &degraded,
     )

@@ -8,7 +8,7 @@ use crate::{
 };
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
-    AuthorityGrantId, CapabilityId, ConnectionBase, ExecutionProfileId, HostAdvertisement,
+    AuthorityGrantId, BaseImplementationId, CapabilityId, ExecutionProfileId, HostAdvertisement,
     HostOperationContractId, ImplementationId, ResourceHealth, ResourceObservation, SignId,
     SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
@@ -228,7 +228,7 @@ pub fn capstone_plan(
         &checked,
         SelectedRealizationPlanning {
             hosts: &[host],
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[],
             observations: &observations,

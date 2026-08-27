@@ -1,6 +1,21 @@
 use conduit_body::{HostPresenceState, HostPresenceTable, MembershipCredential};
-use conduit_core::{BootId, ConnectionBase, HostId, LinkBindingId};
+#[cfg(test)]
+use conduit_core::BaseImplementationId;
+use conduit_core::{BootId, HostId, LinkBindingId};
 use conduit_wire::{decode_session_frame, SessionMessage};
+
+#[cfg(test)]
+fn webrtc_session_contract() -> conduit_core::LineContract {
+    conduit_core::LineContract {
+        scope: conduit_core::LineScope::PointToPoint,
+        traffic_shape: conduit_core::LineTrafficShape::Message,
+        duplex: conduit_core::LineDuplex::FullDuplex,
+        ordering: conduit_core::LineOrdering::Ordered,
+        reliability: conduit_core::LineReliability::Reliable,
+        continuation: conduit_core::LineContinuation::None,
+        security: conduit_core::LineSecurity::AuthenticatedEncrypted,
+    }
+}
 #[path = "webrtc_signaling/grants.rs"]
 mod grants;
 #[path = "webrtc_signaling/types.rs"]
@@ -86,7 +101,7 @@ impl BrowserWebRtcRendezvous {
         let SessionMessage::Hello(hello) = frame.message else {
             return Err(BrowserWebRtcRendezvousRefusal::SessionMismatch);
         };
-        if hello.base != ConnectionBase::WebRtcDataChannel
+        if hello.base != "conduit.base/webrtc-data-channel@1"
             || hello.link_binding_id != signal.negotiation_id.as_str()
         {
             return Err(BrowserWebRtcRendezvousRefusal::SessionMismatch);
@@ -243,8 +258,8 @@ mod tests {
     use conduit_body::HostPresenceLease;
     use conduit_body::{HostPresenceClock, HostPresenceClockScale};
     use conduit_core::{
-        bind_active_play, ConnectionBaseInstanceId, ConnectionId, FragmentId, KindId, LineId,
-        LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
+        bind_active_play, BaseInstanceId, ConnectionId, FragmentId, KindId, LineId, LinkEndpointId,
+        LinkLimits, PlanId, PROTOCOL_VERSION,
     };
     use conduit_wire::{
         encode_session_frame_into, LineAttachment, SessionBinding, SessionEndpointIdentity,
@@ -328,8 +343,9 @@ mod tests {
             attachment: LineAttachment {
                 line_id: LineId::from("line/rendezvous"),
                 link_binding_id: LinkBindingId::from("binding/rendezvous"),
-                base: ConnectionBase::WebRtcDataChannel,
-                base_instance_id: ConnectionBaseInstanceId::from("base/rendezvous"),
+                base: BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
+                contract: webrtc_session_contract(),
+                base_instance_id: BaseInstanceId::from("base/rendezvous"),
                 source_host_id: source.host_id.clone(),
                 source_boot_id: source.boot_id.clone(),
                 source_endpoint_id: LinkEndpointId::from("endpoint/source"),

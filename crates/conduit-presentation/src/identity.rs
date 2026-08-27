@@ -73,8 +73,9 @@ impl Presentation {
                     digest.update([0]);
                     hash_string(&mut digest, value);
                 }
-                PresentationPropertyValue::ConnectionBase(base) => {
-                    digest.update([1, base.canonical_code()]);
+                PresentationPropertyValue::BaseImplementationId(base) => {
+                    digest.update([1]);
+                    hash_string(&mut digest, base.as_str());
                 }
                 PresentationPropertyValue::Text(value) => {
                     digest.update([2]);

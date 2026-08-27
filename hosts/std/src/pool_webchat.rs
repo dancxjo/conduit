@@ -8,8 +8,8 @@ use crate::external_websocket::{
     ExternalPeerId, ExternalWebSocketError, ExternalWebSocketListener,
 };
 use conduit_core::{
-    kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId, CapabilityId,
-    ConnectionBase, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
+    kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId,
+    CapabilityId, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
     OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PoolMemberLimits,
     SharedPoolId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
     SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
@@ -107,7 +107,7 @@ fn planned_pool() -> Result<(String, conduit_plan_lowering::lowering::LoweredSha
         &expanded,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &empty_bases,
             line_candidates: &empty_routes,

@@ -1,5 +1,5 @@
 use super::{host, installed_std, RecordingTimer};
-use conduit_core::{ConfigurationValue, ConnectionBase};
+use conduit_core::{BaseImplementationId, ConfigurationValue};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
     ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
@@ -38,7 +38,7 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

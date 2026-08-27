@@ -1,4 +1,4 @@
-use conduit_core::ConnectionBase;
+use conduit_core::BaseImplementationId;
 use conduit_presentation::{
     ManifestationFailure, ManifestationLifecycle, PresentationPropertyValue,
 };
@@ -14,10 +14,16 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
     assert_eq!(decoded, snapshot);
     assert_eq!(decoded.schema, SNAPSHOT_SCHEMA);
     assert!(decoded.presentation.properties.iter().any(|property| {
-        property.value == PresentationPropertyValue::ConnectionBase(ConnectionBase::UsbCdc)
+        property.value
+            == PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+                "conduit.base/usb-cdc-acm@1",
+            ))
     }));
     assert!(decoded.presentation.properties.iter().any(|property| {
-        property.value == PresentationPropertyValue::ConnectionBase(ConnectionBase::WebSocket)
+        property.value
+            == PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+                "conduit.base/websocket-rfc6455@1",
+            ))
     }));
     let basis = &decoded.presentation.basis;
     assert!(basis.plan_id.is_some() && basis.active_play_id.is_some());
@@ -120,7 +126,8 @@ fn stale_malformed_unknown_oversized_and_drifted_snapshots_fail_closed() {
         .iter()
         .position(|property| property["name"] == "base")
         .unwrap();
-    value["presentation"]["properties"][base]["value"]["ConnectionBase"] = "DebugText".into();
+    value["presentation"]["properties"][base]["value"]["BaseImplementationId"] =
+        serde_json::json!({ "not": "an identity string" });
     assert!(matches!(
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::Malformed(_))

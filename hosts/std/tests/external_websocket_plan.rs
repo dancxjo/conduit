@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -78,7 +78,7 @@ fn canonical_transport_forms_plan_to_exact_opt_in_browser_and_std_families() {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
 

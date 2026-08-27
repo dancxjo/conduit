@@ -294,7 +294,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
     let plan_a_session = recovery.plan_a_session_binding().unwrap();
     assert_eq!(
         plan_a_session.attachment.base,
-        conduit_core::ConnectionBase::WebSocket
+        conduit_core::BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
     );
     lose_websocket(&mut recovery);
     recovery
@@ -327,7 +327,7 @@ fn one_body_and_wake_replace_immutable_plan_and_play_after_websocket_exhaustion(
     let plan_b_session = recovery.plan_b_session_binding().unwrap();
     assert_eq!(
         plan_b_session.attachment.base,
-        conduit_core::ConnectionBase::UsbCdc
+        conduit_core::BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     );
     assert_ne!(plan_a_session.plan_id, plan_b_session.plan_id);
     assert_eq!(plan_a_session.sink, plan_b_session.sink);

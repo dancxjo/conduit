@@ -4,8 +4,8 @@ use conduit_ai::{
     VECTOR_SEARCH_RESOURCE_CLASS,
 };
 use conduit_core::{
-    kind_id, resource_offer, BootId, CapabilityOffer, ConnectionBase, HostAdvertisement, HostId,
-    HostProfileId, OfferGeneration, PROTOCOL_VERSION,
+    kind_id, resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement,
+    HostId, HostProfileId, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -70,7 +70,7 @@ fn plan_on(
         expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap()
 }
@@ -170,7 +170,7 @@ fn incompatible_or_underprovisioned_host_refuses_before_a_plan_exists() {
         &expanded,
         core::slice::from_ref(&underprovisioned),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .is_err());
 

@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use conduit_core::{bind_active_play, BootId, ConnectionBase, SignId};
+use conduit_core::{bind_active_play, BaseImplementationId, BootId, SignId};
 use conduit_std_host::pico_control_source::PicoControlSource;
 use conduit_std_host::r1_control::{R1ControlPeer, R1InputEvent};
 use conduit_std_host::usb_cdc::{NativePathCdcLine, NativePathCdcLineReader};
@@ -129,7 +129,8 @@ pub(crate) fn verify_plan_c_continuation(
     if source.binding().plan_id != initial_binding.plan_id
         || source.binding().source_active_play_id != initial_binding.source_active_play_id
         || source.binding().sink_active_play_id != initial_binding.sink_active_play_id
-        || source.binding().attachment.base != ConnectionBase::UsbCdc
+        || source.binding().attachment.base
+            != BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     {
         return Err("Plan C or Play identity changed during USB continuation".into());
     }
@@ -238,7 +239,9 @@ fn usb_candidate(plan: &conduit_core::Plan) -> PicoResult<conduit_core::Admitted
     let candidate = connection
         .admitted_lines
         .iter()
-        .find(|candidate| candidate.binding.base == ConnectionBase::UsbCdc)
+        .find(|candidate| {
+            candidate.binding.base == BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+        })
         .ok_or("Plan C has no sealed USB CDC candidate")?;
     Ok(candidate.clone())
 }

@@ -4,8 +4,8 @@
 
 use conduit_body::{AdmissionSigns, AmbientAdmissionProof, CandidateObservation, DiscoveryProofId};
 use conduit_core::{
-    process_owned_line_offer_with_limits, BootId, ConnectionBase, HostId, LineAvailability, LineId,
-    LinkBindingId, LinkLimits, OfferGeneration, SignId,
+    process_owned_line_offer_with_limits, BaseImplementationId, BootId, HostId, LineAvailability,
+    LineId, LinkBindingId, LinkLimits, OfferGeneration, SignId,
 };
 use conduit_presentation::{
     NavigationOperation, NavigationRefusal, NavigationState, PresentationAspect, PresentationDepth,
@@ -78,7 +78,7 @@ fn main() -> Result<(), String> {
     session.observe_line(process_owned_line_offer_with_limits(
         BROWSER_LINE_ID,
         BROWSER_BINDING_ID,
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         &body_url,
         &advertisement,
         session.advertisement(),

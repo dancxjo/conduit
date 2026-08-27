@@ -1,5 +1,5 @@
 use crate::StdHost;
-use conduit_core::{ConnectionBase, Plan, PlanFragment, ProtectedResourceGrant};
+use conduit_core::{BaseImplementationId, Plan, PlanFragment, ProtectedResourceGrant};
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
@@ -28,7 +28,7 @@ pub fn prepare_copy_task(
         &form,
         std::slice::from_ref(host.advertisement()),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &overrides,
             line_candidates: &BTreeMap::new(),

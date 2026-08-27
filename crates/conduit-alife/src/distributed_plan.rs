@@ -7,8 +7,8 @@ use alloc::{
     vec,
 };
 use conduit_core::{
-    bind_active_play, process_owned_line_offer_with_limits, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ConnectionBase, ExecutionProfileId, HostAdvertisement,
+    bind_active_play, process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement,
     HostId, HostProfileId, ImplementationId, ImplementationOffer, LineOffer, LinkLimits,
     OfferGeneration, Plan, PlannedConnection, PROTOCOL_VERSION,
 };
@@ -90,7 +90,7 @@ pub fn exact_distributed_lenia_plan() -> Result<DistributedLeniaPlan, String> {
         process_owned_line_offer_with_limits(
             &format!("lenia/line/region-{}/{direction}", participant - 1),
             &format!("lenia/binding/region-{}/{direction}", participant - 1),
-            ConnectionBase::BluetoothLeGatt,
+            BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1"),
             &format!("bluetooth/session/region-{}", participant - 1),
             source,
             sink,
@@ -117,7 +117,10 @@ pub fn exact_distributed_lenia_plan() -> Result<DistributedLeniaPlan, String> {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::BluetoothLeGatt],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

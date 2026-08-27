@@ -100,7 +100,9 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
         &form,
         &hosts,
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

@@ -8,9 +8,9 @@ use crate::{
     SPEAKER_OPERATION,
 };
 use conduit_core::{
-    kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, CapabilityId, ConnectionBase,
-    HostOperationContractId, ResourceHealth, ResourceObservation, SignId, SCALAR_ENCODED_LEN,
-    SCALAR_INFO_ID,
+    kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
+    CapabilityId, HostOperationContractId, ResourceHealth, ResourceObservation, SignId,
+    SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 use conduit_planner::{
     plan_selected_realizations_with_characteristics_and_authority, PlannerError,
@@ -73,7 +73,7 @@ pub fn simple_melody_plan(
         &checked,
         SelectedRealizationPlanning {
             hosts: &hosts,
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[realization],
             observations: &observations,
@@ -128,7 +128,7 @@ pub fn bounded_drive_plan(
         &checked,
         SelectedRealizationPlanning {
             hosts: &[host],
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[],
             observations: &observations,

@@ -427,7 +427,8 @@ fn verify_source_identity(
         || binding.sink_fragment_id.as_str() != generated.fragment_id
         || binding.sink.host_id.as_str() != generated.host_id
         || binding.sink.boot_id.as_str() != generated.boot_id
-        || binding.attachment.base != conduit_core::ConnectionBase::UsbCdc
+        || binding.attachment.base
+            != conduit_core::BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     {
         return Err(
             "running firmware is not the exact Pico fragment/USB Line of the bootstrap Plan".into(),

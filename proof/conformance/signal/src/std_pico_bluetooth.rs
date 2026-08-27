@@ -8,8 +8,8 @@ use conduit_bluetooth::{
     BluetoothLineState, BluetoothPairingState, NegotiatedPeerIdentity,
 };
 use conduit_core::{
-    bind_active_play, ConnectionBase, ConnectionBaseInstanceId, GearId, LineId,
-    LinkAuthorityReference, LinkCredentialReference, Plan, SignId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, GearId, LineId, LinkAuthorityReference,
+    LinkCredentialReference, Plan, SignId,
 };
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
@@ -47,7 +47,7 @@ pub fn exact_std_pico_bluetooth_plan(
             address_kind: BluetoothAddressKind::RandomStatic,
             advertises_conduit_service: true,
         },
-        base_instance_id: ConnectionBaseInstanceId::from(STD_PICO_BLUETOOTH_BASE_INSTANCE_ID),
+        base_instance_id: BaseInstanceId::from(STD_PICO_BLUETOOTH_BASE_INSTANCE_ID),
         pairing: BluetoothPairingState::Bonded,
         state: BluetoothLineState::Ready,
         negotiated_peer: Some(NegotiatedPeerIdentity {
@@ -103,7 +103,9 @@ pub fn exact_std_pico_bluetooth_plan(
         &form,
         &[source, sink],
         &placements,
-        &[ConnectionBase::BluetoothLeGatt],
+        &[BaseImplementationId::from(
+            "conduit.base/bluetooth-le-gatt@1",
+        )],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
         core::slice::from_ref(&line_offer),
@@ -170,7 +172,8 @@ pub fn std_pico_bluetooth_session_binding() -> Result<SessionBinding, alloc::str
         attachment: LineAttachment {
             line_id: line.line_id.clone(),
             link_binding_id: line.binding.binding_id.clone(),
-            base: line.binding.base,
+            base: line.binding.base.clone(),
+            contract: line.contract,
             base_instance_id: line.binding.base_instance_id.clone(),
             source_host_id: line.binding.source.host_id.clone(),
             source_boot_id: line.binding.source.boot_id.clone(),

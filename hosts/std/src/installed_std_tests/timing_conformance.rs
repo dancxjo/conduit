@@ -73,7 +73,7 @@ fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

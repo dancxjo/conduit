@@ -1,6 +1,6 @@
 use conduit_core::{
-    ConnectionBase, HostAdvertisement, HostId, Observation, OfferGeneration, Plan, PlanFragment,
-    PlanId,
+    BaseImplementationId, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
+    PlanFragment, PlanId,
 };
 use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
@@ -684,7 +684,12 @@ impl StdHost {
             Some(placements) => placements.clone(),
             None => default_placements(form, &hosts)?,
         };
-        Ok(plan(form, &hosts, &placements, &[ConnectionBase::Local])?)
+        Ok(plan(
+            form,
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+        )?)
     }
 
     pub fn plan_local_with_authority(
@@ -702,7 +707,7 @@ impl StdHost {
             form,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             authority_grants,
         )?)
     }
@@ -832,7 +837,7 @@ impl StdHost {
             form,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
         )?)
     }
 
@@ -1018,8 +1023,8 @@ fn write_operator_report<W: Write>(
             connection
                 .selected_line
                 .as_ref()
-                .map(|line| line.binding.base)
-                .unwrap_or(ConnectionBase::Local),
+                .map(|line| line.binding.base.clone())
+                .unwrap_or(BaseImplementationId::from("conduit.base/local@1")),
             connection.item_capacity
         )
         .map_err(|error| error.to_string())?;

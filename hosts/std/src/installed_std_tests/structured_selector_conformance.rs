@@ -1,7 +1,7 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
-    ConnectionBase, KindContractRevision, KindId, PortDirection, PortTemporal, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    BaseImplementationId, KindContractRevision, KindId, PortDirection, PortTemporal,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document,
@@ -159,7 +159,7 @@ fn execute_case(
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

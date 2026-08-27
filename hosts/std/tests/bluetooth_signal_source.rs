@@ -1,6 +1,6 @@
 #![cfg(feature = "bluetooth-bluez")]
 
-use conduit_core::ConnectionBase;
+use conduit_core::BaseImplementationId;
 use conduit_signal_conformance::{exact_std_pico_bluetooth_plan, STD_PICO_USB_SINK_HOST_ID};
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_wire::{SessionMachine, SessionMessage, SessionRole, SessionTerminalDisposition};
@@ -18,7 +18,10 @@ fn ordinary_kernel_signal_traffic_uses_the_exact_bluetooth_session() {
         .clone();
     let mut source = PicoUsbSource::prepare_plan(exact.plan, &source_host).unwrap();
     let binding = source.binding().clone();
-    assert_eq!(binding.attachment.base, ConnectionBase::BluetoothLeGatt);
+    assert_eq!(
+        binding.attachment.base,
+        BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
+    );
     let mut sink = SessionMachine::new(binding.clone(), SessionRole::Sink).unwrap();
 
     let hello = binding.hello_frame();

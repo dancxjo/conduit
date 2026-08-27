@@ -1,9 +1,7 @@
 use crate::prelude::*;
 use crate::{FactDomain, PlanningFactKey};
 use alloc::collections::BTreeSet;
-use conduit_core::{
-    ConnectionBaseInstanceId, ConnectionId, GearId, ImplementationId, LineId, Plan,
-};
+use conduit_core::{BaseInstanceId, ConnectionId, GearId, ImplementationId, LineId, Plan};
 
 pub const MAXIMUM_DIVERSITY_CANDIDATES: usize = 16;
 pub const MAXIMUM_DIVERSITY_DEPENDENCIES: usize = 32;
@@ -21,7 +19,7 @@ pub struct MechanismDependency {
 pub struct LinePathHop {
     pub connection_id: ConnectionId,
     pub line_id: LineId,
-    pub base_instance_id: ConnectionBaseInstanceId,
+    pub base_instance_id: BaseInstanceId,
 }
 
 /// Reviewed diversity knowledge. Dependencies name exact current facts; the

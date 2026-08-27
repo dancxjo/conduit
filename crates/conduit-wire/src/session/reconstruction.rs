@@ -1,6 +1,6 @@
 use conduit_core::{
-    ActivePlayId, BootId, ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
-    LineId, LinkBindingId, LinkEndpointId, PlanId,
+    ActivePlayId, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId, HostId,
+    KindId, LineId, LinkBindingId, LinkEndpointId, PlanId,
 };
 
 use super::{
@@ -35,8 +35,9 @@ impl SessionBinding {
             attachment: LineAttachment {
                 line_id: LineId::from(hello.line_id),
                 link_binding_id: LinkBindingId::from(hello.link_binding_id),
-                base: hello.base,
-                base_instance_id: ConnectionBaseInstanceId::from(hello.base_instance_id),
+                base: BaseImplementationId::from(hello.base),
+                base_instance_id: BaseInstanceId::from(hello.base_instance_id),
+                contract: hello.contract,
                 source_host_id: HostId::from(identity.source_host_id),
                 source_boot_id: BootId::from(identity.source_boot_id),
                 source_endpoint_id: LinkEndpointId::from(hello.source_endpoint_id),

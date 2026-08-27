@@ -1,9 +1,10 @@
 use conduit_core::{
     authority_grant, kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase, ExecutionProfileId,
-    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindContractRevision, OfferGeneration, PortDescriptor, PortDirection,
-    PortTemporal, PROTOCOL_VERSION, RESOURCE_REFERENCE_INFO_ID,
+    BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
+    HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
+    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
+    RESOURCE_REFERENCE_INFO_ID,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
@@ -144,7 +145,7 @@ fn exact_resource_reference_kind_survives_checked_form_and_plan_without_locator_
         &expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

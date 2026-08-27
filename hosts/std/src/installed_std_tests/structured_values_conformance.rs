@@ -1,6 +1,6 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
-    ConnectionBase, ObservationKind, Quantity, QuantityUnit, StructuredFieldType,
+    BaseImplementationId, ObservationKind, Quantity, QuantityUnit, StructuredFieldType,
     StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
@@ -95,7 +95,7 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

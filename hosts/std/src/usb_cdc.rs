@@ -763,7 +763,7 @@ impl<R: Read, W: Write> NativeUsbCdcLine<R, W> {
 mod tests {
     use super::*;
     use conduit_core::{
-        BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
+        BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId, HostId, KindId,
         LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
     };
     use conduit_wire::{
@@ -815,8 +815,17 @@ mod tests {
             attachment: LineAttachment {
                 line_id: "line/usb-cdc-test".into(),
                 link_binding_id: LinkBindingId::from("link-1"),
-                base: ConnectionBase::UsbCdc,
-                base_instance_id: ConnectionBaseInstanceId::from("prov-1"),
+                base: BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+                contract: conduit_core::LineContract {
+                    scope: conduit_core::LineScope::PointToPoint,
+                    traffic_shape: conduit_core::LineTrafficShape::ByteStream,
+                    duplex: conduit_core::LineDuplex::FullDuplex,
+                    ordering: conduit_core::LineOrdering::Ordered,
+                    reliability: conduit_core::LineReliability::Reliable,
+                    continuation: conduit_core::LineContinuation::None,
+                    security: conduit_core::LineSecurity::PhysicalPossession,
+                },
+                base_instance_id: BaseInstanceId::from("prov-1"),
                 source_host_id: source.host_id,
                 source_boot_id: source.boot_id,
                 source_endpoint_id: LinkEndpointId::from("end-1"),

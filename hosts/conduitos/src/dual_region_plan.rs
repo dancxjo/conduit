@@ -2,7 +2,7 @@
 
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
-    ActivePlayIdentity, ArtifactId, BootId, CapabilityId, ConnectionBase, ExecutionProfileId,
+    ActivePlayIdentity, ArtifactId, BaseImplementationId, BootId, CapabilityId, ExecutionProfileId,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
     Plan, PlanId, ResourceOffer, bind_active_play, resource_offer,
 };
@@ -56,7 +56,7 @@ pub fn prepare(
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &alloc::collections::BTreeMap::new(),
             line_candidates: &alloc::collections::BTreeMap::new(),

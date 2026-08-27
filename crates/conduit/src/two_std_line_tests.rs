@@ -3,7 +3,7 @@ use crate::{
     product_execution::{ProductExecutionContext, ProductRuntime},
     std_websocket_line as two_std_line,
 };
-use conduit_core::{BootId, ConnectionBase, GearId, HostId, OfferGeneration};
+use conduit_core::{BaseImplementationId, BootId, GearId, HostId, OfferGeneration};
 use conduit_planner::{PlacementChoice, PlacementChoices};
 use conduit_std_host::{StdHost, StdHostConfig};
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
@@ -82,7 +82,9 @@ fn wrong_boot_and_missing_peer_truth_refuse_planning() {
     let context = ProductExecutionContext::new(
         vec![source.advertisement().clone(), sink.advertisement().clone()],
         vec![ProductRuntime::std(source), ProductRuntime::std(sink)],
-        vec![ConnectionBase::WebSocket],
+        vec![BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
         vec![stale],
         Vec::new(),
     )
@@ -96,7 +98,9 @@ fn wrong_boot_and_missing_peer_truth_refuse_planning() {
     let absent = ProductExecutionContext::new(
         vec![source.advertisement().clone(), sink.advertisement().clone()],
         vec![ProductRuntime::std(source), ProductRuntime::std(sink)],
-        vec![ConnectionBase::WebSocket],
+        vec![BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
         Vec::new(),
         Vec::new(),
     )
@@ -154,7 +158,9 @@ fn old_plan_refuses_after_current_host_truth_changes() {
             ProductRuntime::std(source),
             ProductRuntime::std(replacement),
         ],
-        vec![ConnectionBase::WebSocket],
+        vec![BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
         Vec::new(),
         Vec::new(),
     )
@@ -171,7 +177,10 @@ fn alternate_legal_placement_preserves_all_form_identities() {
     let context = ProductExecutionContext::new(
         vec![source.advertisement().clone(), sink.advertisement().clone()],
         vec![ProductRuntime::std(source), ProductRuntime::std(sink)],
-        vec![ConnectionBase::Local, ConnectionBase::WebSocket],
+        vec![
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         vec![two_std_line::line_offer(
             &two_std_line::host(two_std_line::SOURCE_HOST),
             &two_std_line::host(two_std_line::SINK_HOST),

@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::{
-    kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConnectionBase, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, HostAdvertisement, HostId, HostProfileId, ImplementationId,
     ImplementationOffer, KindContractRevision, LineId, LinkBindingId, LinkEndpointId,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
 };
@@ -121,7 +121,7 @@ fn line(
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
     name: &str,
-    base: ConnectionBase,
+    base: BaseImplementationId,
 ) -> conduit_core::LineOffer {
     let mut line = conduit_signal_conformance::distributed_websocket_line_offer();
     line.line_id = LineId::from(format!("diversity/{name}"));
@@ -157,10 +157,30 @@ impl Fixture {
         let c = host("c", &[STAGE]);
         let d = host("d", &[STAGE]);
         let lines = vec![
-            line(&a, &b, "wifi", ConnectionBase::WebSocket),
-            line(&a, &c, "serial", ConnectionBase::UsbCdc),
-            line(&c, &d, "optical", ConnectionBase::FixtureFrame),
-            line(&d, &b, "ethernet", ConnectionBase::WebRtcDataChannel),
+            line(
+                &a,
+                &b,
+                "wifi",
+                BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            ),
+            line(
+                &a,
+                &c,
+                "serial",
+                BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+            ),
+            line(
+                &c,
+                &d,
+                "optical",
+                BaseImplementationId::from("conduit.proof/frame@1"),
+            ),
+            line(
+                &d,
+                &b,
+                "ethernet",
+                BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
+            ),
         ];
         Self {
             form: checked_form(),
@@ -209,11 +229,11 @@ impl Fixture {
             &self.hosts,
             &placements,
             &[
-                ConnectionBase::Local,
-                ConnectionBase::WebSocket,
-                ConnectionBase::UsbCdc,
-                ConnectionBase::FixtureFrame,
-                ConnectionBase::WebRtcDataChannel,
+                BaseImplementationId::from("conduit.base/local@1"),
+                BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+                BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+                BaseImplementationId::from("conduit.proof/frame@1"),
+                BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
             ],
             PlanningOptions {
                 connection_bases: &BTreeMap::new(),

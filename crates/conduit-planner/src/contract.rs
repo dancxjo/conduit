@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use alloc::collections::BTreeMap;
 use conduit_core::{
-    AuthorityGrant, CapabilityId, ConnectionBase, GearId, HostId, LineId, LineOffer, PortId,
+    AuthorityGrant, BaseImplementationId, CapabilityId, GearId, HostId, LineId, LineOffer, PortId,
     ProtectedResourceGrant,
 };
 
@@ -26,7 +26,7 @@ pub struct PlacementChoices {
 
 #[derive(Debug, Clone, Copy)]
 pub struct PlanningOptions<'a> {
-    pub connection_bases: &'a BTreeMap<(GearId, GearId), ConnectionBase>,
+    pub connection_bases: &'a BTreeMap<(GearId, GearId), BaseImplementationId>,
     /// Exact offered Line identities to seal, in deterministic preference order.
     pub line_candidates: &'a BTreeMap<(GearId, GearId), Vec<LineId>>,
     pub connection_item_capacity: u16,
@@ -72,7 +72,7 @@ pub enum PlannerError {
     LineOfferMissing(String),
     LineOfferUnavailable(String),
     LineOfferAmbiguous(String),
-    UnavailableConnectionBase(String),
+    UnavailableBaseImplementationId(String),
     InvalidConnectionBudget(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
@@ -159,7 +159,7 @@ impl core::fmt::Display for PlannerError {
             Self::LineOfferMissing(value) => write!(f, "Line offer missing: {value}"),
             Self::LineOfferUnavailable(value) => write!(f, "Line offer unavailable: {value}"),
             Self::LineOfferAmbiguous(value) => write!(f, "Line offer ambiguous: {value}"),
-            Self::UnavailableConnectionBase(value) => {
+            Self::UnavailableBaseImplementationId(value) => {
                 write!(f, "unavailable connection base: {value}")
             }
             Self::InvalidConnectionBudget(value) => {

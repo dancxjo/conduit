@@ -85,7 +85,9 @@ fn reverse_inspection_derives_selected_and_compatible_realizations_from_plan_and
         &form,
         &hosts,
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
     )
     .unwrap();
     let gear = graph.subject_ref(&graph.gears[0].identity).unwrap();
@@ -126,7 +128,9 @@ fn requesting_an_alternative_replans_without_mutating_form_or_prior_plan() {
         &form,
         &hosts,
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
     )
     .unwrap();
     let prior = plan.clone();

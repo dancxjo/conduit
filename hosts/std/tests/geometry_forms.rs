@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, ConfigurationValue, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
+    BaseImplementationId, BootId, ConfigurationValue, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, Quantity, QuantityUnit, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredInfoValueShape, PROTOCOL_VERSION,
 };
@@ -53,7 +53,7 @@ fn canonical_geometry_configuration_flows_through_one_checked_form_and_plan() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     assert_eq!(plan.fragments[0].placements.len(), 2);

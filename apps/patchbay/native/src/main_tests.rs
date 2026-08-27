@@ -37,8 +37,8 @@ fn native_renderer_consumes_the_same_portable_value_as_html_transport() {
     assert!(rendered.contains(presentation.identity.as_str()));
     assert!(rendered.contains(presentation.basis.body_id.as_ref().unwrap().as_str()));
     assert!(rendered.contains(presentation.basis.wake_id.as_ref().unwrap().as_str()));
-    assert!(rendered.contains("base=USB CDC"));
-    assert!(rendered.contains("base=WebSocket"));
+    assert!(rendered.contains("base=conduit.base/usb-cdc-acm@1"));
+    assert!(rendered.contains("base=conduit.base/websocket-rfc6455@1"));
 }
 
 #[test]
@@ -205,8 +205,8 @@ fn native_document_exposes_both_route_recovery_cases() {
     assert!(text.contains("Replacement Plan"));
     assert!(text.contains("Plan identity did not change"));
     assert!(text.contains("ambient route"));
-    assert!(text.contains("base=USB CDC"));
-    assert!(text.contains("base=WebSocket"));
+    assert!(text.contains("base=conduit.base/usb-cdc-acm@1"));
+    assert!(text.contains("base=conduit.base/websocket-rfc6455@1"));
 }
 
 #[test]

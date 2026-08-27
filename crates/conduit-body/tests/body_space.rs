@@ -3,8 +3,8 @@ use conduit_body::{
     MembershipProofId, PartId, MAX_BODY_LINES,
 };
 use conduit_core::{
-    process_owned_line_offer, BootId, CheckedFormId, ConnectionBase, HostAdvertisement, HostId,
-    HostProfileId, LineAvailability, LineId, OfferGeneration, SignId, SourceDocumentId,
+    process_owned_line_offer, BaseImplementationId, BootId, CheckedFormId, HostAdvertisement,
+    HostId, HostProfileId, LineAvailability, LineId, OfferGeneration, SignId, SourceDocumentId,
     PROTOCOL_VERSION,
 };
 
@@ -72,7 +72,7 @@ fn lines(hosts: &[HostAdvertisement]) -> Vec<conduit_core::LineOffer> {
         process_owned_line_offer(
             "line/std-browser",
             "binding/std-browser",
-            ConnectionBase::WebSocket,
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
             "websocket/std-browser",
             &hosts[0],
             &hosts[1],
@@ -82,7 +82,7 @@ fn lines(hosts: &[HostAdvertisement]) -> Vec<conduit_core::LineOffer> {
         process_owned_line_offer(
             "line/std-pico",
             "binding/std-pico",
-            ConnectionBase::UsbCdc,
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
             "usb-cdc/std-pico",
             &hosts[0],
             &hosts[2],

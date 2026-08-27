@@ -5,7 +5,7 @@ use crate::{
 };
 use alloc::collections::BTreeSet;
 use conduit_core::{
-    seal_plan_with_realization_backs, ConnectionBase, FusionId, GearId, HostAdvertisement,
+    seal_plan_with_realization_backs, BaseImplementationId, FusionId, GearId, HostAdvertisement,
     PlannedFusion,
 };
 use conduit_form::CheckedForm;
@@ -94,7 +94,7 @@ pub fn plan_selected_optimization(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     selection: &FusionSelection,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<OptimizedPlan, PlannerError> {
     if selection.checked_form_id != form.checked_form_id {

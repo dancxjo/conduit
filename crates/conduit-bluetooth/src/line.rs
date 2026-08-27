@@ -1,7 +1,7 @@
 use conduit_core::{
-    BootId, ConnectionBase, ConnectionBaseInstanceId, HostId, LineAvailability,
-    LineAvailabilitySign, LineId, LineOffer, LinkAuthorityReference, LinkBinding, LinkBindingId,
-    LinkCredentialReference, LinkEndpoint, LinkEndpointId, SignId,
+    BaseImplementationId, BaseInstanceId, BootId, HostId, LineAvailability, LineAvailabilitySign,
+    LineId, LineOffer, LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference,
+    LinkEndpoint, LinkEndpointId, SignId,
 };
 
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
 pub struct BleGattLineIdentity {
     pub line_id: LineId,
     pub binding_id: LinkBindingId,
-    pub base_instance_id: ConnectionBaseInstanceId,
+    pub base_instance_id: BaseInstanceId,
     pub source_host_id: HostId,
     pub source_boot_id: BootId,
     pub source_endpoint_id: LinkEndpointId,
@@ -88,7 +88,7 @@ pub fn offer_ble_gatt_line(
             boot_id: identity.sink_boot_id,
             endpoint_id: identity.sink_endpoint_id,
         },
-        base: ConnectionBase::BluetoothLeGatt,
+        base: BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1"),
         base_instance_id: identity.base_instance_id,
         credential: identity.credential,
         authority: identity.authority,
@@ -129,7 +129,7 @@ impl AdmittedBluetoothLineBasis {
             .negotiated_peer
             .as_ref()
             .ok_or(BleLineAdmissionError::MissingPeerIdentity)?;
-        if offer.binding.base != ConnectionBase::BluetoothLeGatt
+        if offer.binding.base != BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
             || offer.binding.base_instance_id != observation.base_instance_id
         {
             return Err(BleLineAdmissionError::BaseInstanceMismatch);

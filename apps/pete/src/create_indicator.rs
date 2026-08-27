@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     authority_grant, kind_id, present_authority_requirement, resource_offer, resource_requirement,
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase, GearId,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
     OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
@@ -205,7 +205,7 @@ pub fn create_indicator_plan(
         &form,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

@@ -1,6 +1,6 @@
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, kind_id, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ConnectionBase, HostAdvertisement, HostId,
+    bind_active_play, bind_presentation, bind_sign, kind_id, ArtifactId, BaseImplementationId,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId,
     HostOperationContractId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
     PlanFragment, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PresentationIdentity,
     SignIdentity, PROTOCOL_VERSION,
@@ -343,7 +343,7 @@ impl BrowserSession {
             &form,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             PlanningOptions {
                 connection_bases: &base_overrides,
                 line_candidates: &BTreeMap::new(),

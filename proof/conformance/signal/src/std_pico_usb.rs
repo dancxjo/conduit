@@ -4,9 +4,10 @@ use alloc::collections::BTreeMap;
 use alloc::vec;
 
 use conduit_core::{
-    process_owned_line_offer_with_limits, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionBase, GearId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LineOffer, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
+    process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, GearId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
+    PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
@@ -118,7 +119,7 @@ pub fn std_pico_usb_line_offer() -> LineOffer {
     let mut line = process_owned_line_offer_with_limits(
         STD_PICO_USB_LINE_ID,
         STD_PICO_USB_LINK_BINDING_ID,
-        ConnectionBase::UsbCdc,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
         STD_PICO_USB_BASE_INSTANCE_ID,
         &source,
         &sink,
@@ -133,6 +134,8 @@ pub fn std_pico_usb_line_offer() -> LineOffer {
         conduit_core::LinkEndpointId::from(STD_PICO_USB_SOURCE_ENDPOINT_ID);
     line.binding.sink.endpoint_id =
         conduit_core::LinkEndpointId::from(STD_PICO_USB_SINK_ENDPOINT_ID);
+    line.contract.scope = LineScope::PointToPoint;
+    line.contract.security = LineSecurity::PhysicalPossession;
     line
 }
 
@@ -168,7 +171,7 @@ pub fn exact_std_pico_usb_plan() -> Result<ExactStdPicoUsbPlan, alloc::string::S
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
-        &[ConnectionBase::UsbCdc],
+        &[BaseImplementationId::from("conduit.base/usb-cdc-acm@1")],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
         core::slice::from_ref(&line_offer),

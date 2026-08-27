@@ -1,5 +1,5 @@
 use super::BrowserChatOperation;
-use conduit_core::{bind_active_play, BootId, ConnectionBase, HostId};
+use conduit_core::{bind_active_play, BaseImplementationId, BootId, HostId};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
@@ -140,7 +140,7 @@ impl BrowserChatSession {
             &expanded,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             PlanningOptions {
                 connection_bases: &connection_bases,
                 line_candidates: &line_candidates,

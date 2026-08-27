@@ -1,5 +1,5 @@
 use conduit_core::{
-    selected_admitted_line, AdmittedLine, BoundLink, ConnectionBase, ConnectionBaseInstanceId,
+    selected_admitted_line, AdmittedLine, BaseImplementationId, BaseInstanceId, BoundLink,
     ConnectionId, ControlLoopEvent, ControlLoopEventError, CredentialReferenceId, HostId,
     LineContinuation, LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope,
     LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBindingId, LinkCredentialReference,
@@ -21,8 +21,8 @@ fn line(id: &str) -> AdmittedLine {
                 boot_id: conduit_core::BootId::from("sink-boot"),
                 endpoint_id: LinkEndpointId::from(format!("{id}-sink")),
             },
-            base: ConnectionBase::WebSocket,
-            base_instance_id: ConnectionBaseInstanceId::from(format!("{id}-base")),
+            base: BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            base_instance_id: BaseInstanceId::from(format!("{id}-base")),
             credential: LinkCredentialReference::Opaque(CredentialReferenceId::from(
                 "credential-ref",
             )),

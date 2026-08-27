@@ -4,7 +4,9 @@ use crate::hosted_audio::{
 };
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_audio::NoteOccurrenceId;
-use conduit_core::{bind_active_play, BootId, ConnectionBase, HostId, OfferGeneration, SignId};
+use conduit_core::{
+    bind_active_play, BaseImplementationId, BootId, HostId, OfferGeneration, SignId,
+};
 use conduit_planner::{
     replan_selected_realizations_with_characteristics, PlanningOptions, RealizationReplanOutcome,
     SelectedRealizationPlanning,
@@ -63,7 +65,7 @@ fn plan(host: &StdHost, form: &conduit_form::CheckedForm) -> conduit_core::Plan 
         form,
         SelectedRealizationPlanning {
             hosts: &hosts,
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &advertisements,
             observations: &observations,
@@ -137,7 +139,7 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
         &plan_a,
         &checked_form,
         &hosts_b,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         &BTreeMap::new(),
         &advertisements_b,
         &observations_b,
@@ -256,7 +258,7 @@ fn replacement_refuses_old_or_absent_authority_and_loss_during_drain() {
             &plan_a,
             &checked_form,
             &hosts_b,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             &BTreeMap::new(),
             &advertisements_b,
             &observations_b,

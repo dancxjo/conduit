@@ -1,5 +1,5 @@
 use conduit_body::Body;
-use conduit_core::{bind_active_play, ConnectionBase, SignId};
+use conduit_core::{bind_active_play, BaseImplementationId, SignId};
 use conduit_observatory::{
     SoundCandidateInspection, SoundCandidateStatus, SoundProofClass, SoundRealizationInspection,
     SoundRealizationRoute, SOUND_INSPECTION_SCHEMA,
@@ -171,12 +171,17 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "base"
-            && property.value == PresentationPropertyValue::ConnectionBase(ConnectionBase::UsbCdc)
+            && property.value
+                == PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+                    "conduit.base/usb-cdc-acm@1",
+                ))
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "base"
             && property.value
-                == PresentationPropertyValue::ConnectionBase(ConnectionBase::WebSocket)
+                == PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+                    "conduit.base/websocket-rfc6455@1",
+                ))
     }));
     for required in [
         "new-plan-prior-id",

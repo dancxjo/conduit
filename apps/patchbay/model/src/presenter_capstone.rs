@@ -71,7 +71,9 @@ fn plan(
         form,
         core::slice::from_ref(host),
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
         conduit_planner::PlanningOptions {
             connection_bases: &std::collections::BTreeMap::new(),
             line_candidates: &std::collections::BTreeMap::new(),

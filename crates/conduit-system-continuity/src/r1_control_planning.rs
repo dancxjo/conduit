@@ -6,7 +6,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 
 use conduit_core::{
-    BootId, CapabilityId, ConnectionBase, GearId, HostAdvertisement, HostProfileId,
+    BaseImplementationId, BootId, CapabilityId, GearId, HostAdvertisement, HostProfileId,
     OfferGeneration, Plan, PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
@@ -112,8 +112,8 @@ fn plan_r1_control(
             vec![observed_lines[1].clone(), observed_lines[0].clone()]
         }
     };
-    let mut allowed_bases = vec![ConnectionBase::Local];
-    for base in selected_lines.iter().map(|line| line.binding.base) {
+    let mut allowed_bases = vec![BaseImplementationId::from("conduit.base/local@1")];
+    for base in selected_lines.iter().map(|line| line.binding.base.clone()) {
         if !allowed_bases.contains(&base) {
             allowed_bases.push(base);
         }
@@ -197,11 +197,11 @@ mod tests {
         assert_eq!(remote.admitted_lines.len(), 2);
         assert_eq!(
             remote.admitted_lines[0].binding.base,
-            ConnectionBase::WebSocket
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
         );
         assert_eq!(
             remote.admitted_lines[1].binding.base,
-            ConnectionBase::UsbCdc
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
         );
     }
 

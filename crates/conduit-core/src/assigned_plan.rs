@@ -2,7 +2,7 @@
 
 use sha2::{Digest, Sha256};
 
-pub const ASSIGNED_PLAN_SCHEMA: u16 = 1;
+pub const ASSIGNED_PLAN_SCHEMA: u16 = 2;
 pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 124;
 pub const TINY_HOST_TOTAL_BYTES: u16 = 2_560;
 const MAGIC: &[u8; 8] = b"CNDAP001";
@@ -189,7 +189,7 @@ pub fn decode_assigned_plan(
             ASSIGNED_HOST_OPERATION => length == 46,
             ASSIGNED_RESOURCE => length == 8,
             ASSIGNED_SIGN => length == 37,
-            ASSIGNED_REMOTE_ENDPOINT => length == 228,
+            ASSIGNED_REMOTE_ENDPOINT => length == 250,
             ASSIGNED_STARTUP => length == 3 || length == 5,
             ASSIGNED_TERMINAL => length == 32,
             _ => false,
@@ -203,7 +203,16 @@ pub fn decode_assigned_plan(
             ASSIGNED_CORD => payload[18] <= 1 && payload[23] <= 1,
             ASSIGNED_ROUTE_TARGET => length == 6 || payload[2] == 1,
             ASSIGNED_SIGN => payload[34] <= 2,
-            ASSIGNED_REMOTE_ENDPOINT => payload[212] <= 7 && payload[213] <= 1,
+            ASSIGNED_REMOTE_ENDPOINT => {
+                payload[228] <= 1
+                    && payload[229] <= 4
+                    && payload[230] <= 2
+                    && payload[231] <= 2
+                    && payload[232] <= 1
+                    && payload[233] <= 1
+                    && payload[234] <= 1
+                    && payload[235] <= 3
+            }
             ASSIGNED_STARTUP => {
                 (payload[0] == 0 && length == 5) || (payload[0] == 1 && length == 3)
             }

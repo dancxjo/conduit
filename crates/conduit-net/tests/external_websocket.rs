@@ -1,4 +1,4 @@
-use conduit_core::{ArtifactId, CapabilityId, ConnectionBase, ImplementationId};
+use conduit_core::{ArtifactId, BaseImplementationId, CapabilityId, ImplementationId};
 use conduit_net::{
     browser_external_websocket_family, external_websocket_client_offer,
     external_websocket_listener_offer, std_external_websocket_family,
@@ -123,12 +123,18 @@ fn external_websocket_compatibility_is_the_checked_face_not_the_nominal_kind() {
 
 #[test]
 fn authored_external_socket_cannot_masquerade_as_a_conduit_session_line() {
-    for line in [ConnectionBase::WebSocket, ConnectionBase::UsbCdc] {
+    for line in [
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+    ] {
         assert_ne!(client().kind_id.as_str(), format!("{line:?}"));
         assert_ne!(listener().kind_id.as_str(), format!("{line:?}"));
     }
-    assert!(ConnectionBase::WebSocket.supports_remote_session());
-    assert!(!client().kind_id.as_str().contains("ConnectionBase"));
+    assert_eq!(
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1").as_str(),
+        "conduit.base/websocket-rfc6455@1"
+    );
+    assert!(!client().kind_id.as_str().contains("BaseImplementationId"));
 }
 
 #[cfg(feature = "form-catalog")]

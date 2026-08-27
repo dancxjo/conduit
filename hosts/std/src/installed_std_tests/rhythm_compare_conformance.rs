@@ -1,7 +1,7 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
 use conduit_core::{
-    ConnectionBase, KindContractRevision, KindId, PortDirection, StructuredFieldValue,
+    BaseImplementationId, KindContractRevision, KindId, PortDirection, StructuredFieldValue,
     StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
@@ -93,7 +93,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

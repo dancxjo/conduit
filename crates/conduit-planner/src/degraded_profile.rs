@@ -7,7 +7,7 @@ use crate::{
     RealizationPolicy,
 };
 use conduit_core::{
-    CharacteristicId, ConnectionBase, HostAdvertisement, Plan, RealizationAdvertisement,
+    BaseImplementationId, CharacteristicId, HostAdvertisement, Plan, RealizationAdvertisement,
     ResourceObservation, SignId,
 };
 use conduit_form::{CheckedForm, CheckedGear};
@@ -249,7 +249,7 @@ fn selected_observation_signs(
 pub fn seal_reviewed_service_profile_plan(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     advertisements: &[RealizationAdvertisement],
     admission: &ServiceProfileAdmission,
 ) -> Result<Plan, DegradedProfileRefusal> {

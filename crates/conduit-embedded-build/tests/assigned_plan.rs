@@ -1,7 +1,7 @@
 use conduit_core::{
     assigned_plan_payload_digest, decode_assigned_plan, AssignedIdentity, AssignedPlanMaxima,
-    AssignedPlanRefusal, AssignedPlanRequirements, AssignedRemoteBinding, BootId, ConnectionBase,
-    ASSIGNED_PLAN_HEADER_BYTES,
+    AssignedPlanRefusal, AssignedPlanRequirements, AssignedRemoteBinding, BaseImplementationId,
+    BootId, ASSIGNED_PLAN_HEADER_BYTES,
 };
 use conduit_embedded_build::{
     encode_assigned_plan, generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan,
@@ -32,8 +32,8 @@ fn local_assigned_plan_has_a_deterministic_golden_round_trip() {
     assert_eq!(
         assigned_plan_payload_digest(&first),
         [
-            77, 144, 219, 180, 124, 193, 174, 220, 117, 194, 210, 35, 51, 113, 210, 193, 101, 94,
-            198, 11, 89, 111, 119, 174, 229, 254, 6, 245, 168, 127, 105, 2,
+            170, 113, 75, 31, 101, 106, 133, 221, 0, 17, 18, 12, 193, 167, 106, 236, 43, 237, 107,
+            236, 129, 122, 245, 192, 212, 29, 103, 167, 115, 17, 24, 33,
         ],
         "local assigned-plan golden changed"
     );
@@ -57,8 +57,8 @@ fn one_remote_assigned_plan_has_a_deterministic_golden_round_trip() {
     assert_eq!(
         assigned_plan_payload_digest(&bytes),
         [
-            245, 132, 2, 21, 202, 162, 59, 161, 83, 3, 30, 56, 94, 202, 64, 81, 91, 55, 57, 79, 89,
-            237, 248, 38, 2, 224, 100, 60, 235, 134, 18, 142,
+            118, 111, 219, 236, 40, 138, 43, 202, 123, 63, 174, 244, 131, 33, 217, 243, 5, 232,
+            246, 34, 202, 134, 190, 164, 213, 44, 45, 118, 105, 254, 240, 180,
         ],
         "remote assigned-plan golden changed"
     );
@@ -165,7 +165,7 @@ fn local_signal_plan() -> GeneratedEmbeddedPlan {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
     )

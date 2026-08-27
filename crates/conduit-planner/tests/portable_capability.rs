@@ -1,7 +1,8 @@
 use conduit_core::{
-    verify_plan, BootId, ConnectionBase, GearId, HostAdvertisement, HostId, PlannerCapabilityOffer,
-    PlannerLimits, PlannerProfileId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
-    ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
+    verify_plan, BaseImplementationId, BootId, GearId, HostAdvertisement, HostId,
+    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, ProtectedResourceAccess,
+    ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId,
+    ResourceHandleId,
 };
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{
@@ -38,7 +39,9 @@ fn planner_host(host: &str, boot: &str, profile: &str, limits: PlannerLimits) ->
     host_advertisement
 }
 
-fn options<'a>(overrides: &'a BTreeMap<(GearId, GearId), ConnectionBase>) -> PlanningOptions<'a> {
+fn options<'a>(
+    overrides: &'a BTreeMap<(GearId, GearId), BaseImplementationId>,
+) -> PlanningOptions<'a> {
     PlanningOptions {
         connection_bases: overrides,
         line_candidates: &EMPTY_ROUTE_CANDIDATES,
@@ -81,7 +84,7 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         options(&overrides),
     )
     .expect("full profile plans");
@@ -91,7 +94,7 @@ fn full_and_browser_profiles_make_the_same_plan_without_planner_identity() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         options(&overrides),
     )
     .expect("browser profile plans locally");
@@ -130,7 +133,7 @@ fn bounded_profile_refuses_before_planning_without_delegation() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         options(&overrides),
     )
     .expect_err("two-gear form exceeds bounded offer");
@@ -155,7 +158,7 @@ fn host_must_truthfully_advertise_the_requested_profile() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         options(&overrides),
     )
     .expect_err("non-planner target cannot execute planner capability");
@@ -206,7 +209,7 @@ fn portable_profile_admits_protected_grants_before_planning() {
             &form,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             request,
         ),
         Err(PlannerError::PlannerLimitExceeded(

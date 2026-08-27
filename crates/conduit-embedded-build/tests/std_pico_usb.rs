@@ -88,7 +88,9 @@ fn local_image_cannot_masquerade_as_the_remote_usb_sink() {
         &form,
         core::slice::from_ref(&host),
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
     )

@@ -646,12 +646,15 @@ fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
             .iter()
             .map(|re| re.sink_fragment_id.as_str()),
     );
-    render_u8_slice(
+    render_string_slice(
         output,
-        "GENERATED_REMOTE_ENDPOINT_BASE_CODES",
-        plan.remote_endpoints
-            .iter()
-            .map(|re| re.base.canonical_code()),
+        "GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS",
+        plan.remote_endpoints.iter().map(|re| re.base.as_str()),
+    );
+    render_line_contract_slice(
+        output,
+        "GENERATED_REMOTE_ENDPOINT_LINE_CONTRACTS",
+        plan.remote_endpoints.iter().map(|re| re.contract),
     );
     render_string_slice(
         output,
@@ -709,15 +712,33 @@ fn render_remote_endpoints(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     );
 }
 
-fn render_u8_slice(output: &mut String, name: &str, values: impl Iterator<Item = u8>) {
+fn render_line_contract_slice(
+    output: &mut String,
+    name: &str,
+    values: impl Iterator<Item = conduit_core::LineContract>,
+) {
     let values = values.collect::<Vec<_>>();
     writeln!(
         output,
-        "pub const {name}: [u8; {}] = {:?};",
-        values.len(),
-        values
+        "pub const {name}: [conduit_core::LineContract; {}] = [",
+        values.len()
     )
     .expect("String writes cannot fail");
+    for value in values {
+        writeln!(
+            output,
+            "    conduit_core::LineContract {{ scope: conduit_core::LineScope::{:?}, traffic_shape: conduit_core::LineTrafficShape::{:?}, duplex: conduit_core::LineDuplex::{:?}, ordering: conduit_core::LineOrdering::{:?}, reliability: conduit_core::LineReliability::{:?}, continuation: conduit_core::LineContinuation::{:?}, security: conduit_core::LineSecurity::{:?} }},",
+            value.scope,
+            value.traffic_shape,
+            value.duplex,
+            value.ordering,
+            value.reliability,
+            value.continuation,
+            value.security,
+        )
+        .expect("String writes cannot fail");
+    }
+    writeln!(output, "];").expect("String writes cannot fail");
 }
 
 fn render_u16_slice(output: &mut String, name: &str, values: impl Iterator<Item = u16>) {

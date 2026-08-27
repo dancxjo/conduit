@@ -45,7 +45,8 @@ pub fn remote_endpoint() -> Option<RemoteEndpointIdentity> {
         peer_host: generated::GENERATED_REMOTE_ENDPOINT_PEER_HOSTS.first()?,
         peer_boot: generated::GENERATED_REMOTE_ENDPOINT_PEER_BOOTS.first()?,
         peer_endpoint: generated::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS.first()?,
-        base_code: *generated::GENERATED_REMOTE_ENDPOINT_BASE_CODES.first()?,
+        base_implementation_id: generated::GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS.first()?,
+        contract: *generated::GENERATED_REMOTE_ENDPOINT_LINE_CONTRACTS.first()?,
         base_instance_id: generated::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS.first()?,
         line_id: generated::GENERATED_REMOTE_ENDPOINT_LINE_IDS.first()?,
         link_binding_id: generated::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.first()?,
@@ -68,8 +69,8 @@ pub fn validate_replacement() -> bool {
     };
     let plan_a = SignalExecutionIdentity::plan_a();
     let plan_b = SignalExecutionIdentity::plan_b();
-    conduit_core::ConnectionBase::from_canonical_code(endpoint.base_code)
-        == Some(conduit_core::ConnectionBase::UsbCdc)
+    conduit_core::BaseImplementationId::from(endpoint.base_implementation_id)
+        == conduit_core::BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
         && endpoint.local_host == plan_b.host_id
         && endpoint.local_boot == plan_b.boot_id
         && endpoint.sink_fragment_id == plan_b.fragment_id

@@ -1,4 +1,4 @@
-use super::{host, installed_std, BTreeMap, ConnectionBase, PlanningOptions, RecordingTimer};
+use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions, RecordingTimer};
 use conduit_core::{ObservationKind, TerminalDisposition};
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
@@ -31,7 +31,7 @@ fn representative_shell_and_face_execute_as_one_ordinary_form() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

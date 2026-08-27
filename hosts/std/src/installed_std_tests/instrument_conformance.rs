@@ -7,7 +7,7 @@ use crate::hosted_midi::{
 use crate::{
     RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHostConfig, TimerAdapter,
 };
-use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration, TerminalDisposition};
+use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration, TerminalDisposition};
 use std::collections::BTreeMap;
 use std::time::Duration;
 
@@ -113,7 +113,7 @@ fn plan_fragment(
         &form,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &hosts,
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &advertisements,
             observations: &observations,

@@ -3,8 +3,8 @@ use conduit_composite::{
     KernelOperationBudget, KernelOperationFactory, KernelOperationRegistry,
 };
 use conduit_core::{
-    kind_id, process_owned_line_offer, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionBase, FailureReason, GearId, HostAdvertisement, HostId,
+    kind_id, process_owned_line_offer, ArtifactId, BaseImplementationId, BootId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, FailureReason, GearId, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, KindContractRevision, OfferGeneration, PlannedGear,
     PortDescriptor, PortDirection, ValuePayload, PROTOCOL_VERSION,
 };
@@ -105,7 +105,7 @@ fn definition() -> KernelCompositeDefinition {
     let line = process_owned_line_offer(
         "line/first-second",
         "link/first-second",
-        ConnectionBase::InMemory,
+        BaseImplementationId::from("conduit.proof/in-memory@1"),
         "fixture/in-memory/first-second",
         &first,
         &second,
@@ -116,7 +116,10 @@ fn definition() -> KernelCompositeDefinition {
         &form,
         &[first, second],
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::InMemory],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.proof/in-memory@1"),
+        ],
         2,
         16,
         &[line],

@@ -1,12 +1,13 @@
 //! A real browser pointer event entering one ordinary planned kernel Play.
 
 use conduit_core::{
-    bind_active_play, bind_sign, kind_id, port_id, resource_offer, ArtifactId, BootId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase, ExecutionProfileId,
-    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration, PortDescriptor,
-    PortDirection, PortTemporal, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    bind_active_play, bind_sign, kind_id, port_id, resource_offer, ArtifactId,
+    BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
+    HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
+    KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
+    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
@@ -207,7 +208,7 @@ pub fn execute_browser_pointer(
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

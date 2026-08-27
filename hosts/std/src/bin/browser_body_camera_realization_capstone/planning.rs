@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use conduit_body::MembershipCredential;
 use conduit_core::{
     process_owned_line_offer_with_limits, resource_offer, AcquiredMediaResource,
-    AuthorityContractId, AuthorityGrant, ConnectionBase, HostAdvertisement,
+    AuthorityContractId, AuthorityGrant, BaseImplementationId, HostAdvertisement,
     HostOperationContractId, KindId, LinkLimits, Plan, PortId,
 };
 use conduit_form::{
@@ -99,7 +99,7 @@ pub(super) fn realize(
     let line = process_owned_line_offer_with_limits(
         "browser/body-camera-realization/camera-line",
         "browser/body-camera-realization/camera-binding",
-        ConnectionBase::WebRtcDataChannel,
+        BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
         "browser/body-camera-realization/camera-base",
         &source,
         &sink,
@@ -125,7 +125,9 @@ pub(super) fn realize(
         &expanded,
         &[source, sink],
         &placements,
-        &[ConnectionBase::WebRtcDataChannel],
+        &[BaseImplementationId::from(
+            "conduit.base/webrtc-data-channel@1",
+        )],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &line_candidates,

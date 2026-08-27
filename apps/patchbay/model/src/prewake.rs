@@ -2,7 +2,8 @@
 
 use crate::{AuthoredEnvironment, FormEditor, MachineProfile};
 use conduit_core::{
-    ActivePlayId, BootId, ConnectionBase, HostAdvertisement, HostId, OfferGeneration, Plan, PlanId,
+    ActivePlayId, BaseImplementationId, BootId, HostAdvertisement, HostId, OfferGeneration, Plan,
+    PlanId,
 };
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical, plan_expanded_canonical_with_options,
@@ -334,7 +335,7 @@ impl PrewakeController {
                 &expanded,
                 &advertisements,
                 &placements,
-                &[ConnectionBase::Local],
+                &[BaseImplementationId::from("conduit.base/local@1")],
                 PlanningOptions {
                     connection_bases: &BTreeMap::new(),
                     line_candidates: &BTreeMap::new(),
@@ -350,7 +351,7 @@ impl PrewakeController {
                 &expanded,
                 &advertisements,
                 &placements,
-                &[ConnectionBase::Local],
+                &[BaseImplementationId::from("conduit.base/local@1")],
             )
         }
         .map_err(|error| PrewakeError::Planning(error.to_string()))?;

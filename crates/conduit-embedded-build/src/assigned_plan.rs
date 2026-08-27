@@ -170,11 +170,20 @@ pub fn encode_assigned_plan(
         }
         u16_to(&mut value, remote.endpoint);
         u16_to(&mut value, remote.cord);
-        value.push(remote.base.canonical_code());
+        identity_to(&mut value, remote.base.as_str());
         value.push(match remote.direction {
             RemoteCordDirection::Egress => 0,
             RemoteCordDirection::Ingress => 1,
         });
+        value.extend_from_slice(&[
+            remote.contract.scope as u8,
+            remote.contract.traffic_shape as u8,
+            remote.contract.duplex as u8,
+            remote.contract.ordering as u8,
+            remote.contract.reliability as u8,
+            remote.contract.continuation as u8,
+            remote.contract.security as u8,
+        ]);
         u16_to(&mut value, remote.maximum_in_flight_items);
         u32_to(&mut value, remote.maximum_payload_bytes);
         u32_to(&mut value, remote.maximum_buffered_bytes);

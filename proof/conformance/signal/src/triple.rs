@@ -4,10 +4,11 @@ use alloc::collections::BTreeMap;
 use alloc::vec;
 
 use conduit_core::{
-    process_owned_line_offer_with_limits, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionBase, GearId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LineOffer, LinkEndpointId, LinkLimits, OfferGeneration, Plan,
-    PROTOCOL_VERSION,
+    process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, GearId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, LineContinuation, LineContract, LineDuplex, LineOffer, LineOrdering,
+    LineReliability, LineScope, LineSecurity, LineTrafficShape, LinkEndpointId, LinkLimits,
+    OfferGeneration, Plan, PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
@@ -173,7 +174,7 @@ pub fn pico_advertisement() -> HostAdvertisement {
 fn line_offer(
     line_id: &str,
     id: &str,
-    base: ConnectionBase,
+    base: BaseImplementationId,
     base_instance: &str,
     source_endpoint: &str,
     sink_endpoint: &str,
@@ -203,26 +204,28 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
     let source_advertisement = source_advertisement();
     let browser_advertisement = browser_advertisement();
     let pico_advertisement = pico_advertisement();
-    let browser_line = line_offer(
+    let mut browser_line = line_offer(
         BROWSER_LINE_ID,
         BROWSER_LINK_ID,
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         BROWSER_BASE_INSTANCE_ID,
         BROWSER_SOURCE_ENDPOINT_ID,
         BROWSER_SINK_ENDPOINT_ID,
         &source_advertisement,
         &browser_advertisement,
     );
-    let pico_line = line_offer(
+    let mut pico_line = line_offer(
         PICO_LINE_ID,
         PICO_LINK_ID,
-        ConnectionBase::UsbCdc,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
         PICO_BASE_INSTANCE_ID,
         PICO_SOURCE_ENDPOINT_ID,
         PICO_SINK_ENDPOINT_ID,
         &source_advertisement,
         &pico_advertisement,
     );
+    browser_line.contract = remote_contract(LineTrafficShape::Message);
+    pico_line.contract = remote_contract(LineTrafficShape::ByteStream);
     let form = conduit_form::parse_with_startup(
         include_str!("../../../../fixtures/forms/triple-signal.conduit"),
         &crate::signal_startup_catalog(),
@@ -270,9 +273,9 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
         ],
         &placements,
         &[
-            ConnectionBase::Local,
-            ConnectionBase::WebSocket,
-            ConnectionBase::UsbCdc,
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
         ],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         SIGNAL_ENCODED_LEN,
@@ -287,6 +290,18 @@ pub fn exact_plan() -> Result<ExactTripleSignalPlan, alloc::string::String> {
         pico_line,
         plan,
     })
+}
+
+fn remote_contract(traffic_shape: LineTrafficShape) -> LineContract {
+    LineContract {
+        scope: LineScope::LocalNetwork,
+        traffic_shape,
+        duplex: LineDuplex::FullDuplex,
+        ordering: LineOrdering::Ordered,
+        reliability: LineReliability::Reliable,
+        continuation: LineContinuation::None,
+        security: LineSecurity::PlaintextNetwork,
+    }
 }
 
 #[cfg(test)]
@@ -382,9 +397,9 @@ mod tests {
             ],
             &placements,
             &[
-                ConnectionBase::Local,
-                ConnectionBase::WebSocket,
-                ConnectionBase::UsbCdc,
+                BaseImplementationId::from("conduit.base/local@1"),
+                BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+                BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
             ],
             1,
             SIGNAL_ENCODED_LEN,

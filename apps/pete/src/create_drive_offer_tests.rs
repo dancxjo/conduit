@@ -1,7 +1,8 @@
 use super::*;
 use crate::SafetyInputObservation;
 use conduit_core::{
-    AuthorityGrant, AuthorityGrantId, ConnectionBase, ResourceHealth, ResourceObservation, SignId,
+    AuthorityGrant, AuthorityGrantId, BaseImplementationId, ResourceHealth, ResourceObservation,
+    SignId,
 };
 use conduit_planner::{
     plan_selected_realizations_with_characteristics_and_authority, PlannerError,
@@ -88,7 +89,7 @@ fn plan(
         &checked,
         SelectedRealizationPlanning {
             hosts: std::slice::from_ref(host),
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[],
             observations,

@@ -5,8 +5,8 @@ use conduit_audio::{
     SOUND_TONE_INFO_ID,
 };
 use conduit_core::{
-    kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ConnectionBase, ExecutionProfileId, HostAdvertisement, HostId,
+    kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
@@ -65,7 +65,7 @@ pub(super) fn build() -> Result<LossyAdapterProof, CatalogError> {
         &form,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .map_err(|error| CatalogError::new("sound-adapter-plan-failed", error.to_string()))?;
     let adapter = plan

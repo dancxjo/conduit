@@ -549,7 +549,9 @@ pub fn plan_local(
         form,
         hosts,
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
         PlanningOptions {
             connection_bases: &base_choices,
             line_candidates: &BTreeMap::new(),

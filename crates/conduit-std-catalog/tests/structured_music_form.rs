@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, ConfigurationValue, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
+    BaseImplementationId, BootId, ConfigurationValue, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -61,7 +61,7 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     let comparison = plan.fragments[0]
@@ -177,7 +177,7 @@ fn exact_mapping_reaches_an_ordinary_plan_and_shape_changes_change_identity() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     let planned_mapping = &plan.fragments[0].placements[0].configuration[0].value;

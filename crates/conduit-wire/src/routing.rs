@@ -137,14 +137,14 @@ impl LineMachine {
 mod tests {
     use super::*;
     use conduit_core::{
-        AdmittedLine, BootId, BoundLink, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
+        AdmittedLine, BaseImplementationId, BaseInstanceId, BootId, BoundLink, ConnectionId,
         HostId, KindId, LineContinuation, LineContract, LineDuplex, LineOrdering, LineReliability,
         LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference, LinkBindingId,
         LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, PlacementId, PortId,
         PortTemporal,
     };
 
-    fn line(id: &'static str, base: ConnectionBase) -> AdmittedLine {
+    fn line(id: &'static str, base: BaseImplementationId) -> AdmittedLine {
         AdmittedLine {
             line_id: LineId::from(alloc::format!("line/{id}")),
             binding: BoundLink {
@@ -160,7 +160,7 @@ mod tests {
                     endpoint_id: LinkEndpointId::from(alloc::format!("{id}/sink")),
                 },
                 base,
-                base_instance_id: ConnectionBaseInstanceId::from(alloc::format!("{id}/base")),
+                base_instance_id: BaseInstanceId::from(alloc::format!("{id}/base")),
                 credential: LinkCredentialReference::None,
                 authority: LinkAuthorityReference::ProcessOwned,
                 limits: LinkLimits {
@@ -213,8 +213,14 @@ mod tests {
 
     #[test]
     fn ordered_selection_switches_only_within_the_sealed_set() {
-        let usb = line("usb", ConnectionBase::UsbCdc);
-        let ws = line("ws", ConnectionBase::WebSocket);
+        let usb = line(
+            "usb",
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+        );
+        let ws = line(
+            "ws",
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        );
         let mut machine = LineMachine::new(&connection(&[usb, ws])).unwrap();
 
         assert_eq!(machine.selected().unwrap().line_id.as_str(), "line/usb");
@@ -242,7 +248,10 @@ mod tests {
 
     #[test]
     fn exhausted_single_and_multi_route_plans_are_explicitly_unsatisfied() {
-        let usb = line("usb", ConnectionBase::UsbCdc);
+        let usb = line(
+            "usb",
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+        );
         let mut one = LineMachine::new(&connection(core::slice::from_ref(&usb))).unwrap();
         let lost = observation("usb", LineAvailability::Unavailable, "usb-lost");
         assert!(matches!(
@@ -252,7 +261,10 @@ mod tests {
             }
         ));
 
-        let ws = line("ws", ConnectionBase::WebSocket);
+        let ws = line(
+            "ws",
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        );
         let mut two = LineMachine::new(&connection(&[usb, ws])).unwrap();
         two.observe(&lost).unwrap();
         let ws_lost = observation("ws", LineAvailability::Unavailable, "ws-lost");

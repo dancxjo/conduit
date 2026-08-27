@@ -1,5 +1,5 @@
 use conduit_core::{
-    resource_offer, BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
+    resource_offer, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, PROTOCOL_VERSION,
 };
 use serde::Serialize;
@@ -111,7 +111,7 @@ fn opl_plan(form: &conduit_form::CheckedForm) -> Result<conduit_core::Plan, Cata
         form,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .map_err(|error| CatalogError::new("opl2-plan-failed", error.to_string()))
 }

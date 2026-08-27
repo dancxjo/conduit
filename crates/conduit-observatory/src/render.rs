@@ -66,7 +66,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
         let binding = &line.offer.binding;
         let _ = writeln!(
             output,
-            "line id={} binding={} source_host={} source_boot={} source_endpoint={} sink_host={} sink_boot={} sink_endpoint={} base={:?} base_instance={} state={:?} availability={:?} shape={:?} duplex={:?} ordering={:?} reliability={:?} continuation={:?} security={:?} in_flight_limit={} payload_limit={} buffered_limit={} frame_limit={} authority={:?}",
+            "line id={} binding={} source_host={} source_boot={} source_endpoint={} sink_host={} sink_boot={} sink_endpoint={} base={} base_instance={} state={:?} availability={:?} shape={:?} duplex={:?} ordering={:?} reliability={:?} continuation={:?} security={:?} in_flight_limit={} payload_limit={} buffered_limit={} frame_limit={} authority={:?}",
             line.offer.line_id.as_str(),
             binding.binding_id.as_str(),
             binding.source.host_id.as_str(),
@@ -75,7 +75,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             binding.sink.host_id.as_str(),
             binding.sink.boot_id.as_str(),
             binding.sink.endpoint_id.as_str(),
-            binding.base,
+            binding.base.as_str(),
             binding.base_instance_id.as_str(),
             line.state,
             line.offer.availability.availability,

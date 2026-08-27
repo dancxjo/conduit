@@ -74,7 +74,7 @@ fn one_projection_preserves_exact_document_plan_play_route_and_sign_facts() {
     let route = &presentation.routes[0];
     assert_eq!(
         route.new_plan.prior.candidates[0].base,
-        conduit_core::ConnectionBase::UsbCdc
+        conduit_core::BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     );
     assert!(presentation.selection().is_some());
 }

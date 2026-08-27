@@ -4,9 +4,9 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    resource_offer, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId, CapabilityId,
-    ConnectionBase, HostAdvertisement, HostId, HostOperationContractId, HostProfileId, KindId,
-    LinkLimits, OfferGeneration, PROTOCOL_VERSION,
+    resource_offer, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
+    BootId, CapabilityId, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
+    KindId, LinkLimits, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
 use conduit_planner::{
@@ -88,7 +88,7 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
         &expanded,
         &[source.clone(), sink.clone()],
         &before,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &empty_bases,
             line_candidates: &empty_lines,
@@ -123,7 +123,7 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
         &expanded,
         &[source.clone(), sink.clone()],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &empty_bases,
             line_candidates: &empty_lines,
@@ -139,7 +139,7 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
     let line = conduit_core::process_owned_line_offer_with_limits(
         "browser/body-camera-realization/camera-line",
         "browser/body-camera-realization/camera-binding",
-        ConnectionBase::WebRtcDataChannel,
+        BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
         "browser/body-camera-realization/camera-base",
         &source,
         &sink,
@@ -162,7 +162,9 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
         &expanded,
         &[source.clone(), sink.clone()],
         &placements,
-        &[ConnectionBase::WebRtcDataChannel],
+        &[BaseImplementationId::from(
+            "conduit.base/webrtc-data-channel@1",
+        )],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &line_candidates,

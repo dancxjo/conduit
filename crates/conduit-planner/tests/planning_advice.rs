@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    verify_plan, BootId, CapabilityId, CheckedFormId, ConnectionBase, GearId, HostId, LineId,
+    verify_plan, BaseImplementationId, BootId, CapabilityId, CheckedFormId, GearId, HostId, LineId,
     OfferGeneration,
 };
 use conduit_form::parse_with_startup;
@@ -57,8 +57,13 @@ fn placement_advice(
 fn optional_advice_seeds_the_same_ordinary_planner_without_minting_plan_truth() {
     let (form, hosts) = pulse_fixture();
     let ordinary_choices = default_placements(&form, &hosts).expect("ordinary choices");
-    let ordinary = plan(&form, &hosts, &ordinary_choices, &[ConnectionBase::Local])
-        .expect("planning works without a model");
+    let ordinary = plan(
+        &form,
+        &hosts,
+        &ordinary_choices,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .expect("planning works without a model");
 
     let advice = placement_advice(&form, &hosts[1]);
     let seeded = seed_planning_from_advice(&form, &hosts, &[], &advice).expect("advice validates");
@@ -68,8 +73,13 @@ fn optional_advice_seeds_the_same_ordinary_planner_without_minting_plan_truth() 
     assert_eq!(seeded.evidence.proposed_placements, 1);
     assert_eq!(seeded.evidence.used_placements, 1);
 
-    let advised = plan(&form, &hosts, &seeded.placements, &[ConnectionBase::Local])
-        .expect("ordinary planner validates and seals advised inputs");
+    let advised = plan(
+        &form,
+        &hosts,
+        &seeded.placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .expect("ordinary planner validates and seals advised inputs");
     assert!(verify_plan(&ordinary) && verify_plan(&advised));
     assert_ne!(ordinary.plan_id, advised.plan_id);
     assert!(ordinary
@@ -182,9 +192,9 @@ fn exact_line_advice_is_revalidated_then_sealed_only_by_ordinary_planning() {
         &hosts,
         &seeded.placements,
         &[
-            ConnectionBase::Local,
-            ConnectionBase::WebSocket,
-            ConnectionBase::UsbCdc,
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
         ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
@@ -220,7 +230,13 @@ fn fresh_truth_changes_only_future_planning_and_never_mutates_the_active_plan() 
     let (form, hosts) = pulse_fixture();
     let advice = placement_advice(&form, &hosts[1]);
     let seeded = seed_planning_from_advice(&form, &hosts, &[], &advice).unwrap();
-    let active = plan(&form, &hosts, &seeded.placements, &[ConnectionBase::Local]).unwrap();
+    let active = plan(
+        &form,
+        &hosts,
+        &seeded.placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .unwrap();
     let sealed_active = active.clone();
 
     let mut fresh_hosts = hosts.clone();
@@ -239,7 +255,7 @@ fn fresh_truth_changes_only_future_planning_and_never_mutates_the_active_plan() 
         &form,
         &fresh_hosts,
         &fresh.placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     assert_ne!(active.plan_id, replacement.plan_id);

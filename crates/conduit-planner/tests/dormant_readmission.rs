@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     authority_grant, kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityGrant,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase,
-    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindContractRevision, LineId, LinkBindingId, LinkEndpointId, OfferGeneration,
-    PortDescriptor, PortDirection, PortTemporal, ResourceClassId, ResourceHealth,
+    AuthorityRequirement, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement,
+    HostProfileId, ImplementationId, KindContractRevision, LineId, LinkBindingId, LinkEndpointId,
+    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, ResourceClassId, ResourceHealth,
     ResourceObservation, ResourceOffer, ResourcePoolId, ResourceRequirement, SignId,
     PROTOCOL_VERSION,
 };
@@ -148,7 +148,7 @@ fn line(
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
     name: &str,
-    base: ConnectionBase,
+    base: BaseImplementationId,
 ) -> conduit_core::LineOffer {
     let mut line = conduit_signal_conformance::distributed_websocket_line_offer();
     line.line_id = LineId::from(format!("dormant/{name}"));
@@ -251,7 +251,10 @@ fn plan(
         checked,
         &hosts,
         &placements,
-        &[ConnectionBase::WebSocket, ConnectionBase::UsbCdc],
+        &[
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -283,13 +286,23 @@ fn unused_host_returns_only_through_fresh_truth_and_ordinary_plan() {
     let preferred = host("host-fast", "boot-fast", 1, &[SINK]);
     let dormant = host("host-slow", "boot-slow-fresh", 5, &[SINK]);
     let old_dormant = host("host-slow", "boot-slow-old", 1, &[SINK]);
-    let preferred_line = line(&source, &preferred, "fast-wifi", ConnectionBase::WebSocket);
-    let returned_line = line(&source, &dormant, "slow-serial", ConnectionBase::UsbCdc);
+    let preferred_line = line(
+        &source,
+        &preferred,
+        "fast-wifi",
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+    );
+    let returned_line = line(
+        &source,
+        &dormant,
+        "slow-serial",
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+    );
     let old_dormant_line = line(
         &source,
         &old_dormant,
         "slow-serial-old",
-        ConnectionBase::UsbCdc,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
     );
     let preferred_plan = plan(
         &checked,
@@ -370,7 +383,12 @@ fn stale_history_resource_line_authority_and_revisions_refuse_specifically() {
         .unwrap();
     let source = host("host-source", "boot-source", 1, &[SOURCE]);
     let current = host("host-slow", "boot-slow-fresh", 5, &[SINK]);
-    let current_line = line(&source, &current, "slow-serial", ConnectionBase::UsbCdc);
+    let current_line = line(
+        &source,
+        &current,
+        "slow-serial",
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+    );
     let requirement = RequiredDormantLine {
         line_id: current_line.line_id.clone(),
         contract: current_line.contract,
@@ -396,7 +414,12 @@ fn stale_history_resource_line_authority_and_revisions_refuse_specifically() {
         observe(
             &stale_boot,
             observation(&stale_boot, "resource/stale-boot"),
-            line(&source, &stale_boot, "slow-serial", ConnectionBase::UsbCdc),
+            line(
+                &source,
+                &stale_boot,
+                "slow-serial",
+                BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+            ),
             &[grant(&stale_boot)],
         ),
         Err(DormantReadmissionRefusal::StaleBoot)
@@ -412,7 +435,7 @@ fn stale_history_resource_line_authority_and_revisions_refuse_specifically() {
                 &source,
                 &incompatible_protocol,
                 "slow-serial",
-                ConnectionBase::UsbCdc,
+                BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
             ),
             &[grant(&incompatible_protocol)],
         ),
@@ -429,7 +452,7 @@ fn stale_history_resource_line_authority_and_revisions_refuse_specifically() {
                 &source,
                 &stale_generation,
                 "slow-serial",
-                ConnectionBase::UsbCdc,
+                BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
             ),
             &[grant(&stale_generation)],
         ),
@@ -492,7 +515,7 @@ fn stale_history_resource_line_authority_and_revisions_refuse_specifically() {
                 &source,
                 &incompatible,
                 "slow-serial",
-                ConnectionBase::UsbCdc,
+                BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
             ),
             &[grant(&incompatible)],
         ),
