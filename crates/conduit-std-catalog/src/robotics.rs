@@ -51,8 +51,6 @@ pub const ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION: &str =
     "std/kernel-robotics-prewake-velocity-intent@1";
 pub const ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION: &str =
     "std/kernel-robotics-prewake-drive-differential@2";
-pub const CONDUITOS_ROBOTICS_EXECUTION_PROFILE: &str = "conduitos/robotics-prewake-fixed@1";
-pub const CONDUITOS_ROBOTICS_ARTIFACT: &str = "conduitos/robotics-prewake@1";
 const MAXIMUM_VALUE_BYTES: u32 = 12;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -359,41 +357,6 @@ pub fn robotics_drive_differential_offer() -> CapabilityOffer {
         "drive-differential",
         ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION,
     )
-}
-
-pub fn conduitos_robotics_offers() -> Vec<CapabilityOffer> {
-    [
-        robotics_observe_bump_offer(),
-        robotics_observe_imu_offer(),
-        robotics_observe_range_offer(),
-        robotics_observe_odometry_offer(),
-        robotics_observe_battery_offer(),
-        robotics_velocity_intent_offer(),
-        robotics_drive_differential_offer(),
-    ]
-    .into_iter()
-    .map(|mut offer| {
-        let slug = offer
-            .kind_id
-            .as_str()
-            .strip_prefix("robotics/")
-            .expect("canonical robotics Kind has prefix");
-        offer.capability_id = CapabilityId::from(format!("conduitos-robotics-{slug}@1"));
-        offer.implementation.execution_profile_id =
-            ExecutionProfileId::from(CONDUITOS_ROBOTICS_EXECUTION_PROFILE);
-        let implementation_revision = if offer.kind_id.as_str() == ROBOTICS_DRIVE_DIFFERENTIAL_KIND
-        {
-            2
-        } else {
-            1
-        };
-        offer.implementation.implementation_id = ImplementationId::from(format!(
-            "conduitos/kernel-robotics-prewake-{slug}@{implementation_revision}"
-        ));
-        offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_ROBOTICS_ARTIFACT);
-        offer
-    })
-    .collect()
 }
 
 #[cfg(any(feature = "form-catalog", test))]

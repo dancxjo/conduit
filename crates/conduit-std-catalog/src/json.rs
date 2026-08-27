@@ -13,9 +13,6 @@ pub const JSON_ENCODE_STD_IMPLEMENTATION: &str = "std/kernel-json-encode@1";
 pub const JSON_DECODE_STD_IMPLEMENTATION: &str = "std/kernel-json-decode@1";
 pub const JSON_STD_PROFILE: &str = "std/no-std-bounded-json@1";
 pub const JSON_STD_ARTIFACT: &str = "conduit-core/bounded-json@1";
-pub const JSON_CONDUITOS_PROFILE: &str = "conduitos/fixed-bounded-json@1";
-pub const JSON_ENCODE_CONDUITOS_IMPLEMENTATION: &str = "conduitos/kernel-json-encode@1";
-pub const JSON_DECODE_CONDUITOS_IMPLEMENTATION: &str = "conduitos/kernel-json-decode@1";
 pub const JSON_ENCODE_HOST_OPERATION: &str = "conduit.host/json-encode@1";
 pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
 
@@ -52,26 +49,6 @@ pub fn json_decode_std_offer() -> CapabilityOffer {
         conduit_web::JSON_DECODE_REVISION,
         JSON_STD_PROFILE,
         JSON_DECODE_STD_IMPLEMENTATION,
-    )
-}
-
-pub fn json_encode_conduitos_offer() -> CapabilityOffer {
-    offer(
-        &json_encode_contract(),
-        "conduitos-json-encode-v1",
-        conduit_web::JSON_ENCODE_REVISION,
-        JSON_CONDUITOS_PROFILE,
-        JSON_ENCODE_CONDUITOS_IMPLEMENTATION,
-    )
-}
-
-pub fn json_decode_conduitos_offer() -> CapabilityOffer {
-    offer(
-        &json_decode_contract(),
-        "conduitos-json-decode-v1",
-        conduit_web::JSON_DECODE_REVISION,
-        JSON_CONDUITOS_PROFILE,
-        JSON_DECODE_CONDUITOS_IMPLEMENTATION,
     )
 }
 
@@ -146,7 +123,7 @@ mod tests {
         let described_encode = json_encode_contract();
         let described_decode = json_decode_contract();
         let encode = json_encode_std_offer();
-        let decode = json_decode_conduitos_offer();
+        let decode = json_decode_std_offer();
         assert_eq!(described_encode.kind_id, portable_encode.kind_id);
         assert_eq!(described_encode.inputs, portable_encode.inputs);
         assert_eq!(described_encode.outputs, portable_encode.outputs);
@@ -167,8 +144,8 @@ mod tests {
         assert!(encode.authority_requirements.is_empty());
         assert!(decode.authority_requirements.is_empty());
         assert_ne!(
-            encode.implementation.execution_profile_id,
-            decode.implementation.execution_profile_id
+            encode.implementation.implementation_id,
+            decode.implementation.implementation_id
         );
     }
 }

@@ -131,7 +131,7 @@ fn advertisement(host: &str, boot: &str, sequence: StateSelectSequence) -> HostA
             bool_source_offer(sequence.selectors),
             scalar_source_offer(FALSE_SOURCE_KIND, sequence.when_false),
             scalar_source_offer(TRUE_SOURCE_KIND, sequence.when_true),
-            conduit_std_catalog::conduitos_state_select_scalar_offer(),
+            crate::functional_offers::state_select_scalar_offer(),
             sink_offer(),
         ],
     }
@@ -228,7 +228,7 @@ fn sink_offer() -> CapabilityOffer {
 fn fixture_implementation(id: &str) -> conduit_core::ImplementationOffer {
     conduit_core::ImplementationOffer {
         execution_profile_id: ExecutionProfileId::from(
-            conduit_std_catalog::CONDUITOS_FLOW_STATE_EXECUTION_PROFILE,
+            crate::functional_offers::FLOW_STATE_PROFILE,
         ),
         implementation_id: ImplementationId::from(id),
         artifact_id: ArtifactId::from(FIXTURE_ARTIFACT),

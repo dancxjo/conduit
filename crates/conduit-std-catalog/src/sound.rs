@@ -41,9 +41,6 @@ pub const MUSIC_SYNTH_REFERENCE_IMPLEMENTATION: &str = "std/kernel-music-synth-f
 pub const MUSIC_SYNTH_REFERENCE_ARTIFACT: &str = "conduit-std-host/music-synth-fixed-q16@1";
 pub const MUSIC_SYNTH_HOST_OPERATION: &str = "conduit.host/music-synth-render-fixed-q16@1";
 pub const MUSIC_SYNTH_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 256 * 4;
-pub const CONDUITOS_MUSIC_SYNTH_PROFILE: &str = "conduitos/music-synth-fixed-q16@1";
-pub const CONDUITOS_MUSIC_SYNTH_IMPLEMENTATION: &str = "conduitos/kernel-music-synth-fixed-q16@1";
-pub const CONDUITOS_MUSIC_SYNTH_ARTIFACT: &str = "conduitos/music-synth-fixed-q16@1";
 pub const SYNTH_MAXIMUM_VOICES_KEY: &str = "maximum-voices";
 pub const SYNTH_OSCILLATOR_KEY: &str = "oscillator";
 pub const SYNTH_PULSE_WIDTH_KEY: &str = "pulse-width-q16";
@@ -252,17 +249,6 @@ pub fn music_synth_reference_offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: audio_limits(),
     }
-}
-
-pub fn conduitos_music_synth_offer() -> CapabilityOffer {
-    let mut offer = music_synth_reference_offer();
-    offer.capability_id = CapabilityId::from("conduitos-music-synth-fixed-q16");
-    offer.implementation.execution_profile_id =
-        ExecutionProfileId::from(CONDUITOS_MUSIC_SYNTH_PROFILE);
-    offer.implementation.implementation_id =
-        ImplementationId::from(CONDUITOS_MUSIC_SYNTH_IMPLEMENTATION);
-    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_MUSIC_SYNTH_ARTIFACT);
-    offer
 }
 
 pub fn music_synth_configuration() -> Vec<StandardConfigurationField> {

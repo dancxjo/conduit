@@ -1,7 +1,9 @@
 use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
 };
-use alloc::string::{String, ToString};
+#[cfg(feature = "form-catalog")]
+use alloc::string::String;
+use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
@@ -18,10 +20,6 @@ pub const STATE_COUNT_EXECUTION_PROFILE: &str = "conduit.std/state-count-kernel-
 pub const STATE_COUNT_IMPLEMENTATION: &str = "std/kernel-state-count@1";
 pub const STATE_COUNT_ARTIFACT: &str = "conduit-std-host/state-count@1";
 pub const STATE_COUNT_CAPABILITY: &str = "state-count-v1";
-pub const CONDUITOS_STATE_COUNT_CAPABILITY: &str = "conduitos-state-count-v1";
-pub const CONDUITOS_STATE_COUNT_IMPLEMENTATION: &str = "conduitos/kernel-state-count@1";
-pub const CONDUITOS_PORTABLE_STATE_INPUT_PROFILE: &str = "conduitos/portable-state-input-fixed@1";
-pub const CONDUITOS_PORTABLE_STATE_INPUT_ARTIFACT: &str = "conduitos/portable-state-input@1";
 
 pub const COUNT_PRESENTATION_KIND: &str = "presentation/count";
 pub const COUNT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-count@1";
@@ -127,17 +125,6 @@ pub fn state_count_offer() -> CapabilityOffer {
         Vec::new(),
         Vec::new(),
     )
-}
-
-pub fn conduitos_state_count_offer() -> CapabilityOffer {
-    let mut offer = state_count_offer();
-    offer.capability_id = CapabilityId::from(CONDUITOS_STATE_COUNT_CAPABILITY);
-    offer.implementation.execution_profile_id =
-        ExecutionProfileId::from(CONDUITOS_PORTABLE_STATE_INPUT_PROFILE);
-    offer.implementation.implementation_id =
-        ImplementationId::from(CONDUITOS_STATE_COUNT_IMPLEMENTATION);
-    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_PORTABLE_STATE_INPUT_ARTIFACT);
-    offer
 }
 
 pub fn count_presentation_offer() -> CapabilityOffer {

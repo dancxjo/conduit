@@ -44,7 +44,7 @@ fn fixed_kernel_selects_false_and_true_with_exact_profile_identity() {
             .unwrap();
         assert_eq!(
             placement.implementation_id.as_str(),
-            conduit_std_catalog::CONDUITOS_STATE_SELECT_SCALAR_IMPLEMENTATION
+            crate::functional_offers::STATE_SELECT_SCALAR_IMPLEMENTATION
         );
         let proof = run_state_select(&prepared).unwrap();
         assert_eq!(proof.outputs[0], Some(expected));

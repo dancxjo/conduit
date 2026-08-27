@@ -53,7 +53,8 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
     assert!(!app.workspace_shards["portable"]);
     assert!(!app.workspace_shards["pico"]);
     assert!(!app.workspace_lint_full);
-    assert_eq!(app.workspace_lint_packages, app.affected_test_packages);
+    assert_eq!(app.workspace_lint_packages, ["conduit-pete"]);
+    assert!(app.affected_test_packages.contains(&"xtask".to_owned()));
 
     let kernel = plan_for_paths(
         &root,
