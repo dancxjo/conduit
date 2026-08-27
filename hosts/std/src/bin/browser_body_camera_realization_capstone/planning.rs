@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use conduit_body::MembershipCredential;
+use conduit_browser_runtime::human_media::acquired_camera_source_offer;
 use conduit_core::{
     process_owned_line_offer_with_limits, resource_offer, AcquiredMediaResource,
     AuthorityContractId, AuthorityGrant, BaseImplementationId, HostAdvertisement,
@@ -14,8 +15,7 @@ use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
 use conduit_std_catalog::{
-    acquired_camera_source_offer, install_human_media_catalogs, CAMERA_FRAME_KIND,
-    CAMERA_SOURCE_KIND, MEDIA_USE_OPERATION,
+    install_human_media_catalogs, CAMERA_FRAME_KIND, CAMERA_SOURCE_KIND, MEDIA_USE_OPERATION,
 };
 use conduit_std_host::browser_admission::browser_webrtc_line_contract;
 use conduit_wire::SessionBinding;

@@ -15,6 +15,7 @@ conduit-audio = { path = "../../crates/conduit-audio" }
 conduit-alife = { path = "../../crates/conduit-alife", features = ["planning"] }
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-bluetooth = { path = "../../crates/conduit-bluetooth" }
+conduit-browser-runtime = { path = "../browser-runtime" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-chat = { path = "../../crates/conduit-chat", features = ["form-catalog"] }
 conduit-form = { path = "../../crates/conduit-form" }
@@ -66,6 +67,5 @@ path = "src/bin/distributed-lenia-probe.rs"
 required-features = ["bluetooth-bluez"]
 
 [dev-dependencies]
-conduit-browser-runtime = { path = "../browser-runtime" }
 conduit-workspace-fabrication = { path = "../../crates/conduit-workspace-fabrication" }
 ed25519-dalek = "2.2"
