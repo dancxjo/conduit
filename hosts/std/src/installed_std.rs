@@ -426,7 +426,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let math_scale_target_kind = kind_id(conduit_std_catalog::MATH_SCALE_KIND);
     let math_deadband_target_kind = kind_id(conduit_std_catalog::MATH_DEADBAND_KIND);
     let layout_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_catalog::LAYOUT_HOST_OPERATION);
+        conduit_core::HostOperationContractId::from(conduit_std_offers::LAYOUT_HOST_OPERATION);
     let layout_target_kinds = [
         kind_id(conduit_std_catalog::LAYOUT_INSET_KIND),
         kind_id(conduit_std_catalog::LAYOUT_ROW_KIND),
@@ -435,14 +435,14 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         kind_id(conduit_std_catalog::LAYOUT_ALIGN_KIND),
     ];
     let presentation_composition_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_catalog::PRESENTATION_COMPOSITION_HOST_OPERATION,
+        conduit_std_offers::PRESENTATION_COMPOSITION_HOST_OPERATION,
     );
     let presentation_composition_target_kinds = [
         kind_id(conduit_std_catalog::PRESENTATION_FRAME_KIND),
         kind_id(conduit_std_catalog::PRESENTATION_BADGE_KIND),
     ];
     let graphics_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_catalog::GRAPHICS_HOST_OPERATION);
+        conduit_core::HostOperationContractId::from(conduit_std_offers::GRAPHICS_HOST_OPERATION);
     let graphics_target_kinds = [
         kind_id(conduit_std_catalog::GRAPHICS_RECT_KIND),
         kind_id(conduit_std_catalog::GRAPHICS_TEXT_KIND),

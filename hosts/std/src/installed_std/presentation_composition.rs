@@ -12,7 +12,7 @@ use conduit_presentation::{
 macro_rules! factory {
     ($name:ident, $implementation:ident) => {
         pub(super) static $name: InstalledFactory = InstalledFactory {
-            implementation_id: conduit_std_catalog::$implementation,
+            implementation_id: conduit_std_offers::$implementation,
             budget,
             prepare,
         };
@@ -262,8 +262,8 @@ fn prepare(
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::presentation_composition_offer_for(placement.kind_id.as_str())
-        .or_else(|| conduit_std_catalog::graphics_offer_for(placement.kind_id.as_str()))
+    let offer = conduit_std_offers::presentation_composition_offer_for(placement.kind_id.as_str())
+        .or_else(|| conduit_std_offers::graphics_offer_for(placement.kind_id.as_str()))
         .ok_or_else(|| "unsupported presentation or graphics Kind".to_string())?;
     if placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id

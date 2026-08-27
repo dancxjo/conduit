@@ -5,9 +5,8 @@ use super::{
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use conduit_presentation::{
     PresentationIconKey, GRAPHICS_SCENE_KIND, MAX_GRAPHICS_SCENE_BYTES, MAX_GRAPHICS_TEXT_BYTES,
@@ -17,10 +16,6 @@ use conduit_presentation::{
 pub const GRAPHICS_RECT_KIND: &str = "graphics/rect";
 pub const GRAPHICS_TEXT_KIND: &str = "graphics/text";
 pub const GRAPHICS_ICON_KIND: &str = "graphics/icon";
-pub const GRAPHICS_RECT_IMPLEMENTATION: &str = "std/graphics/rect-implementation@1";
-pub const GRAPHICS_TEXT_IMPLEMENTATION: &str = "std/graphics/text-implementation@1";
-pub const GRAPHICS_ICON_IMPLEMENTATION: &str = "std/graphics/icon-implementation@1";
-pub const GRAPHICS_HOST_OPERATION: &str = "conduit.host/graphics-scene-transform@1";
 pub const GRAPHICS_INPUT_PORT: &str = "input";
 pub const GRAPHICS_OUTPUT_PORT: &str = "scene";
 pub const GRAPHICS_X_KEY: &str = "x";
@@ -35,9 +30,7 @@ pub const PAINT_KEY: &str = "paint";
 pub const STYLE_KEY: &str = "style";
 pub const GRAPHICS_TEXT_KEY: &str = "text";
 pub const GRAPHICS_ICON_KEY: &str = "icon";
-const REVISION: &str = "conduit.std/graphics-scene@1";
-const PROFILE: &str = "conduit.std/graphics-scene-kernel@1";
-const ARTIFACT: &str = "conduit-std-host/graphics-scene@1";
+pub const GRAPHICS_SCENE_CONTRACT_REVISION: &str = "conduit.std/graphics-scene@1";
 
 pub fn graphics_rect_contract() -> StandardKindContract {
     contract(
@@ -104,20 +97,11 @@ pub fn graphics_icon_contract() -> StandardKindContract {
     )
 }
 
-pub fn graphics_rect_offer() -> CapabilityOffer {
-    offer(graphics_rect_contract())
-}
-pub fn graphics_text_offer() -> CapabilityOffer {
-    offer(graphics_text_contract())
-}
-pub fn graphics_icon_offer() -> CapabilityOffer {
-    offer(graphics_icon_contract())
-}
-pub fn graphics_offer_for(kind: &str) -> Option<CapabilityOffer> {
+pub fn graphics_contract_for(kind: &str) -> Option<StandardKindContract> {
     Some(match kind {
-        GRAPHICS_RECT_KIND => graphics_rect_offer(),
-        GRAPHICS_TEXT_KIND => graphics_text_offer(),
-        GRAPHICS_ICON_KIND => graphics_icon_offer(),
+        GRAPHICS_RECT_KIND => graphics_rect_contract(),
+        GRAPHICS_TEXT_KIND => graphics_text_contract(),
+        GRAPHICS_ICON_KIND => graphics_icon_contract(),
         _ => return None,
     })
 }
@@ -152,38 +136,6 @@ fn contract(
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: format_example(kind),
-    }
-}
-fn offer(contract: StandardKindContract) -> CapabilityOffer {
-    let kind = contract.kind_id.as_str();
-    CapabilityOffer {
-        startup_parameters: super::functional_face::startup_face(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from(alloc::format!("std/{kind}-capability@1").as_str()),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(REVISION),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(PROFILE),
-            implementation_id: ImplementationId::from(match kind {
-                GRAPHICS_RECT_KIND => GRAPHICS_RECT_IMPLEMENTATION,
-                GRAPHICS_TEXT_KIND => GRAPHICS_TEXT_IMPLEMENTATION,
-                GRAPHICS_ICON_KIND => GRAPHICS_ICON_IMPLEMENTATION,
-                _ => unreachable!(),
-            }),
-            artifact_id: ArtifactId::from(ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(GRAPHICS_HOST_OPERATION),
-            target_kind: Some(contract.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-            maximum_output_bytes: MAX_GRAPHICS_SCENE_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
@@ -295,7 +247,9 @@ pub fn install_graphics_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(REVISION),
+                kind_contract_revision: KindContractRevision::from(
+                    GRAPHICS_SCENE_CONTRACT_REVISION,
+                ),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,
@@ -329,7 +283,7 @@ mod tests {
             ] {
                 assert!(!rendered.to_ascii_lowercase().contains(forbidden));
             }
-            assert!(graphics_offer_for(contract.kind_id.as_str()).is_some());
+            assert!(graphics_contract_for(contract.kind_id.as_str()).is_some());
         }
     }
 }
