@@ -455,8 +455,52 @@ jobs:
         if: steps.browser-proof.outcome == 'failure'
         run: exit 1
 
-  conduitos-x86:
+  conduitos-proof-image:
     needs: [classify, conduitos-limine, conduitos-tools]
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')) && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rust-src
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          shared-key: conduitos-x86-proof-image
+      - name: Receive the verified pinned bootloader archive
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-limine-${{ github.sha }}
+          path: target/conduitos/vendor
+      - name: Receive the exact ConduitOS tool bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-tools-${{ github.run_id }}
+          path: target/conduitos/tool-bundle
+      - name: Install the exact ConduitOS tool bundle without mirror access
+        run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
+      - name: BUILD one exact immutable x86 proof image
+        run: cargo xtask conduitos prepare-proof-image --locked
+      - name: Distribute the exact prepared proof image
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduitos-proof-image-${{ github.run_id }}
+          path: |
+            target/conduitos/x86_64/conduitos
+            target/conduitos/x86_64/conduitos.iso
+            target/conduitos/x86_64/build.json
+            target/conduitos/x86_64/image.json
+            target/conduitos/x86_64/prepared-proof-image.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: true
+
+  conduitos-x86:
+    needs: [classify, conduitos-limine, conduitos-tools, conduitos-proof-image]
     if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_x86_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
@@ -468,6 +512,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+        if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
+      - uses: dtolnay/rust-toolchain@stable
+        if: matrix.proof == 'kernel' || matrix.proof == 'front-door' || matrix.proof == 'product-journey'
         with:
           components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
@@ -487,17 +534,28 @@ jobs:
           path: target/conduitos/tool-bundle
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
+      - name: Preserve the prepared-image BUILD gate
+        if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
+        env:
+          PREPARED_IMAGE_RESULT: ${{ needs.conduitos-proof-image.result }}
+        run: test "$PREPARED_IMAGE_RESULT" = success
+      - name: Receive the exact prepared proof image
+        if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-proof-image-${{ github.run_id }}
+          path: target/conduitos/x86_64
       - name: Run ${{ matrix.proof }} proof
         run: |
           case '${{ matrix.proof }}' in
             kernel) cargo xtask conduitos prove --arch x86-64 --locked --evidence-root target/conduit-evidence/conduitos-x86_64 && cargo xtask evidence verify --locked --root target/conduit-evidence/conduitos-x86_64 --commit "$GITHUB_SHA" --result complete --proof conduitos-x86_64 --suite conduitos.prove.x86_64 ;;
-            xhci) cargo xtask conduitos xhci-proof --locked ;;
-            usb) cargo xtask conduitos usb-proof --locked ;;
-            hid) cargo xtask conduitos hid-proof --locked ;;
-            keyboard) cargo xtask conduitos keyboard-proof --locked ;;
+            xhci) cargo xtask conduitos xhci-proof --prepared-image --locked ;;
+            usb) cargo xtask conduitos usb-proof --prepared-image --locked ;;
+            hid) cargo xtask conduitos hid-proof --prepared-image --locked ;;
+            keyboard) cargo xtask conduitos keyboard-proof --prepared-image --locked ;;
             front-door) cargo xtask conduitos front-door-proof --locked ;;
             product-journey) cargo xtask conduitos journey-proof --locked ;;
-            rescue) cargo xtask conduitos rescue-proof --locked ;;
+            rescue) cargo xtask conduitos rescue-proof --prepared-image --locked ;;
             *) echo 'unknown ConduitOS x86 proof' >&2; exit 1 ;;
           esac
       - name: Retain ${{ matrix.proof }} proof

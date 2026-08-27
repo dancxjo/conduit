@@ -137,6 +137,9 @@ fn workflow_uses_the_plan_selectively_only_for_pull_requests() {
     assert!(workflow.contains(
         "conduitos_architecture_matrix: ${{ steps.impact.outputs.conduitos_architecture_matrix || '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]' }}"
     ));
+    assert!(workflow.contains("conduitos-proof-image:"));
+    assert!(workflow.contains("cargo xtask conduitos prepare-proof-image --locked"));
+    assert!(workflow.contains("xhci-proof --prepared-image --locked"));
     assert!(workflow.contains(
         "shard: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.workspace_matrix"
     ));

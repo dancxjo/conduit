@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 use super::{
-    image,
+    prepared_proof_image,
     profile::{Paths, QEMU_PROFILE},
     report::{git_head, GuestKeyboardSign, GuestKeyboardTextSign},
     run, usb_run, ConduitosArch, ConduitosError,
@@ -53,7 +53,7 @@ struct KeyboardProofRecord {
     unicode_translation: bool,
 }
 
-pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
             "dry-run-has-no-proof",
@@ -61,7 +61,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    image::execute_proof(ConduitosArch::X86_64, opts)?;
+    prepared_proof_image::ensure(prepared_image, opts)?;
     let positive_run = run::boot_once(&paths, opts)?;
     let absent = usb_run::prove_absent(&paths)?;
     let device_status = Command::new("cargo")

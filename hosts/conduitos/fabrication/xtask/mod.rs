@@ -41,6 +41,7 @@ mod loongarch64_a3;
 mod loongarch64_a4;
 mod opl2_proof;
 mod pc_speaker_proof;
+mod prepared_proof_image;
 mod product_readiness_matrix;
 mod profile;
 mod prove;
@@ -106,19 +107,21 @@ enum ConduitosCommand {
     /// Prove one exact deterministic deadline-bounded local Plan and refusal.
     TimingProfile,
     /// Prove one real bounded xHCI Base and fail-closed controller absence.
-    XhciProof,
+    XhciProof(PreparedProofArgs),
     /// Prove one real bounded root-attached USB device without semantic input.
-    UsbProof,
+    UsbProof(PreparedProofArgs),
     /// Prove one real HID boot-keyboard press/release stream without semantics.
-    HidProof,
+    HidProof(PreparedProofArgs),
     /// Prove the exact portable keyboard offer, Plan, Play, and event values.
-    KeyboardProof,
+    KeyboardProof(PreparedProofArgs),
+    /// Build one immutable x86 proof image for bounded downstream PLAY jobs.
+    PrepareProofImage,
     /// Prove the exact PC-speaker offer, Plan, production-kernel Play, and Base effects.
     PcSpeakerProof,
     /// Prove real USB keyboard detach/reattach across immutable and fresh Plans.
     HotplugProof,
     /// Prove one low-level local rescue request and real fresh boot.
-    RescueProof,
+    RescueProof(PreparedProofArgs),
     /// Prove one exact native OPL2 musical realization on QEMU AdLib.
     Opl2Proof,
 }
@@ -197,6 +200,13 @@ struct ProveArgs {
     /// Emit bounded proof-native console evidence beneath this root.
     #[arg(long)]
     evidence_root: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone, Copy)]
+struct PreparedProofArgs {
+    /// Verify and play the exact image prepared by `prepare-proof-image`.
+    #[arg(long)]
+    prepared_image: bool,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -421,13 +431,14 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
-        ConduitosCommand::XhciProof => xhci_proof::execute(opts),
-        ConduitosCommand::UsbProof => usb_proof::execute(opts),
-        ConduitosCommand::HidProof => hid_proof::execute(opts),
-        ConduitosCommand::KeyboardProof => keyboard_proof::execute(opts),
+        ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::UsbProof(args) => usb_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::HidProof(args) => hid_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::KeyboardProof(args) => keyboard_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::PrepareProofImage => prepared_proof_image::prepare(opts),
         ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
-        ConduitosCommand::RescueProof => rescue_proof::execute(opts),
+        ConduitosCommand::RescueProof(args) => rescue_proof::execute(args.prepared_image, opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
     }
 }
@@ -465,6 +476,22 @@ mod tests {
         let error =
             Cli::try_parse_from(["xtask", "conduitos", "demo", "--arch", "aarch64"]).unwrap_err();
         assert!(error.to_string().contains("x86-64"));
+    }
+
+    #[test]
+    fn prepared_image_build_and_play_flags_are_explicit() {
+        let build = Cli::try_parse_from(["xtask", "conduitos", "prepare-proof-image"]);
+        assert!(build.is_ok());
+        for proof in [
+            "xhci-proof",
+            "usb-proof",
+            "hid-proof",
+            "keyboard-proof",
+            "rescue-proof",
+        ] {
+            let play = Cli::try_parse_from(["xtask", "conduitos", proof, "--prepared-image"]);
+            assert!(play.is_ok(), "{proof}");
+        }
     }
 
     #[test]
