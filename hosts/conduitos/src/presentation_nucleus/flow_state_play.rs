@@ -9,14 +9,14 @@ use conduit_kernel::{
     FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
 };
-use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
     flow_state_operation::FlowStateOperation,
     flow_state_plan::{LEFT_SINK_KIND, PreparedFlowState, RIGHT_SINK_KIND, SOURCE_KIND},
 };
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 5;
 const CORDS: usize = 4;
 const ROUTES: usize = NODES * PORTS;
@@ -150,7 +150,7 @@ fn capture(
 
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     value: Scalar,
 ) -> Result<Scheduler, FlowStateError> {
     let nodes = lowered

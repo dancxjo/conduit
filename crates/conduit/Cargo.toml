@@ -18,7 +18,7 @@ conduit-net = { path = "../conduit-net", features = ["form-catalog"] }
 conduit-observatory = { path = "../conduit-observatory" }
 conduit-planner = { path = "../conduit-planner" }
 conduit-presentation = { path = "../conduit-presentation" }
-conduit-runtime = { path = "../conduit-runtime" }
+conduit-plan-lowering = { path = "../conduit-plan-lowering" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-std-host = { path = "../../hosts/std" }

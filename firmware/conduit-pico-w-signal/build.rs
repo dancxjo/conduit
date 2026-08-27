@@ -8,7 +8,7 @@ use conduit_core::{
     PlanId,
 };
 use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan};
-use conduit_runtime::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_signal::{signal_profile_catalog, SHOW_KIND, SIGNAL_ENCODED_LEN};
 use conduit_signal_conformance::{
     exact_std_pico_bluetooth_plan, exact_std_pico_usb_plan, pico_local_advertisement, triple,
@@ -94,7 +94,7 @@ fn generate_pico_lenia_image(out: &Path) {
             maximum_resources: 0,
             maximum_sign_expectations: 8,
             maximum_configuration_entries: 0,
-            maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
+            maximum_ports_per_node: conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             maximum_remote_endpoints: 2,
             maximum_cord_value_slots: 2,
             maximum_cord_value_bytes: conduit_alife::DISTRIBUTED_LENIA_VALUE_BYTES * 2,
@@ -413,7 +413,7 @@ fn generate_pico_network_image(out: &Path) {
             maximum_resources: 1,
             maximum_sign_expectations: 8,
             maximum_configuration_entries: 0,
-            maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
+            maximum_ports_per_node: conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             maximum_remote_endpoints: 1,
             maximum_cord_value_slots: 2,
             maximum_cord_value_bytes: conduit_net::MAXIMUM_JOIN_INPUT_BYTES
@@ -747,7 +747,7 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_resources: 2,
         maximum_sign_expectations: 8,
         maximum_configuration_entries: 3,
-        maximum_ports_per_node: conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE,
+        maximum_ports_per_node: conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: 2,
         maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,

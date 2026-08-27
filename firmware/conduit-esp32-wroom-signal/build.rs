@@ -4,7 +4,7 @@ use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
 use conduit_host_esp32_fabrication::{
     esp32_descriptor_binding, hw463_esp_wroom_32_sample, validate_esp32_descriptor,
 };
-use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_signal_conformance::{
     DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_WROOM_PHYSICAL_HOST_ID,
@@ -67,7 +67,7 @@ fn image_bounds(distributed: bool) -> EmbeddedImageBounds {
         maximum_resources: if distributed { 0 } else { 2 },
         maximum_sign_expectations: 8,
         maximum_configuration_entries: 0,
-        maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
+        maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: if distributed { 2 } else { 1 },
         maximum_cord_value_slots: if distributed {
             2

@@ -5,7 +5,7 @@ use conduit_kernel::scheduler::{CordSpec, FixedScheduler, OperationDriver, Sched
 use conduit_kernel::{
     FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore, NodeId, ValueStorage,
 };
-use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
     operation::PresentationOperation,
@@ -17,7 +17,7 @@ use super::{
     },
 };
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 12;
 const CORDS: usize = 7;
 const ROUTES: usize = NODES * PORTS;
@@ -112,7 +112,7 @@ pub fn run_robotics(prepared: &PreparedRobotics) -> Result<RoboticsProof, Roboti
 
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
 ) -> Result<(Kernel, NodeId), RoboticsError> {
     let nodes = lowered
         .node_specs

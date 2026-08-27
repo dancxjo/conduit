@@ -23,7 +23,7 @@ members = [
 	"crates/conduit-presentation",
 	"crates/conduit-body",
 	"crates/conduit-body-fabrication",
-	"crates/conduit-runtime",
+	"crates/conduit-plan-lowering",
 	"crates/conduit-composite",
 	"crates/conduit-observatory",
 	"crates/conduit-system-continuity",

@@ -17,14 +17,14 @@ use conduit_kernel::{
     FixedHostOperationBindings, FixedRoutes, FixedSignLog, HostOperationDisposition,
     HostOperationOutcome, HostedValueStore, ValueStorage,
 };
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
 use std::collections::BTreeMap;
 
 const SOURCE: &str = "form browser-education-feedback {\n value: structured-info/literal(value = {outcome: passed(true), prompt_id: \"question/3\", score: 88%})\n show: presentation/structured-info\n value > show\n}\n";
 const NODES: usize = 2;
 const CORDS: usize = 1;
-const ROUTES: usize = NODES * MAXIMUM_KERNEL_PORTS_PER_NODE;
+const ROUTES: usize = NODES * FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 type StructuredScheduler = FixedScheduler<
     OperationDriver<NucleusOperation, PORTS>,

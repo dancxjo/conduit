@@ -1,5 +1,5 @@
 use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds};
-use conduit_runtime::lowering::{lower_plan_fragment, RemoteCordDirection};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, RemoteCordDirection};
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
 use conduit_signal_conformance::{
     exact_std_pico_usb_plan, pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,

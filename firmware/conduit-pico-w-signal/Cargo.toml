@@ -66,7 +66,7 @@ conduit-core = { path = "../../crates/conduit-core" }
 conduit-embedded-build = { path = "../../crates/conduit-embedded-build" }
 conduit-form = { path = "../../crates/conduit-form" }
 conduit-planner = { path = "../../crates/conduit-planner" }
-conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
+conduit-plan-lowering = { path = "../../crates/conduit-plan-lowering", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-net = { path = "../../crates/conduit-net", features = ["form-catalog"] }

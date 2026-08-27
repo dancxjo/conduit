@@ -9,11 +9,12 @@ use conduit_kernel::{
     FixedRoutes, FixedSignLog, FixedValueStore, Operation, OperationAction, OperationInput, PortId,
     RemoteEndpointId, SignSink, ValueRef, ValueStorage,
 };
-use conduit_runtime::lowering::{
-    lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const VALUE_SLOTS: usize = 8;
 const VALUE_BYTES: usize = 384;
 const SIGNS: usize = 128;

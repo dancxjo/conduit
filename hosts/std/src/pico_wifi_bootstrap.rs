@@ -11,12 +11,12 @@ use conduit_kernel::{
     HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
     RemoteEndpointId, RequestId, SignQuery, ValueStorage,
 };
-use conduit_runtime::lowering::{
-    lower_plan_fragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_wire::{SessionBinding, SessionFrame, SessionMachine, SessionRole};
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const VALUE_ITEMS: u16 = 2;
 const SIGN_ITEMS: u16 = 32;
 

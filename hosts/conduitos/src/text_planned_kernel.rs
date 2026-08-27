@@ -14,11 +14,11 @@ use conduit_kernel::{
         FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
-use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
 const MAX_NODES: usize = 3;
 const MAX_CORDS: usize = 2;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 2;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 2;
@@ -394,7 +394,7 @@ mod tests {
             .find(|placement| placement.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND)
             .unwrap();
         upper.host_operations[0].target_kind = Some(conduit_core::KindId::from("wrong/transform"));
-        assert!(conduit_runtime::lowering::lower_plan_fragment(&fragment).is_err());
+        assert!(conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).is_err());
     }
 
     #[test]

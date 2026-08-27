@@ -9,7 +9,7 @@ use conduit_kernel::{
     BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
 };
-use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
     logic_multi_plan::{
@@ -18,7 +18,7 @@ use super::{
     operation::PresentationOperation,
 };
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 7;
 const CORDS: usize = 6;
 const ROUTES: usize = NODES * PORTS;
@@ -206,7 +206,7 @@ fn complete(
 
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     prepared: &PreparedLogicMulti,
 ) -> Result<Scheduler, LogicMultiError> {
     let nodes = lowered

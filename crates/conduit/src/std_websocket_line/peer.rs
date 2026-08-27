@@ -8,7 +8,7 @@ use conduit_wire::{
 };
 
 pub(super) fn run_sink(
-    lowered: conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: conduit_plan_lowering::lowering::LoweredPlanFragment,
     binding: SessionBinding,
     address: std::net::SocketAddr,
     url: &str,

@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use conduit_core::{CancellationPolicy, TerminalPolicy};
-use conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
+use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 use crate::model::{
     GeneratedConfigurationEntry, GeneratedConfigurationValue, GeneratedCordEndpoint,
@@ -28,7 +28,7 @@ impl GeneratedEmbeddedPlan {
         writeln!(
             output,
             "pub const GENERATED_PORTS_PER_NODE: usize = {};",
-            MAXIMUM_KERNEL_PORTS_PER_NODE
+            FIXED_KERNEL_STORAGE_PORTS_PER_NODE
         )
         .expect("String writes cannot fail");
         writeln!(
@@ -98,7 +98,7 @@ impl GeneratedEmbeddedPlan {
         writeln!(
             output,
             "pub const GENERATED_PORTS_PER_NODE: usize = {};",
-            MAXIMUM_KERNEL_PORTS_PER_NODE
+            FIXED_KERNEL_STORAGE_PORTS_PER_NODE
         )
         .expect("String writes cannot fail");
         writeln!(
@@ -208,7 +208,7 @@ fn render_nodes(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     writeln!(
         output,
         "pub const GENERATED_NODES: [conduit_kernel::scheduler::NodeSpec<{}>; {}] = [",
-        MAXIMUM_KERNEL_PORTS_PER_NODE,
+        FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         plan.nodes.len()
     )
     .expect("String writes cannot fail");

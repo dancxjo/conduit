@@ -4,10 +4,10 @@ use conduit_kernel::scheduler::{FixedScheduler, OperationDriver};
 use conduit_kernel::{
     FixedHostOperationBindings, FixedRoutes, HostedSignLog, HostedValueStore, ValueStorage,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
 const MAX_SIGN_ITEMS: u16 = 20_000;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 pub(super) type CopyScheduler = FixedScheduler<
     OperationDriver<CopyTaskOperation, PORTS>,

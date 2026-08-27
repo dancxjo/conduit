@@ -12,9 +12,9 @@ use conduit_kernel::{
     HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind, RemoteEndpointId,
     RequestId, SignQuery, ValueStorage,
 };
-use conduit_runtime::lowering::{
+use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
-    MAXIMUM_KERNEL_PORTS_PER_NODE,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_signal::{encode_signal, parse_pulse_configuration, Signal, SIGNAL_ENCODED_LEN};
 use conduit_signal_conformance::{
@@ -28,7 +28,7 @@ use conduit_wire::{
 mod pulse;
 use pulse::{PulseOperation, MAXIMUM_VALUES, MAXIMUM_WAITS};
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES + MAXIMUM_WAITS) as u16;
 const MAXIMUM_STORED_BYTES: u32 =
     MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN + MAXIMUM_WAITS as u32 * 8;

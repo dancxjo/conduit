@@ -114,15 +114,15 @@ use conduit_kernel::{
     HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore, NodeId,
     PortId, SignSink, ValueStorage,
 };
-use conduit_runtime::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, MAXIMUM_KERNEL_PORTS_PER_NODE,
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use std::io::Write;
 use std::time::Duration;
 
 const MAX_NODES: usize = 8;
 const MAX_CORDS: usize = 8;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 64;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 64;

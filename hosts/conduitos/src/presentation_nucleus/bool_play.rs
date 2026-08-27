@@ -13,11 +13,11 @@ use conduit_kernel::{
     FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, ValueStorage,
 };
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
 use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutRect, MAX_GRAPHICS_SCENE_BYTES,
 };
-use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::operation::PresentationOperation;
 use crate::display::{DisplayError, DisplayReceipt, PixelTarget, render_scene};
@@ -26,7 +26,7 @@ const SOURCE_KIND: &str = "conduitos/fixture-bool-source";
 const SOURCE_REVISION: &str = "conduitos/fixture-bool-source@1";
 const SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/bool-source@1";
 const FORM: &str = "form bool_presentation {\n source: conduitos/fixture-bool-source\n show: presentation/bool\n source > show\n}\n";
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 2;
 const CORDS: usize = 1;
 const ROUTES: usize = NODES * PORTS;
@@ -245,7 +245,7 @@ fn bool_offer() -> CapabilityOffer {
 
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     value: InfoBool,
 ) -> Result<Scheduler, BoolPresentationError> {
     let nodes = lowered

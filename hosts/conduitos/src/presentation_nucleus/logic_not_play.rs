@@ -16,8 +16,8 @@ use conduit_kernel::{
     BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
 };
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
-use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::operation::PresentationOperation;
 const SOURCE_KIND: &str = "conduitos/fixture-not-source";
@@ -28,7 +28,7 @@ const SINK_REVISION: &str = "conduitos/fixture-not-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduitos.fixture/not-sink@1";
 const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-bool@1";
 const FORM: &str = "form not_play {\n source: conduitos/fixture-not-source\n invert: logic/not\n sink: conduitos/fixture-not-sink\n source > invert\n invert > sink\n}\n";
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 3;
 const CORDS: usize = 2;
 const ROUTES: usize = NODES * PORTS;
@@ -299,7 +299,7 @@ fn decode_source(capability: &str) -> Result<InfoBool, LogicNotError> {
 
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     input: InfoBool,
 ) -> Result<Scheduler, LogicNotError> {
     let nodes = lowered

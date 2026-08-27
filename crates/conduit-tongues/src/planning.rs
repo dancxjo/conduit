@@ -10,10 +10,10 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
+use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, LoweredPlanFragment};
 use std::collections::BTreeMap;
 
 pub const SPEECH_FORM: &str = r#"form tongues_text_to_speech {

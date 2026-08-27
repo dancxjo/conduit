@@ -8,12 +8,12 @@ use conduit_kernel::{
     HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
     ValueStorage,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 pub(super) const VALUE_BYTES: u32 = 1024;
 const QUEUE_SLOTS: usize = 2;
 const NODES: usize = 2;
 const CORDS: usize = 1;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const ROUTE_SLOTS: usize = NODES * PORTS;
 const MAX_DECISIONS: usize = 32;
 
@@ -284,7 +284,7 @@ fn validate_prior(
 
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     encoded: &[u8],
 ) -> Result<Scheduler, ObligationRefusal> {
     let mut values = HostedValueStore::new(2, VALUE_BYTES, VALUE_BYTES * 2)

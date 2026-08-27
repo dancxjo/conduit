@@ -8,7 +8,7 @@ conduit-body = { path = "../../../crates/conduit-body" }
 conduit-core = { path = "../../../crates/conduit-core" }
 conduit-kernel = { path = "../../../crates/conduit-kernel", features = ["alloc"] }
 conduit-presentation = { path = "../../../crates/conduit-presentation" }
-conduit-runtime = { path = "../../../crates/conduit-runtime", default-features = false }
+conduit-plan-lowering = { path = "../../../crates/conduit-plan-lowering", default-features = false }
 conduit-std-host = { path = "../../../hosts/std" }
 conduit-std-catalog = { path = "../../../crates/conduit-std-catalog" }
 conduit-wire = { path = "../../../crates/conduit-wire" }

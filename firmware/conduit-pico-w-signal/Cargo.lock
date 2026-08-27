@@ -298,7 +298,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-kernel",
- "conduit-runtime",
+ "conduit-plan-lowering",
 ]
 
 [[package]]
@@ -358,10 +358,10 @@ dependencies = [
  "conduit-kernel",
  "conduit-mpu6050",
  "conduit-net",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-r1-network-conformance",
  "conduit-rp2040-network-realization",
- "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-ssd1306",
@@ -393,6 +393,14 @@ dependencies = [
  "serde_json",
  "static_cell",
  "trouble-host",
+]
+
+[[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]
@@ -432,14 +440,6 @@ name = "conduit-rp2040-network-realization"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
-]
-
-[[package]]
-name = "conduit-runtime"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-kernel",
 ]
 
 [[package]]

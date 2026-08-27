@@ -9,7 +9,7 @@ use conduit_kernel::{
         FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
-use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
 use crate::machine::KernelInterest;
 
@@ -19,7 +19,7 @@ const TIMER_REQUEST: RequestId = RequestId(1);
 const PRESENT_REQUEST: RequestId = RequestId(2);
 const MAX_NODES: usize = 2;
 const MAX_CORDS: usize = 1;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 1;
 const ROUTE_SLOTS: usize = 1;
 const ROUTE_TARGETS: usize = 1;

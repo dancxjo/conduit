@@ -14,8 +14,8 @@ use conduit_kernel::{
     HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, SignSink,
     ValueRef, ValueStorage,
 };
-use conduit_runtime::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, MAXIMUM_KERNEL_PORTS_PER_NODE,
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_signal::{
     decode_signal_bytes, encode_signal, parse_pulse_configuration, Signal, PULSE_KIND, SHOW_KIND,
@@ -24,7 +24,7 @@ use conduit_signal::{
 use std::io::Write;
 use std::time::Duration;
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const ROUTE_SLOTS: usize = 4 * PORTS;
 
 /// Exact platform manifestation boundary for the installed Signal kernel.

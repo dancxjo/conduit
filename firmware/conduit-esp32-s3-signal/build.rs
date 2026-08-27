@@ -4,7 +4,7 @@ use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
 use conduit_host_esp32_fabrication::{
     Esp32BoardDescriptor, esp32_descriptor_binding, validate_esp32_descriptor,
 };
-use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_signal_conformance::{
     DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_S3_PHYSICAL_HOST_ID,
@@ -55,7 +55,7 @@ fn image_bounds() -> EmbeddedImageBounds {
         maximum_resources: 2,
         maximum_sign_expectations: 8,
         maximum_configuration_entries: 0,
-        maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
+        maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: 1,
         maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,

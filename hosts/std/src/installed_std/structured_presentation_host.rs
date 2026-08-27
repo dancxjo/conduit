@@ -6,7 +6,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{scheduler::HostOperationRequest, NodeId};
-use conduit_runtime::lowering::{KernelExecutionIdentityMap, KernelIdentityMap};
+use conduit_plan_lowering::lowering::{KernelExecutionIdentityMap, KernelIdentityMap};
 
 struct CaptureSlot {
     node: NodeId,

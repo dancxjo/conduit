@@ -6,8 +6,8 @@
 use super::super::plan::exact_distributed_toggle_plan;
 use super::*;
 use conduit_core::{CapabilityId, ConnectionBase, GearId};
+use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
-use conduit_runtime::lowering::RemoteCordDirection;
 use conduit_signal::signal_profile_catalog;
 use conduit_signal_conformance::{
     distributed_toggle_browser_sink_advertisement, distributed_toggle_std_source_advertisement,

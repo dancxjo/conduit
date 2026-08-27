@@ -6,16 +6,16 @@ use conduit_kernel::{
     BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, ValueStorage,
 };
+use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutFrame, LayoutRect,
     MAX_GRAPHICS_SCENE_BYTES, PresentationComposition,
 };
-use conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
 
 use super::{PreparedPresentationPlay, TEXT_SOURCE_KIND, operation::PresentationOperation};
 use crate::display::{DisplayReceipt, PixelTarget, render_scene};
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 11;
 const CORDS: usize = 8;
 const ROUTES: usize = NODES * PORTS;
@@ -218,7 +218,7 @@ fn render_text(
 
 fn prepare_scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
 ) -> Result<PresentationScheduler, PresentationRunError> {
     if fragment.placements.len() != NODES
         || fragment.connections.len() != CORDS

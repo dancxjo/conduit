@@ -7,7 +7,7 @@ use conduit_embedded_build::{
     encode_assigned_plan, generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan,
     GenerationError,
 };
-use conduit_runtime::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
 use conduit_signal_conformance::{pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS};
 use conduit_system_continuity::{exact_r1_signal_plan, R1SignalRouteSet};

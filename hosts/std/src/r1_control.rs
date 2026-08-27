@@ -5,7 +5,7 @@ use conduit_kernel::static_merge::{
     FixedStaticMerge, StaticMergeError, StaticMergeEvent, StaticMergeSource,
 };
 use conduit_kernel::{NodeId, PortId, ValueRef};
-use conduit_runtime::lowering::LoweredPlanFragment;
+use conduit_plan_lowering::lowering::LoweredPlanFragment;
 use conduit_signal::Signal;
 use std::io::Write;
 
@@ -179,7 +179,7 @@ pub fn run_live_three_peer_input(bind: &str) -> Result<(), String> {
         .iter()
         .find(|fragment| fragment.host_id == exact.source_advertisement.host_id)
         .ok_or_else(|| "R1 control source fragment missing".to_string())?;
-    let lowered = conduit_runtime::lowering::lower_plan_fragment(fragment)
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
         .map_err(|error| format!("R1 control lowering: {error:?}"))?;
     let mut kernel = R1ControlKernel::from_lowered_plan(fragment, &lowered)
         .map_err(|error| format!("R1 control kernel: {error:?}"))?;
@@ -254,7 +254,7 @@ mod tests {
             .iter()
             .find(|fragment| fragment.host_id == exact.source_advertisement.host_id)
             .unwrap();
-        let lowered = conduit_runtime::lowering::lower_plan_fragment(fragment).unwrap();
+        let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment).unwrap();
         R1ControlKernel::from_lowered_plan(fragment, &lowered).unwrap()
     }
 

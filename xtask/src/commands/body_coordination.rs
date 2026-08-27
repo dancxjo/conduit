@@ -3,7 +3,7 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyMembership, MembershipProofId, PartId, Wake,
 };
 use conduit_core::{bind_active_play, BootId, HostAdvertisement, SignId};
-use conduit_runtime::lowering::RemoteCordDirection;
+use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_std_catalog::{
     exact_body_coordination_line_loss, exact_body_coordination_plan, BodyCoordinationPlan,
     BODY_COORDINATION_MAXIMUM_FRAME_BYTES, FOREBRAIN_TO_MOTHERBRAIN_LINE,

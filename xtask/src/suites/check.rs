@@ -492,7 +492,7 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
         &[
             "test",
             "-p",
-            "conduit-runtime",
+            "conduit-plan-lowering",
             "--test",
             "browser_readiness",
             "dependency_and_profile_installation_drawbridge_is_explicit",
@@ -645,7 +645,7 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &[
             "test",
             "-p",
-            "conduit-runtime",
+            "conduit-plan-lowering",
             "--test",
             "browser_readiness",
             "v1_has_one_runtime_and_no_compiled_compatibility_closure",

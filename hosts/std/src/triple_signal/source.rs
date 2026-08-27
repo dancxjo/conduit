@@ -13,9 +13,9 @@ use conduit_kernel::{
     HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind, NodeId,
     RemoteEndpointId, SignQuery, ValueStorage,
 };
-use conduit_runtime::lowering::{
+use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
-    MAXIMUM_KERNEL_PORTS_PER_NODE,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_signal::{
     decode_signal_bytes, encode_signal, parse_pulse_configuration, Signal, PULSE_KIND, SHOW_KIND,
@@ -29,7 +29,7 @@ use super::operation::TripleOperation;
 #[path = "prepare.rs"]
 mod prepare;
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const VALUES: usize = 16;
 const WAITS: usize = VALUES - 1;
 const STORED_ITEMS: u16 = (VALUES + WAITS) as u16;

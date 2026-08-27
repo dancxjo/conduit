@@ -1,7 +1,7 @@
 use super::endpoint::CoordinationEndpoint;
 use super::line::{classify_wire_error, CoordinationLineError};
 use super::receipt::CoordinationFailure;
-use conduit_runtime::lowering::RemoteCordDirection;
+use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_wire::{SessionBinding, SessionMessage, SessionTerminalDisposition};
 
 pub fn run_in_process(

@@ -7,7 +7,7 @@ use conduit_core::{
     resource_binding_satisfies, HostAdvertisement, PlanFragment, PlanId, ResourceBinding,
     ResourceClassId, ResourcePoolId, PROTOCOL_VERSION,
 };
-use conduit_runtime::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct PoolUsage {

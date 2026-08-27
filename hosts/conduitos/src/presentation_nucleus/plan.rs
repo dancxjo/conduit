@@ -9,10 +9,10 @@ use conduit_form::{
     CanonicalBackCatalog, ProfileCatalog, StartupCatalog, check_syntax_document,
     expand_canonical_form_with_backs, parse_syntax_document,
 };
+use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
 use conduit_planner::{
     PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
 };
-use conduit_runtime::lowering::{LoweredPlanFragment, lower_plan_fragment};
 
 use super::TEXT_SOURCE_KIND;
 

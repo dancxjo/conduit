@@ -18,23 +18,30 @@ use conduit_kernel::{
 };
 
 mod fusion;
+mod profile;
 mod remote;
 mod shared_pool;
 use fusion::lower_fusions;
 pub use fusion::LoweredFusion;
+pub use profile::{
+    KernelStorageProfile, KernelStorageProfileError, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+    FIXED_KERNEL_STORAGE_PROFILE,
+};
 use remote::lower_remote_endpoints;
 use shared_pool::lower_shared_pools;
 pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
-
-/// The first takeover checkpoint deliberately admits only the scheduler's
-/// fixed per-node port width. Wider plans must be rejected before Play start.
-pub const MAXIMUM_KERNEL_PORTS_PER_NODE: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoweringError {
     InvalidFragment,
     EmptyFragment,
     CapacityOverflow,
+    ProfileCapacityExceeded {
+        placement_id: PlacementId,
+        direction: PortDirection,
+        required: usize,
+        available: usize,
+    },
     DuplicatePlacement(PlacementId),
     DuplicateConnection(ConnectionId),
     DuplicatePort {
@@ -519,7 +526,7 @@ impl KernelExecutionIdentityMap {
 pub struct LoweredPlanFragment {
     pub identity: KernelIdentityMap,
     pub nodes: Vec<LoweredNode>,
-    pub node_specs: Vec<NodeSpec<MAXIMUM_KERNEL_PORTS_PER_NODE>>,
+    pub node_specs: Vec<NodeSpec<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>>,
     pub cords: Vec<LoweredCord>,
     pub fusions: Vec<LoweredFusion>,
     pub remote_endpoints: Vec<LoweredRemoteEndpoint>,
@@ -535,6 +542,13 @@ pub struct LoweredPlanFragment {
 }
 
 pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, LoweringError> {
+    lower_plan_fragment_for_profile(fragment, FIXED_KERNEL_STORAGE_PROFILE)
+}
+
+pub fn lower_plan_fragment_for_profile(
+    fragment: &PlanFragment,
+    profile: KernelStorageProfile,
+) -> Result<LoweredPlanFragment, LoweringError> {
     if !verify_plan_fragment(fragment) {
         return Err(LoweringError::InvalidFragment);
     }
@@ -572,10 +586,23 @@ pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragmen
             &placement.outputs,
             PortDirection::Output,
         )?;
-        let input_cords = [None; MAXIMUM_KERNEL_PORTS_PER_NODE];
-        if inputs.len() > input_cords.len() || outputs.len() > MAXIMUM_KERNEL_PORTS_PER_NODE {
-            return Err(LoweringError::CapacityOverflow);
+        if inputs.len() > profile.maximum_ports_per_node() {
+            return Err(LoweringError::ProfileCapacityExceeded {
+                placement_id: placement.placement_id.clone(),
+                direction: PortDirection::Input,
+                required: inputs.len(),
+                available: profile.maximum_ports_per_node(),
+            });
         }
+        if outputs.len() > profile.maximum_ports_per_node() {
+            return Err(LoweringError::ProfileCapacityExceeded {
+                placement_id: placement.placement_id.clone(),
+                direction: PortDirection::Output,
+                required: outputs.len(),
+                available: profile.maximum_ports_per_node(),
+            });
+        }
+        let input_cords = [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE];
         let maximum_step_work = 1usize
             .checked_add(inputs.len())
             .and_then(|value| value.checked_add(outputs.len()))

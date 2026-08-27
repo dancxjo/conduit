@@ -22,7 +22,7 @@ use conduit_kernel::{
     HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId, SignError, SignQuery,
     ValueStorage,
 };
-use conduit_runtime::lowering::{
+use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
 use conduit_signal::TOGGLE_PRESENTATION_KIND;

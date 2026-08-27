@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 use conduit_core::{CancellationPolicy, ConnectionBase, TerminalPolicy};
-use conduit_runtime::lowering::{RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
 /// Reviewed finite ceilings for one generated fixed image.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -35,7 +35,7 @@ impl EmbeddedImageBounds {
         maximum_resources: u16::MAX as usize,
         maximum_sign_expectations: u16::MAX as usize,
         maximum_configuration_entries: u16::MAX as usize,
-        maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
+        maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: u16::MAX as usize,
         maximum_cord_value_slots: u16::MAX,
         maximum_cord_value_bytes: u32::MAX,
@@ -143,7 +143,7 @@ pub struct GeneratedStaticNode {
     pub kind_id: String,
     pub implementation_id: String,
     pub artifact_id: String,
-    pub input_cords: [Option<u16>; MAXIMUM_KERNEL_PORTS_PER_NODE],
+    pub input_cords: [Option<u16>; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
     pub maximum_step_work: u16,
 }
 

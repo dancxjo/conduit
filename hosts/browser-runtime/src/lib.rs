@@ -14,12 +14,12 @@ use conduit_kernel::{
     HostedValueStore, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
     SignError, ValueRef, ValueStorage,
 };
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+};
 use conduit_planner::{
     default_placements, plan_with_advertised_profile, PlanningOptions, BROWSER_PLANNER_PROFILE,
-};
-use conduit_runtime::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment,
-    MAXIMUM_KERNEL_PORTS_PER_NODE,
 };
 use conduit_signal::{
     decode_signal_bytes, encode_signal, parse_pulse_configuration, pulse_contract_revision,
@@ -45,7 +45,7 @@ mod webrtc_session;
 
 const FRAME_CAPACITY: usize = 4_096;
 const MAXIMUM_RECEIPTS: usize = 16;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const ROUTE_SLOTS: usize = 4 * PORTS;
 const EFFECT_NONE: i32 = 0;
 const EFFECT_WAIT: i32 = 1;

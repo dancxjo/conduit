@@ -38,7 +38,7 @@ package_test_shard!(
         "conduit-embedded-build",
         "conduit-kernel",
         "conduit-language",
-        "conduit-runtime",
+        "conduit-plan-lowering",
         "conduit-form",
         "conduit-host-fabrication",
         "conduit-planner",
