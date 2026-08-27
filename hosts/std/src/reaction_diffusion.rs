@@ -1,15 +1,15 @@
 //! Finite std-host realization for the portable reaction-diffusion contract.
 
 use conduit_alife::{
-    reaction_diffusion_inputs, reaction_diffusion_outputs, REACTION_DIFFUSION_EVOLVE_KIND,
-    REACTION_DIFFUSION_KIND_REVISION,
+    reaction_diffusion_inputs, reaction_diffusion_outputs, ReactionDiffusionEvolveRequest,
+    ReactionDiffusionFieldState, ReactionDiffusionRefusal, REACTION_DIFFUSION_EVOLVE_KIND,
+    REACTION_DIFFUSION_KIND_REVISION, REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
+    REACTION_DIFFUSION_REQUEST_BYTES,
 };
 use conduit_core::{
     kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldState,
-    ReactionDiffusionRefusal, REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
-    REACTION_DIFFUSION_REQUEST_BYTES,
+    KindContractRevision,
 };
 
 pub const REACTION_DIFFUSION_HOSTED_PROFILE: &str = "std/field-gray-scott-hosted@1";
@@ -75,7 +75,7 @@ pub fn evolve_reaction_diffusion_hosted(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{GrayScottParameters, ReactionDiffusionFieldId};
+    use conduit_alife::{GrayScottParameters, ReactionDiffusionFieldId};
 
     #[test]
     fn offer_matches_portable_contract_with_finite_hosted_limits() {

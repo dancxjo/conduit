@@ -1,4 +1,4 @@
-//! Finite admission bounds for the first region realization profile.
+//! Finite admission bounds for the reviewed region realization profile.
 
 use crate::REACTION_DIFFUSION_MAXIMUM_CELLS;
 

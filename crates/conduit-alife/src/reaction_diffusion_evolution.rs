@@ -1,4 +1,4 @@
-//! Exact synchronous update arithmetic for the reviewed Gray-Scott profile.
+//! Exact host-neutral synchronous update arithmetic for the reviewed Gray-Scott profile.
 
 use crate::{GrayScottParameters, ReactionDiffusionCell, ReactionDiffusionRefusal};
 

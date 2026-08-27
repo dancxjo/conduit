@@ -1,9 +1,11 @@
-use conduit_alife::install_reaction_diffusion_catalogs;
-use conduit_core::{
-    BootId, ConnectionBase, GrayScottParameters, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId,
-    ReactionDiffusionFieldState, PROTOCOL_VERSION, REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
+use conduit_alife::{
+    install_reaction_diffusion_catalogs, GrayScottParameters, ReactionDiffusionEvolveRequest,
+    ReactionDiffusionFieldId, ReactionDiffusionFieldState, REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
     REACTION_DIFFUSION_REQUEST_BYTES,
+};
+use conduit_core::{
+    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,

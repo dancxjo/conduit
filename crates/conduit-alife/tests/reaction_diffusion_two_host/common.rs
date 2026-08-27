@@ -1,12 +1,15 @@
 use std::collections::BTreeMap;
 
+use conduit_alife::{
+    GrayScottParameters, ReactionDiffusionFieldId, ReactionDiffusionFieldState,
+    ReactionDiffusionPartition, ReactionDiffusionRegion, ReactionDiffusionRegionId,
+    REACTION_DIFFUSION_REQUEST_INFO_ID, REACTION_DIFFUSION_STATE_INFO_ID,
+};
 use conduit_core::{
     kind_id, port_id, process_owned_line_offer_with_limits, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ConnectionBase, GrayScottParameters, HostAdvertisement,
-    HostId, HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, LinkLimits,
-    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, ReactionDiffusionFieldId,
-    ReactionDiffusionFieldState, ReactionDiffusionPartition, ReactionDiffusionRegion,
-    ReactionDiffusionRegionId, PROTOCOL_VERSION,
+    CapabilityLimits, CapabilityOffer, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, ImplementationOffer, KindContractRevision, LinkLimits, OfferGeneration,
+    PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_with_backs, parse_syntax_document,
@@ -20,8 +23,8 @@ pub const FIELD: &str = "field/evolve";
 const PREPARE: &str = "field/prepare-region";
 const WORKER: &str = "field/evolve-region";
 const JOIN: &str = "field/join-regions";
-const STATE: &str = conduit_core::REACTION_DIFFUSION_STATE_INFO_ID;
-const REQUEST: &str = conduit_core::REACTION_DIFFUSION_REQUEST_INFO_ID;
+const STATE: &str = REACTION_DIFFUSION_STATE_INFO_ID;
+const REQUEST: &str = REACTION_DIFFUSION_REQUEST_INFO_ID;
 pub const BOUNDARY: &str = "conduit.info/reaction-diffusion-boundary@1";
 const WORK: &str = "conduit.info/reaction-diffusion-region-work@1";
 const RESULT: &str = "conduit.info/reaction-diffusion-region-result@1";

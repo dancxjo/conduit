@@ -1,4 +1,4 @@
-//! Finite realization-only partition and directed boundary truth.
+//! Finite host-neutral partition and directed boundary truth.
 
 use alloc::vec;
 use alloc::vec::Vec;

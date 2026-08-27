@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_alife::{
     partition_reaction_diffusion_generation, GrayScottParameters, ReactionDiffusionBoundaryState,
     ReactionDiffusionCell, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId,
     ReactionDiffusionFieldState, ReactionDiffusionPartition, ReactionDiffusionPartitionRefusal,
@@ -92,7 +92,7 @@ fn boundary_codec_retains_exact_directed_generation_truth() {
     assert!(generation.boundaries.iter().any(|boundary| {
         boundary.destination_region == ReactionDiffusionRegionId(10)
             && boundary.source_region == ReactionDiffusionRegionId(20)
-            && boundary.destination_edge == conduit_core::ReactionDiffusionBoundaryEdge::East
+            && boundary.destination_edge == conduit_alife::ReactionDiffusionBoundaryEdge::East
     }));
     let encoded = boundary.encode().unwrap();
     assert_eq!(
