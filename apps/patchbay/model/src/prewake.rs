@@ -428,12 +428,7 @@ pub fn simulated_advertisements(
                 advertisement
                     .resources
                     .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-                advertisement
-                    .capabilities
-                    .push(conduit_std_catalog::hosted_keyboard_offer(
-                        "prewake/simulated-keyboard@1",
-                        "prewake/simulated-keyboard-model@1",
-                    ));
+                advertisement.capabilities.push(simulated_keyboard_offer());
                 advertisement
                     .capabilities
                     .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
@@ -448,6 +443,37 @@ pub fn simulated_advertisements(
         )
     });
     hosts
+}
+
+fn simulated_keyboard_offer() -> conduit_core::CapabilityOffer {
+    let contract = conduit_std_catalog::keyboard_contract();
+    conduit_core::CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: "prewake/simulated-keyboard@1".into(),
+        kind_id: contract.kind_id,
+        kind_contract_revision: conduit_std_catalog::keyboard_contract_revision(),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: "prewake/simulation@1".into(),
+            implementation_id: "prewake/simulated-keyboard@1".into(),
+            artifact_id: "prewake/simulated-keyboard-model@1".into(),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: vec![conduit_core::HostOperationRequirement {
+            contract_id: "proof/input-next-key-event@1".into(),
+            target_kind: Some(conduit_core::kind_id(conduit_core::KEY_EVENT_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 0,
+            maximum_output_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+        }],
+        resource_requirements: vec![conduit_core::resource_requirement(
+            conduit_core::INPUT_RESOURCE_CLASS,
+            1,
+        )],
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 fn execute_simulated(

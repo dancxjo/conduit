@@ -1,8 +1,8 @@
 //! Exact two-Host realization fixture for the unchanged canonical Text Lab.
 
 use crate::{
-    hosted_keyboard_offer, install_input_semantic_catalogs, install_keyboard_catalogs,
-    install_text_pipeline_catalogs, KEYBOARD_KIND, KEYMAP_KIND, TEXT_PRESENTATION_KIND,
+    install_input_semantic_catalogs, install_keyboard_catalogs, install_text_pipeline_catalogs,
+    KEYBOARD_KIND, KEYMAP_KIND, TEXT_PRESENTATION_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -141,7 +141,7 @@ fn exact_text_lab_split_plan_with_loss(
         ],
         planner_capabilities: Vec::new(),
         capabilities: vec![
-            hosted_keyboard_offer("text-lab-native-keyboard", "text-lab/native-keyboard@1"),
+            keyboard_fixture_offer(),
             keymap_fixture_offer(),
             text_upper_fixture_offer(
                 "text-lab-native-upper",
@@ -285,6 +285,34 @@ fn exact_text_lab_split_plan_with_loss(
         forward_line,
         return_line,
     })
+}
+
+fn keyboard_fixture_offer() -> CapabilityOffer {
+    let contract = crate::keyboard_contract();
+    CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: "text-lab-native-keyboard".into(),
+        kind_id: contract.kind_id,
+        kind_contract_revision: crate::keyboard_contract_revision(),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: "text-lab/native-fixture@1".into(),
+            implementation_id: "text-lab/native-keyboard@1".into(),
+            artifact_id: "text-lab/native-keyboard@1".into(),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: vec![conduit_core::HostOperationRequirement {
+            contract_id: "proof/input-next-key-event@1".into(),
+            target_kind: Some(kind_id(conduit_core::KEY_EVENT_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 0,
+            maximum_output_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+        }],
+        resource_requirements: vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)],
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 fn text_presentation_fixture_offer() -> CapabilityOffer {

@@ -46,10 +46,7 @@ fn hosts() -> (
         ],
         planner_capabilities: Vec::new(),
         capabilities: vec![
-            conduit_std_catalog::hosted_keyboard_offer(
-                "text-lab-native-keyboard",
-                "text-lab/native-keyboard@1",
-            ),
+            keyboard_fixture_offer(),
             native_keymap_fixture_offer(),
             super::browser_text_upper_offer(),
             super::offer_composition::text_offer(),
@@ -62,6 +59,37 @@ fn hosts() -> (
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     (local, text_advertisement())
+}
+
+fn keyboard_fixture_offer() -> conduit_core::CapabilityOffer {
+    let contract = conduit_std_catalog::keyboard_contract();
+    conduit_core::CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: "text-lab-native-keyboard".into(),
+        kind_id: contract.kind_id,
+        kind_contract_revision: conduit_std_catalog::keyboard_contract_revision(),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: "browser-test/native-text-lab@1".into(),
+            implementation_id: "text-lab/native-keyboard@1".into(),
+            artifact_id: "text-lab/native-keyboard@1".into(),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: vec![conduit_core::HostOperationRequirement {
+            contract_id: "proof/input-next-key-event@1".into(),
+            target_kind: Some(conduit_core::kind_id(conduit_core::KEY_EVENT_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 0,
+            maximum_output_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+        }],
+        resource_requirements: vec![conduit_core::resource_requirement(
+            conduit_core::INPUT_RESOURCE_CLASS,
+            1,
+        )],
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 fn native_keymap_fixture_offer() -> conduit_core::CapabilityOffer {

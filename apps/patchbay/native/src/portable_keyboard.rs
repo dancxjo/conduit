@@ -9,9 +9,8 @@ use std::sync::{Arc, Mutex};
 use winit::event::ElementState;
 use winit::keyboard::{KeyCode, PhysicalKey};
 
-pub const NATIVE_KEYBOARD_IMPLEMENTATION: &str =
-    conduit_std_catalog::HOSTED_KEYBOARD_IMPLEMENTATION;
-pub const NATIVE_KEYBOARD_PROFILE: &str = conduit_std_catalog::HOSTED_KEYBOARD_EXECUTION_PROFILE;
+pub const NATIVE_KEYBOARD_IMPLEMENTATION: &str = conduit_std_offers::HOSTED_KEYBOARD_IMPLEMENTATION;
+pub const NATIVE_KEYBOARD_PROFILE: &str = conduit_std_offers::HOSTED_KEYBOARD_EXECUTION_PROFILE;
 pub const NATIVE_KEYBOARD_ARTIFACT: &str = "patchbay-native/winit-physical-key-adapter@1";
 pub const WINDOW_INPUT_RESOURCE: &str = "patchbay-native.resource/window-input-base@1";
 pub const EVENT_QUEUE_RESOURCE: &str = "patchbay-native.resource/key-event-slot@1";
@@ -279,7 +278,7 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: vec![conduit_std_catalog::next_key_event_host_operation_requirement()],
+        host_operations: vec![conduit_std_offers::next_key_event_host_operation_requirement()],
         resource_requirements: requirements,
         authority_requirements: Vec::new(),
         limits: contract.limits,

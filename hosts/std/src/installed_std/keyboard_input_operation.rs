@@ -10,7 +10,7 @@ use conduit_kernel::{
 pub(super) const MAX_PLAY_EVENTS: u32 = 64;
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::HOSTED_KEYBOARD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::HOSTED_KEYBOARD_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -130,13 +130,13 @@ fn prepare(
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     let contract = conduit_std_catalog::keyboard_contract();
-    let operation = conduit_std_catalog::next_key_event_host_operation_requirement();
+    let operation = conduit_std_offers::next_key_event_host_operation_requirement();
     if placement.kind_id != contract.kind_id
         || placement.kind_contract_revision != conduit_std_catalog::keyboard_contract_revision()
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::HOSTED_KEYBOARD_EXECUTION_PROFILE
+            != conduit_std_offers::HOSTED_KEYBOARD_EXECUTION_PROFILE
         || placement.implementation_id.as_str()
-            != conduit_std_catalog::HOSTED_KEYBOARD_IMPLEMENTATION
+            != conduit_std_offers::HOSTED_KEYBOARD_IMPLEMENTATION
         || !placement.inputs.is_empty()
         || placement.outputs != contract.outputs
         || placement.outputs[0].direction != PortDirection::Output
