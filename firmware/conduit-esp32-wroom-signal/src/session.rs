@@ -5,7 +5,7 @@ use conduit_bluetooth::{
     encode_fragment, fragment_count,
 };
 use conduit_core::{
-    BootId, BaseImplementationId, BaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
+    BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId, HostId, KindId,
     LinkBindingId, LinkEndpointId, PROTOCOL_VERSION, PlanId, bind_active_play,
 };
 use conduit_wire::{
