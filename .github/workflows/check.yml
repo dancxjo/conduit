@@ -29,6 +29,9 @@ jobs:
       esp32_required: ${{ steps.impact.outputs.esp32_required }}
       browser_required: ${{ steps.impact.outputs.browser_required }}
       conduitos_required: ${{ steps.impact.outputs.conduitos_required }}
+      conduitos_x86_matrix: ${{ steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+      conduitos_architecture_matrix: ${{ steps.impact.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]' }}
+      conduitos_aarch64_product_required: ${{ steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
       impact_reason: ${{ steps.impact.outputs.impact_reason }}
       workspace_matrix: ${{ steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
     steps:
@@ -454,58 +457,20 @@ jobs:
 
   conduitos-x86:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_x86_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - proof: kernel
-            command: cargo xtask conduitos prove --arch x86-64 --locked --evidence-root target/conduit-evidence/conduitos-x86_64 && cargo xtask evidence verify --locked --root target/conduit-evidence/conduitos-x86_64 --commit "$GITHUB_SHA" --result complete --proof conduitos-x86_64 --suite conduitos.prove.x86_64
-            artifact_name: conduit-conduitos-evidence
-            artifact_path: target/conduit-evidence/conduitos-x86_64
-          - proof: xhci
-            command: cargo xtask conduitos xhci-proof --locked
-            artifact_name: conduitos-xhci-proof
-            artifact_path: target/conduitos/x86_64/xhci-proof.json
-          - proof: usb
-            command: cargo xtask conduitos usb-proof --locked
-            artifact_name: conduitos-usb-proof
-            artifact_path: target/conduitos/x86_64/usb-proof.json
-          - proof: hid
-            command: cargo xtask conduitos hid-proof --locked
-            artifact_name: conduitos-hid-proof
-            artifact_path: target/conduitos/x86_64/hid-proof.json
-          - proof: keyboard
-            command: cargo xtask conduitos keyboard-proof --locked
-            artifact_name: conduitos-keyboard-proof
-            artifact_path: target/conduitos/x86_64/keyboard-proof.json
-          - proof: front-door
-            command: cargo xtask conduitos front-door-proof --locked
-            artifact_name: conduitos-front-door-proof
-            artifact_path: |
-              target/conduitos/x86_64/front-door-proof.json
-              target/conduitos/x86_64/front-door-serial.log
-          - proof: product-journey
-            command: cargo xtask conduitos journey-proof --locked
-            artifact_name: conduitos-product-journey-proof
-            artifact_path: |
-              target/conduitos/x86_64/journey-proof.json
-              target/conduitos/x86_64/journey-serial.log
-          - proof: rescue
-            command: cargo xtask conduitos rescue-proof --locked
-            artifact_name: conduitos-rescue-proof
-            artifact_path: |
-              target/conduitos/x86_64/rescue-proof.json
-              target/conduitos/x86_64/rescue-serial.log
+        proof: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]') }}
     name: conduitos-x86-${{ matrix.proof }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
-          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+          targets: x86_64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
@@ -523,42 +488,46 @@ jobs:
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Run ${{ matrix.proof }} proof
-        env:
-          PROOF_COMMAND: ${{ matrix.command }}
-        run: bash -euo pipefail -c "$PROOF_COMMAND"
+        run: |
+          case '${{ matrix.proof }}' in
+            kernel) cargo xtask conduitos prove --arch x86-64 --locked --evidence-root target/conduit-evidence/conduitos-x86_64 && cargo xtask evidence verify --locked --root target/conduit-evidence/conduitos-x86_64 --commit "$GITHUB_SHA" --result complete --proof conduitos-x86_64 --suite conduitos.prove.x86_64 ;;
+            xhci) cargo xtask conduitos xhci-proof --locked ;;
+            usb) cargo xtask conduitos usb-proof --locked ;;
+            hid) cargo xtask conduitos hid-proof --locked ;;
+            keyboard) cargo xtask conduitos keyboard-proof --locked ;;
+            front-door) cargo xtask conduitos front-door-proof --locked ;;
+            product-journey) cargo xtask conduitos journey-proof --locked ;;
+            rescue) cargo xtask conduitos rescue-proof --locked ;;
+            *) echo 'unknown ConduitOS x86 proof' >&2; exit 1 ;;
+          esac
       - name: Retain ${{ matrix.proof }} proof
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact_name }}-${{ github.sha }}
-          path: ${{ matrix.artifact_path }}
+          name: ${{ format('{0}-{1}', matrix.proof == 'kernel' && 'conduit-conduitos-evidence' || format('conduitos-{0}-proof', matrix.proof), github.sha) }}
+          path: |
+            target/conduitos/x86_64/*.json
+            target/conduitos/x86_64/*.log
+            target/conduit-evidence/conduitos-x86_64
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
 
   conduitos-architecture:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_architecture_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - architecture: aarch64
-            command: cargo xtask conduitos prove --arch aarch64 --locked
-          - architecture: ia32
-            command: cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos prove --arch ia32 --locked
-          - architecture: riscv64
-            command: cargo xtask conduitos prove --arch riscv64 --locked
-          - architecture: loongarch64
-            command: cargo xtask conduitos prove --arch loongarch64 --locked
+        architecture: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]') }}
     name: conduitos-architecture-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
-          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+          targets: ${{ matrix.architecture == 'aarch64' && 'aarch64-unknown-none' || matrix.architecture == 'ia32' && 'i686-unknown-uefi,i686-unknown-linux-gnu' || matrix.architecture == 'riscv64' && 'riscv64gc-unknown-none-elf' || 'loongarch64-unknown-none' }}
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
@@ -582,13 +551,15 @@ jobs:
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Prove ${{ matrix.architecture }} ConduitOS architecture
-        env:
-          PROOF_COMMAND: ${{ matrix.command }}
-        run: bash -euo pipefail -c "$PROOF_COMMAND"
+        run: |
+          if test '${{ matrix.architecture }}' = ia32; then
+            cargo xtask conduitos architecture-matrix --locked
+          fi
+          cargo xtask conduitos prove --arch '${{ matrix.architecture }}' --locked
 
   conduitos-aarch64-product:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_aarch64_product_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -596,7 +567,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
-          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+          targets: aarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
@@ -650,15 +621,18 @@ jobs:
           ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
           AARCH64_PRODUCT_RESULT: ${{ needs.conduitos-aarch64-product.result }}
           CONDUITOS_REQUIRED: ${{ needs.classify.outputs.conduitos_required }}
+          X86_REQUIRED: ${{ needs.classify.outputs.conduitos_x86_matrix != '[]' }}
+          ARCHITECTURE_REQUIRED: ${{ needs.classify.outputs.conduitos_architecture_matrix != '[]' }}
+          AARCH64_PRODUCT_REQUIRED: ${{ needs.classify.outputs.conduitos_aarch64_product_required }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           test "$CLASSIFY_RESULT" = success
           if test "$DOCS_ONLY" != true && { test "$EVENT_NAME" != pull_request || test "$CONDUITOS_REQUIRED" = true; }; then
             test "$LIMINE_RESULT" = success
             test "$TOOLS_RESULT" = success
-            test "$X86_RESULT" = success
-            test "$ARCHITECTURE_RESULT" = success
-            test "$AARCH64_PRODUCT_RESULT" = success
+            if test "$EVENT_NAME" != pull_request || test "$X86_REQUIRED" = true; then test "$X86_RESULT" = success; else test "$X86_RESULT" = skipped; fi
+            if test "$EVENT_NAME" != pull_request || test "$ARCHITECTURE_REQUIRED" = true; then test "$ARCHITECTURE_RESULT" = success; else test "$ARCHITECTURE_RESULT" = skipped; fi
+            if test "$EVENT_NAME" != pull_request || test "$AARCH64_PRODUCT_REQUIRED" = true; then test "$AARCH64_PRODUCT_RESULT" = success; else test "$AARCH64_PRODUCT_RESULT" = skipped; fi
           elif test "$DOCS_ONLY" != true; then
             test "$LIMINE_RESULT" = skipped
             test "$TOOLS_RESULT" = skipped
