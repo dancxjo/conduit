@@ -1,4 +1,4 @@
-//! Host-local reaction-diffusion work and independently evolved region truth.
+//! Host-neutral reaction-diffusion work and independently evolved region truth.
 
 use alloc::{vec, vec::Vec};
 

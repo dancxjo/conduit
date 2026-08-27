@@ -1,4 +1,4 @@
-//! Canonical codec for one directed reaction-diffusion boundary segment.
+//! Canonical host-neutral codec for one directed reaction-diffusion boundary segment.
 
 use alloc::vec::Vec;
 

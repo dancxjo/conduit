@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_alife::{
     join_evolved_reaction_diffusion_regions, partition_reaction_diffusion_generation,
     GrayScottParameters, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId,
     ReactionDiffusionFieldState, ReactionDiffusionPartition, ReactionDiffusionPartitionRefusal,
@@ -127,8 +127,8 @@ fn host_local_admission_and_join_refuse_missing_duplicate_stale_and_wrong_truth(
 }
 
 fn evolve_all(
-    generation: &conduit_core::PartitionedReactionDiffusionGeneration,
-) -> Vec<conduit_core::EvolvedReactionDiffusionRegion> {
+    generation: &conduit_alife::PartitionedReactionDiffusionGeneration,
+) -> Vec<conduit_alife::EvolvedReactionDiffusionRegion> {
     generation
         .regions
         .iter()
