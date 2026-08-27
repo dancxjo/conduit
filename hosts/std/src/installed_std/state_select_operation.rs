@@ -7,7 +7,7 @@ use conduit_core::{
 use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef};
 
 pub(super) static STATE_SELECT_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::STATE_SELECT_SCALAR_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::STATE_SELECT_SCALAR_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -122,15 +122,15 @@ fn prepare(
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::state_select_scalar_offer();
+    let offer = conduit_std_offers::state_select_scalar_offer();
     if placement.kind_id.as_str() != conduit_std_catalog::STATE_SELECT_KIND
         || placement.kind_contract_revision
             != conduit_std_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION.into()
         || placement.execution_profile_id
-            != conduit_std_catalog::STATE_SELECT_SCALAR_EXECUTION_PROFILE.into()
+            != conduit_std_offers::STATE_SELECT_SCALAR_EXECUTION_PROFILE.into()
         || placement.implementation_id
-            != conduit_std_catalog::STATE_SELECT_SCALAR_IMPLEMENTATION.into()
-        || placement.artifact_id != conduit_std_catalog::STATE_SELECT_SCALAR_ARTIFACT.into()
+            != conduit_std_offers::STATE_SELECT_SCALAR_IMPLEMENTATION.into()
+        || placement.artifact_id != conduit_std_offers::STATE_SELECT_SCALAR_ARTIFACT.into()
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || !placement.configuration.is_empty()

@@ -47,19 +47,31 @@ fn realization_preserves_portable_contract_and_bounds() {
         ),
         (
             state_latest_scalar_offer(),
-            conduit_std_catalog::state_latest_scalar_offer(),
+            portable_offer(
+                conduit_std_catalog::state_latest_scalar_contract(),
+                conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
+            ),
         ),
         (
             flow_tee_scalar_offer(),
-            conduit_std_catalog::flow_tee_scalar_offer(),
+            portable_offer(
+                conduit_std_catalog::flow_tee_scalar_contract(),
+                conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
+            ),
         ),
         (
             state_select_scalar_offer(),
-            conduit_std_catalog::state_select_scalar_offer(),
+            portable_offer(
+                conduit_std_catalog::state_select_scalar_contract(),
+                conduit_std_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
+            ),
         ),
         (
             flow_gate_scalar_offer(),
-            conduit_std_catalog::flow_gate_scalar_offer(),
+            portable_offer(
+                conduit_std_catalog::flow_gate_scalar_contract(),
+                conduit_std_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION,
+            ),
         ),
         (
             state_count_offer(),

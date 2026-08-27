@@ -406,9 +406,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     );
     let join_target_kind = kind_id(conduit_std_catalog::TEXT_JOIN_HOST_OPERATION_TARGET);
     let gate_bool_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT,
+        conduit_std_offers::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT,
     );
-    let gate_bool_target_kind = kind_id(conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_TARGET);
+    let gate_bool_target_kind = kind_id(conduit_std_offers::FLOW_GATE_BOOL_HOST_OPERATION_TARGET);
     let keymap_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_catalog::KEYMAP_HOST_OPERATION);
     let keymap_target_kind = kind_id(conduit_std_catalog::KEYMAP_HOST_TARGET);

@@ -236,7 +236,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         (source_offer(), Vec::new()),
         (slow_sink_offer(), Vec::new()),
         (
-            conduit_std_catalog::flow_gate_scalar_offer(),
+            conduit_std_offers::flow_gate_scalar_offer(),
             vec![conduit_form::ConfigurationField {
                 key: "maximum-enable-updates".into(),
                 default_value: conduit_core::ConfigurationValue::U64(
