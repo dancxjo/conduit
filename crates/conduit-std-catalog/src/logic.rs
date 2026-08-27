@@ -5,8 +5,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
     PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
@@ -15,22 +14,8 @@ pub const LOGIC_NOT_KIND: &str = "logic/not";
 pub const LOGIC_SELECT_KIND: &str = "logic/select";
 
 pub const LOGIC_COMPARE_SCALAR_CONTRACT_REVISION: &str = "conduit.std/logic-compare-scalar@1";
-pub const LOGIC_COMPARE_SCALAR_EXECUTION_PROFILE: &str =
-    "conduit.std/logic-compare-scalar-kernel@1";
-pub const LOGIC_COMPARE_SCALAR_IMPLEMENTATION: &str = "std/kernel-logic-compare-scalar@1";
-pub const LOGIC_COMPARE_SCALAR_ARTIFACT: &str = "conduit-std-host/logic-compare-scalar@1";
-pub const LOGIC_COMPARE_SCALAR_CAPABILITY: &str = "logic-compare-scalar-v1";
-
 pub const LOGIC_NOT_CONTRACT_REVISION: &str = "conduit.std/logic-not@1";
-pub const LOGIC_NOT_EXECUTION_PROFILE: &str = "conduit.std/logic-not-kernel@1";
-pub const LOGIC_NOT_IMPLEMENTATION: &str = "std/kernel-logic-not@1";
-pub const LOGIC_NOT_ARTIFACT: &str = "conduit-std-host/logic-not@1";
-pub const LOGIC_NOT_CAPABILITY: &str = "logic-not-v1";
 pub const LOGIC_SELECT_SCALAR_CONTRACT_REVISION: &str = "conduit.std/logic-select-scalar@1";
-pub const LOGIC_SELECT_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/logic-select-scalar-kernel@1";
-pub const LOGIC_SELECT_SCALAR_IMPLEMENTATION: &str = "std/kernel-logic-select-scalar@1";
-pub const LOGIC_SELECT_SCALAR_ARTIFACT: &str = "conduit-std-host/logic-select-scalar@1";
-pub const LOGIC_SELECT_SCALAR_CAPABILITY: &str = "logic-select-scalar-v1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScalarComparison {
@@ -169,67 +154,6 @@ pub fn logic_select_scalar_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "choice: logic/select".to_string(),
-    }
-}
-
-pub fn logic_compare_scalar_offer() -> CapabilityOffer {
-    offer(
-        logic_compare_scalar_contract(),
-        LOGIC_COMPARE_SCALAR_CAPABILITY,
-        LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
-        LOGIC_COMPARE_SCALAR_EXECUTION_PROFILE,
-        LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
-        LOGIC_COMPARE_SCALAR_ARTIFACT,
-    )
-}
-
-pub fn logic_not_offer() -> CapabilityOffer {
-    offer(
-        logic_not_contract(),
-        LOGIC_NOT_CAPABILITY,
-        LOGIC_NOT_CONTRACT_REVISION,
-        LOGIC_NOT_EXECUTION_PROFILE,
-        LOGIC_NOT_IMPLEMENTATION,
-        LOGIC_NOT_ARTIFACT,
-    )
-}
-
-pub fn logic_select_scalar_offer() -> CapabilityOffer {
-    offer(
-        logic_select_scalar_contract(),
-        LOGIC_SELECT_SCALAR_CAPABILITY,
-        LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
-        LOGIC_SELECT_SCALAR_EXECUTION_PROFILE,
-        LOGIC_SELECT_SCALAR_IMPLEMENTATION,
-        LOGIC_SELECT_SCALAR_ARTIFACT,
-    )
-}
-
-fn offer(
-    contract: StandardKindContract,
-    capability: &str,
-    revision: &str,
-    profile: &str,
-    implementation: &str,
-    artifact: &str,
-) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: super::functional_face::startup_face(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(profile),
-            implementation_id: ImplementationId::from(implementation),
-            artifact_id: ArtifactId::from(artifact),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 

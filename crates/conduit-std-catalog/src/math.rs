@@ -8,10 +8,8 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal, Scalar,
-    ScalarArithmeticError, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal, Scalar, ScalarArithmeticError, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 
 pub const MATH_CLAMP_KIND: &str = "math/clamp";
@@ -19,25 +17,8 @@ pub const MATH_SCALE_KIND: &str = "math/scale";
 pub const MATH_DEADBAND_KIND: &str = "math/deadband";
 
 pub const MATH_CLAMP_CONTRACT_REVISION: &str = "conduit.std/math-clamp-scalar@1";
-pub const MATH_CLAMP_EXECUTION_PROFILE: &str = "conduit.std/math-clamp-scalar-kernel@1";
-pub const MATH_CLAMP_IMPLEMENTATION: &str = "std/kernel-math-clamp-scalar@1";
-pub const MATH_CLAMP_ARTIFACT: &str = "conduit-std-host/math-clamp-scalar@1";
-pub const MATH_CLAMP_CAPABILITY: &str = "math-clamp-scalar-v1";
-pub const MATH_CLAMP_HOST_OPERATION: &str = "conduit.host/math-clamp-scalar@1";
-
 pub const MATH_SCALE_CONTRACT_REVISION: &str = "conduit.std/math-scale-scalar@1";
-pub const MATH_SCALE_EXECUTION_PROFILE: &str = "conduit.std/math-scale-scalar-kernel@1";
-pub const MATH_SCALE_IMPLEMENTATION: &str = "std/kernel-math-scale-scalar@1";
-pub const MATH_SCALE_ARTIFACT: &str = "conduit-std-host/math-scale-scalar@1";
-pub const MATH_SCALE_CAPABILITY: &str = "math-scale-scalar-v1";
-pub const MATH_SCALE_HOST_OPERATION: &str = "conduit.host/math-scale-scalar@1";
-
 pub const MATH_DEADBAND_CONTRACT_REVISION: &str = "conduit.std/math-deadband-scalar@1";
-pub const MATH_DEADBAND_EXECUTION_PROFILE: &str = "conduit.std/math-deadband-scalar-kernel@1";
-pub const MATH_DEADBAND_IMPLEMENTATION: &str = "std/kernel-math-deadband-scalar@1";
-pub const MATH_DEADBAND_ARTIFACT: &str = "conduit-std-host/math-deadband-scalar@1";
-pub const MATH_DEADBAND_CAPABILITY: &str = "math-deadband-scalar-v1";
-pub const MATH_DEADBAND_HOST_OPERATION: &str = "conduit.host/math-deadband-scalar@1";
 
 pub const SCALAR_INPUT_PORT: &str = "in";
 pub const SCALAR_OUTPUT_PORT: &str = "out";
@@ -134,42 +115,6 @@ pub fn math_deadband_contract() -> StandardKindContract {
     )
 }
 
-pub fn math_clamp_offer() -> CapabilityOffer {
-    offer(
-        math_clamp_contract(),
-        MATH_CLAMP_CAPABILITY,
-        MATH_CLAMP_CONTRACT_REVISION,
-        MATH_CLAMP_EXECUTION_PROFILE,
-        MATH_CLAMP_IMPLEMENTATION,
-        MATH_CLAMP_ARTIFACT,
-        MATH_CLAMP_HOST_OPERATION,
-    )
-}
-
-pub fn math_scale_offer() -> CapabilityOffer {
-    offer(
-        math_scale_contract(),
-        MATH_SCALE_CAPABILITY,
-        MATH_SCALE_CONTRACT_REVISION,
-        MATH_SCALE_EXECUTION_PROFILE,
-        MATH_SCALE_IMPLEMENTATION,
-        MATH_SCALE_ARTIFACT,
-        MATH_SCALE_HOST_OPERATION,
-    )
-}
-
-pub fn math_deadband_offer() -> CapabilityOffer {
-    offer(
-        math_deadband_contract(),
-        MATH_DEADBAND_CAPABILITY,
-        MATH_DEADBAND_CONTRACT_REVISION,
-        MATH_DEADBAND_EXECUTION_PROFILE,
-        MATH_DEADBAND_IMPLEMENTATION,
-        MATH_DEADBAND_ARTIFACT,
-        MATH_DEADBAND_HOST_OPERATION,
-    )
-}
-
 fn contract(
     kind: &str,
     plain_name: &str,
@@ -212,43 +157,6 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(SCALAR_INFO_ID),
         direction,
         temporal: PortTemporal::Value,
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn offer(
-    contract: StandardKindContract,
-    capability: &str,
-    revision: &str,
-    profile: &str,
-    implementation: &str,
-    artifact: &str,
-    operation: &str,
-) -> CapabilityOffer {
-    let target = contract.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: super::functional_face::startup_face(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(profile),
-            implementation_id: ImplementationId::from(implementation),
-            artifact_id: ArtifactId::from(artifact),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(operation),
-            target_kind: Some(target),
-            maximum_in_flight: 1,
-            maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
-            maximum_output_bytes: SCALAR_ENCODED_LEN as u32,
-        }],
-        resource_requirements: alloc::vec::Vec::new(),
-        authority_requirements: alloc::vec::Vec::new(),
-        limits: contract.limits,
     }
 }
 

@@ -7,19 +7,19 @@ use conduit_kernel::{
 };
 
 pub(super) static LOGIC_COMPARE_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
     budget: compare_budget,
     prepare: prepare_compare,
 };
 
 pub(super) static LOGIC_NOT_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::LOGIC_NOT_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::LOGIC_NOT_IMPLEMENTATION,
     budget: not_budget,
     prepare: prepare_not,
 };
 
 pub(super) static LOGIC_SELECT_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::LOGIC_SELECT_SCALAR_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::LOGIC_SELECT_SCALAR_IMPLEMENTATION,
     budget: select_budget,
     prepare: prepare_select,
 };
@@ -292,7 +292,7 @@ fn store_bool(store: &mut HostedValueStore, value: InfoBool) -> Result<ValueRef,
 fn compare_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(
         placement,
-        &conduit_std_catalog::logic_compare_scalar_offer(),
+        &conduit_std_offers::logic_compare_scalar_offer(),
         true,
     )?;
     comparison_operator(placement)?;
@@ -300,14 +300,14 @@ fn compare_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 }
 
 fn not_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    validate(placement, &conduit_std_catalog::logic_not_offer(), false)?;
+    validate(placement, &conduit_std_offers::logic_not_offer(), false)?;
     Ok(decision_budget())
 }
 
 fn select_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(
         placement,
-        &conduit_std_catalog::logic_select_scalar_offer(),
+        &conduit_std_offers::logic_select_scalar_offer(),
         false,
     )?;
     Ok(OperationBudget {
@@ -335,7 +335,7 @@ fn prepare_compare(
 ) -> Result<InstalledOperation, String> {
     validate(
         placement,
-        &conduit_std_catalog::logic_compare_scalar_offer(),
+        &conduit_std_offers::logic_compare_scalar_offer(),
         true,
     )?;
     Ok(InstalledOperation::LogicCompareScalar(
@@ -351,7 +351,7 @@ fn prepare_not(
     placement: &PlannedGear,
     store: &mut HostedValueStore,
 ) -> Result<InstalledOperation, String> {
-    validate(placement, &conduit_std_catalog::logic_not_offer(), false)?;
+    validate(placement, &conduit_std_offers::logic_not_offer(), false)?;
     Ok(InstalledOperation::LogicNot(LogicNotOperation {
         received: false,
         decisions: DecisionValues::prepare(store)?,
@@ -364,7 +364,7 @@ fn prepare_select(
 ) -> Result<InstalledOperation, String> {
     validate(
         placement,
-        &conduit_std_catalog::logic_select_scalar_offer(),
+        &conduit_std_offers::logic_select_scalar_offer(),
         false,
     )?;
     Ok(InstalledOperation::LogicSelectScalar(

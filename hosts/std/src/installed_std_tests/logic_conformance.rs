@@ -55,15 +55,15 @@ fn compare_not_and_select_plan_and_execute_together_through_the_production_kerne
     for (kind, implementation) in [
         (
             conduit_std_catalog::LOGIC_COMPARE_KIND,
-            conduit_std_catalog::LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
+            conduit_std_offers::LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
         ),
         (
             conduit_std_catalog::LOGIC_NOT_KIND,
-            conduit_std_catalog::LOGIC_NOT_IMPLEMENTATION,
+            conduit_std_offers::LOGIC_NOT_IMPLEMENTATION,
         ),
         (
             conduit_std_catalog::LOGIC_SELECT_KIND,
-            conduit_std_catalog::LOGIC_SELECT_SCALAR_IMPLEMENTATION,
+            conduit_std_offers::LOGIC_SELECT_SCALAR_IMPLEMENTATION,
         ),
     ] {
         let placement = fragment

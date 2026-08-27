@@ -215,16 +215,16 @@ pub(super) fn build_advertisement(
     }
     if composition.logic {
         capabilities.extend([
-            conduit_std_catalog::logic_compare_scalar_offer(),
-            conduit_std_catalog::logic_not_offer(),
-            conduit_std_catalog::logic_select_scalar_offer(),
+            conduit_std_offers::logic_compare_scalar_offer(),
+            conduit_std_offers::logic_not_offer(),
+            conduit_std_offers::logic_select_scalar_offer(),
         ]);
     }
     if composition.math {
         capabilities.extend([
-            conduit_std_catalog::math_clamp_offer(),
-            conduit_std_catalog::math_scale_offer(),
-            conduit_std_catalog::math_deadband_offer(),
+            conduit_std_offers::math_clamp_offer(),
+            conduit_std_offers::math_scale_offer(),
+            conduit_std_offers::math_deadband_offer(),
         ]);
     }
     if composition.layout {

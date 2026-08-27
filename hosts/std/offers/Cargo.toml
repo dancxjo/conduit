@@ -1,0 +1,9 @@
+[package]
+name = "conduit-std-offers"
+version = "0.1.0"
+edition = "2021"
+description = "Exact realization offers owned by the hosted std Host"
+
+[dependencies]
+conduit-core = { path = "../../../crates/conduit-core" }
+conduit-std-catalog = { path = "../../../crates/conduit-std-catalog" }
