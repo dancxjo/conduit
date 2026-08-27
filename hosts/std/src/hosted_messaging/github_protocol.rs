@@ -1,10 +1,10 @@
 //! Bounded GitHub issue-comment mapping for one portable delivery request.
 
-use conduit_core::StructuredInfoValue;
-use conduit_std_catalog::{
+use conduit_chat::{
     messaging_delivery_request_view, provider_acknowledgement, DeliveryResult,
     MessagingInfoRefusal, MAXIMUM_DELIVERY_ATTEMPTS,
 };
+use conduit_core::StructuredInfoValue;
 
 pub const GITHUB_MAXIMUM_COMMENT_BYTES: usize = 4_096;
 pub const GITHUB_MAXIMUM_RESPONSE_BYTES: usize = 16_384;

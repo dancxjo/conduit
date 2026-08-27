@@ -1,8 +1,8 @@
-use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
-use conduit_std_catalog::{
+use conduit_chat::{
     deterministic_delivery_request, deterministic_messaging_fixture, text_messaging_fixture,
     TextMessagingFixtureSpec, MESSAGING_DELIVERY_KIND,
 };
+use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
 
 use super::*;
 
@@ -77,7 +77,7 @@ fn authority_recipient_attachment_retry_and_provider_failures_stay_distinct() {
     );
     let retry = deterministic_delivery_request(
         &fixture.message,
-        conduit_std_catalog::MAXIMUM_DELIVERY_ATTEMPTS + 1,
+        conduit_chat::MAXIMUM_DELIVERY_ATTEMPTS + 1,
         Some("authority/live"),
         "correlation/live",
         "delivery/live",
@@ -102,7 +102,7 @@ fn authority_recipient_attachment_retry_and_provider_failures_stay_distinct() {
 #[test]
 fn github_offer_preserves_portable_face_with_exact_resource_and_authority() {
     let github = github_messaging_offer();
-    let deterministic = conduit_std_catalog::messaging_std_offers()
+    let deterministic = messaging_std_offers()
         .into_iter()
         .find(|offer| offer.kind_id.as_str() == MESSAGING_DELIVERY_KIND)
         .unwrap();
@@ -151,7 +151,7 @@ fn target() -> GitHubIssueCommentTarget {
     }
 }
 
-fn live_fixture(recipient: &str) -> conduit_std_catalog::MessagingFixture {
+fn live_fixture(recipient: &str) -> conduit_chat::MessagingFixture {
     text_messaging_fixture(TextMessagingFixtureSpec {
         message_identity: "message/live",
         request_identity: "delivery/live",

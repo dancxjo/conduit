@@ -1,4 +1,4 @@
-//! Portable finite message, delivery, notification, and presence Info.
+//! Host-neutral finite message, delivery, notification, and presence Info.
 //!
 //! Provider addresses, transports, acknowledgement guarantees, and retry
 //! execution remain realization facts. Attachments remain bounded resources.

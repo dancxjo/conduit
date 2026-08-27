@@ -3,7 +3,7 @@
 use alloc::{string::String, string::ToString, vec::Vec};
 use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
 
-use crate::messaging_realization::{leaf_text, record_field, validate_request};
+use crate::messaging_reference::{leaf_text, record_field, validate_request};
 use crate::MessagingInfoRefusal;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

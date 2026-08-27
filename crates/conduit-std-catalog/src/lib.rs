@@ -56,18 +56,6 @@ pub use education_realization::*;
 mod education_catalog;
 #[cfg(feature = "form-catalog")]
 pub use education_catalog::*;
-mod messaging;
-pub use messaging::*;
-mod messaging_fixture;
-pub use messaging_fixture::*;
-mod messaging_realization;
-pub use messaging_realization::*;
-mod messaging_view;
-pub use messaging_view::*;
-#[cfg(feature = "form-catalog")]
-mod messaging_catalog;
-#[cfg(feature = "form-catalog")]
-pub use messaging_catalog::*;
 mod generalized_input;
 pub use generalized_input::*;
 mod generalized_input_realization;

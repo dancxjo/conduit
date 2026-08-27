@@ -8,6 +8,7 @@ clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../conduit-alife" }
 conduit-core = { path = "../conduit-core" }
 conduit-body-fabrication = { path = "../conduit-body-fabrication" }
+conduit-chat = { path = "../conduit-chat", features = ["form-catalog"] }
 conduit-form = { path = "../conduit-form" }
 conduit-host-fabrication = { path = "../conduit-host-fabrication" }
 conduit-kernel = { path = "../conduit-kernel" }

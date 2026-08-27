@@ -1,3 +1,12 @@
+use conduit_chat::{
+    delivery_state_type, deterministic_cancel, deterministic_delivery_request,
+    deterministic_messaging_fixture, deterministic_provider_acknowledgement, deterministic_submit,
+    install_messaging_catalogs, message_attachments_type, message_metadata_type,
+    message_recipients_type, messaging_delivery_request_view, notification_event_type,
+    presence_event_type, text_messaging_fixture, TextMessagingFixtureSpec,
+    MAXIMUM_DELIVERY_ATTEMPTS, MAXIMUM_MESSAGE_ATTACHMENTS, MAXIMUM_MESSAGE_METADATA,
+    MAXIMUM_MESSAGE_RECIPIENTS, MESSAGE_ATTACHMENT_ACCESS_CLASS, MESSAGE_ATTACHMENT_PROFILE,
+};
 use conduit_core::{
     authority_grant, BootId, BoundedResourceRef, ConnectionBase, HostAdvertisement, HostId,
     HostProfileId, OfferGeneration, StructuredInfoTypeShape, StructuredInfoValue,
@@ -8,16 +17,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
-    delivery_state_type, deterministic_cancel, deterministic_delivery_request,
-    deterministic_messaging_fixture, deterministic_provider_acknowledgement, deterministic_submit,
-    install_messaging_catalogs, message_attachments_type, message_metadata_type,
-    message_recipients_type, messaging_delivery_request_view, messaging_std_offers,
-    notification_event_type, presence_event_type, text_messaging_fixture, TextMessagingFixtureSpec,
-    MAXIMUM_DELIVERY_ATTEMPTS, MAXIMUM_MESSAGE_ATTACHMENTS, MAXIMUM_MESSAGE_METADATA,
-    MAXIMUM_MESSAGE_RECIPIENTS, MESSAGE_ATTACHMENT_ACCESS_CLASS, MESSAGE_ATTACHMENT_PROFILE,
-    MESSAGING_HOST_OPERATION,
-};
+use conduit_std_host::hosted_messaging::{messaging_std_offers, MESSAGING_HOST_OPERATION};
 
 const SOURCE: &str = include_str!("../../../examples/messaging-delivery.conduit");
 
@@ -43,7 +43,7 @@ fn canonical_form_constructs_and_routes_one_structured_message() {
     let delivery_offer = host
         .capabilities
         .iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::MESSAGING_DELIVERY_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_chat::MESSAGING_DELIVERY_KIND)
         .unwrap();
     let grant = authority_grant(
         "grant/messaging-delivery",
@@ -76,7 +76,7 @@ fn canonical_form_constructs_and_routes_one_structured_message() {
             MESSAGING_HOST_OPERATION
         );
         assert!(placement.resources.is_empty());
-        if placement.kind_id.as_str() == conduit_std_catalog::MESSAGING_DELIVERY_KIND {
+        if placement.kind_id.as_str() == conduit_chat::MESSAGING_DELIVERY_KIND {
             assert_eq!(placement.authority.len(), 1);
         } else {
             assert!(placement.authority.is_empty());

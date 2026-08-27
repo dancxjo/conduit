@@ -94,27 +94,23 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         "Conduit #{} live hosted messaging proof at `{git_head}`. This GitHub response proves provider acknowledgement only; end-recipient delivery is not claimed.",
         config.issue_number
     );
-    let fixture = conduit_std_catalog::text_messaging_fixture(
-        conduit_std_catalog::TextMessagingFixtureSpec {
-            message_identity: "message/github-live/1",
-            request_identity: "delivery/github-live/1",
-            correlation_identity: "correlation/github-live/1",
-            authority_identity: "authority/github-live/1",
-            recipient_address: &config.portable_recipient,
-            recipient_address_profile: "messaging/conduit-issue@1",
-            body: &body,
-        },
-    )
+    let fixture = conduit_chat::text_messaging_fixture(conduit_chat::TextMessagingFixtureSpec {
+        message_identity: "message/github-live/1",
+        request_identity: "delivery/github-live/1",
+        correlation_identity: "correlation/github-live/1",
+        authority_identity: "authority/github-live/1",
+        recipient_address: &config.portable_recipient,
+        recipient_address_profile: "messaging/conduit-issue@1",
+        body: &body,
+    })
     .map_err(|error| StepError::prereq(PROOF_ID, format!("construct request: {error:?}")))?;
-    let view = conduit_std_catalog::messaging_delivery_request_view(&fixture.request)
+    let view = conduit_chat::messaging_delivery_request_view(&fixture.request)
         .map_err(|error| StepError::prereq(PROOF_ID, format!("inspect request: {error:?}")))?;
     let plan = plan(&config)?;
     let delivery = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| {
-            placement.kind_id.as_str() == conduit_std_catalog::MESSAGING_DELIVERY_KIND
-        })
+        .find(|placement| placement.kind_id.as_str() == conduit_chat::MESSAGING_DELIVERY_KIND)
         .ok_or_else(|| StepError::prereq(PROOF_ID, "Plan has no messaging delivery placement"))?;
     if delivery.authority.len() != 1 || delivery.resources.len() != 1 {
         return Err(StepError::prereq(
@@ -137,7 +133,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     let receipt = adapter
         .deliver(&fixture.request)
         .map_err(|error| StepError::prereq(PROOF_ID, format!("deliver: {error:?}")))?;
-    let state = conduit_std_catalog::messaging_delivery_state_view(&receipt.delivery.update)
+    let state = conduit_chat::messaging_delivery_state_view(&receipt.delivery.update)
         .map_err(|error| StepError::prereq(PROOF_ID, format!("inspect result: {error:?}")))?;
     if state.state != "sent" || state.evidence_kind.as_deref() != Some("provider_acknowledgement") {
         return Err(StepError::prereq(
@@ -195,7 +191,7 @@ fn plan(config: &MessagingConfig) -> Result<conduit_core::Plan, StepError> {
     let source = include_str!("../../../examples/messaging-delivery.conduit");
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
-    conduit_std_catalog::install_messaging_catalogs(&mut startup, &mut profiles)
+    conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles)
         .map_err(|error| StepError::prereq(PROOF_ID, error))?;
     let syntax = parse_syntax_document(source);
     let checked = check_syntax_document(&syntax, &startup)
@@ -206,7 +202,7 @@ fn plan(config: &MessagingConfig) -> Result<conduit_core::Plan, StepError> {
     let delivery_offer = host
         .capabilities
         .iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::MESSAGING_DELIVERY_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_chat::MESSAGING_DELIVERY_KIND)
         .ok_or_else(|| StepError::prereq(PROOF_ID, "GitHub messaging offer is absent"))?;
     let grant = github_messaging_authority_grant(
         delivery_offer,
@@ -241,9 +237,9 @@ fn plan(config: &MessagingConfig) -> Result<conduit_core::Plan, StepError> {
 }
 
 fn host(config: &MessagingConfig) -> HostAdvertisement {
-    let message = conduit_std_catalog::messaging_std_offers()
+    let message = conduit_std_host::hosted_messaging::messaging_std_offers()
         .into_iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::MESSAGING_MESSAGE_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_chat::MESSAGING_MESSAGE_KIND)
         .expect("reviewed portable message offer");
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
