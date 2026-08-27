@@ -47,9 +47,9 @@ fn configuration_and_boot_identity_reseal_the_plan() {
 #[test]
 fn authoritative_offers_keep_exact_portable_contracts() {
     let offers = [
-        conduit_std_catalog::conduitos_state_count_offer(),
-        conduit_std_catalog::conduitos_state_toggle_offer(),
-        conduit_std_catalog::conduitos_key_event_tee_offer(),
+        crate::functional_offers::state_count_offer(),
+        crate::functional_offers::state_toggle_offer(),
+        crate::functional_offers::key_event_tee_offer(),
     ];
     assert_eq!(
         offers[0].kind_contract_revision.as_str(),
@@ -65,7 +65,7 @@ fn authoritative_offers_keep_exact_portable_contracts() {
     );
     assert!(offers.iter().all(|offer| {
         offer.implementation.execution_profile_id.as_str()
-            == conduit_std_catalog::CONDUITOS_PORTABLE_STATE_INPUT_PROFILE
+            == crate::functional_offers::PORTABLE_STATE_INPUT_PROFILE
             && offer.host_operations.is_empty()
             && offer.resource_requirements.is_empty()
     }));

@@ -25,10 +25,6 @@ pub const TEXT_JOIN_ARTIFACT: &str = "conduit-std-host/text-join@1";
 pub const TEXT_JOIN_CAPABILITY: &str = "text-join-v1";
 pub const TEXT_JOIN_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-join@1";
 pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
-pub const CONDUITOS_BOUNDED_HOST_OP_PROFILE: &str = "conduitos/bounded-host-operations@1";
-pub const CONDUITOS_BOUNDED_HOST_OP_ARTIFACT: &str = "conduitos/bounded-host-operations@1";
-pub const CONDUITOS_TEXT_JOIN_CAPABILITY: &str = "conduitos-text-join-v1";
-pub const CONDUITOS_TEXT_JOIN_IMPLEMENTATION: &str = "conduitos/kernel-text-join@1";
 
 pub(crate) fn text_literal_contract() -> StandardKindContract {
     describe(
@@ -125,27 +121,6 @@ pub fn text_join_offer() -> CapabilityOffer {
             maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
             maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
         });
-    offer
-}
-
-pub fn conduitos_text_join_offer() -> CapabilityOffer {
-    conduitos_bounded_host_operation_offer(
-        text_join_offer(),
-        CONDUITOS_TEXT_JOIN_CAPABILITY,
-        CONDUITOS_TEXT_JOIN_IMPLEMENTATION,
-    )
-}
-
-pub(crate) fn conduitos_bounded_host_operation_offer(
-    mut offer: CapabilityOffer,
-    capability: &str,
-    implementation: &str,
-) -> CapabilityOffer {
-    offer.capability_id = CapabilityId::from(capability);
-    offer.implementation.execution_profile_id =
-        ExecutionProfileId::from(CONDUITOS_BOUNDED_HOST_OP_PROFILE);
-    offer.implementation.implementation_id = ImplementationId::from(implementation);
-    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_BOUNDED_HOST_OP_ARTIFACT);
     offer
 }
 
