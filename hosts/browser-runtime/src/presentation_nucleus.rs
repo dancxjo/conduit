@@ -18,8 +18,9 @@ use std::collections::BTreeMap;
 
 mod abi;
 pub use abi::*;
+mod offer_composition;
 mod offers;
-pub use offers::offers;
+pub use offers::{human_io_advertisement_offers, human_io_offers, offers};
 mod operation;
 use operation::NucleusOperation;
 mod structured_execution;
@@ -30,7 +31,7 @@ pub(crate) use text_execution::uppercase_utf8;
 #[cfg(test)]
 mod text_lab_tests;
 
-pub use conduit_std_catalog::{BROWSER_PRESENTATION_ARTIFACT, BROWSER_PRESENTATION_PROFILE};
+pub use offer_composition::{BROWSER_PRESENTATION_ARTIFACT, BROWSER_PRESENTATION_PROFILE};
 const FIXTURE_GRAPHICS_KIND: &str = "browser-fixture/graphics-present";
 const FIXTURE_LAYOUT_KIND: &str = "browser-fixture/layout-present";
 const FIXTURE_TEXT_KIND: &str = "browser-fixture/text-source";

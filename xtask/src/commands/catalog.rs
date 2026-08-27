@@ -534,12 +534,15 @@ mod tests {
             .find(|entry| entry.host_profile == conduitos_profile)
             .unwrap();
         assert!(matches!(conduitos.coverage, Coverage::Direct));
-        let conduitos_implementation = conduit_std_catalog::conduitos_presentation_nucleus_offers()
-            .into_iter()
-            .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND)
-            .unwrap()
-            .implementation
-            .implementation_id;
+        let conduitos_implementation =
+            conduitos::presentation_nucleus::presentation_nucleus_offers()
+                .into_iter()
+                .find(|offer| {
+                    offer.kind_id.as_str() == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
+                })
+                .unwrap()
+                .implementation
+                .implementation_id;
         assert_eq!(
             conduitos.implementation.as_ref().unwrap().implementation_id,
             conduitos_implementation.as_str()

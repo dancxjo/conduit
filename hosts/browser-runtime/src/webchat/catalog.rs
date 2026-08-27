@@ -33,7 +33,7 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
         }],
         capabilities: core::iter::once(socket.capability)
             .chain(chat.capabilities)
-            .chain(conduit_std_catalog::browser_human_io_advertisement_offers())
+            .chain(crate::presentation_nucleus::human_io_advertisement_offers())
             .collect(),
     }
 }

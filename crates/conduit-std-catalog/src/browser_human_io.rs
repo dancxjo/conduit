@@ -8,8 +8,6 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal,
 };
 
-use crate::browser_presentation_nucleus_offers;
-
 pub const CAMERA_ACQUIRE_KIND: &str = "media/acquire-camera@1";
 pub const MICROPHONE_ACQUIRE_KIND: &str = "media/acquire-microphone@1";
 pub const CAMERA_REQUEST_KIND: &str = "media/camera-constraints@1";
@@ -162,39 +160,6 @@ fn acquisition_offer(kind: &str, request_kind: &str) -> CapabilityOffer {
     }
 }
 
-/// All pre-acquisition human-facing offers. Presentation remains the portable
-/// Presentation nucleus; DOM/canvas are not semantic contracts.
-pub fn browser_human_io_offers() -> Vec<CapabilityOffer> {
-    let mut offers = browser_presentation_nucleus_offers();
-    offers.extend(browser_media_acquisition_offers());
-    offers.push(browser_camera_frame_sink_offer());
-    offers
-}
-
-/// Finite ordinary Host advertisement surface. Layout composition stays
-/// available through the full profile catalog without inflating every live
-/// advertisement; the advertised presentation primitives establish truthful
-/// text and graphics realization breadth.
-pub fn browser_human_io_advertisement_offers() -> Vec<CapabilityOffer> {
-    let mut offers = browser_media_acquisition_offers();
-    offers.extend(
-        browser_presentation_nucleus_offers()
-            .into_iter()
-            .filter(|offer| {
-                matches!(
-                    offer.kind_id.as_str(),
-                    crate::TEXT_PRESENTATION_KIND
-                        | crate::GRAPHICS_RECT_KIND
-                        | crate::GRAPHICS_TEXT_KIND
-                        | crate::GRAPHICS_ICON_KIND
-                )
-            }),
-    );
-    offers.push(browser_camera_frame_sink_offer());
-    offers.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-    offers
-}
-
 #[cfg(feature = "form-catalog")]
 pub fn install_human_media_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -242,24 +207,6 @@ mod tests {
             assert!(offer.host_operations[0].maximum_input_bytes > 0);
             assert!(offer.host_operations[0].maximum_output_bytes > 0);
         }
-    }
-
-    #[test]
-    fn browser_presentation_is_portable_and_contains_no_renderer_kind() {
-        let offers = browser_human_io_offers();
-        assert!(offers
-            .iter()
-            .any(|offer| offer.kind_id.as_str() == crate::TEXT_PRESENTATION_KIND));
-        assert!(offers
-            .iter()
-            .any(|offer| offer.kind_id.as_str() == crate::GRAPHICS_RECT_KIND));
-        assert!(!offers.iter().any(|offer| {
-            let kind = offer.kind_id.as_str();
-            kind.contains("dom") || kind.contains("canvas")
-        }));
-        assert!(offers
-            .iter()
-            .all(|offer| offer.kind_id.as_str() != CAMERA_SOURCE_KIND));
     }
 
     #[cfg(feature = "form-catalog")]

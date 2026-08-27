@@ -4446,6 +4446,7 @@ dependencies = [
  "conduit-audio",
  "conduit-body",
  "conduit-body-fabrication",
+ "conduit-browser-runtime",
  "conduit-chat",
  "conduit-core",
  "conduit-create-oi",
