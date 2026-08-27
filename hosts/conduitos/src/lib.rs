@@ -22,6 +22,7 @@ mod execution_region;
 pub mod fabrication;
 #[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod front_door;
+pub mod functional_offers;
 #[cfg(target_arch = "x86_64")]
 pub mod hotplug_guest;
 #[cfg(any(test, feature = "native-http-client"))]

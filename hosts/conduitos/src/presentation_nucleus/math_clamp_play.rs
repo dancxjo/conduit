@@ -221,7 +221,7 @@ fn advertisement(host: &str, boot: &str, input: Scalar) -> HostAdvertisement {
         planner_capabilities: Vec::new(),
         capabilities: vec![
             source_offer(input),
-            conduit_std_catalog::conduitos_math_clamp_offer(),
+            crate::functional_offers::math_clamp_offer(),
             sink_offer(),
         ],
     }
@@ -239,10 +239,10 @@ fn source_offer(input: Scalar) -> CapabilityOffer {
         kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_MATH_CLAMP_EXECUTION_PROFILE,
+                crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,
             ),
             implementation_id: ImplementationId::from(SOURCE_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(conduit_std_catalog::CONDUITOS_MATH_CLAMP_ARTIFACT),
+            artifact_id: ArtifactId::from(crate::functional_offers::FUNCTIONAL_KERNEL_ARTIFACT),
         },
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
@@ -271,10 +271,10 @@ fn sink_offer() -> CapabilityOffer {
         kind_contract_revision: KindContractRevision::from(SINK_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_MATH_CLAMP_EXECUTION_PROFILE,
+                crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,
             ),
             implementation_id: ImplementationId::from(SINK_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(conduit_std_catalog::CONDUITOS_MATH_CLAMP_ARTIFACT),
+            artifact_id: ArtifactId::from(crate::functional_offers::FUNCTIONAL_KERNEL_ARTIFACT),
         },
         inputs: vec![PortDescriptor {
             port_id: port_id("value"),

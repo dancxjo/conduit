@@ -107,16 +107,16 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement.capabilities.extend(presentation);
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_logic_not_offer());
+        .push(conduitos::functional_offers::logic_not_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_logic_compare_scalar_offer());
+        .push(conduitos::functional_offers::logic_compare_scalar_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_logic_select_scalar_offer());
+        .push(conduitos::functional_offers::logic_select_scalar_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_math_clamp_offer());
+        .push(conduitos::functional_offers::math_clamp_offer());
     advertisement
         .capabilities
         .push(conduit_std_catalog::conduitos_state_latest_scalar_offer());
@@ -141,8 +141,8 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     advertisement.capabilities.extend([
         conduit_std_catalog::conduitos_text_join_offer(),
         conduit_std_catalog::conduitos_flow_gate_scalar_offer(),
-        conduit_std_catalog::conduitos_math_scale_offer(),
-        conduit_std_catalog::conduitos_math_deadband_offer(),
+        conduitos::functional_offers::math_scale_offer(),
+        conduitos::functional_offers::math_deadband_offer(),
         conduit_std_catalog::conduitos_keymap_offer(),
         conduit_std_catalog::conduitos_chords_offer(),
     ]);

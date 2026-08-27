@@ -30,7 +30,7 @@ fn ordinary_clamp_form_handles_below_inside_and_above_boundaries() {
             .unwrap();
         assert_eq!(
             placement.implementation_id.as_str(),
-            conduit_std_catalog::CONDUITOS_MATH_CLAMP_IMPLEMENTATION
+            crate::functional_offers::MATH_CLAMP_IMPLEMENTATION
         );
         assert_eq!(run_clamp(&prepared).unwrap().output, expected);
     }
