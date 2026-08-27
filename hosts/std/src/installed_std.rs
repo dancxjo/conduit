@@ -398,13 +398,13 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let structured_presentation_target_kind =
         kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT,
+        conduit_std_offers::TEXT_UPPER_HOST_OPERATION_CONTRACT,
     );
-    let upper_target_kind = kind_id(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_TARGET);
+    let upper_target_kind = kind_id(conduit_std_offers::TEXT_UPPER_HOST_OPERATION_TARGET);
     let join_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_catalog::TEXT_JOIN_HOST_OPERATION_CONTRACT,
+        conduit_std_offers::TEXT_JOIN_HOST_OPERATION_CONTRACT,
     );
-    let join_target_kind = kind_id(conduit_std_catalog::TEXT_JOIN_HOST_OPERATION_TARGET);
+    let join_target_kind = kind_id(conduit_std_offers::TEXT_JOIN_HOST_OPERATION_TARGET);
     let gate_bool_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_offers::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT,
     );

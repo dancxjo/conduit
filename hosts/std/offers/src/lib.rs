@@ -8,6 +8,8 @@ mod presentation_structure;
 pub use presentation_structure::*;
 mod presentation_sinks;
 pub use presentation_sinks::*;
+mod text;
+pub use text::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -145,9 +147,9 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         time_throttle_offer(),
         tick_presentation_offer(),
         bool_presentation_offer(),
-        conduit_std_catalog::text_literal_offer(),
-        conduit_std_catalog::text_upper_offer(),
-        conduit_std_catalog::text_join_offer(),
+        text_literal_offer(),
+        text_upper_offer(),
+        text_join_offer(),
         text_presentation_offer(),
         conduit_std_catalog::key_event_tee_offer(),
         conduit_std_catalog::keymap_offer(),
@@ -269,6 +271,7 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/presentation_bool.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/text_presentation.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/graphics_presentation.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/text_transform.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -309,6 +312,9 @@ mod tests {
                 "pub fn count_presentation_offer",
                 "pub fn graphics_presentation_offer",
                 "pub fn bitmap_presentation_offer",
+                "pub fn text_literal_offer",
+                "pub fn text_upper_offer",
+                "pub fn text_join_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),

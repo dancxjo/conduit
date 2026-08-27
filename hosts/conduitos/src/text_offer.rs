@@ -36,7 +36,7 @@ pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_text::TEXT_UPPER_CONTRACT_REVISION,
         implementation: TEXT_UPPER_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT),
+        host_operation: Some(crate::functional_offers::TEXT_UPPER_HOST_OPERATION),
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {

@@ -1,6 +1,6 @@
 //! Exact two-std-Host realization of the mechanism-free coordination Form.
 
-use crate::{install_text_pipeline_catalogs, text_literal_offer, TEXT_PRESENTATION_KIND};
+use crate::{install_text_pipeline_catalogs, TEXT_PRESENTATION_KIND};
 use alloc::{
     collections::BTreeMap,
     format,
@@ -221,8 +221,29 @@ fn coordination_host(id: &str, boot_id: BootId) -> HostAdvertisement {
             1,
         )],
         planner_capabilities: Vec::new(),
-        capabilities: vec![text_literal_offer(), text_presentation_fixture_offer()],
+        capabilities: vec![
+            text_literal_fixture_offer(),
+            text_presentation_fixture_offer(),
+        ],
     }
+}
+
+fn text_literal_fixture_offer() -> CapabilityOffer {
+    let mut offer = crate::realization_offer(
+        crate::text_literal_contract(),
+        conduit_text::TEXT_LITERAL_CONTRACT_REVISION,
+        crate::RealizationOfferIdentity {
+            capability: "body-coordination/text-literal",
+            execution_profile: "body-coordination/fixture@1",
+            implementation: "body-coordination/text-literal@1",
+            artifact: "body-coordination/fixture@1",
+        },
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    );
+    offer.startup_parameters[0].has_default = false;
+    offer
 }
 
 fn text_presentation_fixture_offer() -> CapabilityOffer {

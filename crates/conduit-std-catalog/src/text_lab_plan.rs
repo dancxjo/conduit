@@ -2,7 +2,7 @@
 
 use crate::{
     hosted_keyboard_offer, install_input_semantic_catalogs, install_keyboard_catalogs,
-    install_text_pipeline_catalogs, keymap_offer, text_upper_offer, KEYBOARD_KIND, KEYMAP_KIND,
+    install_text_pipeline_catalogs, keymap_offer, KEYBOARD_KIND, KEYMAP_KIND,
     TEXT_PRESENTATION_KIND,
 };
 use alloc::{
@@ -144,7 +144,12 @@ fn exact_text_lab_split_plan_with_loss(
         capabilities: vec![
             hosted_keyboard_offer("text-lab-native-keyboard", "text-lab/native-keyboard@1"),
             keymap_offer(),
-            text_upper_offer(),
+            text_upper_fixture_offer(
+                "text-lab-native-upper",
+                "text-lab/native-fixture@1",
+                "text-lab/native-upper@1",
+                "text-lab/native-fixture@1",
+            ),
             text_presentation_fixture_offer(),
         ],
     };
@@ -302,20 +307,46 @@ fn text_presentation_fixture_offer() -> CapabilityOffer {
     )
 }
 
+fn text_upper_fixture_offer(
+    capability: &str,
+    execution_profile: &str,
+    implementation: &str,
+    artifact: &str,
+) -> CapabilityOffer {
+    let mut offer = crate::realization_offer(
+        crate::text_upper_contract(),
+        conduit_text::TEXT_UPPER_CONTRACT_REVISION,
+        crate::RealizationOfferIdentity {
+            capability,
+            execution_profile,
+            implementation,
+            artifact,
+        },
+        vec![conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from("conduit.host/text-upper@1"),
+            target_kind: Some(kind_id("text/uppercase-utf8")),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
+            maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
+        }],
+        Vec::new(),
+        Vec::new(),
+    );
+    offer.shorthand = Some((conduit_core::port_id("text"), conduit_core::port_id("text")));
+    offer
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn browser_text_upper_fixture() -> conduit_core::CapabilityOffer {
-        let mut offer = crate::text_upper_offer();
-        offer.capability_id = conduit_core::CapabilityId::from("test-browser-text-upper-v1");
-        offer.implementation.execution_profile_id =
-            conduit_core::ExecutionProfileId::from("test/browser-text-upper@1");
-        offer.implementation.implementation_id =
-            conduit_core::ImplementationId::from("test/browser-text-upper@1");
-        offer.implementation.artifact_id =
-            conduit_core::ArtifactId::from("test/browser-text-upper@1");
-        offer
+        text_upper_fixture_offer(
+            "test-browser-text-upper-v1",
+            "test/browser-text-upper@1",
+            "test/browser-text-upper@1",
+            "test/browser-text-upper@1",
+        )
     }
 
     #[test]

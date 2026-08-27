@@ -85,7 +85,13 @@ fn realization_preserves_portable_contract_and_bounds() {
             key_event_tee_offer(),
             conduit_std_catalog::key_event_tee_offer(),
         ),
-        (text_join_offer(), conduit_std_catalog::text_join_offer()),
+        (
+            text_join_offer(),
+            portable_required_text_offer(
+                conduit_std_catalog::text_join_contract(),
+                conduit_text::TEXT_JOIN_CONTRACT_REVISION,
+            ),
+        ),
         (keymap_offer(), conduit_std_catalog::keymap_offer()),
         (chords_offer(), conduit_std_catalog::chords_offer()),
         (
@@ -202,6 +208,15 @@ fn portable_offer(
         Vec::new(),
         Vec::new(),
     )
+}
+
+fn portable_required_text_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+) -> conduit_core::CapabilityOffer {
+    let mut offer = portable_offer(contract, revision);
+    offer.startup_parameters[0].has_default = false;
+    offer
 }
 
 fn portable_every_offer(

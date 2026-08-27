@@ -176,8 +176,8 @@ fn advertisement(
             conduit_std_catalog::TICK_PRESENTATION_KIND,
         )
         .expect("ConduitOS owns tick presentation"),
-        conduit_std_catalog::text_literal_offer(),
-        conduit_std_catalog::text_upper_offer(),
+        crate::functional_offers::text_literal_offer(),
+        crate::functional_offers::text_upper_offer(),
         crate::presentation_offers::presentation_offer_for(
             conduit_std_catalog::TEXT_PRESENTATION_KIND,
         )

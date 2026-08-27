@@ -46,9 +46,7 @@ pub(super) fn canonical_offer(kind: &str) -> Option<CapabilityOffer> {
             (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND)
                 .then(offer_composition::text_offer)
         })
-        .or_else(|| {
-            (kind == conduit_text::TEXT_UPPER_KIND).then(conduit_std_catalog::text_upper_offer)
-        })
+        .or_else(|| (kind == conduit_text::TEXT_UPPER_KIND).then(super::browser_text_upper_offer))
 }
 
 pub(super) fn advertisement() -> HostAdvertisement {

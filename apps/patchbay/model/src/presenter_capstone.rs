@@ -115,7 +115,7 @@ fn direct_host() -> HostAdvertisement {
         "patchbay-browser-boot",
         "patchbay/browser-direct@1",
         vec![
-            conduit_std_catalog::text_literal_offer(),
+            text_literal_fixture_offer("patchbay/browser-text-literal@1"),
             conduit_std_catalog::patchbay_presentation_offers()[0].clone(),
         ],
     )
@@ -127,7 +127,7 @@ fn recursive_host() -> HostAdvertisement {
         "patchbay-constrained-boot",
         "patchbay/constrained-recursive@1",
         vec![
-            conduit_std_catalog::text_literal_offer(),
+            text_literal_fixture_offer("patchbay/constrained-text-literal@1"),
             conduit_std_offers::text_presentation_offer(),
             conduit_std_offers::layout_viewport_offer(),
             conduit_std_offers::layout_inset_offer(),
@@ -164,5 +164,33 @@ fn host(
         )],
         capabilities,
         planner_capabilities: Vec::new(),
+    }
+}
+
+fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityOffer {
+    let contract = conduit_text::text_literal_semantics();
+    conduit_core::CapabilityOffer {
+        startup_parameters: vec![conduit_core::FaceStartupParameter {
+            name: "value".into(),
+            value_type: "Text".into(),
+            has_default: false,
+        }],
+        shorthand: None,
+        capability_id: conduit_core::CapabilityId::from(implementation),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: conduit_core::ExecutionProfileId::from(
+                "patchbay/presenter-fixture@1",
+            ),
+            implementation_id: conduit_core::ImplementationId::from(implementation),
+            artifact_id: conduit_core::ArtifactId::from("patchbay/presenter-fixture@1"),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: Vec::new(),
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
     }
 }

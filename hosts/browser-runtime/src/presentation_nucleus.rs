@@ -402,7 +402,7 @@ mod tests {
             );
         }
         let browser_upper = browser_text_upper_offer();
-        let canonical_upper = conduit_std_catalog::text_upper_offer();
+        let canonical_upper = browser_text_upper_offer();
         assert_eq!(
             browser_upper.kind_contract_revision,
             canonical_upper.kind_contract_revision

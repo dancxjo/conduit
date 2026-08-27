@@ -294,12 +294,12 @@ fn validate_shape(
         || presentation.implementation_id.as_str() != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
         || upper.host_operations.len() != 1
         || upper.host_operations[0].contract_id.as_str()
-            != conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT
+            != crate::functional_offers::TEXT_UPPER_HOST_OPERATION
         || upper.host_operations[0]
             .target_kind
             .as_ref()
             .map(|kind| kind.as_str())
-            != Some(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_TARGET)
+            != Some(crate::functional_offers::TEXT_UPPER_HOST_OPERATION_TARGET)
         || upper.host_operations[0].maximum_in_flight != 1
         || upper.host_operations[0].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
         || upper.host_operations[0].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
