@@ -105,7 +105,10 @@ pub struct BrowserTextOffer {
 
 impl BrowserTextLabFragment {
     pub fn prepare(base_instance: &str) -> Result<Self, String> {
-        let exact = exact_text_lab_split_plan(base_instance)?;
+        let exact = exact_text_lab_split_plan(
+            base_instance,
+            &crate::presentation_nucleus::browser_text_upper_offer(),
+        )?;
         let fragment = exact
             .plan
             .fragments

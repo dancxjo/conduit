@@ -164,7 +164,7 @@ fn unchanged_text_lab_selects_browser_uppercase_and_loss_cannot_mutate_its_plan(
     assert_eq!(uppercase.host_id, browser.host_id);
     assert_eq!(
         uppercase.artifact_id.as_str(),
-        conduit_std_catalog::BROWSER_TEXT_UPPER_ARTIFACT
+        super::BROWSER_TEXT_UPPER_ARTIFACT
     );
     for local_gear in [
         "text-lab/keyboard",

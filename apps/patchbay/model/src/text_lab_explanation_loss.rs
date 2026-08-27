@@ -10,8 +10,9 @@ pub(super) fn validate_loss(
     plan: &conduit_core::Plan,
     receipt: &TextLabLineLossReceipt,
 ) -> Result<(), String> {
-    let expected = exact_text_lab_line_loss_outcome(base, TEXT_LAB_RETURN_LINE)?;
-    let exact = exact_text_lab_split_plan(base)?;
+    let browser_upper = conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer();
+    let expected = exact_text_lab_line_loss_outcome(base, &browser_upper, TEXT_LAB_RETURN_LINE)?;
+    let exact = exact_text_lab_split_plan(base, &browser_upper)?;
     let active = conduit_core::bind_active_play(
         &plan.plan_id,
         &exact.native.host_id,

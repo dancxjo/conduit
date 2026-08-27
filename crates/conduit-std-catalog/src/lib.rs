@@ -77,8 +77,6 @@ mod presentation_composition;
 pub use presentation_composition::*;
 mod presentation_execution;
 pub use presentation_execution::*;
-mod browser_text_upper;
-pub use browser_text_upper::*;
 mod browser_human_io;
 pub use browser_human_io::*;
 #[cfg(feature = "body-coordination-plan")]

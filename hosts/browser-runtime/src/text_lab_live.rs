@@ -89,7 +89,11 @@ fn binding(
 
 impl TextLabBrowserLive {
     fn prepare(base: &str) -> Result<Self, i32> {
-        let exact = exact_text_lab_split_plan(base).map_err(|_| ERROR_PREPARE)?;
+        let exact = exact_text_lab_split_plan(
+            base,
+            &crate::presentation_nucleus::browser_text_upper_offer(),
+        )
+        .map_err(|_| ERROR_PREPARE)?;
         let forward_binding = binding(
             &exact.plan,
             TEXT_LAB_NATIVE_HOST,
