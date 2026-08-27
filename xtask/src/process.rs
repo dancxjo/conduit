@@ -222,8 +222,33 @@ pub fn run_step(step: &Step, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     run_step_with_environment(step, root, opts, &[])
 }
 
+/// Run one orchestrated step with an exact dynamically planned argument list.
+pub fn run_step_with_arguments(
+    step: &Step,
+    arguments: &[String],
+    root: &Path,
+    opts: &GlobalOpts,
+) -> Result<(), StepError> {
+    run_step_with_arguments_and_environment(step, arguments.to_vec(), root, opts, &[])
+}
+
 fn run_step_with_environment(
     step: &Step,
+    root: &Path,
+    opts: &GlobalOpts,
+    environment: &[(&str, &OsStr)],
+) -> Result<(), StepError> {
+    let arguments = step
+        .args
+        .iter()
+        .map(|argument| argument.to_string())
+        .collect();
+    run_step_with_arguments_and_environment(step, arguments, root, opts, environment)
+}
+
+fn run_step_with_arguments_and_environment(
+    step: &Step,
+    mut effective_args: Vec<String>,
     root: &Path,
     opts: &GlobalOpts,
     environment: &[(&str, &OsStr)],
@@ -233,7 +258,6 @@ fn run_step_with_environment(
         None => root.to_path_buf(),
     };
 
-    let mut effective_args: Vec<String> = step.args.iter().map(|s| s.to_string()).collect();
     if opts.locked
         && step.program == "cargo"
         && !effective_args.is_empty()
