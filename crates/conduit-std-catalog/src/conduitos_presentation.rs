@@ -1,15 +1,15 @@
 use alloc::{format, vec::Vec};
 use conduit_core::{ArtifactId, CapabilityOffer, ExecutionProfileId, ImplementationId};
+use conduit_presentation::BITMAP_PRESENTATION_KIND;
 
 use crate::{
     bitmap_presentation_offer, bool_presentation_std_offer, graphics_offer_for,
     graphics_presentation_offer, layout_offer_for, patchbay_presentation_offers,
-    presentation_composition_offer_for, text_presentation_offer, BITMAP_PRESENTATION_KIND,
-    BOOL_PRESENTATION_KIND, COUNT_PRESENTATION_KIND, GRAPHICS_ICON_KIND,
-    GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND, LAYOUT_ALIGN_KIND,
-    LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
-    LAYOUT_VIEWPORT_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND,
-    TEXT_PRESENTATION_KIND,
+    presentation_composition_offer_for, text_presentation_offer, BOOL_PRESENTATION_KIND,
+    COUNT_PRESENTATION_KIND, GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND,
+    GRAPHICS_TEXT_KIND, LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND,
+    LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND,
+    PRESENTATION_ICON_KIND, TEXT_PRESENTATION_KIND,
 };
 
 pub const CONDUITOS_PRESENTATION_PROFILE: &str = "conduitos/framebuffer-presentation-kernel@1";

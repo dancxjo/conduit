@@ -153,7 +153,9 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
         .map_err(|_| PreparationError::Catalog)?;
     conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_graphics_presentation_catalogs(&mut startup, &mut profile)
+    conduit_std_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)
+        .map_err(|_| PreparationError::Catalog)?;
+    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
     conduit_std_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;

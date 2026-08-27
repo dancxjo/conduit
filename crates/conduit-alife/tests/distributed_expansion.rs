@@ -29,7 +29,7 @@ fn unchanged_portable_lenia_expands_to_three_workers_and_six_typed_cords() {
     assert!(expanded
         .gears
         .iter()
-        .any(|gear| { gear.kind_id.as_str() == conduit_std_catalog::BITMAP_PRESENTATION_KIND }));
+        .any(|gear| { gear.kind_id.as_str() == conduit_presentation::BITMAP_PRESENTATION_KIND }));
     assert_eq!(expanded.realization_backs.len(), 2);
     assert!(expanded
         .realization_backs

@@ -491,7 +491,7 @@ mod tests {
                     && (revision.starts_with("conduit.std/")
                         || revision.starts_with("conduit.input/")
                         || offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND
-                        || offer.kind_id.as_str() == conduit_std_catalog::BITMAP_PRESENTATION_KIND)
+                        || offer.kind_id.as_str() == conduit_presentation::BITMAP_PRESENTATION_KIND)
             })
             .cloned()
             .collect::<Vec<_>>();
