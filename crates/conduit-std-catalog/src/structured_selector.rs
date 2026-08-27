@@ -1,33 +1,32 @@
-//! Dynamic installed offer for one exact checked structured selector.
+//! Portable typed contract for one exact checked structured selector.
 
-use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, StructuredSelector,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, KindId, PortDescriptor,
+    PortDirection, PortId, PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const STRUCTURED_SELECTOR_REVISION: &str = "structured-info/selector-operation@1";
-pub const STRUCTURED_SELECTOR_STD_PROFILE: &str = "std/structured-selector-kernel-hosted@1";
-pub const STRUCTURED_SELECTOR_STD_IMPLEMENTATION: &str = "std/kernel-structured-selector@1";
-pub const STRUCTURED_SELECTOR_STD_ARTIFACT: &str = "conduit-core/structured-selector@1";
-pub const STRUCTURED_SELECTOR_HOST_OPERATION: &str = "conduit.host/structured-selector@1";
 
-pub fn structured_selector_std_offer(
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructuredSelectorContract {
+    pub startup_parameters: Vec<FaceStartupParameter>,
+    pub shorthand: Option<(PortId, PortId)>,
+    pub kind_id: KindId,
+    pub kind_contract_revision: KindContractRevision,
+    pub inputs: Vec<PortDescriptor>,
+    pub outputs: Vec<PortDescriptor>,
+    pub limits: CapabilityLimits,
+}
+
+pub fn structured_selector_contract(
     selector: &StructuredSelector,
     temporal: PortTemporal,
-) -> CapabilityOffer {
+) -> StructuredSelectorContract {
     let kind_id = selector
         .kind_id(temporal)
         .expect("checked selector has finite semantic identity");
-    let digest = kind_id
-        .as_str()
-        .strip_prefix("structured-info/selector-")
-        .and_then(|value| value.strip_suffix(&format!("-{}@1", temporal.as_str())))
-        .expect("structured selector kind identity is canonical");
     let input_kind = selector
         .input_type()
         .profile()
@@ -40,24 +39,15 @@ pub fn structured_selector_std_offer(
         .expect("checked selector output has finite profile")
         .value_kind()
         .clone();
-    CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+    StructuredSelectorContract {
+        startup_parameters: vec![FaceStartupParameter {
             name: "selector".into(),
             value_type: "Text".into(),
             has_default: false,
         }],
         shorthand: Some((port_id("input"), port_id("output"))),
-        capability_id: CapabilityId::from(format!(
-            "std-structured-selector-{digest}-{}",
-            temporal.as_str()
-        )),
-        kind_id: kind_id.clone(),
+        kind_id,
         kind_contract_revision: KindContractRevision::from(STRUCTURED_SELECTOR_REVISION),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(STRUCTURED_SELECTOR_STD_PROFILE),
-            implementation_id: ImplementationId::from(STRUCTURED_SELECTOR_STD_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(STRUCTURED_SELECTOR_STD_ARTIFACT),
-        },
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
             value_kind: input_kind,
@@ -70,15 +60,6 @@ pub fn structured_selector_std_offer(
             direction: PortDirection::Output,
             temporal,
         }],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(STRUCTURED_SELECTOR_HOST_OPERATION),
-            target_kind: Some(kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,

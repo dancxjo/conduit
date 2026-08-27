@@ -38,7 +38,7 @@ fn canonical_form_filters_and_projects_rows_without_sql_or_json() {
                     PortTemporal::Value,
                 ))
                 .unwrap();
-            selector_offers.push(conduit_std_catalog::structured_selector_std_offer(
+            selector_offers.push(conduit_std_offers::structured_selector_std_offer(
                 selector,
                 PortTemporal::Value,
             ));

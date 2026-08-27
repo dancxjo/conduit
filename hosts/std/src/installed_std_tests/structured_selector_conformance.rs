@@ -118,7 +118,7 @@ fn execute_case(
         installed_std::test_structured_selector::offer(&input_type, PortDirection::Output);
     let sink_offer =
         installed_std::test_structured_selector::offer(expected.value_type(), PortDirection::Input);
-    let selector_offer = conduit_std_catalog::structured_selector_std_offer(selector, temporal);
+    let selector_offer = conduit_std_offers::structured_selector_std_offer(selector, temporal);
     let mut profile = ProfileCatalog::new();
     profile
         .insert(fixture_definition(&source_offer, &input))
@@ -178,7 +178,7 @@ fn execute_case(
         .expect("selector has one planned placement");
     assert_eq!(
         selector_placement.implementation_id.as_str(),
-        conduit_std_catalog::STRUCTURED_SELECTOR_STD_IMPLEMENTATION
+        conduit_std_offers::STRUCTURED_SELECTOR_STD_IMPLEMENTATION
     );
 
     let mut output = Vec::with_capacity(2_048);

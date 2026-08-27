@@ -11,7 +11,7 @@ use conduit_kernel::{
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::STRUCTURED_SELECTOR_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::STRUCTURED_SELECTOR_STD_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -102,7 +102,7 @@ pub(super) fn prepare_hosts(
         .iter()
         .map(|placement| {
             if placement.implementation_id.as_str()
-                == conduit_std_catalog::STRUCTURED_SELECTOR_STD_IMPLEMENTATION
+                == conduit_std_offers::STRUCTURED_SELECTOR_STD_IMPLEMENTATION
             {
                 StructuredSelectorHost::from_placement(placement).map(Some)
             } else {
@@ -171,7 +171,7 @@ fn validate_placement(
         .first()
         .map(|port| port.temporal)
         .ok_or_else(|| "structured selector input is missing".to_string())?;
-    let offer = conduit_std_catalog::structured_selector_std_offer(selector, temporal);
+    let offer = conduit_std_offers::structured_selector_std_offer(selector, temporal);
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id

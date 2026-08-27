@@ -112,8 +112,7 @@ fn five_unrelated_forms_use_exact_structured_values_and_the_same_selector_substr
             expand_canonical_form_for_authoring(&checked, specimen.form_name, &profile).unwrap();
         assert_eq!(authored.expanded.gears.len(), 2);
         assert_eq!(authored.output_bindings.len(), 1);
-        let selector_offer =
-            conduit_std_catalog::structured_selector_std_offer(selector, PortTemporal::Value);
+        let selector_offer = structured_selector_proof_offer(selector, PortTemporal::Value);
         selector_kinds.push(selector_offer.kind_id.clone());
         let host = host(vec![
             structured_literal_proof_offer(specimen.type_name, &specimen.value_type),
@@ -161,6 +160,31 @@ fn structured_literal_proof_offer(
             execution_profile_id: "proof/structured-literal".into(),
             implementation_id: "proof/structured-literal".into(),
             artifact_id: "proof/structured-literal".into(),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: Vec::new(),
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
+}
+
+fn structured_selector_proof_offer(
+    selector: &conduit_core::StructuredSelector,
+    temporal: PortTemporal,
+) -> CapabilityOffer {
+    let contract = conduit_std_catalog::structured_selector_contract(selector, temporal);
+    CapabilityOffer {
+        startup_parameters: contract.startup_parameters,
+        shorthand: contract.shorthand,
+        capability_id: "proof/structured-selector".into(),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: "proof/structured-selector".into(),
+            implementation_id: "proof/structured-selector".into(),
+            artifact_id: "proof/structured-selector".into(),
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
