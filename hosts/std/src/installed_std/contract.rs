@@ -4,9 +4,9 @@ use conduit_core::{CapabilityOffer, ConfigurationEntry, ConfigurationValue};
 pub(crate) use conduit_std_catalog::{
     TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_KIND, TEXT_PRESENTATION_VALUE_KIND,
 };
+pub(crate) use conduit_std_offers::text_presentation_offer as text_offer;
 #[cfg(test)]
 pub(crate) use conduit_std_offers::TEXT_PRESENTATION_IMPLEMENTATION;
-pub(crate) use conduit_std_offers::text_presentation_offer as text_offer;
 pub(crate) use conduit_text::MAX_TEXT_BYTES;
 
 pub(crate) const TICK_KIND: &str = conduit_time::TICK_KIND;
