@@ -212,11 +212,9 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
         kind_id: kind_id(SOURCE_KIND),
         kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE,
-            ),
+            execution_profile_id: ExecutionProfileId::from(super::CONDUITOS_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from(SOURCE_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(conduit_std_catalog::CONDUITOS_PRESENTATION_ARTIFACT),
+            artifact_id: ArtifactId::from(super::CONDUITOS_PRESENTATION_ARTIFACT),
         },
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
@@ -237,7 +235,7 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
 }
 
 fn bool_offer() -> CapabilityOffer {
-    conduit_std_catalog::conduitos_presentation_nucleus_offers()
+    super::presentation_nucleus_offers()
         .into_iter()
         .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND)
         .expect("ConduitOS Boolean presenter is installed")

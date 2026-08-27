@@ -92,7 +92,7 @@ pub fn prepare(host: &str, boot: &str) -> Result<PreparedPresentationPlay, Prepa
 }
 
 fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
-    let mut capabilities = conduit_std_catalog::conduitos_presentation_nucleus_offers();
+    let mut capabilities = super::presentation_nucleus_offers();
     capabilities.push(text_source_offer());
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -118,11 +118,9 @@ fn text_source_offer() -> CapabilityOffer {
         kind_id: kind_id(TEXT_SOURCE_KIND),
         kind_contract_revision: KindContractRevision::from("conduitos/fixture-text-source@1"),
         implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE,
-            ),
+            execution_profile_id: ExecutionProfileId::from(super::CONDUITOS_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from("conduitos.fixture/text-source@1"),
-            artifact_id: ArtifactId::from(conduit_std_catalog::CONDUITOS_PRESENTATION_ARTIFACT),
+            artifact_id: ArtifactId::from(super::CONDUITOS_PRESENTATION_ARTIFACT),
         },
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
@@ -218,7 +216,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             manifestation.execution_profile_id.as_str(),
-            conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE
+            crate::presentation_nucleus::CONDUITOS_PRESENTATION_PROFILE
         );
         assert_eq!(manifestation.host_operations.len(), 1);
         assert_eq!(manifestation.resources.len(), 1);

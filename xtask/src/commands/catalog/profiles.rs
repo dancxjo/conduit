@@ -31,7 +31,7 @@ fn browser_advertisement() -> Result<HostAdvertisement, CatalogError> {
     let mut browser = conduit_signal_conformance::distributed_browser_sink_advertisement();
     browser
         .capabilities
-        .extend(conduit_std_catalog::browser_presentation_nucleus_offers());
+        .extend(conduit_browser_runtime::presentation_nucleus::offers());
     let proof = patchbay_model::patchbay_presenter_plans()
         .map_err(|error| CatalogError::new("patchbay-direct-profile-invalid", error))?;
     browser.capabilities.extend(
@@ -98,7 +98,7 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
             })
             .collect::<Result<Vec<_>, CatalogError>>()?,
     };
-    let presentation = conduit_std_catalog::conduitos_presentation_nucleus_offers();
+    let presentation = conduitos::presentation_nucleus::presentation_nucleus_offers();
     advertisement.capabilities.retain(|capability| {
         !presentation
             .iter()

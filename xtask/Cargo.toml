@@ -26,6 +26,7 @@ sha2 = "0.10"
 toml = "0.8"
 conduit-body = { path = "../crates/conduit-body" }
 conduit-body-fabrication = { path = "../crates/conduit-body-fabrication" }
+conduit-browser-runtime = { path = "../hosts/browser-runtime" }
 conduit-chat = { path = "../crates/conduit-chat", features = ["form-catalog"] }
 conduit-ai = { path = "../crates/conduit-ai" }
 conduit-core = { path = "../crates/conduit-core" }

@@ -365,8 +365,8 @@ fn validate_presentation(
         || sign.display_height < 200
         || sign.display_pitch < sign.display_width.saturating_mul(4)
         || sign.display_bits_per_pixel != 32
-        || sign.execution_profile != conduit_std_catalog::CONDUITOS_PRESENTATION_PROFILE
-        || sign.artifact != conduit_std_catalog::CONDUITOS_PRESENTATION_ARTIFACT
+        || sign.execution_profile != conduitos::presentation_nucleus::CONDUITOS_PRESENTATION_PROFILE
+        || sign.artifact != conduitos::presentation_nucleus::CONDUITOS_PRESENTATION_ARTIFACT
         || !exact_id(&sign.source_document_id)
         || !exact_id(&sign.checked_form_id)
         || !exact_id(&sign.expanded_form_id)

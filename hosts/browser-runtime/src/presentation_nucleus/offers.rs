@@ -1,6 +1,6 @@
 use super::{
-    BROWSER_PRESENTATION_ARTIFACT, BROWSER_PRESENTATION_PROFILE, FIXTURE_GRAPHICS_KIND,
-    FIXTURE_LAYOUT_KIND, FIXTURE_PRESENT_OPERATION, FIXTURE_TEXT_KIND,
+    offer_composition, BROWSER_PRESENTATION_ARTIFACT, BROWSER_PRESENTATION_PROFILE,
+    FIXTURE_GRAPHICS_KIND, FIXTURE_LAYOUT_KIND, FIXTURE_PRESENT_OPERATION, FIXTURE_TEXT_KIND,
 };
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
@@ -13,7 +13,30 @@ use conduit_presentation::{
 };
 
 pub fn offers() -> Vec<CapabilityOffer> {
-    conduit_std_catalog::browser_presentation_nucleus_offers()
+    offer_composition::offers()
+}
+
+pub fn human_io_offers() -> Vec<CapabilityOffer> {
+    let mut offers = offers();
+    offers.extend(conduit_std_catalog::browser_media_acquisition_offers());
+    offers.push(conduit_std_catalog::browser_camera_frame_sink_offer());
+    offers
+}
+
+pub fn human_io_advertisement_offers() -> Vec<CapabilityOffer> {
+    let mut advertisement = conduit_std_catalog::browser_media_acquisition_offers();
+    advertisement.extend(offers().into_iter().filter(|offer| {
+        matches!(
+            offer.kind_id.as_str(),
+            conduit_std_catalog::TEXT_PRESENTATION_KIND
+                | conduit_std_catalog::GRAPHICS_RECT_KIND
+                | conduit_std_catalog::GRAPHICS_TEXT_KIND
+                | conduit_std_catalog::GRAPHICS_ICON_KIND
+        )
+    }));
+    advertisement.push(conduit_std_catalog::browser_camera_frame_sink_offer());
+    advertisement.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    advertisement
 }
 
 #[cfg(test)]
@@ -218,4 +241,27 @@ pub(super) fn text_fixture_startup_catalog() -> Result<conduit_form::StartupCata
         })
         .map_err(|error| format!("install browser text fixture startup signature: {error}"))?;
     Ok(startup)
+}
+
+#[cfg(test)]
+mod ownership_tests {
+    use super::*;
+
+    #[test]
+    fn browser_human_io_is_portable_and_contains_no_renderer_kind() {
+        let offers = human_io_offers();
+        assert!(offers.iter().any(|offer| {
+            offer.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND
+        }));
+        assert!(offers
+            .iter()
+            .any(|offer| offer.kind_id.as_str() == conduit_std_catalog::GRAPHICS_RECT_KIND));
+        assert!(!offers.iter().any(|offer| {
+            let kind = offer.kind_id.as_str();
+            kind.contains("dom") || kind.contains("canvas")
+        }));
+        assert!(offers
+            .iter()
+            .all(|offer| { offer.kind_id.as_str() != conduit_std_catalog::CAMERA_SOURCE_KIND }));
+    }
 }
