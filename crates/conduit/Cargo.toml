@@ -22,6 +22,7 @@ conduit-plan-lowering = { path = "../conduit-plan-lowering" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-std-host = { path = "../../hosts/std" }
+conduit-std-offers = { path = "../../hosts/std/offers" }
 conduit-std-catalog = { path = "../conduit-std-catalog", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../conduit-time" }
 conduit-wire = { path = "../conduit-wire" }

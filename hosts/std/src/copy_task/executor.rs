@@ -197,12 +197,12 @@ fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::Planne
         || placement.kind_contract_revision.as_str()
             != conduit_std_catalog::COPY_FILE_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::COPY_FILE_EXECUTION_PROFILE
-        || placement.implementation_id.as_str() != conduit_std_catalog::COPY_FILE_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_catalog::COPY_FILE_ARTIFACT
+            != conduit_std_offers::COPY_FILE_EXECUTION_PROFILE
+        || placement.implementation_id.as_str() != conduit_std_offers::COPY_FILE_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::COPY_FILE_ARTIFACT
         || !placement.inputs.is_empty()
         || placement.outputs.len() != 1
-        || placement.host_operations != conduit_std_catalog::copy_file_offer().host_operations
+        || placement.host_operations != conduit_std_offers::copy_file_offer().host_operations
         || placement.resources.len() != 2
     {
         return Err(
@@ -214,10 +214,10 @@ fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::Planne
         .iter()
         .find(|candidate| {
             candidate.implementation_id.as_str()
-                == conduit_std_catalog::COPY_RESULT_PRESENTATION_IMPLEMENTATION
+                == conduit_std_offers::COPY_RESULT_PRESENTATION_IMPLEMENTATION
         })
         .ok_or_else(|| "copy Plan has no result presentation placement".to_string())?;
-    let presentation_offer = conduit_std_catalog::copy_result_presentation_offer();
+    let presentation_offer = conduit_std_offers::copy_result_presentation_offer();
     if presenter.kind_id != presentation_offer.kind_id
         || presenter.kind_contract_revision != presentation_offer.kind_contract_revision
         || presenter.execution_profile_id != presentation_offer.implementation.execution_profile_id
@@ -335,7 +335,7 @@ fn execute_copy(
         .iter()
         .find(|placement| {
             placement.implementation_id.as_str()
-                == conduit_std_catalog::COPY_RESULT_PRESENTATION_IMPLEMENTATION
+                == conduit_std_offers::COPY_RESULT_PRESENTATION_IMPLEMENTATION
         })
         .and_then(|placement| {
             lowered

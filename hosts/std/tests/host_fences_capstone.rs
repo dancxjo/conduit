@@ -457,7 +457,7 @@ fn protected_use_revalidates_the_exact_current_grant() {
                 ResourceBindingRoleId::from(role),
                 host.advertisement().host_id.clone(),
                 host.advertisement().boot_id.clone(),
-                CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY),
+                CapabilityId::from(conduit_std_offers::COPY_FILE_CAPABILITY),
                 access,
                 64,
                 policy,

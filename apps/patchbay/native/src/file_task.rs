@@ -178,7 +178,7 @@ impl NativeFileTask {
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
             self.config.host_id.clone(),
             self.config.boot_id.clone(),
-            CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY),
+            CapabilityId::from(conduit_std_offers::COPY_FILE_CAPABILITY),
             ProtectedResourceAccess::ReadExisting,
             MAXIMUM_COPY_BYTES,
             ProtectedResourceCommitPolicy::NotApplicable,
@@ -231,7 +231,7 @@ impl NativeFileTask {
             ResourceBindingRoleId::from(conduit_std_catalog::COPY_DESTINATION_ROLE),
             self.config.host_id.clone(),
             self.config.boot_id.clone(),
-            CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY),
+            CapabilityId::from(conduit_std_offers::COPY_FILE_CAPABILITY),
             access,
             MAXIMUM_COPY_BYTES,
             commit_policy,
@@ -371,7 +371,7 @@ impl NativeFileTask {
     pub fn lines(&self) -> Vec<String> {
         let advertised =
             self.host.advertisement().capabilities.iter().any(|offer| {
-                offer.capability_id.as_str() == conduit_std_catalog::COPY_FILE_CAPABILITY
+                offer.capability_id.as_str() == conduit_std_offers::COPY_FILE_CAPABILITY
             });
         let mut lines = vec![format!(
             "NATIVE-FILE-BASE usable={} capability-advertised={advertised}",

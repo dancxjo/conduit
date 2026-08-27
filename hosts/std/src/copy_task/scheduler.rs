@@ -48,7 +48,7 @@ pub(super) fn prepare_copy_scheduler(
         let operation = if placement.kind_id.as_str() == conduit_std_catalog::COPY_FILE_KIND {
             CopyTaskOperation::Copy(CopyOperation::new(command))
         } else if placement.implementation_id.as_str()
-            == conduit_std_catalog::COPY_RESULT_PRESENTATION_IMPLEMENTATION
+            == conduit_std_offers::COPY_RESULT_PRESENTATION_IMPLEMENTATION
         {
             CopyTaskOperation::Sink(CopyResultSink::new())
         } else {
