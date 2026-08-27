@@ -1028,6 +1028,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-xtask-dispatch"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
 name = "conduitos"
 version = "0.1.0"
 dependencies = [
