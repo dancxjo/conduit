@@ -31,6 +31,19 @@ fn host(name: &str) -> StdHost {
     })
 }
 
+fn line_offer(
+    source: &StdHost,
+    sink: &StdHost,
+    maximum_value_bytes: u32,
+) -> conduit_core::LineOffer {
+    let mut offer = crate::std_websocket_line::line_offer(source, sink);
+    offer.binding.limits.maximum_in_flight_items = 4;
+    offer.binding.limits.maximum_payload_bytes = maximum_value_bytes;
+    offer.binding.limits.maximum_buffered_bytes = maximum_value_bytes;
+    offer.binding.limits.maximum_frame_bytes = maximum_value_bytes;
+    offer
+}
+
 #[test]
 fn two_advertisement_context_reaches_ordinary_planner_placement() {
     let first = host("product-host-a");
@@ -153,7 +166,7 @@ fn portable_lenia_demo_executes_four_fields_through_the_product_entrance() {
         let expected = if connection.value_kind.as_str() == conduit_alife::SCALAR_FIELD2_INFO_ID {
             conduit_alife::LENIA_MAXIMUM_FIELD_BYTES
         } else {
-            64
+            16
         };
         assert_eq!(connection.byte_capacity, expected);
     }
@@ -165,4 +178,105 @@ fn portable_lenia_demo_executes_four_fields_through_the_product_entrance() {
     for generation in 1..=4 {
         assert!(output.contains(&format!("generation={generation} width=128 height=128")));
     }
+}
+
+#[test]
+fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_order() {
+    let form = lenia_form();
+    let seed = host("bounds-seed");
+    let clock = host("bounds-clock");
+    let evolve = host("bounds-evolve");
+    let show = host("bounds-show");
+    let host_for_kind = |kind: &str| match kind {
+        conduit_alife::ORBIUM_SEED_KIND => seed.advertisement(),
+        conduit_time::TIME_EVERY_KIND => clock.advertisement(),
+        conduit_alife::LENIA_STEP_KIND => evolve.advertisement(),
+        conduit_alife::SCALAR_FIELD_PRESENTATION_KIND => show.advertisement(),
+        other => panic!("unexpected Lenia demo Kind '{other}'"),
+    };
+    let placements = PlacementChoices {
+        by_gear: form
+            .gears
+            .iter()
+            .map(|gear| {
+                let advertisement = host_for_kind(gear.kind_id.as_str());
+                let capability = advertisement
+                    .capabilities
+                    .iter()
+                    .find(|capability| capability.kind_id == gear.kind_id)
+                    .unwrap();
+                (
+                    gear.gear_id.clone(),
+                    PlacementChoice {
+                        host_id: advertisement.host_id.clone(),
+                        capability_id: capability.capability_id.clone(),
+                    },
+                )
+            })
+            .collect(),
+    };
+    let field_bytes = conduit_alife::LENIA_MAXIMUM_FIELD_BYTES;
+    let offers = vec![
+        line_offer(&evolve, &show, field_bytes),
+        line_offer(&clock, &evolve, 16),
+        line_offer(&seed, &evolve, field_bytes),
+    ];
+    let advertisements = [&seed, &clock, &evolve, &show]
+        .into_iter()
+        .map(|host| host.advertisement().clone())
+        .collect();
+    let context = ProductExecutionContext::new(
+        advertisements,
+        Vec::new(),
+        vec![ConnectionBase::WebSocket],
+        offers.clone(),
+    )
+    .unwrap();
+    let plan = context.plan_with_placements(&form, &placements).unwrap();
+    let capacities = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+        .map(|connection| {
+            (
+                connection.connection_id.clone(),
+                (connection.value_kind.clone(), connection.byte_capacity),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert!(capacities
+        .values()
+        .any(|(kind, bytes)| kind.as_str() == conduit_time::TICK_VALUE_KIND && *bytes == 16));
+    assert_eq!(
+        capacities
+            .values()
+            .filter(|(kind, bytes)| {
+                kind.as_str() == conduit_alife::SCALAR_FIELD2_INFO_ID && *bytes == field_bytes
+            })
+            .count(),
+        2
+    );
+
+    let mut undersized = offers;
+    undersized[0].binding.limits.maximum_payload_bytes = field_bytes - 1;
+    undersized[0].binding.limits.maximum_buffered_bytes = field_bytes - 1;
+    undersized[0].binding.limits.maximum_frame_bytes = field_bytes - 1;
+    let advertisements = [&seed, &clock, &evolve, &show]
+        .into_iter()
+        .map(|host| host.advertisement().clone())
+        .collect();
+    let error = ProductExecutionContext::new(
+        advertisements,
+        Vec::new(),
+        vec![ConnectionBase::WebSocket],
+        undersized,
+    )
+    .unwrap()
+    .plan_with_placements(&form, &placements)
+    .unwrap_err();
+    assert!(
+        error.contains("lenia-orbium-demo/organism/evolve")
+            && error.contains("lenia-orbium-demo/show"),
+        "{error}"
+    );
 }

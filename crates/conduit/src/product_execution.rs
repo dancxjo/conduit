@@ -1,5 +1,7 @@
-use conduit_alife::{LENIA_MAXIMUM_FIELD_BYTES, SCALAR_FIELD2_INFO_ID};
-use conduit_core::{ConnectionBase, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment};
+use conduit_core::{
+    ConnectionBase, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment,
+    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+};
 use conduit_form::ExpandedCanonicalForm;
 use conduit_planner::{ConnectionQueueLimits, PlacementChoices, PlanningOptions};
 use conduit_std_host::{load_placements, StdHost, ThreadTimer};
@@ -188,22 +190,34 @@ impl ProductExecutionContext {
         form: &ExpandedCanonicalForm,
         placements: &PlacementChoices,
     ) -> Result<Plan, String> {
-        let (item_capacity, byte_capacity) = self
-            .line_offers
-            .first()
-            .map(|offer| {
-                (
-                    offer.binding.limits.maximum_in_flight_items,
-                    offer.binding.limits.maximum_buffered_bytes,
-                )
-            })
-            .unwrap_or((4, 64));
-        let field_limits = form
+        let connection_limits = form
             .connections
             .iter()
-            .filter(|connection| connection.value_kind.as_str() == SCALAR_FIELD2_INFO_ID)
-            .map(|connection| {
-                (
+            .map(|connection| -> Result<_, String> {
+                let source = placements
+                    .by_gear
+                    .get(&connection.source_gear_id)
+                    .ok_or_else(|| {
+                        format!(
+                            "missing placement for '{}'",
+                            connection.source_gear_id.as_str()
+                        )
+                    })?;
+                let sink = placements
+                    .by_gear
+                    .get(&connection.sink_gear_id)
+                    .ok_or_else(|| {
+                        format!(
+                            "missing placement for '{}'",
+                            connection.sink_gear_id.as_str()
+                        )
+                    })?;
+                let source_capability = self.capability(source)?;
+                let sink_capability = self.capability(sink)?;
+                let realization_item_capacity = self
+                    .line_item_capacity(source, sink)
+                    .unwrap_or(DEFAULT_CONNECTION_ITEM_CAPACITY);
+                Ok((
                     (
                         connection.source_gear_id.clone(),
                         connection.source_port_id.clone(),
@@ -211,12 +225,16 @@ impl ProductExecutionContext {
                         connection.sink_port_id.clone(),
                     ),
                     ConnectionQueueLimits {
-                        item_capacity,
-                        byte_capacity: LENIA_MAXIMUM_FIELD_BYTES,
+                        item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY
+                            .min(source_capability.limits.max_queue_items)
+                            .min(sink_capability.limits.max_queue_items)
+                            .min(realization_item_capacity),
+                        byte_capacity: Self::maximum_output_value_bytes(source_capability)
+                            .min(Self::maximum_input_value_bytes(sink_capability)),
                     },
-                )
+                ))
             })
-            .collect::<BTreeMap<_, _>>();
+            .collect::<Result<BTreeMap<_, _>, _>>()?;
         conduit_planner::plan_expanded_canonical_with_connection_limits(
             form,
             &self.advertisements,
@@ -225,15 +243,93 @@ impl ProductExecutionContext {
             PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
-                connection_item_capacity: item_capacity,
-                connection_byte_capacity: byte_capacity,
+                connection_item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY,
+                connection_byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
                 authority_grants: &[],
                 protected_resource_grants: &[],
                 line_offers: &self.line_offers,
             },
-            &field_limits,
+            &connection_limits,
         )
         .map_err(|error| error.to_string())
+    }
+
+    fn capability(
+        &self,
+        placement: &conduit_planner::PlacementChoice,
+    ) -> Result<&conduit_core::CapabilityOffer, String> {
+        let host = self
+            .advertisements
+            .iter()
+            .find(|host| host.host_id == placement.host_id)
+            .ok_or_else(|| format!("unknown Host '{}'", placement.host_id.as_str()))?;
+        host.capabilities
+            .iter()
+            .find(|capability| capability.capability_id == placement.capability_id)
+            .ok_or_else(|| {
+                format!(
+                    "Host '{}' does not offer capability '{}'",
+                    placement.host_id.as_str(),
+                    placement.capability_id.as_str()
+                )
+            })
+    }
+
+    fn maximum_output_value_bytes(capability: &conduit_core::CapabilityOffer) -> u32 {
+        Self::directional_value_bytes(capability, |operation| operation.maximum_output_bytes)
+    }
+
+    fn maximum_input_value_bytes(capability: &conduit_core::CapabilityOffer) -> u32 {
+        Self::directional_value_bytes(capability, |operation| operation.maximum_input_bytes)
+    }
+
+    /// Finite value storage from the exact implementation offer.
+    ///
+    /// A directional host-operation bound is authoritative when present. Pure
+    /// kernel directions fall back to the capability's finite per-item share;
+    /// the opposite endpoint independently narrows the connection intersection.
+    fn directional_value_bytes(
+        capability: &conduit_core::CapabilityOffer,
+        operation_bytes: impl Fn(&conduit_core::HostOperationRequirement) -> u32,
+    ) -> u32 {
+        let directional = capability
+            .host_operations
+            .iter()
+            .map(operation_bytes)
+            .filter(|bytes| *bytes > 0)
+            .max();
+        directional.unwrap_or_else(|| {
+            capability.limits.max_queue_bytes / u32::from(capability.limits.max_queue_items.max(1))
+        })
+    }
+
+    fn line_item_capacity(
+        &self,
+        source: &conduit_planner::PlacementChoice,
+        sink: &conduit_planner::PlacementChoice,
+    ) -> Option<u16> {
+        if source.host_id == sink.host_id {
+            return None;
+        }
+        let source_host = self
+            .advertisements
+            .iter()
+            .find(|host| host.host_id == source.host_id)?;
+        let sink_host = self
+            .advertisements
+            .iter()
+            .find(|host| host.host_id == sink.host_id)?;
+        self.line_offers
+            .iter()
+            .filter(|offer| {
+                offer.binding.source.host_id == source_host.host_id
+                    && offer.binding.source.boot_id == source_host.boot_id
+                    && offer.binding.sink.host_id == sink_host.host_id
+                    && offer.binding.sink.boot_id == sink_host.boot_id
+                    && self.connection_bases.contains(&offer.binding.base)
+            })
+            .map(|offer| offer.binding.limits.maximum_in_flight_items)
+            .min()
     }
 
     pub(crate) fn execute<W: Write>(
