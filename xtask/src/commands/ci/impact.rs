@@ -10,6 +10,17 @@ mod cargo_graph;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
 
 const SUITES: [&str; 3] = ["esp32", "browser", "conduitos"];
+const CONDUITOS_X86_PROOFS: [&str; 8] = [
+    "kernel",
+    "xhci",
+    "usb",
+    "hid",
+    "keyboard",
+    "front-door",
+    "product-journey",
+    "rescue",
+];
+const CONDUITOS_ARCHITECTURES: [&str; 4] = ["aarch64", "ia32", "riscv64", "loongarch64"];
 const GLOBAL_PREFIXES: [&str; 4] = [".github/", ".cargo/", "xtask/", "scripts/ci/"];
 const GLOBAL_FILES: [&str; 4] = [
     "Cargo.toml",
@@ -32,6 +43,9 @@ struct ImpactPlan {
     esp32_required: bool,
     browser_required: bool,
     conduitos_required: bool,
+    conduitos_x86_proofs: Vec<String>,
+    conduitos_architectures: Vec<String>,
+    conduitos_aarch64_product_required: bool,
     full_fallback: bool,
     reason: String,
     changed_paths: Vec<String>,
@@ -45,6 +59,33 @@ struct WorkspaceImpact {
     changed_packages: BTreeSet<String>,
     affected_test_packages: BTreeSet<String>,
     shards: BTreeMap<String, bool>,
+}
+
+#[derive(Default)]
+struct ConduitosImpact {
+    x86_proofs: BTreeSet<String>,
+    architectures: BTreeSet<String>,
+    aarch64_product: bool,
+}
+
+impl ConduitosImpact {
+    fn all() -> Self {
+        Self {
+            x86_proofs: CONDUITOS_X86_PROOFS
+                .map(str::to_owned)
+                .into_iter()
+                .collect(),
+            architectures: CONDUITOS_ARCHITECTURES
+                .map(str::to_owned)
+                .into_iter()
+                .collect(),
+            aarch64_product: true,
+        }
+    }
+
+    fn required(&self) -> bool {
+        !self.x86_proofs.is_empty() || !self.architectures.is_empty() || self.aarch64_product
+    }
 }
 
 pub(super) fn run(
@@ -133,12 +174,14 @@ fn plan_for_paths(
         })
         .collect::<Result<_, _>>()?;
     let mut selected = BTreeMap::from(SUITES.map(|suite| (suite.to_owned(), false)));
+    let mut conduitos = ConduitosImpact::default();
     let mut reasons = empty_reasons();
     let mut changed_packages = BTreeSet::new();
     let substantive: Vec<_> = paths.iter().filter(|path| !path.ends_with(".md")).collect();
     if substantive.is_empty() {
         return Ok(plan(
             selected,
+            conduitos,
             false,
             "markdown-only".to_owned(),
             paths,
@@ -167,6 +210,9 @@ fn plan_for_paths(
                     .expect("known suite")
                     .push(format!("owned-path:{path}"));
                 direct = true;
+                if suite == "conduitos" {
+                    select_conduitos_path(path, &mut conduitos);
+                }
             }
         }
         if let Some(package) = package_for_path(root, path, packages) {
@@ -178,6 +224,10 @@ fn plan_for_paths(
                         .get_mut(suite)
                         .expect("known suite")
                         .push(format!("package-dependency:{package}"));
+                    if suite == "conduitos" && !starts_with_any(path, direct_prefixes("conduitos"))
+                    {
+                        conduitos = ConduitosImpact::all();
+                    }
                 }
             }
         } else if !direct
@@ -198,8 +248,10 @@ fn plan_for_paths(
     };
     let affected = affected_tests(packages, &changed_packages);
     let workspace_shards = workspace_shards_for(&affected);
+    selected.insert("conduitos".to_owned(), conduitos.required());
     Ok(plan(
         selected,
+        conduitos,
         false,
         reason,
         paths,
@@ -210,6 +262,49 @@ fn plan_for_paths(
         },
         reasons,
     ))
+}
+
+fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
+    if path == "hosts/conduitos/src/bin/aarch64_product.rs"
+        || path == "profiles/hosts/conduitos-aarch64-headless.profile.json"
+    {
+        impact.aarch64_product = true;
+        return;
+    }
+    if path.starts_with("hosts/conduitos/src/arch/x86_64/xhci") {
+        // Every retained x86 appliance boots through the shared xHCI-enabled
+        // image, including the front-door and product-journey keyboard paths.
+        impact
+            .x86_proofs
+            .extend(CONDUITOS_X86_PROOFS.map(str::to_owned));
+        return;
+    }
+    if path.starts_with("hosts/conduitos/src/arch/x86_64/") {
+        impact
+            .x86_proofs
+            .extend(CONDUITOS_X86_PROOFS.map(str::to_owned));
+        return;
+    }
+    for architecture in CONDUITOS_ARCHITECTURES {
+        if path.starts_with(&format!("hosts/conduitos/proof-appliances/{architecture}/")) {
+            impact.architectures.insert(architecture.to_owned());
+            return;
+        }
+        if path.starts_with(&format!("hosts/conduitos/src/arch/{architecture}/")) {
+            impact.architectures.insert(architecture.to_owned());
+            if architecture == "aarch64" {
+                impact.aarch64_product = true;
+            }
+            return;
+        }
+        if path.starts_with(&format!(
+            "hosts/conduitos/fabrication/xtask/{architecture}_"
+        )) {
+            impact.architectures.insert(architecture.to_owned());
+            return;
+        }
+    }
+    *impact = ConduitosImpact::all();
 }
 
 fn workspace_shards_for(affected: &BTreeSet<String>) -> BTreeMap<String, bool> {
@@ -247,6 +342,7 @@ fn starts_with_any(path: &str, prefixes: &[&str]) -> bool {
 
 fn plan(
     selected: BTreeMap<String, bool>,
+    conduitos: ConduitosImpact,
     full_fallback: bool,
     reason: String,
     changed_paths: Vec<String>,
@@ -257,6 +353,9 @@ fn plan(
         esp32_required: selected["esp32"],
         browser_required: selected["browser"],
         conduitos_required: selected["conduitos"],
+        conduitos_x86_proofs: conduitos.x86_proofs.into_iter().collect(),
+        conduitos_architectures: conduitos.architectures.into_iter().collect(),
+        conduitos_aarch64_product_required: conduitos.aarch64_product,
         full_fallback,
         reason,
         changed_paths,
@@ -277,6 +376,7 @@ fn full_plan(reason: String, paths: Vec<String>) -> ImpactPlan {
         BTreeMap::from(SUITES.map(|suite| (suite.to_owned(), vec![reason.clone()])));
     plan(
         selected,
+        ConduitosImpact::all(),
         true,
         reason,
         paths,
@@ -333,6 +433,19 @@ fn write_github_outputs(plan: &ImpactPlan) {
     println!("esp32_required={}", plan.esp32_required);
     println!("browser_required={}", plan.browser_required);
     println!("conduitos_required={}", plan.conduitos_required);
+    println!(
+        "conduitos_x86_matrix={}",
+        serde_json::to_string(&plan.conduitos_x86_proofs).expect("ConduitOS x86 matrix serializes")
+    );
+    println!(
+        "conduitos_architecture_matrix={}",
+        serde_json::to_string(&plan.conduitos_architectures)
+            .expect("ConduitOS architecture matrix serializes")
+    );
+    println!(
+        "conduitos_aarch64_product_required={}",
+        plan.conduitos_aarch64_product_required
+    );
     println!("full_fallback={}", plan.full_fallback);
     println!("impact_reason={}", plan.reason);
     let matrix: Vec<_> = WorkspaceShard::ALL
@@ -385,6 +498,49 @@ fn markdown_summary(plan: &ImpactPlan) -> String {
             }
         ));
     }
+    for proof in CONDUITOS_X86_PROOFS {
+        let selected = plan
+            .conduitos_x86_proofs
+            .iter()
+            .any(|candidate| candidate == proof);
+        rows.push_str(&format!(
+            "| conduitos/x86/{proof} | {} | {} |\n",
+            if selected { "run" } else { "skip on PR" },
+            if selected {
+                "affected ConduitOS x86 claim"
+            } else {
+                "no dependency/ownership path to proof"
+            }
+        ));
+    }
+    for architecture in CONDUITOS_ARCHITECTURES {
+        let selected = plan
+            .conduitos_architectures
+            .iter()
+            .any(|candidate| candidate == architecture);
+        rows.push_str(&format!(
+            "| conduitos/architecture/{architecture} | {} | {} |\n",
+            if selected { "run" } else { "skip on PR" },
+            if selected {
+                "affected architecture claim"
+            } else {
+                "no dependency/ownership path to architecture"
+            }
+        ));
+    }
+    rows.push_str(&format!(
+        "| conduitos/aarch64-product | {} | {} |\n",
+        if plan.conduitos_aarch64_product_required {
+            "run"
+        } else {
+            "skip on PR"
+        },
+        if plan.conduitos_aarch64_product_required {
+            "affected product claim"
+        } else {
+            "no dependency/ownership path to product"
+        }
+    ));
     format!("## CI impact plan\n\nReason: `{}`\n\nChanged packages: {}\n\nAffected test packages: {}\n\n| obligation | decision | reason |\n| --- | --- | --- |\n{}\n> Pull requests may use this plan selectively. Main and merge-queue runs remain exhaustive.\n", plan.reason, if plan.changed_packages.is_empty() { "(none)".to_owned() } else { plan.changed_packages.join(", ") }, if plan.affected_test_packages.is_empty() { "(none)".to_owned() } else { plan.affected_test_packages.join(", ") }, rows)
 }
 
