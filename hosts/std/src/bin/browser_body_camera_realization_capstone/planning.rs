@@ -17,6 +17,7 @@ use conduit_std_catalog::{
     acquired_camera_source_offer, install_human_media_catalogs, CAMERA_FRAME_KIND,
     CAMERA_SOURCE_KIND, MEDIA_USE_OPERATION,
 };
+use conduit_std_host::browser_admission::browser_webrtc_line_contract;
 use conduit_wire::SessionBinding;
 
 const SOURCE: &str = include_str!("../../../../../examples/camera-summary.conduit");
@@ -96,7 +97,7 @@ pub(super) fn realize(
         boot_id: source.boot_id.clone(),
         capability_id: camera_capability,
     };
-    let line = process_owned_line_offer_with_limits(
+    let mut line = process_owned_line_offer_with_limits(
         "browser/body-camera-realization/camera-line",
         "browser/body-camera-realization/camera-binding",
         BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
@@ -110,6 +111,7 @@ pub(super) fn realize(
             maximum_frame_bytes: 128 * 1024,
         },
     );
+    line.contract = browser_webrtc_line_contract();
     let connection = expanded
         .connections
         .first()

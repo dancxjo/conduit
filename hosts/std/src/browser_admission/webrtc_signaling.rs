@@ -4,8 +4,7 @@ use conduit_core::BaseImplementationId;
 use conduit_core::{BootId, HostId, LinkBindingId};
 use conduit_wire::{decode_session_frame, SessionMessage};
 
-#[cfg(test)]
-fn webrtc_session_contract() -> conduit_core::LineContract {
+pub fn browser_webrtc_line_contract() -> conduit_core::LineContract {
     conduit_core::LineContract {
         scope: conduit_core::LineScope::PointToPoint,
         traffic_shape: conduit_core::LineTrafficShape::Message,
@@ -344,7 +343,7 @@ mod tests {
                 line_id: LineId::from("line/rendezvous"),
                 link_binding_id: LinkBindingId::from("binding/rendezvous"),
                 base: BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
-                contract: webrtc_session_contract(),
+                contract: browser_webrtc_line_contract(),
                 base_instance_id: BaseInstanceId::from("base/rendezvous"),
                 source_host_id: source.host_id.clone(),
                 source_boot_id: source.boot_id.clone(),
