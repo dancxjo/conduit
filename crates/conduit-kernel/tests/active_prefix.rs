@@ -8,6 +8,8 @@ use conduit_kernel::{
     RouteTarget, ValueRef, ValueStorage,
 };
 
+// Temporary CI benchmark marker: kernel-dependent ownership.
+
 const MAX_NODES: usize = 4;
 const MAX_CORDS: usize = 3;
 const PORTS: usize = 2;
