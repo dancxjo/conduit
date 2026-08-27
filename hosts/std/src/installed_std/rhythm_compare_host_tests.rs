@@ -1,5 +1,5 @@
 use super::*;
-use conduit_core::{MusicalPitch, NoteOccurrenceId};
+use conduit_audio::{MusicalPitch, NoteOccurrenceId};
 
 fn host(target: i64, tolerance: u64) -> RhythmCompareHost {
     RhythmCompareHost {

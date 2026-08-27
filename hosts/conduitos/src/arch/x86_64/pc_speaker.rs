@@ -1,6 +1,6 @@
 //! Legacy PC-speaker Base over PIT channel 2 and the system-control gate.
 
-use conduit_core::{Gate, ToneIntent};
+use conduit_audio::{Gate, ToneIntent};
 
 use crate::machine::{BaseError, RealizedTone, ToneBase};
 

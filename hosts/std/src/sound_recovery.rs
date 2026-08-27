@@ -1,6 +1,7 @@
 //! Exact finite musical-state policy across hosted sound provider replacement.
 
-use conduit_core::{ActivePlayId, NoteOccurrenceId, PlanId};
+use conduit_audio::NoteOccurrenceId;
+use conduit_core::{ActivePlayId, PlanId};
 use serde::{Deserialize, Serialize};
 
 const MIDI_CHANNELS: usize = 16;

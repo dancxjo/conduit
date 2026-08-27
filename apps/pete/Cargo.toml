@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 conduit-ai = { path = "../../crates/conduit-ai" }
+conduit-audio = { path = "../../crates/conduit-audio" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-form = { path = "../../crates/conduit-form" }

@@ -1,6 +1,7 @@
 //! Portable exact demand for one finite PCM render interval.
 
-use crate::{semantic_digest, SoundInfoError};
+use crate::SoundInfoError;
+use conduit_core::semantic_digest;
 
 pub const AUDIO_RENDER_DEMAND_INFO_ID: &str = "audio/render-demand@1";
 pub const AUDIO_RENDER_DEMAND_ENCODED_LEN: usize = 22;

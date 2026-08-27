@@ -1,6 +1,6 @@
 mod common;
 
-use conduit_core::Gate;
+use conduit_audio::Gate;
 use conduit_synth::{ReferenceSynth, ReferenceSynthProfile, REFERENCE_MAXIMUM_VOICES};
 
 use common::{energy, note, render_frames};

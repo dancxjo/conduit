@@ -1,10 +1,11 @@
 //! Boot-scoped truthful tone offer for the legacy x86 PC-speaker Base.
 
 use alloc::{format, vec, vec::Vec};
+use conduit_audio::TONE_INTENT_ENCODED_LEN;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, TONE_INTENT_ENCODED_LEN, resource_offer,
+    ImplementationOffer, KindContractRevision, resource_offer,
 };
 
 pub const PC_SPEAKER_IMPLEMENTATION: &str = "conduitos/pc-speaker-tone@1";
@@ -27,9 +28,9 @@ pub fn compatibility_profile(
         .ok_or(PcSpeakerOfferError::InvalidClock)?;
     let minimum_pitch_millihertz = clock_millihertz
         .div_ceil(u64::from(realization.maximum_divisor))
-        .max(conduit_core::MINIMUM_PITCH_MILLIHERTZ);
+        .max(conduit_audio::MINIMUM_PITCH_MILLIHERTZ);
     let maximum_pitch_millihertz = (clock_millihertz / u64::from(realization.minimum_divisor))
-        .min(conduit_core::MAXIMUM_PITCH_MILLIHERTZ);
+        .min(conduit_audio::MAXIMUM_PITCH_MILLIHERTZ);
     Ok(conduit_std_catalog::SoundCompatibilityProfile {
         profile_id: PC_SPEAKER_EXECUTION_PROFILE.into(),
         seam: conduit_std_catalog::SoundSeam::Tone,
@@ -152,7 +153,7 @@ pub(crate) fn append_to_advertisement(
         },
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(PC_SPEAKER_HOST_OPERATION),
-            target_kind: Some(conduit_core::kind_id(conduit_core::SOUND_TONE_INFO_ID)),
+            target_kind: Some(conduit_core::kind_id(conduit_audio::SOUND_TONE_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: TONE_INTENT_ENCODED_LEN as u32,
             maximum_output_bytes: 0,
@@ -219,7 +220,7 @@ mod tests {
         assert_eq!(profile.minimum_pitch_millihertz, 18_207);
         assert_eq!(
             profile.maximum_pitch_millihertz,
-            conduit_core::MAXIMUM_PITCH_MILLIHERTZ
+            conduit_audio::MAXIMUM_PITCH_MILLIHERTZ
         );
         assert_eq!(profile.maximum_polyphony, 1);
         assert!(!profile.preserves_velocity);

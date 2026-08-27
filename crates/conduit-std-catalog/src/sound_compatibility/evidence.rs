@@ -1,9 +1,8 @@
 //! Bounded cross-realization evidence at the portable musical seam.
 
 use alloc::vec::Vec;
-use conduit_core::{
-    BootId, Gate, HostId, ImplementationId, MusicalNoteEvent, PlanId, TerminalDisposition,
-};
+use conduit_audio::{Gate, MusicalNoteEvent};
+use conduit_core::{BootId, HostId, ImplementationId, PlanId, TerminalDisposition};
 use serde::{Deserialize, Serialize};
 
 use super::IncompatibilityReason;
@@ -131,7 +130,8 @@ impl NormalizedSoundTrace {
 #[cfg(test)]
 mod tests {
     use alloc::vec;
-    use conduit_core::{CancellationReason, MusicalPitch, NoteOccurrenceId};
+    use conduit_audio::{MusicalPitch, NoteOccurrenceId};
+    use conduit_core::CancellationReason;
 
     use super::*;
 

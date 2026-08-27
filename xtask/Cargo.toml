@@ -9,6 +9,7 @@ name = "xtask"
 path = "src/main.rs"
 
 [dependencies]
+conduit-audio = { path = "../crates/conduit-audio" }
 conduit-host-esp32-fabrication = { path = "../targets/esp32/fabrication" }
 conduit-signal-conformance = { path = "../proof/conformance/signal" }
 conduit-r1-network-conformance = { path = "../proof/conformance/network-r1" }

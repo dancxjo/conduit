@@ -1,8 +1,8 @@
-use conduit_core::{
+use conduit_audio::{
     AudioRenderDemand, Gate, ModulationDestination, MusicalControl, MusicalControlEvent,
-    MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, Quantity, QuantityConversionRefusal,
-    QuantityUnit, SoundInfoError, ToneIntent,
+    MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, SoundInfoError, ToneIntent,
 };
+use conduit_core::{Quantity, QuantityConversionRefusal, QuantityUnit};
 
 #[test]
 fn render_demand_round_trips_one_exact_nonempty_clock_interval() {

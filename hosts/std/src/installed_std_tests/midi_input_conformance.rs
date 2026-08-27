@@ -128,7 +128,7 @@ fn fragment(host: &StdHost) -> conduit_core::PlanFragment {
             observations: &observations,
             policies: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+            connection_byte_capacity: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
             authority_grants: &grants,
         },
     )

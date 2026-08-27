@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use conduit_core::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
+use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
 use conduit_synth::{ReferenceSynth, ReferenceSynthProfile};
 
 pub fn synth() -> ReferenceSynth {

@@ -5,11 +5,11 @@ use super::{
 };
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
+use conduit_audio::AUDIO_RENDER_DEMAND_INFO_ID;
 use conduit_core::{
     kind_id, monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
     CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
     ImplementationId, ImplementationOffer, KindContractRevision, PortDirection,
-    AUDIO_RENDER_DEMAND_INFO_ID,
 };
 
 pub const AUDIO_RENDER_DEMAND_KIND: &str = "audio/render-demand";
@@ -48,7 +48,7 @@ pub fn audio_render_demand_contract() -> StandardKindContract {
             max_active_instances: 1,
             max_queue_items: AUDIO_RENDER_MAXIMUM_BLOCKS,
             max_queue_bytes: u32::from(AUDIO_RENDER_MAXIMUM_BLOCKS)
-                * conduit_core::AUDIO_RENDER_DEMAND_ENCODED_LEN as u32,
+                * conduit_audio::AUDIO_RENDER_DEMAND_ENCODED_LEN as u32,
         },
         terminal_behavior: TerminalBehavior::CompletesAfterFixedCount {
             count: u64::from(AUDIO_RENDER_MAXIMUM_BLOCKS),

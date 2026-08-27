@@ -48,9 +48,9 @@ pub fn compatibility_profile() -> conduit_std_catalog::SoundCompatibilityProfile
         accepts_microtonal_pitch: false,
         supports_subtractive_filter: false,
         pcm: Some(PcmCompatibilityProfile {
-            representation: conduit_core::PcmSampleRepresentation::Signed16LittleEndian,
+            representation: conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
             sample_rate_hz: SAMPLE_RATE_HZ,
-            layout: conduit_core::PcmChannelLayout::StereoLeftRight,
+            layout: conduit_audio::PcmChannelLayout::StereoLeftRight,
             maximum_frames_per_block: PERIOD_FRAMES,
             maximum_frame_bytes: AUDIO_PLAY_ALSA_PERIOD_FRAMES as u32 * AUDIO_PLAY_ALSA_FRAME_BYTES,
         }),

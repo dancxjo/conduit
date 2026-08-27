@@ -1,6 +1,6 @@
 mod common;
 
-use conduit_core::{Gate, MusicalControl, MusicalControlEvent, NoteOccurrenceId};
+use conduit_audio::{Gate, MusicalControl, MusicalControlEvent, NoteOccurrenceId};
 use conduit_synth::{
     EnvelopeStage, SynthEventError, SynthEventOutcome, VoiceAllocationOutcome, VoiceStealPolicy,
 };

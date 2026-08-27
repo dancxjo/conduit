@@ -11,6 +11,7 @@ pete-create = ["dep:conduit-create-oi"]
 
 [dependencies]
 conduit-ai = { path = "../../crates/conduit-ai", features = ["form-catalog"] }
+conduit-audio = { path = "../../crates/conduit-audio" }
 conduit-alife = { path = "../../crates/conduit-alife", features = ["planning"] }
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-bluetooth = { path = "../../crates/conduit-bluetooth" }

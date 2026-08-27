@@ -1,6 +1,6 @@
 mod common;
 
-use conduit_core::{
+use conduit_audio::{
     Gate, ModulationDestination, MusicalControl, MusicalControlEvent, NoteOccurrenceId,
 };
 use conduit_synth::{SynthEventOutcome, VoiceAllocationOutcome};

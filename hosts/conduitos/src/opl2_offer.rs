@@ -1,10 +1,11 @@
 //! Boot-scoped truthful direct-musical offer for an exact YM3812 Base.
 
 use alloc::{format, vec, vec::Vec};
+use conduit_audio::NOTE_EVENT_ENCODED_LEN;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, NOTE_EVENT_ENCODED_LEN, resource_offer,
+    ImplementationOffer, KindContractRevision, resource_offer,
 };
 
 pub const OPL2_IMPLEMENTATION: &str = "conduitos/opl2-fixed-fm-music@1";
@@ -173,7 +174,7 @@ pub fn append_to_advertisement(
         },
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(OPL2_HOST_OPERATION),
-            target_kind: Some(conduit_core::kind_id(conduit_core::MUSIC_NOTE_INFO_ID)),
+            target_kind: Some(conduit_core::kind_id(conduit_audio::MUSIC_NOTE_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: NOTE_EVENT_ENCODED_LEN as u32,
             maximum_output_bytes: 0,

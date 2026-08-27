@@ -1,6 +1,7 @@
 //! Production-kernel execution of one planned direct OPL2 musical sink.
 use alloc::vec::Vec;
-use conduit_core::{Gate, MusicalNoteEvent, NoteOccurrenceId};
+use conduit_audio::{Gate, MusicalNoteEvent, NoteOccurrenceId};
+
 use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
     FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
@@ -99,7 +100,7 @@ impl Operation for MusicOperation {
                 value,
             } if self.pending.is_none() => {
                 let Ok(input) =
-                    BoundedValueRef::new(value, conduit_core::NOTE_EVENT_ENCODED_LEN as u32)
+                    BoundedValueRef::new(value, conduit_audio::NOTE_EVENT_ENCODED_LEN as u32)
                 else {
                     return invalid(20);
                 };
@@ -277,7 +278,7 @@ pub fn prepare_execution(
             SINK_NODE,
             HostOperationBinding {
                 operation: OPL2_OPERATION,
-                maximum_input_bytes: conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+                maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },
         )
@@ -305,7 +306,7 @@ pub fn prepare_execution(
             CordCapacity {
                 slot_start: 0,
                 item_capacity: 1,
-                byte_capacity: conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+                byte_capacity: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
             },
         )],
         routes,

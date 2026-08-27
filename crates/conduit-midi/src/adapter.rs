@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_audio::{
     Gate, ModulationDestination, MusicalControl, MusicalControlEvent, MusicalNoteEvent,
     MusicalPitch, NoteOccurrenceId,
 };

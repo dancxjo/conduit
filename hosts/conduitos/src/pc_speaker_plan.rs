@@ -56,7 +56,7 @@ pub fn prepare(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_core::TONE_INTENT_ENCODED_LEN as u32,
+            connection_byte_capacity: conduit_audio::TONE_INTENT_ENCODED_LEN as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -214,7 +214,7 @@ fn tone_source_offer(build_id: &str) -> CapabilityOffer {
         inputs: Vec::new(),
         outputs: alloc::vec![PortDescriptor {
             port_id: port_id("tone"),
-            value_kind: kind_id(conduit_core::SOUND_TONE_INFO_ID),
+            value_kind: kind_id(conduit_audio::SOUND_TONE_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
         }],
@@ -235,7 +235,7 @@ fn tone_source_offer(build_id: &str) -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 4,
-            max_queue_bytes: 4 * conduit_core::TONE_INTENT_ENCODED_LEN as u32,
+            max_queue_bytes: 4 * conduit_audio::TONE_INTENT_ENCODED_LEN as u32,
         },
     }
 }
@@ -385,7 +385,7 @@ pub(crate) mod tests {
                     connection_bases: &BTreeMap::new(),
                     line_candidates: &BTreeMap::new(),
                     connection_item_capacity: 1,
-                    connection_byte_capacity: conduit_core::TONE_INTENT_ENCODED_LEN as u32,
+                    connection_byte_capacity: conduit_audio::TONE_INTENT_ENCODED_LEN as u32,
                     authority_grants: &[],
                     protected_resource_grants: &[],
                     line_offers: &[],

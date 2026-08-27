@@ -117,10 +117,10 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 3,
         value_bytes: (conduit_midi::MIDI_INPUT_OBSERVATION_ENCODED_LEN
-            + conduit_core::NOTE_EVENT_ENCODED_LEN) as u32,
+            + conduit_audio::NOTE_EVENT_ENCODED_LEN) as u32,
         host_requests: usize::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
         sign_items: conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS.saturating_mul(4),
-        maximum_value_bytes: conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+        maximum_value_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
     })
 }
 

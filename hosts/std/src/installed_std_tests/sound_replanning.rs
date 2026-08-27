@@ -3,9 +3,8 @@ use crate::hosted_audio::{
     AlsaPlaybackObservation, FakePlaybackBehavior, HostedPlaybackSelection, PlaybackLifecycle,
 };
 use crate::{StdHost, StdHostComposition, StdHostConfig};
-use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, HostId, NoteOccurrenceId, OfferGeneration, SignId,
-};
+use conduit_audio::NoteOccurrenceId;
+use conduit_core::{bind_active_play, BootId, ConnectionBase, HostId, OfferGeneration, SignId};
 use conduit_planner::{
     replan_selected_realizations_with_characteristics, PlanningOptions, RealizationReplanOutcome,
     SelectedRealizationPlanning,

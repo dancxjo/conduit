@@ -86,7 +86,7 @@ pub fn prepare(
             policies: &BTreeMap::new(),
             connection_item_capacity: FIXTURE_EVENT_COUNT,
             connection_byte_capacity: u32::from(FIXTURE_EVENT_COUNT)
-                * conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+                * conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
             authority_grants: &[],
         },
     )
@@ -226,7 +226,7 @@ fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("controls"),
-            value_kind: kind_id(conduit_core::MUSIC_CONTROL_INFO_ID),
+            value_kind: kind_id(conduit_audio::MUSIC_CONTROL_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
         }],
@@ -242,7 +242,7 @@ fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {
             max_active_instances: 1,
             max_queue_items: FIXTURE_EVENT_COUNT,
             max_queue_bytes: u32::from(FIXTURE_EVENT_COUNT)
-                * conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+                * conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
         },
     }
 }
@@ -257,7 +257,7 @@ fn note_source_offer(build_id: &str) -> CapabilityOffer {
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("notes"),
-            value_kind: kind_id(conduit_core::MUSIC_NOTE_INFO_ID),
+            value_kind: kind_id(conduit_audio::MUSIC_NOTE_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
         }],
@@ -279,7 +279,7 @@ fn note_source_offer(build_id: &str) -> CapabilityOffer {
             max_active_instances: 1,
             max_queue_items: FIXTURE_EVENT_COUNT,
             max_queue_bytes: u32::from(FIXTURE_EVENT_COUNT)
-                * conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+                * conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
         },
     }
 }

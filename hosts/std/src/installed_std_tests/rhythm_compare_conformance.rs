@@ -1,7 +1,8 @@
 use super::{host, installed_std, RecordingTimer};
+use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
 use conduit_core::{
-    ConnectionBase, Gate, KindContractRevision, KindId, MusicalNoteEvent, MusicalPitch,
-    NoteOccurrenceId, PortDirection, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    ConnectionBase, KindContractRevision, KindId, PortDirection, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
@@ -28,7 +29,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
 
     let performance_offer = installed_std::test_structured_selector::raw_source_offer(
         PERFORMANCE_SOURCE,
-        conduit_core::MUSIC_NOTE_INFO_ID,
+        conduit_audio::MUSIC_NOTE_INFO_ID,
     );
     let reference_offer = installed_std::test_structured_selector::offer_named(
         &reference_type,

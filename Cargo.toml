@@ -13,6 +13,7 @@ members = [
 	"crates/conduit-text",
 	"crates/conduit-signal",
 	"crates/conduit-time",
+	"crates/conduit-audio",
 	"proof/conformance/signal",
 	"proof/conformance/network-r1",
 	"crates/conduit-form",

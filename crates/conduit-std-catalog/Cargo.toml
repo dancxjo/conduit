@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-alife = { path = "../conduit-alife" }
+conduit-audio = { path = "../conduit-audio" }
 conduit-core = { path = "../conduit-core" }
 conduit-midi = { path = "../conduit-midi" }
 conduit-presentation = { path = "../conduit-presentation" }

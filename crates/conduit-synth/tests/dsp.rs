@@ -1,6 +1,6 @@
 mod common;
 
-use conduit_core::{Gate, ModulationDestination, MusicalControl, MusicalControlEvent};
+use conduit_audio::{Gate, ModulationDestination, MusicalControl, MusicalControlEvent};
 use conduit_synth::{OscillatorShape, ReferenceSynth, ReferenceSynthProfile};
 
 use common::{energy, note, render_frames};

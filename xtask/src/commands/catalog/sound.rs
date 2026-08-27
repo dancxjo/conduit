@@ -359,9 +359,9 @@ fn pcm_requirement() -> Requirement {
     value.profile.maximum_pitch_millihertz = 0;
     value.profile.maximum_events_per_second = 0;
     value.profile.pcm = Some(PcmCompatibilityProfile {
-        representation: conduit_core::PcmSampleRepresentation::Signed16LittleEndian,
+        representation: conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
         sample_rate_hz: 48_000,
-        layout: conduit_core::PcmChannelLayout::StereoLeftRight,
+        layout: conduit_audio::PcmChannelLayout::StereoLeftRight,
         maximum_frames_per_block: 256,
         maximum_frame_bytes: 1_024,
     });

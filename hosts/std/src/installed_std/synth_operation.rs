@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{
-    CapabilityOffer, ConfigurationValue, HostOperationRequirement, PlannedGear,
+use conduit_audio::{
     AUDIO_RENDER_DEMAND_ENCODED_LEN, CONTROL_EVENT_ENCODED_LEN, NOTE_EVENT_ENCODED_LEN,
 };
+use conduit_core::{CapabilityOffer, ConfigurationValue, HostOperationRequirement, PlannedGear};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId,

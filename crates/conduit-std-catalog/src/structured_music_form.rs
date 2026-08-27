@@ -5,13 +5,13 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use conduit_audio::{MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
     ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
     PortTemporal, StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, StructuredVariantCase, MUSIC_CONTROL_INFO_ID,
-    MUSIC_NOTE_INFO_ID,
+    StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,

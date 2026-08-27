@@ -84,8 +84,8 @@ pub fn music_input_configuration() -> Vec<StandardConfigurationField> {
             key: MUSIC_INPUT_A4_REFERENCE_KEY.to_string(),
             default_value: ConfigurationValue::U64(440_000),
             rule: StandardConfigurationRule::U64Range {
-                minimum: conduit_core::MINIMUM_A4_MILLIHERTZ,
-                maximum: conduit_core::MAXIMUM_A4_MILLIHERTZ,
+                minimum: conduit_audio::MINIMUM_A4_MILLIHERTZ,
+                maximum: conduit_audio::MAXIMUM_A4_MILLIHERTZ,
             },
         },
         StandardConfigurationField {

@@ -3,9 +3,10 @@
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
+use conduit_audio::{PcmChannelLayout, PcmSampleRepresentation};
 use conduit_core::{
     stable_realization_boolean, stable_realization_category, stable_realization_quantity,
-    CharacteristicUnit, PcmChannelLayout, PcmSampleRepresentation, RealizationCharacteristic,
+    CharacteristicUnit, RealizationCharacteristic,
 };
 use serde::{Deserialize, Serialize};
 

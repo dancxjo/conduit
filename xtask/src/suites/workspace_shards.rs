@@ -29,6 +29,7 @@ package_test_shard!(
         "conduit-workspace-fabrication",
         "conduit-bluetooth",
         "conduit-alife",
+        "conduit-audio",
         "conduit-data",
         "conduit-core",
         "conduit-create-oi",

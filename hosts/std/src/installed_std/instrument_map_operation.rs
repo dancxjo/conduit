@@ -1,10 +1,13 @@
 //! Bounded local realization of portable structured instrument controls.
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use conduit_audio::{
+    Gate, ModulationDestination, MusicalControl, MusicalControlEvent, MusicalNoteEvent,
+    MusicalPitch, NoteOccurrenceId,
+};
 use conduit_core::{
-    ConfigurationValue, Gate, ModulationDestination, MusicalControl, MusicalControlEvent,
-    MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, PlannedGear, StructuredInfoValue,
-    StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ConfigurationValue, PlannedGear, StructuredInfoValue, StructuredInfoValueShape,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
     CanonicalValue, Failure, FailureCode, OperationAction, OperationInput, PortId,
@@ -250,11 +253,11 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     mapping(placement)?;
     Ok(OperationBudget {
         value_items: 4,
-        value_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES + conduit_core::NOTE_EVENT_ENCODED_LEN * 3)
-            as u32,
+        value_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            + conduit_audio::NOTE_EVENT_ENCODED_LEN * 3) as u32,
         host_requests: 0,
         sign_items: conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS.saturating_mul(4),
-        maximum_value_bytes: conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+        maximum_value_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
     })
 }
 

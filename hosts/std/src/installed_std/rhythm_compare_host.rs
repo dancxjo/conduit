@@ -1,6 +1,7 @@
 //! Finite host-side structured value transformation for rhythm comparison.
 
-use conduit_core::{Gate, MusicalNoteEvent, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+use conduit_audio::{Gate, MusicalNoteEvent};
+use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 #[cfg(test)]
 use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,

@@ -2,7 +2,7 @@ use super::{
     HostedPlaybackSelection, PlaybackFailure, PlaybackLifecycle, PlaybackMetrics, PlaybackReport,
     PERIOD_FRAMES, SAMPLE_RATE_HZ, SOURCE_CLOCK_ID,
 };
-use conduit_core::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
+use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum FakePlaybackBehavior {

@@ -2,7 +2,8 @@ use super::{
     discover_alsa_playback, HostedPlaybackSelection, BUFFER_FRAMES, PERIOD_FRAMES, SAMPLE_RATE_HZ,
     SOURCE_CLOCK_ID,
 };
-use conduit_core::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
+use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
+
 use std::io::{Read, Write};
 use std::process::{Child, ChildStderr, ChildStdin, Command, Stdio};
 use std::time::Instant;

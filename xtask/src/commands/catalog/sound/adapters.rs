@@ -1,11 +1,14 @@
 //! Explicit authored/planned lossy adaptation conformance.
 
+use conduit_audio::{
+    Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, ToneIntent, MUSIC_NOTE_INFO_ID,
+    SOUND_TONE_INFO_ID,
+};
 use conduit_core::{
     kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ConnectionBase, ExecutionProfileId, Gate, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, MusicalNoteEvent,
-    MusicalPitch, NoteOccurrenceId, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
-    ToneIntent, MUSIC_NOTE_INFO_ID, PROTOCOL_VERSION, SOUND_TONE_INFO_ID,
+    ConfigurationValue, ConnectionBase, ExecutionProfileId, HostAdvertisement, HostId,
+    HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration,
+    PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
 use serde::Serialize;

@@ -1,9 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, AUDIO_PCM_INFO_ID};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PcmChannelLayout, PcmFrameHeader,
-    PcmSampleRepresentation, PlannedGear, PortDescriptor, PortDirection, PortTemporal,
-    AUDIO_PCM_INFO_ID,
+    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_kernel::{
