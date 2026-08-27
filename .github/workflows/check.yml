@@ -35,6 +35,9 @@ jobs:
       conduitos_aarch64_product_required: ${{ steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
       impact_reason: ${{ steps.impact.outputs.impact_reason }}
       workspace_matrix: ${{ steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
+      workspace_lint_full: ${{ steps.impact.outputs.workspace_lint_full || 'true' }}
+      workspace_lint_packages: ${{ steps.impact.outputs.workspace_lint_packages || '[]' }}
+      workspace_test_packages: ${{ steps.impact.outputs.workspace_test_packages || '[]' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -219,6 +222,10 @@ jobs:
         run: cargo xtask --json proofs
 
       - name: Run ${{ matrix.shard }} workspace check shard
+        env:
+          CONDUIT_CI_LINT_FULL: ${{ github.event_name != 'pull_request' && 'true' || needs.classify.outputs.workspace_lint_full }}
+          CONDUIT_CI_LINT_PACKAGES: ${{ needs.classify.outputs.workspace_lint_packages }}
+          CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}
         run: cargo xtask check workspace-${{ matrix.shard }} --locked
 
   esp32-firmware:

@@ -52,6 +52,8 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
     assert!(!app.workspace_shards["test-hosts"]);
     assert!(!app.workspace_shards["portable"]);
     assert!(!app.workspace_shards["pico"]);
+    assert!(!app.workspace_lint_full);
+    assert_eq!(app.workspace_lint_packages, app.affected_test_packages);
 
     let kernel = plan_for_paths(
         &root,
@@ -67,6 +69,15 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
     assert!(kernel
         .affected_test_packages
         .contains(&"conduit".to_owned()));
+
+    let global = plan_for_paths(
+        &root,
+        vec![".github/workflows/check.yml".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(global.workspace_lint_full);
+    assert!(global.workspace_lint_packages.is_empty());
 
     let time = plan_for_paths(
         &root,
@@ -216,6 +227,15 @@ fn workflow_uses_the_plan_selectively_only_for_pull_requests() {
     assert!(workflow.contains("xhci-proof --prepared-image --locked"));
     assert!(workflow.contains(
         "shard: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.workspace_matrix"
+    ));
+    assert!(workflow.contains(
+        "CONDUIT_CI_LINT_FULL: ${{ github.event_name != 'pull_request' && 'true' || needs.classify.outputs.workspace_lint_full }}"
+    ));
+    assert!(workflow.contains(
+        "CONDUIT_CI_LINT_PACKAGES: ${{ needs.classify.outputs.workspace_lint_packages }}"
+    ));
+    assert!(workflow.contains(
+        "CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}"
     ));
     assert!(workflow.contains("cargo xtask ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"));
     assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));

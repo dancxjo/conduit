@@ -58,6 +58,8 @@ struct ImpactPlan {
     changed_paths: Vec<String>,
     changed_packages: Vec<String>,
     affected_test_packages: Vec<String>,
+    workspace_lint_full: bool,
+    workspace_lint_packages: Vec<String>,
     workspace_shards: BTreeMap<String, bool>,
     suite_reasons: BTreeMap<String, Vec<String>>,
 }
@@ -438,6 +440,11 @@ fn plan(
     workspace: WorkspaceImpact,
     suite_reasons: BTreeMap<String, Vec<String>>,
 ) -> ImpactPlan {
+    let workspace_lint_packages = if full_fallback {
+        Vec::new()
+    } else {
+        workspace.affected_test_packages.iter().cloned().collect()
+    };
     ImpactPlan {
         esp32_required: selected["esp32"],
         esp32_targets: machine.esp32.targets.into_iter().collect(),
@@ -451,6 +458,8 @@ fn plan(
         changed_paths,
         changed_packages: workspace.changed_packages.into_iter().collect(),
         affected_test_packages: workspace.affected_test_packages.into_iter().collect(),
+        workspace_lint_full: full_fallback,
+        workspace_lint_packages,
         workspace_shards: workspace.shards,
         suite_reasons,
     }
@@ -545,6 +554,17 @@ fn write_github_outputs(plan: &ImpactPlan) {
     );
     println!("full_fallback={}", plan.full_fallback);
     println!("impact_reason={}", plan.reason);
+    println!("workspace_lint_full={}", plan.workspace_lint_full);
+    println!(
+        "workspace_lint_packages={}",
+        serde_json::to_string(&plan.workspace_lint_packages)
+            .expect("workspace lint package list serializes")
+    );
+    println!(
+        "workspace_test_packages={}",
+        serde_json::to_string(&plan.affected_test_packages)
+            .expect("workspace test package list serializes")
+    );
     let matrix: Vec<_> = WorkspaceShard::ALL
         .into_iter()
         .filter(|shard| plan.workspace_shards[shard.name()])
