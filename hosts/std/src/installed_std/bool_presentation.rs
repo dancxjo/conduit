@@ -6,7 +6,7 @@ use conduit_kernel::{
 };
 
 pub(super) static BOOL_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::BOOL_PRESENTATION_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::BOOL_PRESENTATION_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -63,15 +63,15 @@ impl BoolPresentationOperation {
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::bool_presentation_std_offer();
+    let offer = conduit_std_offers::bool_presentation_offer();
     if placement.kind_id.as_str() != conduit_std_catalog::BOOL_PRESENTATION_KIND
         || placement.kind_contract_revision.as_str()
             != conduit_std_catalog::BOOL_PRESENTATION_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::BOOL_PRESENTATION_STD_EXECUTION_PROFILE
+            != conduit_std_offers::BOOL_PRESENTATION_EXECUTION_PROFILE
         || placement.implementation_id.as_str()
-            != conduit_std_catalog::BOOL_PRESENTATION_STD_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_catalog::BOOL_PRESENTATION_STD_ARTIFACT
+            != conduit_std_offers::BOOL_PRESENTATION_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::BOOL_PRESENTATION_ARTIFACT
         || placement.inputs != offer.inputs
         || !placement.outputs.is_empty()
         || placement.inputs[0].port_id.as_str() != "value"

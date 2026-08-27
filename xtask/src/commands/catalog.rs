@@ -521,7 +521,7 @@ mod tests {
         assert!(matches!(std.coverage, Coverage::Direct));
         assert_eq!(
             std.implementation.as_ref().unwrap().implementation_id,
-            conduit_std_catalog::GRAPHICS_PRESENTATION_IMPLEMENTATION
+            conduit_std_offers::GRAPHICS_PRESENTATION_IMPLEMENTATION
         );
         let conduitos_profile = profiles::advertisement(CatalogHost::Conduitos)
             .unwrap()

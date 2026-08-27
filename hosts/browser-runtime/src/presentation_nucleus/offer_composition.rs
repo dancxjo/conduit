@@ -1,6 +1,7 @@
 use conduit_core::{
-    ArtifactId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId,
+    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityOffer,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_presentation::{
     MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
@@ -28,10 +29,7 @@ pub fn offers() -> Vec<CapabilityOffer> {
     .into_iter()
     .map(|kind| {
         let mut offer = portable_offer(kind)
-            .or_else(|| {
-                (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND)
-                    .then(conduit_std_catalog::text_presentation_offer)
-            })
+            .or_else(|| (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND).then(text_offer))
             .expect("accepted browser presentation Kind has one canonical offer");
         offer.capability_id =
             conduit_core::CapabilityId::from(format!("browser/{kind}-capability@1").as_str());
@@ -43,6 +41,25 @@ pub fn offers() -> Vec<CapabilityOffer> {
         offer
     })
     .collect()
+}
+
+pub(super) fn text_offer() -> CapabilityOffer {
+    conduit_std_catalog::realization_offer(
+        conduit_std_catalog::text_presentation_contract(),
+        conduit_std_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: "browser-text-presentation-v1",
+            execution_profile: BROWSER_PRESENTATION_PROFILE,
+            implementation: "browser/presentation-text-implementation@1",
+            artifact: BROWSER_PRESENTATION_ARTIFACT,
+        },
+        vec![present_host_operation_requirement(
+            kind_id("presentation/browser-text"),
+            conduit_text::MAX_TEXT_BYTES,
+        )],
+        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
 }
 
 pub(super) fn portable_offer(kind: &str) -> Option<CapabilityOffer> {

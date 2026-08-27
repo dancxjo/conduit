@@ -3,20 +3,12 @@
 use super::{StandardKindContract, TerminalBehavior};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_requirement, ArtifactId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, PRESENTATION_RESOURCE_CLASS,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const GRAPHICS_PRESENTATION_KIND: &str = "presentation/graphics";
 pub const GRAPHICS_PRESENTATION_REVISION: &str = "conduit.std/presentation-graphics@1";
-pub const GRAPHICS_PRESENTATION_PROFILE: &str = "conduit.std/presentation-graphics-kernel-hosted@1";
-pub const GRAPHICS_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-graphics@1";
-pub const GRAPHICS_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-graphics@1";
-pub const GRAPHICS_PRESENTATION_HOST_OPERATION: &str = "conduit.host/present@1";
-pub const BITMAP_PRESENTATION_PROFILE: &str = "conduit.std/presentation-bitmap-gray8@1";
-pub const BITMAP_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-bitmap@1";
-pub const BITMAP_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-bitmap@1";
 
 pub fn graphics_presentation_contract() -> StandardKindContract {
     StandardKindContract {
@@ -44,31 +36,6 @@ pub fn graphics_presentation_contract() -> StandardKindContract {
     }
 }
 
-pub fn graphics_presentation_offer() -> CapabilityOffer {
-    let contract = graphics_presentation_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("presentation-graphics-v1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(GRAPHICS_PRESENTATION_REVISION),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(GRAPHICS_PRESENTATION_PROFILE),
-            implementation_id: ImplementationId::from(GRAPHICS_PRESENTATION_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(GRAPHICS_PRESENTATION_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![present_host_operation_requirement(
-            kind_id("presentation/graphics-scene"),
-            conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32,
-        )],
-        resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
-}
-
 pub fn bitmap_presentation_contract() -> StandardKindContract {
     let definition = conduit_presentation::bitmap_presentation_definition();
     StandardKindContract {
@@ -90,33 +57,6 @@ pub fn bitmap_presentation_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "bitmap: graphics/scalar-field-gray8 > display: presentation/bitmap".to_string(),
-    }
-}
-
-pub fn bitmap_presentation_offer() -> CapabilityOffer {
-    let contract = bitmap_presentation_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("presentation-bitmap-gray8-v1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_presentation::BITMAP_PRESENTATION_REVISION,
-        ),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(BITMAP_PRESENTATION_PROFILE),
-            implementation_id: ImplementationId::from(BITMAP_PRESENTATION_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(BITMAP_PRESENTATION_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![present_host_operation_requirement(
-            kind_id("presentation/bitmap-gray8"),
-            conduit_presentation::MAX_GRAY8_BITMAP_BYTES as u32,
-        )],
-        resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 
@@ -149,14 +89,11 @@ mod tests {
     #[test]
     fn scene_manifestation_is_terminal_bounded_and_mechanism_free() {
         let contract = graphics_presentation_contract();
-        let offer = graphics_presentation_offer();
         assert_eq!(
             contract.inputs[0].value_kind.as_str(),
             conduit_presentation::GRAPHICS_SCENE_KIND
         );
         assert!(contract.outputs.is_empty());
-        assert_eq!(offer.host_operations.len(), 1);
-        assert_eq!(offer.resource_requirements.len(), 1);
         let rendered = alloc::format!("{contract:?}").to_ascii_lowercase();
         for forbidden in ["framebuffer", "dom", "window", "pixel", "css"] {
             assert!(!rendered.contains(forbidden));
@@ -166,12 +103,10 @@ mod tests {
     #[test]
     fn bitmap_manifestation_is_terminal_bounded_and_mechanism_free() {
         let contract = bitmap_presentation_contract();
-        let offer = bitmap_presentation_offer();
         assert_eq!(
             contract.inputs[0].value_kind.as_str(),
             conduit_presentation::GRAY8_BITMAP_INFO_KIND
         );
-        assert_eq!(offer.host_operations.len(), 1);
         let rendered = alloc::format!("{contract:?}").to_ascii_lowercase();
         for forbidden in ["framebuffer", "dom", "window", "css"] {
             assert!(!rendered.contains(forbidden));

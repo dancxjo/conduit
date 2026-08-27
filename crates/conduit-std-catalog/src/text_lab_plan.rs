@@ -2,8 +2,8 @@
 
 use crate::{
     hosted_keyboard_offer, install_input_semantic_catalogs, install_keyboard_catalogs,
-    install_text_pipeline_catalogs, keymap_offer, text_presentation_offer, text_upper_offer,
-    KEYBOARD_KIND, KEYMAP_KIND, TEXT_PRESENTATION_KIND,
+    install_text_pipeline_catalogs, keymap_offer, text_upper_offer, KEYBOARD_KIND, KEYMAP_KIND,
+    TEXT_PRESENTATION_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -13,7 +13,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    process_owned_line_offer_with_limits, resource_offer, BaseImplementationId, BootId,
+    kind_id, present_host_operation_requirement, process_owned_line_offer_with_limits,
+    resource_offer, resource_requirement, BaseImplementationId, BootId, CapabilityOffer,
     HostAdvertisement, HostId, HostProfileId, LineOffer, LineScope, LineSecurity, LinkLimits,
     OfferGeneration, Plan, INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
@@ -144,7 +145,7 @@ fn exact_text_lab_split_plan_with_loss(
             hosted_keyboard_offer("text-lab-native-keyboard", "text-lab/native-keyboard@1"),
             keymap_offer(),
             text_upper_offer(),
-            text_presentation_offer(),
+            text_presentation_fixture_offer(),
         ],
     };
     native
@@ -280,6 +281,25 @@ fn exact_text_lab_split_plan_with_loss(
         forward_line,
         return_line,
     })
+}
+
+fn text_presentation_fixture_offer() -> CapabilityOffer {
+    crate::realization_offer(
+        crate::text_presentation_contract(),
+        crate::TEXT_PRESENTATION_CONTRACT_REVISION,
+        crate::RealizationOfferIdentity {
+            capability: "text-lab/native-text-presentation",
+            execution_profile: "text-lab/native-fixture@1",
+            implementation: "text-lab/native-text-presentation@1",
+            artifact: "text-lab/native-fixture@1",
+        },
+        vec![present_host_operation_requirement(
+            kind_id("presentation/text-lab-native"),
+            conduit_text::MAX_TEXT_BYTES,
+        )],
+        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
 }
 
 #[cfg(test)]

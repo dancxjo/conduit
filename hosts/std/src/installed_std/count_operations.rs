@@ -12,7 +12,7 @@ pub(super) static STATE_COUNT_FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(super) static COUNT_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::COUNT_PRESENTATION_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::COUNT_PRESENTATION_IMPLEMENTATION,
     budget: count_presentation_budget,
     prepare: prepare_count_presentation,
 };
@@ -234,9 +234,9 @@ fn validate_count_presentation(placement: &PlannedGear) -> Result<(), String> {
         placement,
         conduit_std_catalog::COUNT_PRESENTATION_KIND,
         conduit_std_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
-        conduit_std_catalog::COUNT_PRESENTATION_EXECUTION_PROFILE,
-        conduit_std_catalog::COUNT_PRESENTATION_IMPLEMENTATION,
-        conduit_std_catalog::COUNT_PRESENTATION_ARTIFACT,
+        conduit_std_offers::COUNT_PRESENTATION_EXECUTION_PROFILE,
+        conduit_std_offers::COUNT_PRESENTATION_IMPLEMENTATION,
+        conduit_std_offers::COUNT_PRESENTATION_ARTIFACT,
         "value",
         conduit_std_catalog::STATE_COUNT_VALUE_KIND,
         PortTemporal::Current,

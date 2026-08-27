@@ -949,6 +949,7 @@ dependencies = [
  "conduit-core",
  "conduit-presentation",
  "conduit-std-catalog",
+ "conduit-text",
  "conduit-time",
 ]
 
@@ -4484,6 +4485,7 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-std-host",
+ "conduit-std-offers",
  "conduit-synth",
  "conduit-system-continuity",
  "conduit-text",

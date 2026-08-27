@@ -157,7 +157,7 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
                     max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
                 },
             },
-            toggle_browser_presentation_offer(conduit_std_catalog::BOOL_PRESENTATION_CAPABILITY),
+            toggle_browser_presentation_offer(BROWSER_BOOL_PRESENTATION_CAPABILITY),
         ],
     }
 }

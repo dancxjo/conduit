@@ -7,10 +7,9 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_requirement, ArtifactId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    PRESENTATION_RESOURCE_CLASS,
+    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 
 pub const STATE_COUNT_KIND: &str = "state/count";
@@ -23,12 +22,6 @@ pub const STATE_COUNT_CAPABILITY: &str = "state-count-v1";
 
 pub const COUNT_PRESENTATION_KIND: &str = "presentation/count";
 pub const COUNT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-count@1";
-pub const COUNT_PRESENTATION_EXECUTION_PROFILE: &str =
-    "conduit.std/presentation-count-kernel-hosted@1";
-pub const COUNT_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-count@1";
-pub const COUNT_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-count@1";
-pub const COUNT_PRESENTATION_CAPABILITY: &str = "presentation-count-v1";
-pub const COUNT_PRESENTATION_TARGET: &str = "presentation/stdout-count";
 pub const COUNT_ENCODED_LEN: u32 = 8;
 pub const MAX_COUNT_VALUES: u64 = conduit_time::TIME_EVERY_COUNT + 1;
 
@@ -124,24 +117,6 @@ pub fn state_count_offer() -> CapabilityOffer {
         },
         Vec::new(),
         Vec::new(),
-    )
-}
-
-pub fn count_presentation_offer() -> CapabilityOffer {
-    offer(
-        count_presentation_contract(),
-        OfferIdentity {
-            capability: COUNT_PRESENTATION_CAPABILITY,
-            revision: COUNT_PRESENTATION_CONTRACT_REVISION,
-            profile: COUNT_PRESENTATION_EXECUTION_PROFILE,
-            implementation: COUNT_PRESENTATION_IMPLEMENTATION,
-            artifact: COUNT_PRESENTATION_ARTIFACT,
-        },
-        vec![present_host_operation_requirement(
-            kind_id(COUNT_PRESENTATION_TARGET),
-            COUNT_ENCODED_LEN,
-        )],
-        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
     )
 }
 
@@ -248,9 +223,9 @@ mod tests {
         assert_eq!(state.startup_parameters[0].name, "start");
         assert!(state.startup_parameters[0].has_default);
 
-        let presentation = count_presentation_offer();
+        let presentation = count_presentation_contract();
         assert_eq!(presentation.inputs[0].temporal, PortTemporal::Current);
-        assert_ne!(state.checked_face(), presentation.checked_face());
+        assert_ne!(state.kind_id, presentation.kind_id);
     }
 
     #[cfg(feature = "form-catalog")]
