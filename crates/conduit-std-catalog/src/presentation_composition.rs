@@ -5,9 +5,8 @@ use super::{
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use conduit_presentation::{
     PresentationIconKey, MAX_COMPOSITION_NAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
@@ -17,21 +16,14 @@ use conduit_presentation::{
 pub const PRESENTATION_ICON_KIND: &str = "presentation/icon";
 pub const PRESENTATION_FRAME_KIND: &str = "presentation/frame";
 pub const PRESENTATION_BADGE_KIND: &str = "presentation/badge";
-pub const PRESENTATION_ICON_IMPLEMENTATION: &str = "std/presentation/icon-implementation@1";
-pub const PRESENTATION_FRAME_IMPLEMENTATION: &str = "std/presentation/frame-implementation@1";
-pub const PRESENTATION_BADGE_IMPLEMENTATION: &str = "std/presentation/badge-implementation@1";
 pub const PRESENTATION_INPUT_PORT: &str = "content";
 pub const PRESENTATION_OUTPUT_PORT: &str = "presented";
 pub const ICON_KEY: &str = "icon";
 pub const ROLE_KEY: &str = "role";
 pub const STATE_KEY: &str = "state";
 pub const ACCESSIBILITY_NAME_KEY: &str = "accessibility-name";
-pub const PRESENTATION_COMPOSITION_HOST_OPERATION: &str =
-    "conduit.host/presentation-composition-transform@1";
-
-const REVISION: &str = "conduit.std/presentation-composition@1";
-const PROFILE: &str = "conduit.std/presentation-composition-kernel@1";
-const ARTIFACT: &str = "conduit-std-host/presentation-composition@1";
+pub const PRESENTATION_COMPOSITION_CONTRACT_REVISION: &str =
+    "conduit.std/presentation-composition@1";
 
 pub fn presentation_icon_contract() -> StandardKindContract {
     contract(
@@ -78,21 +70,11 @@ pub fn presentation_badge_contract() -> StandardKindContract {
     )
 }
 
-pub fn presentation_icon_offer() -> CapabilityOffer {
-    offer(presentation_icon_contract())
-}
-pub fn presentation_frame_offer() -> CapabilityOffer {
-    offer(presentation_frame_contract())
-}
-pub fn presentation_badge_offer() -> CapabilityOffer {
-    offer(presentation_badge_contract())
-}
-
-pub fn presentation_composition_offer_for(kind: &str) -> Option<CapabilityOffer> {
+pub fn presentation_composition_contract_for(kind: &str) -> Option<StandardKindContract> {
     Some(match kind {
-        PRESENTATION_ICON_KIND => presentation_icon_offer(),
-        PRESENTATION_FRAME_KIND => presentation_frame_offer(),
-        PRESENTATION_BADGE_KIND => presentation_badge_offer(),
+        PRESENTATION_ICON_KIND => presentation_icon_contract(),
+        PRESENTATION_FRAME_KIND => presentation_frame_contract(),
+        PRESENTATION_BADGE_KIND => presentation_badge_contract(),
         _ => return None,
     })
 }
@@ -130,43 +112,6 @@ fn contract(
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: example.to_string(),
-    }
-}
-
-fn offer(contract: StandardKindContract) -> CapabilityOffer {
-    let kind = contract.kind_id.as_str();
-    CapabilityOffer {
-        startup_parameters: super::functional_face::startup_face(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from(alloc::format!("std/{kind}-capability@1").as_str()),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(REVISION),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(PROFILE),
-            implementation_id: ImplementationId::from(match kind {
-                PRESENTATION_ICON_KIND => PRESENTATION_ICON_IMPLEMENTATION,
-                PRESENTATION_FRAME_KIND => PRESENTATION_FRAME_IMPLEMENTATION,
-                PRESENTATION_BADGE_KIND => PRESENTATION_BADGE_IMPLEMENTATION,
-                _ => unreachable!(),
-            }),
-            artifact_id: ArtifactId::from(ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: if kind == PRESENTATION_ICON_KIND {
-            Vec::new()
-        } else {
-            vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(PRESENTATION_COMPOSITION_HOST_OPERATION),
-                target_kind: Some(contract.kind_id),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-                maximum_output_bytes: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-            }]
-        },
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 
@@ -225,7 +170,9 @@ pub fn install_presentation_composition_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(REVISION),
+                kind_contract_revision: KindContractRevision::from(
+                    PRESENTATION_COMPOSITION_CONTRACT_REVISION,
+                ),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: contract

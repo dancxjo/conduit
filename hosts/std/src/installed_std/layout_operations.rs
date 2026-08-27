@@ -9,7 +9,7 @@ use conduit_presentation::{LayoutFrame, MAX_LAYOUT_FRAME_BYTES};
 macro_rules! factory {
     ($name:ident, $implementation:ident) => {
         pub(super) static $name: InstalledFactory = InstalledFactory {
-            implementation_id: conduit_std_catalog::$implementation,
+            implementation_id: conduit_std_offers::$implementation,
             budget,
             prepare,
         };
@@ -158,7 +158,7 @@ fn prepare(
     }))
 }
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::layout_offer_for(placement.kind_id.as_str())
+    let offer = conduit_std_offers::layout_offer_for(placement.kind_id.as_str())
         .ok_or_else(|| "unsupported layout Kind".to_string())?;
     if placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id

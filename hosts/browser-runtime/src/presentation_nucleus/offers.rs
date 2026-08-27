@@ -41,9 +41,7 @@ pub fn human_io_advertisement_offers() -> Vec<CapabilityOffer> {
 
 #[cfg(test)]
 pub(super) fn canonical_offer(kind: &str) -> Option<CapabilityOffer> {
-    conduit_std_catalog::layout_offer_for(kind)
-        .or_else(|| conduit_std_catalog::presentation_composition_offer_for(kind))
-        .or_else(|| conduit_std_catalog::graphics_offer_for(kind))
+    offer_composition::portable_offer(kind)
         .or_else(|| {
             (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND)
                 .then(conduit_std_catalog::text_presentation_offer)

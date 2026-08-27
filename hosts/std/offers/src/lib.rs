@@ -4,6 +4,8 @@ mod flow_state;
 pub use flow_state::*;
 mod timing;
 pub use timing::*;
+mod presentation_structure;
+pub use presentation_structure::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -161,18 +163,18 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         math_clamp_offer(),
         math_scale_offer(),
         math_deadband_offer(),
-        conduit_std_catalog::layout_viewport_offer(),
-        conduit_std_catalog::layout_inset_offer(),
-        conduit_std_catalog::layout_row_offer(),
-        conduit_std_catalog::layout_column_offer(),
-        conduit_std_catalog::layout_stack_offer(),
-        conduit_std_catalog::layout_align_offer(),
-        conduit_std_catalog::presentation_icon_offer(),
-        conduit_std_catalog::presentation_frame_offer(),
-        conduit_std_catalog::presentation_badge_offer(),
-        conduit_std_catalog::graphics_rect_offer(),
-        conduit_std_catalog::graphics_text_offer(),
-        conduit_std_catalog::graphics_icon_offer(),
+        layout_viewport_offer(),
+        layout_inset_offer(),
+        layout_row_offer(),
+        layout_column_offer(),
+        layout_stack_offer(),
+        layout_align_offer(),
+        presentation_icon_offer(),
+        presentation_frame_offer(),
+        presentation_badge_offer(),
+        graphics_rect_offer(),
+        graphics_text_offer(),
+        graphics_icon_offer(),
         conduit_std_catalog::graphics_presentation_offer(),
         conduit_std_catalog::bitmap_presentation_offer(),
         conduit_std_catalog::robotics_observe_bump_offer(),
@@ -258,6 +260,9 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/time_every.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/timing.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/audio_render_demand.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/layout.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/presentation_composition.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/graphics.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -279,6 +284,18 @@ mod tests {
                 "pub fn time_delay_offer",
                 "pub fn time_throttle_offer",
                 "pub fn audio_render_demand_offer",
+                "pub fn layout_viewport_offer",
+                "pub fn layout_inset_offer",
+                "pub fn layout_row_offer",
+                "pub fn layout_column_offer",
+                "pub fn layout_stack_offer",
+                "pub fn layout_align_offer",
+                "pub fn presentation_icon_offer",
+                "pub fn presentation_frame_offer",
+                "pub fn presentation_badge_offer",
+                "pub fn graphics_rect_offer",
+                "pub fn graphics_text_offer",
+                "pub fn graphics_icon_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),

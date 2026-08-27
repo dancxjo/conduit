@@ -947,6 +947,7 @@ name = "conduit-std-offers"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-presentation",
  "conduit-std-catalog",
  "conduit-time",
 ]
@@ -2600,6 +2601,7 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-std-host",
+ "conduit-std-offers",
  "conduit-text",
  "conduit-time",
  "conduit-wire",
