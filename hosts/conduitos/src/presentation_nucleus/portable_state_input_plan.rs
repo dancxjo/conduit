@@ -100,9 +100,9 @@ pub fn prepare_portable_state_input(
 
 fn advertisement(host: &str, boot: &str, fixtures: Vec<CapabilityOffer>) -> HostAdvertisement {
     let mut capabilities = vec![
-        conduit_std_catalog::conduitos_state_count_offer(),
-        conduit_std_catalog::conduitos_state_toggle_offer(),
-        conduit_std_catalog::conduitos_key_event_tee_offer(),
+        crate::functional_offers::state_count_offer(),
+        crate::functional_offers::state_toggle_offer(),
+        crate::functional_offers::key_event_tee_offer(),
     ];
     capabilities.extend(fixtures);
     HostAdvertisement {
@@ -110,7 +110,7 @@ fn advertisement(host: &str, boot: &str, fixtures: Vec<CapabilityOffer>) -> Host
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from(conduit_std_catalog::CONDUITOS_PORTABLE_STATE_INPUT_PROFILE),
+        profile: HostProfileId::from(crate::functional_offers::PORTABLE_STATE_INPUT_PROFILE),
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities,
@@ -222,7 +222,7 @@ fn fixture_offer(
         kind_contract_revision: KindContractRevision::from(revision),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_PORTABLE_STATE_INPUT_PROFILE,
+                crate::functional_offers::PORTABLE_STATE_INPUT_PROFILE,
             ),
             implementation_id: ImplementationId::from(format!("{kind}@1")),
             artifact_id: ArtifactId::from(FIXTURE_ARTIFACT),

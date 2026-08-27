@@ -119,57 +119,57 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
         .push(conduitos::functional_offers::math_clamp_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_state_latest_scalar_offer());
+        .push(conduitos::functional_offers::state_latest_scalar_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_flow_tee_scalar_offer());
+        .push(conduitos::functional_offers::flow_tee_scalar_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_state_select_scalar_offer());
+        .push(conduitos::functional_offers::state_select_scalar_offer());
     advertisement
         .capabilities
-        .extend(conduit_std_catalog::conduitos_robotics_offers());
+        .extend(conduitos::functional_offers::robotics_offers());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_state_count_offer());
+        .push(conduitos::functional_offers::state_count_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_state_toggle_offer());
+        .push(conduitos::functional_offers::state_toggle_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_key_event_tee_offer());
+        .push(conduitos::functional_offers::key_event_tee_offer());
     advertisement.capabilities.extend([
-        conduit_std_catalog::conduitos_text_join_offer(),
-        conduit_std_catalog::conduitos_flow_gate_scalar_offer(),
+        conduitos::functional_offers::text_join_offer(),
+        conduitos::functional_offers::flow_gate_scalar_offer(),
         conduitos::functional_offers::math_scale_offer(),
         conduitos::functional_offers::math_deadband_offer(),
-        conduit_std_catalog::conduitos_keymap_offer(),
-        conduit_std_catalog::conduitos_chords_offer(),
+        conduitos::functional_offers::keymap_offer(),
+        conduitos::functional_offers::chords_offer(),
     ]);
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_time_every_offer());
+        .push(conduitos::functional_offers::time_every_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_audio_render_demand_offer());
+        .push(conduitos::functional_offers::audio_render_demand_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_time_debounce_offer());
+        .push(conduitos::functional_offers::time_debounce_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_time_timeout_offer());
+        .push(conduitos::functional_offers::time_timeout_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_time_delay_offer());
+        .push(conduitos::functional_offers::time_delay_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_time_throttle_offer());
+        .push(conduitos::functional_offers::time_throttle_offer());
     advertisement
         .capabilities
-        .push(conduit_std_catalog::conduitos_music_synth_offer());
+        .push(conduitos::functional_offers::music_synth_offer());
     advertisement.capabilities.extend([
-        conduit_std_catalog::json_encode_conduitos_offer(),
-        conduit_std_catalog::json_decode_conduitos_offer(),
+        conduitos::functional_offers::json_encode_offer(),
+        conduitos::functional_offers::json_decode_offer(),
     ]);
     Ok(advertisement)
 }

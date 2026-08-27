@@ -10,11 +10,11 @@ fn ordinary_latest_and_tee_plan_and_run_through_the_fixed_kernel() {
     for (kind, implementation) in [
         (
             conduit_std_catalog::LATEST_KIND,
-            conduit_std_catalog::CONDUITOS_STATE_LATEST_SCALAR_IMPLEMENTATION,
+            crate::functional_offers::STATE_LATEST_SCALAR_IMPLEMENTATION,
         ),
         (
             conduit_std_catalog::TEE_KIND,
-            conduit_std_catalog::CONDUITOS_FLOW_TEE_SCALAR_IMPLEMENTATION,
+            crate::functional_offers::FLOW_TEE_SCALAR_IMPLEMENTATION,
         ),
     ] {
         assert_eq!(
