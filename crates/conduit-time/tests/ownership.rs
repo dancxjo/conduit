@@ -61,3 +61,29 @@ fn semantic_consumers_do_not_import_tick_meaning_from_std_inventory() {
         }
     }
 }
+
+#[test]
+fn calendar_and_scheduling_domains_do_not_return_to_core() {
+    let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let core_source = workspace.join("crates/conduit-core/src");
+    for former_module in [
+        "calendar.rs",
+        "calendar_proposal.rs",
+        "temporal_recurrence.rs",
+        "temporal_recurrence_civil.rs",
+        "temporal_schedule.rs",
+        "temporal_window.rs",
+    ] {
+        assert!(
+            !core_source.join(former_module).exists(),
+            "portable time domain returned to conduit-core: {former_module}"
+        );
+    }
+
+    let core_manifest = fs::read_to_string(workspace.join("crates/conduit-core/Cargo.toml"))
+        .expect("read core manifest");
+    assert!(
+        !core_manifest.contains("conduit-time"),
+        "conduit-core must not depend on its higher-level time domain owner"
+    );
+}

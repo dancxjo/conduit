@@ -7,10 +7,12 @@ use conduit_ai::{
     TemporalResolutionTruth, LLM_INTERPRET_KIND, MAXIMUM_RECURRENCE_OCCURRENCES,
 };
 use conduit_core::{
-    AvailabilityBasis, AvailabilityInterval, AvailabilityState, KindId, LocalDate, LocalDateTime,
-    LocalTime, MeetingProposalRefusal, NamedTimeZone, ParticipantAvailability, PlanId,
-    TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow, ZonedResolution,
-    UNIX_UTC_CLOCK_BASIS,
+    KindId, LocalDate, LocalDateTime, LocalTime, NamedTimeZone, PlanId, TemporalInstant,
+    TemporalScale, ZonedResolution, UNIX_UTC_CLOCK_BASIS,
+};
+use conduit_time::{
+    AvailabilityBasis, AvailabilityInterval, AvailabilityState, MeetingProposalRefusal,
+    ParticipantAvailability, TemporalBoundary, TemporalWindow,
 };
 
 #[test]
@@ -249,7 +251,7 @@ fn truth() -> TemporalResolutionTruth {
 
 fn fresh_availability(
     request: &TemporalInterpretationRequest,
-    resolved: &conduit_core::MeetingProposalRequest,
+    resolved: &conduit_time::MeetingProposalRequest,
 ) -> Vec<ParticipantAvailability> {
     vec![ParticipantAvailability {
         participant_identity: "person/alex".into(),

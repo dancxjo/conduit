@@ -2,12 +2,9 @@
 
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrantId, BootId, BoundedResourceRef, HostId,
-    MissedOccurrencePolicy, MonotonicClockIdentity, MonotonicDuration, MonotonicInstant,
-    OccurrenceInstant, RecurrenceOccurrence, ResourceClassId, ResourceExtent, ResourceHandleId,
-    ResourceLifetime, ResourceReferenceAvailability, ResourceReferenceBinding,
-    ResourceSemanticIdentity, ResourceVersionIdentity, ScheduledIntent,
-    ScheduledOccurrenceDecision, SuspendBehavior, TemporalScale, TriggerObservation,
-    TriggerProfile,
+    ResourceClassId, ResourceExtent, ResourceHandleId, ResourceLifetime,
+    ResourceReferenceAvailability, ResourceReferenceBinding, ResourceSemanticIdentity,
+    ResourceVersionIdentity,
 };
 use conduit_std_catalog::{
     ready_job_request, JobLifecycleEvent, JobOutputProfile, JobRequest, JobTerminalOutcome,
@@ -15,6 +12,11 @@ use conduit_std_catalog::{
 };
 use conduit_std_host::hosted_job::{
     run_bounded_job, AdmittedExecutable, HostedJobRefusal, JobCancellation,
+};
+use conduit_time::{
+    MissedOccurrencePolicy, MonotonicClockIdentity, MonotonicDuration, MonotonicInstant,
+    OccurrenceInstant, RecurrenceOccurrence, ScheduledIntent, ScheduledOccurrenceDecision,
+    SuspendBehavior, TemporalScale, TriggerObservation, TriggerProfile,
 };
 use std::path::PathBuf;
 
@@ -40,7 +42,7 @@ fn ready_elapsed_occurrence_executes_only_through_separate_job_authority() {
             at: OccurrenceInstant::Monotonic(opens.clone()),
         },
         trigger: TriggerProfile::Elapsed(
-            conduit_core::elapsed_trigger_window(
+            conduit_time::elapsed_trigger_window(
                 opens,
                 MonotonicDuration::new(10, TemporalScale::Milliseconds),
                 SuspendBehavior::ClockIncludesSuspend,

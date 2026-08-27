@@ -181,7 +181,7 @@ impl<T: GoogleCalendarTransport> GoogleCalendarService<T> {
         let prior = prior_receipt(prior)?;
         if prior.portable_event_identity != request.event_identity
             || request.participant_contacts.is_empty()
-            || request.participant_contacts.len() > conduit_core::MAXIMUM_EVENT_PARTICIPANTS
+            || request.participant_contacts.len() > conduit_time::MAXIMUM_EVENT_PARTICIPANTS
         {
             return Err(GoogleCalendarRefusal::InvalidRequest);
         }
@@ -325,9 +325,9 @@ struct CancelRealization {
 
 fn wire_event(event: &EventSemantic) -> Result<GoogleWireEvent, GoogleCalendarRefusal> {
     if event.identity.is_empty()
-        || event.title.len() > conduit_core::MAXIMUM_CALENDAR_TEXT_BYTES
-        || event.description.len() > conduit_core::MAXIMUM_CALENDAR_TEXT_BYTES
-        || event.location.len() > conduit_core::MAXIMUM_CALENDAR_TEXT_BYTES
+        || event.title.len() > conduit_time::MAXIMUM_CALENDAR_TEXT_BYTES
+        || event.description.len() > conduit_time::MAXIMUM_CALENDAR_TEXT_BYTES
+        || event.location.len() > conduit_time::MAXIMUM_CALENDAR_TEXT_BYTES
         || event.recurrence.len() > GOOGLE_CALENDAR_MAXIMUM_RECURRENCE_RULES
     {
         return Err(GoogleCalendarRefusal::InvalidRequest);

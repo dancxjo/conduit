@@ -1,9 +1,10 @@
-use conduit_core::{
-    elapsed_trigger_window, BootId, CivilTrigger, ClockChangeBehavior, HostId,
-    MissedOccurrencePolicy, MonotonicClockIdentity, MonotonicDuration, MonotonicInstant,
-    NamedTimeZone, OccurrenceInstant, RecurrenceOccurrence, ScheduledIntent,
-    ScheduledIntentRefusal, ScheduledOccurrenceDecision, SuspendBehavior, TemporalBoundary,
-    TemporalInstant, TemporalScale, TemporalWindow, TriggerObservation, TriggerProfile,
+use conduit_core::{BootId, HostId};
+use conduit_time::{
+    elapsed_trigger_window, CivilTrigger, ClockChangeBehavior, MissedOccurrencePolicy,
+    MonotonicClockIdentity, MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant,
+    RecurrenceOccurrence, ScheduledIntent, ScheduledIntentRefusal, ScheduledOccurrenceDecision,
+    SuspendBehavior, TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow,
+    TriggerObservation, TriggerProfile,
 };
 
 #[test]

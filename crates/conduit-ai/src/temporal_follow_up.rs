@@ -1,7 +1,8 @@
 //! Model-derived follow-up timing remains a proposal until ordinary admission.
 
 use alloc::string::String;
-use conduit_core::{ScheduledIntent, ScheduledIntentRefusal, MAXIMUM_TEMPORAL_IDENTITY_BYTES};
+use conduit_core::MAXIMUM_TEMPORAL_IDENTITY_BYTES;
+use conduit_time::{ScheduledIntent, ScheduledIntentRefusal};
 use serde::{Deserialize, Serialize};
 
 use crate::{ModelEffectProposal, ModelResultProvenance};

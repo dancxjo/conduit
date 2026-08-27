@@ -3,16 +3,8 @@ use conduit_ai::{
     ProposalDecisionOutcome, ProposalGate, ProposalRefusal,
 };
 use conduit_core::{
-    elapsed_trigger_window, AuthorityBinding, AuthorityContractId, AuthorityGrantId,
-    AvailabilityBasis, AvailabilityInterval, AvailabilityState, BootId, CalendarEvent,
-    CalendarEventTime, CapabilityId, CivilTrigger, ClockChangeBehavior, HostId,
-    HostOperationContractId, InvitationEvidence, KindId, LocalDate, LocalDateTime, LocalTime,
-    MeetingCandidate, MeetingProposalRefusal, MeetingProposalRequest, MissedOccurrencePolicy,
-    MonotonicClockIdentity, MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant,
-    Participant, ParticipantAvailability, ParticipantRole, PlanId, RecurrenceOccurrence,
-    ReminderOccurrence, ScheduledIntent, ScheduledOccurrenceDecision, SignId, SuspendBehavior,
-    TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow, TimedCalendarSpan,
-    TriggerObservation, TriggerProfile, ZonedResolution, UNIX_UTC_CLOCK_BASIS,
+    AuthorityBinding, AuthorityContractId, AuthorityGrantId, BootId, CapabilityId, HostId,
+    HostOperationContractId, KindId, PlanId, SignId,
 };
 use conduit_presentation::present_timed_calendar_event;
 use conduit_std_catalog::{
@@ -27,6 +19,17 @@ use conduit_std_host::hosted_calendar::{
 };
 use conduit_std_host::hosted_reminder::{
     deliver_ready_reminder, HostedReminderAdapter, ReminderAdapterError, ReminderDeliveryRefusal,
+};
+use conduit_time::{
+    elapsed_trigger_window, AvailabilityBasis, AvailabilityInterval, AvailabilityState,
+    CalendarEvent, CalendarEventTime, CivilTrigger, ClockChangeBehavior, InvitationEvidence,
+    LocalDate, LocalDateTime, LocalTime, MeetingCandidate, MeetingProposalRefusal,
+    MeetingProposalRequest, MissedOccurrencePolicy, MonotonicClockIdentity, MonotonicDuration,
+    MonotonicInstant, NamedTimeZone, OccurrenceInstant, Participant, ParticipantAvailability,
+    ParticipantRole, RecurrenceOccurrence, ReminderOccurrence, ScheduledIntent,
+    ScheduledOccurrenceDecision, SuspendBehavior, TemporalBoundary, TemporalInstant, TemporalScale,
+    TemporalWindow, TimedCalendarSpan, TriggerObservation, TriggerProfile, ZonedResolution,
+    UNIX_UTC_CLOCK_BASIS,
 };
 
 #[test]
@@ -261,7 +264,7 @@ fn meeting_fixture() -> MeetingFixture {
     }
 }
 
-fn event_from(approved: &conduit_core::ProposedMeetingSlot) -> CalendarEvent {
+fn event_from(approved: &conduit_time::ProposedMeetingSlot) -> CalendarEvent {
     CalendarEvent {
         identity: "event/cross-zone/capstone".into(),
         title: "Cross-zone capstone".into(),

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../conduit-core" }
+conduit-time = { path = "../conduit-time", default-features = false }
 conduit-form = { path = "../conduit-form", optional = true }
 conduit-body = { path = "../conduit-body", default-features = false }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }

@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_time::{
     CivilFoldPolicy, CivilGapPolicy, CivilOccurrenceResolution, CivilResolutionChoice,
     CivilResolutionPolicy, LocalDate, LocalDateTime, LocalTime, NamedTimeZone, OccurrenceInstant,
     RecurrenceDefinition, RecurrenceExpansion, RecurrenceRefusal, RecurrenceRule, RecurrenceUntil,

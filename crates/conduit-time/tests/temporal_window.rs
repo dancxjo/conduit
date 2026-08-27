@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_time::{
     TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow, TemporalWindowPosition,
     TemporalWindowRefusal,
 };

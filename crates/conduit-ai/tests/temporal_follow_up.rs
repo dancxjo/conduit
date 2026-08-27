@@ -3,9 +3,12 @@ use conduit_ai::{
     ProposalDecisionOutcome, ProposalGate, ProposalRefusal,
 };
 use conduit_core::{
-    elapsed_trigger_window, BootId, HostId, KindId, MissedOccurrencePolicy, MonotonicClockIdentity,
-    MonotonicDuration, MonotonicInstant, OccurrenceInstant, PlanId, RecurrenceOccurrence,
-    ScheduledIntent, SignId, SuspendBehavior, TemporalScale, TriggerProfile,
+    BootId, HostId, KindId, MonotonicClockIdentity, MonotonicDuration, MonotonicInstant, PlanId,
+    SignId, TemporalScale,
+};
+use conduit_time::{
+    elapsed_trigger_window, MissedOccurrencePolicy, OccurrenceInstant, RecurrenceOccurrence,
+    ScheduledIntent, SuspendBehavior, TriggerProfile,
 };
 
 #[test]

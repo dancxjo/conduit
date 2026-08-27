@@ -1,7 +1,7 @@
 //! Viewer-local calendar projection over explicit timezone resolution truth.
 
 use alloc::string::String;
-use conduit_core::{
+use conduit_time::{
     CalendarEvent, CalendarEventTime, CivilResolutionChoice, LocalDateTime, NamedTimeZone,
     TemporalInstant, ZonedResolution,
 };

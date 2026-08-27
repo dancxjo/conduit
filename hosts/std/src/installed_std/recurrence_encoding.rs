@@ -1,7 +1,8 @@
 //! Canonical finite occurrence-batch encoding after recurrence expansion.
 
 use super::recurrence_codec::{count, leaf, occurrence_instant, structured, value_field};
-use conduit_core::{RecurrenceOccurrence, StructuredInfoType, StructuredInfoValue};
+use conduit_core::{StructuredInfoType, StructuredInfoValue};
+use conduit_time::RecurrenceOccurrence;
 
 pub(super) fn encode_batch(occurrences: &[RecurrenceOccurrence]) -> Result<Vec<u8>, String> {
     if occurrences.len() > usize::from(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS) {

@@ -1,9 +1,9 @@
-use conduit_core::{
+use conduit_presentation::{present_timed_calendar_event, CalendarPresentationRefusal};
+use conduit_time::{
     CalendarEvent, CalendarEventTime, LocalDate, LocalDateTime, LocalTime, NamedTimeZone,
     TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow, TimedCalendarSpan,
     ZonedResolution,
 };
-use conduit_presentation::{present_timed_calendar_event, CalendarPresentationRefusal};
 
 fn instant(ticks: u64) -> TemporalInstant {
     TemporalInstant {
@@ -83,7 +83,7 @@ fn same_exact_instants_render_in_event_and_viewer_zones_without_identity_change(
     assert_eq!(rendered.viewer_start.local, local(8, 30));
     assert_eq!(
         rendered.event_start.resolution,
-        conduit_core::CivilResolutionChoice::FoldEarlier
+        conduit_time::CivilResolutionChoice::FoldEarlier
     );
     assert_eq!(rendered.viewer_start.zone.identity(), "Europe/London");
 }

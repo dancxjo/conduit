@@ -1,13 +1,14 @@
 use super::{host, installed_std, RecordingTimer};
-use conduit_core::{
-    AvailabilityBasis, AvailabilityInterval, AvailabilityState, ConfigurationValue, ConnectionBase,
-    MeetingCandidate, MeetingProposalRequest, NamedTimeZone, ParticipantAvailability,
-    PortDirection, PortTemporal, TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow,
-};
+use conduit_core::{ConfigurationValue, ConnectionBase, PortDirection, PortTemporal};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
     ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
+};
+use conduit_time::{
+    AvailabilityBasis, AvailabilityInterval, AvailabilityState, MeetingCandidate,
+    MeetingProposalRequest, NamedTimeZone, ParticipantAvailability, TemporalBoundary,
+    TemporalInstant, TemporalScale, TemporalWindow,
 };
 use std::collections::BTreeMap;
 
