@@ -80,9 +80,8 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
     let expanded =
         expand_canonical_form(&checked, "quantity-proof", &profile).expect("quantity Form expands");
 
-    let literal = conduit_std_catalog::structured_literal_std_offer("TimedTone", &value_type);
-    let presenter =
-        conduit_std_catalog::structured_presentation_std_offer("TimedTone", &value_type);
+    let literal = conduit_std_offers::structured_literal_std_offer("TimedTone", &value_type);
+    let presenter = conduit_std_offers::structured_presentation_std_offer("TimedTone", &value_type);
     let mut advertisement = host("structured-quantity-host").advertisement().clone();
     advertisement.capabilities.extend([literal, presenter]);
     advertisement

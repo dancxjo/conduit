@@ -61,25 +61,26 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
     let expanded = expand_canonical_form(&checked, "browser-education-feedback", &profile)
         .map_err(|error| format!("expand browser education Form: {error:?}"))?;
 
-    let mut literal = conduit_std_catalog::structured_literal_std_offer(
+    let literal = crate::structured_offers::structured_literal_offer(
         conduit_std_catalog::EDUCATION_FEEDBACK_TYPE,
         &value_type,
+        crate::structured_offers::BrowserOfferIdentity {
+            capability: "browser-structured-info/literal@1",
+            profile: BROWSER_PRESENTATION_PROFILE,
+            implementation: "browser/kernel-structured-info/literal@1",
+            artifact: BROWSER_PRESENTATION_ARTIFACT,
+        },
     );
-    let mut presenter = conduit_std_catalog::structured_presentation_std_offer(
+    let presenter = crate::structured_offers::structured_presentation_offer(
         conduit_std_catalog::EDUCATION_FEEDBACK_TYPE,
         &value_type,
+        crate::structured_offers::BrowserOfferIdentity {
+            capability: "browser-presentation/structured-info@1",
+            profile: BROWSER_PRESENTATION_PROFILE,
+            implementation: "browser/kernel-presentation/structured-info@1",
+            artifact: BROWSER_PRESENTATION_ARTIFACT,
+        },
     );
-    for offer in [&mut literal, &mut presenter] {
-        offer.implementation.execution_profile_id = BROWSER_PRESENTATION_PROFILE.into();
-        offer.implementation.artifact_id = BROWSER_PRESENTATION_ARTIFACT.into();
-        offer.capability_id = format!("browser-{}@1", offer.kind_id.as_str())
-            .as_str()
-            .into();
-        offer.implementation.implementation_id =
-            format!("browser/kernel-{}@1", offer.kind_id.as_str())
-                .as_str()
-                .into();
-    }
     let advertisement = conduit_core::HostAdvertisement {
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "browser-structured-presentation-host".into(),

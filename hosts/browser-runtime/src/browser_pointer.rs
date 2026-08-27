@@ -336,7 +336,7 @@ fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatal
             startup_parameters: Vec::new(),
         })
         .map_err(|error| error.to_string())?;
-    let presenter = conduit_std_catalog::structured_presentation_std_offer(
+    let presenter = conduit_std_catalog::structured_presentation_contract(
         POINTER_EVENT_TYPE,
         value.value_type(),
     );
@@ -394,13 +394,16 @@ fn advertisement() -> HostAdvertisement {
             max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         },
     };
-    let mut presenter =
-        conduit_std_catalog::structured_presentation_std_offer(POINTER_EVENT_TYPE, &value_type);
-    presenter.capability_id = CapabilityId::from("browser-pointer-presentation@1");
-    presenter.implementation.execution_profile_id = ExecutionProfileId::from(PROFILE);
-    presenter.implementation.implementation_id =
-        ImplementationId::from("browser/pointer-presentation@1");
-    presenter.implementation.artifact_id = ArtifactId::from(ARTIFACT);
+    let presenter = crate::structured_offers::structured_presentation_offer(
+        POINTER_EVENT_TYPE,
+        &value_type,
+        crate::structured_offers::BrowserOfferIdentity {
+            capability: "browser-pointer-presentation@1",
+            profile: PROFILE,
+            implementation: "browser/pointer-presentation@1",
+            artifact: ARTIFACT,
+        },
+    );
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser-pointer-host"),

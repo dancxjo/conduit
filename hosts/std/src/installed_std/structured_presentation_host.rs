@@ -40,13 +40,13 @@ impl StructuredPresentationHost {
             .iter()
             .filter(|placement| {
                 placement.implementation_id.as_str()
-                    == conduit_std_catalog::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+                    == conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
             })
             .count();
         let mut slots = Vec::with_capacity(capacity);
         for placement in &fragment.placements {
             if placement.implementation_id.as_str()
-                != conduit_std_catalog::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+                != conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
             {
                 continue;
             }

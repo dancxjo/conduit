@@ -116,10 +116,7 @@ fn five_unrelated_forms_use_exact_structured_values_and_the_same_selector_substr
             conduit_std_catalog::structured_selector_std_offer(selector, PortTemporal::Value);
         selector_kinds.push(selector_offer.kind_id.clone());
         let host = host(vec![
-            conduit_std_catalog::structured_literal_std_offer(
-                specimen.type_name,
-                &specimen.value_type,
-            ),
+            structured_literal_proof_offer(specimen.type_name, &specimen.value_type),
             selector_offer,
         ]);
         let placements = conduit_planner::default_expanded_placements(
@@ -147,6 +144,31 @@ fn five_unrelated_forms_use_exact_structured_values_and_the_same_selector_substr
     selector_kinds.sort();
     selector_kinds.dedup();
     assert_eq!(selector_kinds.len(), 5);
+}
+
+fn structured_literal_proof_offer(
+    type_name: &str,
+    value_type: &StructuredInfoType,
+) -> CapabilityOffer {
+    let contract = conduit_std_catalog::structured_literal_contract(type_name, value_type);
+    CapabilityOffer {
+        startup_parameters: contract.startup_parameters,
+        shorthand: None,
+        capability_id: "proof/structured-literal".into(),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: "proof/structured-literal".into(),
+            implementation_id: "proof/structured-literal".into(),
+            artifact_id: "proof/structured-literal".into(),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: Vec::new(),
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 #[test]
