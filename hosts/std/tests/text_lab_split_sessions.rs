@@ -84,7 +84,11 @@ fn close(source: &mut SessionMachine, sink: &mut SessionMachine, binding: &Sessi
 #[test]
 fn exact_two_line_sessions_carry_both_production_kernel_fragments_to_terminal() {
     let base = "ws://127.0.0.1:1/conduit";
-    let exact = exact_text_lab_split_plan(base).unwrap();
+    let exact = exact_text_lab_split_plan(
+        base,
+        &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+    )
+    .unwrap();
     let forward = binding(
         &exact.plan,
         TEXT_LAB_NATIVE_HOST,

@@ -1,9 +1,9 @@
 //! Exact two-Host realization fixture for the unchanged canonical Text Lab.
 
 use crate::{
-    browser_text_upper_offer, hosted_keyboard_offer, install_input_semantic_catalogs,
-    install_keyboard_catalogs, install_text_pipeline_catalogs, standard_host_advertisement,
-    KEYBOARD_KIND, KEYMAP_KIND, TEXT_PRESENTATION_KIND,
+    hosted_keyboard_offer, install_input_semantic_catalogs, install_keyboard_catalogs,
+    install_text_pipeline_catalogs, standard_host_advertisement, KEYBOARD_KIND, KEYMAP_KIND,
+    TEXT_PRESENTATION_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -68,12 +68,16 @@ pub struct TextLabLineLossOutcome {
     pub refusal: String,
 }
 
-pub fn exact_text_lab_split_plan(base_instance: &str) -> Result<TextLabSplitPlan, String> {
-    exact_text_lab_split_plan_with_loss(base_instance, None)
+pub fn exact_text_lab_split_plan(
+    base_instance: &str,
+    browser_text_upper: &conduit_core::CapabilityOffer,
+) -> Result<TextLabSplitPlan, String> {
+    exact_text_lab_split_plan_with_loss(base_instance, browser_text_upper, None)
 }
 
 pub fn exact_text_lab_line_loss_outcome(
     base_instance: &str,
+    browser_text_upper: &conduit_core::CapabilityOffer,
     unavailable_line: &str,
 ) -> Result<TextLabLineLossOutcome, String> {
     if !matches!(
@@ -82,9 +86,13 @@ pub fn exact_text_lab_line_loss_outcome(
     ) {
         return Err("unknown Text Lab Line loss target".into());
     }
-    let accepted = exact_text_lab_split_plan_with_loss(base_instance, None)?;
+    let accepted = exact_text_lab_split_plan_with_loss(base_instance, browser_text_upper, None)?;
     let immutable_plan_id = accepted.plan.plan_id.clone();
-    let refusal = match exact_text_lab_split_plan_with_loss(base_instance, Some(unavailable_line)) {
+    let refusal = match exact_text_lab_split_plan_with_loss(
+        base_instance,
+        browser_text_upper,
+        Some(unavailable_line),
+    ) {
         Ok(_) => return Err("lost selected Text Lab Line still produced a Plan".into()),
         Err(refusal) => refusal,
     };
@@ -102,6 +110,7 @@ pub fn exact_text_lab_line_loss_outcome(
 
 fn exact_text_lab_split_plan_with_loss(
     base_instance: &str,
+    browser_text_upper: &conduit_core::CapabilityOffer,
     unavailable_line: Option<&str>,
 ) -> Result<TextLabSplitPlan, String> {
     let mut startup = conduit_form::StartupCatalog::new();
@@ -144,7 +153,7 @@ fn exact_text_lab_split_plan_with_loss(
         profile: conduit_core::HostProfileId::from("browser/text-lab@1"),
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
-        capabilities: vec![browser_text_upper_offer()],
+        capabilities: vec![browser_text_upper.clone()],
     };
     let limits = LinkLimits {
         maximum_in_flight_items: 1,
@@ -269,6 +278,18 @@ fn exact_text_lab_split_plan_with_loss(
 mod tests {
     use super::*;
 
+    fn browser_text_upper_fixture() -> conduit_core::CapabilityOffer {
+        let mut offer = crate::text_upper_offer();
+        offer.capability_id = conduit_core::CapabilityId::from("test-browser-text-upper-v1");
+        offer.implementation.execution_profile_id =
+            conduit_core::ExecutionProfileId::from("test/browser-text-upper@1");
+        offer.implementation.implementation_id =
+            conduit_core::ImplementationId::from("test/browser-text-upper@1");
+        offer.implementation.artifact_id =
+            conduit_core::ArtifactId::from("test/browser-text-upper@1");
+        offer
+    }
+
     #[test]
     fn split_profile_keeps_source_clean_and_seals_two_directional_lines() {
         for forbidden in ["browser", "websocket", "host", "line", "address"] {
@@ -276,7 +297,9 @@ mod tests {
                 .to_ascii_lowercase()
                 .contains(forbidden));
         }
-        let exact = exact_text_lab_split_plan("ws://127.0.0.1:1/conduit").unwrap();
+        let exact =
+            exact_text_lab_split_plan("ws://127.0.0.1:1/conduit", &browser_text_upper_fixture())
+                .unwrap();
         assert!(conduit_core::verify_plan(&exact.plan));
         assert_eq!(exact.plan.fragments.len(), 2);
         assert_ne!(exact.forward_line.line_id, exact.return_line.line_id);
@@ -293,9 +316,10 @@ mod tests {
     #[test]
     fn either_selected_line_loss_preserves_the_old_plan_and_refuses_fresh_planning() {
         let base = "ws://127.0.0.1:1/conduit";
-        let accepted = exact_text_lab_split_plan(base).unwrap();
+        let browser_upper = browser_text_upper_fixture();
+        let accepted = exact_text_lab_split_plan(base, &browser_upper).unwrap();
         for line in [TEXT_LAB_FORWARD_LINE, TEXT_LAB_RETURN_LINE] {
-            let loss = exact_text_lab_line_loss_outcome(base, line).unwrap();
+            let loss = exact_text_lab_line_loss_outcome(base, &browser_upper, line).unwrap();
             assert_eq!(loss.source_document_id, accepted.plan.source_document_id);
             assert_eq!(loss.checked_form_id, accepted.plan.checked_form_id);
             assert_eq!(loss.immutable_plan_id, accepted.plan.plan_id);

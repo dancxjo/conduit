@@ -95,7 +95,7 @@ pub(super) fn text_advertisement() -> HostAdvertisement {
         )],
         planner_capabilities: Vec::new(),
         capabilities: vec![
-            conduit_std_catalog::browser_text_upper_offer(),
+            super::browser_text_upper_offer(),
             text_presentation,
             text_source_offer(),
         ],

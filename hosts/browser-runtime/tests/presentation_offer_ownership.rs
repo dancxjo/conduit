@@ -16,6 +16,9 @@ fn browser_presentation_offer_construction_stays_with_the_browser_host() {
             "browser_human_io_advertisement_offers",
             "BROWSER_PRESENTATION_PROFILE",
             "BROWSER_PRESENTATION_ARTIFACT",
+            "BROWSER_TEXT_UPPER_PROFILE",
+            "BROWSER_TEXT_UPPER_ARTIFACT",
+            "browser_text_upper_offer",
         ] {
             assert!(
                 !source.contains(forbidden),

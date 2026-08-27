@@ -20,7 +20,13 @@ mod abi;
 pub use abi::*;
 mod offer_composition;
 mod offers;
+mod text_offer;
+
 pub use offers::{human_io_advertisement_offers, human_io_offers, offers};
+pub use text_offer::{
+    browser_text_upper_offer, BROWSER_TEXT_UPPER_ARTIFACT, BROWSER_TEXT_UPPER_CAPABILITY,
+    BROWSER_TEXT_UPPER_IMPLEMENTATION, BROWSER_TEXT_UPPER_PROFILE,
+};
 mod operation;
 use operation::NucleusOperation;
 mod structured_execution;
@@ -395,7 +401,7 @@ mod tests {
                 BROWSER_PRESENTATION_ARTIFACT
             );
         }
-        let browser_upper = conduit_std_catalog::browser_text_upper_offer();
+        let browser_upper = browser_text_upper_offer();
         let canonical_upper = conduit_std_catalog::text_upper_offer();
         assert_eq!(
             browser_upper.kind_contract_revision,
@@ -410,11 +416,11 @@ mod tests {
         assert_eq!(browser_upper.limits, canonical_upper.limits);
         assert_eq!(
             browser_upper.implementation.execution_profile_id.as_str(),
-            conduit_std_catalog::BROWSER_TEXT_UPPER_PROFILE
+            BROWSER_TEXT_UPPER_PROFILE
         );
         assert_eq!(
             browser_upper.implementation.artifact_id.as_str(),
-            conduit_std_catalog::BROWSER_TEXT_UPPER_ARTIFACT
+            BROWSER_TEXT_UPPER_ARTIFACT
         );
     }
 

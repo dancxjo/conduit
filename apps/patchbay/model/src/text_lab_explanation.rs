@@ -54,7 +54,10 @@ fn text_lab_explanation(
     base: &str,
     loss: Option<&TextLabLineLossReceipt>,
 ) -> Result<TextLabSplitExplanation, String> {
-    let exact = exact_text_lab_split_plan(base)?;
+    let exact = exact_text_lab_split_plan(
+        base,
+        &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+    )?;
     if let Some(receipt) = loss {
         validate_loss(base, &exact.plan, receipt)?;
     }

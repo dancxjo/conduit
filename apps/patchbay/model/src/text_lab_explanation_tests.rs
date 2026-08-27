@@ -9,8 +9,10 @@ use conduit_std_catalog::{
 };
 
 fn loss_receipt(base: &str) -> TextLabLineLossReceipt {
-    let exact = exact_text_lab_split_plan(base).unwrap();
-    let outcome = exact_text_lab_line_loss_outcome(base, TEXT_LAB_RETURN_LINE).unwrap();
+    let browser_upper = conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer();
+    let exact = exact_text_lab_split_plan(base, &browser_upper).unwrap();
+    let outcome =
+        exact_text_lab_line_loss_outcome(base, &browser_upper, TEXT_LAB_RETURN_LINE).unwrap();
     let active = conduit_core::bind_active_play(
         &exact.plan.plan_id,
         &exact.native.host_id,
@@ -76,10 +78,13 @@ fn unchanged_text_lab_explains_split_program_and_body_without_mixing_domains() {
     assert_eq!(
         explanation.presentation.basis.source_document_id,
         Some(
-            conduit_std_catalog::exact_text_lab_split_plan("ws://127.0.0.1:1/conduit")
-                .unwrap()
-                .plan
-                .source_document_id
+            conduit_std_catalog::exact_text_lab_split_plan(
+                "ws://127.0.0.1:1/conduit",
+                &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+            )
+            .unwrap()
+            .plan
+            .source_document_id
         )
     );
     let program = explanation

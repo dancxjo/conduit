@@ -24,7 +24,9 @@ fn return_line_loss(
     sequence: u64,
     transport_failure: &str,
 ) -> String {
-    let outcome = match exact_text_lab_line_loss_outcome(base, TEXT_LAB_RETURN_LINE) {
+    let browser_upper = conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer();
+    let outcome = match exact_text_lab_line_loss_outcome(base, &browser_upper, TEXT_LAB_RETURN_LINE)
+    {
         Ok(outcome) => outcome,
         Err(error) => return format!("CND-TEXT-LIVE-302 loss reconciliation failed: {error}"),
     };
@@ -190,7 +192,10 @@ impl TextLabLiveServer {
     }
 
     pub fn run<W: Write>(self, report: &mut W) -> Result<(), String> {
-        let exact = exact_text_lab_split_plan(&self.url)?;
+        let exact = exact_text_lab_split_plan(
+            &self.url,
+            &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+        )?;
         let forward_binding = binding(
             &exact.plan,
             TEXT_LAB_NATIVE_HOST,
