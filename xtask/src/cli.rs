@@ -3,6 +3,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use crate::commands::body::BodyArgs;
 use crate::commands::body_coordination::BodyCoordinationArgs;
 use crate::commands::catalog::CatalogArgs;
+use crate::commands::ci::CiArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::esp32_firmware::Esp32FirmwareArgs;
 use crate::commands::evidence::EvidenceArgs;
@@ -52,6 +53,8 @@ pub enum Command {
     Catalog(CatalogArgs),
     /// Execute repository validation check suites.
     Check(CheckArgs),
+    /// Plan repository CI obligations from an exact change.
+    Ci(CiArgs),
     /// Execute platform and protocol proof suites.
     Prove(Box<ProveArgs>),
     /// Print the versioned machine-readable proof command contract.
@@ -595,6 +598,16 @@ mod tests {
         let check =
             Cli::try_parse_from(["xtask", "check", "workspace"]).expect("check command parses");
         assert!(matches!(check.command, Command::Check(_)));
+
+        let ci = Cli::try_parse_from([
+            "xtask",
+            "ci",
+            "plan",
+            "0123456789012345678901234567890123456789",
+            "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+        ])
+        .expect("CI impact plan command parses");
+        assert!(matches!(ci.command, Command::Ci(_)));
 
         let prove = Cli::try_parse_from(["xtask", "prove", "std-browser-s4"])
             .expect("prove command parses");
