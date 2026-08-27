@@ -38,7 +38,7 @@ fn canonical_form_tokenizes_and_projects_annotations_without_json() {
                     PortTemporal::Value,
                 ))
                 .unwrap();
-            selector_offers.push(conduit_std_catalog::structured_selector_std_offer(
+            selector_offers.push(conduit_std_offers::structured_selector_std_offer(
                 selector,
                 PortTemporal::Value,
             ));

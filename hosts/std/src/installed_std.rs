@@ -692,7 +692,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete bounded JSON operation: {error:?}"))?;
                 continue;
             }
-            if contract.as_str() == conduit_std_catalog::STRUCTURED_SELECTOR_HOST_OPERATION {
+            if contract.as_str() == conduit_std_offers::STRUCTURED_SELECTOR_HOST_OPERATION {
                 let completion = structured_selector_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)

@@ -39,7 +39,7 @@ fn canonical_form_flows_money_quotes_events_and_exact_comparison() {
                     PortTemporal::Value,
                 ))
                 .unwrap();
-            selector_offers.push(conduit_std_catalog::structured_selector_std_offer(
+            selector_offers.push(conduit_std_offers::structured_selector_std_offer(
                 selector,
                 PortTemporal::Value,
             ));
