@@ -39,7 +39,7 @@ fn hosts() -> Vec<conduit_core::HostAdvertisement> {
         common::standard_planning_fixture(HostId::from(LOCAL), BootId::from("boot/constrained-1"));
     local
         .capabilities
-        .push(conduit_std_catalog::hosted_keyboard_offer(
+        .push(conduit_std_offers::hosted_keyboard_offer(
             "window-keyboard-v1",
             "native-window-keyboard@1",
         ));

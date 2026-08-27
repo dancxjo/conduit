@@ -387,7 +387,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         conduit_std_catalog::MUSIC_INPUT_MIDI_OPERATION,
     );
     let keyboard_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_catalog::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT,
+        conduit_std_offers::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT,
     );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
     let text_target_kind = kind_id("presentation/stdout-text");

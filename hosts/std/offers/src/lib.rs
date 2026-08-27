@@ -22,6 +22,8 @@ mod structured_values;
 pub use structured_values::*;
 mod structured_selector;
 pub use structured_selector::*;
+mod keyboard;
+pub use keyboard::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -292,6 +294,7 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/copy_file.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/structured_values.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/structured_selector.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/keyboard.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -313,6 +316,7 @@ mod tests {
                 "pub fn structured_literal_std_offer",
                 "pub fn structured_presentation_std_offer",
                 "pub fn structured_selector_std_offer",
+                "pub fn hosted_keyboard_offer",
                 "pub fn tick_capability_offer",
                 "pub fn time_every_offer",
                 "pub fn time_debounce_offer",
