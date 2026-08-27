@@ -1,7 +1,5 @@
-use conduit_core::{
-    ConnectionBase, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment,
-    LENIA_MAXIMUM_FIELD_BYTES, SCALAR_FIELD2_INFO_ID,
-};
+use conduit_alife::{LENIA_MAXIMUM_FIELD_BYTES, SCALAR_FIELD2_INFO_ID};
+use conduit_core::{ConnectionBase, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment};
 use conduit_form::ExpandedCanonicalForm;
 use conduit_planner::{ConnectionQueueLimits, PlacementChoices, PlanningOptions};
 use conduit_std_host::{load_placements, StdHost, ThreadTimer};

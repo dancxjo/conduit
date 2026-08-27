@@ -100,6 +100,6 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_std_catalog::install_education_catalogs(&mut startup, &mut profiles)?;
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_generalized_input_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_alife_catalogs(&mut startup, &mut profiles)?;
+    conduit_alife::install_lenia_catalogs(&mut startup, &mut profiles)?;
     Ok((startup, profiles))
 }

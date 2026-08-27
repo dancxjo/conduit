@@ -97,7 +97,7 @@ impl<'worker> ConduitLeniaSession<'worker> {
         let session_id = self.session_id.ok_or("missing-session")?;
         let mut replies = ReplyPackets::new();
         let mut offset = 0;
-        let mut chunk = [0; conduit_core::LENIA_REGION_CHUNK_MAX_BYTES];
+        let mut chunk = [0; conduit_alife::LENIA_REGION_CHUNK_MAX_BYTES];
         let mut frame = [0; LENIA_LINE_FRAME_MAX_BYTES];
         while offset < identity.total_cells {
             let chunk_len = self
@@ -117,7 +117,7 @@ impl<'worker> ConduitLeniaSession<'worker> {
             .encode(&chunk[..chunk_len], &mut frame)
             .map_err(|_| "line-encode")?;
             self.push_frame(&frame[..frame_len], &mut replies)?;
-            let view = conduit_core::LeniaRegionChunkView::decode(&chunk[..chunk_len])
+            let view = conduit_alife::LeniaRegionChunkView::decode(&chunk[..chunk_len])
                 .map_err(|_| "result-decode")?;
             offset += u32::from(view.header.cell_count);
         }

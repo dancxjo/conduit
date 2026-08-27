@@ -137,7 +137,7 @@ async fn participant(
     mut line: BluezBleGattLine,
     host: &str,
     boot: &str,
-    work: conduit_core::LeniaRegionWork,
+    work: conduit_alife::LeniaRegionWork,
     region: u8,
 ) -> Result<LeniaRegionResult, Box<dyn std::error::Error>> {
     let exact = conduit_alife::exact_distributed_lenia_plan()?;
