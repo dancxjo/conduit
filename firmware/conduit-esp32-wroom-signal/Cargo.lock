@@ -168,6 +168,7 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-std-catalog",
+ "sha2",
 ]
 
 [[package]]
