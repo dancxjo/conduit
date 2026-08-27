@@ -7,6 +7,7 @@ pub mod browser;
 pub mod calendar_google;
 pub mod catalog;
 pub mod check;
+pub mod ci;
 #[path = "../../../hosts/conduitos/fabrication/xtask/mod.rs"]
 pub mod conduitos;
 pub mod demo;
