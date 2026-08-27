@@ -25,12 +25,8 @@ for path in "${paths[@]}"; do
   [[ "$path" == *.md ]] || full "non-markdown-change"
 done
 
-if git cat-file -e "$head_sha:README.md" 2>/dev/null \
-  && git cat-file -e "$head_sha:docs/visual-evidence.md" 2>/dev/null; then
-  readme="$(git show "$head_sha:README.md")"
+if git cat-file -e "$head_sha:docs/visual-evidence.md" 2>/dev/null; then
   visual_docs="$(git show "$head_sha:docs/visual-evidence.md")"
-  grep -Fq 'current/patchbay/overview.png)](https://dancxjo.github.io/conduit/current/patchbay/overview/)' <<<"$readme" \
-    || full "canonical-visual-reference-drift"
   for scenario in selected-gear interaction disconnected; do
     grep -Fq "current/patchbay/$scenario.png)](https://dancxjo.github.io/conduit/current/patchbay/$scenario/)" <<<"$visual_docs" \
       || full "canonical-visual-reference-drift"

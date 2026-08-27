@@ -29,8 +29,23 @@ base="$(commit_file README.md base)"
 docs="$(commit_file docs/guide.md docs)"
 assert_classification true "$base" "$docs"
 
+canonical_visual='current/patchbay/selected-gear.png)](https://dancxjo.github.io/conduit/current/patchbay/selected-gear/)
+current/patchbay/interaction.png)](https://dancxjo.github.io/conduit/current/patchbay/interaction/)
+current/patchbay/disconnected.png)](https://dancxjo.github.io/conduit/current/patchbay/disconnected/)'
+visual_docs="$(commit_file docs/visual-evidence.md "$canonical_visual")"
+assert_classification true "$docs" "$visual_docs"
+
+readme_rewrite="$(commit_file README.md 'body-building README without a Patchbay image')"
+assert_classification true "$visual_docs" "$readme_rewrite"
+
+broken_visual="$(commit_file docs/visual-evidence.md 'missing canonical visual links')"
+assert_classification false "$readme_rewrite" "$broken_visual"
+
+restored_visual="$(commit_file docs/visual-evidence.md "$canonical_visual")"
+assert_classification true "$broken_visual" "$restored_visual"
+
 source_change="$(commit_file crates/example/src/lib.rs code)"
-assert_classification false "$docs" "$source_change"
+assert_classification false "$restored_visual" "$source_change"
 
 manifest_change="$(commit_file crates/example/Cargo.toml manifest)"
 assert_classification false "$source_change" "$manifest_change"
