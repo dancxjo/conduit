@@ -66,6 +66,56 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
 }
 
 #[test]
+fn conduitos_paths_select_exact_proof_obligations() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    let xhci = plan_for_paths(
+        &root,
+        vec!["hosts/conduitos/src/arch/x86_64/xhci.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(xhci.conduitos_x86_proofs.len(), 8);
+    assert!(xhci.conduitos_x86_proofs.contains(&"xhci".to_owned()));
+    assert!(xhci
+        .conduitos_x86_proofs
+        .contains(&"product-journey".to_owned()));
+    assert!(xhci.conduitos_architectures.is_empty());
+    assert!(!xhci.conduitos_aarch64_product_required);
+
+    let riscv = plan_for_paths(
+        &root,
+        vec!["hosts/conduitos/proof-appliances/riscv64/a3.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(riscv.conduitos_x86_proofs.is_empty());
+    assert_eq!(riscv.conduitos_architectures, ["riscv64"]);
+    assert!(!riscv.conduitos_aarch64_product_required);
+
+    let product = plan_for_paths(
+        &root,
+        vec!["hosts/conduitos/src/bin/aarch64_product.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(product.conduitos_x86_proofs.is_empty());
+    assert!(product.conduitos_architectures.is_empty());
+    assert!(product.conduitos_aarch64_product_required);
+
+    let common = plan_for_paths(
+        &root,
+        vec!["hosts/conduitos/src/composition.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(common.conduitos_x86_proofs.len(), 8);
+    assert_eq!(common.conduitos_architectures.len(), 4);
+    assert!(common.conduitos_aarch64_product_required);
+}
+
+#[test]
 fn workflow_uses_the_plan_selectively_only_for_pull_requests() {
     let root = crate::workspace::workspace_root().unwrap();
     let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
@@ -80,6 +130,12 @@ fn workflow_uses_the_plan_selectively_only_for_pull_requests() {
     }
     assert!(workflow.contains(
         "workspace_matrix: ${{ steps.impact.outputs.workspace_matrix || '[\"lint\",\"test-foundation\",\"test-hosts\",\"test-products\",\"portable\",\"pico\"]' }}"
+    ));
+    assert!(workflow.contains(
+        "conduitos_x86_matrix: ${{ steps.impact.outputs.conduitos_x86_matrix || '[\"kernel\",\"xhci\",\"usb\",\"hid\",\"keyboard\",\"front-door\",\"product-journey\",\"rescue\"]' }}"
+    ));
+    assert!(workflow.contains(
+        "conduitos_architecture_matrix: ${{ steps.impact.outputs.conduitos_architecture_matrix || '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]' }}"
     ));
     assert!(workflow.contains(
         "shard: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.workspace_matrix"
