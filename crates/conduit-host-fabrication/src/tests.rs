@@ -397,7 +397,7 @@ fn bind_tick_runtime(
                     16,
                 ),
             ],
-            candidate_capabilities: vec![conduit_std_catalog::tick_capability_offer()],
+            candidate_capabilities: vec![conduit_std_offers::tick_capability_offer()],
             planner_capabilities: Vec::new(),
             facts: tick_runtime_facts(timer_ready),
         },
@@ -441,7 +441,7 @@ fn runtime_cannot_advertise_unbuilt_implementation_or_stale_boot() {
         Err(RuntimeBindingDiagnostic::UnexpectedImplementation { .. })
     ));
 
-    advertisement.capabilities[0] = conduit_std_catalog::tick_capability_offer();
+    advertisement.capabilities[0] = conduit_std_offers::tick_capability_offer();
     advertisement.boot_id = conduit_core::BootId::from("boot/stale");
     assert_eq!(
         verify_runtime_advertisement(&identity, &advertisement, &image.manifest, &image, &bytes),

@@ -5,7 +5,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, kind_id,
+    HostOperationRequirement, ImplementationId, TIMER_RESOURCE_CLASS, kind_id,
+    monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
+    resource_requirement, wait_host_operation_requirement,
 };
 
 pub const FUNCTIONAL_KERNEL_PROFILE: &str = "conduitos/functional-kernel@1";
@@ -208,49 +210,75 @@ pub fn chords_offer() -> CapabilityOffer {
 }
 
 pub fn time_every_offer() -> CapabilityOffer {
-    realize_with(
-        conduit_std_catalog::time_every_offer(),
+    let mut offer = timing_contract(
+        conduit_std_catalog::time_every_contract(),
+        conduit_time::TIME_EVERY_CONTRACT_REVISION,
         "conduitos-time-every-v1",
         "conduitos/monotonic-timer-fixed@1",
         "conduitos/kernel-time-every@1",
         "conduitos/time-every@1",
+        vec![wait_host_operation_requirement()],
+        vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
+    );
+    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].has_default = false;
+    offer
+}
+
+pub fn tick_offer() -> CapabilityOffer {
+    timing_contract(
+        conduit_std_catalog::tick_contract(),
+        conduit_time::TICK_CONTRACT_REVISION,
+        "conduitos-time-tick-v1",
+        "conduitos/monotonic-timer-fixed@1",
+        "conduitos/kernel-time-tick@1",
+        "conduitos/time-tick@1",
+        vec![wait_host_operation_requirement()],
+        vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
     )
 }
 
 pub fn audio_render_demand_offer() -> CapabilityOffer {
-    realize_with(
-        conduit_std_catalog::audio_render_demand_offer(),
+    timing_contract(
+        conduit_std_catalog::audio_render_demand_contract(),
+        conduit_std_catalog::AUDIO_RENDER_DEMAND_REVISION,
         "conduitos-audio-render-demand-v1",
         "conduitos/monotonic-audio-render-fixed@1",
         "conduitos/kernel-audio-render-demand@1",
         "conduitos/audio-render-demand@1",
+        vec![monotonic_timer_host_operation_requirement()],
+        vec![monotonic_timer_resource_requirement()],
     )
 }
 
 pub fn time_debounce_offer() -> CapabilityOffer {
-    timing(
-        conduit_std_catalog::time_debounce_offer(),
+    timing_offer(
+        conduit_std_catalog::time_debounce_contract(),
+        conduit_std_catalog::TIME_DEBOUNCE_CONTRACT_REVISION,
         "conduitos/kernel-time-debounce-bool@1",
     )
 }
 
 pub fn time_timeout_offer() -> CapabilityOffer {
-    timing(
-        conduit_std_catalog::time_timeout_offer(),
+    timing_offer(
+        conduit_std_catalog::time_timeout_contract(),
+        conduit_std_catalog::TIME_TIMEOUT_CONTRACT_REVISION,
         "conduitos/kernel-time-timeout-tick-bool@1",
     )
 }
 
 pub fn time_delay_offer() -> CapabilityOffer {
-    timing(
-        conduit_std_catalog::time_delay_offer(),
+    timing_offer(
+        conduit_std_catalog::time_delay_contract(),
+        conduit_std_catalog::TIME_DELAY_CONTRACT_REVISION,
         "conduitos/kernel-time-delay-bool@1",
     )
 }
 
 pub fn time_throttle_offer() -> CapabilityOffer {
-    timing(
-        conduit_std_catalog::time_throttle_offer(),
+    timing_offer(
+        conduit_std_catalog::time_throttle_contract(),
+        conduit_std_catalog::TIME_THROTTLE_CONTRACT_REVISION,
         "conduitos/kernel-time-throttle-bool-leading@1",
     )
 }
@@ -348,13 +376,48 @@ fn bounded_host_operation(
     )
 }
 
-fn timing(offer: CapabilityOffer, implementation: &str) -> CapabilityOffer {
-    realize_with(
-        offer,
+fn timing_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+    implementation: &str,
+) -> CapabilityOffer {
+    let mut offer = timing_contract(
+        contract,
+        revision,
         implementation,
         "conduitos/monotonic-timing-fixed@1",
         implementation,
         "conduitos/timing-nucleus@1",
+        vec![monotonic_timer_host_operation_requirement()],
+        vec![monotonic_timer_resource_requirement()],
+    );
+    offer.startup_parameters[0].value_type = "Duration".into();
+    offer
+}
+
+#[allow(clippy::too_many_arguments)]
+fn timing_contract(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+    capability: &str,
+    profile: &str,
+    implementation: &str,
+    artifact: &str,
+    host_operations: Vec<HostOperationRequirement>,
+    resources: Vec<conduit_core::ResourceRequirement>,
+) -> CapabilityOffer {
+    conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability,
+            execution_profile: profile,
+            implementation,
+            artifact,
+        },
+        host_operations,
+        resources,
+        Vec::new(),
     )
 }
 

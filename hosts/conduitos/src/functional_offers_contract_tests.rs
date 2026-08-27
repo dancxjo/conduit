@@ -88,23 +88,52 @@ fn realization_preserves_portable_contract_and_bounds() {
         (text_join_offer(), conduit_std_catalog::text_join_offer()),
         (keymap_offer(), conduit_std_catalog::keymap_offer()),
         (chords_offer(), conduit_std_catalog::chords_offer()),
-        (time_every_offer(), conduit_std_catalog::time_every_offer()),
+        (
+            time_every_offer(),
+            portable_every_offer(
+                conduit_std_catalog::time_every_contract(),
+                conduit_time::TIME_EVERY_CONTRACT_REVISION,
+            ),
+        ),
         (
             audio_render_demand_offer(),
-            conduit_std_catalog::audio_render_demand_offer(),
+            portable_monotonic_offer(
+                conduit_std_catalog::audio_render_demand_contract(),
+                conduit_std_catalog::AUDIO_RENDER_DEMAND_REVISION,
+                false,
+            ),
         ),
         (
             time_debounce_offer(),
-            conduit_std_catalog::time_debounce_offer(),
+            portable_monotonic_offer(
+                conduit_std_catalog::time_debounce_contract(),
+                conduit_std_catalog::TIME_DEBOUNCE_CONTRACT_REVISION,
+                true,
+            ),
         ),
         (
             time_timeout_offer(),
-            conduit_std_catalog::time_timeout_offer(),
+            portable_monotonic_offer(
+                conduit_std_catalog::time_timeout_contract(),
+                conduit_std_catalog::TIME_TIMEOUT_CONTRACT_REVISION,
+                true,
+            ),
         ),
-        (time_delay_offer(), conduit_std_catalog::time_delay_offer()),
+        (
+            time_delay_offer(),
+            portable_monotonic_offer(
+                conduit_std_catalog::time_delay_contract(),
+                conduit_std_catalog::TIME_DELAY_CONTRACT_REVISION,
+                true,
+            ),
+        ),
         (
             time_throttle_offer(),
-            conduit_std_catalog::time_throttle_offer(),
+            portable_monotonic_offer(
+                conduit_std_catalog::time_throttle_contract(),
+                conduit_std_catalog::TIME_THROTTLE_CONTRACT_REVISION,
+                true,
+            ),
         ),
         (
             music_synth_offer(),
@@ -173,6 +202,33 @@ fn portable_offer(
         Vec::new(),
         Vec::new(),
     )
+}
+
+fn portable_every_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+) -> conduit_core::CapabilityOffer {
+    let mut offer = portable_offer(contract, revision);
+    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].has_default = false;
+    offer.resource_requirements = vec![conduit_core::resource_requirement(
+        conduit_core::TIMER_RESOURCE_CLASS,
+        1,
+    )];
+    offer
+}
+
+fn portable_monotonic_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+    duration_startup: bool,
+) -> conduit_core::CapabilityOffer {
+    let mut offer = portable_offer(contract, revision);
+    if duration_startup {
+        offer.startup_parameters[0].value_type = "Duration".into();
+    }
+    offer.resource_requirements = vec![conduit_core::monotonic_timer_resource_requirement()];
+    offer
 }
 
 #[test]

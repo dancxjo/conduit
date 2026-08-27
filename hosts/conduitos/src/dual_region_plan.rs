@@ -171,7 +171,7 @@ fn advertisement(
         return Err(PreparationError::OfferMismatch);
     }
     let mut capabilities = vec![
-        conduit_std_catalog::tick_capability_offer(),
+        crate::functional_offers::tick_offer(),
         conduit_std_catalog::tick_presentation_offer(),
         conduit_std_catalog::text_literal_offer(),
         conduit_std_catalog::text_upper_offer(),

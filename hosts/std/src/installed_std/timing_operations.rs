@@ -7,13 +7,13 @@ use conduit_kernel::{
 };
 
 pub(super) static TIME_DEBOUNCE_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::TIME_DEBOUNCE_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::TIME_DEBOUNCE_IMPLEMENTATION,
     budget: debounce_budget,
     prepare: prepare_debounce,
 };
 
 pub(super) static TIME_TIMEOUT_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::TIME_TIMEOUT_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::TIME_TIMEOUT_IMPLEMENTATION,
     budget: timeout_budget,
     prepare: prepare_timeout,
 };
@@ -431,7 +431,7 @@ fn store_bool_values(
 fn validate_debounce(placement: &PlannedGear) -> Result<(), String> {
     validate(
         placement,
-        &conduit_std_catalog::time_debounce_offer(),
+        &conduit_std_offers::time_debounce_offer(),
         conduit_std_catalog::TIME_DEBOUNCE_KIND,
     )
 }
@@ -439,7 +439,7 @@ fn validate_debounce(placement: &PlannedGear) -> Result<(), String> {
 fn validate_timeout(placement: &PlannedGear) -> Result<(), String> {
     validate(
         placement,
-        &conduit_std_catalog::time_timeout_offer(),
+        &conduit_std_offers::time_timeout_offer(),
         conduit_std_catalog::TIME_TIMEOUT_KIND,
     )
 }
