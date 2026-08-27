@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     verify_plan, BaseImplementationId, BootId, GearId, HostId, LineId, LinkBindingId,
-    LinkEndpointId, OfferGeneration, ResourceClassId, ResourceHealth, ResourceObservation, SignId,
+    LinkEndpointId, ResourceClassId, ResourceHealth, ResourceObservation, SignId,
 };
 use conduit_planner::{
     plan_selected_realizations_with_characteristics_and_options,
@@ -11,6 +11,8 @@ use conduit_planner::{
     PlannerPreference, PlanningOptions, PolicyLayer, PolicyScope, RealizationDecisionDisposition,
     RealizationPolicy, RealizationPreference,
 };
+
+mod common;
 
 #[path = "human_locality/lifecycle.rs"]
 mod lifecycle;
@@ -33,11 +35,8 @@ fn form() -> conduit_form::CheckedForm {
 }
 
 fn hosts() -> Vec<conduit_core::HostAdvertisement> {
-    let mut local = conduit_std_catalog::standard_host_advertisement(
-        HostId::from(LOCAL),
-        BootId::from("boot/constrained-1"),
-        OfferGeneration(1),
-    );
+    let mut local =
+        common::standard_planning_fixture(HostId::from(LOCAL), BootId::from("boot/constrained-1"));
     local
         .capabilities
         .push(conduit_std_catalog::hosted_keyboard_offer(
@@ -67,11 +66,8 @@ fn hosts() -> Vec<conduit_core::HostAdvertisement> {
     local
         .capabilities
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-    let mut remote = conduit_std_catalog::standard_host_advertisement(
-        HostId::from(REMOTE),
-        BootId::from("boot/workstation-1"),
-        OfferGeneration(1),
-    );
+    let mut remote =
+        common::standard_planning_fixture(HostId::from(REMOTE), BootId::from("boot/workstation-1"));
     remote.resources.push(conduit_core::resource_offer(
         "workstation/heavy-work",
         CPU,

@@ -26,22 +26,35 @@ fn hosts() -> (
     conduit_core::HostAdvertisement,
     conduit_core::HostAdvertisement,
 ) {
-    let mut local = conduit_std_catalog::standard_host_advertisement(
-        HostId::from(LOCAL_HOST),
-        BootId::from("text-lab/native/boot-1"),
-        OfferGeneration(1),
-    );
-    local
-        .capabilities
-        .push(conduit_std_catalog::hosted_keyboard_offer(
-            "text-lab-native-keyboard",
-            "text-lab/native-keyboard@1",
-        ));
-    local.resources.push(conduit_core::resource_offer(
-        "text-lab/native-input",
-        conduit_core::INPUT_RESOURCE_CLASS,
-        1,
-    ));
+    let mut local = conduit_core::HostAdvertisement {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: HostId::from(LOCAL_HOST),
+        boot_id: BootId::from("text-lab/native/boot-1"),
+        offer_generation: OfferGeneration(1),
+        profile: conduit_core::HostProfileId::from("browser-test/native-text-lab@1"),
+        resources: vec![
+            conduit_core::resource_offer(
+                "text-lab/native-input",
+                conduit_core::INPUT_RESOURCE_CLASS,
+                1,
+            ),
+            conduit_core::resource_offer(
+                "text-lab/native-presentation",
+                conduit_core::PRESENTATION_RESOURCE_CLASS,
+                1,
+            ),
+        ],
+        planner_capabilities: Vec::new(),
+        capabilities: vec![
+            conduit_std_catalog::hosted_keyboard_offer(
+                "text-lab-native-keyboard",
+                "text-lab/native-keyboard@1",
+            ),
+            conduit_std_catalog::keymap_offer(),
+            conduit_std_catalog::text_upper_offer(),
+            conduit_std_catalog::text_presentation_offer(),
+        ],
+    };
     local
         .capabilities
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));

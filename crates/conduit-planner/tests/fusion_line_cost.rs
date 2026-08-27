@@ -12,6 +12,8 @@ use conduit_planner::{
     PlanningOptions, RealizationWorkObservation, TransportObservation,
 };
 
+mod common;
+
 struct Fixture {
     form: conduit_form::CheckedForm,
     hosts: Vec<conduit_core::HostAdvertisement>,
@@ -24,15 +26,11 @@ fn fixture() -> Fixture {
         &conduit_std_catalog::standard_profile_catalog(),
     )
     .expect("three-Gear fusion Form checks");
-    let local = conduit_std_catalog::standard_host_advertisement(
-        HostId::from("host/local"),
-        BootId::from("boot/local-1"),
-        OfferGeneration(1),
-    );
-    let remote = conduit_std_catalog::standard_host_advertisement(
+    let local =
+        common::standard_planning_fixture(HostId::from("host/local"), BootId::from("boot/local-1"));
+    let remote = common::standard_planning_fixture(
         HostId::from("host/remote"),
         BootId::from("boot/remote-1"),
-        OfferGeneration(1),
     );
     let mut line = conduit_signal_conformance::triple::exact_plan()
         .expect("exact Line fixture")

@@ -385,7 +385,18 @@ fn bind_tick_runtime(
             offer_generation: conduit_core::OfferGeneration(generation),
             offer_sign_id: conduit_core::SignId::from(format!("{boot}/offer/{generation}")),
             host_profile: conduit_core::HostProfileId::from("std/runtime-bound@1"),
-            candidate_resources: conduit_std_catalog::standard_resource_offers(16),
+            candidate_resources: vec![
+                conduit_core::resource_offer(
+                    "fabrication-test/presentation",
+                    conduit_core::PRESENTATION_RESOURCE_CLASS,
+                    16,
+                ),
+                conduit_core::resource_offer(
+                    "fabrication-test/timer",
+                    conduit_core::TIMER_RESOURCE_CLASS,
+                    16,
+                ),
+            ],
             candidate_capabilities: vec![conduit_std_catalog::tick_capability_offer()],
             planner_capabilities: Vec::new(),
             facts: tick_runtime_facts(timer_ready),

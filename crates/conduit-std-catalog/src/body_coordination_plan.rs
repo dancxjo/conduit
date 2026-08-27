@@ -1,8 +1,8 @@
 //! Exact two-std-Host realization of the mechanism-free coordination Form.
 
 use crate::{
-    install_text_pipeline_catalogs, standard_host_advertisement, text_literal_offer,
-    text_presentation_offer, TEXT_PRESENTATION_KIND,
+    install_text_pipeline_catalogs, text_literal_offer, text_presentation_offer,
+    TEXT_PRESENTATION_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -12,8 +12,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    process_owned_line_offer_with_limits, BaseImplementationId, BootId, HostAdvertisement, HostId,
-    LineId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
+    process_owned_line_offer_with_limits, resource_offer, BaseImplementationId, BootId,
+    HostAdvertisement, HostId, HostProfileId, LineId, LineOffer, LineScope, LineSecurity,
+    LinkLimits, OfferGeneration, Plan, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -210,19 +211,20 @@ fn exact_body_coordination_plan_with_loss(
 }
 
 fn coordination_host(id: &str, boot_id: BootId) -> HostAdvertisement {
-    let mut host = standard_host_advertisement(HostId::from(id), boot_id, OfferGeneration(1));
-    for offer in [text_literal_offer(), text_presentation_offer()] {
-        if !host
-            .capabilities
-            .iter()
-            .any(|current| current.capability_id == offer.capability_id)
-        {
-            host.capabilities.push(offer);
-        }
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from(id),
+        boot_id,
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("body-coordination/fixture@1"),
+        resources: vec![resource_offer(
+            "body-coordination/presentation",
+            PRESENTATION_RESOURCE_CLASS,
+            1,
+        )],
+        planner_capabilities: Vec::new(),
+        capabilities: vec![text_literal_offer(), text_presentation_offer()],
     }
-    host.capabilities
-        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-    host
 }
 
 fn placement(
