@@ -6,37 +6,21 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
-    port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal, BOOL_INFO_ID,
 };
 
 pub const TIME_DEBOUNCE_KIND: &str = "time/debounce";
 pub const TIME_DEBOUNCE_CONTRACT_REVISION: &str = "conduit.std/time-debounce-bool@1";
-pub const TIME_DEBOUNCE_EXECUTION_PROFILE: &str = "conduit.std/time-debounce-bool-kernel-hosted@1";
-pub const TIME_DEBOUNCE_IMPLEMENTATION: &str = "std/kernel-time-debounce-bool@1";
-pub const TIME_DEBOUNCE_ARTIFACT: &str = "conduit-std-host/time-debounce-bool@1";
 
 pub const TIME_TIMEOUT_KIND: &str = "time/timeout";
 pub const TIME_TIMEOUT_CONTRACT_REVISION: &str = "conduit.std/time-timeout-tick-bool@1";
-pub const TIME_TIMEOUT_EXECUTION_PROFILE: &str =
-    "conduit.std/time-timeout-tick-bool-kernel-hosted@1";
-pub const TIME_TIMEOUT_IMPLEMENTATION: &str = "std/kernel-time-timeout-tick-bool@1";
-pub const TIME_TIMEOUT_ARTIFACT: &str = "conduit-std-host/time-timeout-tick-bool@1";
 
 pub const TIME_DELAY_KIND: &str = "time/delay";
 pub const TIME_DELAY_CONTRACT_REVISION: &str = "conduit.std/time-delay-bool@1";
-pub const TIME_DELAY_EXECUTION_PROFILE: &str = "conduit.std/time-delay-bool-kernel-hosted@1";
-pub const TIME_DELAY_IMPLEMENTATION: &str = "std/kernel-time-delay-bool@1";
-pub const TIME_DELAY_ARTIFACT: &str = "conduit-std-host/time-delay-bool@1";
 
 pub const TIME_THROTTLE_KIND: &str = "time/throttle";
 pub const TIME_THROTTLE_CONTRACT_REVISION: &str = "conduit.std/time-throttle-bool-leading@1";
-pub const TIME_THROTTLE_EXECUTION_PROFILE: &str =
-    "conduit.std/time-throttle-bool-leading-kernel-hosted@1";
-pub const TIME_THROTTLE_IMPLEMENTATION: &str = "std/kernel-time-throttle-bool-leading@1";
-pub const TIME_THROTTLE_ARTIFACT: &str = "conduit-std-host/time-throttle-bool-leading@1";
 
 pub const TIME_POLICY_TRAILING: &str = "trailing";
 pub const TIME_POLICY_LEADING: &str = "leading";
@@ -159,50 +143,6 @@ pub fn time_throttle_contract() -> StandardKindContract {
     }
 }
 
-pub fn time_debounce_offer() -> CapabilityOffer {
-    offer(
-        time_debounce_contract(),
-        "time-debounce-bool-v1",
-        TIME_DEBOUNCE_CONTRACT_REVISION,
-        TIME_DEBOUNCE_EXECUTION_PROFILE,
-        TIME_DEBOUNCE_IMPLEMENTATION,
-        TIME_DEBOUNCE_ARTIFACT,
-    )
-}
-
-pub fn time_timeout_offer() -> CapabilityOffer {
-    offer(
-        time_timeout_contract(),
-        "time-timeout-tick-bool-v1",
-        TIME_TIMEOUT_CONTRACT_REVISION,
-        TIME_TIMEOUT_EXECUTION_PROFILE,
-        TIME_TIMEOUT_IMPLEMENTATION,
-        TIME_TIMEOUT_ARTIFACT,
-    )
-}
-
-pub fn time_delay_offer() -> CapabilityOffer {
-    offer(
-        time_delay_contract(),
-        "time-delay-bool-v1",
-        TIME_DELAY_CONTRACT_REVISION,
-        TIME_DELAY_EXECUTION_PROFILE,
-        TIME_DELAY_IMPLEMENTATION,
-        TIME_DELAY_ARTIFACT,
-    )
-}
-
-pub fn time_throttle_offer() -> CapabilityOffer {
-    offer(
-        time_throttle_contract(),
-        "time-throttle-bool-leading-v1",
-        TIME_THROTTLE_CONTRACT_REVISION,
-        TIME_THROTTLE_EXECUTION_PROFILE,
-        TIME_THROTTLE_IMPLEMENTATION,
-        TIME_THROTTLE_ARTIFACT,
-    )
-}
-
 #[cfg(feature = "form-catalog")]
 pub fn install_timing_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -279,47 +219,6 @@ pub fn install_timing_catalogs(
     Ok(())
 }
 
-fn offer(
-    contract: StandardKindContract,
-    capability: &str,
-    revision: &str,
-    profile: &str,
-    implementation: &str,
-    artifact: &str,
-) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: contract
-            .configuration
-            .iter()
-            .map(|field| conduit_core::FaceStartupParameter {
-                name: field.key.clone(),
-                value_type: match field.key.as_str() {
-                    "duration-ms" => "Duration",
-                    "policy" => "Text",
-                    _ => "Count",
-                }
-                .to_string(),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(profile),
-            implementation_id: ImplementationId::from(implementation),
-            artifact_id: ArtifactId::from(artifact),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![monotonic_timer_host_operation_requirement()],
-        resource_requirements: vec![monotonic_timer_resource_requirement()],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
-}
-
 fn port(
     name: &str,
     info: &str,
@@ -387,23 +286,6 @@ mod tests {
             time_throttle_contract(),
         ] {
             assert_eq!(contract.limits.max_queue_items, 1);
-        }
-        for offer in [
-            time_debounce_offer(),
-            time_timeout_offer(),
-            time_delay_offer(),
-            time_throttle_offer(),
-        ] {
-            assert_eq!(offer.host_operations.len(), 1);
-            assert_eq!(
-                offer.host_operations[0],
-                monotonic_timer_host_operation_requirement()
-            );
-            assert_eq!(offer.resource_requirements.len(), 1);
-            assert_eq!(
-                offer.resource_requirements[0],
-                monotonic_timer_resource_requirement()
-            );
         }
         for contract in [
             time_debounce_contract(),

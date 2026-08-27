@@ -9,7 +9,7 @@ use conduit_kernel::{
 };
 
 pub(super) static AUDIO_RENDER_DEMAND_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::AUDIO_RENDER_DEMAND_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::AUDIO_RENDER_DEMAND_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -175,5 +175,5 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 }
 
 pub(crate) fn offer() -> conduit_core::CapabilityOffer {
-    conduit_std_catalog::audio_render_demand_offer()
+    conduit_std_offers::audio_render_demand_offer()
 }

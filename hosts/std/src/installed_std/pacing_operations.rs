@@ -7,13 +7,13 @@ use conduit_kernel::{
 };
 
 pub(super) static TIME_DELAY_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::TIME_DELAY_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::TIME_DELAY_IMPLEMENTATION,
     budget: delay_budget,
     prepare: prepare_delay,
 };
 
 pub(super) static TIME_THROTTLE_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::TIME_THROTTLE_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::TIME_THROTTLE_IMPLEMENTATION,
     budget: throttle_budget,
     prepare: prepare_throttle,
 };
@@ -259,7 +259,7 @@ impl ThrottleOperation {
 }
 
 fn delay_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    validate(placement, &conduit_std_catalog::time_delay_offer())?;
+    validate(placement, &conduit_std_offers::time_delay_offer())?;
     let configuration = timing_configuration::parse_pacing(placement, None)?;
     timing_configuration::budget(
         configuration.maximum_values,
@@ -269,7 +269,7 @@ fn delay_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 }
 
 fn throttle_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    validate(placement, &conduit_std_catalog::time_throttle_offer())?;
+    validate(placement, &conduit_std_offers::time_throttle_offer())?;
     let configuration = timing_configuration::parse_pacing(
         placement,
         Some(conduit_std_catalog::TIME_POLICY_LEADING),
@@ -285,7 +285,7 @@ fn prepare_delay(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
-    validate(placement, &conduit_std_catalog::time_delay_offer())?;
+    validate(placement, &conduit_std_offers::time_delay_offer())?;
     let configuration = timing_configuration::parse_pacing(placement, None)?;
     let maximum_values = configuration.maximum_values;
     Ok(InstalledOperation::TimeDelay(DelayOperation {
@@ -307,7 +307,7 @@ fn prepare_throttle(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
-    validate(placement, &conduit_std_catalog::time_throttle_offer())?;
+    validate(placement, &conduit_std_offers::time_throttle_offer())?;
     let configuration = timing_configuration::parse_pacing(
         placement,
         Some(conduit_std_catalog::TIME_POLICY_LEADING),

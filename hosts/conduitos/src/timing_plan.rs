@@ -144,7 +144,7 @@ fn advertisement(
     {
         return Err(PreparationError::OfferMismatch);
     }
-    let mut tick = conduit_std_catalog::tick_capability_offer();
+    let mut tick = crate::functional_offers::tick_offer();
     bind_native_capability(&mut tick, &fixed.capabilities[0], build_id, "time-tick");
     let mut presentation = conduit_std_catalog::tick_presentation_offer();
     bind_native_capability(

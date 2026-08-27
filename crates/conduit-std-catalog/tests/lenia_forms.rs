@@ -2,8 +2,9 @@ use conduit_alife::{
     install_lenia_catalogs, LENIA_STEP_KIND, SCALAR_FIELD2_INFO_ID, SCALAR_FIELD_PRESENTATION_KIND,
 };
 use conduit_core::{
-    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    PortTemporal, PROTOCOL_VERSION,
+    resource_requirement, wait_host_operation_requirement, BaseImplementationId, BootId,
+    HostAdvertisement, HostId, HostProfileId, OfferGeneration, PortTemporal, PROTOCOL_VERSION,
+    TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -30,7 +31,22 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
     assert_eq!(authored.expanded.connections.len(), 3);
 
     let mut capabilities = alife_offers();
-    capabilities.push(conduit_std_catalog::time_every_offer());
+    let mut every = conduit_std_catalog::realization_offer(
+        conduit_std_catalog::time_every_contract(),
+        conduit_time::TIME_EVERY_CONTRACT_REVISION,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: "lenia-proof-time-every",
+            execution_profile: "proof/lenia-time-every@1",
+            implementation: "proof/lenia-time-every@1",
+            artifact: "proof/lenia-time-every@1",
+        },
+        vec![wait_host_operation_requirement()],
+        vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    );
+    every.startup_parameters[0].value_type = "Duration".into();
+    every.startup_parameters[0].has_default = false;
+    capabilities.push(every);
     let host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/lenia-proof"),

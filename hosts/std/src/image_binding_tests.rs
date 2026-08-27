@@ -41,7 +41,7 @@ fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, Hos
                 conduit_core::TIMER_RESOURCE_CLASS,
                 16,
             )],
-            candidate_capabilities: vec![conduit_std_catalog::tick_capability_offer()],
+            candidate_capabilities: vec![conduit_std_offers::tick_capability_offer()],
             planner_capabilities: Vec::new(),
             facts: RuntimeFacts {
                 ready_resource_classes: BTreeSet::from(["conduit.resource/timer-slot@1".into()]),

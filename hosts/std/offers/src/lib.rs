@@ -2,6 +2,8 @@
 
 mod flow_state;
 pub use flow_state::*;
+mod timing;
+pub use timing::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -129,14 +131,14 @@ fn functional_offer(
 /// Exact accepted std realization corresponding to every portable nucleus contract.
 pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
     vec![
-        conduit_std_catalog::tick_capability_offer(),
-        conduit_std_catalog::time_every_offer(),
-        conduit_std_catalog::audio_render_demand_offer(),
+        tick_capability_offer(),
+        time_every_offer(),
+        audio_render_demand_offer(),
         conduit_std_catalog::music_synth_reference_offer(),
-        conduit_std_catalog::time_debounce_offer(),
-        conduit_std_catalog::time_timeout_offer(),
-        conduit_std_catalog::time_delay_offer(),
-        conduit_std_catalog::time_throttle_offer(),
+        time_debounce_offer(),
+        time_timeout_offer(),
+        time_delay_offer(),
+        time_throttle_offer(),
         conduit_std_catalog::tick_presentation_offer(),
         conduit_std_catalog::bool_presentation_std_offer(),
         conduit_std_catalog::text_literal_offer(),
@@ -252,6 +254,10 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/logic.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/math.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/flow_state.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/tick.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/time_every.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/timing.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/audio_render_demand.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -266,6 +272,13 @@ mod tests {
                 "pub fn flow_tee_scalar_offer",
                 "pub fn flow_gate_scalar_offer",
                 "pub fn state_select_scalar_offer",
+                "pub fn tick_capability_offer",
+                "pub fn time_every_offer",
+                "pub fn time_debounce_offer",
+                "pub fn time_timeout_offer",
+                "pub fn time_delay_offer",
+                "pub fn time_throttle_offer",
+                "pub fn audio_render_demand_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),
