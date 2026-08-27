@@ -9,13 +9,14 @@ use conduit_core::{
 };
 
 use crate::{
-    extent2_type, image_color_profile_type, image_format_type, image_resource_type, point2_type,
-    rect2_type, validate_confidence, vision_color_sample_type, vision_detection_slot_type,
-    vision_detection_type, vision_detections_type, vision_evidence_class_type,
-    vision_keypoint_type, vision_landmark_slot_type, vision_landmarks_type, vision_provenance_type,
-    VisionRefusal, MAXIMUM_VISION_DETECTIONS, MAXIMUM_VISION_LANDMARKS, VISION_IMAGE_ACCESS_CLASS,
+    image_color_profile_type, image_format_type, image_resource_type, validate_confidence,
+    vision_color_sample_type, vision_detection_slot_type, vision_detection_type,
+    vision_detections_type, vision_evidence_class_type, vision_keypoint_type,
+    vision_landmark_slot_type, vision_landmarks_type, vision_provenance_type, VisionRefusal,
+    MAXIMUM_VISION_DETECTIONS, MAXIMUM_VISION_LANDMARKS, VISION_IMAGE_ACCESS_CLASS,
     VISION_IMAGE_CONTENT_PROFILE,
 };
+use conduit_presentation::{extent2_type, point2_type, rect2_type};
 
 const IMAGE_IDENTITY: &str = "image/checkerboard-v1";
 const IMAGE_FRAME: &str = "image/checkerboard-v1/normalized";

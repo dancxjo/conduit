@@ -7,6 +7,9 @@ mod calendar_time;
 mod composition;
 mod construction;
 mod contract;
+mod geometry;
+#[cfg(feature = "form-catalog")]
+mod geometry_catalog;
 mod graphics;
 mod identity;
 mod interaction;
@@ -31,6 +34,9 @@ pub use bitmap::*;
 pub use calendar_time::*;
 pub use composition::*;
 pub use contract::*;
+pub use geometry::*;
+#[cfg(feature = "form-catalog")]
+pub use geometry_catalog::*;
 pub use graphics::*;
 pub use interaction::*;
 pub use interaction_ledger::*;

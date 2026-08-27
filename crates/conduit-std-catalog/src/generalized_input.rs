@@ -9,7 +9,7 @@ use conduit_core::{
     QUANTITY_INFO_ID,
 };
 
-use crate::{point2_type, vector2_type};
+use conduit_presentation::{point2_type, vector2_type};
 
 pub const INPUT_BUTTON_TRANSITION_TYPE: &str = "InputButtonTransition";
 pub const INPUT_AXIS_STATE_TYPE: &str = "InputAxisState";

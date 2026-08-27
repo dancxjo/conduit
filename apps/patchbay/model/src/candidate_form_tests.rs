@@ -9,7 +9,8 @@ use conduit_core::{
     PROTOCOL_VERSION,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog};
-use conduit_std_catalog::{install_geometry_catalogs, install_vision_catalogs, vision_std_offers};
+use conduit_presentation::install_geometry_catalogs;
+use conduit_std_catalog::{install_vision_catalogs, vision_std_offers};
 
 const INTENT: &str =
     "Watch this camera, recognize birds, count them by species, and show a dashboard.";

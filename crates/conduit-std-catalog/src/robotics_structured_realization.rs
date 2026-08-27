@@ -7,12 +7,12 @@ use conduit_core::{
 };
 
 use crate::{
-    point2_value, robotics_contact_event_type, robotics_contact_phase_type,
-    robotics_motion_request_type, robotics_pose2_type, robotics_pose_sample_type,
-    robotics_power_telemetry_type, robotics_range_observation_type, robotics_range_sample_type,
-    robotics_sample_context_type, robotics_twist_interval_type, vector2_type, GeometryRefusal,
+    robotics_contact_event_type, robotics_contact_phase_type, robotics_motion_request_type,
+    robotics_pose_sample_type, robotics_power_telemetry_type, robotics_range_observation_type,
+    robotics_range_sample_type, robotics_sample_context_type, robotics_twist_interval_type,
     MAXIMUM_ROBOTICS_IDENTITY_BYTES,
 };
+use conduit_presentation::{point2_value, robotics_pose2_type, vector2_type, GeometryRefusal};
 
 pub const ROBOTICS_BODY_FRAME: &str = "body";
 pub const MAXIMUM_STRUCTURED_MOTION_INTERVAL_MS: i64 = 60_000;

@@ -7,13 +7,13 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
+use conduit_presentation::{install_geometry_catalogs, point2_type, rect2_type};
 use conduit_std_catalog::{
     deterministic_detect_image, deterministic_vision_fixture, image_resource_type,
-    install_geometry_catalogs, install_vision_catalogs, point2_type, rect2_type,
-    validate_confidence, vision_detection_type, vision_detections_type, vision_keypoint_type,
-    vision_std_offers, VisionRefusal, MAXIMUM_VISION_DETECTIONS, MAXIMUM_VISION_LANDMARKS,
-    VISION_DETECT_KIND, VISION_FIXTURE_KIND, VISION_HOST_OPERATION, VISION_IMAGE_ACCESS_CLASS,
-    VISION_IMAGE_CONTENT_PROFILE,
+    install_vision_catalogs, validate_confidence, vision_detection_type, vision_detections_type,
+    vision_keypoint_type, vision_std_offers, VisionRefusal, MAXIMUM_VISION_DETECTIONS,
+    MAXIMUM_VISION_LANDMARKS, VISION_DETECT_KIND, VISION_FIXTURE_KIND, VISION_HOST_OPERATION,
+    VISION_IMAGE_ACCESS_CLASS, VISION_IMAGE_CONTENT_PROFILE,
 };
 
 const SOURCE: &str = include_str!("../../../examples/vision-metadata.conduit");

@@ -7,11 +7,11 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
+use conduit_presentation::{install_geometry_catalogs, robotics_pose2_type};
 use conduit_std_catalog::{
-    deterministic_robotics_structured_fixture, install_geometry_catalogs,
-    install_robotics_structured_catalogs, pose_sample_value, range_sample_value,
-    robotics_motion_request_type, robotics_physical_motion_offer, robotics_pose2_type,
-    robotics_pose_sample_type, robotics_range_observation_type,
+    deterministic_robotics_structured_fixture, install_robotics_structured_catalogs,
+    pose_sample_value, range_sample_value, robotics_motion_request_type,
+    robotics_physical_motion_offer, robotics_pose_sample_type, robotics_range_observation_type,
     robotics_structured_deterministic_offers, robotics_twist_interval_type, twist_interval_value,
     RoboticsStructuredRefusal, ROBOTICS_BODY_FRAME, ROBOTICS_PHYSICAL_MOTION_AUTHORITY,
     ROBOTICS_PHYSICAL_MOTION_HOST_OPERATION,

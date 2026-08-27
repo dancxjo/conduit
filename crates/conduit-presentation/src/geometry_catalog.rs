@@ -1,4 +1,4 @@
-//! Form catalog and truthful finite std offers for semantic geometry.
+//! Form catalog for portable finite geometry semantics.
 
 use alloc::{
     format,
@@ -7,12 +7,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, FaceStartupParameter, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit,
-    StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, Quantity, QuantityUnit, StructuredConfigurationValue, StructuredInfoType,
+    StructuredInfoValue,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -28,9 +25,6 @@ pub const POINT2_LITERAL_KIND: &str = "geometry/point2";
 pub const APPLY_TRANSFORM2_KIND: &str = "geometry/apply-transform2";
 pub const TRANSFORM_PATH2_FOUR_KIND: &str = "geometry/transform-path2-four";
 pub const GEOMETRY_REVISION: &str = "conduit.std/geometry-spatial@1";
-pub const GEOMETRY_PROFILE: &str = "std/geometry-kernel-hosted@1";
-pub const GEOMETRY_ARTIFACT: &str = "conduit-std-host/geometry@1";
-pub const GEOMETRY_HOST_OPERATION: &str = "conduit.host/geometry-transform@1";
 
 pub fn install_geometry_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -48,51 +42,28 @@ pub fn install_geometry_catalogs(
         profile,
         POINT2_LITERAL_KIND,
         vec![],
-        vec![port("point", &point, PortDirection::Output)],
+        vec![geometry_port("point", &point, PortDirection::Output)],
         Some(("value", POINT2_TYPE, default_point2()?)),
     )?;
     insert_kind(
         startup,
         profile,
         APPLY_TRANSFORM2_KIND,
-        vec![port("point", &point, PortDirection::Input)],
-        vec![port("point", &point, PortDirection::Output)],
+        vec![geometry_port("point", &point, PortDirection::Input)],
+        vec![geometry_port("point", &point, PortDirection::Output)],
         Some(("transform", TRANSFORM2_TYPE, default_transform2()?)),
     )?;
     insert_kind(
         startup,
         profile,
         TRANSFORM_PATH2_FOUR_KIND,
-        vec![port("path", &path, PortDirection::Input)],
-        vec![port("path", &path, PortDirection::Output)],
+        vec![geometry_port("path", &path, PortDirection::Input)],
+        vec![geometry_port("path", &path, PortDirection::Output)],
         Some(("transform", TRANSFORM2_TYPE, default_transform2()?)),
     )
 }
 
-pub fn geometry_std_offers() -> Vec<CapabilityOffer> {
-    vec![
-        offer(
-            POINT2_LITERAL_KIND,
-            vec![],
-            vec![port("point", &point2_type(), PortDirection::Output)],
-            false,
-        ),
-        offer(
-            APPLY_TRANSFORM2_KIND,
-            vec![port("point", &point2_type(), PortDirection::Input)],
-            vec![port("point", &point2_type(), PortDirection::Output)],
-            true,
-        ),
-        offer(
-            TRANSFORM_PATH2_FOUR_KIND,
-            vec![port("path", &path2_type(4).unwrap(), PortDirection::Input)],
-            vec![port("path", &path2_type(4).unwrap(), PortDirection::Output)],
-            true,
-        ),
-    ]
-}
-
-fn geometry_types() -> Vec<(&'static str, StructuredInfoType)> {
+pub fn geometry_types() -> Vec<(&'static str, StructuredInfoType)> {
     vec![
         (POINT2_TYPE, crate::point2_type()),
         (POINT3_TYPE, crate::point3_type()),
@@ -161,7 +132,11 @@ fn insert_kind(
         .map_err(|error| error.to_string())
 }
 
-fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -> PortDescriptor {
+pub fn geometry_port(
+    name: &str,
+    value_type: &StructuredInfoType,
+    direction: PortDirection,
+) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
         value_kind: value_type
@@ -171,60 +146,6 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
             .clone(),
         direction,
         temporal: PortTemporal::Value,
-    }
-}
-
-fn offer(
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
-    uses_operation: bool,
-) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
-            name: if kind == POINT2_LITERAL_KIND {
-                "value"
-            } else {
-                "transform"
-            }
-            .into(),
-            value_type: if kind == POINT2_LITERAL_KIND {
-                POINT2_TYPE
-            } else {
-                TRANSFORM2_TYPE
-            }
-            .into(),
-            has_default: false,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from(format!("std/{kind}@1")),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(GEOMETRY_REVISION),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(GEOMETRY_PROFILE),
-            implementation_id: ImplementationId::from(format!("std/{kind}@1")),
-            artifact_id: ArtifactId::from(GEOMETRY_ARTIFACT),
-        },
-        inputs,
-        outputs,
-        host_operations: if uses_operation {
-            vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(GEOMETRY_HOST_OPERATION),
-                target_kind: Some(kind_id(kind)),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-                maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            }]
-        } else {
-            Vec::new()
-        },
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 4,
-            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        },
     }
 }
 
