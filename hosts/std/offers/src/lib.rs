@@ -6,6 +6,8 @@ mod timing;
 pub use timing::*;
 mod presentation_structure;
 pub use presentation_structure::*;
+mod presentation_sinks;
+pub use presentation_sinks::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -141,18 +143,18 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         time_timeout_offer(),
         time_delay_offer(),
         time_throttle_offer(),
-        conduit_std_catalog::tick_presentation_offer(),
-        conduit_std_catalog::bool_presentation_std_offer(),
+        tick_presentation_offer(),
+        bool_presentation_offer(),
         conduit_std_catalog::text_literal_offer(),
         conduit_std_catalog::text_upper_offer(),
         conduit_std_catalog::text_join_offer(),
-        conduit_std_catalog::text_presentation_offer(),
+        text_presentation_offer(),
         conduit_std_catalog::key_event_tee_offer(),
         conduit_std_catalog::keymap_offer(),
         conduit_std_catalog::chords_offer(),
         conduit_std_catalog::state_count_offer(),
         conduit_std_catalog::state_toggle_offer(),
-        conduit_std_catalog::count_presentation_offer(),
+        count_presentation_offer(),
         state_latest_scalar_offer(),
         flow_tee_scalar_offer(),
         flow_gate_scalar_offer(),
@@ -175,8 +177,8 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         graphics_rect_offer(),
         graphics_text_offer(),
         graphics_icon_offer(),
-        conduit_std_catalog::graphics_presentation_offer(),
-        conduit_std_catalog::bitmap_presentation_offer(),
+        graphics_presentation_offer(),
+        bitmap_presentation_offer(),
         conduit_std_catalog::robotics_observe_bump_offer(),
         conduit_std_catalog::robotics_observe_imu_offer(),
         conduit_std_catalog::robotics_observe_range_offer(),
@@ -263,6 +265,10 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/layout.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/presentation_composition.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/graphics.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/tick_presentation.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/presentation_bool.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/text_presentation.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/graphics_presentation.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -296,6 +302,13 @@ mod tests {
                 "pub fn graphics_rect_offer",
                 "pub fn graphics_text_offer",
                 "pub fn graphics_icon_offer",
+                "pub fn tick_presentation_offer",
+                "pub fn bool_presentation_std_offer",
+                "pub fn bool_presentation_browser_offer",
+                "pub fn text_presentation_offer",
+                "pub fn count_presentation_offer",
+                "pub fn graphics_presentation_offer",
+                "pub fn bitmap_presentation_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),
@@ -303,5 +316,9 @@ mod tests {
                 );
             }
         }
+        assert!(
+            !include_str!("../../../../crates/conduit-std-catalog/src/state_count.rs")
+                .contains("pub fn count_presentation_offer")
+        );
     }
 }

@@ -34,6 +34,7 @@ mod state_select_play;
 #[cfg(test)]
 mod state_select_tests;
 
+pub(crate) use offers::presentation_offer_for;
 pub use offers::{
     CONDUITOS_PRESENTATION_ARTIFACT, CONDUITOS_PRESENTATION_PROFILE, presentation_nucleus_offers,
 };

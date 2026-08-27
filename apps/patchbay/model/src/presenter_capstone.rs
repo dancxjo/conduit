@@ -128,7 +128,7 @@ fn recursive_host() -> HostAdvertisement {
         "patchbay/constrained-recursive@1",
         vec![
             conduit_std_catalog::text_literal_offer(),
-            conduit_std_catalog::text_presentation_offer(),
+            conduit_std_offers::text_presentation_offer(),
             conduit_std_offers::layout_viewport_offer(),
             conduit_std_offers::layout_inset_offer(),
             conduit_std_offers::layout_column_offer(),
@@ -140,7 +140,7 @@ fn recursive_host() -> HostAdvertisement {
             conduit_std_offers::graphics_rect_offer(),
             conduit_std_offers::graphics_text_offer(),
             conduit_std_offers::graphics_icon_offer(),
-            conduit_std_catalog::graphics_presentation_offer(),
+            conduit_std_offers::graphics_presentation_offer(),
         ],
     )
 }

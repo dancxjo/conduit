@@ -36,7 +36,7 @@ fn current_booleans_manifest_through_the_admitted_std_operation() {
         .expect("Boolean presenter is placed");
     assert_eq!(
         placement.implementation_id.as_str(),
-        conduit_std_catalog::BOOL_PRESENTATION_STD_IMPLEMENTATION
+        conduit_std_offers::BOOL_PRESENTATION_IMPLEMENTATION
     );
     assert_eq!(placement.host_operations.len(), 1);
     assert_eq!(placement.resources.len(), 1);

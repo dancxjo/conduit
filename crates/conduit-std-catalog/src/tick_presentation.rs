@@ -5,20 +5,12 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_requirement, ArtifactId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection,
-    PRESENTATION_RESOURCE_CLASS,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    PortDirection,
 };
 
 pub const TICK_PRESENTATION_KIND: &str = "presentation/tick";
 pub const TICK_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-tick@1";
-pub const TICK_PRESENTATION_EXECUTION_PROFILE: &str =
-    "conduit.std/presentation-tick-kernel-hosted@1";
-pub const TICK_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-tick@1";
-pub const TICK_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-tick@1";
-pub const TICK_PRESENTATION_CAPABILITY: &str = "presentation-tick-v1";
-pub const TICK_PRESENTATION_TARGET: &str = "presentation/stdout-tick";
 
 pub fn tick_presentation_contract() -> StandardKindContract {
     StandardKindContract {
@@ -50,35 +42,6 @@ pub fn tick_presentation_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "show: presentation/tick".to_string(),
-    }
-}
-
-pub fn tick_presentation_offer() -> CapabilityOffer {
-    let contract = tick_presentation_contract();
-    CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
-            name: "maximum-values".to_string(),
-            value_type: "Count".to_string(),
-            has_default: true,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from(TICK_PRESENTATION_CAPABILITY),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(TICK_PRESENTATION_CONTRACT_REVISION),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(TICK_PRESENTATION_EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(TICK_PRESENTATION_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(TICK_PRESENTATION_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![present_host_operation_requirement(
-            kind_id(TICK_PRESENTATION_TARGET),
-            conduit_time::TICK_ENCODED_LEN,
-        )],
-        resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 

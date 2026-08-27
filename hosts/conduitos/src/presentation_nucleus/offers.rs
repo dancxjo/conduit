@@ -1,7 +1,8 @@
-use alloc::{format, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId,
+    HostOperationRequirement, ImplementationId, PRESENTATION_RESOURCE_CLASS, kind_id,
+    present_host_operation_requirement, resource_requirement,
 };
 use conduit_presentation::{
     BITMAP_PRESENTATION_KIND, MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES,
@@ -33,27 +34,7 @@ pub fn presentation_nucleus_offers() -> Vec<CapabilityOffer> {
     ]
     .into_iter()
     .map(|kind| {
-        let mut offer = portable_offer(kind)
-            .or_else(|| {
-                (kind == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND)
-                    .then(conduit_std_catalog::graphics_presentation_offer)
-            })
-            .or_else(|| {
-                (kind == BITMAP_PRESENTATION_KIND)
-                    .then(conduit_std_catalog::bitmap_presentation_offer)
-            })
-            .or_else(|| {
-                (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND)
-                    .then(conduit_std_catalog::text_presentation_offer)
-            })
-            .or_else(|| {
-                (kind == conduit_std_catalog::BOOL_PRESENTATION_KIND)
-                    .then(conduit_std_catalog::bool_presentation_std_offer)
-            })
-            .or_else(|| {
-                (kind == conduit_std_catalog::COUNT_PRESENTATION_KIND)
-                    .then(conduit_std_catalog::count_presentation_offer)
-            })
+        let mut offer = presentation_offer_for(kind)
             .expect("accepted ConduitOS presentation Kind has one canonical offer");
         offer.capability_id =
             conduit_core::CapabilityId::from(format!("conduitos/{kind}-capability@1").as_str());
@@ -62,11 +43,6 @@ pub fn presentation_nucleus_offers() -> Vec<CapabilityOffer> {
         offer.implementation.implementation_id =
             ImplementationId::from(format!("conduitos/{kind}-implementation@1").as_str());
         offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_PRESENTATION_ARTIFACT);
-        if kind == conduit_std_catalog::BOOL_PRESENTATION_KIND {
-            offer.host_operations[0].target_kind = Some(conduit_core::kind_id(
-                "presentation/conduitos-framebuffer-bool",
-            ));
-        }
         offer
     })
     .collect();
@@ -77,6 +53,10 @@ pub fn presentation_nucleus_offers() -> Vec<CapabilityOffer> {
             .map(bind_conduitos_presentation),
     );
     offers
+}
+
+pub(crate) fn presentation_offer_for(kind: &str) -> Option<CapabilityOffer> {
+    portable_offer(kind).or_else(|| sink_offer(kind))
 }
 
 fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
@@ -138,6 +118,64 @@ fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
         },
         host_operations,
         Vec::new(),
+        Vec::new(),
+    ))
+}
+
+fn sink_offer(kind: &str) -> Option<CapabilityOffer> {
+    let (contract, revision, target, maximum_input_bytes) = match kind {
+        conduit_std_catalog::TICK_PRESENTATION_KIND => (
+            conduit_std_catalog::tick_presentation_contract(),
+            conduit_std_catalog::TICK_PRESENTATION_CONTRACT_REVISION,
+            "presentation/conduitos-tick",
+            conduit_time::TICK_ENCODED_LEN,
+        ),
+        conduit_std_catalog::BOOL_PRESENTATION_KIND => (
+            conduit_std_catalog::bool_presentation_contract(),
+            conduit_std_catalog::BOOL_PRESENTATION_CONTRACT_REVISION,
+            "presentation/conduitos-framebuffer-bool",
+            conduit_core::BOOL_ENCODED_LEN as u32,
+        ),
+        conduit_std_catalog::TEXT_PRESENTATION_KIND => (
+            conduit_std_catalog::text_presentation_contract(),
+            conduit_std_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
+            "presentation/conduitos-text",
+            conduit_text::MAX_TEXT_BYTES,
+        ),
+        conduit_std_catalog::COUNT_PRESENTATION_KIND => (
+            conduit_std_catalog::count_presentation_contract(),
+            conduit_std_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
+            "presentation/conduitos-count",
+            conduit_std_catalog::COUNT_ENCODED_LEN,
+        ),
+        conduit_std_catalog::GRAPHICS_PRESENTATION_KIND => (
+            conduit_std_catalog::graphics_presentation_contract(),
+            conduit_std_catalog::GRAPHICS_PRESENTATION_REVISION,
+            "presentation/conduitos-graphics-scene",
+            MAX_GRAPHICS_SCENE_BYTES as u32,
+        ),
+        BITMAP_PRESENTATION_KIND => (
+            conduit_std_catalog::bitmap_presentation_contract(),
+            conduit_presentation::BITMAP_PRESENTATION_REVISION,
+            "presentation/conduitos-bitmap-gray8",
+            conduit_presentation::MAX_GRAY8_BITMAP_BYTES as u32,
+        ),
+        _ => return None,
+    };
+    Some(conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: "conduitos/presentation-sink",
+            execution_profile: CONDUITOS_PRESENTATION_PROFILE,
+            implementation: "conduitos/presentation-sink@1",
+            artifact: CONDUITOS_PRESENTATION_ARTIFACT,
+        },
+        vec![present_host_operation_requirement(
+            kind_id(target),
+            maximum_input_bytes,
+        )],
+        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
         Vec::new(),
     ))
 }

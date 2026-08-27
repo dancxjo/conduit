@@ -392,9 +392,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
     let text_target_kind = kind_id("presentation/stdout-text");
     let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
-    let tick_target_kind = kind_id(conduit_std_catalog::TICK_PRESENTATION_TARGET);
-    let count_target_kind = kind_id(conduit_std_catalog::COUNT_PRESENTATION_TARGET);
-    let bool_target_kind = kind_id(conduit_std_catalog::BOOL_PRESENTATION_STD_TARGET);
+    let tick_target_kind = kind_id(conduit_std_offers::TICK_PRESENTATION_TARGET);
+    let count_target_kind = kind_id(conduit_std_offers::COUNT_PRESENTATION_TARGET);
+    let bool_target_kind = kind_id(conduit_std_offers::BOOL_PRESENTATION_TARGET);
     let structured_presentation_target_kind =
         kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(

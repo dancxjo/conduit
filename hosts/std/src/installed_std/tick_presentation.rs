@@ -6,7 +6,7 @@ use conduit_kernel::{
 };
 
 pub(super) static TICK_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::TICK_PRESENTATION_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::TICK_PRESENTATION_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -83,10 +83,10 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.kind_contract_revision.as_str()
             != conduit_std_catalog::TICK_PRESENTATION_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::TICK_PRESENTATION_EXECUTION_PROFILE
+            != conduit_std_offers::TICK_PRESENTATION_EXECUTION_PROFILE
         || placement.implementation_id.as_str()
-            != conduit_std_catalog::TICK_PRESENTATION_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_catalog::TICK_PRESENTATION_ARTIFACT
+            != conduit_std_offers::TICK_PRESENTATION_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::TICK_PRESENTATION_ARTIFACT
         || placement.inputs.len() != 1
         || !placement.outputs.is_empty()
         || placement.inputs[0].port_id.as_str() != "tick"

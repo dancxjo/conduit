@@ -1,9 +1,6 @@
 //! Exact two-std-Host realization of the mechanism-free coordination Form.
 
-use crate::{
-    install_text_pipeline_catalogs, text_literal_offer, text_presentation_offer,
-    TEXT_PRESENTATION_KIND,
-};
+use crate::{install_text_pipeline_catalogs, text_literal_offer, TEXT_PRESENTATION_KIND};
 use alloc::{
     collections::BTreeMap,
     format,
@@ -12,7 +9,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    process_owned_line_offer_with_limits, resource_offer, BaseImplementationId, BootId,
+    kind_id, present_host_operation_requirement, process_owned_line_offer_with_limits,
+    resource_offer, resource_requirement, BaseImplementationId, BootId, CapabilityOffer,
     HostAdvertisement, HostId, HostProfileId, LineId, LineOffer, LineScope, LineSecurity,
     LinkLimits, OfferGeneration, Plan, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
@@ -223,8 +221,27 @@ fn coordination_host(id: &str, boot_id: BootId) -> HostAdvertisement {
             1,
         )],
         planner_capabilities: Vec::new(),
-        capabilities: vec![text_literal_offer(), text_presentation_offer()],
+        capabilities: vec![text_literal_offer(), text_presentation_fixture_offer()],
     }
+}
+
+fn text_presentation_fixture_offer() -> CapabilityOffer {
+    crate::realization_offer(
+        crate::text_presentation_contract(),
+        crate::TEXT_PRESENTATION_CONTRACT_REVISION,
+        crate::RealizationOfferIdentity {
+            capability: "body-coordination/text-presentation",
+            execution_profile: "body-coordination/fixture@1",
+            implementation: "body-coordination/text-presentation@1",
+            artifact: "body-coordination/fixture@1",
+        },
+        vec![present_host_operation_requirement(
+            kind_id("presentation/body-coordination-text"),
+            conduit_text::MAX_TEXT_BYTES,
+        )],
+        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
 }
 
 fn placement(

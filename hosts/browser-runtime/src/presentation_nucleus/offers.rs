@@ -44,7 +44,7 @@ pub(super) fn canonical_offer(kind: &str) -> Option<CapabilityOffer> {
     offer_composition::portable_offer(kind)
         .or_else(|| {
             (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND)
-                .then(conduit_std_catalog::text_presentation_offer)
+                .then(offer_composition::text_offer)
         })
         .or_else(|| {
             (kind == conduit_text::TEXT_UPPER_KIND).then(conduit_std_catalog::text_upper_offer)

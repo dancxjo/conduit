@@ -8,4 +8,5 @@ description = "Exact realization offers owned by the hosted std Host"
 conduit-core = { path = "../../../crates/conduit-core" }
 conduit-std-catalog = { path = "../../../crates/conduit-std-catalog" }
 conduit-time = { path = "../../../crates/conduit-time" }
+conduit-text = { path = "../../../crates/conduit-text" }
 conduit-presentation = { path = "../../../crates/conduit-presentation" }

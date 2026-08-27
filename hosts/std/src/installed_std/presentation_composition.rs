@@ -31,7 +31,7 @@ factory!(GRAPHICS_RECT_FACTORY, GRAPHICS_RECT_IMPLEMENTATION);
 factory!(GRAPHICS_TEXT_FACTORY, GRAPHICS_TEXT_IMPLEMENTATION);
 factory!(GRAPHICS_ICON_FACTORY, GRAPHICS_ICON_IMPLEMENTATION);
 pub(super) static GRAPHICS_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::GRAPHICS_PRESENTATION_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::GRAPHICS_PRESENTATION_IMPLEMENTATION,
     budget: graphics_presentation_budget,
     prepare: prepare_graphics_presentation,
 };
@@ -309,7 +309,7 @@ fn prepare_graphics_presentation(
 }
 
 fn validate_graphics_presentation(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::graphics_presentation_offer();
+    let offer = conduit_std_offers::graphics_presentation_offer();
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id

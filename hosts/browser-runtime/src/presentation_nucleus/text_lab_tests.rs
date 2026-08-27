@@ -52,7 +52,7 @@ fn hosts() -> (
             ),
             conduit_std_catalog::keymap_offer(),
             conduit_std_catalog::text_upper_offer(),
-            conduit_std_catalog::text_presentation_offer(),
+            super::offer_composition::text_offer(),
         ],
     };
     local

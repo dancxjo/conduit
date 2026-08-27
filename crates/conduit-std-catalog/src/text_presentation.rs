@@ -5,19 +5,12 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_requirement, ArtifactId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId,
-    KindContractRevision, PortDescriptor, PortDirection, PRESENTATION_RESOURCE_CLASS,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
 };
 
 pub const TEXT_PRESENTATION_KIND: &str = "presentation/text";
 pub const TEXT_PRESENTATION_VALUE_KIND: &str = "value/text@1";
 pub const TEXT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-text@1";
-pub const TEXT_PRESENTATION_EXECUTION_PROFILE: &str =
-    "conduit.std/presentation-text-kernel-hosted@1";
-pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-text@1";
-pub const TEXT_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-text@1";
-pub const TEXT_PRESENTATION_CAPABILITY: &str = "presentation-text-v1";
 /// Finite per-Play text occurrence budget. Eight admits the golden `hello`
 /// interaction plus a small edit/refusal margin without making the live source
 /// or Presenter unbounded.
@@ -61,35 +54,6 @@ pub fn text_presentation_inputs() -> Vec<PortDescriptor> {
     }]
 }
 
-pub fn text_presentation_offer() -> CapabilityOffer {
-    let contract = text_presentation_contract();
-    CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
-            name: "maximum-values".to_string(),
-            value_type: "Count".to_string(),
-            has_default: true,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from(TEXT_PRESENTATION_CAPABILITY),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(TEXT_PRESENTATION_CONTRACT_REVISION),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(TEXT_PRESENTATION_EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(TEXT_PRESENTATION_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(TEXT_PRESENTATION_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![present_host_operation_requirement(
-            kind_id("presentation/stdout-text"),
-            conduit_text::MAX_TEXT_BYTES,
-        )],
-        resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
-}
-
 #[cfg(feature = "form-catalog")]
 pub fn text_presentation_profile_catalog() -> conduit_form::ProfileCatalog {
     use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
@@ -120,20 +84,11 @@ mod tests {
     #[test]
     fn typed_text_presentation_contract_is_exact_and_hosted_only() {
         let contract = text_presentation_contract();
-        let offer = text_presentation_offer();
         assert_eq!(
             contract.inputs[0].value_kind.as_str(),
             TEXT_PRESENTATION_VALUE_KIND
         );
-        assert_eq!(offer.inputs, contract.inputs);
-        assert_eq!(
-            offer.implementation.implementation_id.as_str(),
-            TEXT_PRESENTATION_IMPLEMENTATION
-        );
-        assert_eq!(
-            offer.host_operations[0].maximum_input_bytes,
-            conduit_text::MAX_TEXT_BYTES
-        );
+        assert!(contract.outputs.is_empty());
         assert!(contract.browser_manifestation_honest);
         assert!(!contract.pico_manifestation_honest);
     }
