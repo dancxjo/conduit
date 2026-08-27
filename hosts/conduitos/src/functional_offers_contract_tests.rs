@@ -5,18 +5,45 @@ fn realization_preserves_portable_contract_and_bounds() {
     for (realized, portable) in [
         (
             logic_compare_scalar_offer(),
-            conduit_std_catalog::logic_compare_scalar_offer(),
+            portable_offer(
+                conduit_std_catalog::logic_compare_scalar_contract(),
+                conduit_std_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
+            ),
         ),
-        (logic_not_offer(), conduit_std_catalog::logic_not_offer()),
+        (
+            logic_not_offer(),
+            portable_offer(
+                conduit_std_catalog::logic_not_contract(),
+                conduit_std_catalog::LOGIC_NOT_CONTRACT_REVISION,
+            ),
+        ),
         (
             logic_select_scalar_offer(),
-            conduit_std_catalog::logic_select_scalar_offer(),
+            portable_offer(
+                conduit_std_catalog::logic_select_scalar_contract(),
+                conduit_std_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
+            ),
         ),
-        (math_clamp_offer(), conduit_std_catalog::math_clamp_offer()),
-        (math_scale_offer(), conduit_std_catalog::math_scale_offer()),
+        (
+            math_clamp_offer(),
+            portable_offer(
+                conduit_std_catalog::math_clamp_contract(),
+                conduit_std_catalog::MATH_CLAMP_CONTRACT_REVISION,
+            ),
+        ),
+        (
+            math_scale_offer(),
+            portable_offer(
+                conduit_std_catalog::math_scale_contract(),
+                conduit_std_catalog::MATH_SCALE_CONTRACT_REVISION,
+            ),
+        ),
         (
             math_deadband_offer(),
-            conduit_std_catalog::math_deadband_offer(),
+            portable_offer(
+                conduit_std_catalog::math_deadband_contract(),
+                conduit_std_catalog::MATH_DEADBAND_CONTRACT_REVISION,
+            ),
         ),
         (
             state_latest_scalar_offer(),
@@ -115,6 +142,25 @@ fn realization_preserves_portable_contract_and_bounds() {
                 .starts_with("conduitos/")
         );
     }
+}
+
+fn portable_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+) -> conduit_core::CapabilityOffer {
+    conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: "conduitos-test/portable-face",
+            execution_profile: "conduitos-test/portable-face@1",
+            implementation: "conduitos-test/portable-face@1",
+            artifact: "conduitos-test/portable-face@1",
+        },
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
 }
 
 #[test]

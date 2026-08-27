@@ -36,6 +36,7 @@ conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }
 conduit-synth = { path = "../../crates/conduit-synth" }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", default-features = false, features = ["body-coordination-plan", "form-catalog", "text-lab-plan"] }
+conduit-std-offers = { path = "offers" }
 conduit-time = { path = "../../crates/conduit-time" }
 conduit-text = { path = "../../crates/conduit-text", default-features = false }
 conduit-wire = { path = "../../crates/conduit-wire" }

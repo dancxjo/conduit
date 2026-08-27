@@ -416,11 +416,11 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         conduit_core::HostOperationContractId::from(conduit_std_catalog::CHORDS_HOST_OPERATION);
     let chords_target_kind = kind_id(conduit_std_catalog::CHORDS_HOST_TARGET);
     let math_clamp_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_catalog::MATH_CLAMP_HOST_OPERATION);
+        conduit_core::HostOperationContractId::from(conduit_std_offers::MATH_CLAMP_HOST_OPERATION);
     let math_scale_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_catalog::MATH_SCALE_HOST_OPERATION);
+        conduit_core::HostOperationContractId::from(conduit_std_offers::MATH_SCALE_HOST_OPERATION);
     let math_deadband_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_catalog::MATH_DEADBAND_HOST_OPERATION,
+        conduit_std_offers::MATH_DEADBAND_HOST_OPERATION,
     );
     let math_clamp_target_kind = kind_id(conduit_std_catalog::MATH_CLAMP_KIND);
     let math_scale_target_kind = kind_id(conduit_std_catalog::MATH_SCALE_KIND);

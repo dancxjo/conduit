@@ -154,8 +154,8 @@ mod tests {
         install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
         let definition = profile.get(&kind_id(KEYBOARD_KIND)).unwrap();
         assert_eq!(definition.outputs, keyboard_outputs());
-        assert!(crate::supported_nucleus_offers()
+        assert!(crate::supported_nucleus_contracts()
             .iter()
-            .all(|offer| offer.kind_id.as_str() != KEYBOARD_KIND));
+            .all(|contract| contract.kind_id.as_str() != KEYBOARD_KIND));
     }
 }

@@ -664,6 +664,7 @@ dependencies = [
  "conduit-form",
  "conduit-presentation",
  "conduit-std-catalog",
+ "conduit-std-offers",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -676,6 +677,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-host-fabrication",
  "conduit-std-catalog",
+ "conduit-std-offers",
 ]
 
 [[package]]
@@ -796,6 +798,7 @@ dependencies = [
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
+ "conduit-std-offers",
  "conduit-wire",
  "conduit-workspace-fabrication",
  "serde_json",
@@ -918,6 +921,7 @@ dependencies = [
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
+ "conduit-std-offers",
  "conduit-synth",
  "conduit-system-continuity",
  "conduit-text",
@@ -936,6 +940,14 @@ dependencies = [
  "tungstenite",
  "ureq",
  "uuid",
+]
+
+[[package]]
+name = "conduit-std-offers"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-std-catalog",
 ]
 
 [[package]]

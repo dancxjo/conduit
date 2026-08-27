@@ -25,8 +25,9 @@ pub const ROBOTICS_PROFILE: &str = "conduitos/robotics-prewake-fixed@1";
 
 pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     with_operation(
-        realize(
-            conduit_std_catalog::logic_compare_scalar_offer(),
+        realize_contract(
+            conduit_std_catalog::logic_compare_scalar_contract(),
+            conduit_std_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
             "conduitos/logic-compare-scalar@1",
             LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
         ),
@@ -39,8 +40,9 @@ pub fn logic_compare_scalar_offer() -> CapabilityOffer {
 
 pub fn logic_not_offer() -> CapabilityOffer {
     with_operation(
-        realize(
-            conduit_std_catalog::logic_not_offer(),
+        realize_contract(
+            conduit_std_catalog::logic_not_contract(),
+            conduit_std_catalog::LOGIC_NOT_CONTRACT_REVISION,
             "conduitos/logic-not@1",
             LOGIC_NOT_IMPLEMENTATION,
         ),
@@ -53,8 +55,9 @@ pub fn logic_not_offer() -> CapabilityOffer {
 
 pub fn logic_select_scalar_offer() -> CapabilityOffer {
     with_operation(
-        realize(
-            conduit_std_catalog::logic_select_scalar_offer(),
+        realize_contract(
+            conduit_std_catalog::logic_select_scalar_contract(),
+            conduit_std_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
             "conduitos/logic-select-scalar@1",
             LOGIC_SELECT_SCALAR_IMPLEMENTATION,
         ),
@@ -66,26 +69,47 @@ pub fn logic_select_scalar_offer() -> CapabilityOffer {
 }
 
 pub fn math_clamp_offer() -> CapabilityOffer {
-    realize(
-        conduit_std_catalog::math_clamp_offer(),
-        "conduitos/math-clamp-scalar@1",
-        MATH_CLAMP_IMPLEMENTATION,
+    with_operation(
+        realize_contract(
+            conduit_std_catalog::math_clamp_contract(),
+            conduit_std_catalog::MATH_CLAMP_CONTRACT_REVISION,
+            "conduitos/math-clamp-scalar@1",
+            MATH_CLAMP_IMPLEMENTATION,
+        ),
+        "conduit.host/math-clamp-scalar@1",
+        conduit_std_catalog::MATH_CLAMP_KIND,
+        conduit_core::SCALAR_ENCODED_LEN as u32,
+        conduit_core::SCALAR_ENCODED_LEN as u32,
     )
 }
 
 pub fn math_scale_offer() -> CapabilityOffer {
-    realize(
-        conduit_std_catalog::math_scale_offer(),
-        "conduitos-math-scale-scalar-v1",
-        "conduitos/kernel-math-scale-scalar@1",
+    with_operation(
+        realize_contract(
+            conduit_std_catalog::math_scale_contract(),
+            conduit_std_catalog::MATH_SCALE_CONTRACT_REVISION,
+            "conduitos-math-scale-scalar-v1",
+            "conduitos/kernel-math-scale-scalar@1",
+        ),
+        "conduit.host/math-scale-scalar@1",
+        conduit_std_catalog::MATH_SCALE_KIND,
+        conduit_core::SCALAR_ENCODED_LEN as u32,
+        conduit_core::SCALAR_ENCODED_LEN as u32,
     )
 }
 
 pub fn math_deadband_offer() -> CapabilityOffer {
-    realize(
-        conduit_std_catalog::math_deadband_offer(),
-        "conduitos-math-deadband-scalar-v1",
-        "conduitos/kernel-math-deadband-scalar@1",
+    with_operation(
+        realize_contract(
+            conduit_std_catalog::math_deadband_contract(),
+            conduit_std_catalog::MATH_DEADBAND_CONTRACT_REVISION,
+            "conduitos-math-deadband-scalar-v1",
+            "conduitos/kernel-math-deadband-scalar@1",
+        ),
+        "conduit.host/math-deadband-scalar@1",
+        conduit_std_catalog::MATH_DEADBAND_KIND,
+        conduit_core::SCALAR_ENCODED_LEN as u32,
+        conduit_core::SCALAR_ENCODED_LEN as u32,
     )
 }
 
@@ -340,12 +364,25 @@ fn realize_with(
     offer
 }
 
-fn realize(mut offer: CapabilityOffer, capability: &str, implementation: &str) -> CapabilityOffer {
-    offer.capability_id = CapabilityId::from(capability);
-    offer.implementation.execution_profile_id = ExecutionProfileId::from(FUNCTIONAL_KERNEL_PROFILE);
-    offer.implementation.implementation_id = ImplementationId::from(implementation);
-    offer.implementation.artifact_id = ArtifactId::from(FUNCTIONAL_KERNEL_ARTIFACT);
-    offer
+fn realize_contract(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+    capability: &str,
+    implementation: &str,
+) -> CapabilityOffer {
+    conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability,
+            execution_profile: FUNCTIONAL_KERNEL_PROFILE,
+            implementation,
+            artifact: FUNCTIONAL_KERNEL_ARTIFACT,
+        },
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
 }
 
 fn with_operation(

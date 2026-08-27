@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 pub struct HostedFabricationPackage;
 
 fn package_catalog() -> PackageCatalogContribution {
-    let implementations = conduit_std_catalog::supported_nucleus_offers()
+    let implementations = conduit_std_offers::supported_nucleus_offers()
         .into_iter()
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();

@@ -70,6 +70,7 @@ package_test_shard!(
     [
         "conduit-browser-host",
         "conduit-std-host",
+        "conduit-std-offers",
         "conduit-browser-runtime",
         "conduitos",
         "patchbay-hosted",

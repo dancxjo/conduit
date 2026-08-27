@@ -6,17 +6,17 @@ use conduit_kernel::{
 };
 
 pub(super) static MATH_CLAMP_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::MATH_CLAMP_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::MATH_CLAMP_IMPLEMENTATION,
     budget: clamp_budget,
     prepare: prepare_clamp,
 };
 pub(super) static MATH_SCALE_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::MATH_SCALE_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::MATH_SCALE_IMPLEMENTATION,
     budget: scale_budget,
     prepare: prepare_scale,
 };
 pub(super) static MATH_DEADBAND_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::MATH_DEADBAND_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::MATH_DEADBAND_IMPLEMENTATION,
     budget: deadband_budget,
     prepare: prepare_deadband,
 };
@@ -155,19 +155,19 @@ fn scalar_configuration(placement: &PlannedGear, key: &str) -> Result<Scalar, St
 }
 
 fn clamp_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    validate(placement, &conduit_std_catalog::math_clamp_offer(), 2)?;
+    validate(placement, &conduit_std_offers::math_clamp_offer(), 2)?;
     transform_for(placement)?;
     Ok(budget())
 }
 
 fn scale_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    validate(placement, &conduit_std_catalog::math_scale_offer(), 1)?;
+    validate(placement, &conduit_std_offers::math_scale_offer(), 1)?;
     transform_for(placement)?;
     Ok(budget())
 }
 
 fn deadband_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    validate(placement, &conduit_std_catalog::math_deadband_offer(), 1)?;
+    validate(placement, &conduit_std_offers::math_deadband_offer(), 1)?;
     transform_for(placement)?;
     Ok(budget())
 }

@@ -14,6 +14,7 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 mod functional_face;
+pub use functional_face::{realization_offer, RealizationOfferIdentity};
 mod keyboard;
 pub use keyboard::*;
 mod input_semantics;
@@ -356,11 +357,9 @@ mod supported_nucleus_tests {
     use alloc::collections::BTreeSet;
 
     #[test]
-    fn supported_nucleus_is_typed_hosted_and_identity_unique() {
+    fn supported_nucleus_contracts_are_typed_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
-        let offers = supported_nucleus_offers();
         assert_eq!(contracts.len(), 54);
-        assert_eq!(offers.len(), contracts.len());
 
         let identities = contracts
             .iter()
@@ -399,32 +398,12 @@ mod supported_nucleus_tests {
                 .chain(contract.outputs.iter())
                 .all(|port| port.value_kind.as_str() != "value/any"));
         }
-
-        for (contract, offer) in contracts.iter().zip(&offers) {
-            assert_eq!(offer.kind_id, contract.kind_id);
-            assert_eq!(offer.inputs, contract.inputs);
-            assert_eq!(offer.outputs, contract.outputs);
-            assert_eq!(offer.limits, contract.limits);
-        }
-
-        let offer_identities = offers
-            .iter()
-            .map(|offer| {
-                (
-                    offer.kind_contract_revision.as_str(),
-                    offer.implementation.implementation_id.as_str(),
-                    offer.implementation.artifact_id.as_str(),
-                )
-            })
-            .collect::<BTreeSet<_>>();
-        assert_eq!(offer_identities.len(), offers.len());
     }
 
     #[cfg(feature = "form-catalog")]
     #[test]
     fn portable_profile_revisions_are_exact_without_reading_host_offers() {
         let catalog = standard_profile_catalog();
-        let offers = supported_nucleus_offers();
 
         for (contract, revision) in supported_nucleus_contracts_with_revisions() {
             let definition = catalog
@@ -433,12 +412,6 @@ mod supported_nucleus_tests {
             assert_eq!(definition.kind_contract_revision.as_str(), revision);
             assert_eq!(definition.inputs, contract.inputs);
             assert_eq!(definition.outputs, contract.outputs);
-
-            let offer = offers
-                .iter()
-                .find(|offer| offer.kind_id == contract.kind_id)
-                .expect("current std offer remains exact during ownership migration");
-            assert_eq!(offer.kind_contract_revision.as_str(), revision);
         }
     }
 }
