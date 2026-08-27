@@ -1,6 +1,5 @@
 use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
-    TICK_VALUE_KIND, TIME_EVERY_COUNT,
 };
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -19,7 +18,7 @@ pub const STATE_TOGGLE_ARTIFACT: &str = "conduit-std-host/state-toggle@1";
 pub const STATE_TOGGLE_CAPABILITY: &str = "state-toggle-v1";
 pub const CONDUITOS_STATE_TOGGLE_CAPABILITY: &str = "conduitos-state-toggle-v1";
 pub const CONDUITOS_STATE_TOGGLE_IMPLEMENTATION: &str = "conduitos/kernel-state-toggle@1";
-pub const MAX_TOGGLE_VALUES: u64 = TIME_EVERY_COUNT + 1;
+pub const MAX_TOGGLE_VALUES: u64 = conduit_time::TIME_EVERY_COUNT + 1;
 
 pub const fn bounded_toggle_value(initial: bool, index: u64) -> Option<bool> {
     if index < MAX_TOGGLE_VALUES {
@@ -40,7 +39,7 @@ pub fn state_toggle_contract() -> StandardKindContract {
         summary: "Emit one initial Boolean and invert it after each closing-flow Tick.".to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("toggle"),
-            value_kind: kind_id(TICK_VALUE_KIND),
+            value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
         }],
@@ -57,7 +56,7 @@ pub fn state_toggle_contract() -> StandardKindContract {
         }],
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: TIME_EVERY_COUNT as u16,
+            max_queue_items: conduit_time::TIME_EVERY_COUNT as u16,
             max_queue_bytes: 64,
         },
         terminal_behavior: TerminalBehavior::EmitsInitialAndTogglesUntilInputCloses,
@@ -139,7 +138,10 @@ mod tests {
     #[test]
     fn toggle_is_exact_tick_to_current_boolean() {
         let contract = state_toggle_contract();
-        assert_eq!(contract.inputs[0].value_kind.as_str(), TICK_VALUE_KIND);
+        assert_eq!(
+            contract.inputs[0].value_kind.as_str(),
+            conduit_time::TICK_VALUE_KIND
+        );
         assert_eq!(
             contract.inputs[0].temporal,
             PortTemporal::Flow { closes: true }

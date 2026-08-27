@@ -16,7 +16,8 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_std_catalog::install_alife_catalogs(&mut startup, &mut profile)?;
-    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile)?;
+    conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
     install_distributed_lenia_catalogs(&mut startup, &mut profile)?;
 
@@ -26,7 +27,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
     let back_source = format!(
         "form alife/lenia-step (\n > initial: {}\n > tick: {}...|\n field: {}...| >\n) {{\n partition: {LENIA_PARTITION_KIND}\n region0: {LENIA_REGION_STEP_KIND}\n region1: {LENIA_REGION_STEP_KIND}\n region2: {LENIA_REGION_STEP_KIND}\n join: {LENIA_JOIN_KIND}\n initial > partition.initial\n tick > partition.tick\n partition.work0 > region0.work\n partition.work1 > region1.work\n partition.work2 > region2.work\n region0.result > join.result0\n region1.result > join.result1\n region2.result > join.result2\n join.field > field\n}}\n",
         conduit_core::SCALAR_FIELD2_INFO_ID,
-        conduit_std_catalog::TICK_VALUE_KIND,
+        conduit_time::TICK_VALUE_KIND,
         conduit_core::SCALAR_FIELD2_INFO_ID,
     );
     let back = check_syntax_document(&parse_syntax_document(&back_source), &startup)

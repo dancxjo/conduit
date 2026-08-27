@@ -22,7 +22,8 @@ impl TimerAdapter for RecordingTimer {
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
+    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
     conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }

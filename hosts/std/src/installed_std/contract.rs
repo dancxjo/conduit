@@ -13,25 +13,22 @@ pub(crate) use conduit_std_catalog::{
 };
 pub(crate) use conduit_text::MAX_TEXT_BYTES;
 
-pub(crate) const TICK_KIND: &str = "time/tick";
-pub(crate) const TICK_VALUE_KIND: &str = "value/tick@1";
-pub(super) const TICK_ENCODED_LEN: u32 = 8;
-pub(crate) const TICK_CONTRACT_REVISION: &str = "conduit.std/time-tick@2";
+pub(crate) const TICK_KIND: &str = conduit_time::TICK_KIND;
+pub(crate) const TICK_VALUE_KIND: &str = conduit_time::TICK_VALUE_KIND;
+pub(super) const TICK_ENCODED_LEN: u32 = conduit_time::TICK_ENCODED_LEN;
+pub(crate) const TICK_CONTRACT_REVISION: &str = conduit_time::TICK_CONTRACT_REVISION;
 pub(super) const TICK_EXECUTION_PROFILE: &str = "conduit.std/time-tick-kernel-hosted@2";
 pub(super) const TICK_IMPLEMENTATION: &str = "std/kernel-time-tick@2";
 pub(super) const TICK_ARTIFACT: &str = "conduit-std-host/time-tick@2";
 const TICK_CAPABILITY: &str = "time-tick-v2";
-const MAX_TICK_COUNT: u64 = 4_096;
 
 pub(super) use conduit_std_catalog::{
-    TIME_EVERY_ARTIFACT, TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_COUNT,
-    TIME_EVERY_EXECUTION_PROFILE, TIME_EVERY_IMPLEMENTATION, TIME_EVERY_KIND,
+    TIME_EVERY_ARTIFACT, TIME_EVERY_EXECUTION_PROFILE, TIME_EVERY_IMPLEMENTATION,
 };
-
-pub(super) struct TickConfiguration {
-    pub(super) count: u64,
-    pub(super) period_ms: u64,
-}
+pub(super) use conduit_time::{
+    decode_tick, encode_tick, TickConfiguration, TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_COUNT,
+    TIME_EVERY_KIND,
+};
 
 pub(crate) fn every_offer() -> CapabilityOffer {
     conduit_std_catalog::time_every_offer()
@@ -104,38 +101,7 @@ fn tick_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
 pub(super) fn parse_tick_configuration(
     entries: &[ConfigurationEntry],
 ) -> Result<TickConfiguration, String> {
-    let mut count = None;
-    let mut period_ms = None;
-    for entry in entries {
-        match (entry.key.as_str(), &entry.value) {
-            ("count", ConfigurationValue::U64(value)) => count = Some(*value),
-            ("period-ms", ConfigurationValue::U64(value)) => period_ms = Some(*value),
-            ("count", _) => return Err("invalid tick configuration 'count'".to_string()),
-            ("period-ms", _) => {
-                return Err("invalid tick configuration 'period-ms'".to_string());
-            }
-            _ => {}
-        }
-    }
-    let count = count.ok_or_else(|| "missing tick configuration 'count'".to_string())?;
-    if count > MAX_TICK_COUNT {
-        return Err("invalid tick configuration 'count'".to_string());
-    }
-    Ok(TickConfiguration {
-        count,
-        period_ms: period_ms.ok_or_else(|| "missing tick configuration 'period-ms'".to_string())?,
-    })
-}
-
-pub(super) fn encode_tick(sequence: u64) -> [u8; TICK_ENCODED_LEN as usize] {
-    sequence.to_le_bytes()
-}
-
-pub(super) fn decode_tick(encoded: &[u8]) -> Result<u64, String> {
-    let bytes: [u8; TICK_ENCODED_LEN as usize] = encoded
-        .try_into()
-        .map_err(|_| format!("tick payload is {} bytes, expected 8", encoded.len()))?;
-    Ok(u64::from_le_bytes(bytes))
+    conduit_time::parse_tick_configuration(entries).map_err(|error| error.to_string())
 }
 
 #[cfg(test)]
@@ -155,7 +121,7 @@ pub(super) fn test_tick_catalog() -> conduit_form::ProfileCatalog {
                     default_value: ConfigurationValue::U64(4),
                     validation: ConfigurationRule::U64Range {
                         minimum: 0,
-                        maximum: MAX_TICK_COUNT,
+                        maximum: conduit_time::MAX_TICK_COUNT,
                     },
                 },
                 ConfigurationField {

@@ -50,7 +50,7 @@ impl StateCountOperation {
                 port: PortId(0),
                 value,
             } if self.initial_emitted
-                && value.byte_len == conduit_std_catalog::TICK_ENCODED_LEN
+                && value.byte_len == conduit_time::TICK_ENCODED_LEN
                 && self.next + 1 < self.values.len() =>
             {
                 self.next += 1;
@@ -213,7 +213,7 @@ fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
         conduit_std_catalog::STATE_COUNT_IMPLEMENTATION,
         conduit_std_catalog::STATE_COUNT_ARTIFACT,
         "bump",
-        conduit_std_catalog::TICK_VALUE_KIND,
+        conduit_time::TICK_VALUE_KIND,
         PortTemporal::Flow { closes: true },
         Some((
             "value",
@@ -224,7 +224,7 @@ fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
     count_configuration(
         placement,
         "start",
-        u64::MAX - conduit_std_catalog::TIME_EVERY_COUNT,
+        u64::MAX - conduit_time::TIME_EVERY_COUNT,
     )
     .map(|_| ())
 }

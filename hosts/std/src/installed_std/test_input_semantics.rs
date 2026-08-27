@@ -300,7 +300,7 @@ fn prepare_source(
     let waits = (0..specs.len())
         .map(|_| {
             values
-                .store(&conduit_std_catalog::encode_tick(0))
+                .store(&conduit_time::encode_tick(0))
                 .map_err(|error| format!("store test key wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;

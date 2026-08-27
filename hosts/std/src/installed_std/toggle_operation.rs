@@ -29,9 +29,7 @@ impl StateToggleOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if self.initial_emitted
-                && value.byte_len == conduit_std_catalog::TICK_ENCODED_LEN =>
-            {
+            } if self.initial_emitted && value.byte_len == conduit_time::TICK_ENCODED_LEN => {
                 self.next += 1;
                 self.values.get(self.next).copied().map_or_else(
                     || InstalledOperation::fail(35),
@@ -114,7 +112,7 @@ fn validate_state_toggle(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs.len() != 1
         || !input.is_some_and(|port| {
             port.port_id.as_str() == "toggle"
-                && port.value_kind.as_str() == conduit_std_catalog::TICK_VALUE_KIND
+                && port.value_kind.as_str() == conduit_time::TICK_VALUE_KIND
                 && port.direction == PortDirection::Input
                 && port.temporal == PortTemporal::Flow { closes: true }
         })
@@ -177,7 +175,7 @@ mod tests {
             assert_eq!(
                 toggle.resume(OperationInput::Value {
                     port: PortId(0),
-                    value: value(20, conduit_std_catalog::TICK_ENCODED_LEN),
+                    value: value(20, conduit_time::TICK_ENCODED_LEN),
                 }),
                 OperationAction::Emit {
                     port: PortId(0),
@@ -197,7 +195,7 @@ mod tests {
         for input in [
             OperationInput::Value {
                 port: PortId(0),
-                value: value(20, conduit_std_catalog::TICK_ENCODED_LEN),
+                value: value(20, conduit_time::TICK_ENCODED_LEN),
             },
             OperationInput::Closed { port: PortId(0) },
         ] {
@@ -216,11 +214,11 @@ mod tests {
         for input in [
             OperationInput::Value {
                 port: PortId(1),
-                value: value(20, conduit_std_catalog::TICK_ENCODED_LEN),
+                value: value(20, conduit_time::TICK_ENCODED_LEN),
             },
             OperationInput::Value {
                 port: PortId(0),
-                value: value(20, conduit_std_catalog::TICK_ENCODED_LEN - 1),
+                value: value(20, conduit_time::TICK_ENCODED_LEN - 1),
             },
         ] {
             assert_eq!(

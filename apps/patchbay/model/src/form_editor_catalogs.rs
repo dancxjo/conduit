@@ -9,7 +9,9 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Fo
     let mut profile = ProfileCatalog::new();
     conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
-    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile)
+    conduit_time::install_time_every_catalog(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
+    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     conduit_std_catalog::install_timing_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;

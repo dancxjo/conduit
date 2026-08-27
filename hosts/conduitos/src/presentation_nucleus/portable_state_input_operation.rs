@@ -63,7 +63,7 @@ impl Operation for PortableStateInputOperation {
                     value,
                 },
             ) if *initial_emitted
-                && value.byte_len == conduit_std_catalog::TICK_ENCODED_LEN
+                && value.byte_len == conduit_time::TICK_ENCODED_LEN
                 && *next == 0 =>
             {
                 *next = 1;
@@ -83,7 +83,7 @@ impl Operation for PortableStateInputOperation {
                     value,
                 },
             ) if *initial_emitted
-                && value.byte_len == conduit_std_catalog::TICK_ENCODED_LEN
+                && value.byte_len == conduit_time::TICK_ENCODED_LEN
                 && *next == 0 =>
             {
                 *next = 1;

@@ -30,8 +30,7 @@ impl TickPresentationOperation {
             } if self.pending.is_none() && self.next < self.maximum_values => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                let Ok(input) = BoundedValueRef::new(value, conduit_std_catalog::TICK_ENCODED_LEN)
-                else {
+                let Ok(input) = BoundedValueRef::new(value, conduit_time::TICK_ENCODED_LEN) else {
                     return InstalledOperation::fail(9);
                 };
                 OperationAction::RequestHostOperation {
@@ -75,7 +74,7 @@ fn maximum_values(placement: &PlannedGear) -> Result<u64, String> {
             ("maximum-values", ConfigurationValue::U64(value)) => Some(*value),
             _ => None,
         })
-        .filter(|value| (1..=conduit_std_catalog::TIME_EVERY_COUNT).contains(value))
+        .filter(|value| (1..=conduit_time::TIME_EVERY_COUNT).contains(value))
         .ok_or_else(|| "presentation/tick maximum-values is missing or invalid".to_string())
 }
 
@@ -91,7 +90,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs.len() != 1
         || !placement.outputs.is_empty()
         || placement.inputs[0].port_id.as_str() != "tick"
-        || placement.inputs[0].value_kind.as_str() != conduit_std_catalog::TICK_VALUE_KIND
+        || placement.inputs[0].value_kind.as_str() != conduit_time::TICK_VALUE_KIND
         || placement.inputs[0].direction != PortDirection::Input
     {
         return Err(
@@ -109,7 +108,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: 0,
         host_requests: maximum as usize,
         sign_items: 64,
-        maximum_value_bytes: conduit_std_catalog::TICK_ENCODED_LEN,
+        maximum_value_bytes: conduit_time::TICK_ENCODED_LEN,
     })
 }
 

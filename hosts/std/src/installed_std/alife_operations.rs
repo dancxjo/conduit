@@ -120,7 +120,7 @@ impl LeniaStepOperation {
                 request_id,
                 HostOperationId(1),
                 value,
-                conduit_std_catalog::TICK_ENCODED_LEN,
+                conduit_time::TICK_ENCODED_LEN,
             );
         }
         fail(FailureCode::InvalidLifecycle, 184)
