@@ -470,7 +470,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
-          targets: x86_64-unknown-none
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
@@ -527,7 +527,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
-          targets: ${{ matrix.architecture == 'aarch64' && 'aarch64-unknown-none' || matrix.architecture == 'ia32' && 'i686-unknown-uefi,i686-unknown-linux-gnu' || matrix.architecture == 'riscv64' && 'riscv64gc-unknown-none-elf' || 'loongarch64-unknown-none' }}
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
@@ -567,7 +567,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
-          targets: aarch64-unknown-none
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
