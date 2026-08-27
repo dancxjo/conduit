@@ -188,9 +188,9 @@ pub(super) fn build_advertisement(
     }
     if composition.text {
         capabilities.extend([
-            conduit_std_catalog::text_literal_offer(),
-            conduit_std_catalog::text_upper_offer(),
-            conduit_std_catalog::text_join_offer(),
+            conduit_std_offers::text_literal_offer(),
+            conduit_std_offers::text_upper_offer(),
+            conduit_std_offers::text_join_offer(),
             installed_std::text_offer(),
         ]);
     }

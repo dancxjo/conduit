@@ -163,7 +163,7 @@ pub(crate) fn advertisement(
         })
         || fixed.capabilities[3].required_base != crate::machine::BaseKind::Memory
         || fixed.capabilities[3].host_operation
-            != Some(conduit_std_catalog::TEXT_UPPER_HOST_OPERATION_CONTRACT)
+            != Some(crate::functional_offers::TEXT_UPPER_HOST_OPERATION)
         || fixed.capabilities[3].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[3].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[4].required_base != crate::machine::BaseKind::Serial
@@ -181,14 +181,14 @@ pub(crate) fn advertisement(
     {
         return Err(PreparationError::OfferMismatch);
     }
-    let mut literal = conduit_std_catalog::text_literal_offer();
+    let mut literal = crate::functional_offers::text_literal_offer();
     bind_native_capability(
         &mut literal,
         &fixed.capabilities[2],
         build_id,
         "text-literal",
     );
-    let mut upper = conduit_std_catalog::text_upper_offer();
+    let mut upper = crate::functional_offers::text_upper_offer();
     bind_native_capability(&mut upper, &fixed.capabilities[3], build_id, "text-upper");
     let mut presentation = crate::presentation_offers::presentation_offer_for(
         conduit_std_catalog::TEXT_PRESENTATION_KIND,

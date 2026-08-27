@@ -68,7 +68,33 @@ pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> 
     let expanded = expand_canonical_form(&checked, "tongues_text_to_speech", &profile)
         .map_err(|error| error.to_string())?;
     let mut fixture = speech_host_fixture(condition);
-    let mut literal_offer = conduit_std_catalog::text_literal_offer();
+    let literal_contract = conduit_text::text_literal_semantics();
+    let mut literal_offer = conduit_core::CapabilityOffer {
+        startup_parameters: vec![conduit_core::FaceStartupParameter {
+            name: "value".into(),
+            value_type: "Text".into(),
+            has_default: false,
+        }],
+        shorthand: None,
+        capability_id: conduit_core::CapabilityId::from("tongues/text-literal-fixture@1"),
+        kind_id: literal_contract.kind_id,
+        kind_contract_revision: literal_contract.kind_contract_revision,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: conduit_core::ExecutionProfileId::from(
+                "tongues/speech-fixture@1",
+            ),
+            implementation_id: conduit_core::ImplementationId::from(
+                "tongues/text-literal-fixture@1",
+            ),
+            artifact_id: conduit_core::ArtifactId::from("tongues/speech-fixture@1"),
+        },
+        inputs: literal_contract.inputs,
+        outputs: literal_contract.outputs,
+        host_operations: Vec::new(),
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: literal_contract.limits,
+    };
     literal_offer.limits.max_queue_bytes = crate::MAXIMUM_PCM_BYTES;
     fixture.advertisement.capabilities.push(literal_offer);
     let placements =

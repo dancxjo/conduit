@@ -51,7 +51,7 @@ fn hosts() -> (
                 "text-lab/native-keyboard@1",
             ),
             conduit_std_catalog::keymap_offer(),
-            conduit_std_catalog::text_upper_offer(),
+            super::browser_text_upper_offer(),
             super::offer_composition::text_offer(),
         ],
     };

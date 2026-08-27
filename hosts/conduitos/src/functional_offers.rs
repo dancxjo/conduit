@@ -4,10 +4,10 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, TIMER_RESOURCE_CLASS, kind_id,
-    monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
-    resource_requirement, wait_host_operation_requirement,
+    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, TIMER_RESOURCE_CLASS,
+    kind_id, monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
+    port_id, resource_requirement, wait_host_operation_requirement,
 };
 
 pub const FUNCTIONAL_KERNEL_PROFILE: &str = "conduitos/functional-kernel@1";
@@ -24,6 +24,12 @@ pub const STATE_SELECT_SCALAR_IMPLEMENTATION: &str = "conduitos/kernel-state-sel
 pub const PORTABLE_STATE_INPUT_PROFILE: &str = "conduitos/portable-state-input-fixed@1";
 pub const PORTABLE_STATE_INPUT_ARTIFACT: &str = "conduitos/portable-state-input@1";
 pub const ROBOTICS_PROFILE: &str = "conduitos/robotics-prewake-fixed@1";
+pub const TEXT_PROFILE: &str = "conduitos/bounded-host-operations@1";
+pub const TEXT_ARTIFACT: &str = "conduitos/bounded-host-operations@1";
+pub const TEXT_UPPER_HOST_OPERATION: &str = "conduit.host/text-upper@1";
+pub const TEXT_UPPER_HOST_OPERATION_TARGET: &str = "text/uppercase-utf8";
+pub const TEXT_JOIN_HOST_OPERATION: &str = "conduit.host/text-join@1";
+pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
 
 pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     with_operation(
@@ -185,11 +191,41 @@ pub fn key_event_tee_offer() -> CapabilityOffer {
     )
 }
 
+pub fn text_literal_offer() -> CapabilityOffer {
+    text_offer(
+        conduit_text::text_literal_semantics(),
+        "conduitos-text-literal-v1",
+        "conduitos/kernel-text-literal@1",
+        vec![FaceStartupParameter {
+            name: "value".into(),
+            value_type: "Text".into(),
+            has_default: false,
+        }],
+        None,
+    )
+}
+
+pub fn text_upper_offer() -> CapabilityOffer {
+    text_offer(
+        conduit_text::text_upper_semantics(),
+        "conduitos-text-upper-v1",
+        "conduitos/kernel-text-upper@1",
+        Vec::new(),
+        Some((TEXT_UPPER_HOST_OPERATION, TEXT_UPPER_HOST_OPERATION_TARGET)),
+    )
+}
+
 pub fn text_join_offer() -> CapabilityOffer {
-    bounded_host_operation(
-        conduit_std_catalog::text_join_offer(),
+    text_offer(
+        conduit_text::text_join_semantics(),
         "conduitos-text-join-v1",
         "conduitos/kernel-text-join@1",
+        vec![FaceStartupParameter {
+            name: "prefix".into(),
+            value_type: "Text".into(),
+            has_default: false,
+        }],
+        Some((TEXT_JOIN_HOST_OPERATION, TEXT_JOIN_HOST_OPERATION_TARGET)),
     )
 }
 
@@ -374,6 +410,45 @@ fn bounded_host_operation(
         implementation,
         "conduitos/bounded-host-operations@1",
     )
+}
+
+fn text_offer(
+    contract: conduit_text::TextKindContract,
+    capability: &str,
+    implementation: &str,
+    startup_parameters: Vec<FaceStartupParameter>,
+    host_operation: Option<(&str, &str)>,
+) -> CapabilityOffer {
+    let host_operations = host_operation
+        .map(|(contract, target)| HostOperationRequirement {
+            contract_id: HostOperationContractId::from(contract),
+            target_kind: Some(kind_id(target)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
+            maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
+        })
+        .into_iter()
+        .collect();
+    let shorthand = (!contract.inputs.is_empty() && !contract.outputs.is_empty())
+        .then(|| (port_id("text"), port_id("text")));
+    CapabilityOffer {
+        startup_parameters,
+        shorthand,
+        capability_id: CapabilityId::from(capability),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(TEXT_ARTIFACT),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations,
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 fn timing_offer(
