@@ -3,7 +3,7 @@
 //! A ready occurrence reveals the exact bounded `JobRequest`; it never grants
 //! the executable resource or execution authority required by `process/run-bounded`.
 
-use conduit_core::{ScheduledIntent, ScheduledIntentRefusal, ScheduledOccurrenceDecision};
+use conduit_time::{ScheduledIntent, ScheduledIntentRefusal, ScheduledOccurrenceDecision};
 
 use crate::{JobRequest, JobRequestRefusal};
 

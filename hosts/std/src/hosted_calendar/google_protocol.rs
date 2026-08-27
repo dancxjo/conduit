@@ -407,10 +407,10 @@ pub(super) fn validate_event(
     event: &GoogleWireEvent,
     requires_provider_identity: bool,
 ) -> Result<(), GoogleCalendarRefusal> {
-    if event.summary.len() > conduit_core::MAXIMUM_CALENDAR_TEXT_BYTES
-        || event.description.len() > conduit_core::MAXIMUM_CALENDAR_TEXT_BYTES
-        || event.location.len() > conduit_core::MAXIMUM_CALENDAR_TEXT_BYTES
-        || event.attendees.len() > conduit_core::MAXIMUM_EVENT_PARTICIPANTS
+    if event.summary.len() > conduit_time::MAXIMUM_CALENDAR_TEXT_BYTES
+        || event.description.len() > conduit_time::MAXIMUM_CALENDAR_TEXT_BYTES
+        || event.location.len() > conduit_time::MAXIMUM_CALENDAR_TEXT_BYTES
+        || event.attendees.len() > conduit_time::MAXIMUM_EVENT_PARTICIPANTS
         || event.recurrence.len() > GOOGLE_CALENDAR_MAXIMUM_RECURRENCE_RULES
         || (requires_provider_identity
             && event

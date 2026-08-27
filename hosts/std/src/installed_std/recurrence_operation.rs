@@ -3,8 +3,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::recurrence_codec;
 use super::recurrence_encoding;
-use conduit_core::{ConfigurationValue, PlannedGear, RecurrenceRule, StructuredInfoValue};
+use conduit_core::{ConfigurationValue, PlannedGear, StructuredInfoValue};
 use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
+use conduit_time::RecurrenceRule;
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_catalog::RECURRENCE_STD_IMPLEMENTATION,
@@ -87,7 +88,7 @@ fn validate(placement: &PlannedGear) -> Result<recurrence_codec::DecodedRecurren
 
 fn expand(
     request: &recurrence_codec::DecodedRecurrence,
-) -> Result<Vec<conduit_core::RecurrenceOccurrence>, String> {
+) -> Result<Vec<conduit_time::RecurrenceOccurrence>, String> {
     let result = match request.definition.rule {
         RecurrenceRule::CivilWeekdays { .. } => request.definition.expand_civil(
             &request.expansion,

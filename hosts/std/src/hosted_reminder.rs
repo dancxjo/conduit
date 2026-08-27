@@ -4,12 +4,12 @@
 //! temporal contract decides readiness; this boundary checks delivery authority
 //! and performs exactly one adapter call.
 
-use conduit_core::{
-    AuthorityBinding, ReminderOccurrence, ScheduledIntent, ScheduledIntentRefusal,
-    ScheduledOccurrenceDecision,
-};
+use conduit_core::AuthorityBinding;
 use conduit_std_catalog::{
     REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND, REMINDER_DELIVER_OPERATION,
+};
+use conduit_time::{
+    ReminderOccurrence, ScheduledIntent, ScheduledIntentRefusal, ScheduledOccurrenceDecision,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

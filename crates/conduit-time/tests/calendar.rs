@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_time::{
     AvailabilityBasis, AvailabilityInterval, AvailabilityState, CalendarEvent, CalendarEventTime,
     CalendarRefusal, InvitationEvidence, InvitationState, LocalDate, LocalDateTime, LocalTime,
     MeetingCandidate, MeetingProposalRefusal, MeetingProposalRequest, NamedTimeZone, Participant,

@@ -1,15 +1,17 @@
 use conduit_ai::{ModelEffectProposal, ModelFollowUpTimingProposal, ModelResultProvenance};
 use conduit_core::{
-    kind_id, BoundedResourceRef, CalendarEvent, CalendarEventTime, CivilTrigger,
-    ClockChangeBehavior, KindId, LocalDate, LocalDateTime, LocalTime, MissedOccurrencePolicy,
-    NamedTimeZone, PlanId, RecurrenceDefinition, RecurrenceExpansion, RecurrenceRule,
-    RecurrenceWindow, ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
-    ResourceVersionIdentity, ScheduledIntent, TemporalBoundary, TemporalInstant, TemporalScale,
-    TemporalWindow, TimedCalendarSpan, TriggerProfile,
+    kind_id, BoundedResourceRef, KindId, PlanId, ResourceClassId, ResourceExtent, ResourceLifetime,
+    ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_std_catalog::{
     validate_scheduled_job, JobOutputProfile, JobRequest, JOB_EXECUTABLE_ACCESS_CLASS,
     JOB_EXECUTABLE_CONTENT_PROFILE,
+};
+use conduit_time::{
+    CalendarEvent, CalendarEventTime, CivilTrigger, ClockChangeBehavior, LocalDate, LocalDateTime,
+    LocalTime, MissedOccurrencePolicy, NamedTimeZone, RecurrenceDefinition, RecurrenceExpansion,
+    RecurrenceRule, RecurrenceWindow, ScheduledIntent, TemporalBoundary, TemporalInstant,
+    TemporalScale, TemporalWindow, TimedCalendarSpan, TriggerProfile,
 };
 
 #[test]

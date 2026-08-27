@@ -470,6 +470,7 @@ dependencies = [
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
+ "conduit-time",
  "conduit-web",
  "libm",
  "serde",
@@ -789,6 +790,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-time",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -960,6 +962,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "serde",
 ]
 
 [[package]]

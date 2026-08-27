@@ -1,8 +1,8 @@
-use conduit_core::{
-    BootId, HostId, LocalDate, LocalTime, MonotonicClockIdentity, MonotonicDuration,
-    MonotonicInstant, NamedTimeZone, OccurrenceInstant, RecurrenceDefinition, RecurrenceExpansion,
-    RecurrenceRefusal, RecurrenceRule, RecurrenceUntil, RecurrenceWindow, TemporalInstant,
-    TemporalScale, WeekdaySet,
+use conduit_core::{BootId, HostId};
+use conduit_time::{
+    LocalDate, LocalTime, MonotonicClockIdentity, MonotonicDuration, MonotonicInstant,
+    NamedTimeZone, OccurrenceInstant, RecurrenceDefinition, RecurrenceExpansion, RecurrenceRefusal,
+    RecurrenceRule, RecurrenceUntil, RecurrenceWindow, TemporalInstant, TemporalScale, WeekdaySet,
 };
 
 fn clock(boot: &str) -> MonotonicClockIdentity {

@@ -303,6 +303,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-form",
+ "conduit-time",
  "serde",
  "sha2",
 ]
@@ -368,6 +369,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "serde",
 ]
 
 [[package]]

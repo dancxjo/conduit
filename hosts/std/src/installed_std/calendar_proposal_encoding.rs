@@ -1,8 +1,8 @@
 //! Canonical bounded encoding of an inert meeting proposal.
 
-use conduit_core::{
-    AvailabilityState, MeetingProposal, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue, TemporalInstant, TemporalScale, TemporalWindow,
+use conduit_core::{StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue};
+use conduit_time::{
+    AvailabilityState, MeetingProposal, TemporalInstant, TemporalScale, TemporalWindow,
 };
 
 pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
@@ -109,7 +109,7 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
         .map_err(|error| format!("encode calendar proposal: {error:?}"))
 }
 
-fn proposed_slot(value: &conduit_core::ProposedMeetingSlot) -> Result<StructuredInfoValue, String> {
+fn proposed_slot(value: &conduit_time::ProposedMeetingSlot) -> Result<StructuredInfoValue, String> {
     let value_type = conduit_std_catalog::calendar_proposed_slot_type();
     conduit_std_catalog::record_value(
         value_type.clone(),

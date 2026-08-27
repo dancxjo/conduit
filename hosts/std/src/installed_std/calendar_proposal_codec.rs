@@ -1,10 +1,10 @@
 //! Exact conversion between structured calendar request Info and core semantics.
 
-use conduit_core::{
+use conduit_core::{StructuredFieldValue, StructuredInfoValue, StructuredInfoValueShape};
+use conduit_time::{
     AvailabilityBasis, AvailabilityInterval, AvailabilityState, MeetingCandidate,
-    MeetingProposalRequest, NamedTimeZone, ParticipantAvailability, StructuredFieldValue,
-    StructuredInfoValue, StructuredInfoValueShape, TemporalBoundary, TemporalInstant,
-    TemporalScale, TemporalWindow,
+    MeetingProposalRequest, NamedTimeZone, ParticipantAvailability, TemporalBoundary,
+    TemporalInstant, TemporalScale, TemporalWindow,
 };
 
 pub(super) struct DecodedCalendarProposal {

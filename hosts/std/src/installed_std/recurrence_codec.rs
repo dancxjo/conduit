@@ -1,11 +1,14 @@
 //! Exact conversion between structured recurrence Info and core temporal semantics.
 
 use conduit_core::{
-    BootId, CivilFoldPolicy, CivilGapPolicy, CivilOccurrenceResolution, CivilResolutionChoice,
-    CivilResolutionPolicy, HostId, LocalDate, LocalDateTime, LocalTime, MonotonicClockIdentity,
+    BootId, HostId, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    StructuredInfoValueShape,
+};
+use conduit_time::{
+    CivilFoldPolicy, CivilGapPolicy, CivilOccurrenceResolution, CivilResolutionChoice,
+    CivilResolutionPolicy, LocalDate, LocalDateTime, LocalTime, MonotonicClockIdentity,
     MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant, RecurrenceDefinition,
-    RecurrenceExpansion, RecurrenceRule, RecurrenceUntil, RecurrenceWindow, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape, TemporalInstant,
+    RecurrenceExpansion, RecurrenceRule, RecurrenceUntil, RecurrenceWindow, TemporalInstant,
     TemporalScale, WeekdaySet, ZonedResolution,
 };
 
