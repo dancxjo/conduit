@@ -327,6 +327,17 @@ pub struct StdHost {
     next_kernel_sign_sequence: u64,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct IssuedKernelPlay {
+    identity: conduit_core::ActivePlayIdentity,
+}
+
+impl IssuedKernelPlay {
+    pub fn identity(&self) -> &conduit_core::ActivePlayIdentity {
+        &self.identity
+    }
+}
+
 impl Default for StdHost {
     fn default() -> Self {
         Self::new()
@@ -334,6 +345,28 @@ impl Default for StdHost {
 }
 
 impl StdHost {
+    pub fn issue_kernel_play(
+        &mut self,
+        fragment: &PlanFragment,
+    ) -> Result<IssuedKernelPlay, String> {
+        if fragment.host_id != self.advertisement.host_id
+            || fragment.boot_id != self.advertisement.boot_id
+        {
+            return Err("Plan fragment is stale for this Host boot".to_string());
+        }
+        let play_sequence = self.next_kernel_play_sequence;
+        self.next_kernel_play_sequence = play_sequence
+            .checked_add(1)
+            .ok_or_else(|| "kernel Play sequence exhausted".to_string())?;
+        Ok(IssuedKernelPlay {
+            identity: conduit_core::bind_active_play(
+                &fragment.plan_id,
+                &fragment.host_id,
+                &fragment.boot_id,
+                play_sequence,
+            ),
+        })
+    }
     pub fn new() -> Self {
         Self::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-1"),
@@ -842,10 +875,8 @@ impl StdHost {
             .kernel_resources
             .prepare_and_reserve(&advertisement, &fragment)?;
         let result = (|| {
-            let play_sequence = self.next_kernel_play_sequence;
-            self.next_kernel_play_sequence = play_sequence
-                .checked_add(1)
-                .ok_or_else(|| "kernel Play sequence exhausted".to_string())?;
+            let play = self.issue_kernel_play(&fragment)?;
+            let play_sequence = play.identity.play_sequence;
             if installed_standard {
                 installed_std::run_fragment(
                     installed_std::InstalledRunHost {

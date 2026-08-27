@@ -484,8 +484,10 @@ fn protected_use_revalidates_the_exact_current_grant() {
             ProtectedFileAvailability::Denied,
         )
         .unwrap();
+    let play = host.issue_kernel_play(&prepared.fragment).unwrap();
     let receipt = host
         .run_copy_fragment(
+            play,
             CopyRequestId::new("request/stale-grant").unwrap(),
             prepared.fragment,
             &mut registry,

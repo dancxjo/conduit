@@ -1,4 +1,5 @@
 use conduit_core::{ActivePlayId, BootId, CheckedFormId, HostId, PlanId, ResourceHandleId};
+use conduit_std_host::IssuedKernelPlay;
 use std::sync::mpsc::{self, TryRecvError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,13 +27,18 @@ pub(crate) trait ProtectedTaskAdapter: Send + 'static {
     type Stop: StopRequest;
 
     fn stop(&self) -> Self::Stop;
-    fn execute(self, identity: &ProtectedTaskIdentity) -> Result<Self::Receipt, String>;
+    fn execute_admitted_effects(
+        self,
+        request_id: &str,
+        play: IssuedKernelPlay,
+    ) -> Result<Self::Receipt, String>;
 }
 
 pub(crate) struct PreparedProtectedTask<A: ProtectedTaskAdapter> {
     identity: ProtectedTaskIdentity,
     form: conduit_form::CheckedForm,
     plan: conduit_core::Plan,
+    play: IssuedKernelPlay,
     adapter: A,
 }
 
@@ -42,6 +48,7 @@ impl<A: ProtectedTaskAdapter> PreparedProtectedTask<A> {
         resource_binding_ids: Vec<ResourceHandleId>,
         form: conduit_form::CheckedForm,
         plan: conduit_core::Plan,
+        play: IssuedKernelPlay,
         adapter: A,
     ) -> Result<Self, String> {
         let request_id = request_id.into();
@@ -90,10 +97,18 @@ impl<A: ProtectedTaskAdapter> PreparedProtectedTask<A> {
             request_id,
             resource_binding_ids,
         };
+        let issued = play.identity();
+        if issued.plan_id != identity.plan_id
+            || issued.host_id != identity.host_id
+            || issued.boot_id != identity.boot_id
+        {
+            return Err("protected task Play identity does not match its immutable Plan".into());
+        }
         Ok(Self {
             identity,
             form,
             plan,
+            play,
             adapter,
         })
     }
@@ -115,10 +130,13 @@ impl<A: ProtectedTaskAdapter> PreparedProtectedTask<A> {
     }
 
     pub(crate) fn run(self) -> Result<A::Receipt, String> {
-        let receipt = self.adapter.execute(&self.identity)?;
+        let expected_play_id = self.play.identity().active_play_id.clone();
+        let receipt = self
+            .adapter
+            .execute_admitted_effects(&self.identity.request_id, self.play)?;
         if receipt.request_id() != self.identity.request_id
             || receipt.plan_id() != &self.identity.plan_id
-            || receipt.play_id().as_str().is_empty()
+            || receipt.play_id() != &expected_play_id
         {
             return Err(
                 "protected task terminal receipt has stale or mismatched identity".to_string(),
@@ -182,21 +200,23 @@ mod tests {
 
     struct CounterAdapter {
         stop: TestStop,
+        stale_receipt: bool,
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     struct CounterReceipt {
-        identity: ProtectedTaskIdentity,
+        request_id: String,
+        plan_id: PlanId,
         play_id: ActivePlayId,
     }
 
     impl ProtectedTaskReceipt for CounterReceipt {
         fn request_id(&self) -> &str {
-            &self.identity.request_id
+            &self.request_id
         }
 
         fn plan_id(&self) -> &PlanId {
-            &self.identity.plan_id
+            &self.plan_id
         }
 
         fn play_id(&self) -> &ActivePlayId {
@@ -212,20 +232,29 @@ mod tests {
             self.stop.clone()
         }
 
-        fn execute(self, identity: &ProtectedTaskIdentity) -> Result<Self::Receipt, String> {
+        fn execute_admitted_effects(
+            self,
+            request_id: &str,
+            play: IssuedKernelPlay,
+        ) -> Result<Self::Receipt, String> {
             while !self.stop.0.load(Ordering::Acquire) {
                 std::thread::yield_now();
             }
             Ok(CounterReceipt {
-                identity: identity.clone(),
-                play_id: ActivePlayId::from("counter/play-1"),
+                request_id: request_id.to_string(),
+                plan_id: if self.stale_receipt {
+                    PlanId::from("stale-plan")
+                } else {
+                    play.identity().plan_id.clone()
+                },
+                play_id: play.identity().active_play_id.clone(),
             })
         }
     }
 
     #[test]
     fn non_filesystem_adapter_prepares_runs_stops_and_returns_exact_receipt() {
-        let host = conduit_std_host::StdHost::new();
+        let mut host = conduit_std_host::StdHost::new();
         let prepared =
             conduit_std_host::prepare_copy_task(&host, &test_protected_grants(&host)).unwrap();
         let expected_checked_form_id = prepared.form.checked_form_id.clone();
@@ -236,33 +265,85 @@ mod tests {
             ResourceHandleId::from("counter/source"),
             ResourceHandleId::from("counter/destination"),
         ];
+        let play = host.issue_kernel_play(&prepared.fragment).unwrap();
+        let expected_play_id = play.identity().active_play_id.clone();
         let task = PreparedProtectedTask::new(
             "counter/request-1",
             resource_binding_ids.clone(),
             prepared.form,
             prepared.plan,
+            play,
             CounterAdapter {
                 stop: TestStop::default(),
+                stale_receipt: false,
             },
         )
         .unwrap();
+        assert_eq!(task.identity().request_id, "counter/request-1");
+        assert_eq!(task.identity().checked_form_id, expected_checked_form_id);
+        assert_eq!(task.identity().plan_id, expected_plan_id);
+        assert_eq!(task.identity().host_id, expected_host_id);
+        assert_eq!(task.identity().boot_id, expected_boot_id);
+        assert_eq!(task.identity().resource_binding_ids, resource_binding_ids);
         let running = task.spawn();
         running.request_stop();
         loop {
             match running.try_receipt().unwrap() {
                 TaskProgress::Running => std::thread::yield_now(),
                 TaskProgress::Complete(receipt) => {
-                    assert_eq!(receipt.identity.request_id, "counter/request-1");
-                    assert_eq!(receipt.identity.checked_form_id, expected_checked_form_id);
-                    assert_eq!(receipt.identity.plan_id, expected_plan_id);
-                    assert_eq!(receipt.identity.host_id, expected_host_id);
-                    assert_eq!(receipt.identity.boot_id, expected_boot_id);
-                    assert_eq!(receipt.identity.resource_binding_ids, resource_binding_ids);
-                    assert_eq!(receipt.play_id.as_str(), "counter/play-1");
+                    assert_eq!(receipt.request_id, "counter/request-1");
+                    assert_eq!(receipt.plan_id, expected_plan_id);
+                    assert_eq!(receipt.play_id, expected_play_id);
                     break;
                 }
             }
         }
+    }
+
+    #[test]
+    fn adapter_contract_cannot_receive_form_plan_or_construct_play_identity() {
+        let source = include_str!("protected_task.rs");
+        let contract = source
+            .split("pub(crate) trait ProtectedTaskAdapter")
+            .nth(1)
+            .unwrap()
+            .split("pub(crate) struct PreparedProtectedTask")
+            .next()
+            .unwrap();
+        assert!(!contract.contains("CheckedForm"));
+        assert!(!contract.contains("Plan,"));
+        assert!(!contract.contains("ProtectedTaskIdentity"));
+        assert!(!contract.contains("ActivePlayId"));
+        assert!(contract.contains("IssuedKernelPlay"));
+    }
+
+    #[test]
+    fn terminal_receipt_cannot_replace_the_kernel_issued_plan_identity() {
+        let mut host = conduit_std_host::StdHost::new();
+        let prepared =
+            conduit_std_host::prepare_copy_task(&host, &test_protected_grants(&host)).unwrap();
+        let play = host.issue_kernel_play(&prepared.fragment).unwrap();
+        let stop = TestStop::default();
+        stop.request_stop();
+        let task = PreparedProtectedTask::new(
+            "counter/request-stale",
+            vec![
+                ResourceHandleId::from("counter/source"),
+                ResourceHandleId::from("counter/destination"),
+            ],
+            prepared.form,
+            prepared.plan,
+            play,
+            CounterAdapter {
+                stop,
+                stale_receipt: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            task.run().unwrap_err(),
+            "protected task terminal receipt has stale or mismatched identity"
+        );
     }
 
     fn test_protected_grants(
