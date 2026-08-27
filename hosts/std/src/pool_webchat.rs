@@ -77,7 +77,7 @@ pub fn run(bind: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn planned_pool() -> Result<(String, conduit_runtime::lowering::LoweredSharedPool), String> {
+fn planned_pool() -> Result<(String, conduit_plan_lowering::lowering::LoweredSharedPool), String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_chat::install_pool_chat_catalogs(&mut startup, &mut profile)?;
@@ -120,7 +120,7 @@ fn planned_pool() -> Result<(String, conduit_runtime::lowering::LoweredSharedPoo
         &requirements,
     )
     .map_err(|error| error.to_string())?;
-    let lowered = conduit_runtime::lowering::lower_plan_fragment(&plan.fragments[0])
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0])
         .map_err(|error| format!("pool chat lowering: {error:?}"))?;
     let pool = lowered
         .shared_pools

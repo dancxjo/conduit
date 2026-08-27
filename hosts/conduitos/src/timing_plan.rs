@@ -8,8 +8,8 @@ use conduit_core::{
     HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
     Plan, PlanId, ResourceOffer, bind_active_play, resource_offer,
 };
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
-use conduit_runtime::lowering::lower_plan_fragment;
 
 use crate::{
     execution_region::{seal_execution_region, validate_execution_region},

@@ -11,12 +11,12 @@ use conduit_kernel::{
     CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     NodeId, PortId, ValueStorage,
 };
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, KernelExecutionIdentityMap, KernelIdentityMap,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
 use conduit_presentation::{Manifestation, Presentation, PresentationInteractionLedger};
-use conduit_runtime::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, KernelIdentityMap,
-    MAXIMUM_KERNEL_PORTS_PER_NODE,
-};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -37,7 +37,7 @@ pub(super) struct InteractionFrame {
 const SOURCE: &str = include_str!("../../../../examples/webchat.conduit");
 const NODES: usize = 6;
 const CORDS: usize = 8;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 32;
 const ROUTE_SLOTS: usize = NODES * PORTS;
 const ROUTE_TARGETS: usize = CORDS;

@@ -19,7 +19,7 @@ conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
 conduit-kernel = { path = "../conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../conduit-planner" }
-conduit-runtime = { path = "../conduit-runtime" }
+conduit-plan-lowering = { path = "../conduit-plan-lowering" }
 conduit-std-catalog = { path = "../conduit-std-catalog" }
 conduit-text = { path = "../conduit-text" }
 serde = { version = "1", features = ["derive"] }

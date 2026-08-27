@@ -29,7 +29,7 @@ conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-real
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-presentation = { path = "../../crates/conduit-presentation" }
-conduit-runtime = { path = "../../crates/conduit-runtime", default-features = false }
+conduit-plan-lowering = { path = "../../crates/conduit-plan-lowering", default-features = false }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-system-continuity = { path = "../../crates/conduit-system-continuity", features = ["r1-recovery"] }

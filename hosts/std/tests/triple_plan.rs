@@ -1,4 +1,4 @@
-use conduit_runtime::lowering::{lower_plan_fragment, RemoteCordDirection};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, RemoteCordDirection};
 use conduit_signal_conformance::triple;
 
 #[test]

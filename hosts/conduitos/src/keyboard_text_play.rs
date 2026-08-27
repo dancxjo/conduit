@@ -10,7 +10,7 @@ use conduit_kernel::{
         FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
-use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
 use crate::{
     keyboard_text_operations::{
@@ -24,7 +24,7 @@ pub const MAXIMUM_INPUT_EVENTS: usize = 48;
 pub const MAXIMUM_PRESENTATIONS: usize = 16;
 const MAX_NODES: usize = 4;
 const MAX_CORDS: usize = 3;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 3;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 3;
@@ -113,7 +113,7 @@ impl KeyboardTextKernel {
             .fragments
             .first()
             .ok_or(PreparationError::PlanRejected)?;
-        let lowered = conduit_runtime::lowering::lower_plan_fragment(fragment)
+        let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
             .map_err(|_| PreparationError::LoweringRejected)?;
         validate_shape(fragment, &lowered)?;
         let keyboard_node = node_for(fragment, conduit_std_catalog::KEYBOARD_KIND)?;

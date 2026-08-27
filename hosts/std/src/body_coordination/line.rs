@@ -1,7 +1,7 @@
 use super::endpoint::CoordinationEndpoint;
 use super::receipt::CoordinationFailure;
 use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
-use conduit_runtime::lowering::RemoteCordDirection;
+use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_std_catalog::BODY_COORDINATION_MAXIMUM_FRAME_BYTES;
 use conduit_text::MAX_TEXT_BYTES;
 use conduit_wire::{

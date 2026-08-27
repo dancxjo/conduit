@@ -5,7 +5,7 @@ fn repository_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(2)
-        .expect("runtime crate has repository root")
+        .expect("lowering crate has repository root")
         .to_path_buf()
 }
 
@@ -18,16 +18,16 @@ fn read(root: &Path, relative: &str) -> String {
 fn v1_has_one_runtime_and_no_compiled_compatibility_closure() {
     let root = repository_root();
     let root_manifest = read(&root, "Cargo.toml");
-    let runtime_manifest = read(&root, "crates/conduit-runtime/Cargo.toml");
-    let runtime_root = read(&root, "crates/conduit-runtime/src/lib.rs");
+    let lowering_manifest = read(&root, "crates/conduit-plan-lowering/Cargo.toml");
+    let lowering_root = read(&root, "crates/conduit-plan-lowering/src/lib.rs");
     let std_manifest = read(&root, "hosts/std/Cargo.toml");
     let signal_manifest = read(&root, "crates/conduit-signal/Cargo.toml");
     let composite_manifest = read(&root, "crates/conduit-composite/Cargo.toml");
 
     for (surface, source) in [
         ("workspace", root_manifest.as_str()),
-        ("runtime", runtime_manifest.as_str()),
-        ("runtime root", runtime_root.as_str()),
+        ("lowering", lowering_manifest.as_str()),
+        ("lowering root", lowering_root.as_str()),
         ("std host", std_manifest.as_str()),
         ("signal", signal_manifest.as_str()),
         ("composite", composite_manifest.as_str()),
@@ -49,7 +49,7 @@ fn v1_has_one_runtime_and_no_compiled_compatibility_closure() {
     assert!(!root.join("fixtures/browser-sim/Cargo.toml").exists());
     assert!(!root.join("fixtures/pico-sim/Cargo.toml").exists());
     assert!(!root
-        .join("crates/conduit-runtime/src/compatibility_executor.rs")
+        .join("crates/conduit-plan-lowering/src/compatibility_executor.rs")
         .exists());
     assert!(!root
         .join("crates/conduit-composite/src/compatibility.rs")
@@ -59,6 +59,7 @@ fn v1_has_one_runtime_and_no_compiled_compatibility_closure() {
 #[test]
 fn current_hosts_depend_only_on_exact_lowering_and_kernel_execution() {
     let root = repository_root();
+    let lowering_manifest = read(&root, "crates/conduit-plan-lowering/Cargo.toml");
     for relative in [
         "hosts/std/src/lib.rs",
         "hosts/browser-runtime/src/lib.rs",
@@ -72,8 +73,40 @@ fn current_hosts_depend_only_on_exact_lowering_and_kernel_execution() {
         );
     }
 
-    let runtime_root = read(&root, "crates/conduit-runtime/src/lib.rs");
-    assert!(runtime_root.contains("pub mod lowering;"));
+    let lowering_root = read(&root, "crates/conduit-plan-lowering/src/lib.rs");
+    let lowering_doc = read(&root, "docs/architecture/plan-kernel-lowering.md");
+    assert!(lowering_root.contains("pub mod lowering;"));
+    assert!(lowering_doc.contains("does not plan, schedule, execute semantic implementations"));
+    for forbidden in [
+        "conduit-std-host",
+        "conduit-browser-host",
+        "conduit-observatory",
+        "clap",
+        "std::thread",
+    ] {
+        assert!(
+            !lowering_manifest.contains(forbidden) && !lowering_root.contains(forbidden),
+            "lowering package accumulated product lifecycle or Host adapter responsibility: {forbidden}"
+        );
+    }
     let composite_root = read(&root, "crates/conduit-composite/src/lib.rs");
     assert!(composite_root.contains("mod kernel_executor;"));
+}
+
+#[test]
+fn product_entrance_does_not_reason_in_numeric_kernel_identity() {
+    let root = repository_root();
+    for relative in [
+        "crates/conduit/src/main.rs",
+        "crates/conduit/src/product_execution.rs",
+        "crates/conduit/src/body_product.rs",
+    ] {
+        let source = read(&root, relative);
+        for numeric_identity in ["NodeId", "CordId", "conduit_kernel::PortId"] {
+            assert!(
+                !source.contains(numeric_identity),
+                "{relative} reached below Plan-to-kernel lowering for {numeric_identity}"
+            );
+        }
+    }
 }

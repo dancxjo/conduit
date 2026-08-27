@@ -5,10 +5,10 @@ use conduit_kernel::{
     HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEvent,
     NodeId, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
-use conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
+use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use serde::{Deserialize, Serialize};
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_SIGNS: u16 = 256;
 type SpeechScheduler = FixedScheduler<
     OperationDriver<SpeechOperation, PORTS>,

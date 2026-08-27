@@ -3,7 +3,7 @@ use conduit_core::{
     PlanFragment,
 };
 use conduit_kernel::{CordEndpoint, SignExpectationTarget};
-use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
 use crate::model::{
     EmbeddedImageBounds, GeneratedConfigurationEntry, GeneratedConfigurationValue,
@@ -35,7 +35,7 @@ pub fn generate_embedded_plan(
     {
         return Err(GenerationError::IdentityMismatch);
     }
-    if bounds.maximum_ports_per_node > MAXIMUM_KERNEL_PORTS_PER_NODE {
+    if bounds.maximum_ports_per_node > FIXED_KERNEL_STORAGE_PORTS_PER_NODE {
         return Err(GenerationError::Unsupported(
             UnsupportedPlanFeature::WiderKernelPortTable,
         ));
@@ -374,7 +374,7 @@ fn generate_startup_dependencies(
         .collect()
 }
 
-fn generate_sign(sign: &conduit_runtime::lowering::LoweredSign) -> GeneratedStaticSign {
+fn generate_sign(sign: &conduit_plan_lowering::lowering::LoweredSign) -> GeneratedStaticSign {
     let (kind, subject) = match &sign.expected {
         ExpectedSign::PlanFragmentReceived => ("plan-fragment-received", None),
         ExpectedSign::PlacementPrepared(id) => ("placement-prepared", Some(id.as_str().to_owned())),

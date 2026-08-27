@@ -16,11 +16,11 @@ use conduit_kernel::{
         FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
-use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
 const MAX_NODES: usize = 5;
 const MAX_CORDS: usize = 3;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 3;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 3;

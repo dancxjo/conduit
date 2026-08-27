@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use conduit_core::BootId;
 use conduit_embedded_build::generate_embedded_plan;
-use conduit_runtime::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 use super::{
     pico_signal_bounds, render_firmware_module, render_signal_identity_sidecar,

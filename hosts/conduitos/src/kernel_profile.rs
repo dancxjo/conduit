@@ -23,7 +23,7 @@ pub const NODE_COUNT: usize = 2;
 pub const CORD_COUNT: usize = 1;
 pub const SIGN_CAPACITY: usize = 64;
 
-const PORTS: usize = conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 1;
 const ROUTE_SLOTS: usize = 1;
 const ROUTE_TARGETS: usize = 1;

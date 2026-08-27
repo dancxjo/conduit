@@ -10,12 +10,12 @@ use conduit_kernel::{
     HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
     ValueStorage,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use std::collections::BTreeMap;
 
 const NODES: usize = 2;
 const CORDS: usize = 1;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 4;
 const ROUTE_SLOTS: usize = NODES * PORTS;
 const ROUTE_TARGETS: usize = 1;
@@ -403,7 +403,7 @@ impl PatchbayInteraction {
 }
 
 fn validate_shape(
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
 ) -> Result<(), InteractionError> {
     if lowered.nodes.len() != NODES
         || lowered.cords.len() != CORDS
@@ -425,7 +425,7 @@ fn validate_shape(
 
 fn operations(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     request: ValueRef,
 ) -> Result<[InteractionOperation; NODES], InteractionError> {
     let mut operations = Vec::with_capacity(NODES);

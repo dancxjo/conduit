@@ -5,7 +5,7 @@ use conduit_core::{
     ASSIGNED_RESOURCE, ASSIGNED_ROUTE, ASSIGNED_ROUTE_TARGET, ASSIGNED_SIGN, ASSIGNED_STARTUP,
     ASSIGNED_TERMINAL,
 };
-use conduit_runtime::lowering::RemoteCordDirection;
+use conduit_plan_lowering::lowering::RemoteCordDirection;
 
 use crate::{
     GeneratedConfigurationValue, GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedSignTarget,

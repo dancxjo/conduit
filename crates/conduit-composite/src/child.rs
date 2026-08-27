@@ -9,12 +9,12 @@ use conduit_kernel::{
     CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     KernelEvent, NodeId, PortId, RemoteEndpointId, ValueStorage,
 };
-use conduit_runtime::lowering::{LoweredPlanFragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use std::collections::BTreeMap;
 
 pub(crate) const MAX_NODES: usize = 16;
 pub(crate) const MAX_CORDS: usize = 32;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 256;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = MAX_CORDS;

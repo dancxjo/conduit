@@ -25,10 +25,10 @@ use conduit_kernel::{
     HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput,
     PortId as KernelPortId, RequestId, SignSink, ValueRef, ValueStorage,
 };
-use conduit_planner::{default_placements, plan_with_options, PlannerError, PlanningOptions};
-use conduit_runtime::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, MAXIMUM_KERNEL_PORTS_PER_NODE,
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
+use conduit_planner::{default_placements, plan_with_options, PlannerError, PlanningOptions};
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::time::Duration;
@@ -47,7 +47,7 @@ const RIGHT_PORT: &str = "right";
 
 const NODES: usize = 6;
 const CORDS: usize = 5;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 5;
 const ROUTE_SLOTS: usize = NODES * PORTS;
 const ROUTE_TARGETS: usize = 5;
@@ -1292,7 +1292,7 @@ mod tests {
         bind_sign, BootId, HostAdvertisement, HostId, OfferGeneration, PlanFragment,
     };
     use conduit_form::parse;
-    use conduit_runtime::lowering::{lower_plan_fragment, ExecutionIdentityError};
+    use conduit_plan_lowering::lowering::{lower_plan_fragment, ExecutionIdentityError};
     use std::time::Duration;
 
     #[derive(Default)]

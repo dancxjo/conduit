@@ -1,5 +1,5 @@
 use conduit_core::PlanFragment;
-use conduit_runtime::lowering::LoweredPlanFragment;
+use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 use crate::model::{EmbeddedImageBounds, GenerationError};
 

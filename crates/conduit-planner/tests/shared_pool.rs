@@ -198,7 +198,7 @@ fn canonical_pool_plans_equal_face_members_and_exact_consumers_envelope_and_auth
             .len(),
         2
     );
-    let lowered = conduit_runtime::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
     assert_eq!(lowered.shared_pools.len(), 1);
     assert_eq!(lowered.shared_pools[0].pool.0, 0);
     assert_eq!(lowered.shared_pools[0].maximum_members, 2);

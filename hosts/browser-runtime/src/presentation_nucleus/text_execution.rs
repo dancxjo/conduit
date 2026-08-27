@@ -10,8 +10,8 @@ use conduit_kernel::{
     FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, ValueStorage,
 };
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
-use conduit_runtime::lowering::lower_plan_fragment;
 use std::collections::BTreeMap;
 
 const TEXT_FORM: &str = r#"form browser-text-nucleus {

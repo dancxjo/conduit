@@ -17,10 +17,11 @@ use conduit_kernel::{
     HostedValueStore, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
     RequestId, ValueRef, ValueStorage,
 };
-use conduit_presentation::{Presentation, MAX_RENDERER_VALUE_BYTES};
-use conduit_runtime::lowering::{
-    lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection, MAXIMUM_KERNEL_PORTS_PER_NODE,
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
+use conduit_presentation::{Presentation, MAX_RENDERER_VALUE_BYTES};
 use conduit_std_host::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
@@ -35,7 +36,7 @@ use tungstenite::client::connect_with_config;
 use tungstenite::protocol::{Message, WebSocket, WebSocketConfig};
 use tungstenite::stream::MaybeTlsStream;
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGN_ITEMS: u16 = 64;
 const FRAME_BYTES: usize = CROSS_HOST_MAXIMUM_FRAME_BYTES as usize;
 

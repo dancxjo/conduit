@@ -1,5 +1,5 @@
 [package]
-name = "conduit-runtime"
+name = "conduit-plan-lowering"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,4 +8,4 @@ conduit-core = { path = "../conduit-core" }
 conduit-kernel = { path = "../conduit-kernel" }
 
 [[test]]
-name = "browser_readiness"
+name = "lowering_boundary"

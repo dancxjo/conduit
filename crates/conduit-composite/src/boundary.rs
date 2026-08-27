@@ -2,7 +2,7 @@ use crate::child::BoundaryEndpoint;
 use conduit_core::PortDirection;
 use conduit_kernel::scheduler::{CordCapacity, CordSpec};
 use conduit_kernel::{NodeId, PortId, RouteRange, RouteTarget};
-use conduit_runtime::lowering::LoweredPlanFragment;
+use conduit_plan_lowering::lowering::LoweredPlanFragment;
 use std::collections::BTreeMap;
 
 pub(crate) fn augment_boundary_cords(
@@ -51,13 +51,15 @@ pub(crate) fn augment_boundary_cords(
             .cord_value_bytes
             .checked_add(boundary.byte_capacity)
             .ok_or_else(|| "boundary byte capacity overflow".to_string())?;
-        lowered.cords.push(conduit_runtime::lowering::LoweredCord {
-            connection_id: conduit_core::ConnectionId::from(format!(
-                "composite-boundary/{}",
-                boundary.external_port_id.as_str()
-            )),
-            spec,
-        });
+        lowered
+            .cords
+            .push(conduit_plan_lowering::lowering::LoweredCord {
+                connection_id: conduit_core::ConnectionId::from(format!(
+                    "composite-boundary/{}",
+                    boundary.external_port_id.as_str()
+                )),
+                spec,
+            });
         if boundary.direction == PortDirection::Input {
             let slot = lowered
                 .node_specs
@@ -88,7 +90,7 @@ fn rebuild_routes(lowered: &mut LoweredPlanFragment) -> Result<(), String> {
         let len = u16::try_from(targets.len()).map_err(debug)?;
         lowered
             .routes
-            .push(conduit_runtime::lowering::LoweredRoute {
+            .push(conduit_plan_lowering::lowering::LoweredRoute {
                 source_node,
                 source_port,
                 range: RouteRange { start: cursor, len },

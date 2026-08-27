@@ -15,7 +15,7 @@ use conduit_kernel::{
     HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
     RemoteEndpointId, RequestId, SignError, SignQuery, ValueStorage,
 };
-use conduit_runtime::lowering::{
+use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
 use conduit_signal::{decode_signal_bytes, SHOW_KIND, SIGNAL_ENCODED_LEN};

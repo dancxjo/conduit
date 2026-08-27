@@ -1,7 +1,9 @@
 //! Session source for kernel-merged deliberate input on an exact R1 control Plan.
 
 use conduit_core::{BootId, HostId, Plan, PlanFragment};
-use conduit_runtime::lowering::{lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection};
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
+};
 use conduit_signal::{encode_signal_fixed, SIGNAL_ENCODED_LEN};
 use conduit_wire::{
     SessionBinding, SessionCheckpointAcceptance, SessionCheckpointOffer, SessionFrame,

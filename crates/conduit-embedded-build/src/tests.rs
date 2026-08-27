@@ -7,7 +7,7 @@ use conduit_core::{
     PlannedConnection, PlannedGear, PortDescriptor, PortDirection, PortId, SignStorageBudget,
     SourceDocumentId, StartupDependency, TerminalPolicy,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
 use conduit_signal_conformance::{
     pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID,
@@ -159,7 +159,7 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
             maximum_resources: 2,
             maximum_sign_expectations: 8,
             maximum_configuration_entries: 3,
-            maximum_ports_per_node: MAXIMUM_KERNEL_PORTS_PER_NODE,
+            maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             maximum_remote_endpoints: 0,
             maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
@@ -244,7 +244,7 @@ fn renderer_emits_fixed_current_kernel_tables() {
             kind_id: "flow/pulse".to_owned(),
             implementation_id: "signal/pulse".to_owned(),
             artifact_id: "artifact/pulse".to_owned(),
-            input_cords: [None; MAXIMUM_KERNEL_PORTS_PER_NODE],
+            input_cords: [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
             maximum_step_work: 2,
         }],
         input_ports: Vec::new(),
@@ -451,7 +451,7 @@ fn signal_demo_remote_usb_cdc_ingress_generates_embedded_plan() {
         LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkCredentialReference,
         LinkEndpoint, LinkEndpointId, LinkLimits,
     };
-    use conduit_runtime::lowering::RemoteCordDirection;
+    use conduit_plan_lowering::lowering::RemoteCordDirection;
 
     let source_fragment = sealed_current_fragment();
     let form_identity = FormIdentity {

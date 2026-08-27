@@ -9,7 +9,7 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{HostOperationRequest, SchedulerStatus};
 use conduit_kernel::{HostOperationDisposition, HostOperationOutcome, SignSink, ValueStorage};
-use conduit_runtime::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 const MAX_COPY_BYTES: u64 = 16 * 1024 * 1024;
 

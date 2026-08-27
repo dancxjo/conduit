@@ -20,7 +20,7 @@ fn stale_motherbrain_boot_refuses_before_kernel_delivery() {
     let motherbrain =
         CoordinationEndpoint::prepare(&stale, &HostId::from(MOTHERBRAIN_HOST)).unwrap();
     assert_ne!(
-        forebrain.binding(conduit_runtime::lowering::RemoteCordDirection::Egress),
-        motherbrain.binding(conduit_runtime::lowering::RemoteCordDirection::Ingress)
+        forebrain.binding(conduit_plan_lowering::lowering::RemoteCordDirection::Egress),
+        motherbrain.binding(conduit_plan_lowering::lowering::RemoteCordDirection::Ingress)
     );
 }

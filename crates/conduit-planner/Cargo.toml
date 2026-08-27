@@ -16,7 +16,7 @@ conduit-ai = { path = "../conduit-ai", features = ["form-catalog"] }
 conduit-host-fabrication = { path = "../conduit-host-fabrication" }
 conduit-workspace-fabrication = { path = "../conduit-workspace-fabrication" }
 conduit-kernel = { path = "../conduit-kernel" }
-conduit-runtime = { path = "../conduit-runtime" }
+conduit-plan-lowering = { path = "../conduit-plan-lowering" }
 conduit-signal = { path = "../conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-std-catalog = { path = "../conduit-std-catalog", features = ["form-catalog"] }

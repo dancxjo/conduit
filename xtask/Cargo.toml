@@ -46,7 +46,7 @@ conduit-signal = { path = "../crates/conduit-signal" }
 conduit-synth = { path = "../crates/conduit-synth" }
 conduit-planner = { path = "../crates/conduit-planner" }
 conduit-presentation = { path = "../crates/conduit-presentation", features = ["form-catalog"] }
-conduit-runtime = { path = "../crates/conduit-runtime", default-features = false }
+conduit-plan-lowering = { path = "../crates/conduit-plan-lowering", default-features = false }
 conduit-std-host = { path = "../hosts/std", features = ["local-model-proof", "pete-create"] }
 conduit-system-continuity = { path = "../crates/conduit-system-continuity", features = ["r1-recovery"] }
 conduit-wire = { path = "../crates/conduit-wire" }

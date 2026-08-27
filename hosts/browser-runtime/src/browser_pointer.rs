@@ -15,8 +15,8 @@ use conduit_kernel::{
     HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedValueStore, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueStorage,
 };
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
 use conduit_std_catalog::{
     normalized_pointer_value, pointer_event_type, NormalizedPointerSample, POINTER_EVENT_TYPE,
     POINTER_SOURCE_KIND, STRUCTURED_PRESENTATION_KIND,
@@ -36,7 +36,7 @@ const ARTIFACT: &str = "conduit-browser-runtime/pointer-source@1";
 const FORM_SOURCE: &str = "form browser-pointer {\n pointer: input/pointer-source\n show: presentation/structured-info\n pointer.pointer > show.input\n}\n";
 const NODES: usize = 2;
 const CORDS: usize = 1;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const ROUTES: usize = NODES * PORTS;
 const VALUES: usize = 4;
 const SIGNS: usize = 32;
@@ -418,7 +418,7 @@ fn advertisement() -> HostAdvertisement {
 
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
 ) -> Result<PointerScheduler, String> {
     if fragment.placements.len() != NODES || lowered.cords.len() != CORDS {
         return Err("browser pointer Plan has an unexpected finite shape".into());

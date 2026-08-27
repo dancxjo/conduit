@@ -6,10 +6,10 @@ use conduit_core::{
     HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
     Plan, PlanId, ResourceOffer, bind_active_play, resource_offer,
 };
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{
     PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
 };
-use conduit_runtime::lowering::lower_plan_fragment;
 
 use crate::{
     dual_region_kernel::DualRegionKernel,

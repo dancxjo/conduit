@@ -213,7 +213,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-kernel",
- "conduit-runtime",
+ "conduit-plan-lowering",
 ]
 
 [[package]]
@@ -229,7 +229,7 @@ dependencies = [
  "conduit-host-fabrication",
  "conduit-kernel",
  "conduit-planner",
- "conduit-runtime",
+ "conduit-plan-lowering",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-wire",
@@ -319,7 +319,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-runtime"
+name = "conduit-plan-lowering"
 version = "0.1.0"
 dependencies = [
  "conduit-core",

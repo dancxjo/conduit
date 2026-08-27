@@ -322,8 +322,9 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
         .placements
         .iter()
         .all(|placement| placement.implementation_id != planned_fusion.implementation_id));
-    let lowered = conduit_runtime::lowering::lower_plan_fragment(&optimized.plan.fragments[0])
-        .expect("selected fusion lowers through the ordinary numeric graph");
+    let lowered =
+        conduit_plan_lowering::lowering::lower_plan_fragment(&optimized.plan.fragments[0])
+            .expect("selected fusion lowers through the ordinary numeric graph");
     assert_eq!(lowered.nodes.len(), 3);
     assert_eq!(lowered.cords.len(), 2);
     assert_eq!(lowered.fusions.len(), 1);

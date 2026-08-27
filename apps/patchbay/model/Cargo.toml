@@ -10,7 +10,7 @@ conduit-kernel = { path = "../../../crates/conduit-kernel", features = ["alloc"]
 conduit-observatory = { path = "../../../crates/conduit-observatory" }
 conduit-planner = { path = "../../../crates/conduit-planner" }
 conduit-presentation = { path = "../../../crates/conduit-presentation" }
-conduit-runtime = { path = "../../../crates/conduit-runtime", default-features = false }
+conduit-plan-lowering = { path = "../../../crates/conduit-plan-lowering", default-features = false }
 conduit-body = { path = "../../../crates/conduit-body" }
 conduit-ai = { path = "../../../crates/conduit-ai", features = ["form-catalog"] }
 conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }

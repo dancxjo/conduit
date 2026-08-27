@@ -9,7 +9,7 @@ use conduit_kernel::{
     HostOperationId, HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind,
     Operation, OperationAction, OperationInput, RequestId, ValueRef, ValueStorage,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
 const DIRECT_NODES: usize = 2;
 const DIRECT_CORDS: usize = 1;
@@ -276,9 +276,10 @@ fn execute<const NODES: usize, const CORDS: usize>(
             .map_err(|error| format!("driver: {error:?}"))?,
         );
     }
-    let drivers: [OperationDriver<PresentLeaf, MAXIMUM_KERNEL_PORTS_PER_NODE>; NODES] = prepared
-        .try_into()
-        .map_err(|_| "driver count changed".to_string())?;
+    let drivers: [OperationDriver<PresentLeaf, FIXED_KERNEL_STORAGE_PORTS_PER_NODE>; NODES] =
+        prepared
+            .try_into()
+            .map_err(|_| "driver count changed".to_string())?;
     let nodes = lowered
         .node_specs
         .clone()
@@ -291,7 +292,7 @@ fn execute<const NODES: usize, const CORDS: usize>(
         .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| "Cord count changed".to_string())?;
-    let mut routes = FixedRoutes::<512, 256>::new(MAXIMUM_KERNEL_PORTS_PER_NODE as u16);
+    let mut routes = FixedRoutes::<512, 256>::new(FIXED_KERNEL_STORAGE_PORTS_PER_NODE as u16);
     for route in &lowered.routes {
         routes
             .install(
@@ -325,7 +326,7 @@ fn execute<const NODES: usize, const CORDS: usize>(
             _,
             NODES,
             CORDS,
-            MAXIMUM_KERNEL_PORTS_PER_NODE,
+            FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             128,
             512,
             256,

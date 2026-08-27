@@ -191,7 +191,7 @@ pub struct StdKernelExecutionReport {
     pub playback: Vec<hosted_audio::PlaybackReport>,
     pub midi_input: Vec<hosted_midi::MidiInputReport>,
     pub midi_output: Vec<hosted_midi::MidiOutputReport>,
-    pub identity: conduit_runtime::lowering::KernelExecutionIdentityMap,
+    pub identity: conduit_plan_lowering::lowering::KernelExecutionIdentityMap,
     #[cfg(test)]
     pub post_play_start_allocations: usize,
 }
@@ -1063,8 +1063,11 @@ mod tests {
         .expect("signal form parses");
         let plan = host.plan_local(&form, None).expect("local plan resolves");
         let fragment = &plan.fragments[0];
-        let lowered = conduit_runtime::lowering::lower_plan_fragment(fragment)
+        let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
             .expect("exact fragment lowers");
+        let narrow_profile = conduit_plan_lowering::lowering::KernelStorageProfile::new(1).unwrap();
+        conduit_plan_lowering::lowering::lower_plan_fragment_for_profile(fragment, narrow_profile)
+            .expect("the selected one-port profile admits the exact signal fragment");
 
         assert_eq!(lowered.identity.plan_id, fragment.plan_id);
         assert_eq!(lowered.identity.fragment_id, fragment.fragment_id);
@@ -1142,8 +1145,8 @@ mod tests {
         let mut mutated = fragment.clone();
         mutated.fragment_id = conduit_core::FragmentId::from("mutated-after-seal");
         assert!(matches!(
-            conduit_runtime::lowering::lower_plan_fragment(&mutated),
-            Err(conduit_runtime::lowering::LoweringError::InvalidFragment)
+            conduit_plan_lowering::lowering::lower_plan_fragment(&mutated),
+            Err(conduit_plan_lowering::lowering::LoweringError::InvalidFragment)
         ));
 
         let form_identity = FormIdentity {
@@ -1155,8 +1158,12 @@ mod tests {
         concurrent.placements[0].host_operations[0].maximum_in_flight = 2;
         let concurrent = seal_plan(form_identity.clone(), vec![concurrent]);
         assert!(matches!(
-            conduit_runtime::lowering::lower_plan_fragment(&concurrent.fragments[0]),
-            Err(conduit_runtime::lowering::LoweringError::UnsupportedHostOperationConcurrency(_))
+            conduit_plan_lowering::lowering::lower_plan_fragment(&concurrent.fragments[0]),
+            Err(
+                conduit_plan_lowering::lowering::LoweringError::UnsupportedHostOperationConcurrency(
+                    _
+                )
+            )
         ));
 
         let mut fan_in = fragment.clone();
@@ -1165,8 +1172,8 @@ mod tests {
         fan_in.connections.push(second);
         let fan_in = seal_plan(form_identity, vec![fan_in]);
         assert!(matches!(
-            conduit_runtime::lowering::lower_plan_fragment(&fan_in.fragments[0]),
-            Err(conduit_runtime::lowering::LoweringError::MultipleConnectionsToInput { .. })
+            conduit_plan_lowering::lowering::lower_plan_fragment(&fan_in.fragments[0]),
+            Err(conduit_plan_lowering::lowering::LoweringError::MultipleConnectionsToInput { .. })
         ));
 
         let form_identity = FormIdentity {
@@ -1181,9 +1188,9 @@ mod tests {
         remote.connections[0].admitted_lines = vec![foreign_line];
         let remote = seal_plan(form_identity.clone(), vec![remote]);
         assert!(matches!(
-            conduit_runtime::lowering::lower_plan_fragment(&remote.fragments[0]),
-            Err(conduit_runtime::lowering::LoweringError::InvalidFragment)
-                | Err(conduit_runtime::lowering::LoweringError::InvalidRemoteConnection(_))
+            conduit_plan_lowering::lowering::lower_plan_fragment(&remote.fragments[0]),
+            Err(conduit_plan_lowering::lowering::LoweringError::InvalidFragment)
+                | Err(conduit_plan_lowering::lowering::LoweringError::InvalidRemoteConnection(_))
         ));
 
         let mut too_wide = fragment.clone();
@@ -1195,8 +1202,42 @@ mod tests {
         }
         let too_wide = seal_plan(form_identity, vec![too_wide]);
         assert!(matches!(
-            conduit_runtime::lowering::lower_plan_fragment(&too_wide.fragments[0]),
-            Err(conduit_runtime::lowering::LoweringError::CapacityOverflow)
+            conduit_plan_lowering::lowering::lower_plan_fragment(&too_wide.fragments[0]),
+            Err(
+                conduit_plan_lowering::lowering::LoweringError::ProfileCapacityExceeded {
+                    direction: PortDirection::Output,
+                    required: 17,
+                    available: 16,
+                    ..
+                }
+            )
+        ));
+
+        let mut profile_wide = fragment.clone();
+        let mut second_output = profile_wide.placements[0].outputs[0].clone();
+        second_output.port_id = PortId::from("second-output");
+        profile_wide.placements[0].outputs.push(second_output);
+        let profile_wide = seal_plan(
+            FormIdentity {
+                source_document_id: fragment.source_document_id.clone(),
+                checked_form_id: fragment.checked_form_id.clone(),
+                expanded_form_id: fragment.expanded_form_id.clone(),
+            },
+            vec![profile_wide],
+        );
+        assert!(matches!(
+            conduit_plan_lowering::lowering::lower_plan_fragment_for_profile(
+                &profile_wide.fragments[0],
+                narrow_profile,
+            ),
+            Err(
+                conduit_plan_lowering::lowering::LoweringError::ProfileCapacityExceeded {
+                    direction: PortDirection::Output,
+                    required: 2,
+                    available: 1,
+                    ..
+                }
+            )
         ));
     }
 

@@ -443,9 +443,9 @@ dependencies = [
  "conduit-language",
  "conduit-net",
  "conduit-observatory",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
- "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
@@ -548,9 +548,9 @@ dependencies = [
  "conduit-form",
  "conduit-kernel",
  "conduit-net",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
- "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
@@ -579,8 +579,8 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
- "conduit-runtime",
  "conduit-signal",
  "conduit-std-catalog",
 ]
@@ -614,9 +614,9 @@ dependencies = [
  "conduit-form",
  "conduit-kernel",
  "conduit-net",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-r1-network-conformance",
- "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-system-continuity",
@@ -772,6 +772,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+]
+
+[[package]]
 name = "conduit-planner"
 version = "0.1.0"
 dependencies = [
@@ -783,7 +791,7 @@ dependencies = [
  "conduit-form",
  "conduit-host-fabrication",
  "conduit-kernel",
- "conduit-runtime",
+ "conduit-plan-lowering",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
@@ -833,14 +841,6 @@ version = "0.1.0"
 dependencies = [
  "conduit-host-fabrication",
  "conduit-host-rp2040",
-]
-
-[[package]]
-name = "conduit-runtime"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-kernel",
 ]
 
 [[package]]
@@ -909,11 +909,11 @@ dependencies = [
  "conduit-language",
  "conduit-midi",
  "conduit-net",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
  "conduit-r1-network-conformance",
  "conduit-rp2040-network-realization",
- "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
@@ -987,8 +987,8 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
- "conduit-runtime",
  "conduit-std-catalog",
  "conduit-text",
  "serde",
@@ -1037,9 +1037,9 @@ dependencies = [
  "conduit-form",
  "conduit-kernel",
  "conduit-observatory",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
- "conduit-runtime",
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-synth",
@@ -2547,8 +2547,8 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-presentation",
- "conduit-runtime",
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-wire",
@@ -2570,9 +2570,9 @@ dependencies = [
  "conduit-form",
  "conduit-kernel",
  "conduit-observatory",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
- "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",
@@ -4449,11 +4449,11 @@ dependencies = [
  "conduit-net",
  "conduit-observatory",
  "conduit-pete",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
  "conduit-r1-network-conformance",
  "conduit-rp2040-network-realization",
- "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-std-catalog",

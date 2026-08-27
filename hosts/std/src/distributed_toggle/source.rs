@@ -20,9 +20,9 @@ use conduit_kernel::{
     HostOperationOutcome, HostedSignLog, HostedValueStore, RemoteEndpointId, RequestId,
     ValueStorage,
 };
-use conduit_runtime::lowering::{
+use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
-    MAXIMUM_KERNEL_PORTS_PER_NODE,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_signal::{
     parse_toggle_configuration, parse_trigger_configuration, TRIGGER_ENCODED_LEN,
@@ -30,7 +30,7 @@ use conduit_signal::{
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 use std::io::{BufRead, Write};
 
-pub(super) const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+pub(super) const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 pub(super) const ROUTE_SLOTS: usize = 2 * PORTS;
 pub(super) const MAXIMUM_VALUES: usize = 16;
 pub(super) const MAXIMUM_WAITS: usize = MAXIMUM_VALUES - 1;

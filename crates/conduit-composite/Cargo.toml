@@ -7,7 +7,7 @@ edition = "2021"
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
 conduit-kernel = { path = "../conduit-kernel", features = ["alloc"] }
-conduit-runtime = { path = "../conduit-runtime", default-features = false }
+conduit-plan-lowering = { path = "../conduit-plan-lowering", default-features = false }
 
 [dev-dependencies]
 conduit-planner = { path = "../conduit-planner" }

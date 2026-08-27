@@ -5,7 +5,7 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{HostOperationRequest, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{HostOperationOutcome, KernelEvent, RemoteEndpointId};
-use conduit_runtime::lowering::{
+use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, LoweringError, RemoteCordDirection,
 };
 use std::collections::BTreeMap;

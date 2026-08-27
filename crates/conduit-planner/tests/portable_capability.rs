@@ -3,11 +3,11 @@ use conduit_core::{
     PlannerLimits, PlannerProfileId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
 };
+use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{
     default_placements, plan_with_advertised_profile, PlannerError, PlanningOptions,
     BROWSER_PLANNER_PROFILE, FULL_PLANNER_LIMITS, FULL_PLANNER_PROFILE,
 };
-use conduit_runtime::lowering::lower_plan_fragment;
 use std::collections::BTreeMap;
 
 static EMPTY_ROUTE_CANDIDATES: BTreeMap<(GearId, GearId), Vec<conduit_core::LineId>> =

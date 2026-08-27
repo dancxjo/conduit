@@ -13,12 +13,12 @@ use conduit_kernel::{
     HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
     RemoteEndpointId, RequestId, SignQuery, ValueRef, ValueStorage,
 };
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
+    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+};
 #[cfg(test)]
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
-use conduit_runtime::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
-    MAXIMUM_KERNEL_PORTS_PER_NODE,
-};
 #[cfg(test)]
 use conduit_signal::signal_profile_catalog;
 use conduit_signal::{encode_signal, parse_pulse_configuration, Signal, SIGNAL_ENCODED_LEN};
@@ -43,7 +43,7 @@ use std::time::Duration;
 
 mod observations;
 
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const ROUTE_SLOTS: usize = PORTS;
 const MAXIMUM_VALUES: usize = 16;
 const MAXIMUM_WAITS: usize = 15;

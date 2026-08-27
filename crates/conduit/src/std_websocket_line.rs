@@ -14,7 +14,7 @@ use conduit_kernel::scheduler::{
 use conduit_kernel::{
     FixedRoutes, FixedSignLog, FixedValueStore, PortId, SignQuery, ValueRef, ValueStorage,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, RemoteCordDirection};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, RemoteCordDirection};
 use conduit_signal::{encode_signal, Signal, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN_USIZE};
 use conduit_std_host::websocket::NativeWebSocketListener;
 use conduit_wire::{
@@ -38,7 +38,7 @@ const SOURCE_BOOT: &str = "product/std-source/boot-1";
 const SINK_BOOT: &str = "product/std-sink/boot-1";
 const MAXIMUM_VALUES: usize = 16;
 const MAXIMUM_FRAME_BYTES: u32 = conduit_signal_conformance::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
-const PORTS: usize = conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 pub(crate) struct ExecutionEvidence {
     pub(crate) received: usize,
@@ -320,7 +320,7 @@ pub(crate) fn execute(plan: &Plan) -> Result<ExecutionEvidence, String> {
 }
 
 pub(super) fn kernel(
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     driver: Driver,
     mut values: FixedValueStore<MAXIMUM_VALUES, { MAXIMUM_VALUES * SIGNAL_ENCODED_LEN_USIZE }>,
 ) -> Result<Kernel, String> {
@@ -365,7 +365,7 @@ pub(super) fn kernel(
 }
 
 fn run_source(
-    lowered: conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: conduit_plan_lowering::lowering::LoweredPlanFragment,
     binding: SessionBinding,
     listener: NativeWebSocketListener,
 ) -> Result<usize, String> {

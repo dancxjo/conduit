@@ -288,7 +288,7 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
     assert_eq!(connection.byte_capacity, SIGNAL_ENCODED_LEN);
 
     let lowered =
-        conduit_runtime::lowering::lower_plan_fragment(fragment).expect("fragment lowers");
+        conduit_plan_lowering::lowering::lower_plan_fragment(fragment).expect("fragment lowers");
     assert_eq!(lowered.nodes.len(), 2);
     assert_eq!(lowered.cords.len(), 1);
     assert!(lowered.remote_endpoints.is_empty());

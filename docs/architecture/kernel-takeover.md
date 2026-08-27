@@ -6,7 +6,7 @@ exact plans through `conduit-kernel`.
 
 ## Accepted first checkpoint: exact lowering
 
-`conduit_runtime::lowering::lower_plan_fragment` accepts one verified local
+`conduit_plan_lowering::lower_plan_fragment` accepts one verified local
 `PlanFragment` and, before Play start, derives:
 
 - numeric node IDs and fixed-width input-cord tables;

@@ -14,8 +14,8 @@ use conduit_kernel::{
     OperationAction, OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
     scheduler::{FixedScheduler, OperationDriver, SchedulerStatus},
 };
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
-use conduit_runtime::lowering::{MAXIMUM_KERNEL_PORTS_PER_NODE, lower_plan_fragment};
 
 const SOURCE_KIND: &str = "test/http-request-source";
 const SOURCE_REVISION: &str = "test/http-request-source@1";
@@ -27,7 +27,7 @@ const OBSERVE_OPERATION: &str = "test/observe-http-response@1";
 const FIXTURE_PROFILE: &str = "test/http-kernel-fixture@1";
 const MAX_NODES: usize = 3;
 const MAX_CORDS: usize = 2;
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const VALUE_SLOTS: usize = 8;
 const VALUE_BYTES: usize = REQUEST_BYTES + RESPONSE_BYTES;
 const SIGN_CAPACITY: usize = 96;

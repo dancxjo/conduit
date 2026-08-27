@@ -8,12 +8,12 @@ use conduit_kernel::{
     BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, ValueStorage,
 };
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use conduit_presentation::{
     GraphicsScene, LayoutFrame, PresentationComposition, MAX_LAYOUT_FRAME_BYTES,
     MAX_PRESENTATION_COMPOSITION_BYTES,
 };
-use conduit_runtime::lowering::{lower_plan_fragment, MAXIMUM_KERNEL_PORTS_PER_NODE};
 use std::collections::BTreeMap;
 
 mod abi;
@@ -35,7 +35,7 @@ const FIXTURE_GRAPHICS_KIND: &str = "browser-fixture/graphics-present";
 const FIXTURE_LAYOUT_KIND: &str = "browser-fixture/layout-present";
 const FIXTURE_TEXT_KIND: &str = "browser-fixture/text-source";
 const FIXTURE_PRESENT_OPERATION: &str = "browser.host/presentation-nucleus-present@1";
-const PORTS: usize = MAXIMUM_KERNEL_PORTS_PER_NODE;
+const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_NODES: usize = 6;
 const MAX_CORDS: usize = 5;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
@@ -208,7 +208,7 @@ fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core:
 
 fn prepare_scheduler(
     fragment: &conduit_core::PlanFragment,
-    lowered: &conduit_runtime::lowering::LoweredPlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
 ) -> Result<NucleusScheduler, String> {
     if fragment.placements.len() != MAX_NODES
         || fragment.connections.len() != MAX_CORDS
