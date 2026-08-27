@@ -1,9 +1,12 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use conduit_audio::{
+    Gate, MusicalControl, MusicalControlEvent, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId,
+    MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
+};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, Gate, ImplementationId, KindContractRevision, MusicalControl,
-    MusicalControlEvent, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, PlannedGear,
-    PortDescriptor, PortDirection, PortTemporal, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
+    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_kernel::{
@@ -108,8 +111,8 @@ pub(super) fn offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: EVENT_COUNT as u16,
-            max_queue_bytes: (2 * conduit_core::NOTE_EVENT_ENCODED_LEN
-                + conduit_core::CONTROL_EVENT_ENCODED_LEN) as u32,
+            max_queue_bytes: (2 * conduit_audio::NOTE_EVENT_ENCODED_LEN
+                + conduit_audio::CONTROL_EVENT_ENCODED_LEN) as u32,
         },
     }
 }
@@ -165,13 +168,13 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     Ok(OperationBudget {
         value_items: (EVENT_COUNT + YIELD_COUNT) as u16,
-        value_bytes: (2 * conduit_core::NOTE_EVENT_ENCODED_LEN
-            + conduit_core::CONTROL_EVENT_ENCODED_LEN
+        value_bytes: (2 * conduit_audio::NOTE_EVENT_ENCODED_LEN
+            + conduit_audio::CONTROL_EVENT_ENCODED_LEN
             + YIELD_COUNT) as u32,
         host_requests: YIELD_COUNT,
         sign_items: 16,
-        maximum_value_bytes: conduit_core::NOTE_EVENT_ENCODED_LEN
-            .max(conduit_core::CONTROL_EVENT_ENCODED_LEN) as u32,
+        maximum_value_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
+            .max(conduit_audio::CONTROL_EVENT_ENCODED_LEN) as u32,
     })
 }
 

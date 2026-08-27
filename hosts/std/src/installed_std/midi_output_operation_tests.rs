@@ -1,7 +1,8 @@
 use super::*;
+use conduit_audio::{Gate, NoteOccurrenceId};
 use conduit_core::{
-    AuthorityBinding, AuthorityGrantId, BootId, Gate, GearId, HostId, NoteOccurrenceId,
-    OfferGeneration, PlacementId, ResourceBinding,
+    AuthorityBinding, AuthorityGrantId, BootId, GearId, HostId, OfferGeneration, PlacementId,
+    ResourceBinding,
 };
 
 fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
@@ -86,22 +87,22 @@ fn exact_portable_events_cross_the_bounded_host_boundary_in_order() {
     let selected = crate::hosted_midi::MidiOutputSelection::sequencer(selection);
     let mut session = prepare_session(&placement, Some(&selected)).unwrap();
     let mut adapter = prepare_adapter().unwrap();
-    let pitch = conduit_core::MusicalPitch::from_equal_tempered(
+    let pitch = conduit_audio::MusicalPitch::from_equal_tempered(
         0,
         crate::hosted_midi::A4_REFERENCE_MILLIHERTZ,
         0,
     )
     .unwrap();
     let on =
-        conduit_core::MusicalNoteEvent::new(NoteOccurrenceId(9), pitch, Gate::On, u16::MAX, 10, 0)
+        conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(9), pitch, Gate::On, u16::MAX, 10, 0)
             .unwrap();
-    let sustain = conduit_core::MusicalControlEvent::new(
-        conduit_core::MusicalControl::Sustain { down: true },
+    let sustain = conduit_audio::MusicalControlEvent::new(
+        conduit_audio::MusicalControl::Sustain { down: true },
         11,
         1,
     )
     .unwrap();
-    let off = conduit_core::MusicalNoteEvent::new(NoteOccurrenceId(9), pitch, Gate::Off, 0, 12, 2)
+    let off = conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(9), pitch, Gate::Off, 0, 12, 2)
         .unwrap();
     for (contract, encoded) in [
         (
@@ -147,14 +148,14 @@ fn stale_authority_and_unrepresentable_pitch_fail_closed() {
     let selected = crate::hosted_midi::MidiOutputSelection::sequencer(selection);
     let mut session = prepare_session(&placement, Some(&selected)).unwrap();
     let mut adapter = prepare_adapter().unwrap();
-    let pitch = conduit_core::MusicalPitch::from_equal_tempered(
+    let pitch = conduit_audio::MusicalPitch::from_equal_tempered(
         0,
         crate::hosted_midi::A4_REFERENCE_MILLIHERTZ,
         1,
     )
     .unwrap();
     let event =
-        conduit_core::MusicalNoteEvent::new(NoteOccurrenceId(1), pitch, Gate::On, u16::MAX, 0, 0)
+        conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(1), pitch, Gate::On, u16::MAX, 0, 0)
             .unwrap();
     let outcome = execute(
         &mut adapter,
@@ -178,14 +179,14 @@ fn provider_loss_remains_a_host_failure() {
     let selected = crate::hosted_midi::MidiOutputSelection::sequencer(selection);
     let mut session = prepare_session(&placement, Some(&selected)).unwrap();
     let mut adapter = prepare_adapter().unwrap();
-    let pitch = conduit_core::MusicalPitch::from_equal_tempered(
+    let pitch = conduit_audio::MusicalPitch::from_equal_tempered(
         0,
         crate::hosted_midi::A4_REFERENCE_MILLIHERTZ,
         0,
     )
     .unwrap();
     let event =
-        conduit_core::MusicalNoteEvent::new(NoteOccurrenceId(2), pitch, Gate::On, u16::MAX, 0, 0)
+        conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(2), pitch, Gate::On, u16::MAX, 0, 0)
             .unwrap();
     let outcome = execute(
         &mut adapter,
@@ -215,7 +216,7 @@ fn scheduler_operation_keeps_note_and_control_bindings_distinct() {
     let note_value = conduit_kernel::ValueRef {
         slot: 0,
         generation: 1,
-        byte_len: conduit_core::NOTE_EVENT_ENCODED_LEN as u32,
+        byte_len: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
     };
     let action = operation.resume(OperationInput::Value {
         port: PortId(0),

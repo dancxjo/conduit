@@ -3,7 +3,7 @@
 //! These values contain musical/media meaning only. MIDI keys, device names,
 //! PCM handles, OPL registers, and host callback facts belong to realizations.
 
-use crate::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
+use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
 
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
 pub const MUSIC_NOTE_INFO_ID: &str = "music/note-event@1";

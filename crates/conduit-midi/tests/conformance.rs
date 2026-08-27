@@ -1,4 +1,4 @@
-use conduit_core::{Gate, ModulationDestination, MusicalControl, MusicalPitch, NoteOccurrenceId};
+use conduit_audio::{Gate, ModulationDestination, MusicalControl, MusicalPitch, NoteOccurrenceId};
 use conduit_midi::{
     midi_velocity_to_portable, MidiAdapterError, MidiInputAdapter, MidiMessage, MidiOutputAdapter,
     MidiParseError, MidiParser, MidiProfile, ParsedMidi, PortableMidiEvent,
@@ -263,7 +263,7 @@ fn parser_refuses_truncation_unframed_data_and_oversize_sysex() {
 fn output_requires_exact_midi_profile_and_clears_notes_on_cancel() {
     let mut output = MidiOutputAdapter::new(profile());
     let pitch = MusicalPitch::from_equal_tempered(0, 440_000, 0).unwrap();
-    let on = conduit_core::MusicalNoteEvent::new(
+    let on = conduit_audio::MusicalNoteEvent::new(
         NoteOccurrenceId(7),
         pitch,
         Gate::On,
@@ -274,7 +274,7 @@ fn output_requires_exact_midi_profile_and_clears_notes_on_cancel() {
     .unwrap();
     assert_eq!(output.encode_note(on).unwrap(), [0x90, 69, 100]);
     assert_eq!(output.cancel_all_notes_off(), [0xb0, 123, 0]);
-    let microtonal = conduit_core::MusicalNoteEvent::new(
+    let microtonal = conduit_audio::MusicalNoteEvent::new(
         NoteOccurrenceId(8),
         MusicalPitch::from_equal_tempered(0, 440_000, 1).unwrap(),
         Gate::On,

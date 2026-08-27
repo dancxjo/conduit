@@ -1,6 +1,7 @@
+use conduit_audio::AUDIO_PCM_INFO_ID;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, AUDIO_PCM_INFO_ID,
+    PortDirection, PortTemporal,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,

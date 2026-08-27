@@ -145,7 +145,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || authority.is_none_or(|binding| {
             binding.contract_id.as_str() != conduit_std_catalog::AUDIO_PLAYBACK_AUTHORITY_CONTRACT
                 || binding.host_operation_contract_id.as_str() != HOST_OPERATION
-                || binding.subject_kind.as_str() != conduit_core::AUDIO_PCM_INFO_ID
+                || binding.subject_kind.as_str() != conduit_audio::AUDIO_PCM_INFO_ID
                 || binding.host_id != placement.host_id
                 || binding.boot_id != placement.boot_id
                 || binding.capability_id != placement.capability_id

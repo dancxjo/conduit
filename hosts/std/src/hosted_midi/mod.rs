@@ -59,10 +59,10 @@ pub const MIDI_READINESS_WAIT_MILLIS: u16 = 10;
 pub fn output_compatibility_profile(
 ) -> Result<conduit_std_catalog::SoundCompatibilityProfile, &'static str> {
     let minimum_pitch =
-        conduit_core::MusicalPitch::from_equal_tempered(-69, A4_REFERENCE_MILLIHERTZ, 0)
+        conduit_audio::MusicalPitch::from_equal_tempered(-69, A4_REFERENCE_MILLIHERTZ, 0)
             .map_err(|_| "MIDI minimum pitch profile is invalid")?;
     let maximum_pitch =
-        conduit_core::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
+        conduit_audio::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
             .map_err(|_| "MIDI maximum pitch profile is invalid")?;
     Ok(conduit_std_catalog::SoundCompatibilityProfile {
         profile_id: conduit_std_catalog::MUSIC_PLAY_MIDI_PROFILE.into(),

@@ -1,5 +1,6 @@
 use super::*;
-use conduit_core::{Gate, MusicalControl};
+use conduit_audio::{Gate, MusicalControl};
+
 use conduit_kernel::ValueRef;
 use conduit_midi::{MidiMessage, ParsedMidi};
 
@@ -90,7 +91,7 @@ fn next_completion(
     )
 }
 
-fn note(action: OperationAction) -> conduit_core::MusicalNoteEvent {
+fn note(action: OperationAction) -> conduit_audio::MusicalNoteEvent {
     let OperationAction::EmitCanonical {
         port: PortId(0),
         value,
@@ -98,10 +99,10 @@ fn note(action: OperationAction) -> conduit_core::MusicalNoteEvent {
     else {
         panic!("expected note output")
     };
-    conduit_core::MusicalNoteEvent::decode(value.as_slice()).unwrap()
+    conduit_audio::MusicalNoteEvent::decode(value.as_slice()).unwrap()
 }
 
-fn control(action: OperationAction) -> conduit_core::MusicalControlEvent {
+fn control(action: OperationAction) -> conduit_audio::MusicalControlEvent {
     let OperationAction::EmitCanonical {
         port: PortId(1),
         value,
@@ -109,7 +110,7 @@ fn control(action: OperationAction) -> conduit_core::MusicalControlEvent {
     else {
         panic!("expected control output")
     };
-    conduit_core::MusicalControlEvent::decode(value.as_slice()).unwrap()
+    conduit_audio::MusicalControlEvent::decode(value.as_slice()).unwrap()
 }
 
 #[test]

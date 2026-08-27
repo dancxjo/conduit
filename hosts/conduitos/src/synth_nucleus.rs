@@ -1,6 +1,6 @@
 //! ConduitOS binding for the shared fixed-storage reference synthesizer.
 
-use conduit_core::{AudioRenderDemand, MusicalControlEvent, MusicalNoteEvent, PcmChannelLayout};
+use conduit_audio::{AudioRenderDemand, MusicalControlEvent, MusicalNoteEvent, PcmChannelLayout};
 
 const MAXIMUM_PCM_BYTES: usize = conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize;
 
@@ -66,8 +66,8 @@ impl SynthNucleus {
         let mut samples = [0_i16; conduit_synth::REFERENCE_MAXIMUM_BLOCK_FRAMES as usize];
         self.synth
             .render(&mut samples[..usize::from(demand.frame_count)]);
-        let header = conduit_core::PcmFrameHeader::new(
-            conduit_core::PcmSampleRepresentation::Signed16LittleEndian,
+        let header = conduit_audio::PcmFrameHeader::new(
+            conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
             conduit_synth::REFERENCE_SAMPLE_RATE_HZ,
             PcmChannelLayout::StereoLeftRight,
             demand.frame_count,
@@ -78,12 +78,12 @@ impl SynthNucleus {
         .map_err(|_| SynthNucleusError::InvalidProfile)?;
         let mut output = SynthOutput {
             bytes: [0; MAXIMUM_PCM_BYTES],
-            len: conduit_core::PCM_FRAME_HEADER_ENCODED_LEN + usize::from(demand.frame_count) * 4,
+            len: conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN + usize::from(demand.frame_count) * 4,
         };
-        output.bytes[..conduit_core::PCM_FRAME_HEADER_ENCODED_LEN]
+        output.bytes[..conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN]
             .copy_from_slice(&header.encode());
         for (encoded, sample) in output.bytes
-            [conduit_core::PCM_FRAME_HEADER_ENCODED_LEN..output.len]
+            [conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN..output.len]
             .as_chunks_mut::<4>()
             .0
             .iter_mut()
@@ -105,7 +105,7 @@ impl SynthNucleus {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{Gate, MusicalPitch, NoteOccurrenceId};
+    use conduit_audio::{Gate, MusicalPitch, NoteOccurrenceId};
 
     #[test]
     fn renders_bounded_stereo_and_refuses_stale_demand() {
@@ -127,10 +127,10 @@ mod tests {
         let output = synth.render(demand).unwrap();
         assert_eq!(
             output.as_bytes().len(),
-            conduit_core::PCM_FRAME_HEADER_ENCODED_LEN + 256
+            conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN + 256
         );
         assert!(
-            output.as_bytes()[conduit_core::PCM_FRAME_HEADER_ENCODED_LEN..]
+            output.as_bytes()[conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN..]
                 .iter()
                 .any(|byte| *byte != 0)
         );
@@ -148,7 +148,7 @@ mod tests {
             .render(AudioRenderDemand::new(1, 0, 32, 0).unwrap())
             .unwrap();
         assert!(
-            output.as_bytes()[conduit_core::PCM_FRAME_HEADER_ENCODED_LEN..]
+            output.as_bytes()[conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN..]
                 .iter()
                 .all(|byte| *byte == 0)
         );

@@ -1,15 +1,16 @@
 //! Exact queued-event rendering for the installed reference synth.
 
-use conduit_core::{
-    AudioRenderDemand, PlannedGear, AUDIO_RENDER_DEMAND_ENCODED_LEN, CONTROL_EVENT_ENCODED_LEN,
+use conduit_audio::{
+    AudioRenderDemand, AUDIO_RENDER_DEMAND_ENCODED_LEN, CONTROL_EVENT_ENCODED_LEN,
     NOTE_EVENT_ENCODED_LEN,
 };
+use conduit_core::PlannedGear;
 use std::collections::VecDeque;
 
 #[derive(Debug, Copy, Clone)]
 enum PendingMusicalEvent {
-    Note(conduit_core::MusicalNoteEvent),
-    Control(conduit_core::MusicalControlEvent),
+    Note(conduit_audio::MusicalNoteEvent),
+    Control(conduit_audio::MusicalControlEvent),
 }
 
 impl PendingMusicalEvent {
@@ -74,12 +75,12 @@ pub(super) fn execute(
     }
     let mut event = if input.len() == NOTE_EVENT_ENCODED_LEN {
         PendingMusicalEvent::Note(
-            conduit_core::MusicalNoteEvent::decode(input)
+            conduit_audio::MusicalNoteEvent::decode(input)
                 .map_err(|error| format!("decode music note event: {error:?}"))?,
         )
     } else if input.len() == CONTROL_EVENT_ENCODED_LEN {
         PendingMusicalEvent::Control(
-            conduit_core::MusicalControlEvent::decode(input)
+            conduit_audio::MusicalControlEvent::decode(input)
                 .map_err(|error| format!("decode music control event: {error:?}"))?,
         )
     } else {
@@ -160,10 +161,10 @@ fn render_demand(
         .render(&mut samples[rendered..rendered + remaining]);
 
     output.clear();
-    let header = conduit_core::PcmFrameHeader::new(
-        conduit_core::PcmSampleRepresentation::Signed16LittleEndian,
+    let header = conduit_audio::PcmFrameHeader::new(
+        conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
         conduit_synth::REFERENCE_SAMPLE_RATE_HZ,
-        conduit_core::PcmChannelLayout::StereoLeftRight,
+        conduit_audio::PcmChannelLayout::StereoLeftRight,
         demand.frame_count,
         demand.clock_id,
         demand.start_frame,
@@ -190,7 +191,7 @@ fn render_demand(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, PcmFrameHeader};
+    use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, PcmFrameHeader};
 
     fn note(occurrence: u64, gate: Gate, micros: u64, order: u32) -> MusicalNoteEvent {
         MusicalNoteEvent::new(

@@ -1,6 +1,6 @@
 //! Finite occurrence-to-native-channel ownership for the OPL realization.
 
-use conduit_core::{Gate, MusicalNoteEvent};
+use conduit_audio::{Gate, MusicalNoteEvent};
 
 use super::{PreparedOpl2Execution, Voice};
 use crate::{machine::Opl2Base, ordinary_plan::PreparationError};

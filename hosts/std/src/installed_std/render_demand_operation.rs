@@ -1,7 +1,8 @@
 //! Installed finite audio render-demand source.
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{AudioRenderDemand, ConfigurationValue, PlannedGear, PortDirection};
+use conduit_audio::AudioRenderDemand;
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     RequestId, ValueRef, ValueStorage,
@@ -78,7 +79,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         .checked_mul(2)
         .ok_or_else(|| "audio render-demand value item budget overflow".to_string())?;
     let value_bytes = u32::from(blocks)
-        .checked_mul((conduit_core::AUDIO_RENDER_DEMAND_ENCODED_LEN + 8) as u32)
+        .checked_mul((conduit_audio::AUDIO_RENDER_DEMAND_ENCODED_LEN + 8) as u32)
         .ok_or_else(|| "audio render-demand value byte budget overflow".to_string())?;
     let sign_items = blocks
         .checked_mul(15)
@@ -89,7 +90,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes,
         host_requests: usize::from(blocks),
         sign_items,
-        maximum_value_bytes: conduit_core::AUDIO_RENDER_DEMAND_ENCODED_LEN as u32,
+        maximum_value_bytes: conduit_audio::AUDIO_RENDER_DEMAND_ENCODED_LEN as u32,
     })
 }
 

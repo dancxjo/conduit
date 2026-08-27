@@ -1,7 +1,8 @@
 //! Canonical bounded PCM frame information.
 
-use crate::{semantic_digest, SoundInfoError};
+use crate::SoundInfoError;
 use alloc::vec::Vec;
+use conduit_core::semantic_digest;
 use serde::{Deserialize, Serialize};
 
 pub const AUDIO_PCM_INFO_ID: &str = "audio/pcm-frames@1";

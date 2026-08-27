@@ -492,6 +492,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-audio"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "libm",
+ "serde",
+]
+
+[[package]]
 name = "conduit-bluetooth"
 version = "0.1.0"
 dependencies = [
@@ -708,6 +717,7 @@ dependencies = [
 name = "conduit-midi"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-core",
 ]
 
@@ -743,6 +753,7 @@ name = "conduit-pete"
 version = "0.1.0"
 dependencies = [
  "conduit-ai",
+ "conduit-audio",
  "conduit-core",
  "conduit-create-oi",
  "conduit-form",
@@ -865,6 +876,7 @@ name = "conduit-std-catalog"
 version = "0.1.0"
 dependencies = [
  "conduit-alife",
+ "conduit-audio",
  "conduit-core",
  "conduit-form",
  "conduit-midi",
@@ -883,6 +895,7 @@ dependencies = [
  "bluer",
  "conduit-ai",
  "conduit-alife",
+ "conduit-audio",
  "conduit-bluetooth",
  "conduit-body",
  "conduit-browser-runtime",
@@ -928,6 +941,7 @@ dependencies = [
 name = "conduit-synth"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-core",
 ]
 
@@ -969,6 +983,7 @@ dependencies = [
 name = "conduit-tongues"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-core",
  "conduit-form",
  "conduit-kernel",
@@ -1016,6 +1031,7 @@ dependencies = [
 name = "conduitos"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-body",
  "conduit-core",
  "conduit-form",
@@ -4418,6 +4434,7 @@ dependencies = [
  "clap",
  "cliclack",
  "conduit-ai",
+ "conduit-audio",
  "conduit-body",
  "conduit-body-fabrication",
  "conduit-chat",

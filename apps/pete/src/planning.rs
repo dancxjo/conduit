@@ -63,7 +63,7 @@ pub fn simple_melody_plan(
         grant_id: AuthorityGrantId::from("grant/pete-create1-speaker-only"),
         contract_id: AuthorityContractId::from(SPEAKER_AUTHORITY),
         host_operation_contract_id: HostOperationContractId::from(SPEAKER_OPERATION),
-        subject_kind: kind_id(conduit_core::MUSIC_NOTE_INFO_ID),
+        subject_kind: kind_id(conduit_audio::MUSIC_NOTE_INFO_ID),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
         capability_id: conduit_core::CapabilityId::from(SPEAKER_CAPABILITY),

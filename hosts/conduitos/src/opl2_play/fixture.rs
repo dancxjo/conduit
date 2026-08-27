@@ -1,6 +1,6 @@
 //! Portable reviewed note fixture reused by OPL conformance and later S8 seams.
 
-use conduit_core::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
+use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
 
 use super::EVENTS;
 

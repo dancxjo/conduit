@@ -151,8 +151,8 @@ impl HostedRawMidiSelection {
         let profile = conduit_std_catalog::SoundCompatibilityProfile {
             profile_id: conduit_std_catalog::MUSIC_INPUT_MIDI_PROFILE.into(),
             seam: conduit_std_catalog::SoundSeam::MusicalEvents,
-            minimum_pitch_millihertz: conduit_core::MINIMUM_PITCH_MILLIHERTZ,
-            maximum_pitch_millihertz: conduit_core::MAXIMUM_PITCH_MILLIHERTZ,
+            minimum_pitch_millihertz: conduit_audio::MINIMUM_PITCH_MILLIHERTZ,
+            maximum_pitch_millihertz: conduit_audio::MAXIMUM_PITCH_MILLIHERTZ,
             maximum_polyphony: 128,
             maximum_events_per_second: 1_000,
             preserves_velocity: true,
@@ -228,10 +228,10 @@ impl HostedRawMidiSelection {
             return Err("raw MIDI subdevice has no exact direct device node");
         }
         let minimum_pitch =
-            conduit_core::MusicalPitch::from_equal_tempered(-69, A4_REFERENCE_MILLIHERTZ, 0)
+            conduit_audio::MusicalPitch::from_equal_tempered(-69, A4_REFERENCE_MILLIHERTZ, 0)
                 .map_err(|_| "MIDI minimum pitch profile is invalid")?;
         let maximum_pitch =
-            conduit_core::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
+            conduit_audio::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
                 .map_err(|_| "MIDI maximum pitch profile is invalid")?;
         let profile = conduit_std_catalog::SoundCompatibilityProfile {
             profile_id: conduit_std_catalog::MUSIC_PLAY_MIDI_PROFILE.into(),

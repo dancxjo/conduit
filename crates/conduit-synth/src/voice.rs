@@ -1,4 +1,4 @@
-use conduit_core::{MusicalPitch, NoteOccurrenceId};
+use conduit_audio::{MusicalPitch, NoteOccurrenceId};
 
 use crate::{Envelope, Oscillator, ReferenceSynthProfile, ResonantLowPass};
 

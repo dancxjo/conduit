@@ -213,7 +213,7 @@ pub fn live_speaker_advertisement(
             outputs: contract.outputs,
             host_operations: vec![HostOperationRequirement {
                 contract_id: HostOperationContractId::from(SPEAKER_OPERATION),
-                target_kind: Some(kind_id(conduit_core::MUSIC_NOTE_INFO_ID)),
+                target_kind: Some(kind_id(conduit_audio::MUSIC_NOTE_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_ADMITTED_SERIAL_BYTES as u32,
                 maximum_output_bytes: 0,
@@ -222,7 +222,7 @@ pub fn live_speaker_advertisement(
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(SPEAKER_AUTHORITY),
                 host_operation_contract_id: HostOperationContractId::from(SPEAKER_OPERATION),
-                subject_kind: kind_id(conduit_core::MUSIC_NOTE_INFO_ID),
+                subject_kind: kind_id(conduit_audio::MUSIC_NOTE_INFO_ID),
             }],
             limits: CapabilityLimits {
                 max_active_instances: 1,
@@ -235,9 +235,9 @@ pub fn live_speaker_advertisement(
 }
 
 pub fn compatibility_profile() -> conduit_std_catalog::SoundCompatibilityProfile {
-    let minimum = conduit_core::MusicalPitch::from_equal_tempered(-38, 440_000, 0)
+    let minimum = conduit_audio::MusicalPitch::from_equal_tempered(-38, 440_000, 0)
         .expect("Create note 31 is representable");
-    let maximum = conduit_core::MusicalPitch::from_equal_tempered(58, 440_000, 0)
+    let maximum = conduit_audio::MusicalPitch::from_equal_tempered(58, 440_000, 0)
         .expect("Create note 127 is representable");
     conduit_std_catalog::SoundCompatibilityProfile {
         profile_id: SPEAKER_PROFILE.into(),

@@ -98,17 +98,17 @@ fn catalog() -> Result<ProfileCatalog, CatalogError> {
         )
     })?;
     for (kind, port, info) in [
-        (TONE_SOURCE, "tone", conduit_core::SOUND_TONE_INFO_ID),
-        (NOTE_SOURCE, "notes", conduit_core::MUSIC_NOTE_INFO_ID),
+        (TONE_SOURCE, "tone", conduit_audio::SOUND_TONE_INFO_ID),
+        (NOTE_SOURCE, "notes", conduit_audio::MUSIC_NOTE_INFO_ID),
         (
             CONTROL_SOURCE,
             "controls",
-            conduit_core::MUSIC_CONTROL_INFO_ID,
+            conduit_audio::MUSIC_CONTROL_INFO_ID,
         ),
         (
             RENDER_SOURCE,
             "render",
-            conduit_core::AUDIO_RENDER_DEMAND_INFO_ID,
+            conduit_audio::AUDIO_RENDER_DEMAND_INFO_ID,
         ),
     ] {
         catalog

@@ -32,9 +32,9 @@ impl MidiOutputOperation {
                         < u32::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) =>
             {
                 let maximum = if port == PortId(0) {
-                    conduit_core::NOTE_EVENT_ENCODED_LEN as u32
+                    conduit_audio::NOTE_EVENT_ENCODED_LEN as u32
                 } else {
-                    conduit_core::CONTROL_EVENT_ENCODED_LEN as u32
+                    conduit_audio::CONTROL_EVENT_ENCODED_LEN as u32
                 };
                 let Ok(input) = BoundedValueRef::new(value, maximum) else {
                     return InstalledOperation::fail(82);
@@ -93,8 +93,8 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: 0,
         host_requests: usize::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
         sign_items: 64,
-        maximum_value_bytes: conduit_core::NOTE_EVENT_ENCODED_LEN
-            .max(conduit_core::CONTROL_EVENT_ENCODED_LEN) as u32,
+        maximum_value_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
+            .max(conduit_audio::CONTROL_EVENT_ENCODED_LEN) as u32,
     })
 }
 
@@ -197,7 +197,7 @@ pub(super) fn execute(
     input: &[u8],
 ) -> conduit_kernel::HostOperationOutcome {
     if contract == conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION {
-        let Ok(event) = conduit_core::MusicalNoteEvent::decode(input) else {
+        let Ok(event) = conduit_audio::MusicalNoteEvent::decode(input) else {
             return failed(conduit_kernel::FailureCode::InvalidInput, 84);
         };
         let Ok(encoded) = adapter.encode_note(event) else {
@@ -209,7 +209,7 @@ pub(super) fn execute(
         };
     }
     let encoded = if contract == conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION {
-        conduit_core::MusicalControlEvent::decode(input)
+        conduit_audio::MusicalControlEvent::decode(input)
             .map_err(|_| ())
             .and_then(|event| adapter.encode_control(event).map_err(|_| ()))
     } else {

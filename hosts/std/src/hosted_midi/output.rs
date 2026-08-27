@@ -93,7 +93,7 @@ impl MidiOutputSession {
 
     pub(crate) fn send_note(
         &mut self,
-        event: conduit_core::MusicalNoteEvent,
+        event: conduit_audio::MusicalNoteEvent,
         encoded: [u8; 3],
     ) -> Result<(), MidiOutputFailure> {
         self.send(encoded)?;

@@ -10,10 +10,10 @@ pub(crate) fn deterministic_pcm(text: &str) -> Vec<u8> {
         }
     }
     let frames = u16::try_from(payload.len() / 2).expect("bounded speech specimen frame count");
-    conduit_core::PcmFrameHeader::new(
-        conduit_core::PcmSampleRepresentation::Signed16LittleEndian,
+    conduit_audio::PcmFrameHeader::new(
+        conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
         16_000,
-        conduit_core::PcmChannelLayout::Mono,
+        conduit_audio::PcmChannelLayout::Mono,
         frames,
         1,
         0,
@@ -25,7 +25,7 @@ pub(crate) fn deterministic_pcm(text: &str) -> Vec<u8> {
 }
 
 pub(crate) fn wav(pcm: &[u8]) -> Vec<u8> {
-    let (header, payload) = conduit_core::PcmFrameHeader::decode_frame(pcm)
+    let (header, payload) = conduit_audio::PcmFrameHeader::decode_frame(pcm)
         .expect("audio/pcm-frames value must be canonical before WAV adaptation");
     let mut out = Vec::with_capacity(44 + payload.len());
     out.extend_from_slice(b"RIFF");

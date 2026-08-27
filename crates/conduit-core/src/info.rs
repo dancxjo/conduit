@@ -149,7 +149,11 @@ impl Scalar {
     }
 }
 
-pub(crate) fn semantic_digest(info_id: &str, encoded: &[u8]) -> [u8; 32] {
+/// Derives the canonical digest for one exact encoded portable Info value.
+///
+/// Domain semantic owners use this generic mechanism without moving their
+/// value families back into `conduit-core`.
+pub fn semantic_digest(info_id: &str, encoded: &[u8]) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash.update(SEMANTIC_DIGEST_DOMAIN);
     hash.update((info_id.len() as u16).to_le_bytes());

@@ -1,6 +1,7 @@
 //! Production-kernel execution of one planned monophonic tone sink.
 
-use conduit_core::{Gate, ToneIntent};
+use conduit_audio::{Gate, ToneIntent};
+
 use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
     FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
@@ -98,7 +99,7 @@ impl Operation for ToneOperation {
                 value,
             } if self.pending.is_none() => {
                 let Ok(input) =
-                    BoundedValueRef::new(value, conduit_core::TONE_INTENT_ENCODED_LEN as u32)
+                    BoundedValueRef::new(value, conduit_audio::TONE_INTENT_ENCODED_LEN as u32)
                 else {
                     return invalid(20);
                 };
@@ -239,7 +240,7 @@ impl PcSpeakerKernel {
             SINK_NODE,
             HostOperationBinding {
                 operation: TONE_OPERATION,
-                maximum_input_bytes: conduit_core::TONE_INTENT_ENCODED_LEN as u32,
+                maximum_input_bytes: conduit_audio::TONE_INTENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },
         )?;
@@ -265,7 +266,7 @@ impl PcSpeakerKernel {
                     CordCapacity {
                         slot_start: 0,
                         item_capacity: 1,
-                        byte_capacity: conduit_core::TONE_INTENT_ENCODED_LEN as u32,
+                        byte_capacity: conduit_audio::TONE_INTENT_ENCODED_LEN as u32,
                     },
                 )],
                 routes,
@@ -438,7 +439,7 @@ pub fn reviewed_values() -> [ToneIntent; EVENTS] {
 fn tone(correlation: u64, frequency: u64, gate: Gate, order: u32) -> ToneIntent {
     ToneIntent::new(
         correlation,
-        conduit_core::MusicalPitch::new(frequency, 440_000, 0).expect("reviewed pitch"),
+        conduit_audio::MusicalPitch::new(frequency, 440_000, 0).expect("reviewed pitch"),
         gate,
         u64::from(order) * 1_000,
         order,

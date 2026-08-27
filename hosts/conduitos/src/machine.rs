@@ -3,7 +3,7 @@
 //! These are mechanisms beneath Host offers. They carry no authored meaning,
 //! scheduling policy, ambient authority, or architecture-specific vocabulary.
 
-use conduit_core::ToneIntent;
+use conduit_audio::ToneIntent;
 use conduit_kernel::{BoundedValueRef, NodeId, RequestId};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
