@@ -675,6 +675,7 @@ name = "conduit-host-hosted"
 version = "0.1.0"
 dependencies = [
  "conduit-host-fabrication",
+ "conduit-std-catalog",
 ]
 
 [[package]]

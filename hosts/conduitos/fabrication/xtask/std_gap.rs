@@ -156,7 +156,7 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
     Ok(StdGapReport {
         schema: SCHEMA,
         catalog_basis:
-            "conduit_std_catalog::supported_nucleus_contracts()+supported_nucleus_offers()",
+            "conduit_std_catalog::supported_nucleus_contracts()+conduit_std_host::supported_nucleus_offers()",
         catalog_inventory_schema: catalog::inventory::SCHEMA,
         catalog_digest_algorithm: "sha256-canonical-json",
         catalog_digest: inventory.digest,

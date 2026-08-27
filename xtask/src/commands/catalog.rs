@@ -233,8 +233,7 @@ fn build_report(
             GapClassification::UnsupportedOnThisMachine,
             GapClassification::DeliberatelyNotApplicable,
         ],
-        catalog_basis:
-            "conduit_std_catalog::supported_nucleus_contracts()+supported_nucleus_offers()",
+        catalog_basis: "portable contracts + exact Host/application offers",
         catalog_inventory_schema: inventory::SCHEMA,
         catalog_digest_algorithm: "sha256-canonical-json",
         catalog_digest: inventory.digest,

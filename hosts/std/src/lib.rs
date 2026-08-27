@@ -24,7 +24,7 @@ pub mod distributed_signal;
 pub mod distributed_toggle;
 pub mod text_lab_live;
 pub mod text_lab_split;
-pub use composition::StdHostComposition;
+pub use composition::{reference_advertisement, supported_nucleus_offers, StdHostComposition};
 pub use copy_task::{
     prepare_copy_task, CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, PreparedCopyTask,
     ProtectedFileAvailability, ProtectedFileRegistry,

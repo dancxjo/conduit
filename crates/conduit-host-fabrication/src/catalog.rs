@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 
-use conduit_std_catalog::supported_nucleus_offers;
-
 use crate::{
     FabricationContribution, FabricationPackageSet, ImplementationMetadata,
     PackageCatalogContribution, PrerequisiteNode, PresenterMetadata,
@@ -28,32 +26,8 @@ pub struct FabricationCatalog {
 
 impl FabricationCatalog {
     pub fn canonical() -> Self {
-        let mut implementations = BTreeMap::new();
-        for offer in supported_nucleus_offers() {
-            let implementation = offer.implementation.implementation_id.as_str().to_owned();
-            let mut prerequisites = offer
-                .host_operations
-                .iter()
-                .map(|requirement| {
-                    PrerequisiteNode::HostOperation(requirement.contract_id.as_str().to_owned())
-                })
-                .chain(offer.resource_requirements.iter().map(|requirement| {
-                    PrerequisiteNode::Resource(requirement.class_id.as_str().to_owned())
-                }))
-                .collect::<Vec<_>>();
-            prerequisites.sort();
-            prerequisites.dedup();
-            implementations
-                .entry(implementation)
-                .or_insert(ImplementationMetadata {
-                    kind: offer.kind_id.as_str().to_owned(),
-                    contract_revision: offer.kind_contract_revision.as_str().to_owned(),
-                    targets: vec!["std/*/*".into()],
-                    prerequisites,
-                });
-        }
         Self {
-            implementations,
+            implementations: BTreeMap::new(),
             presenters: BTreeMap::new(),
             dependencies: BTreeMap::new(),
             targets: Vec::new(),
