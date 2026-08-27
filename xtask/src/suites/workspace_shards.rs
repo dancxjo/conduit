@@ -1,206 +1,99 @@
 use crate::process::Step;
 
-#[cfg(test)]
-const FOUNDATION_TEST_PACKAGES: &[&str] = &[
-    "conduit-bluetooth",
-    "conduit-alife",
-    "conduit-data",
-    "conduit-core",
-    "conduit-create-oi",
-    "conduit-mpu6050",
-    "conduit-ssd1306",
-    "conduit-embedded-build",
-    "conduit-kernel",
-    "conduit-language",
-    "conduit-runtime",
-    "conduit-form",
-    "conduit-host-fabrication",
-    "conduit-planner",
-    "conduit-signal",
-    "conduit-signal-conformance",
-    "conduit-r1-network-conformance",
-    "conduit-std-catalog",
-    "conduit-midi",
-    "conduit-presentation",
-    "conduit-body",
-    "conduit-body-fabrication",
-    "conduit-net",
-    "conduit-rp2040-network-realization",
-    "conduit-wire",
-    "conduit-web",
-    "conduit-text",
-    "conduit-system-continuity",
-    "conduit-observatory",
-];
+macro_rules! package_test_shard {
+    ($packages:ident, $step:ident, $id:literal, $description:literal, [$($package:literal),+ $(,)?], [$($trailing:literal),* $(,)?]) => {
+        const $packages: &[&str] = &[$($package),+];
+        const $step: Step = Step::new(
+            $id,
+            $description,
+            "cargo",
+            &["test", $("-p", $package,)+ $($trailing,)*],
+        );
+    };
+}
 
-#[cfg(test)]
-const HOST_TEST_PACKAGES: &[&str] = &[
-    "conduit-host-browser-fabrication",
-    "conduit-host-conduitos-fabrication",
-    "conduit-host-esp32-fabrication",
-    "conduit-host-hosted",
-    "conduit-host-raspberry-pi",
-    "conduit-host-rp2040",
-    "conduit-linear-framebuffer-fabrication",
-    "conduit-rp2040-pio-audio-extension",
-    "conduit-workspace-fabrication",
-    "conduit-browser-host",
-    "conduit-std-host",
-    "conduit-browser-runtime",
-    "conduitos",
-    "patchbay-hosted",
-    "patchbay-model",
-    "patchbay-html",
-    "patchbay-native",
-];
-
-#[cfg(test)]
-const PRODUCT_TEST_PACKAGES: &[&str] = &[
-    "conduit-ai",
-    "conduit-chat",
-    "conduit-synth",
-    "conduit-composite",
-    "conduit-pete",
-    "conduit-tongues",
-    "conduit",
-    "xtask",
-];
-
-const FOUNDATION_TEST_STEP: Step = Step::new(
+package_test_shard!(
+    FOUNDATION_TEST_PACKAGES,
+    FOUNDATION_TEST_STEP,
     "check.test.foundation",
     "Foundation crate unit and integration tests",
-    "cargo",
-    &[
-        "test",
-        "-p",
+    [
         "conduit-host-browser-fabrication",
-        "-p",
         "conduit-host-conduitos-fabrication",
-        "-p",
         "conduit-host-esp32-fabrication",
-        "-p",
         "conduit-host-hosted",
-        "-p",
         "conduit-host-raspberry-pi",
-        "-p",
         "conduit-host-rp2040",
-        "-p",
         "conduit-linear-framebuffer-fabrication",
-        "-p",
         "conduit-rp2040-pio-audio-extension",
-        "-p",
         "conduit-workspace-fabrication",
-        "-p",
         "conduit-bluetooth",
-        "-p",
         "conduit-alife",
-        "-p",
         "conduit-data",
-        "-p",
         "conduit-core",
-        "-p",
         "conduit-create-oi",
-        "-p",
         "conduit-mpu6050",
-        "-p",
         "conduit-ssd1306",
-        "-p",
         "conduit-embedded-build",
-        "-p",
         "conduit-kernel",
-        "-p",
         "conduit-language",
-        "-p",
         "conduit-runtime",
-        "-p",
         "conduit-form",
-        "-p",
         "conduit-host-fabrication",
-        "-p",
         "conduit-planner",
-        "-p",
         "conduit-signal",
-        "-p",
         "conduit-signal-conformance",
-        "-p",
         "conduit-r1-network-conformance",
-        "-p",
         "conduit-std-catalog",
-        "-p",
         "conduit-midi",
-        "-p",
         "conduit-presentation",
-        "-p",
         "conduit-body",
-        "-p",
         "conduit-body-fabrication",
-        "-p",
         "conduit-net",
-        "-p",
         "conduit-rp2040-network-realization",
-        "-p",
         "conduit-wire",
-        "-p",
         "conduit-web",
-        "-p",
         "conduit-text",
-        "-p",
         "conduit-system-continuity",
-        "-p",
         "conduit-observatory",
     ],
+    []
 );
 
-const HOST_TEST_STEP: Step = Step::new(
+package_test_shard!(
+    HOST_TEST_PACKAGES,
+    HOST_TEST_STEP,
     "check.test.hosts",
     "Host and fixture unit and integration tests",
-    "cargo",
-    &[
-        "test",
-        "-p",
+    [
         "conduit-browser-host",
-        "-p",
         "conduit-std-host",
-        "-p",
         "conduit-browser-runtime",
-        "-p",
         "conduitos",
-        "-p",
         "patchbay-hosted",
-        "-p",
         "patchbay-model",
-        "-p",
         "patchbay-html",
-        "-p",
         "patchbay-native",
     ],
+    []
 );
 
-const PRODUCT_TEST_STEP: Step = Step::new(
+package_test_shard!(
+    PRODUCT_TEST_PACKAGES,
+    PRODUCT_TEST_STEP,
     "check.test.products",
     "Product and integration unit and integration tests",
-    "cargo",
-    &[
-        "test",
-        "-p",
+    [
         "conduit-ai",
-        "-p",
         "conduit-chat",
-        "-p",
         "conduit-synth",
-        "-p",
         "conduit-composite",
-        "-p",
         "conduit-pete",
-        "-p",
         "conduit-tongues",
-        "-p",
         "conduit",
-        "-p",
         "xtask",
-        "--features",
-        "conduit-tongues/speech",
     ],
+    ["--features", "conduit-tongues/speech"]
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -214,7 +107,6 @@ pub enum WorkspaceShard {
 }
 
 impl WorkspaceShard {
-    #[cfg(test)]
     pub const ALL: [Self; 6] = [
         Self::Lint,
         Self::TestFoundation,
@@ -223,6 +115,26 @@ impl WorkspaceShard {
         Self::Portable,
         Self::Pico,
     ];
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Lint => "lint",
+            Self::TestFoundation => "test-foundation",
+            Self::TestHosts => "test-hosts",
+            Self::TestProducts => "test-products",
+            Self::Portable => "portable",
+            Self::Pico => "pico",
+        }
+    }
+
+    pub const fn test_packages(self) -> &'static [&'static str] {
+        match self {
+            Self::TestFoundation => FOUNDATION_TEST_PACKAGES,
+            Self::TestHosts => HOST_TEST_PACKAGES,
+            Self::TestProducts => PRODUCT_TEST_PACKAGES,
+            _ => &[],
+        }
+    }
 
     pub fn package_test_step(self) -> Option<&'static Step> {
         match self {

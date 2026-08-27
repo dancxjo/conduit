@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn representative_changes_select_only_owned_heavy_suites() {
     let root = crate::workspace::workspace_root().unwrap();
-    let packages = discover_packages(&root).unwrap();
+    let packages = discover(&root).unwrap();
     let cases = [
         (
             vec!["README.md", "docs/architecture/foo.md"],
@@ -37,9 +37,32 @@ fn representative_changes_select_only_owned_heavy_suites() {
 #[test]
 fn dev_dependencies_do_not_leak_conduitos_into_browser() {
     let root = crate::workspace::workspace_root().unwrap();
-    let packages = discover_packages(&root).unwrap();
+    let packages = discover(&root).unwrap();
     let closure = dependency_closure(&packages, &suite_roots()["browser"]).unwrap();
     assert!(!closure.contains("conduitos"));
+}
+
+#[test]
+fn changed_packages_select_their_reverse_dependent_test_shards() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    let app = plan_for_paths(&root, vec!["apps/pete/src/lib.rs".to_owned()], &packages).unwrap();
+    assert!(app.workspace_shards["test-products"]);
+    assert!(!app.workspace_shards["test-hosts"]);
+
+    let kernel = plan_for_paths(
+        &root,
+        vec!["crates/conduit-kernel/src/lib.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(kernel.workspace_shards["test-foundation"]);
+    assert!(kernel.workspace_shards["test-hosts"]);
+    assert!(kernel.workspace_shards["test-products"]);
+    assert!(kernel
+        .affected_test_packages
+        .contains(&"conduit".to_owned()));
 }
 
 #[test]
@@ -55,6 +78,12 @@ fn workflow_uses_the_plan_selectively_only_for_pull_requests() {
             "github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.{output} == 'true'"
         )));
     }
+    assert!(workflow.contains(
+        "workspace_matrix: ${{ steps.impact.outputs.workspace_matrix || '[\"lint\",\"test-foundation\",\"test-hosts\",\"test-products\",\"portable\",\"pico\"]' }}"
+    ));
+    assert!(workflow.contains(
+        "shard: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.workspace_matrix"
+    ));
     assert!(workflow.contains("cargo xtask ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"));
     assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));
     assert!(workflow.contains("name: ci-impact-plan-${{ github.sha }}"));

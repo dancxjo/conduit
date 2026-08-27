@@ -30,6 +30,7 @@ jobs:
       browser_required: ${{ steps.impact.outputs.browser_required }}
       conduitos_required: ${{ steps.impact.outputs.conduitos_required }}
       impact_reason: ${{ steps.impact.outputs.impact_reason }}
+      workspace_matrix: ${{ steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -197,8 +198,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard:
-          [lint, test-foundation, test-hosts, test-products, portable, pico]
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]') }}
     name: workspace-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v7
