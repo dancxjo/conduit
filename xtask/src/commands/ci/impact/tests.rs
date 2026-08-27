@@ -50,6 +50,8 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
     let app = plan_for_paths(&root, vec!["apps/pete/src/lib.rs".to_owned()], &packages).unwrap();
     assert!(app.workspace_shards["test-products"]);
     assert!(!app.workspace_shards["test-hosts"]);
+    assert!(!app.workspace_shards["portable"]);
+    assert!(!app.workspace_shards["pico"]);
 
     let kernel = plan_for_paths(
         &root,
@@ -60,9 +62,74 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
     assert!(kernel.workspace_shards["test-foundation"]);
     assert!(kernel.workspace_shards["test-hosts"]);
     assert!(kernel.workspace_shards["test-products"]);
+    assert!(kernel.workspace_shards["portable"]);
+    assert!(kernel.workspace_shards["pico"]);
     assert!(kernel
         .affected_test_packages
         .contains(&"conduit".to_owned()));
+
+    let time = plan_for_paths(
+        &root,
+        vec!["crates/conduit-time/src/tick.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(time.workspace_shards["portable"]);
+    assert!(time.workspace_shards["pico"]);
+
+    let pico = plan_for_paths(
+        &root,
+        vec!["firmware/conduit-pico-w-signal/src/main.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(pico.workspace_shards["pico"]);
+}
+
+#[test]
+fn esp32_paths_select_exact_target_obligations() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    let c3 = plan_for_paths(
+        &root,
+        vec!["firmware/conduit-esp32-c3-signal/build.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(c3.esp32_targets, ["c3"]);
+
+    let s3 = plan_for_paths(
+        &root,
+        vec!["firmware/conduit-esp32-s3-signal/board-descriptor.json".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(s3.esp32_targets, ["s3"]);
+
+    let shared_source = plan_for_paths(
+        &root,
+        vec!["firmware/conduit-esp32-wroom-signal/src/main.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(shared_source.esp32_targets.len(), 3);
+
+    let shared_fabrication = plan_for_paths(
+        &root,
+        vec!["targets/esp32/fabrication/src/family.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(shared_fabrication.esp32_targets.len(), 3);
+
+    let shared_dependency = plan_for_paths(
+        &root,
+        vec!["crates/conduit-kernel/src/lib.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(shared_dependency.esp32_targets.len(), 3);
 }
 
 #[test]
@@ -131,6 +198,13 @@ fn workflow_uses_the_plan_selectively_only_for_pull_requests() {
     assert!(workflow.contains(
         "workspace_matrix: ${{ steps.impact.outputs.workspace_matrix || '[\"lint\",\"test-foundation\",\"test-hosts\",\"test-products\",\"portable\",\"pico\"]' }}"
     ));
+    assert!(workflow.contains(
+        "esp32_matrix: ${{ steps.impact.outputs.esp32_matrix || '[\"wroom\",\"c3\",\"s3\"]' }}"
+    ));
+    assert!(workflow.contains(
+        "target: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.esp32_matrix"
+    ));
+    assert!(workflow.contains("name: esp32-firmware-${{ matrix.target }}"));
     assert!(workflow.contains(
         "conduitos_x86_matrix: ${{ steps.impact.outputs.conduitos_x86_matrix || '[\"kernel\",\"xhci\",\"usb\",\"hid\",\"keyboard\",\"front-door\",\"product-journey\",\"rescue\"]' }}"
     ));
