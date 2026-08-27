@@ -1,0 +1,9 @@
+placements 0
+
+signal-demo/pulse:
+	host = "body:std-line/host/clock"
+	capability = "pulse-1"
+
+signal-demo/show:
+	host = "body:std-line/host/serial"
+	capability = "stdout-show-1"

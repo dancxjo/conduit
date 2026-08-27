@@ -57,6 +57,7 @@ fn two_advertisement_context_reaches_ordinary_planner_placement() {
         vec![ProductRuntime::std(first), ProductRuntime::std(second)],
         vec![ConnectionBase::Local, ConnectionBase::WebSocket],
         Vec::new(),
+        Vec::new(),
     )
     .expect("two Hosts and two product Bases are finite context truth");
     let form = hello_form();
@@ -106,6 +107,7 @@ fn duplicate_host_id_is_refused_before_planning() {
         vec![ProductRuntime::std(first)],
         vec![ConnectionBase::Local],
         Vec::new(),
+        Vec::new(),
     )
     .err()
     .expect("duplicate HostId must refuse");
@@ -123,6 +125,7 @@ fn planned_local_fragment_without_runtime_is_refused() {
         vec![advertisement],
         Vec::new(),
         vec![ConnectionBase::Local],
+        Vec::new(),
         Vec::new(),
     )
     .expect("remote advertisements need not imply local runtime authority");
@@ -143,6 +146,7 @@ fn fixture_only_connection_base_is_not_product_admission() {
         vec![host.advertisement().clone()],
         vec![ProductRuntime::std(host)],
         vec![ConnectionBase::FixtureFrame],
+        Vec::new(),
         Vec::new(),
     )
     .err()
@@ -230,6 +234,7 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
         Vec::new(),
         vec![ConnectionBase::WebSocket],
         offers.clone(),
+        Vec::new(),
     )
     .unwrap();
     let plan = context.plan_with_placements(&form, &placements).unwrap();
@@ -270,6 +275,7 @@ fn heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_or
         Vec::new(),
         vec![ConnectionBase::WebSocket],
         undersized,
+        Vec::new(),
     )
     .unwrap()
     .plan_with_placements(&form, &placements)

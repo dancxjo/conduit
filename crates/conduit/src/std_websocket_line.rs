@@ -23,6 +23,7 @@ use conduit_wire::{
 #[cfg(test)]
 use std::collections::BTreeMap;
 use std::thread;
+use std::{io::Write, vec::Vec};
 
 mod peer;
 use peer::{activate_source, receive, send};
@@ -42,6 +43,38 @@ const PORTS: usize = conduit_runtime::lowering::MAXIMUM_KERNEL_PORTS_PER_NODE;
 pub(crate) struct ExecutionEvidence {
     pub(crate) received: usize,
     pub(crate) pressure_retries: usize,
+}
+
+pub(crate) struct ProductWebSocketRuntime;
+
+impl crate::product_execution::ProductLineRuntime for ProductWebSocketRuntime {
+    fn supports(&self, plan: &Plan) -> bool {
+        let lines = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .filter_map(|connection| connection.selected_line.as_ref())
+            .collect::<Vec<_>>();
+        !lines.is_empty()
+            && lines
+                .iter()
+                .all(|line| line.binding.base == ConnectionBase::WebSocket)
+    }
+
+    fn execute(
+        &mut self,
+        plan: &Plan,
+        output: &mut dyn Write,
+    ) -> Result<Vec<conduit_core::Observation>, String> {
+        let evidence = execute(plan)?;
+        writeln!(
+            output,
+            "Body Line complete values={} pressure_retries={}",
+            evidence.received, evidence.pressure_retries
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(Vec::new())
+    }
 }
 
 pub(super) type Kernel = FixedScheduler<
@@ -130,6 +163,7 @@ pub(crate) fn context() -> Result<crate::product_execution::ProductExecutionCont
         ],
         vec![ConnectionBase::WebSocket],
         vec![offer],
+        Vec::new(),
     )
 }
 

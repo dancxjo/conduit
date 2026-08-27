@@ -23,6 +23,11 @@ pub(crate) enum ProductRuntime {
     Std(Box<StdHost>),
 }
 
+pub(crate) trait ProductLineRuntime {
+    fn supports(&self, plan: &Plan) -> bool;
+    fn execute(&mut self, plan: &Plan, output: &mut dyn Write) -> Result<Vec<Observation>, String>;
+}
+
 impl ProductRuntime {
     pub(crate) fn std(host: StdHost) -> Self {
         Self::Std(Box::new(host))
@@ -57,13 +62,16 @@ pub(crate) struct ProductExecutionContext {
     runtimes: Vec<ProductRuntime>,
     connection_bases: Vec<ConnectionBase>,
     line_offers: Vec<LineOffer>,
+    line_runtimes: Vec<Box<dyn ProductLineRuntime>>,
 }
 
 impl ProductExecutionContext {
+    #[cfg(test)]
     pub(crate) fn advertisements(&self) -> &[HostAdvertisement] {
         &self.advertisements
     }
 
+    #[cfg(test)]
     pub(crate) fn line_offers(&self) -> &[LineOffer] {
         &self.line_offers
     }
@@ -75,6 +83,7 @@ impl ProductExecutionContext {
             vec![ProductRuntime::std(host)],
             vec![ConnectionBase::Local],
             Vec::new(),
+            Vec::new(),
         )
     }
 
@@ -83,6 +92,7 @@ impl ProductExecutionContext {
         runtimes: Vec<ProductRuntime>,
         connection_bases: Vec<ConnectionBase>,
         line_offers: Vec<LineOffer>,
+        line_runtimes: Vec<Box<dyn ProductLineRuntime>>,
     ) -> Result<Self, String> {
         if advertisements.is_empty() {
             return Err(
@@ -161,6 +171,7 @@ impl ProductExecutionContext {
             runtimes,
             connection_bases,
             line_offers,
+            line_runtimes,
         })
     }
 
@@ -338,6 +349,31 @@ impl ProductExecutionContext {
         output: &mut W,
     ) -> Result<ProductExecution, String> {
         self.validate_plan(&plan)?;
+        let has_remote_line = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .any(|connection| connection.selected_line.is_some());
+        if has_remote_line {
+            let mut matching = self
+                .line_runtimes
+                .iter_mut()
+                .filter(|runtime| runtime.supports(&plan))
+                .collect::<Vec<_>>();
+            if matching.len() != 1 {
+                return Err(format!(
+                    "planned remote connections require one exact admitted Line runtime; found {}",
+                    matching.len()
+                ));
+            }
+            let observations = matching[0].execute(&plan, output)?;
+            return Ok(ProductExecution {
+                advertisements: self.advertisements.clone(),
+                line_offers: self.line_offers.clone(),
+                plan,
+                observations,
+            });
+        }
         let mut observations = Vec::new();
         for fragment in plan.fragments.iter().cloned() {
             let runtime = self

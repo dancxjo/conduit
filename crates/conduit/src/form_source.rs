@@ -16,14 +16,6 @@ pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
     load_with_catalogs(path, startup, profiles)
 }
 
-pub(crate) fn load_signal(path: &Path) -> Result<CanonicalSource, String> {
-    load_with_catalogs(
-        path,
-        conduit_signal::signal_startup_catalog(),
-        conduit_signal::signal_profile_catalog(),
-    )
-}
-
 fn load_with_catalogs(
     path: &Path,
     startup: StartupCatalog,
@@ -64,8 +56,8 @@ impl CanonicalSource {
 }
 
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
-    let mut startup = StartupCatalog::new();
-    let mut profiles = ProfileCatalog::new();
+    let mut startup = conduit_signal::primary_signal_startup_catalog();
+    let mut profiles = conduit_signal::primary_signal_profile_catalog();
     conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profiles)?;
