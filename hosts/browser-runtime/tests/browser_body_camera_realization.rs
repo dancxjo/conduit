@@ -3,6 +3,9 @@
 
 use std::collections::BTreeMap;
 
+use conduit_browser_runtime::human_media::{
+    acquired_camera_source_offer, browser_camera_frame_sink_offer,
+};
 use conduit_core::{
     resource_offer, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
     BootId, CapabilityId, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
@@ -14,9 +17,8 @@ use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
 use conduit_std_catalog::{
-    acquired_camera_source_offer, browser_camera_frame_sink_offer, install_human_media_catalogs,
-    CAMERA_FRAME_KIND, CAMERA_RESOURCE_CLASS, CAMERA_SOURCE_KIND, MEDIA_USE_AUTHORITY,
-    MEDIA_USE_OPERATION,
+    install_human_media_catalogs, CAMERA_FRAME_KIND, CAMERA_RESOURCE_CLASS, CAMERA_SOURCE_KIND,
+    MEDIA_USE_AUTHORITY, MEDIA_USE_OPERATION,
 };
 
 const SOURCE: &str = include_str!("../../../examples/camera-summary.conduit");

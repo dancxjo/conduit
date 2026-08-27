@@ -18,13 +18,13 @@ pub fn offers() -> Vec<CapabilityOffer> {
 
 pub fn human_io_offers() -> Vec<CapabilityOffer> {
     let mut offers = offers();
-    offers.extend(conduit_std_catalog::browser_media_acquisition_offers());
-    offers.push(conduit_std_catalog::browser_camera_frame_sink_offer());
+    offers.extend(crate::human_media::browser_media_acquisition_offers());
+    offers.push(crate::human_media::browser_camera_frame_sink_offer());
     offers
 }
 
 pub fn human_io_advertisement_offers() -> Vec<CapabilityOffer> {
-    let mut advertisement = conduit_std_catalog::browser_media_acquisition_offers();
+    let mut advertisement = crate::human_media::browser_media_acquisition_offers();
     advertisement.extend(offers().into_iter().filter(|offer| {
         matches!(
             offer.kind_id.as_str(),
@@ -34,7 +34,7 @@ pub fn human_io_advertisement_offers() -> Vec<CapabilityOffer> {
                 | conduit_std_catalog::GRAPHICS_ICON_KIND
         )
     }));
-    advertisement.push(conduit_std_catalog::browser_camera_frame_sink_offer());
+    advertisement.push(crate::human_media::browser_camera_frame_sink_offer());
     advertisement.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
     advertisement
 }

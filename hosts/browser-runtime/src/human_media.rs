@@ -8,6 +8,12 @@ use conduit_core::{
 use conduit_planner::{plan_media_acquisition, select_acquired_media};
 
 mod abi;
+mod offers;
+
+pub use offers::{
+    acquired_camera_source_offer, browser_camera_frame_sink_offer,
+    browser_media_acquisition_offers, BROWSER_MEDIA_ARTIFACT, BROWSER_MEDIA_PROFILE,
+};
 
 pub const MAXIMUM_BROWSER_MEDIA_VALUE_BYTES: usize = 64 * 1024;
 pub const MAXIMUM_BROWSER_MEDIA_RESULT_BYTES: usize = 1024;
