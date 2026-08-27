@@ -4,8 +4,13 @@
 This first CI-planning slice is deliberately conservative:
 - Cargo path dependencies are discovered from every package in the checkout,
   including standalone firmware workspaces.
+- Heavyweight suite invalidation follows normal/build/target dependency edges.
+  Cargo dev-dependencies are intentionally *not* transitively propagated: a
+  dependency's dev-only graph is not part of another package's production or
+  proof build. Dev-only proof relationships must be owned explicitly by the
+  proof root instead of leaking sideways through unrelated packages.
 - A changed package selects a heavyweight suite only when it is in that
-  suite's dependency closure.
+  suite's build dependency closure.
 - Non-Cargo assets use small, explicit ownership rules.
 - Unknown/global changes select every heavyweight suite.
 
@@ -105,8 +110,17 @@ class Package:
     dependencies: frozenset[str]
 
 
-def _dependency_tables(data: dict) -> Iterable[dict]:
-    for key in ("dependencies", "dev-dependencies", "build-dependencies"):
+def _build_dependency_tables(data: dict) -> Iterable[dict]:
+    """Yield dependency tables that propagate into another package's build.
+
+    Dev-dependencies are deliberately excluded. Cargo uses them while testing
+    the package that declares them, but they do not become transitive
+    dependencies of a consumer. Treating them as transitive creates false CI
+    edges such as Patchbay -> std-host(dev) -> workspace-fabrication(dev) ->
+    ConduitOS.
+    """
+
+    for key in ("dependencies", "build-dependencies"):
         table = data.get(key)
         if isinstance(table, dict):
             yield table
@@ -116,7 +130,7 @@ def _dependency_tables(data: dict) -> Iterable[dict]:
         for target_table in target.values():
             if not isinstance(target_table, dict):
                 continue
-            for key in ("dependencies", "dev-dependencies", "build-dependencies"):
+            for key in ("dependencies", "build-dependencies"):
                 table = target_table.get(key)
                 if isinstance(table, dict):
                     yield table
@@ -147,7 +161,7 @@ def discover_packages(root: Path = ROOT) -> dict[str, Package]:
     for manifest, data in manifests:
         directory = manifest.parent.resolve()
         dependencies: set[str] = set()
-        for table in _dependency_tables(data):
+        for table in _build_dependency_tables(data):
             for spec in table.values():
                 if not isinstance(spec, dict):
                     continue
@@ -386,7 +400,7 @@ def self_test() -> None:
         (
             ["hosts/conduitos/src/main.rs"],
             (False, False, True),
-            "ConduitOS",
+            "ConduitOS does not leak through dev-only dependency edges",
         ),
         (
             ["crates/conduit-kernel/src/lib.rs"],
@@ -410,6 +424,12 @@ def self_test() -> None:
             raise AssertionError(
                 f"{label}: expected {expected}, got {actual}; plan={json.dumps(plan, sort_keys=True)}"
             )
+
+    # Regression guard for the exact false edge found by CI in PR #1834.
+    browser_closure = dependency_closure(packages, SUITE_ROOTS["browser"])
+    if "conduitos" in browser_closure:
+        raise AssertionError("browser build closure must not contain conduitos through dev-only edges")
+
     print("impact-planner-self-test: ok", file=sys.stderr)
 
 
