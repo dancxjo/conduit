@@ -10,11 +10,11 @@ use crate::{
     gamepad_state_type, input_axis_slot_type, input_axis_slots_type, input_axis_state_type,
     input_button_phase_type, input_button_slot_type, input_button_slots_type,
     input_button_state_type, input_button_transition_type, input_pressure_policy_type,
-    input_pressure_type, point2_type, pointer_event_type, rotary_direction_type, rotary_step_type,
+    input_pressure_type, pointer_event_type, rotary_direction_type, rotary_step_type,
     touch_contact_phase_type, touch_contact_slot_type, touch_contact_type, touch_contacts_type,
-    touch_frame_type, vector2_type, MAXIMUM_INPUT_AXES, MAXIMUM_INPUT_BUTTONS,
-    MAXIMUM_TOUCH_CONTACTS,
+    touch_frame_type, MAXIMUM_INPUT_AXES, MAXIMUM_INPUT_BUTTONS, MAXIMUM_TOUCH_CONTACTS,
 };
+use conduit_presentation::{point2_type, vector2_type};
 
 pub const NORMALIZED_BIPOLAR_AXIS_PROFILE: &str = "input/normalized-bipolar@1";
 const SURFACE_FRAME: &str = "input/surface-normalized";
