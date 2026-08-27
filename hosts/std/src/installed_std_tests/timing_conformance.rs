@@ -42,8 +42,10 @@ const THROTTLE_FORM: &str = "form patchbay-refresh-throttle {\n    edits: test/t
 fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut startup_profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_tick_pipeline_catalogs(&mut startup, &mut startup_profile)
+    conduit_time::install_tick_catalog(&mut startup, &mut startup_profile)
         .expect("tick startup signature installs");
+    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut startup_profile)
+        .expect("tick presentation signature installs");
     conduit_std_catalog::install_timing_catalogs(&mut startup, &mut startup_profile)
         .expect("timing startup signatures install");
     startup

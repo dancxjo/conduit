@@ -1,6 +1,5 @@
 use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
-    TICK_VALUE_KIND,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
@@ -94,7 +93,7 @@ pub fn time_timeout_contract() -> StandardKindContract {
             .to_string(),
         inputs: vec![port(
             "activity",
-            TICK_VALUE_KIND,
+            conduit_time::TICK_VALUE_KIND,
             PortDirection::Input,
             PortTemporal::Flow { closes: true },
         )],

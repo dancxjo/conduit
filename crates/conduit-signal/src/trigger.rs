@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::MAX_SIGNAL_COUNT;
 
-pub const TRIGGER_VALUE_KIND: &str = conduit_std_catalog::TICK_VALUE_KIND;
+pub const TRIGGER_VALUE_KIND: &str = conduit_time::TICK_VALUE_KIND;
 pub const TRIGGER_KIND: &str = "interaction/trigger";
 pub use conduit_std_catalog::{
     BOOL_PRESENTATION_CONTRACT_REVISION as TOGGLE_PRESENTATION_CONTRACT_REVISION,

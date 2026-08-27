@@ -1,6 +1,5 @@
 use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
-    TICK_VALUE_KIND, TIME_EVERY_COUNT,
 };
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -33,7 +32,7 @@ pub const COUNT_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-cou
 pub const COUNT_PRESENTATION_CAPABILITY: &str = "presentation-count-v1";
 pub const COUNT_PRESENTATION_TARGET: &str = "presentation/stdout-count";
 pub const COUNT_ENCODED_LEN: u32 = 8;
-pub const MAX_COUNT_VALUES: u64 = TIME_EVERY_COUNT + 1;
+pub const MAX_COUNT_VALUES: u64 = conduit_time::TIME_EVERY_COUNT + 1;
 
 pub const fn bounded_count_value(start: u64, index: u64) -> Option<u64> {
     if index < MAX_COUNT_VALUES {
@@ -51,7 +50,7 @@ pub fn state_count_contract() -> StandardKindContract {
             .to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("bump"),
-            value_kind: kind_id(TICK_VALUE_KIND),
+            value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
         }],
@@ -66,12 +65,12 @@ pub fn state_count_contract() -> StandardKindContract {
             default_value: ConfigurationValue::U64(0),
             rule: StandardConfigurationRule::U64Range {
                 minimum: 0,
-                maximum: u64::MAX - TIME_EVERY_COUNT,
+                maximum: u64::MAX - conduit_time::TIME_EVERY_COUNT,
             },
         }],
         limits: CapabilityLimits {
             max_active_instances: 16,
-            max_queue_items: TIME_EVERY_COUNT as u16,
+            max_queue_items: conduit_time::TIME_EVERY_COUNT as u16,
             max_queue_bytes: 64,
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
@@ -272,7 +271,8 @@ mod tests {
     fn count_family_installs_exact_source_contracts() {
         let mut startup = conduit_form::StartupCatalog::new();
         let mut profile = conduit_form::ProfileCatalog::new();
-        crate::install_time_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+        conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
+        crate::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
         install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
         let source = "form count (\n    start: Count = 0\n    bump: Tick...| > value: $Count\n) {\n    gear: state/count(start)\n    bump > gear.bump\n    gear.value > value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock > count > show\n}\n";
         let syntax = conduit_form::parse_syntax_document(source);

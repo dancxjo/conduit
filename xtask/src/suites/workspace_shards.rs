@@ -54,6 +54,7 @@ package_test_shard!(
         "conduit-wire",
         "conduit-web",
         "conduit-text",
+        "conduit-time",
         "conduit-system-continuity",
         "conduit-observatory",
     ],

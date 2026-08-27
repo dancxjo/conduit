@@ -226,7 +226,7 @@ fn scheduler(
         .map_err(|_| PortableStateInputError::Kernel)?;
     let mut values = FixedValueStore::<VALUES, MAX_VALUE_BYTES>::new(VALUE_BYTES as u32)
         .map_err(|_| PortableStateInputError::Value)?;
-    let tick_bytes = conduit_std_catalog::encode_tick(prepared.tick_sequence);
+    let tick_bytes = conduit_time::encode_tick(prepared.tick_sequence);
     let ticks = [
         values
             .store(&tick_bytes)

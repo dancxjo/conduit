@@ -616,7 +616,8 @@ fn canonical_clock_has_zero_successful_post_play_start_allocations() {
     let source = "form clock-demo {\n    clock: time/every(1s)\n    clock > presentation/tick\n}\n";
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
+    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
     let syntax = conduit_form::parse_syntax_document(source);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let expanded = conduit_form::expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
@@ -655,7 +656,8 @@ form count-demo {
 "#;
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
+    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
     conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let syntax = conduit_form::parse_syntax_document(source);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();

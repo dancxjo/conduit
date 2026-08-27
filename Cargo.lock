@@ -450,6 +450,7 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-std-catalog",
  "conduit-std-host",
+ "conduit-time",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-fabrication",
@@ -485,6 +486,7 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-std-catalog",
+ "conduit-time",
  "conduit-wire",
  "sha2 0.10.9",
 ]
@@ -836,6 +838,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-std-catalog",
+ "conduit-time",
  "serde",
 ]
 
@@ -866,6 +869,7 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-text",
+ "conduit-time",
  "conduit-web",
  "serde",
 ]
@@ -901,6 +905,7 @@ dependencies = [
  "conduit-synth",
  "conduit-system-continuity",
  "conduit-text",
+ "conduit-time",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-fabrication",
@@ -943,6 +948,14 @@ dependencies = [
 
 [[package]]
 name = "conduit-text"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+]
+
+[[package]]
+name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
@@ -1012,6 +1025,7 @@ dependencies = [
  "conduit-std-host",
  "conduit-synth",
  "conduit-text",
+ "conduit-time",
  "conduit-web",
  "limine",
  "serde_json",
@@ -2545,6 +2559,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-std-host",
  "conduit-text",
+ "conduit-time",
  "conduit-wire",
  "serde",
  "serde_json",
@@ -4426,6 +4441,7 @@ dependencies = [
  "conduit-synth",
  "conduit-system-continuity",
  "conduit-text",
+ "conduit-time",
  "conduit-wire",
  "conduit-workspace-fabrication",
  "conduitos",

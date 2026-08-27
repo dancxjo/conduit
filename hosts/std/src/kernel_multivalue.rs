@@ -38,7 +38,6 @@ pub const TEE_KIND: &str = "flow/tee";
 pub const EVEN_FILTER_KIND: &str = "flow/filter-even";
 pub const LATEST_KIND: &str = "state/latest";
 pub const SHOW_KIND: &str = "presentation/show";
-pub const TICK_VALUE_KIND: &str = "value/tick@1";
 
 const IN_PORT: &str = "in";
 const OUT_PORT: &str = "out";
@@ -646,7 +645,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
 fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
-        value_kind: kind_id(TICK_VALUE_KIND),
+        value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
         direction,
         temporal: conduit_core::PortTemporal::Value,
     }
@@ -952,7 +951,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             presentation,
             sign,
             payload: ValuePayload {
-                value_kind: kind_id(TICK_VALUE_KIND),
+                value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
                 encoded: tick.to_le_bytes().to_vec(),
             },
         });

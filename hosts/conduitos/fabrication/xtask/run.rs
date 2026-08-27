@@ -219,7 +219,7 @@ pub(super) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, Co
         .collect();
     if presentations.len() != 2
         || presentations[0] != "HELLO, CONDUITOS"
-        || presentations[1].as_bytes() != [0; conduit_std_catalog::TICK_ENCODED_LEN as usize]
+        || presentations[1].as_bytes() != [0; conduit_time::TICK_ENCODED_LEN as usize]
     {
         return Err(ConduitosError::refusal(
             "invalid-serial-presentation",

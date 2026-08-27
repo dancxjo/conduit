@@ -100,7 +100,7 @@ where
                 let value = kernel
                     .host_value(request.input.value)
                     .map_err(|_| MachineRunError::KernelFailure)?;
-                if value.len() != conduit_std_catalog::TICK_ENCODED_LEN as usize {
+                if value.len() != conduit_time::TICK_ENCODED_LEN as usize {
                     return Err(MachineRunError::SerialBaseFailure);
                 }
                 serial
@@ -292,7 +292,7 @@ mod tests {
         );
         assert_eq!(
             serial.values[1].len(),
-            conduit_std_catalog::TICK_ENCODED_LEN as usize
+            conduit_time::TICK_ENCODED_LEN as usize
         );
     }
 

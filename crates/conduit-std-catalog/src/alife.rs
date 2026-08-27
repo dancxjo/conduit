@@ -213,7 +213,7 @@ pub fn lenia_step_offer() -> CapabilityOffer {
                 contract_id: HostOperationContractId::from(LENIA_STEP_HOST_OPERATION),
                 target_kind: Some(kind_id(LENIA_STEP_KIND)),
                 maximum_in_flight: 1,
-                maximum_input_bytes: super::TICK_ENCODED_LEN,
+                maximum_input_bytes: conduit_time::TICK_ENCODED_LEN,
                 maximum_output_bytes: LENIA_MAXIMUM_FIELD_BYTES,
             },
         ],
@@ -285,7 +285,7 @@ fn field_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> P
 fn tick_port(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
-        value_kind: kind_id(super::TICK_VALUE_KIND),
+        value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
         direction,
         temporal: PortTemporal::Flow { closes: true },
     }

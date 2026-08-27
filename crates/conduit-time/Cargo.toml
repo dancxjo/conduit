@@ -1,0 +1,12 @@
+[package]
+name = "conduit-time"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["form-catalog"]
+form-catalog = ["dep:conduit-form"]
+
+[dependencies]
+conduit-core = { path = "../conduit-core" }
+conduit-form = { path = "../conduit-form", optional = true }

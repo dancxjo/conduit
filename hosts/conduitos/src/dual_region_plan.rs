@@ -138,7 +138,9 @@ fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, Prepar
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
-    conduit_std_catalog::install_tick_pipeline_catalogs(&mut startup, &mut profile)
+    conduit_time::install_tick_catalog(&mut startup, &mut profile)
+        .map_err(|_| PreparationError::FormRejected)?;
+    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
     stage(b"catalogs");
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
