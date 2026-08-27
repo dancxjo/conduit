@@ -158,7 +158,7 @@ pub fn validate(
             != conduit_core::ConfigurationValue::Text(conduit_core::CONDUIT_INTL_LAYOUT.into())
         || keymap.host_operations.len() != 1
         || keymap.host_operations[0].contract_id.as_str()
-            != conduit_std_catalog::KEYMAP_HOST_OPERATION
+            != crate::functional_offers::KEYMAP_HOST_OPERATION
     {
         return Err(PreparationError::PlanRejected);
     }
@@ -212,7 +212,7 @@ pub fn validate(
 }
 
 fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_id: &str) {
-    let mut keymap = conduit_std_catalog::keymap_offer();
+    let mut keymap = crate::functional_offers::keymap_offer();
     keymap.capability_id = CapabilityId::from("conduitos/input-keymap@1");
     keymap.implementation.execution_profile_id = ExecutionProfileId::from(KEYMAP_EXECUTION_PROFILE);
     keymap.implementation.implementation_id = ImplementationId::from(KEYMAP_IMPLEMENTATION);

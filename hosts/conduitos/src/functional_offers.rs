@@ -24,6 +24,10 @@ pub const STATE_SELECT_SCALAR_IMPLEMENTATION: &str = "conduitos/kernel-state-sel
 pub const PORTABLE_STATE_INPUT_PROFILE: &str = "conduitos/portable-state-input-fixed@1";
 pub const PORTABLE_STATE_INPUT_ARTIFACT: &str = "conduitos/portable-state-input@1";
 pub const ROBOTICS_PROFILE: &str = "conduitos/robotics-prewake-fixed@1";
+pub const KEYMAP_HOST_OPERATION: &str = "conduit.host/input-keymap@1";
+pub const KEYMAP_HOST_TARGET: &str = "input/keymap-text-fragment";
+pub const CHORDS_HOST_OPERATION: &str = "conduit.host/input-chords@1";
+pub const CHORDS_HOST_TARGET: &str = "input/chord-fragment";
 pub const TEXT_PROFILE: &str = "conduitos/bounded-host-operations@1";
 pub const TEXT_ARTIFACT: &str = "conduitos/bounded-host-operations@1";
 pub const TEXT_UPPER_HOST_OPERATION: &str = "conduit.host/text-upper@1";
@@ -168,26 +172,32 @@ pub fn flow_gate_scalar_offer() -> CapabilityOffer {
 }
 
 pub fn state_count_offer() -> CapabilityOffer {
-    portable_state_input(
-        conduit_std_catalog::state_count_offer(),
+    realize_state_input_contract(
+        conduit_std_catalog::state_count_contract(),
+        conduit_std_catalog::STATE_COUNT_CONTRACT_REVISION,
         "conduitos-state-count-v1",
         "conduitos/kernel-state-count@1",
+        Vec::new(),
     )
 }
 
 pub fn state_toggle_offer() -> CapabilityOffer {
-    portable_state_input(
-        conduit_std_catalog::state_toggle_offer(),
+    realize_state_input_contract(
+        conduit_std_catalog::state_toggle_contract(),
+        conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION,
         "conduitos-state-toggle-v1",
         "conduitos/kernel-state-toggle@1",
+        Vec::new(),
     )
 }
 
 pub fn key_event_tee_offer() -> CapabilityOffer {
-    portable_state_input(
-        conduit_std_catalog::key_event_tee_offer(),
+    realize_state_input_contract(
+        conduit_std_catalog::key_event_tee_contract(),
+        conduit_std_catalog::KEY_EVENT_TEE_REVISION,
         "conduitos-key-event-tee-v1",
         "conduitos/kernel-key-event-tee@1",
+        Vec::new(),
     )
 }
 
@@ -230,18 +240,34 @@ pub fn text_join_offer() -> CapabilityOffer {
 }
 
 pub fn keymap_offer() -> CapabilityOffer {
-    bounded_host_operation(
-        conduit_std_catalog::keymap_offer(),
+    realize_input_host_operation_contract(
+        conduit_std_catalog::keymap_contract(),
+        conduit_std_catalog::KEYMAP_REVISION,
         "conduitos-input-keymap-v1",
         "conduitos/kernel-input-keymap@1",
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(KEYMAP_HOST_OPERATION),
+            target_kind: Some(kind_id(KEYMAP_HOST_TARGET)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            maximum_output_bytes: 4,
+        }],
     )
 }
 
 pub fn chords_offer() -> CapabilityOffer {
-    bounded_host_operation(
-        conduit_std_catalog::chords_offer(),
+    realize_input_host_operation_contract(
+        conduit_std_catalog::chords_contract(),
+        conduit_std_catalog::CHORDS_REVISION,
         "conduitos-input-chords-v1",
         "conduitos/kernel-input-chords@1",
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(CHORDS_HOST_OPERATION),
+            target_kind: Some(kind_id(CHORDS_HOST_TARGET)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            maximum_output_bytes: conduit_core::CHORD_ENCODED_LEN as u32,
+        }],
     )
 }
 
@@ -384,31 +410,47 @@ pub fn robotics_offers() -> Vec<CapabilityOffer> {
     .collect()
 }
 
-fn portable_state_input(
-    offer: CapabilityOffer,
+fn realize_state_input_contract(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
     capability: &str,
     implementation: &str,
+    host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    realize_with(
-        offer,
-        capability,
-        PORTABLE_STATE_INPUT_PROFILE,
-        implementation,
-        PORTABLE_STATE_INPUT_ARTIFACT,
+    conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability,
+            execution_profile: PORTABLE_STATE_INPUT_PROFILE,
+            implementation,
+            artifact: PORTABLE_STATE_INPUT_ARTIFACT,
+        },
+        host_operations,
+        Vec::new(),
+        Vec::new(),
     )
 }
 
-fn bounded_host_operation(
-    offer: CapabilityOffer,
+fn realize_input_host_operation_contract(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
     capability: &str,
     implementation: &str,
+    host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    realize_with(
-        offer,
-        capability,
-        "conduitos/bounded-host-operations@1",
-        implementation,
-        "conduitos/bounded-host-operations@1",
+    conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability,
+            execution_profile: TEXT_PROFILE,
+            implementation,
+            artifact: TEXT_ARTIFACT,
+        },
+        host_operations,
+        Vec::new(),
+        Vec::new(),
     )
 }
 

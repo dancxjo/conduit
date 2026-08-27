@@ -769,6 +769,7 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-ssd1306",
  "conduit-std-catalog",
+ "conduit-std-offers",
  "patchbay-model",
  "serde",
  "serde_json",
@@ -868,6 +869,7 @@ dependencies = [
  "conduit-planner",
  "conduit-signal",
  "conduit-std-catalog",
+ "conduit-std-offers",
  "conduit-wire",
 ]
 

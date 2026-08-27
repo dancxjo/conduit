@@ -228,8 +228,8 @@ dependencies = [
  "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
  "conduit-kernel",
- "conduit-planner",
  "conduit-plan-lowering",
+ "conduit-planner",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-wire",
@@ -297,6 +297,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+]
+
+[[package]]
 name = "conduit-planner"
 version = "0.1.0"
 dependencies = [
@@ -315,14 +323,6 @@ dependencies = [
  "conduit-time",
  "serde",
  "sha2",
-]
-
-[[package]]
-name = "conduit-plan-lowering"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-kernel",
 ]
 
 [[package]]
@@ -346,6 +346,7 @@ dependencies = [
  "conduit-planner",
  "conduit-signal",
  "conduit-std-catalog",
+ "conduit-std-offers",
  "conduit-wire",
 ]
 
@@ -363,6 +364,17 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "serde",
+]
+
+[[package]]
+name = "conduit-std-offers"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-presentation",
+ "conduit-std-catalog",
+ "conduit-text",
+ "conduit-time",
 ]
 
 [[package]]

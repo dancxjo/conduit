@@ -5,7 +5,7 @@ use conduit_core::{
 use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
 
 pub(super) static STATE_TOGGLE_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::STATE_TOGGLE_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::STATE_TOGGLE_IMPLEMENTATION,
     budget: state_toggle_budget,
     prepare: prepare_state_toggle,
 };
@@ -106,9 +106,9 @@ fn validate_state_toggle(placement: &PlannedGear) -> Result<(), String> {
         || placement.kind_contract_revision.as_str()
             != conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::STATE_TOGGLE_EXECUTION_PROFILE
-        || placement.implementation_id.as_str() != conduit_std_catalog::STATE_TOGGLE_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_catalog::STATE_TOGGLE_ARTIFACT
+            != conduit_std_offers::STATE_TOGGLE_EXECUTION_PROFILE
+        || placement.implementation_id.as_str() != conduit_std_offers::STATE_TOGGLE_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::STATE_TOGGLE_ARTIFACT
         || placement.inputs.len() != 1
         || !input.is_some_and(|port| {
             port.port_id.as_str() == "toggle"

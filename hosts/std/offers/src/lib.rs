@@ -10,6 +10,8 @@ mod presentation_sinks;
 pub use presentation_sinks::*;
 mod text;
 pub use text::*;
+mod state_input;
+pub use state_input::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -151,11 +153,11 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         text_upper_offer(),
         text_join_offer(),
         text_presentation_offer(),
-        conduit_std_catalog::key_event_tee_offer(),
-        conduit_std_catalog::keymap_offer(),
-        conduit_std_catalog::chords_offer(),
-        conduit_std_catalog::state_count_offer(),
-        conduit_std_catalog::state_toggle_offer(),
+        key_event_tee_offer(),
+        keymap_offer(),
+        chords_offer(),
+        state_count_offer(),
+        state_toggle_offer(),
         count_presentation_offer(),
         state_latest_scalar_offer(),
         flow_tee_scalar_offer(),
@@ -272,6 +274,9 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/text_presentation.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/graphics_presentation.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/text_transform.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/state_count.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/state_toggle.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/input_semantics.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -315,6 +320,11 @@ mod tests {
                 "pub fn text_literal_offer",
                 "pub fn text_upper_offer",
                 "pub fn text_join_offer",
+                "pub fn state_count_offer",
+                "pub fn state_toggle_offer",
+                "pub fn key_event_tee_offer",
+                "pub fn keymap_offer",
+                "pub fn chords_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),

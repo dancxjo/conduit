@@ -6,19 +6,16 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
+#[cfg(feature = "form-catalog")]
+use conduit_core::KindContractRevision;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const STATE_COUNT_KIND: &str = "state/count";
 pub const STATE_COUNT_VALUE_KIND: &str = "value/count@1";
 pub const STATE_COUNT_CONTRACT_REVISION: &str = "conduit.std/state-count@1";
-pub const STATE_COUNT_EXECUTION_PROFILE: &str = "conduit.std/state-count-kernel-hosted@1";
-pub const STATE_COUNT_IMPLEMENTATION: &str = "std/kernel-state-count@1";
-pub const STATE_COUNT_ARTIFACT: &str = "conduit-std-host/state-count@1";
-pub const STATE_COUNT_CAPABILITY: &str = "state-count-v1";
 
 pub const COUNT_PRESENTATION_KIND: &str = "presentation/count";
 pub const COUNT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-count@1";
@@ -105,55 +102,6 @@ pub fn count_presentation_contract() -> StandardKindContract {
     }
 }
 
-pub fn state_count_offer() -> CapabilityOffer {
-    offer(
-        state_count_contract(),
-        OfferIdentity {
-            capability: STATE_COUNT_CAPABILITY,
-            revision: STATE_COUNT_CONTRACT_REVISION,
-            profile: STATE_COUNT_EXECUTION_PROFILE,
-            implementation: STATE_COUNT_IMPLEMENTATION,
-            artifact: STATE_COUNT_ARTIFACT,
-        },
-        Vec::new(),
-        Vec::new(),
-    )
-}
-
-struct OfferIdentity {
-    capability: &'static str,
-    revision: &'static str,
-    profile: &'static str,
-    implementation: &'static str,
-    artifact: &'static str,
-}
-
-fn offer(
-    contract: StandardKindContract,
-    identity: OfferIdentity,
-    host_operations: Vec<conduit_core::HostOperationRequirement>,
-    resources: Vec<conduit_core::ResourceRequirement>,
-) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: super::startup_face(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from(identity.capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(identity.revision),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(identity.profile),
-            implementation_id: ImplementationId::from(identity.implementation),
-            artifact_id: ArtifactId::from(identity.artifact),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations,
-        resource_requirements: resources,
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
-}
-
 #[cfg(feature = "form-catalog")]
 pub fn install_count_pipeline_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -214,14 +162,13 @@ mod tests {
 
     #[test]
     fn count_family_distinguishes_closing_ticks_from_current_counts() {
-        let state = state_count_offer();
+        let state = state_count_contract();
         assert_eq!(
             state.inputs[0].temporal,
             PortTemporal::Flow { closes: true }
         );
         assert_eq!(state.outputs[0].temporal, PortTemporal::Current);
-        assert_eq!(state.startup_parameters[0].name, "start");
-        assert!(state.startup_parameters[0].has_default);
+        assert_eq!(state.configuration[0].key, "start");
 
         let presentation = count_presentation_contract();
         assert_eq!(presentation.inputs[0].temporal, PortTemporal::Current);

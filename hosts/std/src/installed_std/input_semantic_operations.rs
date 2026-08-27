@@ -10,19 +10,19 @@ use conduit_kernel::{
 };
 
 pub(super) static KEY_EVENT_TEE_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::KEY_EVENT_TEE_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::KEY_EVENT_TEE_IMPLEMENTATION,
     budget: key_event_tee_budget,
     prepare: prepare_key_event_tee,
 };
 
 pub(super) static KEYMAP_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::KEYMAP_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::KEYMAP_IMPLEMENTATION,
     budget: keymap_budget,
     prepare: prepare_keymap,
 };
 
 pub(super) static CHORDS_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::CHORDS_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::CHORDS_IMPLEMENTATION,
     budget: chords_budget,
     prepare: prepare_chords,
 };
@@ -201,9 +201,9 @@ fn key_event_tee_budget(placement: &PlannedGear) -> Result<OperationBudget, Stri
         Identity {
             kind: conduit_std_catalog::KEY_EVENT_TEE_KIND,
             revision: conduit_std_catalog::KEY_EVENT_TEE_REVISION,
-            profile: conduit_std_catalog::KEY_EVENT_TEE_PROFILE,
-            implementation: conduit_std_catalog::KEY_EVENT_TEE_IMPLEMENTATION,
-            artifact: conduit_std_catalog::KEY_EVENT_TEE_ARTIFACT,
+            profile: conduit_std_offers::KEY_EVENT_TEE_PROFILE,
+            implementation: conduit_std_offers::KEY_EVENT_TEE_IMPLEMENTATION,
+            artifact: conduit_std_offers::KEY_EVENT_TEE_ARTIFACT,
         },
         &conduit_std_catalog::key_event_tee_contract().inputs,
         &conduit_std_catalog::key_event_tee_contract().outputs,
@@ -278,9 +278,9 @@ fn validate_keymap(placement: &PlannedGear) -> Result<(), String> {
         Identity {
             kind: conduit_std_catalog::KEYMAP_KIND,
             revision: conduit_std_catalog::KEYMAP_REVISION,
-            profile: conduit_std_catalog::KEYMAP_PROFILE,
-            implementation: conduit_std_catalog::KEYMAP_IMPLEMENTATION,
-            artifact: conduit_std_catalog::KEYMAP_ARTIFACT,
+            profile: conduit_std_offers::KEYMAP_PROFILE,
+            implementation: conduit_std_offers::KEYMAP_IMPLEMENTATION,
+            artifact: conduit_std_offers::KEYMAP_ARTIFACT,
         },
         &conduit_std_catalog::keymap_contract().inputs,
         &conduit_std_catalog::keymap_contract().outputs,
@@ -294,9 +294,9 @@ fn validate_chords(placement: &PlannedGear) -> Result<(), String> {
         Identity {
             kind: conduit_std_catalog::CHORDS_KIND,
             revision: conduit_std_catalog::CHORDS_REVISION,
-            profile: conduit_std_catalog::CHORDS_PROFILE,
-            implementation: conduit_std_catalog::CHORDS_IMPLEMENTATION,
-            artifact: conduit_std_catalog::CHORDS_ARTIFACT,
+            profile: conduit_std_offers::CHORDS_PROFILE,
+            implementation: conduit_std_offers::CHORDS_IMPLEMENTATION,
+            artifact: conduit_std_offers::CHORDS_ARTIFACT,
         },
         &conduit_std_catalog::chords_contract().inputs,
         &conduit_std_catalog::chords_contract().outputs,

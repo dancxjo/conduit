@@ -23,8 +23,7 @@ pub const TRIGGER_KIND: &str = "interaction/trigger";
 pub use conduit_std_catalog::{
     BOOL_PRESENTATION_CONTRACT_REVISION as TOGGLE_PRESENTATION_CONTRACT_REVISION,
     BOOL_PRESENTATION_KIND as TOGGLE_PRESENTATION_KIND,
-    STATE_TOGGLE_CONTRACT_REVISION as TOGGLE_CONTRACT_REVISION,
-    STATE_TOGGLE_EXECUTION_PROFILE as TOGGLE_EXECUTION_PROFILE, STATE_TOGGLE_KIND as TOGGLE_KIND,
+    STATE_TOGGLE_CONTRACT_REVISION as TOGGLE_CONTRACT_REVISION, STATE_TOGGLE_KIND as TOGGLE_KIND,
 };
 
 pub fn trigger_face_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
@@ -84,10 +83,6 @@ pub fn toggle_contract_revision() -> KindContractRevision {
 
 pub fn trigger_execution_profile() -> ExecutionProfileId {
     ExecutionProfileId::from(TRIGGER_EXECUTION_PROFILE)
-}
-
-pub fn toggle_execution_profile() -> ExecutionProfileId {
-    ExecutionProfileId::from(TOGGLE_EXECUTION_PROFILE)
 }
 
 pub fn trigger_host_operation_requirements() -> Vec<HostOperationRequirement> {

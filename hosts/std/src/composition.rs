@@ -196,16 +196,16 @@ pub(super) fn build_advertisement(
     }
     if composition.input {
         capabilities.extend([
-            conduit_std_catalog::key_event_tee_offer(),
-            conduit_std_catalog::keymap_offer(),
-            conduit_std_catalog::chords_offer(),
+            conduit_std_offers::key_event_tee_offer(),
+            conduit_std_offers::keymap_offer(),
+            conduit_std_offers::chords_offer(),
             conduit_std_catalog::instrument_map_std_offer(),
         ]);
     }
     if composition.state {
         capabilities.extend([
-            conduit_std_catalog::state_count_offer(),
-            conduit_std_catalog::state_toggle_offer(),
+            conduit_std_offers::state_count_offer(),
+            conduit_std_offers::state_toggle_offer(),
             conduit_std_offers::count_presentation_offer(),
             conduit_std_offers::state_latest_scalar_offer(),
             conduit_std_offers::flow_tee_scalar_offer(),

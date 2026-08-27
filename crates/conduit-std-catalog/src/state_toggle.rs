@@ -5,19 +5,15 @@ use super::{
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
-use alloc::vec::Vec;
+#[cfg(feature = "form-catalog")]
+use conduit_core::KindContractRevision;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal, BOOL_INFO_ID,
 };
 
 pub const STATE_TOGGLE_KIND: &str = "state/toggle";
 pub const STATE_TOGGLE_CONTRACT_REVISION: &str = "conduit.std/state-toggle@1";
-pub const STATE_TOGGLE_EXECUTION_PROFILE: &str = "conduit.std/state-toggle-kernel-hosted@1";
-pub const STATE_TOGGLE_IMPLEMENTATION: &str = "std/kernel-state-toggle@1";
-pub const STATE_TOGGLE_ARTIFACT: &str = "conduit-std-host/state-toggle@1";
-pub const STATE_TOGGLE_CAPABILITY: &str = "state-toggle-v1";
 pub const MAX_TOGGLE_VALUES: u64 = conduit_time::TIME_EVERY_COUNT + 1;
 
 pub const fn bounded_toggle_value(initial: bool, index: u64) -> Option<bool> {
@@ -64,28 +60,6 @@ pub fn state_toggle_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "toggle: state/toggle(false)".to_string(),
-    }
-}
-
-pub fn state_toggle_offer() -> CapabilityOffer {
-    let contract = state_toggle_contract();
-    CapabilityOffer {
-        startup_parameters: super::startup_face(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from(STATE_TOGGLE_CAPABILITY),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(STATE_TOGGLE_CONTRACT_REVISION),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(STATE_TOGGLE_EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(STATE_TOGGLE_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(STATE_TOGGLE_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 
