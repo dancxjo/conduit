@@ -30,12 +30,12 @@ impl JsonHost {
 }
 
 pub(super) static JSON_ENCODE_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::JSON_ENCODE_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::JSON_ENCODE_STD_IMPLEMENTATION,
     budget: encode_budget,
     prepare: prepare_encode,
 };
 pub(super) static JSON_DECODE_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::JSON_DECODE_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::JSON_DECODE_STD_IMPLEMENTATION,
     budget: decode_budget,
     prepare: prepare_decode,
 };
@@ -110,10 +110,10 @@ impl JsonOperation {
 
 pub(super) fn transform(contract: &str, input: &[u8]) -> Result<Vec<u8>, JsonRefusal> {
     match contract {
-        conduit_std_catalog::JSON_ENCODE_HOST_OPERATION => {
+        conduit_std_offers::JSON_ENCODE_HOST_OPERATION => {
             JsonValue::decode_info(input)?.encode_text()
         }
-        conduit_std_catalog::JSON_DECODE_HOST_OPERATION => {
+        conduit_std_offers::JSON_DECODE_HOST_OPERATION => {
             JsonValue::decode_text(input)?.encode_info()
         }
         _ => Err(JsonRefusal::NonCanonicalValue),
@@ -145,10 +145,10 @@ fn budget(
 }
 
 fn encode_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    budget(placement, conduit_std_catalog::json_encode_std_offer())
+    budget(placement, conduit_std_offers::json_encode_std_offer())
 }
 fn decode_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    budget(placement, conduit_std_catalog::json_decode_std_offer())
+    budget(placement, conduit_std_offers::json_decode_std_offer())
 }
 fn prepare_encode(
     placement: &PlannedGear,

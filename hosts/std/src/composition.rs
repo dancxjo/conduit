@@ -277,8 +277,8 @@ pub(super) fn build_advertisement(
     }
     if composition.json {
         capabilities.extend([
-            conduit_std_catalog::json_encode_std_offer(),
-            conduit_std_catalog::json_decode_std_offer(),
+            conduit_std_offers::json_encode_std_offer(),
+            conduit_std_offers::json_decode_std_offer(),
         ]);
     }
     if composition.alife {

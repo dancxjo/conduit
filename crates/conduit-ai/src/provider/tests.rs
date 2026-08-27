@@ -171,8 +171,16 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
             )
         })
         .collect::<Vec<_>>();
-    provider_capabilities.push(conduit_std_catalog::json_encode_std_offer());
-    provider_capabilities.push(conduit_std_catalog::json_decode_std_offer());
+    provider_capabilities.push(json_proof_offer(
+        conduit_std_catalog::json_encode_contract(),
+        "conduit.std/json-encode@1",
+        "conduit.host/json-encode@1",
+    ));
+    provider_capabilities.push(json_proof_offer(
+        conduit_std_catalog::json_decode_contract(),
+        "conduit.std/json-decode@1",
+        "conduit.host/json-decode@1",
+    ));
     provider_capabilities.push(provider_http_offer());
     let provider = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -395,4 +403,41 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
         replacement.accept_completion(&plan_b.plan_id, &play_b.active_play_id, "request/b"),
         Ok(())
     );
+}
+
+fn json_proof_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+    operation: &str,
+) -> conduit_core::CapabilityOffer {
+    let target_kind = contract.kind_id.clone();
+    let identity = if operation.ends_with("json-encode@1") {
+        "proof/json-encode"
+    } else {
+        "proof/json-decode"
+    };
+    let mut offer = conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: identity,
+            execution_profile: "proof/json",
+            implementation: identity,
+            artifact: "proof/json",
+        },
+        vec![conduit_core::HostOperationRequirement {
+            contract_id: HostOperationContractId::from(operation),
+            target_kind: Some(target_kind),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            maximum_output_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+        }],
+        Vec::new(),
+        Vec::new(),
+    );
+    offer.shorthand = Some((
+        conduit_core::port_id("value"),
+        conduit_core::port_id("value"),
+    ));
+    offer
 }

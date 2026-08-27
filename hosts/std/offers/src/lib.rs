@@ -14,6 +14,8 @@ mod state_input;
 pub use state_input::*;
 mod alife;
 pub use alife::*;
+mod json;
+pub use json::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -193,8 +195,8 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         conduit_std_catalog::robotics_velocity_intent_offer(),
         conduit_std_catalog::robotics_drive_differential_offer(),
         conduit_std_catalog::copy_file_offer(),
-        conduit_std_catalog::json_encode_std_offer(),
-        conduit_std_catalog::json_decode_std_offer(),
+        json_encode_std_offer(),
+        json_decode_std_offer(),
     ]
 }
 
@@ -280,6 +282,7 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/state_toggle.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/input_semantics.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/alife.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/json.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -294,6 +297,8 @@ mod tests {
                 "pub fn flow_tee_scalar_offer",
                 "pub fn flow_gate_scalar_offer",
                 "pub fn state_select_scalar_offer",
+                "pub fn json_encode_std_offer",
+                "pub fn json_decode_std_offer",
                 "pub fn tick_capability_offer",
                 "pub fn time_every_offer",
                 "pub fn time_debounce_offer",
