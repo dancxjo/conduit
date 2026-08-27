@@ -1,7 +1,9 @@
 use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
 };
-use alloc::string::{String, ToString};
+#[cfg(feature = "form-catalog")]
+use alloc::string::String;
+use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
@@ -16,8 +18,6 @@ pub const STATE_TOGGLE_EXECUTION_PROFILE: &str = "conduit.std/state-toggle-kerne
 pub const STATE_TOGGLE_IMPLEMENTATION: &str = "std/kernel-state-toggle@1";
 pub const STATE_TOGGLE_ARTIFACT: &str = "conduit-std-host/state-toggle@1";
 pub const STATE_TOGGLE_CAPABILITY: &str = "state-toggle-v1";
-pub const CONDUITOS_STATE_TOGGLE_CAPABILITY: &str = "conduitos-state-toggle-v1";
-pub const CONDUITOS_STATE_TOGGLE_IMPLEMENTATION: &str = "conduitos/kernel-state-toggle@1";
 pub const MAX_TOGGLE_VALUES: u64 = conduit_time::TIME_EVERY_COUNT + 1;
 
 pub const fn bounded_toggle_value(initial: bool, index: u64) -> Option<bool> {
@@ -87,18 +87,6 @@ pub fn state_toggle_offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: contract.limits,
     }
-}
-
-pub fn conduitos_state_toggle_offer() -> CapabilityOffer {
-    let mut offer = state_toggle_offer();
-    offer.capability_id = CapabilityId::from(CONDUITOS_STATE_TOGGLE_CAPABILITY);
-    offer.implementation.execution_profile_id =
-        ExecutionProfileId::from(super::CONDUITOS_PORTABLE_STATE_INPUT_PROFILE);
-    offer.implementation.implementation_id =
-        ImplementationId::from(CONDUITOS_STATE_TOGGLE_IMPLEMENTATION);
-    offer.implementation.artifact_id =
-        ArtifactId::from(super::CONDUITOS_PORTABLE_STATE_INPUT_ARTIFACT);
-    offer
 }
 
 #[cfg(feature = "form-catalog")]
