@@ -80,7 +80,7 @@ pub fn prepare_robotics(
 }
 
 fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
-    let mut capabilities = conduit_std_catalog::conduitos_robotics_offers();
+    let mut capabilities = crate::functional_offers::robotics_offers();
     capabilities.extend(
         discard_kinds()
             .into_iter()
@@ -120,7 +120,7 @@ fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
         kind_contract_revision: KindContractRevision::from(SINK_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
-                conduit_std_catalog::CONDUITOS_ROBOTICS_EXECUTION_PROFILE,
+                crate::functional_offers::ROBOTICS_PROFILE,
             ),
             implementation_id: ImplementationId::from("conduitos.fixture/robotics-sink@1"),
             artifact_id: ArtifactId::from("conduitos/robotics-fixture@1"),
