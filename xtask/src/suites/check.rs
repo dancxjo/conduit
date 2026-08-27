@@ -46,6 +46,12 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &["check", "-p", "conduit-kernel", "--no-default-features"],
     ),
     Step::new(
+        "check.no-std.chat",
+        "Portable chat and messaging no-default-features check",
+        "cargo",
+        &["check", "-p", "conduit-chat", "--no-default-features"],
+    ),
+    Step::new(
         "check.no-std.data",
         "Structured-data semantics no-default-features check",
         "cargo",
@@ -96,6 +102,22 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         "std-host no-default-features check",
         "cargo",
         &["check", "-p", "conduit-std-host", "--no-default-features"],
+    ),
+    Step::typed(
+        "check.thumb.chat",
+        "Portable chat and messaging Thumb target check",
+        "cargo",
+        &[
+            "check",
+            "-p",
+            "conduit-chat",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
     ),
     Step::typed(
         "check.thumb.data",

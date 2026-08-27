@@ -16,7 +16,7 @@ const SOURCE: &str = include_str!("../../../examples/messaging-delivery.conduit"
 fn unchanged_portable_form_selects_exact_github_profile_with_authority() {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
-    conduit_std_catalog::install_messaging_catalogs(&mut startup, &mut profiles).unwrap();
+    conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles).unwrap();
     let syntax = parse_syntax_document(SOURCE);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let authored =
@@ -25,7 +25,7 @@ fn unchanged_portable_form_selects_exact_github_profile_with_authority() {
     let github = host
         .capabilities
         .iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::MESSAGING_DELIVERY_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_chat::MESSAGING_DELIVERY_KIND)
         .unwrap();
     let grant = github_messaging_authority_grant(
         github,
@@ -76,9 +76,7 @@ fn unchanged_portable_form_selects_exact_github_profile_with_authority() {
     let delivery = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| {
-            placement.kind_id.as_str() == conduit_std_catalog::MESSAGING_DELIVERY_KIND
-        })
+        .find(|placement| placement.kind_id.as_str() == conduit_chat::MESSAGING_DELIVERY_KIND)
         .unwrap();
     assert_eq!(delivery.authority.len(), 1);
     assert_eq!(delivery.resources.len(), 1);
@@ -89,9 +87,9 @@ fn unchanged_portable_form_selects_exact_github_profile_with_authority() {
 }
 
 fn host() -> HostAdvertisement {
-    let message = conduit_std_catalog::messaging_std_offers()
+    let message = conduit_std_host::hosted_messaging::messaging_std_offers()
         .into_iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::MESSAGING_MESSAGE_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_chat::MESSAGING_MESSAGE_KIND)
         .unwrap();
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,

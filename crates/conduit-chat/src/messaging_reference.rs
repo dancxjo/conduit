@@ -1,4 +1,4 @@
-//! Deterministic message fixture and evidence-honest delivery lifecycle.
+//! Deterministic reference fixture and evidence-honest delivery lifecycle.
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
