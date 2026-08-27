@@ -1,4 +1,3 @@
-use conduit_std_catalog::{supported_nucleus_contracts, supported_nucleus_offers};
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -27,9 +26,21 @@ pub struct Inventory {
     pub digest: String,
 }
 
+pub fn catalog_contracts() -> Vec<conduit_std_catalog::StandardKindContract> {
+    let mut contracts = conduit_std_catalog::supported_nucleus_contracts();
+    contracts.extend(conduit_std_catalog::patchbay_presentation_contracts());
+    contracts
+}
+
+pub fn catalog_offers() -> Vec<conduit_core::CapabilityOffer> {
+    let mut offers = conduit_std_host::supported_nucleus_offers();
+    offers.extend(conduit_std_catalog::patchbay_presentation_offers());
+    offers
+}
+
 pub fn derive() -> Result<Inventory, CatalogError> {
-    let contracts = supported_nucleus_contracts();
-    let offers = supported_nucleus_offers();
+    let contracts = catalog_contracts();
+    let offers = catalog_offers();
     if contracts.len() != offers.len() || contracts.len() > MAXIMUM_ENTRIES {
         return Err(CatalogError::new(
             "std-catalog-inventory-out-of-bounds",

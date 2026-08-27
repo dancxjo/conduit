@@ -21,7 +21,7 @@ pub(crate) fn classify(
     kind: &inventory::InventoryEntry,
     implemented: bool,
 ) -> Classification {
-    let canonical = conduit_std_catalog::supported_nucleus_offers()
+    let canonical = inventory::catalog_offers()
         .into_iter()
         .find(|offer| {
             offer.kind_id.as_str() == kind.kind_id

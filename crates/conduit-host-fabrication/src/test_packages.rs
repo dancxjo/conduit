@@ -308,20 +308,48 @@ pub(crate) fn test_catalog() -> FabricationCatalog {
 }
 
 fn test_catalog_metadata() -> PackageCatalogContribution {
+    let mut implementations = conduit_std_catalog::supported_nucleus_offers()
+        .into_iter()
+        .map(|offer| {
+            let implementation = offer.implementation.implementation_id.as_str().to_owned();
+            let mut prerequisites = offer
+                .host_operations
+                .iter()
+                .map(|requirement| {
+                    PrerequisiteNode::HostOperation(requirement.contract_id.as_str().to_owned())
+                })
+                .chain(offer.resource_requirements.iter().map(|requirement| {
+                    PrerequisiteNode::Resource(requirement.class_id.as_str().to_owned())
+                }))
+                .collect::<Vec<_>>();
+            prerequisites.sort();
+            prerequisites.dedup();
+            (
+                implementation,
+                ImplementationMetadata {
+                    kind: offer.kind_id.as_str().to_owned(),
+                    contract_revision: offer.kind_contract_revision.as_str().to_owned(),
+                    targets: vec!["std/*/*".into()],
+                    prerequisites,
+                },
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    implementations.insert(
+        "conduitos/kernel-http-client-http1-literal@1".into(),
+        ImplementationMetadata {
+            kind: "http/client".into(),
+            contract_revision: "conduit.http/client@1".into(),
+            targets: vec!["conduitos/x86_64/pc".into()],
+            prerequisites: vec![
+                PrerequisiteNode::HostOperation("conduit.host/http-client-exchange@1".into()),
+                PrerequisiteNode::Resource("conduit.resource/network/http-client@1".into()),
+                PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+            ],
+        },
+    );
     PackageCatalogContribution {
-        implementations: BTreeMap::from([(
-            "conduitos/kernel-http-client-http1-literal@1".into(),
-            ImplementationMetadata {
-                kind: "http/client".into(),
-                contract_revision: "conduit.http/client@1".into(),
-                targets: vec!["conduitos/x86_64/pc".into()],
-                prerequisites: vec![
-                    PrerequisiteNode::HostOperation("conduit.host/http-client-exchange@1".into()),
-                    PrerequisiteNode::Resource("conduit.resource/network/http-client@1".into()),
-                    PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
-                ],
-            },
-        )]),
+        implementations,
         presenters: BTreeMap::from([
             (
                 "presenter/native-graphical@1".into(),

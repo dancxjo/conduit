@@ -315,6 +315,67 @@ pub(super) fn build_advertisement(
     }
 }
 
+/// Exact advertisement produced by the broad hosted reference composition.
+///
+/// This is Host truth: callers that need the currently installed std
+/// inventory must inspect this advertisement rather than reconstructing one
+/// from the portable semantic catalog.
+pub fn reference_advertisement(config: StdHostConfig) -> HostAdvertisement {
+    build_advertisement(
+        config,
+        StdHostComposition::reference(),
+        None,
+        None,
+        None,
+        false,
+    )
+}
+
+/// The exact offers installed for the portable supported-nucleus contracts by
+/// the broad hosted reference composition.
+pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
+    let advertisement = reference_advertisement(StdHostConfig {
+        host_id: conduit_core::HostId::from("std-inventory"),
+        boot_id: conduit_core::BootId::from("std-inventory/boot"),
+        offer_generation: conduit_core::OfferGeneration(1),
+    });
+
+    let contracts = conduit_std_catalog::supported_nucleus_contracts();
+    let missing = contracts
+        .iter()
+        .filter(|contract| {
+            !advertisement.capabilities.iter().any(|offer| {
+                offer.kind_id == contract.kind_id
+                    && offer.inputs == contract.inputs
+                    && offer.outputs == contract.outputs
+                    && offer.limits == contract.limits
+            })
+        })
+        .map(|contract| contract.kind_id.as_str())
+        .collect::<Vec<_>>();
+    assert!(
+        missing.is_empty(),
+        "std reference composition does not install exact contracts: {missing:?}"
+    );
+
+    contracts
+        .into_iter()
+        .map(|contract| {
+            advertisement
+                .capabilities
+                .iter()
+                .find(|offer| {
+                    offer.kind_id == contract.kind_id
+                        && offer.inputs == contract.inputs
+                        && offer.outputs == contract.outputs
+                        && offer.limits == contract.limits
+                })
+                .expect("missing contracts were checked above")
+                .clone()
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::StdHostComposition;
@@ -495,7 +556,7 @@ mod tests {
             })
             .cloned()
             .collect::<Vec<_>>();
-        let supported = conduit_std_catalog::supported_nucleus_offers()
+        let supported = super::supported_nucleus_offers()
             .into_iter()
             .filter(|offer| {
                 offer

@@ -1,14 +1,42 @@
 use conduit_host_fabrication::{
     FabricationAnchor, FabricationContribution, HostBounds, HostFabricationPackage,
-    ImplementationOffer, PackageCatalogContribution, PostBuildAction, PrerequisiteNode,
-    SporeOutputKind, TargetDescriptor,
+    ImplementationMetadata, ImplementationOffer, PackageCatalogContribution, PostBuildAction,
+    PrerequisiteNode, SporeOutputKind, TargetDescriptor,
 };
 use std::collections::BTreeMap;
 
 pub struct HostedFabricationPackage;
 
 fn package_catalog() -> PackageCatalogContribution {
+    let implementations = conduit_std_catalog::supported_nucleus_offers()
+        .into_iter()
+        .map(|offer| {
+            let implementation = offer.implementation.implementation_id.as_str().to_owned();
+            let mut prerequisites = offer
+                .host_operations
+                .iter()
+                .map(|requirement| {
+                    PrerequisiteNode::HostOperation(requirement.contract_id.as_str().to_owned())
+                })
+                .chain(offer.resource_requirements.iter().map(|requirement| {
+                    PrerequisiteNode::Resource(requirement.class_id.as_str().to_owned())
+                }))
+                .collect::<Vec<_>>();
+            prerequisites.sort();
+            prerequisites.dedup();
+            (
+                implementation,
+                ImplementationMetadata {
+                    kind: offer.kind_id.as_str().to_owned(),
+                    contract_revision: offer.kind_contract_revision.as_str().to_owned(),
+                    targets: vec!["std/*/*".into()],
+                    prerequisites,
+                },
+            )
+        })
+        .collect();
     PackageCatalogContribution {
+        implementations,
         dependencies: BTreeMap::from([
             (
                 PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),

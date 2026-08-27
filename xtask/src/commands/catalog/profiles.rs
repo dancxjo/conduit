@@ -79,7 +79,7 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
             .capabilities
             .iter()
             .map(|capability| {
-                let mut exact = conduit_std_catalog::supported_nucleus_offers()
+                let mut exact = conduit_std_host::supported_nucleus_offers()
                     .into_iter()
                     .find(|candidate| {
                         candidate.kind_id.as_str() == capability.kind
