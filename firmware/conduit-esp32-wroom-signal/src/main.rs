@@ -38,7 +38,7 @@ mod session;
 static REMOTE_KERNEL: static_cell::StaticCell<remote_kernel::Esp32RemoteSignalKernel> =
     static_cell::StaticCell::new();
 #[cfg(feature = "distributed-lenia")]
-static LENIA_WORKER: static_cell::StaticCell<conduit_core::DistributedLeniaWorker> =
+static LENIA_WORKER: static_cell::StaticCell<conduit_alife::DistributedLeniaWorker> =
     static_cell::StaticCell::new();
 
 mod generated {
@@ -109,7 +109,7 @@ async fn main(_spawner: Spawner) {
         }
         #[cfg(feature = "distributed-lenia")]
         {
-            let worker = LENIA_WORKER.init(conduit_core::DistributedLeniaWorker::new());
+            let worker = LENIA_WORKER.init(conduit_alife::DistributedLeniaWorker::new());
             worker
                 .prepare()
                 .expect("the fixed Lenia kernel must prepare before Play");

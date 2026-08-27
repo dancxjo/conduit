@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_alife::{
     orbium_seed, LeniaFieldState, LeniaParameters, LeniaPartition, LeniaPartitionRefusal,
     LeniaRegionId,
 };
@@ -64,7 +64,7 @@ fn join_refuses_missing_duplicate_stale_and_wrong_field_results() {
         Err(LeniaPartitionRefusal::WrongGeneration)
     );
     let other = LeniaFieldState::from_cells(
-        conduit_core::LeniaFieldId([9; 16]),
+        conduit_alife::LeniaFieldId([9; 16]),
         initial.generation,
         initial.width,
         initial.height,

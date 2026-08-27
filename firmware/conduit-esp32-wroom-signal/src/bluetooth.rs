@@ -114,7 +114,7 @@ pub async fn run<C>(
 #[cfg(not(feature = "distributed-lenia"))]
 type ActiveKernel = crate::remote_kernel::Esp32RemoteSignalKernel;
 #[cfg(feature = "distributed-lenia")]
-type ActiveKernel = conduit_core::DistributedLeniaWorker;
+type ActiveKernel = conduit_alife::DistributedLeniaWorker;
 
 async fn run_controller<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) {
     loop {

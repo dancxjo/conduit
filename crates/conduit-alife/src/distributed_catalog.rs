@@ -1,9 +1,9 @@
 //! Realization-only Kinds for one reviewed three-region Lenia Back.
 
+use crate::SCALAR_FIELD2_INFO_ID;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    SCALAR_FIELD2_INFO_ID,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 

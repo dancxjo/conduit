@@ -1,15 +1,15 @@
+use conduit_alife::{
+    install_lenia_catalogs, LENIA_STEP_KIND, SCALAR_FIELD2_INFO_ID, SCALAR_FIELD_PRESENTATION_KIND,
+};
 use conduit_core::{
     BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    PortTemporal, PROTOCOL_VERSION, SCALAR_FIELD2_INFO_ID,
+    PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
-    alife_offers, install_alife_catalogs, install_tick_presentation_catalog, LENIA_STEP_KIND,
-    SCALAR_FIELD_PRESENTATION_KIND,
-};
+use conduit_std_catalog::{alife_offers, install_tick_presentation_catalog};
 use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../examples/lenia-orbium.conduit");
@@ -18,7 +18,7 @@ const SOURCE: &str = include_str!("../../../examples/lenia-orbium.conduit");
 fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    install_alife_catalogs(&mut startup, &mut profile).unwrap();
+    install_lenia_catalogs(&mut startup, &mut profile).unwrap();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
     install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(SOURCE);
@@ -72,7 +72,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
                 ),
                 conduit_planner::ConnectionQueueLimits {
                     item_capacity: 4,
-                    byte_capacity: conduit_core::LENIA_MAXIMUM_FIELD_BYTES,
+                    byte_capacity: conduit_alife::LENIA_MAXIMUM_FIELD_BYTES,
                 },
             )
         })
@@ -112,7 +112,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
         .any(|placement| placement.kind_id.as_str() == SCALAR_FIELD_PRESENTATION_KIND));
     for connection in &plan.fragments[0].connections {
         let expected_bytes = if connection.value_kind.as_str() == SCALAR_FIELD2_INFO_ID {
-            conduit_core::LENIA_MAXIMUM_FIELD_BYTES
+            conduit_alife::LENIA_MAXIMUM_FIELD_BYTES
         } else {
             64
         };

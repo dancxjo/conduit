@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_alife::{
     LeniaFieldId, LeniaRegion, LeniaRegionChunkAdmission, LeniaRegionChunkAssembler,
     LeniaRegionChunkHeader, LeniaRegionChunkKind, LeniaRegionChunkRefusal, LeniaRegionChunkView,
     LeniaRegionId, LENIA_REGION_CHUNK_MAX_BYTES, LENIA_REGION_CHUNK_MAX_CELLS,
@@ -130,7 +130,7 @@ fn malformed_identity_range_and_cell_are_distinct_refusals() {
     );
     assert_eq!(
         header(LeniaRegionChunkKind::Result, 0, 1)
-            .encode(&[conduit_core::LENIA_Q16_ONE + 1], &mut encoded),
+            .encode(&[conduit_alife::LENIA_Q16_ONE + 1], &mut encoded),
         Err(LeniaRegionChunkRefusal::CellOutOfRange)
     );
 }

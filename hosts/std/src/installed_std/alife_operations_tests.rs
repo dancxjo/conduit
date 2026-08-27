@@ -21,7 +21,7 @@ fn complete(request: u32, output: Option<BoundedValueRef>) -> OperationInput {
 }
 
 fn initialized_operation() -> LeniaStepOperation {
-    let seed = conduit_core::orbium_seed(32, 32, 1)
+    let seed = conduit_alife::orbium_seed(32, 32, 1)
         .unwrap()
         .encode()
         .unwrap();

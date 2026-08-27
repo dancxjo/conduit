@@ -1165,7 +1165,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                             output: Some(
                                 BoundedValueRef::new(
                                     value,
-                                    conduit_core::LENIA_MAXIMUM_FIELD_BYTES,
+                                    conduit_alife::LENIA_MAXIMUM_FIELD_BYTES,
                                 )
                                 .map_err(|error| format!("bound Lenia field: {error:?}"))?,
                             ),

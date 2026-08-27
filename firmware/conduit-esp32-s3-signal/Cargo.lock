@@ -160,6 +160,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-alife"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-presentation",
+ "conduit-time",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-bluetooth"
 version = "0.1.0"
 dependencies = [
@@ -330,6 +341,7 @@ dependencies = [
 name = "conduit-std-catalog"
 version = "0.1.0"
 dependencies = [
+ "conduit-alife",
  "conduit-core",
  "conduit-form",
  "conduit-midi",

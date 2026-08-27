@@ -34,8 +34,9 @@ fn unchanged_portable_lenia_expands_to_three_workers_and_six_typed_cords() {
     assert!(expanded
         .realization_backs
         .iter()
-        .any(|back| { back.kind_id.as_str() == conduit_std_catalog::LENIA_STEP_KIND }));
-    assert!(expanded.realization_backs.iter().any(|back| {
-        back.kind_id.as_str() == conduit_std_catalog::SCALAR_FIELD_PRESENTATION_KIND
-    }));
+        .any(|back| back.kind_id.as_str() == conduit_alife::LENIA_STEP_KIND));
+    assert!(expanded
+        .realization_backs
+        .iter()
+        .any(|back| { back.kind_id.as_str() == conduit_alife::SCALAR_FIELD_PRESENTATION_KIND }));
 }

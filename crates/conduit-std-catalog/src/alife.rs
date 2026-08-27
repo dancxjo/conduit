@@ -4,21 +4,15 @@ use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
 };
 use alloc::{string::ToString, vec, vec::Vec};
-use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_requirement, ArtifactId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal, LENIA_MAXIMUM_FIELD_BYTES,
-    LENIA_MAXIMUM_KERNEL_RADIUS, PRESENTATION_RESOURCE_CLASS, SCALAR_FIELD2_INFO_ID,
+use conduit_alife::{
+    LENIA_MAXIMUM_FIELD_BYTES, LENIA_STEP_KIND, LENIA_STEP_REVISION, MAXIMUM_PRESENTED_FIELDS,
+    ORBIUM_SEED_REVISION, SCALAR_FIELD_PRESENTATION_REVISION,
 };
-
-pub const ORBIUM_SEED_KIND: &str = "alife/orbium-seed";
-pub const LENIA_STEP_KIND: &str = "alife/lenia-step";
-pub const SCALAR_FIELD_PRESENTATION_KIND: &str = "presentation/scalar-field";
-
-pub const ORBIUM_SEED_REVISION: &str = "conduit.alife/orbium-seed@1";
-pub const LENIA_STEP_REVISION: &str = "conduit.alife/lenia-step@1";
-pub const SCALAR_FIELD_PRESENTATION_REVISION: &str = "conduit.presentation/scalar-field@1";
+use conduit_core::{
+    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, KindContractRevision, PRESENTATION_RESOURCE_CLASS,
+};
 
 pub const ORBIUM_SEED_EXECUTION_PROFILE: &str = "conduit.std/orbium-seed-fixed-q16.16@1";
 pub const LENIA_STEP_EXECUTION_PROFILE: &str = "conduit.std/lenia-spatial-fixed-q16.16@1";
@@ -37,22 +31,6 @@ pub const LENIA_INITIALIZE_HOST_OPERATION: &str = "conduit.host/lenia-initialize
 pub const LENIA_STEP_HOST_OPERATION: &str = "conduit.host/lenia-step@1";
 pub const SCALAR_FIELD_PRESENTATION_TARGET: &str = "presentation/stdout-scalar-field";
 
-pub const ORBIUM_WIDTH_KEY: &str = "width";
-pub const ORBIUM_HEIGHT_KEY: &str = "height";
-pub const SEED_KEY: &str = "seed";
-pub const KERNEL_RADIUS_KEY: &str = "kernel_radius";
-pub const KERNEL_MU_KEY: &str = "kernel_mu";
-pub const KERNEL_SIGMA_KEY: &str = "kernel_sigma";
-pub const GROWTH_MU_KEY: &str = "growth_mu";
-pub const GROWTH_SIGMA_KEY: &str = "growth_sigma";
-pub const DT_KEY: &str = "dt";
-pub const BOUNDARY_KEY: &str = "boundary";
-pub const NUMERIC_PROFILE_KEY: &str = "numeric_profile";
-pub const TITLE_KEY: &str = "title";
-pub const MINIMUM_KEY: &str = "minimum";
-pub const MAXIMUM_KEY: &str = "maximum";
-pub const MAXIMUM_PRESENTED_FIELDS: u16 = 4;
-
 pub fn alife_contracts() -> Vec<StandardKindContract> {
     vec![
         orbium_seed_contract(),
@@ -70,17 +48,14 @@ pub fn alife_offers() -> Vec<CapabilityOffer> {
 }
 
 pub fn orbium_seed_contract() -> StandardKindContract {
+    let definition = conduit_alife::orbium_seed_definition();
     StandardKindContract {
-        kind_id: kind_id(ORBIUM_SEED_KIND),
+        kind_id: definition.kind_id,
         plain_name: "Deterministic Orbium seed".to_string(),
         summary: "Construct one bounded portable ScalarField2 specimen from semantic dimensions and seed.".to_string(),
-        inputs: Vec::new(),
-        outputs: vec![field_port("field", PortDirection::Output, PortTemporal::Value)],
-        configuration: vec![
-            u64_field(ORBIUM_WIDTH_KEY, 128, 32, 128),
-            u64_field(ORBIUM_HEIGHT_KEY, 128, 32, 128),
-            u64_field(SEED_KEY, 1, 0, u64::MAX),
-        ],
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: standard_configuration(definition.configuration),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 4,
@@ -95,38 +70,14 @@ pub fn orbium_seed_contract() -> StandardKindContract {
 }
 
 pub fn lenia_step_contract() -> StandardKindContract {
+    let definition = conduit_alife::lenia_step_definition();
     StandardKindContract {
-        kind_id: kind_id(LENIA_STEP_KIND),
+        kind_id: definition.kind_id,
         plain_name: "Lenia field evolution".to_string(),
         summary: "Evolve an initialized ScalarField2 once per closing-flow Tick using exact fixed-Q16.16 Lenia semantics.".to_string(),
-        inputs: vec![
-            field_port("initial", PortDirection::Input, PortTemporal::Value),
-            tick_port("tick", PortDirection::Input),
-        ],
-        outputs: vec![field_port(
-            "field",
-            PortDirection::Output,
-            PortTemporal::Flow { closes: true },
-        )],
-        configuration: vec![
-            u64_field(
-                KERNEL_RADIUS_KEY,
-                13,
-                1,
-                u64::from(LENIA_MAXIMUM_KERNEL_RADIUS),
-            ),
-            scalar_field(KERNEL_MU_KEY, 500_000, 0, 1_000_000),
-            scalar_field(KERNEL_SIGMA_KEY, 150_000, 1, 1_000_000),
-            scalar_field(GROWTH_MU_KEY, 150_000, 0, 1_000_000),
-            scalar_field(GROWTH_SIGMA_KEY, 15_000, 1, 1_000_000),
-            scalar_field(DT_KEY, 100_000, 1, 1_000_000),
-            text_choice(BOUNDARY_KEY, "wrap", &["wrap"]),
-            text_choice(
-                NUMERIC_PROFILE_KEY,
-                "fixed-q16.16",
-                &["fixed-q16.16"],
-            ),
-        ],
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: standard_configuration(definition.configuration),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: MAXIMUM_PRESENTED_FIELDS + 1,
@@ -141,27 +92,16 @@ pub fn lenia_step_contract() -> StandardKindContract {
 }
 
 pub fn scalar_field_presentation_contract() -> StandardKindContract {
+    let definition = conduit_alife::scalar_field_presentation_definition();
     StandardKindContract {
-        kind_id: kind_id(SCALAR_FIELD_PRESENTATION_KIND),
+        kind_id: definition.kind_id,
         plain_name: "Scalar field presentation".to_string(),
         summary:
             "Manifest each bounded ScalarField2 through one exact admitted presentation effect."
                 .to_string(),
-        inputs: vec![field_port(
-            "field",
-            PortDirection::Input,
-            PortTemporal::Flow { closes: true },
-        )],
-        outputs: Vec::new(),
-        configuration: vec![
-            StandardConfigurationField {
-                key: TITLE_KEY.to_string(),
-                default_value: ConfigurationValue::Text("Scalar field".to_string()),
-                rule: StandardConfigurationRule::TextBytes { maximum: 64 },
-            },
-            scalar_field(MINIMUM_KEY, 0, 0, 1_000_000),
-            scalar_field(MAXIMUM_KEY, 1_000_000, 0, 1_000_000),
-        ],
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: standard_configuration(definition.configuration),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: MAXIMUM_PRESENTED_FIELDS,
@@ -273,148 +213,37 @@ fn offer(
     }
 }
 
-fn field_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDescriptor {
-    PortDescriptor {
-        port_id: port_id(name),
-        value_kind: kind_id(SCALAR_FIELD2_INFO_ID),
-        direction,
-        temporal,
-    }
-}
-
-fn tick_port(name: &str, direction: PortDirection) -> PortDescriptor {
-    PortDescriptor {
-        port_id: port_id(name),
-        value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
-        direction,
-        temporal: PortTemporal::Flow { closes: true },
-    }
-}
-
-fn u64_field(key: &str, default: u64, minimum: u64, maximum: u64) -> StandardConfigurationField {
-    StandardConfigurationField {
-        key: key.to_string(),
-        default_value: ConfigurationValue::U64(default),
-        rule: StandardConfigurationRule::U64Range { minimum, maximum },
-    }
-}
-
-fn scalar_field(key: &str, default: i64, minimum: i64, maximum: i64) -> StandardConfigurationField {
-    StandardConfigurationField {
-        key: key.to_string(),
-        default_value: ConfigurationValue::I64(default),
-        rule: StandardConfigurationRule::I64Range { minimum, maximum },
-    }
-}
-
-fn text_choice(key: &str, default: &str, values: &[&str]) -> StandardConfigurationField {
-    StandardConfigurationField {
-        key: key.to_string(),
-        default_value: ConfigurationValue::Text(default.to_string()),
-        rule: StandardConfigurationRule::TextOneOf {
-            values: values.iter().map(|value| (*value).to_string()).collect(),
-        },
-    }
-}
-
-#[cfg(feature = "form-catalog")]
-pub fn install_alife_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
-) -> Result<(), alloc::string::String> {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
-    for (contract, revision) in [
-        (orbium_seed_contract(), ORBIUM_SEED_REVISION),
-        (lenia_step_contract(), LENIA_STEP_REVISION),
-        (
-            scalar_field_presentation_contract(),
-            SCALAR_FIELD_PRESENTATION_REVISION,
-        ),
-    ] {
-        startup.insert(KindSignature {
-            kind: contract.kind_id.as_str().to_string(),
-            startup_parameters: contract
-                .configuration
-                .iter()
-                .map(|field| conduit_form::StartupParameterSignature {
-                    name: field.key.clone(),
-                    value_type: match field.default_value {
-                        ConfigurationValue::U64(_) => "Count",
-                        ConfigurationValue::I64(_) => "Scalar",
-                        ConfigurationValue::Text(_) => "Text",
-                        ConfigurationValue::Bool(_) => "Boolean",
-                        ConfigurationValue::Structured(_) => "Structured",
-                    }
-                    .to_string(),
-                    default: Some(render_default(&field.default_value)),
-                })
-                .collect(),
-        })?;
-        profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| ConfigurationField {
-                        key: field.key,
-                        default_value: field.default_value,
-                        validation: match field.rule {
-                            StandardConfigurationRule::Any => ConfigurationRule::Any,
-                            StandardConfigurationRule::U64Range { minimum, maximum } => {
-                                ConfigurationRule::U64Range { minimum, maximum }
-                            }
-                            StandardConfigurationRule::I64Range { minimum, maximum } => {
-                                ConfigurationRule::I64Range { minimum, maximum }
-                            }
-                            StandardConfigurationRule::DurationMillis { minimum, maximum } => {
-                                ConfigurationRule::DurationMillis { minimum, maximum }
-                            }
-                            StandardConfigurationRule::TextBytes { maximum } => {
-                                ConfigurationRule::TextBytes { maximum }
-                            }
-                            StandardConfigurationRule::TextOneOf { values } => {
-                                ConfigurationRule::TextOneOf { values }
-                            }
-                        },
-                    })
-                    .collect(),
-            })
-            .map_err(|error| error.to_string())?;
-    }
-    Ok(())
-}
-
-#[cfg(feature = "form-catalog")]
-fn render_default(value: &ConfigurationValue) -> alloc::string::String {
-    match value {
-        ConfigurationValue::Bool(value) => value.to_string(),
-        ConfigurationValue::U64(value) => value.to_string(),
-        ConfigurationValue::I64(value) => render_scalar(*value),
-        ConfigurationValue::Text(value) => alloc::format!("\"{value}\""),
-        ConfigurationValue::Structured(_) => "structured".to_string(),
-    }
-}
-
-#[cfg(feature = "form-catalog")]
-fn render_scalar(value: i64) -> alloc::string::String {
-    let negative = value < 0;
-    let magnitude = value.unsigned_abs();
-    let whole = magnitude / conduit_core::Scalar::SCALE as u64;
-    let fraction = magnitude % conduit_core::Scalar::SCALE as u64;
-    let sign = if negative { "-" } else { "" };
-    if fraction == 0 {
-        alloc::format!("{sign}{whole}.0")
-    } else {
-        let mut fraction = alloc::format!("{fraction:06}");
-        while fraction.ends_with('0') {
-            fraction.pop();
-        }
-        alloc::format!("{sign}{whole}.{fraction}")
-    }
+fn standard_configuration(
+    fields: Vec<conduit_form::ConfigurationField>,
+) -> Vec<StandardConfigurationField> {
+    fields
+        .into_iter()
+        .map(|field| StandardConfigurationField {
+            key: field.key,
+            default_value: field.default_value,
+            rule: match field.validation {
+                conduit_form::ConfigurationRule::Any => StandardConfigurationRule::Any,
+                conduit_form::ConfigurationRule::U64Range { minimum, maximum } => {
+                    StandardConfigurationRule::U64Range { minimum, maximum }
+                }
+                conduit_form::ConfigurationRule::I64Range { minimum, maximum } => {
+                    StandardConfigurationRule::I64Range { minimum, maximum }
+                }
+                conduit_form::ConfigurationRule::DurationMillis { minimum, maximum } => {
+                    StandardConfigurationRule::DurationMillis { minimum, maximum }
+                }
+                conduit_form::ConfigurationRule::TextBytes { maximum } => {
+                    StandardConfigurationRule::TextBytes { maximum }
+                }
+                conduit_form::ConfigurationRule::TextOneOf { values } => {
+                    StandardConfigurationRule::TextOneOf { values }
+                }
+                conduit_form::ConfigurationRule::Structured { .. } => {
+                    unreachable!("Lenia definitions do not use structured configuration")
+                }
+            },
+        })
+        .collect()
 }
 
 #[cfg(test)]

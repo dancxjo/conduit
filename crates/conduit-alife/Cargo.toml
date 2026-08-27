@@ -11,8 +11,7 @@ planning = ["dep:conduit-planner"]
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
 conduit-planner = { path = "../conduit-planner", optional = true }
-conduit-presentation = { path = "../conduit-presentation", default-features = false }
-conduit-std-catalog = { path = "../conduit-std-catalog", default-features = false, features = ["form-catalog"] }
+conduit-presentation = { path = "../conduit-presentation", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../conduit-time" }
 sha2 = { version = "0.10", default-features = false }
 

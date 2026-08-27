@@ -150,8 +150,8 @@ fn portable_lenia_demo_executes_four_fields_through_the_product_entrance() {
         .iter()
         .flat_map(|fragment| &fragment.connections)
     {
-        let expected = if connection.value_kind.as_str() == conduit_core::SCALAR_FIELD2_INFO_ID {
-            conduit_core::LENIA_MAXIMUM_FIELD_BYTES
+        let expected = if connection.value_kind.as_str() == conduit_alife::SCALAR_FIELD2_INFO_ID {
+            conduit_alife::LENIA_MAXIMUM_FIELD_BYTES
         } else {
             64
         };

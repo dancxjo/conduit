@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
 #[test]
-fn reaction_diffusion_has_one_portable_owner_below_planning_and_hosts() {
+fn artificial_life_domains_have_one_portable_owner_below_planning_and_hosts() {
     let alife_manifest = include_str!("../Cargo.toml");
     let core_manifest = include_str!("../../conduit-core/Cargo.toml");
     assert!(alife_manifest.contains("conduit-core ="));
@@ -14,11 +14,13 @@ fn reaction_diffusion_has_one_portable_owner_below_planning_and_hosts() {
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("");
-        assert!(
-            !name.starts_with("reaction_diffusion"),
-            "reaction-diffusion domain source returned to conduit-core: {}",
-            path.display()
-        );
+        for domain in ["reaction_diffusion", "lenia"] {
+            assert!(
+                !name.starts_with(domain),
+                "{domain} domain source returned to conduit-core: {}",
+                path.display()
+            );
+        }
     }
 }
 
@@ -32,7 +34,7 @@ fn alife_owner_remains_host_neutral() {
         .split_once("[dev-dependencies]")
         .expect("alife owner declares dev dependencies")
         .0;
-    for forbidden in ["conduit-std-host", "hosts/"] {
+    for forbidden in ["conduit-std-catalog", "conduit-std-host", "hosts/"] {
         assert!(!dependencies.contains(forbidden));
     }
 }

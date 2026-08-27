@@ -267,7 +267,7 @@ async fn send_result(
 ) -> Result<(), ()> {
     let identity = worker.result_identity().map_err(|_| ())?;
     let mut offset = 0;
-    let mut chunk = [0; conduit_core::LENIA_REGION_CHUNK_MAX_BYTES];
+    let mut chunk = [0; conduit_alife::LENIA_REGION_CHUNK_MAX_BYTES];
     let mut frame = [0; LENIA_LINE_FRAME_MAX_BYTES];
     let mut sequence = 0;
     while offset < identity.total_cells {
@@ -288,7 +288,7 @@ async fn send_result(
         .map_err(|_| ())?;
         send_frame(&frame[..frame_len], sequence, server, connection).await?;
         let view =
-            conduit_core::LeniaRegionChunkView::decode(&chunk[..chunk_len]).map_err(|_| ())?;
+            conduit_alife::LeniaRegionChunkView::decode(&chunk[..chunk_len]).map_err(|_| ())?;
         offset += u32::from(view.header.cell_count);
         sequence = sequence.wrapping_add(1);
     }

@@ -1,10 +1,10 @@
 //! Installed production-kernel operations for the bounded Lenia family.
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{
-    ConfigurationValue, LeniaBoundary, LeniaFieldView, LeniaParameters, PlannedGear,
-    LENIA_MAXIMUM_FIELD_BYTES, LENIA_Q16_ONE,
+use conduit_alife::{
+    LeniaBoundary, LeniaFieldView, LeniaParameters, LENIA_MAXIMUM_FIELD_BYTES, LENIA_Q16_ONE,
 };
+use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
@@ -106,7 +106,7 @@ impl LeniaStepOperation {
             && self.initialized
             && self.initial_closed
             && self.pending.is_none()
-            && self.next_tick < u32::from(conduit_std_catalog::MAXIMUM_PRESENTED_FIELDS)
+            && self.next_tick < u32::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS)
         {
             let Ok(sequence) = super::contract::decode_tick(canonical) else {
                 return fail(FailureCode::InvalidInput, 182);
@@ -196,7 +196,7 @@ impl ScalarFieldPresentationOperation {
                 port: PortId(0),
                 value,
             } if self.pending.is_none()
-                && self.next < u32::from(conduit_std_catalog::MAXIMUM_PRESENTED_FIELDS) =>
+                && self.next < u32::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS) =>
             {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
@@ -237,14 +237,14 @@ pub(super) fn parameters(placement: &PlannedGear) -> Result<LeniaParameters, Str
     Ok(LeniaParameters {
         kernel_radius: u16::try_from(u64_configuration(
             placement,
-            conduit_std_catalog::KERNEL_RADIUS_KEY,
+            conduit_alife::KERNEL_RADIUS_KEY,
         )?)
         .map_err(|_| "Lenia kernel radius exceeds u16".to_string())?,
-        kernel_mu_q16: scalar_q16(placement, conduit_std_catalog::KERNEL_MU_KEY)?,
-        kernel_sigma_q16: scalar_q16(placement, conduit_std_catalog::KERNEL_SIGMA_KEY)?,
-        growth_mu_q16: scalar_q16(placement, conduit_std_catalog::GROWTH_MU_KEY)?,
-        growth_sigma_q16: scalar_q16(placement, conduit_std_catalog::GROWTH_SIGMA_KEY)?,
-        dt_q16: scalar_q16(placement, conduit_std_catalog::DT_KEY)?,
+        kernel_mu_q16: scalar_q16(placement, conduit_alife::KERNEL_MU_KEY)?,
+        kernel_sigma_q16: scalar_q16(placement, conduit_alife::KERNEL_SIGMA_KEY)?,
+        growth_mu_q16: scalar_q16(placement, conduit_alife::GROWTH_MU_KEY)?,
+        growth_sigma_q16: scalar_q16(placement, conduit_alife::GROWTH_SIGMA_KEY)?,
+        dt_q16: scalar_q16(placement, conduit_alife::DT_KEY)?,
         boundary: LeniaBoundary::Wrap,
     })
 }
@@ -267,16 +267,16 @@ fn prepare_seed(
     validate_seed(placement)?;
     let width = u16::try_from(u64_configuration(
         placement,
-        conduit_std_catalog::ORBIUM_WIDTH_KEY,
+        conduit_alife::ORBIUM_WIDTH_KEY,
     )?)
     .map_err(|_| "Orbium width exceeds u16".to_string())?;
     let height = u16::try_from(u64_configuration(
         placement,
-        conduit_std_catalog::ORBIUM_HEIGHT_KEY,
+        conduit_alife::ORBIUM_HEIGHT_KEY,
     )?)
     .map_err(|_| "Orbium height exceeds u16".to_string())?;
-    let seed = u64_configuration(placement, conduit_std_catalog::SEED_KEY)?;
-    let encoded = conduit_core::orbium_seed(width, height, seed)
+    let seed = u64_configuration(placement, conduit_alife::SEED_KEY)?;
+    let encoded = conduit_alife::orbium_seed(width, height, seed)
         .map_err(|error| format!("construct Orbium seed: {error:?}"))?
         .encode()
         .map_err(|error| format!("encode Orbium seed: {error:?}"))?;
@@ -292,10 +292,9 @@ fn prepare_seed(
 fn lenia_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     parameters(placement)?;
     Ok(OperationBudget {
-        value_items: conduit_std_catalog::MAXIMUM_PRESENTED_FIELDS,
-        value_bytes: LENIA_MAXIMUM_FIELD_BYTES
-            * u32::from(conduit_std_catalog::MAXIMUM_PRESENTED_FIELDS),
-        host_requests: usize::from(conduit_std_catalog::MAXIMUM_PRESENTED_FIELDS) + 1,
+        value_items: conduit_alife::MAXIMUM_PRESENTED_FIELDS,
+        value_bytes: LENIA_MAXIMUM_FIELD_BYTES * u32::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS),
+        host_requests: usize::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS) + 1,
         sign_items: 192,
         maximum_value_bytes: LENIA_MAXIMUM_FIELD_BYTES,
     })
@@ -314,7 +313,7 @@ fn presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, Strin
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
-        host_requests: usize::from(conduit_std_catalog::MAXIMUM_PRESENTED_FIELDS),
+        host_requests: usize::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS),
         sign_items: 96,
         maximum_value_bytes: LENIA_MAXIMUM_FIELD_BYTES,
     })
@@ -335,8 +334,8 @@ fn prepare_presentation(
 
 fn validate_seed(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_catalog::orbium_seed_offer();
-    if placement.kind_id.as_str() != conduit_std_catalog::ORBIUM_SEED_KIND
-        || placement.kind_contract_revision.as_str() != conduit_std_catalog::ORBIUM_SEED_REVISION
+    if placement.kind_id.as_str() != conduit_alife::ORBIUM_SEED_KIND
+        || placement.kind_contract_revision.as_str() != conduit_alife::ORBIUM_SEED_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_catalog::ORBIUM_SEED_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != conduit_std_catalog::ORBIUM_SEED_IMPLEMENTATION
@@ -352,8 +351,8 @@ fn validate_seed(placement: &PlannedGear) -> Result<(), String> {
 
 fn validate_lenia(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_catalog::lenia_step_offer();
-    if placement.kind_id.as_str() != conduit_std_catalog::LENIA_STEP_KIND
-        || placement.kind_contract_revision.as_str() != conduit_std_catalog::LENIA_STEP_REVISION
+    if placement.kind_id.as_str() != conduit_alife::LENIA_STEP_KIND
+        || placement.kind_contract_revision.as_str() != conduit_alife::LENIA_STEP_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_catalog::LENIA_STEP_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != conduit_std_catalog::LENIA_STEP_IMPLEMENTATION
@@ -362,9 +361,8 @@ fn validate_lenia(placement: &PlannedGear) -> Result<(), String> {
         || placement.outputs != offer.outputs
         || placement.host_operations != offer.host_operations
         || placement.configuration.len() != 8
-        || text_configuration(placement, conduit_std_catalog::BOUNDARY_KEY)? != "wrap"
-        || text_configuration(placement, conduit_std_catalog::NUMERIC_PROFILE_KEY)?
-            != "fixed-q16.16"
+        || text_configuration(placement, conduit_alife::BOUNDARY_KEY)? != "wrap"
+        || text_configuration(placement, conduit_alife::NUMERIC_PROFILE_KEY)? != "fixed-q16.16"
     {
         return Err("planned Lenia identity does not match its installation".into());
     }
@@ -373,11 +371,11 @@ fn validate_lenia(placement: &PlannedGear) -> Result<(), String> {
 
 fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_catalog::scalar_field_presentation_offer();
-    let minimum = scalar_raw(placement, conduit_std_catalog::MINIMUM_KEY)?;
-    let maximum = scalar_raw(placement, conduit_std_catalog::MAXIMUM_KEY)?;
-    if placement.kind_id.as_str() != conduit_std_catalog::SCALAR_FIELD_PRESENTATION_KIND
+    let minimum = scalar_raw(placement, conduit_alife::MINIMUM_KEY)?;
+    let maximum = scalar_raw(placement, conduit_alife::MAXIMUM_KEY)?;
+    if placement.kind_id.as_str() != conduit_alife::SCALAR_FIELD_PRESENTATION_KIND
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::SCALAR_FIELD_PRESENTATION_REVISION
+            != conduit_alife::SCALAR_FIELD_PRESENTATION_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_catalog::SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE
         || placement.implementation_id.as_str()
@@ -388,7 +386,7 @@ fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
         || placement.host_operations != offer.host_operations
         || placement.resources.len() != 1
         || placement.configuration.len() != 3
-        || text_configuration(placement, conduit_std_catalog::TITLE_KEY)?.len() > 64
+        || text_configuration(placement, conduit_alife::TITLE_KEY)?.len() > 64
         || minimum >= maximum
     {
         return Err(

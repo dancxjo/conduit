@@ -1,9 +1,9 @@
 //! Stateful admitted std-host boundary for fixed-point Lenia evolution.
 
 use super::alife_operations::parameters;
+use conduit_alife::{LeniaEngine, LeniaFieldView, LENIA_MAXIMUM_FIELD_BYTES, LENIA_Q16_ONE};
 use conduit_core::{
-    ConfigurationValue, HostOperationContractId, KindId, LeniaEngine, LeniaFieldView, PlanFragment,
-    PlannedGear, LENIA_MAXIMUM_FIELD_BYTES, LENIA_Q16_ONE,
+    ConfigurationValue, HostOperationContractId, KindId, PlanFragment, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, NodeId};
 use std::io::Write;
@@ -89,7 +89,7 @@ impl AlifeHost {
         output: &mut W,
     ) -> Option<AlifeCompletion<'a>> {
         if contract.as_str() == conduit_std_catalog::LENIA_INITIALIZE_HOST_OPERATION
-            && target.is_some_and(|kind| kind.as_str() == conduit_std_catalog::LENIA_STEP_KIND)
+            && target.is_some_and(|kind| kind.as_str() == conduit_alife::LENIA_STEP_KIND)
         {
             return Some(match self.initialize(node, input) {
                 Ok(()) => AlifeCompletion::Completed,
@@ -97,7 +97,7 @@ impl AlifeHost {
             });
         }
         if contract.as_str() == conduit_std_catalog::LENIA_STEP_HOST_OPERATION
-            && target.is_some_and(|kind| kind.as_str() == conduit_std_catalog::LENIA_STEP_KIND)
+            && target.is_some_and(|kind| kind.as_str() == conduit_alife::LENIA_STEP_KIND)
         {
             return Some(match self.step(node, input) {
                 Ok(encoded) => AlifeCompletion::Output(encoded),
@@ -139,9 +139,9 @@ fn present<W: Write>(placement: &PlannedGear, input: &[u8], output: &mut W) -> R
         code: FailureCode::InvalidInput,
         detail: 197,
     })?;
-    let title = text_configuration(placement, conduit_std_catalog::TITLE_KEY)?;
-    let minimum = scalar_q16(placement, conduit_std_catalog::MINIMUM_KEY)?;
-    let maximum = scalar_q16(placement, conduit_std_catalog::MAXIMUM_KEY)?;
+    let title = text_configuration(placement, conduit_alife::TITLE_KEY)?;
+    let minimum = scalar_q16(placement, conduit_alife::MINIMUM_KEY)?;
+    let maximum = scalar_q16(placement, conduit_alife::MAXIMUM_KEY)?;
     if minimum >= maximum {
         return Err(Failure {
             code: FailureCode::InvalidInput,
@@ -154,7 +154,7 @@ fn present<W: Write>(placement: &PlannedGear, input: &[u8], output: &mut W) -> R
         view.header.generation,
         view.header.width,
         view.header.height,
-        conduit_core::LENIA_NUMERIC_PROFILE,
+        conduit_alife::LENIA_NUMERIC_PROFILE,
     )
     .map_err(|_| io_failure())?;
     const COLUMNS: usize = 32;

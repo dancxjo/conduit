@@ -485,7 +485,6 @@ dependencies = [
  "conduit-form",
  "conduit-planner",
  "conduit-presentation",
- "conduit-std-catalog",
  "conduit-time",
  "conduit-wire",
  "sha2 0.10.9",
@@ -863,6 +862,7 @@ version = "0.1.0"
 name = "conduit-std-catalog"
 version = "0.1.0"
 dependencies = [
+ "conduit-alife",
  "conduit-core",
  "conduit-form",
  "conduit-midi",
