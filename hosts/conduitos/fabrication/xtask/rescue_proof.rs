@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::cli::GlobalOpts;
 
 use super::{
-    hid_qmp, image,
+    hid_qmp, prepared_proof_image,
     profile::{Paths, QEMU_PROFILE},
     report::{git_head, GuestXhciSign},
     ConduitosArch, ConduitosError,
@@ -64,7 +64,7 @@ const DETERMINISTIC_NEGATIVE_CASES: &[&str] = &[
     "stale-old-boot-identity-is-not-completion",
 ];
 
-pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
             "dry-run-has-no-rescue-proof",
@@ -72,7 +72,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    image::execute_proof(ConduitosArch::X86_64, opts)?;
+    prepared_proof_image::ensure(prepared_image, opts)?;
     run_deterministic_negatives(&paths)?;
     let monitor_socket = paths.target.join("rescue-monitor.sock");
     let serial_path = paths.target.join("rescue-serial.log");

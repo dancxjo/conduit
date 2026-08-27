@@ -42,6 +42,7 @@ pub struct Paths {
     pub rescue_proof: PathBuf,
     pub hotplug_proof: PathBuf,
     pub opl2_proof: PathBuf,
+    pub prepared_proof_image: PathBuf,
 }
 
 impl Paths {
@@ -69,6 +70,7 @@ impl Paths {
             rescue_proof: target.join("rescue-proof.json"),
             hotplug_proof: target.join("hotplug-proof.json"),
             opl2_proof: target.join("opl2-proof.json"),
+            prepared_proof_image: target.join("prepared-proof-image.json"),
             root,
             target,
         })

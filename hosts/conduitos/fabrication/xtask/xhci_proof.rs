@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 use super::{
-    image,
+    prepared_proof_image,
     profile::{Paths, QEMU_PROFILE},
     report::{git_head, GuestXhciSign},
     run, ConduitosArch, ConduitosError,
@@ -40,7 +40,7 @@ struct XhciProofRecord {
     existing_conduitos_run_remained_green: bool,
 }
 
-pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
             "dry-run-has-no-proof",
@@ -48,7 +48,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    image::execute_proof(ConduitosArch::X86_64, opts)?;
+    prepared_proof_image::ensure(prepared_image, opts)?;
     let positive = run::boot_once(&paths, opts)?;
     let absent = run::prove_xhci_absent(&paths)?;
     let status = Command::new("cargo")
