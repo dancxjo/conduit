@@ -1,6 +1,5 @@
 use crate::protected_task::{
-    PreparedProtectedTask, ProtectedTaskAdapter, ProtectedTaskIdentity, ProtectedTaskReceipt,
-    StopRequest, TaskProgress,
+    PreparedProtectedTask, ProtectedTaskAdapter, ProtectedTaskReceipt, StopRequest, TaskProgress,
 };
 use conduit_core::{
     CapabilityId, GearId, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
@@ -71,9 +70,14 @@ impl ProtectedTaskAdapter for CopyTaskAdapter {
         self.stop.clone()
     }
 
-    fn execute(mut self, identity: &ProtectedTaskIdentity) -> Result<Self::Receipt, String> {
+    fn execute_admitted_effects(
+        mut self,
+        request_id: &str,
+        play: conduit_std_host::IssuedKernelPlay,
+    ) -> Result<Self::Receipt, String> {
         self.host.run_copy_fragment(
-            CopyRequestId::new(identity.request_id.clone())?,
+            play,
+            CopyRequestId::new(request_id)?,
             self.fragment,
             &mut self.registry,
             &self.stop,
@@ -279,7 +283,7 @@ fn argument_error(detail: impl AsRef<str>) -> String {
 }
 
 fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
-    let host = StdHost::new();
+    let mut host = StdHost::new();
     let mut registry = ProtectedFileRegistry::default();
     let gear_id = GearId::from("copy-task/task");
     let capability_id = CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY);
@@ -320,6 +324,7 @@ fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
         ProtectedFileAvailability::Available,
     )?;
     let prepared = prepare_copy_task(&host, &[source, destination])?;
+    let play = host.issue_kernel_play(&prepared.fragment)?;
     PreparedTask::new(
         "copy/request-1",
         vec![
@@ -328,6 +333,7 @@ fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
         ],
         prepared.form,
         prepared.plan,
+        play,
         CopyTaskAdapter {
             host,
             fragment: prepared.fragment,

@@ -2,10 +2,9 @@ use super::base::{CopyFiles, ExecutionFaults};
 use super::model::{CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken};
 use super::registry::{ProtectedFileAvailability, ProtectedFileEntry, ProtectedFileRegistry};
 use super::scheduler::{prepare_copy_scheduler, CopyScheduler};
-use crate::StdHost;
+use crate::{IssuedKernelPlay, StdHost};
 use conduit_core::{
-    bind_active_play, PlanFragment, ProtectedResourceAccess, ProtectedResourceBinding,
-    ProtectedResourceCommitPolicy,
+    PlanFragment, ProtectedResourceAccess, ProtectedResourceBinding, ProtectedResourceCommitPolicy,
 };
 use conduit_kernel::scheduler::{HostOperationRequest, SchedulerStatus};
 use conduit_kernel::{HostOperationDisposition, HostOperationOutcome, SignSink, ValueStorage};
@@ -13,15 +12,26 @@ use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 const MAX_COPY_BYTES: u64 = 16 * 1024 * 1024;
 
+pub(super) struct CopyRunContext<'a> {
+    pub(super) play: IssuedKernelPlay,
+    pub(super) request_id: CopyRequestId,
+    pub(super) fragment: PlanFragment,
+    pub(super) registry: &'a mut ProtectedFileRegistry,
+    pub(super) stop: &'a CopyStopToken,
+    pub(super) faults: ExecutionFaults,
+}
+
 impl StdHost {
     pub fn run_copy_fragment(
         &mut self,
+        play: IssuedKernelPlay,
         request_id: CopyRequestId,
         fragment: PlanFragment,
         registry: &mut ProtectedFileRegistry,
         stop: &CopyStopToken,
     ) -> Result<CopyRunReceipt, String> {
         self.run_copy_fragment_with_faults(
+            play,
             request_id,
             fragment,
             registry,
@@ -32,24 +42,39 @@ impl StdHost {
 
     pub(super) fn run_copy_fragment_with_faults(
         &mut self,
+        play: IssuedKernelPlay,
         request_id: CopyRequestId,
         fragment: PlanFragment,
         registry: &mut ProtectedFileRegistry,
         stop: &CopyStopToken,
         faults: ExecutionFaults,
     ) -> Result<CopyRunReceipt, String> {
-        self.run_copy_fragment_with_use_hook(request_id, fragment, registry, stop, faults, |_| {})
+        self.run_copy_fragment_with_use_hook(
+            CopyRunContext {
+                play,
+                request_id,
+                fragment,
+                registry,
+                stop,
+                faults,
+            },
+            |_| {},
+        )
     }
 
     pub(super) fn run_copy_fragment_with_use_hook(
         &mut self,
-        request_id: CopyRequestId,
-        fragment: PlanFragment,
-        registry: &mut ProtectedFileRegistry,
-        stop: &CopyStopToken,
-        faults: ExecutionFaults,
+        context: CopyRunContext<'_>,
         before_use: impl FnOnce(&mut ProtectedFileRegistry),
     ) -> Result<CopyRunReceipt, String> {
+        let CopyRunContext {
+            play,
+            request_id,
+            fragment,
+            registry,
+            stop,
+            faults,
+        } = context;
         let placement = exact_copy_placement(&fragment)?;
         let source_binding = protected_binding(placement, conduit_std_catalog::COPY_SOURCE_ROLE)?;
         let destination_binding =
@@ -57,16 +82,13 @@ impl StdHost {
         let source_id = source_binding.handle_id.clone();
         let destination_id = destination_binding.handle_id.clone();
 
-        let play_sequence = self.next_kernel_play_sequence;
-        self.next_kernel_play_sequence = play_sequence
-            .checked_add(1)
-            .ok_or_else(|| "copy Play sequence exhausted".to_string())?;
-        let active_play = bind_active_play(
-            &fragment.plan_id,
-            &self.advertisement.host_id,
-            &self.advertisement.boot_id,
-            play_sequence,
-        );
+        let active_play = play.identity();
+        if active_play.plan_id != fragment.plan_id
+            || active_play.host_id != fragment.host_id
+            || active_play.boot_id != fragment.boot_id
+        {
+            return Err("copy Play identity does not match its immutable Plan fragment".into());
+        }
         let make_receipt = |result, kernel_events, presented_result| CopyRunReceipt {
             request_id: request_id.clone(),
             run_id: active_play.active_play_id.clone(),

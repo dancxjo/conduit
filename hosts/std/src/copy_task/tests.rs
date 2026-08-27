@@ -144,9 +144,11 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
         ProtectedFileAvailability::Available,
     );
     let plan_id = copy.fragment.plan_id.clone();
+    let play = copy.host.issue_kernel_play(&copy.fragment).unwrap();
     let receipt = copy
         .host
         .run_copy_fragment(
+            play,
             CopyRequestId::new("request/create").unwrap(),
             copy.fragment,
             &mut copy.registry,
@@ -176,9 +178,11 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
         ProtectedResourceCommitPolicy::ReplaceExisting,
         ProtectedFileAvailability::Available,
     );
+    let play = replace.host.issue_kernel_play(&replace.fragment).unwrap();
     let receipt = replace
         .host
         .run_copy_fragment(
+            play,
             CopyRequestId::new("request/replace").unwrap(),
             replace.fragment,
             &mut replace.registry,
@@ -295,14 +299,18 @@ fn grant_change_after_prepare_refuses_at_use_without_mutating_the_plan() {
     );
     let immutable_fragment = copy.fragment.clone();
     let destination_handle = copy.destination_handle.clone();
+    let play = copy.host.issue_kernel_play(&copy.fragment).unwrap();
     let receipt = copy
         .host
         .run_copy_fragment_with_use_hook(
-            CopyRequestId::new("request/revoke-at-use").unwrap(),
-            copy.fragment.clone(),
-            &mut copy.registry,
-            &CopyStopToken::default(),
-            ExecutionFaults::default(),
+            super::executor::CopyRunContext {
+                play,
+                request_id: CopyRequestId::new("request/revoke-at-use").unwrap(),
+                fragment: copy.fragment.clone(),
+                registry: &mut copy.registry,
+                stop: &CopyStopToken::default(),
+                faults: ExecutionFaults::default(),
+            },
             |registry| {
                 registry
                     .set_availability(&destination_handle, ProtectedFileAvailability::Denied)
@@ -432,9 +440,11 @@ fn public_stop_token_cancels_the_kernel_before_any_chunk_is_copied() {
     );
     let stop = CopyStopToken::default();
     stop.request_stop();
+    let play = copy.host.issue_kernel_play(&copy.fragment).unwrap();
     let receipt = copy
         .host
         .run_copy_fragment(
+            play,
             CopyRequestId::new("request/stop").unwrap(),
             copy.fragment,
             &mut copy.registry,
@@ -446,9 +456,44 @@ fn public_stop_token_cancels_the_kernel_before_any_chunk_is_copied() {
     assert!(!destination.exists());
 }
 
+#[test]
+fn issued_play_refuses_a_different_immutable_plan_before_effects() {
+    let directory = TestDirectory::new();
+    let source = directory.path("source.bin");
+    let destination = directory.path("destination.bin");
+    std::fs::write(&source, b"protected").unwrap();
+    let mut copy = planned_copy(
+        &source,
+        &destination,
+        9,
+        ProtectedResourceAccess::Create,
+        ProtectedResourceCommitPolicy::CreateOnly,
+        ProtectedFileAvailability::Available,
+    );
+    let play = copy.host.issue_kernel_play(&copy.fragment).unwrap();
+    copy.fragment.plan_id = conduit_core::PlanId::from("plan/replaced-after-issue");
+    let error = copy
+        .host
+        .run_copy_fragment(
+            play,
+            CopyRequestId::new("request/stale-plan").unwrap(),
+            copy.fragment,
+            &mut copy.registry,
+            &CopyStopToken::default(),
+        )
+        .unwrap_err();
+    assert_eq!(
+        error,
+        "copy Play identity does not match its immutable Plan fragment"
+    );
+    assert!(!destination.exists());
+}
+
 fn run(copy: &mut PlannedCopy, faults: ExecutionFaults) -> CopyResult {
+    let play = copy.host.issue_kernel_play(&copy.fragment).unwrap();
     copy.host
         .run_copy_fragment_with_faults(
+            play,
             CopyRequestId::new("request/negative").unwrap(),
             copy.fragment.clone(),
             &mut copy.registry,
