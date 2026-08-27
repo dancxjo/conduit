@@ -75,15 +75,24 @@ fn realization_preserves_portable_contract_and_bounds() {
         ),
         (
             state_count_offer(),
-            conduit_std_catalog::state_count_offer(),
+            portable_offer(
+                conduit_std_catalog::state_count_contract(),
+                conduit_std_catalog::STATE_COUNT_CONTRACT_REVISION,
+            ),
         ),
         (
             state_toggle_offer(),
-            conduit_std_catalog::state_toggle_offer(),
+            portable_offer(
+                conduit_std_catalog::state_toggle_contract(),
+                conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION,
+            ),
         ),
         (
             key_event_tee_offer(),
-            conduit_std_catalog::key_event_tee_offer(),
+            portable_offer(
+                conduit_std_catalog::key_event_tee_contract(),
+                conduit_std_catalog::KEY_EVENT_TEE_REVISION,
+            ),
         ),
         (
             text_join_offer(),
@@ -92,8 +101,20 @@ fn realization_preserves_portable_contract_and_bounds() {
                 conduit_text::TEXT_JOIN_CONTRACT_REVISION,
             ),
         ),
-        (keymap_offer(), conduit_std_catalog::keymap_offer()),
-        (chords_offer(), conduit_std_catalog::chords_offer()),
+        (
+            keymap_offer(),
+            portable_offer(
+                conduit_std_catalog::keymap_contract(),
+                conduit_std_catalog::KEYMAP_REVISION,
+            ),
+        ),
+        (
+            chords_offer(),
+            portable_offer(
+                conduit_std_catalog::chords_contract(),
+                conduit_std_catalog::CHORDS_REVISION,
+            ),
+        ),
         (
             time_every_offer(),
             portable_every_offer(

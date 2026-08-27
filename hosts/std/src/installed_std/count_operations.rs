@@ -6,7 +6,7 @@ use conduit_kernel::{
 };
 
 pub(super) static STATE_COUNT_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::STATE_COUNT_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::STATE_COUNT_IMPLEMENTATION,
     budget: state_count_budget,
     prepare: prepare_state_count,
 };
@@ -209,9 +209,9 @@ fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
         placement,
         conduit_std_catalog::STATE_COUNT_KIND,
         conduit_std_catalog::STATE_COUNT_CONTRACT_REVISION,
-        conduit_std_catalog::STATE_COUNT_EXECUTION_PROFILE,
-        conduit_std_catalog::STATE_COUNT_IMPLEMENTATION,
-        conduit_std_catalog::STATE_COUNT_ARTIFACT,
+        conduit_std_offers::STATE_COUNT_EXECUTION_PROFILE,
+        conduit_std_offers::STATE_COUNT_IMPLEMENTATION,
+        conduit_std_offers::STATE_COUNT_ARTIFACT,
         "bump",
         conduit_time::TICK_VALUE_KIND,
         PortTemporal::Flow { closes: true },

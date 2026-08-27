@@ -156,7 +156,7 @@ pub fn live_create_dock_advertisement(
             max_queue_bytes: BOOL_ENCODED_LEN as u32,
         },
     };
-    let mut toggle = conduit_std_catalog::state_toggle_offer();
+    let mut toggle = conduit_std_offers::state_toggle_offer();
     toggle.capability_id = CapabilityId::from("pete/create1-dock-request@1");
     let mut capabilities = vec![toggle, dock];
     capabilities.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));

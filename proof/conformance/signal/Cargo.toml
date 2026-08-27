@@ -11,6 +11,7 @@ conduit-form = { path = "../../../crates/conduit-form" }
 conduit-planner = { path = "../../../crates/conduit-planner" }
 conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }
 conduit-std-catalog = { path = "../../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog"] }
+conduit-std-offers = { path = "../../../hosts/std/offers" }
 conduit-wire = { path = "../../../crates/conduit-wire", default-features = false }
 
 [features]

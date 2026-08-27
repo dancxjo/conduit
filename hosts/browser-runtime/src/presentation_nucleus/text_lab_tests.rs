@@ -50,7 +50,7 @@ fn hosts() -> (
                 "text-lab-native-keyboard",
                 "text-lab/native-keyboard@1",
             ),
-            conduit_std_catalog::keymap_offer(),
+            native_keymap_fixture_offer(),
             super::browser_text_upper_offer(),
             super::offer_composition::text_offer(),
         ],
@@ -62,6 +62,28 @@ fn hosts() -> (
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     (local, text_advertisement())
+}
+
+fn native_keymap_fixture_offer() -> conduit_core::CapabilityOffer {
+    conduit_std_catalog::realization_offer(
+        conduit_std_catalog::keymap_contract(),
+        conduit_std_catalog::KEYMAP_REVISION,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: "text-lab-native-keymap",
+            execution_profile: "text-lab/native-fixture@1",
+            implementation: "text-lab/native-keymap@1",
+            artifact: "text-lab/native-fixture@1",
+        },
+        vec![conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from("conduit.host/input-keymap@1"),
+            target_kind: Some(conduit_core::kind_id("input/keymap-text-fragment")),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            maximum_output_bytes: 4,
+        }],
+        Vec::new(),
+        Vec::new(),
+    )
 }
 
 fn lines(

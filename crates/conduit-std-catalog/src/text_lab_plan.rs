@@ -2,8 +2,7 @@
 
 use crate::{
     hosted_keyboard_offer, install_input_semantic_catalogs, install_keyboard_catalogs,
-    install_text_pipeline_catalogs, keymap_offer, KEYBOARD_KIND, KEYMAP_KIND,
-    TEXT_PRESENTATION_KIND,
+    install_text_pipeline_catalogs, KEYBOARD_KIND, KEYMAP_KIND, TEXT_PRESENTATION_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -143,7 +142,7 @@ fn exact_text_lab_split_plan_with_loss(
         planner_capabilities: Vec::new(),
         capabilities: vec![
             hosted_keyboard_offer("text-lab-native-keyboard", "text-lab/native-keyboard@1"),
-            keymap_offer(),
+            keymap_fixture_offer(),
             text_upper_fixture_offer(
                 "text-lab-native-upper",
                 "text-lab/native-fixture@1",
@@ -303,6 +302,28 @@ fn text_presentation_fixture_offer() -> CapabilityOffer {
             conduit_text::MAX_TEXT_BYTES,
         )],
         vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
+}
+
+fn keymap_fixture_offer() -> CapabilityOffer {
+    crate::realization_offer(
+        crate::keymap_contract(),
+        crate::KEYMAP_REVISION,
+        crate::RealizationOfferIdentity {
+            capability: "text-lab/native-keymap",
+            execution_profile: "text-lab/native-fixture@1",
+            implementation: "text-lab/native-keymap@1",
+            artifact: "text-lab/native-fixture@1",
+        },
+        vec![conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from("conduit.host/input-keymap@1"),
+            target_kind: Some(kind_id("input/keymap-text-fragment")),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            maximum_output_bytes: 4,
+        }],
+        Vec::new(),
         Vec::new(),
     )
 }

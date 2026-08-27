@@ -48,7 +48,7 @@ pub(super) fn validate_create_dock_plan(
         .any(|entry| entry.key == "initial" && entry.value == ConfigurationValue::Bool(true));
     let connection = connections[0];
     if source.kind_id.as_str() != conduit_std_catalog::STATE_TOGGLE_KIND
-        || source.implementation_id.as_str() != conduit_std_catalog::STATE_TOGGLE_IMPLEMENTATION
+        || source.implementation_id.as_str() != conduit_std_offers::STATE_TOGGLE_IMPLEMENTATION
         || !initial_true
         || dock_graph_placement.kind_id.as_str() != conduit_std_catalog::ROBOTICS_DOCK_KIND
         || connection.source_placement_id != source.placement_id

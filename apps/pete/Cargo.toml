@@ -19,6 +19,7 @@ conduit-planner = { path = "../../crates/conduit-planner" }
 conduit-signal = { path = "../../crates/conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-std-catalog = { path = "../../crates/conduit-std-catalog", features = ["form-catalog"] }
+conduit-std-offers = { path = "../../hosts/std/offers" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
