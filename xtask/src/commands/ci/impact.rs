@@ -10,6 +10,7 @@ use crate::suites::{
     pico_compositions::PICO_COMPOSITION_STEPS,
 };
 
+#[path = "impact/cargo_graph.rs"]
 mod cargo_graph;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
 
@@ -672,4 +673,5 @@ fn write_parent(path: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(test)]
+#[path = "impact/tests.rs"]
 mod tests;

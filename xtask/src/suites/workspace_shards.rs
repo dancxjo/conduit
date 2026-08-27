@@ -93,6 +93,7 @@ package_test_shard!(
         "conduit-pete",
         "conduit-tongues",
         "conduit",
+        "conduit-xtask-dispatch",
         "xtask",
     ],
     ["--features", "conduit-tongues/speech"]
