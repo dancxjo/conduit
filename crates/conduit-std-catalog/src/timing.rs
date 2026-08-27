@@ -43,8 +43,6 @@ pub const TIME_POLICY_LEADING: &str = "leading";
 pub const TIME_MAXIMUM_DURATION_MS: u64 = 86_400_000;
 pub const TIME_MAXIMUM_VALUES: u64 = 8;
 pub const TIME_TIMEOUT_MAXIMUM_VALUES: u64 = 2;
-pub const CONDUITOS_TIMING_PROFILE: &str = "conduitos/monotonic-timing-fixed@1";
-pub const CONDUITOS_TIMING_ARTIFACT: &str = "conduitos/timing-nucleus@1";
 
 pub fn time_debounce_contract() -> StandardKindContract {
     StandardKindContract {
@@ -203,39 +201,6 @@ pub fn time_throttle_offer() -> CapabilityOffer {
         TIME_THROTTLE_IMPLEMENTATION,
         TIME_THROTTLE_ARTIFACT,
     )
-}
-
-pub fn conduitos_time_debounce_offer() -> CapabilityOffer {
-    conduitos_offer(
-        time_debounce_offer(),
-        "conduitos/kernel-time-debounce-bool@1",
-    )
-}
-
-pub fn conduitos_time_timeout_offer() -> CapabilityOffer {
-    conduitos_offer(
-        time_timeout_offer(),
-        "conduitos/kernel-time-timeout-tick-bool@1",
-    )
-}
-
-pub fn conduitos_time_delay_offer() -> CapabilityOffer {
-    conduitos_offer(time_delay_offer(), "conduitos/kernel-time-delay-bool@1")
-}
-
-pub fn conduitos_time_throttle_offer() -> CapabilityOffer {
-    conduitos_offer(
-        time_throttle_offer(),
-        "conduitos/kernel-time-throttle-bool-leading@1",
-    )
-}
-
-fn conduitos_offer(mut offer: CapabilityOffer, implementation: &str) -> CapabilityOffer {
-    offer.capability_id = CapabilityId::from(implementation);
-    offer.implementation.execution_profile_id = ExecutionProfileId::from(CONDUITOS_TIMING_PROFILE);
-    offer.implementation.implementation_id = ImplementationId::from(implementation);
-    offer.implementation.artifact_id = conduit_core::ArtifactId::from(CONDUITOS_TIMING_ARTIFACT);
-    offer
 }
 
 #[cfg(feature = "form-catalog")]
@@ -453,33 +418,6 @@ mod tests {
                     maximum: TIME_MAXIMUM_DURATION_MS
                 }
             ));
-        }
-    }
-
-    #[test]
-    fn conduitos_timing_reuses_exact_contracts_and_timer_requirements() {
-        for (portable, conduitos) in [
-            (time_debounce_offer(), conduitos_time_debounce_offer()),
-            (time_timeout_offer(), conduitos_time_timeout_offer()),
-            (time_delay_offer(), conduitos_time_delay_offer()),
-            (time_throttle_offer(), conduitos_time_throttle_offer()),
-        ] {
-            assert_eq!(conduitos.kind_id, portable.kind_id);
-            assert_eq!(
-                conduitos.kind_contract_revision,
-                portable.kind_contract_revision
-            );
-            assert_eq!(conduitos.inputs, portable.inputs);
-            assert_eq!(conduitos.outputs, portable.outputs);
-            assert_eq!(conduitos.host_operations, portable.host_operations);
-            assert_eq!(
-                conduitos.resource_requirements,
-                portable.resource_requirements
-            );
-            assert_eq!(
-                conduitos.implementation.execution_profile_id.as_str(),
-                CONDUITOS_TIMING_PROFILE
-            );
         }
     }
 }
