@@ -11,6 +11,8 @@ use conduit_signal_conformance::{
     exact_std_esp32_c3_bluetooth_plan,
 };
 
+// Temporary CI benchmark marker: ESP32-C3-only ownership.
+
 fn main() {
     println!("cargo:rerun-if-changed=../../fixtures/forms/signal-demo.conduit");
     println!("cargo:rerun-if-changed=board-descriptor.json");
