@@ -1,8 +1,11 @@
-use alloc::{format, vec, vec::Vec};
+#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
+use alloc::format;
+use alloc::{vec, vec::Vec};
+#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
+use conduit_core::{ArtifactId, ExecutionProfileId, ImplementationId};
 use conduit_core::{
-    ArtifactId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, PRESENTATION_RESOURCE_CLASS, kind_id,
-    present_host_operation_requirement, resource_requirement,
+    CapabilityOffer, HostOperationContractId, HostOperationRequirement,
+    PRESENTATION_RESOURCE_CLASS, kind_id, present_host_operation_requirement, resource_requirement,
 };
 use conduit_presentation::{
     BITMAP_PRESENTATION_KIND, MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES,
@@ -12,6 +15,7 @@ use conduit_presentation::{
 pub const CONDUITOS_PRESENTATION_PROFILE: &str = "conduitos/framebuffer-presentation-kernel@1";
 pub const CONDUITOS_PRESENTATION_ARTIFACT: &str = "conduitos/framebuffer-presentation@1";
 
+#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 pub fn presentation_nucleus_offers() -> Vec<CapabilityOffer> {
     let mut offers: Vec<_> = [
         conduit_std_catalog::LAYOUT_VIEWPORT_KIND,
@@ -180,6 +184,7 @@ fn sink_offer(kind: &str) -> Option<CapabilityOffer> {
     ))
 }
 
+#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 fn bind_conduitos_presentation(mut offer: CapabilityOffer) -> CapabilityOffer {
     let kind = offer.kind_id.as_str();
     offer.capability_id =

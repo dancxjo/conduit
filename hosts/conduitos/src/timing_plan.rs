@@ -146,7 +146,7 @@ fn advertisement(
     }
     let mut tick = crate::functional_offers::tick_offer();
     bind_native_capability(&mut tick, &fixed.capabilities[0], build_id, "time-tick");
-    let mut presentation = crate::presentation_nucleus::presentation_offer_for(
+    let mut presentation = crate::presentation_offers::presentation_offer_for(
         conduit_std_catalog::TICK_PRESENTATION_KIND,
     )
     .expect("ConduitOS owns tick presentation");

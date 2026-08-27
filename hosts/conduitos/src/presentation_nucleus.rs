@@ -14,7 +14,6 @@ mod logic_not_play;
 mod math_clamp_play;
 #[cfg(test)]
 mod math_clamp_play_tests;
-mod offers;
 mod operation;
 mod plan;
 mod play;
@@ -34,8 +33,7 @@ mod state_select_play;
 #[cfg(test)]
 mod state_select_tests;
 
-pub(crate) use offers::presentation_offer_for;
-pub use offers::{
+pub use crate::presentation_offers::{
     CONDUITOS_PRESENTATION_ARTIFACT, CONDUITOS_PRESENTATION_PROFILE, presentation_nucleus_offers,
 };
 pub use plan::{FORM_SOURCE, PreparedPresentationPlay, prepare};

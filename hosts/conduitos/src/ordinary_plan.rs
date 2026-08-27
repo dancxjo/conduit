@@ -190,7 +190,7 @@ pub(crate) fn advertisement(
     );
     let mut upper = conduit_std_catalog::text_upper_offer();
     bind_native_capability(&mut upper, &fixed.capabilities[3], build_id, "text-upper");
-    let mut presentation = crate::presentation_nucleus::presentation_offer_for(
+    let mut presentation = crate::presentation_offers::presentation_offer_for(
         conduit_std_catalog::TEXT_PRESENTATION_KIND,
     )
     .expect("ConduitOS owns text presentation");

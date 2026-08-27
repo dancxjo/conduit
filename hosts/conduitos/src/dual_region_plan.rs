@@ -172,13 +172,13 @@ fn advertisement(
     }
     let mut capabilities = vec![
         crate::functional_offers::tick_offer(),
-        crate::presentation_nucleus::presentation_offer_for(
+        crate::presentation_offers::presentation_offer_for(
             conduit_std_catalog::TICK_PRESENTATION_KIND,
         )
         .expect("ConduitOS owns tick presentation"),
         conduit_std_catalog::text_literal_offer(),
         conduit_std_catalog::text_upper_offer(),
-        crate::presentation_nucleus::presentation_offer_for(
+        crate::presentation_offers::presentation_offer_for(
             conduit_std_catalog::TEXT_PRESENTATION_KIND,
         )
         .expect("ConduitOS owns text presentation"),

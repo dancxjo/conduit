@@ -72,6 +72,8 @@ pub mod pc_speaker_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod pc_speaker_play;
 pub mod planned_kernel;
+#[path = "presentation_nucleus/offers.rs"]
+mod presentation_offers;
 // Product entrances remain out of A0-A4 proof appliances. AArch64 admits
 // these modules only through its distinct PROFILE-selected product feature.
 #[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
