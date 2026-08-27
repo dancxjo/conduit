@@ -50,7 +50,10 @@ pub fn prepare_timing(
     build_id: &str,
 ) -> Result<PreparedTimingPlay, PreparationError> {
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
-    let mut catalog = conduit_std_catalog::tick_profile_catalog();
+    let mut catalog = conduit_form::ProfileCatalog::new();
+    catalog
+        .insert(conduit_time::tick_kind_definition())
+        .map_err(|_| PreparationError::FormRejected)?;
     catalog
         .insert(conduit_std_catalog::tick_presentation_kind_definition())
         .map_err(|_| PreparationError::FormRejected)?;
@@ -68,7 +71,7 @@ pub fn prepare_timing(
             connection_bases: &alloc::collections::BTreeMap::new(),
             line_candidates: &alloc::collections::BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::TICK_ENCODED_LEN,
+            connection_byte_capacity: conduit_time::TICK_ENCODED_LEN,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -96,7 +99,7 @@ pub fn prepare_timing(
     let lowered = lower_plan_fragment(fragment).map_err(|_| PreparationError::LoweringRejected)?;
     if lowered.sign_items > fixed_offer.sign_item_capacity
         || lowered.cord_value_slots > 1
-        || lowered.cord_value_bytes > conduit_std_catalog::TICK_ENCODED_LEN
+        || lowered.cord_value_bytes > conduit_time::TICK_ENCODED_LEN
     {
         return Err(PreparationError::PlanRejected);
     }
@@ -128,7 +131,7 @@ fn advertisement(
         || fixed.generation == 0
         || fixed.capabilities.len() != crate::offer::CAPABILITY_COUNT
         || fixed.capabilities[0].kind != conduit_std_catalog::TICK_KIND
-        || fixed.capabilities[0].contract_revision != conduit_std_catalog::TICK_CONTRACT_REVISION
+        || fixed.capabilities[0].contract_revision != conduit_time::TICK_CONTRACT_REVISION
         || fixed.capabilities[1].kind != conduit_std_catalog::TICK_PRESENTATION_KIND
         || fixed.capabilities[1].contract_revision
             != conduit_std_catalog::TICK_PRESENTATION_CONTRACT_REVISION

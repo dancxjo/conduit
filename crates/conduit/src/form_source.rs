@@ -67,7 +67,8 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profiles)?;
+    conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
+    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_timing_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_flow_state_catalogs(&mut startup, &mut profiles)?;

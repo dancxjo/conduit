@@ -7,7 +7,7 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_std_catalog::{
-    alife_offers, install_alife_catalogs, install_time_pipeline_catalogs, LENIA_STEP_KIND,
+    alife_offers, install_alife_catalogs, install_tick_presentation_catalog, LENIA_STEP_KIND,
     SCALAR_FIELD_PRESENTATION_KIND,
 };
 use std::collections::BTreeMap;
@@ -19,7 +19,8 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_alife_catalogs(&mut startup, &mut profile).unwrap();
-    install_time_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
+    install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(SOURCE);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();

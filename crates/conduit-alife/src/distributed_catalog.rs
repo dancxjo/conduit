@@ -72,7 +72,7 @@ fn partition_definition() -> KindDefinition {
             ),
             port(
                 "tick",
-                conduit_std_catalog::TICK_VALUE_KIND,
+                conduit_time::TICK_VALUE_KIND,
                 PortDirection::Input,
                 closing_flow(),
             ),

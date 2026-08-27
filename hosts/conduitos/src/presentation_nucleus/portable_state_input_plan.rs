@@ -121,9 +121,9 @@ fn fixture_offers() -> Vec<CapabilityOffer> {
     vec![
         source_offer(
             TICK_SOURCE_KIND,
-            conduit_std_catalog::TICK_VALUE_KIND,
+            conduit_time::TICK_VALUE_KIND,
             "tick",
-            conduit_std_catalog::TICK_ENCODED_LEN,
+            conduit_time::TICK_ENCODED_LEN,
         ),
         source_offer(
             KEY_SOURCE_KIND,

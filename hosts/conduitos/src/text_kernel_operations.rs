@@ -89,8 +89,7 @@ impl Operation for TickPresentationOperation {
                 port: PortId(0),
                 value,
             } if !self.pending => {
-                let Ok(input) = BoundedValueRef::new(value, conduit_std_catalog::TICK_ENCODED_LEN)
-                else {
+                let Ok(input) = BoundedValueRef::new(value, conduit_time::TICK_ENCODED_LEN) else {
                     return invalid(50);
                 };
                 self.pending = true;
