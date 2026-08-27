@@ -10,7 +10,7 @@ use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 use std::{collections::BTreeMap, path::PathBuf};
 
 fn form() -> conduit_form::ExpandedCanonicalForm {
-    form_source::load_signal(
+    form_source::load(
         &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/signal-demo.conduit"),
     )
     .unwrap()
@@ -84,6 +84,7 @@ fn wrong_boot_and_missing_peer_truth_refuse_planning() {
         vec![ProductRuntime::std(source), ProductRuntime::std(sink)],
         vec![ConnectionBase::WebSocket],
         vec![stale],
+        Vec::new(),
     )
     .unwrap();
     assert!(context
@@ -96,6 +97,7 @@ fn wrong_boot_and_missing_peer_truth_refuse_planning() {
         vec![source.advertisement().clone(), sink.advertisement().clone()],
         vec![ProductRuntime::std(source), ProductRuntime::std(sink)],
         vec![ConnectionBase::WebSocket],
+        Vec::new(),
         Vec::new(),
     )
     .unwrap();
@@ -154,6 +156,7 @@ fn old_plan_refuses_after_current_host_truth_changes() {
         ],
         vec![ConnectionBase::WebSocket],
         Vec::new(),
+        Vec::new(),
     )
     .unwrap();
     let error = current.execute(plan, &mut Vec::new()).err().unwrap();
@@ -173,6 +176,7 @@ fn alternate_legal_placement_preserves_all_form_identities() {
             &two_std_line::host(two_std_line::SOURCE_HOST),
             &two_std_line::host(two_std_line::SINK_HOST),
         )],
+        Vec::new(),
     )
     .unwrap();
     let local = PlacementChoices {

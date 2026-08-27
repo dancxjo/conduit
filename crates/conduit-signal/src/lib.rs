@@ -20,7 +20,7 @@ use alloc::vec;
 #[cfg(feature = "host-profile")]
 use alloc::vec::Vec;
 #[cfg(feature = "host-profile")]
-pub use canonical::signal_startup_catalog;
+pub use canonical::{primary_signal_startup_catalog, signal_startup_catalog};
 #[cfg(feature = "host-profile")]
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
@@ -328,6 +328,11 @@ pub fn signal_profile_catalog() -> conduit_form::ProfileCatalog {
     trigger::extend_profile_catalog(&mut catalog);
     control::extend_control_profile_catalog(&mut catalog);
     catalog
+}
+
+#[cfg(feature = "host-profile")]
+pub fn primary_signal_profile_catalog() -> conduit_form::ProfileCatalog {
+    profile_catalog::signal_profile_catalog()
 }
 
 #[cfg(test)]

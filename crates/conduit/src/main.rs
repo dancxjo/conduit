@@ -17,7 +17,7 @@ mod two_std_line_tests;
 
 use clap::Parser;
 use conduit_observatory::{build_report, render_text_report};
-use std::io::{self, Write};
+use std::io;
 use std::path::Path;
 
 fn enter_patchbay(host: cli::PatchbayHost) -> Result<(), String> {
@@ -52,11 +52,7 @@ fn run_with_placements(
     report_path: Option<&Path>,
     body_path: Option<&Path>,
 ) -> Result<(), String> {
-    let source = if body_path.is_some() {
-        form_source::load_signal(Path::new(path))?
-    } else {
-        form_source::load(Path::new(path))?
-    };
+    let source = form_source::load(Path::new(path))?;
     let form = source.expand_entry()?;
     let body_product = body_path.map(body_product::prepare).transpose()?;
     let mut context = match body_product {
@@ -65,24 +61,7 @@ fn run_with_placements(
     };
     let plan = context.plan(&form, placements_path)?;
     let mut stdout = io::stdout().lock();
-    let execution = if body_path.is_some() {
-        context.validate_plan(&plan)?;
-        let evidence = std_websocket_line::execute(&plan)?;
-        writeln!(
-            stdout,
-            "Body Line complete values={} pressure_retries={}",
-            evidence.received, evidence.pressure_retries
-        )
-        .map_err(|error| error.to_string())?;
-        product_execution::ProductExecution {
-            advertisements: context.advertisements().to_vec(),
-            line_offers: context.line_offers().to_vec(),
-            plan,
-            observations: Vec::new(),
-        }
-    } else {
-        context.execute(plan, &mut stdout)?
-    };
+    let execution = context.execute(plan, &mut stdout)?;
     if let Some(report_path) = report_path {
         let snapshot = snapshot_from_execution(
             execution.advertisements,

@@ -71,53 +71,54 @@ pub(crate) fn prepare(path: &Path) -> Result<BodyProduct, String> {
 }
 
 fn context(body: &CheckedBodyDescription) -> Result<ProductExecutionContext, String> {
-    if body.hosts().len() != 2 {
-        return Err(format!(
-            "ordinary std Line execution requires exactly two current hosted Hosts; Body has {}",
-            body.hosts().len()
-        ));
-    }
-    let mut source = None;
-    let mut sink = None;
+    let mut hosts = Vec::with_capacity(body.hosts().len());
     for host in body.hosts() {
-        let target = &host.configuration.profile().target;
-        if target.family != "std" || target.architecture != "x86_64" {
-            return Err(format!(
-                "Body Host '{}' target {} is not an ordinary hosted std runtime",
-                host.description.name,
-                target.key()
-            ));
-        }
-        let bases = host.configuration.resolved_bases();
-        let source_capable = bases.iter().any(|(kind, _)| kind == "clock/monotonic");
-        let sink_capable = bases.iter().any(|(kind, _)| kind == "serial/text");
-        if source_capable && !sink_capable && source.is_none() {
-            source = Some(runtime(body, host, conduit_signal::PULSE_KIND)?);
-        } else if sink_capable && !source_capable && sink.is_none() {
-            sink = Some(runtime(body, host, conduit_signal::SHOW_KIND)?);
-        } else {
-            return Err(format!(
-                "Body Host '{}' must select exactly one execution role through clock/monotonic or serial/text",
-                host.description.name
-            ));
+        hosts.push((runtime(body, host)?, host.configuration.profile()));
+    }
+    let mut line_offers = Vec::new();
+    for (source, _) in &hosts {
+        for (sink, _) in &hosts {
+            if source.advertisement().host_id != sink.advertisement().host_id {
+                line_offers.push(crate::std_websocket_line::line_offer(source, sink));
+            }
         }
     }
-    let source = source.ok_or("Body has no clock/monotonic source Host")?;
-    let sink = sink.ok_or("Body has no serial/text sink Host")?;
-    let line = crate::std_websocket_line::line_offer(&source, &sink);
+    let mut connection_bases = vec![ConnectionBase::Local];
+    let mut line_runtimes = Vec::<Box<dyn crate::product_execution::ProductLineRuntime>>::new();
+    if !line_offers.is_empty() {
+        connection_bases.push(ConnectionBase::WebSocket);
+        line_runtimes.push(Box::new(crate::std_websocket_line::ProductWebSocketRuntime));
+    }
+    let advertisements = hosts
+        .iter()
+        .map(|(host, _)| host.advertisement().clone())
+        .collect();
+    let runtimes = hosts
+        .into_iter()
+        .map(|(host, _)| ProductRuntime::std(host))
+        .collect();
     ProductExecutionContext::new(
-        vec![source.advertisement().clone(), sink.advertisement().clone()],
-        vec![ProductRuntime::std(source), ProductRuntime::std(sink)],
-        vec![ConnectionBase::WebSocket],
-        vec![line],
+        advertisements,
+        runtimes,
+        connection_bases,
+        line_offers,
+        line_runtimes,
     )
 }
 
 fn runtime(
     body: &CheckedBodyDescription,
     host: &conduit_body_fabrication::CheckedBodyHost,
-    kind: &str,
 ) -> Result<StdHost, String> {
+    let target = &host.configuration.profile().target;
+    if target.family != "std" || target.architecture != std::env::consts::ARCH {
+        return Err(format!(
+            "Body Host '{}' target {} has no installed product runtime handle on std/{}",
+            host.description.name,
+            target.key(),
+            std::env::consts::ARCH
+        ));
+    }
     let host_id = HostId::from(format!(
         "{}/host/{}",
         body.description().body.id,
@@ -128,21 +129,12 @@ fn runtime(
         host_id.as_str(),
         host.configuration.configuration_id()
     ));
-    let host = StdHost::new_with_config(StdHostConfig {
+    let runtime_host = StdHost::new_with_config(StdHostConfig {
         host_id,
         boot_id,
         offer_generation: OfferGeneration(1),
     });
-    let mut advertisement = host.advertisement().clone();
-    advertisement
-        .capabilities
-        .retain(|capability| capability.kind_id.as_str() == kind);
-    if advertisement.capabilities.len() != 1 {
-        return Err(format!(
-            "hosted std runtime does not expose one exact {kind} capability"
-        ));
-    }
-    StdHost::from_advertisement(advertisement)
+    Ok(runtime_host)
 }
 
 #[cfg(test)]
@@ -150,17 +142,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn checked_body_drives_two_exact_hosts_and_one_line_without_fixture_identity() {
+    fn checked_body_drives_current_hosts_and_bounded_lines_without_fixture_identity() {
         let path = Path::new("../../profiles/bodies/std-line.body.conduit");
         let checked = load(path).unwrap();
         let product = prepare(path).unwrap();
         assert_eq!(checked.hosts().len(), 2);
         assert_eq!(product.context.advertisements().len(), 2);
-        assert_eq!(product.context.line_offers().len(), 1);
+        assert_eq!(product.context.line_offers().len(), 2);
         assert!(product
             .context
             .advertisements()
             .iter()
             .all(|host| host.host_id.as_str().starts_with("body:std-line/host/")));
+    }
+
+    #[test]
+    fn structurally_different_body_refuses_the_exact_missing_runtime_class() {
+        let error = prepare(Path::new("../../profiles/bodies/pete-r1.body.conduit"))
+            .err()
+            .expect("the installed product has no Pico runtime handle");
+        assert!(error.contains("brainstem"), "{error}");
+        assert!(
+            error.contains("no installed product runtime handle"),
+            "{error}"
+        );
+        assert!(!error.contains("exactly two"), "{error}");
+    }
+
+    #[test]
+    fn three_host_body_builds_current_runtime_and_line_truth_without_roles() {
+        let product = prepare(Path::new(
+            "../../profiles/bodies/std-three-host.body.conduit",
+        ))
+        .expect("three installed std Hosts are an ordinary finite product context");
+        assert_eq!(product.context.advertisements().len(), 3);
+        assert_eq!(product.context.line_offers().len(), 6);
     }
 }

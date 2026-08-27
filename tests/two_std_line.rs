@@ -19,6 +19,11 @@ fn installed_run_reports_two_hosts_one_line_and_terminal_values() {
                 env!("CARGO_MANIFEST_DIR"),
                 "/../../profiles/bodies/std-line.body.conduit"
             ),
+            "--placements",
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../examples/std-body-line.placements"
+            ),
             "--report",
         ])
         .arg(&report)

@@ -4,6 +4,12 @@ use alloc::vec::Vec;
 use conduit_form::{KindSignature, StartupCatalog, StartupParameterSignature};
 
 pub fn signal_startup_catalog() -> StartupCatalog {
+    let mut catalog = primary_signal_startup_catalog();
+    extend_auxiliary_startup_catalog(&mut catalog);
+    catalog
+}
+
+pub fn primary_signal_startup_catalog() -> StartupCatalog {
     let mut catalog = StartupCatalog::new();
     catalog
         .insert(KindSignature {
@@ -33,6 +39,10 @@ pub fn signal_startup_catalog() -> StartupCatalog {
             startup_parameters: Vec::new(),
         })
         .expect("the Signal presentation signature is unique");
+    catalog
+}
+
+fn extend_auxiliary_startup_catalog(catalog: &mut StartupCatalog) {
     catalog
         .insert(KindSignature {
             kind: crate::trigger::TRIGGER_KIND.to_string(),
@@ -70,5 +80,4 @@ pub fn signal_startup_catalog() -> StartupCatalog {
             })
             .expect("the Signal control signature is unique");
     }
-    catalog
 }
