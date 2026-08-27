@@ -52,7 +52,7 @@ fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure(
     assert_eq!(gate.host_operations.len(), 1);
     assert_eq!(
         gate.host_operations[0].contract_id.as_str(),
-        conduit_std_catalog::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT
+        conduit_std_offers::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT
     );
 
     let mut output = Vec::with_capacity(2_048);

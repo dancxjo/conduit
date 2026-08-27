@@ -3,13 +3,13 @@ use conduit_core::{PlannedGear, PortDescriptor, PortDirection, SCALAR_ENCODED_LE
 use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef};
 
 pub(super) static STATE_LATEST_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::STATE_LATEST_SCALAR_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::STATE_LATEST_SCALAR_IMPLEMENTATION,
     budget: state_latest_budget,
     prepare: prepare_state_latest,
 };
 
 pub(super) static FLOW_TEE_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::FLOW_TEE_SCALAR_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::FLOW_TEE_SCALAR_IMPLEMENTATION,
     budget: flow_tee_budget,
     prepare: prepare_flow_tee,
 };
@@ -171,9 +171,9 @@ fn validate_state_latest(placement: &PlannedGear) -> Result<(), String> {
         InstalledIdentity {
             kind: conduit_std_catalog::LATEST_KIND,
             revision: conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
-            profile: conduit_std_catalog::STATE_LATEST_SCALAR_EXECUTION_PROFILE,
-            implementation: conduit_std_catalog::STATE_LATEST_SCALAR_IMPLEMENTATION,
-            artifact: conduit_std_catalog::STATE_LATEST_SCALAR_ARTIFACT,
+            profile: conduit_std_offers::STATE_LATEST_SCALAR_EXECUTION_PROFILE,
+            implementation: conduit_std_offers::STATE_LATEST_SCALAR_IMPLEMENTATION,
+            artifact: conduit_std_offers::STATE_LATEST_SCALAR_ARTIFACT,
         },
         &conduit_std_catalog::state_latest_scalar_contract().inputs,
         &conduit_std_catalog::state_latest_scalar_contract().outputs,
@@ -186,9 +186,9 @@ fn validate_flow_tee(placement: &PlannedGear) -> Result<(), String> {
         InstalledIdentity {
             kind: conduit_std_catalog::TEE_KIND,
             revision: conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
-            profile: conduit_std_catalog::FLOW_TEE_SCALAR_EXECUTION_PROFILE,
-            implementation: conduit_std_catalog::FLOW_TEE_SCALAR_IMPLEMENTATION,
-            artifact: conduit_std_catalog::FLOW_TEE_SCALAR_ARTIFACT,
+            profile: conduit_std_offers::FLOW_TEE_SCALAR_EXECUTION_PROFILE,
+            implementation: conduit_std_offers::FLOW_TEE_SCALAR_IMPLEMENTATION,
+            artifact: conduit_std_offers::FLOW_TEE_SCALAR_ARTIFACT,
         },
         &conduit_std_catalog::flow_tee_scalar_contract().inputs,
         &conduit_std_catalog::flow_tee_scalar_contract().outputs,

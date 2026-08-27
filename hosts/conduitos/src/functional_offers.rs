@@ -114,40 +114,48 @@ pub fn math_deadband_offer() -> CapabilityOffer {
 }
 
 pub fn state_latest_scalar_offer() -> CapabilityOffer {
-    realize_with(
-        conduit_std_catalog::state_latest_scalar_offer(),
+    realize_flow_contract(
+        conduit_std_catalog::state_latest_scalar_contract(),
+        conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
         "conduitos-state-latest-scalar-v1",
-        FLOW_STATE_PROFILE,
         STATE_LATEST_SCALAR_IMPLEMENTATION,
-        FLOW_STATE_ARTIFACT,
+        Vec::new(),
     )
 }
 
 pub fn flow_tee_scalar_offer() -> CapabilityOffer {
-    realize_with(
-        conduit_std_catalog::flow_tee_scalar_offer(),
+    realize_flow_contract(
+        conduit_std_catalog::flow_tee_scalar_contract(),
+        conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
         "conduitos-flow-tee-scalar-v1",
-        FLOW_STATE_PROFILE,
         FLOW_TEE_SCALAR_IMPLEMENTATION,
-        FLOW_STATE_ARTIFACT,
+        Vec::new(),
     )
 }
 
 pub fn state_select_scalar_offer() -> CapabilityOffer {
-    realize_with(
-        conduit_std_catalog::state_select_scalar_offer(),
+    realize_flow_contract(
+        conduit_std_catalog::state_select_scalar_contract(),
+        conduit_std_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
         "conduitos-state-select-scalar-v1",
-        FLOW_STATE_PROFILE,
         STATE_SELECT_SCALAR_IMPLEMENTATION,
-        FLOW_STATE_ARTIFACT,
+        Vec::new(),
     )
 }
 
 pub fn flow_gate_scalar_offer() -> CapabilityOffer {
-    bounded_host_operation(
-        conduit_std_catalog::flow_gate_scalar_offer(),
+    realize_flow_contract(
+        conduit_std_catalog::flow_gate_scalar_contract(),
+        conduit_std_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION,
         "conduitos-flow-gate-scalar-v1",
         "conduitos/kernel-flow-gate-scalar@1",
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from("conduit.host/decode-bool@1"),
+            target_kind: Some(kind_id("value/decode-bool")),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 1,
+            maximum_output_bytes: 1,
+        }],
     )
 }
 
@@ -380,6 +388,28 @@ fn realize_contract(
             artifact: FUNCTIONAL_KERNEL_ARTIFACT,
         },
         Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+}
+
+fn realize_flow_contract(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+    capability: &str,
+    implementation: &str,
+    host_operations: Vec<HostOperationRequirement>,
+) -> CapabilityOffer {
+    conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability,
+            execution_profile: FLOW_STATE_PROFILE,
+            implementation,
+            artifact: FLOW_STATE_ARTIFACT,
+        },
+        host_operations,
         Vec::new(),
         Vec::new(),
     )

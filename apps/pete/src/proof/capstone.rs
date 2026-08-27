@@ -160,11 +160,19 @@ pub fn capstone_advertisement(
     velocity.implementation.execution_profile_id = ExecutionProfileId::from(profile);
     velocity.implementation.implementation_id = ImplementationId::from(velocity_implementation);
     velocity.implementation.artifact_id = ArtifactId::from(CAPSTONE_ARTIFACT);
-    let mut select = conduit_std_catalog::state_select_scalar_offer();
-    select.capability_id = CapabilityId::from(format!("{profile}/state-select"));
-    select.implementation.execution_profile_id = ExecutionProfileId::from(profile);
-    select.implementation.implementation_id = ImplementationId::from(select_implementation);
-    select.implementation.artifact_id = ArtifactId::from(CAPSTONE_ARTIFACT);
+    let select = conduit_std_catalog::realization_offer(
+        conduit_std_catalog::state_select_scalar_contract(),
+        conduit_std_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: &format!("{profile}/state-select"),
+            execution_profile: profile,
+            implementation: select_implementation,
+            artifact: CAPSTONE_ARTIFACT,
+        },
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    );
 
     let mut resources = observation.resources;
     for resource in drive.resources {

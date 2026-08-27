@@ -9,37 +9,17 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    BOOL_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const STATE_LATEST_SCALAR_CONTRACT_REVISION: &str = "conduit.std/state-latest-scalar@2";
-pub const STATE_LATEST_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-latest-scalar-kernel@2";
-pub const STATE_LATEST_SCALAR_IMPLEMENTATION: &str = "std/kernel-state-latest-scalar@2";
-pub const STATE_LATEST_SCALAR_ARTIFACT: &str = "conduit-std-host/state-latest-scalar@2";
-pub const STATE_LATEST_SCALAR_CAPABILITY: &str = "state-latest-scalar-v2";
 
 pub const FLOW_TEE_SCALAR_CONTRACT_REVISION: &str = "conduit.std/flow-tee-scalar@2";
-pub const FLOW_TEE_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/flow-tee-scalar-kernel@2";
-pub const FLOW_TEE_SCALAR_IMPLEMENTATION: &str = "std/kernel-flow-tee-scalar@2";
-pub const FLOW_TEE_SCALAR_ARTIFACT: &str = "conduit-std-host/flow-tee-scalar@2";
-pub const FLOW_TEE_SCALAR_CAPABILITY: &str = "flow-tee-scalar-v2";
 
 pub const FLOW_GATE_SCALAR_CONTRACT_REVISION: &str = "conduit.std/flow-gate-scalar@1";
-pub const FLOW_GATE_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/flow-gate-scalar-kernel@1";
-pub const FLOW_GATE_SCALAR_IMPLEMENTATION: &str = "std/kernel-flow-gate-scalar@1";
-pub const FLOW_GATE_SCALAR_ARTIFACT: &str = "conduit-std-host/flow-gate-scalar@1";
-pub const FLOW_GATE_SCALAR_CAPABILITY: &str = "flow-gate-scalar-v1";
-pub const FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT: &str = "conduit.host/decode-bool@1";
-pub const FLOW_GATE_BOOL_HOST_OPERATION_TARGET: &str = "value/decode-bool";
 
 pub const STATE_SELECT_SCALAR_CONTRACT_REVISION: &str = "conduit.std/state-select-scalar@1";
-pub const STATE_SELECT_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-select-scalar-kernel@1";
-pub const STATE_SELECT_SCALAR_IMPLEMENTATION: &str = "std/kernel-state-select-scalar@1";
-pub const STATE_SELECT_SCALAR_ARTIFACT: &str = "conduit-std-host/state-select-scalar@1";
-pub const STATE_SELECT_SCALAR_CAPABILITY: &str = "state-select-scalar-v1";
 
 pub const FLOW_STATE_MAXIMUM_VALUES: u16 = 16;
 
@@ -172,65 +152,6 @@ pub fn state_select_scalar_contract() -> StandardKindContract {
     }
 }
 
-pub fn state_latest_scalar_offer() -> CapabilityOffer {
-    offer(
-        state_latest_scalar_contract(),
-        STATE_LATEST_SCALAR_CAPABILITY,
-        STATE_LATEST_SCALAR_CONTRACT_REVISION,
-        STATE_LATEST_SCALAR_EXECUTION_PROFILE,
-        STATE_LATEST_SCALAR_IMPLEMENTATION,
-        STATE_LATEST_SCALAR_ARTIFACT,
-    )
-}
-
-pub fn flow_tee_scalar_offer() -> CapabilityOffer {
-    offer(
-        flow_tee_scalar_contract(),
-        FLOW_TEE_SCALAR_CAPABILITY,
-        FLOW_TEE_SCALAR_CONTRACT_REVISION,
-        FLOW_TEE_SCALAR_EXECUTION_PROFILE,
-        FLOW_TEE_SCALAR_IMPLEMENTATION,
-        FLOW_TEE_SCALAR_ARTIFACT,
-    )
-}
-
-pub fn flow_gate_scalar_offer() -> CapabilityOffer {
-    let mut offer = offer(
-        flow_gate_scalar_contract(),
-        FLOW_GATE_SCALAR_CAPABILITY,
-        FLOW_GATE_SCALAR_CONTRACT_REVISION,
-        FLOW_GATE_SCALAR_EXECUTION_PROFILE,
-        FLOW_GATE_SCALAR_IMPLEMENTATION,
-        FLOW_GATE_SCALAR_ARTIFACT,
-    );
-    offer
-        .startup_parameters
-        .push(conduit_core::FaceStartupParameter {
-            name: "maximum-enable-updates".to_string(),
-            value_type: "Count".to_string(),
-            has_default: true,
-        });
-    offer.host_operations.push(HostOperationRequirement {
-        contract_id: HostOperationContractId::from(FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT),
-        target_kind: Some(kind_id(FLOW_GATE_BOOL_HOST_OPERATION_TARGET)),
-        maximum_in_flight: 1,
-        maximum_input_bytes: 1,
-        maximum_output_bytes: 1,
-    });
-    offer
-}
-
-pub fn state_select_scalar_offer() -> CapabilityOffer {
-    offer(
-        state_select_scalar_contract(),
-        STATE_SELECT_SCALAR_CAPABILITY,
-        STATE_SELECT_SCALAR_CONTRACT_REVISION,
-        STATE_SELECT_SCALAR_EXECUTION_PROFILE,
-        STATE_SELECT_SCALAR_IMPLEMENTATION,
-        STATE_SELECT_SCALAR_ARTIFACT,
-    )
-}
-
 fn port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDescriptor {
     info_port(name, SCALAR_INFO_ID, direction, temporal)
 }
@@ -254,34 +175,6 @@ fn limits() -> CapabilityLimits {
         max_active_instances: 16,
         max_queue_items: 4,
         max_queue_bytes: 32,
-    }
-}
-
-fn offer(
-    contract: StandardKindContract,
-    capability: &str,
-    revision: &str,
-    profile: &str,
-    implementation: &str,
-    artifact: &str,
-) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(profile),
-            implementation_id: ImplementationId::from(implementation),
-            artifact_id: ArtifactId::from(artifact),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 
@@ -362,7 +255,6 @@ mod tests {
         assert_eq!(gate.inputs[1].temporal, PortTemporal::Current);
         assert_eq!(gate.outputs[0].value_kind.as_str(), SCALAR_INFO_ID);
         assert_eq!(gate.configuration.len(), 1);
-        assert_eq!(flow_gate_scalar_offer().host_operations.len(), 1);
         let select = state_select_scalar_contract();
         assert!(select
             .inputs

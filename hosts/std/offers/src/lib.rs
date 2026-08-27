@@ -1,5 +1,8 @@
 //! Exact implementation offers owned by the hosted std Host.
 
+mod flow_state;
+pub use flow_state::*;
+
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
 };
@@ -146,10 +149,10 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         conduit_std_catalog::state_count_offer(),
         conduit_std_catalog::state_toggle_offer(),
         conduit_std_catalog::count_presentation_offer(),
-        conduit_std_catalog::state_latest_scalar_offer(),
-        conduit_std_catalog::flow_tee_scalar_offer(),
-        conduit_std_catalog::flow_gate_scalar_offer(),
-        conduit_std_catalog::state_select_scalar_offer(),
+        state_latest_scalar_offer(),
+        flow_tee_scalar_offer(),
+        flow_gate_scalar_offer(),
+        state_select_scalar_offer(),
         logic_compare_scalar_offer(),
         logic_not_offer(),
         logic_select_scalar_offer(),
@@ -244,10 +247,11 @@ mod tests {
     }
 
     #[test]
-    fn neutral_logic_and_math_sources_contain_no_hosted_offer_identity() {
+    fn neutral_sources_contain_no_moved_hosted_offer_identity() {
         for source in [
             include_str!("../../../../crates/conduit-std-catalog/src/logic.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/math.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/flow_state.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -258,6 +262,10 @@ mod tests {
                 "pub fn math_clamp_offer",
                 "pub fn math_scale_offer",
                 "pub fn math_deadband_offer",
+                "pub fn state_latest_scalar_offer",
+                "pub fn flow_tee_scalar_offer",
+                "pub fn flow_gate_scalar_offer",
+                "pub fn state_select_scalar_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),
