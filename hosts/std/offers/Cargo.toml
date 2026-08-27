@@ -5,6 +5,7 @@ edition = "2021"
 description = "Exact realization offers owned by the hosted std Host"
 
 [dependencies]
+conduit-alife = { path = "../../../crates/conduit-alife" }
 conduit-core = { path = "../../../crates/conduit-core" }
 conduit-std-catalog = { path = "../../../crates/conduit-std-catalog" }
 conduit-time = { path = "../../../crates/conduit-time" }

@@ -10,7 +10,9 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{alife_offers, install_tick_presentation_catalog};
+use conduit_std_catalog::{
+    install_tick_presentation_catalog, realization_offer, RealizationOfferIdentity,
+};
 use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../examples/lenia-orbium.conduit");
@@ -30,7 +32,50 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
     assert_eq!(authored.expanded.gears.len(), 4);
     assert_eq!(authored.expanded.connections.len(), 3);
 
-    let mut capabilities = alife_offers();
+    let mut capabilities = vec![
+        realization_offer(
+            conduit_std_catalog::orbium_seed_contract(),
+            conduit_alife::ORBIUM_SEED_REVISION,
+            RealizationOfferIdentity {
+                capability: "lenia-proof-orbium-seed",
+                execution_profile: "proof/lenia-orbium-seed@1",
+                implementation: "proof/lenia-orbium-seed@1",
+                artifact: "proof/lenia-orbium-seed@1",
+            },
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        ),
+        realization_offer(
+            conduit_std_catalog::lenia_step_contract(),
+            conduit_alife::LENIA_STEP_REVISION,
+            RealizationOfferIdentity {
+                capability: "lenia-proof-step",
+                execution_profile: "proof/lenia-step@1",
+                implementation: "proof/lenia-step@1",
+                artifact: "proof/lenia-step@1",
+            },
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        ),
+        realization_offer(
+            conduit_std_catalog::scalar_field_presentation_contract(),
+            conduit_alife::SCALAR_FIELD_PRESENTATION_REVISION,
+            RealizationOfferIdentity {
+                capability: "lenia-proof-presentation",
+                execution_profile: "proof/lenia-presentation@1",
+                implementation: "proof/lenia-presentation@1",
+                artifact: "proof/lenia-presentation@1",
+            },
+            Vec::new(),
+            vec![resource_requirement(
+                conduit_core::PRESENTATION_RESOURCE_CLASS,
+                1,
+            )],
+            Vec::new(),
+        ),
+    ];
     let mut every = conduit_std_catalog::realization_offer(
         conduit_std_catalog::time_every_contract(),
         conduit_time::TIME_EVERY_CONTRACT_REVISION,
