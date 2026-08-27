@@ -94,7 +94,9 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         .expect("presentation composition catalogs are exact and unique");
     conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut catalog)
         .expect("graphics catalogs are exact and unique");
-    conduit_std_catalog::install_graphics_presentation_catalogs(&mut startup, &mut catalog)
+    conduit_std_catalog::install_graphics_presentation_catalog(&mut startup, &mut catalog)
+        .expect("graphics presentation catalog is exact and unique");
+    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut catalog)
         .expect("graphics presentation catalog is exact and unique");
     conduit_std_catalog::install_sound_catalogs(&mut startup, &mut catalog)
         .expect("sound catalogs are exact and unique");

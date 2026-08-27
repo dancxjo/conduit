@@ -14,8 +14,6 @@ pub const GRAPHICS_PRESENTATION_PROFILE: &str = "conduit.std/presentation-graphi
 pub const GRAPHICS_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-graphics@1";
 pub const GRAPHICS_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-graphics@1";
 pub const GRAPHICS_PRESENTATION_HOST_OPERATION: &str = "conduit.host/present@1";
-pub const BITMAP_PRESENTATION_KIND: &str = "presentation/bitmap";
-pub const BITMAP_PRESENTATION_REVISION: &str = "conduit.presentation/bitmap@1";
 pub const BITMAP_PRESENTATION_PROFILE: &str = "conduit.std/presentation-bitmap-gray8@1";
 pub const BITMAP_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-bitmap@1";
 pub const BITMAP_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-bitmap@1";
@@ -72,19 +70,15 @@ pub fn graphics_presentation_offer() -> CapabilityOffer {
 }
 
 pub fn bitmap_presentation_contract() -> StandardKindContract {
+    let definition = conduit_presentation::bitmap_presentation_definition();
     StandardKindContract {
-        kind_id: kind_id(BITMAP_PRESENTATION_KIND),
+        kind_id: definition.kind_id,
         plain_name: "Bitmap presentation".to_string(),
         summary:
             "Manifest one bounded gray8 bitmap on an exact admitted host presentation surface."
                 .to_string(),
-        inputs: vec![PortDescriptor {
-            port_id: port_id("bitmap"),
-            value_kind: kind_id(conduit_presentation::GRAY8_BITMAP_INFO_KIND),
-            direction: PortDirection::Input,
-            temporal: PortTemporal::Flow { closes: true },
-        }],
-        outputs: Vec::new(),
+        inputs: definition.inputs,
+        outputs: definition.outputs,
         configuration: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 4,
@@ -106,7 +100,9 @@ pub fn bitmap_presentation_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("presentation-bitmap-gray8-v1"),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(BITMAP_PRESENTATION_REVISION),
+        kind_contract_revision: KindContractRevision::from(
+            conduit_presentation::BITMAP_PRESENTATION_REVISION,
+        ),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(BITMAP_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from(BITMAP_PRESENTATION_IMPLEMENTATION),
@@ -125,38 +121,25 @@ pub fn bitmap_presentation_offer() -> CapabilityOffer {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn install_graphics_presentation_catalogs(
+pub fn install_graphics_presentation_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{KindDefinition, KindSignature};
-    for (kind, revision, contract) in [
-        (
-            GRAPHICS_PRESENTATION_KIND,
-            GRAPHICS_PRESENTATION_REVISION,
-            graphics_presentation_contract(),
-        ),
-        (
-            BITMAP_PRESENTATION_KIND,
-            BITMAP_PRESENTATION_REVISION,
-            bitmap_presentation_contract(),
-        ),
-    ] {
-        startup.insert(KindSignature {
-            kind: kind.to_string(),
-            startup_parameters: Vec::new(),
-        })?;
-        profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: Vec::new(),
-            })
-            .map_err(|error| error.to_string())?;
-    }
-    Ok(())
+    let contract = graphics_presentation_contract();
+    startup.insert(KindSignature {
+        kind: GRAPHICS_PRESENTATION_KIND.to_string(),
+        startup_parameters: Vec::new(),
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: contract.kind_id,
+            kind_contract_revision: KindContractRevision::from(GRAPHICS_PRESENTATION_REVISION),
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: Vec::new(),
+        })
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(test)]

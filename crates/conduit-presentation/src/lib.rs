@@ -3,6 +3,7 @@
 extern crate alloc;
 
 mod bitmap;
+mod bitmap_catalog;
 mod calendar_time;
 mod composition;
 mod construction;
@@ -31,6 +32,7 @@ mod temporal_model;
 mod temporal_wording;
 
 pub use bitmap::*;
+pub use bitmap_catalog::*;
 pub use calendar_time::*;
 pub use composition::*;
 pub use contract::*;
