@@ -1,4 +1,4 @@
-//! Rejoin one validated set of realization-only region states.
+//! Rejoin one validated set of host-neutral region states.
 
 use alloc::vec;
 use alloc::vec::Vec;

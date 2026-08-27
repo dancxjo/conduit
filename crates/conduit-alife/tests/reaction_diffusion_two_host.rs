@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_alife::{
     ReactionDiffusionBoundaryState, ReactionDiffusionEvolveRequest, ReactionDiffusionRegionId,
     ReactionDiffusionRegionWork,
 };
@@ -43,7 +43,7 @@ fn two_hosts_exchange_every_cross_boundary_over_exact_planned_lines() {
     for generation in 0..4 {
         let source = distributed.clone();
         let partitioned =
-            conduit_core::partition_reaction_diffusion_generation(&source, partition.clone())
+            conduit_alife::partition_reaction_diffusion_generation(&source, partition.clone())
                 .unwrap();
         let mut results = Vec::new();
         for destination in [ReactionDiffusionRegionId(10), ReactionDiffusionRegionId(20)] {
@@ -63,7 +63,7 @@ fn two_hosts_exchange_every_cross_boundary_over_exact_planned_lines() {
             }
             results.push(work.evolve().unwrap());
         }
-        distributed = conduit_core::join_evolved_reaction_diffusion_regions(
+        distributed = conduit_alife::join_evolved_reaction_diffusion_regions(
             FIELD_ID,
             generation,
             source.width,
@@ -91,7 +91,7 @@ fn two_hosts_exchange_every_cross_boundary_over_exact_planned_lines() {
 fn line_sessions_refuse_wrong_identity_order_size_and_late_traffic() {
     let (_, plan) = distributed_plan();
     let partitioned =
-        conduit_core::partition_reaction_diffusion_generation(&initial(), unequal_partition())
+        conduit_alife::partition_reaction_diffusion_generation(&initial(), unequal_partition())
             .unwrap();
     let boundary = partitioned
         .boundaries

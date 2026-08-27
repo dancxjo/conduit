@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_alife::{
     GrayScottParameters, ReactionDiffusionCell, ReactionDiffusionEvolveRequest,
     ReactionDiffusionFieldId, ReactionDiffusionFieldState, ReactionDiffusionRefusal,
     REACTION_DIFFUSION_MAXIMUM_GENERATIONS,
