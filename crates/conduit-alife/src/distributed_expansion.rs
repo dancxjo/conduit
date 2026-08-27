@@ -17,7 +17,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
     let mut profile = ProfileCatalog::new();
     conduit_std_catalog::install_alife_catalogs(&mut startup, &mut profile)?;
     conduit_std_catalog::install_time_pipeline_catalogs(&mut startup, &mut profile)?;
-    conduit_std_catalog::install_graphics_presentation_catalogs(&mut startup, &mut profile)?;
+    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
     install_distributed_lenia_catalogs(&mut startup, &mut profile)?;
 
     let source = include_str!("../../../examples/lenia-orbium.conduit");
@@ -42,7 +42,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
     let presentation_back_source = format!(
         "form presentation/scalar-field (\n > field: {}...|\n) {{\n bitmap: {SCALAR_FIELD_GRAY8_KIND}\n manifest: {}\n field > bitmap.field\n bitmap.bitmap > manifest.bitmap\n}}\n",
         conduit_core::SCALAR_FIELD2_INFO_ID,
-        conduit_std_catalog::BITMAP_PRESENTATION_KIND,
+        conduit_presentation::BITMAP_PRESENTATION_KIND,
     );
     let presentation_back =
         check_syntax_document(&parse_syntax_document(&presentation_back_source), &startup)
@@ -89,7 +89,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
         || expanded
             .gears
             .iter()
-            .filter(|gear| gear.kind_id.as_str() == conduit_std_catalog::BITMAP_PRESENTATION_KIND)
+            .filter(|gear| gear.kind_id.as_str() == conduit_presentation::BITMAP_PRESENTATION_KIND)
             .count()
             != 1
     {

@@ -92,7 +92,8 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)?;
     conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
-    conduit_std_catalog::install_graphics_presentation_catalogs(&mut startup, &mut profile)?;
+    conduit_std_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
     conduit_std_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
     Ok((startup, profile))
 }

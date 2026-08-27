@@ -77,7 +77,8 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_graphics_presentation_catalogs(&mut startup, &mut profiles)?;
+    conduit_std_catalog::install_graphics_presentation_catalog(&mut startup, &mut profiles)?;
+    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profiles)?;
     conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profiles)?;
     conduit_web::install_http_catalogs(&mut startup, &mut profiles)?;
