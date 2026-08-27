@@ -282,7 +282,7 @@ pub(super) fn build_advertisement(
         ]);
     }
     if composition.alife {
-        capabilities.extend(conduit_std_catalog::alife_offers());
+        capabilities.extend(conduit_std_offers::alife_offers());
     }
     if playback.is_some() {
         capabilities.push(conduit_std_catalog::audio_play_alsa_hw_offer());

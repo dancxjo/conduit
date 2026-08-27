@@ -12,6 +12,8 @@ mod text;
 pub use text::*;
 mod state_input;
 pub use state_input::*;
+mod alife;
+pub use alife::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -277,6 +279,7 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/state_count.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/state_toggle.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/input_semantics.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/alife.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -325,6 +328,10 @@ mod tests {
                 "pub fn key_event_tee_offer",
                 "pub fn keymap_offer",
                 "pub fn chords_offer",
+                "pub fn alife_offers",
+                "pub fn orbium_seed_offer",
+                "pub fn lenia_step_offer",
+                "pub fn scalar_field_presentation_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),

@@ -11,19 +11,19 @@ use conduit_kernel::{
 };
 
 pub(super) static ORBIUM_SEED_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::ORBIUM_SEED_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::ORBIUM_SEED_IMPLEMENTATION,
     budget: seed_budget,
     prepare: prepare_seed,
 };
 
 pub(super) static LENIA_STEP_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::LENIA_STEP_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::LENIA_STEP_IMPLEMENTATION,
     budget: lenia_budget,
     prepare: prepare_lenia,
 };
 
 pub(super) static SCALAR_FIELD_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::SCALAR_FIELD_PRESENTATION_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::SCALAR_FIELD_PRESENTATION_IMPLEMENTATION,
     budget: presentation_budget,
     prepare: prepare_presentation,
 };
@@ -333,13 +333,13 @@ fn prepare_presentation(
 }
 
 fn validate_seed(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::orbium_seed_offer();
+    let offer = conduit_std_offers::orbium_seed_offer();
     if placement.kind_id.as_str() != conduit_alife::ORBIUM_SEED_KIND
         || placement.kind_contract_revision.as_str() != conduit_alife::ORBIUM_SEED_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::ORBIUM_SEED_EXECUTION_PROFILE
-        || placement.implementation_id.as_str() != conduit_std_catalog::ORBIUM_SEED_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_catalog::ORBIUM_SEED_ARTIFACT
+            != conduit_std_offers::ORBIUM_SEED_EXECUTION_PROFILE
+        || placement.implementation_id.as_str() != conduit_std_offers::ORBIUM_SEED_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::ORBIUM_SEED_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.configuration.len() != 3
@@ -350,13 +350,13 @@ fn validate_seed(placement: &PlannedGear) -> Result<(), String> {
 }
 
 fn validate_lenia(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::lenia_step_offer();
+    let offer = conduit_std_offers::lenia_step_offer();
     if placement.kind_id.as_str() != conduit_alife::LENIA_STEP_KIND
         || placement.kind_contract_revision.as_str() != conduit_alife::LENIA_STEP_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::LENIA_STEP_EXECUTION_PROFILE
-        || placement.implementation_id.as_str() != conduit_std_catalog::LENIA_STEP_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_catalog::LENIA_STEP_ARTIFACT
+            != conduit_std_offers::LENIA_STEP_EXECUTION_PROFILE
+        || placement.implementation_id.as_str() != conduit_std_offers::LENIA_STEP_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::LENIA_STEP_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_operations != offer.host_operations
@@ -370,17 +370,17 @@ fn validate_lenia(placement: &PlannedGear) -> Result<(), String> {
 }
 
 fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::scalar_field_presentation_offer();
+    let offer = conduit_std_offers::scalar_field_presentation_offer();
     let minimum = scalar_raw(placement, conduit_alife::MINIMUM_KEY)?;
     let maximum = scalar_raw(placement, conduit_alife::MAXIMUM_KEY)?;
     if placement.kind_id.as_str() != conduit_alife::SCALAR_FIELD_PRESENTATION_KIND
         || placement.kind_contract_revision.as_str()
             != conduit_alife::SCALAR_FIELD_PRESENTATION_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_catalog::SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE
+            != conduit_std_offers::SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE
         || placement.implementation_id.as_str()
-            != conduit_std_catalog::SCALAR_FIELD_PRESENTATION_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_catalog::SCALAR_FIELD_PRESENTATION_ARTIFACT
+            != conduit_std_offers::SCALAR_FIELD_PRESENTATION_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::SCALAR_FIELD_PRESENTATION_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_operations != offer.host_operations

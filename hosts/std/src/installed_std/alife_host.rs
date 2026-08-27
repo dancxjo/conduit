@@ -23,8 +23,7 @@ impl AlifeHost {
     pub(super) fn prepare(fragment: &PlanFragment) -> Result<Self, String> {
         let mut engines = Vec::with_capacity(fragment.placements.len());
         for placement in &fragment.placements {
-            if placement.implementation_id.as_str()
-                == conduit_std_catalog::LENIA_STEP_IMPLEMENTATION
+            if placement.implementation_id.as_str() == conduit_std_offers::LENIA_STEP_IMPLEMENTATION
             {
                 engines
                     .push(Some(LeniaEngine::new(parameters(placement)?).map_err(
@@ -88,7 +87,7 @@ impl AlifeHost {
         fragment: &PlanFragment,
         output: &mut W,
     ) -> Option<AlifeCompletion<'a>> {
-        if contract.as_str() == conduit_std_catalog::LENIA_INITIALIZE_HOST_OPERATION
+        if contract.as_str() == conduit_std_offers::LENIA_INITIALIZE_HOST_OPERATION
             && target.is_some_and(|kind| kind.as_str() == conduit_alife::LENIA_STEP_KIND)
         {
             return Some(match self.initialize(node, input) {
@@ -96,7 +95,7 @@ impl AlifeHost {
                 Err(failure) => AlifeCompletion::Failed(failure),
             });
         }
-        if contract.as_str() == conduit_std_catalog::LENIA_STEP_HOST_OPERATION
+        if contract.as_str() == conduit_std_offers::LENIA_STEP_HOST_OPERATION
             && target.is_some_and(|kind| kind.as_str() == conduit_alife::LENIA_STEP_KIND)
         {
             return Some(match self.step(node, input) {
@@ -106,7 +105,7 @@ impl AlifeHost {
         }
         if contract.as_str() == conduit_core::PRESENT_HOST_OPERATION_CONTRACT
             && target.is_some_and(|kind| {
-                kind.as_str() == conduit_std_catalog::SCALAR_FIELD_PRESENTATION_TARGET
+                kind.as_str() == conduit_std_offers::SCALAR_FIELD_PRESENTATION_TARGET
             })
         {
             let Some(placement) = fragment.placements.get(usize::from(node.0)) else {
