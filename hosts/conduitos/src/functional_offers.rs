@@ -34,6 +34,8 @@ pub const TEXT_UPPER_HOST_OPERATION: &str = "conduit.host/text-upper@1";
 pub const TEXT_UPPER_HOST_OPERATION_TARGET: &str = "text/uppercase-utf8";
 pub const TEXT_JOIN_HOST_OPERATION: &str = "conduit.host/text-join@1";
 pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
+pub const JSON_ENCODE_HOST_OPERATION: &str = "conduit.host/json-encode@1";
+pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
 
 pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     with_operation(
@@ -356,23 +358,54 @@ pub fn music_synth_offer() -> CapabilityOffer {
 }
 
 pub fn json_encode_offer() -> CapabilityOffer {
-    realize_with(
-        conduit_std_catalog::json_encode_std_offer(),
+    json_offer(
+        conduit_std_catalog::json_encode_contract(),
+        conduit_web::JSON_ENCODE_REVISION,
         "conduitos-json-encode-v1",
-        "conduitos/fixed-bounded-json@1",
         "conduitos/kernel-json-encode@1",
-        "conduit-core/bounded-json@1",
+        JSON_ENCODE_HOST_OPERATION,
     )
 }
 
 pub fn json_decode_offer() -> CapabilityOffer {
-    realize_with(
-        conduit_std_catalog::json_decode_std_offer(),
+    json_offer(
+        conduit_std_catalog::json_decode_contract(),
+        conduit_web::JSON_DECODE_REVISION,
         "conduitos-json-decode-v1",
-        "conduitos/fixed-bounded-json@1",
         "conduitos/kernel-json-decode@1",
-        "conduit-core/bounded-json@1",
+        JSON_DECODE_HOST_OPERATION,
     )
+}
+
+fn json_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+    capability: &str,
+    implementation: &str,
+    operation: &str,
+) -> CapabilityOffer {
+    let target_kind = contract.kind_id.clone();
+    let mut offer = conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability,
+            execution_profile: "conduitos/fixed-bounded-json@1",
+            implementation,
+            artifact: "conduit-core/bounded-json@1",
+        },
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(operation),
+            target_kind: Some(target_kind),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            maximum_output_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+        }],
+        Vec::new(),
+        Vec::new(),
+    );
+    offer.shorthand = Some((port_id("value"), port_id("value")));
+    offer
 }
 
 pub fn robotics_offers() -> Vec<CapabilityOffer> {

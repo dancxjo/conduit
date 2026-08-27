@@ -497,6 +497,7 @@ dependencies = [
  "conduit-std-catalog",
  "conduit-text",
  "conduit-time",
+ "conduit-web",
 ]
 
 [[package]]

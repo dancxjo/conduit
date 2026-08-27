@@ -168,11 +168,17 @@ fn realization_preserves_portable_contract_and_bounds() {
         ),
         (
             json_encode_offer(),
-            conduit_std_catalog::json_encode_std_offer(),
+            portable_json_offer(
+                conduit_std_catalog::json_encode_contract(),
+                conduit_web::JSON_ENCODE_REVISION,
+            ),
         ),
         (
             json_decode_offer(),
-            conduit_std_catalog::json_decode_std_offer(),
+            portable_json_offer(
+                conduit_std_catalog::json_decode_contract(),
+                conduit_web::JSON_DECODE_REVISION,
+            ),
         ),
     ] {
         assert_eq!(realized.kind_id, portable.kind_id);
@@ -210,6 +216,30 @@ fn realization_preserves_portable_contract_and_bounds() {
                 .starts_with("conduitos/")
         );
     }
+}
+
+fn portable_json_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+    revision: &str,
+) -> conduit_core::CapabilityOffer {
+    let mut offer = conduit_std_catalog::realization_offer(
+        contract,
+        revision,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: "proof/portable-json",
+            execution_profile: "proof/portable-json",
+            implementation: "proof/portable-json",
+            artifact: "proof/portable-json",
+        },
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    );
+    offer.shorthand = Some((
+        conduit_core::port_id("value"),
+        conduit_core::port_id("value"),
+    ));
+    offer
 }
 
 fn portable_offer(

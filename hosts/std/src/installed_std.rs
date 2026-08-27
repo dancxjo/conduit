@@ -648,8 +648,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             let contract = &lowered_operation.contract_id;
             if matches!(
                 contract.as_str(),
-                conduit_std_catalog::JSON_ENCODE_HOST_OPERATION
-                    | conduit_std_catalog::JSON_DECODE_HOST_OPERATION
+                conduit_std_offers::JSON_ENCODE_HOST_OPERATION
+                    | conduit_std_offers::JSON_DECODE_HOST_OPERATION
             ) {
                 let completion = json_host.execute(contract.as_str(), input);
                 let (disposition, output, failure) = match completion {
