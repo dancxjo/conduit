@@ -67,6 +67,7 @@ struct ImpactPlan {
 struct WorkspaceImpact {
     changed_packages: BTreeSet<String>,
     affected_test_packages: BTreeSet<String>,
+    lint_packages: BTreeSet<String>,
     shards: BTreeMap<String, bool>,
 }
 
@@ -220,6 +221,7 @@ fn plan_for_paths(
             WorkspaceImpact {
                 changed_packages,
                 affected_test_packages: BTreeSet::new(),
+                lint_packages: BTreeSet::new(),
                 shards: WorkspaceShard::ALL
                     .into_iter()
                     .map(|shard| (shard.name().to_owned(), false))
@@ -283,6 +285,11 @@ fn plan_for_paths(
         format!("selected:{}", names.join(","))
     };
     let affected = affected_tests(packages, &changed_packages);
+    let lint_packages = affected
+        .iter()
+        .filter(|name| packages[*name].workspace_member)
+        .cloned()
+        .collect();
     let workspace_shards = workspace_shards_for(root, packages, &affected)?;
     selected.insert("esp32".to_owned(), esp32.required());
     selected.insert("conduitos".to_owned(), conduitos.required());
@@ -295,6 +302,7 @@ fn plan_for_paths(
         WorkspaceImpact {
             changed_packages,
             affected_test_packages: affected,
+            lint_packages,
             shards: workspace_shards,
         },
         reasons,
@@ -443,7 +451,7 @@ fn plan(
     let workspace_lint_packages = if full_fallback {
         Vec::new()
     } else {
-        workspace.affected_test_packages.iter().cloned().collect()
+        workspace.lint_packages.into_iter().collect()
     };
     ImpactPlan {
         esp32_required: selected["esp32"],
@@ -485,6 +493,7 @@ fn full_plan(reason: String, paths: Vec<String>) -> ImpactPlan {
         WorkspaceImpact {
             changed_packages: BTreeSet::new(),
             affected_test_packages: BTreeSet::new(),
+            lint_packages: BTreeSet::new(),
             shards: WorkspaceShard::ALL
                 .into_iter()
                 .map(|shard| (shard.name().to_owned(), true))
