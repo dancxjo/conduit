@@ -285,7 +285,7 @@ fn plan_for_paths(
         format!("selected:{}", names.join(","))
     };
     let affected = affected_tests(packages, &changed_packages);
-    let lint_packages = affected
+    let lint_packages = changed_packages
         .iter()
         .filter(|name| packages[*name].workspace_member)
         .cloned()
