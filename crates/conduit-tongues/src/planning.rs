@@ -3,8 +3,8 @@ use crate::{
     AUDIO_OUTPUT_AUTHORITY, AUDIO_PLAY_KIND,
 };
 use conduit_core::{
-    kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, CapabilityId, ConnectionBase,
-    HostOperationContractId,
+    kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
+    CapabilityId, HostOperationContractId,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -94,7 +94,7 @@ pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> 
         &expanded,
         std::slice::from_ref(&fixture.advertisement),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

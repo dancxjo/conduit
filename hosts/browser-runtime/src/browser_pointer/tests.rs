@@ -54,7 +54,7 @@ fn pointer_scheduler_refuses_an_underadmitted_physical_sign_budget_before_play()
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

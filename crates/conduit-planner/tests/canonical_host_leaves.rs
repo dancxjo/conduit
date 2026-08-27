@@ -1,6 +1,6 @@
 use conduit_core::{
-    kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ConnectionBase, ExecutionProfileId, HostAdvertisement, HostId,
+    kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, KindContractRevision, OfferGeneration, PortDescriptor,
     PortDirection, PROTOCOL_VERSION,
 };
@@ -200,7 +200,7 @@ fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
         &expanded,
         std::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .expect("ordinary planner seals expanded leaves");
 
@@ -246,7 +246,7 @@ fn equal_face_with_different_name_and_revision_is_compatible() {
         &expanded,
         std::slice::from_ref(&wrong_kind),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     assert!(plan.fragments[0].placements.iter().any(|placement| {
@@ -328,7 +328,7 @@ fn two_gears_of_one_kind_can_select_different_equal_face_hosts() {
         &expanded,
         &[left.clone(), right.clone()],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .expect("one unchanged semantic form may place equal-face gears on peer hosts");
 

@@ -3,7 +3,7 @@ use crate::{
     default_placements, plan_with_options, PlacementChoices, PlannerError, PlanningOptions,
 };
 use conduit_core::{
-    verify_plan, ConnectionBase, HostAdvertisement, HostId, ProtectedResourceAccess,
+    verify_plan, BaseImplementationId, HostAdvertisement, HostId, ProtectedResourceAccess,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceHandleId,
 };
 use std::collections::BTreeMap;
@@ -34,7 +34,7 @@ fn plan_with_protected_test_grants(
         form,
         hosts,
         placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &base_overrides,
             line_candidates: &BTreeMap::new(),

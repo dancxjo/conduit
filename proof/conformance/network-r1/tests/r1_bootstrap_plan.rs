@@ -1,4 +1,4 @@
-use conduit_core::{ConnectionBase, PortDirection};
+use conduit_core::{BaseImplementationId, PortDirection};
 use conduit_net::{
     encode_network_join_request, network_omitting_advertisement, NetworkJoinRequest,
     MAXIMUM_JOIN_INPUT_BYTES, NETWORK_ATTACHMENT_KIND, NETWORK_JOIN_REQUEST_KIND,
@@ -11,7 +11,10 @@ use conduit_r1_network_conformance::{
 fn one_exact_plan_carries_runtime_credentials_over_the_observed_usb_line() {
     let exact = exact_r1_network_bootstrap_plan().unwrap();
     assert_eq!(exact.plan.fragments.len(), 2);
-    assert_eq!(exact.usb_line.binding.base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        exact.usb_line.binding.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
     assert_eq!(exact.usb_line.binding.limits.maximum_in_flight_items, 1);
     assert_eq!(
         exact.usb_line.binding.limits.maximum_payload_bytes,
@@ -43,8 +46,8 @@ fn one_exact_plan_carries_runtime_credentials_over_the_observed_usb_line() {
             connection
                 .selected_line
                 .as_ref()
-                .map(|line| line.binding.base)
-                == Some(ConnectionBase::UsbCdc)
+                .map(|line| line.binding.base.clone())
+                == Some(BaseImplementationId::from("conduit.base/usb-cdc-acm@1"))
         })
         .unwrap();
     assert_eq!(remote.sink_port_id.as_str(), "request");

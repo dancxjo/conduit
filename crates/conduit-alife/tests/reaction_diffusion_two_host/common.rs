@@ -6,10 +6,10 @@ use conduit_alife::{
     REACTION_DIFFUSION_REQUEST_INFO_ID, REACTION_DIFFUSION_STATE_INFO_ID,
 };
 use conduit_core::{
-    kind_id, port_id, process_owned_line_offer_with_limits, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, ImplementationOffer, KindContractRevision, LinkLimits, OfferGeneration,
-    PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
+    kind_id, port_id, process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId,
+    HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, LinkLimits,
+    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_with_backs, parse_syntax_document,
@@ -83,11 +83,11 @@ pub fn distributed_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core:
         maximum_buffered_bytes: MAX_PAYLOAD,
         maximum_frame_bytes: MAX_FRAME,
     };
-    let lines = [
+    let mut lines = [
         process_owned_line_offer_with_limits(
             "line/west-east",
             "binding/west-east",
-            ConnectionBase::FixtureFrame,
+            BaseImplementationId::from("conduit.proof/frame@1"),
             "fixture/west-east",
             &west,
             &east,
@@ -96,18 +96,32 @@ pub fn distributed_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core:
         process_owned_line_offer_with_limits(
             "line/east-west",
             "binding/east-west",
-            ConnectionBase::FixtureFrame,
+            BaseImplementationId::from("conduit.proof/frame@1"),
             "fixture/east-west",
             &east,
             &west,
             limits,
         ),
     ];
+    for line in &mut lines {
+        line.contract = conduit_core::LineContract {
+            scope: conduit_core::LineScope::LocalNetwork,
+            traffic_shape: conduit_core::LineTrafficShape::Message,
+            duplex: conduit_core::LineDuplex::FullDuplex,
+            ordering: conduit_core::LineOrdering::Ordered,
+            reliability: conduit_core::LineReliability::Reliable,
+            continuation: conduit_core::LineContinuation::None,
+            security: conduit_core::LineSecurity::PlaintextNetwork,
+        };
+    }
     let plan = plan_expanded_canonical_with_options(
         &expanded,
         &[west, east],
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::FixtureFrame],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.proof/frame@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

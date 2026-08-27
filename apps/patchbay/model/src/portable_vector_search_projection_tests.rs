@@ -3,7 +3,7 @@ use conduit_ai::{
     VECTOR_SEARCH_RESOURCE_CLASS,
 };
 use conduit_core::{
-    resource_offer, BootId, CapabilityOffer, ConnectionBase, HostAdvertisement, HostId,
+    resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
     HostProfileId, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -60,7 +60,7 @@ fn plan(
         expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap()
 }

@@ -1,6 +1,6 @@
 //! Browser-installed identities and execution for the portable presentation nucleus.
 
-use conduit_core::ConnectionBase;
+use conduit_core::BaseImplementationId;
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
@@ -134,7 +134,7 @@ fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core:
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

@@ -287,7 +287,7 @@ test("two admitted product clients compose Body grants into one exact ready sess
   expect(replacementBasisMatch, probe.output()).not.toBeNull();
   const replacementBasis = JSON.parse(replacementBasisMatch[1]);
   expect(basis).toMatchObject({
-    base: "WebRtcDataChannel",
+    base: "conduit.base/webrtc-data-channel@1",
     session_limits: { maximum_in_flight_items: 1, maximum_payload_bytes: 16, maximum_buffered_bytes: 16 },
     line_limits: { maximum_in_flight_items: 1, maximum_payload_bytes: 16, maximum_buffered_bytes: 16 },
   });

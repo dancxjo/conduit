@@ -1,7 +1,7 @@
 //! Finite public frame and refusal types for browser WebRTC rendezvous.
 
 use conduit_body::MAX_BODY_PARTS;
-use conduit_core::{BootId, ConnectionBase, HostId, LinkBindingId};
+use conduit_core::{BootId, HostId, LinkBindingId};
 use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionMessage};
 use serde::{Deserialize, Serialize};
 
@@ -63,7 +63,7 @@ impl BrowserWebRtcGrant {
         let SessionMessage::Hello(hello) = frame.message else {
             return Err(BrowserAdmissionFrameError::InvalidGrant);
         };
-        if hello.base != ConnectionBase::WebRtcDataChannel
+        if hello.base != "conduit.base/webrtc-data-channel@1"
             || hello.link_binding_id != self.negotiation_id.as_str()
         {
             return Err(BrowserAdmissionFrameError::InvalidGrant);

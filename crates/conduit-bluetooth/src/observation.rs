@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use conduit_core::{BootId, ConnectionBaseInstanceId, HostId, SignId};
+use conduit_core::{BaseInstanceId, BootId, HostId, SignId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -71,7 +71,7 @@ pub struct BluetoothLineObservation {
     pub candidate: BluetoothDiscoveryCandidate,
     /// Fresh boot-scoped instance for this exact controller/address/session
     /// observation. Address or peer-Boot changes must rotate this identity.
-    pub base_instance_id: ConnectionBaseInstanceId,
+    pub base_instance_id: BaseInstanceId,
     pub pairing: BluetoothPairingState,
     pub state: BluetoothLineState,
     pub negotiated_peer: Option<NegotiatedPeerIdentity>,

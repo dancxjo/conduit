@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredInfoValueShape, PROTOCOL_VERSION,
 };
@@ -48,7 +48,7 @@ fn unrelated_arithmetic_lesson_is_one_ordinary_plannable_form() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     assert_eq!(plan.fragments[0].placements.len(), 2);

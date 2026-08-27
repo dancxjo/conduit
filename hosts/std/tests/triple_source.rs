@@ -1,4 +1,4 @@
-use conduit_core::{BootId, ConnectionBase};
+use conduit_core::{BaseImplementationId, BootId};
 use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_std_host::triple_signal::{RemoteKind, TripleSource};
 use conduit_wire::{
@@ -112,7 +112,10 @@ fn stale_pico_boot_and_base_instance_fail_before_play_start() {
     );
 
     let binding = source.binding(RemoteKind::Pico).clone();
-    assert_eq!(binding.attachment.base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        binding.attachment.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
     let mut message = binding.hello_frame().message;
     if let SessionMessage::Hello(ref mut hello) = message {
         hello.base_instance_id = "wrong-triple-base";

@@ -1,7 +1,7 @@
 use super::start::conduit_browser_webrtc_session_start_granted;
 use super::*;
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
     HostId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
 };
 use conduit_wire::{LineAttachment, SessionEndpointIdentity, SessionLimits};
@@ -39,8 +39,17 @@ fn dynamic_binding() -> SessionBinding {
         attachment: LineAttachment {
             line_id: LineId::from("body-grant/dynamic-line"),
             link_binding_id: LinkBindingId::from("body-grant/dynamic-link"),
-            base: ConnectionBase::WebRtcDataChannel,
-            base_instance_id: ConnectionBaseInstanceId::from("body-grant/dynamic-base-instance"),
+            base: BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
+            contract: conduit_core::LineContract {
+                scope: conduit_core::LineScope::PointToPoint,
+                traffic_shape: conduit_core::LineTrafficShape::Message,
+                duplex: conduit_core::LineDuplex::FullDuplex,
+                ordering: conduit_core::LineOrdering::Ordered,
+                reliability: conduit_core::LineReliability::Reliable,
+                continuation: conduit_core::LineContinuation::None,
+                security: conduit_core::LineSecurity::AuthenticatedEncrypted,
+            },
+            base_instance_id: BaseInstanceId::from("body-grant/dynamic-base-instance"),
             source_host_id,
             source_boot_id,
             source_endpoint_id: LinkEndpointId::from("body-grant/dynamic-source-endpoint"),
@@ -62,10 +71,12 @@ fn exact_webrtc_binding_is_planned_and_session_eligible() {
     let binding = exact_binding(0).unwrap();
     assert_eq!(
         binding.attachment.base,
-        conduit_core::ConnectionBase::WebRtcDataChannel
+        conduit_core::BaseImplementationId::from("conduit.base/webrtc-data-channel@1")
     );
-    assert_eq!(binding.attachment.base.canonical_code(), 7);
-    assert!(binding.attachment.base.supports_remote_session());
+    assert_eq!(
+        binding.attachment.contract.traffic_shape,
+        conduit_core::LineTrafficShape::Message
+    );
     assert!(SessionMachine::new(binding, SessionRole::Source).is_ok());
 }
 

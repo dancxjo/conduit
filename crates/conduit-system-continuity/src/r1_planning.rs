@@ -7,8 +7,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase, GearId,
-    HostAdvertisement, HostProfileId, ImplementationId, LineOffer, OfferGeneration, Plan,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    GearId, HostAdvertisement, HostProfileId, ImplementationId, LineOffer, OfferGeneration, Plan,
     PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
@@ -154,9 +154,9 @@ pub fn exact_r1_signal_plan(
             vec![observed_lines[1].clone(), observed_lines[0].clone()]
         }
     };
-    let allowed_bases: Vec<ConnectionBase> = selected_lines
+    let allowed_bases: Vec<BaseImplementationId> = selected_lines
         .iter()
-        .map(|line| line.binding.base)
+        .map(|line| line.binding.base.clone())
         .collect();
     let candidate_order = BTreeMap::from([(
         (
@@ -217,24 +217,24 @@ mod tests {
         assert_eq!(remote_connection(&usb.plan).admitted_lines.len(), 1);
         assert_eq!(
             remote_connection(&usb.plan).admitted_lines[0].binding.base,
-            ConnectionBase::UsbCdc
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
         );
         assert_eq!(remote_connection(&websocket.plan).admitted_lines.len(), 1);
         assert_eq!(
             remote_connection(&websocket.plan).admitted_lines[0]
                 .binding
                 .base,
-            ConnectionBase::WebSocket
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
         );
         assert_ne!(usb.plan.plan_id, websocket.plan.plan_id);
         assert_eq!(remote_connection(&dual.plan).admitted_lines.len(), 2);
         assert_eq!(
             remote_connection(&dual.plan).admitted_lines[0].binding.base,
-            ConnectionBase::WebSocket
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
         );
         assert_eq!(
             remote_connection(&dual.plan).admitted_lines[1].binding.base,
-            ConnectionBase::UsbCdc
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
         );
         assert_ne!(dual.plan.plan_id, usb.plan.plan_id);
         assert_ne!(dual.plan.plan_id, websocket.plan.plan_id);
@@ -289,7 +289,9 @@ mod tests {
             &form,
             &[exact.source_advertisement, exact.pico_advertisement],
             &placements,
-            &[ConnectionBase::WebSocket],
+            &[BaseImplementationId::from(
+                "conduit.base/websocket-rfc6455@1"
+            )],
             PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::from([(

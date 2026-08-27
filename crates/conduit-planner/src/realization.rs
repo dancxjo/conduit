@@ -6,7 +6,7 @@ use crate::{
     RealizationPolicy,
 };
 use alloc::collections::BTreeMap;
-use conduit_core::{ConnectionBase, GearId, HostAdvertisement, Plan, ResourceObservation};
+use conduit_core::{BaseImplementationId, GearId, HostAdvertisement, Plan, ResourceObservation};
 use conduit_form::CheckedForm;
 
 /// Selects exact realizations for a whole checked form, sharing current finite
@@ -14,7 +14,7 @@ use conduit_form::CheckedForm;
 pub fn plan_selected_realizations(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     observations: &[ResourceObservation],
     policies: &BTreeMap<GearId, RealizationPolicy>,

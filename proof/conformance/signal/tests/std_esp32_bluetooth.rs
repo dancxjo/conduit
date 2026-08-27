@@ -1,6 +1,6 @@
 #![cfg(feature = "host-profile")]
 
-use conduit_core::{BootId, ConnectionBase};
+use conduit_core::{BaseImplementationId, BootId};
 use conduit_signal_conformance::{
     exact_std_esp32_bluetooth_plan, exact_std_esp32_c3_bluetooth_plan,
     exact_std_esp32_s3_bluetooth_plan, std_esp32_bluetooth_session_binding,
@@ -33,7 +33,10 @@ fn unchanged_signal_form_seals_one_exact_esp32_bluetooth_fragment() {
     assert_eq!(source.connections[0].connection_id, cord.connection_id);
     assert_eq!(sink.boot_id.as_str(), ESP32_WROOM_IMAGE_BOOT_ID);
     assert_eq!(sink.connections.len(), 1);
-    assert_eq!(line.binding.base, ConnectionBase::BluetoothLeGatt);
+    assert_eq!(
+        line.binding.base,
+        BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
+    );
     assert_eq!(
         line.binding.base_instance_id.as_str(),
         STD_ESP32_BLUETOOTH_BASE_INSTANCE_ID

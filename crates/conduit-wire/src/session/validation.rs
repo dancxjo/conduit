@@ -45,7 +45,8 @@ pub(super) fn validate_hello(
     if hello.limits != binding.attachment.limits {
         return Err(WireError::InvalidLimits);
     }
-    if hello.base != binding.attachment.base
+    if hello.base != binding.attachment.base.as_str()
+        || hello.contract != binding.attachment.contract
         || hello.source_endpoint_id != binding.attachment.source_endpoint_id.as_str()
         || hello.sink_endpoint_id != binding.attachment.sink_endpoint_id.as_str()
     {

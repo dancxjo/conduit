@@ -6,7 +6,7 @@ use crate::{
 };
 use alloc::collections::BTreeMap;
 use conduit_core::{
-    seal_plan, AuthorityGrant, ConnectionBase, FormIdentity, HostAdvertisement, Plan,
+    seal_plan, AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement, Plan,
     PlannedSharedPool, PoolMemberLimits, PoolRealizationEnvelope, ResourceBinding, SharedPoolId,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
@@ -33,7 +33,7 @@ pub fn plan_expanded_canonical(
     form: &ExpandedCanonicalForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
 ) -> Result<Plan, PlannerError> {
     plan_expanded_canonical_with_options(
         form,
@@ -56,7 +56,7 @@ pub fn plan_expanded_canonical_with_options(
     form: &ExpandedCanonicalForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     form.validate_expansion()
@@ -87,7 +87,7 @@ pub fn plan_expanded_canonical_with_connection_limits(
     form: &ExpandedCanonicalForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
@@ -126,7 +126,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
     form: &ExpandedCanonicalForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
     requirements: &BTreeMap<SharedPoolId, SharedPoolPlanningRequirement>,
 ) -> Result<Plan, PlannerError> {

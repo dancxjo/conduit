@@ -2,7 +2,7 @@ use crate::{
     cli::{GlobalOpts, ProveArgs},
     process::StepError,
 };
-use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration};
+use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
@@ -271,7 +271,7 @@ fn plan(
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,

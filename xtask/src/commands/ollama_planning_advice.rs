@@ -2,7 +2,7 @@ use crate::{
     cli::{GlobalOpts, ProveArgs},
     process::StepError,
 };
-use conduit_core::{BootId, CapabilityId, ConnectionBase, HostId, OfferGeneration};
+use conduit_core::{BaseImplementationId, BootId, CapabilityId, HostId, OfferGeneration};
 use conduit_form::parse_with_startup;
 use conduit_planner::{
     default_placements, plan, seed_planning_from_advice, PlanningAdvice, SuggestedPlacement,
@@ -105,8 +105,13 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     let (form, hosts) = fixture();
     let ordinary_choices = default_placements(&form, &hosts)
         .map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?;
-    let baseline = plan(&form, &hosts, &ordinary_choices, &[ConnectionBase::Local])
-        .map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?;
+    let baseline = plan(
+        &form,
+        &hosts,
+        &ordinary_choices,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?;
     let sealed_baseline = baseline.clone();
 
     let request = request(model, &form, &hosts)?;
@@ -147,8 +152,13 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
     let seeded = seed_planning_from_advice(&form, &hosts, &[], &advice).map_err(|error| {
         StepError::prereq(PROOF_ID, format!("planning advice refused: {error:?}"))
     })?;
-    let advised = plan(&form, &hosts, &seeded.placements, &[ConnectionBase::Local])
-        .map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?;
+    let advised = plan(
+        &form,
+        &hosts,
+        &seeded.placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?;
     if baseline != sealed_baseline || baseline.plan_id == advised.plan_id {
         return Err(StepError::prereq(
             PROOF_ID,

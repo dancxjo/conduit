@@ -1,4 +1,4 @@
-use conduit_core::{BootId, ConnectionBase};
+use conduit_core::{BaseImplementationId, BootId};
 use conduit_std_host::pico_wifi_bootstrap::PicoWifiBootstrapSource;
 use conduit_wire::{SessionFrame, SessionMachine, SessionMessage, SessionRole, WireError};
 
@@ -28,7 +28,10 @@ fn source_emits_exact_bounded_runtime_info_without_putting_secrets_in_the_plan()
     let plan_json = serde_json::to_string(source.fragment()).expect("fragment serializes");
     assert!(!plan_json.contains("ordinary-network"));
     assert!(!plan_json.contains("temporary-secret"));
-    assert_eq!(source.binding().attachment.base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        source.binding().attachment.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
     assert_eq!(source.binding().limits.maximum_in_flight_items, 1);
     assert_eq!(
         source.binding().limits.maximum_payload_bytes,

@@ -1,6 +1,6 @@
 use crate::{plan_with_options, PlacementChoices, PlannerError, PlanningOptions};
 use conduit_core::{
-    ConnectionBase, HostAdvertisement, Plan, PlannerCapabilityOffer, PlannerLimits,
+    BaseImplementationId, HostAdvertisement, Plan, PlannerCapabilityOffer, PlannerLimits,
     PlannerProfileId,
 };
 use conduit_form::CheckedForm;
@@ -26,7 +26,7 @@ pub fn plan_with_advertised_profile(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     let mut offers = planner_host

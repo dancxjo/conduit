@@ -167,7 +167,9 @@ fn canonical_pool_plans_equal_face_members_and_exact_consumers_envelope_and_auth
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -225,7 +227,9 @@ fn pool_planning_fails_when_face_capacity_or_authority_scope_is_not_exact() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1"
+        )],
         options,
         &requirements(),
     )
@@ -242,7 +246,9 @@ fn pool_planning_fails_when_face_capacity_or_authority_scope_is_not_exact() {
         &form,
         std::slice::from_ref(&host),
         &placements,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1"
+        )],
         options,
         &wrong,
     )

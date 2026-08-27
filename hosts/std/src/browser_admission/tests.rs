@@ -1,9 +1,9 @@
 use super::*;
 use conduit_core::{
-    bind_active_play, AuthorityContractId, AuthorityGrantId, ConnectionBase,
-    ConnectionBaseInstanceId, ConnectionId, FragmentId, HostProfileId, KindId, LineId,
-    LinkBindingId, LinkEndpointId, LinkLimits, MediaConstraints, MediaFlowBounds, OfferGeneration,
-    PlanId, PortId, ResourceClassId, ResourceHandleId, PROTOCOL_VERSION,
+    bind_active_play, AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId,
+    ConnectionId, FragmentId, HostProfileId, KindId, LineId, LinkBindingId, LinkEndpointId,
+    LinkLimits, MediaConstraints, MediaFlowBounds, OfferGeneration, PlanId, PortId,
+    ResourceClassId, ResourceHandleId, PROTOCOL_VERSION,
 };
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
@@ -31,10 +31,13 @@ fn advertisement() -> BrowserAdmissionIngress {
 }
 
 fn canonical_grant() -> BrowserWebRtcGrant {
-    canonical_grant_for(BrowserWebRtcRole::Source, ConnectionBase::WebRtcDataChannel)
+    canonical_grant_for(
+        BrowserWebRtcRole::Source,
+        BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
+    )
 }
 
-fn canonical_grant_for(role: BrowserWebRtcRole, base: ConnectionBase) -> BrowserWebRtcGrant {
+fn canonical_grant_for(role: BrowserWebRtcRole, base: BaseImplementationId) -> BrowserWebRtcGrant {
     let plan_id = PlanId::from("plan/grant-frame");
     let source_host_id = HostId::from("host/browser");
     let source_boot_id = BootId::from("boot/browser");
@@ -68,7 +71,16 @@ fn canonical_grant_for(role: BrowserWebRtcRole, base: ConnectionBase) -> Browser
             line_id: LineId::from("line/grant-frame"),
             link_binding_id: LinkBindingId::from("binding/grant-frame"),
             base,
-            base_instance_id: ConnectionBaseInstanceId::from("base/grant-frame"),
+            contract: conduit_core::LineContract {
+                scope: conduit_core::LineScope::PointToPoint,
+                traffic_shape: conduit_core::LineTrafficShape::Message,
+                duplex: conduit_core::LineDuplex::FullDuplex,
+                ordering: conduit_core::LineOrdering::Ordered,
+                reliability: conduit_core::LineReliability::Reliable,
+                continuation: conduit_core::LineContinuation::None,
+                security: conduit_core::LineSecurity::AuthenticatedEncrypted,
+            },
+            base_instance_id: BaseInstanceId::from("base/grant-frame"),
             source_host_id,
             source_boot_id,
             source_endpoint_id: LinkEndpointId::from("endpoint/source"),
@@ -286,7 +298,7 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
             total: 1,
             grant: Some(canonical_grant_for(
                 BrowserWebRtcRole::Sink,
-                ConnectionBase::WebRtcDataChannel,
+                BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
             )),
         },
         &mut output,
@@ -317,7 +329,10 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
     for grant in [
         malformed,
         non_hello,
-        canonical_grant_for(BrowserWebRtcRole::Source, ConnectionBase::WebSocket),
+        canonical_grant_for(
+            BrowserWebRtcRole::Source,
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ),
         BrowserWebRtcGrant {
             negotiation_id: LinkBindingId::from("binding/wrong"),
             ..canonical_grant()

@@ -1,7 +1,7 @@
 //! Exact R1 USB and WebSocket route facts for one observed Pico boot.
 
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
     HostId, KindId, LineAvailability, LineAvailabilitySign, LineContinuation, LineContract,
     LineDuplex, LineId, LineOffer, LineOrdering, LineReliability, LineScope, LineSecurity,
     LineTrafficShape, LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference,
@@ -39,7 +39,7 @@ pub const R1_WEBSOCKET_ENDPOINT_SIGN_READY: &[u8] = b"CONDUIT_R1_WEBSOCKET_ENDPO
 pub fn r1_websocket_line(pico_boot_id: BootId) -> LineOffer {
     link(
         R1_WEBSOCKET_LINE_ID,
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         R1_WEBSOCKET_LINK_BINDING_ID,
         R1_WEBSOCKET_BASE_INSTANCE_ID,
         R1_STD_WEBSOCKET_ENDPOINT_ID,
@@ -51,7 +51,7 @@ pub fn r1_websocket_line(pico_boot_id: BootId) -> LineOffer {
 pub fn r1_usb_line_for_boot(pico_boot_id: BootId) -> LineOffer {
     link(
         R1_USB_LINE_ID,
-        ConnectionBase::UsbCdc,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
         R1_USB_LINK_BINDING_ID,
         R1_USB_BASE_INSTANCE_ID,
         R1_STD_USB_ENDPOINT_ID,
@@ -104,6 +104,7 @@ pub fn r1_websocket_probe_binding(pico_boot_id: BootId) -> SessionBinding {
             line_id: line.line_id,
             link_binding_id: link.binding_id,
             base: link.base,
+            contract: line.contract,
             base_instance_id: link.base_instance_id,
             source_host_id: link.source.host_id,
             source_boot_id: link.source.boot_id,
@@ -118,13 +119,14 @@ pub fn r1_websocket_probe_binding(pico_boot_id: BootId) -> SessionBinding {
 
 fn link(
     line_id: &str,
-    base: ConnectionBase,
+    base: BaseImplementationId,
     binding_id: &str,
     base_instance_id: &str,
     source_endpoint_id: &str,
     sink_endpoint_id: &str,
     pico_boot_id: BootId,
 ) -> LineOffer {
+    let is_websocket = base.as_str() == "conduit.base/websocket-rfc6455@1";
     let binding = LinkBinding {
         binding_id: LinkBindingId::from(binding_id),
         source: LinkEndpoint {
@@ -138,7 +140,7 @@ fn link(
             endpoint_id: LinkEndpointId::from(sink_endpoint_id),
         },
         base,
-        base_instance_id: ConnectionBaseInstanceId::from(base_instance_id),
+        base_instance_id: BaseInstanceId::from(base_instance_id),
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
@@ -158,12 +160,12 @@ fn link(
         },
         binding,
         contract: LineContract {
-            scope: if base == ConnectionBase::WebSocket {
+            scope: if is_websocket {
                 LineScope::LocalNetwork
             } else {
                 LineScope::PointToPoint
             },
-            traffic_shape: if base == ConnectionBase::WebSocket {
+            traffic_shape: if is_websocket {
                 LineTrafficShape::Message
             } else {
                 LineTrafficShape::ByteStream
@@ -172,7 +174,7 @@ fn link(
             ordering: LineOrdering::Ordered,
             reliability: LineReliability::Reliable,
             continuation: LineContinuation::BoundedSessionReconciliation,
-            security: if base == ConnectionBase::WebSocket {
+            security: if is_websocket {
                 LineSecurity::PlaintextNetwork
             } else {
                 LineSecurity::PhysicalPossession

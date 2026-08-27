@@ -159,8 +159,8 @@ mod tests {
     use crate::browser_presence::{PresenceWorker, WorkerEvent};
     use conduit_body::{HostPresenceLease, HostPresenceState, MembershipCredential};
     use conduit_core::{
-        bind_active_play, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
-        KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
+        bind_active_play, BaseImplementationId, BaseInstanceId, ConnectionId, FragmentId, KindId,
+        LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
     };
     use conduit_std_host::browser_admission::{
         BrowserWebRtcDescription, BrowserWebRtcSignal, MAX_WEBRTC_SESSION_HELLO_BYTES,
@@ -209,8 +209,17 @@ mod tests {
             attachment: LineAttachment {
                 line_id: LineId::from("line/native-rendezvous"),
                 link_binding_id: LinkBindingId::from("binding/native-rendezvous"),
-                base: ConnectionBase::WebRtcDataChannel,
-                base_instance_id: ConnectionBaseInstanceId::from("base/native-rendezvous"),
+                base: BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
+                contract: conduit_core::LineContract {
+                    scope: conduit_core::LineScope::PointToPoint,
+                    traffic_shape: conduit_core::LineTrafficShape::Message,
+                    duplex: conduit_core::LineDuplex::FullDuplex,
+                    ordering: conduit_core::LineOrdering::Ordered,
+                    reliability: conduit_core::LineReliability::Reliable,
+                    continuation: conduit_core::LineContinuation::None,
+                    security: conduit_core::LineSecurity::AuthenticatedEncrypted,
+                },
+                base_instance_id: BaseInstanceId::from("base/native-rendezvous"),
                 source_host_id: source.host_id.clone(),
                 source_boot_id: source.boot_id.clone(),
                 source_endpoint_id: LinkEndpointId::from("endpoint/source"),

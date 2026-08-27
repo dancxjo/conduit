@@ -103,8 +103,8 @@ fn bounded_fleet_view_keeps_exact_boot_capability_resource_line_and_gap_facts() 
     assert!(document.contains("BOOT s4/triple-browser-boot state=Available"));
     assert!(document.contains("OFFER"));
     assert!(document.contains("RESOURCE"));
-    assert!(document.contains("base=WebSocket"));
-    assert!(document.contains("base=UsbCdc"));
+    assert!(document.contains("base=conduit.base/websocket-rfc6455@1"));
+    assert!(document.contains("base=conduit.base/usb-cdc-acm@1"));
     assert!(document.contains("visible_gaps=3"));
 }
 

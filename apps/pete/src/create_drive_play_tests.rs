@@ -5,9 +5,9 @@ use crate::{
     CREATE_DRIVE_AUTHORITY, CREATE_DRIVE_CAPABILITY, CREATE_DRIVE_OPERATION,
 };
 use conduit_core::{
-    kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, CapabilityId,
-    ConfigurationValue, ConnectionBase, HostOperationContractId, ResourceHealth,
-    ResourceObservation, ResourcePoolId, SignId, SCALAR_INFO_ID,
+    kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
+    CapabilityId, ConfigurationValue, HostOperationContractId, ResourceHealth, ResourceObservation,
+    ResourcePoolId, SignId, SCALAR_INFO_ID,
 };
 use conduit_planner::{
     plan_selected_realizations_with_characteristics_and_authority, SelectedRealizationPlanning,
@@ -128,7 +128,7 @@ fn planned() -> conduit_core::Plan {
         &checked,
         SelectedRealizationPlanning {
             hosts: &[host],
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[],
             observations: &resources,

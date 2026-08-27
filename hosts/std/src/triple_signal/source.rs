@@ -2,7 +2,7 @@ use std::thread;
 use std::time::Duration;
 
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, BootId, ConnectionBase, PlacementId,
+    bind_active_play, bind_presentation, bind_sign, BaseImplementationId, BootId, PlacementId,
     PlanFragment, PresentationId, SignId,
 };
 use conduit_kernel::scheduler::{
@@ -460,7 +460,7 @@ fn node_for_kind(
 fn remote_branch(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
-    base: ConnectionBase,
+    base: BaseImplementationId,
 ) -> Result<RemoteBranch, String> {
     let remote = lowered
         .remote_endpoints

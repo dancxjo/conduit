@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::{plan, PlacementChoices, PlannerError, PlannerPredicate};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    AuthorityContractId, CharacteristicId, CharacteristicQuantity, ConnectionBase, GearId,
+    AuthorityContractId, BaseImplementationId, CharacteristicId, CharacteristicQuantity, GearId,
     HostAdvertisement, HostOperationContractId, Plan, ResourceClassId,
 };
 use conduit_form::CheckedForm;
@@ -83,7 +83,7 @@ pub fn plan_with_hard_requirements(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
 ) -> Result<Plan, PlannerError> {
     validate_hard_requirements(form, hosts, placements, requirements)?;

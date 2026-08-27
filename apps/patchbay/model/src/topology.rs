@@ -363,13 +363,13 @@ fn render_lines(
         push_line(
             lines,
             format!(
-                "  LINE {} {}@{} > {}@{} base={:?} instance={} report={:?} availability={:?}",
+                "  LINE {} {}@{} > {}@{} base={} instance={} report={:?} availability={:?}",
                 link.offer.binding.binding_id.as_str(),
                 link.offer.binding.source.host_id.as_str(),
                 link.offer.binding.source.boot_id.as_str(),
                 link.offer.binding.sink.host_id.as_str(),
                 link.offer.binding.sink.boot_id.as_str(),
-                link.offer.binding.base,
+                link.offer.binding.base.as_str(),
                 link.offer.binding.base_instance_id.as_str(),
                 link.state,
                 link.offer.availability.availability

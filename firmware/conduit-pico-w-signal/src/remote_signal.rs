@@ -4,10 +4,10 @@
 //! ingests Signal items, drives CYW43 LED presentation, emits receipts over
 //! CDC 1 (sign interface), and returns session truth on CDC 0.
 
-use conduit_core::ConnectionBase;
+use conduit_core::BaseImplementationId;
 #[cfg(not(feature = "wifi-bootstrap"))]
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
+    bind_active_play, BootId, BaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
     LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
@@ -103,7 +103,7 @@ pub async fn run_plan_b_signal_sink(
     if state.identity.plan_id != expected.plan_id
         || state.identity.fragment_id != expected.fragment_id
         || state.identity.host_id != expected.host_id
-        || state.binding().attachment.base != ConnectionBase::UsbCdc
+        || state.binding().attachment.base != BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     {
         return Err(UsbLinkError::InvalidGeneratedEndpoint);
     }
@@ -130,9 +130,8 @@ async fn run_remote_signal_sink_for(
     planned: RemoteEndpointIdentity,
     identity: SignalExecutionIdentity,
 ) -> Result<(), UsbLinkError> {
-    let base = ConnectionBase::from_canonical_code(planned.base_code)
-        .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    if base != ConnectionBase::UsbCdc
+    let base = BaseImplementationId::from(planned.base_implementation_id);
+    if base != BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
         || planned.local_host != identity.host_id
         || planned.local_boot != identity.boot_id
         || planned.sink_fragment_id != identity.fragment_id
@@ -176,7 +175,8 @@ async fn run_remote_signal_sink_for(
             line_id: LineId::from(planned.line_id),
             link_binding_id: LinkBindingId::from(planned.link_binding_id),
             base,
-            base_instance_id: ConnectionBaseInstanceId::from(planned.base_instance_id),
+            contract: planned.contract,
+            base_instance_id: BaseInstanceId::from(planned.base_instance_id),
             source_host_id,
             source_boot_id,
             source_endpoint_id: LinkEndpointId::from(planned.peer_endpoint),

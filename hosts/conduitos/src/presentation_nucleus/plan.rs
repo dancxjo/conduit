@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
     KindContractRevision, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
     PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
@@ -64,7 +64,7 @@ pub fn prepare(host: &str, boot: &str) -> Result<PreparedPresentationPlay, Prepa
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

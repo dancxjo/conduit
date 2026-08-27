@@ -1,9 +1,9 @@
 use conduit_core::{
-    kind_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConnectionBase,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    ImplementationOffer, OfferGeneration, Quantity, QuantityUnit, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    PROTOCOL_VERSION,
+    kind_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, ImplementationOffer, OfferGeneration, Quantity, QuantityUnit,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -60,7 +60,7 @@ fn canonical_forms_reuse_bounded_recurrence_and_consume_workflow_info() {
         &workflow.expanded,
         &[workflow_host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     for kind in [SCHEDULE_FIXTURE_KIND, SCHEDULE_ASSESS_KIND] {

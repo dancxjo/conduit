@@ -1,5 +1,5 @@
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
     HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_wire::{
@@ -46,8 +46,9 @@ fn planned_binding() -> SessionBinding {
         attachment: LineAttachment {
             line_id: "line/session".into(),
             link_binding_id: LinkBindingId::from("link/exact"),
-            base: ConnectionBase::UsbCdc,
-            base_instance_id: ConnectionBaseInstanceId::from("base/exact"),
+            base: BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+            contract: remote_session_contract(),
+            base_instance_id: BaseInstanceId::from("base/exact"),
             source_host_id: source.host_id,
             source_boot_id: source.boot_id,
             source_endpoint_id: LinkEndpointId::from("endpoint/source"),
@@ -61,6 +62,18 @@ fn planned_binding() -> SessionBinding {
                 maximum_frame_bytes: 2_048,
             },
         },
+    }
+}
+
+fn remote_session_contract() -> conduit_core::LineContract {
+    conduit_core::LineContract {
+        scope: conduit_core::LineScope::LocalNetwork,
+        traffic_shape: conduit_core::LineTrafficShape::Message,
+        duplex: conduit_core::LineDuplex::FullDuplex,
+        ordering: conduit_core::LineOrdering::Ordered,
+        reliability: conduit_core::LineReliability::Reliable,
+        continuation: conduit_core::LineContinuation::None,
+        security: conduit_core::LineSecurity::PlaintextNetwork,
     }
 }
 

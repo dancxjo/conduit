@@ -158,8 +158,11 @@ identity_type!(LineId);
 identity_type!(LinkBindingId);
 // Base-owned identity of one exact initialized link endpoint.
 identity_type!(LinkEndpointId);
+// Exact versioned identity of one Base implementation. Concrete values are
+// declared by the package that owns the implementation, not by core.
+identity_type!(BaseImplementationId);
 // Identity of one initialized base instance behind a link observation.
-identity_type!(ConnectionBaseInstanceId);
+identity_type!(BaseInstanceId);
 // Opaque reference only; credential material never enters a plan.
 identity_type!(CredentialReferenceId);
 identity_type!(PortId);
@@ -849,7 +852,7 @@ fn invalid_admitted_line(
         || candidate.line_id.as_str() == binding.source.endpoint_id.as_str()
         || candidate.line_id.as_str() == binding.sink.endpoint_id.as_str()
         || binding.binding_id.as_str() == binding.base_instance_id.as_str()
-        || binding.base == ConnectionBase::Local
+        || binding.base == BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)
         || binding.base_instance_id.as_str().is_empty()
         || binding.source.host_id != source.host_id
         || binding.source.boot_id != source.boot_id
@@ -1215,7 +1218,7 @@ fn push_bound_link(canonical: &mut Vec<u8>, binding: &BoundLink) {
     push_string(canonical, binding.sink.host_id.as_str());
     push_string(canonical, binding.sink.boot_id.as_str());
     push_string(canonical, binding.sink.endpoint_id.as_str());
-    canonical.push(binding.base.canonical_code());
+    push_string(canonical, binding.base.as_str());
     push_string(canonical, binding.base_instance_id.as_str());
     match &binding.credential {
         LinkCredentialReference::None => canonical.push(0),
@@ -1743,7 +1746,7 @@ pub fn authority_grant(
 pub fn process_owned_line_offer(
     line_id: &str,
     binding_id: &str,
-    base: ConnectionBase,
+    base: BaseImplementationId,
     base_instance_id: &str,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
@@ -1769,7 +1772,7 @@ pub fn process_owned_line_offer(
 pub fn process_owned_line_offer_with_limits(
     line_id: &str,
     binding_id: &str,
-    base: ConnectionBase,
+    base: BaseImplementationId,
     base_instance_id: &str,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
@@ -1788,7 +1791,7 @@ pub fn process_owned_line_offer_with_limits(
             endpoint_id: LinkEndpointId::from(format!("{binding_id}/sink")),
         },
         base,
-        base_instance_id: ConnectionBaseInstanceId::from(base_instance_id),
+        base_instance_id: BaseInstanceId::from(base_instance_id),
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits,

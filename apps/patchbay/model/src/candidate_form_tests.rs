@@ -5,7 +5,7 @@ use conduit_ai::{
     ModelWorkAccounting, LLM_COMPOSE_KIND,
 };
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PROTOCOL_VERSION,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog};
@@ -164,7 +164,7 @@ fn generated_source_grants_no_authority_and_planning_tracks_current_offers() {
         &admitted.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     assert_eq!(plan.fragments.len(), 1);

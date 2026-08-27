@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, fs, path::Path};
 use conduit_body_fabrication::{
     check_body_description, parse_body_description_conduit, CheckedBodyDescription,
 };
-use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration};
+use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_host_fabrication::{parse_host_configuration_conduit, HostConfiguration};
 use conduit_std_host::{StdHost, StdHostConfig};
 
@@ -83,10 +83,12 @@ fn context(body: &CheckedBodyDescription) -> Result<ProductExecutionContext, Str
             }
         }
     }
-    let mut connection_bases = vec![ConnectionBase::Local];
+    let mut connection_bases = vec![BaseImplementationId::from("conduit.base/local@1")];
     let mut line_runtimes = Vec::<Box<dyn crate::product_execution::ProductLineRuntime>>::new();
     if !line_offers.is_empty() {
-        connection_bases.push(ConnectionBase::WebSocket);
+        connection_bases.push(BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        ));
         line_runtimes.push(Box::new(crate::std_websocket_line::ProductWebSocketRuntime));
     }
     let advertisements = hosts

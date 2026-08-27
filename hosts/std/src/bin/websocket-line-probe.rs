@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
     HostId, KindId, LinkBindingId, LinkEndpoint, LinkEndpointId, LinkLimits, PlanId,
     PROTOCOL_VERSION,
 };
@@ -132,8 +132,17 @@ fn binding() -> SessionBinding {
         attachment: LineAttachment {
             line_id: "line/websocket-probe".into(),
             link_binding_id: LinkBindingId::from("probe/link"),
-            base: ConnectionBase::WebSocket,
-            base_instance_id: ConnectionBaseInstanceId::from("probe/websocket/instance"),
+            base: BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            contract: conduit_core::LineContract {
+                scope: conduit_core::LineScope::LocalNetwork,
+                traffic_shape: conduit_core::LineTrafficShape::Message,
+                duplex: conduit_core::LineDuplex::FullDuplex,
+                ordering: conduit_core::LineOrdering::Ordered,
+                reliability: conduit_core::LineReliability::Reliable,
+                continuation: conduit_core::LineContinuation::BoundedSessionReconciliation,
+                security: conduit_core::LineSecurity::PlaintextNetwork,
+            },
+            base_instance_id: BaseInstanceId::from("probe/websocket/instance"),
             source_host_id: source.host_id,
             source_boot_id: source.boot_id,
             source_endpoint_id: LinkEndpointId::from("probe/source-endpoint"),

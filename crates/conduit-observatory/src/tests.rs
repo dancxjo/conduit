@@ -77,7 +77,7 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
     assert_eq!(report.lines.len(), 1);
     assert_eq!(report.lines[0].offer, exact.line_offer);
     let rendered = render_text_report(&report);
-    assert!(rendered.contains("base=UsbCdc"));
+    assert!(rendered.contains("base=conduit.base/usb-cdc-acm@1"));
     assert!(rendered.contains("s4/std-pico-usb-cdc-link"));
     assert!(rendered.contains("profile=rust-std-kernel"));
     assert!(rendered.contains("profile=rp2040-kernel"));

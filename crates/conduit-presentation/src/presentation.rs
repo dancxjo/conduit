@@ -4,7 +4,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_body::{BodyId, SeedId, WakeId};
 use conduit_core::{
-    ActivePlayId, CheckedFormId, ConnectionBase, ExpandedFormId, PlanId, SignId, SourceDocumentId,
+    ActivePlayId, BaseImplementationId, CheckedFormId, ExpandedFormId, PlanId, SignId,
+    SourceDocumentId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -105,7 +106,7 @@ pub struct PresentationText {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PresentationPropertyValue {
     Identity(String),
-    ConnectionBase(ConnectionBase),
+    BaseImplementationId(BaseImplementationId),
     Text(String),
     Count(u64),
     Signed(i64),
@@ -304,7 +305,7 @@ impl Presentation {
             match &property.value {
                 PresentationPropertyValue::Identity(value) => validate_id(value)?,
                 PresentationPropertyValue::Text(value) => validate_text(value)?,
-                PresentationPropertyValue::ConnectionBase(_)
+                PresentationPropertyValue::BaseImplementationId(_)
                 | PresentationPropertyValue::Count(_)
                 | PresentationPropertyValue::Signed(_)
                 | PresentationPropertyValue::Flag(_) => {}
@@ -436,7 +437,7 @@ fn property_value_len(value: &PresentationPropertyValue) -> usize {
         PresentationPropertyValue::Identity(value) | PresentationPropertyValue::Text(value) => {
             value.len()
         }
-        PresentationPropertyValue::ConnectionBase(_) => 1,
+        PresentationPropertyValue::BaseImplementationId(_) => 1,
         PresentationPropertyValue::Count(_) | PresentationPropertyValue::Signed(_) => 8,
         PresentationPropertyValue::Flag(_) => 1,
     }

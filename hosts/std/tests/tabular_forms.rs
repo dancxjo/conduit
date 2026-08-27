@@ -1,7 +1,7 @@
 use conduit_core::{
-    kind_id, BootId, BoundedResourceRef, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, PortTemporal, ResourceClassId, ResourceExtent, ResourceLifetime,
-    ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoValue,
+    kind_id, BaseImplementationId, BootId, BoundedResourceRef, HostAdvertisement, HostId,
+    HostProfileId, OfferGeneration, PortTemporal, ResourceClassId, ResourceExtent,
+    ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoValue,
     StructuredInfoValueShape, PROTOCOL_VERSION,
 };
 use conduit_data::{
@@ -59,7 +59,7 @@ fn canonical_form_filters_and_projects_rows_without_sql_or_json() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     let filter = plan.fragments[0]

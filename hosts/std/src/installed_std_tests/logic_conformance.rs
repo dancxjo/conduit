@@ -1,4 +1,4 @@
-use super::{host, installed_std, BTreeMap, ConnectionBase, PlanningOptions, RecordingTimer};
+use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions, RecordingTimer};
 use conduit_core::{ArtifactId, ObservationKind, TerminalDisposition, SCALAR_ENCODED_LEN};
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options};
@@ -28,7 +28,7 @@ fn plan() -> (super::StdHost, conduit_core::Plan) {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

@@ -1,68 +1,16 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AuthorityGrantId, BootId, ConnectionBaseInstanceId, CredentialReferenceId, HostId, LineId,
-    LinkBindingId, LinkEndpointId, SignId,
+    AuthorityGrantId, BaseImplementationId, BaseInstanceId, BootId, CredentialReferenceId, HostId,
+    LineId, LinkBindingId, LinkEndpointId, SignId,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ConnectionBase {
-    Local,
-    InMemory,
-    /// Deterministic bounded frame transit used only by conformance fixtures.
-    FixtureFrame,
-    /// Deterministic bounded datagram transit used only by conformance fixtures.
-    FixtureDatagram,
-    /// Actual RFC 6455 binary-message Base.
-    WebSocket,
-    /// Bounded length-framed USB CDC ACM byte-stream Base.
-    UsbCdc,
-    /// BLE GATT service with bounded write-command and notification characteristics.
-    BluetoothLeGatt,
-    /// Ordered reliable bounded binary-message WebRTC DataChannel Base.
-    WebRtcDataChannel,
-}
-
-impl ConnectionBase {
-    pub const fn canonical_code(self) -> u8 {
-        match self {
-            Self::Local => 0,
-            Self::InMemory => 1,
-            Self::FixtureFrame => 2,
-            Self::FixtureDatagram => 3,
-            Self::WebSocket => 4,
-            Self::UsbCdc => 5,
-            Self::BluetoothLeGatt => 6,
-            Self::WebRtcDataChannel => 7,
-        }
-    }
-
-    pub const fn from_canonical_code(code: u8) -> Option<Self> {
-        match code {
-            0 => Some(Self::Local),
-            1 => Some(Self::InMemory),
-            2 => Some(Self::FixtureFrame),
-            3 => Some(Self::FixtureDatagram),
-            4 => Some(Self::WebSocket),
-            5 => Some(Self::UsbCdc),
-            6 => Some(Self::BluetoothLeGatt),
-            7 => Some(Self::WebRtcDataChannel),
-            _ => None,
-        }
-    }
-
-    /// Contract compatibility does not claim an offered or runnable Line.
-    pub const fn supports_remote_session(self) -> bool {
-        matches!(
-            self,
-            Self::FixtureFrame
-                | Self::WebSocket
-                | Self::UsbCdc
-                | Self::BluetoothLeGatt
-                | Self::WebRtcDataChannel
-        )
-    }
-}
+/// Reserved identity for realization wholly inside one Host process.
+///
+/// Local execution is the sole universal Base identity because it denotes the
+/// absence of a cross-Host Line: same-Host Cords are lowered directly into the
+/// one kernel and therefore must never be admitted as offered connectivity.
+pub const LOCAL_BASE_IMPLEMENTATION_ID: &str = "conduit.base/local@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LineAvailability {
@@ -166,8 +114,8 @@ pub struct LinkBinding {
     pub binding_id: LinkBindingId,
     pub source: LinkEndpoint,
     pub sink: LinkEndpoint,
-    pub base: ConnectionBase,
-    pub base_instance_id: ConnectionBaseInstanceId,
+    pub base: BaseImplementationId,
+    pub base_instance_id: BaseInstanceId,
     pub credential: LinkCredentialReference,
     pub authority: LinkAuthorityReference,
     pub limits: LinkLimits,
@@ -179,8 +127,8 @@ pub struct BoundLink {
     pub binding_id: LinkBindingId,
     pub source: LinkEndpoint,
     pub sink: LinkEndpoint,
-    pub base: ConnectionBase,
-    pub base_instance_id: ConnectionBaseInstanceId,
+    pub base: BaseImplementationId,
+    pub base_instance_id: BaseInstanceId,
     pub credential: LinkCredentialReference,
     pub authority: LinkAuthorityReference,
     pub limits: LinkLimits,
@@ -192,7 +140,7 @@ impl From<&LinkBinding> for BoundLink {
             binding_id: binding.binding_id.clone(),
             source: binding.source.clone(),
             sink: binding.sink.clone(),
-            base: binding.base,
+            base: binding.base.clone(),
             base_instance_id: binding.base_instance_id.clone(),
             credential: binding.credential.clone(),
             authority: binding.authority.clone(),

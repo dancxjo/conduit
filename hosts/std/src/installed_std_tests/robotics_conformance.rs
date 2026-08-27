@@ -12,7 +12,7 @@ fn plan(source: &str, id: &str) -> (StdHost, conduit_core::PlanFragment) {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -184,7 +184,7 @@ fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

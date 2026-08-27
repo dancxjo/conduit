@@ -5,7 +5,7 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/r1_plan_c_signal_image.rs"));
 }
 
-use conduit_core::ConnectionBase;
+use conduit_core::BaseImplementationId;
 use conduit_kernel::{CordId, RemoteEndpointId};
 
 use crate::signal_execution_identity::SignalExecutionIdentity;
@@ -28,13 +28,13 @@ pub fn execution_identity() -> SignalExecutionIdentity {
     }
 }
 
-pub fn endpoint(base: ConnectionBase) -> Option<RemoteEndpointIdentity> {
+pub fn endpoint(base: BaseImplementationId) -> Option<RemoteEndpointIdentity> {
     if generated::GENERATED_REMOTE_ENDPOINT_COUNT != 2 {
         return None;
     }
-    let index = generated::GENERATED_REMOTE_ENDPOINT_BASE_CODES
+    let index = generated::GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS
         .iter()
-        .position(|code| ConnectionBase::from_canonical_code(*code) == Some(base))?;
+        .position(|identity| *identity == base.as_str())?;
     let cord = CordId(*generated::GENERATED_REMOTE_ENDPOINT_CORDS.get(index)?);
     let cord_spec = generated::GENERATED_CORDS.get(usize::from(cord.0))?;
     Some(RemoteEndpointIdentity {
@@ -49,7 +49,8 @@ pub fn endpoint(base: ConnectionBase) -> Option<RemoteEndpointIdentity> {
         peer_host: generated::GENERATED_REMOTE_ENDPOINT_PEER_HOSTS.get(index)?,
         peer_boot: generated::GENERATED_REMOTE_ENDPOINT_PEER_BOOTS.get(index)?,
         peer_endpoint: generated::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS.get(index)?,
-        base_code: *generated::GENERATED_REMOTE_ENDPOINT_BASE_CODES.get(index)?,
+        base_implementation_id: generated::GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS.get(index)?,
+        contract: *generated::GENERATED_REMOTE_ENDPOINT_LINE_CONTRACTS.get(index)?,
         base_instance_id: generated::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS.get(index)?,
         line_id: generated::GENERATED_REMOTE_ENDPOINT_LINE_IDS.get(index)?,
         link_binding_id: generated::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS.get(index)?,
@@ -69,10 +70,10 @@ pub fn endpoint(base: ConnectionBase) -> Option<RemoteEndpointIdentity> {
 
 pub fn validate() -> bool {
     let identity = execution_identity();
-    let Some(websocket) = endpoint(ConnectionBase::WebSocket) else {
+    let Some(websocket) = endpoint(BaseImplementationId::from("conduit.base/websocket-rfc6455@1")) else {
         return false;
     };
-    let Some(usb) = endpoint(ConnectionBase::UsbCdc) else {
+    let Some(usb) = endpoint(BaseImplementationId::from("conduit.base/usb-cdc-acm@1")) else {
         return false;
     };
     websocket.connection_id == usb.connection_id

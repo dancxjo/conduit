@@ -3,7 +3,7 @@
 use crate::hosted_local_model::{HostedLocalModelAdapter, OllamaLocalModelAdapter};
 use crate::{StdHost, StdHostComposition, StdHostConfig, TimerAdapter};
 use conduit_ai::LocalModelKindProfile;
-use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration};
+use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -121,7 +121,7 @@ fn run_profile(
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,

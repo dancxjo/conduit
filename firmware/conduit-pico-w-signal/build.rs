@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, BootId, ConnectionBase, HostId, PlacementId,
+    bind_active_play, bind_presentation, bind_sign, BootId, BaseImplementationId, HostId, PlacementId,
     PlanId,
 };
 use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan};
@@ -529,7 +529,7 @@ fn generate_pico_signal_image(out: &Path) {
             &form,
             std::slice::from_ref(&advertisement),
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
             SIGNAL_ENCODED_LEN,
         )

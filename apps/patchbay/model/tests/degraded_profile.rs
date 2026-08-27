@@ -1,7 +1,7 @@
 use conduit_ai::{DATA_EGRESS_CHARACTERISTIC, MAXIMUM_CONTEXT_CHARACTERISTIC};
 use conduit_core::{
-    CharacteristicId, CharacteristicUnit, ConnectionBase, ResourceHealth, ResourceObservation,
-    SignId,
+    BaseImplementationId, CharacteristicId, CharacteristicUnit, ResourceHealth,
+    ResourceObservation, SignId,
 };
 use conduit_planner::{
     seal_reviewed_service_profile_plan, select_reviewed_service_profile, DegradationDirection,
@@ -102,7 +102,7 @@ fn patchbay_names_requested_surviving_policy_plan_and_current_signs() {
     let plan_a = seal_reviewed_service_profile_plan(
         &form,
         &hosts,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         &advertisements,
         &full,
     )
@@ -128,7 +128,7 @@ fn patchbay_names_requested_surviving_policy_plan_and_current_signs() {
     let plan_b = seal_reviewed_service_profile_plan(
         &form,
         &surviving_hosts,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         &surviving_ads,
         &degraded,
     )

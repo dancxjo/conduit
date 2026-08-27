@@ -1,7 +1,7 @@
 //! Retained Plan C sink state shared by its admitted line candidates.
 
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BootId, BaseImplementationId, BaseInstanceId, ConnectionId, FragmentId,
     HostId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_wire::{
@@ -36,9 +36,9 @@ impl ContinuableSignalSink {
             return Err(UsbLinkError::InvalidGeneratedEndpoint);
         }
         let identity = crate::plan_c_signal_image::execution_identity();
-        let endpoint = crate::plan_c_signal_image::endpoint(ConnectionBase::WebSocket)
+        let endpoint = crate::plan_c_signal_image::endpoint(BaseImplementationId::from("conduit.base/websocket-rfc6455@1"))
             .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-        let usb_endpoint = crate::plan_c_signal_image::endpoint(ConnectionBase::UsbCdc)
+        let usb_endpoint = crate::plan_c_signal_image::endpoint(BaseImplementationId::from("conduit.base/usb-cdc-acm@1"))
             .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         let usb_machine_binding = binding(usb_endpoint, identity, runtime)?;
         let usb_receipt_binding = usb_machine_binding.clone();
@@ -103,8 +103,7 @@ fn binding(
     identity: SignalExecutionIdentity,
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<SessionBinding, UsbLinkError> {
-    let base = ConnectionBase::from_canonical_code(endpoint.base_code)
-        .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
+    let base = BaseImplementationId::from(endpoint.base_implementation_id);
     if endpoint.local_host != identity.host_id
         || endpoint.local_boot != identity.boot_id
         || endpoint.sink_fragment_id != identity.fragment_id
@@ -143,7 +142,8 @@ fn binding(
             line_id: LineId::from(endpoint.line_id),
             link_binding_id: LinkBindingId::from(endpoint.link_binding_id),
             base,
-            base_instance_id: ConnectionBaseInstanceId::from(endpoint.base_instance_id),
+            contract: endpoint.contract,
+            base_instance_id: BaseInstanceId::from(endpoint.base_instance_id),
             source_host_id: source_host,
             source_boot_id: source_boot,
             source_endpoint_id: LinkEndpointId::from(endpoint.peer_endpoint),

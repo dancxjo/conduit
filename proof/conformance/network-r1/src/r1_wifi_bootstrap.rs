@@ -8,8 +8,8 @@ use alloc::vec;
 
 use conduit_core::{
     authority_grant, process_owned_line_offer_with_limits, ArtifactId, AuthorityGrant,
-    CapabilityId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    LinkEndpointId, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
+    BaseImplementationId, CapabilityId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    LineScope, LineSecurity, LinkEndpointId, LinkLimits, OfferGeneration, Plan, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -88,7 +88,7 @@ pub fn r1_usb_bootstrap_line() -> conduit_core::LineOffer {
     let mut line = process_owned_line_offer_with_limits(
         R1_USB_LINE_ID,
         R1_USB_LINK_BINDING_ID,
-        ConnectionBase::UsbCdc,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
         R1_USB_BASE_INSTANCE_ID,
         &source,
         &sink,
@@ -101,6 +101,8 @@ pub fn r1_usb_bootstrap_line() -> conduit_core::LineOffer {
     );
     line.binding.source.endpoint_id = LinkEndpointId::from(R1_STD_USB_ENDPOINT_ID);
     line.binding.sink.endpoint_id = LinkEndpointId::from(R1_PICO_USB_ENDPOINT_ID);
+    line.contract.scope = LineScope::PointToPoint;
+    line.contract.security = LineSecurity::PhysicalPossession;
     line
 }
 
@@ -180,7 +182,10 @@ pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, 
         &form,
         &[source_advertisement.clone(), pico_advertisement.clone()],
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::UsbCdc],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

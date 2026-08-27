@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PortTemporal, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
 };
 use conduit_data::{
@@ -59,7 +59,7 @@ fn canonical_form_flows_money_quotes_events_and_exact_comparison() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     for kind in [

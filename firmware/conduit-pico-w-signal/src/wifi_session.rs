@@ -1,7 +1,7 @@
 //! Exact Session binding reconstructed from the generated Pico network image.
 
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BootId, BaseImplementationId, BaseInstanceId, ConnectionId, FragmentId,
     HostId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
@@ -14,9 +14,8 @@ pub fn session_binding(
     runtime: &RuntimeTranscriptIdentity,
 ) -> Result<SessionBinding, UsbLinkError> {
     let endpoint = generated_remote_endpoint().ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    let base = ConnectionBase::from_canonical_code(endpoint.base_code)
-        .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-    if base != ConnectionBase::UsbCdc {
+    let base = BaseImplementationId::from(endpoint.base_implementation_id);
+    if base != BaseImplementationId::from("conduit.base/usb-cdc-acm@1") {
         return Err(UsbLinkError::InvalidGeneratedEndpoint);
     }
     let plan_id = PlanId::from(crate::network_image::PLAN_ID);
@@ -51,7 +50,8 @@ pub fn session_binding(
             line_id: LineId::from(endpoint.line_id),
             link_binding_id: LinkBindingId::from(endpoint.link_binding_id),
             base,
-            base_instance_id: ConnectionBaseInstanceId::from(endpoint.base_instance_id),
+            contract: endpoint.contract,
+            base_instance_id: BaseInstanceId::from(endpoint.base_instance_id),
             source_host_id: source_host,
             source_boot_id: source_boot,
             source_endpoint_id: LinkEndpointId::from(endpoint.peer_endpoint),

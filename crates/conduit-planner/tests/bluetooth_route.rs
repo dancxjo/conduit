@@ -6,8 +6,8 @@ use conduit_bluetooth::{
     BluetoothLineState, BluetoothPairingState, NegotiatedPeerIdentity,
 };
 use conduit_core::{
-    ConnectionBase, ConnectionBaseInstanceId, GearId, LineAvailability, LineId,
-    LinkAuthorityReference, LinkCredentialReference, SignId,
+    BaseImplementationId, BaseInstanceId, GearId, LineAvailability, LineId, LinkAuthorityReference,
+    LinkCredentialReference, SignId,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
@@ -67,10 +67,10 @@ fn plan_for_browser_line(
         ],
         &placements,
         &[
-            ConnectionBase::Local,
-            ConnectionBase::BluetoothLeGatt,
-            ConnectionBase::WebSocket,
-            ConnectionBase::UsbCdc,
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
         ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
@@ -92,8 +92,8 @@ fn selected_browser_line(plan: &conduit_core::Plan) -> &conduit_core::AdmittedLi
         .find_map(|connection| {
             connection.selected_line.as_ref().filter(|line| {
                 matches!(
-                    line.binding.base,
-                    ConnectionBase::BluetoothLeGatt | ConnectionBase::WebSocket
+                    line.binding.base.as_str(),
+                    "conduit.base/bluetooth-le-gatt@1" | "conduit.base/websocket-rfc6455@1"
                 )
             })
         })
@@ -112,7 +112,7 @@ fn loss_preserves_plan_and_fresh_planning_selects_a_replacement_for_the_same_for
             address_kind: BluetoothAddressKind::ResolvablePrivate,
             advertises_conduit_service: true,
         },
-        base_instance_id: ConnectionBaseInstanceId::from("bluez/hci0/session-a"),
+        base_instance_id: BaseInstanceId::from("bluez/hci0/session-a"),
         pairing: BluetoothPairingState::Bonded,
         state: BluetoothLineState::Ready,
         negotiated_peer: Some(NegotiatedPeerIdentity {
@@ -157,14 +157,14 @@ fn loss_preserves_plan_and_fresh_planning_selects_a_replacement_for_the_same_for
     assert_eq!(plan_a, immutable_a);
     assert_eq!(
         selected_browser_line(&plan_a).binding.base,
-        ConnectionBase::BluetoothLeGatt
+        BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
     );
 
     let plan_b = plan_for_browser_line(&form, websocket);
     assert_ne!(plan_a.plan_id, plan_b.plan_id);
     assert_eq!(
         selected_browser_line(&plan_b).binding.base,
-        ConnectionBase::WebSocket
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
     );
     assert_eq!(
         plan_a.checked_form_id, plan_b.checked_form_id,

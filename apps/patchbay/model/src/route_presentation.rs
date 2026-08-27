@@ -1,7 +1,7 @@
 //! Toolkit-independent views of one sign-backed distributed route demonstration.
 
 use conduit_core::{
-    ConnectionBase, ConnectionBaseInstanceId, ConnectionId, LinkBindingId, PlanId, SignId,
+    BaseImplementationId, BaseInstanceId, ConnectionId, LinkBindingId, PlanId, SignId,
     SourceDocumentId,
 };
 
@@ -9,8 +9,8 @@ use conduit_core::{
 pub struct RouteCandidatePresentation {
     pub order: usize,
     pub binding_id: LinkBindingId,
-    pub base: ConnectionBase,
-    pub base_instance_id: ConnectionBaseInstanceId,
+    pub base: BaseImplementationId,
+    pub base_instance_id: BaseInstanceId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -211,7 +211,7 @@ fn candidate_lines(
             format!(
                 "    {marker} order={} {} binding={} base-instance={}",
                 candidate.order,
-                display_base(candidate.base),
+                display_base(&candidate.base),
                 candidate.binding_id.as_str(),
                 candidate.base_instance_id.as_str()
             )
@@ -225,7 +225,7 @@ fn candidate_names(plan: &RoutePlanPresentation) -> String {
         .map(|candidate| {
             format!(
                 "{} (binding {}, base instance {})",
-                display_base(candidate.base),
+                display_base(&candidate.base),
                 candidate.binding_id.as_str(),
                 candidate.base_instance_id.as_str()
             )
@@ -234,17 +234,8 @@ fn candidate_names(plan: &RoutePlanPresentation) -> String {
         .join(", then ")
 }
 
-fn display_base(base: ConnectionBase) -> &'static str {
-    match base {
-        ConnectionBase::Local => "local connection",
-        ConnectionBase::InMemory => "in-memory connection",
-        ConnectionBase::FixtureFrame => "fixture frame",
-        ConnectionBase::FixtureDatagram => "fixture datagram",
-        ConnectionBase::WebSocket => "WebSocket",
-        ConnectionBase::UsbCdc => "USB CDC",
-        ConnectionBase::BluetoothLeGatt => "Bluetooth LE GATT",
-        ConnectionBase::WebRtcDataChannel => "WebRTC DataChannel",
-    }
+fn display_base(base: &BaseImplementationId) -> &str {
+    base.as_str()
 }
 
 fn display_binding(binding_id: &LinkBindingId) -> &str {

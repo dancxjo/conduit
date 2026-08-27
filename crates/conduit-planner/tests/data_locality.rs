@@ -274,8 +274,8 @@ fn high_rate_flow_moves_compatible_reduction_to_the_source() {
         &hosts,
         &selection.selected.placements,
         &[
-            conduit_core::ConnectionBase::Local,
-            conduit_core::ConnectionBase::WebSocket,
+            conduit_core::BaseImplementationId::from("conduit.base/local@1"),
+            conduit_core::BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         ],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),

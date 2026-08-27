@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     bind_active_play, kind_id, resource_offer, seal_plan_with_realization_backs,
-    AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId, ConnectionBase, GearId,
+    AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId, GearId,
     HostAdvertisement, HostId, HostOperationContractId, HostProfileId, LineId, LinkBindingId,
     LinkEndpointId, OfferGeneration, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId, SignId,
@@ -138,7 +138,7 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
         &direct,
         std::slice::from_ref(&direct_host),
         &direct_placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
 
@@ -260,7 +260,10 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
         &recursive,
         &hosts,
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -285,7 +288,10 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
         &recursive,
         &hosts,
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         options,
     )
     .unwrap();

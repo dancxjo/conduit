@@ -5,7 +5,7 @@ use crate::hosted_midi::{
 };
 use crate::{RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHostConfig};
 use conduit_core::{
-    BootId, ConnectionBase, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
+    BaseImplementationId, BootId, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
 };
 use conduit_std_catalog::{NormalizedSoundTrace, RealizedSoundEvidence, SelectedSoundRealization};
 use std::collections::BTreeMap;
@@ -68,7 +68,7 @@ fn fragment(host: &StdHost, grant_count: usize) -> Result<conduit_core::PlanFrag
         &form,
         conduit_planner::SelectedRealizationPlanning {
             hosts: &hosts,
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[realization],
             observations: &[observation],

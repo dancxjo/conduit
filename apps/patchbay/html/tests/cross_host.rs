@@ -1,4 +1,4 @@
-use conduit_core::{bind_active_play, verify_plan, ConnectionBase};
+use conduit_core::{bind_active_play, verify_plan, BaseImplementationId};
 use conduit_presentation::ManifestationLifecycle;
 use patchbay_html::cross_host_demonstration_snapshot;
 use patchbay_model::{CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_KIND};
@@ -39,7 +39,10 @@ fn one_exact_presentation_crosses_the_planned_line_into_the_html_renderer() {
 
     let connection = source.connections.first().unwrap();
     let line = connection.selected_line.as_ref().unwrap();
-    assert_eq!(line.binding.base, ConnectionBase::WebSocket);
+    assert_eq!(
+        line.binding.base,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
+    );
     assert_eq!(line.line_id.as_str(), "patchbay-renderer/line/websocket");
     assert_eq!(
         line.binding.binding_id.as_str(),

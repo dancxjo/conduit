@@ -2,8 +2,8 @@
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
-    ActivePlayIdentity, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CharacteristicId, ConnectionBase, ExecutionProfileId, GearId, HostAdvertisement,
+    ActivePlayIdentity, ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, CharacteristicId, ExecutionProfileId, GearId, HostAdvertisement,
     ImplementationId, KindContractRevision, Plan, PortDescriptor, PortDirection,
     RealizationAdvertisement, bind_active_play, kind_id, port_id,
 };
@@ -79,7 +79,7 @@ pub fn prepare(
         &form,
         SelectedRealizationPlanning {
             hosts: &hosts,
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &requirements,
             advertisements: core::slice::from_ref(&realization),
             observations: &observations,

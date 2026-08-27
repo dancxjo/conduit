@@ -2,7 +2,7 @@
 
 use super::presentation_validation::validate_presentation_invocation;
 use super::*;
-use conduit_core::{bind_active_play, ConnectionBase};
+use conduit_core::{bind_active_play, BaseImplementationId};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerError, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
@@ -207,7 +207,7 @@ impl PatchbayInteraction {
             &expanded,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             conduit_planner::PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),

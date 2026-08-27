@@ -1,6 +1,6 @@
 #![cfg(feature = "host-profile")]
 
-use conduit_core::ConnectionBase;
+use conduit_core::BaseImplementationId;
 use conduit_signal_conformance::{
     exact_std_pico_bluetooth_plan, exact_std_pico_usb_plan, std_pico_bluetooth_session_binding,
     STD_PICO_BLUETOOTH_BASE_INSTANCE_ID, STD_PICO_USB_SINK_HOST_ID,
@@ -16,7 +16,10 @@ fn unchanged_signal_form_seals_one_exact_bluetooth_pico_fragment() {
         .find(|fragment| fragment.host_id.as_str() == STD_PICO_USB_SINK_HOST_ID)
         .unwrap();
     let line = sink.connections[0].selected_line.as_ref().unwrap();
-    assert_eq!(line.binding.base, ConnectionBase::BluetoothLeGatt);
+    assert_eq!(
+        line.binding.base,
+        BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
+    );
     assert_eq!(
         line.binding.base_instance_id.as_str(),
         STD_PICO_BLUETOOTH_BASE_INSTANCE_ID
@@ -24,7 +27,10 @@ fn unchanged_signal_form_seals_one_exact_bluetooth_pico_fragment() {
 
     let binding = std_pico_bluetooth_session_binding().unwrap();
     assert_eq!(binding.plan_id, exact.plan.plan_id);
-    assert_eq!(binding.attachment.base, ConnectionBase::BluetoothLeGatt);
+    assert_eq!(
+        binding.attachment.base,
+        BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
+    );
     assert_eq!(binding.sink.host_id, sink.host_id);
 }
 
@@ -64,11 +70,11 @@ fn unchanged_form_can_receive_a_fresh_usb_realization_after_bluetooth_loss() {
     );
     assert_eq!(
         bluetooth_cord.selected_line.as_ref().unwrap().binding.base,
-        ConnectionBase::BluetoothLeGatt
+        BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
     );
     assert_eq!(
         usb_cord.selected_line.as_ref().unwrap().binding.base,
-        ConnectionBase::UsbCdc
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     );
 }
 

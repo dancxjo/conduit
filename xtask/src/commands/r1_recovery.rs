@@ -1,7 +1,7 @@
 //! Deterministic R1 new-Plan recovery proof with an explicitly injected Line-loss Sign.
 
 use conduit_core::{
-    ActivePlayId, BootId, ConnectionBase, ControlLoopEvent, GearId, HostId, LineAvailability,
+    ActivePlayId, BaseImplementationId, BootId, ControlLoopEvent, GearId, HostId, LineAvailability,
     LineAvailabilitySign, LineId, PlanId, SignId,
 };
 use conduit_system_continuity::{
@@ -23,10 +23,10 @@ struct SoftwareRecoveryOutcome {
     wake_id: conduit_body::WakeId,
     plan_a_id: PlanId,
     play_a_id: ActivePlayId,
-    plan_a_line: ConnectionBase,
+    plan_a_line: BaseImplementationId,
     plan_b_id: PlanId,
     play_b_id: ActivePlayId,
-    plan_b_line: ConnectionBase,
+    plan_b_line: BaseImplementationId,
     control_events: Vec<ControlLoopEvent>,
     led_result: R1LedResultSign,
     physical_acceptance: bool,
@@ -156,8 +156,8 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
         || wake_id != recovery.wake().wake_id
         || plan_a_id == plan_b_id
         || play_a_id == play_b_id
-        || plan_a_line != ConnectionBase::WebSocket
-        || plan_b_line != ConnectionBase::UsbCdc
+        || plan_a_line != BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
+        || plan_b_line != BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     {
         return Err("recovery identity or Line invariant mismatched".into());
     }

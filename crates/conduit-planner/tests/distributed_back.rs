@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    kind_id, port_id, ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConnectionBase, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, HostAdvertisement, HostId, HostProfileId, ImplementationId,
     ImplementationOffer, KindContractRevision, LineId, LinkBindingId, LinkEndpointId,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
 };
@@ -238,7 +238,10 @@ fn plan_with_http_part(
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -265,7 +268,7 @@ fn direct_plan_on(part: &str) -> (conduit_form::ExpandedCanonicalForm, conduit_c
         &form,
         &[direct],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

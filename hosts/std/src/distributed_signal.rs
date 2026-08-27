@@ -3,7 +3,7 @@
 use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_core::{bind_active_play, Observation, PlanFragment};
 #[cfg(test)]
-use conduit_core::{CapabilityId, ConnectionBase, GearId};
+use conduit_core::{BaseImplementationId, CapabilityId, GearId};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
@@ -725,7 +725,7 @@ mod tests {
                 .unwrap()
                 .binding
                 .base,
-            ConnectionBase::WebSocket
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
         );
         assert_eq!(lowered.remote_endpoints.len(), 1);
         assert_eq!(
@@ -777,7 +777,9 @@ mod tests {
             &form,
             &[source.clone(), sink.clone()],
             &placements,
-            &[ConnectionBase::WebSocket],
+            &[BaseImplementationId::from(
+                "conduit.base/websocket-rfc6455@1"
+            )],
             1,
             SIGNAL_ENCODED_LEN,
             &[],
@@ -789,7 +791,9 @@ mod tests {
             &form,
             &[source.clone(), sink.clone()],
             &placements,
-            &[ConnectionBase::WebSocket],
+            &[BaseImplementationId::from(
+                "conduit.base/websocket-rfc6455@1"
+            )],
             1,
             SIGNAL_ENCODED_LEN,
             &[stale_source],
@@ -801,7 +805,9 @@ mod tests {
             &form,
             &[source, sink],
             &placements,
-            &[ConnectionBase::WebSocket],
+            &[BaseImplementationId::from(
+                "conduit.base/websocket-rfc6455@1"
+            )],
             1,
             SIGNAL_ENCODED_LEN,
             &[stale_sink],

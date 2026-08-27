@@ -4,9 +4,9 @@ use super::{
 };
 use crate::{StdHost, StdHostConfig};
 use conduit_core::{
-    BootId, CapabilityId, ConnectionBase, GearId, HostId, OfferGeneration, ProtectedResourceAccess,
-    ProtectedResourceCommitPolicy, Quantity, QuantityUnit, ResourceBindingRoleId, ResourceHandleId,
-    StructuredInfoValueShape,
+    BaseImplementationId, BootId, CapabilityId, GearId, HostId, OfferGeneration,
+    ProtectedResourceAccess, ProtectedResourceCommitPolicy, Quantity, QuantityUnit,
+    ResourceBindingRoleId, ResourceHandleId, StructuredInfoValueShape,
 };
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
@@ -105,7 +105,7 @@ fn planned_copy(
         &form,
         std::slice::from_ref(host.advertisement()),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &overrides,
             line_candidates: &BTreeMap::new(),

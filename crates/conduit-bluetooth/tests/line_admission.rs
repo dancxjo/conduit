@@ -5,8 +5,8 @@ use conduit_bluetooth::{
     BluetoothObservationError, BluetoothPairingState, NegotiatedPeerIdentity,
 };
 use conduit_core::{
-    BootId, ConnectionBase, ConnectionBaseInstanceId, HostId, LineAvailability,
-    LinkAuthorityReference, LinkBindingId, LinkCredentialReference, LinkEndpointId, SignId,
+    BaseImplementationId, BaseInstanceId, BootId, HostId, LineAvailability, LinkAuthorityReference,
+    LinkBindingId, LinkCredentialReference, LinkEndpointId, SignId,
 };
 
 fn observation(address: [u8; 6], boot: &str, base: &str) -> BluetoothLineObservation {
@@ -18,7 +18,7 @@ fn observation(address: [u8; 6], boot: &str, base: &str) -> BluetoothLineObserva
             address_kind: BluetoothAddressKind::ResolvablePrivate,
             advertises_conduit_service: true,
         },
-        base_instance_id: ConnectionBaseInstanceId::from(base),
+        base_instance_id: BaseInstanceId::from(base),
         pairing: BluetoothPairingState::Bonded,
         state: BluetoothLineState::Ready,
         negotiated_peer: Some(NegotiatedPeerIdentity {
@@ -33,7 +33,7 @@ fn identity(boot: &str, base: &str) -> BleGattLineIdentity {
     BleGattLineIdentity {
         line_id: conduit_core::LineId::from("line/ble-gatt/7"),
         binding_id: LinkBindingId::from("binding/ble-gatt/7"),
-        base_instance_id: ConnectionBaseInstanceId::from(base),
+        base_instance_id: BaseInstanceId::from(base),
         source_host_id: HostId::from("std-host"),
         source_boot_id: BootId::from("std-boot"),
         source_endpoint_id: LinkEndpointId::from("std/ble/egress"),
@@ -60,19 +60,17 @@ fn ready_line_is_exact_finite_and_below_cord_meaning() {
     )
     .unwrap();
 
-    assert_eq!(line.binding.base, ConnectionBase::BluetoothLeGatt);
+    assert_eq!(
+        line.binding.base,
+        BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
+    );
     assert_eq!(line.availability.availability, LineAvailability::Ready);
     assert_eq!(line.binding.limits.maximum_in_flight_items, 1);
     assert_eq!(line.binding.limits.maximum_payload_bytes, 96);
     assert_eq!(line.binding.limits.maximum_frame_bytes, 2_048);
     assert_eq!(line.binding.limits.maximum_buffered_bytes, 4_096);
     assert!(line.validate_sign_identity());
-    assert!(ConnectionBase::BluetoothLeGatt.supports_remote_session());
-    assert_eq!(ConnectionBase::BluetoothLeGatt.canonical_code(), 6);
-    assert_eq!(
-        ConnectionBase::from_canonical_code(6),
-        Some(ConnectionBase::BluetoothLeGatt)
-    );
+    assert_eq!(line.contract, BleGattProfile::line_contract());
 
     let json = serde_json::to_string(&line).unwrap();
     assert!(!json.contains("01:02:03:04:05:06"));

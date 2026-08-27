@@ -1,5 +1,5 @@
 use conduit_core::{
-    ConnectionBase, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment,
+    BaseImplementationId, HostAdvertisement, LineOffer, Observation, Plan, PlanFragment,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::ExpandedCanonicalForm;
@@ -60,7 +60,7 @@ impl ProductRuntime {
 pub(crate) struct ProductExecutionContext {
     advertisements: Vec<HostAdvertisement>,
     runtimes: Vec<ProductRuntime>,
-    connection_bases: Vec<ConnectionBase>,
+    connection_bases: Vec<BaseImplementationId>,
     line_offers: Vec<LineOffer>,
     line_runtimes: Vec<Box<dyn ProductLineRuntime>>,
 }
@@ -81,7 +81,7 @@ impl ProductExecutionContext {
         Self::new(
             vec![advertisement],
             vec![ProductRuntime::std(host)],
-            vec![ConnectionBase::Local],
+            vec![BaseImplementationId::from("conduit.base/local@1")],
             Vec::new(),
             Vec::new(),
         )
@@ -90,7 +90,7 @@ impl ProductExecutionContext {
     pub(crate) fn new(
         advertisements: Vec<HostAdvertisement>,
         runtimes: Vec<ProductRuntime>,
-        connection_bases: Vec<ConnectionBase>,
+        connection_bases: Vec<BaseImplementationId>,
         line_offers: Vec<LineOffer>,
         line_runtimes: Vec<Box<dyn ProductLineRuntime>>,
     ) -> Result<Self, String> {
@@ -151,17 +151,7 @@ impl ProductExecutionContext {
 
         let mut bases = BTreeSet::new();
         for base in &connection_bases {
-            if matches!(
-                base,
-                ConnectionBase::InMemory
-                    | ConnectionBase::FixtureFrame
-                    | ConnectionBase::FixtureDatagram
-            ) {
-                return Err(format!(
-                    "connection Base '{base:?}' is not supported by installed product execution"
-                ));
-            }
-            if !bases.insert(base.canonical_code()) {
+            if !bases.insert(base.as_str()) {
                 return Err(format!("duplicate admitted connection Base '{base:?}'"));
             }
         }

@@ -1,6 +1,6 @@
 use super::portable_keyboard::*;
 use conduit_core::{
-    ChordInfo, ConduitIntlKeymap, ConnectionBase, CoreChordId, KeyEvent, KeymapDisposition,
+    BaseImplementationId, ChordInfo, ConduitIntlKeymap, CoreChordId, KeyEvent, KeymapDisposition,
     KEY_EVENT_CONFORMANCE_VECTORS,
 };
 use conduit_planner::{
@@ -184,7 +184,7 @@ fn unchanged_k6_form_plans_to_truthful_native_realization_without_usb_facts() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

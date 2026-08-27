@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -45,7 +45,7 @@ fn unchanged_portable_form_selects_exact_github_profile_with_authority() {
         &authored.expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
@@ -61,7 +61,7 @@ fn unchanged_portable_form_selects_exact_github_profile_with_authority() {
         &authored.expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,

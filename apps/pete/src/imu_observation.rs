@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConnectionBase, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
+    resource_offer, resource_requirement, ArtifactId, BaseImplementationId, BootId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
     HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, KindContractRevision, OfferGeneration, OrientationObservation,
     ResourceHealth, ResourceObservation, SignId, PROTOCOL_VERSION,
@@ -202,7 +202,7 @@ pub fn mpu6050_plan(evidence: &Mpu6050Evidence) -> Result<conduit_core::Plan, Pl
         &checked,
         SelectedRealizationPlanning {
             hosts: &[host],
-            bases: &[ConnectionBase::Local],
+            bases: &[BaseImplementationId::from("conduit.base/local@1")],
             requirements: &BTreeMap::new(),
             advertisements: &[],
             observations: &observations,

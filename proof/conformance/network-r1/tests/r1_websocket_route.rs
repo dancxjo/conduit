@@ -1,4 +1,4 @@
-use conduit_core::{BootId, ConnectionBase};
+use conduit_core::{BaseImplementationId, BootId};
 use conduit_r1_network_conformance::{
     r1_line_basis, r1_websocket_probe_binding, R1_MAXIMUM_FRAME_BYTES, R1_PICO_HOST_ID,
     R1_ROUTE_PROBE_MAXIMUM_PAYLOAD_BYTES,
@@ -13,8 +13,14 @@ fn one_boot_has_two_exact_bounded_route_facts() {
     assert_eq!(websocket.binding.sink.host_id, usb.binding.sink.host_id);
     assert_eq!(websocket.binding.sink.boot_id, boot);
     assert_eq!(websocket.binding.sink.boot_id, usb.binding.sink.boot_id);
-    assert_eq!(usb.binding.base, ConnectionBase::UsbCdc);
-    assert_eq!(websocket.binding.base, ConnectionBase::WebSocket);
+    assert_eq!(
+        usb.binding.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
+    assert_eq!(
+        websocket.binding.base,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
+    );
     assert_ne!(usb.line_id, websocket.line_id);
     assert_ne!(usb.binding.binding_id, websocket.binding.binding_id);
     assert_ne!(
@@ -43,7 +49,10 @@ fn one_boot_has_two_exact_bounded_route_facts() {
 fn probe_session_consumes_the_exact_websocket_route() {
     let binding = r1_websocket_probe_binding(BootId::from("pico/runtime-boot"));
     binding.validate().unwrap();
-    assert_eq!(binding.attachment.base, ConnectionBase::WebSocket);
+    assert_eq!(
+        binding.attachment.base,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
+    );
     assert_eq!(binding.sink.host_id.as_str(), R1_PICO_HOST_ID);
     assert_eq!(binding.sink.boot_id.as_str(), "pico/runtime-boot");
 

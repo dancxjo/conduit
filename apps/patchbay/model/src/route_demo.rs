@@ -1,9 +1,9 @@
 //! Sign-backed projection of distributed route selection and replanning.
 
 use conduit_core::{
-    CapabilityId, ConnectionBase, ControlLoopEvent, GearId, HostAdvertisement, LineAvailability,
-    LineAvailabilitySign, LineId, LinkBindingId, LinkEndpointId, PlanningRequestAuthority,
-    PlayUnsatisfiedReason, SignId,
+    BaseImplementationId, CapabilityId, ControlLoopEvent, GearId, HostAdvertisement,
+    LineAvailability, LineAvailabilitySign, LineId, LinkBindingId, LinkEndpointId,
+    PlanningRequestAuthority, PlayUnsatisfiedReason, SignId,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -352,7 +352,7 @@ fn plan_presentation(
             .map(|(order, candidate)| RouteCandidatePresentation {
                 order,
                 binding_id: candidate.binding.binding_id.clone(),
-                base: candidate.binding.base,
+                base: candidate.binding.base.clone(),
                 base_instance_id: candidate.binding.base_instance_id.clone(),
             })
             .collect(),
@@ -395,7 +395,7 @@ fn planned(
     let mut usb = websocket.clone();
     usb.line_id = LineId::from(USB_LINE);
     usb.binding.binding_id = LinkBindingId::from(USB_BINDING);
-    usb.binding.base = ConnectionBase::UsbCdc;
+    usb.binding.base = BaseImplementationId::from("conduit.base/usb-cdc-acm@1");
     usb.binding.base_instance_id = "route-demo/usb-base".into();
     usb.binding.source.endpoint_id = LinkEndpointId::from("route-demo/usb-source");
     usb.binding.sink.endpoint_id = LinkEndpointId::from("route-demo/usb-sink");
@@ -413,7 +413,10 @@ fn planned(
         &form,
         &[source.clone(), sink],
         &placements,
-        &[ConnectionBase::WebSocket, ConnectionBase::UsbCdc],
+        &[
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &line_candidates,
@@ -456,10 +459,10 @@ fn render_plan(
         push(
             lines,
             format!(
-                "    CANDIDATE order={} binding={} base={:?} base-instance={} source-endpoint={} sink-endpoint={} availability=runtime-observation",
+                "    CANDIDATE order={} binding={} base={} base-instance={} source-endpoint={} sink-endpoint={} availability=runtime-observation",
                 index,
                 candidate.binding.binding_id.as_str(),
-                candidate.binding.base,
+                candidate.binding.base.as_str(),
                 candidate.binding.base_instance_id.as_str(),
                 candidate.binding.source.endpoint_id.as_str(),
                 candidate.binding.sink.endpoint_id.as_str()

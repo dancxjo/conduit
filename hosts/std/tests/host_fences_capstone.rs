@@ -9,15 +9,15 @@ use conduit_body::{
 };
 use conduit_core::{
     mandatory_sign_storage_requirement, prepare_plan_on_hosts, process_owned_line_offer,
-    resource_offer, resource_requirement, seal_plan, start_prepared_plan, ActivePlayId, BootId,
-    CancellationPolicy, CapabilityId, CheckedFormId, ConnectionBase, ConnectionId, ExpandedFormId,
-    ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostAdvertisement, HostId,
-    HostPreparationRefusal, HostProfileId, KindId, LinkBindingId, OfferGeneration, PlacementId,
-    Plan, PlanFragment, PlanPreparationHost, PlannedConnection, PortId, PortTemporal,
-    PreparationHostIdentity, PreparedFragmentReceipt, ProtectedResourceAccess,
-    ProtectedResourceCommitPolicy, ResourceBinding, ResourceBindingRoleId, ResourceHandleId,
-    ResourceHealth, ResourceObservation, SignId, SourceDocumentId, TerminalPolicy,
-    PROTOCOL_VERSION,
+    resource_offer, resource_requirement, seal_plan, start_prepared_plan, ActivePlayId,
+    BaseImplementationId, BootId, CancellationPolicy, CapabilityId, CheckedFormId, ConnectionId,
+    ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId,
+    HostAdvertisement, HostId, HostPreparationRefusal, HostProfileId, KindId, LineScope,
+    LinkBindingId, OfferGeneration, PlacementId, Plan, PlanFragment, PlanPreparationHost,
+    PlannedConnection, PortId, PortTemporal, PreparationHostIdentity, PreparedFragmentReceipt,
+    ProtectedResourceAccess, ProtectedResourceCommitPolicy, ResourceBinding, ResourceBindingRoleId,
+    ResourceHandleId, ResourceHealth, ResourceObservation, SignId, SourceDocumentId,
+    TerminalPolicy, PROTOCOL_VERSION,
 };
 use conduit_std_host::{
     prepare_copy_task, CopyRequestId, CopyResult, CopyStopToken, ProtectedFileAvailability,
@@ -291,13 +291,14 @@ fn remote_session_claim_and_disclosure_keep_exact_truth() {
     let mut line = process_owned_line_offer(
         "line/browser-webrtc",
         "binding/browser-webrtc",
-        ConnectionBase::WebRtcDataChannel,
+        BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
         "browser-datachannel/1",
         &workstation,
         &browser,
         1,
         128,
     );
+    line.contract.scope = LineScope::LocalNetwork;
     line.binding.limits.maximum_frame_bytes = 2_048;
     let admitted: conduit_core::AdmittedLine = (&line).into();
     let connection = PlannedConnection {
@@ -320,7 +321,10 @@ fn remote_session_claim_and_disclosure_keep_exact_truth() {
         &connection,
     )
     .unwrap();
-    assert_eq!(session.attachment.base, ConnectionBase::WebRtcDataChannel);
+    assert_eq!(
+        session.attachment.base,
+        BaseImplementationId::from("conduit.base/webrtc-data-channel@1")
+    );
     assert_eq!(session.attachment.limits.maximum_in_flight_items, 1);
     let mut mismatch = session.clone();
     mismatch.attachment.sink_boot_id = BootId::from("browser/boot/stale");

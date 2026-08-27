@@ -2,7 +2,7 @@ use conduit_alife::{
     install_lenia_catalogs, LENIA_STEP_KIND, SCALAR_FIELD2_INFO_ID, SCALAR_FIELD_PRESENTATION_KIND,
 };
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -81,7 +81,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

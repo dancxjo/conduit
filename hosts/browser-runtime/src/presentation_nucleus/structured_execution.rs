@@ -5,7 +5,7 @@ use super::{
     PORTS,
 };
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, ConfigurationValue, ConnectionBase,
+    bind_active_play, bind_presentation, bind_sign, BaseImplementationId, ConfigurationValue,
     Observation, ObservationKind, ValuePayload, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
@@ -101,7 +101,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

@@ -9,7 +9,7 @@ use crate::{
 };
 use alloc::collections::BTreeMap;
 use conduit_core::{
-    ConnectionBase, GearId, HostAdvertisement, Plan, PlanId, RealizationAdvertisement,
+    BaseImplementationId, GearId, HostAdvertisement, Plan, PlanId, RealizationAdvertisement,
     ResourceObservation,
 };
 use conduit_form::CheckedForm;
@@ -34,7 +34,7 @@ pub fn replan_selected_realizations_with_characteristics(
     previous: &Plan,
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     requirements: &BTreeMap<GearId, HardRealizationRequirements>,
     advertisements: &[RealizationAdvertisement],
     observations: &[ResourceObservation],

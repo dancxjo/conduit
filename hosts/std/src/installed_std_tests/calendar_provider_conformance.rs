@@ -2,8 +2,8 @@ use super::{installed_std, RecordingTimer};
 use crate::hosted_calendar::{CalendarHostedOperation, HostedCalendarAdapter};
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_core::{
-    kind_id, BootId, ConfigurationValue, ConnectionBase, HostId, OfferGeneration, PortDirection,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    kind_id, BaseImplementationId, BootId, ConfigurationValue, HostId, OfferGeneration,
+    PortDirection, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
@@ -80,7 +80,7 @@ fn read_and_free_busy_use_distinct_authority_through_plan_and_play() {
             &expanded,
             &hosts,
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             conduit_planner::PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
@@ -143,7 +143,7 @@ fn authorized_create_update_and_cancel_chain_exact_receipts_through_plan_and_pla
         &expanded,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

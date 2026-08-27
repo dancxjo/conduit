@@ -2,7 +2,7 @@
 
 use conduit_body::{BodyId, MembershipCredential};
 use conduit_core::{
-    bind_active_play, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId, KindId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, ConnectionId, FragmentId, KindId,
     LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
 };
 use conduit_wire::{LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits};
@@ -47,8 +47,17 @@ pub(super) fn binding(
             link_binding_id: LinkBindingId::from(format!(
                 "binding/browser-webrtc-rendezvous-probe{suffix}"
             )),
-            base: ConnectionBase::WebRtcDataChannel,
-            base_instance_id: ConnectionBaseInstanceId::from(format!(
+            base: BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
+            contract: conduit_core::LineContract {
+                scope: conduit_core::LineScope::PointToPoint,
+                traffic_shape: conduit_core::LineTrafficShape::Message,
+                duplex: conduit_core::LineDuplex::FullDuplex,
+                ordering: conduit_core::LineOrdering::Ordered,
+                reliability: conduit_core::LineReliability::Reliable,
+                continuation: conduit_core::LineContinuation::None,
+                security: conduit_core::LineSecurity::AuthenticatedEncrypted,
+            },
+            base_instance_id: BaseInstanceId::from(format!(
                 "base/browser-webrtc-rendezvous-probe{suffix}"
             )),
             source_host_id: source.host_id.clone(),

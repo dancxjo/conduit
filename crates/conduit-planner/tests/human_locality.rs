@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    verify_plan, BootId, ConnectionBase, GearId, HostId, LineId, LinkBindingId, LinkEndpointId,
-    OfferGeneration, ResourceClassId, ResourceHealth, ResourceObservation, SignId,
+    verify_plan, BaseImplementationId, BootId, GearId, HostId, LineId, LinkBindingId,
+    LinkEndpointId, OfferGeneration, ResourceClassId, ResourceHealth, ResourceObservation, SignId,
 };
 use conduit_planner::{
     plan_selected_realizations_with_characteristics_and_options,
@@ -221,7 +221,10 @@ fn plan_fixture(
     plan_selected_realizations_with_characteristics_and_options(
         form,
         hosts,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         &requirements(),
         &[],
         observations,

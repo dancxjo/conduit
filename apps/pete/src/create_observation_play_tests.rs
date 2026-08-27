@@ -3,7 +3,7 @@ use crate::{
     live_create_observation_advertisement, CreateObservationEncodeRefusal,
     CreateObservationFailure, OiMode, UartProfile, CREATE_ODOMETRY_RESET_AUTHORITY,
 };
-use conduit_core::{BootId, ConnectionBase, HostId, OfferGeneration};
+use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use std::collections::VecDeque;
 
 const FORM: &str = "form contact_sample {\n contact: robotics/observe-contact\n}\n";
@@ -61,7 +61,7 @@ fn plan_for(source: &str, form_name: &str) -> Plan {
         &expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap()
 }

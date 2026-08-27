@@ -1,6 +1,6 @@
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration, Quantity,
-    QuantityUnit, StructuredInfoValue, StructuredInfoValueShape, StructuredSelection,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    Quantity, QuantityUnit, StructuredInfoValue, StructuredInfoValueShape, StructuredSelection,
     StructuredSelector, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -43,7 +43,7 @@ fn canonical_form_consumes_structured_observations_and_motion_intent() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     assert!(plan.fragments[0]

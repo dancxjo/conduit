@@ -1,7 +1,9 @@
 //! Ordinary planning for one exact boot-scoped portable keyboard source.
 
 use alloc::{collections::BTreeMap, vec::Vec};
-use conduit_core::{ActivePlayIdentity, ConnectionBase, HostAdvertisement, Plan, bind_active_play};
+use conduit_core::{
+    ActivePlayIdentity, BaseImplementationId, HostAdvertisement, Plan, bind_active_play,
+};
 use conduit_planner::{
     PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
 };
@@ -43,7 +45,7 @@ pub fn prepare(
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

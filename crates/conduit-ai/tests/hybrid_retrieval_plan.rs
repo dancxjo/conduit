@@ -8,8 +8,8 @@ use conduit_ai::{
     RETRIEVAL_CANDIDATE_BATCH_VALUE_KIND,
 };
 use conduit_core::{
-    verify_plan, BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    PROTOCOL_VERSION,
+    verify_plan, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
+    OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -40,7 +40,7 @@ fn plan(source: &str) -> conduit_core::Plan {
         &expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

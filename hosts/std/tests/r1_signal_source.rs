@@ -1,4 +1,4 @@
-use conduit_core::{BootId, ConnectionBase, HostId};
+use conduit_core::{BaseImplementationId, BootId, HostId};
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_std_host::{
     pico_control_source::PicoControlSource,
@@ -26,9 +26,12 @@ fn one_production_source_executes_both_exact_r1_recovery_plans() {
 
     assert_eq!(
         source_a.binding().attachment.base,
-        ConnectionBase::WebSocket
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
     );
-    assert_eq!(source_b.binding().attachment.base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        source_b.binding().attachment.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
     assert_eq!(source_a.source_host_id(), source_b.source_host_id());
     assert_eq!(source_a.binding().sink, source_b.binding().sink);
     assert_ne!(source_a.binding().plan_id, source_b.binding().plan_id);
@@ -124,7 +127,10 @@ fn production_source_retains_plan_play_and_offer_across_sealed_usb_resume() {
     assert_eq!(source.binding().plan_id, plan_id);
     assert_eq!(source.binding().source_active_play_id, source_play_id);
     assert_eq!(source.binding().sink_active_play_id, sink_play_id);
-    assert_eq!(source.binding().attachment.base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        source.binding().attachment.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
     assert_eq!(source.next_offer().unwrap().unwrap().0, 0);
 }
 
@@ -189,7 +195,10 @@ fn control_source_retains_exact_input_across_sealed_usb_resume() {
     assert_eq!(source.binding().plan_id, plan_id);
     assert_eq!(source.binding().source_active_play_id, source_play_id);
     assert_eq!(source.binding().sink_active_play_id, sink_play_id);
-    assert_eq!(source.binding().attachment.base, ConnectionBase::UsbCdc);
+    assert_eq!(
+        source.binding().attachment.base,
+        BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
+    );
 
     let resumed = source.binding().clone();
     let hello = resumed.hello_frame();

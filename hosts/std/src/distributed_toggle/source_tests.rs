@@ -5,7 +5,7 @@
 
 use super::super::plan::exact_distributed_toggle_plan;
 use super::*;
-use conduit_core::{CapabilityId, ConnectionBase, GearId};
+use conduit_core::{BaseImplementationId, CapabilityId, GearId};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_signal::signal_profile_catalog;
@@ -82,7 +82,10 @@ fn missing_link_binding_fails_toggle_planning() {
         &form,
         &[source, sink],
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1")
+        ],
         1,
         conduit_signal::TRIGGER_ENCODED_LEN,
         &[],

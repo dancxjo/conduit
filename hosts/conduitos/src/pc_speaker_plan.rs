@@ -2,8 +2,8 @@
 
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{
-    ActivePlayIdentity, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConnectionBase, ExecutionProfileId, HostAdvertisement, ImplementationId, KindContractRevision,
+    ActivePlayIdentity, ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, HostAdvertisement, ImplementationId, KindContractRevision,
     Plan, PortDescriptor, PortDirection, bind_active_play, kind_id, port_id,
 };
 use conduit_planner::{
@@ -51,7 +51,7 @@ pub fn prepare(
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -380,7 +380,7 @@ pub(crate) mod tests {
                 &form,
                 &hosts,
                 &placements,
-                &[ConnectionBase::Local],
+                &[BaseImplementationId::from("conduit.base/local@1")],
                 PlanningOptions {
                     connection_bases: &BTreeMap::new(),
                     line_candidates: &BTreeMap::new(),

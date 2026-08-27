@@ -1,5 +1,5 @@
 use super::{host, installed_std, RecordingTimer};
-use conduit_core::{ConnectionBase, ObservationKind, TerminalDisposition};
+use conduit_core::{BaseImplementationId, ObservationKind, TerminalDisposition};
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
@@ -36,7 +36,7 @@ fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

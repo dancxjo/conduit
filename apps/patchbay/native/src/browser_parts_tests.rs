@@ -59,7 +59,8 @@ fn current_plan_derives_only_its_exact_selected_webrtc_session_grant() {
         .find_map(|fragment| fragment.connections.first_mut())
         .unwrap();
     let selected = connection.selected_line.as_mut().unwrap();
-    selected.binding.base = conduit_core::ConnectionBase::WebRtcDataChannel;
+    selected.binding.base =
+        conduit_core::BaseImplementationId::from("conduit.base/webrtc-data-channel@1");
     connection.admitted_lines[0] = selected.clone();
     let binding_id = selected.binding.binding_id.clone();
 
@@ -68,7 +69,7 @@ fn current_plan_derives_only_its_exact_selected_webrtc_session_grant() {
     assert_eq!(grants[0].plan_id, exact.plan.plan_id);
     assert_eq!(
         grants[0].attachment.base,
-        conduit_core::ConnectionBase::WebRtcDataChannel
+        conduit_core::BaseImplementationId::from("conduit.base/webrtc-data-channel@1")
     );
     assert_eq!(grants[0].attachment.link_binding_id, binding_id);
     assert_eq!(grants[0].source.host_id.as_str(), "browser/granted-source");

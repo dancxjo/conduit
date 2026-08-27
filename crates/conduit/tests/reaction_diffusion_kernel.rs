@@ -4,7 +4,7 @@ use conduit_alife::{
     REACTION_DIFFUSION_REQUEST_BYTES,
 };
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -194,7 +194,7 @@ fn assert_canonical_example_checks_and_plans() {
         &expanded.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     assert_eq!(plan.fragments.len(), 1);

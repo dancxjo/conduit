@@ -1,7 +1,7 @@
 //! Generic planning admission through attributable resource allowances.
 
 use conduit_core::{
-    resource_binding_satisfies, ConnectionBase, HostAdvertisement, ResourceAllowanceSet,
+    resource_binding_satisfies, BaseImplementationId, HostAdvertisement, ResourceAllowanceSet,
     ResourceHealth, ResourceObservation,
 };
 use conduit_form::CheckedForm;
@@ -15,7 +15,7 @@ pub fn plan_with_resource_allowances(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     allowance_sets: &[ResourceAllowanceSet],
     observations: &[ResourceObservation],
 ) -> Result<conduit_core::Plan, PlannerError> {

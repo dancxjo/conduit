@@ -85,12 +85,13 @@ impl PlanDocument {
                 push(
                     &mut lines,
                     format!(
-                        "    CORD connection={} base={:?} items={} bytes={}",
+                        "    CORD connection={} base={} items={} bytes={}",
                         connection.connection_id.as_str(),
                         connection
                             .selected_line
                             .as_ref()
-                            .map(|line| line.binding.base),
+                            .map(|line| line.binding.base.as_str())
+                            .unwrap_or(conduit_core::LOCAL_BASE_IMPLEMENTATION_ID),
                         connection.item_capacity,
                         connection.byte_capacity
                     ),
@@ -99,10 +100,10 @@ impl PlanDocument {
                     push(
                         &mut lines,
                         format!(
-                            "      CANDIDATE index={} binding={} base={:?} instance={}",
+                            "      CANDIDATE index={} binding={} base={} instance={}",
                             index,
                             candidate.binding.binding_id.as_str(),
-                            candidate.binding.base,
+                            candidate.binding.base.as_str(),
                             candidate.binding.base_instance_id.as_str()
                         ),
                     )?;

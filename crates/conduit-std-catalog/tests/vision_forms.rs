@@ -1,5 +1,5 @@
 use conduit_core::{
-    BootId, BoundedResourceRef, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
+    BaseImplementationId, BootId, BoundedResourceRef, HostAdvertisement, HostId, HostProfileId,
     OfferGeneration, Quantity, QuantityUnit, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredInfoValueShape, PROTOCOL_VERSION,
 };
@@ -42,7 +42,7 @@ fn image_resource_and_detection_metadata_flow_through_one_ordinary_form() {
         &authored.expanded,
         &[host],
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
     for kind in [VISION_FIXTURE_KIND, VISION_DETECT_KIND] {

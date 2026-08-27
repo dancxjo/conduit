@@ -1,6 +1,6 @@
 use super::{installed_std, StdHost, StdHostConfig, TimerAdapter};
 use conduit_core::{
-    BootId, ConnectionBase, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
+    BaseImplementationId, BootId, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
 };
 use conduit_form::parse;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
@@ -64,7 +64,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &base_choices,
             line_candidates: &BTreeMap::new(),
@@ -136,7 +136,7 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -218,7 +218,7 @@ fn mutated_typed_tee_identity_fails_before_play() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -410,7 +410,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         &form,
         &hosts,
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

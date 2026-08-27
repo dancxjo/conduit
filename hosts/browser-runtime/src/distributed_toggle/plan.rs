@@ -1,7 +1,7 @@
 //! Exact two-Host plan reconstruction for the browser half of the toggle proof.
 
 use super::ERROR_PREPARE;
-use conduit_core::{CapabilityId, ConnectionBase, GearId, Plan};
+use conduit_core::{BaseImplementationId, CapabilityId, GearId, Plan};
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_signal::signal_profile_catalog;
 use conduit_signal_conformance::{
@@ -48,7 +48,10 @@ pub(super) fn exact_toggle_plan() -> Result<Plan, i32> {
         &form,
         &[source, sink],
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         conduit_signal::TRIGGER_ENCODED_LEN,
         &[distributed_toggle_websocket_line_offer()],

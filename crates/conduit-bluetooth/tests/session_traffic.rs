@@ -1,5 +1,5 @@
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
     HostId, KindId, LinkBindingId, LinkEndpointId, PlanId, PROTOCOL_VERSION,
 };
 use conduit_wire::{
@@ -39,8 +39,9 @@ fn binding() -> SessionBinding {
         attachment: LineAttachment {
             line_id: "bluetooth/line/a".into(),
             link_binding_id: LinkBindingId::from("bluetooth/binding/a"),
-            base: ConnectionBase::BluetoothLeGatt,
-            base_instance_id: ConnectionBaseInstanceId::from("bluez/hci0/session-a"),
+            base: BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1"),
+            contract: conduit_bluetooth::BleGattProfile::line_contract(),
+            base_instance_id: BaseInstanceId::from("bluez/hci0/session-a"),
             source_host_id: source_host,
             source_boot_id: source_boot,
             source_endpoint_id: LinkEndpointId::from("bluetooth/source-write"),
@@ -97,7 +98,7 @@ fn ordinary_plan_scoped_session_frames_cross_the_ble_base_contract() {
     );
     assert_eq!(
         source.binding().attachment.base,
-        ConnectionBase::BluetoothLeGatt
+        BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1")
     );
     assert_eq!(source.next_sequence(), 1);
     assert_eq!(sink.next_sequence(), 1);
@@ -116,8 +117,7 @@ fn stale_boot_and_base_epoch_frames_fail_at_the_shared_session_fence() {
     );
 
     let mut stale_epoch = expected.clone();
-    stale_epoch.attachment.base_instance_id =
-        ConnectionBaseInstanceId::from("bluez/hci0/session-stale");
+    stale_epoch.attachment.base_instance_id = BaseInstanceId::from("bluez/hci0/session-stale");
     assert_eq!(
         sink.admit_inbound(stale_epoch.hello_frame()),
         Err(conduit_wire::WireError::SessionEpochMismatch)

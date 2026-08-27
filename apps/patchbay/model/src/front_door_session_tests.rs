@@ -5,7 +5,7 @@ use crate::{
 use conduit_body::{AdmissionSigns, CandidateObservation, DiscoveryProofId};
 use conduit_browser_runtime::membership::BrowserAdmissionIdentity;
 use conduit_core::{
-    process_owned_line_offer_with_limits, BootId, ConnectionBase, HostAdvertisement, HostId,
+    process_owned_line_offer_with_limits, BaseImplementationId, BootId, HostAdvertisement, HostId,
     HostProfileId, LineAvailability, LineId, LinkBindingId, LinkLimits, OfferGeneration, SignId,
     PROTOCOL_VERSION,
 };
@@ -214,7 +214,7 @@ fn browser_candidate_requires_proof_then_survives_offline_as_a_durable_part() {
         .observe_line(process_owned_line_offer_with_limits(
             "line/browser/front-door",
             "binding/browser/front-door",
-            ConnectionBase::WebSocket,
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
             "loopback/browser/front-door",
             &browser_advertisement(&identity),
             session.advertisement(),

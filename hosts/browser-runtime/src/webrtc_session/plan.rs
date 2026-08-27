@@ -1,5 +1,5 @@
 use conduit_core::{
-    AdmittedLine, BootId, BoundLink, ConnectionBase, ConnectionBaseInstanceId, ConnectionId,
+    AdmittedLine, BaseImplementationId, BaseInstanceId, BootId, BoundLink, ConnectionId,
     FragmentId, HostId, KindId, LineContinuation, LineContract, LineDuplex, LineId, LineOrdering,
     LineReliability, LineScope, LineSecurity, LineTrafficShape, LinkAuthorityReference,
     LinkBindingId, LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, PlacementId,
@@ -33,8 +33,8 @@ pub(super) fn exact_binding(variant: u32) -> Result<SessionBinding, WireError> {
             binding_id: LinkBindingId::from("browser-webrtc/binding/1"),
             source: source.clone(),
             sink: sink.clone(),
-            base: ConnectionBase::WebRtcDataChannel,
-            base_instance_id: ConnectionBaseInstanceId::from("browser-webrtc/base-instance/1"),
+            base: BaseImplementationId::from("conduit.base/webrtc-data-channel@1"),
+            base_instance_id: BaseInstanceId::from("browser-webrtc/base-instance/1"),
             credential: LinkCredentialReference::None,
             authority: LinkAuthorityReference::ProcessOwned,
             limits,
@@ -74,7 +74,7 @@ pub(super) fn exact_binding(variant: u32) -> Result<SessionBinding, WireError> {
         4 => {
             let line = connection.selected_line.as_mut().expect("selected Line");
             line.binding.base_instance_id =
-                ConnectionBaseInstanceId::from("browser-webrtc/wrong-base-instance");
+                BaseInstanceId::from("browser-webrtc/wrong-base-instance");
             connection.admitted_lines[0] = line.clone();
         }
         5 => plan_id = conduit_core::PlanId::from("browser-webrtc/wrong-plan"),

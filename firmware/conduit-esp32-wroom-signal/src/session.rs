@@ -5,7 +5,7 @@ use conduit_bluetooth::{
     encode_fragment, fragment_count,
 };
 use conduit_core::{
-    BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId,
+    BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId, HostId, KindId,
     LinkBindingId, LinkEndpointId, PROTOCOL_VERSION, PlanId, bind_active_play,
 };
 use conduit_wire::{
@@ -214,8 +214,10 @@ fn binding(boot: &crate::receipts::BootIdentity) -> Result<SessionBinding, &'sta
             link_binding_id: LinkBindingId::from(
                 crate::generated::GENERATED_REMOTE_ENDPOINT_LINK_BINDING_IDS[0],
             ),
-            base: ConnectionBase::BluetoothLeGatt,
-            base_instance_id: ConnectionBaseInstanceId::from(
+            base: BaseImplementationId::from(
+                crate::generated::GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS[0],
+            ),
+            base_instance_id: BaseInstanceId::from(
                 crate::generated::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS[0],
             ),
             source_host_id: source_host,
@@ -231,6 +233,7 @@ fn binding(boot: &crate::receipts::BootIdentity) -> Result<SessionBinding, &'sta
             limits: BleGattProfile::FIRST
                 .link_limits()
                 .expect("the frozen BLE profile remains valid"),
+            contract: crate::generated::GENERATED_REMOTE_ENDPOINT_LINE_CONTRACTS[0],
         },
     }
     .with_observed_boots(source_boot, BootId::from(boot.boot_id()))

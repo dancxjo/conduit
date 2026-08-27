@@ -51,11 +51,11 @@ use crate::prelude::*;
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, AdmittedLine, AuthorityBinding, AuthorityGrant,
-    CancellationPolicy, CapabilityId, ConnectionBase, ConnectionId, ExpectedSign, ExpectedTerminal,
-    FragmentId, GearId, HostAdvertisement, HostId, LineAvailability, LineId, LineOffer,
-    PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedGear, ResourceBinding,
-    ResourcePoolId, StartupDependency, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
-    DEFAULT_CONNECTION_ITEM_CAPACITY,
+    BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId, ExpectedSign,
+    ExpectedTerminal, FragmentId, GearId, HostAdvertisement, HostId, LineAvailability, LineId,
+    LineOffer, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedGear,
+    ResourceBinding, ResourcePoolId, StartupDependency, TerminalPolicy,
+    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
@@ -237,7 +237,7 @@ pub fn plan(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
 ) -> Result<Plan, PlannerError> {
     plan_with_connection_limits(
         form,
@@ -253,7 +253,7 @@ pub fn plan_with_authority_grants(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     authority_grants: &[AuthorityGrant],
 ) -> Result<Plan, PlannerError> {
     plan_with_options(
@@ -277,7 +277,7 @@ pub fn plan_with_line_offers(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
     line_offers: &[LineOffer],
@@ -285,7 +285,7 @@ pub fn plan_with_line_offers(
     let mut offered_bases = bases.to_vec();
     for offer in line_offers {
         if !offered_bases.contains(&offer.binding.base) {
-            offered_bases.push(offer.binding.base);
+            offered_bases.push(offer.binding.base.clone());
         }
     }
     plan_with_options(
@@ -309,7 +309,7 @@ pub fn plan_with_connection_limits(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
@@ -328,8 +328,8 @@ pub fn plan_with_connection_limits_and_base_overrides(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
-    connection_bases: &BTreeMap<(GearId, GearId), ConnectionBase>,
+    bases: &[BaseImplementationId],
+    connection_bases: &BTreeMap<(GearId, GearId), BaseImplementationId>,
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
@@ -354,7 +354,7 @@ pub fn plan_with_options(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     form.validate_identities()
@@ -366,7 +366,7 @@ pub(crate) fn plan_validated_form(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     plan_validated_form_with_connection_limits(
@@ -383,7 +383,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[ConnectionBase],
+    bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
@@ -667,7 +667,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                     connection.source_gear_id.clone(),
                     connection.sink_gear_id.clone(),
                 ))
-                .copied(),
+                .cloned(),
             requested_candidates: line_candidates.get(&(
                 connection.source_gear_id.clone(),
                 connection.sink_gear_id.clone(),
@@ -973,8 +973,8 @@ fn find_capability<'a>(
 struct LineSelection<'a> {
     source: &'a PlannedGear,
     sink: &'a PlannedGear,
-    bases: &'a [ConnectionBase],
-    requested: Option<ConnectionBase>,
+    bases: &'a [BaseImplementationId],
+    requested: Option<BaseImplementationId>,
     requested_candidates: Option<&'a Vec<LineId>>,
     line_offers: &'a [LineOffer],
     connection_item_capacity: u16,
@@ -995,10 +995,10 @@ fn select_line(
         connection_byte_capacity,
     } = selection;
     if source.host_id == sink.host_id {
-        if requested.is_some_and(|base| base != ConnectionBase::Local)
-            || !bases.contains(&ConnectionBase::Local)
+        if requested.is_some_and(|base| base != BaseImplementationId::from("conduit.base/local@1"))
+            || !bases.contains(&BaseImplementationId::from("conduit.base/local@1"))
         {
-            return Err(PlannerError::UnavailableConnectionBase(format!(
+            return Err(PlannerError::UnavailableBaseImplementationId(format!(
                 "local base unavailable for '{}' > '{}'",
                 source.gear_id.as_str(),
                 sink.gear_id.as_str()
@@ -1012,8 +1012,8 @@ fn select_line(
         return Ok((None, Vec::new()));
     }
 
-    if requested == Some(ConnectionBase::Local) {
-        return Err(PlannerError::UnavailableConnectionBase(format!(
+    if requested == Some(BaseImplementationId::from("conduit.base/local@1")) {
+        return Err(PlannerError::UnavailableBaseImplementationId(format!(
             "local base cannot connect '{}' > '{}'",
             source.gear_id.as_str(),
             sink.gear_id.as_str()
@@ -1024,7 +1024,9 @@ fn select_line(
             && offer.binding.source.boot_id == source.boot_id
             && offer.binding.sink.host_id == sink.host_id
             && offer.binding.sink.boot_id == sink.boot_id
-            && requested.is_none_or(|base| offer.binding.base == base)
+            && requested
+                .as_ref()
+                .is_none_or(|base| &offer.binding.base == base)
             && bases.contains(&offer.binding.base)
     };
     let exact = line_offers
@@ -1111,7 +1113,7 @@ fn validate_line_offers(offers: &[LineOffer]) -> Result<(), PlannerError> {
             || binding.sink.endpoint_id.as_str().is_empty()
             || binding.source.endpoint_id == binding.sink.endpoint_id
             || binding.source.host_id == binding.sink.host_id
-            || binding.base == ConnectionBase::Local
+            || binding.base == BaseImplementationId::from("conduit.base/local@1")
             || binding.base_instance_id.as_str().is_empty()
             || binding.limits.maximum_in_flight_items == 0
             || binding.limits.maximum_payload_bytes == 0

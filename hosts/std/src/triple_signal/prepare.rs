@@ -130,8 +130,16 @@ impl TripleSource {
             bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         let identity = KernelExecutionIdentityMap::new(&lowered.identity, &active_play, 31, 16, 17)
             .map_err(|error| format!("{error:?}"))?;
-        let browser = remote_branch(&fragment, &lowered, ConnectionBase::WebSocket)?;
-        let pico = remote_branch(&fragment, &lowered, ConnectionBase::UsbCdc)?;
+        let browser = remote_branch(
+            &fragment,
+            &lowered,
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        )?;
+        let pico = remote_branch(
+            &fragment,
+            &lowered,
+            BaseImplementationId::from("conduit.base/usb-cdc-acm@1"),
+        )?;
         if browser.binding.source_active_play_id != active_play.active_play_id
             || pico.binding.source_active_play_id != active_play.active_play_id
         {

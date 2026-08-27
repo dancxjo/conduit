@@ -1,13 +1,15 @@
 use conduit_core::{
-    active_play_digest, bind_active_play, ActivePlayId, AdmittedLine, BootId, ConnectionBase,
-    ConnectionBaseInstanceId, ConnectionId, FragmentId, HostId, KindId, LineId, LinkBindingId,
-    LinkEndpointId, LinkLimits, PlanId, PlannedConnection, PROTOCOL_VERSION,
+    active_play_digest, bind_active_play, ActivePlayId, AdmittedLine, BaseImplementationId,
+    BaseInstanceId, BootId, ConnectionId, FragmentId, HostId, KindId, LineContinuation,
+    LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope, LineSecurity,
+    LineTrafficShape, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PlannedConnection,
+    PROTOCOL_VERSION,
 };
 
 use crate::{WireError, MAX_ID_BYTES};
 
 const SESSION_MAGIC: [u8; 4] = *b"CNDS";
-const SESSION_WIRE_VERSION: u8 = 3;
+const SESSION_WIRE_VERSION: u8 = 4;
 const COMMON_FIXED_BYTES: usize = 4 + 1 + 1 + 2 + 2 * 11 + 2 + 4 + 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,8 +45,9 @@ pub struct SessionLimits {
 pub struct LineAttachment {
     pub line_id: LineId,
     pub link_binding_id: LinkBindingId,
-    pub base: ConnectionBase,
-    pub base_instance_id: ConnectionBaseInstanceId,
+    pub base: BaseImplementationId,
+    pub base_instance_id: BaseInstanceId,
+    pub contract: LineContract,
     pub source_host_id: HostId,
     pub source_boot_id: BootId,
     pub source_endpoint_id: LinkEndpointId,
@@ -84,7 +87,8 @@ impl SessionBinding {
         line: &AdmittedLine,
     ) -> Result<Self, WireError> {
         let link = &line.binding;
-        if !link.base.supports_remote_session()
+        if link.base.as_str().is_empty()
+            || !supports_session_contract(line.contract)
             || !connection.permits_line(line)
             || connection.item_capacity > link.limits.maximum_in_flight_items
             || connection.byte_capacity > link.limits.maximum_payload_bytes
@@ -122,8 +126,9 @@ impl SessionBinding {
             attachment: LineAttachment {
                 line_id: line.line_id.clone(),
                 link_binding_id: link.binding_id.clone(),
-                base: link.base,
+                base: link.base.clone(),
                 base_instance_id: link.base_instance_id.clone(),
+                contract: line.contract,
                 source_host_id: link.source.host_id.clone(),
                 source_boot_id: link.source.boot_id.clone(),
                 source_endpoint_id: link.source.endpoint_id.clone(),
@@ -168,7 +173,9 @@ impl SessionBinding {
         if self.protocol_version != PROTOCOL_VERSION {
             return Err(WireError::WrongProtocolVersion);
         }
-        if !self.attachment.base.supports_remote_session() {
+        if self.attachment.base.as_str().is_empty()
+            || !supports_session_contract(self.attachment.contract)
+        {
             return Err(WireError::InvalidBase);
         }
         let identities = [
@@ -185,6 +192,7 @@ impl SessionBinding {
             self.value_kind.as_str(),
             self.attachment.line_id.as_str(),
             self.attachment.link_binding_id.as_str(),
+            self.attachment.base.as_str(),
             self.attachment.base_instance_id.as_str(),
             self.attachment.source_host_id.as_str(),
             self.attachment.source_boot_id.as_str(),
@@ -265,8 +273,9 @@ impl SessionBinding {
             message: SessionMessage::Hello(SessionHello {
                 line_id: self.attachment.line_id.as_str(),
                 link_binding_id: self.attachment.link_binding_id.as_str(),
-                base: self.attachment.base,
+                base: self.attachment.base.as_str(),
                 base_instance_id: self.attachment.base_instance_id.as_str(),
+                contract: self.attachment.contract,
                 source_endpoint_id: self.attachment.source_endpoint_id.as_str(),
                 sink_endpoint_id: self.attachment.sink_endpoint_id.as_str(),
                 limits: self.attachment.limits,
@@ -329,8 +338,9 @@ pub struct SessionIdentity<'a> {
 pub struct SessionHello<'a> {
     pub line_id: &'a str,
     pub link_binding_id: &'a str,
-    pub base: ConnectionBase,
+    pub base: &'a str,
     pub base_instance_id: &'a str,
+    pub contract: LineContract,
     pub source_endpoint_id: &'a str,
     pub sink_endpoint_id: &'a str,
     pub limits: LinkLimits,
@@ -430,8 +440,9 @@ pub fn encode_session_frame_into(
         SessionMessage::Hello(hello) => {
             writer.text(hello.line_id)?;
             writer.text(hello.link_binding_id)?;
-            writer.u8(base_code(hello.base)?)?;
+            writer.text(hello.base)?;
             writer.text(hello.base_instance_id)?;
+            encode_line_contract(&mut writer, hello.contract)?;
             writer.text(hello.source_endpoint_id)?;
             writer.text(hello.sink_endpoint_id)?;
             writer.u16(hello.limits.maximum_in_flight_items)?;
@@ -509,8 +520,9 @@ pub fn decode_session_frame(
         1 => SessionMessage::Hello(SessionHello {
             line_id: cursor.text()?,
             link_binding_id: cursor.text()?,
-            base: decode_base(cursor.u8()?)?,
+            base: cursor.text()?,
             base_instance_id: cursor.text()?,
+            contract: decode_line_contract(&mut cursor)?,
             source_endpoint_id: cursor.text()?,
             sink_endpoint_id: cursor.text()?,
             limits: LinkLimits {
@@ -576,27 +588,89 @@ fn message_kind(message: SessionMessage<'_>) -> u8 {
     }
 }
 
-fn base_code(base: ConnectionBase) -> Result<u8, WireError> {
-    if !base.supports_remote_session() {
-        return Err(WireError::InvalidBase);
-    }
-    Ok(base.canonical_code())
-}
-
-fn decode_base(code: u8) -> Result<ConnectionBase, WireError> {
-    let base = ConnectionBase::from_canonical_code(code).ok_or(WireError::InvalidBase)?;
-    if !base.supports_remote_session() {
-        return Err(WireError::InvalidBase);
-    }
-    Ok(base)
-}
-
 fn terminal_code(disposition: SessionTerminalDisposition) -> u8 {
     match disposition {
         SessionTerminalDisposition::Completed => 0,
         SessionTerminalDisposition::Cancelled => 1,
         SessionTerminalDisposition::Failed => 2,
     }
+}
+
+fn supports_session_contract(contract: LineContract) -> bool {
+    matches!(
+        contract.scope,
+        LineScope::PointToPoint | LineScope::LocalNetwork | LineScope::RoutedNetwork
+    ) && matches!(
+        contract.traffic_shape,
+        LineTrafficShape::ByteStream | LineTrafficShape::Message
+    ) && contract.duplex == LineDuplex::FullDuplex
+        && contract.ordering == LineOrdering::Ordered
+        && matches!(
+            contract.reliability,
+            LineReliability::Reliable | LineReliability::BestEffort
+        )
+}
+
+fn encode_line_contract(writer: &mut Writer<'_>, contract: LineContract) -> Result<(), WireError> {
+    for value in [
+        contract.scope as u8,
+        contract.traffic_shape as u8,
+        contract.duplex as u8,
+        contract.ordering as u8,
+        contract.reliability as u8,
+        contract.continuation as u8,
+        contract.security as u8,
+    ] {
+        writer.u8(value)?;
+    }
+    Ok(())
+}
+
+fn decode_line_contract(cursor: &mut Cursor<'_>) -> Result<LineContract, WireError> {
+    Ok(LineContract {
+        scope: match cursor.u8()? {
+            0 => LineScope::Process,
+            1 => LineScope::Machine,
+            2 => LineScope::PointToPoint,
+            3 => LineScope::LocalNetwork,
+            4 => LineScope::RoutedNetwork,
+            _ => return Err(WireError::InvalidBase),
+        },
+        traffic_shape: match cursor.u8()? {
+            0 => LineTrafficShape::ByteStream,
+            1 => LineTrafficShape::Message,
+            2 => LineTrafficShape::Datagram,
+            _ => return Err(WireError::InvalidBase),
+        },
+        duplex: match cursor.u8()? {
+            0 => LineDuplex::Simplex,
+            1 => LineDuplex::HalfDuplex,
+            2 => LineDuplex::FullDuplex,
+            _ => return Err(WireError::InvalidBase),
+        },
+        ordering: match cursor.u8()? {
+            0 => LineOrdering::Ordered,
+            1 => LineOrdering::Unordered,
+            _ => return Err(WireError::InvalidBase),
+        },
+        reliability: match cursor.u8()? {
+            0 => LineReliability::Reliable,
+            1 => LineReliability::BestEffort,
+            _ => return Err(WireError::InvalidBase),
+        },
+        continuation: match cursor.u8()? {
+            0 => LineContinuation::None,
+            1 => LineContinuation::BoundedSessionReconciliation,
+            _ => return Err(WireError::InvalidBase),
+        },
+        security: match cursor.u8()? {
+            0 => LineSecurity::ProcessBoundary,
+            1 => LineSecurity::PhysicalPossession,
+            2 => LineSecurity::PlaintextNetwork,
+            3 => LineSecurity::AuthenticatedEncrypted,
+            _ => return Err(WireError::InvalidBase),
+        },
+    })
 }
 
 fn decode_terminal(code: u8) -> Result<SessionTerminalDisposition, WireError> {
@@ -610,11 +684,12 @@ fn decode_terminal(code: u8) -> Result<SessionTerminalDisposition, WireError> {
 
 fn hello_encoded_len(binding: &SessionBinding) -> Result<usize, WireError> {
     common_encoded_len(binding)?
-        .checked_add(1 + 2 * 5 + 2 + 4 * 3)
+        .checked_add(2 * 6 + 7 + 2 + 4 * 3)
         .and_then(|value| {
             value.checked_add(
                 binding.attachment.line_id.as_str().len()
                     + binding.attachment.link_binding_id.as_str().len()
+                    + binding.attachment.base.as_str().len()
                     + binding.attachment.base_instance_id.as_str().len()
                     + binding.attachment.source_endpoint_id.as_str().len()
                     + binding.attachment.sink_endpoint_id.as_str().len(),

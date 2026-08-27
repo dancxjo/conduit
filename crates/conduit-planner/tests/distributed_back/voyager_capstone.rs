@@ -245,9 +245,7 @@ fn progressive_damage_exposes_every_truthful_voyager_phenomenon() {
         replacement_line_path: vec![conduit_planner::LinePathHop {
             connection_id: conduit_core::ConnectionId::from("distributed/control"),
             line_id: conduit_core::LineId::from("line/surviving-optical"),
-            base_instance_id: conduit_core::ConnectionBaseInstanceId::from(
-                "base/surviving-optical",
-            ),
+            base_instance_id: conduit_core::BaseInstanceId::from("base/surviving-optical"),
         }],
     };
     let stages = vec![

@@ -1,7 +1,7 @@
 use conduit_core::{
-    authority_grant, kind_id, BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
-    PROTOCOL_VERSION,
+    authority_grant, kind_id, BaseImplementationId, BootId, HostAdvertisement, HostId,
+    HostProfileId, OfferGeneration, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    DEFAULT_CONNECTION_ITEM_CAPACITY, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -36,7 +36,7 @@ fn reminder_delivery_is_bounded_and_requires_ordinary_planned_authority() {
         &expanded.expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
@@ -69,7 +69,7 @@ fn reminder_delivery_is_bounded_and_requires_ordinary_planned_authority() {
         &expanded.expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,

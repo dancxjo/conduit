@@ -3,7 +3,7 @@
 //! Resolves the canonical `remote-toggle.conduit` against the std source and browser sink
 //! advertisements and returns the exact two-fragment plan.
 
-use conduit_core::{CapabilityId, ConnectionBase, GearId, HostAdvertisement, Plan};
+use conduit_core::{BaseImplementationId, CapabilityId, GearId, HostAdvertisement, Plan};
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_signal::signal_profile_catalog;
 use conduit_signal_conformance::{
@@ -58,7 +58,10 @@ pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> 
         &form,
         &[source_advertisement.clone(), sink_advertisement.clone()],
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         conduit_signal::TRIGGER_ENCODED_LEN,
         &[link],

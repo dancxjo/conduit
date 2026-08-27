@@ -10,7 +10,7 @@ use conduit_bluetooth::{
     MAXIMUM_BLE_GATT_PACKET_BYTES,
 };
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BootId, BaseImplementationId, BaseInstanceId, ConnectionId, FragmentId,
     HostId, KindId, LineId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
@@ -546,8 +546,9 @@ fn binding(runtime: &RuntimeTranscriptIdentity) -> Result<SessionBinding, UsbLin
         attachment: LineAttachment {
             line_id: LineId::from(planned.line_id),
             link_binding_id: LinkBindingId::from(planned.link_binding_id),
-            base: ConnectionBase::BluetoothLeGatt,
-            base_instance_id: ConnectionBaseInstanceId::from(planned.base_instance_id),
+            base: BaseImplementationId::from("conduit.base/bluetooth-le-gatt@1"),
+            contract: planned.contract,
+            base_instance_id: BaseInstanceId::from(planned.base_instance_id),
             source_host_id: source_host,
             source_boot_id: source_boot,
             source_endpoint_id: LinkEndpointId::from(planned.peer_endpoint),

@@ -300,7 +300,9 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
         &fixture.form,
         &fixture.hosts,
         &selection,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -353,7 +355,9 @@ fn safe_local_fusion_beats_unfused_and_tiny_remote_compute_gain() {
         &fixture.form,
         &fixture.hosts,
         &unfused_selection,
-        &[conduit_core::ConnectionBase::Local],
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

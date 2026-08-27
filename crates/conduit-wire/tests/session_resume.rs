@@ -1,5 +1,5 @@
 use conduit_core::{
-    bind_active_play, BootId, ConnectionBase, ConnectionBaseInstanceId, ConnectionId, FragmentId,
+    bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
     HostId, KindId, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PROTOCOL_VERSION,
 };
 use conduit_wire::{
@@ -87,8 +87,9 @@ fn binding() -> SessionBinding {
         attachment: LineAttachment {
             line_id: "line/session".into(),
             link_binding_id: LinkBindingId::from("resume/websocket"),
-            base: ConnectionBase::WebSocket,
-            base_instance_id: ConnectionBaseInstanceId::from("resume/ws-base"),
+            base: BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            contract: remote_session_contract(),
+            base_instance_id: BaseInstanceId::from("resume/ws-base"),
             source_host_id: source_host,
             source_boot_id: source_boot,
             source_endpoint_id: LinkEndpointId::from("resume/ws-source"),
@@ -105,11 +106,23 @@ fn binding() -> SessionBinding {
     }
 }
 
+fn remote_session_contract() -> conduit_core::LineContract {
+    conduit_core::LineContract {
+        scope: conduit_core::LineScope::LocalNetwork,
+        traffic_shape: conduit_core::LineTrafficShape::Message,
+        duplex: conduit_core::LineDuplex::FullDuplex,
+        ordering: conduit_core::LineOrdering::Ordered,
+        reliability: conduit_core::LineReliability::Reliable,
+        continuation: conduit_core::LineContinuation::None,
+        security: conduit_core::LineSecurity::PlaintextNetwork,
+    }
+}
+
 fn replacement_binding() -> SessionBinding {
     let mut replacement = binding();
     replacement.attachment.link_binding_id = LinkBindingId::from("resume/usb");
-    replacement.attachment.base = ConnectionBase::UsbCdc;
-    replacement.attachment.base_instance_id = ConnectionBaseInstanceId::from("resume/usb-base");
+    replacement.attachment.base = BaseImplementationId::from("conduit.base/usb-cdc-acm@1");
+    replacement.attachment.base_instance_id = BaseInstanceId::from("resume/usb-base");
     replacement.attachment.source_endpoint_id = LinkEndpointId::from("resume/usb-source");
     replacement.attachment.sink_endpoint_id = LinkEndpointId::from("resume/usb-sink");
     replacement

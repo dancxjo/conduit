@@ -12,8 +12,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    process_owned_line_offer_with_limits, BootId, ConnectionBase, HostAdvertisement, HostId,
-    LineDuplex, LineId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
+    process_owned_line_offer_with_limits, BaseImplementationId, BootId, HostAdvertisement, HostId,
+    LineId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -112,7 +112,7 @@ fn exact_body_coordination_plan_with_loss(
     let mut outbound_line = process_owned_line_offer_with_limits(
         FOREBRAIN_TO_MOTHERBRAIN_LINE,
         "pete/coordination/forebrain-to-motherbrain-binding",
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         base_instance,
         &forebrain,
         &motherbrain,
@@ -121,7 +121,7 @@ fn exact_body_coordination_plan_with_loss(
     let mut return_line = process_owned_line_offer_with_limits(
         MOTHERBRAIN_TO_FOREBRAIN_LINE,
         "pete/coordination/motherbrain-to-forebrain-binding",
-        ConnectionBase::WebSocket,
+        BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         base_instance,
         &motherbrain,
         &forebrain,
@@ -129,7 +129,6 @@ fn exact_body_coordination_plan_with_loss(
     );
     for line in [&mut outbound_line, &mut return_line] {
         line.contract.scope = LineScope::LocalNetwork;
-        line.contract.duplex = LineDuplex::Simplex;
         line.contract.security = LineSecurity::PlaintextNetwork;
     }
     match unavailable_line {
@@ -186,7 +185,10 @@ fn exact_body_coordination_plan_with_loss(
         &expanded,
         &[forebrain.clone(), motherbrain.clone()],
         &placements,
-        &[ConnectionBase::Local, ConnectionBase::WebSocket],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &line_candidates,
@@ -310,7 +312,10 @@ mod tests {
             exact.motherbrain.host_id
         );
         assert_eq!(exact.outbound_line.contract.scope, LineScope::LocalNetwork);
-        assert_eq!(exact.outbound_line.contract.duplex, LineDuplex::Simplex);
+        assert_eq!(
+            exact.outbound_line.contract.duplex,
+            conduit_core::LineDuplex::FullDuplex
+        );
         assert_eq!(
             exact.outbound_line.contract.security,
             LineSecurity::PlaintextNetwork

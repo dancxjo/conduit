@@ -1,6 +1,6 @@
 use conduit_core::{
-    BootId, CapabilityOffer, ConnectionBase, HostAdvertisement, HostId, HostProfileId, Observation,
-    ObservationKind, OfferGeneration, PortTemporal, SignId, StructuredInfoType,
+    BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId, HostProfileId,
+    Observation, ObservationKind, OfferGeneration, PortTemporal, SignId, StructuredInfoType,
     StructuredInfoValue, ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -131,7 +131,7 @@ fn five_unrelated_forms_use_exact_structured_values_and_the_same_selector_substr
             &authored.expanded,
             &[host],
             &placements,
-            &[ConnectionBase::Local],
+            &[BaseImplementationId::from("conduit.base/local@1")],
             conduit_planner::PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),

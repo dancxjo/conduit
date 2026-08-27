@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use conduit_ai::{deterministic_hybrid_retrieval_offer, install_hybrid_retrieval_catalog};
 use conduit_core::{
-    BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
+    BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -37,7 +37,7 @@ pub fn exact_hybrid_plan(policy_identity: &str, maximum_value_bytes: u32) -> con
         &expanded,
         core::slice::from_ref(&host),
         &placements,
-        &[ConnectionBase::Local],
+        &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),

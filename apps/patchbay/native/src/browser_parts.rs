@@ -382,7 +382,9 @@ fn planned_webrtc_bindings(
             let Some(line) = &connection.selected_line else {
                 continue;
             };
-            if line.binding.base != conduit_core::ConnectionBase::WebRtcDataChannel {
+            if line.binding.base
+                != conduit_core::BaseImplementationId::from("conduit.base/webrtc-data-channel@1")
+            {
                 continue;
             }
             if source.host_id != line.binding.source.host_id
