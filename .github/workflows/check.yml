@@ -26,6 +26,10 @@ jobs:
       reason: ${{ steps.changes.outputs.reason }}
       base_sha: ${{ steps.changes.outputs.base_sha }}
       head_sha: ${{ steps.changes.outputs.head_sha }}
+      esp32_required: ${{ steps.impact.outputs.esp32_required }}
+      browser_required: ${{ steps.impact.outputs.browser_required }}
+      conduitos_required: ${{ steps.impact.outputs.conduitos_required }}
+      impact_reason: ${{ steps.impact.outputs.impact_reason }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -42,10 +46,36 @@ jobs:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.changes.outputs.docs_only != 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: steps.changes.outputs.docs_only != 'true'
+        with:
+          cache-on-failure: true
+          shared-key: ci-impact-plan
+      - name: Plan exact CI impact
+        id: impact
+        if: steps.changes.outputs.docs_only != 'true'
+        env:
+          BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+          HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
+        run: >-
+          cargo xtask ci plan "$BASE_SHA" "$HEAD_SHA" --locked
+          --json-out target/ci-impact-plan.json
+          --summary-out "$GITHUB_STEP_SUMMARY"
+          >> "$GITHUB_OUTPUT"
+      - name: Retain the exact CI impact plan
+        if: steps.impact.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-impact-plan-${{ github.sha }}
+          path: target/ci-impact-plan.json
+          if-no-files-found: error
+          retention-days: 14
 
   conduitos-limine:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -91,7 +121,7 @@ jobs:
 
   conduitos-tools:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -189,7 +219,7 @@ jobs:
 
   esp32-firmware:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.esp32_required == 'true')
     runs-on: ubuntu-latest
     # A cold one-job cache population installs 1.8 GB of pinned tooling and
     # compiles three Cargo workspaces. Warm runs remain bounded by their work,
@@ -261,16 +291,22 @@ jobs:
           DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
           WORKSPACE_RESULT: ${{ needs.workspace-check.result }}
           ESP32_RESULT: ${{ needs.esp32-firmware.result }}
+          ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           test "$CLASSIFY_RESULT" = success
           if test "$DOCS_ONLY" != true; then
             test "$WORKSPACE_RESULT" = success
-            test "$ESP32_RESULT" = success
+            if test "$EVENT_NAME" != pull_request || test "$ESP32_REQUIRED" = true; then
+              test "$ESP32_RESULT" = success
+            else
+              test "$ESP32_RESULT" = skipped
+            fi
           fi
 
   browser-tools:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     container:
@@ -337,7 +373,7 @@ jobs:
 
   browser-host:
     needs: [classify, browser-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true')
     runs-on: ubuntu-24.04
     # One-job cold compilation plus evidence upload and cache post-processing
     # exceeded the old ceiling after the semantic proof had already passed.
@@ -418,7 +454,7 @@ jobs:
 
   conduitos-x86:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
@@ -501,7 +537,7 @@ jobs:
 
   conduitos-architecture:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
@@ -552,7 +588,7 @@ jobs:
 
   conduitos-aarch64-product:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -613,12 +649,20 @@ jobs:
           X86_RESULT: ${{ needs.conduitos-x86.result }}
           ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
           AARCH64_PRODUCT_RESULT: ${{ needs.conduitos-aarch64-product.result }}
+          CONDUITOS_REQUIRED: ${{ needs.classify.outputs.conduitos_required }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           test "$CLASSIFY_RESULT" = success
-          if test "$DOCS_ONLY" != true; then
+          if test "$DOCS_ONLY" != true && { test "$EVENT_NAME" != pull_request || test "$CONDUITOS_REQUIRED" = true; }; then
             test "$LIMINE_RESULT" = success
             test "$TOOLS_RESULT" = success
             test "$X86_RESULT" = success
             test "$ARCHITECTURE_RESULT" = success
             test "$AARCH64_PRODUCT_RESULT" = success
+          elif test "$DOCS_ONLY" != true; then
+            test "$LIMINE_RESULT" = skipped
+            test "$TOOLS_RESULT" = skipped
+            test "$X86_RESULT" = skipped
+            test "$ARCHITECTURE_RESULT" = skipped
+            test "$AARCH64_PRODUCT_RESULT" = skipped
           fi

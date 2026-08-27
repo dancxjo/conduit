@@ -41,3 +41,21 @@ fn dev_dependencies_do_not_leak_conduitos_into_browser() {
     let closure = dependency_closure(&packages, &suite_roots()["browser"]).unwrap();
     assert!(!closure.contains("conduitos"));
 }
+
+#[test]
+fn workflow_uses_the_plan_selectively_only_for_pull_requests() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
+
+    for output in ["esp32_required", "browser_required", "conduitos_required"] {
+        assert!(workflow.contains(&format!(
+            "{output}: ${{{{ steps.impact.outputs.{output} }}}}"
+        )));
+        assert!(workflow.contains(&format!(
+            "github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.{output} == 'true'"
+        )));
+    }
+    assert!(workflow.contains("cargo xtask ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"));
+    assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));
+    assert!(workflow.contains("name: ci-impact-plan-${{ github.sha }}"));
+}
