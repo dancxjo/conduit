@@ -35,6 +35,91 @@ fn representative_changes_select_only_owned_heavy_suites() {
 }
 
 #[test]
+fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    let docs = plan_for_paths(
+        &root,
+        vec!["docs/ci-impact-benchmark.md".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(!docs.esp32_required);
+    assert!(!docs.browser_required);
+    assert!(!docs.conduitos_required);
+    assert!(docs.workspace_shards.values().all(|required| !required));
+
+    let patchbay = plan_for_paths(
+        &root,
+        vec!["apps/patchbay/model/src/lib.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(!patchbay.esp32_required);
+    assert!(patchbay.browser_required);
+    assert!(!patchbay.conduitos_required);
+
+    let semantic = plan_for_paths(
+        &root,
+        vec!["crates/conduit-language/src/lib.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(semantic
+        .affected_test_packages
+        .contains(&"conduit-std-host".to_owned()));
+    assert!(semantic
+        .affected_test_packages
+        .contains(&"conduit".to_owned()));
+    assert!(!semantic.esp32_required);
+    assert!(semantic.browser_required);
+    assert!(!semantic.conduitos_required);
+    assert!(semantic.workspace_shards["portable"]);
+    assert!(!semantic.workspace_shards["pico"]);
+
+    let browser = plan_for_paths(
+        &root,
+        vec!["hosts/browser-runtime/src/lib.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(browser.browser_required);
+    assert!(browser.workspace_shards["portable"]);
+    assert!(!browser.esp32_required);
+    assert!(!browser.conduitos_required);
+
+    let kernel = plan_for_paths(
+        &root,
+        vec!["crates/conduit-kernel/src/lib.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(!kernel.full_fallback);
+    assert_eq!(kernel.esp32_targets.len(), ESP32_TARGETS.len());
+    assert!(kernel.browser_required);
+    assert_eq!(
+        kernel.conduitos_x86_proofs.len(),
+        CONDUITOS_X86_PROOFS.len()
+    );
+    assert_eq!(
+        kernel.conduitos_architectures.len(),
+        CONDUITOS_ARCHITECTURES.len()
+    );
+    assert!(kernel.conduitos_aarch64_product_required);
+
+    for path in ["Cargo.lock", ".github/workflows/check.yml"] {
+        let global = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert!(global.full_fallback, "{path}");
+        assert!(global.workspace_shards.values().all(|required| *required));
+    }
+
+    let unknown =
+        plan_for_paths(&root, vec!["unknown/new-input.bin".to_owned()], &packages).unwrap();
+    assert!(unknown.full_fallback);
+}
+
+#[test]
 fn dev_dependencies_do_not_leak_conduitos_into_browser() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
