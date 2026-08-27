@@ -361,7 +361,7 @@ mod tests {
                 role_id: ResourceBindingRoleId::from(role),
                 host_id: host.advertisement().host_id.clone(),
                 boot_id: host.advertisement().boot_id.clone(),
-                capability_id: CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY),
+                capability_id: CapabilityId::from(conduit_std_offers::COPY_FILE_CAPABILITY),
                 access,
                 maximum_bytes: 64,
                 commit_policy: policy,

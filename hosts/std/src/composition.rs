@@ -262,8 +262,8 @@ pub(super) fn build_advertisement(
     }
     if composition.files {
         capabilities.extend([
-            conduit_std_catalog::copy_file_offer(),
-            conduit_std_catalog::copy_result_presentation_offer(),
+            conduit_std_offers::copy_file_offer(),
+            conduit_std_offers::copy_result_presentation_offer(),
         ]);
     }
     if composition.external_websocket {

@@ -18,6 +18,7 @@ conduit-presentation = { path = "../../../crates/conduit-presentation" }
 conduit-std-catalog = { path = "../../../crates/conduit-std-catalog", features = ["form-catalog"] }
 conduit-text = { path = "../../../crates/conduit-text", default-features = false }
 conduit-std-host = { path = "../../../hosts/std" }
+conduit-std-offers = { path = "../../../hosts/std/offers" }
 conduit-system-continuity = { path = "../../../crates/conduit-system-continuity" }
 conduit-wire = { path = "../../../crates/conduit-wire" }
 embedded-graphics = "=0.8.1"

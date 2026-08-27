@@ -77,7 +77,7 @@ fn application_adapters_share_the_fresh_advertised_host_identity() {
     assert_eq!(file_boot, &advertised.boot_id);
     assert_eq!(
         advertised.capabilities.iter().any(|offer| {
-            offer.capability_id.as_str() == conduit_std_catalog::COPY_FILE_CAPABILITY
+            offer.capability_id.as_str() == conduit_std_offers::COPY_FILE_CAPABILITY
         }),
         application.file_task.base_available()
     );

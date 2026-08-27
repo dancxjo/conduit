@@ -286,7 +286,7 @@ fn prepare(arguments: &Arguments) -> Result<PreparedTask, String> {
     let mut host = StdHost::new();
     let mut registry = ProtectedFileRegistry::default();
     let gear_id = GearId::from("copy-task/task");
-    let capability_id = CapabilityId::from(conduit_std_catalog::COPY_FILE_CAPABILITY);
+    let capability_id = CapabilityId::from(conduit_std_offers::COPY_FILE_CAPABILITY);
     let source = registry.register(
         ResourceHandleId::from("copy/source-choice"),
         &arguments.source,

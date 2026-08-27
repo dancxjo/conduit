@@ -30,7 +30,7 @@ impl CopyOperation {
         OperationAction::RequestHostOperation {
             request,
             operation: HostOperationId(0),
-            input: BoundedValueRef::new(self.command, conduit_std_catalog::COPY_COMMAND_BYTES)
+            input: BoundedValueRef::new(self.command, conduit_std_offers::COPY_COMMAND_BYTES)
                 .expect("copy command has one admitted byte"),
         }
     }

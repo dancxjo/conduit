@@ -4,27 +4,17 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, protected_resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
     StructuredInfoType, StructuredVariantCase,
 };
 
 pub const COPY_FILE_KIND: &str = "file/copy";
 pub const COPY_FILE_CONTRACT_REVISION: &str = "conduit.std/file-copy@1";
-pub const COPY_FILE_EXECUTION_PROFILE: &str = "conduit.std/file-copy-kernel-hosted@1";
-pub const COPY_FILE_IMPLEMENTATION: &str = "std/kernel-file-copy@1";
-pub const COPY_FILE_ARTIFACT: &str = "conduit-std-host/file-copy@1";
-pub const COPY_FILE_CAPABILITY: &str = "file-copy-v1";
-pub const COPY_FILE_HOST_OPERATION_CONTRACT: &str = "conduit.host/file-copy-step@1";
 pub const PROTECTED_FILE_RESOURCE_CLASS: &str = "conduit.resource/protected-file@1";
 pub const COPY_SOURCE_ROLE: &str = "source";
 pub const COPY_DESTINATION_ROLE: &str = "destination";
 pub const COPY_CHUNK_BYTES: u32 = 4_096;
-pub const COPY_COMMAND_BYTES: u32 = 1;
 pub const COPY_RESULT_TYPE: &str = "FileCopyResult";
-pub const COPY_RESULT_PRESENTATION_IMPLEMENTATION: &str =
-    "std/kernel-file-copy-result-presentation@1";
 
 pub fn copy_result_type() -> StructuredInfoType {
     let quantity = StructuredInfoType::leaf(kind_id(conduit_core::QUANTITY_INFO_ID)).unwrap();
@@ -111,48 +101,6 @@ pub fn copy_file_contract() -> StandardKindContract {
     }
 }
 
-pub fn copy_file_offer() -> CapabilityOffer {
-    let contract = copy_file_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(COPY_FILE_CAPABILITY),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(COPY_FILE_CONTRACT_REVISION),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(COPY_FILE_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(COPY_FILE_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(COPY_FILE_HOST_OPERATION_CONTRACT),
-            target_kind: Some(kind_id(COPY_FILE_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: COPY_COMMAND_BYTES,
-            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: vec![
-            protected_resource_requirement(COPY_DESTINATION_ROLE, PROTECTED_FILE_RESOURCE_CLASS, 1),
-            protected_resource_requirement(COPY_SOURCE_ROLE, PROTECTED_FILE_RESOURCE_CLASS, 1),
-        ],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
-}
-
-pub fn copy_result_presentation_offer() -> CapabilityOffer {
-    let mut offer = crate::structured_presentation_std_offer(COPY_RESULT_TYPE, &copy_result_type());
-    offer.capability_id = CapabilityId::from("std-file-copy-result-presentation");
-    offer.implementation.execution_profile_id =
-        ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE);
-    offer.implementation.implementation_id =
-        ImplementationId::from(COPY_RESULT_PRESENTATION_IMPLEMENTATION);
-    offer.implementation.artifact_id = ArtifactId::from(COPY_FILE_ARTIFACT);
-    offer
-}
-
 #[cfg(feature = "form-catalog")]
 pub fn install_copy_file_catalog(catalog: &mut conduit_form::ProfileCatalog) -> Result<(), String> {
     for definition in [
@@ -178,36 +126,4 @@ pub fn install_copy_file_catalog(catalog: &mut conduit_form::ProfileCatalog) -> 
             .map_err(|error| error.to_string())?;
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn copy_offer_requires_two_named_protected_files_and_one_bounded_step() {
-        let offer = copy_file_offer();
-        assert!(offer.inputs.is_empty());
-        assert_eq!(offer.outputs.len(), 1);
-        assert_eq!(offer.resource_requirements.len(), 2);
-        assert_eq!(
-            offer.resource_requirements[0]
-                .protected_role
-                .as_ref()
-                .map(|role| role.as_str()),
-            Some(COPY_DESTINATION_ROLE)
-        );
-        assert_eq!(
-            offer.resource_requirements[1]
-                .protected_role
-                .as_ref()
-                .map(|role| role.as_str()),
-            Some(COPY_SOURCE_ROLE)
-        );
-        assert_eq!(offer.host_operations[0].maximum_input_bytes, 1);
-        assert_eq!(
-            offer.host_operations[0].maximum_output_bytes,
-            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-        );
-    }
 }
