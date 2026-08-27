@@ -308,7 +308,7 @@ pub(crate) fn test_catalog() -> FabricationCatalog {
 }
 
 fn test_catalog_metadata() -> PackageCatalogContribution {
-    let mut implementations = conduit_std_catalog::supported_nucleus_offers()
+    let mut implementations = conduit_std_offers::supported_nucleus_offers()
         .into_iter()
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();

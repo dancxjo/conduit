@@ -52,15 +52,15 @@ fn deadband_scale_and_clamp_execute_together_through_the_production_kernel() {
     for (kind, implementation) in [
         (
             conduit_std_catalog::MATH_DEADBAND_KIND,
-            conduit_std_catalog::MATH_DEADBAND_IMPLEMENTATION,
+            conduit_std_offers::MATH_DEADBAND_IMPLEMENTATION,
         ),
         (
             conduit_std_catalog::MATH_SCALE_KIND,
-            conduit_std_catalog::MATH_SCALE_IMPLEMENTATION,
+            conduit_std_offers::MATH_SCALE_IMPLEMENTATION,
         ),
         (
             conduit_std_catalog::MATH_CLAMP_KIND,
-            conduit_std_catalog::MATH_CLAMP_IMPLEMENTATION,
+            conduit_std_offers::MATH_CLAMP_IMPLEMENTATION,
         ),
     ] {
         let placement = fragment

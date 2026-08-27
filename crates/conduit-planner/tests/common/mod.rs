@@ -27,7 +27,7 @@ pub fn standard_planning_fixture(
             ),
         ],
         planner_capabilities: Vec::new(),
-        capabilities: conduit_std_catalog::supported_nucleus_offers(),
+        capabilities: conduit_std_offers::supported_nucleus_offers(),
     }
 }
 

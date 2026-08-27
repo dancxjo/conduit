@@ -46,6 +46,7 @@ members = [
 	"apps/patchbay/hosted",
 	"apps/patchbay/native",
 	"hosts/std",
+	"hosts/std/offers",
 	"targets/rp2040/fabrication",
 	"targets/rp2040/network-realization",
 	"hosts/std/fabrication-package",
