@@ -2,18 +2,18 @@ use conduit_core::{
     BootId, ConnectionBase, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PortTemporal, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
 };
+use conduit_data::{
+    add_money, add_money_values, compare_money, compare_money_values, convert_money,
+    convert_money_values, decode_money_value, deterministic_finance_fixture,
+    deterministic_rate_observation, install_finance_catalogs, Currency, FinanceRefusal,
+    FixedDecimal, Money, FINANCE_ADD_KIND, FINANCE_COMPARE_KIND, FINANCE_CONVERT_KIND,
+    FINANCE_FIXED_DECIMAL_INFO_ID, FINANCE_FIXTURE_KIND, FINANCE_MAXIMUM_DECIMAL_SCALE,
+};
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
-    add_money, add_money_values, compare_money, compare_money_values, convert_money,
-    convert_money_values, decode_money_value, deterministic_finance_fixture,
-    deterministic_rate_observation, finance_std_offers, install_finance_catalogs, Currency,
-    FinanceRefusal, FixedDecimal, Money, FINANCE_ADD_KIND, FINANCE_COMPARE_KIND,
-    FINANCE_CONVERT_KIND, FINANCE_FIXED_DECIMAL_INFO_ID, FINANCE_FIXTURE_KIND,
-    FINANCE_HOST_OPERATION, FINANCE_MAXIMUM_DECIMAL_SCALE,
-};
+use conduit_std_host::hosted_data::{finance_std_offers, FINANCE_HOST_OPERATION};
 use core::cmp::Ordering;
 
 const SOURCE: &str = include_str!("../../../examples/money-quote.conduit");

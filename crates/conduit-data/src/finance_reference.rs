@@ -1,4 +1,4 @@
-//! Deterministic finance fixtures and structured exact-money operations.
+//! Deterministic reference finance fixtures and structured exact-money operations.
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
@@ -7,7 +7,7 @@ use conduit_core::{
 };
 use core::cmp::Ordering;
 
-use super::finance::*;
+use crate::finance::*;
 
 pub struct FinanceFixture {
     pub convertible: StructuredInfoValue,
